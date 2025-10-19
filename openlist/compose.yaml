@@ -1,0 +1,15 @@
+# docker-compose.yml
+services:
+  openlist:
+    image: "${IMAGE_REPOSITORY:-docker.io}/openlistteam/openlist:${SERVER_VERSION:-latest}"
+    user: '0:0' # Please replace `0:0` with the actual user ID and group ID you want to use to run OpenList.
+    volumes:
+      - 'data:/opt/openlist/data'
+    ports:
+      - '127.0.0.1:32345:5244'
+    environment:
+      - UMASK=022
+    restart: unless-stopped
+volumes:
+  data:
+    name: "openlist_data"

@@ -1,0 +1,36 @@
+services:
+  # Synapse Homeserver
+  server:
+    image: "${IMAGE_REPOSITORY:-docker.io}/matrixdotorg/synapse:${SERVER_VERSION:-latest}"
+    restart: unless-stopped
+    volumes:
+      # 将生成的配置文件和数据挂载进来
+      - server_data:/data
+    depends_on:
+      - database
+    ports:
+      # 将8008端口暴露给内网或反向代理
+      - 127.0.0.1:8008:8008
+      # 如果不使用反向代理，需要暴露给公网
+      # - "8008:8008" 
+      # - "8448:8448" # Federation port if needed
+    environment:
+      # 确保这里的时区和你的服务器一致
+      - TZ=UTC
+  # PostgreSQL Database
+  database:
+    image: postgres:14-alpine
+    restart: unless-stopped
+    volumes:
+      # 数据库持久化存储
+      - database_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=synapse
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD} # !!! 修改为一个强密码 !!!
+      - POSTGRES_DB=synapse
+      - POSTGRES_INITDB_ARGS=--encoding='UTF8' --lc-collate='C' --lc-ctype='C'
+volumes:
+  server_data:
+    name: "synapse_server_data"
+  database_data:
+    name: "synapse_database_data"

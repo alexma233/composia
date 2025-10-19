@@ -1,0 +1,16 @@
+services:
+  minio:
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:19000:9000
+      - 127.0.0.1:19001:19001
+    volumes:
+      - data:/data
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    image: "${IMAGE_REPOSITORY:-quay.io}/minio/minio:${SERVER_VERSION:-latest}"
+    command: server /data --console-address ":19001"
+volumes:
+  data:
+    name: "minio_data"

@@ -1,0 +1,22 @@
+version: 0.1
+log:
+  fields:
+    service: registry
+storage:
+  filesystem:
+    rootdirectory: /mnt # 存放Docker Hub缓存
+http:
+  addr: :13904 # 内部端口，容器内的Registry监听端口
+proxy:
+  remoteurl: https://registry-1.docker.io # Docker Hub的实际Registry地址
+# 可选：如果需要代理Docker Hub的私有镜像并提供认证
+# auth:
+#   token:
+#     realm: https://auth.docker.io/token
+#     service: registry.docker.io
+# credentials:
+#   # 最好使用环境变量而不是明文密码
+#   basic:
+#     username: your_docker_hub_username
+#     password: your_docker_hub_password_or_pat
+#     # 或者使用htpasswd文件等更安全的认证方式

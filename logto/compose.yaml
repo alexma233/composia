@@ -1,0 +1,39 @@
+services:
+  server:
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    image: "${IMAGE_REPOSITORY:-docker.io}/lsvhd/logto:${SERVER_VERSION:-latest}"
+    entrypoint:
+      - sh
+      - -c
+      - npm run cli db seed -- --swe && npm start
+      # - npx @logto/cli db alteration deploy 1.31.0
+    ports:
+      - 127.0.0.1:3001:3001
+      - 127.0.0.1:3002:3002
+    environment:
+      - TRUST_PROXY_HEADER=1
+      - DB_URL=${DATABASE_URL}
+      - ENDPOINT=${ENDPOINT}
+      - ADMIN_ENDPOINT=${ADMIN_ENDPOINT}
+  database:
+    restart: unless-stopped
+    image: library/postgres:17-alpine
+    user: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - database_data:/var/lib/postgresql/data
+volumes:
+  database_data:
+    name: "logto_database_data"

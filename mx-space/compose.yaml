@@ -1,0 +1,64 @@
+services:
+  server:
+    image: "${IMAGE_REPOSITORY:-docker.io}/innei/mx-server:${SERVER_VERSION:-latest}"
+    environment:
+      - TZ=Asia/Shanghai
+      - NODE_ENV=production
+      - DB_HOST=database
+      - REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - ENCRYPT_ENABLE=${ENCRYPT_ENABLE}
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+    volumes:
+      - server_data:/root/.mx-space
+    ports:
+      - 127.0.0.1:2333:2333
+    depends_on:
+      - database
+      - redis
+    networks:
+      - mx-space
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://127.0.0.1:2333/api/v2/ping
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+  database:
+    image: library/mongo
+    volumes:
+      - database_data:/data/db
+    networks:
+      - mx-space
+    restart: unless-stopped
+  redis:
+    image: library/redis:alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - redis-cli ping | grep PONG
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 3s
+    networks:
+      - mx-space
+    restart: unless-stopped
+networks:
+  mx-space:
+    driver: bridge
+volumes:
+  server_data:
+    name: "mx_space_server_data"
+  database_data:
+    name: "mx_space_database_data"
+  redis_data:
+    name: "mx_space_redis_data"

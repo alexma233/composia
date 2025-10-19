@@ -1,0 +1,37 @@
+---
+services:
+  server:
+    image: "${IMAGE_REPOSITORY:-ghcr.io}/umami-software/umami:postgresql-${SERVER_VERSION:-latest}"
+    ports:
+      - "127.0.0.1:38292:3000"
+    environment:
+      DATABASE_URL: postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@database:5432/umami
+      DATABASE_TYPE: postgresql
+      APP_SECRET: ${APP_SECRET}
+    depends_on:
+      database:
+        condition: service_healthy
+    init: true
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:3000/api/heartbeat"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  database:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: ${DATABASE_USER-umami}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - database_data:/var/lib/postgresql/data
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+volumes:
+  database_data:
+    name: "umami_database_data"

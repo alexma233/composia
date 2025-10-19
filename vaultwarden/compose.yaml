@@ -1,0 +1,14 @@
+services:
+  vaultwarden:
+    image: "${IMAGE_REPOSITORY:-docker.io}/vaultwarden/server:${SERVER_VERSION:-latest}"
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN}
+      ADMIN_TOKEN: ${ADMIN_TOKEN}
+    volumes:
+      - data:/data/
+    ports:
+      - 127.0.0.1:10380:80
+volumes:
+  data:
+    name: "vaultwarden_data"

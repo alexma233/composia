@@ -1,0 +1,8 @@
+services:
+  registry:
+    ports:
+      - 127.0.0.1:13904:13904
+    volumes:
+      - ./config-docker-hub.yml:/etc/docker/registry/config.yml
+    restart: unless-stopped
+    image: registry:2

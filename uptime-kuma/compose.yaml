@@ -1,0 +1,11 @@
+services:
+  uptime-kuma:
+    image: "${IMAGE_REPOSITORY:-docker.io}/louislam/uptime-kuma:${SERVER_VERSION:-latest}"
+    volumes:
+      - data:/app/data
+    ports:
+      - 127.0.0.1:42121:3001
+    restart: always
+volumes:
+  data:
+    name: "uptime_kuma_data"

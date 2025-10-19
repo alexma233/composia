@@ -1,0 +1,13 @@
+services:
+  filecodebox:
+    restart: unless-stopped
+    image: "${IMAGE_REPOSITORY:-docker.io}/lanol/filecodebox:${SERVER_VERSION:-latest}"
+
+    environment: []
+    ports:
+      - 127.0.0.1:12345:12345
+    volumes:
+      - data:/app/data
+volumes:
+  data: 
+    name: "filecodebox_data"

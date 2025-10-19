@@ -1,0 +1,8 @@
+services:
+  element-web:
+    image: "${IMAGE_REPOSITORY:-docker.io}/vectorim/element-web:${SERVER_VERSION:-latest}"
+    restart: unless-stopped
+    volumes:
+      - ./config.json:/app/config.json:ro
+    ports:
+      - 127.0.0.1:49234:80

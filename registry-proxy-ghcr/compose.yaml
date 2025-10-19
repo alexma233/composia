@@ -1,0 +1,8 @@
+services:
+  registry:
+    ports:
+      - 127.0.0.1:23453:23453
+    volumes:
+      - ./config-ghcr.io.yml:/etc/docker/registry/config.yml
+    restart: unless-stopped
+    image: registry:2

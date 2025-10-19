@@ -1,0 +1,18 @@
+version: 0.1
+log:
+  fields:
+    service: registry
+storage:
+  filesystem:
+    rootdirectory: /mnt # 存放ghcr.io缓存
+http:
+  addr: :23453 # 内部端口，容器内的Registry监听端口
+proxy:
+  remoteurl: https://ghcr.io # ghcr.io的Registry地址
+# 可选：如果需要代理ghcr.io的私有镜像并提供认证（通常使用PAT）
+# credentials:
+#   # 最好使用环境变量而不是明文密码
+#   basic:
+#     username: your_github_username
+#     password: your_github_pat
+#     # 或者使用htpasswd文件等更安全的认证方式
