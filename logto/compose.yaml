@@ -4,7 +4,7 @@ services:
     depends_on:
       database:
         condition: service_healthy
-    image: "${IMAGE_REPOSITORY:-docker.io}/lsvhd/logto:${SERVER_VERSION:-latest}"
+    image: "${IMAGE_REPOSITORY:-docker.io}/svhd/logto:${SERVER_VERSION:-latest}"
     entrypoint:
       - sh
       - -c
