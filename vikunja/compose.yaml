@@ -1,6 +1,8 @@
 services:
   server:
     image: "${IMAGE_REPOSITORY:-docker.io}/vikunja/vikunja:${SERVER_VERSION:-latest}"
+    networks:
+      - vikunja-net
     environment:
       VIKUNJA_SERVICE_PUBLICURL: ${URL}
       VIKUNJA_DATABASE_HOST: database
@@ -19,6 +21,8 @@ services:
     restart: unless-stopped
   database:
     image: postgres:17
+    networks:
+      - vikunja-net
     environment:
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRES_USER: vikunja
@@ -35,3 +39,6 @@ volumes:
     name: "vikunja_server_files"
   database_data:
     name: "vikunja_database_data"
+networks:
+  vikunja-net:
+    name: vikunja-net
