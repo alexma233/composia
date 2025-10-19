@@ -3,6 +3,8 @@ services:
   server:
     image: "${IMAGE_REPOSITORY:-docker.io}/matrixdotorg/synapse:${SERVER_VERSION:-latest}"
     restart: unless-stopped
+    networks:
+      - synapse-net
     volumes:
       # 将生成的配置文件和数据挂载进来
       - server_data:/data
@@ -21,6 +23,8 @@ services:
   database:
     image: postgres:14-alpine
     restart: unless-stopped
+    networks:
+      - synapse-net
     volumes:
       # 数据库持久化存储
       - database_data:/var/lib/postgresql/data
@@ -34,3 +38,6 @@ volumes:
     name: "synapse_server_data"
   database_data:
     name: "synapse_database_data"
+networks:
+  synapse-net:
+    name: synapse-net
