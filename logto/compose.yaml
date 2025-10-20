@@ -4,6 +4,8 @@ services:
     depends_on:
       database:
         condition: service_healthy
+    networks:
+      - logto-net
     image: "${IMAGE_REPOSITORY:-docker.io}/svhd/logto:${SERVER_VERSION:-latest}"
     entrypoint:
       - sh
@@ -22,6 +24,8 @@ services:
     restart: unless-stopped
     image: library/postgres:17-alpine
     user: postgres
+    networks:
+      - logto-net
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
@@ -37,3 +41,6 @@ services:
 volumes:
   database_data:
     name: "logto_database_data"
+networks:
+  logto-net:
+   name: "logto-net"
