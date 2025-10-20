@@ -7,7 +7,9 @@ services:
       - "certs:/app/cert"
     tty: true
     restart: unless-stopped
-    network_mode: host
+    ports:
+      - 15621:15621/udp #hy2
+      - 127.0.0.1:2095:2095
     entrypoint: "./entrypoint.sh"
 volumes:
   data:
