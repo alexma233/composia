@@ -3,6 +3,7 @@ services:
     image: "${IMAGE_REPOSITORY:-docker.io}/openlistteam/openlist:${SERVER_VERSION:-latest}"
     volumes:
       - 'data:/opt/openlist/data'
+      - 'files:/files'
     ports:
       - '127.0.0.1:32345:5244'
     environment:
@@ -11,3 +12,5 @@ services:
 volumes:
   data:
     name: "openlist_data"
+  files:
+    name: "openlist_files"
