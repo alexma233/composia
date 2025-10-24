@@ -1,11 +1,11 @@
 services:
   s-ui:
     image: "${IMAGE_REPOSITORY:-docker.io}/alireza7/s-ui:${SERVER_VERSION:-latest}"
-    hostname: "s-ui"
+    # hostname: "s-ui"
     volumes:
       - "data:/app/db"
       - "certs:/app/cert"
-    tty: true
+    # tty: true
     restart: unless-stopped
     ports:
       - 15621:15621/udp #hy2
