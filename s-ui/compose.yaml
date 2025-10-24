@@ -1,6 +1,6 @@
 services:
   s-ui:
-    image: "${IMAGE_REPOSITORY:-docker.io}/alireza7/s-ui:${SERVER_VERSION:-latest}"
+    image: "s-ui:local"
     hostname: "s-ui"
     volumes:
       - "data:/app/db"
