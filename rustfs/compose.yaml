@@ -7,14 +7,19 @@ services:
       - "127.0.0.1:9000:9000"
       - "127.0.0.1:9001:9001"
     environment:
+      - RUSTFS_ADDRESS=0.0.0.0:9000
+      - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001
       - RUSTFS_CONSOLE_ENABLE=true
       - RUSTFS_ACCESS_KEY=${CONSOLE_USERNAME:-rustfsadmin}
       - RUSTFS_SECRET_KEY=${CONSOLE_PASSWORD:-rustfsadmin}
     volumes:
       - data:/data
-    command: >
-      --console-enable
-      /data
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -f http://localhost:9000/health && curl -f http://localhost:9001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   data:
