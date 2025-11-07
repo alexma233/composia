@@ -1,0 +1,15 @@
+services:
+  rustfs:
+    image: "${IMAGE_REPOSITORY:-docker.io}/rustfs/rustfs:${SERVER_VERSION:-latest}"
+    container_name: rustfs
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    environment:
+      - RUSTFS_CONSOLE_ENABLE=true
+    volumes:
+      - /mnt/data:/data
+    command: >
+      --console-enable
+      /data
