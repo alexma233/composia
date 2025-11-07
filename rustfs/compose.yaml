@@ -11,7 +11,11 @@ services:
       - RUSTFS_ACCESS_KEY=${CONSOLE_USERNAME:-rustfsadmin}
       - RUSTFS_SECRET_KEY=${CONSOLE_PASSWORD:-rustfsadmin}
     volumes:
-      - /mnt/data:/data
+      - data:/data
     command: >
       --console-enable
       /data
+
+volumes:
+  data:
+    name: "rustfs_data"
