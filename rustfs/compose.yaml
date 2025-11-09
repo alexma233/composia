@@ -21,7 +21,7 @@ services:
       retries: 3
       start_period: 40s
     networks:
-      - img-stack
+      - rustfs-network
 
 networks:
   rustfs-network:    # 由第一个 compose 自动创建
