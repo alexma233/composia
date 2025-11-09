@@ -1,0 +1,8 @@
+services:
+  openlist:
+    image: "${IMAGE_REPOSITORY:-ghcr.io}/imgproxy/imgproxy:${SERVER_VERSION:-latest}"
+    ports:
+      - '127.0.0.1:37916:8080'
+    env_file:
+      - .env
+    restart: unless-stopped
