@@ -157,3 +157,20 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+# Local runtime state
+bin/
+state/
+repo/
+agent-repo/
+
+# Bun / SvelteKit
+bun.lockb
+web/.svelte-kit/
+web/build/
+web/.vercel/
+
+# Editors and local files
+.idea/
+.vscode/
+.DS_Store
+config.local.yaml

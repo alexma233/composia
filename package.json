@@ -1,0 +1,13 @@
+{
+  "name": "composia",
+  "private": true,
+  "workspaces": [
+    "web"
+  ],
+  "scripts": {
+    "dev:web": "bun run --cwd web dev",
+    "build:web": "bun run --cwd web build",
+    "check:web": "bun run --cwd web check",
+    "format:web": "bun run --cwd web format"
+  }
+}
