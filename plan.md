@@ -505,6 +505,301 @@ backup:
 - 定时触发的任务如果遇到服务冲突，不排队等待。
 - 此类任务标记为 `cancelled`，用于表示“已触发但未执行”。
 
+---
+
+### 10.2 SQLite 模型（v1 正式规范）
+
+设计约束：
+
+- SQLite 只保存结构化状态和历史记录，不保存 Git 声明真相源。
+- 节点配置真相源仍然是 `main.config.yaml`，数据库中的节点信息只作为运行态快照。
+- 详细任务日志仍然落在 `main.log_dir` 文件中，不写入 SQLite。
+- `v1` 历史默认永久保留，不做自动清理。
+- 主键默认使用字符串 ID。
+- 时间字段统一使用 UTC RFC3339 文本。
+- 枚举值由代码常量和文档约定维护；数据库直接存文本值，必要时可加 `CHECK` 约束。
+- 能加外键的地方尽量加外键。
+
+#### 核心表
+
+`nodes`
+
+用途：保存节点运行态快照，而不是节点配置真相源。
+
+建议字段：
+
+- `node_id` TEXT PRIMARY KEY
+- `is_online` INTEGER NOT NULL
+- `last_heartbeat` TEXT
+- `agent_version` TEXT
+
+说明：
+
+- `node_id` 必须对应 `main.nodes[]` 中的节点 ID。
+- `is_online` 由 `main` 根据最近心跳计算并刷新。
+- 节点公网 IP、token、display_name、enabled 等配置仍以 `config.yaml` 为准，不要求冗余写入 SQLite。
+
+`services`
+
+用途：保存服务的最小运行态摘要，不复制完整 repo 配置。
+
+建议字段：
+
+- `service_name` TEXT PRIMARY KEY
+- `runtime_status` TEXT NOT NULL
+- `last_task_id` TEXT
+- `updated_at` TEXT NOT NULL
+
+外键：
+
+- `last_task_id` -> `tasks.task_id`
+
+说明：
+
+- `service_name` 对应 `composia-meta.yaml` 中的 `name`。
+- `runtime_status` 在 `v1` 固定为：`running`、`stopped`、`error`、`unknown`。
+- `services` 表在 Git 解析完成后刷新服务存在性，在任务结束后刷新运行态和最近任务。
+
+`tasks`
+
+用途：保存任务实例和执行结果，是任务队列和历史列表的主表。
+
+建议字段：
+
+- `task_id` TEXT PRIMARY KEY
+- `type` TEXT NOT NULL
+- `source` TEXT NOT NULL
+- `triggered_by` TEXT
+- `service_name` TEXT
+- `node_id` TEXT
+- `status` TEXT NOT NULL
+- `params_json` TEXT
+- `log_path` TEXT
+- `attempt_of_task_id` TEXT
+- `created_at` TEXT NOT NULL
+- `started_at` TEXT
+- `finished_at` TEXT
+- `error_summary` TEXT
+
+外键：
+
+- `service_name` -> `services.service_name`
+- `node_id` -> `nodes.node_id`
+- `attempt_of_task_id` -> `tasks.task_id`
+
+说明：
+
+- `task_id` 每次触发都新建，不复用。
+- `type` 在 `v1` 先支持：`deploy`、`stop`、`restart`、`update`、`backup`、`migrate`、`dns_update`、`caddy_reload`。
+- `status` 在 `v1` 固定为：`pending`、`running`、`succeeded`、`failed`、`cancelled`。
+- `source` 在 `v1` 先支持：`web`、`cli`、`schedule`、`system`。
+- `triggered_by` 只记录来源名。
+- `params_json` 用于保存调用参数快照，例如 `backup.job_names`。
+- `log_path` 记录该任务在 `main.log_dir` 下对应的日志文件路径。
+- `attempt_of_task_id` 用于关联“重试来源任务”。
+
+`task_steps`
+
+用途：保存任务内部步骤摘要。
+
+建议字段：
+
+- `task_id` TEXT NOT NULL
+- `step_name` TEXT NOT NULL
+- `status` TEXT NOT NULL
+- `started_at` TEXT
+- `finished_at` TEXT
+
+主键与外键：
+
+- PRIMARY KEY (`task_id`, `step_name`)
+- `task_id` -> `tasks.task_id`
+
+说明：
+
+- 一个任务内部只记录步骤摘要，不单独落步骤日志。
+- `step_name` 在 `v1` 使用固定枚举，例如：`render`、`pull`、`backup`、`compose_down`、`compose_up`、`transfer`、`dns_update`、`caddy_reload`、`finalize`。
+- `status` 与 `tasks.status` 使用同一套枚举：`pending`、`running`、`succeeded`、`failed`、`cancelled`。
+
+`backups`
+
+用途：保存每个 backup job 的结果产物记录，而不是只依附在任务日志里。
+
+建议字段：
+
+- `backup_id` TEXT PRIMARY KEY
+- `task_id` TEXT NOT NULL
+- `service_name` TEXT NOT NULL
+- `job_name` TEXT NOT NULL
+- `status` TEXT NOT NULL
+- `started_at` TEXT NOT NULL
+- `finished_at` TEXT
+- `artifact_ref` TEXT
+- `error_summary` TEXT
+
+外键：
+
+- `task_id` -> `tasks.task_id`
+- `service_name` -> `services.service_name`
+
+说明：
+
+- 一个 `backup` 任务可以生成多条 `backups` 记录，每个 job 一条。
+- `status` 与 `tasks.status` 使用同一套枚举。
+- 无论成功还是失败，backup job 都应落一条记录。
+- `artifact_ref` 用于保存 provider 返回的产物引用，例如 rustic snapshot ID。
+
+#### 刷新时机
+
+- `nodes`：agent 心跳上报后刷新。
+- `services`：Git 解析完成后刷新服务存在性；任务结束后刷新 `runtime_status`、`last_task_id`、`updated_at`。
+- `tasks`：任务创建、开始、结束时更新。
+- `task_steps`：步骤开始和结束时更新。
+- `backups`：backup job 结束时写入或更新。
+
+#### 最小 DDL 草案
+
+```sql
+CREATE TABLE nodes (
+  node_id TEXT PRIMARY KEY,
+  is_online INTEGER NOT NULL,
+  last_heartbeat TEXT,
+  agent_version TEXT
+);
+
+CREATE TABLE services (
+  service_name TEXT PRIMARY KEY,
+  runtime_status TEXT NOT NULL,
+  last_task_id TEXT,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (last_task_id) REFERENCES tasks(task_id)
+);
+
+CREATE TABLE tasks (
+  task_id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  source TEXT NOT NULL,
+  triggered_by TEXT,
+  service_name TEXT,
+  node_id TEXT,
+  status TEXT NOT NULL,
+  params_json TEXT,
+  log_path TEXT,
+  attempt_of_task_id TEXT,
+  created_at TEXT NOT NULL,
+  started_at TEXT,
+  finished_at TEXT,
+  error_summary TEXT,
+  FOREIGN KEY (service_name) REFERENCES services(service_name),
+  FOREIGN KEY (node_id) REFERENCES nodes(node_id),
+  FOREIGN KEY (attempt_of_task_id) REFERENCES tasks(task_id)
+);
+
+CREATE TABLE task_steps (
+  task_id TEXT NOT NULL,
+  step_name TEXT NOT NULL,
+  status TEXT NOT NULL,
+  started_at TEXT,
+  finished_at TEXT,
+  PRIMARY KEY (task_id, step_name),
+  FOREIGN KEY (task_id) REFERENCES tasks(task_id)
+);
+
+CREATE TABLE backups (
+  backup_id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL,
+  service_name TEXT NOT NULL,
+  job_name TEXT NOT NULL,
+  status TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  finished_at TEXT,
+  artifact_ref TEXT,
+  error_summary TEXT,
+  FOREIGN KEY (task_id) REFERENCES tasks(task_id),
+  FOREIGN KEY (service_name) REFERENCES services(service_name)
+);
+```
+
+---
+
+### 10.3 SQLite 索引设计（v1）
+
+设计原则：
+
+- `v1` 只建立最小必需索引，不提前为假设查询过度优化。
+- 索引围绕已确认的 Web UI / CLI 查询场景设计。
+- 主键和唯一约束天然提供的索引不重复创建。
+- 节点数量预计较少，`nodes` 表在 `v1` 不额外建立辅助索引。
+
+核心查询场景：
+
+- 任务历史页：最近任务列表、失败任务筛选、按服务筛选任务。
+- 服务详情页：查看某服务最近任务、最近失败任务。
+- 备份状态页：查看某服务最近备份、查看失败备份。
+- 节点详情页：查看某节点相关任务历史。
+- 服务列表页：按 `runtime_status` 过滤服务。
+- 任务详情页：按 `task_id` 读取全部步骤。
+
+推荐索引：
+
+`tasks`
+
+- `idx_tasks_created_at` on (`created_at` DESC)
+  用于最近任务列表和默认倒序分页。
+- `idx_tasks_status_created_at` on (`status`, `created_at` DESC)
+  用于失败任务排查和按状态过滤。
+- `idx_tasks_service_created_at` on (`service_name`, `created_at` DESC)
+  用于服务详情页查看任务历史。
+- `idx_tasks_node_created_at` on (`node_id`, `created_at` DESC)
+  用于节点详情页查看该节点任务历史。
+
+`services`
+
+- `idx_services_runtime_status` on (`runtime_status`)
+  用于服务列表页按运行状态筛选。
+
+`task_steps`
+
+- 不额外建立辅助索引。
+- 原因：`PRIMARY KEY (task_id, step_name)` 已足够覆盖“按 `task_id` 读取步骤”的主要查询。
+
+`backups`
+
+- `idx_backups_service_finished_at` on (`service_name`, `finished_at` DESC)
+  用于某服务最近备份列表。
+- `idx_backups_status_finished_at` on (`status`, `finished_at` DESC)
+  用于失败备份排查和备份状态页筛选。
+
+`nodes`
+
+- `v1` 不额外建立辅助索引。
+- 原因：节点数量预计很少，`is_online` 过滤和节点列表查询不需要单独索引。
+
+最小 DDL 补充：
+
+```sql
+CREATE INDEX idx_tasks_created_at
+ON tasks(created_at DESC);
+
+CREATE INDEX idx_tasks_status_created_at
+ON tasks(status, created_at DESC);
+
+CREATE INDEX idx_tasks_service_created_at
+ON tasks(service_name, created_at DESC);
+
+CREATE INDEX idx_tasks_node_created_at
+ON tasks(node_id, created_at DESC);
+
+CREATE INDEX idx_services_runtime_status
+ON services(runtime_status);
+
+CREATE INDEX idx_backups_service_finished_at
+ON backups(service_name, finished_at DESC);
+
+CREATE INDEX idx_backups_status_finished_at
+ON backups(status, finished_at DESC);
+```
+
 ### 11. Web UI 页面
 
 核心页面：服务列表 / 服务详情 / 节点列表 / 备份状态 / 任务历史 / 文档页 / 设置页。
