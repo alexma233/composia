@@ -40,16 +40,15 @@
 ```text
 composia/                  # 程序安装目录（main 和 agent 都一样）
   config.yaml
-  .secrets.env             # 运行时解密后的 secrets（不进 Git）
   state/composia.db
   logs/
     tasks/
 
 repo/                      # Git 仓库根目录（main 全量，agent 只本地服务）
-  .secrets.enc.yaml        # 加密后的 secrets 文件
   stalwart/
     docker-compose.yaml
-    .env.template
+    .env
+    .secret.env.enc
     composia-meta.yaml
     config/
     site_config.caddy
@@ -64,20 +63,234 @@ repo/                      # Git 仓库根目录（main 全量，agent 只本地
 ```
 
 agent 本地只会保留自己需要运行的服务 + caddy。
+agent 落盘后，服务目录中会有解密后的 `.secret.env` 供 `docker compose` 使用，该文件不进 Git。
 
 ---
 
-### 5. 服务定义模型（meta.yaml）（v1 范围已确定）
+### 4.1 运行配置（config.yaml）（v1 正式规范）
 
-说明：`meta.yaml` 只描述 `composia` 自己需要的编排信息；资源限制、依赖、hooks 等尽量继续交给 `docker compose` 表达，不在这里重复造一层 DSL。
+设计约束：
 
-已确定字段示例：
+- `config.yaml` 是每台机器本地独立维护的配置文件，不共享同一份物理文件。
+- 启动角色由命令决定：`composia main` / `composia agent`。
+- 配置结构按角色分区：`main:` 和 `agent:`。
+- 实际部署时，`main` 主机通常只写 `main:`，`agent` 主机通常只写 `agent:`；未使用的 section 可省略。
+
+#### `main` 配置
+
+字段定义：
+
+- `listen_addr`：必填；本机监听地址；用于绑定 API / Web 服务。
+- `public_addr`：必填；完整 URL；供 agent 和 CLI 连接 main。
+- `repo_dir`：必填；本地 Git 工作目录。
+- `state_dir`：必填；SQLite 和其他本地状态文件目录。
+- `log_dir`：必填；任务详细日志目录。
+- `git`：可选；不写时表示只使用现有本地 `repo_dir`，不托管 Git 拉取。
+- `nodes`：必填；节点清单；`main` 自己也必须包含在内。
+- `cli_tokens`：可选；CLI 访问 main 的令牌列表；`v1` 先手写在配置中。
+
+`main.git`：
+
+- 如果 `remote_url` 不存在，则视为本地模式，`composia` 只读取 `repo_dir`。
+- 如果 `remote_url` 存在，则视为托管拉取模式。
+- `remote_url`：可选；存在时启用托管拉取。
+- `branch`：可选；默认 remote HEAD。
+- `pull_interval`：在托管拉取模式下必填；使用 Go duration 格式，如 `30s`、`5m`。
+- `auth.token_file`：可选；Git 认证 token 文件路径；为未来扩展 SSH/key 留结构空间。
+
+`main.nodes[]`：
+
+- `id`：必填；节点 ID。
+- `display_name`：可选；默认等于 `id`。
+- `enabled`：可选；默认 `true`；设为 `false` 时禁止新任务调度到该节点，但不自动迁移或停止已有服务。
+- `public_ipv4`：建议填写；用于 DNS 默认值和展示。
+- `public_ipv6`：可选；用于自动创建 `AAAA` 记录。
+- `token`：必填；该节点的 agent 认证 token；`v1` 先直接写在配置中，后续可替换为公私钥认证。
+
+补充规则：
+
+- `main` 节点必须出现在 `nodes[]` 中。
+- `main` 节点 ID 固定为 `main`。
+- `composia-meta.yaml` 中 `node` 省略时，默认就是 `main`。
+- `agent` 到 `main` 的认证先使用单节点单 token；后续再替换为公私钥模型。
+- agent 执行任务时，详细日志流式回传到 `main`，并由 `main.log_dir` 落盘保存。
+
+`main.cli_tokens[]`：
+
+- `name`：必填；token 名称。
+- `token`：必填；CLI 访问令牌。
+- `enabled`：可选；默认 `true`。
+- `comment`：可选；备注用途。
+
+#### `agent` 配置
+
+字段定义：
+
+- `main_addr`：必填；完整 URL；agent 主动连接的 main 地址。
+- `node_id`：必填；必须对应 `main.nodes[]` 中的一个节点 ID。
+- `token`：必填；与 `main.nodes[]` 中对应节点的 token 匹配。
+- `repo_dir`：必填；本地服务包落盘目录。
+- `state_dir`：必填；本地少量运行态、任务临时文件、缓冲文件目录。
+
+补充规则：
+
+- `agent` 不需要显式配置监听地址；`v1` 默认由 agent 主动连 main。
+- `agent` 不维护节点清单。
+- `agent` 不负责解密 secrets，只接收 `main` 下发的运行时文件。
+
+#### CLI 配置
+
+- CLI 使用单独配置文件：`composia-cli.yaml`。
+- `v1` 先只支持单 profile。
+- 最小字段：`main_addr`、`token_file`。
+
+示例：
+
+```yaml
+# main 机器上的 config.yaml
+main:
+  listen_addr: ":8080"
+  public_addr: "https://composia.example.com"
+  repo_dir: "/var/lib/composia/repo"
+  state_dir: "/var/lib/composia/state"
+  log_dir: "/var/log/composia"
+
+  git:
+    remote_url: "https://github.com/example/selfhosted.git"
+    pull_interval: "1m"
+    auth:
+      token_file: "/etc/composia/git.token"
+
+  nodes:
+    - id: main
+      display_name: Main
+      enabled: true
+      public_ipv4: 203.0.113.10
+      public_ipv6: 2001:db8::10
+      token: "main-agent-token"
+
+    - id: node-2
+      display_name: Tokyo Node
+      enabled: true
+      public_ipv4: 198.51.100.20
+      token: "node-2-token"
+
+  cli_tokens:
+    - name: laptop
+      token: "cli-token-1"
+      enabled: true
+      comment: "local admin laptop"
+```
+
+```yaml
+# agent 机器上的 config.yaml
+agent:
+  main_addr: "https://composia.example.com"
+  node_id: "node-2"
+  token: "node-2-token"
+  repo_dir: "/var/lib/composia/repo"
+  state_dir: "/var/lib/composia/state"
+```
+
+```yaml
+# CLI 使用的 composia-cli.yaml
+main_addr: "https://composia.example.com"
+token_file: "/home/alex/.config/composia/token"
+```
+
+---
+
+### 5. 服务定义模型（meta.yaml）（v1 正式规范）
+
+固定文件名：`composia-meta.yaml`
+
+设计约束：`meta.yaml` 只描述 `composia` 自己需要的编排信息；资源限制、依赖、hooks、镜像版本等继续交给 `docker compose` 和 `.env` 表达，不在这里重复造一层 DSL。
+
+顶层字段：
+
+- `name`：必填；服务唯一标识；在整个 repo 内必须全局唯一。
+- `project_name`：可选；默认等于 `name`。
+- `enabled`：可选；默认 `true`。
+- `node`：可选；默认 `main`。
+- `network`：可选；不写即不接管入口和 DNS。
+- `update`：可选；不写即不接管更新。
+- `backup`：可选；不写即无备份配置。
+
+校验规则：
+
+- 未知字段直接报错。
+- 不允许 `x-*` 自定义扩展字段。
+- 所有相对路径都相对于当前服务目录根解析。
+- `name` 可以与目录名不同，但不能与 repo 中其他服务重名。
+
+#### `network`
+
+`network.caddy`：
+
+- 可选。
+- 支持字段：`enabled`、`source`。
+- 如果 `enabled: true`，则 `source` 必填。
+- `source` 指向当前服务目录内的 Caddy 片段文件。
+
+`network.dns`：
+
+- 可选。
+- `v1` 只支持 `provider: cloudflare`。
+- 必填字段：`provider`、`hostname`。
+- 可选字段：`record_type`、`value`、`proxied`、`ttl`、`comment`。
+- 支持的 `record_type`：`A`、`AAAA`、`CNAME`。
+- 如果 `value` 省略，则默认取目标 `node` 的公网地址。
+- 如果 `record_type` 省略，则按 `value` 自动判断；若目标 `node` 同时有 IPv4 和 IPv6，则自动创建 `A + AAAA`。
+
+#### `update`
+
+- `v1` 只负责执行更新，不负责发现新 tag 或改写镜像版本。
+- 镜像 tag / digest 继续写在 `docker-compose.yaml` 或 `.env` 中。
+- 支持字段：`enabled`、`strategy`、`schedule`、`backup_before_update`。
+- `strategy` 必填。
+- `enabled` 默认 `true`。
+- `schedule` 省略表示只允许手动触发。
+- `v1` 仅支持 `strategy: pull_and_recreate`。
+- 不内建自动回滚、主动探测、业务健康检查。
+
+#### `backup`
+
+- 使用 `jobs` 列表，不再使用固定的 `database/config/files` 顶层键。
+- `v1` 的 `jobs[].type` 只支持 `database`、`files`。
+- `jobs[].provider` 可省略，默认 `rustic`。
+- `jobs[].enabled` 可省略，默认 `true`。
+- `jobs[].schedule` 省略表示只允许手动触发。
+- `jobs[].retain` 省略表示不自动清理。
+
+`backup.jobs[]` 通用字段：
+
+- `name`：必填；job 名称；在当前服务内唯一。
+- `type`：必填；`database` 或 `files`。
+- `strategy`：必填。
+- `provider`：可选；默认 `rustic`。
+- `enabled`：可选；默认 `true`。
+- `schedule`：可选；cron 表达式。
+- `retain`：可选；保留策略字符串。
+- `options`：可选；类型专属参数。
+
+`database` job 规则：
+
+- `v1` 仅支持 `strategy: pgdumpall`。
+- `options.service` 必填，值为 `docker-compose.yaml` 内的 Compose service 名。
+
+`files` job 规则：
+
+- `options.include` 必填。
+- `include` 允许三种目标：相对路径、绝对路径、Docker volume 名。
+- 识别规则：以 `/`、`./`、`../` 开头的视为路径，其他字符串视为 Docker volume 名。
+
+完整示例：
 
 ```yaml
 name: vaultwarden
-node: node-2
 project_name: vaultwarden
 enabled: true
+node: node-2
 
 network:
   caddy:
@@ -86,35 +299,41 @@ network:
   dns:
     provider: cloudflare
     hostname: vaultwarden.alexma.top
-    record_type: A
-    value: 203.0.113.10
+    proxied: true
+    ttl: 1
+    comment: managed by composia
 
 update:
+  enabled: true
   strategy: pull_and_recreate
-  backup_before_update: true
   schedule: "0 4 * * *"
+  backup_before_update: true
 
 backup:
-  database:
-    enabled: true
-    provider: rustic
-    strategy: pgdump
-    schedule: "0 2 * * *" # 每天凌晨 2 点 (cron)
-    retain: 30d
-    pg_addr: http://pg:8080
-  config:
-    enabled: true
-    provider: rustic
-    strategy: copy
-    schedule: "0 2 * * *" # 每天凌晨 2 点 (cron)
-    retain: 30d
-    include:
-      - ./config
-      - vaultwarden_config # Docker Volumes
+  jobs:
+    - name: pg
+      type: database
+      strategy: pgdumpall
+      schedule: "0 2 * * *"
+      options:
+        service: postgres
+
+    - name: config
+      type: files
+      strategy: copy
+      schedule: "0 3 * * *"
+      options:
+        include:
+          - ./config
+          - /srv/vaultwarden/data
+          - vaultwarden_data
 ```
+
+补充约定：
 
 - 服务运行状态以 `docker compose` / 容器状态为准。
 - `composia` 不内建主动探测、业务健康检查或自动回滚逻辑。
+- 推荐服务目录采用 `.env` + `.secret.env.enc` 方案；运行时由 `main` 解密为 agent 本地的 `.secret.env`，供 `docker compose` 直接使用。
 
 ---
 
@@ -122,7 +341,7 @@ backup:
 
 - 统一抽象（pre-hook / dump / copy / snapshot / retention）。
 - 默认 provider：rustic（内置），其他后续 PR。
-- PostgreSQL 默认用 pg_dump / pg_dumpall（不强制 pg_basebackup）。
+- PostgreSQL 在 `v1` 仅支持 `pgdumpall`。
 - 备份完成后**必须上报 main** 存入 SQLite。
 - 迁移时**强制备份**（即使 meta.yaml 里关闭备份）。
 - `v1` 不内建 restore 工作流，默认接受人工恢复。
@@ -131,7 +350,7 @@ backup:
 
 ### 7. 服务迁移流程（已确定）
 
-1. 修改 meta.yaml 中的 node。
+1. 修改 `composia-meta.yaml` 中的 `node`。
 2. main 自动备份旧节点。
 3. 停止旧节点服务。
 4. rsync 数据包到新节点。
@@ -143,9 +362,11 @@ backup:
 
 ### 8. Secrets 管理
 
-- 加密后进 Git（`.secrets.enc.yaml`，用户自行用 `age` / `sops` 加密）。
-- `main` 负责解密、渲染并下发到目标 `agent`。
-- `agent` 不承担解密职责，只接收自身需要的运行时 secrets。
+- 服务目录中普通环境变量使用明文 `.env`，机密环境变量使用加密后的 `.secret.env.enc`。
+- `docker-compose.yaml` 可直接通过 `env_file` 引用 `.env` 和 `.secret.env`。
+- `main` 负责将 `.secret.env.enc` 解密为目标 `agent` 本地的 `.secret.env`。
+- `agent` 不承担解密职责，只接收自身需要的运行时 secrets 文件。
+- 这样即使脱离 `composia`，用户也可以手动解密 `.secret.env.enc` 后继续使用 `docker compose` 运维。
 
 ---
 
@@ -168,7 +389,7 @@ backup:
 
 `v1` 页面上必须可直接完成：
 
-- 在线编辑仓库文件（`docker-compose.yaml`、`.env.template`、`composia-meta.yaml`、Caddy 片段）。
+- 在线编辑仓库文件（`docker-compose.yaml`、`.env`、`composia-meta.yaml`、Caddy 片段）。
 - 部署控制（部署、停止、重启、更新、迁移）。
 - 节点运维（节点状态、磁盘、Docker 信息、最近心跳）。
 
@@ -190,4 +411,4 @@ CLI 定位为运维入口，覆盖 SSH / 脚本化场景的常用操作。
 - 任务执行：默认串行保守，不做复杂并发调度
 - Agent 离线：相关任务直接报错，不做任务队列
 - 状态数据库：SQLite 只存结构化状态（节点/服务/任务/备份/心跳等）
-- 任务日志：详细执行日志单独落文件，SQLite 不承载大段日志内容
+- 任务日志：详细执行日志单独落在 `main.log_dir` 文件中，SQLite 不承载大段日志内容
