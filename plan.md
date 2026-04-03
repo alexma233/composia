@@ -383,6 +383,128 @@ backup:
 - `agent` 在 `config.yaml` 中手动配置 `main` 地址、节点 ID、预共享 token。
 - 不做 `main` 高可用；`main` 挂了就接受人工切换和人工恢复。
 
+---
+
+### 10.1 任务模型（v1 正式规范）
+
+设计目标：
+
+- API / Web / CLI 只负责创建任务，不同步等待长时间执行结束。
+- `main` 使用持久任务队列，任务先写入 SQLite，再由后台 worker 执行。
+- `v1` 队列只追求稳定和可观测性，不追求复杂调度能力。
+
+队列与并发：
+
+- `v1` 使用 `main` 内部持久任务队列。
+- 创建任务成功后应立即返回 `task_id`。
+- `v1` 采用全局串行执行模型：同一时刻只执行一个任务。
+- 如果同一服务已经有 `pending` 或 `running` 任务，新任务直接拒绝。
+- 不做离线补偿队列；目标 `agent` 离线时，任务执行直接失败。
+
+任务实例：
+
+- 每次触发都创建新的 `task_id`。
+- 重试不会复用旧任务；重试会创建新的任务实例。
+- 任务列表默认按时间倒序展示。
+
+支持的任务类型：
+
+- `deploy`
+- `stop`
+- `restart`
+- `update`
+- `backup`
+- `migrate`
+- `dns_update`
+- `caddy_reload`
+
+任务语义：
+
+- `deploy`：按当前 repo 内容渲染并执行 `docker compose up -d`。
+- `update`：先执行 `docker compose pull`，再继续 `deploy` 流程。
+- `backup`：默认执行该服务全部启用的 backup jobs；也支持通过 `job_names` 指定单个或多个 job。
+- `migrate`：是单个任务，内部按步骤推进，而不是拆成多个独立任务。
+
+任务状态：
+
+- `pending`
+- `running`
+- `succeeded`
+- `failed`
+- `cancelled`
+
+状态规则：
+
+- `pending` 表示任务已入队，尚未开始执行。
+- `running` 表示任务已开始执行。
+- `succeeded` / `failed` / `cancelled` 为终态。
+- `v1` 不支持手动取消接口，因此 `cancelled` 主要用于定时任务因冲突被跳过等场景。
+
+任务来源：
+
+- `source` 必须记录。
+- `v1` 先支持：`web`、`cli`、`schedule`、`system`。
+- `triggered_by` 只记录来源名，不记录更细粒度调用者身份。
+
+任务关联字段：
+
+- `task_id`
+- `type`
+- `source`
+- `triggered_by`
+- `service_name`
+- `node_id`
+- `status`
+- `created_at`
+- `started_at`
+- `finished_at`
+- `error_summary`
+
+步骤模型：
+
+- 一个用户动作对应一个任务，任务内部只记录步骤摘要。
+- 每个步骤使用固定枚举名，便于前后端和日志统一。
+- 每个步骤至少记录：步骤名、状态、开始时间、结束时间。
+- 步骤日志仍写入任务日志文件，不写入 SQLite 大字段。
+
+建议的步骤枚举：
+
+- `render`
+- `pull`
+- `backup`
+- `compose_down`
+- `compose_up`
+- `transfer`
+- `dns_update`
+- `caddy_reload`
+- `finalize`
+
+失败与重试：
+
+- `v1` 不做自动重试。
+- 失败后仅支持手动重试。
+- 手动重试会创建新的任务实例。
+- `migrate` 任务只要任一步骤失败，整个任务结果即为 `failed`。
+- `backup` 指定了不存在的 `job_names` 时，任务直接 `failed`。
+
+超时与恢复：
+
+- `v1` 支持一个全局默认任务超时。
+- 超时后任务标记为 `failed`。
+- 如果 `main` 在任务执行中重启，原来的 `running` 任务在恢复阶段统一标记为 `failed`。
+- `system` 来源在 `v1` 先只作为保留枚举，不强依赖具体自动触发场景。
+
+日志：
+
+- 任务详细日志统一流式回传到 `main`。
+- 详细日志按 `task_id` 落在 `main.log_dir` 中。
+- SQLite 只保存结构化状态、步骤摘要和错误摘要，不保存大段执行输出。
+
+定时任务冲突：
+
+- 定时触发的任务如果遇到服务冲突，不排队等待。
+- 此类任务标记为 `cancelled`，用于表示“已触发但未执行”。
+
 ### 11. Web UI 页面
 
 核心页面：服务列表 / 服务详情 / 节点列表 / 备份状态 / 任务历史 / 文档页 / 设置页。
@@ -408,7 +530,7 @@ CLI 定位为运维入口，覆盖 SSH / 脚本化场景的常用操作。
 - Git 同步：main 检测到更新后**自动拉取**
 - Git 更新失败：仓库内容非法或渲染失败时，拒绝应用新版本，保留当前运行状态
 - 失败恢复：main 挂了就接受“手动操作 compose”的现实
-- 任务执行：默认串行保守，不做复杂并发调度
-- Agent 离线：相关任务直接报错，不做任务队列
+- 任务执行：`main` 使用持久任务队列，默认全局串行执行
+- Agent 离线：相关任务直接失败，不做离线补偿队列
 - 状态数据库：SQLite 只存结构化状态（节点/服务/任务/备份/心跳等）
 - 任务日志：详细执行日志单独落在 `main.log_dir` 文件中，SQLite 不承载大段日志内容
