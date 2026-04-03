@@ -10,6 +10,7 @@
 - **一个服务只部署在一个节点**：v1 不支持多副本/高可用（后续 v2 再单独设计）。
 - **单主控制面**：永远只有 1 个 active main + N 个 agent，不做 active-active。
 - **同一二进制不同角色**：`composia` 一个程序，通过启动参数切换 `main` / `agent` 模式。
+- **main 主机同时运行 agent**：`main` 所在机器必须额外运行一个 `agent` 进程，节点 ID 固定为 `main`；所有服务任务都统一经 agent 执行，`main` 不内嵌特殊本地执行器。
 - **Git 只存声明**：Git 负责服务定义、meta.yaml、模板、历史；运行时状态全部进 SQLite。
 - **main 持全量，agent 只持本地**：agent 只保存自己需要运行的服务包，减少暴露和同步量。
 - **Caddy 每个节点独立**：每个 agent 节点独立运行一个 Caddy 实例，只提供一个 startup 模板（cf 指 Cloudflare Origin 模式），用户自己手写配置。
@@ -29,8 +30,8 @@
 
 ### 3. 总体架构（已确定）
 
-- **Main**（控制面）：Git 拉取、配置渲染、任务调度、备份编排、Caddy 片段分发、状态数据库、API、Web UI、CLI 入口。
-- **Agent**（执行面）：接收 main 下发的服务包、本地落盘、执行 docker compose up/down/pull、执行备份 hook、上报状态。
+- **Main**（控制面）：Git 拉取、配置渲染、任务调度、备份编排、Caddy 片段分发、状态数据库、API、Web UI、CLI 入口；`main` 主机同时还会运行一个本地 agent。
+- **Agent**（执行面）：接收 main 下发的服务包、本地落盘、执行 docker compose up/down/pull、执行备份/迁移步骤、上报状态；`main` 节点与普通节点共用同一套 agent 执行路径。
 - **通信方式**：ConnectRPC + 预共享 token 认证
 
 ---
@@ -64,6 +65,7 @@ repo/                      # Git 仓库根目录（main 全量，agent 只本地
 
 agent 本地只会保留自己需要运行的服务 + caddy。
 agent 落盘后，服务目录中会有解密后的 `.secret.env` 供 `docker compose` 使用，该文件不进 Git。
+当 `main` 与本地 agent 部署在同一台机器时，`main.repo_dir` 必须与 `agent.repo_dir` 分开，前者是全量 Git 工作树，后者是本地服务 bundle 落盘目录。
 
 ---
 
@@ -74,7 +76,7 @@ agent 落盘后，服务目录中会有解密后的 `.secret.env` 供 `docker co
 - `config.yaml` 是每台机器本地独立维护的配置文件，不共享同一份物理文件。
 - 启动角色由命令决定：`composia main` / `composia agent`。
 - 配置结构按角色分区：`main:` 和 `agent:`。
-- 实际部署时，`main` 主机通常只写 `main:`，`agent` 主机通常只写 `agent:`；未使用的 section 可省略。
+- 实际部署时，`main` 主机必须同时写 `main:` 和 `agent:`，并以两个进程运行；普通 `agent` 主机通常只写 `agent:`。
 
 #### `main` 配置
 
@@ -85,18 +87,25 @@ agent 落盘后，服务目录中会有解密后的 `.secret.env` 供 `docker co
 - `repo_dir`：必填；本地 Git 工作目录。
 - `state_dir`：必填；SQLite 和其他本地状态文件目录。
 - `log_dir`：必填；任务详细日志目录。
-- `git`：可选；不写时表示只使用现有本地 `repo_dir`，不托管 Git 拉取。
+- `git`：可选；不写时表示使用默认本地 Git 行为；`main.git` 只用于覆盖默认作者信息或配置远程跟踪参数。
 - `nodes`：必填；节点清单；`main` 自己也必须包含在内。
 - `cli_tokens`：可选；CLI 访问 main 的令牌列表；`v1` 先手写在配置中。
+- `dns`：可选；全局 DNS provider 配置；服务侧声明引用这里的 provider 凭据。
+- `backup`：可选；全局备份 provider 配置；服务侧 `backup.jobs[]` 引用这里的 provider 实例。
+- `secrets`：可选；全局 secrets 解密配置；repo 中存在 `.secret.env.enc` 时需要。
 
 `main.git`：
 
-- 如果 `remote_url` 不存在，则视为本地模式，`composia` 只读取 `repo_dir`。
-- 如果 `remote_url` 存在，则视为托管拉取模式。
+- `main.git` 没有单独的 enable 开关；`repo_dir` 始终按 Git 工作树处理。
+- 如果 `main.git` 整段省略，则使用默认本地 Git 模式。
+- 如果 `remote_url` 不存在，则视为本地 Git 模式：允许 Web/API/系统写 repo 并生成本地 commit，但不做 auto pull / push。
+- 如果 `remote_url` 存在，则视为远程跟踪模式：允许 Web/API/系统写 repo，并在 commit 后 push；同时支持 auto pull。
 - `remote_url`：可选；存在时启用托管拉取。
 - `branch`：可选；默认 remote HEAD。
 - `pull_interval`：在托管拉取模式下必填；使用 Go duration 格式，如 `30s`、`5m`。
 - `auth.token_file`：可选；Git 认证 token 文件路径；为未来扩展 SSH/key 留结构空间。
+- `author_name`：可选；默认 `Composia`；用于生成 commit。
+- `author_email`：可选；默认 `composia@localhost`；用于生成 commit。
 
 `main.nodes[]`：
 
@@ -112,8 +121,15 @@ agent 落盘后，服务目录中会有解密后的 `.secret.env` 供 `docker co
 - `main` 节点必须出现在 `nodes[]` 中。
 - `main` 节点 ID 固定为 `main`。
 - `composia-meta.yaml` 中 `node` 省略时，默认就是 `main`。
+- `main` 主机上的 `agent.node_id` 必须等于 `main`。
+- `main` 主机上的 `main.repo_dir` 与 `agent.repo_dir` 不得复用同一路径。
+- `main.repo_dir` 必须是一个可写的 Git working tree；`v1` 不支持完全脱离 Git 的 repo 目录。
 - `agent` 到 `main` 的认证先使用单节点单 token；后续再替换为公私钥模型。
 - agent 执行任务时，详细日志流式回传到 `main`，并由 `main.log_dir` 落盘保存。
+- 在 Git 模式下，所有 repo 读写、auto pull、bundle 打包都必须经过同一个 repo lock 串行化。
+- Web/API/系统对 repo 的任何写操作都必须遵循：若配置了远程则先 `fetch + fast-forward`，再写文件、校验、`commit`；若配置了远程则继续 `push`。
+- 没有远程仓库时，新 revision 在本地 commit 成功后立即生效；有远程仓库时，只有 `push` 成功后新 revision 才算生效。
+- `repo_dir` 在空闲状态下必须保持 clean working tree；`push` 失败时不得留下脏工作区。
 
 `main.cli_tokens[]`：
 
@@ -121,6 +137,25 @@ agent 落盘后，服务目录中会有解密后的 `.secret.env` 供 `docker co
 - `token`：必填；CLI 访问令牌。
 - `enabled`：可选；默认 `true`。
 - `comment`：可选；备注用途。
+
+`main.dns.cloudflare`：
+
+- 当任一服务使用 `network.dns.provider: cloudflare` 时必填。
+- `api_token_file`：必填；Cloudflare API token 文件路径。
+
+`main.backup.rustic`：
+
+- 当任一 backup job 使用 `provider: rustic` 时必填。
+- `repository`：必填；rustic repository 地址。
+- `password_file`：必填；rustic repository 密码文件。
+- `env_files`：可选；provider 额外环境变量文件列表，例如 S3 凭据。
+
+`main.secrets`：
+
+- `v1` 固定使用 `provider: age`。
+- `identity_file`：必填；`main` 机器用于解密 `.secret.env.enc` 的 age 私钥文件。
+- `recipient_file`：必填；重新加密 `.secret.env.enc` 时使用的 age recipient 列表文件。
+- `armor`：可选；默认 `true`。
 
 #### `agent` 配置
 
@@ -137,6 +172,7 @@ agent 落盘后，服务目录中会有解密后的 `.secret.env` 供 `docker co
 - `agent` 不需要显式配置监听地址；`v1` 默认由 agent 主动连 main。
 - `agent` 不维护节点清单。
 - `agent` 不负责解密 secrets，只接收 `main` 下发的运行时文件。
+- `main` 主机上的本地 agent 与远端 agent 无语义差别，只是与 `main` 部署在同一台机器。
 
 #### CLI 配置
 
@@ -151,13 +187,16 @@ agent 落盘后，服务目录中会有解密后的 `.secret.env` 供 `docker co
 main:
   listen_addr: ":8080"
   public_addr: "https://composia.example.com"
-  repo_dir: "/var/lib/composia/repo"
-  state_dir: "/var/lib/composia/state"
+  repo_dir: "/var/lib/composia/repo-main"
+  state_dir: "/var/lib/composia/state-main"
   log_dir: "/var/log/composia"
 
   git:
     remote_url: "https://github.com/example/selfhosted.git"
+    branch: "main"
     pull_interval: "1m"
+    author_name: "Composia"
+    author_email: "composia@example.com"
     auth:
       token_file: "/etc/composia/git.token"
 
@@ -180,6 +219,30 @@ main:
       token: "cli-token-1"
       enabled: true
       comment: "local admin laptop"
+
+  dns:
+    cloudflare:
+      api_token_file: "/etc/composia/cloudflare.token"
+
+  backup:
+    rustic:
+      repository: "s3:https://s3.example.com/composia"
+      password_file: "/etc/composia/rustic.password"
+      env_files:
+        - "/etc/composia/rustic.env"
+
+  secrets:
+    provider: age
+    identity_file: "/etc/composia/age.key"
+    recipient_file: "/etc/composia/age.recipients"
+    armor: true
+
+agent:
+  main_addr: "https://composia.example.com"
+  node_id: "main"
+  token: "main-agent-token"
+  repo_dir: "/var/lib/composia/repo-agent"
+  state_dir: "/var/lib/composia/state-agent"
 ```
 
 ```yaml
@@ -344,29 +407,73 @@ backup:
 - PostgreSQL 在 `v1` 仅支持 `pgdumpall`。
 - 备份完成后**必须上报 main** 存入 SQLite。
 - 迁移时**强制备份**（即使 meta.yaml 里关闭备份）。
-- `v1` 不内建 restore 工作流，默认接受人工恢复。
+- `v1` 不提供独立的 restore API / 页面，默认接受人工恢复；但迁移任务内部允许消费刚生成的备份产物完成恢复/导入。
+- 迁移的数据声明直接复用 `backup.jobs`；需要随迁移带走的数据库、目录、绝对路径、Docker volume 必须在 `backup.jobs` 中显式声明，否则 `composia` 不保证迁移完整性。
 
 ---
 
-### 7. 服务迁移流程（已确定）
+### 7. 服务迁移流程（v1 正式语义）
 
-1. 修改 `composia-meta.yaml` 中的 `node`。
-2. main 自动备份旧节点。
-3. 停止旧节点服务。
-4. rsync 数据包到新节点。
-5. 新节点启动。
-6. 更新 Caddy 配置 + DNS（Cloudflare）。
-7. 用户人工验证服务可用性；失败后由用户人工处理。
+- 迁移入口是 `MigrateService(target_node_id)`，用户不需要预先手改 `composia-meta.yaml`。
+- 迁移任务创建时，`main` 会锁定当前已提交的 `repo_revision`、当前 `source_node_id` 和请求中的 `target_node_id`。
+- 在迁移成功并完成流量切换前，Git 中的 `composia-meta.yaml.node` 仍保持旧值。
+- 只有目标节点拉起成功且后续步骤完成后，`main` 才会把 `node` 字段改为目标节点并执行 `commit`；若配置了远程仓库则继续 `push`。
+- `v1` 不提供迁移失败后的自动回滚、自动清理或自动恢复源节点工作流，统一由用户人工处理。
+
+执行步骤：
+
+1. 校验目标节点存在、已启用、在线，且服务当前没有冲突任务。
+2. 基于当前提交的 repo revision 创建单个 `migrate` 任务，并把 `source_node_id` / `target_node_id` 写入任务参数。
+3. 在源节点上执行该服务全部启用的 backup jobs；迁移场景下忽略 job 的 `schedule` 和顶层是否手动触发。
+4. 停止源节点服务。
+5. 将备份产物、声明中需要随迁移同步的文件/volume 数据传输到目标节点。
+6. 在目标节点恢复/落盘运行时文件，并使用同一份服务 bundle 启动服务。
+7. 更新目标节点的 Caddy 配置，并执行 DNS 更新。
+8. 完成上述执行步骤后，`main` 修改 `composia-meta.yaml` 中该服务的 `node`，生成 commit；若配置了远程仓库则继续 push 到跟踪分支。
+9. 用户人工验证业务可用性；如果第 8 步之前失败，则 Git desired state 保持源节点；如果第 8 步的 commit 或 push 失败，则任务标记为 `failed` 并提示“运行态已迁移但 repo 未更新，需要人工对账”。
 
 ---
 
 ### 8. Secrets 管理
 
+- 候选方案：
+- 方案 A：纯明文 `.env`
+- 优点：最简单，完全兼容 `docker compose`。
+- 缺点：不能进 Git，不满足本项目的声明式仓库目标。
+- 方案 B：`.secret.env.enc` + `age`
+- 优点：文件格式简单、单二进制工具链、适合存 Git、用户脱离 `composia` 仍可手动解密继续运维。
+- 缺点：需要 `main` 持有解密私钥；Web/CLI 编辑 secrets 时需要服务端代为重新加密。
+- 方案 C：`sops`
+- 优点：生态成熟，支持多个后端和更复杂的密钥管理。
+- 缺点：引入额外概念和依赖，对 v1 偏重。
+- 方案 D：外部 secret manager（Vault / 1Password / 云厂商）
+- 优点：能力最强。
+- 缺点：明显超出 v1 范围，也违背“自建服务管理器 keep it simple”的方向。
+
+- `v1` 正式选型：方案 B，使用 `age` 加密的 `.secret.env.enc`。
 - 服务目录中普通环境变量使用明文 `.env`，机密环境变量使用加密后的 `.secret.env.enc`。
+- `.secret.env.enc` 对应的明文内容固定为 dotenv 文本；运行时解密结果文件名为 `.secret.env`。
 - `docker-compose.yaml` 可直接通过 `env_file` 引用 `.env` 和 `.secret.env`。
 - `main` 负责将 `.secret.env.enc` 解密为目标 `agent` 本地的 `.secret.env`。
 - `agent` 不承担解密职责，只接收自身需要的运行时 secrets 文件。
+- Git 工作树中只保存 `.secret.env.enc`，不保存 `.secret.env` 明文。
+- `main` 在打包 bundle 或处理 secrets 编辑时，可以在进程内存或临时文件中持有明文，但任务完成后必须清理，不得把 `.secret.env` 留在 `main.repo_dir`。
 - 这样即使脱离 `composia`，用户也可以手动解密 `.secret.env.enc` 后继续使用 `docker compose` 运维。
+
+`main.secrets`：
+
+- `provider`：`v1` 固定为 `age`。
+- `identity_file`：必填；`main` 用于解密的 age 私钥文件。
+- `recipient_file`：必填；重新加密 `.secret.env.enc` 时使用的 age recipient 列表文件。
+- `armor`：可选；默认 `true`；控制生成的 `.secret.env.enc` 是否使用 ASCII armored 格式。
+
+补充规则：
+
+- `recipient_file` 至少包含一个 recipient；`v1` 允许多个 recipient，便于用户自己保留额外解密能力。
+- Web UI / CLI 不默认直接编辑 `.secret.env.enc` 密文本身，而是通过 secrets 专用 API 读取明文并由服务端重新加密写回。
+- secrets 写回 repo 的语义与普通 repo 文件一致：生成 Git commit；若配置了远程仓库则继续 push。
+- `v1` 不做密钥轮换自动化；更换 recipient 时由用户手动触发“重新加密全部 secrets”。
+- `v1` 不支持跨服务共享 secret 引用、模板插值或外部 secret provider。
 
 ---
 
@@ -380,6 +487,7 @@ backup:
 
 - `v1` 采用完全手动注册。
 - `main` 手动维护节点列表。
+- `main` 主机也必须以 `node_id: main` 运行一个本地 agent。
 - `agent` 在 `config.yaml` 中手动配置 `main` 地址、节点 ID、预共享 token。
 - 不做 `main` 高可用；`main` 挂了就接受人工切换和人工恢复。
 
@@ -417,13 +525,18 @@ backup:
 - `migrate`
 - `dns_update`
 - `caddy_reload`
+- `prune`
 
 任务语义：
 
 - `deploy`：按当前 repo 内容渲染并执行 `docker compose up -d`。
 - `update`：先执行 `docker compose pull`，再继续 `deploy` 流程。
 - `backup`：默认执行该服务全部启用的 backup jobs；也支持通过 `job_names` 指定单个或多个 job。
-- `migrate`：是单个任务，内部按步骤推进，而不是拆成多个独立任务。
+- `migrate`：是单个任务，内部按步骤推进，而不是拆成多个独立任务；任务参数必须记录 `source_node_id` 和 `target_node_id`，成功后由 `main` 在 `persist_repo` 阶段把新的 `node` 写回 repo 并生成 Git commit；若配置了远程仓库则继续 push。
+- `dns_update`：按服务当前声明刷新 DNS 记录。
+- `caddy_reload`：对指定节点执行一次 Caddy reload。
+- `prune`：对指定节点执行容器 / 镜像 / volume 清理；具体清理范围由参数控制。
+- 所有任务在创建时都绑定一个确定的 `repo_revision`；agent 只执行该 revision 对应的 bundle，避免执行过程中受到后续 Git 变更影响。
 
 任务状态：
 
@@ -458,6 +571,8 @@ backup:
 - `created_at`
 - `started_at`
 - `finished_at`
+- `repo_revision`
+- `result_revision`
 - `error_summary`
 
 步骤模型：
@@ -475,8 +590,11 @@ backup:
 - `compose_down`
 - `compose_up`
 - `transfer`
+- `restore`
 - `dns_update`
 - `caddy_reload`
+- `prune`
+- `persist_repo`
 - `finalize`
 
 失败与重试：
@@ -484,8 +602,10 @@ backup:
 - `v1` 不做自动重试。
 - 失败后仅支持手动重试。
 - 手动重试会创建新的任务实例。
+- `RetryTask` 固定基于当前最新 `HEAD` 创建新任务，而不是复用原任务的 `repo_revision`。
 - `migrate` 任务只要任一步骤失败，整个任务结果即为 `failed`。
 - `backup` 指定了不存在的 `job_names` 时，任务直接 `failed`。
+- `migrate` 失败后不做自动回滚、自动清理或自动恢复源节点；`v1` 默认由用户根据任务日志和备份产物人工处理。
 
 超时与恢复：
 
@@ -519,33 +639,41 @@ backup:
 - 时间字段统一使用 UTC RFC3339 文本。
 - 枚举值由代码常量和文档约定维护；数据库直接存文本值，必要时可加 `CHECK` 约束。
 - 能加外键的地方尽量加外键。
+- `services` 和 `nodes` 作为“历史注册表 + 当前快照”，不会因为 Git / config 中被删除就物理删行，而是通过 presence 标记表示当前是否仍被声明。
 
 #### 核心表
 
 `nodes`
 
-用途：保存节点运行态快照，而不是节点配置真相源。
+用途：保存节点运行态快照和历史注册状态，而不是节点配置真相源。
 
 建议字段：
 
 - `node_id` TEXT PRIMARY KEY
+- `is_configured` INTEGER NOT NULL
 - `is_online` INTEGER NOT NULL
 - `last_heartbeat` TEXT
 - `agent_version` TEXT
+- `docker_server_version` TEXT
+- `disk_total_bytes` INTEGER
+- `disk_free_bytes` INTEGER
 
 说明：
 
 - `node_id` 必须对应 `main.nodes[]` 中的节点 ID。
+- `is_configured` 表示该节点当前是否仍存在于 `main.nodes[]`。
 - `is_online` 由 `main` 根据最近心跳计算并刷新。
 - 节点公网 IP、token、display_name、enabled 等配置仍以 `config.yaml` 为准，不要求冗余写入 SQLite。
+- `docker_server_version`、`disk_total_bytes`、`disk_free_bytes` 来自最近一次心跳摘要，用于节点详情页展示。
 
 `services`
 
-用途：保存服务的最小运行态摘要，不复制完整 repo 配置。
+用途：保存服务的最小运行态摘要和历史注册状态，不复制完整 repo 配置。
 
 建议字段：
 
 - `service_name` TEXT PRIMARY KEY
+- `is_declared` INTEGER NOT NULL
 - `runtime_status` TEXT NOT NULL
 - `last_task_id` TEXT
 - `updated_at` TEXT NOT NULL
@@ -557,8 +685,9 @@ backup:
 说明：
 
 - `service_name` 对应 `composia-meta.yaml` 中的 `name`。
+- `is_declared` 表示该服务当前是否仍存在于 Git repo 的最新已解析声明中。
 - `runtime_status` 在 `v1` 固定为：`running`、`stopped`、`error`、`unknown`。
-- `services` 表在 Git 解析完成后刷新服务存在性，在任务结束后刷新运行态和最近任务。
+- `services` 表在 Git 解析完成后刷新服务存在性，在任务结束后刷新运行态和最近任务；服务从 repo 删除时不删历史行，只将 `is_declared` 置为 `0`。
 
 `tasks`
 
@@ -575,6 +704,8 @@ backup:
 - `status` TEXT NOT NULL
 - `params_json` TEXT
 - `log_path` TEXT
+- `repo_revision` TEXT
+- `result_revision` TEXT
 - `attempt_of_task_id` TEXT
 - `created_at` TEXT NOT NULL
 - `started_at` TEXT
@@ -590,12 +721,14 @@ backup:
 说明：
 
 - `task_id` 每次触发都新建，不复用。
-- `type` 在 `v1` 先支持：`deploy`、`stop`、`restart`、`update`、`backup`、`migrate`、`dns_update`、`caddy_reload`。
+- `type` 在 `v1` 先支持：`deploy`、`stop`、`restart`、`update`、`backup`、`migrate`、`dns_update`、`caddy_reload`、`prune`。
 - `status` 在 `v1` 固定为：`pending`、`running`、`succeeded`、`failed`、`cancelled`。
 - `source` 在 `v1` 先支持：`web`、`cli`、`schedule`、`system`。
 - `triggered_by` 只记录来源名。
 - `params_json` 用于保存调用参数快照，例如 `backup.job_names`。
 - `log_path` 记录该任务在 `main.log_dir` 下对应的日志文件路径。
+- `repo_revision` 表示任务创建时绑定的输入 Git revision。
+- `result_revision` 用于记录任务过程中写 repo 后产生的新 revision，例如迁移成功后写回新的 `node`。
 - `attempt_of_task_id` 用于关联“重试来源任务”。
 
 `task_steps`
@@ -618,7 +751,7 @@ backup:
 说明：
 
 - 一个任务内部只记录步骤摘要，不单独落步骤日志。
-- `step_name` 在 `v1` 使用固定枚举，例如：`render`、`pull`、`backup`、`compose_down`、`compose_up`、`transfer`、`dns_update`、`caddy_reload`、`finalize`。
+- `step_name` 在 `v1` 使用固定枚举，例如：`render`、`pull`、`backup`、`compose_down`、`compose_up`、`transfer`、`restore`、`dns_update`、`caddy_reload`、`prune`、`persist_repo`、`finalize`。
 - `status` 与 `tasks.status` 使用同一套枚举：`pending`、`running`、`succeeded`、`failed`、`cancelled`。
 
 `backups`
@@ -651,7 +784,7 @@ backup:
 
 #### 刷新时机
 
-- `nodes`：agent 心跳上报后刷新。
+- `nodes`：agent 心跳上报后刷新；配置重载时刷新 `is_configured`。
 - `services`：Git 解析完成后刷新服务存在性；任务结束后刷新 `runtime_status`、`last_task_id`、`updated_at`。
 - `tasks`：任务创建、开始、结束时更新。
 - `task_steps`：步骤开始和结束时更新。
@@ -662,13 +795,18 @@ backup:
 ```sql
 CREATE TABLE nodes (
   node_id TEXT PRIMARY KEY,
+  is_configured INTEGER NOT NULL,
   is_online INTEGER NOT NULL,
   last_heartbeat TEXT,
-  agent_version TEXT
+  agent_version TEXT,
+  docker_server_version TEXT,
+  disk_total_bytes INTEGER,
+  disk_free_bytes INTEGER
 );
 
 CREATE TABLE services (
   service_name TEXT PRIMARY KEY,
+  is_declared INTEGER NOT NULL,
   runtime_status TEXT NOT NULL,
   last_task_id TEXT,
   updated_at TEXT NOT NULL,
@@ -685,6 +823,8 @@ CREATE TABLE tasks (
   status TEXT NOT NULL,
   params_json TEXT,
   log_path TEXT,
+  repo_revision TEXT,
+  result_revision TEXT,
   attempt_of_task_id TEXT,
   created_at TEXT NOT NULL,
   started_at TEXT,
@@ -737,7 +877,7 @@ CREATE TABLE backups (
 - 服务详情页：查看某服务最近任务、最近失败任务。
 - 备份状态页：查看某服务最近备份、查看失败备份。
 - 节点详情页：查看某节点相关任务历史。
-- 服务列表页：按 `runtime_status` 过滤服务。
+- 服务列表页：默认只看 `is_declared = 1` 的服务，并可按 `runtime_status` 过滤。
 - 任务详情页：按 `task_id` 读取全部步骤。
 
 推荐索引：
@@ -755,8 +895,8 @@ CREATE TABLE backups (
 
 `services`
 
-- `idx_services_runtime_status` on (`runtime_status`)
-  用于服务列表页按运行状态筛选。
+- `idx_services_declared_runtime_status` on (`is_declared`, `runtime_status`)
+  用于服务列表页默认过滤当前声明服务，并按运行状态筛选。
 
 `task_steps`
 
@@ -790,8 +930,8 @@ ON tasks(service_name, created_at DESC);
 CREATE INDEX idx_tasks_node_created_at
 ON tasks(node_id, created_at DESC);
 
-CREATE INDEX idx_services_runtime_status
-ON services(runtime_status);
+CREATE INDEX idx_services_declared_runtime_status
+ON services(is_declared, runtime_status);
 
 CREATE INDEX idx_backups_service_finished_at
 ON backups(service_name, finished_at DESC);
@@ -800,6 +940,293 @@ CREATE INDEX idx_backups_status_finished_at
 ON backups(status, finished_at DESC);
 ```
 
+---
+
+### 10.4 ConnectRPC API（v1 草案）
+
+设计原则：
+
+- Web UI 和 CLI 完全共用同一套 Main Public API。
+- 所有 Main Public API 在 `v1` 都必须能通过 Web UI 或 CLI 至少一种方式触达；常用运维动作要求两端都可触达。
+- API 按领域拆服务，不做一个巨大总服务。
+- 包名显式带版本，`v1` 先固定为第一版协议。
+- 长时操作不走同步阻塞 RPC，而是创建任务后返回 `task_id`。
+- agent 只主动连接 `main`；`main` 不主动反向连 agent。
+- 鉴权统一使用 `Authorization: Bearer <token>`。
+- 所有会改变 desired state 的写操作都必须最终落成 Git commit；有远程仓库时还必须 push 成功后才算完成。
+- 没有远程仓库时，写操作以本地 commit 成功为完成条件；有远程仓库时，写操作以 `commit + push` 成功为完成条件。
+- 所有创建执行类任务的接口都必须返回该任务绑定的 `repo_revision`。
+
+建议的 proto 包：
+
+- `composia.main.v1`
+- `composia.agent.v1`
+
+#### Main Public API
+
+面向 Web UI 和 CLI 的 RPC。
+
+建议拆分为以下服务：
+
+- `ServiceService`
+- `BackupRecordService`
+- `TaskService`
+- `NodeService`
+- `RepoService`
+- `SecretService`
+- `SystemService`
+
+##### `ServiceService`
+
+职责：服务列表、服务详情、服务任务、服务备份，以及服务动作入口。
+
+建议方法：
+
+- `ListServices`
+- `GetService`
+- `GetServiceTasks`
+- `GetServiceBackups`
+- `DeployService`
+- `UpdateService`
+- `StopService`
+- `RestartService`
+- `BackupService`
+- `UpdateServiceDNS`
+- `MigrateService`
+
+动作类方法语义：
+
+- 不同步执行长任务。
+- 成功时返回：`task_id`、初始 `status`、基础任务摘要、`repo_revision`。
+- `BackupService` 支持可选 `job_names` 列表；为空时表示执行全部启用 jobs。
+- `UpdateServiceDNS` 基于服务当前声明创建一个 `dns_update` 任务。
+- `MigrateService` 接收目标 `node_id`，内部创建单个迁移任务；任务执行成功后才会写 repo 并生成新的 `result_revision`。
+
+##### `TaskService`
+
+职责：任务历史、任务详情、重试、日志查看。
+
+建议方法：
+
+- `ListTasks`
+- `GetTask`
+- `RetryTask`
+- `TailTaskLogs`
+
+方法语义：
+
+- `ListTasks` 使用 cursor 分页。
+- 核心过滤字段：`status`、`service_name`。
+- `GetTask` 默认返回步骤摘要，不再额外强制拆一个 `GetTaskSteps`。
+- `RetryTask` 创建新的任务实例，不复用原 `task_id`；固定绑定调用时的最新 `HEAD` 作为新的 `repo_revision`。
+- `TailTaskLogs` 为服务端流式 RPC，支持客户端实时 tail 任务日志。
+
+##### `BackupRecordService`
+
+职责：全局备份记录查询和单条备份详情。
+
+建议方法：
+
+- `ListBackups`
+- `GetBackup`
+
+说明：
+
+- `ListBackups` 支持按 `service_name`、`status`、时间窗口、`job_name` 过滤。
+- 备份状态页默认使用 `ListBackups`，服务详情页仍可使用 `GetServiceBackups`。
+
+##### `NodeService`
+
+职责：节点列表和节点详情。
+
+建议方法：
+
+- `ListNodes`
+- `GetNode`
+- `GetNodeTasks`
+- `ReloadNodeCaddy`
+- `PruneNode`
+
+说明：
+
+- `ListNodes` 返回节点配置摘要和运行态快照聚合结果。
+- `GetNode` 返回单节点详情，以及必要的最近状态摘要。
+- `GetNodeTasks` 用于节点详情页查看最近任务历史。
+- `ReloadNodeCaddy` 创建一个 `caddy_reload` 任务。
+- `PruneNode` 创建一个 `prune` 任务，并接收清理范围参数。
+
+##### `RepoService`
+
+职责：仓库文件浏览和编辑。
+
+建议方法：
+
+- `GetRepoHead`
+- `ListRepoFiles`
+- `GetRepoFile`
+- `ValidateRepo`
+- `UpdateRepoFile`
+- `ListRepoCommits`
+- `SyncRepo`
+
+说明：
+
+- `v1` 虽然重点编辑 `docker-compose.yaml`、`.env`、`composia-meta.yaml`、`site_config.caddy`，但 API 层不限制为少数文件；原则上 repo 下文件都可读写。
+- 读写模型采用“按指定路径读取/覆盖写回”，不做 patch-first 变更集模型。
+- `GetRepoHead` 返回当前 branch、HEAD revision、是否配置远程、上次成功 pull 时间和是否处于 clean working tree。
+- `ValidateRepo` 执行 repo 级配置校验，返回结构化错误列表。
+- `UpdateRepoFile` 请求至少应包含：`path`、`content`、`base_revision`、可选 `commit_message`。
+- `UpdateRepoFile` 的服务端语义固定为：获取 repo lock、若配置远程则先 `fetch + fast-forward`、校验 `base_revision`、写回文件、执行校验、生成 commit、若配置远程则 push 到跟踪分支、返回新的 `commit_id`。
+- `UpdateRepoFile` 在任一步骤失败时都必须回滚临时改动，不得留下 dirty working tree。
+- `ListRepoCommits` 用于 Web UI 展示最近提交历史。
+- `SyncRepo` 仅在配置远程仓库时可用，语义为 `fetch + fast-forward + re-parse`；如果 repo 当前不 clean，则直接失败。
+
+##### `SecretService`
+
+职责：读取和更新服务级 secrets 明文，由服务端负责重新加密写回 Git。
+
+建议方法：
+
+- `GetServiceSecretEnv`
+- `UpdateServiceSecretEnv`
+
+说明：
+
+- `GetServiceSecretEnv` 返回解密后的 dotenv 文本，仅适用于单用户模式。
+- `UpdateServiceSecretEnv` 请求至少应包含：`service_name`、`content`、`base_revision`、可选 `commit_message`。
+- `UpdateServiceSecretEnv` 的写入事务与 `RepoService.UpdateRepoFile` 一致，但输出文件固定为服务目录下的 `.secret.env.enc`。
+- `UpdateServiceSecretEnv` 成功后返回新的 `commit_id`，并在有远程仓库时返回 push 结果。
+
+##### `SystemService`
+
+职责：系统级只读信息和手动运维入口。
+
+建议方法：
+
+- `GetSystemStatus`
+- `GetCurrentConfig`
+
+说明：
+
+- `GetSystemStatus` 返回当前 repo HEAD、队列状态、数据库状态和版本信息。
+- `GetCurrentConfig` 返回经过脱敏的运行配置摘要，供设置页和诊断页展示。
+
+#### Main Agent API
+
+面向 agent 主动连接 `main` 的 RPC。
+
+建议拆分为以下服务：
+
+- `AgentTaskService`
+- `AgentReportService`
+- `BundleService`
+
+##### `AgentTaskService`
+
+职责：agent 主动拉取待执行任务。
+
+建议方法：
+
+- `PullNextTask`
+
+方法语义：
+
+- 使用长轮询。
+- 请求带上 `node_id` 和 agent 当前能力/版本摘要。
+- 响应返回一个待执行任务，或在超时窗口内返回空结果。
+- `v1` 任务队列全局串行，因此 `PullNextTask` 的调度逻辑会很保守。
+
+##### `AgentReportService`
+
+职责：心跳、任务状态、步骤状态、日志上报。
+
+建议方法：
+
+- `Heartbeat`
+- `ReportTaskState`
+- `ReportTaskStepState`
+- `UploadTaskLogs`
+- `ReportServiceStatus`
+
+方法语义：
+
+- `Heartbeat` 上报 `node_id`、`agent_version`、最近心跳时间，以及至少包含磁盘容量、剩余容量、Docker server version 的节点运行摘要。
+- `ReportTaskState` 上报任务开始/结束状态。
+- `ReportTaskStepState` 上报步骤开始/结束状态。
+- `ReportServiceStatus` 上报本地服务运行状态摘要，用于刷新 `services.runtime_status`。
+
+`UploadTaskLogs`：
+
+- 使用流式 RPC。
+- 每条日志事件至少带：`task_id`、`seq`、时间戳、日志内容。
+- `main` 记录最近已确认 `seq`。
+- 流断开后，agent 重连并从未确认 `seq` 继续补传。
+- `v1` 采用 `seq` 续传语义，而不是按字节偏移恢复。
+
+##### `BundleService`
+
+职责：agent 按任务需要下载服务包。
+
+建议方法：
+
+- `GetServiceBundle`
+
+方法语义：
+
+- bundle 标识采用 `git revision + service_name`。
+- agent 先通过任务拿到需要的 revision 和服务名，再调用 `GetServiceBundle`。
+- 响应采用文件流/数据流形式，避免把完整 bundle 塞进任务下发 RPC。
+- `v1` 由 agent 主动下载 bundle；`main` 不主动推送服务包。
+- `main` 节点上的本地 agent 也必须通过同一套 `PullNextTask + GetServiceBundle` 路径执行任务，不允许旁路本地文件系统特判。
+
+#### 分页与过滤
+
+- 列表型查询默认采用 cursor 分页。
+- `ListTasks` 的核心过滤：`status`、`service_name`、可选 `node_id`、`type`。
+- `ListServices` 可按 `runtime_status` 过滤。
+- `GetServiceBackups` 可按 `status` 和时间窗口过滤。
+- `ListBackups` 可按 `service_name`、`status`、`job_name`、时间窗口过滤。
+
+#### 日志接口
+
+- agent -> main：流式上传。
+- main -> Web/CLI：`TaskService.TailTaskLogs` 流式 tail。
+- 日志 tail 支持断线重连，并按最后已消费的 `seq` 继续。
+- 非流式日志查看可由 `GetTask` 返回基础 `log_path` 和日志元信息，必要时后续补普通读取 RPC。
+
+#### 认证模型
+
+- Web UI / CLI 使用 `main.cli_tokens[]` 对应的 admin token。
+- agent 使用 `main.nodes[]` 中与 `node_id` 对应的 node token。
+- 两类调用者共用 `Authorization: Bearer <token>` 头，但服务端按 token 来源语义区分权限。
+
+#### 典型调用链
+
+Web / CLI 发起部署：
+
+1. 调用 `ServiceService.DeployService`
+2. `main` 创建任务并返回 `task_id`
+3. agent 通过 `AgentTaskService.PullNextTask` 拉到任务
+4. agent 通过 `BundleService.GetServiceBundle` 下载对应 revision 的服务包
+5. agent 执行任务并通过 `AgentReportService` 持续上报步骤和日志
+6. 客户端通过 `TaskService.GetTask` / `TailTaskLogs` 查看进度
+
+Web 在线编辑文件：
+
+1. 调用 `RepoService.GetRepoHead` 和 `RepoService.GetRepoFile`
+2. 用户修改内容
+3. 调用 `RepoService.UpdateRepoFile`
+4. `main` 若配置远程则先执行 `fetch + fast-forward`，然后写回、校验、`commit`，并在有远程时执行 `push`
+5. 返回新的 `commit_id`，并触发必要的重新解析或后续任务
+
+#### v1 暂不做
+
+- 单一 `CreateTask` 通用入口
+- `main` 主动推送任务到 agent
+- agent 反向暴露固定 RPC 服务给 `main`
+- Web/CLI 与 agent 使用不同协议栈
+- 复杂权限模型或细粒度 RBAC
+
 ### 11. Web UI 页面
 
 核心页面：服务列表 / 服务详情 / 节点列表 / 备份状态 / 任务历史 / 文档页 / 设置页。
@@ -807,6 +1234,8 @@ ON backups(status, finished_at DESC);
 `v1` 页面上必须可直接完成：
 
 - 在线编辑仓库文件（`docker-compose.yaml`、`.env`、`composia-meta.yaml`、Caddy 片段）。
+- 在线编辑服务级 secrets（服务端负责解密/重新加密 `.secret.env.enc`）。
+- 每次在线编辑成功后展示对应的 Git commit 结果、最新 revision，以及远程模式下的 push 结果。
 - 部署控制（部署、停止、重启、更新、迁移）。
 - 节点运维（节点状态、磁盘、Docker 信息、最近心跳）。
 
@@ -814,15 +1243,30 @@ ON backups(status, finished_at DESC);
 
 ### 12. CLI 命令（v1）
 
-已确认核心：`service list/deploy/backup/migrate/logs`、`node list`、`prune`、`status`、`caddy reload`、`dns update`。
+设计原则：
 
-CLI 定位为运维入口，覆盖 SSH / 脚本化场景的常用操作。
+- CLI 作为运维入口，覆盖 SSH / 脚本化场景的常用操作。
+- 常用 Main Public API 必须有对应 CLI 子命令。
+- `v1` 不内建交互式文本编辑器；文本类修改通过 `--from-file`、stdin 或外部 `$EDITOR` 包装完成。
+
+已确认核心：
+
+- `service list/get/deploy/stop/restart/update/backup/migrate/logs`
+- `task list/get/retry/logs`
+- `backup list/get`
+- `node list/get/tasks/reload-caddy/prune`
+- `repo head/files/get/update/history/sync`
+- `secret get/update`
+- `system status`
+- `caddy reload`
+- `dns update`
 
 ---
 
 ### 13. 其他已确定但细节待细化的
 
 - Git 同步：main 检测到更新后**自动拉取**
+- Git 写入：Web/API/系统写 repo 时统一执行 `commit`；配置远程仓库时再执行 `push`
 - Git 更新失败：仓库内容非法或渲染失败时，拒绝应用新版本，保留当前运行状态
 - 失败恢复：main 挂了就接受“手动操作 compose”的现实
 - 任务执行：`main` 使用持久任务队列，默认全局串行执行
