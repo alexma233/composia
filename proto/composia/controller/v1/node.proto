@@ -2,11 +2,14 @@ syntax = "proto3";
 
 package composia.controller.v1;
 
+import "proto/composia/controller/v1/task.proto";
+
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
 service NodeService {
   rpc ListNodes(ListNodesRequest) returns (ListNodesResponse);
   rpc GetNode(GetNodeRequest) returns (GetNodeResponse);
+  rpc GetNodeTasks(GetNodeTasksRequest) returns (GetNodeTasksResponse);
 }
 
 message ListNodesRequest {}
@@ -29,4 +32,16 @@ message ListNodesResponse {
 
 message GetNodeResponse {
   NodeSummary node = 1;
+}
+
+message GetNodeTasksRequest {
+  string node_id = 1;
+  string status = 2;
+  uint32 page_size = 3;
+  string cursor = 4;
+}
+
+message GetNodeTasksResponse {
+  repeated TaskSummary tasks = 1;
+  string next_cursor = 2;
 }

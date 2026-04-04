@@ -137,6 +137,62 @@ func TestServiceServiceGetServiceReturnsMinimalSummary(t *testing.T) {
 	}
 }
 
+func TestServiceServiceGetServiceTasksReturnsFilteredTasks(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithService(t, repoDir, "alpha", "main")
+
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncDeclaredServices(ctx, []string{"alpha", "bravo"}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-1", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "alpha", NodeID: "main", Status: task.StatusSucceeded, CreatedAt: time.Date(2026, 4, 4, 11, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("create alpha task: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-2", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "bravo", NodeID: "main", Status: task.StatusSucceeded, CreatedAt: time.Date(2026, 4, 4, 11, 5, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("create bravo task: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+	path, handler := controllerv1connect.NewServiceServiceHandler(
+		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, availableNodeIDs: map[string]struct{}{"main": {}}},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	response, err := client.GetServiceTasks(ctx, connect.NewRequest(&controllerv1.GetServiceTasksRequest{ServiceName: "alpha", PageSize: 10}))
+	if err != nil {
+		t.Fatalf("get service tasks: %v", err)
+	}
+	if len(response.Msg.GetTasks()) != 1 || response.Msg.GetTasks()[0].GetTaskId() != "task-1" {
+		t.Fatalf("unexpected service task list: %+v", response.Msg.GetTasks())
+	}
+}
+
 func TestServiceServiceDeployServiceCreatesPendingTask(t *testing.T) {
 	t.Parallel()
 

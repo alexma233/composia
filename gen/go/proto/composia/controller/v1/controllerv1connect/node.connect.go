@@ -37,12 +37,16 @@ const (
 	NodeServiceListNodesProcedure = "/composia.controller.v1.NodeService/ListNodes"
 	// NodeServiceGetNodeProcedure is the fully-qualified name of the NodeService's GetNode RPC.
 	NodeServiceGetNodeProcedure = "/composia.controller.v1.NodeService/GetNode"
+	// NodeServiceGetNodeTasksProcedure is the fully-qualified name of the NodeService's GetNodeTasks
+	// RPC.
+	NodeServiceGetNodeTasksProcedure = "/composia.controller.v1.NodeService/GetNodeTasks"
 )
 
 // NodeServiceClient is a client for the composia.controller.v1.NodeService service.
 type NodeServiceClient interface {
 	ListNodes(context.Context, *connect.Request[v1.ListNodesRequest]) (*connect.Response[v1.ListNodesResponse], error)
 	GetNode(context.Context, *connect.Request[v1.GetNodeRequest]) (*connect.Response[v1.GetNodeResponse], error)
+	GetNodeTasks(context.Context, *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error)
 }
 
 // NewNodeServiceClient constructs a client for the composia.controller.v1.NodeService service. By
@@ -68,13 +72,20 @@ func NewNodeServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(nodeServiceMethods.ByName("GetNode")),
 			connect.WithClientOptions(opts...),
 		),
+		getNodeTasks: connect.NewClient[v1.GetNodeTasksRequest, v1.GetNodeTasksResponse](
+			httpClient,
+			baseURL+NodeServiceGetNodeTasksProcedure,
+			connect.WithSchema(nodeServiceMethods.ByName("GetNodeTasks")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // nodeServiceClient implements NodeServiceClient.
 type nodeServiceClient struct {
-	listNodes *connect.Client[v1.ListNodesRequest, v1.ListNodesResponse]
-	getNode   *connect.Client[v1.GetNodeRequest, v1.GetNodeResponse]
+	listNodes    *connect.Client[v1.ListNodesRequest, v1.ListNodesResponse]
+	getNode      *connect.Client[v1.GetNodeRequest, v1.GetNodeResponse]
+	getNodeTasks *connect.Client[v1.GetNodeTasksRequest, v1.GetNodeTasksResponse]
 }
 
 // ListNodes calls composia.controller.v1.NodeService.ListNodes.
@@ -87,10 +98,16 @@ func (c *nodeServiceClient) GetNode(ctx context.Context, req *connect.Request[v1
 	return c.getNode.CallUnary(ctx, req)
 }
 
+// GetNodeTasks calls composia.controller.v1.NodeService.GetNodeTasks.
+func (c *nodeServiceClient) GetNodeTasks(ctx context.Context, req *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error) {
+	return c.getNodeTasks.CallUnary(ctx, req)
+}
+
 // NodeServiceHandler is an implementation of the composia.controller.v1.NodeService service.
 type NodeServiceHandler interface {
 	ListNodes(context.Context, *connect.Request[v1.ListNodesRequest]) (*connect.Response[v1.ListNodesResponse], error)
 	GetNode(context.Context, *connect.Request[v1.GetNodeRequest]) (*connect.Response[v1.GetNodeResponse], error)
+	GetNodeTasks(context.Context, *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error)
 }
 
 // NewNodeServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -112,12 +129,20 @@ func NewNodeServiceHandler(svc NodeServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(nodeServiceMethods.ByName("GetNode")),
 		connect.WithHandlerOptions(opts...),
 	)
+	nodeServiceGetNodeTasksHandler := connect.NewUnaryHandler(
+		NodeServiceGetNodeTasksProcedure,
+		svc.GetNodeTasks,
+		connect.WithSchema(nodeServiceMethods.ByName("GetNodeTasks")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.controller.v1.NodeService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case NodeServiceListNodesProcedure:
 			nodeServiceListNodesHandler.ServeHTTP(w, r)
 		case NodeServiceGetNodeProcedure:
 			nodeServiceGetNodeHandler.ServeHTTP(w, r)
+		case NodeServiceGetNodeTasksProcedure:
+			nodeServiceGetNodeTasksHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -133,4 +158,8 @@ func (UnimplementedNodeServiceHandler) ListNodes(context.Context, *connect.Reque
 
 func (UnimplementedNodeServiceHandler) GetNode(context.Context, *connect.Request[v1.GetNodeRequest]) (*connect.Response[v1.GetNodeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.GetNode is not implemented"))
+}
+
+func (UnimplementedNodeServiceHandler) GetNodeTasks(context.Context, *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.GetNodeTasks is not implemented"))
 }

@@ -501,6 +501,27 @@ func (server *serviceServer) GetService(ctx context.Context, req *connect.Reques
 	return connect.NewResponse(response), nil
 }
 
+func (server *serviceServer) GetServiceTasks(ctx context.Context, req *connect.Request[controllerv1.GetServiceTasksRequest]) (*connect.Response[controllerv1.GetServiceTasksResponse], error) {
+	if req.Msg == nil || req.Msg.GetServiceName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+	if _, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName()); err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	tasks, nextCursor, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), req.Msg.GetServiceName(), "", req.Msg.GetCursor(), req.Msg.GetPageSize())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	response := &controllerv1.GetServiceTasksResponse{
+		Tasks:      make([]*controllerv1.TaskSummary, 0, len(tasks)),
+		NextCursor: nextCursor,
+	}
+	for _, record := range tasks {
+		response.Tasks = append(response.Tasks, taskSummaryMessage(record))
+	}
+	return connect.NewResponse(response), nil
+}
+
 func (server *serviceServer) DeployService(ctx context.Context, req *connect.Request[controllerv1.DeployServiceRequest]) (*connect.Response[controllerv1.DeployServiceResponse], error) {
 	if req.Msg == nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
@@ -674,6 +695,34 @@ func (server *nodeServer) GetNode(ctx context.Context, req *connect.Request[cont
 	return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("node %q is not configured", req.Msg.GetNodeId()))
 }
 
+func (server *nodeServer) GetNodeTasks(ctx context.Context, req *connect.Request[controllerv1.GetNodeTasksRequest]) (*connect.Response[controllerv1.GetNodeTasksResponse], error) {
+	if req.Msg == nil || req.Msg.GetNodeId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
+	}
+	configured := false
+	for _, node := range server.cfg.Nodes {
+		if node.ID == req.Msg.GetNodeId() {
+			configured = true
+			break
+		}
+	}
+	if !configured {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("node %q is not configured", req.Msg.GetNodeId()))
+	}
+	tasks, nextCursor, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), "", req.Msg.GetNodeId(), req.Msg.GetCursor(), req.Msg.GetPageSize())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	response := &controllerv1.GetNodeTasksResponse{
+		Tasks:      make([]*controllerv1.TaskSummary, 0, len(tasks)),
+		NextCursor: nextCursor,
+	}
+	for _, record := range tasks {
+		response.Tasks = append(response.Tasks, taskSummaryMessage(record))
+	}
+	return connect.NewResponse(response), nil
+}
+
 func nodeSummary(node config.NodeConfig, snapshot store.NodeSnapshot) *controllerv1.NodeSummary {
 	displayName := node.DisplayName
 	if displayName == "" {
@@ -693,7 +742,7 @@ func (server *taskServer) ListTasks(ctx context.Context, req *connect.Request[co
 		req.Msg = &controllerv1.ListTasksRequest{}
 	}
 
-	tasks, nextCursor, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), req.Msg.GetServiceName(), req.Msg.GetCursor(), req.Msg.GetPageSize())
+	tasks, nextCursor, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), req.Msg.GetServiceName(), "", req.Msg.GetCursor(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -703,17 +752,21 @@ func (server *taskServer) ListTasks(ctx context.Context, req *connect.Request[co
 		NextCursor: nextCursor,
 	}
 	for _, record := range tasks {
-		response.Tasks = append(response.Tasks, &controllerv1.TaskSummary{
-			TaskId:      record.TaskID,
-			Type:        record.Type,
-			Status:      record.Status,
-			ServiceName: record.ServiceName,
-			NodeId:      record.NodeID,
-			CreatedAt:   record.CreatedAt,
-		})
+		response.Tasks = append(response.Tasks, taskSummaryMessage(record))
 	}
 
 	return connect.NewResponse(response), nil
+}
+
+func taskSummaryMessage(record store.TaskSummary) *controllerv1.TaskSummary {
+	return &controllerv1.TaskSummary{
+		TaskId:      record.TaskID,
+		Type:        record.Type,
+		Status:      record.Status,
+		ServiceName: record.ServiceName,
+		NodeId:      record.NodeID,
+		CreatedAt:   record.CreatedAt,
+	}
 }
 
 func (server *taskServer) GetTask(ctx context.Context, req *connect.Request[controllerv1.GetTaskRequest]) (*connect.Response[controllerv1.GetTaskResponse], error) {

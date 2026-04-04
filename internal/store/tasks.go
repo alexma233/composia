@@ -344,7 +344,7 @@ func (db *DB) TaskNodeID(ctx context.Context, taskID string) (string, error) {
 	return nodeID, nil
 }
 
-func (db *DB) ListTasks(ctx context.Context, statusFilter, serviceNameFilter, cursor string, limit uint32) ([]TaskSummary, string, error) {
+func (db *DB) ListTasks(ctx context.Context, statusFilter, serviceNameFilter, nodeIDFilter, cursor string, limit uint32) ([]TaskSummary, string, error) {
 	if limit == 0 {
 		limit = 100
 	}
@@ -363,6 +363,10 @@ func (db *DB) ListTasks(ctx context.Context, statusFilter, serviceNameFilter, cu
 	if serviceNameFilter != "" {
 		query += ` AND service_name = ?`
 		args = append(args, serviceNameFilter)
+	}
+	if nodeIDFilter != "" {
+		query += ` AND node_id = ?`
+		args = append(args, nodeIDFilter)
 	}
 
 	if cursor != "" {

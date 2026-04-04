@@ -150,7 +150,7 @@ func TestListTasksAppliesFiltersAndCursor(t *testing.T) {
 		t.Fatalf("create task-3: %v", err)
 	}
 
-	tasks, nextCursor, err := db.ListTasks(ctx, string(task.StatusFailed), "", "", 1)
+	tasks, nextCursor, err := db.ListTasks(ctx, string(task.StatusFailed), "", "", "", 1)
 	if err != nil {
 		t.Fatalf("list failed tasks: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestListTasksAppliesFiltersAndCursor(t *testing.T) {
 		t.Fatalf("expected next cursor task-3, got %q", nextCursor)
 	}
 
-	tasks, nextCursor, err = db.ListTasks(ctx, "", "alpha", nextCursor, 10)
+	tasks, nextCursor, err = db.ListTasks(ctx, "", "alpha", "", nextCursor, 10)
 	if err != nil {
 		t.Fatalf("list alpha tasks after cursor: %v", err)
 	}
