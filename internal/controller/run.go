@@ -572,7 +572,7 @@ func (server *serviceServer) GetServiceTasks(ctx context.Context, req *connect.R
 	if _, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName()); err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
-	tasks, nextCursor, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), req.Msg.GetServiceName(), "", req.Msg.GetCursor(), req.Msg.GetPageSize())
+	tasks, nextCursor, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), req.Msg.GetServiceName(), "", "", req.Msg.GetCursor(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -696,7 +696,15 @@ func (server *serviceServer) RestartService(ctx context.Context, req *connect.Re
 	return connect.NewResponse(response), nil
 }
 
+type serviceTaskCreateOptions struct {
+	AttemptOfTaskID string
+}
+
 func (server *serviceServer) createServiceTask(ctx context.Context, serviceName string, taskType task.Type, dataNames []string) (task.Record, error) {
+	return server.createServiceTaskWithOptions(ctx, serviceName, taskType, dataNames, serviceTaskCreateOptions{})
+}
+
+func (server *serviceServer) createServiceTaskWithOptions(ctx context.Context, serviceName string, taskType task.Type, dataNames []string, options serviceTaskCreateOptions) (task.Record, error) {
 	if serviceName == "" {
 		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
@@ -729,15 +737,16 @@ func (server *serviceServer) createServiceTask(ctx context.Context, serviceName 
 	}
 	taskID := uuid.NewString()
 	createdTask, err := server.db.CreateTask(ctx, task.Record{
-		TaskID:       taskID,
-		Type:         taskType,
-		Source:       task.SourceCLI,
-		TriggeredBy:  triggeredBy,
-		ServiceName:  service.Name,
-		NodeID:       service.Node,
-		ParamsJSON:   string(paramsJSON),
-		RepoRevision: repoRevision,
-		LogPath:      filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+		TaskID:          taskID,
+		Type:            taskType,
+		Source:          task.SourceCLI,
+		TriggeredBy:     triggeredBy,
+		ServiceName:     service.Name,
+		NodeID:          service.Node,
+		ParamsJSON:      string(paramsJSON),
+		RepoRevision:    repoRevision,
+		AttemptOfTaskID: options.AttemptOfTaskID,
+		LogPath:         filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
 	})
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, err)
@@ -750,6 +759,10 @@ func (server *serviceServer) createServiceTask(ctx context.Context, serviceName 
 
 func createServiceTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName string, taskType task.Type, dataNames []string) (task.Record, error) {
 	return (&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs}).createServiceTask(ctx, serviceName, taskType, dataNames)
+}
+
+func createServiceTaskWithOptions(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName string, taskType task.Type, dataNames []string, options serviceTaskCreateOptions) (task.Record, error) {
+	return (&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs}).createServiceTaskWithOptions(ctx, serviceName, taskType, dataNames, options)
 }
 
 func taskParams(paramsJSON string) serviceTaskParams {
@@ -818,7 +831,7 @@ func (server *nodeServer) GetNodeTasks(ctx context.Context, req *connect.Request
 	if !configured {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("node %q is not configured", req.Msg.GetNodeId()))
 	}
-	tasks, nextCursor, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), "", req.Msg.GetNodeId(), req.Msg.GetCursor(), req.Msg.GetPageSize())
+	tasks, nextCursor, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), "", req.Msg.GetNodeId(), "", req.Msg.GetCursor(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -851,7 +864,7 @@ func (server *taskServer) ListTasks(ctx context.Context, req *connect.Request[co
 		req.Msg = &controllerv1.ListTasksRequest{}
 	}
 
-	tasks, nextCursor, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), req.Msg.GetServiceName(), "", req.Msg.GetCursor(), req.Msg.GetPageSize())
+	tasks, nextCursor, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), req.Msg.GetServiceName(), req.Msg.GetNodeId(), req.Msg.GetType(), req.Msg.GetCursor(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -1145,14 +1158,14 @@ func (server *taskServer) RunTaskAgain(ctx context.Context, req *connect.Request
 
 	var rerunType task.Type
 	switch detail.Record.Type {
-	case task.TypeDeploy, task.TypeUpdate, task.TypeStop, task.TypeRestart:
+	case task.TypeDeploy, task.TypeUpdate, task.TypeStop, task.TypeRestart, task.TypeBackup:
 		rerunType = detail.Record.Type
 	default:
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("task type %q cannot be rerun yet", detail.Record.Type))
 	}
 
 	params := taskParams(detail.Record.ParamsJSON)
-	createdTask, err := createServiceTask(ctx, server.db, server.cfg, server.availableNodeIDs, detail.Record.ServiceName, rerunType, params.DataNames)
+	createdTask, err := createServiceTaskWithOptions(ctx, server.db, server.cfg, server.availableNodeIDs, detail.Record.ServiceName, rerunType, params.DataNames, serviceTaskCreateOptions{AttemptOfTaskID: detail.Record.TaskID})
 	if err != nil {
 		return nil, err
 	}

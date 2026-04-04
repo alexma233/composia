@@ -27,6 +27,8 @@ type ListTasksRequest struct {
 	ServiceName   string                 `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	PageSize      uint32                 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	Cursor        string                 `protobuf:"bytes,4,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	NodeId        string                 `protobuf:"bytes,5,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	Type          string                 `protobuf:"bytes,6,opt,name=type,proto3" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -85,6 +87,20 @@ func (x *ListTasksRequest) GetPageSize() uint32 {
 func (x *ListTasksRequest) GetCursor() string {
 	if x != nil {
 		return x.Cursor
+	}
+	return ""
+}
+
+func (x *ListTasksRequest) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *ListTasksRequest) GetType() string {
+	if x != nil {
+		return x.Type
 	}
 	return ""
 }
@@ -673,12 +689,14 @@ var File_proto_composia_controller_v1_task_proto protoreflect.FileDescriptor
 
 const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	"\n" +
-	"'proto/composia/controller/v1/task.proto\x12\x16composia.controller.v1\"\x82\x01\n" +
+	"'proto/composia/controller/v1/task.proto\x12\x16composia.controller.v1\"\xaf\x01\n" +
 	"\x10ListTasksRequest\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12!\n" +
 	"\fservice_name\x18\x02 \x01(\tR\vserviceName\x12\x1b\n" +
 	"\tpage_size\x18\x03 \x01(\rR\bpageSize\x12\x16\n" +
-	"\x06cursor\x18\x04 \x01(\tR\x06cursor\"\xad\x01\n" +
+	"\x06cursor\x18\x04 \x01(\tR\x06cursor\x12\x17\n" +
+	"\anode_id\x18\x05 \x01(\tR\x06nodeId\x12\x12\n" +
+	"\x04type\x18\x06 \x01(\tR\x04type\"\xad\x01\n" +
 	"\vTaskSummary\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x16\n" +

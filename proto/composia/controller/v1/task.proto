@@ -16,6 +16,8 @@ message ListTasksRequest {
   string service_name = 2;
   uint32 page_size = 3;
   string cursor = 4;
+  string node_id = 5;
+  string type = 6;
 }
 
 message TaskSummary {

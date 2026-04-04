@@ -150,7 +150,7 @@ func TestListTasksAppliesFiltersAndCursor(t *testing.T) {
 		t.Fatalf("create task-3: %v", err)
 	}
 
-	tasks, nextCursor, err := db.ListTasks(ctx, string(task.StatusFailed), "", "", "", 1)
+	tasks, nextCursor, err := db.ListTasks(ctx, string(task.StatusFailed), "", "", "", "", 1)
 	if err != nil {
 		t.Fatalf("list failed tasks: %v", err)
 	}
@@ -161,12 +161,47 @@ func TestListTasksAppliesFiltersAndCursor(t *testing.T) {
 		t.Fatalf("expected next cursor task-3, got %q", nextCursor)
 	}
 
-	tasks, nextCursor, err = db.ListTasks(ctx, "", "alpha", "", nextCursor, 10)
+	tasks, nextCursor, err = db.ListTasks(ctx, "", "alpha", "", "", nextCursor, 10)
 	if err != nil {
 		t.Fatalf("list alpha tasks after cursor: %v", err)
 	}
 	if len(tasks) != 2 || tasks[0].TaskID != "task-2" || tasks[1].TaskID != "task-1" {
 		t.Fatalf("unexpected alpha task page: %+v", tasks)
+	}
+	if nextCursor != "" {
+		t.Fatalf("expected empty next cursor, got %q", nextCursor)
+	}
+}
+
+func TestListTasksAppliesNodeAndTypeFilters(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncDeclaredServices(ctx, []string{"alpha", "bravo"}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main", "node-2"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-1", Type: task.TypeDeploy, Source: task.SourceCLI, Status: task.StatusSucceeded, ServiceName: "alpha", NodeID: "main", CreatedAt: time.Date(2026, 4, 4, 13, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("create task-1: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-2", Type: task.TypeBackup, Source: task.SourceCLI, Status: task.StatusSucceeded, ServiceName: "alpha", NodeID: "node-2", CreatedAt: time.Date(2026, 4, 4, 13, 5, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("create task-2: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-3", Type: task.TypeDeploy, Source: task.SourceCLI, Status: task.StatusSucceeded, ServiceName: "bravo", NodeID: "node-2", CreatedAt: time.Date(2026, 4, 4, 13, 10, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("create task-3: %v", err)
+	}
+
+	tasks, nextCursor, err := db.ListTasks(ctx, "", "", "node-2", string(task.TypeDeploy), "", 10)
+	if err != nil {
+		t.Fatalf("list filtered tasks: %v", err)
+	}
+	if len(tasks) != 1 || tasks[0].TaskID != "task-3" {
+		t.Fatalf("unexpected filtered task list: %+v", tasks)
 	}
 	if nextCursor != "" {
 		t.Fatalf("expected empty next cursor, got %q", nextCursor)
