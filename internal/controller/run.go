@@ -703,11 +703,75 @@ func (server *taskServer) GetTask(ctx context.Context, req *connect.Request[cont
 	return connect.NewResponse(response), nil
 }
 
+func (server *taskServer) TailTaskLogs(ctx context.Context, req *connect.Request[controllerv1.TailTaskLogsRequest], stream *connect.ServerStream[controllerv1.TailTaskLogsResponse]) error {
+	if req.Msg == nil || req.Msg.GetTaskId() == "" {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
+	}
+
+	detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
+	if err != nil {
+		if errors.Is(err, store.ErrTaskNotFound) {
+			return connect.NewError(connect.CodeNotFound, err)
+		}
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	if detail.Record.LogPath == "" {
+		return connect.NewError(connect.CodeFailedPrecondition, errors.New("task does not have a log file"))
+	}
+
+	var offset int64
+	ticker := time.NewTicker(200 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		content, nextOffset, err := readNewLogContent(detail.Record.LogPath, offset)
+		if err != nil {
+			return connect.NewError(connect.CodeInternal, err)
+		}
+		offset = nextOffset
+		if content != "" {
+			if err := stream.Send(&controllerv1.TailTaskLogsResponse{Content: content}); err != nil {
+				return err
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+		}
+	}
+}
+
 func formatNullableTime(value *time.Time) string {
 	if value == nil {
 		return ""
 	}
 	return value.UTC().Format(time.RFC3339)
+}
+
+func readNewLogContent(logPath string, offset int64) (string, int64, error) {
+	file, err := os.Open(logPath)
+	if err != nil {
+		return "", offset, fmt.Errorf("open task log %q: %w", logPath, err)
+	}
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return "", offset, fmt.Errorf("stat task log %q: %w", logPath, err)
+	}
+	if offset > stat.Size() {
+		offset = 0
+	}
+	if _, err := file.Seek(offset, io.SeekStart); err != nil {
+		return "", offset, fmt.Errorf("seek task log %q: %w", logPath, err)
+	}
+	content, err := io.ReadAll(file)
+	if err != nil {
+		return "", offset, fmt.Errorf("read task log %q: %w", logPath, err)
+	}
+	return string(content), stat.Size(), nil
 }
 
 func protoTime(value *timestamppb.Timestamp) *time.Time {

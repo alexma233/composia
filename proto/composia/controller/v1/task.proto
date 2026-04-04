@@ -7,6 +7,7 @@ option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia
 service TaskService {
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
   rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
+  rpc TailTaskLogs(TailTaskLogsRequest) returns (stream TailTaskLogsResponse);
 }
 
 message ListTasksRequest {
@@ -55,4 +56,12 @@ message GetTaskResponse {
   string error_summary = 11;
   string log_path = 12;
   repeated TaskStepSummary steps = 13;
+}
+
+message TailTaskLogsRequest {
+  string task_id = 1;
+}
+
+message TailTaskLogsResponse {
+  string content = 1;
 }

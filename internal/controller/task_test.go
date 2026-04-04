@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -158,4 +160,68 @@ func TestTaskServiceGetTaskReturnsSteps(t *testing.T) {
 	if response.Msg.GetLogPath() != "/tmp/task-detail.log" {
 		t.Fatalf("expected log path /tmp/task-detail.log, got %q", response.Msg.GetLogPath())
 	}
+}
+
+func TestTaskServiceTailTaskLogsStreamsExistingAndNewContent(t *testing.T) {
+	t.Parallel()
+
+	logDir := t.TempDir()
+	logPath := filepath.Join(logDir, "task.log")
+	if err := os.WriteFile(logPath, []byte("hello\n"), 0o644); err != nil {
+		t.Fatalf("write initial log file: %v", err)
+	}
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncDeclaredServices(ctx, []string{"alpha"}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-log-tail", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "alpha", NodeID: "main", LogPath: logPath, CreatedAt: time.Date(2026, 4, 4, 16, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("create task log tail fixture: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+
+	path, handler := controllerv1connect.NewTaskServiceHandler(&taskServer{db: db}, connect.WithInterceptors(interceptor))
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	streamCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	stream, err := client.TailTaskLogs(streamCtx, connect.NewRequest(&controllerv1.TailTaskLogsRequest{TaskId: "task-log-tail"}))
+	if err != nil {
+		t.Fatalf("tail task logs: %v", err)
+	}
+	defer stream.Close()
+
+	if !stream.Receive() {
+		t.Fatalf("expected first log chunk, got err=%v", stream.Err())
+	}
+	if stream.Msg().GetContent() != "hello\n" {
+		t.Fatalf("unexpected first log chunk %q", stream.Msg().GetContent())
+	}
+
+	if err := os.WriteFile(logPath, []byte("hello\nworld\n"), 0o644); err != nil {
+		t.Fatalf("append log content: %v", err)
+	}
+	if !stream.Receive() {
+		t.Fatalf("expected second log chunk, got err=%v", stream.Err())
+	}
+	if stream.Msg().GetContent() != "world\n" {
+		t.Fatalf("unexpected second log chunk %q", stream.Msg().GetContent())
+	}
+	cancel()
 }
