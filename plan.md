@@ -489,7 +489,7 @@ migrate:
 - 迁移任务创建时，`controller` 会锁定当前已提交的 `repo_revision`、当前 `source_node_id` 和请求中的 `target_node_id`。
 - 在迁移成功并完成流量切换前，Git 中的 `composia-meta.yaml.node` 仍保持旧值。
 - 只有目标节点拉起成功且后续步骤完成后，`controller` 才会尝试把 `node` 字段改为目标节点并执行 `commit`；若配置了远程仓库则继续 `push`。
-- 迁移完成运行态切换后，在人工验证和 repo 对账完成前，`migrate` 任务保持 `running`；该服务在此期间不得继续创建其他任务。
+- 迁移完成运行态切换后，在人工验证和 repo 对账完成前，`migrate` 任务进入 `awaiting_confirmation`；该服务在此期间不得继续创建其他任务。
 - `v1` 不提供迁移失败后的自动回滚、自动清理或自动恢复源节点工作流，统一由用户人工处理。
 - Caddy 片段的真相源始终是服务目录中的 `network.caddy.source`；节点上的 `caddy.generated_dir` 只是运行时复制产物。
 
@@ -504,7 +504,7 @@ migrate:
 7. 在目标节点按对应数据项的 `restore` 定义恢复数据，并使用同一份服务 bundle 启动服务。
 8. 刷新目标节点的 Caddy 生成目录并 reload，同时在源节点全量重建其 Caddy 生成目录以移除旧服务片段并 reload；然后执行 DNS 更新。
 9. 完成上述执行步骤后，`controller` 尝试修改 `composia-meta.yaml` 中该服务的 `node`，生成 commit；若配置了远程仓库则继续 push 到跟踪分支。
-10. 用户人工验证业务可用性并完成 repo 对账；如果第 9 步之前失败，则 Git desired state 保持源节点且任务标记为 `failed`；如果运行态已切换但 repo 写回 / push / 人工对账尚未完成，则任务继续保持 `running`，并提示“运行态已迁移但 repo 仍需人工对账”。
+10. 用户人工验证业务可用性并完成 repo 对账；如果第 9 步之前失败，则 Git desired state 保持源节点且任务标记为 `failed`；如果运行态已切换但 repo 写回 / push / 人工对账尚未完成，则任务进入 `awaiting_confirmation`，并提示“运行态已迁移但 repo 仍需人工对账”。
 
 ---
 
@@ -579,9 +579,9 @@ migrate:
 
 - `v1` 使用 `controller` 内部持久任务队列。
 - 创建任务成功后应立即返回 `task_id`。
-- `v1` 采用全局串行执行模型：同一时刻只执行一个任务。
-- 如果同一服务已经有 `pending` 或 `running` 任务，新任务直接拒绝。
-- 如果同一服务已经有 `pending` 或 `running` 任务，所有触及该服务目录的 repo 写操作也必须直接拒绝；这里的“触及”包括该服务目录下的声明文件、compose 文件、普通配置文件和 secrets 文件。
+- `v1` 采用全局串行执行模型：同一时刻只执行一个任务；处于 `awaiting_confirmation` 的任务不占执行槽位。
+- 如果同一服务已经有 `pending`、`running` 或 `awaiting_confirmation` 任务，新任务直接拒绝。
+- 如果同一服务已经有 `pending`、`running` 或 `awaiting_confirmation` 任务，所有触及该服务目录的 repo 写操作也必须直接拒绝；这里的“触及”包括该服务目录下的声明文件、compose 文件、普通配置文件和 secrets 文件。
 - 这种限制只作用于正式写入 repo 的操作；未提交草稿只能保留在客户端或独立 draft store 中，不能写入 `controller.repo_dir` 形成 dirty working tree。
 - 不做离线补偿队列；目标 `agent` 离线时，任务执行直接失败。
 
@@ -608,7 +608,7 @@ migrate:
 - `deploy`：按当前 repo 内容渲染并执行 `docker compose up -d`。
 - `update`：先执行 `docker compose pull`，再继续 `deploy` 流程。
 - `backup`：默认执行该服务全部启用的 `backup.data[]`；也支持通过 `data_names` 指定单个或多个数据项。
-- `migrate`：是单个任务，内部按步骤推进，而不是拆成多个独立任务；任务参数必须记录 `source_node_id` 和 `target_node_id`，运行态切换完成后由 `controller` 在 `persist_repo` 阶段尝试把新的 `node` 写回 repo 并生成 Git commit；若配置了远程仓库则继续 push；在人工验证和 repo 对账完成前，任务仍可保持 `running`。
+- `migrate`：是单个任务，内部按步骤推进，而不是拆成多个独立任务；任务参数必须记录 `source_node_id` 和 `target_node_id`，运行态切换完成后由 `controller` 在 `persist_repo` 阶段尝试把新的 `node` 写回 repo 并生成 Git commit；若配置了远程仓库则继续 push；在人工验证和 repo 对账完成前，任务进入 `awaiting_confirmation`。
 - `dns_update`：按服务当前声明刷新 DNS 记录。
 - `caddy_reload`：对指定节点执行一次 Caddy reload。
 - `prune`：对指定节点执行容器 / 镜像 / volume 清理；具体清理范围由参数控制。
@@ -619,6 +619,7 @@ migrate:
 
 - `pending`
 - `running`
+- `awaiting_confirmation`
 - `succeeded`
 - `failed`
 - `cancelled`
@@ -626,9 +627,10 @@ migrate:
 状态规则：
 
 - `pending` 表示任务已入队，尚未开始执行。
-- `running` 表示任务已开始执行。
+- `running` 表示任务已开始执行，且当前仍占用 worker 执行自动步骤。
+- `awaiting_confirmation` 表示自动执行步骤已结束，worker 已释放，但仍在等待人工验证或 repo 对账。
 - `succeeded` / `failed` / `cancelled` 为终态。
-- 对 `migrate` 而言，`running` 也覆盖“自动执行步骤已完成，但仍在等待人工验证或 repo 对账”的阶段。
+- 对 `migrate` 而言，自动执行步骤完成后会从 `running` 转入 `awaiting_confirmation`，而不是继续停留在 `running`。
 - `v1` 不支持手动取消接口，因此 `cancelled` 主要用于定时任务因冲突被跳过等场景。
 
 任务来源：
@@ -689,7 +691,7 @@ migrate:
 
 - `v1` 支持一个全局默认任务超时。
 - 超时后任务标记为 `failed`。
-- 如果 `controller` 在任务执行中重启，原来的 `running` 任务在恢复阶段统一标记为 `failed`。
+- 如果 `controller` 在任务执行中重启，原来的 `running` 任务在恢复阶段统一标记为 `failed`；`awaiting_confirmation` 任务保持原状态。
 - `system` 来源在 `v1` 先只作为保留枚举，不强依赖具体自动触发场景。
 
 日志：
@@ -800,7 +802,7 @@ migrate:
 
 - `task_id` 每次触发都新建，不复用。
 - `type` 在 `v1` 先支持：`deploy`、`stop`、`restart`、`update`、`backup`、`migrate`、`dns_update`、`caddy_reload`、`prune`。
-- `status` 在 `v1` 固定为：`pending`、`running`、`succeeded`、`failed`、`cancelled`。
+- `status` 在 `v1` 固定为：`pending`、`running`、`awaiting_confirmation`、`succeeded`、`failed`、`cancelled`。
 - `source` 在 `v1` 先支持：`web`、`cli`、`schedule`、`system`。
 - `triggered_by` 只记录来源名。
 - `params_json` 用于保存调用参数快照，例如 `backup.data_names`。
@@ -830,7 +832,7 @@ migrate:
 
 - 一个任务内部只记录步骤摘要，不单独落步骤日志。
 - `step_name` 在 `v1` 使用固定枚举，例如：`render`、`pull`、`backup`、`compose_down`、`compose_up`、`transfer`、`restore`、`dns_update`、`caddy_reload`、`prune`、`persist_repo`、`finalize`。
-- `status` 与 `tasks.status` 使用同一套枚举：`pending`、`running`、`succeeded`、`failed`、`cancelled`。
+- `status` 与 `tasks.status` 基本一致，但步骤级状态通常只使用：`pending`、`running`、`succeeded`、`failed`、`cancelled`；`awaiting_confirmation` 仅用于任务级状态。
 
 `backups`
 
@@ -1078,7 +1080,7 @@ ON backups(status, finished_at DESC);
 - 成功时返回：`task_id`、初始 `status`、基础任务摘要、`repo_revision`。
 - `BackupService` 支持可选 `data_names` 列表；为空时表示执行全部启用的 `backup.data[]`。
 - `UpdateServiceDNS` 基于服务当前声明创建一个 `dns_update` 任务。
-- `MigrateService` 接收目标 `node_id`，内部创建单个迁移任务；任务在自动步骤完成后仍可因等待人工验证或 repo 对账而保持 `running`；`result_revision` 仅在成功写回 repo 后产生。
+- `MigrateService` 接收目标 `node_id`，内部创建单个迁移任务；任务在自动步骤完成后可因等待人工验证或 repo 对账而进入 `awaiting_confirmation`；`result_revision` 仅在成功写回 repo 后产生。
 
 ##### `TaskService`
 
@@ -1157,7 +1159,7 @@ ON backups(status, finished_at DESC);
 - `UpdateRepoFile` 请求至少应包含：`path`、`content`、`base_revision`、可选 `commit_message`。
 - `UpdateRepoFile` 的服务端语义固定为：获取 repo lock、若配置远程则先 `fetch + fast-forward`、校验 `base_revision`、校验目标路径是否命中正在执行中的服务锁、写回文件、执行校验、生成 commit、若配置了远程则继续 push、返回新的 `commit_id`、push 结果和当前 repo sync 状态。
 - `UpdateRepoFile` 在写文件 / 校验 / commit 之前的失败都必须回滚临时改动，不得留下 dirty working tree；若 commit 已成功但 push 失败，则不回滚本地 `HEAD`，repo 进入“远程未同步”状态。
-- 某个服务存在 `pending` 或 `running` 任务时，命中该服务目录的 `UpdateRepoFile` 必须报冲突错误；修改其他服务或无关文件仍然允许，因此 repo `HEAD` 在长任务执行期间仍可能前进。
+- 某个服务存在 `pending`、`running` 或 `awaiting_confirmation` 任务时，命中该服务目录的 `UpdateRepoFile` 必须报冲突错误；修改其他服务或无关文件仍然允许，因此 repo `HEAD` 在长任务执行期间仍可能前进。
 - `ListRepoCommits` 用于 Web UI 展示最近提交历史。
 - `SyncRepo` 仅在配置远程仓库时可用，语义为 `fetch + fast-forward + re-parse`；如果 repo 当前不 clean，则直接失败。
 
@@ -1174,7 +1176,7 @@ ON backups(status, finished_at DESC);
 
 - `GetServiceSecretEnv` 返回解密后的 dotenv 文本，仅适用于单用户模式。
 - `UpdateServiceSecretEnv` 请求至少应包含：`service_name`、`content`、`base_revision`、可选 `commit_message`。
-- `UpdateServiceSecretEnv` 的写入事务与 `RepoService.UpdateRepoFile` 一致，但输出文件固定为服务目录下的 `.secret.env.enc`；如果该服务当前已有 `pending` 或 `running` 任务，则必须报服务冲突错误。
+- `UpdateServiceSecretEnv` 的写入事务与 `RepoService.UpdateRepoFile` 一致，但输出文件固定为服务目录下的 `.secret.env.enc`；如果该服务当前已有 `pending`、`running` 或 `awaiting_confirmation` 任务，则必须报服务冲突错误。
 - `UpdateServiceSecretEnv` 成功后返回新的 `commit_id`，并在有远程仓库时返回 push 结果和当前 repo sync 状态。
 
 ##### `SystemService`
@@ -1214,7 +1216,7 @@ ON backups(status, finished_at DESC);
 - 使用长轮询。
 - 请求带上 `node_id` 和 agent 当前能力/版本摘要。
 - 响应返回一个待执行任务，或在超时窗口内返回空结果。
-- `v1` 任务队列全局串行，因此 `PullNextTask` 的调度逻辑会很保守。
+- `v1` 任务队列对自动执行阶段采用全局串行，因此 `PullNextTask` 的调度逻辑会很保守；处于 `awaiting_confirmation` 的任务不阻塞后续任务下发。
 
 ##### `AgentReportService`
 
@@ -1345,7 +1347,7 @@ Web 在线编辑文件：
 
 ### 13. 长任务与 Repo 并发规则（v1 补充）
 
-- 服务级冲突判定优先于 repo 写入：某服务存在 `pending` 或 `running` 任务时，不允许再创建该服务的新任务，也不允许把任何触及该服务目录的修改写入 repo。
+- 服务级冲突判定优先于 repo 写入：某服务存在 `pending`、`running` 或 `awaiting_confirmation` 任务时，不允许再创建该服务的新任务，也不允许把任何触及该服务目录的修改写入 repo。
 - Web UI / CLI 可以保留未提交草稿，但草稿只能存在于客户端或独立 draft store 中；`controller.repo_dir` 在空闲状态下必须保持 clean，不能承载“先改文件、稍后再提交”的草稿态。
 - 对其他服务或无关文件的正式修改仍然允许，因此长任务执行期间 repo `HEAD` 仍可能因为跨服务提交、同步远程或其他系统写操作而前进。
 - `v1` 当前主要需要处理该问题的长任务是 `migrate`。`migrate` 的自动执行部分始终绑定任务创建时的 `repo_revision`；agent 只消费该 revision 对应的 bundle，不受后续 Git 提交影响。
@@ -1353,4 +1355,4 @@ Web 在线编辑文件：
 - 如果 `HEAD` 没有变化，直接按正常流程把该服务的最终 `node` 写回 repo、commit，并在配置了远程仓库时继续 push。
 - 如果 `HEAD` 已变化，但变化仅涉及其他服务或无关文件，则允许在最新 `HEAD` 上补写该服务最终状态，再生成新的 commit。
 - 如果最新变更触及该服务目录、使该服务声明不再有效，或触及迁移所依赖的相关全局配置，则视为冲突；`controller` 不得自动覆盖这些变更，也不得回退 repo。
-- 发生上述冲突时，运行态迁移结果保持不变，但 repo 写回动作停止；任务继续保持 `running`，并向用户明确暴露“运行态已迁移，但 repo 仍需人工对账”。
+- 发生上述冲突时，运行态迁移结果保持不变，但 repo 写回动作停止；任务进入 `awaiting_confirmation`，并向用户明确暴露“运行态已迁移，但 repo 仍需人工对账”。
