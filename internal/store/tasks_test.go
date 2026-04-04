@@ -173,6 +173,42 @@ func TestListTasksAppliesFiltersAndCursor(t *testing.T) {
 	}
 }
 
+func TestCompleteTaskRefreshesServiceRuntimeStatus(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-deploy", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "demo", CreatedAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("create deploy task: %v", err)
+	}
+	finishedAt := time.Date(2026, 4, 4, 12, 5, 0, 0, time.UTC)
+	if err := db.CompleteTask(ctx, "task-deploy", task.StatusSucceeded, finishedAt, ""); err != nil {
+		t.Fatalf("complete task: %v", err)
+	}
+
+	row := db.sql.QueryRowContext(ctx, `SELECT runtime_status, last_task_id, updated_at FROM services WHERE service_name = 'demo'`)
+	var runtimeStatus string
+	var lastTaskID string
+	var updatedAt string
+	if err := row.Scan(&runtimeStatus, &lastTaskID, &updatedAt); err != nil {
+		t.Fatalf("scan service state: %v", err)
+	}
+	if runtimeStatus != "running" {
+		t.Fatalf("expected running runtime status, got %q", runtimeStatus)
+	}
+	if lastTaskID != "task-deploy" {
+		t.Fatalf("expected last task task-deploy, got %q", lastTaskID)
+	}
+	if updatedAt != finishedAt.Format(time.RFC3339) {
+		t.Fatalf("expected updated_at %q, got %q", finishedAt.Format(time.RFC3339), updatedAt)
+	}
+}
+
 func openTestDB(t *testing.T) *DB {
 	t.Helper()
 

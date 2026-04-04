@@ -670,6 +670,118 @@ func (*UploadTaskLogsResponse) Descriptor() ([]byte, []int) {
 	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{11}
 }
 
+type GetServiceBundleRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetServiceBundleRequest) Reset() {
+	*x = GetServiceBundleRequest{}
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetServiceBundleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetServiceBundleRequest) ProtoMessage() {}
+
+func (x *GetServiceBundleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetServiceBundleRequest.ProtoReflect.Descriptor instead.
+func (*GetServiceBundleRequest) Descriptor() ([]byte, []int) {
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetServiceBundleRequest) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+type GetServiceBundleResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	RepoRevision  string                 `protobuf:"bytes,2,opt,name=repo_revision,json=repoRevision,proto3" json:"repo_revision,omitempty"`
+	RelativeRoot  string                 `protobuf:"bytes,3,opt,name=relative_root,json=relativeRoot,proto3" json:"relative_root,omitempty"`
+	Data          []byte                 `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetServiceBundleResponse) Reset() {
+	*x = GetServiceBundleResponse{}
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetServiceBundleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetServiceBundleResponse) ProtoMessage() {}
+
+func (x *GetServiceBundleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetServiceBundleResponse.ProtoReflect.Descriptor instead.
+func (*GetServiceBundleResponse) Descriptor() ([]byte, []int) {
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *GetServiceBundleResponse) GetServiceName() string {
+	if x != nil {
+		return x.ServiceName
+	}
+	return ""
+}
+
+func (x *GetServiceBundleResponse) GetRepoRevision() string {
+	if x != nil {
+		return x.RepoRevision
+	}
+	return ""
+}
+
+func (x *GetServiceBundleResponse) GetRelativeRoot() string {
+	if x != nil {
+		return x.RelativeRoot
+	}
+	return ""
+}
+
+func (x *GetServiceBundleResponse) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
 var File_proto_composia_agent_v1_agent_proto protoreflect.FileDescriptor
 
 const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
@@ -717,14 +829,23 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\x15UploadTaskLogsRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\"\x18\n" +
-	"\x16UploadTaskLogsResponse2\xb3\x03\n" +
+	"\x16UploadTaskLogsResponse\"2\n" +
+	"\x17GetServiceBundleRequest\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\x9b\x01\n" +
+	"\x18GetServiceBundleResponse\x12!\n" +
+	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12#\n" +
+	"\rrepo_revision\x18\x02 \x01(\tR\frepoRevision\x12#\n" +
+	"\rrelative_root\x18\x03 \x01(\tR\frelativeRoot\x12\x12\n" +
+	"\x04data\x18\x04 \x01(\fR\x04data2\xb3\x03\n" +
 	"\x12AgentReportService\x12V\n" +
 	"\tHeartbeat\x12#.composia.agent.v1.HeartbeatRequest\x1a$.composia.agent.v1.HeartbeatResponse\x12h\n" +
 	"\x0fReportTaskState\x12).composia.agent.v1.ReportTaskStateRequest\x1a*.composia.agent.v1.ReportTaskStateResponse\x12t\n" +
 	"\x13ReportTaskStepState\x12-.composia.agent.v1.ReportTaskStepStateRequest\x1a..composia.agent.v1.ReportTaskStepStateResponse\x12e\n" +
 	"\x0eUploadTaskLogs\x12(.composia.agent.v1.UploadTaskLogsRequest\x1a).composia.agent.v1.UploadTaskLogsResponse2s\n" +
 	"\x10AgentTaskService\x12_\n" +
-	"\fPullNextTask\x12&.composia.agent.v1.PullNextTaskRequest\x1a'.composia.agent.v1.PullNextTaskResponseBNZLforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1;agentv1b\x06proto3"
+	"\fPullNextTask\x12&.composia.agent.v1.PullNextTaskRequest\x1a'.composia.agent.v1.PullNextTaskResponse2~\n" +
+	"\rBundleService\x12m\n" +
+	"\x10GetServiceBundle\x12*.composia.agent.v1.GetServiceBundleRequest\x1a+.composia.agent.v1.GetServiceBundleResponse0\x01BNZLforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1;agentv1b\x06proto3"
 
 var (
 	file_proto_composia_agent_v1_agent_proto_rawDescOnce sync.Once
@@ -738,7 +859,7 @@ func file_proto_composia_agent_v1_agent_proto_rawDescGZIP() []byte {
 	return file_proto_composia_agent_v1_agent_proto_rawDescData
 }
 
-var file_proto_composia_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_proto_composia_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_proto_composia_agent_v1_agent_proto_goTypes = []any{
 	(*HeartbeatRequest)(nil),            // 0: composia.agent.v1.HeartbeatRequest
 	(*NodeRuntimeSummary)(nil),          // 1: composia.agent.v1.NodeRuntimeSummary
@@ -752,28 +873,32 @@ var file_proto_composia_agent_v1_agent_proto_goTypes = []any{
 	(*ReportTaskStepStateResponse)(nil), // 9: composia.agent.v1.ReportTaskStepStateResponse
 	(*UploadTaskLogsRequest)(nil),       // 10: composia.agent.v1.UploadTaskLogsRequest
 	(*UploadTaskLogsResponse)(nil),      // 11: composia.agent.v1.UploadTaskLogsResponse
-	(*timestamppb.Timestamp)(nil),       // 12: google.protobuf.Timestamp
+	(*GetServiceBundleRequest)(nil),     // 12: composia.agent.v1.GetServiceBundleRequest
+	(*GetServiceBundleResponse)(nil),    // 13: composia.agent.v1.GetServiceBundleResponse
+	(*timestamppb.Timestamp)(nil),       // 14: google.protobuf.Timestamp
 }
 var file_proto_composia_agent_v1_agent_proto_depIdxs = []int32{
-	12, // 0: composia.agent.v1.HeartbeatRequest.sent_at:type_name -> google.protobuf.Timestamp
+	14, // 0: composia.agent.v1.HeartbeatRequest.sent_at:type_name -> google.protobuf.Timestamp
 	1,  // 1: composia.agent.v1.HeartbeatRequest.runtime:type_name -> composia.agent.v1.NodeRuntimeSummary
-	12, // 2: composia.agent.v1.HeartbeatResponse.received_at:type_name -> google.protobuf.Timestamp
+	14, // 2: composia.agent.v1.HeartbeatResponse.received_at:type_name -> google.protobuf.Timestamp
 	4,  // 3: composia.agent.v1.PullNextTaskResponse.task:type_name -> composia.agent.v1.AgentTask
-	12, // 4: composia.agent.v1.ReportTaskStateRequest.finished_at:type_name -> google.protobuf.Timestamp
-	12, // 5: composia.agent.v1.ReportTaskStepStateRequest.started_at:type_name -> google.protobuf.Timestamp
-	12, // 6: composia.agent.v1.ReportTaskStepStateRequest.finished_at:type_name -> google.protobuf.Timestamp
+	14, // 4: composia.agent.v1.ReportTaskStateRequest.finished_at:type_name -> google.protobuf.Timestamp
+	14, // 5: composia.agent.v1.ReportTaskStepStateRequest.started_at:type_name -> google.protobuf.Timestamp
+	14, // 6: composia.agent.v1.ReportTaskStepStateRequest.finished_at:type_name -> google.protobuf.Timestamp
 	0,  // 7: composia.agent.v1.AgentReportService.Heartbeat:input_type -> composia.agent.v1.HeartbeatRequest
 	6,  // 8: composia.agent.v1.AgentReportService.ReportTaskState:input_type -> composia.agent.v1.ReportTaskStateRequest
 	8,  // 9: composia.agent.v1.AgentReportService.ReportTaskStepState:input_type -> composia.agent.v1.ReportTaskStepStateRequest
 	10, // 10: composia.agent.v1.AgentReportService.UploadTaskLogs:input_type -> composia.agent.v1.UploadTaskLogsRequest
 	3,  // 11: composia.agent.v1.AgentTaskService.PullNextTask:input_type -> composia.agent.v1.PullNextTaskRequest
-	2,  // 12: composia.agent.v1.AgentReportService.Heartbeat:output_type -> composia.agent.v1.HeartbeatResponse
-	7,  // 13: composia.agent.v1.AgentReportService.ReportTaskState:output_type -> composia.agent.v1.ReportTaskStateResponse
-	9,  // 14: composia.agent.v1.AgentReportService.ReportTaskStepState:output_type -> composia.agent.v1.ReportTaskStepStateResponse
-	11, // 15: composia.agent.v1.AgentReportService.UploadTaskLogs:output_type -> composia.agent.v1.UploadTaskLogsResponse
-	5,  // 16: composia.agent.v1.AgentTaskService.PullNextTask:output_type -> composia.agent.v1.PullNextTaskResponse
-	12, // [12:17] is the sub-list for method output_type
-	7,  // [7:12] is the sub-list for method input_type
+	12, // 12: composia.agent.v1.BundleService.GetServiceBundle:input_type -> composia.agent.v1.GetServiceBundleRequest
+	2,  // 13: composia.agent.v1.AgentReportService.Heartbeat:output_type -> composia.agent.v1.HeartbeatResponse
+	7,  // 14: composia.agent.v1.AgentReportService.ReportTaskState:output_type -> composia.agent.v1.ReportTaskStateResponse
+	9,  // 15: composia.agent.v1.AgentReportService.ReportTaskStepState:output_type -> composia.agent.v1.ReportTaskStepStateResponse
+	11, // 16: composia.agent.v1.AgentReportService.UploadTaskLogs:output_type -> composia.agent.v1.UploadTaskLogsResponse
+	5,  // 17: composia.agent.v1.AgentTaskService.PullNextTask:output_type -> composia.agent.v1.PullNextTaskResponse
+	13, // 18: composia.agent.v1.BundleService.GetServiceBundle:output_type -> composia.agent.v1.GetServiceBundleResponse
+	13, // [13:19] is the sub-list for method output_type
+	7,  // [7:13] is the sub-list for method input_type
 	7,  // [7:7] is the sub-list for extension type_name
 	7,  // [7:7] is the sub-list for extension extendee
 	0,  // [0:7] is the sub-list for field type_name
@@ -790,9 +915,9 @@ func file_proto_composia_agent_v1_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_agent_v1_agent_proto_rawDesc), len(file_proto_composia_agent_v1_agent_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   14,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   3,
 		},
 		GoTypes:           file_proto_composia_agent_v1_agent_proto_goTypes,
 		DependencyIndexes: file_proto_composia_agent_v1_agent_proto_depIdxs,

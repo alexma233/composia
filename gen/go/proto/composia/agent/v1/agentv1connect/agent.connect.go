@@ -25,6 +25,8 @@ const (
 	AgentReportServiceName = "composia.agent.v1.AgentReportService"
 	// AgentTaskServiceName is the fully-qualified name of the AgentTaskService service.
 	AgentTaskServiceName = "composia.agent.v1.AgentTaskService"
+	// BundleServiceName is the fully-qualified name of the BundleService service.
+	BundleServiceName = "composia.agent.v1.BundleService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -50,6 +52,9 @@ const (
 	// AgentTaskServicePullNextTaskProcedure is the fully-qualified name of the AgentTaskService's
 	// PullNextTask RPC.
 	AgentTaskServicePullNextTaskProcedure = "/composia.agent.v1.AgentTaskService/PullNextTask"
+	// BundleServiceGetServiceBundleProcedure is the fully-qualified name of the BundleService's
+	// GetServiceBundle RPC.
+	BundleServiceGetServiceBundleProcedure = "/composia.agent.v1.BundleService/GetServiceBundle"
 )
 
 // AgentReportServiceClient is a client for the composia.agent.v1.AgentReportService service.
@@ -269,4 +274,74 @@ type UnimplementedAgentTaskServiceHandler struct{}
 
 func (UnimplementedAgentTaskServiceHandler) PullNextTask(context.Context, *connect.Request[v1.PullNextTaskRequest]) (*connect.Response[v1.PullNextTaskResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentTaskService.PullNextTask is not implemented"))
+}
+
+// BundleServiceClient is a client for the composia.agent.v1.BundleService service.
+type BundleServiceClient interface {
+	GetServiceBundle(context.Context, *connect.Request[v1.GetServiceBundleRequest]) (*connect.ServerStreamForClient[v1.GetServiceBundleResponse], error)
+}
+
+// NewBundleServiceClient constructs a client for the composia.agent.v1.BundleService service. By
+// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
+// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
+// connect.WithGRPC() or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewBundleServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) BundleServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	bundleServiceMethods := v1.File_proto_composia_agent_v1_agent_proto.Services().ByName("BundleService").Methods()
+	return &bundleServiceClient{
+		getServiceBundle: connect.NewClient[v1.GetServiceBundleRequest, v1.GetServiceBundleResponse](
+			httpClient,
+			baseURL+BundleServiceGetServiceBundleProcedure,
+			connect.WithSchema(bundleServiceMethods.ByName("GetServiceBundle")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// bundleServiceClient implements BundleServiceClient.
+type bundleServiceClient struct {
+	getServiceBundle *connect.Client[v1.GetServiceBundleRequest, v1.GetServiceBundleResponse]
+}
+
+// GetServiceBundle calls composia.agent.v1.BundleService.GetServiceBundle.
+func (c *bundleServiceClient) GetServiceBundle(ctx context.Context, req *connect.Request[v1.GetServiceBundleRequest]) (*connect.ServerStreamForClient[v1.GetServiceBundleResponse], error) {
+	return c.getServiceBundle.CallServerStream(ctx, req)
+}
+
+// BundleServiceHandler is an implementation of the composia.agent.v1.BundleService service.
+type BundleServiceHandler interface {
+	GetServiceBundle(context.Context, *connect.Request[v1.GetServiceBundleRequest], *connect.ServerStream[v1.GetServiceBundleResponse]) error
+}
+
+// NewBundleServiceHandler builds an HTTP handler from the service implementation. It returns the
+// path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewBundleServiceHandler(svc BundleServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	bundleServiceMethods := v1.File_proto_composia_agent_v1_agent_proto.Services().ByName("BundleService").Methods()
+	bundleServiceGetServiceBundleHandler := connect.NewServerStreamHandler(
+		BundleServiceGetServiceBundleProcedure,
+		svc.GetServiceBundle,
+		connect.WithSchema(bundleServiceMethods.ByName("GetServiceBundle")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/composia.agent.v1.BundleService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case BundleServiceGetServiceBundleProcedure:
+			bundleServiceGetServiceBundleHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedBundleServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedBundleServiceHandler struct{}
+
+func (UnimplementedBundleServiceHandler) GetServiceBundle(context.Context, *connect.Request[v1.GetServiceBundleRequest], *connect.ServerStream[v1.GetServiceBundleResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.BundleService.GetServiceBundle is not implemented"))
 }

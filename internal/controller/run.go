@@ -1,9 +1,12 @@
 package controller
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -115,6 +118,12 @@ func Run(ctx context.Context, configPath string) error {
 	)
 	mux.Handle(agentTaskPath, agentTaskHandler)
 
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(
+		&bundleServer{db: db, cfg: cfg},
+		connect.WithInterceptors(agentInterceptor),
+	)
+	mux.Handle(bundlePath, bundleHandler)
+
 	systemPath, systemHandler := controllerv1connect.NewSystemServiceHandler(
 		&systemServer{db: db, cfg: cfg},
 		connect.WithInterceptors(cliInterceptor),
@@ -186,6 +195,11 @@ type agentTaskServer struct {
 	db *store.DB
 }
 
+type bundleServer struct {
+	db  *store.DB
+	cfg *config.ControllerConfig
+}
+
 func (server *agentReportServer) Heartbeat(ctx context.Context, req *connect.Request[agentv1.HeartbeatRequest]) (*connect.Response[agentv1.HeartbeatResponse], error) {
 	if req.Msg.GetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
@@ -226,7 +240,7 @@ func (server *agentReportServer) ReportTaskState(ctx context.Context, req *conne
 	if req.Msg.GetStatus() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("status is required"))
 	}
-	if err := server.ensureTaskNodeMatch(ctx, req.Msg.GetTaskId()); err != nil {
+	if err := ensureTaskNodeMatch(ctx, server.db, req.Msg.GetTaskId()); err != nil {
 		return nil, err
 	}
 
@@ -250,7 +264,7 @@ func (server *agentReportServer) ReportTaskStepState(ctx context.Context, req *c
 	if req.Msg.GetStatus() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("status is required"))
 	}
-	if err := server.ensureTaskNodeMatch(ctx, req.Msg.GetTaskId()); err != nil {
+	if err := ensureTaskNodeMatch(ctx, server.db, req.Msg.GetTaskId()); err != nil {
 		return nil, err
 	}
 
@@ -271,7 +285,7 @@ func (server *agentReportServer) UploadTaskLogs(ctx context.Context, req *connec
 	if req.Msg.GetTaskId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
 	}
-	if err := server.ensureTaskNodeMatch(ctx, req.Msg.GetTaskId()); err != nil {
+	if err := ensureTaskNodeMatch(ctx, server.db, req.Msg.GetTaskId()); err != nil {
 		return nil, err
 	}
 	detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
@@ -287,12 +301,12 @@ func (server *agentReportServer) UploadTaskLogs(ctx context.Context, req *connec
 	return connect.NewResponse(&agentv1.UploadTaskLogsResponse{}), nil
 }
 
-func (server *agentReportServer) ensureTaskNodeMatch(ctx context.Context, taskID string) error {
+func ensureTaskNodeMatch(ctx context.Context, db *store.DB, taskID string) error {
 	authenticatedNodeID, ok := rpcutil.BearerSubject(ctx)
 	if !ok {
 		return connect.NewError(connect.CodeUnauthenticated, errors.New("missing authenticated node"))
 	}
-	taskNodeID, err := server.db.TaskNodeID(ctx, taskID)
+	taskNodeID, err := db.TaskNodeID(ctx, taskID)
 	if err != nil {
 		if errors.Is(err, store.ErrTaskNotFound) {
 			return connect.NewError(connect.CodeNotFound, err)
@@ -303,6 +317,61 @@ func (server *agentReportServer) ensureTaskNodeMatch(ctx context.Context, taskID
 		return connect.NewError(connect.CodePermissionDenied, errors.New("task does not belong to authenticated node"))
 	}
 	return nil
+}
+
+func (server *bundleServer) GetServiceBundle(ctx context.Context, req *connect.Request[agentv1.GetServiceBundleRequest], stream *connect.ServerStream[agentv1.GetServiceBundleResponse]) error {
+	if req.Msg.GetTaskId() == "" {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
+	}
+	if err := ensureTaskNodeMatch(ctx, server.db, req.Msg.GetTaskId()); err != nil {
+		return err
+	}
+
+	detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
+	if err != nil {
+		if errors.Is(err, store.ErrTaskNotFound) {
+			return connect.NewError(connect.CodeNotFound, err)
+		}
+		return connect.NewError(connect.CodeInternal, err)
+	}
+
+	var params deployTaskParams
+	if err := json.Unmarshal([]byte(detail.Record.ParamsJSON), &params); err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("decode deploy task params: %w", err))
+	}
+	if params.ServiceDir == "" {
+		return connect.NewError(connect.CodeFailedPrecondition, errors.New("deploy task is missing service_dir"))
+	}
+
+	pipeReader, pipeWriter := io.Pipe()
+	go func() {
+		pipeWriter.CloseWithError(repo.StreamServiceBundle(ctx, server.cfg.RepoDir, detail.Record.RepoRevision, params.ServiceDir, pipeWriter))
+	}()
+	defer pipeReader.Close()
+
+	buffer := make([]byte, 32*1024)
+	firstChunk := true
+	for {
+		count, err := pipeReader.Read(buffer)
+		if count > 0 {
+			response := &agentv1.GetServiceBundleResponse{Data: bytes.Clone(buffer[:count])}
+			if firstChunk {
+				response.ServiceName = detail.Record.ServiceName
+				response.RepoRevision = detail.Record.RepoRevision
+				response.RelativeRoot = params.ServiceDir
+				firstChunk = false
+			}
+			if sendErr := stream.Send(response); sendErr != nil {
+				return sendErr
+			}
+		}
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+			return connect.NewError(connect.CodeInternal, fmt.Errorf("read bundle stream: %w", err))
+		}
+	}
 }
 
 func (server *agentTaskServer) PullNextTask(ctx context.Context, req *connect.Request[agentv1.PullNextTaskRequest]) (*connect.Response[agentv1.PullNextTaskResponse], error) {
@@ -344,6 +413,10 @@ type serviceServer struct {
 	db               *store.DB
 	cfg              *config.ControllerConfig
 	availableNodeIDs map[string]struct{}
+}
+
+type deployTaskParams struct {
+	ServiceDir string `json:"service_dir"`
 }
 
 type nodeServer struct {
@@ -423,6 +496,14 @@ func (server *serviceServer) DeployService(ctx context.Context, req *connect.Req
 	}
 
 	triggeredBy, _ := rpcutil.BearerSubject(ctx)
+	serviceDir, err := filepath.Rel(server.cfg.RepoDir, service.Directory)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
+	}
+	paramsJSON, err := json.Marshal(deployTaskParams{ServiceDir: serviceDir})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("encode deploy task params: %w", err))
+	}
 	taskID := uuid.NewString()
 	createdTask, err := server.db.CreateTask(ctx, task.Record{
 		TaskID:       taskID,
@@ -431,6 +512,7 @@ func (server *serviceServer) DeployService(ctx context.Context, req *connect.Req
 		TriggeredBy:  triggeredBy,
 		ServiceName:  service.Name,
 		NodeID:       service.Node,
+		ParamsJSON:   string(paramsJSON),
 		RepoRevision: repoRevision,
 		LogPath:      filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
 	})

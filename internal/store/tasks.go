@@ -272,13 +272,24 @@ func (db *DB) CompleteTask(ctx context.Context, taskID string, status task.Statu
 		return fmt.Errorf("invalid terminal task status %q", status)
 	}
 
-	_, err := db.sql.ExecContext(ctx, `
+	tx, err := db.sql.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin complete task transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, `
 		UPDATE tasks
 		SET status = ?, finished_at = ?, error_summary = ?
 		WHERE task_id = ?
-	`, string(status), finishedAt.UTC().Format(time.RFC3339), nullableString(errorSummary), taskID)
-	if err != nil {
+	`, string(status), finishedAt.UTC().Format(time.RFC3339), nullableString(errorSummary), taskID); err != nil {
 		return fmt.Errorf("complete task %q: %w", taskID, err)
+	}
+	if err := updateServiceFromCompletedTask(ctx, tx, taskID, status, finishedAt); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit complete task transaction: %w", err)
 	}
 	return nil
 }
@@ -565,4 +576,46 @@ func parseNullableRFC3339(value string) *time.Time {
 	}
 	parsed = parsed.UTC()
 	return &parsed
+}
+
+func updateServiceFromCompletedTask(ctx context.Context, tx *sql.Tx, taskID string, status task.Status, finishedAt time.Time) error {
+	var serviceName string
+	var taskType string
+	if err := tx.QueryRowContext(ctx, `SELECT COALESCE(service_name, ''), type FROM tasks WHERE task_id = ?`, taskID).Scan(&serviceName, &taskType); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrTaskNotFound
+		}
+		return fmt.Errorf("read completed task %q for service refresh: %w", taskID, err)
+	}
+	if serviceName == "" {
+		return nil
+	}
+
+	runtimeStatus := deriveRuntimeStatus(task.Type(taskType), status)
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE services
+		SET runtime_status = ?, last_task_id = ?, updated_at = ?
+		WHERE service_name = ?
+	`, runtimeStatus, taskID, finishedAt.UTC().Format(time.RFC3339), serviceName); err != nil {
+		return fmt.Errorf("update service runtime status for %q: %w", serviceName, err)
+	}
+	return nil
+}
+
+func deriveRuntimeStatus(taskType task.Type, status task.Status) string {
+	if status == task.StatusFailed {
+		return "error"
+	}
+	if status != task.StatusSucceeded {
+		return "unknown"
+	}
+
+	switch taskType {
+	case task.TypeStop:
+		return "stopped"
+	case task.TypeDeploy, task.TypeUpdate, task.TypeRestart:
+		return "running"
+	default:
+		return "unknown"
+	}
 }
