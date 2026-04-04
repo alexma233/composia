@@ -68,7 +68,7 @@ type AgentReportServiceClient interface {
 	Heartbeat(context.Context, *connect.Request[v1.HeartbeatRequest]) (*connect.Response[v1.HeartbeatResponse], error)
 	ReportTaskState(context.Context, *connect.Request[v1.ReportTaskStateRequest]) (*connect.Response[v1.ReportTaskStateResponse], error)
 	ReportTaskStepState(context.Context, *connect.Request[v1.ReportTaskStepStateRequest]) (*connect.Response[v1.ReportTaskStepStateResponse], error)
-	UploadTaskLogs(context.Context, *connect.Request[v1.UploadTaskLogsRequest]) (*connect.Response[v1.UploadTaskLogsResponse], error)
+	UploadTaskLogs(context.Context) *connect.BidiStreamForClient[v1.UploadTaskLogsRequest, v1.UploadTaskLogsResponse]
 	ReportBackupResult(context.Context, *connect.Request[v1.ReportBackupResultRequest]) (*connect.Response[v1.ReportBackupResultResponse], error)
 	ReportServiceStatus(context.Context, *connect.Request[v1.ReportServiceStatusRequest]) (*connect.Response[v1.ReportServiceStatusResponse], error)
 }
@@ -149,8 +149,8 @@ func (c *agentReportServiceClient) ReportTaskStepState(ctx context.Context, req 
 }
 
 // UploadTaskLogs calls composia.agent.v1.AgentReportService.UploadTaskLogs.
-func (c *agentReportServiceClient) UploadTaskLogs(ctx context.Context, req *connect.Request[v1.UploadTaskLogsRequest]) (*connect.Response[v1.UploadTaskLogsResponse], error) {
-	return c.uploadTaskLogs.CallUnary(ctx, req)
+func (c *agentReportServiceClient) UploadTaskLogs(ctx context.Context) *connect.BidiStreamForClient[v1.UploadTaskLogsRequest, v1.UploadTaskLogsResponse] {
+	return c.uploadTaskLogs.CallBidiStream(ctx)
 }
 
 // ReportBackupResult calls composia.agent.v1.AgentReportService.ReportBackupResult.
@@ -169,7 +169,7 @@ type AgentReportServiceHandler interface {
 	Heartbeat(context.Context, *connect.Request[v1.HeartbeatRequest]) (*connect.Response[v1.HeartbeatResponse], error)
 	ReportTaskState(context.Context, *connect.Request[v1.ReportTaskStateRequest]) (*connect.Response[v1.ReportTaskStateResponse], error)
 	ReportTaskStepState(context.Context, *connect.Request[v1.ReportTaskStepStateRequest]) (*connect.Response[v1.ReportTaskStepStateResponse], error)
-	UploadTaskLogs(context.Context, *connect.Request[v1.UploadTaskLogsRequest]) (*connect.Response[v1.UploadTaskLogsResponse], error)
+	UploadTaskLogs(context.Context, *connect.BidiStream[v1.UploadTaskLogsRequest, v1.UploadTaskLogsResponse]) error
 	ReportBackupResult(context.Context, *connect.Request[v1.ReportBackupResultRequest]) (*connect.Response[v1.ReportBackupResultResponse], error)
 	ReportServiceStatus(context.Context, *connect.Request[v1.ReportServiceStatusRequest]) (*connect.Response[v1.ReportServiceStatusResponse], error)
 }
@@ -199,7 +199,7 @@ func NewAgentReportServiceHandler(svc AgentReportServiceHandler, opts ...connect
 		connect.WithSchema(agentReportServiceMethods.ByName("ReportTaskStepState")),
 		connect.WithHandlerOptions(opts...),
 	)
-	agentReportServiceUploadTaskLogsHandler := connect.NewUnaryHandler(
+	agentReportServiceUploadTaskLogsHandler := connect.NewBidiStreamHandler(
 		AgentReportServiceUploadTaskLogsProcedure,
 		svc.UploadTaskLogs,
 		connect.WithSchema(agentReportServiceMethods.ByName("UploadTaskLogs")),
@@ -252,8 +252,8 @@ func (UnimplementedAgentReportServiceHandler) ReportTaskStepState(context.Contex
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentReportService.ReportTaskStepState is not implemented"))
 }
 
-func (UnimplementedAgentReportServiceHandler) UploadTaskLogs(context.Context, *connect.Request[v1.UploadTaskLogsRequest]) (*connect.Response[v1.UploadTaskLogsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentReportService.UploadTaskLogs is not implemented"))
+func (UnimplementedAgentReportServiceHandler) UploadTaskLogs(context.Context, *connect.BidiStream[v1.UploadTaskLogsRequest, v1.UploadTaskLogsResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentReportService.UploadTaskLogs is not implemented"))
 }
 
 func (UnimplementedAgentReportServiceHandler) ReportBackupResult(context.Context, *connect.Request[v1.ReportBackupResultRequest]) (*connect.Response[v1.ReportBackupResultResponse], error) {

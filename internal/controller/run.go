@@ -107,7 +107,7 @@ func Run(ctx context.Context, configPath string) error {
 	})
 
 	agentPath, agentHandler := agentv1connect.NewAgentReportServiceHandler(
-		&agentReportServer{db: db},
+		&agentReportServer{db: db, logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}},
 		connect.WithInterceptors(agentInterceptor),
 	)
 	mux.Handle(agentPath, agentHandler)
@@ -200,7 +200,8 @@ func sweepOfflineNodes(ctx context.Context, db *store.DB) {
 }
 
 type agentReportServer struct {
-	db *store.DB
+	db       *store.DB
+	logState *taskLogAckState
 }
 
 type agentTaskServer struct {
@@ -263,6 +264,7 @@ func (server *agentReportServer) ReportTaskState(ctx context.Context, req *conne
 	if err := server.db.CompleteTask(ctx, req.Msg.GetTaskId(), task.Status(req.Msg.GetStatus()), finishedAt, req.Msg.GetErrorSummary()); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	server.resetTaskLogAck(req.Msg.GetTaskId())
 	return connect.NewResponse(&agentv1.ReportTaskStateResponse{}), nil
 }
 
@@ -291,26 +293,6 @@ func (server *agentReportServer) ReportTaskStepState(ctx context.Context, req *c
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return connect.NewResponse(&agentv1.ReportTaskStepStateResponse{}), nil
-}
-
-func (server *agentReportServer) UploadTaskLogs(ctx context.Context, req *connect.Request[agentv1.UploadTaskLogsRequest]) (*connect.Response[agentv1.UploadTaskLogsResponse], error) {
-	if req.Msg.GetTaskId() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
-	}
-	if err := ensureTaskNodeMatch(ctx, server.db, req.Msg.GetTaskId()); err != nil {
-		return nil, err
-	}
-	detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
-	if err != nil {
-		if errors.Is(err, store.ErrTaskNotFound) {
-			return nil, connect.NewError(connect.CodeNotFound, err)
-		}
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	if err := appendTaskLogRaw(detail.Record.LogPath, req.Msg.GetContent()); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	return connect.NewResponse(&agentv1.UploadTaskLogsResponse{}), nil
 }
 
 func (server *agentReportServer) ReportBackupResult(ctx context.Context, req *connect.Request[agentv1.ReportBackupResultRequest]) (*connect.Response[agentv1.ReportBackupResultResponse], error) {

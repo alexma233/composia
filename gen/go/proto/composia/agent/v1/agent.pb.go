@@ -601,7 +601,9 @@ func (*ReportTaskStepStateResponse) Descriptor() ([]byte, []int) {
 type UploadTaskLogsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	Seq           uint64                 `protobuf:"varint,2,opt,name=seq,proto3" json:"seq,omitempty"`
+	SentAt        *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=sent_at,json=sentAt,proto3" json:"sent_at,omitempty"`
+	Content       string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -643,6 +645,20 @@ func (x *UploadTaskLogsRequest) GetTaskId() string {
 	return ""
 }
 
+func (x *UploadTaskLogsRequest) GetSeq() uint64 {
+	if x != nil {
+		return x.Seq
+	}
+	return 0
+}
+
+func (x *UploadTaskLogsRequest) GetSentAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.SentAt
+	}
+	return nil
+}
+
 func (x *UploadTaskLogsRequest) GetContent() string {
 	if x != nil {
 		return x.Content
@@ -651,9 +667,11 @@ func (x *UploadTaskLogsRequest) GetContent() string {
 }
 
 type UploadTaskLogsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	TaskId           string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	LastConfirmedSeq uint64                 `protobuf:"varint,2,opt,name=last_confirmed_seq,json=lastConfirmedSeq,proto3" json:"last_confirmed_seq,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *UploadTaskLogsResponse) Reset() {
@@ -684,6 +702,20 @@ func (x *UploadTaskLogsResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use UploadTaskLogsResponse.ProtoReflect.Descriptor instead.
 func (*UploadTaskLogsResponse) Descriptor() ([]byte, []int) {
 	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *UploadTaskLogsResponse) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *UploadTaskLogsResponse) GetLastConfirmedSeq() uint64 {
+	if x != nil {
+		return x.LastConfirmedSeq
+	}
+	return 0
 }
 
 type ReportBackupResultRequest struct {
@@ -1085,11 +1117,15 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"started_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12;\n" +
 	"\vfinished_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"finishedAt\"\x1d\n" +
-	"\x1bReportTaskStepStateResponse\"J\n" +
+	"\x1bReportTaskStepStateResponse\"\x91\x01\n" +
 	"\x15UploadTaskLogsRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\tR\acontent\"\x18\n" +
-	"\x16UploadTaskLogsResponse\"\xe9\x02\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x10\n" +
+	"\x03seq\x18\x02 \x01(\x04R\x03seq\x123\n" +
+	"\asent_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x06sentAt\x12\x18\n" +
+	"\acontent\x18\x04 \x01(\tR\acontent\"_\n" +
+	"\x16UploadTaskLogsResponse\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12,\n" +
+	"\x12last_confirmed_seq\x18\x02 \x01(\x04R\x10lastConfirmedSeq\"\xe9\x02\n" +
 	"\x19ReportBackupResultRequest\x12\x1b\n" +
 	"\tbackup_id\x18\x01 \x01(\tR\bbackupId\x12\x17\n" +
 	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12!\n" +
@@ -1115,12 +1151,12 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12#\n" +
 	"\rrepo_revision\x18\x02 \x01(\tR\frepoRevision\x12#\n" +
 	"\rrelative_root\x18\x03 \x01(\tR\frelativeRoot\x12\x12\n" +
-	"\x04data\x18\x04 \x01(\fR\x04data2\x9c\x05\n" +
+	"\x04data\x18\x04 \x01(\fR\x04data2\xa0\x05\n" +
 	"\x12AgentReportService\x12V\n" +
 	"\tHeartbeat\x12#.composia.agent.v1.HeartbeatRequest\x1a$.composia.agent.v1.HeartbeatResponse\x12h\n" +
 	"\x0fReportTaskState\x12).composia.agent.v1.ReportTaskStateRequest\x1a*.composia.agent.v1.ReportTaskStateResponse\x12t\n" +
-	"\x13ReportTaskStepState\x12-.composia.agent.v1.ReportTaskStepStateRequest\x1a..composia.agent.v1.ReportTaskStepStateResponse\x12e\n" +
-	"\x0eUploadTaskLogs\x12(.composia.agent.v1.UploadTaskLogsRequest\x1a).composia.agent.v1.UploadTaskLogsResponse\x12q\n" +
+	"\x13ReportTaskStepState\x12-.composia.agent.v1.ReportTaskStepStateRequest\x1a..composia.agent.v1.ReportTaskStepStateResponse\x12i\n" +
+	"\x0eUploadTaskLogs\x12(.composia.agent.v1.UploadTaskLogsRequest\x1a).composia.agent.v1.UploadTaskLogsResponse(\x010\x01\x12q\n" +
 	"\x12ReportBackupResult\x12,.composia.agent.v1.ReportBackupResultRequest\x1a-.composia.agent.v1.ReportBackupResultResponse\x12t\n" +
 	"\x13ReportServiceStatus\x12-.composia.agent.v1.ReportServiceStatusRequest\x1a..composia.agent.v1.ReportServiceStatusResponse2s\n" +
 	"\x10AgentTaskService\x12_\n" +
@@ -1170,30 +1206,31 @@ var file_proto_composia_agent_v1_agent_proto_depIdxs = []int32{
 	18, // 4: composia.agent.v1.ReportTaskStateRequest.finished_at:type_name -> google.protobuf.Timestamp
 	18, // 5: composia.agent.v1.ReportTaskStepStateRequest.started_at:type_name -> google.protobuf.Timestamp
 	18, // 6: composia.agent.v1.ReportTaskStepStateRequest.finished_at:type_name -> google.protobuf.Timestamp
-	18, // 7: composia.agent.v1.ReportBackupResultRequest.started_at:type_name -> google.protobuf.Timestamp
-	18, // 8: composia.agent.v1.ReportBackupResultRequest.finished_at:type_name -> google.protobuf.Timestamp
-	18, // 9: composia.agent.v1.ReportServiceStatusRequest.reported_at:type_name -> google.protobuf.Timestamp
-	0,  // 10: composia.agent.v1.AgentReportService.Heartbeat:input_type -> composia.agent.v1.HeartbeatRequest
-	6,  // 11: composia.agent.v1.AgentReportService.ReportTaskState:input_type -> composia.agent.v1.ReportTaskStateRequest
-	8,  // 12: composia.agent.v1.AgentReportService.ReportTaskStepState:input_type -> composia.agent.v1.ReportTaskStepStateRequest
-	10, // 13: composia.agent.v1.AgentReportService.UploadTaskLogs:input_type -> composia.agent.v1.UploadTaskLogsRequest
-	12, // 14: composia.agent.v1.AgentReportService.ReportBackupResult:input_type -> composia.agent.v1.ReportBackupResultRequest
-	14, // 15: composia.agent.v1.AgentReportService.ReportServiceStatus:input_type -> composia.agent.v1.ReportServiceStatusRequest
-	3,  // 16: composia.agent.v1.AgentTaskService.PullNextTask:input_type -> composia.agent.v1.PullNextTaskRequest
-	16, // 17: composia.agent.v1.BundleService.GetServiceBundle:input_type -> composia.agent.v1.GetServiceBundleRequest
-	2,  // 18: composia.agent.v1.AgentReportService.Heartbeat:output_type -> composia.agent.v1.HeartbeatResponse
-	7,  // 19: composia.agent.v1.AgentReportService.ReportTaskState:output_type -> composia.agent.v1.ReportTaskStateResponse
-	9,  // 20: composia.agent.v1.AgentReportService.ReportTaskStepState:output_type -> composia.agent.v1.ReportTaskStepStateResponse
-	11, // 21: composia.agent.v1.AgentReportService.UploadTaskLogs:output_type -> composia.agent.v1.UploadTaskLogsResponse
-	13, // 22: composia.agent.v1.AgentReportService.ReportBackupResult:output_type -> composia.agent.v1.ReportBackupResultResponse
-	15, // 23: composia.agent.v1.AgentReportService.ReportServiceStatus:output_type -> composia.agent.v1.ReportServiceStatusResponse
-	5,  // 24: composia.agent.v1.AgentTaskService.PullNextTask:output_type -> composia.agent.v1.PullNextTaskResponse
-	17, // 25: composia.agent.v1.BundleService.GetServiceBundle:output_type -> composia.agent.v1.GetServiceBundleResponse
-	18, // [18:26] is the sub-list for method output_type
-	10, // [10:18] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	18, // 7: composia.agent.v1.UploadTaskLogsRequest.sent_at:type_name -> google.protobuf.Timestamp
+	18, // 8: composia.agent.v1.ReportBackupResultRequest.started_at:type_name -> google.protobuf.Timestamp
+	18, // 9: composia.agent.v1.ReportBackupResultRequest.finished_at:type_name -> google.protobuf.Timestamp
+	18, // 10: composia.agent.v1.ReportServiceStatusRequest.reported_at:type_name -> google.protobuf.Timestamp
+	0,  // 11: composia.agent.v1.AgentReportService.Heartbeat:input_type -> composia.agent.v1.HeartbeatRequest
+	6,  // 12: composia.agent.v1.AgentReportService.ReportTaskState:input_type -> composia.agent.v1.ReportTaskStateRequest
+	8,  // 13: composia.agent.v1.AgentReportService.ReportTaskStepState:input_type -> composia.agent.v1.ReportTaskStepStateRequest
+	10, // 14: composia.agent.v1.AgentReportService.UploadTaskLogs:input_type -> composia.agent.v1.UploadTaskLogsRequest
+	12, // 15: composia.agent.v1.AgentReportService.ReportBackupResult:input_type -> composia.agent.v1.ReportBackupResultRequest
+	14, // 16: composia.agent.v1.AgentReportService.ReportServiceStatus:input_type -> composia.agent.v1.ReportServiceStatusRequest
+	3,  // 17: composia.agent.v1.AgentTaskService.PullNextTask:input_type -> composia.agent.v1.PullNextTaskRequest
+	16, // 18: composia.agent.v1.BundleService.GetServiceBundle:input_type -> composia.agent.v1.GetServiceBundleRequest
+	2,  // 19: composia.agent.v1.AgentReportService.Heartbeat:output_type -> composia.agent.v1.HeartbeatResponse
+	7,  // 20: composia.agent.v1.AgentReportService.ReportTaskState:output_type -> composia.agent.v1.ReportTaskStateResponse
+	9,  // 21: composia.agent.v1.AgentReportService.ReportTaskStepState:output_type -> composia.agent.v1.ReportTaskStepStateResponse
+	11, // 22: composia.agent.v1.AgentReportService.UploadTaskLogs:output_type -> composia.agent.v1.UploadTaskLogsResponse
+	13, // 23: composia.agent.v1.AgentReportService.ReportBackupResult:output_type -> composia.agent.v1.ReportBackupResultResponse
+	15, // 24: composia.agent.v1.AgentReportService.ReportServiceStatus:output_type -> composia.agent.v1.ReportServiceStatusResponse
+	5,  // 25: composia.agent.v1.AgentTaskService.PullNextTask:output_type -> composia.agent.v1.PullNextTaskResponse
+	17, // 26: composia.agent.v1.BundleService.GetServiceBundle:output_type -> composia.agent.v1.GetServiceBundleResponse
+	19, // [19:27] is the sub-list for method output_type
+	11, // [11:19] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_proto_composia_agent_v1_agent_proto_init() }

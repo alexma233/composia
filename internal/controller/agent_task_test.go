@@ -59,11 +59,13 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	})
 
 	mux := http.NewServeMux()
-	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(&agentReportServer{db: db}, connect.WithInterceptors(interceptor))
+	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(&agentReportServer{db: db, logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}}, connect.WithInterceptors(interceptor))
 	mux.Handle(reportPath, reportHandler)
 	taskPath, taskHandler := agentv1connect.NewAgentTaskServiceHandler(&agentTaskServer{db: db}, connect.WithInterceptors(interceptor))
 	mux.Handle(taskPath, taskHandler)
-	httpServer := httptest.NewServer(mux)
+	httpServer := httptest.NewUnstartedServer(mux)
+	httpServer.EnableHTTP2 = true
+	httpServer.StartTLS()
 	defer httpServer.Close()
 
 	taskClient := agentv1connect.NewAgentTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
@@ -85,8 +87,49 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	if _, err := reportClient.ReportTaskStepState(ctx, connect.NewRequest(&agentv1.ReportTaskStepStateRequest{TaskId: "task-remote", StepName: "render", Status: "succeeded", StartedAt: startedAt, FinishedAt: finishedAt})); err != nil {
 		t.Fatalf("report task step state: %v", err)
 	}
-	if _, err := reportClient.UploadTaskLogs(ctx, connect.NewRequest(&agentv1.UploadTaskLogsRequest{TaskId: "task-remote", Content: "hello from agent\n"})); err != nil {
-		t.Fatalf("upload task logs: %v", err)
+	logStream := reportClient.UploadTaskLogs(ctx)
+	if err := logStream.Send(&agentv1.UploadTaskLogsRequest{TaskId: "task-remote", Seq: 1, SentAt: finishedAt, Content: "hello from agent\n"}); err != nil {
+		t.Fatalf("send task logs: %v", err)
+	}
+	logAck, err := logStream.Receive()
+	if err != nil {
+		t.Fatalf("receive log ack: %v", err)
+	}
+	if logAck.GetLastConfirmedSeq() != 1 {
+		t.Fatalf("expected last_confirmed_seq 1, got %d", logAck.GetLastConfirmedSeq())
+	}
+	if err := logStream.CloseRequest(); err != nil {
+		t.Fatalf("close log request: %v", err)
+	}
+	if err := logStream.CloseResponse(); err != nil {
+		t.Fatalf("close log response: %v", err)
+	}
+	replayStream := reportClient.UploadTaskLogs(ctx)
+	if err := replayStream.Send(&agentv1.UploadTaskLogsRequest{TaskId: "task-remote", Seq: 1, SentAt: finishedAt, Content: "hello from agent\n"}); err != nil {
+		t.Fatalf("send replayed task logs: %v", err)
+	}
+	replayAck, err := replayStream.Receive()
+	if err != nil {
+		t.Fatalf("receive replay ack: %v", err)
+	}
+	if replayAck.GetLastConfirmedSeq() != 1 {
+		t.Fatalf("expected replay ack seq 1, got %d", replayAck.GetLastConfirmedSeq())
+	}
+	if err := replayStream.Send(&agentv1.UploadTaskLogsRequest{TaskId: "task-remote", Seq: 2, SentAt: finishedAt, Content: "second line\n"}); err != nil {
+		t.Fatalf("send second task log: %v", err)
+	}
+	secondAck, err := replayStream.Receive()
+	if err != nil {
+		t.Fatalf("receive second ack: %v", err)
+	}
+	if secondAck.GetLastConfirmedSeq() != 2 {
+		t.Fatalf("expected second ack seq 2, got %d", secondAck.GetLastConfirmedSeq())
+	}
+	if err := replayStream.CloseRequest(); err != nil {
+		t.Fatalf("close replay request: %v", err)
+	}
+	if err := replayStream.CloseResponse(); err != nil {
+		t.Fatalf("close replay response: %v", err)
 	}
 	if _, err := reportClient.ReportTaskState(ctx, connect.NewRequest(&agentv1.ReportTaskStateRequest{TaskId: "task-remote", Status: "succeeded", FinishedAt: finishedAt})); err != nil {
 		t.Fatalf("report task state: %v", err)
@@ -109,7 +152,7 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read task log: %v", err)
 	}
-	if string(content) != "hello from agent\n" {
+	if string(content) != "hello from agent\nsecond line\n" {
 		t.Fatalf("unexpected task log content %q", string(content))
 	}
 	snapshot, err := db.GetServiceSnapshot(ctx, "demo")

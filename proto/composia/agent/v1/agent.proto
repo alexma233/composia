@@ -10,7 +10,7 @@ service AgentReportService {
   rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
   rpc ReportTaskState(ReportTaskStateRequest) returns (ReportTaskStateResponse);
   rpc ReportTaskStepState(ReportTaskStepStateRequest) returns (ReportTaskStepStateResponse);
-  rpc UploadTaskLogs(UploadTaskLogsRequest) returns (UploadTaskLogsResponse);
+  rpc UploadTaskLogs(stream UploadTaskLogsRequest) returns (stream UploadTaskLogsResponse);
   rpc ReportBackupResult(ReportBackupResultRequest) returns (ReportBackupResultResponse);
   rpc ReportServiceStatus(ReportServiceStatusRequest) returns (ReportServiceStatusResponse);
 }
@@ -80,10 +80,15 @@ message ReportTaskStepStateResponse {}
 
 message UploadTaskLogsRequest {
   string task_id = 1;
-  string content = 2;
+  uint64 seq = 2;
+  google.protobuf.Timestamp sent_at = 3;
+  string content = 4;
 }
 
-message UploadTaskLogsResponse {}
+message UploadTaskLogsResponse {
+  string task_id = 1;
+  uint64 last_confirmed_seq = 2;
+}
 
 message ReportBackupResultRequest {
   string backup_id = 1;
