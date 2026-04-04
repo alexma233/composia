@@ -143,7 +143,7 @@ func Run(ctx context.Context, configPath string) error {
 	mux.Handle(nodePath, nodeHandler)
 
 	taskPath, taskHandler := controllerv1connect.NewTaskServiceHandler(
-		&taskServer{db: db},
+		&taskServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs},
 		connect.WithInterceptors(cliInterceptor),
 	)
 	mux.Handle(taskPath, taskHandler)
@@ -426,7 +426,9 @@ type nodeServer struct {
 }
 
 type taskServer struct {
-	db *store.DB
+	db               *store.DB
+	cfg              *config.ControllerConfig
+	availableNodeIDs map[string]struct{}
 }
 
 func (server *systemServer) GetSystemStatus(ctx context.Context, _ *connect.Request[controllerv1.GetSystemStatusRequest]) (*connect.Response[controllerv1.GetSystemStatusResponse], error) {
@@ -591,6 +593,10 @@ func (server *serviceServer) createServiceTask(ctx context.Context, serviceName 
 	return createdTask, nil
 }
 
+func createServiceTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName string, taskType task.Type) (task.Record, error) {
+	return (&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs}).createServiceTask(ctx, serviceName, taskType)
+}
+
 func taskServiceDir(paramsJSON string) string {
 	if paramsJSON == "" {
 		return ""
@@ -741,6 +747,41 @@ func (server *taskServer) TailTaskLogs(ctx context.Context, req *connect.Request
 		case <-ticker.C:
 		}
 	}
+}
+
+func (server *taskServer) RunTaskAgain(ctx context.Context, req *connect.Request[controllerv1.RunTaskAgainRequest]) (*connect.Response[controllerv1.RunTaskAgainResponse], error) {
+	if req.Msg == nil || req.Msg.GetTaskId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
+	}
+	detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
+	if err != nil {
+		if errors.Is(err, store.ErrTaskNotFound) {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if detail.Record.ServiceName == "" {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("task cannot be rerun without service_name"))
+	}
+
+	var rerunType task.Type
+	switch detail.Record.Type {
+	case task.TypeDeploy, task.TypeUpdate, task.TypeStop, task.TypeRestart:
+		rerunType = detail.Record.Type
+	default:
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("task type %q cannot be rerun yet", detail.Record.Type))
+	}
+
+	createdTask, err := createServiceTask(ctx, server.db, server.cfg, server.availableNodeIDs, detail.Record.ServiceName, rerunType)
+	if err != nil {
+		return nil, err
+	}
+	response := &controllerv1.RunTaskAgainResponse{
+		TaskId:       createdTask.TaskID,
+		Status:       string(createdTask.Status),
+		RepoRevision: createdTask.RepoRevision,
+	}
+	return connect.NewResponse(response), nil
 }
 
 func formatNullableTime(value *time.Time) string {

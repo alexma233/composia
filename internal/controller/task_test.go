@@ -12,6 +12,7 @@ import (
 	"connectrpc.com/connect"
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1/controllerv1connect"
+	"forgejo.alexma.top/alexma233/composia/internal/config"
 	"forgejo.alexma.top/alexma233/composia/internal/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/task"
 )
@@ -224,4 +225,55 @@ func TestTaskServiceTailTaskLogsStreamsExistingAndNewContent(t *testing.T) {
 		t.Fatalf("unexpected second log chunk %q", stream.Msg().GetContent())
 	}
 	cancel()
+}
+
+func TestTaskServiceRunTaskAgainCreatesNewPendingTask(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	logDir := filepath.Join(rootDir, "logs")
+	createGitRepoWithService(t, repoDir, "alpha", "main")
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create task log dir: %v", err)
+	}
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncDeclaredServices(ctx, []string{"alpha"}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-old", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "alpha", NodeID: "main", Status: task.StatusSucceeded, CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("create old task: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+
+	path, handler := controllerv1connect.NewTaskServiceHandler(&taskServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir}, availableNodeIDs: map[string]struct{}{"main": {}}}, connect.WithInterceptors(interceptor))
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	response, err := client.RunTaskAgain(ctx, connect.NewRequest(&controllerv1.RunTaskAgainRequest{TaskId: "task-old"}))
+	if err != nil {
+		t.Fatalf("run task again: %v", err)
+	}
+	if response.Msg.GetTaskId() == "" || response.Msg.GetTaskId() == "task-old" {
+		t.Fatalf("expected new task ID, got %q", response.Msg.GetTaskId())
+	}
+	if response.Msg.GetStatus() != "pending" {
+		t.Fatalf("expected pending rerun task, got %q", response.Msg.GetStatus())
+	}
 }

@@ -565,6 +565,110 @@ func (x *TailTaskLogsResponse) GetContent() string {
 	return ""
 }
 
+type RunTaskAgainRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunTaskAgainRequest) Reset() {
+	*x = RunTaskAgainRequest{}
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunTaskAgainRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunTaskAgainRequest) ProtoMessage() {}
+
+func (x *RunTaskAgainRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunTaskAgainRequest.ProtoReflect.Descriptor instead.
+func (*RunTaskAgainRequest) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *RunTaskAgainRequest) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+type RunTaskAgainResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	RepoRevision  string                 `protobuf:"bytes,3,opt,name=repo_revision,json=repoRevision,proto3" json:"repo_revision,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunTaskAgainResponse) Reset() {
+	*x = RunTaskAgainResponse{}
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunTaskAgainResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunTaskAgainResponse) ProtoMessage() {}
+
+func (x *RunTaskAgainResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunTaskAgainResponse.ProtoReflect.Descriptor instead.
+func (*RunTaskAgainResponse) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *RunTaskAgainResponse) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *RunTaskAgainResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *RunTaskAgainResponse) GetRepoRevision() string {
+	if x != nil {
+		return x.RepoRevision
+	}
+	return ""
+}
+
 var File_proto_composia_controller_v1_task_proto protoreflect.FileDescriptor
 
 const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
@@ -617,11 +721,18 @@ const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	"\x13TailTaskLogsRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\"0\n" +
 	"\x14TailTaskLogsResponse\x12\x18\n" +
-	"\acontent\x18\x01 \x01(\tR\acontent2\xb8\x02\n" +
+	"\acontent\x18\x01 \x01(\tR\acontent\".\n" +
+	"\x13RunTaskAgainRequest\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\"l\n" +
+	"\x14RunTaskAgainResponse\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x16\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\x12#\n" +
+	"\rrepo_revision\x18\x03 \x01(\tR\frepoRevision2\xa3\x03\n" +
 	"\vTaskService\x12`\n" +
 	"\tListTasks\x12(.composia.controller.v1.ListTasksRequest\x1a).composia.controller.v1.ListTasksResponse\x12Z\n" +
 	"\aGetTask\x12&.composia.controller.v1.GetTaskRequest\x1a'.composia.controller.v1.GetTaskResponse\x12k\n" +
-	"\fTailTaskLogs\x12+.composia.controller.v1.TailTaskLogsRequest\x1a,.composia.controller.v1.TailTaskLogsResponse0\x01BXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
+	"\fTailTaskLogs\x12+.composia.controller.v1.TailTaskLogsRequest\x1a,.composia.controller.v1.TailTaskLogsResponse0\x01\x12i\n" +
+	"\fRunTaskAgain\x12+.composia.controller.v1.RunTaskAgainRequest\x1a,.composia.controller.v1.RunTaskAgainResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
 
 var (
 	file_proto_composia_controller_v1_task_proto_rawDescOnce sync.Once
@@ -635,7 +746,7 @@ func file_proto_composia_controller_v1_task_proto_rawDescGZIP() []byte {
 	return file_proto_composia_controller_v1_task_proto_rawDescData
 }
 
-var file_proto_composia_controller_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_proto_composia_controller_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_proto_composia_controller_v1_task_proto_goTypes = []any{
 	(*ListTasksRequest)(nil),     // 0: composia.controller.v1.ListTasksRequest
 	(*TaskSummary)(nil),          // 1: composia.controller.v1.TaskSummary
@@ -645,6 +756,8 @@ var file_proto_composia_controller_v1_task_proto_goTypes = []any{
 	(*GetTaskResponse)(nil),      // 5: composia.controller.v1.GetTaskResponse
 	(*TailTaskLogsRequest)(nil),  // 6: composia.controller.v1.TailTaskLogsRequest
 	(*TailTaskLogsResponse)(nil), // 7: composia.controller.v1.TailTaskLogsResponse
+	(*RunTaskAgainRequest)(nil),  // 8: composia.controller.v1.RunTaskAgainRequest
+	(*RunTaskAgainResponse)(nil), // 9: composia.controller.v1.RunTaskAgainResponse
 }
 var file_proto_composia_controller_v1_task_proto_depIdxs = []int32{
 	1, // 0: composia.controller.v1.ListTasksResponse.tasks:type_name -> composia.controller.v1.TaskSummary
@@ -652,11 +765,13 @@ var file_proto_composia_controller_v1_task_proto_depIdxs = []int32{
 	0, // 2: composia.controller.v1.TaskService.ListTasks:input_type -> composia.controller.v1.ListTasksRequest
 	3, // 3: composia.controller.v1.TaskService.GetTask:input_type -> composia.controller.v1.GetTaskRequest
 	6, // 4: composia.controller.v1.TaskService.TailTaskLogs:input_type -> composia.controller.v1.TailTaskLogsRequest
-	2, // 5: composia.controller.v1.TaskService.ListTasks:output_type -> composia.controller.v1.ListTasksResponse
-	5, // 6: composia.controller.v1.TaskService.GetTask:output_type -> composia.controller.v1.GetTaskResponse
-	7, // 7: composia.controller.v1.TaskService.TailTaskLogs:output_type -> composia.controller.v1.TailTaskLogsResponse
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
+	8, // 5: composia.controller.v1.TaskService.RunTaskAgain:input_type -> composia.controller.v1.RunTaskAgainRequest
+	2, // 6: composia.controller.v1.TaskService.ListTasks:output_type -> composia.controller.v1.ListTasksResponse
+	5, // 7: composia.controller.v1.TaskService.GetTask:output_type -> composia.controller.v1.GetTaskResponse
+	7, // 8: composia.controller.v1.TaskService.TailTaskLogs:output_type -> composia.controller.v1.TailTaskLogsResponse
+	9, // 9: composia.controller.v1.TaskService.RunTaskAgain:output_type -> composia.controller.v1.RunTaskAgainResponse
+	6, // [6:10] is the sub-list for method output_type
+	2, // [2:6] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
 	2, // [2:2] is the sub-list for extension extendee
 	0, // [0:2] is the sub-list for field type_name
@@ -673,7 +788,7 @@ func file_proto_composia_controller_v1_task_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_controller_v1_task_proto_rawDesc), len(file_proto_composia_controller_v1_task_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -40,6 +40,9 @@ const (
 	// TaskServiceTailTaskLogsProcedure is the fully-qualified name of the TaskService's TailTaskLogs
 	// RPC.
 	TaskServiceTailTaskLogsProcedure = "/composia.controller.v1.TaskService/TailTaskLogs"
+	// TaskServiceRunTaskAgainProcedure is the fully-qualified name of the TaskService's RunTaskAgain
+	// RPC.
+	TaskServiceRunTaskAgainProcedure = "/composia.controller.v1.TaskService/RunTaskAgain"
 )
 
 // TaskServiceClient is a client for the composia.controller.v1.TaskService service.
@@ -47,6 +50,7 @@ type TaskServiceClient interface {
 	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
 	GetTask(context.Context, *connect.Request[v1.GetTaskRequest]) (*connect.Response[v1.GetTaskResponse], error)
 	TailTaskLogs(context.Context, *connect.Request[v1.TailTaskLogsRequest]) (*connect.ServerStreamForClient[v1.TailTaskLogsResponse], error)
+	RunTaskAgain(context.Context, *connect.Request[v1.RunTaskAgainRequest]) (*connect.Response[v1.RunTaskAgainResponse], error)
 }
 
 // NewTaskServiceClient constructs a client for the composia.controller.v1.TaskService service. By
@@ -78,6 +82,12 @@ func NewTaskServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(taskServiceMethods.ByName("TailTaskLogs")),
 			connect.WithClientOptions(opts...),
 		),
+		runTaskAgain: connect.NewClient[v1.RunTaskAgainRequest, v1.RunTaskAgainResponse](
+			httpClient,
+			baseURL+TaskServiceRunTaskAgainProcedure,
+			connect.WithSchema(taskServiceMethods.ByName("RunTaskAgain")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -86,6 +96,7 @@ type taskServiceClient struct {
 	listTasks    *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
 	getTask      *connect.Client[v1.GetTaskRequest, v1.GetTaskResponse]
 	tailTaskLogs *connect.Client[v1.TailTaskLogsRequest, v1.TailTaskLogsResponse]
+	runTaskAgain *connect.Client[v1.RunTaskAgainRequest, v1.RunTaskAgainResponse]
 }
 
 // ListTasks calls composia.controller.v1.TaskService.ListTasks.
@@ -103,11 +114,17 @@ func (c *taskServiceClient) TailTaskLogs(ctx context.Context, req *connect.Reque
 	return c.tailTaskLogs.CallServerStream(ctx, req)
 }
 
+// RunTaskAgain calls composia.controller.v1.TaskService.RunTaskAgain.
+func (c *taskServiceClient) RunTaskAgain(ctx context.Context, req *connect.Request[v1.RunTaskAgainRequest]) (*connect.Response[v1.RunTaskAgainResponse], error) {
+	return c.runTaskAgain.CallUnary(ctx, req)
+}
+
 // TaskServiceHandler is an implementation of the composia.controller.v1.TaskService service.
 type TaskServiceHandler interface {
 	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
 	GetTask(context.Context, *connect.Request[v1.GetTaskRequest]) (*connect.Response[v1.GetTaskResponse], error)
 	TailTaskLogs(context.Context, *connect.Request[v1.TailTaskLogsRequest], *connect.ServerStream[v1.TailTaskLogsResponse]) error
+	RunTaskAgain(context.Context, *connect.Request[v1.RunTaskAgainRequest]) (*connect.Response[v1.RunTaskAgainResponse], error)
 }
 
 // NewTaskServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -135,6 +152,12 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(taskServiceMethods.ByName("TailTaskLogs")),
 		connect.WithHandlerOptions(opts...),
 	)
+	taskServiceRunTaskAgainHandler := connect.NewUnaryHandler(
+		TaskServiceRunTaskAgainProcedure,
+		svc.RunTaskAgain,
+		connect.WithSchema(taskServiceMethods.ByName("RunTaskAgain")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.controller.v1.TaskService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TaskServiceListTasksProcedure:
@@ -143,6 +166,8 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 			taskServiceGetTaskHandler.ServeHTTP(w, r)
 		case TaskServiceTailTaskLogsProcedure:
 			taskServiceTailTaskLogsHandler.ServeHTTP(w, r)
+		case TaskServiceRunTaskAgainProcedure:
+			taskServiceRunTaskAgainHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -162,4 +187,8 @@ func (UnimplementedTaskServiceHandler) GetTask(context.Context, *connect.Request
 
 func (UnimplementedTaskServiceHandler) TailTaskLogs(context.Context, *connect.Request[v1.TailTaskLogsRequest], *connect.ServerStream[v1.TailTaskLogsResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.TaskService.TailTaskLogs is not implemented"))
+}
+
+func (UnimplementedTaskServiceHandler) RunTaskAgain(context.Context, *connect.Request[v1.RunTaskAgainRequest]) (*connect.Response[v1.RunTaskAgainResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.TaskService.RunTaskAgain is not implemented"))
 }
