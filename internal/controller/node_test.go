@@ -97,6 +97,62 @@ func TestNodeServiceListNodes(t *testing.T) {
 	}
 }
 
+func TestNodeServiceGetNodeReturnsMinimalSummary(t *testing.T) {
+	t.Parallel()
+
+	stateDir := filepath.Join(t.TempDir(), "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+
+	path, handler := controllerv1connect.NewNodeServiceHandler(
+		&nodeServer{db: db, cfg: &config.ControllerConfig{Nodes: []config.NodeConfig{{ID: "main", DisplayName: "Main"}}}},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewNodeServiceClient(
+		httpServer.Client(),
+		httpServer.URL,
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")),
+	)
+
+	response, err := client.GetNode(ctx, connect.NewRequest(&controllerv1.GetNodeRequest{NodeId: "main"}))
+	if err != nil {
+		t.Fatalf("get node: %v", err)
+	}
+	if response.Msg.GetNode().GetNodeId() != "main" || response.Msg.GetNode().GetDisplayName() != "Main" {
+		t.Fatalf("unexpected node response: %+v", response.Msg.GetNode())
+	}
+	if !response.Msg.GetNode().GetIsOnline() {
+		t.Fatalf("expected node to be online")
+	}
+}
+
 func boolPtr(value bool) *bool {
 	return &value
 }

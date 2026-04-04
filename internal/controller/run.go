@@ -648,22 +648,44 @@ func (server *nodeServer) ListNodes(ctx context.Context, _ *connect.Request[cont
 		Nodes: make([]*controllerv1.NodeSummary, 0, len(server.cfg.Nodes)),
 	}
 	for _, node := range server.cfg.Nodes {
-		snapshot := snapshotByNodeID[node.ID]
-		displayName := node.DisplayName
-		if displayName == "" {
-			displayName = node.ID
-		}
-
-		response.Nodes = append(response.Nodes, &controllerv1.NodeSummary{
-			NodeId:        node.ID,
-			DisplayName:   displayName,
-			Enabled:       node.Enabled == nil || *node.Enabled,
-			IsOnline:      snapshot.IsOnline,
-			LastHeartbeat: snapshot.LastHeartbeat,
-		})
+		response.Nodes = append(response.Nodes, nodeSummary(node, snapshotByNodeID[node.ID]))
 	}
 
 	return connect.NewResponse(response), nil
+}
+
+func (server *nodeServer) GetNode(ctx context.Context, req *connect.Request[controllerv1.GetNodeRequest]) (*connect.Response[controllerv1.GetNodeResponse], error) {
+	if req.Msg == nil || req.Msg.GetNodeId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
+	}
+	snapshots, err := server.db.ListNodeSnapshots(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	snapshotByNodeID := make(map[string]store.NodeSnapshot, len(snapshots))
+	for _, snapshot := range snapshots {
+		snapshotByNodeID[snapshot.NodeID] = snapshot
+	}
+	for _, node := range server.cfg.Nodes {
+		if node.ID == req.Msg.GetNodeId() {
+			return connect.NewResponse(&controllerv1.GetNodeResponse{Node: nodeSummary(node, snapshotByNodeID[node.ID])}), nil
+		}
+	}
+	return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("node %q is not configured", req.Msg.GetNodeId()))
+}
+
+func nodeSummary(node config.NodeConfig, snapshot store.NodeSnapshot) *controllerv1.NodeSummary {
+	displayName := node.DisplayName
+	if displayName == "" {
+		displayName = node.ID
+	}
+	return &controllerv1.NodeSummary{
+		NodeId:        node.ID,
+		DisplayName:   displayName,
+		Enabled:       node.Enabled == nil || *node.Enabled,
+		IsOnline:      snapshot.IsOnline,
+		LastHeartbeat: snapshot.LastHeartbeat,
+	}
 }
 
 func (server *taskServer) ListTasks(ctx context.Context, req *connect.Request[controllerv1.ListTasksRequest]) (*connect.Response[controllerv1.ListTasksResponse], error) {

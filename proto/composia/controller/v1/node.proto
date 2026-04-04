@@ -6,9 +6,14 @@ option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia
 
 service NodeService {
   rpc ListNodes(ListNodesRequest) returns (ListNodesResponse);
+  rpc GetNode(GetNodeRequest) returns (GetNodeResponse);
 }
 
 message ListNodesRequest {}
+
+message GetNodeRequest {
+  string node_id = 1;
+}
 
 message NodeSummary {
   string node_id = 1;
@@ -20,4 +25,8 @@ message NodeSummary {
 
 message ListNodesResponse {
   repeated NodeSummary nodes = 1;
+}
+
+message GetNodeResponse {
+  NodeSummary node = 1;
 }

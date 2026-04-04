@@ -365,7 +365,7 @@ func createGitRepoWithService(t *testing.T, repoDir, serviceName, nodeID string)
 
 func runGit(t *testing.T, repoDir string, args ...string) {
 	t.Helper()
-	commandArgs := append([]string{"-C", repoDir}, args...)
+	commandArgs := append([]string{"-C", repoDir, "-c", "commit.gpgsign=false"}, args...)
 	output, err := exec.Command("git", commandArgs...).CombinedOutput()
 	if err != nil {
 		t.Fatalf("git %v failed: %v\n%s", args, err, string(output))
