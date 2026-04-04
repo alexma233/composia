@@ -61,6 +61,7 @@ repo/                      # Git 仓库根目录（controller 全量，agent 只
       Caddyfile
       snippet/
       site/
+      site-generated/        # agent 本地生成，非 Git 真相源
 ```
 
 agent 本地只会保留自己需要运行的服务 + caddy。
@@ -167,6 +168,7 @@ agent 落盘后，服务目录中会有解密后的 `.secret.env` 供 `docker co
 - `token`：必填；与 `controller.nodes[]` 中对应节点的 token 匹配。
 - `repo_dir`：必填；本地服务包落盘目录。
 - `state_dir`：必填；本地少量运行态、任务临时文件、缓冲文件目录。
+- `caddy.generated_dir`：可选；agent 本地给 Caddy 使用的生成目录；默认 `repo_dir/caddy/config/site-generated`。
 
 补充规则：
 
@@ -174,6 +176,7 @@ agent 落盘后，服务目录中会有解密后的 `.secret.env` 供 `docker co
 - `agent` 不维护节点清单。
 - `agent` 不负责解密 secrets，只接收 `controller` 下发的运行时文件。
 - 本地 agent 与远端 agent 无语义差别，只是与 `controller` 部署在同一台机器。
+- `caddy.generated_dir` 只允许在 agent 本地统一配置，不允许服务在 `meta.yaml` 中自定义目标目录。
 
 #### CLI 配置
 
@@ -296,7 +299,11 @@ token_file: "/home/alex/.config/composia/token"
 - 可选。
 - 支持字段：`enabled`、`source`。
 - 如果 `enabled: true`，则 `source` 必填。
-- `source` 指向当前服务目录内的 Caddy 片段文件。
+- `source` 指向当前服务目录内的 Caddy 片段文件，允许每个服务自行选择相对路径。
+- agent 会把 `source` 对应文件复制到本节点的 `caddy.generated_dir` 中，文件名固定为 `<service-name>.caddy`。
+- `caddy.generated_dir` 中的文件是节点本地派生物，不进入 Git，不允许手动作为真相源长期维护。
+- 每次相关变更都对目标节点执行“全量重建 `caddy.generated_dir` -> `caddy validate` -> `caddy reload`”流程，而不是增量修补单个文件。
+- 如果校验或 reload 失败，则保留旧的生成目录和旧配置，不让半成品映射生效。
 
 `network.dns`：
 
@@ -484,6 +491,7 @@ migrate:
 - 只有目标节点拉起成功且后续步骤完成后，`controller` 才会尝试把 `node` 字段改为目标节点并执行 `commit`；若配置了远程仓库则继续 `push`。
 - 迁移完成运行态切换后，在人工验证和 repo 对账完成前，`migrate` 任务保持 `running`；该服务在此期间不得继续创建其他任务。
 - `v1` 不提供迁移失败后的自动回滚、自动清理或自动恢复源节点工作流，统一由用户人工处理。
+- Caddy 片段的真相源始终是服务目录中的 `network.caddy.source`；节点上的 `caddy.generated_dir` 只是运行时复制产物。
 
 执行步骤：
 
@@ -494,7 +502,7 @@ migrate:
 5. 若源节点服务尚未停止，则在目标节点恢复和启动前停止源节点服务，保证服务不会同时运行在两个节点。
 6. 将迁移产物和所需运行时文件传输到目标节点。
 7. 在目标节点按对应数据项的 `restore` 定义恢复数据，并使用同一份服务 bundle 启动服务。
-8. 刷新目标节点的 Caddy 映射并 reload，同时移除源节点的旧映射并 reload；然后执行 DNS 更新。
+8. 刷新目标节点的 Caddy 生成目录并 reload，同时在源节点全量重建其 Caddy 生成目录以移除旧服务片段并 reload；然后执行 DNS 更新。
 9. 完成上述执行步骤后，`controller` 尝试修改 `composia-meta.yaml` 中该服务的 `node`，生成 commit；若配置了远程仓库则继续 push 到跟踪分支。
 10. 用户人工验证业务可用性并完成 repo 对账；如果第 9 步之前失败，则 Git desired state 保持源节点且任务标记为 `failed`；如果运行态已切换但 repo 写回 / push / 人工对账尚未完成，则任务继续保持 `running`，并提示“运行态已迁移但 repo 仍需人工对账”。
 
@@ -1333,5 +1341,4 @@ Web 在线编辑文件：
 
 ### 13. 待细化事项
 
-- Caddy 映射方案：仍需明确 controller 如何把服务目录内的 Caddy 片段渲染/映射到节点本地 Caddy 工作目录，包括目标目录结构、文件命名规则、冲突处理，以及“全量重建”还是“增量更新”的策略。
 - 长任务与 repo 并发前进：仍需定义长任务（尤其 `migrate`）执行期间若 repo `HEAD` 已变化，最终 `persist_repo` 应如何处理；至少需要明确是基于任务初始 `repo_revision` 失败退出，还是基于最新 `HEAD` 做冲突检测与人工对账。
