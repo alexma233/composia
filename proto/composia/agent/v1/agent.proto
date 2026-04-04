@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package composia.agent.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1;agentv1";
+
+service AgentReportService {
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+}
+
+message HeartbeatRequest {
+  string node_id = 1;
+  string agent_version = 2;
+  google.protobuf.Timestamp sent_at = 3;
+  NodeRuntimeSummary runtime = 4;
+}
+
+message NodeRuntimeSummary {
+  string docker_server_version = 1;
+  uint64 disk_total_bytes = 2;
+  uint64 disk_free_bytes = 3;
+}
+
+message HeartbeatResponse {
+  google.protobuf.Timestamp received_at = 1;
+}

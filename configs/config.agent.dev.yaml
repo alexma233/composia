@@ -1,6 +1,6 @@
-role: agent
-node_name: local-agent
-listen: 127.0.0.1:7002
-main_addr: http://127.0.0.1:7001
-repo_path: ./agent-repo
-docker_host: unix:///var/run/docker.sock
+agent:
+  controller_addr: "http://127.0.0.1:7001"
+  node_id: "node-2"
+  token: "node-2-token"
+  repo_dir: "./repo-agent-node-2"
+  state_dir: "./state-agent-node-2"

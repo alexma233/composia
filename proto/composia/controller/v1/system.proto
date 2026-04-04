@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package composia.controller.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
+
+service SystemService {
+  rpc GetSystemStatus(GetSystemStatusRequest) returns (GetSystemStatusResponse);
+}
+
+message GetSystemStatusRequest {}
+
+message GetSystemStatusResponse {
+  string version = 1;
+  google.protobuf.Timestamp now = 2;
+  uint64 configured_node_count = 3;
+  uint64 online_node_count = 4;
+  string controller_addr = 5;
+  string repo_dir = 6;
+  string state_dir = 7;
+  string log_dir = 8;
+}

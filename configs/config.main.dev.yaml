@@ -1,4 +1,0 @@
-role: main
-listen: 127.0.0.1:7001
-db_path: ./state/composia.dev.db
-repo_path: ./repo

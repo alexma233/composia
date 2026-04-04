@@ -1,0 +1,18 @@
+controller:
+  listen_addr: "127.0.0.1:7001"
+  controller_addr: "http://127.0.0.1:7001"
+  repo_dir: "./repo-controller"
+  state_dir: "./state-controller"
+  log_dir: "./logs"
+  nodes:
+    - id: "main"
+      display_name: "Main"
+      enabled: true
+      token: "main-agent-token"
+
+agent:
+  controller_addr: "http://127.0.0.1:7001"
+  node_id: "main"
+  token: "main-agent-token"
+  repo_dir: "./repo-agent"
+  state_dir: "./state-agent"
