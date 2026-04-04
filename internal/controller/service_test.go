@@ -232,6 +232,62 @@ func TestServiceServiceStopAndRestartCreatePendingTasks(t *testing.T) {
 	}
 }
 
+func TestServiceServiceUpdateCreatesPendingTask(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	logDir := filepath.Join(rootDir, "logs")
+	createGitRepoWithService(t, repoDir, "demo", "main")
+
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create log dir: %v", err)
+	}
+
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+
+	path, handler := controllerv1connect.NewServiceServiceHandler(
+		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir}, availableNodeIDs: map[string]struct{}{"main": {}}},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	response, err := client.UpdateService(ctx, connect.NewRequest(&controllerv1.UpdateServiceRequest{ServiceName: "demo"}))
+	if err != nil {
+		t.Fatalf("update service: %v", err)
+	}
+	if response.Msg.GetStatus() != "pending" {
+		t.Fatalf("expected pending update task, got %q", response.Msg.GetStatus())
+	}
+}
+
 func createGitRepoWithService(t *testing.T, repoDir, serviceName, nodeID string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Join(repoDir, serviceName), 0o755); err != nil {

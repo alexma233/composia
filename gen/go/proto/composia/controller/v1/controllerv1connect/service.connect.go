@@ -39,6 +39,9 @@ const (
 	// ServiceServiceDeployServiceProcedure is the fully-qualified name of the ServiceService's
 	// DeployService RPC.
 	ServiceServiceDeployServiceProcedure = "/composia.controller.v1.ServiceService/DeployService"
+	// ServiceServiceUpdateServiceProcedure is the fully-qualified name of the ServiceService's
+	// UpdateService RPC.
+	ServiceServiceUpdateServiceProcedure = "/composia.controller.v1.ServiceService/UpdateService"
 	// ServiceServiceStopServiceProcedure is the fully-qualified name of the ServiceService's
 	// StopService RPC.
 	ServiceServiceStopServiceProcedure = "/composia.controller.v1.ServiceService/StopService"
@@ -51,6 +54,7 @@ const (
 type ServiceServiceClient interface {
 	ListServices(context.Context, *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error)
 	DeployService(context.Context, *connect.Request[v1.DeployServiceRequest]) (*connect.Response[v1.DeployServiceResponse], error)
+	UpdateService(context.Context, *connect.Request[v1.UpdateServiceRequest]) (*connect.Response[v1.UpdateServiceResponse], error)
 	StopService(context.Context, *connect.Request[v1.StopServiceRequest]) (*connect.Response[v1.StopServiceResponse], error)
 	RestartService(context.Context, *connect.Request[v1.RestartServiceRequest]) (*connect.Response[v1.RestartServiceResponse], error)
 }
@@ -78,6 +82,12 @@ func NewServiceServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(serviceServiceMethods.ByName("DeployService")),
 			connect.WithClientOptions(opts...),
 		),
+		updateService: connect.NewClient[v1.UpdateServiceRequest, v1.UpdateServiceResponse](
+			httpClient,
+			baseURL+ServiceServiceUpdateServiceProcedure,
+			connect.WithSchema(serviceServiceMethods.ByName("UpdateService")),
+			connect.WithClientOptions(opts...),
+		),
 		stopService: connect.NewClient[v1.StopServiceRequest, v1.StopServiceResponse](
 			httpClient,
 			baseURL+ServiceServiceStopServiceProcedure,
@@ -97,6 +107,7 @@ func NewServiceServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 type serviceServiceClient struct {
 	listServices   *connect.Client[v1.ListServicesRequest, v1.ListServicesResponse]
 	deployService  *connect.Client[v1.DeployServiceRequest, v1.DeployServiceResponse]
+	updateService  *connect.Client[v1.UpdateServiceRequest, v1.UpdateServiceResponse]
 	stopService    *connect.Client[v1.StopServiceRequest, v1.StopServiceResponse]
 	restartService *connect.Client[v1.RestartServiceRequest, v1.RestartServiceResponse]
 }
@@ -109,6 +120,11 @@ func (c *serviceServiceClient) ListServices(ctx context.Context, req *connect.Re
 // DeployService calls composia.controller.v1.ServiceService.DeployService.
 func (c *serviceServiceClient) DeployService(ctx context.Context, req *connect.Request[v1.DeployServiceRequest]) (*connect.Response[v1.DeployServiceResponse], error) {
 	return c.deployService.CallUnary(ctx, req)
+}
+
+// UpdateService calls composia.controller.v1.ServiceService.UpdateService.
+func (c *serviceServiceClient) UpdateService(ctx context.Context, req *connect.Request[v1.UpdateServiceRequest]) (*connect.Response[v1.UpdateServiceResponse], error) {
+	return c.updateService.CallUnary(ctx, req)
 }
 
 // StopService calls composia.controller.v1.ServiceService.StopService.
@@ -125,6 +141,7 @@ func (c *serviceServiceClient) RestartService(ctx context.Context, req *connect.
 type ServiceServiceHandler interface {
 	ListServices(context.Context, *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error)
 	DeployService(context.Context, *connect.Request[v1.DeployServiceRequest]) (*connect.Response[v1.DeployServiceResponse], error)
+	UpdateService(context.Context, *connect.Request[v1.UpdateServiceRequest]) (*connect.Response[v1.UpdateServiceResponse], error)
 	StopService(context.Context, *connect.Request[v1.StopServiceRequest]) (*connect.Response[v1.StopServiceResponse], error)
 	RestartService(context.Context, *connect.Request[v1.RestartServiceRequest]) (*connect.Response[v1.RestartServiceResponse], error)
 }
@@ -148,6 +165,12 @@ func NewServiceServiceHandler(svc ServiceServiceHandler, opts ...connect.Handler
 		connect.WithSchema(serviceServiceMethods.ByName("DeployService")),
 		connect.WithHandlerOptions(opts...),
 	)
+	serviceServiceUpdateServiceHandler := connect.NewUnaryHandler(
+		ServiceServiceUpdateServiceProcedure,
+		svc.UpdateService,
+		connect.WithSchema(serviceServiceMethods.ByName("UpdateService")),
+		connect.WithHandlerOptions(opts...),
+	)
 	serviceServiceStopServiceHandler := connect.NewUnaryHandler(
 		ServiceServiceStopServiceProcedure,
 		svc.StopService,
@@ -166,6 +189,8 @@ func NewServiceServiceHandler(svc ServiceServiceHandler, opts ...connect.Handler
 			serviceServiceListServicesHandler.ServeHTTP(w, r)
 		case ServiceServiceDeployServiceProcedure:
 			serviceServiceDeployServiceHandler.ServeHTTP(w, r)
+		case ServiceServiceUpdateServiceProcedure:
+			serviceServiceUpdateServiceHandler.ServeHTTP(w, r)
 		case ServiceServiceStopServiceProcedure:
 			serviceServiceStopServiceHandler.ServeHTTP(w, r)
 		case ServiceServiceRestartServiceProcedure:
@@ -185,6 +210,10 @@ func (UnimplementedServiceServiceHandler) ListServices(context.Context, *connect
 
 func (UnimplementedServiceServiceHandler) DeployService(context.Context, *connect.Request[v1.DeployServiceRequest]) (*connect.Response[v1.DeployServiceResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.DeployService is not implemented"))
+}
+
+func (UnimplementedServiceServiceHandler) UpdateService(context.Context, *connect.Request[v1.UpdateServiceRequest]) (*connect.Response[v1.UpdateServiceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.UpdateService is not implemented"))
 }
 
 func (UnimplementedServiceServiceHandler) StopService(context.Context, *connect.Request[v1.StopServiceRequest]) (*connect.Response[v1.StopServiceResponse], error) {

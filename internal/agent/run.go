@@ -132,6 +132,8 @@ func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 	switch pulledTask.GetType() {
 	case string(task.TypeDeploy):
 		return executeDeployTask(ctx, bundleClient, client, cfg, pulledTask)
+	case string(task.TypeUpdate):
+		return executeUpdateTask(ctx, bundleClient, client, cfg, pulledTask)
 	case string(task.TypeStop):
 		return executeStopTask(ctx, client, cfg, pulledTask)
 	case string(task.TypeRestart):
@@ -176,6 +178,59 @@ func executeDeployTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return err
 	}
 	if err := uploadTaskLog(ctx, client, pulledTask.GetTaskId(), "deploy task finished successfully\n"); err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
+}
+
+func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask) error {
+	if err := uploadTaskLog(ctx, client, pulledTask.GetTaskId(), fmt.Sprintf("starting remote update task for service=%s node=%s repo_revision=%s\n", pulledTask.GetServiceName(), pulledTask.GetNodeId(), pulledTask.GetRepoRevision())); err != nil {
+		return err
+	}
+	var bundle *bundleResult
+	if err := executeTaskStep(ctx, client, pulledTask.GetTaskId(), task.StepRender, func() error {
+		var err error
+		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId())
+		if err != nil {
+			return err
+		}
+		return uploadTaskLog(ctx, client, pulledTask.GetTaskId(), "render step completed after bundle download\n")
+	}); err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	if err := executeTaskStep(ctx, client, pulledTask.GetTaskId(), task.StepPull, func() error {
+		projectName, err := loadComposeProjectName(bundle.RootPath, pulledTask.GetServiceName())
+		if err != nil {
+			return err
+		}
+		return runComposePull(ctx, bundle.RootPath, projectName, func(output string) error {
+			return uploadTaskLog(ctx, client, pulledTask.GetTaskId(), output)
+		})
+	}); err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	if err := executeTaskStep(ctx, client, pulledTask.GetTaskId(), task.StepComposeUp, func() error {
+		projectName, err := loadComposeProjectName(bundle.RootPath, pulledTask.GetServiceName())
+		if err != nil {
+			return err
+		}
+		return runComposeUp(ctx, bundle.RootPath, projectName, func(output string) error {
+			return uploadTaskLog(ctx, client, pulledTask.GetTaskId(), output)
+		})
+	}); err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	if err := executeTaskStep(ctx, client, pulledTask.GetTaskId(), task.StepFinalize, func() error {
+		return uploadTaskLog(ctx, client, pulledTask.GetTaskId(), "finalize step completed after compose pull and up\n")
+	}); err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	if err := uploadTaskLog(ctx, client, pulledTask.GetTaskId(), "update task finished successfully\n"); err != nil {
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -443,6 +498,21 @@ func runComposeDown(ctx context.Context, serviceDir, projectName string, uploadL
 	}
 	if err != nil {
 		return fmt.Errorf("docker compose down failed: %w", err)
+	}
+	return nil
+}
+
+func runComposePull(ctx context.Context, serviceDir, projectName string, uploadLog func(string) error) error {
+	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "pull")
+	command.Dir = serviceDir
+	output, err := command.CombinedOutput()
+	if len(output) > 0 {
+		if logErr := uploadLog(string(output)); logErr != nil {
+			return logErr
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("docker compose pull failed: %w", err)
 	}
 	return nil
 }

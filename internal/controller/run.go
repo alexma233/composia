@@ -491,6 +491,22 @@ func (server *serviceServer) DeployService(ctx context.Context, req *connect.Req
 	return connect.NewResponse(response), nil
 }
 
+func (server *serviceServer) UpdateService(ctx context.Context, req *connect.Request[controllerv1.UpdateServiceRequest]) (*connect.Response[controllerv1.UpdateServiceResponse], error) {
+	if req.Msg == nil || req.Msg.GetServiceName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+	createdTask, err := server.createServiceTask(ctx, req.Msg.GetServiceName(), task.TypeUpdate)
+	if err != nil {
+		return nil, err
+	}
+	response := &controllerv1.UpdateServiceResponse{
+		TaskId:       createdTask.TaskID,
+		Status:       string(createdTask.Status),
+		RepoRevision: createdTask.RepoRevision,
+	}
+	return connect.NewResponse(response), nil
+}
+
 func (server *serviceServer) StopService(ctx context.Context, req *connect.Request[controllerv1.StopServiceRequest]) (*connect.Response[controllerv1.StopServiceResponse], error) {
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
