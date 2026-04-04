@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package composia.controller.v1;
+
+option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
+
+service RepoService {
+  rpc GetRepoHead(GetRepoHeadRequest) returns (GetRepoHeadResponse);
+}
+
+message GetRepoHeadRequest {}
+
+message GetRepoHeadResponse {
+  string head_revision = 1;
+  string branch = 2;
+  bool has_remote = 3;
+  bool clean_worktree = 4;
+}

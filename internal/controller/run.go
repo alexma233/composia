@@ -130,6 +130,12 @@ func Run(ctx context.Context, configPath string) error {
 	)
 	mux.Handle(systemPath, systemHandler)
 
+	repoPath, repoHandler := controllerv1connect.NewRepoServiceHandler(
+		&repoServer{cfg: cfg},
+		connect.WithInterceptors(cliInterceptor),
+	)
+	mux.Handle(repoPath, repoHandler)
+
 	backupPath, backupHandler := controllerv1connect.NewBackupRecordServiceHandler(
 		&backupRecordServer{db: db},
 		connect.WithInterceptors(cliInterceptor),
@@ -481,6 +487,10 @@ type taskServer struct {
 
 type backupRecordServer struct {
 	db *store.DB
+}
+
+type repoServer struct {
+	cfg *config.ControllerConfig
 }
 
 func (server *systemServer) GetSystemStatus(ctx context.Context, _ *connect.Request[controllerv1.GetSystemStatusRequest]) (*connect.Response[controllerv1.GetSystemStatusResponse], error) {
@@ -919,6 +929,32 @@ func backupSummaryMessage(backup store.BackupSummary) *controllerv1.BackupSummar
 		StartedAt:   backup.StartedAt,
 		FinishedAt:  backup.FinishedAt,
 	}
+}
+
+func (server *repoServer) GetRepoHead(_ context.Context, _ *connect.Request[controllerv1.GetRepoHeadRequest]) (*connect.Response[controllerv1.GetRepoHeadResponse], error) {
+	headRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	branch, err := repo.CurrentBranch(server.cfg.RepoDir)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	hasRemote, err := repo.HasRemote(server.cfg.RepoDir)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	cleanWorktree, err := repo.IsCleanWorkingTree(server.cfg.RepoDir)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	response := &controllerv1.GetRepoHeadResponse{
+		HeadRevision:  headRevision,
+		Branch:        branch,
+		HasRemote:     hasRemote,
+		CleanWorktree: cleanWorktree,
+	}
+	return connect.NewResponse(response), nil
 }
 
 func (server *taskServer) GetTask(ctx context.Context, req *connect.Request[controllerv1.GetTaskRequest]) (*connect.Response[controllerv1.GetTaskResponse], error) {
