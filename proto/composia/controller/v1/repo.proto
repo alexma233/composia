@@ -6,6 +6,8 @@ option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia
 
 service RepoService {
   rpc GetRepoHead(GetRepoHeadRequest) returns (GetRepoHeadResponse);
+  rpc ListRepoFiles(ListRepoFilesRequest) returns (ListRepoFilesResponse);
+  rpc GetRepoFile(GetRepoFileRequest) returns (GetRepoFileResponse);
 }
 
 message GetRepoHeadRequest {}
@@ -15,4 +17,29 @@ message GetRepoHeadResponse {
   string branch = 2;
   bool has_remote = 3;
   bool clean_worktree = 4;
+}
+
+message RepoFileEntry {
+  string path = 1;
+  string name = 2;
+  bool is_dir = 3;
+  int64 size = 4;
+}
+
+message ListRepoFilesRequest {
+  string path = 1;
+}
+
+message ListRepoFilesResponse {
+  repeated RepoFileEntry entries = 1;
+}
+
+message GetRepoFileRequest {
+  string path = 1;
+}
+
+message GetRepoFileResponse {
+  string path = 1;
+  string content = 2;
+  int64 size = 3;
 }

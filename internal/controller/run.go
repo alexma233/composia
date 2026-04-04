@@ -957,6 +957,56 @@ func (server *repoServer) GetRepoHead(_ context.Context, _ *connect.Request[cont
 	return connect.NewResponse(response), nil
 }
 
+func (server *repoServer) ListRepoFiles(_ context.Context, req *connect.Request[controllerv1.ListRepoFilesRequest]) (*connect.Response[controllerv1.ListRepoFilesResponse], error) {
+	if req.Msg == nil {
+		req.Msg = &controllerv1.ListRepoFilesRequest{}
+	}
+	entries, err := repo.ListFiles(server.cfg.RepoDir, req.Msg.GetPath())
+	if err != nil {
+		switch {
+		case errors.Is(err, repo.ErrRepoPathInvalid):
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		case errors.Is(err, repo.ErrRepoPathNotFound), errors.Is(err, repo.ErrRepoPathNotDirectory):
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		default:
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+	}
+	response := &controllerv1.ListRepoFilesResponse{Entries: make([]*controllerv1.RepoFileEntry, 0, len(entries))}
+	for _, entry := range entries {
+		response.Entries = append(response.Entries, &controllerv1.RepoFileEntry{
+			Path:  entry.Path,
+			Name:  entry.Name,
+			IsDir: entry.IsDir,
+			Size:  entry.Size,
+		})
+	}
+	return connect.NewResponse(response), nil
+}
+
+func (server *repoServer) GetRepoFile(_ context.Context, req *connect.Request[controllerv1.GetRepoFileRequest]) (*connect.Response[controllerv1.GetRepoFileResponse], error) {
+	if req.Msg == nil || req.Msg.GetPath() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("path is required"))
+	}
+	file, err := repo.ReadFile(server.cfg.RepoDir, req.Msg.GetPath())
+	if err != nil {
+		switch {
+		case errors.Is(err, repo.ErrRepoPathInvalid):
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		case errors.Is(err, repo.ErrRepoPathNotFound), errors.Is(err, repo.ErrRepoPathNotFile):
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		default:
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+	}
+	response := &controllerv1.GetRepoFileResponse{
+		Path:    file.Path,
+		Content: file.Content,
+		Size:    file.Size,
+	}
+	return connect.NewResponse(response), nil
+}
+
 func (server *taskServer) GetTask(ctx context.Context, req *connect.Request[controllerv1.GetTaskRequest]) (*connect.Response[controllerv1.GetTaskResponse], error) {
 	if req.Msg == nil || req.Msg.GetTaskId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
