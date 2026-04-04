@@ -77,6 +77,66 @@ func TestServiceServiceListServices(t *testing.T) {
 	}
 }
 
+func TestServiceServiceGetServiceReturnsMinimalSummary(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithService(t, repoDir, "alpha", "main")
+
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncDeclaredServices(ctx, []string{"alpha"}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-alpha", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "alpha", CreatedAt: time.Date(2026, 4, 4, 10, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("create task: %v", err)
+	}
+	if err := db.CompleteTask(ctx, "task-alpha", task.StatusSucceeded, time.Date(2026, 4, 4, 10, 5, 0, 0, time.UTC), ""); err != nil {
+		t.Fatalf("complete task: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+
+	path, handler := controllerv1connect.NewServiceServiceHandler(
+		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, availableNodeIDs: map[string]struct{}{"main": {}}},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	response, err := client.GetService(ctx, connect.NewRequest(&controllerv1.GetServiceRequest{ServiceName: "alpha"}))
+	if err != nil {
+		t.Fatalf("get service: %v", err)
+	}
+	if response.Msg.GetName() != "alpha" || response.Msg.GetNode() != "main" {
+		t.Fatalf("unexpected service response: %+v", response.Msg)
+	}
+	if !response.Msg.GetEnabled() {
+		t.Fatalf("expected enabled service")
+	}
+	if response.Msg.GetRuntimeStatus() != "running" {
+		t.Fatalf("expected runtime status running, got %q", response.Msg.GetRuntimeStatus())
+	}
+}
+
 func TestServiceServiceDeployServiceCreatesPendingTask(t *testing.T) {
 	t.Parallel()
 

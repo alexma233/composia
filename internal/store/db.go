@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -11,6 +12,8 @@ import (
 )
 
 const DatabaseFileName = "composia.db"
+
+var ErrServiceNotFound = errors.New("service not found")
 
 type DB struct {
 	sql  *sql.DB
@@ -27,6 +30,13 @@ type NodeHeartbeat struct {
 }
 
 type ServiceSummary struct {
+	Name          string
+	IsDeclared    bool
+	RuntimeStatus string
+	UpdatedAt     string
+}
+
+type ServiceSnapshot struct {
 	Name          string
 	IsDeclared    bool
 	RuntimeStatus string
@@ -231,6 +241,22 @@ func (db *DB) ListDeclaredServices(ctx context.Context, runtimeStatusFilter, cur
 	}
 
 	return services, nextCursor, nil
+}
+
+func (db *DB) GetServiceSnapshot(ctx context.Context, serviceName string) (ServiceSnapshot, error) {
+	var snapshot ServiceSnapshot
+	err := db.sql.QueryRowContext(ctx, `
+		SELECT service_name, is_declared, runtime_status, updated_at
+		FROM services
+		WHERE service_name = ?
+	`, serviceName).Scan(&snapshot.Name, &snapshot.IsDeclared, &snapshot.RuntimeStatus, &snapshot.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ServiceSnapshot{}, ErrServiceNotFound
+		}
+		return ServiceSnapshot{}, fmt.Errorf("get service snapshot %q: %w", serviceName, err)
+	}
+	return snapshot, nil
 }
 
 func (db *DB) ListNodeSnapshots(ctx context.Context) ([]NodeSnapshot, error) {

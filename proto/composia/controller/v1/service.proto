@@ -6,10 +6,23 @@ option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia
 
 service ServiceService {
   rpc ListServices(ListServicesRequest) returns (ListServicesResponse);
+  rpc GetService(GetServiceRequest) returns (GetServiceResponse);
   rpc DeployService(DeployServiceRequest) returns (DeployServiceResponse);
   rpc UpdateService(UpdateServiceRequest) returns (UpdateServiceResponse);
   rpc StopService(StopServiceRequest) returns (StopServiceResponse);
   rpc RestartService(RestartServiceRequest) returns (RestartServiceResponse);
+}
+
+message GetServiceRequest {
+  string service_name = 1;
+}
+
+message GetServiceResponse {
+  string name = 1;
+  string runtime_status = 2;
+  string updated_at = 3;
+  string node = 4;
+  bool enabled = 5;
 }
 
 message DeployServiceRequest {

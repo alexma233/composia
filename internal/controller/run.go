@@ -476,6 +476,31 @@ func (server *serviceServer) ListServices(ctx context.Context, req *connect.Requ
 	return connect.NewResponse(response), nil
 }
 
+func (server *serviceServer) GetService(ctx context.Context, req *connect.Request[controllerv1.GetServiceRequest]) (*connect.Response[controllerv1.GetServiceResponse], error) {
+	if req.Msg == nil || req.Msg.GetServiceName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+	service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	snapshot, err := server.db.GetServiceSnapshot(ctx, service.Name)
+	if err != nil {
+		if errors.Is(err, store.ErrServiceNotFound) {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	response := &controllerv1.GetServiceResponse{
+		Name:          service.Name,
+		RuntimeStatus: snapshot.RuntimeStatus,
+		UpdatedAt:     snapshot.UpdatedAt,
+		Node:          service.Node,
+		Enabled:       service.Enabled,
+	}
+	return connect.NewResponse(response), nil
+}
+
 func (server *serviceServer) DeployService(ctx context.Context, req *connect.Request[controllerv1.DeployServiceRequest]) (*connect.Response[controllerv1.DeployServiceResponse], error) {
 	if req.Msg == nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
