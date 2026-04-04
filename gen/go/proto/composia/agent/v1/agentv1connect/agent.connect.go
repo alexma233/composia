@@ -52,6 +52,9 @@ const (
 	// AgentReportServiceReportBackupResultProcedure is the fully-qualified name of the
 	// AgentReportService's ReportBackupResult RPC.
 	AgentReportServiceReportBackupResultProcedure = "/composia.agent.v1.AgentReportService/ReportBackupResult"
+	// AgentReportServiceReportServiceStatusProcedure is the fully-qualified name of the
+	// AgentReportService's ReportServiceStatus RPC.
+	AgentReportServiceReportServiceStatusProcedure = "/composia.agent.v1.AgentReportService/ReportServiceStatus"
 	// AgentTaskServicePullNextTaskProcedure is the fully-qualified name of the AgentTaskService's
 	// PullNextTask RPC.
 	AgentTaskServicePullNextTaskProcedure = "/composia.agent.v1.AgentTaskService/PullNextTask"
@@ -67,6 +70,7 @@ type AgentReportServiceClient interface {
 	ReportTaskStepState(context.Context, *connect.Request[v1.ReportTaskStepStateRequest]) (*connect.Response[v1.ReportTaskStepStateResponse], error)
 	UploadTaskLogs(context.Context, *connect.Request[v1.UploadTaskLogsRequest]) (*connect.Response[v1.UploadTaskLogsResponse], error)
 	ReportBackupResult(context.Context, *connect.Request[v1.ReportBackupResultRequest]) (*connect.Response[v1.ReportBackupResultResponse], error)
+	ReportServiceStatus(context.Context, *connect.Request[v1.ReportServiceStatusRequest]) (*connect.Response[v1.ReportServiceStatusResponse], error)
 }
 
 // NewAgentReportServiceClient constructs a client for the composia.agent.v1.AgentReportService
@@ -110,6 +114,12 @@ func NewAgentReportServiceClient(httpClient connect.HTTPClient, baseURL string, 
 			connect.WithSchema(agentReportServiceMethods.ByName("ReportBackupResult")),
 			connect.WithClientOptions(opts...),
 		),
+		reportServiceStatus: connect.NewClient[v1.ReportServiceStatusRequest, v1.ReportServiceStatusResponse](
+			httpClient,
+			baseURL+AgentReportServiceReportServiceStatusProcedure,
+			connect.WithSchema(agentReportServiceMethods.ByName("ReportServiceStatus")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -120,6 +130,7 @@ type agentReportServiceClient struct {
 	reportTaskStepState *connect.Client[v1.ReportTaskStepStateRequest, v1.ReportTaskStepStateResponse]
 	uploadTaskLogs      *connect.Client[v1.UploadTaskLogsRequest, v1.UploadTaskLogsResponse]
 	reportBackupResult  *connect.Client[v1.ReportBackupResultRequest, v1.ReportBackupResultResponse]
+	reportServiceStatus *connect.Client[v1.ReportServiceStatusRequest, v1.ReportServiceStatusResponse]
 }
 
 // Heartbeat calls composia.agent.v1.AgentReportService.Heartbeat.
@@ -147,6 +158,11 @@ func (c *agentReportServiceClient) ReportBackupResult(ctx context.Context, req *
 	return c.reportBackupResult.CallUnary(ctx, req)
 }
 
+// ReportServiceStatus calls composia.agent.v1.AgentReportService.ReportServiceStatus.
+func (c *agentReportServiceClient) ReportServiceStatus(ctx context.Context, req *connect.Request[v1.ReportServiceStatusRequest]) (*connect.Response[v1.ReportServiceStatusResponse], error) {
+	return c.reportServiceStatus.CallUnary(ctx, req)
+}
+
 // AgentReportServiceHandler is an implementation of the composia.agent.v1.AgentReportService
 // service.
 type AgentReportServiceHandler interface {
@@ -155,6 +171,7 @@ type AgentReportServiceHandler interface {
 	ReportTaskStepState(context.Context, *connect.Request[v1.ReportTaskStepStateRequest]) (*connect.Response[v1.ReportTaskStepStateResponse], error)
 	UploadTaskLogs(context.Context, *connect.Request[v1.UploadTaskLogsRequest]) (*connect.Response[v1.UploadTaskLogsResponse], error)
 	ReportBackupResult(context.Context, *connect.Request[v1.ReportBackupResultRequest]) (*connect.Response[v1.ReportBackupResultResponse], error)
+	ReportServiceStatus(context.Context, *connect.Request[v1.ReportServiceStatusRequest]) (*connect.Response[v1.ReportServiceStatusResponse], error)
 }
 
 // NewAgentReportServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -194,6 +211,12 @@ func NewAgentReportServiceHandler(svc AgentReportServiceHandler, opts ...connect
 		connect.WithSchema(agentReportServiceMethods.ByName("ReportBackupResult")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentReportServiceReportServiceStatusHandler := connect.NewUnaryHandler(
+		AgentReportServiceReportServiceStatusProcedure,
+		svc.ReportServiceStatus,
+		connect.WithSchema(agentReportServiceMethods.ByName("ReportServiceStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.agent.v1.AgentReportService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentReportServiceHeartbeatProcedure:
@@ -206,6 +229,8 @@ func NewAgentReportServiceHandler(svc AgentReportServiceHandler, opts ...connect
 			agentReportServiceUploadTaskLogsHandler.ServeHTTP(w, r)
 		case AgentReportServiceReportBackupResultProcedure:
 			agentReportServiceReportBackupResultHandler.ServeHTTP(w, r)
+		case AgentReportServiceReportServiceStatusProcedure:
+			agentReportServiceReportServiceStatusHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -233,6 +258,10 @@ func (UnimplementedAgentReportServiceHandler) UploadTaskLogs(context.Context, *c
 
 func (UnimplementedAgentReportServiceHandler) ReportBackupResult(context.Context, *connect.Request[v1.ReportBackupResultRequest]) (*connect.Response[v1.ReportBackupResultResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentReportService.ReportBackupResult is not implemented"))
+}
+
+func (UnimplementedAgentReportServiceHandler) ReportServiceStatus(context.Context, *connect.Request[v1.ReportServiceStatusRequest]) (*connect.Response[v1.ReportServiceStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentReportService.ReportServiceStatus is not implemented"))
 }
 
 // AgentTaskServiceClient is a client for the composia.agent.v1.AgentTaskService service.

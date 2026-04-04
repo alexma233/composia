@@ -50,6 +50,13 @@ type NodeSnapshot struct {
 	LastHeartbeat string
 }
 
+const (
+	ServiceRuntimeRunning = "running"
+	ServiceRuntimeStopped = "stopped"
+	ServiceRuntimeError   = "error"
+	ServiceRuntimeUnknown = "unknown"
+)
+
 func Open(stateDir string) (*DB, error) {
 	databasePath := filepath.Join(stateDir, DatabaseFileName)
 	sqlDB, err := sql.Open("sqlite", databasePath)
@@ -282,6 +289,40 @@ func (db *DB) ListNodeSnapshots(ctx context.Context) ([]NodeSnapshot, error) {
 		return nil, fmt.Errorf("iterate node snapshots: %w", err)
 	}
 	return nodes, nil
+}
+
+func (db *DB) UpdateServiceRuntimeStatus(ctx context.Context, serviceName, runtimeStatus string, updatedAt time.Time) error {
+	if serviceName == "" {
+		return fmt.Errorf("service name is required")
+	}
+	if !IsValidServiceRuntimeStatus(runtimeStatus) {
+		return fmt.Errorf("invalid service runtime status %q", runtimeStatus)
+	}
+	result, err := db.sql.ExecContext(ctx, `
+		UPDATE services
+		SET runtime_status = ?, updated_at = ?
+		WHERE service_name = ?
+	`, runtimeStatus, updatedAt.UTC().Format(time.RFC3339), serviceName)
+	if err != nil {
+		return fmt.Errorf("update runtime status for service %q: %w", serviceName, err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read updated runtime status rows for service %q: %w", serviceName, err)
+	}
+	if affected == 0 {
+		return ErrServiceNotFound
+	}
+	return nil
+}
+
+func IsValidServiceRuntimeStatus(runtimeStatus string) bool {
+	switch runtimeStatus {
+	case ServiceRuntimeRunning, ServiceRuntimeStopped, ServiceRuntimeError, ServiceRuntimeUnknown:
+		return true
+	default:
+		return false
+	}
 }
 
 func (db *DB) migrate(ctx context.Context) error {

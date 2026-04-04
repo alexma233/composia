@@ -20,6 +20,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
 	"forgejo.alexma.top/alexma233/composia/internal/config"
 	"forgejo.alexma.top/alexma233/composia/internal/rpcutil"
+	"forgejo.alexma.top/alexma233/composia/internal/store"
 	"forgejo.alexma.top/alexma233/composia/internal/task"
 	"forgejo.alexma.top/alexma233/composia/internal/version"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -158,6 +159,7 @@ func executeDeployTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		}
 		return uploadTaskLog(ctx, client, pulledTask.GetTaskId(), "render step completed after bundle download\n")
 	}); err != nil {
+		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -170,12 +172,18 @@ func executeDeployTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 			return uploadTaskLog(ctx, client, pulledTask.GetTaskId(), output)
 		})
 	}); err != nil {
+		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
 	if err := executeTaskStep(ctx, client, pulledTask.GetTaskId(), task.StepFinalize, func() error {
 		return uploadTaskLog(ctx, client, pulledTask.GetTaskId(), "finalize step completed after compose up\n")
 	}); err != nil {
+		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	if err := reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeRunning); err != nil {
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -199,6 +207,7 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		}
 		return uploadTaskLog(ctx, client, pulledTask.GetTaskId(), "render step completed after bundle download\n")
 	}); err != nil {
+		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -211,6 +220,7 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 			return uploadTaskLog(ctx, client, pulledTask.GetTaskId(), output)
 		})
 	}); err != nil {
+		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -223,12 +233,18 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 			return uploadTaskLog(ctx, client, pulledTask.GetTaskId(), output)
 		})
 	}); err != nil {
+		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
 	if err := executeTaskStep(ctx, client, pulledTask.GetTaskId(), task.StepFinalize, func() error {
 		return uploadTaskLog(ctx, client, pulledTask.GetTaskId(), "finalize step completed after compose pull and up\n")
 	}); err != nil {
+		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	if err := reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeRunning); err != nil {
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -288,6 +304,11 @@ func executeStopTask(ctx context.Context, client agentv1connect.AgentReportServi
 			return uploadTaskLog(ctx, client, pulledTask.GetTaskId(), output)
 		})
 	}); err != nil {
+		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	if err := reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeStopped); err != nil {
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -318,6 +339,7 @@ func executeRestartTask(ctx context.Context, client agentv1connect.AgentReportSe
 			return uploadTaskLog(ctx, client, pulledTask.GetTaskId(), output)
 		})
 	}); err != nil {
+		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -326,6 +348,11 @@ func executeRestartTask(ctx context.Context, client agentv1connect.AgentReportSe
 			return uploadTaskLog(ctx, client, pulledTask.GetTaskId(), output)
 		})
 	}); err != nil {
+		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	if err := reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeRunning); err != nil {
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -387,6 +414,18 @@ func reportBackupResult(ctx context.Context, client agentv1connect.AgentReportSe
 	}))
 	if err != nil {
 		return fmt.Errorf("report backup result: %w", err)
+	}
+	return nil
+}
+
+func reportServiceStatus(ctx context.Context, client agentv1connect.AgentReportServiceClient, serviceName, runtimeStatus string) error {
+	_, err := client.ReportServiceStatus(ctx, connect.NewRequest(&agentv1.ReportServiceStatusRequest{
+		ServiceName:   serviceName,
+		RuntimeStatus: runtimeStatus,
+		ReportedAt:    timestamppb.Now(),
+	}))
+	if err != nil {
+		return fmt.Errorf("report service status: %w", err)
 	}
 	return nil
 }

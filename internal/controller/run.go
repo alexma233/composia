@@ -353,6 +353,26 @@ func (server *agentReportServer) ReportBackupResult(ctx context.Context, req *co
 	return connect.NewResponse(&agentv1.ReportBackupResultResponse{}), nil
 }
 
+func (server *agentReportServer) ReportServiceStatus(ctx context.Context, req *connect.Request[agentv1.ReportServiceStatusRequest]) (*connect.Response[agentv1.ReportServiceStatusResponse], error) {
+	if req.Msg.GetServiceName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+	if !store.IsValidServiceRuntimeStatus(req.Msg.GetRuntimeStatus()) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid runtime_status %q", req.Msg.GetRuntimeStatus()))
+	}
+	reportedAt := time.Now().UTC()
+	if req.Msg.GetReportedAt() != nil {
+		reportedAt = req.Msg.GetReportedAt().AsTime().UTC()
+	}
+	if err := server.db.UpdateServiceRuntimeStatus(ctx, req.Msg.GetServiceName(), req.Msg.GetRuntimeStatus(), reportedAt); err != nil {
+		if errors.Is(err, store.ErrServiceNotFound) {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&agentv1.ReportServiceStatusResponse{}), nil
+}
+
 func ensureTaskNodeMatch(ctx context.Context, db *store.DB, taskID string) error {
 	authenticatedNodeID, ok := rpcutil.BearerSubject(ctx)
 	if !ok {

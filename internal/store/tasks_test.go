@@ -173,7 +173,7 @@ func TestListTasksAppliesFiltersAndCursor(t *testing.T) {
 	}
 }
 
-func TestCompleteTaskRefreshesServiceRuntimeStatus(t *testing.T) {
+func TestCompleteTaskUpdatesLastTaskWithoutOverwritingRuntimeStatus(t *testing.T) {
 	t.Parallel()
 
 	db := openTestDB(t)
@@ -185,6 +185,9 @@ func TestCompleteTaskRefreshesServiceRuntimeStatus(t *testing.T) {
 	}
 	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-deploy", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "demo", CreatedAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
 		t.Fatalf("create deploy task: %v", err)
+	}
+	if err := db.UpdateServiceRuntimeStatus(ctx, "demo", ServiceRuntimeStopped, time.Date(2026, 4, 4, 12, 1, 0, 0, time.UTC)); err != nil {
+		t.Fatalf("set initial runtime status: %v", err)
 	}
 	finishedAt := time.Date(2026, 4, 4, 12, 5, 0, 0, time.UTC)
 	if err := db.CompleteTask(ctx, "task-deploy", task.StatusSucceeded, finishedAt, ""); err != nil {
@@ -198,8 +201,8 @@ func TestCompleteTaskRefreshesServiceRuntimeStatus(t *testing.T) {
 	if err := row.Scan(&runtimeStatus, &lastTaskID, &updatedAt); err != nil {
 		t.Fatalf("scan service state: %v", err)
 	}
-	if runtimeStatus != "running" {
-		t.Fatalf("expected running runtime status, got %q", runtimeStatus)
+	if runtimeStatus != ServiceRuntimeStopped {
+		t.Fatalf("expected runtime status to stay stopped, got %q", runtimeStatus)
 	}
 	if lastTaskID != "task-deploy" {
 		t.Fatalf("expected last task task-deploy, got %q", lastTaskID)

@@ -104,6 +104,9 @@ func TestServiceServiceGetServiceReturnsMinimalSummary(t *testing.T) {
 	if err := db.CompleteTask(ctx, "task-alpha", task.StatusSucceeded, time.Date(2026, 4, 4, 10, 5, 0, 0, time.UTC), ""); err != nil {
 		t.Fatalf("complete task: %v", err)
 	}
+	if err := db.UpdateServiceRuntimeStatus(ctx, "alpha", store.ServiceRuntimeRunning, time.Date(2026, 4, 4, 10, 5, 30, 0, time.UTC)); err != nil {
+		t.Fatalf("update service runtime status: %v", err)
+	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
 		if token != "cli-token" {

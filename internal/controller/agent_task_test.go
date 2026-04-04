@@ -14,6 +14,7 @@ import (
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
 	"forgejo.alexma.top/alexma233/composia/internal/rpcutil"
+	"forgejo.alexma.top/alexma233/composia/internal/store"
 	"forgejo.alexma.top/alexma233/composia/internal/task"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -90,6 +91,9 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	if _, err := reportClient.ReportTaskState(ctx, connect.NewRequest(&agentv1.ReportTaskStateRequest{TaskId: "task-remote", Status: "succeeded", FinishedAt: finishedAt})); err != nil {
 		t.Fatalf("report task state: %v", err)
 	}
+	if _, err := reportClient.ReportServiceStatus(ctx, connect.NewRequest(&agentv1.ReportServiceStatusRequest{ServiceName: "demo", RuntimeStatus: store.ServiceRuntimeRunning, ReportedAt: finishedAt})); err != nil {
+		t.Fatalf("report service status: %v", err)
+	}
 
 	detail, err := db.GetTask(ctx, "task-remote")
 	if err != nil {
@@ -107,5 +111,12 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	}
 	if string(content) != "hello from agent\n" {
 		t.Fatalf("unexpected task log content %q", string(content))
+	}
+	snapshot, err := db.GetServiceSnapshot(ctx, "demo")
+	if err != nil {
+		t.Fatalf("get service snapshot: %v", err)
+	}
+	if snapshot.RuntimeStatus != store.ServiceRuntimeRunning {
+		t.Fatalf("expected runtime status running, got %q", snapshot.RuntimeStatus)
 	}
 }

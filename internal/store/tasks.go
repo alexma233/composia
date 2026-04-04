@@ -584,8 +584,7 @@ func parseNullableRFC3339(value string) *time.Time {
 
 func updateServiceFromCompletedTask(ctx context.Context, tx *sql.Tx, taskID string, status task.Status, finishedAt time.Time) error {
 	var serviceName string
-	var taskType string
-	if err := tx.QueryRowContext(ctx, `SELECT COALESCE(service_name, ''), type FROM tasks WHERE task_id = ?`, taskID).Scan(&serviceName, &taskType); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT COALESCE(service_name, '') FROM tasks WHERE task_id = ?`, taskID).Scan(&serviceName); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrTaskNotFound
 		}
@@ -594,32 +593,12 @@ func updateServiceFromCompletedTask(ctx context.Context, tx *sql.Tx, taskID stri
 	if serviceName == "" {
 		return nil
 	}
-
-	runtimeStatus := deriveRuntimeStatus(task.Type(taskType), status)
 	if _, err := tx.ExecContext(ctx, `
 		UPDATE services
-		SET runtime_status = ?, last_task_id = ?, updated_at = ?
+		SET last_task_id = ?, updated_at = ?
 		WHERE service_name = ?
-	`, runtimeStatus, taskID, finishedAt.UTC().Format(time.RFC3339), serviceName); err != nil {
+	`, taskID, finishedAt.UTC().Format(time.RFC3339), serviceName); err != nil {
 		return fmt.Errorf("update service runtime status for %q: %w", serviceName, err)
 	}
 	return nil
-}
-
-func deriveRuntimeStatus(taskType task.Type, status task.Status) string {
-	if status == task.StatusFailed {
-		return "error"
-	}
-	if status != task.StatusSucceeded {
-		return "unknown"
-	}
-
-	switch taskType {
-	case task.TypeStop:
-		return "stopped"
-	case task.TypeDeploy, task.TypeUpdate, task.TypeRestart:
-		return "running"
-	default:
-		return "unknown"
-	}
 }

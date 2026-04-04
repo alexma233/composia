@@ -56,3 +56,42 @@ func TestListDeclaredServicesAppliesCursorAndFilter(t *testing.T) {
 		t.Fatalf("expected empty next cursor, got %q", nextCursor)
 	}
 }
+
+func TestUpdateServiceRuntimeStatusValidatesAndPersists(t *testing.T) {
+	t.Parallel()
+
+	stateDir := filepath.Join(t.TempDir(), "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+
+	db, err := Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncDeclaredServices(ctx, []string{"alpha"}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	reportedAt := time.Date(2026, 4, 5, 10, 0, 0, 0, time.UTC)
+	if err := db.UpdateServiceRuntimeStatus(ctx, "alpha", ServiceRuntimeRunning, reportedAt); err != nil {
+		t.Fatalf("update service runtime status: %v", err)
+	}
+
+	snapshot, err := db.GetServiceSnapshot(ctx, "alpha")
+	if err != nil {
+		t.Fatalf("get service snapshot: %v", err)
+	}
+	if snapshot.RuntimeStatus != ServiceRuntimeRunning {
+		t.Fatalf("expected runtime status running, got %q", snapshot.RuntimeStatus)
+	}
+	if snapshot.UpdatedAt != reportedAt.Format(time.RFC3339) {
+		t.Fatalf("expected updated_at %q, got %q", reportedAt.Format(time.RFC3339), snapshot.UpdatedAt)
+	}
+
+	if err := db.UpdateServiceRuntimeStatus(ctx, "alpha", "broken", reportedAt); err == nil {
+		t.Fatalf("expected invalid runtime status error")
+	}
+}
