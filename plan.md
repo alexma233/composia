@@ -91,7 +91,7 @@ agent 落盘后，服务目录中会有解密后的 `.secret.env` 供 `docker co
 - `nodes`：必填；节点清单；凡是会运行 `agent` 的节点都必须显式列在这里；仅部署控制面时可以不包含 `main`。
 - `cli_tokens`：可选；CLI 访问 controller 的令牌列表；`v1` 先手写在配置中。
 - `dns`：可选；全局 DNS provider 配置；服务侧声明引用这里的 provider 凭据。
-- `backup`：可选；全局备份 provider 配置；服务侧 `backup.jobs[]` 引用这里的 provider 实例。
+- `backup`：可选；全局备份 provider 配置；服务侧 `backup.data[]` 引用这里的 provider 实例。
 - `secrets`：可选；全局 secrets 解密配置；repo 中存在 `.secret.env.enc` 时需要。
 
 `controller.git`：
@@ -128,8 +128,9 @@ agent 落盘后，服务目录中会有解密后的 `.secret.env` 供 `docker co
 - agent 执行任务时，详细日志流式回传到 `controller`，并由 `controller.log_dir` 落盘保存。
 - 在 Git 模式下，所有 repo 读写、auto pull、bundle 打包都必须经过同一个 repo lock 串行化。
 - Web/API/系统对 repo 的任何写操作都必须遵循：若配置了远程则先 `fetch + fast-forward`，再写文件、校验、`commit`；若配置了远程则继续 `push`。
-- 没有远程仓库时，新 revision 在本地 commit 成功后立即生效；有远程仓库时，只有 `push` 成功后新 revision 才算生效。
-- `repo_dir` 在空闲状态下必须保持 clean working tree；`push` 失败时不得留下脏工作区。
+- 没有远程仓库时，新 revision 在本地 commit 成功后立即生效；有远程仓库时，本地 commit 成功后即作为 controller 当前有效 revision，但 repo 可能暂时处于“远程未同步”状态。
+- 若 `push` 成功，则该 revision 同步到远程；若 `push` 失败，则不回滚本地 `HEAD`，但 controller 必须显式记录并暴露当前 repo sync 状态，便于 Web UI / CLI / 后续任务感知“本地已提交、远程未同步”。
+- `repo_dir` 在空闲状态下必须保持 clean working tree；`push` 失败时也不得留下脏工作区。
 
 `controller.cli_tokens[]`：
 
@@ -145,7 +146,7 @@ agent 落盘后，服务目录中会有解密后的 `.secret.env` 供 `docker co
 
 `controller.backup.rustic`：
 
-- 当任一 backup job 使用 `provider: rustic` 时必填。
+- 当任一备份数据项使用 `provider: rustic` 时必填。
 - `repository`：必填；rustic repository 地址。
 - `password_file`：必填；rustic repository 密码文件。
 - `env_files`：可选；provider 额外环境变量文件列表，例如 S3 凭据。
@@ -277,7 +278,9 @@ token_file: "/home/alex/.config/composia/token"
 - `node`：可选；若省略则默认 `main`，但要求当前已配置 `id: main` 的节点，否则校验报错。
 - `network`：可选；不写即不接管入口和 DNS。
 - `update`：可选；不写即不接管更新。
-- `backup`：可选；不写即无备份配置。
+- `data_protect`：可选；不写即无受管数据声明。
+- `backup`：可选；不写即无日常备份配置。
+- `migrate`：可选；不写即迁移时不额外搬运受管数据。
 
 校验规则：
 
@@ -316,36 +319,65 @@ token_file: "/home/alex/.config/composia/token"
 - `v1` 仅支持 `strategy: pull_and_recreate`。
 - 不内建自动回滚、主动探测、业务健康检查。
 
-#### `backup`
+#### `data_protect`
 
-- 使用 `jobs` 列表，不再使用固定的 `database/config/files` 顶层键。
-- `v1` 的 `jobs[].type` 只支持 `database`、`files`。
-- `jobs[].provider` 可省略，默认 `rustic`。
-- `jobs[].enabled` 可省略，默认 `true`。
-- `jobs[].schedule` 省略表示只允许手动触发。
-- `jobs[].retain` 省略表示不自动清理。
+- 使用 `data` 列表声明服务内可独立导出/恢复的数据保护单元。
+- 这里的 `data` 是 `composia` 视角下的“可执行保护单元”，不强求与业务语义中的唯一数据实体一一对应；同一份底层业务数据允许定义多个 `data` 项，例如 `pg-logical` 与 `pg-volume`。
+- `v1` 不再把数据库/文件拆成固定顶层键，而是统一放在 `data_protect.data[]` 中。
 
-`backup.jobs[]` 通用字段：
+`data_protect.data[]` 通用字段：
 
-- `name`：必填；job 名称；在当前服务内唯一。
-- `type`：必填；`database` 或 `files`。
-- `strategy`：必填。
-- `provider`：可选；默认 `rustic`。
-- `enabled`：可选；默认 `true`。
-- `schedule`：可选；cron 表达式。
-- `retain`：可选；保留策略字符串。
-- 类型专属字段直接平铺在 job 上；`v1` 不再包一层 `options`。
+- `name`：必填；数据项名称；在当前服务内唯一。
+- `backup`：可选；该数据项的导出定义。
+- `restore`：可选；该数据项的恢复定义。
+- 被 `backup.data[]` 引用的数据项必须定义 `backup`。
+- 被 `migrate.data[]` 引用的数据项必须同时定义 `backup` 和 `restore`。
 
-`database` job 规则：
+`data_protect.data[].backup` / `data_protect.data[].restore`：
 
-- `v1` 仅支持 `strategy: pgdumpall`。
+- 都使用统一的 `strategy` + 策略专属字段结构。
+- `v1` 不再额外引入 `type` 字段；字段集合由 `strategy` 语义决定。
+- `database.*` 策略使用数据库专属字段；`files.*` 策略使用文件/目录/volume 专属字段。
+
+`database.*` 规则：
+
+- `backup.strategy` 在 `v1` 仅支持 `database.pgdumpall`。
+- `restore.strategy` 在 `v1` 仅支持 `database.pgimport`。
 - `service` 必填，值为 `docker-compose.yaml` 内的 Compose service 名。
 
-`files` job 规则：
+`files.*` 规则：
 
 - `include` 必填。
 - `include` 允许三种目标：相对路径、绝对路径、Docker volume 名。
 - 识别规则：以 `/`、`./`、`../` 开头的视为路径，其他字符串视为 Docker volume 名。
+- `files.tar_after_stop` 这类策略名显式表示其需要在源服务停止后执行；`v1` 约定策略名本身应体现这类前置条件。
+
+#### `backup`
+
+- 使用 `data` 列表引用需要纳入日常备份的数据项。
+- `data[].provider` 可省略，默认 `rustic`。
+- `data[].enabled` 可省略，默认 `true`。
+- `data[].schedule` 省略表示只允许手动触发。
+- `data[].retain` 省略表示不自动清理。
+
+`backup.data[]` 字段：
+
+- `name`：必填；引用的 `data_protect.data[].name`。
+- `provider`：可选；默认 `rustic`。
+- `enabled`：可选；默认 `true`。
+- `schedule`：可选；cron 表达式。
+- `retain`：可选；保留策略字符串。
+
+#### `migrate`
+
+- 使用 `data` 列表引用迁移时需要导出、传输、恢复的数据项。
+- `migrate` 不复用 `backup.data[]` 的 `schedule`、`retain`、`provider` 语义；它只决定迁移时选哪些数据项。
+- 如果一个服务没有 `migrate.data[]`，则迁移只搬运服务声明、运行时文件和入口切换，不保证带走额外业务数据。
+
+`migrate.data[]` 字段：
+
+- `name`：必填；引用的 `data_protect.data[].name`。
+- `enabled`：可选；默认 `true`。
 
 完整示例：
 
@@ -372,22 +404,53 @@ update:
   schedule: "0 4 * * *"
   backup_before_update: true
 
-backup:
-  jobs:
-    - name: pg
-      type: database
-      strategy: pgdumpall
-      schedule: "0 2 * * *"
-      service: postgres
+data_protect:
+  data:
+    - name: pg-logical
+      backup:
+        strategy: database.pgdumpall
+        service: postgres
+      restore:
+        strategy: database.pgimport
+        service: postgres
+
+    - name: pg-volume
+      backup:
+        strategy: files.tar_after_stop
+        include:
+          - postgres_data
+      restore:
+        strategy: files.untar
+        include:
+          - postgres_data
 
     - name: config
-      type: files
-      strategy: copy
+      backup:
+        strategy: files.copy
+        include:
+          - ./config
+          - /srv/vaultwarden/data
+          - vaultwarden_data
+      restore:
+        strategy: files.copy
+        include:
+          - ./config
+          - /srv/vaultwarden/data
+          - vaultwarden_data
+
+backup:
+  data:
+    - name: pg-logical
+      schedule: "0 2 * * *"
+      retain: "7d"
+
+    - name: config
       schedule: "0 3 * * *"
-      include:
-        - ./config
-        - /srv/vaultwarden/data
-        - vaultwarden_data
+
+migrate:
+  data:
+    - name: pg-volume
+    - name: config
 ```
 
 补充约定：
@@ -402,11 +465,14 @@ backup:
 
 - 统一抽象（pre-hook / dump / copy / snapshot / retention）。
 - 默认 provider：rustic（内置），其他后续 PR。
-- PostgreSQL 在 `v1` 仅支持 `pgdumpall`。
+- `data_protect.data[]` 是服务数据保护的声明真相源；`backup` 和 `migrate` 都只负责选择引用哪些数据项。
+- PostgreSQL 在 `v1` 仅支持 `database.pgdumpall` 导出和 `database.pgimport` 恢复。
 - 备份完成后**必须上报 controller** 存入 SQLite。
-- 迁移时**强制备份**（即使 meta.yaml 里关闭备份）。
-- `v1` 不提供独立的 restore API / 页面，默认接受人工恢复；但迁移任务内部允许消费刚生成的备份产物完成恢复/导入。
-- 迁移的数据声明直接复用 `backup.jobs`；需要随迁移带走的数据库、目录、绝对路径、Docker volume 必须在 `backup.jobs` 中显式声明，否则 `composia` 不保证迁移完整性。
+- 常规 `backup` 任务执行的是 `backup.data[]` 引用的数据项，并使用对应 `data_protect.data[].backup` 定义导出数据。
+- `v1` 不提供独立的 restore API / 页面，默认接受人工恢复；但迁移任务内部允许消费迁移所选数据项的产物完成恢复/导入。
+- 迁移使用 `migrate.data[]` 选择数据项，并直接复用对应 `data_protect.data[].backup` 和 `restore` 定义；如果想让迁移和日常备份使用不同格式，应定义不同的数据项，例如 `pg-logical` 与 `pg-volume`。
+- 迁移产物介质在 `v1` 固定为本地临时落盘：源节点先把导出产物写入本地临时目录，再传输到目标节点本地临时目录供恢复使用；不使用对象存储、controller 中转仓库或 agent 间持久共享存储。
+- 需要随迁移带走的数据库、目录、绝对路径、Docker volume 必须在 `migrate.data[]` 中显式声明，否则 `composia` 不保证迁移完整性。
 
 ---
 
@@ -415,20 +481,22 @@ backup:
 - 迁移入口是 `MigrateService(target_node_id)`，用户不需要预先手改 `composia-meta.yaml`。
 - 迁移任务创建时，`controller` 会锁定当前已提交的 `repo_revision`、当前 `source_node_id` 和请求中的 `target_node_id`。
 - 在迁移成功并完成流量切换前，Git 中的 `composia-meta.yaml.node` 仍保持旧值。
-- 只有目标节点拉起成功且后续步骤完成后，`controller` 才会把 `node` 字段改为目标节点并执行 `commit`；若配置了远程仓库则继续 `push`。
+- 只有目标节点拉起成功且后续步骤完成后，`controller` 才会尝试把 `node` 字段改为目标节点并执行 `commit`；若配置了远程仓库则继续 `push`。
+- 迁移完成运行态切换后，在人工验证和 repo 对账完成前，`migrate` 任务保持 `running`；该服务在此期间不得继续创建其他任务。
 - `v1` 不提供迁移失败后的自动回滚、自动清理或自动恢复源节点工作流，统一由用户人工处理。
 
 执行步骤：
 
 1. 校验目标节点存在、已启用、在线，且服务当前没有冲突任务。
 2. 基于当前提交的 repo revision 创建单个 `migrate` 任务，并把 `source_node_id` / `target_node_id` 写入任务参数。
-3. 在源节点上执行该服务全部启用的 backup jobs；迁移场景下忽略 job 的 `schedule` 和顶层是否手动触发。
-4. 停止源节点服务。
-5. 将备份产物、声明中需要随迁移同步的文件/volume 数据传输到目标节点。
-6. 在目标节点恢复/落盘运行时文件，并使用同一份服务 bundle 启动服务。
-7. 更新目标节点的 Caddy 配置，并执行 DNS 更新。
-8. 完成上述执行步骤后，`controller` 修改 `composia-meta.yaml` 中该服务的 `node`，生成 commit；若配置了远程仓库则继续 push 到跟踪分支。
-9. 用户人工验证业务可用性；如果第 8 步之前失败，则 Git desired state 保持源节点；如果第 8 步的 commit 或 push 失败，则任务标记为 `failed` 并提示“运行态已迁移但 repo 未更新，需要人工对账”。
+3. 解析该服务全部启用的 `migrate.data[]`，校验引用的 `data_protect.data[]` 全部存在，且每项都同时定义 `backup` 和 `restore`。
+4. 在源节点按迁移所选数据项的 `backup` 定义执行导出；若某个策略要求先停机，则必须先停止源节点服务再执行该数据项导出。
+5. 若源节点服务尚未停止，则在目标节点恢复和启动前停止源节点服务，保证服务不会同时运行在两个节点。
+6. 将迁移产物和所需运行时文件传输到目标节点。
+7. 在目标节点按对应数据项的 `restore` 定义恢复数据，并使用同一份服务 bundle 启动服务。
+8. 刷新目标节点的 Caddy 映射并 reload，同时移除源节点的旧映射并 reload；然后执行 DNS 更新。
+9. 完成上述执行步骤后，`controller` 尝试修改 `composia-meta.yaml` 中该服务的 `node`，生成 commit；若配置了远程仓库则继续 push 到跟踪分支。
+10. 用户人工验证业务可用性并完成 repo 对账；如果第 9 步之前失败，则 Git desired state 保持源节点且任务标记为 `failed`；如果运行态已切换但 repo 写回 / push / 人工对账尚未完成，则任务继续保持 `running`，并提示“运行态已迁移但 repo 仍需人工对账”。
 
 ---
 
@@ -510,7 +578,7 @@ backup:
 任务实例：
 
 - 每次触发都创建新的 `task_id`。
-- 重试不会复用旧任务；重试会创建新的任务实例。
+- 不提供传统意义上的 `RetryTask`；如需再次执行，统一创建新的任务实例。
 - 任务列表默认按时间倒序展示。
 
 支持的任务类型：
@@ -529,8 +597,8 @@ backup:
 
 - `deploy`：按当前 repo 内容渲染并执行 `docker compose up -d`。
 - `update`：先执行 `docker compose pull`，再继续 `deploy` 流程。
-- `backup`：默认执行该服务全部启用的 backup jobs；也支持通过 `job_names` 指定单个或多个 job。
-- `migrate`：是单个任务，内部按步骤推进，而不是拆成多个独立任务；任务参数必须记录 `source_node_id` 和 `target_node_id`，成功后由 `controller` 在 `persist_repo` 阶段把新的 `node` 写回 repo 并生成 Git commit；若配置了远程仓库则继续 push。
+- `backup`：默认执行该服务全部启用的 `backup.data[]`；也支持通过 `data_names` 指定单个或多个数据项。
+- `migrate`：是单个任务，内部按步骤推进，而不是拆成多个独立任务；任务参数必须记录 `source_node_id` 和 `target_node_id`，运行态切换完成后由 `controller` 在 `persist_repo` 阶段尝试把新的 `node` 写回 repo 并生成 Git commit；若配置了远程仓库则继续 push；在人工验证和 repo 对账完成前，任务仍可保持 `running`。
 - `dns_update`：按服务当前声明刷新 DNS 记录。
 - `caddy_reload`：对指定节点执行一次 Caddy reload。
 - `prune`：对指定节点执行容器 / 镜像 / volume 清理；具体清理范围由参数控制。
@@ -549,6 +617,7 @@ backup:
 - `pending` 表示任务已入队，尚未开始执行。
 - `running` 表示任务已开始执行。
 - `succeeded` / `failed` / `cancelled` 为终态。
+- 对 `migrate` 而言，`running` 也覆盖“自动执行步骤已完成，但仍在等待人工验证或 repo 对账”的阶段。
 - `v1` 不支持手动取消接口，因此 `cancelled` 主要用于定时任务因冲突被跳过等场景。
 
 任务来源：
@@ -598,11 +667,11 @@ backup:
 失败与重试：
 
 - `v1` 不做自动重试。
-- 失败后仅支持手动重试。
-- 手动重试会创建新的任务实例。
-- `RetryTask` 固定基于当前最新 `HEAD` 创建新任务，而不是复用原任务的 `repo_revision`。
+- 失败后仅支持手动 `RunAgain`。
+- `RunAgain` 会创建新的任务实例，而不是复用原 `task_id`。
+- `RunAgain` 固定基于当前最新 `HEAD` 和当前有效配置重新创建任务，不复用原任务的 `repo_revision`。
 - `migrate` 任务只要任一步骤失败，整个任务结果即为 `failed`。
-- `backup` 指定了不存在的 `job_names` 时，任务直接 `failed`。
+- `backup` 指定了不存在的 `data_names` 时，任务直接 `failed`。
 - `migrate` 失败后不做自动回滚、自动清理或自动恢复源节点；`v1` 默认由用户根据任务日志和备份产物人工处理。
 
 超时与恢复：
@@ -723,7 +792,7 @@ backup:
 - `status` 在 `v1` 固定为：`pending`、`running`、`succeeded`、`failed`、`cancelled`。
 - `source` 在 `v1` 先支持：`web`、`cli`、`schedule`、`system`。
 - `triggered_by` 只记录来源名。
-- `params_json` 用于保存调用参数快照，例如 `backup.job_names`。
+- `params_json` 用于保存调用参数快照，例如 `backup.data_names`。
 - `log_path` 记录该任务在 `controller.log_dir` 下对应的日志文件路径。
 - `repo_revision` 表示任务创建时绑定的输入 Git revision。
 - `result_revision` 用于记录任务过程中写 repo 后产生的新 revision，例如迁移成功后写回新的 `node`。
@@ -754,14 +823,14 @@ backup:
 
 `backups`
 
-用途：保存每个 backup job 的结果产物记录，而不是只依附在任务日志里。
+用途：保存每个备份数据项的结果产物记录，而不是只依附在任务日志里。
 
 建议字段：
 
 - `backup_id` TEXT PRIMARY KEY
 - `task_id` TEXT NOT NULL
 - `service_name` TEXT NOT NULL
-- `job_name` TEXT NOT NULL
+- `data_name` TEXT NOT NULL
 - `status` TEXT NOT NULL
 - `started_at` TEXT NOT NULL
 - `finished_at` TEXT
@@ -775,9 +844,9 @@ backup:
 
 说明：
 
-- 一个 `backup` 任务可以生成多条 `backups` 记录，每个 job 一条。
+- 一个 `backup` 任务可以生成多条 `backups` 记录，每个数据项一条。
 - `status` 与 `tasks.status` 使用同一套枚举。
-- 无论成功还是失败，backup job 都应落一条记录。
+- 无论成功还是失败，每个备份数据项都应落一条记录。
 - `artifact_ref` 用于保存 provider 返回的产物引用，例如 rustic snapshot ID。
 
 #### 刷新时机
@@ -786,7 +855,7 @@ backup:
 - `services`：Git 解析完成后刷新服务存在性；任务结束后刷新 `runtime_status`、`last_task_id`、`updated_at`。
 - `tasks`：任务创建、开始、结束时更新。
 - `task_steps`：步骤开始和结束时更新。
-- `backups`：backup job 结束时写入或更新。
+- `backups`：备份数据项结束时写入或更新。
 
 #### 最小 DDL 草案
 
@@ -847,7 +916,7 @@ CREATE TABLE backups (
   backup_id TEXT PRIMARY KEY,
   task_id TEXT NOT NULL,
   service_name TEXT NOT NULL,
-  job_name TEXT NOT NULL,
+  data_name TEXT NOT NULL,
   status TEXT NOT NULL,
   started_at TEXT NOT NULL,
   finished_at TEXT,
@@ -951,8 +1020,8 @@ ON backups(status, finished_at DESC);
 - 长时操作不走同步阻塞 RPC，而是创建任务后返回 `task_id`。
 - agent 只主动连接 `controller`；`controller` 不主动反向连 agent。
 - 鉴权统一使用 `Authorization: Bearer <token>`。
-- 所有会改变 desired state 的写操作都必须最终落成 Git commit；有远程仓库时还必须 push 成功后才算完成。
-- 没有远程仓库时，写操作以本地 commit 成功为完成条件；有远程仓库时，写操作以 `commit + push` 成功为完成条件。
+- 所有会改变 desired state 的写操作都必须最终落成 Git commit。
+- 没有远程仓库时，写操作以本地 commit 成功为完成条件；有远程仓库时，写操作在本地 commit 成功后即可返回新的 revision，同时返回 push 结果和当前 repo sync 状态；若 push 失败，不回滚本地 `HEAD`。
 - 所有创建执行类任务的接口都必须返回该任务绑定的 `repo_revision`。
 
 建议的 proto 包：
@@ -996,9 +1065,9 @@ ON backups(status, finished_at DESC);
 
 - 不同步执行长任务。
 - 成功时返回：`task_id`、初始 `status`、基础任务摘要、`repo_revision`。
-- `BackupService` 支持可选 `job_names` 列表；为空时表示执行全部启用 jobs。
+- `BackupService` 支持可选 `data_names` 列表；为空时表示执行全部启用的 `backup.data[]`。
 - `UpdateServiceDNS` 基于服务当前声明创建一个 `dns_update` 任务。
-- `MigrateService` 接收目标 `node_id`，内部创建单个迁移任务；任务执行成功后才会写 repo 并生成新的 `result_revision`。
+- `MigrateService` 接收目标 `node_id`，内部创建单个迁移任务；任务在自动步骤完成后仍可因等待人工验证或 repo 对账而保持 `running`；`result_revision` 仅在成功写回 repo 后产生。
 
 ##### `TaskService`
 
@@ -1008,7 +1077,7 @@ ON backups(status, finished_at DESC);
 
 - `ListTasks`
 - `GetTask`
-- `RetryTask`
+- `RunTaskAgain`
 - `TailTaskLogs`
 
 方法语义：
@@ -1016,7 +1085,8 @@ ON backups(status, finished_at DESC);
 - `ListTasks` 使用 cursor 分页。
 - 核心过滤字段：`status`、`service_name`。
 - `GetTask` 默认返回步骤摘要，不再额外强制拆一个 `GetTaskSteps`。
-- `RetryTask` 创建新的任务实例，不复用原 `task_id`；固定绑定调用时的最新 `HEAD` 作为新的 `repo_revision`。
+- `RunTaskAgain` 创建新的任务实例，不复用原 `task_id`；固定绑定调用时的最新 `HEAD` 作为新的 `repo_revision`。
+- `RunTaskAgain` 的语义不是“重试同一次执行”，而是“基于当前系统状态再发起一次同类动作”；若原任务参数在当前配置下已不合法，则直接校验失败。
 - `TailTaskLogs` 为服务端流式 RPC，支持客户端实时 tail 任务日志。
 
 ##### `BackupRecordService`
@@ -1030,7 +1100,7 @@ ON backups(status, finished_at DESC);
 
 说明：
 
-- `ListBackups` 支持按 `service_name`、`status`、时间窗口、`job_name` 过滤。
+- `ListBackups` 支持按 `service_name`、`status`、时间窗口、`data_name` 过滤。
 - 备份状态页默认使用 `ListBackups`，服务详情页仍可使用 `GetServiceBackups`。
 
 ##### `NodeService`
@@ -1071,11 +1141,11 @@ ON backups(status, finished_at DESC);
 
 - `v1` 虽然重点编辑 `docker-compose.yaml`、`.env`、`composia-meta.yaml`、`site_config.caddy`，但 API 层不限制为少数文件；原则上 repo 下文件都可读写。
 - 读写模型采用“按指定路径读取/覆盖写回”，不做 patch-first 变更集模型。
-- `GetRepoHead` 返回当前 branch、HEAD revision、是否配置远程、上次成功 pull 时间和是否处于 clean working tree。
+- `GetRepoHead` 返回当前 branch、HEAD revision、是否配置远程、上次成功 pull 时间、是否处于 clean working tree，以及当前 repo sync 状态。
 - `ValidateRepo` 执行 repo 级配置校验，返回结构化错误列表。
 - `UpdateRepoFile` 请求至少应包含：`path`、`content`、`base_revision`、可选 `commit_message`。
-- `UpdateRepoFile` 的服务端语义固定为：获取 repo lock、若配置远程则先 `fetch + fast-forward`、校验 `base_revision`、写回文件、执行校验、生成 commit、若配置远程则 push 到跟踪分支、返回新的 `commit_id`。
-- `UpdateRepoFile` 在任一步骤失败时都必须回滚临时改动，不得留下 dirty working tree。
+- `UpdateRepoFile` 的服务端语义固定为：获取 repo lock、若配置远程则先 `fetch + fast-forward`、校验 `base_revision`、写回文件、执行校验、生成 commit、若配置远程则 push 到跟踪分支、返回新的 `commit_id`、push 结果和当前 repo sync 状态。
+- `UpdateRepoFile` 在写文件 / 校验 / commit 之前的失败都必须回滚临时改动，不得留下 dirty working tree；若 commit 已成功但 push 失败，则不回滚本地 `HEAD`，repo 进入“远程未同步”状态。
 - `ListRepoCommits` 用于 Web UI 展示最近提交历史。
 - `SyncRepo` 仅在配置远程仓库时可用，语义为 `fetch + fast-forward + re-parse`；如果 repo 当前不 clean，则直接失败。
 
@@ -1093,7 +1163,7 @@ ON backups(status, finished_at DESC);
 - `GetServiceSecretEnv` 返回解密后的 dotenv 文本，仅适用于单用户模式。
 - `UpdateServiceSecretEnv` 请求至少应包含：`service_name`、`content`、`base_revision`、可选 `commit_message`。
 - `UpdateServiceSecretEnv` 的写入事务与 `RepoService.UpdateRepoFile` 一致，但输出文件固定为服务目录下的 `.secret.env.enc`。
-- `UpdateServiceSecretEnv` 成功后返回新的 `commit_id`，并在有远程仓库时返回 push 结果。
+- `UpdateServiceSecretEnv` 成功后返回新的 `commit_id`，并在有远程仓库时返回 push 结果和当前 repo sync 状态。
 
 ##### `SystemService`
 
@@ -1182,8 +1252,8 @@ ON backups(status, finished_at DESC);
 - 列表型查询默认采用 cursor 分页。
 - `ListTasks` 的核心过滤：`status`、`service_name`、可选 `node_id`、`type`。
 - `ListServices` 可按 `runtime_status` 过滤。
-- `GetServiceBackups` 可按 `status` 和时间窗口过滤。
-- `ListBackups` 可按 `service_name`、`status`、`job_name`、时间窗口过滤。
+- `GetServiceBackups` 可按 `status`、`data_name` 和时间窗口过滤。
+- `ListBackups` 可按 `service_name`、`status`、`data_name`、时间窗口过滤。
 
 #### 日志接口
 
@@ -1250,7 +1320,7 @@ Web 在线编辑文件：
 已确认核心：
 
 - `service list/get/deploy/stop/restart/update/backup/migrate/logs`
-- `task list/get/retry/logs`
+- `task list/get/run-again/logs`
 - `backup list/get`
 - `node list/get/tasks/reload-caddy/prune`
 - `repo head/files/get/update/history/sync`
@@ -1261,13 +1331,7 @@ Web 在线编辑文件：
 
 ---
 
-### 13. 其他已确定但细节待细化的
+### 13. 待细化事项
 
-- Git 同步：controller 检测到更新后**自动拉取**
-- Git 写入：Web/API/系统写 repo 时统一执行 `commit`；配置远程仓库时再执行 `push`
-- Git 更新失败：仓库内容非法或渲染失败时，拒绝应用新版本，保留当前运行状态
-- 失败恢复：controller 挂了就接受“手动操作 compose”的现实
-- 任务执行：`controller` 使用持久任务队列，默认全局串行执行
-- Agent 离线：相关任务直接失败，不做离线补偿队列
-- 状态数据库：SQLite 只存结构化状态（节点/服务/任务/备份/心跳等）
-- 任务日志：详细执行日志单独落在 `controller.log_dir` 文件中，SQLite 不承载大段日志内容
+- Caddy 映射方案：仍需明确 controller 如何把服务目录内的 Caddy 片段渲染/映射到节点本地 Caddy 工作目录，包括目标目录结构、文件命名规则、冲突处理，以及“全量重建”还是“增量更新”的策略。
+- 长任务与 repo 并发前进：仍需定义长任务（尤其 `migrate`）执行期间若 repo `HEAD` 已变化，最终 `persist_repo` 应如何处理；至少需要明确是基于任务初始 `repo_revision` 失败退出，还是基于最新 `HEAD` 做冲突检测与人工对账。
