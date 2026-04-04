@@ -581,6 +581,8 @@ migrate:
 - 创建任务成功后应立即返回 `task_id`。
 - `v1` 采用全局串行执行模型：同一时刻只执行一个任务。
 - 如果同一服务已经有 `pending` 或 `running` 任务，新任务直接拒绝。
+- 如果同一服务已经有 `pending` 或 `running` 任务，所有触及该服务目录的 repo 写操作也必须直接拒绝；这里的“触及”包括该服务目录下的声明文件、compose 文件、普通配置文件和 secrets 文件。
+- 这种限制只作用于正式写入 repo 的操作；未提交草稿只能保留在客户端或独立 draft store 中，不能写入 `controller.repo_dir` 形成 dirty working tree。
 - 不做离线补偿队列；目标 `agent` 离线时，任务执行直接失败。
 
 任务实例：
@@ -611,6 +613,7 @@ migrate:
 - `caddy_reload`：对指定节点执行一次 Caddy reload。
 - `prune`：对指定节点执行容器 / 镜像 / volume 清理；具体清理范围由参数控制。
 - 所有任务在创建时都绑定一个确定的 `repo_revision`；agent 只执行该 revision 对应的 bundle，避免执行过程中受到后续 Git 变更影响。
+- `migrate` 在进入 `persist_repo` 前必须重新获取 repo lock 并检查最新 `HEAD`；如果 `HEAD` 仅包含与该服务无关的变更，则允许基于最新 `HEAD` 补写该服务的最终 `node` 并生成新的 commit；如果最新变更触及该服务目录、导致服务声明失效，或触及迁移依赖的相关全局配置，则不得自动写回 repo，而是保留“运行态已迁移但 repo 待人工对账”的状态。
 
 任务状态：
 
@@ -1152,8 +1155,9 @@ ON backups(status, finished_at DESC);
 - `GetRepoHead` 返回当前 branch、HEAD revision、是否配置远程、上次成功 pull 时间、是否处于 clean working tree，以及当前 repo sync 状态。
 - `ValidateRepo` 执行 repo 级配置校验，返回结构化错误列表。
 - `UpdateRepoFile` 请求至少应包含：`path`、`content`、`base_revision`、可选 `commit_message`。
-- `UpdateRepoFile` 的服务端语义固定为：获取 repo lock、若配置远程则先 `fetch + fast-forward`、校验 `base_revision`、写回文件、执行校验、生成 commit、若配置远程则 push 到跟踪分支、返回新的 `commit_id`、push 结果和当前 repo sync 状态。
+- `UpdateRepoFile` 的服务端语义固定为：获取 repo lock、若配置远程则先 `fetch + fast-forward`、校验 `base_revision`、校验目标路径是否命中正在执行中的服务锁、写回文件、执行校验、生成 commit、若配置了远程则继续 push、返回新的 `commit_id`、push 结果和当前 repo sync 状态。
 - `UpdateRepoFile` 在写文件 / 校验 / commit 之前的失败都必须回滚临时改动，不得留下 dirty working tree；若 commit 已成功但 push 失败，则不回滚本地 `HEAD`，repo 进入“远程未同步”状态。
+- 某个服务存在 `pending` 或 `running` 任务时，命中该服务目录的 `UpdateRepoFile` 必须报冲突错误；修改其他服务或无关文件仍然允许，因此 repo `HEAD` 在长任务执行期间仍可能前进。
 - `ListRepoCommits` 用于 Web UI 展示最近提交历史。
 - `SyncRepo` 仅在配置远程仓库时可用，语义为 `fetch + fast-forward + re-parse`；如果 repo 当前不 clean，则直接失败。
 
@@ -1170,7 +1174,7 @@ ON backups(status, finished_at DESC);
 
 - `GetServiceSecretEnv` 返回解密后的 dotenv 文本，仅适用于单用户模式。
 - `UpdateServiceSecretEnv` 请求至少应包含：`service_name`、`content`、`base_revision`、可选 `commit_message`。
-- `UpdateServiceSecretEnv` 的写入事务与 `RepoService.UpdateRepoFile` 一致，但输出文件固定为服务目录下的 `.secret.env.enc`。
+- `UpdateServiceSecretEnv` 的写入事务与 `RepoService.UpdateRepoFile` 一致，但输出文件固定为服务目录下的 `.secret.env.enc`；如果该服务当前已有 `pending` 或 `running` 任务，则必须报服务冲突错误。
 - `UpdateServiceSecretEnv` 成功后返回新的 `commit_id`，并在有远程仓库时返回 push 结果和当前 repo sync 状态。
 
 ##### `SystemService`
@@ -1339,6 +1343,14 @@ Web 在线编辑文件：
 
 ---
 
-### 13. 待细化事项
+### 13. 长任务与 Repo 并发规则（v1 补充）
 
-- 长任务与 repo 并发前进：仍需定义长任务（尤其 `migrate`）执行期间若 repo `HEAD` 已变化，最终 `persist_repo` 应如何处理；至少需要明确是基于任务初始 `repo_revision` 失败退出，还是基于最新 `HEAD` 做冲突检测与人工对账。
+- 服务级冲突判定优先于 repo 写入：某服务存在 `pending` 或 `running` 任务时，不允许再创建该服务的新任务，也不允许把任何触及该服务目录的修改写入 repo。
+- Web UI / CLI 可以保留未提交草稿，但草稿只能存在于客户端或独立 draft store 中；`controller.repo_dir` 在空闲状态下必须保持 clean，不能承载“先改文件、稍后再提交”的草稿态。
+- 对其他服务或无关文件的正式修改仍然允许，因此长任务执行期间 repo `HEAD` 仍可能因为跨服务提交、同步远程或其他系统写操作而前进。
+- `v1` 当前主要需要处理该问题的长任务是 `migrate`。`migrate` 的自动执行部分始终绑定任务创建时的 `repo_revision`；agent 只消费该 revision 对应的 bundle，不受后续 Git 提交影响。
+- `migrate` 进入 `persist_repo` 时，`controller` 必须重新获取 repo lock，并比较当前 `HEAD` 与任务初始 `repo_revision`。
+- 如果 `HEAD` 没有变化，直接按正常流程把该服务的最终 `node` 写回 repo、commit，并在配置了远程仓库时继续 push。
+- 如果 `HEAD` 已变化，但变化仅涉及其他服务或无关文件，则允许在最新 `HEAD` 上补写该服务最终状态，再生成新的 commit。
+- 如果最新变更触及该服务目录、使该服务声明不再有效，或触及迁移所依赖的相关全局配置，则视为冲突；`controller` 不得自动覆盖这些变更，也不得回退 repo。
+- 发生上述冲突时，运行态迁移结果保持不变，但 repo 写回动作停止；任务继续保持 `running`，并向用户明确暴露“运行态已迁移，但 repo 仍需人工对账”。
