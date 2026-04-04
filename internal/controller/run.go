@@ -109,6 +109,12 @@ func Run(ctx context.Context, configPath string) error {
 	)
 	mux.Handle(agentPath, agentHandler)
 
+	agentTaskPath, agentTaskHandler := agentv1connect.NewAgentTaskServiceHandler(
+		&agentTaskServer{db: db},
+		connect.WithInterceptors(agentInterceptor),
+	)
+	mux.Handle(agentTaskPath, agentTaskHandler)
+
 	systemPath, systemHandler := controllerv1connect.NewSystemServiceHandler(
 		&systemServer{db: db, cfg: cfg},
 		connect.WithInterceptors(cliInterceptor),
@@ -140,9 +146,6 @@ func Run(ctx context.Context, configPath string) error {
 	}
 
 	go sweepOfflineNodes(ctx, db)
-	startTaskWorker(ctx, db, func(workerCtx context.Context, record task.Record) error {
-		return executeTask(workerCtx, db, record)
-	})
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -179,6 +182,10 @@ type agentReportServer struct {
 	db *store.DB
 }
 
+type agentTaskServer struct {
+	db *store.DB
+}
+
 func (server *agentReportServer) Heartbeat(ctx context.Context, req *connect.Request[agentv1.HeartbeatRequest]) (*connect.Response[agentv1.HeartbeatResponse], error) {
 	if req.Msg.GetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
@@ -210,6 +217,122 @@ func (server *agentReportServer) Heartbeat(ctx context.Context, req *connect.Req
 	}
 
 	return connect.NewResponse(&agentv1.HeartbeatResponse{ReceivedAt: timestamppb.Now()}), nil
+}
+
+func (server *agentReportServer) ReportTaskState(ctx context.Context, req *connect.Request[agentv1.ReportTaskStateRequest]) (*connect.Response[agentv1.ReportTaskStateResponse], error) {
+	if req.Msg.GetTaskId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
+	}
+	if req.Msg.GetStatus() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("status is required"))
+	}
+	if err := server.ensureTaskNodeMatch(ctx, req.Msg.GetTaskId()); err != nil {
+		return nil, err
+	}
+
+	finishedAt := time.Now().UTC()
+	if req.Msg.GetFinishedAt() != nil {
+		finishedAt = req.Msg.GetFinishedAt().AsTime().UTC()
+	}
+	if err := server.db.CompleteTask(ctx, req.Msg.GetTaskId(), task.Status(req.Msg.GetStatus()), finishedAt, req.Msg.GetErrorSummary()); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&agentv1.ReportTaskStateResponse{}), nil
+}
+
+func (server *agentReportServer) ReportTaskStepState(ctx context.Context, req *connect.Request[agentv1.ReportTaskStepStateRequest]) (*connect.Response[agentv1.ReportTaskStepStateResponse], error) {
+	if req.Msg.GetTaskId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
+	}
+	if req.Msg.GetStepName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("step_name is required"))
+	}
+	if req.Msg.GetStatus() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("status is required"))
+	}
+	if err := server.ensureTaskNodeMatch(ctx, req.Msg.GetTaskId()); err != nil {
+		return nil, err
+	}
+
+	step := task.StepRecord{
+		TaskID:     req.Msg.GetTaskId(),
+		StepName:   task.StepName(req.Msg.GetStepName()),
+		Status:     task.Status(req.Msg.GetStatus()),
+		StartedAt:  protoTime(req.Msg.GetStartedAt()),
+		FinishedAt: protoTime(req.Msg.GetFinishedAt()),
+	}
+	if err := server.db.UpsertTaskStep(ctx, step); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&agentv1.ReportTaskStepStateResponse{}), nil
+}
+
+func (server *agentReportServer) UploadTaskLogs(ctx context.Context, req *connect.Request[agentv1.UploadTaskLogsRequest]) (*connect.Response[agentv1.UploadTaskLogsResponse], error) {
+	if req.Msg.GetTaskId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
+	}
+	if err := server.ensureTaskNodeMatch(ctx, req.Msg.GetTaskId()); err != nil {
+		return nil, err
+	}
+	detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
+	if err != nil {
+		if errors.Is(err, store.ErrTaskNotFound) {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if err := appendTaskLogRaw(detail.Record.LogPath, req.Msg.GetContent()); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&agentv1.UploadTaskLogsResponse{}), nil
+}
+
+func (server *agentReportServer) ensureTaskNodeMatch(ctx context.Context, taskID string) error {
+	authenticatedNodeID, ok := rpcutil.BearerSubject(ctx)
+	if !ok {
+		return connect.NewError(connect.CodeUnauthenticated, errors.New("missing authenticated node"))
+	}
+	taskNodeID, err := server.db.TaskNodeID(ctx, taskID)
+	if err != nil {
+		if errors.Is(err, store.ErrTaskNotFound) {
+			return connect.NewError(connect.CodeNotFound, err)
+		}
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	if taskNodeID != authenticatedNodeID {
+		return connect.NewError(connect.CodePermissionDenied, errors.New("task does not belong to authenticated node"))
+	}
+	return nil
+}
+
+func (server *agentTaskServer) PullNextTask(ctx context.Context, req *connect.Request[agentv1.PullNextTaskRequest]) (*connect.Response[agentv1.PullNextTaskResponse], error) {
+	if req.Msg.GetNodeId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
+	}
+	authenticatedNodeID, ok := rpcutil.BearerSubject(ctx)
+	if !ok || authenticatedNodeID != req.Msg.GetNodeId() {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("node_id does not match bearer token"))
+	}
+
+	record, err := server.db.ClaimNextPendingTaskForNode(ctx, req.Msg.GetNodeId(), time.Now().UTC())
+	if err != nil {
+		if errors.Is(err, store.ErrNoPendingTask) {
+			return connect.NewResponse(&agentv1.PullNextTaskResponse{HasTask: false}), nil
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	response := &agentv1.PullNextTaskResponse{
+		HasTask: true,
+		Task: &agentv1.AgentTask{
+			TaskId:       record.TaskID,
+			Type:         string(record.Type),
+			ServiceName:  record.ServiceName,
+			NodeId:       record.NodeID,
+			RepoRevision: record.RepoRevision,
+		},
+	}
+	return connect.NewResponse(response), nil
 }
 
 type systemServer struct {
@@ -433,4 +556,12 @@ func formatNullableTime(value *time.Time) string {
 		return ""
 	}
 	return value.UTC().Format(time.RFC3339)
+}
+
+func protoTime(value *timestamppb.Timestamp) *time.Time {
+	if value == nil {
+		return nil
+	}
+	parsed := value.AsTime().UTC()
+	return &parsed
 }

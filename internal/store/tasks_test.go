@@ -40,6 +40,38 @@ func TestClaimNextPendingTaskReturnsOldestPendingTask(t *testing.T) {
 	}
 }
 
+func TestClaimNextPendingTaskForNodeHonorsNodeAndGlobalRunningTask(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main", "node-2"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	createdAt := time.Date(2026, 4, 4, 10, 0, 0, 0, time.UTC)
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-main", Type: task.TypeDeploy, Source: task.SourceCLI, NodeID: "main", CreatedAt: createdAt}); err != nil {
+		t.Fatalf("create main task: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-node-2", Type: task.TypeDeploy, Source: task.SourceCLI, NodeID: "node-2", CreatedAt: createdAt.Add(1 * time.Minute)}); err != nil {
+		t.Fatalf("create node-2 task: %v", err)
+	}
+
+	claimed, err := db.ClaimNextPendingTaskForNode(ctx, "main", createdAt.Add(2*time.Minute))
+	if err != nil {
+		t.Fatalf("claim main task: %v", err)
+	}
+	if claimed.TaskID != "task-main" {
+		t.Fatalf("expected task-main, got %q", claimed.TaskID)
+	}
+
+	_, err = db.ClaimNextPendingTaskForNode(ctx, "node-2", createdAt.Add(3*time.Minute))
+	if !errors.Is(err, ErrNoPendingTask) {
+		t.Fatalf("expected ErrNoPendingTask while another task is running, got %v", err)
+	}
+}
+
 func TestClaimNextPendingTaskReturnsErrNoPendingTask(t *testing.T) {
 	t.Parallel()
 

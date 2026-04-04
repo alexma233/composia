@@ -8,6 +8,13 @@ option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia
 
 service AgentReportService {
   rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  rpc ReportTaskState(ReportTaskStateRequest) returns (ReportTaskStateResponse);
+  rpc ReportTaskStepState(ReportTaskStepStateRequest) returns (ReportTaskStepStateResponse);
+  rpc UploadTaskLogs(UploadTaskLogsRequest) returns (UploadTaskLogsResponse);
+}
+
+service AgentTaskService {
+  rpc PullNextTask(PullNextTaskRequest) returns (PullNextTaskResponse);
 }
 
 message HeartbeatRequest {
@@ -26,3 +33,46 @@ message NodeRuntimeSummary {
 message HeartbeatResponse {
   google.protobuf.Timestamp received_at = 1;
 }
+
+message PullNextTaskRequest {
+  string node_id = 1;
+}
+
+message AgentTask {
+  string task_id = 1;
+  string type = 2;
+  string service_name = 3;
+  string node_id = 4;
+  string repo_revision = 5;
+}
+
+message PullNextTaskResponse {
+  bool has_task = 1;
+  AgentTask task = 2;
+}
+
+message ReportTaskStateRequest {
+  string task_id = 1;
+  string status = 2;
+  string error_summary = 3;
+  google.protobuf.Timestamp finished_at = 4;
+}
+
+message ReportTaskStateResponse {}
+
+message ReportTaskStepStateRequest {
+  string task_id = 1;
+  string step_name = 2;
+  string status = 3;
+  google.protobuf.Timestamp started_at = 4;
+  google.protobuf.Timestamp finished_at = 5;
+}
+
+message ReportTaskStepStateResponse {}
+
+message UploadTaskLogsRequest {
+  string task_id = 1;
+  string content = 2;
+}
+
+message UploadTaskLogsResponse {}

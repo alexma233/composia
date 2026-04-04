@@ -133,6 +133,13 @@ func appendTaskLog(logPath, message string) error {
 	if logPath == "" {
 		return nil
 	}
+	return appendTaskLogRaw(logPath, fmt.Sprintf("%s %s\n", time.Now().UTC().Format(time.RFC3339), message))
+}
+
+func appendTaskLogRaw(logPath, content string) error {
+	if logPath == "" || content == "" {
+		return nil
+	}
 	if err := os.MkdirAll(filepath.Dir(logPath), 0o755); err != nil {
 		return fmt.Errorf("create task log directory: %w", err)
 	}
@@ -142,7 +149,7 @@ func appendTaskLog(logPath, message string) error {
 	}
 	defer file.Close()
 
-	if _, err := file.WriteString(fmt.Sprintf("%s %s\n", time.Now().UTC().Format(time.RFC3339), message)); err != nil {
+	if _, err := file.WriteString(content); err != nil {
 		return fmt.Errorf("write task log %q: %w", logPath, err)
 	}
 	return nil
