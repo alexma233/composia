@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package composia.controller.v1;
+
+option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
+
+service NodeService {
+  rpc ListNodes(ListNodesRequest) returns (ListNodesResponse);
+}
+
+message ListNodesRequest {}
+
+message NodeSummary {
+  string node_id = 1;
+  string display_name = 2;
+  bool enabled = 3;
+  bool is_online = 4;
+  string last_heartbeat = 5;
+}
+
+message ListNodesResponse {
+  repeated NodeSummary nodes = 1;
+}

@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package composia.controller.v1;
+
+option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
+
+service ServiceService {
+  rpc ListServices(ListServicesRequest) returns (ListServicesResponse);
+}
+
+message ListServicesRequest {
+  string runtime_status = 1;
+  uint32 page_size = 2;
+  string cursor = 3;
+}
+
+message ServiceSummary {
+  string name = 1;
+  bool is_declared = 2;
+  string runtime_status = 3;
+  string updated_at = 4;
+}
+
+message ListServicesResponse {
+  repeated ServiceSummary services = 1;
+  string next_cursor = 2;
+}

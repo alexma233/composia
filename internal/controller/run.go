@@ -18,6 +18,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/store"
+	"forgejo.alexma.top/alexma233/composia/internal/task"
 	"forgejo.alexma.top/alexma233/composia/internal/version"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -39,10 +40,8 @@ func Run(ctx context.Context, configPath string) error {
 	if err := os.MkdirAll(cfg.LogDir, 0o755); err != nil {
 		return fmt.Errorf("create controller log_dir %q: %w", cfg.LogDir, err)
 	}
-	if stat, err := os.Stat(cfg.RepoDir); err != nil {
-		return fmt.Errorf("check controller repo_dir %q: %w", cfg.RepoDir, err)
-	} else if !stat.IsDir() {
-		return fmt.Errorf("controller repo_dir %q must be a directory", cfg.RepoDir)
+	if err := repo.ValidateWorkingTree(cfg.RepoDir); err != nil {
+		return err
 	}
 
 	db, err := store.Open(cfg.StateDir)
@@ -61,6 +60,9 @@ func Run(ctx context.Context, configPath string) error {
 		return err
 	}
 	if err := db.MarkOfflineNodesBefore(ctx, time.Now().Add(-heartbeatOfflineAfter)); err != nil {
+		return err
+	}
+	if _, err := db.RecoverRunningTasks(ctx, time.Now().UTC()); err != nil {
 		return err
 	}
 
@@ -108,6 +110,24 @@ func Run(ctx context.Context, configPath string) error {
 	)
 	mux.Handle(systemPath, systemHandler)
 
+	servicePath, serviceHandler := controllerv1connect.NewServiceServiceHandler(
+		&serviceServer{db: db},
+		connect.WithInterceptors(cliInterceptor),
+	)
+	mux.Handle(servicePath, serviceHandler)
+
+	nodePath, nodeHandler := controllerv1connect.NewNodeServiceHandler(
+		&nodeServer{db: db, cfg: cfg},
+		connect.WithInterceptors(cliInterceptor),
+	)
+	mux.Handle(nodePath, nodeHandler)
+
+	taskPath, taskHandler := controllerv1connect.NewTaskServiceHandler(
+		&taskServer{db: db},
+		connect.WithInterceptors(cliInterceptor),
+	)
+	mux.Handle(taskPath, taskHandler)
+
 	server := &http.Server{
 		Addr:              cfg.ListenAddr,
 		Handler:           mux,
@@ -115,6 +135,9 @@ func Run(ctx context.Context, configPath string) error {
 	}
 
 	go sweepOfflineNodes(ctx, db)
+	startTaskWorker(ctx, db, func(context.Context, task.Record) error {
+		return errors.New("task execution is not implemented yet")
+	})
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -189,6 +212,19 @@ type systemServer struct {
 	cfg *config.ControllerConfig
 }
 
+type serviceServer struct {
+	db *store.DB
+}
+
+type nodeServer struct {
+	db  *store.DB
+	cfg *config.ControllerConfig
+}
+
+type taskServer struct {
+	db *store.DB
+}
+
 func (server *systemServer) GetSystemStatus(ctx context.Context, _ *connect.Request[controllerv1.GetSystemStatusRequest]) (*connect.Response[controllerv1.GetSystemStatusResponse], error) {
 	configured, online, err := server.db.NodeCounts(ctx)
 	if err != nil {
@@ -205,5 +241,92 @@ func (server *systemServer) GetSystemStatus(ctx context.Context, _ *connect.Requ
 		StateDir:            server.cfg.StateDir,
 		LogDir:              server.cfg.LogDir,
 	}
+	return connect.NewResponse(response), nil
+}
+
+func (server *serviceServer) ListServices(ctx context.Context, req *connect.Request[controllerv1.ListServicesRequest]) (*connect.Response[controllerv1.ListServicesResponse], error) {
+	if req.Msg == nil {
+		req.Msg = &controllerv1.ListServicesRequest{}
+	}
+
+	services, nextCursor, err := server.db.ListDeclaredServices(ctx, req.Msg.GetRuntimeStatus(), req.Msg.GetCursor(), req.Msg.GetPageSize())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	response := &controllerv1.ListServicesResponse{
+		Services:   make([]*controllerv1.ServiceSummary, 0, len(services)),
+		NextCursor: nextCursor,
+	}
+	for _, service := range services {
+		response.Services = append(response.Services, &controllerv1.ServiceSummary{
+			Name:          service.Name,
+			IsDeclared:    service.IsDeclared,
+			RuntimeStatus: service.RuntimeStatus,
+			UpdatedAt:     service.UpdatedAt,
+		})
+	}
+
+	return connect.NewResponse(response), nil
+}
+
+func (server *nodeServer) ListNodes(ctx context.Context, _ *connect.Request[controllerv1.ListNodesRequest]) (*connect.Response[controllerv1.ListNodesResponse], error) {
+	snapshots, err := server.db.ListNodeSnapshots(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	snapshotByNodeID := make(map[string]store.NodeSnapshot, len(snapshots))
+	for _, snapshot := range snapshots {
+		snapshotByNodeID[snapshot.NodeID] = snapshot
+	}
+
+	response := &controllerv1.ListNodesResponse{
+		Nodes: make([]*controllerv1.NodeSummary, 0, len(server.cfg.Nodes)),
+	}
+	for _, node := range server.cfg.Nodes {
+		snapshot := snapshotByNodeID[node.ID]
+		displayName := node.DisplayName
+		if displayName == "" {
+			displayName = node.ID
+		}
+
+		response.Nodes = append(response.Nodes, &controllerv1.NodeSummary{
+			NodeId:        node.ID,
+			DisplayName:   displayName,
+			Enabled:       node.Enabled == nil || *node.Enabled,
+			IsOnline:      snapshot.IsOnline,
+			LastHeartbeat: snapshot.LastHeartbeat,
+		})
+	}
+
+	return connect.NewResponse(response), nil
+}
+
+func (server *taskServer) ListTasks(ctx context.Context, req *connect.Request[controllerv1.ListTasksRequest]) (*connect.Response[controllerv1.ListTasksResponse], error) {
+	if req.Msg == nil {
+		req.Msg = &controllerv1.ListTasksRequest{}
+	}
+
+	tasks, nextCursor, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), req.Msg.GetServiceName(), req.Msg.GetCursor(), req.Msg.GetPageSize())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	response := &controllerv1.ListTasksResponse{
+		Tasks:      make([]*controllerv1.TaskSummary, 0, len(tasks)),
+		NextCursor: nextCursor,
+	}
+	for _, record := range tasks {
+		response.Tasks = append(response.Tasks, &controllerv1.TaskSummary{
+			TaskId:      record.TaskID,
+			Type:        record.Type,
+			Status:      record.Status,
+			ServiceName: record.ServiceName,
+			NodeId:      record.NodeID,
+			CreatedAt:   record.CreatedAt,
+		})
+	}
+
 	return connect.NewResponse(response), nil
 }

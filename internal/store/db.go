@@ -26,6 +26,20 @@ type NodeHeartbeat struct {
 	DiskFreeBytes       uint64
 }
 
+type ServiceSummary struct {
+	Name          string
+	IsDeclared    bool
+	RuntimeStatus string
+	UpdatedAt     string
+}
+
+type NodeSnapshot struct {
+	NodeID        string
+	IsConfigured  bool
+	IsOnline      bool
+	LastHeartbeat string
+}
+
 func Open(stateDir string) (*DB, error) {
 	databasePath := filepath.Join(stateDir, DatabaseFileName)
 	sqlDB, err := sql.Open("sqlite", databasePath)
@@ -47,6 +61,10 @@ func (db *DB) Close() error {
 
 func (db *DB) Path() string {
 	return db.path
+}
+
+func (db *DB) SQL() *sql.DB {
+	return db.sql
 }
 
 func (db *DB) SyncConfiguredNodes(ctx context.Context, nodeIDs []string) error {
@@ -162,6 +180,82 @@ func (db *DB) SyncDeclaredServices(ctx context.Context, serviceNames []string) e
 		return fmt.Errorf("commit service sync transaction: %w", err)
 	}
 	return nil
+}
+
+func (db *DB) ListDeclaredServices(ctx context.Context, runtimeStatusFilter, cursor string, limit uint32) ([]ServiceSummary, string, error) {
+	if limit == 0 {
+		limit = 100
+	}
+
+	query := `
+		SELECT service_name, is_declared, runtime_status, updated_at
+		FROM services
+		WHERE is_declared = 1
+	`
+	args := make([]any, 0, 3)
+
+	if runtimeStatusFilter != "" {
+		query += ` AND runtime_status = ?`
+		args = append(args, runtimeStatusFilter)
+	}
+	if cursor != "" {
+		query += ` AND service_name > ?`
+		args = append(args, cursor)
+	}
+
+	query += ` ORDER BY service_name ASC LIMIT ?`
+	args = append(args, limit+1)
+
+	rows, err := db.sql.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, "", fmt.Errorf("list declared services: %w", err)
+	}
+	defer rows.Close()
+
+	services := make([]ServiceSummary, 0, limit)
+	var nextCursor string
+	for rows.Next() {
+		var service ServiceSummary
+		if err := rows.Scan(&service.Name, &service.IsDeclared, &service.RuntimeStatus, &service.UpdatedAt); err != nil {
+			return nil, "", fmt.Errorf("scan declared service: %w", err)
+		}
+		services = append(services, service)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, "", fmt.Errorf("iterate declared services: %w", err)
+	}
+
+	if uint32(len(services)) > limit {
+		nextCursor = services[limit-1].Name
+		services = services[:limit]
+	}
+
+	return services, nextCursor, nil
+}
+
+func (db *DB) ListNodeSnapshots(ctx context.Context) ([]NodeSnapshot, error) {
+	rows, err := db.sql.QueryContext(ctx, `
+		SELECT node_id, is_configured, is_online, COALESCE(last_heartbeat, '')
+		FROM nodes
+		ORDER BY node_id ASC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("list node snapshots: %w", err)
+	}
+	defer rows.Close()
+
+	nodes := make([]NodeSnapshot, 0)
+	for rows.Next() {
+		var node NodeSnapshot
+		if err := rows.Scan(&node.NodeID, &node.IsConfigured, &node.IsOnline, &node.LastHeartbeat); err != nil {
+			return nil, fmt.Errorf("scan node snapshot: %w", err)
+		}
+		nodes = append(nodes, node)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate node snapshots: %w", err)
+	}
+	return nodes, nil
 }
 
 func (db *DB) migrate(ctx context.Context) error {

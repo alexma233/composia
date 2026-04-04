@@ -39,6 +39,7 @@ bun run dev:web
 Run the backend in controller mode:
 
 ```bash
+mkdir -p ./repo-controller && git -C ./repo-controller init
 go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml
 ```
 
@@ -58,6 +59,12 @@ Generate protobuf and Connect stubs:
 
 ```bash
 buf generate
+```
+
+The example controller config also includes a development CLI token:
+
+```text
+dev-admin-token
 ```
 
 ## Repository Layout
