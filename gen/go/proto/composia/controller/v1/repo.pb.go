@@ -549,6 +549,146 @@ func (x *ListRepoCommitsResponse) GetNextCursor() string {
 	return ""
 }
 
+type RepoValidationError struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Line          uint32                 `protobuf:"varint,2,opt,name=line,proto3" json:"line,omitempty"`
+	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RepoValidationError) Reset() {
+	*x = RepoValidationError{}
+	mi := &file_proto_composia_controller_v1_repo_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RepoValidationError) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RepoValidationError) ProtoMessage() {}
+
+func (x *RepoValidationError) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_repo_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RepoValidationError.ProtoReflect.Descriptor instead.
+func (*RepoValidationError) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_repo_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *RepoValidationError) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *RepoValidationError) GetLine() uint32 {
+	if x != nil {
+		return x.Line
+	}
+	return 0
+}
+
+func (x *RepoValidationError) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type ValidateRepoRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ValidateRepoRequest) Reset() {
+	*x = ValidateRepoRequest{}
+	mi := &file_proto_composia_controller_v1_repo_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ValidateRepoRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ValidateRepoRequest) ProtoMessage() {}
+
+func (x *ValidateRepoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_repo_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ValidateRepoRequest.ProtoReflect.Descriptor instead.
+func (*ValidateRepoRequest) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_repo_proto_rawDescGZIP(), []int{11}
+}
+
+type ValidateRepoResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Errors        []*RepoValidationError `protobuf:"bytes,1,rep,name=errors,proto3" json:"errors,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ValidateRepoResponse) Reset() {
+	*x = ValidateRepoResponse{}
+	mi := &file_proto_composia_controller_v1_repo_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ValidateRepoResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ValidateRepoResponse) ProtoMessage() {}
+
+func (x *ValidateRepoResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_repo_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ValidateRepoResponse.ProtoReflect.Descriptor instead.
+func (*ValidateRepoResponse) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_repo_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ValidateRepoResponse) GetErrors() []*RepoValidationError {
+	if x != nil {
+		return x.Errors
+	}
+	return nil
+}
+
 var File_proto_composia_controller_v1_repo_proto protoreflect.FileDescriptor
 
 const file_proto_composia_controller_v1_repo_proto_rawDesc = "" +
@@ -586,12 +726,20 @@ const file_proto_composia_controller_v1_repo_proto_rawDesc = "" +
 	"\x17ListRepoCommitsResponse\x12C\n" +
 	"\acommits\x18\x01 \x03(\v2).composia.controller.v1.RepoCommitSummaryR\acommits\x12\x1f\n" +
 	"\vnext_cursor\x18\x02 \x01(\tR\n" +
-	"nextCursor2\xbf\x03\n" +
+	"nextCursor\"W\n" +
+	"\x13RepoValidationError\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x12\n" +
+	"\x04line\x18\x02 \x01(\rR\x04line\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\"\x15\n" +
+	"\x13ValidateRepoRequest\"[\n" +
+	"\x14ValidateRepoResponse\x12C\n" +
+	"\x06errors\x18\x01 \x03(\v2+.composia.controller.v1.RepoValidationErrorR\x06errors2\xaa\x04\n" +
 	"\vRepoService\x12f\n" +
 	"\vGetRepoHead\x12*.composia.controller.v1.GetRepoHeadRequest\x1a+.composia.controller.v1.GetRepoHeadResponse\x12l\n" +
 	"\rListRepoFiles\x12,.composia.controller.v1.ListRepoFilesRequest\x1a-.composia.controller.v1.ListRepoFilesResponse\x12f\n" +
 	"\vGetRepoFile\x12*.composia.controller.v1.GetRepoFileRequest\x1a+.composia.controller.v1.GetRepoFileResponse\x12r\n" +
-	"\x0fListRepoCommits\x12..composia.controller.v1.ListRepoCommitsRequest\x1a/.composia.controller.v1.ListRepoCommitsResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
+	"\x0fListRepoCommits\x12..composia.controller.v1.ListRepoCommitsRequest\x1a/.composia.controller.v1.ListRepoCommitsResponse\x12i\n" +
+	"\fValidateRepo\x12+.composia.controller.v1.ValidateRepoRequest\x1a,.composia.controller.v1.ValidateRepoResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
 
 var (
 	file_proto_composia_controller_v1_repo_proto_rawDescOnce sync.Once
@@ -605,7 +753,7 @@ func file_proto_composia_controller_v1_repo_proto_rawDescGZIP() []byte {
 	return file_proto_composia_controller_v1_repo_proto_rawDescData
 }
 
-var file_proto_composia_controller_v1_repo_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_proto_composia_controller_v1_repo_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_proto_composia_controller_v1_repo_proto_goTypes = []any{
 	(*GetRepoHeadRequest)(nil),      // 0: composia.controller.v1.GetRepoHeadRequest
 	(*GetRepoHeadResponse)(nil),     // 1: composia.controller.v1.GetRepoHeadResponse
@@ -617,23 +765,29 @@ var file_proto_composia_controller_v1_repo_proto_goTypes = []any{
 	(*RepoCommitSummary)(nil),       // 7: composia.controller.v1.RepoCommitSummary
 	(*ListRepoCommitsRequest)(nil),  // 8: composia.controller.v1.ListRepoCommitsRequest
 	(*ListRepoCommitsResponse)(nil), // 9: composia.controller.v1.ListRepoCommitsResponse
+	(*RepoValidationError)(nil),     // 10: composia.controller.v1.RepoValidationError
+	(*ValidateRepoRequest)(nil),     // 11: composia.controller.v1.ValidateRepoRequest
+	(*ValidateRepoResponse)(nil),    // 12: composia.controller.v1.ValidateRepoResponse
 }
 var file_proto_composia_controller_v1_repo_proto_depIdxs = []int32{
-	2, // 0: composia.controller.v1.ListRepoFilesResponse.entries:type_name -> composia.controller.v1.RepoFileEntry
-	7, // 1: composia.controller.v1.ListRepoCommitsResponse.commits:type_name -> composia.controller.v1.RepoCommitSummary
-	0, // 2: composia.controller.v1.RepoService.GetRepoHead:input_type -> composia.controller.v1.GetRepoHeadRequest
-	3, // 3: composia.controller.v1.RepoService.ListRepoFiles:input_type -> composia.controller.v1.ListRepoFilesRequest
-	5, // 4: composia.controller.v1.RepoService.GetRepoFile:input_type -> composia.controller.v1.GetRepoFileRequest
-	8, // 5: composia.controller.v1.RepoService.ListRepoCommits:input_type -> composia.controller.v1.ListRepoCommitsRequest
-	1, // 6: composia.controller.v1.RepoService.GetRepoHead:output_type -> composia.controller.v1.GetRepoHeadResponse
-	4, // 7: composia.controller.v1.RepoService.ListRepoFiles:output_type -> composia.controller.v1.ListRepoFilesResponse
-	6, // 8: composia.controller.v1.RepoService.GetRepoFile:output_type -> composia.controller.v1.GetRepoFileResponse
-	9, // 9: composia.controller.v1.RepoService.ListRepoCommits:output_type -> composia.controller.v1.ListRepoCommitsResponse
-	6, // [6:10] is the sub-list for method output_type
-	2, // [2:6] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	2,  // 0: composia.controller.v1.ListRepoFilesResponse.entries:type_name -> composia.controller.v1.RepoFileEntry
+	7,  // 1: composia.controller.v1.ListRepoCommitsResponse.commits:type_name -> composia.controller.v1.RepoCommitSummary
+	10, // 2: composia.controller.v1.ValidateRepoResponse.errors:type_name -> composia.controller.v1.RepoValidationError
+	0,  // 3: composia.controller.v1.RepoService.GetRepoHead:input_type -> composia.controller.v1.GetRepoHeadRequest
+	3,  // 4: composia.controller.v1.RepoService.ListRepoFiles:input_type -> composia.controller.v1.ListRepoFilesRequest
+	5,  // 5: composia.controller.v1.RepoService.GetRepoFile:input_type -> composia.controller.v1.GetRepoFileRequest
+	8,  // 6: composia.controller.v1.RepoService.ListRepoCommits:input_type -> composia.controller.v1.ListRepoCommitsRequest
+	11, // 7: composia.controller.v1.RepoService.ValidateRepo:input_type -> composia.controller.v1.ValidateRepoRequest
+	1,  // 8: composia.controller.v1.RepoService.GetRepoHead:output_type -> composia.controller.v1.GetRepoHeadResponse
+	4,  // 9: composia.controller.v1.RepoService.ListRepoFiles:output_type -> composia.controller.v1.ListRepoFilesResponse
+	6,  // 10: composia.controller.v1.RepoService.GetRepoFile:output_type -> composia.controller.v1.GetRepoFileResponse
+	9,  // 11: composia.controller.v1.RepoService.ListRepoCommits:output_type -> composia.controller.v1.ListRepoCommitsResponse
+	12, // 12: composia.controller.v1.RepoService.ValidateRepo:output_type -> composia.controller.v1.ValidateRepoResponse
+	8,  // [8:13] is the sub-list for method output_type
+	3,  // [3:8] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_proto_composia_controller_v1_repo_proto_init() }
@@ -647,7 +801,7 @@ func file_proto_composia_controller_v1_repo_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_controller_v1_repo_proto_rawDesc), len(file_proto_composia_controller_v1_repo_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

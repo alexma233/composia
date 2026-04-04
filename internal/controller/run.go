@@ -1029,6 +1029,23 @@ func (server *repoServer) ListRepoCommits(_ context.Context, req *connect.Reques
 	return connect.NewResponse(response), nil
 }
 
+func (server *repoServer) ValidateRepo(_ context.Context, _ *connect.Request[controllerv1.ValidateRepoRequest]) (*connect.Response[controllerv1.ValidateRepoResponse], error) {
+	availableNodeIDs := make(map[string]struct{}, len(server.cfg.Nodes))
+	for _, node := range server.cfg.Nodes {
+		availableNodeIDs[node.ID] = struct{}{}
+	}
+	validationErrors := repo.ValidateRepo(server.cfg.RepoDir, availableNodeIDs)
+	response := &controllerv1.ValidateRepoResponse{Errors: make([]*controllerv1.RepoValidationError, 0, len(validationErrors))}
+	for _, validationError := range validationErrors {
+		response.Errors = append(response.Errors, &controllerv1.RepoValidationError{
+			Path:    validationError.Path,
+			Line:    validationError.Line,
+			Message: validationError.Message,
+		})
+	}
+	return connect.NewResponse(response), nil
+}
+
 func (server *taskServer) GetTask(ctx context.Context, req *connect.Request[controllerv1.GetTaskRequest]) (*connect.Response[controllerv1.GetTaskResponse], error) {
 	if req.Msg == nil || req.Msg.GetTaskId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))

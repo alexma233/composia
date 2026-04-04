@@ -9,6 +9,7 @@ service RepoService {
   rpc ListRepoFiles(ListRepoFilesRequest) returns (ListRepoFilesResponse);
   rpc GetRepoFile(GetRepoFileRequest) returns (GetRepoFileResponse);
   rpc ListRepoCommits(ListRepoCommitsRequest) returns (ListRepoCommitsResponse);
+  rpc ValidateRepo(ValidateRepoRequest) returns (ValidateRepoResponse);
 }
 
 message GetRepoHeadRequest {}
@@ -59,4 +60,16 @@ message ListRepoCommitsRequest {
 message ListRepoCommitsResponse {
   repeated RepoCommitSummary commits = 1;
   string next_cursor = 2;
+}
+
+message RepoValidationError {
+  string path = 1;
+  uint32 line = 2;
+  string message = 3;
+}
+
+message ValidateRepoRequest {}
+
+message ValidateRepoResponse {
+  repeated RepoValidationError errors = 1;
 }
