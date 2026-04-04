@@ -81,6 +81,57 @@ func TestRunSingleTaskMarksTaskFailedOnExecutorError(t *testing.T) {
 	}
 }
 
+func TestExecuteDeployTaskWritesStepsAndLogs(t *testing.T) {
+	t.Parallel()
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	logPath := filepath.Join(t.TempDir(), "tasks", "deploy.log")
+	if _, err := db.CreateTask(ctx, task.Record{
+		TaskID:       "task-deploy",
+		Type:         task.TypeDeploy,
+		Source:       task.SourceCLI,
+		ServiceName:  "demo",
+		NodeID:       "main",
+		Status:       task.StatusPending,
+		CreatedAt:    time.Date(2026, 4, 4, 15, 0, 0, 0, time.UTC),
+		RepoRevision: "deadbeef",
+		LogPath:      logPath,
+	}); err != nil {
+		t.Fatalf("create deploy task: %v", err)
+	}
+
+	runSingleTask(ctx, db, func(execCtx context.Context, record task.Record) error {
+		return executeTask(execCtx, db, record)
+	})
+
+	detail, err := db.GetTask(ctx, "task-deploy")
+	if err != nil {
+		t.Fatalf("get deploy task: %v", err)
+	}
+	if detail.Record.Status != task.StatusSucceeded {
+		t.Fatalf("expected succeeded deploy task, got %q", detail.Record.Status)
+	}
+	if len(detail.Steps) != 2 {
+		t.Fatalf("expected 2 task steps, got %d", len(detail.Steps))
+	}
+	content, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("read task log: %v", err)
+	}
+	if len(content) == 0 {
+		t.Fatalf("expected task log content")
+	}
+}
+
 func openControllerTestDB(t *testing.T) *store.DB {
 	t.Helper()
 

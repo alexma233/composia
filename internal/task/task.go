@@ -54,3 +54,28 @@ type Record struct {
 	FinishedAt      *time.Time
 	ErrorSummary    string
 }
+
+type StepName string
+
+const (
+	StepRender      StepName = "render"
+	StepPull        StepName = "pull"
+	StepBackup      StepName = "backup"
+	StepComposeDown StepName = "compose_down"
+	StepComposeUp   StepName = "compose_up"
+	StepTransfer    StepName = "transfer"
+	StepRestore     StepName = "restore"
+	StepDNSUpdate   StepName = "dns_update"
+	StepCaddyReload StepName = "caddy_reload"
+	StepPrune       StepName = "prune"
+	StepPersistRepo StepName = "persist_repo"
+	StepFinalize    StepName = "finalize"
+)
+
+type StepRecord struct {
+	TaskID     string
+	StepName   StepName
+	Status     Status
+	StartedAt  *time.Time
+	FinishedAt *time.Time
+}

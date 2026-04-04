@@ -225,6 +225,258 @@ func (x *ListTasksResponse) GetNextCursor() string {
 	return ""
 }
 
+type GetTaskRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTaskRequest) Reset() {
+	*x = GetTaskRequest{}
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTaskRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTaskRequest) ProtoMessage() {}
+
+func (x *GetTaskRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTaskRequest.ProtoReflect.Descriptor instead.
+func (*GetTaskRequest) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetTaskRequest) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+type TaskStepSummary struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StepName      string                 `protobuf:"bytes,1,opt,name=step_name,json=stepName,proto3" json:"step_name,omitempty"`
+	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	StartedAt     string                 `protobuf:"bytes,3,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	FinishedAt    string                 `protobuf:"bytes,4,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskStepSummary) Reset() {
+	*x = TaskStepSummary{}
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskStepSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskStepSummary) ProtoMessage() {}
+
+func (x *TaskStepSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskStepSummary.ProtoReflect.Descriptor instead.
+func (*TaskStepSummary) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *TaskStepSummary) GetStepName() string {
+	if x != nil {
+		return x.StepName
+	}
+	return ""
+}
+
+func (x *TaskStepSummary) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *TaskStepSummary) GetStartedAt() string {
+	if x != nil {
+		return x.StartedAt
+	}
+	return ""
+}
+
+func (x *TaskStepSummary) GetFinishedAt() string {
+	if x != nil {
+		return x.FinishedAt
+	}
+	return ""
+}
+
+type GetTaskResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Type          string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	Source        string                 `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
+	ServiceName   string                 `protobuf:"bytes,4,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	NodeId        string                 `protobuf:"bytes,5,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	Status        string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	StartedAt     string                 `protobuf:"bytes,8,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	FinishedAt    string                 `protobuf:"bytes,9,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	RepoRevision  string                 `protobuf:"bytes,10,opt,name=repo_revision,json=repoRevision,proto3" json:"repo_revision,omitempty"`
+	ErrorSummary  string                 `protobuf:"bytes,11,opt,name=error_summary,json=errorSummary,proto3" json:"error_summary,omitempty"`
+	LogPath       string                 `protobuf:"bytes,12,opt,name=log_path,json=logPath,proto3" json:"log_path,omitempty"`
+	Steps         []*TaskStepSummary     `protobuf:"bytes,13,rep,name=steps,proto3" json:"steps,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTaskResponse) Reset() {
+	*x = GetTaskResponse{}
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTaskResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTaskResponse) ProtoMessage() {}
+
+func (x *GetTaskResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTaskResponse.ProtoReflect.Descriptor instead.
+func (*GetTaskResponse) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetTaskResponse) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *GetTaskResponse) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *GetTaskResponse) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *GetTaskResponse) GetServiceName() string {
+	if x != nil {
+		return x.ServiceName
+	}
+	return ""
+}
+
+func (x *GetTaskResponse) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *GetTaskResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *GetTaskResponse) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *GetTaskResponse) GetStartedAt() string {
+	if x != nil {
+		return x.StartedAt
+	}
+	return ""
+}
+
+func (x *GetTaskResponse) GetFinishedAt() string {
+	if x != nil {
+		return x.FinishedAt
+	}
+	return ""
+}
+
+func (x *GetTaskResponse) GetRepoRevision() string {
+	if x != nil {
+		return x.RepoRevision
+	}
+	return ""
+}
+
+func (x *GetTaskResponse) GetErrorSummary() string {
+	if x != nil {
+		return x.ErrorSummary
+	}
+	return ""
+}
+
+func (x *GetTaskResponse) GetLogPath() string {
+	if x != nil {
+		return x.LogPath
+	}
+	return ""
+}
+
+func (x *GetTaskResponse) GetSteps() []*TaskStepSummary {
+	if x != nil {
+		return x.Steps
+	}
+	return nil
+}
+
 var File_proto_composia_controller_v1_task_proto protoreflect.FileDescriptor
 
 const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
@@ -246,9 +498,37 @@ const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	"\x11ListTasksResponse\x129\n" +
 	"\x05tasks\x18\x01 \x03(\v2#.composia.controller.v1.TaskSummaryR\x05tasks\x12\x1f\n" +
 	"\vnext_cursor\x18\x02 \x01(\tR\n" +
-	"nextCursor2o\n" +
+	"nextCursor\")\n" +
+	"\x0eGetTaskRequest\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\x86\x01\n" +
+	"\x0fTaskStepSummary\x12\x1b\n" +
+	"\tstep_name\x18\x01 \x01(\tR\bstepName\x12\x16\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\x12\x1d\n" +
+	"\n" +
+	"started_at\x18\x03 \x01(\tR\tstartedAt\x12\x1f\n" +
+	"\vfinished_at\x18\x04 \x01(\tR\n" +
+	"finishedAt\"\xad\x03\n" +
+	"\x0fGetTaskResponse\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
+	"\x04type\x18\x02 \x01(\tR\x04type\x12\x16\n" +
+	"\x06source\x18\x03 \x01(\tR\x06source\x12!\n" +
+	"\fservice_name\x18\x04 \x01(\tR\vserviceName\x12\x17\n" +
+	"\anode_id\x18\x05 \x01(\tR\x06nodeId\x12\x16\n" +
+	"\x06status\x18\x06 \x01(\tR\x06status\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\a \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"started_at\x18\b \x01(\tR\tstartedAt\x12\x1f\n" +
+	"\vfinished_at\x18\t \x01(\tR\n" +
+	"finishedAt\x12#\n" +
+	"\rrepo_revision\x18\n" +
+	" \x01(\tR\frepoRevision\x12#\n" +
+	"\rerror_summary\x18\v \x01(\tR\ferrorSummary\x12\x19\n" +
+	"\blog_path\x18\f \x01(\tR\alogPath\x12=\n" +
+	"\x05steps\x18\r \x03(\v2'.composia.controller.v1.TaskStepSummaryR\x05steps2\xcb\x01\n" +
 	"\vTaskService\x12`\n" +
-	"\tListTasks\x12(.composia.controller.v1.ListTasksRequest\x1a).composia.controller.v1.ListTasksResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
+	"\tListTasks\x12(.composia.controller.v1.ListTasksRequest\x1a).composia.controller.v1.ListTasksResponse\x12Z\n" +
+	"\aGetTask\x12&.composia.controller.v1.GetTaskRequest\x1a'.composia.controller.v1.GetTaskResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
 
 var (
 	file_proto_composia_controller_v1_task_proto_rawDescOnce sync.Once
@@ -262,21 +542,27 @@ func file_proto_composia_controller_v1_task_proto_rawDescGZIP() []byte {
 	return file_proto_composia_controller_v1_task_proto_rawDescData
 }
 
-var file_proto_composia_controller_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_proto_composia_controller_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_proto_composia_controller_v1_task_proto_goTypes = []any{
 	(*ListTasksRequest)(nil),  // 0: composia.controller.v1.ListTasksRequest
 	(*TaskSummary)(nil),       // 1: composia.controller.v1.TaskSummary
 	(*ListTasksResponse)(nil), // 2: composia.controller.v1.ListTasksResponse
+	(*GetTaskRequest)(nil),    // 3: composia.controller.v1.GetTaskRequest
+	(*TaskStepSummary)(nil),   // 4: composia.controller.v1.TaskStepSummary
+	(*GetTaskResponse)(nil),   // 5: composia.controller.v1.GetTaskResponse
 }
 var file_proto_composia_controller_v1_task_proto_depIdxs = []int32{
 	1, // 0: composia.controller.v1.ListTasksResponse.tasks:type_name -> composia.controller.v1.TaskSummary
-	0, // 1: composia.controller.v1.TaskService.ListTasks:input_type -> composia.controller.v1.ListTasksRequest
-	2, // 2: composia.controller.v1.TaskService.ListTasks:output_type -> composia.controller.v1.ListTasksResponse
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	4, // 1: composia.controller.v1.GetTaskResponse.steps:type_name -> composia.controller.v1.TaskStepSummary
+	0, // 2: composia.controller.v1.TaskService.ListTasks:input_type -> composia.controller.v1.ListTasksRequest
+	3, // 3: composia.controller.v1.TaskService.GetTask:input_type -> composia.controller.v1.GetTaskRequest
+	2, // 4: composia.controller.v1.TaskService.ListTasks:output_type -> composia.controller.v1.ListTasksResponse
+	5, // 5: composia.controller.v1.TaskService.GetTask:output_type -> composia.controller.v1.GetTaskResponse
+	4, // [4:6] is the sub-list for method output_type
+	2, // [2:4] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_proto_composia_controller_v1_task_proto_init() }
@@ -290,7 +576,7 @@ func file_proto_composia_controller_v1_task_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_controller_v1_task_proto_rawDesc), len(file_proto_composia_controller_v1_task_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

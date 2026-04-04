@@ -35,11 +35,14 @@ const (
 const (
 	// TaskServiceListTasksProcedure is the fully-qualified name of the TaskService's ListTasks RPC.
 	TaskServiceListTasksProcedure = "/composia.controller.v1.TaskService/ListTasks"
+	// TaskServiceGetTaskProcedure is the fully-qualified name of the TaskService's GetTask RPC.
+	TaskServiceGetTaskProcedure = "/composia.controller.v1.TaskService/GetTask"
 )
 
 // TaskServiceClient is a client for the composia.controller.v1.TaskService service.
 type TaskServiceClient interface {
 	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
+	GetTask(context.Context, *connect.Request[v1.GetTaskRequest]) (*connect.Response[v1.GetTaskResponse], error)
 }
 
 // NewTaskServiceClient constructs a client for the composia.controller.v1.TaskService service. By
@@ -59,12 +62,19 @@ func NewTaskServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(taskServiceMethods.ByName("ListTasks")),
 			connect.WithClientOptions(opts...),
 		),
+		getTask: connect.NewClient[v1.GetTaskRequest, v1.GetTaskResponse](
+			httpClient,
+			baseURL+TaskServiceGetTaskProcedure,
+			connect.WithSchema(taskServiceMethods.ByName("GetTask")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // taskServiceClient implements TaskServiceClient.
 type taskServiceClient struct {
 	listTasks *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
+	getTask   *connect.Client[v1.GetTaskRequest, v1.GetTaskResponse]
 }
 
 // ListTasks calls composia.controller.v1.TaskService.ListTasks.
@@ -72,9 +82,15 @@ func (c *taskServiceClient) ListTasks(ctx context.Context, req *connect.Request[
 	return c.listTasks.CallUnary(ctx, req)
 }
 
+// GetTask calls composia.controller.v1.TaskService.GetTask.
+func (c *taskServiceClient) GetTask(ctx context.Context, req *connect.Request[v1.GetTaskRequest]) (*connect.Response[v1.GetTaskResponse], error) {
+	return c.getTask.CallUnary(ctx, req)
+}
+
 // TaskServiceHandler is an implementation of the composia.controller.v1.TaskService service.
 type TaskServiceHandler interface {
 	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
+	GetTask(context.Context, *connect.Request[v1.GetTaskRequest]) (*connect.Response[v1.GetTaskResponse], error)
 }
 
 // NewTaskServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -90,10 +106,18 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(taskServiceMethods.ByName("ListTasks")),
 		connect.WithHandlerOptions(opts...),
 	)
+	taskServiceGetTaskHandler := connect.NewUnaryHandler(
+		TaskServiceGetTaskProcedure,
+		svc.GetTask,
+		connect.WithSchema(taskServiceMethods.ByName("GetTask")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.controller.v1.TaskService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TaskServiceListTasksProcedure:
 			taskServiceListTasksHandler.ServeHTTP(w, r)
+		case TaskServiceGetTaskProcedure:
+			taskServiceGetTaskHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -105,4 +129,8 @@ type UnimplementedTaskServiceHandler struct{}
 
 func (UnimplementedTaskServiceHandler) ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.TaskService.ListTasks is not implemented"))
+}
+
+func (UnimplementedTaskServiceHandler) GetTask(context.Context, *connect.Request[v1.GetTaskRequest]) (*connect.Response[v1.GetTaskResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.TaskService.GetTask is not implemented"))
 }

@@ -36,11 +36,15 @@ const (
 	// ServiceServiceListServicesProcedure is the fully-qualified name of the ServiceService's
 	// ListServices RPC.
 	ServiceServiceListServicesProcedure = "/composia.controller.v1.ServiceService/ListServices"
+	// ServiceServiceDeployServiceProcedure is the fully-qualified name of the ServiceService's
+	// DeployService RPC.
+	ServiceServiceDeployServiceProcedure = "/composia.controller.v1.ServiceService/DeployService"
 )
 
 // ServiceServiceClient is a client for the composia.controller.v1.ServiceService service.
 type ServiceServiceClient interface {
 	ListServices(context.Context, *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error)
+	DeployService(context.Context, *connect.Request[v1.DeployServiceRequest]) (*connect.Response[v1.DeployServiceResponse], error)
 }
 
 // NewServiceServiceClient constructs a client for the composia.controller.v1.ServiceService
@@ -60,12 +64,19 @@ func NewServiceServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(serviceServiceMethods.ByName("ListServices")),
 			connect.WithClientOptions(opts...),
 		),
+		deployService: connect.NewClient[v1.DeployServiceRequest, v1.DeployServiceResponse](
+			httpClient,
+			baseURL+ServiceServiceDeployServiceProcedure,
+			connect.WithSchema(serviceServiceMethods.ByName("DeployService")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // serviceServiceClient implements ServiceServiceClient.
 type serviceServiceClient struct {
-	listServices *connect.Client[v1.ListServicesRequest, v1.ListServicesResponse]
+	listServices  *connect.Client[v1.ListServicesRequest, v1.ListServicesResponse]
+	deployService *connect.Client[v1.DeployServiceRequest, v1.DeployServiceResponse]
 }
 
 // ListServices calls composia.controller.v1.ServiceService.ListServices.
@@ -73,9 +84,15 @@ func (c *serviceServiceClient) ListServices(ctx context.Context, req *connect.Re
 	return c.listServices.CallUnary(ctx, req)
 }
 
+// DeployService calls composia.controller.v1.ServiceService.DeployService.
+func (c *serviceServiceClient) DeployService(ctx context.Context, req *connect.Request[v1.DeployServiceRequest]) (*connect.Response[v1.DeployServiceResponse], error) {
+	return c.deployService.CallUnary(ctx, req)
+}
+
 // ServiceServiceHandler is an implementation of the composia.controller.v1.ServiceService service.
 type ServiceServiceHandler interface {
 	ListServices(context.Context, *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error)
+	DeployService(context.Context, *connect.Request[v1.DeployServiceRequest]) (*connect.Response[v1.DeployServiceResponse], error)
 }
 
 // NewServiceServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -91,10 +108,18 @@ func NewServiceServiceHandler(svc ServiceServiceHandler, opts ...connect.Handler
 		connect.WithSchema(serviceServiceMethods.ByName("ListServices")),
 		connect.WithHandlerOptions(opts...),
 	)
+	serviceServiceDeployServiceHandler := connect.NewUnaryHandler(
+		ServiceServiceDeployServiceProcedure,
+		svc.DeployService,
+		connect.WithSchema(serviceServiceMethods.ByName("DeployService")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.controller.v1.ServiceService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ServiceServiceListServicesProcedure:
 			serviceServiceListServicesHandler.ServeHTTP(w, r)
+		case ServiceServiceDeployServiceProcedure:
+			serviceServiceDeployServiceHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -106,4 +131,8 @@ type UnimplementedServiceServiceHandler struct{}
 
 func (UnimplementedServiceServiceHandler) ListServices(context.Context, *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.ListServices is not implemented"))
+}
+
+func (UnimplementedServiceServiceHandler) DeployService(context.Context, *connect.Request[v1.DeployServiceRequest]) (*connect.Response[v1.DeployServiceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.DeployService is not implemented"))
 }

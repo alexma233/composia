@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"connectrpc.com/connect"
@@ -20,6 +21,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/store"
 	"forgejo.alexma.top/alexma233/composia/internal/task"
 	"forgejo.alexma.top/alexma233/composia/internal/version"
+	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -39,6 +41,9 @@ func Run(ctx context.Context, configPath string) error {
 	}
 	if err := os.MkdirAll(cfg.LogDir, 0o755); err != nil {
 		return fmt.Errorf("create controller log_dir %q: %w", cfg.LogDir, err)
+	}
+	if err := os.MkdirAll(filepath.Join(cfg.LogDir, "tasks"), 0o755); err != nil {
+		return fmt.Errorf("create controller task log_dir %q: %w", filepath.Join(cfg.LogDir, "tasks"), err)
 	}
 	if err := repo.ValidateWorkingTree(cfg.RepoDir); err != nil {
 		return err
@@ -111,7 +116,7 @@ func Run(ctx context.Context, configPath string) error {
 	mux.Handle(systemPath, systemHandler)
 
 	servicePath, serviceHandler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db},
+		&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs},
 		connect.WithInterceptors(cliInterceptor),
 	)
 	mux.Handle(servicePath, serviceHandler)
@@ -135,8 +140,8 @@ func Run(ctx context.Context, configPath string) error {
 	}
 
 	go sweepOfflineNodes(ctx, db)
-	startTaskWorker(ctx, db, func(context.Context, task.Record) error {
-		return errors.New("task execution is not implemented yet")
+	startTaskWorker(ctx, db, func(workerCtx context.Context, record task.Record) error {
+		return executeTask(workerCtx, db, record)
 	})
 	go func() {
 		<-ctx.Done()
@@ -213,7 +218,9 @@ type systemServer struct {
 }
 
 type serviceServer struct {
-	db *store.DB
+	db               *store.DB
+	cfg              *config.ControllerConfig
+	availableNodeIDs map[string]struct{}
 }
 
 type nodeServer struct {
@@ -267,6 +274,56 @@ func (server *serviceServer) ListServices(ctx context.Context, req *connect.Requ
 		})
 	}
 
+	return connect.NewResponse(response), nil
+}
+
+func (server *serviceServer) DeployService(ctx context.Context, req *connect.Request[controllerv1.DeployServiceRequest]) (*connect.Response[controllerv1.DeployServiceResponse], error) {
+	if req.Msg == nil || req.Msg.GetServiceName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+
+	hasActiveTask, err := server.db.HasActiveServiceTask(ctx, req.Msg.GetServiceName())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if hasActiveTask {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q already has an active task", req.Msg.GetServiceName()))
+	}
+
+	service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	repoRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+
+	triggeredBy, _ := rpcutil.BearerSubject(ctx)
+	taskID := uuid.NewString()
+	createdTask, err := server.db.CreateTask(ctx, task.Record{
+		TaskID:       taskID,
+		Type:         task.TypeDeploy,
+		Source:       task.SourceCLI,
+		TriggeredBy:  triggeredBy,
+		ServiceName:  service.Name,
+		NodeID:       service.Node,
+		RepoRevision: repoRevision,
+		LogPath:      filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
+	}
+
+	response := &controllerv1.DeployServiceResponse{
+		TaskId:       createdTask.TaskID,
+		Status:       string(createdTask.Status),
+		RepoRevision: createdTask.RepoRevision,
+	}
 	return connect.NewResponse(response), nil
 }
 
@@ -329,4 +386,51 @@ func (server *taskServer) ListTasks(ctx context.Context, req *connect.Request[co
 	}
 
 	return connect.NewResponse(response), nil
+}
+
+func (server *taskServer) GetTask(ctx context.Context, req *connect.Request[controllerv1.GetTaskRequest]) (*connect.Response[controllerv1.GetTaskResponse], error) {
+	if req.Msg == nil || req.Msg.GetTaskId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
+	}
+
+	detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
+	if err != nil {
+		if errors.Is(err, store.ErrTaskNotFound) {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	response := &controllerv1.GetTaskResponse{
+		TaskId:       detail.Record.TaskID,
+		Type:         string(detail.Record.Type),
+		Source:       string(detail.Record.Source),
+		ServiceName:  detail.Record.ServiceName,
+		NodeId:       detail.Record.NodeID,
+		Status:       string(detail.Record.Status),
+		CreatedAt:    detail.Record.CreatedAt.UTC().Format(time.RFC3339),
+		StartedAt:    formatNullableTime(detail.Record.StartedAt),
+		FinishedAt:   formatNullableTime(detail.Record.FinishedAt),
+		RepoRevision: detail.Record.RepoRevision,
+		ErrorSummary: detail.Record.ErrorSummary,
+		LogPath:      detail.Record.LogPath,
+		Steps:        make([]*controllerv1.TaskStepSummary, 0, len(detail.Steps)),
+	}
+	for _, step := range detail.Steps {
+		response.Steps = append(response.Steps, &controllerv1.TaskStepSummary{
+			StepName:   string(step.StepName),
+			Status:     string(step.Status),
+			StartedAt:  formatNullableTime(step.StartedAt),
+			FinishedAt: formatNullableTime(step.FinishedAt),
+		})
+	}
+
+	return connect.NewResponse(response), nil
+}
+
+func formatNullableTime(value *time.Time) string {
+	if value == nil {
+		return ""
+	}
+	return value.UTC().Format(time.RFC3339)
 }
