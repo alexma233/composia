@@ -1007,6 +1007,28 @@ func (server *repoServer) GetRepoFile(_ context.Context, req *connect.Request[co
 	return connect.NewResponse(response), nil
 }
 
+func (server *repoServer) ListRepoCommits(_ context.Context, req *connect.Request[controllerv1.ListRepoCommitsRequest]) (*connect.Response[controllerv1.ListRepoCommitsResponse], error) {
+	if req.Msg == nil {
+		req.Msg = &controllerv1.ListRepoCommitsRequest{}
+	}
+	commits, nextCursor, err := repo.ListCommits(server.cfg.RepoDir, req.Msg.GetCursor(), req.Msg.GetPageSize())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	response := &controllerv1.ListRepoCommitsResponse{
+		Commits:    make([]*controllerv1.RepoCommitSummary, 0, len(commits)),
+		NextCursor: nextCursor,
+	}
+	for _, commit := range commits {
+		response.Commits = append(response.Commits, &controllerv1.RepoCommitSummary{
+			CommitId:    commit.CommitID,
+			Subject:     commit.Subject,
+			CommittedAt: commit.CommittedAt,
+		})
+	}
+	return connect.NewResponse(response), nil
+}
+
 func (server *taskServer) GetTask(ctx context.Context, req *connect.Request[controllerv1.GetTaskRequest]) (*connect.Response[controllerv1.GetTaskResponse], error) {
 	if req.Msg == nil || req.Msg.GetTaskId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))

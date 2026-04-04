@@ -115,3 +115,56 @@ func TestRepoServiceListRepoFilesAndGetRepoFile(t *testing.T) {
 		t.Fatalf("expected dirty worktree after file modification")
 	}
 }
+
+func TestRepoServiceListRepoCommitsReturnsPagedSummaries(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"README.md": "one\n",
+	})
+	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("two\n"), 0o644); err != nil {
+		t.Fatalf("rewrite README: %v", err)
+	}
+	runGit(t, repoDir, "add", ".")
+	runGit(t, repoDir, "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "second")
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+	path, handler := controllerv1connect.NewRepoServiceHandler(
+		&repoServer{cfg: &config.ControllerConfig{RepoDir: repoDir}},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewRepoServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	firstPage, err := client.ListRepoCommits(context.Background(), connect.NewRequest(&controllerv1.ListRepoCommitsRequest{PageSize: 1}))
+	if err != nil {
+		t.Fatalf("list first commit page: %v", err)
+	}
+	if len(firstPage.Msg.GetCommits()) != 1 || firstPage.Msg.GetCommits()[0].GetSubject() != "second" {
+		t.Fatalf("unexpected first commit page: %+v", firstPage.Msg.GetCommits())
+	}
+	if firstPage.Msg.GetCommits()[0].GetCommittedAt() == "" {
+		t.Fatalf("expected committed_at on first page")
+	}
+	if firstPage.Msg.GetNextCursor() == "" {
+		t.Fatalf("expected next cursor on first page")
+	}
+
+	secondPage, err := client.ListRepoCommits(context.Background(), connect.NewRequest(&controllerv1.ListRepoCommitsRequest{PageSize: 1, Cursor: firstPage.Msg.GetNextCursor()}))
+	if err != nil {
+		t.Fatalf("list second commit page: %v", err)
+	}
+	if len(secondPage.Msg.GetCommits()) != 1 || secondPage.Msg.GetCommits()[0].GetSubject() != "initial" {
+		t.Fatalf("unexpected second commit page: %+v", secondPage.Msg.GetCommits())
+	}
+}

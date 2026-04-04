@@ -8,6 +8,7 @@ service RepoService {
   rpc GetRepoHead(GetRepoHeadRequest) returns (GetRepoHeadResponse);
   rpc ListRepoFiles(ListRepoFilesRequest) returns (ListRepoFilesResponse);
   rpc GetRepoFile(GetRepoFileRequest) returns (GetRepoFileResponse);
+  rpc ListRepoCommits(ListRepoCommitsRequest) returns (ListRepoCommitsResponse);
 }
 
 message GetRepoHeadRequest {}
@@ -42,4 +43,20 @@ message GetRepoFileResponse {
   string path = 1;
   string content = 2;
   int64 size = 3;
+}
+
+message RepoCommitSummary {
+  string commit_id = 1;
+  string subject = 2;
+  string committed_at = 3;
+}
+
+message ListRepoCommitsRequest {
+  uint32 page_size = 1;
+  string cursor = 2;
+}
+
+message ListRepoCommitsResponse {
+  repeated RepoCommitSummary commits = 1;
+  string next_cursor = 2;
 }
