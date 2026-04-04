@@ -2,220 +2,213 @@
 
 This document turns `plan.md` into a practical execution order for the current repository state.
 
-## Current Baseline
+## Source of Truth
 
-- Backend is still a minimal Go entrypoint.
-- Frontend is still a placeholder SvelteKit shell.
-- Config examples use an older `main` model and must be aligned with the `controller` and `agent` model defined in `plan.md`.
-- No internal backend packages exist yet.
+- `plan.md` is the product and architecture source of truth.
+- `steps.md` is only an implementation ordering document.
+- If `steps.md` and `plan.md` ever conflict, follow `plan.md`.
+- Do not treat scaffolding, placeholders, or partial APIs as "done" if their behavior still differs from `plan.md`.
+- Before adding new surface area, first remove any architectural drift from the current implementation.
 
-## Phase 1: Bootstrap the Backend Skeleton
+## Current Repository State
 
-Goal: make `composia controller` and `composia agent` start with the v1 config model.
+The repository is no longer at the initial scaffold stage.
 
-1. Replace the current `-role` switch with subcommands:
-   - `composia controller`
-   - `composia agent`
-2. Add a shared config loader for `config.yaml`.
-3. Implement config validation for the minimal required fields.
-4. Update development config examples to the v1 `controller` and `agent` structure.
-5. Add startup initialization for:
-   - `state_dir`
-   - `log_dir`
-   - `repo_dir` existence checks where appropriate
+Implemented or mostly implemented:
 
-Deliverable:
+- `composia controller` and `composia agent` subcommands exist.
+- Shared `config.yaml` loading and validation exist for the v1 `controller` and `agent` model.
+- Controller startup initializes local directories and opens SQLite.
+- SQLite schema exists for `nodes`, `services`, `tasks`, `task_steps`, and `backups`.
+- Minimal controller-agent ConnectRPC wiring exists.
+- Agent heartbeat works and node state is persisted.
+- Service repo scanning and `composia-meta.yaml` validation exist.
+- Controller APIs already expose read paths for services, tasks, nodes, backups, and repo inspection.
+- Agent can pull queued tasks and download bundles for service execution.
+- Basic remote task execution exists for `deploy`, `update`, `stop`, and `restart`.
 
-- Both roles start successfully with validated config files.
+Still partial or not aligned with `plan.md` yet:
 
-## Phase 2: Add SQLite State Storage
+- Service runtime state is still inferred from completed tasks instead of coming from explicit agent status reporting.
+- Task log upload is not yet implemented with the planned streaming and resume semantics.
+- Backup execution is still placeholder behavior.
+- Repo write APIs, Git write transactions, and sync handling are not implemented.
+- Secret APIs and age-based secret workflows are not implemented.
+- DNS, Caddy management, prune, and migrate are not implemented.
+- The web UI is still a placeholder shell.
+- There is leftover controller-side worker code that should not become a second execution architecture.
 
-Goal: establish the controller runtime state foundation.
+## Execution Rule
 
-1. Create a small storage package for SQLite initialization.
-2. Add schema creation and migration handling.
-3. Start with the tables that unblock the first milestones:
-   - `nodes`
-   - `tasks`
-   - `task_steps`
-4. Optionally create the full v1 schema early if the migration path stays simple.
-5. Add repository methods for basic node status persistence.
+From this point forward, agents working in this repository should follow these rules:
 
-Deliverable:
+1. Keep the implementation aligned with `plan.md`, even if that means tightening or replacing existing placeholder behavior.
+2. Prefer finishing and correcting already-started foundation work before adding more APIs or UI pages.
+3. Do not add new behavior that changes task semantics, repo semantics, or controller-agent responsibilities unless `plan.md` already defines it.
+4. Treat migration, backup, DNS, secrets, and repo writes as architecture-sensitive work that must match the documented v1 semantics, not shortcut variants.
 
-- Controller creates and opens its SQLite database on startup.
+## Phase 1: Remove Architecture Drift
 
-## Phase 3: Define Minimal ConnectRPC Contracts
+Status: in progress
 
-Goal: create the first real controller-agent protocol.
+Goal: make the current backend match the controller-agent contract described in `plan.md` before expanding the feature surface.
 
-1. Add protobuf definitions for a minimal v1 API.
-2. Start with only the smallest useful surface:
-   - `AgentReportService.ReportHeartbeat`
-   - `SystemService.GetSystemStatus`
-3. Add code generation tooling and repository instructions for regenerating stubs.
-4. Keep the proto set intentionally small until the first end-to-end flow works.
-
-Deliverable:
-
-- Generated RPC types and handlers are wired into the Go project.
-
-## Phase 4: Implement the First End-to-End Flow
-
-Goal: an agent can report to the controller and appear as online.
-
-1. Implement controller RPC server startup.
-2. Implement agent heartbeat loop.
-3. Persist heartbeat data into `nodes`.
-4. Track online status from recent heartbeat timestamps.
-5. Return basic controller status from `GetSystemStatus`.
+1. Keep `controller` as the durable state owner and task scheduler.
+2. Keep `agent` as the execution side through `PullNextTask` and `GetServiceBundle`.
+3. Remove, rewrite, or clearly retire leftover controller-local worker paths that imply a competing execution model.
+4. Add explicit agent-to-controller service runtime reporting instead of deriving runtime state only from terminal task results.
+5. Move task log upload toward the planned streaming contract so the protocol shape does not drift further.
 
 Deliverable:
 
-- Controller and agent can run together, and the controller records live node state.
+- The running architecture is internally consistent and matches `plan.md`.
 
-## Phase 5: Parse the Service Repository
+## Phase 2: Finish the Task Foundation
 
-Goal: let the controller understand declared services from Git-backed files.
+Status: in progress
 
-1. Add a repo scanner rooted at `controller.repo_dir`.
-2. Parse `composia-meta.yaml` files.
-3. Validate the documented meta schema.
-4. Refresh the `services` table from parsed declarations.
-5. Add structured validation errors for malformed service definitions.
+Goal: make the existing task system reliable and strictly conform to the documented v1 task model.
 
-Deliverable:
-
-- Controller can list declared services from the repo and persist the current service snapshot.
-
-## Phase 6: Add the Task Model and Queue
-
-Goal: move from direct actions to durable task execution.
-
-1. Implement task creation in SQLite.
-2. Add a single-worker persistent queue.
-3. Add task status transitions:
-   - `pending`
-   - `running`
-   - terminal states
-4. Add step summaries in `task_steps`.
-5. Add per-task log files under `controller.log_dir`.
+1. Keep every task bound to a specific `repo_revision`.
+2. Enforce global serial execution semantics as documented.
+3. Preserve the `pending`, `running`, `awaiting_confirmation`, and terminal state rules exactly as described in `plan.md`.
+4. Keep task step summaries and per-task logs under `controller.log_dir`.
+5. Preserve restart recovery behavior for `running` tasks and keep `awaiting_confirmation` tasks intact.
+6. Keep service-level conflict checks aligned with the repo write conflict rules in `plan.md`.
 
 Deliverable:
 
-- Controller can create and execute queued tasks with persisted state.
+- Tasks are durable, observable, and semantically consistent with the plan.
 
-## Phase 7: Ship the First Real Service Action
+## Phase 3: Stabilize the First Real Service Actions
 
-Goal: support a minimal `deploy` task.
+Status: in progress
 
-1. Bind each task to a specific `repo_revision`.
-2. Build a minimal service bundle from the repo.
-3. Transfer the bundle to the target agent.
-4. Run `docker compose up -d` on the agent.
-5. Store task results and refresh service runtime state.
+Goal: finish the already-started day-1 service operations before adding broader workflows.
+
+1. Keep `deploy` as the first fully supported end-to-end task.
+2. Finish `update`, `stop`, and `restart` so their task steps and runtime effects match the plan.
+3. Replace runtime-status guessing with agent-reported runtime state.
+4. Add stronger end-to-end tests around bundle download, task execution, and task state persistence.
 
 Deliverable:
 
-- A declared service can be deployed to one configured agent.
+- `deploy`, `update`, `stop`, and `restart` are trustworthy controller-agent flows.
 
-## Phase 8: Add Read-Only Web UI Backed by Real Data
+## Phase 4: Add Safe Desired-State Repo Writes
 
-Goal: replace the placeholder frontend with real controller data.
+Status: pending
+
+Goal: let the controller own Git-backed desired state changes exactly as documented.
+
+1. Add repo lock handling.
+2. Add `RepoService.UpdateRepoFile`.
+3. Add repo validation during write transactions.
+4. Add service conflict checks for writes that touch locked service directories.
+5. Add commit creation with the configured author behavior.
+6. Add optional remote sync behavior, push reporting, and repo sync state.
+7. Add `RepoService.SyncRepo` with the documented clean-worktree requirements.
+
+Deliverable:
+
+- Desired-state file edits are safe, validated, committed, and consistent with the Git model in `plan.md`.
+
+## Phase 5: Add Secret Handling
+
+Status: pending
+
+Goal: implement the selected age-based secrets model without leaving plaintext in `controller.repo_dir`.
+
+1. Add controller-side decryption for `.secret.env.enc`.
+2. Add controller-side re-encryption using the configured recipients.
+3. Add `SecretService.GetServiceSecretEnv`.
+4. Add `SecretService.UpdateServiceSecretEnv`.
+5. Reuse the same repo lock, validation, commit, and conflict rules as normal repo writes.
+6. Ensure decrypted runtime files are only included in agent bundles and never persisted in the controller Git working tree.
+
+Deliverable:
+
+- Service secrets follow the documented age-based workflow.
+
+## Phase 6: Replace Placeholder Backup Behavior
+
+Status: pending
+
+Goal: turn the current backup scaffolding into the first real data-protection workflow.
+
+1. Keep `data_protect` parsing and validation aligned with the documented v1 strategies.
+2. Replace placeholder backup execution with real strategy execution.
+3. Support the documented v1 strategies only.
+4. Persist one backup record per data item.
+5. Add backup querying paths needed by the API and UI.
+6. Only add scheduling after manual backup behavior is correct.
+
+Deliverable:
+
+- Backup tasks produce real artifacts and real backup records.
+
+## Phase 7: Add Read-Write Web UI on Real APIs
+
+Status: pending
+
+Goal: replace the placeholder frontend with the actual control-plane UI described in `plan.md`.
 
 1. Add service list and service detail pages.
 2. Add node list and node detail pages.
-3. Add task history and task detail pages.
-4. Add status badges based on live controller data.
-5. Keep the UI responsive on mobile from the start.
+3. Add task history and task detail pages, including log tailing.
+4. Add backup views.
+5. Add repo browsing and editing pages.
+6. Add service secret editing pages.
+7. Keep the UI responsive on mobile from the start.
 
 Deliverable:
 
-- The frontend becomes an actual control-plane UI instead of a static landing page.
+- The frontend becomes a real controller UI instead of a landing page shell.
 
-## Phase 9: Add Safe Repo Editing APIs
+## Phase 8: Add DNS, Caddy, and Node Operations
 
-Goal: let the controller own desired state changes.
+Status: pending
 
-1. Add repo lock handling.
-2. Add repo read APIs.
-3. Add file update APIs with validation.
-4. Create commits for desired-state changes.
-5. Add optional remote sync behavior later.
+Goal: implement the documented day-2 operational actions after repo writes and base service flows are stable.
 
-Deliverable:
-
-- Service-related files can be safely read and updated through the controller.
-
-## Phase 10: Expand Runtime Features
-
-Goal: implement the major v1 service operations after the platform foundation is stable.
-
-1. `update`
-2. `stop`
-3. `restart`
-4. `dns_update`
-5. `caddy_reload`
-6. `prune`
+1. Add `dns_update` task behavior.
+2. Add `caddy_reload` task behavior.
+3. Add `prune` task behavior.
+4. Add the related controller public APIs.
+5. Keep task steps, logging, and node targeting aligned with the task model.
 
 Deliverable:
 
-- Core day-2 operations work through the task system.
+- Day-2 node and ingress operations work through the same task system.
 
-## Phase 11: Add Secrets Support
+## Phase 9: Add Migration Last
 
-Goal: support encrypted service secrets with the selected age-based model.
+Status: pending
 
-1. Add controller-side secret decryption.
-2. Add controller-side secret re-encryption.
-3. Add service secret read and write APIs.
-4. Ensure plaintext secrets never persist in `controller.repo_dir`.
-5. Include decrypted runtime files only in agent bundles.
+Goal: implement the most complex v1 workflow only after the rest of the platform semantics are stable.
 
-Deliverable:
-
-- `.secret.env.enc` is handled safely and consistently with the v1 design.
-
-## Phase 12: Add Backups
-
-Goal: implement the first complete data protection workflow.
-
-1. Implement `data_protect` parsing and validation.
-2. Add `backup` task execution.
-3. Start with the documented v1 strategies only.
-4. Persist backup records in SQLite.
-5. Add backup list APIs and UI views.
+1. Add `MigrateService(target_node_id)`.
+2. Validate `migrate.data[]` exactly as documented.
+3. Export selected data from the source node.
+4. Transfer artifacts and runtime files to the target node.
+5. Restore data and start the target service.
+6. Refresh Caddy and DNS as documented.
+7. Persist the repo `node` change only after runtime cutover succeeds.
+8. Use `awaiting_confirmation` exactly as defined in `plan.md`.
+9. Apply the documented repo conflict and reconciliation rules during `persist_repo`.
 
 Deliverable:
 
-- Manual and scheduled backups work for the supported strategies.
-
-## Phase 13: Add Migration
-
-Goal: implement the most complex v1 workflow last.
-
-1. Add `migrate` task parameters and validation.
-2. Export selected data from the source node.
-3. Transfer artifacts to the target node.
-4. Restore data and start the target service.
-5. Switch runtime ingress and DNS.
-6. Persist the repo node change only after runtime cutover succeeds.
-7. Use `awaiting_confirmation` exactly as defined in `plan.md`.
-
-Deliverable:
-
-- Service migration works with explicit operator confirmation and clear failure boundaries.
+- Migration works with explicit operator confirmation and the same failure boundaries described in the plan.
 
 ## Recommended Immediate Next Step
 
-Start with Phases 1 through 4 only.
+Start with Phases 1 through 3 only.
 
-That sequence provides the smallest useful milestone:
+That is the smallest correct next milestone for the current codebase:
 
-- new CLI shape
-- real config model
-- SQLite initialization
-- first controller-agent RPC
-- live node heartbeat
+- remove architecture drift
+- finish the task foundation
+- make the first service actions reliable
 
-Do not start backup, migration, DNS, or rich UI work before this milestone is complete.
+Do not start secrets, backup, DNS, migrate, or rich UI work until those alignment items are complete.
