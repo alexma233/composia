@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -30,6 +31,10 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
+	paramsJSON, err := json.Marshal(deployTaskParams{ServiceDir: "demo"})
+	if err != nil {
+		t.Fatalf("marshal deploy task params: %v", err)
+	}
 	logPath := filepath.Join(t.TempDir(), "logs", "task.log")
 	if _, err := db.CreateTask(ctx, task.Record{
 		TaskID:       "task-remote",
@@ -38,6 +43,7 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 		ServiceName:  "demo",
 		NodeID:       "main",
 		CreatedAt:    time.Date(2026, 4, 4, 17, 0, 0, 0, time.UTC),
+		ParamsJSON:   string(paramsJSON),
 		RepoRevision: "deadbeef",
 		LogPath:      logPath,
 	}); err != nil {
@@ -68,6 +74,9 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	}
 	if !pulled.Msg.GetHasTask() || pulled.Msg.GetTask().GetTaskId() != "task-remote" {
 		t.Fatalf("unexpected pulled task: %+v", pulled.Msg)
+	}
+	if pulled.Msg.GetTask().GetServiceDir() == "" {
+		t.Fatalf("expected pulled task to include service_dir")
 	}
 
 	startedAt := timestamppb.New(time.Date(2026, 4, 4, 17, 1, 0, 0, time.UTC))

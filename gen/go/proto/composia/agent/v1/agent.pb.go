@@ -245,6 +245,7 @@ type AgentTask struct {
 	ServiceName   string                 `protobuf:"bytes,3,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	NodeId        string                 `protobuf:"bytes,4,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	RepoRevision  string                 `protobuf:"bytes,5,opt,name=repo_revision,json=repoRevision,proto3" json:"repo_revision,omitempty"`
+	ServiceDir    string                 `protobuf:"bytes,6,opt,name=service_dir,json=serviceDir,proto3" json:"service_dir,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -310,6 +311,13 @@ func (x *AgentTask) GetNodeId() string {
 func (x *AgentTask) GetRepoRevision() string {
 	if x != nil {
 		return x.RepoRevision
+	}
+	return ""
+}
+
+func (x *AgentTask) GetServiceDir() string {
+	if x != nil {
+		return x.ServiceDir
 	}
 	return ""
 }
@@ -800,13 +808,15 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\vreceived_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"receivedAt\".\n" +
 	"\x13PullNextTaskRequest\x12\x17\n" +
-	"\anode_id\x18\x01 \x01(\tR\x06nodeId\"\x99\x01\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\"\xba\x01\n" +
 	"\tAgentTask\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12!\n" +
 	"\fservice_name\x18\x03 \x01(\tR\vserviceName\x12\x17\n" +
 	"\anode_id\x18\x04 \x01(\tR\x06nodeId\x12#\n" +
-	"\rrepo_revision\x18\x05 \x01(\tR\frepoRevision\"c\n" +
+	"\rrepo_revision\x18\x05 \x01(\tR\frepoRevision\x12\x1f\n" +
+	"\vservice_dir\x18\x06 \x01(\tR\n" +
+	"serviceDir\"c\n" +
 	"\x14PullNextTaskResponse\x12\x19\n" +
 	"\bhas_task\x18\x01 \x01(\bR\ahasTask\x120\n" +
 	"\x04task\x18\x02 \x01(\v2\x1c.composia.agent.v1.AgentTaskR\x04task\"\xab\x01\n" +

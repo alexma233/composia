@@ -132,6 +132,10 @@ func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 	switch pulledTask.GetType() {
 	case string(task.TypeDeploy):
 		return executeDeployTask(ctx, bundleClient, client, cfg, pulledTask)
+	case string(task.TypeStop):
+		return executeStopTask(ctx, client, cfg, pulledTask)
+	case string(task.TypeRestart):
+		return executeRestartTask(ctx, client, cfg, pulledTask)
 	default:
 		return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, fmt.Sprintf("task type %q is not implemented", pulledTask.GetType()))
 	}
@@ -172,6 +176,73 @@ func executeDeployTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return err
 	}
 	if err := uploadTaskLog(ctx, client, pulledTask.GetTaskId(), "deploy task finished successfully\n"); err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
+}
+
+func executeStopTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask) error {
+	if pulledTask.GetServiceDir() == "" {
+		err := fmt.Errorf("task is missing service_dir")
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	serviceRoot := filepath.Join(cfg.RepoDir, pulledTask.GetServiceDir())
+	if err := uploadTaskLog(ctx, client, pulledTask.GetTaskId(), fmt.Sprintf("starting remote stop task for service=%s dir=%s\n", pulledTask.GetServiceName(), serviceRoot)); err != nil {
+		return err
+	}
+	if err := executeTaskStep(ctx, client, pulledTask.GetTaskId(), task.StepComposeDown, func() error {
+		projectName, err := loadComposeProjectName(serviceRoot, pulledTask.GetServiceName())
+		if err != nil {
+			return err
+		}
+		return runComposeDown(ctx, serviceRoot, projectName, func(output string) error {
+			return uploadTaskLog(ctx, client, pulledTask.GetTaskId(), output)
+		})
+	}); err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	if err := uploadTaskLog(ctx, client, pulledTask.GetTaskId(), "stop task finished successfully\n"); err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
+}
+
+func executeRestartTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask) error {
+	if pulledTask.GetServiceDir() == "" {
+		err := fmt.Errorf("task is missing service_dir")
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	serviceRoot := filepath.Join(cfg.RepoDir, pulledTask.GetServiceDir())
+	if err := uploadTaskLog(ctx, client, pulledTask.GetTaskId(), fmt.Sprintf("starting remote restart task for service=%s dir=%s\n", pulledTask.GetServiceName(), serviceRoot)); err != nil {
+		return err
+	}
+	projectName, err := loadComposeProjectName(serviceRoot, pulledTask.GetServiceName())
+	if err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	if err := executeTaskStep(ctx, client, pulledTask.GetTaskId(), task.StepComposeDown, func() error {
+		return runComposeDown(ctx, serviceRoot, projectName, func(output string) error {
+			return uploadTaskLog(ctx, client, pulledTask.GetTaskId(), output)
+		})
+	}); err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	if err := executeTaskStep(ctx, client, pulledTask.GetTaskId(), task.StepComposeUp, func() error {
+		return runComposeUp(ctx, serviceRoot, projectName, func(output string) error {
+			return uploadTaskLog(ctx, client, pulledTask.GetTaskId(), output)
+		})
+	}); err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	if err := uploadTaskLog(ctx, client, pulledTask.GetTaskId(), "restart task finished successfully\n"); err != nil {
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -357,6 +428,21 @@ func runComposeUp(ctx context.Context, serviceDir, projectName string, uploadLog
 	}
 	if err != nil {
 		return fmt.Errorf("docker compose up failed: %w", err)
+	}
+	return nil
+}
+
+func runComposeDown(ctx context.Context, serviceDir, projectName string, uploadLog func(string) error) error {
+	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "down")
+	command.Dir = serviceDir
+	output, err := command.CombinedOutput()
+	if len(output) > 0 {
+		if logErr := uploadLog(string(output)); logErr != nil {
+			return logErr
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("docker compose down failed: %w", err)
 	}
 	return nil
 }

@@ -48,6 +48,7 @@ message AgentTask {
   string service_name = 3;
   string node_id = 4;
   string repo_revision = 5;
+  string service_dir = 6;
 }
 
 message PullNextTaskResponse {

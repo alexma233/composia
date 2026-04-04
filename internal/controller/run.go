@@ -399,6 +399,7 @@ func (server *agentTaskServer) PullNextTask(ctx context.Context, req *connect.Re
 			ServiceName:  record.ServiceName,
 			NodeId:       record.NodeID,
 			RepoRevision: record.RepoRevision,
+			ServiceDir:   taskServiceDir(record.ParamsJSON),
 		},
 	}
 	return connect.NewResponse(response), nil
@@ -474,40 +475,89 @@ func (server *serviceServer) ListServices(ctx context.Context, req *connect.Requ
 }
 
 func (server *serviceServer) DeployService(ctx context.Context, req *connect.Request[controllerv1.DeployServiceRequest]) (*connect.Response[controllerv1.DeployServiceResponse], error) {
+	if req.Msg == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+	createdTask, err := server.createServiceTask(ctx, req.Msg.GetServiceName(), task.TypeDeploy)
+	if err != nil {
+		return nil, err
+	}
+
+	response := &controllerv1.DeployServiceResponse{
+		TaskId:       createdTask.TaskID,
+		Status:       string(createdTask.Status),
+		RepoRevision: createdTask.RepoRevision,
+	}
+	return connect.NewResponse(response), nil
+}
+
+func (server *serviceServer) StopService(ctx context.Context, req *connect.Request[controllerv1.StopServiceRequest]) (*connect.Response[controllerv1.StopServiceResponse], error) {
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
-
-	hasActiveTask, err := server.db.HasActiveServiceTask(ctx, req.Msg.GetServiceName())
+	createdTask, err := server.createServiceTask(ctx, req.Msg.GetServiceName(), task.TypeStop)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, err
+	}
+	response := &controllerv1.StopServiceResponse{
+		TaskId:       createdTask.TaskID,
+		Status:       string(createdTask.Status),
+		RepoRevision: createdTask.RepoRevision,
+	}
+	return connect.NewResponse(response), nil
+}
+
+func (server *serviceServer) RestartService(ctx context.Context, req *connect.Request[controllerv1.RestartServiceRequest]) (*connect.Response[controllerv1.RestartServiceResponse], error) {
+	if req.Msg == nil || req.Msg.GetServiceName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+	createdTask, err := server.createServiceTask(ctx, req.Msg.GetServiceName(), task.TypeRestart)
+	if err != nil {
+		return nil, err
+	}
+	response := &controllerv1.RestartServiceResponse{
+		TaskId:       createdTask.TaskID,
+		Status:       string(createdTask.Status),
+		RepoRevision: createdTask.RepoRevision,
+	}
+	return connect.NewResponse(response), nil
+}
+
+func (server *serviceServer) createServiceTask(ctx context.Context, serviceName string, taskType task.Type) (task.Record, error) {
+	if serviceName == "" {
+		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+
+	hasActiveTask, err := server.db.HasActiveServiceTask(ctx, serviceName)
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, err)
 	}
 	if hasActiveTask {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q already has an active task", req.Msg.GetServiceName()))
+		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q already has an active task", serviceName))
 	}
 
-	service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName())
+	service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, serviceName)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return task.Record{}, connect.NewError(connect.CodeNotFound, err)
 	}
 	repoRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
 	triggeredBy, _ := rpcutil.BearerSubject(ctx)
 	serviceDir, err := filepath.Rel(server.cfg.RepoDir, service.Directory)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
+		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
 	}
 	paramsJSON, err := json.Marshal(deployTaskParams{ServiceDir: serviceDir})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("encode deploy task params: %w", err))
+		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode task params: %w", err))
 	}
 	taskID := uuid.NewString()
 	createdTask, err := server.db.CreateTask(ctx, task.Record{
 		TaskID:       taskID,
-		Type:         task.TypeDeploy,
+		Type:         taskType,
 		Source:       task.SourceCLI,
 		TriggeredBy:  triggeredBy,
 		ServiceName:  service.Name,
@@ -517,19 +567,23 @@ func (server *serviceServer) DeployService(ctx context.Context, req *connect.Req
 		LogPath:      filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
 	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return task.Record{}, connect.NewError(connect.CodeInternal, err)
 	}
-
 	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
+		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
 	}
+	return createdTask, nil
+}
 
-	response := &controllerv1.DeployServiceResponse{
-		TaskId:       createdTask.TaskID,
-		Status:       string(createdTask.Status),
-		RepoRevision: createdTask.RepoRevision,
+func taskServiceDir(paramsJSON string) string {
+	if paramsJSON == "" {
+		return ""
 	}
-	return connect.NewResponse(response), nil
+	var params deployTaskParams
+	if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
+		return ""
+	}
+	return params.ServiceDir
 }
 
 func (server *nodeServer) ListNodes(ctx context.Context, _ *connect.Request[controllerv1.ListNodesRequest]) (*connect.Response[controllerv1.ListNodesResponse], error) {

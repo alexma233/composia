@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
@@ -15,6 +16,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/config"
 	"forgejo.alexma.top/alexma233/composia/internal/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/store"
+	"forgejo.alexma.top/alexma233/composia/internal/task"
 )
 
 func TestServiceServiceListServices(t *testing.T) {
@@ -159,6 +161,74 @@ func TestServiceServiceDeployServiceCreatesPendingTask(t *testing.T) {
 	}
 	if _, err := os.Stat(detail.Record.LogPath); err != nil {
 		t.Fatalf("expected task log file to exist: %v", err)
+	}
+}
+
+func TestServiceServiceStopAndRestartCreatePendingTasks(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	logDir := filepath.Join(rootDir, "logs")
+	createGitRepoWithService(t, repoDir, "demo", "main")
+
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create log dir: %v", err)
+	}
+
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+
+	path, handler := controllerv1connect.NewServiceServiceHandler(
+		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir}, availableNodeIDs: map[string]struct{}{"main": {}}},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+
+	stopResponse, err := client.StopService(ctx, connect.NewRequest(&controllerv1.StopServiceRequest{ServiceName: "demo"}))
+	if err != nil {
+		t.Fatalf("stop service: %v", err)
+	}
+	if stopResponse.Msg.GetStatus() != "pending" {
+		t.Fatalf("expected pending stop task, got %q", stopResponse.Msg.GetStatus())
+	}
+	if err := db.CompleteTask(ctx, stopResponse.Msg.GetTaskId(), task.StatusSucceeded, time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC), ""); err != nil {
+		t.Fatalf("complete stop task: %v", err)
+	}
+
+	restartResponse, err := client.RestartService(ctx, connect.NewRequest(&controllerv1.RestartServiceRequest{ServiceName: "demo"}))
+	if err != nil {
+		t.Fatalf("restart service: %v", err)
+	}
+	if restartResponse.Msg.GetStatus() != "pending" {
+		t.Fatalf("expected pending restart task, got %q", restartResponse.Msg.GetStatus())
 	}
 }
 
