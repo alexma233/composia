@@ -193,6 +193,65 @@ func TestServiceServiceGetServiceTasksReturnsFilteredTasks(t *testing.T) {
 	}
 }
 
+func TestServiceServiceGetServiceBackupsReturnsFilteredBackups(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithService(t, repoDir, "alpha", "main")
+
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncDeclaredServices(ctx, []string{"alpha", "bravo"}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-1", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "alpha", CreatedAt: time.Date(2026, 4, 4, 11, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("create alpha backup task: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-2", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "bravo", CreatedAt: time.Date(2026, 4, 4, 11, 5, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("create bravo backup task: %v", err)
+	}
+	if err := db.UpsertBackupRecord(ctx, store.BackupDetail{BackupID: "backup-1", TaskID: "task-1", ServiceName: "alpha", DataName: "config", Status: "succeeded", StartedAt: "2026-04-04T11:00:00Z", FinishedAt: "2026-04-04T11:01:00Z"}); err != nil {
+		t.Fatalf("insert alpha backup: %v", err)
+	}
+	if err := db.UpsertBackupRecord(ctx, store.BackupDetail{BackupID: "backup-2", TaskID: "task-2", ServiceName: "bravo", DataName: "db", Status: "failed", StartedAt: "2026-04-04T11:05:00Z", FinishedAt: "2026-04-04T11:06:00Z"}); err != nil {
+		t.Fatalf("insert bravo backup: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+	path, handler := controllerv1connect.NewServiceServiceHandler(
+		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, availableNodeIDs: map[string]struct{}{"main": {}}},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	response, err := client.GetServiceBackups(ctx, connect.NewRequest(&controllerv1.GetServiceBackupsRequest{ServiceName: "alpha", PageSize: 10}))
+	if err != nil {
+		t.Fatalf("get service backups: %v", err)
+	}
+	if len(response.Msg.GetBackups()) != 1 || response.Msg.GetBackups()[0].GetBackupId() != "backup-1" {
+		t.Fatalf("unexpected service backup list: %+v", response.Msg.GetBackups())
+	}
+}
+
 func TestServiceServiceDeployServiceCreatesPendingTask(t *testing.T) {
 	t.Parallel()
 

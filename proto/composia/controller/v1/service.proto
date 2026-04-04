@@ -3,6 +3,7 @@ syntax = "proto3";
 package composia.controller.v1;
 
 import "proto/composia/controller/v1/task.proto";
+import "proto/composia/controller/v1/backup.proto";
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
@@ -10,6 +11,7 @@ service ServiceService {
   rpc ListServices(ListServicesRequest) returns (ListServicesResponse);
   rpc GetService(GetServiceRequest) returns (GetServiceResponse);
   rpc GetServiceTasks(GetServiceTasksRequest) returns (GetServiceTasksResponse);
+  rpc GetServiceBackups(GetServiceBackupsRequest) returns (GetServiceBackupsResponse);
   rpc DeployService(DeployServiceRequest) returns (DeployServiceResponse);
   rpc UpdateService(UpdateServiceRequest) returns (UpdateServiceResponse);
   rpc StopService(StopServiceRequest) returns (StopServiceResponse);
@@ -37,6 +39,19 @@ message GetServiceTasksRequest {
 
 message GetServiceTasksResponse {
   repeated TaskSummary tasks = 1;
+  string next_cursor = 2;
+}
+
+message GetServiceBackupsRequest {
+  string service_name = 1;
+  string status = 2;
+  string data_name = 3;
+  uint32 page_size = 4;
+  string cursor = 5;
+}
+
+message GetServiceBackupsResponse {
+  repeated BackupSummary backups = 1;
   string next_cursor = 2;
 }
 

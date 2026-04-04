@@ -42,6 +42,9 @@ const (
 	// ServiceServiceGetServiceTasksProcedure is the fully-qualified name of the ServiceService's
 	// GetServiceTasks RPC.
 	ServiceServiceGetServiceTasksProcedure = "/composia.controller.v1.ServiceService/GetServiceTasks"
+	// ServiceServiceGetServiceBackupsProcedure is the fully-qualified name of the ServiceService's
+	// GetServiceBackups RPC.
+	ServiceServiceGetServiceBackupsProcedure = "/composia.controller.v1.ServiceService/GetServiceBackups"
 	// ServiceServiceDeployServiceProcedure is the fully-qualified name of the ServiceService's
 	// DeployService RPC.
 	ServiceServiceDeployServiceProcedure = "/composia.controller.v1.ServiceService/DeployService"
@@ -61,6 +64,7 @@ type ServiceServiceClient interface {
 	ListServices(context.Context, *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error)
 	GetService(context.Context, *connect.Request[v1.GetServiceRequest]) (*connect.Response[v1.GetServiceResponse], error)
 	GetServiceTasks(context.Context, *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error)
+	GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error)
 	DeployService(context.Context, *connect.Request[v1.DeployServiceRequest]) (*connect.Response[v1.DeployServiceResponse], error)
 	UpdateService(context.Context, *connect.Request[v1.UpdateServiceRequest]) (*connect.Response[v1.UpdateServiceResponse], error)
 	StopService(context.Context, *connect.Request[v1.StopServiceRequest]) (*connect.Response[v1.StopServiceResponse], error)
@@ -96,6 +100,12 @@ func NewServiceServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(serviceServiceMethods.ByName("GetServiceTasks")),
 			connect.WithClientOptions(opts...),
 		),
+		getServiceBackups: connect.NewClient[v1.GetServiceBackupsRequest, v1.GetServiceBackupsResponse](
+			httpClient,
+			baseURL+ServiceServiceGetServiceBackupsProcedure,
+			connect.WithSchema(serviceServiceMethods.ByName("GetServiceBackups")),
+			connect.WithClientOptions(opts...),
+		),
 		deployService: connect.NewClient[v1.DeployServiceRequest, v1.DeployServiceResponse](
 			httpClient,
 			baseURL+ServiceServiceDeployServiceProcedure,
@@ -125,13 +135,14 @@ func NewServiceServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // serviceServiceClient implements ServiceServiceClient.
 type serviceServiceClient struct {
-	listServices    *connect.Client[v1.ListServicesRequest, v1.ListServicesResponse]
-	getService      *connect.Client[v1.GetServiceRequest, v1.GetServiceResponse]
-	getServiceTasks *connect.Client[v1.GetServiceTasksRequest, v1.GetServiceTasksResponse]
-	deployService   *connect.Client[v1.DeployServiceRequest, v1.DeployServiceResponse]
-	updateService   *connect.Client[v1.UpdateServiceRequest, v1.UpdateServiceResponse]
-	stopService     *connect.Client[v1.StopServiceRequest, v1.StopServiceResponse]
-	restartService  *connect.Client[v1.RestartServiceRequest, v1.RestartServiceResponse]
+	listServices      *connect.Client[v1.ListServicesRequest, v1.ListServicesResponse]
+	getService        *connect.Client[v1.GetServiceRequest, v1.GetServiceResponse]
+	getServiceTasks   *connect.Client[v1.GetServiceTasksRequest, v1.GetServiceTasksResponse]
+	getServiceBackups *connect.Client[v1.GetServiceBackupsRequest, v1.GetServiceBackupsResponse]
+	deployService     *connect.Client[v1.DeployServiceRequest, v1.DeployServiceResponse]
+	updateService     *connect.Client[v1.UpdateServiceRequest, v1.UpdateServiceResponse]
+	stopService       *connect.Client[v1.StopServiceRequest, v1.StopServiceResponse]
+	restartService    *connect.Client[v1.RestartServiceRequest, v1.RestartServiceResponse]
 }
 
 // ListServices calls composia.controller.v1.ServiceService.ListServices.
@@ -147,6 +158,11 @@ func (c *serviceServiceClient) GetService(ctx context.Context, req *connect.Requ
 // GetServiceTasks calls composia.controller.v1.ServiceService.GetServiceTasks.
 func (c *serviceServiceClient) GetServiceTasks(ctx context.Context, req *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error) {
 	return c.getServiceTasks.CallUnary(ctx, req)
+}
+
+// GetServiceBackups calls composia.controller.v1.ServiceService.GetServiceBackups.
+func (c *serviceServiceClient) GetServiceBackups(ctx context.Context, req *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error) {
+	return c.getServiceBackups.CallUnary(ctx, req)
 }
 
 // DeployService calls composia.controller.v1.ServiceService.DeployService.
@@ -174,6 +190,7 @@ type ServiceServiceHandler interface {
 	ListServices(context.Context, *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error)
 	GetService(context.Context, *connect.Request[v1.GetServiceRequest]) (*connect.Response[v1.GetServiceResponse], error)
 	GetServiceTasks(context.Context, *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error)
+	GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error)
 	DeployService(context.Context, *connect.Request[v1.DeployServiceRequest]) (*connect.Response[v1.DeployServiceResponse], error)
 	UpdateService(context.Context, *connect.Request[v1.UpdateServiceRequest]) (*connect.Response[v1.UpdateServiceResponse], error)
 	StopService(context.Context, *connect.Request[v1.StopServiceRequest]) (*connect.Response[v1.StopServiceResponse], error)
@@ -203,6 +220,12 @@ func NewServiceServiceHandler(svc ServiceServiceHandler, opts ...connect.Handler
 		ServiceServiceGetServiceTasksProcedure,
 		svc.GetServiceTasks,
 		connect.WithSchema(serviceServiceMethods.ByName("GetServiceTasks")),
+		connect.WithHandlerOptions(opts...),
+	)
+	serviceServiceGetServiceBackupsHandler := connect.NewUnaryHandler(
+		ServiceServiceGetServiceBackupsProcedure,
+		svc.GetServiceBackups,
+		connect.WithSchema(serviceServiceMethods.ByName("GetServiceBackups")),
 		connect.WithHandlerOptions(opts...),
 	)
 	serviceServiceDeployServiceHandler := connect.NewUnaryHandler(
@@ -237,6 +260,8 @@ func NewServiceServiceHandler(svc ServiceServiceHandler, opts ...connect.Handler
 			serviceServiceGetServiceHandler.ServeHTTP(w, r)
 		case ServiceServiceGetServiceTasksProcedure:
 			serviceServiceGetServiceTasksHandler.ServeHTTP(w, r)
+		case ServiceServiceGetServiceBackupsProcedure:
+			serviceServiceGetServiceBackupsHandler.ServeHTTP(w, r)
 		case ServiceServiceDeployServiceProcedure:
 			serviceServiceDeployServiceHandler.ServeHTTP(w, r)
 		case ServiceServiceUpdateServiceProcedure:
@@ -264,6 +289,10 @@ func (UnimplementedServiceServiceHandler) GetService(context.Context, *connect.R
 
 func (UnimplementedServiceServiceHandler) GetServiceTasks(context.Context, *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.GetServiceTasks is not implemented"))
+}
+
+func (UnimplementedServiceServiceHandler) GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.GetServiceBackups is not implemented"))
 }
 
 func (UnimplementedServiceServiceHandler) DeployService(context.Context, *connect.Request[v1.DeployServiceRequest]) (*connect.Response[v1.DeployServiceResponse], error) {

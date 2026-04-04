@@ -130,6 +130,12 @@ func Run(ctx context.Context, configPath string) error {
 	)
 	mux.Handle(systemPath, systemHandler)
 
+	backupPath, backupHandler := controllerv1connect.NewBackupRecordServiceHandler(
+		&backupRecordServer{db: db},
+		connect.WithInterceptors(cliInterceptor),
+	)
+	mux.Handle(backupPath, backupHandler)
+
 	servicePath, serviceHandler := controllerv1connect.NewServiceServiceHandler(
 		&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs},
 		connect.WithInterceptors(cliInterceptor),
@@ -431,6 +437,10 @@ type taskServer struct {
 	availableNodeIDs map[string]struct{}
 }
 
+type backupRecordServer struct {
+	db *store.DB
+}
+
 func (server *systemServer) GetSystemStatus(ctx context.Context, _ *connect.Request[controllerv1.GetSystemStatusRequest]) (*connect.Response[controllerv1.GetSystemStatusResponse], error) {
 	configured, online, err := server.db.NodeCounts(ctx)
 	if err != nil {
@@ -518,6 +528,27 @@ func (server *serviceServer) GetServiceTasks(ctx context.Context, req *connect.R
 	}
 	for _, record := range tasks {
 		response.Tasks = append(response.Tasks, taskSummaryMessage(record))
+	}
+	return connect.NewResponse(response), nil
+}
+
+func (server *serviceServer) GetServiceBackups(ctx context.Context, req *connect.Request[controllerv1.GetServiceBackupsRequest]) (*connect.Response[controllerv1.GetServiceBackupsResponse], error) {
+	if req.Msg == nil || req.Msg.GetServiceName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+	if _, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName()); err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	backups, nextCursor, err := server.db.ListBackups(ctx, req.Msg.GetServiceName(), req.Msg.GetStatus(), req.Msg.GetDataName(), req.Msg.GetCursor(), req.Msg.GetPageSize())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	response := &controllerv1.GetServiceBackupsResponse{
+		Backups:    make([]*controllerv1.BackupSummary, 0, len(backups)),
+		NextCursor: nextCursor,
+	}
+	for _, backup := range backups {
+		response.Backups = append(response.Backups, backupSummaryMessage(backup))
 	}
 	return connect.NewResponse(response), nil
 }
@@ -766,6 +797,61 @@ func taskSummaryMessage(record store.TaskSummary) *controllerv1.TaskSummary {
 		ServiceName: record.ServiceName,
 		NodeId:      record.NodeID,
 		CreatedAt:   record.CreatedAt,
+	}
+}
+
+func (server *backupRecordServer) ListBackups(ctx context.Context, req *connect.Request[controllerv1.ListBackupsRequest]) (*connect.Response[controllerv1.ListBackupsResponse], error) {
+	if req.Msg == nil {
+		req.Msg = &controllerv1.ListBackupsRequest{}
+	}
+	backups, nextCursor, err := server.db.ListBackups(ctx, req.Msg.GetServiceName(), req.Msg.GetStatus(), req.Msg.GetDataName(), req.Msg.GetCursor(), req.Msg.GetPageSize())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	response := &controllerv1.ListBackupsResponse{
+		Backups:    make([]*controllerv1.BackupSummary, 0, len(backups)),
+		NextCursor: nextCursor,
+	}
+	for _, backup := range backups {
+		response.Backups = append(response.Backups, backupSummaryMessage(backup))
+	}
+	return connect.NewResponse(response), nil
+}
+
+func (server *backupRecordServer) GetBackup(ctx context.Context, req *connect.Request[controllerv1.GetBackupRequest]) (*connect.Response[controllerv1.GetBackupResponse], error) {
+	if req.Msg == nil || req.Msg.GetBackupId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("backup_id is required"))
+	}
+	backup, err := server.db.GetBackup(ctx, req.Msg.GetBackupId())
+	if err != nil {
+		if errors.Is(err, store.ErrBackupNotFound) {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	response := &controllerv1.GetBackupResponse{
+		BackupId:     backup.BackupID,
+		TaskId:       backup.TaskID,
+		ServiceName:  backup.ServiceName,
+		DataName:     backup.DataName,
+		Status:       backup.Status,
+		StartedAt:    backup.StartedAt,
+		FinishedAt:   backup.FinishedAt,
+		ArtifactRef:  backup.ArtifactRef,
+		ErrorSummary: backup.ErrorSummary,
+	}
+	return connect.NewResponse(response), nil
+}
+
+func backupSummaryMessage(backup store.BackupSummary) *controllerv1.BackupSummary {
+	return &controllerv1.BackupSummary{
+		BackupId:    backup.BackupID,
+		TaskId:      backup.TaskID,
+		ServiceName: backup.ServiceName,
+		DataName:    backup.DataName,
+		Status:      backup.Status,
+		StartedAt:   backup.StartedAt,
+		FinishedAt:  backup.FinishedAt,
 	}
 }
 
