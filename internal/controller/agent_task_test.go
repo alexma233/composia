@@ -31,7 +31,7 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
-	paramsJSON, err := json.Marshal(deployTaskParams{ServiceDir: "demo"})
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: "demo"})
 	if err != nil {
 		t.Fatalf("marshal deploy task params: %v", err)
 	}

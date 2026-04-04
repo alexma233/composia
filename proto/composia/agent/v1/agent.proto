@@ -11,6 +11,7 @@ service AgentReportService {
   rpc ReportTaskState(ReportTaskStateRequest) returns (ReportTaskStateResponse);
   rpc ReportTaskStepState(ReportTaskStepStateRequest) returns (ReportTaskStepStateResponse);
   rpc UploadTaskLogs(UploadTaskLogsRequest) returns (UploadTaskLogsResponse);
+  rpc ReportBackupResult(ReportBackupResultRequest) returns (ReportBackupResultResponse);
 }
 
 service AgentTaskService {
@@ -49,6 +50,7 @@ message AgentTask {
   string node_id = 4;
   string repo_revision = 5;
   string service_dir = 6;
+  repeated string data_names = 7;
 }
 
 message PullNextTaskResponse {
@@ -81,6 +83,20 @@ message UploadTaskLogsRequest {
 }
 
 message UploadTaskLogsResponse {}
+
+message ReportBackupResultRequest {
+  string backup_id = 1;
+  string task_id = 2;
+  string service_name = 3;
+  string data_name = 4;
+  string status = 5;
+  google.protobuf.Timestamp started_at = 6;
+  google.protobuf.Timestamp finished_at = 7;
+  string artifact_ref = 8;
+  string error_summary = 9;
+}
+
+message ReportBackupResultResponse {}
 
 message GetServiceBundleRequest {
   string task_id = 1;

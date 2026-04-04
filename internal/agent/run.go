@@ -134,6 +134,8 @@ func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return executeDeployTask(ctx, bundleClient, client, cfg, pulledTask)
 	case string(task.TypeUpdate):
 		return executeUpdateTask(ctx, bundleClient, client, cfg, pulledTask)
+	case string(task.TypeBackup):
+		return executeBackupTask(ctx, client, pulledTask)
 	case string(task.TypeStop):
 		return executeStopTask(ctx, client, cfg, pulledTask)
 	case string(task.TypeRestart):
@@ -231,6 +233,36 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return err
 	}
 	if err := uploadTaskLog(ctx, client, pulledTask.GetTaskId(), "update task finished successfully\n"); err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
+}
+
+func executeBackupTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, pulledTask *agentv1.AgentTask) error {
+	if len(pulledTask.GetDataNames()) == 0 {
+		err := fmt.Errorf("backup task is missing data_names")
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	if err := uploadTaskLog(ctx, client, pulledTask.GetTaskId(), fmt.Sprintf("starting remote backup task for service=%s data_names=%s\n", pulledTask.GetServiceName(), strings.Join(pulledTask.GetDataNames(), ","))); err != nil {
+		return err
+	}
+	if err := executeTaskStep(ctx, client, pulledTask.GetTaskId(), task.StepBackup, func() error {
+		for _, dataName := range pulledTask.GetDataNames() {
+			if err := uploadTaskLog(ctx, client, pulledTask.GetTaskId(), fmt.Sprintf("backup placeholder completed for %s\n", dataName)); err != nil {
+				return err
+			}
+			if err := reportBackupResult(ctx, client, pulledTask.GetTaskId(), pulledTask.GetServiceName(), dataName); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	if err := uploadTaskLog(ctx, client, pulledTask.GetTaskId(), "backup task finished successfully\n"); err != nil {
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -337,6 +369,24 @@ func uploadTaskLog(ctx context.Context, client agentv1connect.AgentReportService
 	_, err := client.UploadTaskLogs(ctx, connect.NewRequest(&agentv1.UploadTaskLogsRequest{TaskId: taskID, Content: content}))
 	if err != nil {
 		return fmt.Errorf("upload task logs: %w", err)
+	}
+	return nil
+}
+
+func reportBackupResult(ctx context.Context, client agentv1connect.AgentReportServiceClient, taskID, serviceName, dataName string) error {
+	now := timestamppb.Now()
+	_, err := client.ReportBackupResult(ctx, connect.NewRequest(&agentv1.ReportBackupResultRequest{
+		BackupId:    fmt.Sprintf("%s-%s", taskID, dataName),
+		TaskId:      taskID,
+		ServiceName: serviceName,
+		DataName:    dataName,
+		Status:      string(task.StatusSucceeded),
+		StartedAt:   now,
+		FinishedAt:  now,
+		ArtifactRef: fmt.Sprintf("placeholder:%s:%s", taskID, dataName),
+	}))
+	if err != nil {
+		return fmt.Errorf("report backup result: %w", err)
 	}
 	return nil
 }

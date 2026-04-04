@@ -307,6 +307,46 @@ func (server *agentReportServer) UploadTaskLogs(ctx context.Context, req *connec
 	return connect.NewResponse(&agentv1.UploadTaskLogsResponse{}), nil
 }
 
+func (server *agentReportServer) ReportBackupResult(ctx context.Context, req *connect.Request[agentv1.ReportBackupResultRequest]) (*connect.Response[agentv1.ReportBackupResultResponse], error) {
+	if req.Msg.GetTaskId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
+	}
+	if req.Msg.GetBackupId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("backup_id is required"))
+	}
+	if req.Msg.GetDataName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("data_name is required"))
+	}
+	if req.Msg.GetStatus() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("status is required"))
+	}
+	if err := ensureTaskNodeMatch(ctx, server.db, req.Msg.GetTaskId()); err != nil {
+		return nil, err
+	}
+	startedAt := time.Now().UTC().Format(time.RFC3339)
+	if req.Msg.GetStartedAt() != nil {
+		startedAt = req.Msg.GetStartedAt().AsTime().UTC().Format(time.RFC3339)
+	}
+	finishedAt := ""
+	if req.Msg.GetFinishedAt() != nil {
+		finishedAt = req.Msg.GetFinishedAt().AsTime().UTC().Format(time.RFC3339)
+	}
+	if err := server.db.UpsertBackupRecord(ctx, store.BackupDetail{
+		BackupID:     req.Msg.GetBackupId(),
+		TaskID:       req.Msg.GetTaskId(),
+		ServiceName:  req.Msg.GetServiceName(),
+		DataName:     req.Msg.GetDataName(),
+		Status:       req.Msg.GetStatus(),
+		StartedAt:    startedAt,
+		FinishedAt:   finishedAt,
+		ArtifactRef:  req.Msg.GetArtifactRef(),
+		ErrorSummary: req.Msg.GetErrorSummary(),
+	}); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&agentv1.ReportBackupResultResponse{}), nil
+}
+
 func ensureTaskNodeMatch(ctx context.Context, db *store.DB, taskID string) error {
 	authenticatedNodeID, ok := rpcutil.BearerSubject(ctx)
 	if !ok {
@@ -341,7 +381,7 @@ func (server *bundleServer) GetServiceBundle(ctx context.Context, req *connect.R
 		return connect.NewError(connect.CodeInternal, err)
 	}
 
-	var params deployTaskParams
+	var params serviceTaskParams
 	if err := json.Unmarshal([]byte(detail.Record.ParamsJSON), &params); err != nil {
 		return connect.NewError(connect.CodeInternal, fmt.Errorf("decode deploy task params: %w", err))
 	}
@@ -405,7 +445,8 @@ func (server *agentTaskServer) PullNextTask(ctx context.Context, req *connect.Re
 			ServiceName:  record.ServiceName,
 			NodeId:       record.NodeID,
 			RepoRevision: record.RepoRevision,
-			ServiceDir:   taskServiceDir(record.ParamsJSON),
+			ServiceDir:   taskParams(record.ParamsJSON).ServiceDir,
+			DataNames:    taskParams(record.ParamsJSON).DataNames,
 		},
 	}
 	return connect.NewResponse(response), nil
@@ -422,8 +463,9 @@ type serviceServer struct {
 	availableNodeIDs map[string]struct{}
 }
 
-type deployTaskParams struct {
-	ServiceDir string `json:"service_dir"`
+type serviceTaskParams struct {
+	ServiceDir string   `json:"service_dir"`
+	DataNames  []string `json:"data_names,omitempty"`
 }
 
 type nodeServer struct {
@@ -553,11 +595,35 @@ func (server *serviceServer) GetServiceBackups(ctx context.Context, req *connect
 	return connect.NewResponse(response), nil
 }
 
+func (server *serviceServer) BackupService(ctx context.Context, req *connect.Request[controllerv1.BackupServiceRequest]) (*connect.Response[controllerv1.BackupServiceResponse], error) {
+	if req.Msg == nil || req.Msg.GetServiceName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+	service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	dataNames, err := repo.ValidateRequestedBackupDataNames(service, req.Msg.GetDataNames())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	createdTask, err := server.createServiceTask(ctx, req.Msg.GetServiceName(), task.TypeBackup, dataNames)
+	if err != nil {
+		return nil, err
+	}
+	response := &controllerv1.BackupServiceResponse{
+		TaskId:       createdTask.TaskID,
+		Status:       string(createdTask.Status),
+		RepoRevision: createdTask.RepoRevision,
+	}
+	return connect.NewResponse(response), nil
+}
+
 func (server *serviceServer) DeployService(ctx context.Context, req *connect.Request[controllerv1.DeployServiceRequest]) (*connect.Response[controllerv1.DeployServiceResponse], error) {
 	if req.Msg == nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
-	createdTask, err := server.createServiceTask(ctx, req.Msg.GetServiceName(), task.TypeDeploy)
+	createdTask, err := server.createServiceTask(ctx, req.Msg.GetServiceName(), task.TypeDeploy, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -574,7 +640,7 @@ func (server *serviceServer) UpdateService(ctx context.Context, req *connect.Req
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
-	createdTask, err := server.createServiceTask(ctx, req.Msg.GetServiceName(), task.TypeUpdate)
+	createdTask, err := server.createServiceTask(ctx, req.Msg.GetServiceName(), task.TypeUpdate, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -590,7 +656,7 @@ func (server *serviceServer) StopService(ctx context.Context, req *connect.Reque
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
-	createdTask, err := server.createServiceTask(ctx, req.Msg.GetServiceName(), task.TypeStop)
+	createdTask, err := server.createServiceTask(ctx, req.Msg.GetServiceName(), task.TypeStop, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -606,7 +672,7 @@ func (server *serviceServer) RestartService(ctx context.Context, req *connect.Re
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
-	createdTask, err := server.createServiceTask(ctx, req.Msg.GetServiceName(), task.TypeRestart)
+	createdTask, err := server.createServiceTask(ctx, req.Msg.GetServiceName(), task.TypeRestart, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -618,7 +684,7 @@ func (server *serviceServer) RestartService(ctx context.Context, req *connect.Re
 	return connect.NewResponse(response), nil
 }
 
-func (server *serviceServer) createServiceTask(ctx context.Context, serviceName string, taskType task.Type) (task.Record, error) {
+func (server *serviceServer) createServiceTask(ctx context.Context, serviceName string, taskType task.Type, dataNames []string) (task.Record, error) {
 	if serviceName == "" {
 		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
@@ -645,7 +711,7 @@ func (server *serviceServer) createServiceTask(ctx context.Context, serviceName 
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
 	}
-	paramsJSON, err := json.Marshal(deployTaskParams{ServiceDir: serviceDir})
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir, DataNames: dataNames})
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode task params: %w", err))
 	}
@@ -670,19 +736,19 @@ func (server *serviceServer) createServiceTask(ctx context.Context, serviceName 
 	return createdTask, nil
 }
 
-func createServiceTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName string, taskType task.Type) (task.Record, error) {
-	return (&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs}).createServiceTask(ctx, serviceName, taskType)
+func createServiceTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName string, taskType task.Type, dataNames []string) (task.Record, error) {
+	return (&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs}).createServiceTask(ctx, serviceName, taskType, dataNames)
 }
 
-func taskServiceDir(paramsJSON string) string {
+func taskParams(paramsJSON string) serviceTaskParams {
 	if paramsJSON == "" {
-		return ""
+		return serviceTaskParams{}
 	}
-	var params deployTaskParams
+	var params serviceTaskParams
 	if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
-		return ""
+		return serviceTaskParams{}
 	}
-	return params.ServiceDir
+	return params
 }
 
 func (server *nodeServer) ListNodes(ctx context.Context, _ *connect.Request[controllerv1.ListNodesRequest]) (*connect.Response[controllerv1.ListNodesResponse], error) {
@@ -958,7 +1024,8 @@ func (server *taskServer) RunTaskAgain(ctx context.Context, req *connect.Request
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("task type %q cannot be rerun yet", detail.Record.Type))
 	}
 
-	createdTask, err := createServiceTask(ctx, server.db, server.cfg, server.availableNodeIDs, detail.Record.ServiceName, rerunType)
+	params := taskParams(detail.Record.ParamsJSON)
+	createdTask, err := createServiceTask(ctx, server.db, server.cfg, server.availableNodeIDs, detail.Record.ServiceName, rerunType, params.DataNames)
 	if err != nil {
 		return nil, err
 	}

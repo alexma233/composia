@@ -463,6 +463,70 @@ func TestServiceServiceUpdateCreatesPendingTask(t *testing.T) {
 	}
 }
 
+func TestServiceServiceBackupCreatesPendingTaskWithDefaultDataNames(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"alpha/composia-meta.yaml": "name: alpha\nnode: main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\n    - name: db\n      backup:\n        strategy: files.copy\n        include:\n          - ./db\nbackup:\n  data:\n    - name: config\n    - name: db\n      enabled: false\n",
+	})
+	logDir := filepath.Join(rootDir, "logs")
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create log dir: %v", err)
+	}
+
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncDeclaredServices(ctx, []string{"alpha"}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+	path, handler := controllerv1connect.NewServiceServiceHandler(
+		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir}, availableNodeIDs: map[string]struct{}{"main": {}}},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	response, err := client.BackupService(ctx, connect.NewRequest(&controllerv1.BackupServiceRequest{ServiceName: "alpha"}))
+	if err != nil {
+		t.Fatalf("backup service: %v", err)
+	}
+	if response.Msg.GetStatus() != "pending" {
+		t.Fatalf("expected pending backup task, got %q", response.Msg.GetStatus())
+	}
+	detail, err := db.GetTask(ctx, response.Msg.GetTaskId())
+	if err != nil {
+		t.Fatalf("get backup task: %v", err)
+	}
+	params := taskParams(detail.Record.ParamsJSON)
+	if len(params.DataNames) != 1 || params.DataNames[0] != "config" {
+		t.Fatalf("unexpected backup task params: %+v", params)
+	}
+}
+
 func createGitRepoWithService(t *testing.T, repoDir, serviceName, nodeID string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Join(repoDir, serviceName), 0o755); err != nil {
@@ -472,6 +536,22 @@ func createGitRepoWithService(t *testing.T, repoDir, serviceName, nodeID string)
 	content := "name: " + serviceName + "\nnode: " + nodeID + "\n"
 	if err := os.WriteFile(metaPath, []byte(content), 0o644); err != nil {
 		t.Fatalf("write service meta: %v", err)
+	}
+	runGit(t, repoDir, "init")
+	runGit(t, repoDir, "add", ".")
+	runGit(t, repoDir, "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "initial")
+}
+
+func createGitRepoWithContent(t *testing.T, repoDir string, files map[string]string) {
+	t.Helper()
+	for relativePath, content := range files {
+		absolutePath := filepath.Join(repoDir, relativePath)
+		if err := os.MkdirAll(filepath.Dir(absolutePath), 0o755); err != nil {
+			t.Fatalf("create directory for %s: %v", relativePath, err)
+		}
+		if err := os.WriteFile(absolutePath, []byte(content), 0o644); err != nil {
+			t.Fatalf("write file %s: %v", relativePath, err)
+		}
 	}
 	runGit(t, repoDir, "init")
 	runGit(t, repoDir, "add", ".")

@@ -12,6 +12,7 @@ service ServiceService {
   rpc GetService(GetServiceRequest) returns (GetServiceResponse);
   rpc GetServiceTasks(GetServiceTasksRequest) returns (GetServiceTasksResponse);
   rpc GetServiceBackups(GetServiceBackupsRequest) returns (GetServiceBackupsResponse);
+  rpc BackupService(BackupServiceRequest) returns (BackupServiceResponse);
   rpc DeployService(DeployServiceRequest) returns (DeployServiceResponse);
   rpc UpdateService(UpdateServiceRequest) returns (UpdateServiceResponse);
   rpc StopService(StopServiceRequest) returns (StopServiceResponse);
@@ -53,6 +54,17 @@ message GetServiceBackupsRequest {
 message GetServiceBackupsResponse {
   repeated BackupSummary backups = 1;
   string next_cursor = 2;
+}
+
+message BackupServiceRequest {
+  string service_name = 1;
+  repeated string data_names = 2;
+}
+
+message BackupServiceResponse {
+  string task_id = 1;
+  string status = 2;
+  string repo_revision = 3;
 }
 
 message DeployServiceRequest {
