@@ -7,6 +7,7 @@
   import '../app.css';
 
   import type { Dictionary } from '$lib/i18n/messages/en-us';
+  import { Toaster } from '$lib/components/ui/sonner';
   import { messages } from '$lib/i18n';
   import { initializePreferences } from '$lib/preferences';
   import { cn } from '$lib/utils';
@@ -47,19 +48,13 @@
 </script>
 
 <div class="min-h-screen bg-transparent text-foreground">
+  <Toaster />
   <header class="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
     <div class="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-3 sm:px-6 lg:px-8">
       <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div class="flex min-w-0 flex-wrap items-center gap-3">
-          {#if isServiceWorkspace($page.url.pathname)}
-            <a href="/services" class="inline-flex h-9 items-center rounded-md border bg-background px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
-              Back
-            </a>
-          {/if}
-
           <div class="min-w-0">
             <a href="/" class="text-sm font-semibold tracking-[0.24em] uppercase text-primary">{$messages.app.name}</a>
-            <p class="text-sm text-muted-foreground">{$messages.app.subtitle}</p>
           </div>
 
           {#if isServiceWorkspace($page.url.pathname) && data.navServices.length}

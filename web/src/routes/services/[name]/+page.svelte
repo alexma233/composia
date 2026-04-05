@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { FolderPlus, Pencil, Play, RefreshCcw, Save, Square, Trash2, Upload, Wrench } from 'lucide-svelte';
+  import { FilePlus, FolderPlus, Pencil, Play, RefreshCcw, Save, Square, Trash2, Upload, Wrench } from 'lucide-svelte';
 
   import type { PageData } from './$types';
 
@@ -9,6 +9,7 @@
   import TaskLogStream from '$lib/components/app/task-log-stream.svelte';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
+  import { toast } from 'svelte-sonner';
   import { formatTimestamp, runtimeStatusTone, taskStatusTone } from '$lib/presenters';
   import type {
     BackupSummary,
@@ -41,7 +42,6 @@
   let logsExpanded = false;
   let actionBusy = '';
   let saving = false;
-  let notice = '';
   let errorMessage = data.error ?? '';
   let showNewFile = false;
   let newFilePath = '';
@@ -56,6 +56,7 @@
   let canSave = Boolean(activeTab && activeTab.dirty && !saving);
   let selectedNode = selectedNodePath ? findNode(fileTree, selectedNodePath) : null;
   let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+  let recentTasks: TaskSummary[] = [];
 
   function createTab(file: WorkspaceFile): EditorTab {
     return {
@@ -68,6 +69,7 @@
   $: activeTab = openTabs.find((tab) => tab.path === activePath) ?? null;
   $: canSave = Boolean(activeTab && activeTab.dirty && !saving);
   $: selectedNode = selectedNodePath ? findNode(fileTree, selectedNodePath) : null;
+  $: recentTasks = tasks.filter((task) => isTaskRecent(task.createdAt)).slice(0, 4);
 
   onDestroy(stopActionRefresh);
 
@@ -132,7 +134,6 @@
     }
 
     saving = true;
-    notice = '';
     errorMessage = '';
 
     try {
@@ -171,7 +172,7 @@
             }
           : item
       );
-      notice = `Saved ${tab.path}`;
+      toast.success(`Saved ${tab.path}`);
     } catch (saveError) {
       errorMessage = saveError instanceof Error ? saveError.message : 'Failed to save file.';
     } finally {
@@ -226,7 +227,7 @@
       activePath = normalized;
       showNewFile = false;
       newFilePath = '';
-      notice = `Created ${normalized}`;
+      toast.success(`Created ${normalized}`);
     } catch (createError) {
       errorMessage = createError instanceof Error ? createError.message : 'Failed to create file.';
     } finally {
@@ -262,7 +263,7 @@
       selectedNodePath = normalized;
       showNewFolder = false;
       newFolderPath = '';
-      notice = `Created folder ${normalized}`;
+      toast.success(`Created folder ${normalized}`);
     } catch (directoryError) {
       errorMessage = directoryError instanceof Error ? directoryError.message : 'Failed to create folder.';
     } finally {
@@ -309,7 +310,7 @@
       selectedNodePath = destination;
       renamePath = destination;
       showRename = false;
-      notice = `Renamed to ${destination}`;
+      toast.success(`Renamed to ${destination}`);
     } catch (renameError) {
       errorMessage = renameError instanceof Error ? renameError.message : 'Failed to rename path.';
     } finally {
@@ -351,7 +352,7 @@
       }
       selectedNodePath = '';
       showRename = false;
-      notice = `Deleted ${deletedPath}`;
+      toast.success(`Deleted ${deletedPath}`);
     } catch (deleteError) {
       errorMessage = deleteError instanceof Error ? deleteError.message : 'Failed to delete path.';
     } finally {
@@ -420,6 +421,14 @@
     }
   }
 
+  function isTaskRecent(createdAt: string) {
+    const createdAtMs = Date.parse(createdAt);
+    if (Number.isNaN(createdAtMs)) {
+      return false;
+    }
+    return Date.now() - createdAtMs <= 24 * 60 * 60 * 1000;
+  }
+
   function isTerminalTaskStatus(status: string) {
     return status === 'succeeded' || status === 'failed' || status === 'cancelled';
   }
@@ -450,7 +459,7 @@
       tasks = [newTask, ...tasks].slice(0, 12);
       selectedTaskId = payload.taskId;
       logsExpanded = true;
-      notice = `${action} queued as ${payload.taskId}`;
+      toast.success(`${action} queued as ${payload.taskId}`);
       startActionRefresh(payload.taskId);
     } catch (actionError) {
       errorMessage = actionError instanceof Error ? actionError.message : `Failed to run ${action}.`;
@@ -532,7 +541,6 @@
 <div class="mx-auto flex min-h-[calc(100vh-72px)] max-w-[1600px] flex-col px-4 py-6 sm:px-6 lg:px-8">
   <div class="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-lg border bg-card px-4 py-3 shadow-xs">
     <div>
-      <div class="text-sm text-muted-foreground">Service workspace</div>
       <h1 class="text-2xl font-semibold tracking-tight">{workspace?.displayName ?? 'Service'}</h1>
     </div>
 
@@ -552,25 +560,24 @@
     </div>
   {/if}
 
-  {#if notice}
-    <div class="mb-4 rounded-lg border border-primary/20 bg-primary/10 p-4 text-sm text-primary">
-      {notice}
-    </div>
-  {/if}
-
   <div class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)_320px]">
     <section class="flex min-h-0 flex-col rounded-lg border bg-card shadow-xs">
-      <div class="flex items-center justify-between border-b px-4 py-3">
+      <div class="border-b px-4 py-3">
         <div>
           <div class="text-sm font-medium">Files</div>
-          <div class="text-xs text-muted-foreground">Scoped to `{workspace?.folder}`</div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="mt-3 flex flex-wrap items-center gap-2">
           <Button type="button" variant="outline" size="sm" on:click={() => (showNewFile = !showNewFile)}>
-            New file
+            <FilePlus class="mr-2 size-4" />New File
           </Button>
           <Button type="button" variant="outline" size="sm" on:click={() => (showNewFolder = !showNewFolder)}>
-            <FolderPlus class="mr-2 size-4" />Folder
+            <FolderPlus class="mr-2 size-4" />New Folder
+          </Button>
+          <Button type="button" variant="outline" size="sm" on:click={() => { showRename = !showRename; renamePath = selectedNodePath; }} disabled={!selectedNodePath || saving}>
+            <Pencil class="mr-2 size-4" />Rename
+          </Button>
+          <Button type="button" variant="outline" size="sm" on:click={deleteNode} disabled={!selectedNodePath || saving}>
+            <Trash2 class="mr-2 size-4" />Delete
           </Button>
         </div>
       </div>
@@ -603,24 +610,9 @@
         </div>
       {/if}
 
-      <div class="border-b px-4 py-3 text-sm">
-        <div class="flex items-center justify-between gap-3">
-          <div>
-            <div class="font-medium">Selection</div>
-            <div class="text-xs text-muted-foreground">{selectedNodePath || 'Nothing selected'}</div>
-          </div>
-          <div class="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" on:click={() => { showRename = !showRename; renamePath = selectedNodePath; }} disabled={!selectedNodePath || saving}>
-              <Pencil class="mr-2 size-4" />Rename
-            </Button>
-            <Button type="button" variant="outline" size="sm" on:click={deleteNode} disabled={!selectedNodePath || saving}>
-              <Trash2 class="mr-2 size-4" />Delete
-            </Button>
-          </div>
-        </div>
-
-        {#if showRename}
-          <div class="mt-3 space-y-3">
+      {#if showRename}
+        <div class="border-b px-4 py-3 text-sm">
+          <div class="space-y-3">
             <input
               class="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none"
               bind:value={renamePath}
@@ -630,8 +622,8 @@
               <Button type="button" size="sm" on:click={renameNode} disabled={!selectedNodePath || saving}>Apply</Button>
             </div>
           </div>
-        {/if}
-      </div>
+        </div>
+      {/if}
 
       <div class="min-h-0 flex-1 overflow-auto px-2 py-3">
         <ServiceFileTree
@@ -651,7 +643,6 @@
         <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div class="text-sm font-medium">Editor</div>
-            <div class="text-xs text-muted-foreground">CodeMirror workspace with automatic commit messages.</div>
           </div>
           <Button type="button" size="sm" on:click={saveCurrentTab} disabled={!canSave}>
             <Save class="mr-2 size-4" />
@@ -689,7 +680,6 @@
       <article class="rounded-lg border bg-card p-4 shadow-xs">
         <div class="mb-4">
           <h2 class="text-base font-medium">Operations</h2>
-          <p class="text-sm text-muted-foreground">Runtime actions and repo sync state for this service.</p>
         </div>
 
         <div class="grid gap-2">
@@ -711,11 +701,26 @@
           <a href={`/services/${workspace?.folder}/secret`} class="inline-flex h-10 items-center justify-center rounded-md border bg-background px-4 text-sm transition-colors hover:bg-accent hover:text-accent-foreground pointer-events-none opacity-50" class:pointer-events-auto={!!workspace?.isDeclared} class:opacity-100={!!workspace?.isDeclared}>
             Edit secret
           </a>
+          <Button type="button" variant="outline" on:click={() => { showServiceRename = !showServiceRename; renameServiceFolder = workspace?.folder ?? ''; }} disabled={saving}>
+            <Pencil class="mr-2 size-4" />Rename service folder
+          </Button>
+          <Button type="button" variant="outline" class="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive" on:click={deleteServiceRoot} disabled={saving}>
+            <Trash2 class="mr-2 size-4" />Delete service
+          </Button>
         </div>
 
-        <p class="mt-3 text-xs text-muted-foreground">
-          Current execution semantics: deploy runs `docker compose up -d`, stop runs `docker compose down`, restart runs `down` then `up -d`, and update runs `pull` then `up -d`.
-        </p>
+        {#if showServiceRename}
+          <div class="mt-4 space-y-3 border-t pt-4">
+            <input
+              class="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none"
+              bind:value={renameServiceFolder}
+              placeholder="new-service-folder"
+            />
+            <div class="flex justify-end">
+              <Button type="button" size="sm" on:click={renameServiceRoot} disabled={saving}>Apply</Button>
+            </div>
+          </div>
+        {/if}
 
         {#if !workspace?.hasMeta}
           <div class="mt-4 rounded-lg border border-dashed bg-muted/20 p-3 text-sm text-muted-foreground">
@@ -747,35 +752,6 @@
       </article>
 
       <article class="rounded-lg border bg-card p-4 shadow-xs">
-        <div class="mb-3">
-          <h2 class="text-base font-medium">Service folder</h2>
-          <p class="text-sm text-muted-foreground">Rename or delete the top-level folder for this workspace.</p>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <Button type="button" variant="outline" size="sm" on:click={() => { showServiceRename = !showServiceRename; renameServiceFolder = workspace?.folder ?? ''; }} disabled={saving}>
-            <Pencil class="mr-2 size-4" />Rename service
-          </Button>
-          <Button type="button" variant="outline" size="sm" on:click={deleteServiceRoot} disabled={saving}>
-            <Trash2 class="mr-2 size-4" />Delete service
-          </Button>
-        </div>
-
-        {#if showServiceRename}
-          <div class="mt-3 space-y-3">
-            <input
-              class="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none"
-              bind:value={renameServiceFolder}
-              placeholder="new-service-folder"
-            />
-            <div class="flex justify-end">
-              <Button type="button" size="sm" on:click={renameServiceRoot} disabled={saving}>Apply</Button>
-            </div>
-          </div>
-        {/if}
-      </article>
-
-      <article class="rounded-lg border bg-card p-4 shadow-xs">
         <div class="mb-3 flex items-center justify-between gap-3">
           <h2 class="text-base font-medium">Recent tasks</h2>
           <button type="button" class="text-xs text-muted-foreground" on:click={() => (logsExpanded = !logsExpanded)}>
@@ -783,7 +759,7 @@
           </button>
         </div>
         <div class="space-y-2">
-          {#each tasks.slice(0, 8) as task}
+          {#each recentTasks as task}
             <button type="button" class="block w-full rounded-lg border bg-background px-3 py-3 text-left transition-colors hover:bg-muted/40" on:click={() => { selectedTaskId = task.taskId; logsExpanded = true; }}>
               <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
@@ -795,9 +771,9 @@
               <div class="mt-2 text-xs text-muted-foreground">{formatTimestamp(task.createdAt)}</div>
             </button>
           {/each}
-          {#if !tasks.length}
+          {#if !recentTasks.length}
             <div class="rounded-lg border border-dashed bg-muted/20 px-3 py-6 text-sm text-muted-foreground">
-              No tasks loaded.
+              No tasks in the last 24 hours.
             </div>
           {/if}
         </div>
