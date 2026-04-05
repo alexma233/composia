@@ -128,7 +128,8 @@ agent 落盘后，服务目录中会有解密后的 `.secret.env` 供 `docker co
 - `agent` 到 `controller` 的认证先使用单节点单 token；后续再替换为公私钥模型。
 - agent 执行任务时，详细日志流式回传到 `controller`，并由 `controller.log_dir` 落盘保存。
 - 在 Git 模式下，所有 repo 读写、auto pull、bundle 打包都必须经过同一个 repo lock 串行化。
-- Web/API/系统对 repo 的任何写操作都必须遵循：若配置了远程则先 `fetch + fast-forward`，再写文件、校验、`commit`；若配置了远程则继续 `push`。
+- Web/API/系统对 repo 的任何写操作都必须遵循：若配置了远程则先 `fetch + fast-forward`，再写文件、`commit`；若配置了远程则继续 `push`。
+- repo 写入允许保存暂时未通过校验的草稿 revision，但这些草稿仍必须以 Git commit 的形式进入历史，不能把未提交脏工作区当作草稿区。
 - 没有远程仓库时，新 revision 在本地 commit 成功后立即生效；有远程仓库时，本地 commit 成功后即作为 controller 当前有效 revision，但 repo 可能暂时处于“远程未同步”状态。
 - 若 `push` 成功，则该 revision 同步到远程；若 `push` 失败，则不回滚本地 `HEAD`，但 controller 必须显式记录并暴露当前 repo sync 状态，便于 Web UI / CLI / 后续任务感知“本地已提交、远程未同步”。
 - `repo_dir` 在空闲状态下必须保持 clean working tree；`push` 失败时也不得留下脏工作区。
@@ -607,6 +608,7 @@ migrate:
 
 - `deploy`：按当前 repo 内容渲染并执行 `docker compose up -d`。
 - `update`：先执行 `docker compose pull`，再继续 `deploy` 流程。
+- 所有执行类任务在创建前都必须重新校验其目标服务和相关全局配置；若当前 revision 只适合作为草稿、尚未通过所需校验，则任务创建直接失败。
 - `backup`：默认执行该服务全部启用的 `backup.data[]`；也支持通过 `data_names` 指定单个或多个数据项。
 - `migrate`：是单个任务，内部按步骤推进，而不是拆成多个独立任务；任务参数必须记录 `source_node_id` 和 `target_node_id`，运行态切换完成后由 `controller` 在 `persist_repo` 阶段尝试把新的 `node` 写回 repo 并生成 Git commit；若配置了远程仓库则继续 push；在人工验证和 repo 对账完成前，任务进入 `awaiting_confirmation`。
 - `dns_update`：按服务当前声明刷新 DNS 记录。
@@ -1157,8 +1159,9 @@ ON backups(status, finished_at DESC);
 - `GetRepoHead` 返回当前 branch、HEAD revision、是否配置远程、上次成功 pull 时间、是否处于 clean working tree，以及当前 repo sync 状态。
 - `ValidateRepo` 执行 repo 级配置校验，返回结构化错误列表。
 - `UpdateRepoFile` 请求至少应包含：`path`、`content`、`base_revision`、可选 `commit_message`。
-- `UpdateRepoFile` 的服务端语义固定为：获取 repo lock、若配置远程则先 `fetch + fast-forward`、校验 `base_revision`、校验目标路径是否命中正在执行中的服务锁、写回文件、执行校验、生成 commit、若配置了远程则继续 push、返回新的 `commit_id`、push 结果和当前 repo sync 状态。
-- `UpdateRepoFile` 在写文件 / 校验 / commit 之前的失败都必须回滚临时改动，不得留下 dirty working tree；若 commit 已成功但 push 失败，则不回滚本地 `HEAD`，repo 进入“远程未同步”状态。
+- `UpdateRepoFile` 的服务端语义固定为：获取 repo lock、若配置远程则先 `fetch + fast-forward`、校验 `base_revision`、校验目标路径是否命中正在执行中的服务锁、写回文件、生成 commit、若配置了远程则继续 push、返回新的 `commit_id`、push 结果和当前 repo sync 状态。
+- `UpdateRepoFile` 不要求每次写入后立即通过 repo 级校验；显式校验由 `ValidateRepo` 提供，执行类任务在创建前再按其目标范围执行严格校验。
+- `UpdateRepoFile` 在写文件 / commit 之前的失败都必须回滚临时改动，不得留下 dirty working tree；若 commit 已成功但 push 失败，则不回滚本地 `HEAD`，repo 进入“远程未同步”状态。
 - 某个服务存在 `pending`、`running` 或 `awaiting_confirmation` 任务时，命中该服务目录的 `UpdateRepoFile` 必须报冲突错误；修改其他服务或无关文件仍然允许，因此 repo `HEAD` 在长任务执行期间仍可能前进。
 - `ListRepoCommits` 用于 Web UI 展示最近提交历史。
 - `SyncRepo` 仅在配置远程仓库时可用，语义为 `fetch + fast-forward + re-parse`；如果 repo 当前不 clean，则直接失败。
@@ -1298,8 +1301,9 @@ Web 在线编辑文件：
 1. 调用 `RepoService.GetRepoHead` 和 `RepoService.GetRepoFile`
 2. 用户修改内容
 3. 调用 `RepoService.UpdateRepoFile`
-4. `controller` 若配置远程则先执行 `fetch + fast-forward`，然后写回、校验、`commit`，并在有远程时执行 `push`
-5. 返回新的 `commit_id`，并触发必要的重新解析或后续任务
+4. `controller` 若配置远程则先执行 `fetch + fast-forward`，然后写回、`commit`，并在有远程时执行 `push`
+5. 如需确认声明是否合法，客户端可显式调用 `ValidateRepo`；执行类任务在创建前也必须完成所需校验
+6. 返回新的 `commit_id`，并触发必要的重新解析或后续任务
 
 #### v1 暂不做
 

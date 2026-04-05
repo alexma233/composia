@@ -1632,10 +1632,6 @@ func (server *repoServer) updateRepoFileTransaction(ctx context.Context, relativ
 			_ = os.Remove(absolutePath)
 		}
 	}()
-	validationErrs := repo.ValidateRepo(server.cfg.RepoDir, server.availableNodeIDs)
-	if len(validationErrs) > 0 {
-		return repoWriteResult{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("repo validation failed: %s", validationErrs[0].Message))
-	}
 	authorName := ""
 	authorEmail := ""
 	if server.cfg.Git != nil {

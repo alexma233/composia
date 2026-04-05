@@ -351,6 +351,82 @@ func TestServiceServiceDeployServiceCreatesPendingTask(t *testing.T) {
 	}
 }
 
+func TestServiceServiceDeployServiceIgnoresUnrelatedInvalidDraft(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	logDir := filepath.Join(rootDir, "logs")
+	createGitRepoWithService(t, repoDir, "demo", "main")
+	if err := os.MkdirAll(filepath.Join(repoDir, "draft"), 0o755); err != nil {
+		t.Fatalf("create draft dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "draft", "composia-meta.yaml"), []byte("name: draft\nnode: missing\n"), 0o644); err != nil {
+		t.Fatalf("write invalid draft meta: %v", err)
+	}
+
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create log dir: %v", err)
+	}
+
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 10, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+
+	path, handler := controllerv1connect.NewServiceServiceHandler(
+		&serviceServer{
+			db:  db,
+			cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}},
+			availableNodeIDs: map[string]struct{}{
+				"main": {},
+			},
+		},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewServiceServiceClient(
+		httpServer.Client(),
+		httpServer.URL,
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")),
+	)
+
+	response, err := client.DeployService(ctx, connect.NewRequest(&controllerv1.DeployServiceRequest{ServiceName: "demo"}))
+	if err != nil {
+		t.Fatalf("deploy service with unrelated invalid draft: %v", err)
+	}
+	if response.Msg.GetTaskId() == "" {
+		t.Fatalf("expected task ID in deploy response")
+	}
+}
+
 func TestServiceServiceDeployServiceUsesWebSourceHeader(t *testing.T) {
 	t.Parallel()
 

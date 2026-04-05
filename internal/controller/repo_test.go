@@ -371,7 +371,7 @@ func TestRepoServiceUpdateRepoFileReturnsPushFailureWithoutRollback(t *testing.T
 	}
 }
 
-func TestRepoServiceUpdateRepoFileRevertsOnValidationFailure(t *testing.T) {
+func TestRepoServiceUpdateRepoFileAllowsInvalidMetaDraft(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -407,30 +407,34 @@ func TestRepoServiceUpdateRepoFileRevertsOnValidationFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get repo head: %v", err)
 	}
-	_, err = client.UpdateRepoFile(context.Background(), connect.NewRequest(&controllerv1.UpdateRepoFileRequest{
+	updated, err := client.UpdateRepoFile(context.Background(), connect.NewRequest(&controllerv1.UpdateRepoFileRequest{
 		Path:         "alpha/composia-meta.yaml",
 		Content:      "name: alpha\nnode: missing\n",
 		BaseRevision: head.Msg.GetHeadRevision(),
 	}))
-	if err == nil {
-		t.Fatalf("expected validation failure")
+	if err != nil {
+		t.Fatalf("update repo file with invalid draft: %v", err)
 	}
-	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
-		t.Fatalf("expected failed precondition, got %v", err)
+	if updated.Msg.GetCommitId() == "" {
+		t.Fatalf("expected commit id for invalid draft save")
 	}
 	content, err := os.ReadFile(filepath.Join(repoDir, "alpha", "composia-meta.yaml"))
 	if err != nil {
-		t.Fatalf("read reverted file: %v", err)
+		t.Fatalf("read updated file: %v", err)
 	}
-	if string(content) != "name: alpha\nnode: main\n" {
-		t.Fatalf("expected original content after revert, got %q", string(content))
+	if string(content) != "name: alpha\nnode: missing\n" {
+		t.Fatalf("expected invalid draft content to be saved, got %q", string(content))
 	}
 	clean, err := repo.IsCleanWorkingTree(repoDir)
 	if err != nil {
 		t.Fatalf("check clean worktree: %v", err)
 	}
 	if !clean {
-		t.Fatalf("expected clean worktree after validation failure")
+		t.Fatalf("expected clean worktree after invalid draft save")
+	}
+	validationErrors := repo.ValidateRepo(repoDir, map[string]struct{}{"main": {}})
+	if len(validationErrors) == 0 {
+		t.Fatalf("expected explicit repo validation to report invalid meta draft")
 	}
 }
 

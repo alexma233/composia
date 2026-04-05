@@ -99,9 +99,55 @@ type MigrateItem struct {
 }
 
 func DiscoverServices(repoDir string, availableNodeIDs map[string]struct{}) ([]Service, error) {
-	services := make([]Service, 0)
-	seenServiceNames := make(map[string]string)
+	servicesByName := make(map[string]Service)
+	duplicateNames := make(map[string]struct{})
 
+	err := filepath.WalkDir(repoDir, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() {
+			if entry.Name() == ".git" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if entry.Name() != MetaFileName {
+			return nil
+		}
+
+		service, err := strictServiceFromMetaPath(path, availableNodeIDs)
+		if err != nil {
+			return nil
+		}
+
+		if _, duplicated := duplicateNames[service.Name]; duplicated {
+			return nil
+		}
+		if _, exists := servicesByName[service.Name]; exists {
+			delete(servicesByName, service.Name)
+			duplicateNames[service.Name] = struct{}{}
+			return nil
+		}
+		servicesByName[service.Name] = service
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("discover services in %q: %w", repoDir, err)
+	}
+
+	services := make([]Service, 0, len(servicesByName))
+	for _, service := range servicesByName {
+		services = append(services, service)
+	}
+	sort.Slice(services, func(left, right int) bool {
+		return services[left].Name < services[right].Name
+	})
+	return services, nil
+}
+
+func FindService(repoDir string, availableNodeIDs map[string]struct{}, serviceName string) (Service, error) {
+	var matched *Service
 	err := filepath.WalkDir(repoDir, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
@@ -118,50 +164,54 @@ func DiscoverServices(repoDir string, availableNodeIDs map[string]struct{}) ([]S
 
 		meta, err := loadServiceMeta(path)
 		if err != nil {
+			return nil
+		}
+		if meta.Name != serviceName {
+			return nil
+		}
+		service, err := strictServiceFromMeta(path, meta, availableNodeIDs)
+		if err != nil {
 			return err
 		}
-		if err := validateServiceMeta(path, &meta, availableNodeIDs); err != nil {
-			return err
+		if matched != nil {
+			return fmt.Errorf("service %q is declared more than once: %s and %s", serviceName, matched.MetaPath, path)
 		}
-
-		if previousPath, exists := seenServiceNames[meta.Name]; exists {
-			return fmt.Errorf("service %q is declared more than once: %s and %s", meta.Name, previousPath, path)
-		}
-		seenServiceNames[meta.Name] = path
-
-		targetNode := meta.Node
-		if targetNode == "" {
-			targetNode = "main"
-		}
-
-		services = append(services, Service{
-			Name:      meta.Name,
-			Directory: filepath.Dir(path),
-			MetaPath:  path,
-			Node:      targetNode,
-			Enabled:   boolValue(meta.Enabled, true),
-			Meta:      meta,
-		})
+		matched = &service
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("discover services in %q: %w", repoDir, err)
+		return Service{}, err
 	}
-
-	return services, nil
+	if matched != nil {
+		return *matched, nil
+	}
+	return Service{}, fmt.Errorf("service %q is not declared", serviceName)
 }
 
-func FindService(repoDir string, availableNodeIDs map[string]struct{}, serviceName string) (Service, error) {
-	services, err := DiscoverServices(repoDir, availableNodeIDs)
+func strictServiceFromMetaPath(path string, availableNodeIDs map[string]struct{}) (Service, error) {
+	meta, err := loadServiceMeta(path)
 	if err != nil {
 		return Service{}, err
 	}
-	for _, service := range services {
-		if service.Name == serviceName {
-			return service, nil
-		}
+	return strictServiceFromMeta(path, meta, availableNodeIDs)
+}
+
+func strictServiceFromMeta(path string, meta ServiceMeta, availableNodeIDs map[string]struct{}) (Service, error) {
+	if err := validateServiceMeta(path, &meta, availableNodeIDs); err != nil {
+		return Service{}, err
 	}
-	return Service{}, fmt.Errorf("service %q is not declared", serviceName)
+	targetNode := meta.Node
+	if targetNode == "" {
+		targetNode = "main"
+	}
+	return Service{
+		Name:      meta.Name,
+		Directory: filepath.Dir(path),
+		MetaPath:  path,
+		Node:      targetNode,
+		Enabled:   boolValue(meta.Enabled, true),
+		Meta:      meta,
+	}, nil
 }
 
 func loadServiceMeta(path string) (ServiceMeta, error) {

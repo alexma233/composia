@@ -55,29 +55,63 @@ migrate:
 	}
 }
 
-func TestDiscoverServicesRejectsMissingMainForDefaultNode(t *testing.T) {
+func TestDiscoverServicesSkipsInvalidDefaultNodeDraft(t *testing.T) {
 	t.Parallel()
 
 	repoDir := t.TempDir()
 	metaPath := filepath.Join(repoDir, "vaultwarden", MetaFileName)
 	writeFile(t, metaPath, "name: vaultwarden\n")
 
-	_, err := DiscoverServices(repoDir, map[string]struct{}{"node-2": {}})
-	if err == nil || !strings.Contains(err.Error(), `node "main" is not configured`) {
-		t.Fatalf("expected missing main node error, got %v", err)
+	services, err := DiscoverServices(repoDir, map[string]struct{}{"node-2": {}})
+	if err != nil {
+		t.Fatalf("discover services: %v", err)
+	}
+	if len(services) != 0 {
+		t.Fatalf("expected invalid draft to be skipped, got %+v", services)
 	}
 }
 
-func TestDiscoverServicesRejectsDuplicateServiceNames(t *testing.T) {
+func TestDiscoverServicesSkipsDuplicateServiceNames(t *testing.T) {
 	t.Parallel()
 
 	repoDir := t.TempDir()
 	writeFile(t, filepath.Join(repoDir, "service-a", MetaFileName), "name: shared\nnode: node-1\n")
 	writeFile(t, filepath.Join(repoDir, "service-b", MetaFileName), "name: shared\nnode: node-1\n")
 
-	_, err := DiscoverServices(repoDir, map[string]struct{}{"node-1": {}})
-	if err == nil || !strings.Contains(err.Error(), `service "shared" is declared more than once`) {
-		t.Fatalf("expected duplicate service error, got %v", err)
+	services, err := DiscoverServices(repoDir, map[string]struct{}{"node-1": {}})
+	if err != nil {
+		t.Fatalf("discover services: %v", err)
+	}
+	if len(services) != 0 {
+		t.Fatalf("expected duplicate declared services to be skipped, got %+v", services)
+	}
+}
+
+func TestFindServiceRejectsInvalidTargetService(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	writeFile(t, filepath.Join(repoDir, "draft", MetaFileName), "name: draft\n")
+
+	_, err := FindService(repoDir, map[string]struct{}{"node-2": {}}, "draft")
+	if err == nil || !strings.Contains(err.Error(), `node "main" is not configured`) {
+		t.Fatalf("expected strict target validation error, got %v", err)
+	}
+}
+
+func TestFindServiceIgnoresUnrelatedInvalidDraft(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	writeFile(t, filepath.Join(repoDir, "alpha", MetaFileName), "name: alpha\nnode: node-1\n")
+	writeFile(t, filepath.Join(repoDir, "draft", MetaFileName), "name: draft\n")
+
+	service, err := FindService(repoDir, map[string]struct{}{"node-1": {}}, "alpha")
+	if err != nil {
+		t.Fatalf("find valid service with unrelated invalid draft: %v", err)
+	}
+	if service.Name != "alpha" {
+		t.Fatalf("unexpected service returned: %+v", service)
 	}
 }
 
