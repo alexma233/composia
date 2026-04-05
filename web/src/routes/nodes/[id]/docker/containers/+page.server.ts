@@ -1,26 +1,27 @@
 import type { PageServerLoad } from './$types';
 
-import { controllerConfig } from "$lib/server/controller";
-
-type ContainerSummary = {
-  id: string;
-  name: string;
-  image: string;
-  state: string;
-  status: string;
-  created: string;
-};
+import { controllerConfig, listNodeContainers } from "$lib/server/controller";
 
 export const load: PageServerLoad = async ({ params }) => {
   const config = controllerConfig();
   if (!config.ready) {
-    return { ready: false, error: config.reason, nodeId: params.id, containers: [] as ContainerSummary[] };
+    return { ready: false, error: config.reason, nodeId: params.id, containers: [] };
   }
 
-  return {
-    ready: true,
-    error: null,
-    nodeId: params.id,
-    containers: [] as ContainerSummary[],
-  };
+  try {
+    const containers = await listNodeContainers(params.id);
+    return {
+      ready: true,
+      error: null,
+      nodeId: params.id,
+      containers,
+    };
+  } catch (error) {
+    return {
+      ready: true,
+      error: error instanceof Error ? error.message : "Failed to load containers",
+      nodeId: params.id,
+      containers: [],
+    };
+  }
 };

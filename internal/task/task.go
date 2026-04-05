@@ -5,15 +5,17 @@ import "time"
 type Type string
 
 const (
-	TypeDeploy      Type = "deploy"
-	TypeStop        Type = "stop"
-	TypeRestart     Type = "restart"
-	TypeUpdate      Type = "update"
-	TypeBackup      Type = "backup"
-	TypeMigrate     Type = "migrate"
-	TypeDNSUpdate   Type = "dns_update"
-	TypeCaddyReload Type = "caddy_reload"
-	TypePrune       Type = "prune"
+	TypeDeploy        Type = "deploy"
+	TypeStop          Type = "stop"
+	TypeRestart       Type = "restart"
+	TypeUpdate        Type = "update"
+	TypeBackup        Type = "backup"
+	TypeMigrate       Type = "migrate"
+	TypeDNSUpdate     Type = "dns_update"
+	TypeCaddyReload   Type = "caddy_reload"
+	TypePrune         Type = "prune"
+	TypeDockerList    Type = "docker_list"
+	TypeDockerInspect Type = "docker_inspect"
 )
 
 type Status string
@@ -58,18 +60,20 @@ type Record struct {
 type StepName string
 
 const (
-	StepRender      StepName = "render"
-	StepPull        StepName = "pull"
-	StepBackup      StepName = "backup"
-	StepComposeDown StepName = "compose_down"
-	StepComposeUp   StepName = "compose_up"
-	StepTransfer    StepName = "transfer"
-	StepRestore     StepName = "restore"
-	StepDNSUpdate   StepName = "dns_update"
-	StepCaddyReload StepName = "caddy_reload"
-	StepPrune       StepName = "prune"
-	StepPersistRepo StepName = "persist_repo"
-	StepFinalize    StepName = "finalize"
+	StepRender        StepName = "render"
+	StepPull          StepName = "pull"
+	StepBackup        StepName = "backup"
+	StepComposeDown   StepName = "compose_down"
+	StepComposeUp     StepName = "compose_up"
+	StepTransfer      StepName = "transfer"
+	StepRestore       StepName = "restore"
+	StepDNSUpdate     StepName = "dns_update"
+	StepCaddyReload   StepName = "caddy_reload"
+	StepPrune         StepName = "prune"
+	StepPersistRepo   StepName = "persist_repo"
+	StepFinalize      StepName = "finalize"
+	StepDockerList    StepName = "docker_list"
+	StepDockerInspect StepName = "docker_inspect"
 )
 
 type StepRecord struct {

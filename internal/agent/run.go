@@ -227,6 +227,8 @@ func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return executeRestartTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypePrune):
 		return executePruneTask(ctx, client, cfg, pulledTask, logUploader)
+	case string(task.TypeDockerList), string(task.TypeDockerInspect):
+		return executeDockerTask(ctx, client, cfg, pulledTask, logUploader)
 	default:
 		return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, fmt.Sprintf("task type %q is not implemented", pulledTask.GetType()))
 	}

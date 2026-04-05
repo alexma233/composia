@@ -520,6 +520,131 @@ export async function pruneNodeDocker(
   return { taskId: response.task_id };
 }
 
+export type DockerContainerSummary = {
+  id: string;
+  name: string;
+  image: string;
+  state: string;
+  status: string;
+  created: string;
+  labels: Record<string, string>;
+};
+
+export type DockerNetworkSummary = {
+  id: string;
+  name: string;
+  driver: string;
+  scope: string;
+  internal: boolean;
+  attachable: boolean;
+  created: string;
+  labels: Record<string, string>;
+};
+
+export type DockerVolumeSummary = {
+  name: string;
+  driver: string;
+  mountpoint: string;
+  scope: string;
+  created: string;
+  labels: Record<string, string>;
+};
+
+export type DockerImageSummary = {
+  id: string;
+  repoTags: string[];
+  size: number;
+  created: string;
+};
+
+export async function listNodeContainers(nodeId: string): Promise<DockerContainerSummary[]> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{ containers?: DockerContainerSummary[] }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.NodeService/ListNodeContainers",
+    { node_id: nodeId },
+  );
+  return response.containers ?? [];
+}
+
+export async function inspectNodeContainer(nodeId: string, containerId: string): Promise<string> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{ rawJson?: string }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.NodeService/InspectNodeContainer",
+    { node_id: nodeId, container_id: containerId },
+  );
+  return response.rawJson ?? "{}";
+}
+
+export async function listNodeNetworks(nodeId: string): Promise<DockerNetworkSummary[]> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{ networks?: DockerNetworkSummary[] }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.NodeService/ListNodeNetworks",
+    { node_id: nodeId },
+  );
+  return response.networks ?? [];
+}
+
+export async function inspectNodeNetwork(nodeId: string, networkId: string): Promise<string> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{ rawJson?: string }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.NodeService/InspectNodeNetwork",
+    { node_id: nodeId, network_id: networkId },
+  );
+  return response.rawJson ?? "{}";
+}
+
+export async function listNodeVolumes(nodeId: string): Promise<DockerVolumeSummary[]> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{ volumes?: DockerVolumeSummary[] }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.NodeService/ListNodeVolumes",
+    { node_id: nodeId },
+  );
+  return response.volumes ?? [];
+}
+
+export async function inspectNodeVolume(nodeId: string, volumeName: string): Promise<string> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{ rawJson?: string }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.NodeService/InspectNodeVolume",
+    { node_id: nodeId, volume_name: volumeName },
+  );
+  return response.rawJson ?? "{}";
+}
+
+export async function listNodeImages(nodeId: string): Promise<DockerImageSummary[]> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{ images?: DockerImageSummary[] }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.NodeService/ListNodeImages",
+    { node_id: nodeId },
+  );
+  return response.images ?? [];
+}
+
+export async function inspectNodeImage(nodeId: string, imageId: string): Promise<string> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{ rawJson?: string }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.NodeService/InspectNodeImage",
+    { node_id: nodeId, image_id: imageId },
+  );
+  return response.rawJson ?? "{}";
+}
+
 export async function loadTaskDetail(taskId: string): Promise<TaskDetail> {
   const config = requireControllerConfig();
   return rpcCall<TaskDetail>(

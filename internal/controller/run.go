@@ -166,7 +166,7 @@ func Run(ctx context.Context, configPath string) error {
 	mux.Handle(servicePath, serviceHandler)
 
 	nodePath, nodeHandler := controllerv1connect.NewNodeServiceHandler(
-		&nodeServer{db: db, cfg: cfg},
+		&nodeServer{db: db, cfg: cfg, taskQueue: taskQueue},
 		connect.WithInterceptors(cliInterceptor),
 	)
 	mux.Handle(nodePath, nodeHandler)
@@ -770,8 +770,9 @@ type serviceTaskParams struct {
 }
 
 type nodeServer struct {
-	db  *store.DB
-	cfg *config.ControllerConfig
+	db        *store.DB
+	cfg       *config.ControllerConfig
+	taskQueue *taskQueueNotifier
 }
 
 type taskServer struct {
@@ -1265,35 +1266,358 @@ func (server *nodeServer) PruneNodeDocker(ctx context.Context, req *connect.Requ
 }
 
 func (server *nodeServer) ListNodeContainers(ctx context.Context, req *connect.Request[controllerv1.ListNodeContainersRequest]) (*connect.Response[controllerv1.ListNodeContainersResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("not implemented"))
+	if req.Msg == nil || req.Msg.GetNodeId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
+	}
+
+	result, err := server.executeDockerListTask(ctx, req.Msg.GetNodeId(), "containers")
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&controllerv1.ListNodeContainersResponse{
+		Containers: result.Containers,
+	}), nil
 }
 
 func (server *nodeServer) InspectNodeContainer(ctx context.Context, req *connect.Request[controllerv1.InspectNodeContainerRequest]) (*connect.Response[controllerv1.InspectNodeContainerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("not implemented"))
+	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetContainerId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and container_id are required"))
+	}
+
+	result, err := server.executeDockerInspectTask(ctx, req.Msg.GetNodeId(), "container", req.Msg.GetContainerId())
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&controllerv1.InspectNodeContainerResponse{
+		RawJson: result.RawJSON,
+	}), nil
 }
 
 func (server *nodeServer) ListNodeNetworks(ctx context.Context, req *connect.Request[controllerv1.ListNodeNetworksRequest]) (*connect.Response[controllerv1.ListNodeNetworksResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("not implemented"))
+	if req.Msg == nil || req.Msg.GetNodeId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
+	}
+
+	result, err := server.executeDockerListTask(ctx, req.Msg.GetNodeId(), "networks")
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&controllerv1.ListNodeNetworksResponse{
+		Networks: result.Networks,
+	}), nil
 }
 
 func (server *nodeServer) InspectNodeNetwork(ctx context.Context, req *connect.Request[controllerv1.InspectNodeNetworkRequest]) (*connect.Response[controllerv1.InspectNodeNetworkResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("not implemented"))
+	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetNetworkId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and network_id are required"))
+	}
+
+	result, err := server.executeDockerInspectTask(ctx, req.Msg.GetNodeId(), "network", req.Msg.GetNetworkId())
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&controllerv1.InspectNodeNetworkResponse{
+		RawJson: result.RawJSON,
+	}), nil
 }
 
 func (server *nodeServer) ListNodeVolumes(ctx context.Context, req *connect.Request[controllerv1.ListNodeVolumesRequest]) (*connect.Response[controllerv1.ListNodeVolumesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("not implemented"))
+	if req.Msg == nil || req.Msg.GetNodeId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
+	}
+
+	result, err := server.executeDockerListTask(ctx, req.Msg.GetNodeId(), "volumes")
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&controllerv1.ListNodeVolumesResponse{
+		Volumes: result.Volumes,
+	}), nil
 }
 
 func (server *nodeServer) InspectNodeVolume(ctx context.Context, req *connect.Request[controllerv1.InspectNodeVolumeRequest]) (*connect.Response[controllerv1.InspectNodeVolumeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("not implemented"))
+	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetVolumeName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and volume_name are required"))
+	}
+
+	result, err := server.executeDockerInspectTask(ctx, req.Msg.GetNodeId(), "volume", req.Msg.GetVolumeName())
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&controllerv1.InspectNodeVolumeResponse{
+		RawJson: result.RawJSON,
+	}), nil
 }
 
 func (server *nodeServer) ListNodeImages(ctx context.Context, req *connect.Request[controllerv1.ListNodeImagesRequest]) (*connect.Response[controllerv1.ListNodeImagesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("not implemented"))
+	if req.Msg == nil || req.Msg.GetNodeId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
+	}
+
+	result, err := server.executeDockerListTask(ctx, req.Msg.GetNodeId(), "images")
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&controllerv1.ListNodeImagesResponse{
+		Images: result.Images,
+	}), nil
 }
 
 func (server *nodeServer) InspectNodeImage(ctx context.Context, req *connect.Request[controllerv1.InspectNodeImageRequest]) (*connect.Response[controllerv1.InspectNodeImageResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("not implemented"))
+	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetImageId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and image_id are required"))
+	}
+
+	result, err := server.executeDockerInspectTask(ctx, req.Msg.GetNodeId(), "image", req.Msg.GetImageId())
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&controllerv1.InspectNodeImageResponse{
+		RawJson: result.RawJSON,
+	}), nil
+}
+
+type dockerListResult struct {
+	Containers []*controllerv1.ContainerInfo
+	Networks   []*controllerv1.NetworkInfo
+	Volumes    []*controllerv1.VolumeInfo
+	Images     []*controllerv1.ImageInfo
+	RawJSON    string
+}
+
+func (server *nodeServer) executeDockerListTask(ctx context.Context, nodeID, resource string) (*dockerListResult, error) {
+	snapshot, err := server.db.GetNodeSnapshot(ctx, nodeID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if !snapshot.IsOnline {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("node %q is offline", nodeID))
+	}
+
+	taskID := uuid.NewString()
+	paramsJSON := fmt.Sprintf(`{"action":"list","resource":%q}`, resource)
+
+	createdTask, err := server.db.CreateTask(ctx, task.Record{
+		TaskID:      taskID,
+		Type:        task.TypeDockerList,
+		Source:      task.SourceCLI,
+		TriggeredBy: "controller",
+		NodeID:      nodeID,
+		Status:      task.StatusPending,
+		ParamsJSON:  paramsJSON,
+		LogPath:     filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
+	}
+
+	notifyTaskQueue(server.taskQueue)
+
+	result, err := server.waitForDockerTaskResult(ctx, taskID, 30*time.Second)
+	if err != nil {
+		return nil, err
+	}
+
+	return server.parseDockerListResult(resource, result)
+}
+
+func (server *nodeServer) executeDockerInspectTask(ctx context.Context, nodeID, resource, id string) (*dockerListResult, error) {
+	snapshot, err := server.db.GetNodeSnapshot(ctx, nodeID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if !snapshot.IsOnline {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("node %q is offline", nodeID))
+	}
+
+	taskID := uuid.NewString()
+	paramsJSON := fmt.Sprintf(`{"action":"inspect","resource":%q,"id":%q}`, resource, id)
+
+	createdTask, err := server.db.CreateTask(ctx, task.Record{
+		TaskID:      taskID,
+		Type:        task.TypeDockerInspect,
+		Source:      task.SourceCLI,
+		TriggeredBy: "controller",
+		NodeID:      nodeID,
+		Status:      task.StatusPending,
+		ParamsJSON:  paramsJSON,
+		LogPath:     filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
+	}
+
+	notifyTaskQueue(server.taskQueue)
+
+	result, err := server.waitForDockerTaskResult(ctx, taskID, 30*time.Second)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dockerListResult{RawJSON: result}, nil
+}
+
+func (server *nodeServer) waitForDockerTaskResult(ctx context.Context, taskID string, timeout time.Duration) (string, error) {
+	deadline := time.Now().Add(timeout)
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-ticker.C:
+			detail, err := server.db.GetTask(ctx, taskID)
+			if err != nil {
+				continue
+			}
+			if detail.Record.Status == task.StatusSucceeded {
+				logContent, err := os.ReadFile(detail.Record.LogPath)
+				if err != nil {
+					return "", fmt.Errorf("read task log: %w", err)
+				}
+				return string(logContent), nil
+			}
+			if detail.Record.Status == task.StatusFailed {
+				return "", fmt.Errorf("task failed: %s", detail.Record.ErrorSummary)
+			}
+			if time.Now().After(deadline) {
+				return "", fmt.Errorf("timeout waiting for task result")
+			}
+		}
+	}
+}
+
+func (server *nodeServer) parseDockerListResult(resource, logContent string) (*dockerListResult, error) {
+	lines := strings.Split(strings.TrimSpace(logContent), "\n")
+	result := &dockerListResult{}
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || line == "docker task finished successfully" {
+			continue
+		}
+		if strings.HasPrefix(line, "starting docker") || strings.HasPrefix(line, "docker") {
+			continue
+		}
+
+		switch resource {
+		case "containers":
+			var psData struct {
+				ID      string `json:"ID"`
+				Names   string `json:"Names"`
+				Image   string `json:"Image"`
+				State   string `json:"State"`
+				Status  string `json:"Status"`
+				Created string `json:"CreatedAt"`
+				Labels  string `json:"Labels"`
+			}
+			if err := json.Unmarshal([]byte(line), &psData); err == nil {
+				labels := parseDockerLabels(psData.Labels)
+				result.Containers = append(result.Containers, &controllerv1.ContainerInfo{
+					Id:      psData.ID,
+					Name:    psData.Names,
+					Image:   psData.Image,
+					State:   psData.State,
+					Status:  psData.Status,
+					Created: psData.Created,
+					Labels:  labels,
+				})
+			}
+		case "networks":
+			var netData struct {
+				ID         string `json:"ID"`
+				Name       string `json:"Name"`
+				Driver     string `json:"Driver"`
+				Scope      string `json:"Scope"`
+				Internal   string `json:"Internal"`
+				Attachable string `json:"Attachable"`
+				Labels     string `json:"Labels"`
+				CreatedAt  string `json:"CreatedAt"`
+			}
+			if err := json.Unmarshal([]byte(line), &netData); err == nil {
+				labels := parseDockerLabels(netData.Labels)
+				result.Networks = append(result.Networks, &controllerv1.NetworkInfo{
+					Id:         netData.ID,
+					Name:       netData.Name,
+					Driver:     netData.Driver,
+					Scope:      netData.Scope,
+					Internal:   netData.Internal == "true",
+					Attachable: netData.Attachable == "true",
+					Created:    netData.CreatedAt,
+					Labels:     labels,
+				})
+			}
+		case "volumes":
+			var volData struct {
+				Name       string `json:"Name"`
+				Driver     string `json:"Driver"`
+				Mountpoint string `json:"Mountpoint"`
+				Scope      string `json:"Scope"`
+				Labels     string `json:"Labels"`
+			}
+			if err := json.Unmarshal([]byte(line), &volData); err == nil {
+				labels := parseDockerLabels(volData.Labels)
+				result.Volumes = append(result.Volumes, &controllerv1.VolumeInfo{
+					Name:       volData.Name,
+					Driver:     volData.Driver,
+					Mountpoint: volData.Mountpoint,
+					Scope:      volData.Scope,
+					Labels:     labels,
+				})
+			}
+		case "images":
+			var imgData struct {
+				ID         string `json:"ID"`
+				Repository string `json:"Repository"`
+				Tag        string `json:"Tag"`
+				Size       string `json:"Size"`
+				CreatedAt  string `json:"CreatedAt"`
+			}
+			if err := json.Unmarshal([]byte(line), &imgData); err == nil {
+				var repoTags []string
+				if imgData.Repository != "<none>" && imgData.Tag != "<none>" {
+					repoTags = append(repoTags, imgData.Repository+":"+imgData.Tag)
+				}
+				result.Images = append(result.Images, &controllerv1.ImageInfo{
+					Id:       imgData.ID,
+					RepoTags: repoTags,
+					Created:  imgData.CreatedAt,
+				})
+			}
+		}
+	}
+
+	return result, nil
+}
+
+func parseDockerLabels(labelsStr string) map[string]string {
+	labels := make(map[string]string)
+	if labelsStr == "" {
+		return labels
+	}
+	parts := strings.Split(labelsStr, ",")
+	for _, part := range parts {
+		kv := strings.SplitN(strings.TrimSpace(part), "=", 2)
+		if len(kv) == 2 {
+			labels[kv[0]] = kv[1]
+		}
+	}
+	return labels
 }
 
 func nodeSummary(node config.NodeConfig, snapshot store.NodeSnapshot) *controllerv1.NodeSummary {

@@ -10,6 +10,9 @@ import (
 
 	"connectrpc.com/connect"
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
+	agentv1connect "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
+	"forgejo.alexma.top/alexma233/composia/internal/config"
+	"forgejo.alexma.top/alexma233/composia/internal/task"
 )
 
 type dockerServer struct{}
@@ -300,4 +303,125 @@ func parseDockerSize(sizeStr string) int64 {
 		}
 	}
 	return size * multiplier
+}
+
+type dockerListParams struct {
+	Action   string `json:"action"`
+	Resource string `json:"resource"`
+	ID       string `json:"id,omitempty"`
+}
+
+func executeDockerTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
+	params := parseDockerListParams(pulledTask.GetParamsJson())
+
+	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting docker task: action=%s resource=%s id=%s\n", params.Action, params.Resource, params.ID)); err != nil {
+		return err
+	}
+
+	var stepName string
+	var execute func() error
+
+	if params.Action == "list" {
+		stepName = "docker_list"
+		execute = func() error {
+			return runDockerList(ctx, params.Resource, func(output string) error {
+				return uploadTaskLog(ctx, logUploader, output)
+			})
+		}
+	} else {
+		stepName = "docker_inspect"
+		execute = func() error {
+			return runDockerInspect(ctx, params.Resource, params.ID, func(output string) error {
+				return uploadTaskLog(ctx, logUploader, output)
+			})
+		}
+	}
+
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepName(stepName), execute); err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+
+	if err := uploadTaskLog(ctx, logUploader, "docker task finished successfully\n"); err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
+}
+
+func parseDockerListParams(paramsJSON string) dockerListParams {
+	if paramsJSON == "" {
+		return dockerListParams{Action: "list", Resource: "containers"}
+	}
+	var params dockerListParams
+	if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
+		return dockerListParams{Action: "list", Resource: "containers"}
+	}
+	if params.Action == "" {
+		params.Action = "list"
+	}
+	if params.Resource == "" {
+		params.Resource = "containers"
+	}
+	return params
+}
+
+func runDockerList(ctx context.Context, resource string, uploadLog func(string) error) error {
+	var args []string
+	switch resource {
+	case "containers":
+		args = []string{"ps", "-a", "--format", "{{json .}}"}
+	case "networks":
+		args = []string{"network", "ls", "--format", "{{json .}}"}
+	case "volumes":
+		args = []string{"volume", "ls", "--format", "{{json .}}"}
+	case "images":
+		args = []string{"images", "--format", "{{json .}}"}
+	default:
+		return fmt.Errorf("unknown resource type: %s", resource)
+	}
+
+	cmd := exec.CommandContext(ctx, "docker", args...)
+	output, err := cmd.CombinedOutput()
+	if outStr := string(output); outStr != "" {
+		if logErr := uploadLog(outStr); logErr != nil {
+			return logErr
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("docker %s list failed: %w", resource, err)
+	}
+	return nil
+}
+
+func runDockerInspect(ctx context.Context, resource, id string, uploadLog func(string) error) error {
+	if id == "" {
+		return fmt.Errorf("inspect requires an id")
+	}
+
+	var args []string
+	switch resource {
+	case "container":
+		args = []string{"inspect", id}
+	case "network":
+		args = []string{"network", "inspect", id}
+	case "volume":
+		args = []string{"volume", "inspect", id}
+	case "image":
+		args = []string{"image", "inspect", id}
+	default:
+		return fmt.Errorf("unknown resource type: %s", resource)
+	}
+
+	cmd := exec.CommandContext(ctx, "docker", args...)
+	output, err := cmd.CombinedOutput()
+	if outStr := string(output); outStr != "" {
+		if logErr := uploadLog(outStr); logErr != nil {
+			return logErr
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("docker %s inspect failed: %w", resource, err)
+	}
+	return nil
 }
