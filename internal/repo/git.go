@@ -155,7 +155,7 @@ func CommitPath(repoDir, relativePath, message, authorName, authorEmail string) 
 	if message == "" {
 		message = fmt.Sprintf("update %s", relativePath)
 	}
-	if err := gitCommand(repoDir, gitAuthorEnv(authorName, authorEmail), "commit", "-m", message); err != nil {
+	if err := gitCommandWithOptions(repoDir, gitAuthorEnv(authorName, authorEmail), []string{"commit.gpgsign=false"}, "commit", "-m", message); err != nil {
 		return "", fmt.Errorf("commit repo path %q: %w", relativePath, err)
 	}
 	commitID, err := CurrentRevision(repoDir)

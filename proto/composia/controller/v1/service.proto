@@ -29,6 +29,7 @@ message GetServiceResponse {
   string updated_at = 3;
   string node = 4;
   bool enabled = 5;
+  string directory = 6;
 }
 
 message GetServiceTasksRequest {

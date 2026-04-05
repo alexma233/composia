@@ -16,8 +16,8 @@
         <div class="text-sm text-muted-foreground">Service secrets</div>
         <h1 class="mt-1 text-3xl font-semibold tracking-tight">{data.service?.name ?? 'Secret editor'}</h1>
       </div>
-      {#if data.service}
-        <a href={`/services/${data.service.name}`} class="inline-flex h-9 items-center rounded-md border bg-background px-4 text-sm transition-colors hover:bg-muted/40">Back to service</a>
+      {#if data.workspace}
+        <a href={`/services/${data.workspace.folder}`} class="inline-flex h-9 items-center rounded-md border bg-background px-4 text-sm transition-colors hover:bg-muted/40">Back to service</a>
       {/if}
     </div>
 

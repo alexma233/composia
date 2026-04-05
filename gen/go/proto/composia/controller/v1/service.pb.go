@@ -72,6 +72,7 @@ type GetServiceResponse struct {
 	UpdatedAt     string                 `protobuf:"bytes,3,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	Node          string                 `protobuf:"bytes,4,opt,name=node,proto3" json:"node,omitempty"`
 	Enabled       bool                   `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Directory     string                 `protobuf:"bytes,6,opt,name=directory,proto3" json:"directory,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -139,6 +140,13 @@ func (x *GetServiceResponse) GetEnabled() bool {
 		return x.Enabled
 	}
 	return false
+}
+
+func (x *GetServiceResponse) GetDirectory() string {
+	if x != nil {
+		return x.Directory
+	}
+	return ""
 }
 
 type GetServiceTasksRequest struct {
@@ -1103,14 +1111,15 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"\n" +
 	"*proto/composia/controller/v1/service.proto\x12\x16composia.controller.v1\x1a'proto/composia/controller/v1/task.proto\x1a)proto/composia/controller/v1/backup.proto\"6\n" +
 	"\x11GetServiceRequest\x12!\n" +
-	"\fservice_name\x18\x01 \x01(\tR\vserviceName\"\x9c\x01\n" +
+	"\fservice_name\x18\x01 \x01(\tR\vserviceName\"\xba\x01\n" +
 	"\x12GetServiceResponse\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12%\n" +
 	"\x0eruntime_status\x18\x02 \x01(\tR\rruntimeStatus\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\x03 \x01(\tR\tupdatedAt\x12\x12\n" +
 	"\x04node\x18\x04 \x01(\tR\x04node\x12\x18\n" +
-	"\aenabled\x18\x05 \x01(\bR\aenabled\"\x88\x01\n" +
+	"\aenabled\x18\x05 \x01(\bR\aenabled\x12\x1c\n" +
+	"\tdirectory\x18\x06 \x01(\tR\tdirectory\"\x88\x01\n" +
 	"\x16GetServiceTasksRequest\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x1b\n" +

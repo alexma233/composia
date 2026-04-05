@@ -68,6 +68,13 @@ export type ServiceDetail = {
   updatedAt: string;
   node: string;
   enabled: boolean;
+  directory: string;
+};
+
+export type ServiceActionResult = {
+  taskId: string;
+  status: string;
+  repoRevision: string;
 };
 
 export type BackupSummary = {
@@ -332,6 +339,28 @@ export async function loadServiceBackups(serviceName: string, pageSize = 20): Pr
   return response.backups ?? [];
 }
 
+export async function deployService(serviceName: string): Promise<ServiceActionResult> {
+  return callServiceAction('/composia.controller.v1.ServiceService/DeployService', { serviceName });
+}
+
+export async function updateService(serviceName: string): Promise<ServiceActionResult> {
+  return callServiceAction('/composia.controller.v1.ServiceService/UpdateService', { serviceName });
+}
+
+export async function stopService(serviceName: string): Promise<ServiceActionResult> {
+  return callServiceAction('/composia.controller.v1.ServiceService/StopService', { serviceName });
+}
+
+export async function restartService(serviceName: string): Promise<ServiceActionResult> {
+  return callServiceAction('/composia.controller.v1.ServiceService/RestartService', {
+    serviceName
+  });
+}
+
+export async function backupService(serviceName: string): Promise<ServiceActionResult> {
+  return callServiceAction('/composia.controller.v1.ServiceService/BackupService', { serviceName });
+}
+
 export async function loadNodeDetail(nodeId: string): Promise<NodeSummary | null> {
   const config = requireControllerConfig();
   const response = await rpcCall<{ node?: NodeSummary }>(
@@ -370,6 +399,11 @@ function requireControllerConfig() {
     throw new Error(config.reason);
   }
   return config;
+}
+
+async function callServiceAction(procedure: string, body: RpcRequest): Promise<ServiceActionResult> {
+  const config = requireControllerConfig();
+  return rpcCall<ServiceActionResult>(config.baseUrl, config.token, procedure, body);
 }
 
 async function rpcCall<T>(baseUrl: string, token: string, procedure: string, body: RpcRequest): Promise<T> {

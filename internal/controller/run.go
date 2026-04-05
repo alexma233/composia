@@ -812,6 +812,7 @@ func (server *serviceServer) GetService(ctx context.Context, req *connect.Reques
 		UpdatedAt:     snapshot.UpdatedAt,
 		Node:          service.Node,
 		Enabled:       service.Enabled,
+		Directory:     filepath.ToSlash(mustRelativeServiceDir(server.cfg.RepoDir, service.Directory)),
 	}
 	return connect.NewResponse(response), nil
 }
@@ -1663,6 +1664,9 @@ func (server *repoServer) updateRepoFileTransaction(ctx context.Context, relativ
 		return repoWriteResult{}, connect.NewError(connect.CodeInternal, err)
 	}
 	if err := repo.PushCurrentBranch(server.cfg.RepoDir, strings.TrimSpace(server.cfg.Git.RemoteURL), branch, authToken); err != nil {
+		if refreshErr := server.refreshDeclaredServices(ctx); refreshErr != nil {
+			return repoWriteResult{}, refreshErr
+		}
 		state := store.RepoSyncState{
 			SyncStatus:           store.RepoSyncStatusPushFailed,
 			LastSyncError:        err.Error(),
@@ -1683,6 +1687,9 @@ func (server *repoServer) updateRepoFileTransaction(ctx context.Context, relativ
 	}
 	if err := server.persistRepoSyncState(ctx, state); err != nil {
 		return repoWriteResult{}, connect.NewError(connect.CodeInternal, err)
+	}
+	if err := server.refreshDeclaredServices(ctx); err != nil {
+		return repoWriteResult{}, err
 	}
 	result.SyncStatus = state.SyncStatus
 	result.LastSuccessfulPullAt = state.LastSuccessfulPullAt
@@ -1943,4 +1950,12 @@ func requestTaskSource(header http.Header) task.Source {
 	default:
 		return task.SourceCLI
 	}
+}
+
+func mustRelativeServiceDir(repoDir, serviceDir string) string {
+	relativePath, err := filepath.Rel(repoDir, serviceDir)
+	if err != nil {
+		return filepath.ToSlash(serviceDir)
+	}
+	return filepath.ToSlash(relativePath)
 }

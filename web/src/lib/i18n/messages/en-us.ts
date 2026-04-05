@@ -4,12 +4,12 @@ export const enUS = {
     subtitle: 'Service-first self-hosted operations'
   },
   nav: {
-    overview: 'Overview',
+    overview: 'Dashboard',
     services: 'Services',
     nodes: 'Nodes',
     tasks: 'Tasks',
     backups: 'Backups',
-    repo: 'Repo'
+    settings: 'Settings'
   },
   preferences: {
     theme: 'Theme',

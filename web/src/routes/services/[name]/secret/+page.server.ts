@@ -9,6 +9,7 @@ import {
   loadServiceSecret,
   updateServiceSecret
 } from '$lib/server/controller';
+import { loadServiceWorkspaces } from '$lib/server/service-index';
 
 export const actions: Actions = {
   save: async ({ request, params }) => {
@@ -22,7 +23,15 @@ export const actions: Actions = {
     }
 
     try {
-      await updateServiceSecret(params.name, content, baseRevision, commitMessage);
+      const workspace = (await loadServiceWorkspaces()).find((item) => item.folder === params.name);
+      if (!workspace?.serviceName) {
+        return fail(400, {
+          error: 'Create composia-meta.yaml for this folder before editing secrets.',
+          content,
+          commitMessage
+        });
+      }
+      await updateServiceSecret(workspace.serviceName, content, baseRevision, commitMessage);
     } catch (error) {
       return fail(500, {
         error: error instanceof Error ? error.message : 'Failed to update service secret.',
@@ -38,13 +47,25 @@ export const actions: Actions = {
 export const load: PageServerLoad = async ({ params }) => {
   const config = controllerConfig();
   if (!config.ready) {
-    return { ready: false, error: config.reason, service: null, secret: null, head: null };
+    return { ready: false, error: config.reason, service: null, workspace: null, secret: null, head: null };
   }
 
   try {
+    const workspace = (await loadServiceWorkspaces()).find((item) => item.folder === params.name);
+    if (!workspace?.serviceName) {
+      return {
+        ready: true,
+        error: 'Create composia-meta.yaml for this folder before editing secrets.',
+        service: null,
+        workspace,
+        secret: null,
+        head: null
+      };
+    }
+
     const [service, secret, head] = await Promise.all([
-      loadServiceDetail(params.name),
-      loadServiceSecret(params.name),
+      loadServiceDetail(workspace.serviceName),
+      loadServiceSecret(workspace.serviceName),
       loadRepoHead()
     ]);
 
@@ -52,6 +73,7 @@ export const load: PageServerLoad = async ({ params }) => {
       ready: true,
       error: null,
       service,
+      workspace,
       secret,
       head
     };
@@ -60,6 +82,7 @@ export const load: PageServerLoad = async ({ params }) => {
       ready: true,
       error: error instanceof Error ? error.message : 'Failed to load service secret.',
       service: null,
+      workspace: null,
       secret: null,
       head: null
     };

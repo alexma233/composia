@@ -41,6 +41,6 @@
   export { className as class };
 </script>
 
-<button type={type} class={cn(buttonVariants({ variant, size }), className)} {...$$restProps}>
+<button type={type} class={cn(buttonVariants({ variant, size }), className)} on:click {...$$restProps}>
   <slot />
 </button>
