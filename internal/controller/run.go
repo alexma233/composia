@@ -1386,12 +1386,17 @@ func (server *nodeServer) InspectNodeImage(ctx context.Context, req *connect.Req
 }
 
 type dockerListResult struct {
-	Containers []*controllerv1.ContainerInfo
-	Networks   []*controllerv1.NetworkInfo
-	Volumes    []*controllerv1.VolumeInfo
-	Images     []*controllerv1.ImageInfo
-	RawJSON    string
+	Containers []*controllerv1.ContainerInfo `json:"containers,omitempty"`
+	Networks   []*controllerv1.NetworkInfo   `json:"networks,omitempty"`
+	Volumes    []*controllerv1.VolumeInfo    `json:"volumes,omitempty"`
+	Images     []*controllerv1.ImageInfo     `json:"images,omitempty"`
+	RawJSON    string                        `json:"raw_json,omitempty"`
 }
+
+const (
+	dockerTaskResultBegin = "COMPOSIA_DOCKER_RESULT_BEGIN"
+	dockerTaskResultEnd   = "COMPOSIA_DOCKER_RESULT_END"
+)
 
 func (server *nodeServer) executeDockerListTask(ctx context.Context, nodeID, resource string) (*dockerListResult, error) {
 	snapshot, err := server.db.GetNodeSnapshot(ctx, nodeID)
@@ -1468,7 +1473,12 @@ func (server *nodeServer) executeDockerInspectTask(ctx context.Context, nodeID, 
 		return nil, err
 	}
 
-	return &dockerListResult{RawJSON: result}, nil
+	payload, err := extractDockerTaskResult(result)
+	if err != nil {
+		return nil, err
+	}
+
+	return payload, nil
 }
 
 func (server *nodeServer) waitForDockerTaskResult(ctx context.Context, taskID string, timeout time.Duration) (string, error) {
@@ -1503,6 +1513,37 @@ func (server *nodeServer) waitForDockerTaskResult(ctx context.Context, taskID st
 }
 
 func (server *nodeServer) parseDockerListResult(resource, logContent string) (*dockerListResult, error) {
+	payload, err := extractDockerTaskResult(logContent)
+	if err == nil {
+		return payload, nil
+	}
+
+	return server.parseLegacyDockerListResult(resource, logContent)
+}
+
+func extractDockerTaskResult(logContent string) (*dockerListResult, error) {
+	start := strings.Index(logContent, dockerTaskResultBegin)
+	if start == -1 {
+		return nil, fmt.Errorf("docker task result marker not found")
+	}
+	start += len(dockerTaskResultBegin)
+	end := strings.Index(logContent[start:], dockerTaskResultEnd)
+	if end == -1 {
+		return nil, fmt.Errorf("docker task result end marker not found")
+	}
+	payload := strings.TrimSpace(logContent[start : start+end])
+	if payload == "" {
+		return nil, fmt.Errorf("docker task result payload is empty")
+	}
+
+	var result dockerListResult
+	if err := json.Unmarshal([]byte(payload), &result); err != nil {
+		return nil, fmt.Errorf("decode docker task result: %w", err)
+	}
+	return &result, nil
+}
+
+func (server *nodeServer) parseLegacyDockerListResult(resource, logContent string) (*dockerListResult, error) {
 	lines := strings.Split(strings.TrimSpace(logContent), "\n")
 	result := &dockerListResult{}
 

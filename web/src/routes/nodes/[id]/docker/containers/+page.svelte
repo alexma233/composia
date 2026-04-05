@@ -179,7 +179,7 @@
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead class="w-[25%]">
+                <TableHead class="w-[30%]">
                   <button
                     class="flex items-center gap-1 hover:text-foreground"
                     on:click={() => handleSort('name')}
@@ -208,7 +208,7 @@
                 </TableHead>
                 <TableHead class="w-[15%]">Ports</TableHead>
                 <TableHead class="w-[15%]">Networks</TableHead>
-                <TableHead class="w-[10%]">
+                <TableHead class="w-[15%]">
                   <button
                     class="flex items-center gap-1 hover:text-foreground"
                     on:click={() => handleSort('created')}
@@ -217,7 +217,6 @@
                     {@html SortIcon('created')}
                   </button>
                 </TableHead>
-                <TableHead class="w-[5%] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -225,7 +224,12 @@
                 <TableRow class="hover:bg-accent/50">
                   <TableCell>
                     <div class="space-y-0.5">
-                      <div class="font-medium">{container.name}</div>
+                        <a
+                          href="/nodes/{data.nodeId}/docker/containers/{encodeURIComponent(container.id)}"
+                          class="font-medium hover:underline"
+                        >
+                          {container.name}
+                        </a>
                       <div class="flex items-center gap-1.5">
                         <code class="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
                           {formatShortId(container.id)}
@@ -308,14 +312,6 @@
                     <div class="text-sm text-muted-foreground" title={container.created}>
                       {formatRelativeTime(container.created)}
                     </div>
-                  </TableCell>
-                  <TableCell class="text-right">
-                    <a
-                      href="/nodes/{data.nodeId}/docker/containers/{encodeURIComponent(container.id)}"
-                      class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 px-3"
-                    >
-                      Inspect
-                    </a>
                   </TableCell>
                 </TableRow>
               {/each}

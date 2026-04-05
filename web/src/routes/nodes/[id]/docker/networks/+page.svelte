@@ -168,7 +168,7 @@
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead class="w-[25%]">
+                <TableHead class="w-[30%]">
                   <button class="flex items-center gap-1 hover:text-foreground" on:click={() => handleSort('name')}>
                     Name
                     {@html SortIcon('name')}
@@ -183,14 +183,12 @@
                 <TableHead class="w-[10%]">Scope</TableHead>
                 <TableHead class="w-[15%]">Subnet</TableHead>
                 <TableHead class="w-[10%]">Containers</TableHead>
-                <TableHead class="w-[10%]">Attributes</TableHead>
-                <TableHead class="w-[15%]">
+                <TableHead class="w-[20%]">
                   <button class="flex items-center gap-1 hover:text-foreground" on:click={() => handleSort('created')}>
                     Created
                     {@html SortIcon('created')}
                   </button>
                 </TableHead>
-                <TableHead class="w-[5%] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -199,7 +197,12 @@
                   <TableCell>
                     <div class="space-y-0.5">
                       <div class="flex items-center gap-2">
-                        <span class="font-medium">{network.name}</span>
+                        <a
+                          href="/nodes/{data.nodeId}/docker/networks/{encodeURIComponent(network.id)}"
+                          class="font-medium hover:underline"
+                        >
+                          {network.name}
+                        </a>
                         {#if isSystemNetwork(network.name)}
                           <Badge variant="secondary" class="text-xs">System</Badge>
                         {/if}
@@ -250,30 +253,9 @@
                     {/if}
                   </TableCell>
                   <TableCell>
-                    <div class="flex flex-wrap gap-1">
-                      {#if network.internal}
-                        <Badge variant="warning" class="text-xs">Internal</Badge>
-                      {/if}
-                      {#if network.attachable}
-                        <Badge variant="info" class="text-xs">Attachable</Badge>
-                      {/if}
-                      {#if network.ipv6Enabled}
-                        <Badge variant="outline" class="text-xs">IPv6</Badge>
-                      {/if}
-                    </div>
-                  </TableCell>
-                  <TableCell>
                     <div class="text-sm text-muted-foreground" title={network.created}>
                       {formatRelativeTime(network.created)}
                     </div>
-                  </TableCell>
-                  <TableCell class="text-right">
-                    <a
-                      href="/nodes/{data.nodeId}/docker/networks/{encodeURIComponent(network.id)}"
-                      class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 px-3"
-                    >
-                      Inspect
-                    </a>
                   </TableCell>
                 </TableRow>
               {/each}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import type { PageData } from './$types';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
@@ -8,9 +9,52 @@
 
   export let data: PageData;
 
+  type DockerVolumeSummary = {
+    name: string;
+    driver: string;
+    mountpoint: string;
+    scope: string;
+    created: string;
+    labels: Record<string, string>;
+    sizeBytes: number;
+    containersCount: number;
+    inUse: boolean;
+  };
+
   let searchQuery = '';
   let sortField: 'name' | 'driver' | 'created' = 'name';
   let sortDirection: 'asc' | 'desc' = 'asc';
+  let loading = data.ready;
+  let loadError = data.error;
+  let volumes: DockerVolumeSummary[] = data.volumes || [];
+
+  async function loadVolumes() {
+    if (!data.ready) {
+      loading = false;
+      return;
+    }
+
+    loading = true;
+    loadError = null;
+
+    try {
+      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/volumes/data`);
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to load volumes');
+      }
+      volumes = payload.volumes ?? [];
+    } catch (error) {
+      loadError = error instanceof Error ? error.message : 'Failed to load volumes';
+      volumes = [];
+    } finally {
+      loading = false;
+    }
+  }
+
+  onMount(() => {
+    void loadVolumes();
+  });
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
@@ -77,7 +121,7 @@
     </svg>`;
   };
 
-  $: filteredVolumes = (data.volumes || []).filter((v) => {
+  $: filteredVolumes = volumes.filter((v) => {
     const query = searchQuery.toLowerCase();
     return (
       v.name.toLowerCase().includes(query) ||
@@ -112,8 +156,8 @@
             <CardTitle class="page-title">Volumes</CardTitle>
             <CardDescription class="page-description">
               Docker volumes on {data.nodeId}
-              {#if data.volumes}
-                <Badge variant="secondary" class="ml-2">{data.volumes.length}</Badge>
+              {#if !loading}
+                <Badge variant="secondary" class="ml-2">{volumes.length}</Badge>
               {/if}
             </CardDescription>
           </div>
@@ -148,18 +192,31 @@
               Clear
             </Button>
           {/if}
+          <Button variant="outline" size="sm" on:click={() => void loadVolumes()} disabled={loading || !data.ready}>
+            {#if loading}Loading...{:else}Refresh{/if}
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
-        {#if data.error}
+        {#if loadError}
           <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-            {data.error}
+            {loadError}
+          </div>
+        {:else if loading}
+          <div class="flex min-h-[320px] items-center justify-center">
+            <div class="flex items-center gap-3 text-sm text-muted-foreground">
+              <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"></path>
+              </svg>
+              <span>Loading volumes and usage data...</span>
+            </div>
           </div>
         {:else if sortedVolumes.length > 0}
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead class="w-[20%]">
+                <TableHead class="w-[25%]">
                   <button class="flex items-center gap-1 hover:text-foreground" on:click={() => handleSort('name')}>
                     Name
                     {@html SortIcon('name')}
@@ -170,13 +227,12 @@
                 <TableHead class="w-[10%]">Usage</TableHead>
                 <TableHead class="w-[25%]">Mount Point</TableHead>
                 <TableHead class="w-[10%]">Scope</TableHead>
-                <TableHead class="w-[10%]">
+                <TableHead class="w-[15%]">
                   <button class="flex items-center gap-1 hover:text-foreground" on:click={() => handleSort('created')}>
                     Created
                     {@html SortIcon('created')}
                   </button>
                 </TableHead>
-                <TableHead class="w-[5%] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -184,9 +240,13 @@
                 <TableRow class="hover:bg-accent/50">
                   <TableCell>
                     <div class="space-y-0.5">
-                      <div class="font-medium truncate max-w-[180px]" title={volume.name}>
-                        {volume.name}
-                      </div>
+                        <a
+                          href="/nodes/{data.nodeId}/docker/volumes/{encodeURIComponent(volume.name)}"
+                          class="font-medium truncate max-w-[180px] block hover:underline"
+                          title={volume.name}
+                        >
+                          {volume.name}
+                        </a>
                       {#if volume.labels && Object.keys(volume.labels).length > 0}
                         <div class="flex flex-wrap gap-1">
                           {#each Object.entries(volume.labels).slice(0, 2) as [key, value]}
@@ -247,21 +307,13 @@
                       {formatRelativeTime(volume.created)}
                     </div>
                   </TableCell>
-                  <TableCell class="text-right">
-                    <a
-                      href="/nodes/{data.nodeId}/docker/volumes/{encodeURIComponent(volume.name)}"
-                      class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 px-3"
-                    >
-                      Inspect
-                    </a>
-                  </TableCell>
                 </TableRow>
               {/each}
             </TableBody>
           </Table>
-          {#if filteredVolumes.length !== data.volumes?.length}
+          {#if filteredVolumes.length !== volumes.length}
             <div class="mt-3 text-xs text-muted-foreground text-center">
-              Showing {filteredVolumes.length} of {data.volumes?.length} volumes
+              Showing {filteredVolumes.length} of {volumes.length} volumes
             </div>
           {/if}
         {:else if searchQuery}

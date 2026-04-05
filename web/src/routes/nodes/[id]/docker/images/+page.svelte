@@ -166,7 +166,7 @@
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead class="w-[35%]">
+                <TableHead class="w-[40%]">
                   <button class="flex items-center gap-1 hover:text-foreground" on:click={() => handleSort('name')}>
                     Image
                     {@html SortIcon('name')}
@@ -180,13 +180,12 @@
                 </TableHead>
                 <TableHead class="w-[20%]">Architecture</TableHead>
                 <TableHead class="w-[15%]">Usage</TableHead>
-                <TableHead class="w-[10%]">
+                <TableHead class="w-[15%]">
                   <button class="flex items-center gap-1 hover:text-foreground" on:click={() => handleSort('created')}>
                     Created
                     {@html SortIcon('created')}
                   </button>
                 </TableHead>
-                <TableHead class="w-[5%] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -195,17 +194,27 @@
                   <TableCell>
                     <div class="space-y-0.5">
                       {#if image.repoTags && image.repoTags.length > 0}
-                        <div class="font-medium truncate max-w-[250px]" title={image.repoTags[0]}>
-                          {image.repoTags[0]}
-                        </div>
+                          <a
+                            href="/nodes/{data.nodeId}/docker/images/{encodeURIComponent(image.id)}"
+                            class="font-medium truncate max-w-[250px] block hover:underline"
+                            title={image.repoTags[0]}
+                          >
+                            {image.repoTags[0]}
+                          </a>
                         {#if image.repoTags.length > 1}
                           <div class="text-xs text-muted-foreground">+{image.repoTags.length - 1} more tags</div>
                         {/if}
                       {:else if image.isDangling}
-                        <div class="font-medium text-muted-foreground">&lt;none&gt;</div>
+                        <a
+                          href="/nodes/{data.nodeId}/docker/images/{encodeURIComponent(image.id)}"
+                          class="font-medium text-muted-foreground hover:underline"
+                        >&lt;none&gt;</a>
                         <Badge variant="secondary" class="text-xs">Dangling</Badge>
                       {:else}
-                        <div class="font-medium">{image.id}</div>
+                        <a
+                          href="/nodes/{data.nodeId}/docker/images/{encodeURIComponent(image.id)}"
+                          class="font-medium hover:underline"
+                        >{image.id}</a>
                       {/if}
                       <div class="flex items-center gap-1.5">
                         <code class="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
@@ -255,14 +264,6 @@
                     <div class="text-sm text-muted-foreground" title={image.created}>
                       {formatRelativeTime(image.created)}
                     </div>
-                  </TableCell>
-                  <TableCell class="text-right">
-                    <a
-                      href="/nodes/{data.nodeId}/docker/images/{encodeURIComponent(image.id)}"
-                      class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 px-3"
-                    >
-                      Inspect
-                    </a>
                   </TableCell>
                 </TableRow>
               {/each}
