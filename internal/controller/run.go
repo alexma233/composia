@@ -20,6 +20,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1/controllerv1connect"
+	backupcfg "forgejo.alexma.top/alexma233/composia/internal/backup"
 	"forgejo.alexma.top/alexma233/composia/internal/config"
 	"forgejo.alexma.top/alexma233/composia/internal/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/rpcutil"
@@ -420,7 +421,7 @@ func (server *bundleServer) GetServiceBundle(ctx context.Context, req *connect.R
 	if params.ServiceDir == "" {
 		return connect.NewError(connect.CodeFailedPrecondition, errors.New("deploy task is missing service_dir"))
 	}
-	extraFiles, err := bundleExtraFiles(server.cfg, detail.Record.RepoRevision, params.ServiceDir)
+	extraFiles, err := bundleExtraFiles(server.cfg, detail.Record, params)
 	if err != nil {
 		return connect.NewError(connect.CodeInternal, err)
 	}
@@ -456,25 +457,134 @@ func (server *bundleServer) GetServiceBundle(ctx context.Context, req *connect.R
 	}
 }
 
-func bundleExtraFiles(cfg *config.ControllerConfig, revision, serviceDir string) (map[string]string, error) {
-	if cfg.Secrets == nil {
+func bundleExtraFiles(cfg *config.ControllerConfig, record task.Record, params serviceTaskParams) (map[string]string, error) {
+	extraFiles := map[string]string{}
+	if params.ServiceDir == "" {
+		return extraFiles, nil
+	}
+	if cfg.Secrets != nil {
+		plaintext, err := readOptionalSecretPlaintext(cfg, record.RepoRevision, params.ServiceDir)
+		if err != nil {
+			return nil, err
+		}
+		if plaintext != "" {
+			extraFiles[filepath.ToSlash(filepath.Join(params.ServiceDir, ".secret.env"))] = plaintext
+		}
+	}
+	if record.Type == task.TypeBackup {
+		payload, err := buildBackupRuntimePayload(cfg, record.ServiceName, record.RepoRevision, params)
+		if err != nil {
+			return nil, err
+		}
+		if payload != "" {
+			extraFiles[filepath.ToSlash(filepath.Join(params.ServiceDir, ".composia-backup.json"))] = payload
+		}
+	}
+	if len(extraFiles) == 0 {
 		return nil, nil
 	}
+	return extraFiles, nil
+}
+
+func readOptionalSecretPlaintext(cfg *config.ControllerConfig, revision, serviceDir string) (string, error) {
 	secretContent, err := repo.ReadFileAtRevision(cfg.RepoDir, revision, filepath.ToSlash(filepath.Join(serviceDir, ".secret.env.enc")))
 	if err != nil {
-		if strings.Contains(err.Error(), "does not exist") || strings.Contains(err.Error(), "exists on disk, but not in") {
-			return nil, nil
+		if isMissingRevisionPathError(err) {
+			return "", nil
 		}
-		if strings.Contains(err.Error(), "pathspec") || strings.Contains(err.Error(), "invalid object name") || strings.Contains(err.Error(), "not found") {
-			return nil, nil
-		}
-		return nil, err
+		return "", err
 	}
 	plaintext, err := secretutil.Decrypt([]byte(secretContent), cfg.Secrets)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return map[string]string{filepath.ToSlash(filepath.Join(serviceDir, ".secret.env")): plaintext}, nil
+	return plaintext, nil
+}
+
+func isMissingRevisionPathError(err error) bool {
+	message := err.Error()
+	return strings.Contains(message, "does not exist") || strings.Contains(message, "exists on disk, but not in") || strings.Contains(message, "pathspec") || strings.Contains(message, "invalid object name") || strings.Contains(message, "not found")
+}
+
+func buildBackupRuntimePayload(cfg *config.ControllerConfig, serviceName, revision string, params serviceTaskParams) (string, error) {
+	if cfg.Backup == nil || cfg.Backup.Rustic == nil {
+		return "", fmt.Errorf("controller backup.rustic is required for backup tasks")
+	}
+	service, err := repo.FindService(cfg.RepoDir, configuredNodeIDs(cfg), serviceName)
+	if err != nil {
+		return "", err
+	}
+	selected := make(map[string]struct{}, len(params.DataNames))
+	for _, name := range params.DataNames {
+		selected[name] = struct{}{}
+	}
+	items := make([]backupcfg.RuntimeItem, 0, len(params.DataNames))
+	for _, data := range service.Meta.DataProtect.Data {
+		if _, ok := selected[data.Name]; !ok || data.Backup == nil {
+			continue
+		}
+		provider := "rustic"
+		retain := ""
+		for _, backupItem := range service.Meta.Backup.Data {
+			if backupItem.Name == data.Name {
+				if backupItem.Provider != "" {
+					provider = backupItem.Provider
+				}
+				retain = backupItem.Retain
+				break
+			}
+		}
+		if provider != "rustic" {
+			return "", fmt.Errorf("backup provider %q is not implemented", provider)
+		}
+		items = append(items, backupcfg.RuntimeItem{Name: data.Name, Strategy: data.Backup.Strategy, Service: data.Backup.Service, Include: append([]string(nil), data.Backup.Include...), Provider: provider, Tags: []string{"composia-service:" + serviceName, "composia-data:" + data.Name}, Retain: retain})
+	}
+	passwordContent, err := os.ReadFile(cfg.Backup.Rustic.PasswordFile)
+	if err != nil {
+		return "", fmt.Errorf("read rustic password file: %w", err)
+	}
+	envValues, err := loadBackupEnvFiles(cfg.Backup.Rustic.EnvFiles)
+	if err != nil {
+		return "", err
+	}
+	payload, err := json.Marshal(backupcfg.RuntimeConfig{Rustic: &backupcfg.RusticConfig{Repository: cfg.Backup.Rustic.Repository, Password: strings.TrimSpace(string(passwordContent)), Env: envValues}, Items: items})
+	if err != nil {
+		return "", fmt.Errorf("marshal backup runtime config for %s at %s: %w", serviceName, revision, err)
+	}
+	return string(payload), nil
+}
+
+func loadBackupEnvFiles(paths []string) (map[string]string, error) {
+	if len(paths) == 0 {
+		return nil, nil
+	}
+	values := map[string]string{}
+	for _, path := range paths {
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("read backup env file %q: %w", path, err)
+		}
+		for lineNumber, line := range strings.Split(string(content), "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+			key, value, ok := strings.Cut(line, "=")
+			if !ok {
+				return nil, fmt.Errorf("backup env file %q line %d must be KEY=VALUE", path, lineNumber+1)
+			}
+			values[strings.TrimSpace(key)] = strings.TrimSpace(value)
+		}
+	}
+	return values, nil
+}
+
+func configuredNodeIDs(cfg *config.ControllerConfig) map[string]struct{} {
+	result := make(map[string]struct{}, len(cfg.Nodes))
+	for _, node := range cfg.Nodes {
+		result[node.ID] = struct{}{}
+	}
+	return result
 }
 
 func (server *agentTaskServer) PullNextTask(ctx context.Context, req *connect.Request[agentv1.PullNextTaskRequest]) (*connect.Response[agentv1.PullNextTaskResponse], error) {

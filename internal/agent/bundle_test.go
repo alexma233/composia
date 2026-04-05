@@ -141,11 +141,16 @@ func TestDownloadServiceBundlePreservesExistingDirectoryOnInvalidArchive(t *test
 }
 
 type bundleTestServer struct {
-	bundle []byte
+	bundle         []byte
+	expectedTaskID string
 }
 
 func (server bundleTestServer) GetServiceBundle(_ context.Context, req *connect.Request[agentv1.GetServiceBundleRequest], stream *connect.ServerStream[agentv1.GetServiceBundleResponse]) error {
-	if req.Msg.GetTaskId() != "task-1" {
+	expectedTaskID := server.expectedTaskID
+	if expectedTaskID == "" {
+		expectedTaskID = "task-1"
+	}
+	if req.Msg.GetTaskId() != expectedTaskID {
 		return errString("unexpected task id")
 	}
 	firstChunk := &agentv1.GetServiceBundleResponse{ServiceName: "demo", RepoRevision: "deadbeef", RelativeRoot: "demo", Data: server.bundle[:len(server.bundle)/2]}

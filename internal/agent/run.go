@@ -2,8 +2,10 @@ package agent
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -11,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -18,6 +21,7 @@ import (
 	"connectrpc.com/connect"
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
+	backupcfg "forgejo.alexma.top/alexma233/composia/internal/backup"
 	"forgejo.alexma.top/alexma233/composia/internal/config"
 	"forgejo.alexma.top/alexma233/composia/internal/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/store"
@@ -139,7 +143,7 @@ func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 	case string(task.TypeUpdate):
 		return executeUpdateTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypeBackup):
-		return executeBackupTask(ctx, client, pulledTask, logUploader)
+		return executeBackupTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypeStop):
 		return executeStopTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypeRestart):
@@ -258,9 +262,26 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
 }
 
-func executeBackupTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
+func executeBackupTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
 	if len(pulledTask.GetDataNames()) == 0 {
 		err := fmt.Errorf("backup task is missing data_names")
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	var bundle *bundleResult
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
+		var err error
+		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId())
+		if err != nil {
+			return err
+		}
+		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
+	}); err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	runtimeConfig, err := loadBackupRuntimeConfig(bundle.RootPath)
+	if err != nil {
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -268,11 +289,17 @@ func executeBackupTask(ctx context.Context, client agentv1connect.AgentReportSer
 		return err
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepBackup, func() error {
-		for _, dataName := range pulledTask.GetDataNames() {
-			if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("backup placeholder completed for %s\n", dataName)); err != nil {
+		for _, item := range runtimeConfig.Items {
+			startedAt := time.Now().UTC()
+			artifactRef, startedAt, finishedAt, err := backupRuntimeItem(ctx, cfg, bundle.RootPath, pulledTask.GetTaskId(), item, runtimeConfig.Rustic, logUploader)
+			if err != nil {
+				_ = reportBackupResult(ctx, client, pulledTask.GetTaskId(), pulledTask.GetServiceName(), item.Name, "", task.StatusFailed, startedAt, time.Now().UTC(), err.Error())
 				return err
 			}
-			if err := reportBackupResult(ctx, client, pulledTask.GetTaskId(), pulledTask.GetServiceName(), dataName); err != nil {
+			if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("backup completed for %s artifact=%s\n", item.Name, artifactRef)); err != nil {
+				return err
+			}
+			if err := reportBackupResult(ctx, client, pulledTask.GetTaskId(), pulledTask.GetServiceName(), item.Name, artifactRef, task.StatusSucceeded, startedAt, finishedAt, ""); err != nil {
 				return err
 			}
 		}
@@ -443,22 +470,379 @@ func uploadTaskLog(ctx context.Context, logUploader *taskLogUploader, content st
 	return nil
 }
 
-func reportBackupResult(ctx context.Context, client agentv1connect.AgentReportServiceClient, taskID, serviceName, dataName string) error {
-	now := timestamppb.Now()
+func reportBackupResult(ctx context.Context, client agentv1connect.AgentReportServiceClient, taskID, serviceName, dataName, artifactRef string, status task.Status, startedAt, finishedAt time.Time, errorSummary string) error {
 	_, err := client.ReportBackupResult(ctx, connect.NewRequest(&agentv1.ReportBackupResultRequest{
-		BackupId:    fmt.Sprintf("%s-%s", taskID, dataName),
-		TaskId:      taskID,
-		ServiceName: serviceName,
-		DataName:    dataName,
-		Status:      string(task.StatusSucceeded),
-		StartedAt:   now,
-		FinishedAt:  now,
-		ArtifactRef: fmt.Sprintf("placeholder:%s:%s", taskID, dataName),
+		BackupId:     fmt.Sprintf("%s-%s", taskID, dataName),
+		TaskId:       taskID,
+		ServiceName:  serviceName,
+		DataName:     dataName,
+		Status:       string(status),
+		StartedAt:    timestamppb.New(startedAt),
+		FinishedAt:   timestamppb.New(finishedAt),
+		ArtifactRef:  artifactRef,
+		ErrorSummary: errorSummary,
 	}))
 	if err != nil {
 		return fmt.Errorf("report backup result: %w", err)
 	}
 	return nil
+}
+
+func loadBackupRuntimeConfig(serviceRoot string) (*backupcfg.RuntimeConfig, error) {
+	content, err := os.ReadFile(filepath.Join(serviceRoot, ".composia-backup.json"))
+	if err != nil {
+		return nil, fmt.Errorf("read backup runtime config: %w", err)
+	}
+	var cfg backupcfg.RuntimeConfig
+	if err := json.Unmarshal(content, &cfg); err != nil {
+		return nil, fmt.Errorf("decode backup runtime config: %w", err)
+	}
+	if cfg.Rustic == nil {
+		return nil, fmt.Errorf("backup runtime config is missing rustic provider")
+	}
+	if len(cfg.Items) == 0 {
+		return nil, fmt.Errorf("backup runtime config did not include any items")
+	}
+	return &cfg, nil
+}
+
+func backupRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot, taskID string, item backupcfg.RuntimeItem, rustic *backupcfg.RusticConfig, logUploader *taskLogUploader) (string, time.Time, time.Time, error) {
+	startedAt := time.Now().UTC()
+	stagingDir, err := os.MkdirTemp(cfg.StateDir, fmt.Sprintf("backup-%s-%s-", taskID, item.Name))
+	if err != nil {
+		return "", time.Time{}, time.Time{}, fmt.Errorf("create backup staging dir: %w", err)
+	}
+	defer os.RemoveAll(stagingDir)
+	if err := stageBackupItem(ctx, serviceRoot, stagingDir, item, logUploader); err != nil {
+		return "", time.Time{}, time.Time{}, err
+	}
+	artifactRef, err := runRusticBackup(ctx, rustic, stagingDir, item, logUploader)
+	if err != nil {
+		return "", time.Time{}, time.Time{}, err
+	}
+	if err := applyRusticRetention(ctx, rustic, item, logUploader); err != nil {
+		return "", time.Time{}, time.Time{}, err
+	}
+	return artifactRef, startedAt, time.Now().UTC(), nil
+}
+
+func stageBackupItem(ctx context.Context, serviceRoot, stagingDir string, item backupcfg.RuntimeItem, logUploader *taskLogUploader) (retErr error) {
+	switch item.Strategy {
+	case "files.copy":
+		for _, include := range item.Include {
+			if err := stageInclude(ctx, serviceRoot, stagingDir, include); err != nil {
+				return fmt.Errorf("stage backup item %s include %s: %w", item.Name, include, err)
+			}
+		}
+		return nil
+	case "files.tar_after_stop":
+		projectName, err := loadComposeProjectName(serviceRoot, filepath.Base(serviceRoot))
+		if err != nil {
+			return err
+		}
+		if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("temporarily stopping compose project %s for backup item %s\n", projectName, item.Name)); err != nil {
+			return err
+		}
+		if err := runComposeDown(ctx, serviceRoot, projectName, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); err != nil {
+			return err
+		}
+		defer func() {
+			if restartErr := runComposeUp(ctx, serviceRoot, projectName, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); restartErr != nil && retErr == nil {
+				retErr = fmt.Errorf("restart compose project after backup: %w", restartErr)
+			}
+		}()
+		return stageTarBackupItem(ctx, serviceRoot, stagingDir, item)
+	case "database.pgdumpall":
+		projectName, err := loadComposeProjectName(serviceRoot, filepath.Base(serviceRoot))
+		if err != nil {
+			return err
+		}
+		targetPath := filepath.Join(stagingDir, item.Name+".sql")
+		if err := runComposePGDumpAll(ctx, serviceRoot, projectName, item.Service, targetPath, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); err != nil {
+			return err
+		}
+		return nil
+	default:
+		return fmt.Errorf("backup strategy %q is not implemented yet", item.Strategy)
+	}
+}
+
+func stageTarBackupItem(ctx context.Context, serviceRoot, stagingDir string, item backupcfg.RuntimeItem) error {
+	copyRoot := filepath.Join(stagingDir, "__tar_stage")
+	for _, include := range item.Include {
+		if err := stageInclude(ctx, serviceRoot, copyRoot, include); err != nil {
+			return fmt.Errorf("stage tar backup item %s include %s: %w", item.Name, include, err)
+		}
+	}
+	archivePath := filepath.Join(stagingDir, item.Name+".tar.gz")
+	return createTarGzArchive(copyRoot, archivePath)
+}
+
+func stageInclude(ctx context.Context, serviceRoot, stagingDir, include string) error {
+	if strings.HasPrefix(include, "/") || strings.HasPrefix(include, "./") || strings.HasPrefix(include, "../") {
+		sourcePath := include
+		if !filepath.IsAbs(include) {
+			sourcePath = filepath.Join(serviceRoot, include)
+		}
+		return copyIntoStage(sourcePath, filepath.Join(stagingDir, "paths", sanitizeStagePath(include)))
+	}
+	mountpoint, err := dockerVolumeMountpoint(ctx, include)
+	if err != nil {
+		return fmt.Errorf("resolve docker volume %q: %w", include, err)
+	}
+	return copyIntoStage(mountpoint, filepath.Join(stagingDir, "volumes", include))
+}
+
+func copyIntoStage(sourcePath, targetPath string) error {
+	info, err := os.Stat(sourcePath)
+	if err != nil {
+		return fmt.Errorf("stat source path %q: %w", sourcePath, err)
+	}
+	if info.IsDir() {
+		return copyDir(sourcePath, targetPath)
+	}
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+		return fmt.Errorf("create stage dir for %q: %w", targetPath, err)
+	}
+	return copyFile(sourcePath, targetPath, info.Mode())
+}
+
+func copyDir(sourceDir, targetDir string) error {
+	return filepath.Walk(sourceDir, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		relPath, err := filepath.Rel(sourceDir, path)
+		if err != nil {
+			return err
+		}
+		targetPath := targetDir
+		if relPath != "." {
+			targetPath = filepath.Join(targetDir, relPath)
+		}
+		if info.IsDir() {
+			return os.MkdirAll(targetPath, info.Mode())
+		}
+		return copyFile(path, targetPath, info.Mode())
+	})
+}
+
+func copyFile(sourcePath, targetPath string, mode os.FileMode) error {
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+		return err
+	}
+	sourceFile, err := os.Open(sourcePath)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+	targetFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, mode)
+	if err != nil {
+		return err
+	}
+	defer targetFile.Close()
+	_, err = io.Copy(targetFile, sourceFile)
+	return err
+}
+
+func createTarGzArchive(sourceDir, archivePath string) error {
+	archiveFile, err := os.Create(archivePath)
+	if err != nil {
+		return fmt.Errorf("create tar archive %q: %w", archivePath, err)
+	}
+	defer archiveFile.Close()
+	gzipWriter := gzip.NewWriter(archiveFile)
+	defer gzipWriter.Close()
+	tarWriter := tar.NewWriter(gzipWriter)
+	defer tarWriter.Close()
+	return filepath.Walk(sourceDir, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		relPath, err := filepath.Rel(sourceDir, path)
+		if err != nil {
+			return err
+		}
+		if relPath == "." {
+			return nil
+		}
+		header, err := tar.FileInfoHeader(info, "")
+		if err != nil {
+			return err
+		}
+		header.Name = filepath.ToSlash(relPath)
+		if err := tarWriter.WriteHeader(header); err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		_, err = io.Copy(tarWriter, file)
+		return err
+	})
+}
+
+func dockerVolumeMountpoint(ctx context.Context, volumeName string) (string, error) {
+	output, err := exec.CommandContext(ctx, "docker", "volume", "inspect", "-f", "{{ .Mountpoint }}", volumeName).CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("docker volume inspect failed: %w %s", err, strings.TrimSpace(string(output)))
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
+func runComposePGDumpAll(ctx context.Context, serviceDir, projectName, serviceName, targetPath string, uploadLog func(string) error) error {
+	if serviceName == "" {
+		return fmt.Errorf("pgdumpall backup is missing service name")
+	}
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+		return fmt.Errorf("create pgdump target dir: %w", err)
+	}
+	targetFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
+	if err != nil {
+		return fmt.Errorf("create pgdump target file: %w", err)
+	}
+	defer targetFile.Close()
+	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "exec", "-T", serviceName, "pg_dumpall")
+	command.Dir = serviceDir
+	command.Stdout = targetFile
+	var stderr bytes.Buffer
+	command.Stderr = &stderr
+	err = command.Run()
+	if stderr.Len() > 0 {
+		if logErr := uploadLog(stderr.String()); logErr != nil {
+			return logErr
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("docker compose exec pg_dumpall failed: %w", err)
+	}
+	return nil
+}
+
+var rusticSnapshotRegexp = regexp.MustCompile(`snapshot\s+([0-9a-fA-F]+)\s+saved`)
+
+func runRusticBackup(ctx context.Context, rustic *backupcfg.RusticConfig, sourceDir string, item backupcfg.RuntimeItem, logUploader *taskLogUploader) (string, error) {
+	passwordFile, err := os.CreateTemp("", "composia-rustic-password-*")
+	if err != nil {
+		return "", fmt.Errorf("create rustic password temp file: %w", err)
+	}
+	passwordPath := passwordFile.Name()
+	defer os.Remove(passwordPath)
+	if _, err := passwordFile.WriteString(rustic.Password + "\n"); err != nil {
+		passwordFile.Close()
+		return "", fmt.Errorf("write rustic password temp file: %w", err)
+	}
+	if err := passwordFile.Close(); err != nil {
+		return "", fmt.Errorf("close rustic password temp file: %w", err)
+	}
+	args := []string{"-r", rustic.Repository, "--password-file", passwordPath, "backup", sourceDir, "--as-path", item.Name}
+	for _, tag := range buildRusticTags(item.Name, item.Tags) {
+		args = append(args, "--tag", tag)
+	}
+	command := exec.CommandContext(ctx, "rustic", args...)
+	command.Env = append(os.Environ(), mapEnvToSlice(rustic.Env)...)
+	output, err := command.CombinedOutput()
+	if len(output) > 0 {
+		if logErr := uploadTaskLog(ctx, logUploader, string(output)); logErr != nil {
+			return "", logErr
+		}
+	}
+	if err != nil {
+		return "", fmt.Errorf("rustic backup failed: %w", err)
+	}
+	matches := rusticSnapshotRegexp.FindStringSubmatch(string(output))
+	if len(matches) != 2 {
+		return "", fmt.Errorf("could not parse rustic snapshot id from output")
+	}
+	return matches[1], nil
+}
+
+func applyRusticRetention(ctx context.Context, rustic *backupcfg.RusticConfig, item backupcfg.RuntimeItem, logUploader *taskLogUploader) error {
+	if strings.TrimSpace(item.Retain) == "" {
+		return nil
+	}
+	retainArgs, err := parseRetainArgs(item.Retain)
+	if err != nil {
+		return err
+	}
+	passwordFile, err := os.CreateTemp("", "composia-rustic-password-*")
+	if err != nil {
+		return fmt.Errorf("create rustic password temp file: %w", err)
+	}
+	passwordPath := passwordFile.Name()
+	defer os.Remove(passwordPath)
+	if _, err := passwordFile.WriteString(rustic.Password + "\n"); err != nil {
+		passwordFile.Close()
+		return fmt.Errorf("write rustic password temp file: %w", err)
+	}
+	if err := passwordFile.Close(); err != nil {
+		return fmt.Errorf("close rustic password temp file: %w", err)
+	}
+	args := []string{"-r", rustic.Repository, "--password-file", passwordPath, "forget"}
+	for _, tag := range buildRusticTags(item.Name, item.Tags) {
+		args = append(args, "--tag", tag)
+	}
+	args = append(args, retainArgs...)
+	command := exec.CommandContext(ctx, "rustic", args...)
+	command.Env = append(os.Environ(), mapEnvToSlice(rustic.Env)...)
+	output, err := command.CombinedOutput()
+	if len(output) > 0 {
+		if logErr := uploadTaskLog(ctx, logUploader, string(output)); logErr != nil {
+			return logErr
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("rustic forget failed: %w", err)
+	}
+	return nil
+}
+
+func buildRusticTags(name string, explicit []string) []string {
+	if len(explicit) > 0 {
+		return explicit
+	}
+	return []string{"composia-data:" + name}
+}
+
+func parseRetainArgs(retain string) ([]string, error) {
+	fields := strings.Fields(retain)
+	if len(fields) == 0 {
+		return nil, nil
+	}
+	for index, field := range fields {
+		if !strings.HasPrefix(field, "--") {
+			if index == 0 {
+				return nil, fmt.Errorf("retain must start with rustic forget flags")
+			}
+			continue
+		}
+		if field == "--prune" || strings.HasPrefix(field, "--keep-") || strings.HasPrefix(field, "--keep-within") {
+			continue
+		}
+		return nil, fmt.Errorf("retain flag %q is not allowed", field)
+	}
+	return fields, nil
+}
+
+func mapEnvToSlice(values map[string]string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	result := make([]string, 0, len(values))
+	for key, value := range values {
+		result = append(result, key+"="+value)
+	}
+	return result
+}
+
+func sanitizeStagePath(value string) string {
+	replacer := strings.NewReplacer("/", "_", `\\`, "_", ":", "_")
+	return replacer.Replace(strings.TrimPrefix(strings.TrimPrefix(value, "./"), "/"))
 }
 
 func reportServiceStatus(ctx context.Context, client agentv1connect.AgentReportServiceClient, serviceName, runtimeStatus string) error {
