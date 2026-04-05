@@ -9,7 +9,6 @@
   import type { Dictionary } from '$lib/i18n/messages/en-us';
   import { messages } from '$lib/i18n';
   import { initializePreferences } from '$lib/preferences';
-  import ThemeControls from '$lib/components/app/theme-controls.svelte';
   import { cn } from '$lib/utils';
 
   type NavKey = keyof Dictionary['nav'];
@@ -91,8 +90,6 @@
               </a>
             {/each}
           </nav>
-
-          <ThemeControls />
         </div>
       </div>
     </div>

@@ -24,6 +24,11 @@ type ParsedMeta = {
   name?: string;
 };
 
+type MetaInfo = {
+  exists: boolean;
+  parsed: ParsedMeta | null;
+};
+
 export async function loadServiceWorkspaces(): Promise<ServiceWorkspaceSummary[]> {
   const [rootEntries, summaries] = await Promise.all([loadRepoEntries(''), loadServices(200)]);
   const directories = rootEntries.filter((entry) => entry.isDir);
@@ -57,14 +62,14 @@ export async function loadServiceWorkspaces(): Promise<ServiceWorkspaceSummary[]
       const meta = await loadMeta(entry.path);
       return {
         folder: entry.path,
-        displayName: meta?.name?.trim() || entry.name,
-        serviceName: meta?.name?.trim() || '',
-        hasMeta: Boolean(meta?.name?.trim()),
+        displayName: meta.parsed?.name?.trim() || entry.name,
+        serviceName: meta.parsed?.name?.trim() || '',
+        hasMeta: meta.exists,
         isDeclared: false,
-        runtimeStatus: meta?.name ? 'needs_validation' : 'uninitialized',
+        runtimeStatus: meta.exists ? 'needs_validation' : 'uninitialized',
         updatedAt: '',
         node: '',
-        enabled: Boolean(meta?.name)
+        enabled: Boolean(meta.parsed?.name)
       } satisfies ServiceWorkspaceSummary;
     })
   );
@@ -88,12 +93,18 @@ async function loadDetail(summary: ServiceSummary) {
   }
 }
 
-async function loadMeta(folder: string): Promise<ParsedMeta | null> {
+async function loadMeta(folder: string): Promise<MetaInfo> {
   try {
     const file = await loadRepoFile(`${folder}/composia-meta.yaml`);
     const meta = parse(file.content) as ParsedMeta | null;
-    return meta && typeof meta === 'object' ? meta : null;
+    return {
+      exists: true,
+      parsed: meta && typeof meta === 'object' ? meta : null
+    };
   } catch {
-    return null;
+    return {
+      exists: false,
+      parsed: null
+    };
   }
 }

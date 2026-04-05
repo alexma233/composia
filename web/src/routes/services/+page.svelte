@@ -22,7 +22,10 @@
 
   function workspaceStatus(hasMeta: boolean, runtimeStatus: string) {
     if (!hasMeta) {
-      return 'uninitialized';
+      return 'no meta';
+    }
+    if (runtimeStatus === 'needs_validation') {
+      return 'meta draft';
     }
     return runtimeStatus || 'unknown';
   }
@@ -88,7 +91,15 @@
                   {workspaceStatus(service.hasMeta, service.runtimeStatus)}
                 </Badge>
               </TableCell>
-              <TableCell class="text-muted-foreground">{service.updatedAt ? formatTimestamp(service.updatedAt) : 'Not initialized'}</TableCell>
+              <TableCell class="text-muted-foreground">
+                {#if service.updatedAt}
+                  {formatTimestamp(service.updatedAt)}
+                {:else if service.hasMeta}
+                  Meta exists, not declared yet
+                {:else}
+                  No meta file yet
+                {/if}
+              </TableCell>
             </TableRow>
           {/each}
         </TableBody>

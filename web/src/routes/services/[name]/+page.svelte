@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import { FolderPlus, Pencil, Play, RefreshCcw, Save, Square, Trash2, Upload, Wrench } from 'lucide-svelte';
 
   import type { PageData } from './$types';
@@ -54,6 +55,7 @@
   let activeTab: EditorTab | null = openTabs.find((tab) => tab.path === activePath) ?? null;
   let canSave = Boolean(activeTab && activeTab.dirty && !saving);
   let selectedNode = selectedNodePath ? findNode(fileTree, selectedNodePath) : null;
+  let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
   function createTab(file: WorkspaceFile): EditorTab {
     return {
@@ -66,6 +68,8 @@
   $: activeTab = openTabs.find((tab) => tab.path === activePath) ?? null;
   $: canSave = Boolean(activeTab && activeTab.dirty && !saving);
   $: selectedNode = selectedNodePath ? findNode(fileTree, selectedNodePath) : null;
+
+  onDestroy(stopActionRefresh);
 
   async function openFile(path: string) {
     try {
@@ -368,6 +372,58 @@
     fileTree = payload.fileTree ?? fileTree;
   }
 
+  async function refreshServiceSummary() {
+    const response = await fetch(`/services/${workspace?.folder}/workspace/summary`);
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error ?? 'Failed to refresh service summary.');
+    }
+
+    workspace = payload.workspace ?? workspace;
+    tasks = payload.tasks ?? tasks;
+    backups = payload.backups ?? backups;
+    return payload as {
+      workspace?: PageData['workspace'];
+      tasks?: TaskSummary[];
+      backups?: BackupSummary[];
+    };
+  }
+
+  function startActionRefresh(taskId: string) {
+    stopActionRefresh();
+
+    const tick = async () => {
+      try {
+        const payload = await refreshServiceSummary();
+        const task = (payload.tasks ?? []).find((entry) => entry.taskId === taskId);
+        if (!task) {
+          refreshTimer = setTimeout(tick, 2500);
+          return;
+        }
+        if (isTerminalTaskStatus(task.status)) {
+          stopActionRefresh();
+          return;
+        }
+        refreshTimer = setTimeout(tick, 2500);
+      } catch {
+        refreshTimer = setTimeout(tick, 4000);
+      }
+    };
+
+    refreshTimer = setTimeout(tick, 1200);
+  }
+
+  function stopActionRefresh() {
+    if (refreshTimer) {
+      clearTimeout(refreshTimer);
+      refreshTimer = null;
+    }
+  }
+
+  function isTerminalTaskStatus(status: string) {
+    return status === 'succeeded' || status === 'failed' || status === 'cancelled';
+  }
+
   async function triggerAction(action: 'deploy' | 'update' | 'stop' | 'restart' | 'backup') {
     actionBusy = action;
     errorMessage = '';
@@ -395,6 +451,7 @@
       selectedTaskId = payload.taskId;
       logsExpanded = true;
       notice = `${action} queued as ${payload.taskId}`;
+      startActionRefresh(payload.taskId);
     } catch (actionError) {
       errorMessage = actionError instanceof Error ? actionError.message : `Failed to run ${action}.`;
     } finally {
@@ -637,16 +694,16 @@
 
         <div class="grid gap-2">
           <Button type="button" on:click={() => triggerAction('deploy')} disabled={!!actionBusy || !workspace?.isDeclared}>
-            <Play class="mr-2 size-4" />Deploy
+            <Play class="mr-2 size-4" />Deploy · up
           </Button>
           <Button type="button" variant="outline" on:click={() => triggerAction('update')} disabled={!!actionBusy || !workspace?.isDeclared}>
-            <Upload class="mr-2 size-4" />Update
+            <Upload class="mr-2 size-4" />Update · pull + up
           </Button>
           <Button type="button" variant="outline" on:click={() => triggerAction('restart')} disabled={!!actionBusy || !workspace?.isDeclared}>
-            <RefreshCcw class="mr-2 size-4" />Restart
+            <RefreshCcw class="mr-2 size-4" />Restart · down + up
           </Button>
           <Button type="button" variant="outline" on:click={() => triggerAction('stop')} disabled={!!actionBusy || !workspace?.isDeclared}>
-            <Square class="mr-2 size-4" />Stop
+            <Square class="mr-2 size-4" />Stop · down
           </Button>
           <Button type="button" variant="outline" on:click={() => triggerAction('backup')} disabled={!!actionBusy || !workspace?.isDeclared}>
             <Wrench class="mr-2 size-4" />Backup
@@ -656,13 +713,17 @@
           </a>
         </div>
 
+        <p class="mt-3 text-xs text-muted-foreground">
+          Current execution semantics: deploy runs `docker compose up -d`, stop runs `docker compose down`, restart runs `down` then `up -d`, and update runs `pull` then `up -d`.
+        </p>
+
         {#if !workspace?.hasMeta}
           <div class="mt-4 rounded-lg border border-dashed bg-muted/20 p-3 text-sm text-muted-foreground">
-            This folder has no `composia-meta.yaml` yet. You can edit files now, then add the meta file to enable runtime actions.
+            This folder has no `composia-meta.yaml` yet. It is not initialized as a service. You can edit files now, then add the meta file to continue initialization.
           </div>
         {:else if !workspace?.isDeclared}
           <div class="mt-4 rounded-lg border border-dashed bg-muted/20 p-3 text-sm text-muted-foreground">
-            `composia-meta.yaml` exists, but the controller has not accepted this service yet. Fix the meta file until the folder becomes a declared service.
+            `composia-meta.yaml` exists, but initialization is not complete yet. Fill or fix the meta file until the controller accepts this folder as a declared service.
           </div>
         {/if}
 

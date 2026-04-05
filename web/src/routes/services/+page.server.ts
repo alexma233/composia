@@ -59,10 +59,11 @@ export const actions: Actions = {
 		}
 
 		try {
-			await updateRepoFile(`${folder}/.gitkeep`, '', baseRevision);
+			const composeWrite = await updateRepoFile(`${folder}/docker-compose.yaml`, '', baseRevision);
+			await updateRepoFile(`${folder}/composia-meta.yaml`, '', composeWrite.commitId);
 		} catch (error) {
 			return fail(400, {
-				error: error instanceof Error ? error.message : 'Failed to create service folder.',
+				error: error instanceof Error ? error.message : 'Failed to create service files.',
 				folder: folderInput
 			});
 		}

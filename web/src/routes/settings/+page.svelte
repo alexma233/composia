@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { PageData } from './$types';
 
+  import ThemeControls from '$lib/components/app/theme-controls.svelte';
+
   export let data: PageData;
 </script>
 
@@ -20,6 +22,16 @@
     {/if}
 
     <section class="grid gap-6 lg:grid-cols-2">
+      <article class="rounded-lg border bg-card p-6 shadow-xs">
+        <h2 class="text-lg font-medium">Appearance</h2>
+        <p class="mt-2 text-sm text-muted-foreground">
+          Theme mode and accent color for this browser session.
+        </p>
+        <div class="mt-4">
+          <ThemeControls />
+        </div>
+      </article>
+
       <article class="rounded-lg border bg-card p-6 shadow-xs">
         <h2 class="text-lg font-medium">Controller</h2>
         {#if data.system}
