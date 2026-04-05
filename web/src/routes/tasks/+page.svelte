@@ -45,7 +45,7 @@
 
     <div class="space-y-3">
       {#each data.tasks as task}
-        <div class="rounded-2xl border border-white/8 bg-slate-950/45 px-4 py-4">
+        <a href={`/tasks/${task.taskId}`} class="block rounded-2xl border border-white/8 bg-slate-950/45 px-4 py-4 transition hover:border-sky-400/30">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div class="text-base font-medium text-white">{task.type}</div>
@@ -60,7 +60,7 @@
           <div class="mt-3 text-sm text-slate-400">
             {task.taskId} · created {formatTimestamp(task.createdAt)}
           </div>
-        </div>
+        </a>
       {/each}
 
       {#if !data.tasks.length}

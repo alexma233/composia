@@ -112,7 +112,7 @@
         <div class="space-y-3">
           {#if data.dashboard?.services.length}
             {#each data.dashboard.services as service}
-              <div class="rounded-2xl border border-white/8 bg-slate-950/45 px-4 py-4">
+              <a href={`/services/${service.name}`} class="block rounded-2xl border border-white/8 bg-slate-950/45 px-4 py-4 transition hover:border-sky-400/30">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div class="text-base font-medium text-white">{service.name}</div>
@@ -124,7 +124,7 @@
                     {service.runtimeStatus}
                   </div>
                 </div>
-              </div>
+              </a>
             {/each}
           {:else}
             <div class="rounded-2xl border border-dashed border-white/12 bg-slate-950/35 px-4 py-8 text-sm text-slate-400">
@@ -144,7 +144,7 @@
           <div class="space-y-3">
             {#if data.dashboard?.nodes.length}
               {#each data.dashboard.nodes as node}
-                <div class="rounded-2xl border border-white/8 bg-slate-950/45 px-4 py-4">
+                <a href={`/nodes/${node.nodeId}`} class="block rounded-2xl border border-white/8 bg-slate-950/45 px-4 py-4 transition hover:border-sky-400/30">
                   <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <div class="text-base font-medium text-white">{node.displayName}</div>
@@ -157,7 +157,7 @@
                   <div class="mt-3 text-sm text-slate-400">
                     Last heartbeat: {formatTimestamp(node.lastHeartbeat)}
                   </div>
-                </div>
+                </a>
               {/each}
             {:else}
               <div class="rounded-2xl border border-dashed border-white/12 bg-slate-950/35 px-4 py-8 text-sm text-slate-400">
@@ -176,7 +176,7 @@
           <div class="space-y-3">
             {#if data.dashboard?.tasks.length}
               {#each data.dashboard.tasks as task}
-                <div class="rounded-2xl border border-white/8 bg-slate-950/45 px-4 py-4">
+                <a href={`/tasks/${task.taskId}`} class="block rounded-2xl border border-white/8 bg-slate-950/45 px-4 py-4 transition hover:border-sky-400/30">
                   <div class="flex flex-wrap items-center justify-between gap-3">
                     <div class="min-w-0">
                       <div class="truncate text-sm font-medium text-white">
@@ -193,7 +193,7 @@
                   <div class="mt-3 text-sm text-slate-400">
                     Created {formatTimestamp(task.createdAt)}
                   </div>
-                </div>
+                </a>
               {/each}
             {:else}
               <div class="rounded-2xl border border-dashed border-white/12 bg-slate-950/35 px-4 py-8 text-sm text-slate-400">

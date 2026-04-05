@@ -43,7 +43,7 @@
 
     <div class="space-y-3">
       {#each data.services as service}
-        <div class="rounded-2xl border border-white/8 bg-slate-950/45 px-4 py-4">
+        <a href={`/services/${service.name}`} class="block rounded-2xl border border-white/8 bg-slate-950/45 px-4 py-4 transition hover:border-sky-400/30">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div class="text-base font-medium text-white">{service.name}</div>
@@ -53,7 +53,7 @@
               {service.runtimeStatus}
             </div>
           </div>
-        </div>
+        </a>
       {/each}
 
       {#if !data.services.length}

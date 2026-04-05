@@ -5,7 +5,9 @@
     { href: '/', label: 'Overview' },
     { href: '/services', label: 'Services' },
     { href: '/nodes', label: 'Nodes' },
-    { href: '/tasks', label: 'Tasks' }
+    { href: '/tasks', label: 'Tasks' },
+    { href: '/backups', label: 'Backups' },
+    { href: '/repo', label: 'Repo' }
   ];
 </script>
 

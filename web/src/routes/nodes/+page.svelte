@@ -30,7 +30,7 @@
 
     <div class="space-y-3">
       {#each data.nodes as node}
-        <div class="rounded-2xl border border-white/8 bg-slate-950/45 px-4 py-4">
+        <a href={`/nodes/${node.nodeId}`} class="block rounded-2xl border border-white/8 bg-slate-950/45 px-4 py-4 transition hover:border-sky-400/30">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div class="text-base font-medium text-white">{node.displayName}</div>
@@ -41,7 +41,7 @@
             </div>
           </div>
           <div class="mt-3 text-sm text-slate-400">Last heartbeat: {formatTimestamp(node.lastHeartbeat)}</div>
-        </div>
+        </a>
       {/each}
 
       {#if !data.nodes.length}
