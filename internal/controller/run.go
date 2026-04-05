@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect"
@@ -131,7 +133,7 @@ func Run(ctx context.Context, configPath string) error {
 	mux.Handle(systemPath, systemHandler)
 
 	repoPath, repoHandler := controllerv1connect.NewRepoServiceHandler(
-		&repoServer{cfg: cfg},
+		&repoServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: &sync.Mutex{}},
 		connect.WithInterceptors(cliInterceptor),
 	)
 	mux.Handle(repoPath, repoHandler)
@@ -211,6 +213,13 @@ type agentTaskServer struct {
 type bundleServer struct {
 	db  *store.DB
 	cfg *config.ControllerConfig
+}
+
+type repoServer struct {
+	db               *store.DB
+	cfg              *config.ControllerConfig
+	availableNodeIDs map[string]struct{}
+	repoMu           *sync.Mutex
 }
 
 func (server *agentReportServer) Heartbeat(ctx context.Context, req *connect.Request[agentv1.HeartbeatRequest]) (*connect.Response[agentv1.HeartbeatResponse], error) {
@@ -491,10 +500,6 @@ type backupRecordServer struct {
 	db *store.DB
 }
 
-type repoServer struct {
-	cfg *config.ControllerConfig
-}
-
 func (server *systemServer) GetSystemStatus(ctx context.Context, _ *connect.Request[controllerv1.GetSystemStatusRequest]) (*connect.Response[controllerv1.GetSystemStatusResponse], error) {
 	configured, online, err := server.db.NodeCounts(ctx)
 	if err != nil {
@@ -721,6 +726,9 @@ func (server *serviceServer) createServiceTaskWithOptions(ctx context.Context, s
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeNotFound, err)
 	}
+	if err := validateTaskTargetNode(ctx, server.db, server.cfg, service.Node); err != nil {
+		return task.Record{}, err
+	}
 	repoRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, err)
@@ -763,6 +771,30 @@ func createServiceTask(ctx context.Context, db *store.DB, cfg *config.Controller
 
 func createServiceTaskWithOptions(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName string, taskType task.Type, dataNames []string, options serviceTaskCreateOptions) (task.Record, error) {
 	return (&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs}).createServiceTaskWithOptions(ctx, serviceName, taskType, dataNames, options)
+}
+
+func validateTaskTargetNode(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, nodeID string) error {
+	var configuredNode *config.NodeConfig
+	for index := range cfg.Nodes {
+		if cfg.Nodes[index].ID == nodeID {
+			configuredNode = &cfg.Nodes[index]
+			break
+		}
+	}
+	if configuredNode == nil {
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("node %q is not configured", nodeID))
+	}
+	if configuredNode.Enabled != nil && !*configuredNode.Enabled {
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("node %q is disabled", nodeID))
+	}
+	snapshot, err := db.GetNodeSnapshot(ctx, nodeID)
+	if err != nil {
+		return connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	if !snapshot.IsOnline {
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("node %q is offline", nodeID))
+	}
+	return nil
 }
 
 func taskParams(paramsJSON string) serviceTaskParams {
@@ -1059,6 +1091,136 @@ func (server *repoServer) ValidateRepo(_ context.Context, _ *connect.Request[con
 		})
 	}
 	return connect.NewResponse(response), nil
+}
+
+func (server *repoServer) UpdateRepoFile(ctx context.Context, req *connect.Request[controllerv1.UpdateRepoFileRequest]) (*connect.Response[controllerv1.UpdateRepoFileResponse], error) {
+	if req.Msg == nil || req.Msg.GetPath() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("path is required"))
+	}
+	if req.Msg.GetBaseRevision() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base_revision is required"))
+	}
+	server.repoLock().Lock()
+	defer server.repoLock().Unlock()
+
+	currentRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if currentRevision != req.Msg.GetBaseRevision() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("base_revision %q does not match current HEAD %q", req.Msg.GetBaseRevision(), currentRevision))
+	}
+	cleanWorktree, err := repo.IsCleanWorkingTree(server.cfg.RepoDir)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if !cleanWorktree {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("repo working tree is not clean"))
+	}
+	if err := server.ensureRepoPathUnlocked(ctx, req.Msg.GetPath()); err != nil {
+		return nil, err
+	}
+	commitID, err := server.updateRepoFileTransaction(ctx, req.Msg.GetPath(), req.Msg.GetContent(), req.Msg.GetCommitMessage())
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&controllerv1.UpdateRepoFileResponse{CommitId: commitID}), nil
+}
+
+func (server *repoServer) repoLock() *sync.Mutex {
+	if server.repoMu == nil {
+		server.repoMu = &sync.Mutex{}
+	}
+	return server.repoMu
+}
+
+func (server *repoServer) ensureRepoPathUnlocked(ctx context.Context, relativePath string) error {
+	if server.db == nil {
+		return nil
+	}
+	services, err := repo.DiscoverServices(server.cfg.RepoDir, server.availableNodeIDs)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	cleanPath := filepath.ToSlash(filepath.Clean(relativePath))
+	for _, service := range services {
+		serviceDir, err := filepath.Rel(server.cfg.RepoDir, service.Directory)
+		if err != nil {
+			return connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
+		}
+		serviceDir = filepath.ToSlash(filepath.Clean(serviceDir))
+		if !pathHitsServiceDir(cleanPath, serviceDir) {
+			continue
+		}
+		active, err := server.db.HasActiveServiceTask(ctx, service.Name)
+		if err != nil {
+			return connect.NewError(connect.CodeInternal, err)
+		}
+		if active {
+			return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q has an active task", service.Name))
+		}
+	}
+	return nil
+}
+
+func pathHitsServiceDir(targetPath, serviceDir string) bool {
+	if targetPath == serviceDir {
+		return true
+	}
+	return strings.HasPrefix(targetPath, serviceDir+"/")
+}
+
+func (server *repoServer) updateRepoFileTransaction(ctx context.Context, relativePath, content, commitMessage string) (_ string, retErr error) {
+	previous, readErr := repo.ReadFile(server.cfg.RepoDir, relativePath)
+	fileExisted := readErr == nil
+	if readErr != nil && !errors.Is(readErr, repo.ErrRepoPathNotFound) {
+		switch {
+		case errors.Is(readErr, repo.ErrRepoPathInvalid), errors.Is(readErr, repo.ErrRepoPathProtected):
+			return "", connect.NewError(connect.CodeInvalidArgument, readErr)
+		case errors.Is(readErr, repo.ErrRepoPathNotFile):
+			return "", connect.NewError(connect.CodeFailedPrecondition, readErr)
+		default:
+			return "", connect.NewError(connect.CodeInternal, readErr)
+		}
+	}
+	writtenPath, err := repo.WriteFile(server.cfg.RepoDir, relativePath, content)
+	if err != nil {
+		switch {
+		case errors.Is(err, repo.ErrRepoPathInvalid), errors.Is(err, repo.ErrRepoPathProtected):
+			return "", connect.NewError(connect.CodeInvalidArgument, err)
+		default:
+			return "", connect.NewError(connect.CodeInternal, err)
+		}
+	}
+	defer func() {
+		if retErr == nil {
+			return
+		}
+		if fileExisted {
+			_, _ = repo.WriteFile(server.cfg.RepoDir, writtenPath, previous.Content)
+		} else {
+			absolutePath := filepath.Join(server.cfg.RepoDir, filepath.FromSlash(writtenPath))
+			_ = os.Remove(absolutePath)
+		}
+	}()
+	validationErrs := repo.ValidateRepo(server.cfg.RepoDir, server.availableNodeIDs)
+	if len(validationErrs) > 0 {
+		return "", connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("repo validation failed: %s", validationErrs[0].Message))
+	}
+	authorName := ""
+	authorEmail := ""
+	if server.cfg.Git != nil {
+		authorName = server.cfg.Git.AuthorName
+		authorEmail = server.cfg.Git.AuthorEmail
+	}
+	commitID, err := repo.CommitPath(server.cfg.RepoDir, writtenPath, commitMessage, authorName, authorEmail)
+	if err != nil {
+		if errors.Is(err, repo.ErrNoGitChanges) {
+			return "", connect.NewError(connect.CodeFailedPrecondition, errors.New("repo file content did not change"))
+		}
+		return "", connect.NewError(connect.CodeInternal, err)
+	}
+	return commitID, nil
 }
 
 func (server *taskServer) GetTask(ctx context.Context, req *connect.Request[controllerv1.GetTaskRequest]) (*connect.Response[controllerv1.GetTaskResponse], error) {

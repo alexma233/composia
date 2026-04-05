@@ -141,9 +141,9 @@ func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 	case string(task.TypeBackup):
 		return executeBackupTask(ctx, client, pulledTask, logUploader)
 	case string(task.TypeStop):
-		return executeStopTask(ctx, client, cfg, pulledTask, logUploader)
+		return executeStopTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypeRestart):
-		return executeRestartTask(ctx, client, cfg, pulledTask, logUploader)
+		return executeRestartTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	default:
 		return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, fmt.Sprintf("task type %q is not implemented", pulledTask.GetType()))
 	}
@@ -288,13 +288,25 @@ func executeBackupTask(ctx context.Context, client agentv1connect.AgentReportSer
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
 }
 
-func executeStopTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
-	if pulledTask.GetServiceDir() == "" {
-		err := fmt.Errorf("task is missing service_dir")
+func executeStopTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
+	var bundle *bundleResult
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
+		var err error
+		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId())
+		if err != nil {
+			return err
+		}
+		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
+	}); err != nil {
+		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
-	serviceRoot := filepath.Join(cfg.RepoDir, pulledTask.GetServiceDir())
+	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, bundle)
+	if err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting remote stop task for service=%s dir=%s\n", pulledTask.GetServiceName(), serviceRoot)); err != nil {
 		return err
 	}
@@ -322,13 +334,25 @@ func executeStopTask(ctx context.Context, client agentv1connect.AgentReportServi
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
 }
 
-func executeRestartTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
-	if pulledTask.GetServiceDir() == "" {
-		err := fmt.Errorf("task is missing service_dir")
+func executeRestartTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
+	var bundle *bundleResult
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
+		var err error
+		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId())
+		if err != nil {
+			return err
+		}
+		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
+	}); err != nil {
+		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
-	serviceRoot := filepath.Join(cfg.RepoDir, pulledTask.GetServiceDir())
+	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, bundle)
+	if err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting remote restart task for service=%s dir=%s\n", pulledTask.GetServiceName(), serviceRoot)); err != nil {
 		return err
 	}
@@ -364,6 +388,23 @@ func executeRestartTask(ctx context.Context, client agentv1connect.AgentReportSe
 		return err
 	}
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
+}
+
+func localServiceRoot(repoDir string, pulledTask *agentv1.AgentTask, bundle *bundleResult) (string, error) {
+	if bundle != nil && bundle.RootPath != "" {
+		return bundle.RootPath, nil
+	}
+	if pulledTask.GetServiceDir() == "" {
+		return "", fmt.Errorf("task is missing service_dir")
+	}
+	serviceRoot := filepath.Join(repoDir, pulledTask.GetServiceDir())
+	if _, err := os.Stat(filepath.Join(serviceRoot, "composia-meta.yaml")); err != nil {
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf("service bundle for %q is not present on agent", pulledTask.GetServiceName())
+		}
+		return "", fmt.Errorf("stat service bundle for %q: %w", pulledTask.GetServiceName(), err)
+	}
+	return serviceRoot, nil
 }
 
 func executeTaskStep(ctx context.Context, client agentv1connect.AgentReportServiceClient, logUploader *taskLogUploader, taskID string, stepName task.StepName, execute func() error) error {
@@ -479,14 +520,58 @@ func downloadServiceBundle(ctx context.Context, client agentv1connect.BundleServ
 	}
 
 	targetRoot := filepath.Join(cfg.RepoDir, relativeRoot)
-	if err := os.RemoveAll(targetRoot); err != nil {
-		return nil, fmt.Errorf("remove old bundle target %q: %w", targetRoot, err)
+	stageDir, err := os.MkdirTemp(cfg.StateDir, "bundle-stage-*")
+	if err != nil {
+		return nil, fmt.Errorf("create bundle stage dir: %w", err)
 	}
-	if err := extractTarGz(tempPath, cfg.RepoDir); err != nil {
+	defer os.RemoveAll(stageDir)
+	if err := extractTarGz(tempPath, stageDir); err != nil {
+		return nil, err
+	}
+	stagedRoot := filepath.Join(stageDir, relativeRoot)
+	if _, err := os.Stat(stagedRoot); err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("bundle archive did not contain expected root %q", relativeRoot)
+		}
+		return nil, fmt.Errorf("stat staged bundle root %q: %w", stagedRoot, err)
+	}
+	if err := replaceDirectory(targetRoot, stagedRoot); err != nil {
 		return nil, err
 	}
 	result.RootPath = targetRoot
 	return result, nil
+}
+
+func replaceDirectory(targetRoot, stagedRoot string) error {
+	parentDir := filepath.Dir(targetRoot)
+	if err := os.MkdirAll(parentDir, 0o755); err != nil {
+		return fmt.Errorf("create bundle parent dir %q: %w", parentDir, err)
+	}
+	backupRoot := targetRoot + ".bak"
+	if err := os.RemoveAll(backupRoot); err != nil {
+		return fmt.Errorf("remove old bundle backup %q: %w", backupRoot, err)
+	}
+	hadExisting := false
+	if _, err := os.Stat(targetRoot); err == nil {
+		hadExisting = true
+		if err := os.Rename(targetRoot, backupRoot); err != nil {
+			return fmt.Errorf("move existing bundle %q to backup: %w", targetRoot, err)
+		}
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("stat existing bundle root %q: %w", targetRoot, err)
+	}
+	if err := os.Rename(stagedRoot, targetRoot); err != nil {
+		if hadExisting {
+			_ = os.Rename(backupRoot, targetRoot)
+		}
+		return fmt.Errorf("activate staged bundle %q: %w", targetRoot, err)
+	}
+	if hadExisting {
+		if err := os.RemoveAll(backupRoot); err != nil {
+			return fmt.Errorf("remove bundle backup %q: %w", backupRoot, err)
+		}
+	}
+	return nil
 }
 
 func extractTarGz(archivePath, destinationDir string) error {

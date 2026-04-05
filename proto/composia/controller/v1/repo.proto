@@ -10,6 +10,7 @@ service RepoService {
   rpc GetRepoFile(GetRepoFileRequest) returns (GetRepoFileResponse);
   rpc ListRepoCommits(ListRepoCommitsRequest) returns (ListRepoCommitsResponse);
   rpc ValidateRepo(ValidateRepoRequest) returns (ValidateRepoResponse);
+  rpc UpdateRepoFile(UpdateRepoFileRequest) returns (UpdateRepoFileResponse);
 }
 
 message GetRepoHeadRequest {}
@@ -72,4 +73,15 @@ message ValidateRepoRequest {}
 
 message ValidateRepoResponse {
   repeated RepoValidationError errors = 1;
+}
+
+message UpdateRepoFileRequest {
+  string path = 1;
+  string content = 2;
+  string base_revision = 3;
+  string commit_message = 4;
+}
+
+message UpdateRepoFileResponse {
+  string commit_id = 1;
 }

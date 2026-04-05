@@ -293,6 +293,22 @@ func (db *DB) ListNodeSnapshots(ctx context.Context) ([]NodeSnapshot, error) {
 	return nodes, nil
 }
 
+func (db *DB) GetNodeSnapshot(ctx context.Context, nodeID string) (NodeSnapshot, error) {
+	var snapshot NodeSnapshot
+	err := db.sql.QueryRowContext(ctx, `
+		SELECT node_id, is_configured, is_online, COALESCE(last_heartbeat, '')
+		FROM nodes
+		WHERE node_id = ?
+	`, nodeID).Scan(&snapshot.NodeID, &snapshot.IsConfigured, &snapshot.IsOnline, &snapshot.LastHeartbeat)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return NodeSnapshot{}, fmt.Errorf("node %q not found", nodeID)
+		}
+		return NodeSnapshot{}, fmt.Errorf("get node snapshot %q: %w", nodeID, err)
+	}
+	return snapshot, nil
+}
+
 func (db *DB) UpdateServiceRuntimeStatus(ctx context.Context, serviceName, runtimeStatus string, updatedAt time.Time) error {
 	if serviceName == "" {
 		return fmt.Errorf("service name is required")

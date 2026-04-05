@@ -164,6 +164,9 @@ func TestServiceServiceGetServiceTasksReturnsFilteredTasks(t *testing.T) {
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
 	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 10, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
 	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-1", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "alpha", NodeID: "main", Status: task.StatusSucceeded, CreatedAt: time.Date(2026, 4, 4, 11, 0, 0, 0, time.UTC)}); err != nil {
 		t.Fatalf("create alpha task: %v", err)
 	}
@@ -284,6 +287,9 @@ func TestServiceServiceDeployServiceCreatesPendingTask(t *testing.T) {
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
 	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 10, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
 		if token != "cli-token" {
@@ -295,7 +301,7 @@ func TestServiceServiceDeployServiceCreatesPendingTask(t *testing.T) {
 	path, handler := controllerv1connect.NewServiceServiceHandler(
 		&serviceServer{
 			db:  db,
-			cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir},
+			cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}},
 			availableNodeIDs: map[string]struct{}{
 				"main": {},
 			},
@@ -342,7 +348,7 @@ func TestServiceServiceDeployServiceCreatesPendingTask(t *testing.T) {
 	}
 }
 
-func TestServiceServiceStopAndRestartCreatePendingTasks(t *testing.T) {
+func TestServiceServiceDeployServiceRejectsOfflineOrDisabledNode(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -379,8 +385,83 @@ func TestServiceServiceStopAndRestartCreatePendingTasks(t *testing.T) {
 		return "test-client", nil
 	})
 
+	makeClient := func(nodes []config.NodeConfig) controllerv1connect.ServiceServiceClient {
+		path, handler := controllerv1connect.NewServiceServiceHandler(
+			&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: nodes}, availableNodeIDs: map[string]struct{}{"main": {}}},
+			connect.WithInterceptors(interceptor),
+		)
+		mux := http.NewServeMux()
+		mux.Handle(path, handler)
+		httpServer := httptest.NewServer(mux)
+		t.Cleanup(httpServer.Close)
+		return controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	}
+
+	offlineClient := makeClient([]config.NodeConfig{{ID: "main"}})
+	_, err = offlineClient.DeployService(ctx, connect.NewRequest(&controllerv1.DeployServiceRequest{ServiceName: "demo"}))
+	if err == nil {
+		t.Fatalf("expected offline node deploy to fail")
+	}
+	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Fatalf("expected failed precondition for offline node, got %v", err)
+	}
+
+	trueValue := true
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 10, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
+	disabledClient := makeClient([]config.NodeConfig{{ID: "main", Enabled: boolPtr(false), Token: "main-token"}, {ID: "other", Enabled: &trueValue}})
+	_, err = disabledClient.DeployService(ctx, connect.NewRequest(&controllerv1.DeployServiceRequest{ServiceName: "demo"}))
+	if err == nil {
+		t.Fatalf("expected disabled node deploy to fail")
+	}
+	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Fatalf("expected failed precondition for disabled node, got %v", err)
+	}
+}
+
+func TestServiceServiceStopAndRestartCreatePendingTasks(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	logDir := filepath.Join(rootDir, "logs")
+	createGitRepoWithService(t, repoDir, "demo", "main")
+
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create log dir: %v", err)
+	}
+
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 11, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+
 	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir}, availableNodeIDs: map[string]struct{}{"main": {}}},
+		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -439,6 +520,9 @@ func TestServiceServiceUpdateCreatesPendingTask(t *testing.T) {
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
 	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
 		if token != "cli-token" {
@@ -448,7 +532,7 @@ func TestServiceServiceUpdateCreatesPendingTask(t *testing.T) {
 	})
 
 	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir}, availableNodeIDs: map[string]struct{}{"main": {}}},
+		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -496,6 +580,9 @@ func TestServiceServiceBackupCreatesPendingTaskWithDefaultDataNames(t *testing.T
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
 	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 13, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
 		if token != "cli-token" {
@@ -504,7 +591,7 @@ func TestServiceServiceBackupCreatesPendingTaskWithDefaultDataNames(t *testing.T
 		return "test-client", nil
 	})
 	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir}, availableNodeIDs: map[string]struct{}{"main": {}}},
+		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()

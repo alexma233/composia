@@ -14,6 +14,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1/controllerv1connect"
 	"forgejo.alexma.top/alexma233/composia/internal/config"
 	"forgejo.alexma.top/alexma233/composia/internal/rpcutil"
+	"forgejo.alexma.top/alexma233/composia/internal/store"
 	"forgejo.alexma.top/alexma233/composia/internal/task"
 )
 
@@ -29,6 +30,9 @@ func TestTaskServiceListTasks(t *testing.T) {
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 17, 59, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
 	}
 
 	if _, err := db.CreateTask(ctx, task.Record{
@@ -279,6 +283,9 @@ func TestTaskServiceRunTaskAgainCreatesNewPendingTask(t *testing.T) {
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
 	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 17, 59, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
 	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-old", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "alpha", NodeID: "main", Status: task.StatusSucceeded, CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
 		t.Fatalf("create old task: %v", err)
 	}
@@ -290,7 +297,7 @@ func TestTaskServiceRunTaskAgainCreatesNewPendingTask(t *testing.T) {
 		return "test-client", nil
 	})
 
-	path, handler := controllerv1connect.NewTaskServiceHandler(&taskServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir}, availableNodeIDs: map[string]struct{}{"main": {}}}, connect.WithInterceptors(interceptor))
+	path, handler := controllerv1connect.NewTaskServiceHandler(&taskServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}}, connect.WithInterceptors(interceptor))
 	mux := http.NewServeMux()
 	mux.Handle(path, handler)
 	httpServer := httptest.NewServer(mux)
@@ -337,6 +344,9 @@ func TestTaskServiceRunTaskAgainSupportsBackup(t *testing.T) {
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
 	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 17, 59, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
 	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-backup", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "alpha", NodeID: "main", Status: task.StatusSucceeded, ParamsJSON: `{"service_dir":"alpha","data_names":["config"]}`, CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
 		t.Fatalf("create backup task: %v", err)
 	}
@@ -348,7 +358,7 @@ func TestTaskServiceRunTaskAgainSupportsBackup(t *testing.T) {
 		return "test-client", nil
 	})
 
-	path, handler := controllerv1connect.NewTaskServiceHandler(&taskServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir}, availableNodeIDs: map[string]struct{}{"main": {}}}, connect.WithInterceptors(interceptor))
+	path, handler := controllerv1connect.NewTaskServiceHandler(&taskServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}}, connect.WithInterceptors(interceptor))
 	mux := http.NewServeMux()
 	mux.Handle(path, handler)
 	httpServer := httptest.NewServer(mux)

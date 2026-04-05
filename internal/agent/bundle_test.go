@@ -30,7 +30,7 @@ func TestDownloadServiceBundleExtractsIntoRepoDir(t *testing.T) {
 		t.Fatalf("create state dir: %v", err)
 	}
 
-	bundle := buildBundleArchive(t)
+	bundle := buildBundleArchive(t, map[string]string{"demo/composia-meta.yaml": "name: demo\n"})
 	mux := http.NewServeMux()
 	path, handler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
 		if token != "main-token" {
@@ -60,6 +60,86 @@ func TestDownloadServiceBundleExtractsIntoRepoDir(t *testing.T) {
 	}
 }
 
+func TestDownloadServiceBundleReplacesExistingDirectoryAtomically(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "demo"), 0o755); err != nil {
+		t.Fatalf("create repo dir: %v", err)
+	}
+	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "demo", "composia-meta.yaml"), []byte("name: old\n"), 0o644); err != nil {
+		t.Fatalf("write old file: %v", err)
+	}
+
+	bundle := buildBundleArchive(t, map[string]string{"demo/composia-meta.yaml": "name: new\n", "demo/docker-compose.yaml": "services: {}\n"})
+	mux := http.NewServeMux()
+	path, handler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := agentv1connect.NewBundleServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	if _, err := downloadServiceBundle(context.Background(), client, cfg, "task-1"); err != nil {
+		t.Fatalf("download service bundle: %v", err)
+	}
+	content, err := os.ReadFile(filepath.Join(cfg.RepoDir, "demo", "composia-meta.yaml"))
+	if err != nil {
+		t.Fatalf("read replaced file: %v", err)
+	}
+	if string(content) != "name: new\n" {
+		t.Fatalf("unexpected replaced content %q", string(content))
+	}
+}
+
+func TestDownloadServiceBundlePreservesExistingDirectoryOnInvalidArchive(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "demo"), 0o755); err != nil {
+		t.Fatalf("create repo dir: %v", err)
+	}
+	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "demo", "composia-meta.yaml"), []byte("name: old\n"), 0o644); err != nil {
+		t.Fatalf("write old file: %v", err)
+	}
+
+	invalidBundle := buildBundleArchive(t, map[string]string{"other/composia-meta.yaml": "name: other\n"})
+	mux := http.NewServeMux()
+	path, handler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: invalidBundle}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := agentv1connect.NewBundleServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	if _, err := downloadServiceBundle(context.Background(), client, cfg, "task-1"); err == nil {
+		t.Fatalf("expected invalid bundle download to fail")
+	}
+	content, err := os.ReadFile(filepath.Join(cfg.RepoDir, "demo", "composia-meta.yaml"))
+	if err != nil {
+		t.Fatalf("read preserved file: %v", err)
+	}
+	if string(content) != "name: old\n" {
+		t.Fatalf("expected old content to remain, got %q", string(content))
+	}
+}
+
 type bundleTestServer struct {
 	bundle []byte
 }
@@ -76,18 +156,20 @@ func (server bundleTestServer) GetServiceBundle(_ context.Context, req *connect.
 	return stream.Send(secondChunk)
 }
 
-func buildBundleArchive(t *testing.T) []byte {
+func buildBundleArchive(t *testing.T, files map[string]string) []byte {
 	t.Helper()
 	buffer := bytes.Buffer{}
 	gzipWriter := gzip.NewWriter(&buffer)
 	tarWriter := tar.NewWriter(gzipWriter)
-	content := []byte("name: demo\n")
-	header := &tar.Header{Name: "demo/composia-meta.yaml", Mode: 0o644, Size: int64(len(content))}
-	if err := tarWriter.WriteHeader(header); err != nil {
-		t.Fatalf("write tar header: %v", err)
-	}
-	if _, err := tarWriter.Write(content); err != nil {
-		t.Fatalf("write tar content: %v", err)
+	for name, content := range files {
+		body := []byte(content)
+		header := &tar.Header{Name: name, Mode: 0o644, Size: int64(len(body))}
+		if err := tarWriter.WriteHeader(header); err != nil {
+			t.Fatalf("write tar header: %v", err)
+		}
+		if _, err := tarWriter.Write(body); err != nil {
+			t.Fatalf("write tar content: %v", err)
+		}
 	}
 	if err := tarWriter.Close(); err != nil {
 		t.Fatalf("close tar writer: %v", err)
