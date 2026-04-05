@@ -48,6 +48,8 @@
   let newFolderPath = '';
   let showRename = false;
   let renamePath = '';
+  let showServiceRename = false;
+  let renameServiceFolder = data.workspace?.folder ?? '';
   let workspace = data.workspace;
   let activeTab: EditorTab | null = openTabs.find((tab) => tab.path === activePath) ?? null;
   let canSave = Boolean(activeTab && activeTab.dirty && !saving);
@@ -400,6 +402,65 @@
     }
   }
 
+  async function renameServiceRoot() {
+    if (!renameServiceFolder.trim()) {
+      return;
+    }
+
+    saving = true;
+    errorMessage = '';
+
+    try {
+      const response = await fetch(`/services/${workspace?.folder}/workspace/service`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'rename',
+          folder: renameServiceFolder,
+          baseRevision: headRevision
+        })
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.redirectTo) {
+        throw new Error(payload.error ?? 'Failed to rename service folder.');
+      }
+
+      window.location.href = payload.redirectTo;
+    } catch (renameError) {
+      errorMessage = renameError instanceof Error ? renameError.message : 'Failed to rename service folder.';
+      saving = false;
+    }
+  }
+
+  async function deleteServiceRoot() {
+    if (!workspace?.folder || !confirm(`Delete service folder ${workspace.folder}?`)) {
+      return;
+    }
+
+    saving = true;
+    errorMessage = '';
+
+    try {
+      const response = await fetch(`/services/${workspace.folder}/workspace/service`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete',
+          baseRevision: headRevision
+        })
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.redirectTo) {
+        throw new Error(payload.error ?? 'Failed to delete service folder.');
+      }
+
+      window.location.href = payload.redirectTo;
+    } catch (deleteError) {
+      errorMessage = deleteError instanceof Error ? deleteError.message : 'Failed to delete service folder.';
+      saving = false;
+    }
+  }
+
   function toggleDirectory(path: string) {
     const next = new Set(collapsedPaths);
     if (next.has(path)) {
@@ -622,6 +683,35 @@
             </div>
           {/if}
         </dl>
+      </article>
+
+      <article class="rounded-lg border bg-card p-4 shadow-xs">
+        <div class="mb-3">
+          <h2 class="text-base font-medium">Service folder</h2>
+          <p class="text-sm text-muted-foreground">Rename or delete the top-level folder for this workspace.</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <Button type="button" variant="outline" size="sm" on:click={() => { showServiceRename = !showServiceRename; renameServiceFolder = workspace?.folder ?? ''; }} disabled={saving}>
+            <Pencil class="mr-2 size-4" />Rename service
+          </Button>
+          <Button type="button" variant="outline" size="sm" on:click={deleteServiceRoot} disabled={saving}>
+            <Trash2 class="mr-2 size-4" />Delete service
+          </Button>
+        </div>
+
+        {#if showServiceRename}
+          <div class="mt-3 space-y-3">
+            <input
+              class="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none"
+              bind:value={renameServiceFolder}
+              placeholder="new-service-folder"
+            />
+            <div class="flex justify-end">
+              <Button type="button" size="sm" on:click={renameServiceRoot} disabled={saving}>Apply</Button>
+            </div>
+          </div>
+        {/if}
       </article>
 
       <article class="rounded-lg border bg-card p-4 shadow-xs">
