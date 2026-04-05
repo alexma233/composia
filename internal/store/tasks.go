@@ -139,6 +139,35 @@ func (db *DB) ClaimNextPendingTaskForNode(ctx context.Context, nodeID string, st
 	return record, nil
 }
 
+func (db *DB) ClaimNextPendingTaskOfType(ctx context.Context, taskType task.Type, startedAt time.Time) (task.Record, error) {
+	db.claimMu.Lock()
+	defer db.claimMu.Unlock()
+
+	tx, err := db.sql.BeginTx(ctx, nil)
+	if err != nil {
+		return task.Record{}, fmt.Errorf("begin claim task transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	var runningCount int
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM tasks WHERE status = ?`, string(task.StatusRunning)).Scan(&runningCount); err != nil {
+		return task.Record{}, fmt.Errorf("count running tasks: %w", err)
+	}
+	if runningCount > 0 {
+		return task.Record{}, ErrNoPendingTask
+	}
+
+	record, err := claimNextPendingTaskOfType(ctx, tx, taskType, startedAt)
+	if err != nil {
+		return task.Record{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return task.Record{}, fmt.Errorf("commit claim task transaction: %w", err)
+	}
+	return record, nil
+}
+
 func claimNextPendingTask(ctx context.Context, tx *sql.Tx, startedAt time.Time) (task.Record, error) {
 	row := tx.QueryRowContext(ctx, `
 		SELECT task_id, type, source, COALESCE(triggered_by, ''), COALESCE(service_name, ''), COALESCE(node_id, ''),
@@ -212,10 +241,10 @@ func claimNextPendingTaskForNode(ctx context.Context, tx *sql.Tx, nodeID string,
 		       status, COALESCE(params_json, ''), COALESCE(log_path, ''), COALESCE(repo_revision, ''),
 		       COALESCE(result_revision, ''), COALESCE(attempt_of_task_id, ''), created_at
 		FROM tasks
-		WHERE status = ? AND node_id = ?
+		WHERE status = ? AND node_id = ? AND type != ?
 		ORDER BY created_at ASC, task_id ASC
 		LIMIT 1
-	`, string(task.StatusPending), nodeID)
+	`, string(task.StatusPending), nodeID, string(task.TypeDNSUpdate))
 
 	var record task.Record
 	var rawType string
@@ -241,6 +270,73 @@ func claimNextPendingTaskForNode(ctx context.Context, tx *sql.Tx, nodeID string,
 			return task.Record{}, ErrNoPendingTask
 		}
 		return task.Record{}, fmt.Errorf("query next pending task for node %q: %w", nodeID, err)
+	}
+
+	updated, err := tx.ExecContext(ctx, `
+		UPDATE tasks
+		SET status = ?, started_at = ?
+		WHERE task_id = ? AND status = ?
+	`, string(task.StatusRunning), startedAt.UTC().Format(time.RFC3339), record.TaskID, string(task.StatusPending))
+	if err != nil {
+		return task.Record{}, fmt.Errorf("mark task %q running: %w", record.TaskID, err)
+	}
+	affected, err := updated.RowsAffected()
+	if err != nil {
+		return task.Record{}, fmt.Errorf("read claim task rows affected: %w", err)
+	}
+	if affected == 0 {
+		return task.Record{}, ErrNoPendingTask
+	}
+
+	parsedCreatedAt, err := time.Parse(time.RFC3339, createdAt)
+	if err != nil {
+		return task.Record{}, fmt.Errorf("parse task %q created_at: %w", record.TaskID, err)
+	}
+
+	record.Type = task.Type(rawType)
+	record.Source = task.Source(rawSource)
+	record.Status = task.Status(rawStatus)
+	record.CreatedAt = parsedCreatedAt.UTC()
+	record.Status = task.StatusRunning
+	record.StartedAt = timePtr(startedAt.UTC())
+	return record, nil
+}
+
+func claimNextPendingTaskOfType(ctx context.Context, tx *sql.Tx, taskType task.Type, startedAt time.Time) (task.Record, error) {
+	row := tx.QueryRowContext(ctx, `
+		SELECT task_id, type, source, COALESCE(triggered_by, ''), COALESCE(service_name, ''), COALESCE(node_id, ''),
+		       status, COALESCE(params_json, ''), COALESCE(log_path, ''), COALESCE(repo_revision, ''),
+		       COALESCE(result_revision, ''), COALESCE(attempt_of_task_id, ''), created_at
+		FROM tasks
+		WHERE status = ? AND type = ?
+		ORDER BY created_at ASC, task_id ASC
+		LIMIT 1
+	`, string(task.StatusPending), string(taskType))
+
+	var record task.Record
+	var rawType string
+	var rawSource string
+	var rawStatus string
+	var createdAt string
+	if err := row.Scan(
+		&record.TaskID,
+		&rawType,
+		&rawSource,
+		&record.TriggeredBy,
+		&record.ServiceName,
+		&record.NodeID,
+		&rawStatus,
+		&record.ParamsJSON,
+		&record.LogPath,
+		&record.RepoRevision,
+		&record.ResultRevision,
+		&record.AttemptOfTaskID,
+		&createdAt,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return task.Record{}, ErrNoPendingTask
+		}
+		return task.Record{}, fmt.Errorf("query next pending task of type %q: %w", taskType, err)
 	}
 
 	updated, err := tx.ExecContext(ctx, `

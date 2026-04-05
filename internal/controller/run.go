@@ -94,6 +94,7 @@ func Run(ctx context.Context, configPath string) error {
 	if err := db.SyncDeclaredServices(ctx, serviceNames); err != nil {
 		return err
 	}
+	go runControllerTasks(ctx, &controllerTaskExecutor{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, dnsProviders: defaultDNSProviderFactory{}})
 
 	mux := http.NewServeMux()
 	agentTokens := cfg.NodeTokenMap()
@@ -352,7 +353,7 @@ func (server *agentReportServer) ReportTaskState(ctx context.Context, req *conne
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	server.resetTaskLogAck(req.Msg.GetTaskId())
-	server.taskQueue.Notify()
+	notifyTaskQueue(server.taskQueue)
 	return connect.NewResponse(&agentv1.ReportTaskStateResponse{}), nil
 }
 
@@ -885,6 +886,32 @@ func (server *serviceServer) BackupService(ctx context.Context, req *connect.Req
 	return connect.NewResponse(response), nil
 }
 
+func (server *serviceServer) UpdateServiceDNS(ctx context.Context, req *connect.Request[controllerv1.UpdateServiceDNSRequest]) (*connect.Response[controllerv1.UpdateServiceDNSResponse], error) {
+	if req.Msg == nil || req.Msg.GetServiceName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+	service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	if service.Meta.Network == nil || service.Meta.Network.DNS == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not declare network.dns", service.Name))
+	}
+	if server.cfg.DNS == nil || server.cfg.DNS.Cloudflare == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("controller dns.cloudflare is not configured"))
+	}
+	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), task.TypeDNSUpdate, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
+	if err != nil {
+		return nil, err
+	}
+	response := &controllerv1.UpdateServiceDNSResponse{
+		TaskId:       createdTask.TaskID,
+		Status:       string(createdTask.Status),
+		RepoRevision: createdTask.RepoRevision,
+	}
+	return connect.NewResponse(response), nil
+}
+
 func (server *serviceServer) DeployService(ctx context.Context, req *connect.Request[controllerv1.DeployServiceRequest]) (*connect.Response[controllerv1.DeployServiceResponse], error) {
 	if req.Msg == nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
@@ -976,7 +1003,7 @@ func (server *serviceServer) createServiceTaskWithOptions(ctx context.Context, s
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeNotFound, err)
 	}
-	if err := validateTaskTargetNode(ctx, server.db, server.cfg, service.Node); err != nil {
+	if err := validateTaskTargetNode(ctx, server.db, server.cfg, service.Node, taskType); err != nil {
 		return task.Record{}, err
 	}
 	repoRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
@@ -1016,7 +1043,7 @@ func (server *serviceServer) createServiceTaskWithOptions(ctx context.Context, s
 	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
 	}
-	server.taskQueue.Notify()
+	notifyTaskQueue(server.taskQueue)
 	return createdTask, nil
 }
 
@@ -1028,7 +1055,7 @@ func createServiceTaskWithOptions(ctx context.Context, db *store.DB, cfg *config
 	return (&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs}).createServiceTaskWithOptions(ctx, serviceName, taskType, dataNames, options)
 }
 
-func validateTaskTargetNode(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, nodeID string) error {
+func validateTaskTargetNode(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, nodeID string, taskType task.Type) error {
 	var configuredNode *config.NodeConfig
 	for index := range cfg.Nodes {
 		if cfg.Nodes[index].ID == nodeID {
@@ -1041,6 +1068,9 @@ func validateTaskTargetNode(ctx context.Context, db *store.DB, cfg *config.Contr
 	}
 	if configuredNode.Enabled != nil && !*configuredNode.Enabled {
 		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("node %q is disabled", nodeID))
+	}
+	if !task.RequiresOnlineNode(taskType) {
+		return nil
 	}
 	snapshot, err := db.GetNodeSnapshot(ctx, nodeID)
 	if err != nil {

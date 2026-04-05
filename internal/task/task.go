@@ -79,3 +79,16 @@ type StepRecord struct {
 	StartedAt  *time.Time
 	FinishedAt *time.Time
 }
+
+func IsControllerOwnedType(taskType Type) bool {
+	switch taskType {
+	case TypeDNSUpdate:
+		return true
+	default:
+		return false
+	}
+}
+
+func RequiresOnlineNode(taskType Type) bool {
+	return !IsControllerOwnedType(taskType)
+}

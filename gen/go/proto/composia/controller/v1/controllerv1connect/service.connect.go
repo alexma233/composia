@@ -48,6 +48,9 @@ const (
 	// ServiceServiceBackupServiceProcedure is the fully-qualified name of the ServiceService's
 	// BackupService RPC.
 	ServiceServiceBackupServiceProcedure = "/composia.controller.v1.ServiceService/BackupService"
+	// ServiceServiceUpdateServiceDNSProcedure is the fully-qualified name of the ServiceService's
+	// UpdateServiceDNS RPC.
+	ServiceServiceUpdateServiceDNSProcedure = "/composia.controller.v1.ServiceService/UpdateServiceDNS"
 	// ServiceServiceDeployServiceProcedure is the fully-qualified name of the ServiceService's
 	// DeployService RPC.
 	ServiceServiceDeployServiceProcedure = "/composia.controller.v1.ServiceService/DeployService"
@@ -69,6 +72,7 @@ type ServiceServiceClient interface {
 	GetServiceTasks(context.Context, *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error)
 	GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error)
 	BackupService(context.Context, *connect.Request[v1.BackupServiceRequest]) (*connect.Response[v1.BackupServiceResponse], error)
+	UpdateServiceDNS(context.Context, *connect.Request[v1.UpdateServiceDNSRequest]) (*connect.Response[v1.UpdateServiceDNSResponse], error)
 	DeployService(context.Context, *connect.Request[v1.DeployServiceRequest]) (*connect.Response[v1.DeployServiceResponse], error)
 	UpdateService(context.Context, *connect.Request[v1.UpdateServiceRequest]) (*connect.Response[v1.UpdateServiceResponse], error)
 	StopService(context.Context, *connect.Request[v1.StopServiceRequest]) (*connect.Response[v1.StopServiceResponse], error)
@@ -116,6 +120,12 @@ func NewServiceServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(serviceServiceMethods.ByName("BackupService")),
 			connect.WithClientOptions(opts...),
 		),
+		updateServiceDNS: connect.NewClient[v1.UpdateServiceDNSRequest, v1.UpdateServiceDNSResponse](
+			httpClient,
+			baseURL+ServiceServiceUpdateServiceDNSProcedure,
+			connect.WithSchema(serviceServiceMethods.ByName("UpdateServiceDNS")),
+			connect.WithClientOptions(opts...),
+		),
 		deployService: connect.NewClient[v1.DeployServiceRequest, v1.DeployServiceResponse](
 			httpClient,
 			baseURL+ServiceServiceDeployServiceProcedure,
@@ -150,6 +160,7 @@ type serviceServiceClient struct {
 	getServiceTasks   *connect.Client[v1.GetServiceTasksRequest, v1.GetServiceTasksResponse]
 	getServiceBackups *connect.Client[v1.GetServiceBackupsRequest, v1.GetServiceBackupsResponse]
 	backupService     *connect.Client[v1.BackupServiceRequest, v1.BackupServiceResponse]
+	updateServiceDNS  *connect.Client[v1.UpdateServiceDNSRequest, v1.UpdateServiceDNSResponse]
 	deployService     *connect.Client[v1.DeployServiceRequest, v1.DeployServiceResponse]
 	updateService     *connect.Client[v1.UpdateServiceRequest, v1.UpdateServiceResponse]
 	stopService       *connect.Client[v1.StopServiceRequest, v1.StopServiceResponse]
@@ -181,6 +192,11 @@ func (c *serviceServiceClient) BackupService(ctx context.Context, req *connect.R
 	return c.backupService.CallUnary(ctx, req)
 }
 
+// UpdateServiceDNS calls composia.controller.v1.ServiceService.UpdateServiceDNS.
+func (c *serviceServiceClient) UpdateServiceDNS(ctx context.Context, req *connect.Request[v1.UpdateServiceDNSRequest]) (*connect.Response[v1.UpdateServiceDNSResponse], error) {
+	return c.updateServiceDNS.CallUnary(ctx, req)
+}
+
 // DeployService calls composia.controller.v1.ServiceService.DeployService.
 func (c *serviceServiceClient) DeployService(ctx context.Context, req *connect.Request[v1.DeployServiceRequest]) (*connect.Response[v1.DeployServiceResponse], error) {
 	return c.deployService.CallUnary(ctx, req)
@@ -208,6 +224,7 @@ type ServiceServiceHandler interface {
 	GetServiceTasks(context.Context, *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error)
 	GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error)
 	BackupService(context.Context, *connect.Request[v1.BackupServiceRequest]) (*connect.Response[v1.BackupServiceResponse], error)
+	UpdateServiceDNS(context.Context, *connect.Request[v1.UpdateServiceDNSRequest]) (*connect.Response[v1.UpdateServiceDNSResponse], error)
 	DeployService(context.Context, *connect.Request[v1.DeployServiceRequest]) (*connect.Response[v1.DeployServiceResponse], error)
 	UpdateService(context.Context, *connect.Request[v1.UpdateServiceRequest]) (*connect.Response[v1.UpdateServiceResponse], error)
 	StopService(context.Context, *connect.Request[v1.StopServiceRequest]) (*connect.Response[v1.StopServiceResponse], error)
@@ -251,6 +268,12 @@ func NewServiceServiceHandler(svc ServiceServiceHandler, opts ...connect.Handler
 		connect.WithSchema(serviceServiceMethods.ByName("BackupService")),
 		connect.WithHandlerOptions(opts...),
 	)
+	serviceServiceUpdateServiceDNSHandler := connect.NewUnaryHandler(
+		ServiceServiceUpdateServiceDNSProcedure,
+		svc.UpdateServiceDNS,
+		connect.WithSchema(serviceServiceMethods.ByName("UpdateServiceDNS")),
+		connect.WithHandlerOptions(opts...),
+	)
 	serviceServiceDeployServiceHandler := connect.NewUnaryHandler(
 		ServiceServiceDeployServiceProcedure,
 		svc.DeployService,
@@ -287,6 +310,8 @@ func NewServiceServiceHandler(svc ServiceServiceHandler, opts ...connect.Handler
 			serviceServiceGetServiceBackupsHandler.ServeHTTP(w, r)
 		case ServiceServiceBackupServiceProcedure:
 			serviceServiceBackupServiceHandler.ServeHTTP(w, r)
+		case ServiceServiceUpdateServiceDNSProcedure:
+			serviceServiceUpdateServiceDNSHandler.ServeHTTP(w, r)
 		case ServiceServiceDeployServiceProcedure:
 			serviceServiceDeployServiceHandler.ServeHTTP(w, r)
 		case ServiceServiceUpdateServiceProcedure:
@@ -322,6 +347,10 @@ func (UnimplementedServiceServiceHandler) GetServiceBackups(context.Context, *co
 
 func (UnimplementedServiceServiceHandler) BackupService(context.Context, *connect.Request[v1.BackupServiceRequest]) (*connect.Response[v1.BackupServiceResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.BackupService is not implemented"))
+}
+
+func (UnimplementedServiceServiceHandler) UpdateServiceDNS(context.Context, *connect.Request[v1.UpdateServiceDNSRequest]) (*connect.Response[v1.UpdateServiceDNSResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.UpdateServiceDNS is not implemented"))
 }
 
 func (UnimplementedServiceServiceHandler) DeployService(context.Context, *connect.Request[v1.DeployServiceRequest]) (*connect.Response[v1.DeployServiceResponse], error) {

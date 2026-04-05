@@ -710,6 +710,96 @@ func TestServiceServiceUpdateCreatesPendingTask(t *testing.T) {
 	}
 }
 
+func TestServiceServiceUpdateServiceDNSCreatesPendingTaskWithoutOnlineNode(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"demo/composia-meta.yaml": "name: demo\nnode: main\nnetwork:\n  dns:\n    provider: cloudflare\n    hostname: demo.example.com\n",
+	})
+	logDir := filepath.Join(rootDir, "logs")
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create log dir: %v", err)
+	}
+	dnsTokenPath := filepath.Join(rootDir, "cloudflare.token")
+	if err := os.WriteFile(dnsTokenPath, []byte("test-token\n"), 0o644); err != nil {
+		t.Fatalf("write cloudflare token: %v", err)
+	}
+
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+	path, handler := controllerv1connect.NewServiceServiceHandler(
+		&serviceServer{
+			db: db,
+			cfg: &config.ControllerConfig{
+				RepoDir: repoDir,
+				LogDir:  logDir,
+				Nodes:   []config.NodeConfig{{ID: "main"}},
+				DNS:     &config.ControllerDNSConfig{Cloudflare: &config.CloudflareDNSConfig{APITokenFile: dnsTokenPath}},
+			},
+			availableNodeIDs: map[string]struct{}{"main": {}},
+		},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	requestInterceptor := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
+		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			req.Header().Set("X-Composia-Source", "web")
+			return next(ctx, req)
+		}
+	})
+	client := controllerv1connect.NewServiceServiceClient(
+		httpServer.Client(),
+		httpServer.URL,
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token"), requestInterceptor),
+	)
+
+	response, err := client.UpdateServiceDNS(ctx, connect.NewRequest(&controllerv1.UpdateServiceDNSRequest{ServiceName: "demo"}))
+	if err != nil {
+		t.Fatalf("update service dns: %v", err)
+	}
+	if response.Msg.GetStatus() != "pending" {
+		t.Fatalf("expected pending dns update task, got %q", response.Msg.GetStatus())
+	}
+	detail, err := db.GetTask(ctx, response.Msg.GetTaskId())
+	if err != nil {
+		t.Fatalf("get dns update task: %v", err)
+	}
+	if detail.Record.Type != task.TypeDNSUpdate {
+		t.Fatalf("expected dns_update task type, got %q", detail.Record.Type)
+	}
+	if detail.Record.Source != task.SourceWeb {
+		t.Fatalf("expected web task source, got %q", detail.Record.Source)
+	}
+}
+
 func TestServiceServiceBackupCreatesPendingTaskWithDefaultDataNames(t *testing.T) {
 	t.Parallel()
 

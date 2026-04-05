@@ -13,6 +13,7 @@ service ServiceService {
   rpc GetServiceTasks(GetServiceTasksRequest) returns (GetServiceTasksResponse);
   rpc GetServiceBackups(GetServiceBackupsRequest) returns (GetServiceBackupsResponse);
   rpc BackupService(BackupServiceRequest) returns (BackupServiceResponse);
+  rpc UpdateServiceDNS(UpdateServiceDNSRequest) returns (UpdateServiceDNSResponse);
   rpc DeployService(DeployServiceRequest) returns (DeployServiceResponse);
   rpc UpdateService(UpdateServiceRequest) returns (UpdateServiceResponse);
   rpc StopService(StopServiceRequest) returns (StopServiceResponse);
@@ -63,6 +64,16 @@ message BackupServiceRequest {
 }
 
 message BackupServiceResponse {
+  string task_id = 1;
+  string status = 2;
+  string repo_revision = 3;
+}
+
+message UpdateServiceDNSRequest {
+  string service_name = 1;
+}
+
+message UpdateServiceDNSResponse {
   string task_id = 1;
   string status = 2;
   string repo_revision = 3;

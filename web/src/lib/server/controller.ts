@@ -444,6 +444,15 @@ export async function backupService(
   );
 }
 
+export async function updateServiceDNS(
+  serviceName: string,
+): Promise<ServiceActionResult> {
+  return callServiceAction(
+    "/composia.controller.v1.ServiceService/UpdateServiceDNS",
+    { serviceName },
+  );
+}
+
 export async function loadNodeDetail(
   nodeId: string,
 ): Promise<NodeSummary | null> {

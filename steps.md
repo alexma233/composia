@@ -19,30 +19,31 @@ Implemented or mostly implemented:
 - `composia controller` and `composia agent` subcommands exist.
 - Shared `config.yaml` loading and validation exist for the v1 `controller` and `agent` model.
 - Controller startup initializes local directories and opens SQLite.
-- SQLite schema exists for `nodes`, `services`, `tasks`, `task_steps`, and `backups`.
-- Controller-agent ConnectRPC wiring exists for heartbeat, task pull, bundle download, task state, step state, log upload, backup reporting, and service runtime reporting.
+- SQLite schema exists for `nodes`, `services`, `tasks`, `task_steps`, `backups`, and repo sync state.
+- Controller-agent ConnectRPC wiring exists for heartbeat, long-poll task pull, bundle download, task state, step state, log upload, backup reporting, and service runtime reporting.
 - Agent heartbeat works and node state is persisted.
 - Service repo scanning and `composia-meta.yaml` validation exist.
-- Controller APIs expose read paths for services, tasks, nodes, backups, repo inspection, repo editing, and service secret editing.
+- Controller APIs expose read paths for services, tasks, nodes, backups, repo inspection, repo editing, service secret editing, task log tailing, task rerun, and manual repo sync.
 - Agent can pull queued tasks and download bundles for service execution.
 - Remote task execution exists for `deploy`, `update`, `stop`, `restart`, and `backup`.
 - Task logs stream from agent to controller and are persisted under `controller.log_dir`.
-- Repo write transactions and local Git commits exist for normal files and encrypted service secrets.
+- Repo write transactions and Git commits exist for normal files and encrypted service secrets, including optional remote `fetch + fast-forward`, push attempts, and sync-state reporting.
 - age-based secret decrypt and re-encrypt helpers exist.
-- The web UI is wired to real controller APIs for dashboard, services, nodes, tasks, backups, repo editing, and secret editing.
+- The web UI is wired to real controller APIs for dashboard, services, nodes, tasks, backups, repo editing, secret editing, service actions, repo sync state display, and task log tailing.
 - The frontend style simplification away from the earlier bloated shell has started and should no longer be treated as untouched work.
 
 Still partial or not aligned with `plan.md` yet:
 
-- `PullNextTask` still behaves like short polling rather than the planned long-poll contract.
-- Task `source` semantics are not fully aligned yet; several task creation paths still collapse to `cli` instead of preserving the documented caller source.
-- Repo write handling is still local-only and does not yet implement remote tracking semantics, push reporting, sync state, or `SyncRepo`.
+- `PullNextTask` now follows a long-poll shape, but the broader controller-agent execution contract still needs to stay aligned as more task types are added.
+- Task `source` semantics are improved for web-triggered calls, but the full documented caller matrix still needs to remain consistent as CLI, schedule, and system triggers are added.
+- Remote Git sync semantics now exist for manual sync and write-time fetch/push flows, but background auto-pull using `pull_interval` is still not implemented.
 - `migrate` is still not implemented as the documented single-task workflow, and `awaiting_confirmation` is not yet exercised by a real controller flow.
-- Backup execution only covers the currently implemented manual export path; restore-driven workflows and migration reuse are still incomplete.
-- DNS, Caddy management, prune, and migrate are not implemented.
+- Backup execution now covers the implemented export path and backup record reporting, but restore-driven workflows and migration reuse are still incomplete.
+- DNS, Caddy management, and prune are not implemented.
 - CLI config and a real CLI command surface are not implemented yet.
 - Scheduled update and backup execution are not implemented yet.
-- The current web UI reads real controller state and the initial visual cleanup is underway, but it still lacks task action entry points, task log tailing, repo sync feedback, and stronger repo/secret editing ergonomics.
+- The current web UI reads real controller state and now includes core service actions and task log tailing, but it still lacks migrate and day-2 task entry points, task rerun UI, repo sync actions, and stronger repo/secret editing ergonomics.
+- The documented controller public API is still incomplete: `MigrateService`, `UpdateServiceDNS`, `ReloadNodeCaddy`, `PruneNode`, and `GetCurrentConfig` are not exposed yet.
 
 ## Execution Rule
 
@@ -67,7 +68,7 @@ The current frontend already covers real controller read paths, and the first ro
 
 ## Phase 1: Remove Architecture Drift
 
-Status: in progress
+Status: mostly complete
 
 Goal: make the current backend match the controller-agent contract described in `plan.md` before expanding the feature surface.
 
@@ -98,6 +99,11 @@ Deliverable:
 
 - Tasks are durable, observable, and semantically consistent with the plan.
 
+Remaining focus:
+
+- Keep `awaiting_confirmation` reserved for the future real migration workflow rather than treating enum support alone as completion.
+- Keep `source` and rerun semantics aligned as more trigger types are added.
+
 ## Phase 3: Stabilize the First Real Service Actions
 
 Status: in progress
@@ -113,6 +119,10 @@ Deliverable:
 
 - `deploy`, `update`, `stop`, and `restart` are trustworthy controller-agent flows.
 
+Current note:
+
+- These flows are already implemented end-to-end; the remaining work is confidence, edge-case tightening, and keeping runtime reporting aligned as the system grows.
+
 ## Phase 4: Add Safe Desired-State Repo Writes
 
 Status: in progress
@@ -123,10 +133,15 @@ Goal: let the controller own Git-backed desired state changes exactly as documen
 2. Add optional remote sync behavior, push reporting, and repo sync state.
 3. Add `RepoService.SyncRepo` with the documented clean-worktree requirements.
 4. Extend `GetRepoHead` to return the sync-related state expected by the plan.
+5. Add the remaining documented system/config read surface and keep remote-sync behavior consistent across normal files and secrets.
 
 Deliverable:
 
 - Desired-state file edits are safe, validated, committed, and consistent with the Git model in `plan.md`.
+
+Current note:
+
+- The core remote-sync and sync-reporting behavior is already present; the main remaining gap is scheduled auto-pull plus the remaining documented public API surface.
 
 ## Phase 5: Add Secret Handling
 
@@ -142,6 +157,10 @@ Goal: implement the selected age-based secrets model without leaving plaintext i
 Deliverable:
 
 - Service secrets follow the documented age-based workflow.
+
+Current note:
+
+- The core age decrypt/re-encrypt path is implemented; remaining work is mostly keeping it aligned with the rest of the repo-sync semantics and future UX improvements.
 
 ## Phase 6: Replace Placeholder Backup Behavior
 
@@ -159,6 +178,10 @@ Deliverable:
 
 - Backup tasks produce real artifacts and real backup records.
 
+Current note:
+
+- Manual backup execution and backup record persistence are already real; restore-side workflows and migration reuse are still missing.
+
 ## Phase 7: Add Read-Write Web UI on Real APIs
 
 Status: in progress
@@ -175,6 +198,10 @@ Goal: keep the existing real controller UI, finish the missing controller intera
 Deliverable:
 
 - The frontend is a real controller UI with a restrained, information-dense operational style.
+
+Current note:
+
+- Service actions and task log tailing are already present. The remaining UI gaps are rerun controls, repo sync actions, migrate/day-2 operations, and stronger editing ergonomics.
 
 ## Phase 8: Add DNS, Caddy, and Node Operations
 
@@ -214,15 +241,14 @@ Deliverable:
 
 ## Recommended Immediate Next Step
 
-Start with the remaining alignment work in Phases 1 through 4, then finish the missing operational UI interactions before adding more day-2 and migration surface area.
+Start with the remaining alignment work in Phases 2 through 4, then finish the missing operational UI interactions before adding more day-2 and migration surface area.
 
 That is the smallest correct next milestone for the current codebase:
 
-- remove architecture drift
 - finish the task foundation
-- make the first service actions reliable
-- implement remote Git sync semantics and repo sync reporting
-- finish the missing frontend task controls, log tailing, and repo/secret feedback
+- keep the first service actions reliable and well-tested
+- finish the remaining remote Git behavior such as scheduled auto-pull and complete public API coverage
+- finish the missing frontend task controls, repo sync actions, and repo/secret feedback
 
 The initial frontend style refactor should be treated as underway, not as the primary blocker.
 

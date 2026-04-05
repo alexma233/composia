@@ -436,7 +436,7 @@
     return status === 'succeeded' || status === 'failed' || status === 'cancelled';
   }
 
-  async function triggerAction(action: 'deploy' | 'update' | 'stop' | 'restart' | 'backup') {
+  async function triggerAction(action: 'deploy' | 'update' | 'stop' | 'restart' | 'backup' | 'dns_update') {
     actionBusy = action;
     errorMessage = '';
 
@@ -698,6 +698,9 @@
             </Button>
             <Button type="button" variant="outline" on:click={() => triggerAction('backup')} disabled={!!actionBusy || !workspace?.isDeclared}>
               <Wrench class="mr-2 size-4" />Backup
+            </Button>
+            <Button type="button" variant="outline" on:click={() => triggerAction('dns_update')} disabled={!!actionBusy || !workspace?.isDeclared}>
+              <Upload class="mr-2 size-4" />DNS update
             </Button>
             <a href={`/services/${workspace?.folder}/secret`} class="inline-flex h-10 items-center justify-center rounded-md border border-border bg-background px-4 text-sm transition-colors hover:bg-accent hover:text-accent-foreground pointer-events-none opacity-50" class:pointer-events-auto={!!workspace?.isDeclared} class:opacity-100={!!workspace?.isDeclared}>
               Edit secret
