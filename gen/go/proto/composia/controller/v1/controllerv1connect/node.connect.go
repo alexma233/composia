@@ -46,6 +46,30 @@ const (
 	// NodeServicePruneNodeDockerProcedure is the fully-qualified name of the NodeService's
 	// PruneNodeDocker RPC.
 	NodeServicePruneNodeDockerProcedure = "/composia.controller.v1.NodeService/PruneNodeDocker"
+	// NodeServiceListNodeContainersProcedure is the fully-qualified name of the NodeService's
+	// ListNodeContainers RPC.
+	NodeServiceListNodeContainersProcedure = "/composia.controller.v1.NodeService/ListNodeContainers"
+	// NodeServiceInspectNodeContainerProcedure is the fully-qualified name of the NodeService's
+	// InspectNodeContainer RPC.
+	NodeServiceInspectNodeContainerProcedure = "/composia.controller.v1.NodeService/InspectNodeContainer"
+	// NodeServiceListNodeNetworksProcedure is the fully-qualified name of the NodeService's
+	// ListNodeNetworks RPC.
+	NodeServiceListNodeNetworksProcedure = "/composia.controller.v1.NodeService/ListNodeNetworks"
+	// NodeServiceInspectNodeNetworkProcedure is the fully-qualified name of the NodeService's
+	// InspectNodeNetwork RPC.
+	NodeServiceInspectNodeNetworkProcedure = "/composia.controller.v1.NodeService/InspectNodeNetwork"
+	// NodeServiceListNodeVolumesProcedure is the fully-qualified name of the NodeService's
+	// ListNodeVolumes RPC.
+	NodeServiceListNodeVolumesProcedure = "/composia.controller.v1.NodeService/ListNodeVolumes"
+	// NodeServiceInspectNodeVolumeProcedure is the fully-qualified name of the NodeService's
+	// InspectNodeVolume RPC.
+	NodeServiceInspectNodeVolumeProcedure = "/composia.controller.v1.NodeService/InspectNodeVolume"
+	// NodeServiceListNodeImagesProcedure is the fully-qualified name of the NodeService's
+	// ListNodeImages RPC.
+	NodeServiceListNodeImagesProcedure = "/composia.controller.v1.NodeService/ListNodeImages"
+	// NodeServiceInspectNodeImageProcedure is the fully-qualified name of the NodeService's
+	// InspectNodeImage RPC.
+	NodeServiceInspectNodeImageProcedure = "/composia.controller.v1.NodeService/InspectNodeImage"
 )
 
 // NodeServiceClient is a client for the composia.controller.v1.NodeService service.
@@ -55,6 +79,14 @@ type NodeServiceClient interface {
 	GetNodeTasks(context.Context, *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error)
 	GetNodeDockerStats(context.Context, *connect.Request[v1.GetNodeDockerStatsRequest]) (*connect.Response[v1.GetNodeDockerStatsResponse], error)
 	PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error)
+	ListNodeContainers(context.Context, *connect.Request[v1.ListNodeContainersRequest]) (*connect.Response[v1.ListNodeContainersResponse], error)
+	InspectNodeContainer(context.Context, *connect.Request[v1.InspectNodeContainerRequest]) (*connect.Response[v1.InspectNodeContainerResponse], error)
+	ListNodeNetworks(context.Context, *connect.Request[v1.ListNodeNetworksRequest]) (*connect.Response[v1.ListNodeNetworksResponse], error)
+	InspectNodeNetwork(context.Context, *connect.Request[v1.InspectNodeNetworkRequest]) (*connect.Response[v1.InspectNodeNetworkResponse], error)
+	ListNodeVolumes(context.Context, *connect.Request[v1.ListNodeVolumesRequest]) (*connect.Response[v1.ListNodeVolumesResponse], error)
+	InspectNodeVolume(context.Context, *connect.Request[v1.InspectNodeVolumeRequest]) (*connect.Response[v1.InspectNodeVolumeResponse], error)
+	ListNodeImages(context.Context, *connect.Request[v1.ListNodeImagesRequest]) (*connect.Response[v1.ListNodeImagesResponse], error)
+	InspectNodeImage(context.Context, *connect.Request[v1.InspectNodeImageRequest]) (*connect.Response[v1.InspectNodeImageResponse], error)
 }
 
 // NewNodeServiceClient constructs a client for the composia.controller.v1.NodeService service. By
@@ -98,16 +130,72 @@ func NewNodeServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(nodeServiceMethods.ByName("PruneNodeDocker")),
 			connect.WithClientOptions(opts...),
 		),
+		listNodeContainers: connect.NewClient[v1.ListNodeContainersRequest, v1.ListNodeContainersResponse](
+			httpClient,
+			baseURL+NodeServiceListNodeContainersProcedure,
+			connect.WithSchema(nodeServiceMethods.ByName("ListNodeContainers")),
+			connect.WithClientOptions(opts...),
+		),
+		inspectNodeContainer: connect.NewClient[v1.InspectNodeContainerRequest, v1.InspectNodeContainerResponse](
+			httpClient,
+			baseURL+NodeServiceInspectNodeContainerProcedure,
+			connect.WithSchema(nodeServiceMethods.ByName("InspectNodeContainer")),
+			connect.WithClientOptions(opts...),
+		),
+		listNodeNetworks: connect.NewClient[v1.ListNodeNetworksRequest, v1.ListNodeNetworksResponse](
+			httpClient,
+			baseURL+NodeServiceListNodeNetworksProcedure,
+			connect.WithSchema(nodeServiceMethods.ByName("ListNodeNetworks")),
+			connect.WithClientOptions(opts...),
+		),
+		inspectNodeNetwork: connect.NewClient[v1.InspectNodeNetworkRequest, v1.InspectNodeNetworkResponse](
+			httpClient,
+			baseURL+NodeServiceInspectNodeNetworkProcedure,
+			connect.WithSchema(nodeServiceMethods.ByName("InspectNodeNetwork")),
+			connect.WithClientOptions(opts...),
+		),
+		listNodeVolumes: connect.NewClient[v1.ListNodeVolumesRequest, v1.ListNodeVolumesResponse](
+			httpClient,
+			baseURL+NodeServiceListNodeVolumesProcedure,
+			connect.WithSchema(nodeServiceMethods.ByName("ListNodeVolumes")),
+			connect.WithClientOptions(opts...),
+		),
+		inspectNodeVolume: connect.NewClient[v1.InspectNodeVolumeRequest, v1.InspectNodeVolumeResponse](
+			httpClient,
+			baseURL+NodeServiceInspectNodeVolumeProcedure,
+			connect.WithSchema(nodeServiceMethods.ByName("InspectNodeVolume")),
+			connect.WithClientOptions(opts...),
+		),
+		listNodeImages: connect.NewClient[v1.ListNodeImagesRequest, v1.ListNodeImagesResponse](
+			httpClient,
+			baseURL+NodeServiceListNodeImagesProcedure,
+			connect.WithSchema(nodeServiceMethods.ByName("ListNodeImages")),
+			connect.WithClientOptions(opts...),
+		),
+		inspectNodeImage: connect.NewClient[v1.InspectNodeImageRequest, v1.InspectNodeImageResponse](
+			httpClient,
+			baseURL+NodeServiceInspectNodeImageProcedure,
+			connect.WithSchema(nodeServiceMethods.ByName("InspectNodeImage")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // nodeServiceClient implements NodeServiceClient.
 type nodeServiceClient struct {
-	listNodes          *connect.Client[v1.ListNodesRequest, v1.ListNodesResponse]
-	getNode            *connect.Client[v1.GetNodeRequest, v1.GetNodeResponse]
-	getNodeTasks       *connect.Client[v1.GetNodeTasksRequest, v1.GetNodeTasksResponse]
-	getNodeDockerStats *connect.Client[v1.GetNodeDockerStatsRequest, v1.GetNodeDockerStatsResponse]
-	pruneNodeDocker    *connect.Client[v1.PruneNodeDockerRequest, v1.PruneNodeDockerResponse]
+	listNodes            *connect.Client[v1.ListNodesRequest, v1.ListNodesResponse]
+	getNode              *connect.Client[v1.GetNodeRequest, v1.GetNodeResponse]
+	getNodeTasks         *connect.Client[v1.GetNodeTasksRequest, v1.GetNodeTasksResponse]
+	getNodeDockerStats   *connect.Client[v1.GetNodeDockerStatsRequest, v1.GetNodeDockerStatsResponse]
+	pruneNodeDocker      *connect.Client[v1.PruneNodeDockerRequest, v1.PruneNodeDockerResponse]
+	listNodeContainers   *connect.Client[v1.ListNodeContainersRequest, v1.ListNodeContainersResponse]
+	inspectNodeContainer *connect.Client[v1.InspectNodeContainerRequest, v1.InspectNodeContainerResponse]
+	listNodeNetworks     *connect.Client[v1.ListNodeNetworksRequest, v1.ListNodeNetworksResponse]
+	inspectNodeNetwork   *connect.Client[v1.InspectNodeNetworkRequest, v1.InspectNodeNetworkResponse]
+	listNodeVolumes      *connect.Client[v1.ListNodeVolumesRequest, v1.ListNodeVolumesResponse]
+	inspectNodeVolume    *connect.Client[v1.InspectNodeVolumeRequest, v1.InspectNodeVolumeResponse]
+	listNodeImages       *connect.Client[v1.ListNodeImagesRequest, v1.ListNodeImagesResponse]
+	inspectNodeImage     *connect.Client[v1.InspectNodeImageRequest, v1.InspectNodeImageResponse]
 }
 
 // ListNodes calls composia.controller.v1.NodeService.ListNodes.
@@ -135,6 +223,46 @@ func (c *nodeServiceClient) PruneNodeDocker(ctx context.Context, req *connect.Re
 	return c.pruneNodeDocker.CallUnary(ctx, req)
 }
 
+// ListNodeContainers calls composia.controller.v1.NodeService.ListNodeContainers.
+func (c *nodeServiceClient) ListNodeContainers(ctx context.Context, req *connect.Request[v1.ListNodeContainersRequest]) (*connect.Response[v1.ListNodeContainersResponse], error) {
+	return c.listNodeContainers.CallUnary(ctx, req)
+}
+
+// InspectNodeContainer calls composia.controller.v1.NodeService.InspectNodeContainer.
+func (c *nodeServiceClient) InspectNodeContainer(ctx context.Context, req *connect.Request[v1.InspectNodeContainerRequest]) (*connect.Response[v1.InspectNodeContainerResponse], error) {
+	return c.inspectNodeContainer.CallUnary(ctx, req)
+}
+
+// ListNodeNetworks calls composia.controller.v1.NodeService.ListNodeNetworks.
+func (c *nodeServiceClient) ListNodeNetworks(ctx context.Context, req *connect.Request[v1.ListNodeNetworksRequest]) (*connect.Response[v1.ListNodeNetworksResponse], error) {
+	return c.listNodeNetworks.CallUnary(ctx, req)
+}
+
+// InspectNodeNetwork calls composia.controller.v1.NodeService.InspectNodeNetwork.
+func (c *nodeServiceClient) InspectNodeNetwork(ctx context.Context, req *connect.Request[v1.InspectNodeNetworkRequest]) (*connect.Response[v1.InspectNodeNetworkResponse], error) {
+	return c.inspectNodeNetwork.CallUnary(ctx, req)
+}
+
+// ListNodeVolumes calls composia.controller.v1.NodeService.ListNodeVolumes.
+func (c *nodeServiceClient) ListNodeVolumes(ctx context.Context, req *connect.Request[v1.ListNodeVolumesRequest]) (*connect.Response[v1.ListNodeVolumesResponse], error) {
+	return c.listNodeVolumes.CallUnary(ctx, req)
+}
+
+// InspectNodeVolume calls composia.controller.v1.NodeService.InspectNodeVolume.
+func (c *nodeServiceClient) InspectNodeVolume(ctx context.Context, req *connect.Request[v1.InspectNodeVolumeRequest]) (*connect.Response[v1.InspectNodeVolumeResponse], error) {
+	return c.inspectNodeVolume.CallUnary(ctx, req)
+}
+
+// ListNodeImages calls composia.controller.v1.NodeService.ListNodeImages.
+func (c *nodeServiceClient) ListNodeImages(ctx context.Context, req *connect.Request[v1.ListNodeImagesRequest]) (*connect.Response[v1.ListNodeImagesResponse], error) {
+	return c.listNodeImages.CallUnary(ctx, req)
+}
+
+// InspectNodeImage calls composia.controller.v1.NodeService.InspectNodeImage.
+func (c *nodeServiceClient) InspectNodeImage(ctx context.Context, req *connect.Request[v1.InspectNodeImageRequest]) (*connect.Response[v1.InspectNodeImageResponse], error) {
+	return c.inspectNodeImage.CallUnary(ctx, req)
+}
+
 // NodeServiceHandler is an implementation of the composia.controller.v1.NodeService service.
 type NodeServiceHandler interface {
 	ListNodes(context.Context, *connect.Request[v1.ListNodesRequest]) (*connect.Response[v1.ListNodesResponse], error)
@@ -142,6 +270,14 @@ type NodeServiceHandler interface {
 	GetNodeTasks(context.Context, *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error)
 	GetNodeDockerStats(context.Context, *connect.Request[v1.GetNodeDockerStatsRequest]) (*connect.Response[v1.GetNodeDockerStatsResponse], error)
 	PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error)
+	ListNodeContainers(context.Context, *connect.Request[v1.ListNodeContainersRequest]) (*connect.Response[v1.ListNodeContainersResponse], error)
+	InspectNodeContainer(context.Context, *connect.Request[v1.InspectNodeContainerRequest]) (*connect.Response[v1.InspectNodeContainerResponse], error)
+	ListNodeNetworks(context.Context, *connect.Request[v1.ListNodeNetworksRequest]) (*connect.Response[v1.ListNodeNetworksResponse], error)
+	InspectNodeNetwork(context.Context, *connect.Request[v1.InspectNodeNetworkRequest]) (*connect.Response[v1.InspectNodeNetworkResponse], error)
+	ListNodeVolumes(context.Context, *connect.Request[v1.ListNodeVolumesRequest]) (*connect.Response[v1.ListNodeVolumesResponse], error)
+	InspectNodeVolume(context.Context, *connect.Request[v1.InspectNodeVolumeRequest]) (*connect.Response[v1.InspectNodeVolumeResponse], error)
+	ListNodeImages(context.Context, *connect.Request[v1.ListNodeImagesRequest]) (*connect.Response[v1.ListNodeImagesResponse], error)
+	InspectNodeImage(context.Context, *connect.Request[v1.InspectNodeImageRequest]) (*connect.Response[v1.InspectNodeImageResponse], error)
 }
 
 // NewNodeServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -181,6 +317,54 @@ func NewNodeServiceHandler(svc NodeServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(nodeServiceMethods.ByName("PruneNodeDocker")),
 		connect.WithHandlerOptions(opts...),
 	)
+	nodeServiceListNodeContainersHandler := connect.NewUnaryHandler(
+		NodeServiceListNodeContainersProcedure,
+		svc.ListNodeContainers,
+		connect.WithSchema(nodeServiceMethods.ByName("ListNodeContainers")),
+		connect.WithHandlerOptions(opts...),
+	)
+	nodeServiceInspectNodeContainerHandler := connect.NewUnaryHandler(
+		NodeServiceInspectNodeContainerProcedure,
+		svc.InspectNodeContainer,
+		connect.WithSchema(nodeServiceMethods.ByName("InspectNodeContainer")),
+		connect.WithHandlerOptions(opts...),
+	)
+	nodeServiceListNodeNetworksHandler := connect.NewUnaryHandler(
+		NodeServiceListNodeNetworksProcedure,
+		svc.ListNodeNetworks,
+		connect.WithSchema(nodeServiceMethods.ByName("ListNodeNetworks")),
+		connect.WithHandlerOptions(opts...),
+	)
+	nodeServiceInspectNodeNetworkHandler := connect.NewUnaryHandler(
+		NodeServiceInspectNodeNetworkProcedure,
+		svc.InspectNodeNetwork,
+		connect.WithSchema(nodeServiceMethods.ByName("InspectNodeNetwork")),
+		connect.WithHandlerOptions(opts...),
+	)
+	nodeServiceListNodeVolumesHandler := connect.NewUnaryHandler(
+		NodeServiceListNodeVolumesProcedure,
+		svc.ListNodeVolumes,
+		connect.WithSchema(nodeServiceMethods.ByName("ListNodeVolumes")),
+		connect.WithHandlerOptions(opts...),
+	)
+	nodeServiceInspectNodeVolumeHandler := connect.NewUnaryHandler(
+		NodeServiceInspectNodeVolumeProcedure,
+		svc.InspectNodeVolume,
+		connect.WithSchema(nodeServiceMethods.ByName("InspectNodeVolume")),
+		connect.WithHandlerOptions(opts...),
+	)
+	nodeServiceListNodeImagesHandler := connect.NewUnaryHandler(
+		NodeServiceListNodeImagesProcedure,
+		svc.ListNodeImages,
+		connect.WithSchema(nodeServiceMethods.ByName("ListNodeImages")),
+		connect.WithHandlerOptions(opts...),
+	)
+	nodeServiceInspectNodeImageHandler := connect.NewUnaryHandler(
+		NodeServiceInspectNodeImageProcedure,
+		svc.InspectNodeImage,
+		connect.WithSchema(nodeServiceMethods.ByName("InspectNodeImage")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.controller.v1.NodeService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case NodeServiceListNodesProcedure:
@@ -193,6 +377,22 @@ func NewNodeServiceHandler(svc NodeServiceHandler, opts ...connect.HandlerOption
 			nodeServiceGetNodeDockerStatsHandler.ServeHTTP(w, r)
 		case NodeServicePruneNodeDockerProcedure:
 			nodeServicePruneNodeDockerHandler.ServeHTTP(w, r)
+		case NodeServiceListNodeContainersProcedure:
+			nodeServiceListNodeContainersHandler.ServeHTTP(w, r)
+		case NodeServiceInspectNodeContainerProcedure:
+			nodeServiceInspectNodeContainerHandler.ServeHTTP(w, r)
+		case NodeServiceListNodeNetworksProcedure:
+			nodeServiceListNodeNetworksHandler.ServeHTTP(w, r)
+		case NodeServiceInspectNodeNetworkProcedure:
+			nodeServiceInspectNodeNetworkHandler.ServeHTTP(w, r)
+		case NodeServiceListNodeVolumesProcedure:
+			nodeServiceListNodeVolumesHandler.ServeHTTP(w, r)
+		case NodeServiceInspectNodeVolumeProcedure:
+			nodeServiceInspectNodeVolumeHandler.ServeHTTP(w, r)
+		case NodeServiceListNodeImagesProcedure:
+			nodeServiceListNodeImagesHandler.ServeHTTP(w, r)
+		case NodeServiceInspectNodeImageProcedure:
+			nodeServiceInspectNodeImageHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -220,4 +420,36 @@ func (UnimplementedNodeServiceHandler) GetNodeDockerStats(context.Context, *conn
 
 func (UnimplementedNodeServiceHandler) PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.PruneNodeDocker is not implemented"))
+}
+
+func (UnimplementedNodeServiceHandler) ListNodeContainers(context.Context, *connect.Request[v1.ListNodeContainersRequest]) (*connect.Response[v1.ListNodeContainersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.ListNodeContainers is not implemented"))
+}
+
+func (UnimplementedNodeServiceHandler) InspectNodeContainer(context.Context, *connect.Request[v1.InspectNodeContainerRequest]) (*connect.Response[v1.InspectNodeContainerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.InspectNodeContainer is not implemented"))
+}
+
+func (UnimplementedNodeServiceHandler) ListNodeNetworks(context.Context, *connect.Request[v1.ListNodeNetworksRequest]) (*connect.Response[v1.ListNodeNetworksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.ListNodeNetworks is not implemented"))
+}
+
+func (UnimplementedNodeServiceHandler) InspectNodeNetwork(context.Context, *connect.Request[v1.InspectNodeNetworkRequest]) (*connect.Response[v1.InspectNodeNetworkResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.InspectNodeNetwork is not implemented"))
+}
+
+func (UnimplementedNodeServiceHandler) ListNodeVolumes(context.Context, *connect.Request[v1.ListNodeVolumesRequest]) (*connect.Response[v1.ListNodeVolumesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.ListNodeVolumes is not implemented"))
+}
+
+func (UnimplementedNodeServiceHandler) InspectNodeVolume(context.Context, *connect.Request[v1.InspectNodeVolumeRequest]) (*connect.Response[v1.InspectNodeVolumeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.InspectNodeVolume is not implemented"))
+}
+
+func (UnimplementedNodeServiceHandler) ListNodeImages(context.Context, *connect.Request[v1.ListNodeImagesRequest]) (*connect.Response[v1.ListNodeImagesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.ListNodeImages is not implemented"))
+}
+
+func (UnimplementedNodeServiceHandler) InspectNodeImage(context.Context, *connect.Request[v1.InspectNodeImageRequest]) (*connect.Response[v1.InspectNodeImageResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.InspectNodeImage is not implemented"))
 }

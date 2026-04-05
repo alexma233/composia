@@ -56,22 +56,22 @@
         {#if data.dockerStats}
           <div class="space-y-4">
             <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <div class="rounded-lg border border-border/70 bg-background/80 p-3">
+              <a href="/nodes/{data.node?.nodeId}/docker/containers" class="rounded-lg border border-border/70 bg-background/80 p-3 transition-colors hover:bg-accent/60">
                 <div class="text-2xl font-semibold">{data.dockerStats.containersRunning}/{data.dockerStats.containersTotal}</div>
                 <div class="text-xs text-muted-foreground">Containers</div>
-              </div>
-              <div class="rounded-lg border border-border/70 bg-background/80 p-3">
+              </a>
+              <a href="/nodes/{data.node?.nodeId}/docker/images" class="rounded-lg border border-border/70 bg-background/80 p-3 transition-colors hover:bg-accent/60">
                 <div class="text-2xl font-semibold">{data.dockerStats.images}</div>
                 <div class="text-xs text-muted-foreground">Images</div>
-              </div>
-              <div class="rounded-lg border border-border/70 bg-background/80 p-3">
+              </a>
+              <a href="/nodes/{data.node?.nodeId}/docker/networks" class="rounded-lg border border-border/70 bg-background/80 p-3 transition-colors hover:bg-accent/60">
                 <div class="text-2xl font-semibold">{data.dockerStats.networks}</div>
                 <div class="text-xs text-muted-foreground">Networks</div>
-              </div>
-              <div class="rounded-lg border border-border/70 bg-background/80 p-3">
+              </a>
+              <a href="/nodes/{data.node?.nodeId}/docker/volumes" class="rounded-lg border border-border/70 bg-background/80 p-3 transition-colors hover:bg-accent/60">
                 <div class="text-2xl font-semibold">{data.dockerStats.volumes}</div>
                 <div class="text-xs text-muted-foreground">Volumes</div>
-              </div>
+              </a>
             </div>
 
             <div class="text-sm text-muted-foreground">

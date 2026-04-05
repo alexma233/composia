@@ -99,3 +99,7 @@ The next backend steps are:
 2. Expose read-only service and node APIs.
 3. Implement the first `deploy` flow.
 4. Add task logs and task detail views.
+
+## Attributions
+
+- [Dockman](https://github.com/RA341/dockman) - Docker management UI reference for Docker resource list/inspect page patterns (AGPL-3.0)

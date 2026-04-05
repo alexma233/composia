@@ -12,6 +12,14 @@ service NodeService {
   rpc GetNodeTasks(GetNodeTasksRequest) returns (GetNodeTasksResponse);
   rpc GetNodeDockerStats(GetNodeDockerStatsRequest) returns (GetNodeDockerStatsResponse);
   rpc PruneNodeDocker(PruneNodeDockerRequest) returns (PruneNodeDockerResponse);
+  rpc ListNodeContainers(ListNodeContainersRequest) returns (ListNodeContainersResponse);
+  rpc InspectNodeContainer(InspectNodeContainerRequest) returns (InspectNodeContainerResponse);
+  rpc ListNodeNetworks(ListNodeNetworksRequest) returns (ListNodeNetworksResponse);
+  rpc InspectNodeNetwork(InspectNodeNetworkRequest) returns (InspectNodeNetworkResponse);
+  rpc ListNodeVolumes(ListNodeVolumesRequest) returns (ListNodeVolumesResponse);
+  rpc InspectNodeVolume(InspectNodeVolumeRequest) returns (InspectNodeVolumeResponse);
+  rpc ListNodeImages(ListNodeImagesRequest) returns (ListNodeImagesResponse);
+  rpc InspectNodeImage(InspectNodeImageRequest) returns (InspectNodeImageResponse);
 }
 
 message ListNodesRequest {}
@@ -76,4 +84,109 @@ message PruneNodeDockerRequest {
 
 message PruneNodeDockerResponse {
   string task_id = 1;
+}
+
+message ListNodeContainersRequest {
+  string node_id = 1;
+}
+
+message ContainerInfo {
+  string id = 1;
+  string name = 2;
+  string image = 3;
+  string state = 4;
+  string status = 5;
+  string created = 6;
+  map<string, string> labels = 7;
+}
+
+message ListNodeContainersResponse {
+  repeated ContainerInfo containers = 1;
+}
+
+message InspectNodeContainerRequest {
+  string node_id = 1;
+  string container_id = 2;
+}
+
+message InspectNodeContainerResponse {
+  string raw_json = 1;
+}
+
+message ListNodeNetworksRequest {
+  string node_id = 1;
+}
+
+message NetworkInfo {
+  string id = 1;
+  string name = 2;
+  string driver = 3;
+  string scope = 4;
+  bool internal = 5;
+  bool attachable = 6;
+  string created = 7;
+  map<string, string> labels = 8;
+}
+
+message ListNodeNetworksResponse {
+  repeated NetworkInfo networks = 1;
+}
+
+message InspectNodeNetworkRequest {
+  string node_id = 1;
+  string network_id = 2;
+}
+
+message InspectNodeNetworkResponse {
+  string raw_json = 1;
+}
+
+message ListNodeVolumesRequest {
+  string node_id = 1;
+}
+
+message VolumeInfo {
+  string name = 1;
+  string driver = 2;
+  string mountpoint = 3;
+  string scope = 4;
+  string created = 5;
+  map<string, string> labels = 6;
+}
+
+message ListNodeVolumesResponse {
+  repeated VolumeInfo volumes = 1;
+}
+
+message InspectNodeVolumeRequest {
+  string node_id = 1;
+  string volume_name = 2;
+}
+
+message InspectNodeVolumeResponse {
+  string raw_json = 1;
+}
+
+message ListNodeImagesRequest {
+  string node_id = 1;
+}
+
+message ImageInfo {
+  string id = 1;
+  repeated string repo_tags = 2;
+  int64 size = 3;
+  string created = 4;
+}
+
+message ListNodeImagesResponse {
+  repeated ImageInfo images = 1;
+}
+
+message InspectNodeImageRequest {
+  string node_id = 1;
+  string image_id = 2;
+}
+
+message InspectNodeImageResponse {
+  string raw_json = 1;
 }

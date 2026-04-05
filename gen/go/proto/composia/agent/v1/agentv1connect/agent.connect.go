@@ -27,6 +27,8 @@ const (
 	AgentTaskServiceName = "composia.agent.v1.AgentTaskService"
 	// BundleServiceName is the fully-qualified name of the BundleService service.
 	BundleServiceName = "composia.agent.v1.BundleService"
+	// DockerServiceName is the fully-qualified name of the DockerService service.
+	DockerServiceName = "composia.agent.v1.DockerService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -64,6 +66,30 @@ const (
 	// BundleServiceGetServiceBundleProcedure is the fully-qualified name of the BundleService's
 	// GetServiceBundle RPC.
 	BundleServiceGetServiceBundleProcedure = "/composia.agent.v1.BundleService/GetServiceBundle"
+	// DockerServiceListContainersProcedure is the fully-qualified name of the DockerService's
+	// ListContainers RPC.
+	DockerServiceListContainersProcedure = "/composia.agent.v1.DockerService/ListContainers"
+	// DockerServiceInspectContainerProcedure is the fully-qualified name of the DockerService's
+	// InspectContainer RPC.
+	DockerServiceInspectContainerProcedure = "/composia.agent.v1.DockerService/InspectContainer"
+	// DockerServiceListNetworksProcedure is the fully-qualified name of the DockerService's
+	// ListNetworks RPC.
+	DockerServiceListNetworksProcedure = "/composia.agent.v1.DockerService/ListNetworks"
+	// DockerServiceInspectNetworkProcedure is the fully-qualified name of the DockerService's
+	// InspectNetwork RPC.
+	DockerServiceInspectNetworkProcedure = "/composia.agent.v1.DockerService/InspectNetwork"
+	// DockerServiceListVolumesProcedure is the fully-qualified name of the DockerService's ListVolumes
+	// RPC.
+	DockerServiceListVolumesProcedure = "/composia.agent.v1.DockerService/ListVolumes"
+	// DockerServiceInspectVolumeProcedure is the fully-qualified name of the DockerService's
+	// InspectVolume RPC.
+	DockerServiceInspectVolumeProcedure = "/composia.agent.v1.DockerService/InspectVolume"
+	// DockerServiceListImagesProcedure is the fully-qualified name of the DockerService's ListImages
+	// RPC.
+	DockerServiceListImagesProcedure = "/composia.agent.v1.DockerService/ListImages"
+	// DockerServiceInspectImageProcedure is the fully-qualified name of the DockerService's
+	// InspectImage RPC.
+	DockerServiceInspectImageProcedure = "/composia.agent.v1.DockerService/InspectImage"
 )
 
 // AgentReportServiceClient is a client for the composia.agent.v1.AgentReportService service.
@@ -431,4 +457,256 @@ type UnimplementedBundleServiceHandler struct{}
 
 func (UnimplementedBundleServiceHandler) GetServiceBundle(context.Context, *connect.Request[v1.GetServiceBundleRequest], *connect.ServerStream[v1.GetServiceBundleResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.BundleService.GetServiceBundle is not implemented"))
+}
+
+// DockerServiceClient is a client for the composia.agent.v1.DockerService service.
+type DockerServiceClient interface {
+	ListContainers(context.Context, *connect.Request[v1.ListContainersRequest]) (*connect.Response[v1.ListContainersResponse], error)
+	InspectContainer(context.Context, *connect.Request[v1.InspectContainerRequest]) (*connect.Response[v1.InspectContainerResponse], error)
+	ListNetworks(context.Context, *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error)
+	InspectNetwork(context.Context, *connect.Request[v1.InspectNetworkRequest]) (*connect.Response[v1.InspectNetworkResponse], error)
+	ListVolumes(context.Context, *connect.Request[v1.ListVolumesRequest]) (*connect.Response[v1.ListVolumesResponse], error)
+	InspectVolume(context.Context, *connect.Request[v1.InspectVolumeRequest]) (*connect.Response[v1.InspectVolumeResponse], error)
+	ListImages(context.Context, *connect.Request[v1.ListImagesRequest]) (*connect.Response[v1.ListImagesResponse], error)
+	InspectImage(context.Context, *connect.Request[v1.InspectImageRequest]) (*connect.Response[v1.InspectImageResponse], error)
+}
+
+// NewDockerServiceClient constructs a client for the composia.agent.v1.DockerService service. By
+// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
+// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
+// connect.WithGRPC() or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewDockerServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) DockerServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	dockerServiceMethods := v1.File_proto_composia_agent_v1_agent_proto.Services().ByName("DockerService").Methods()
+	return &dockerServiceClient{
+		listContainers: connect.NewClient[v1.ListContainersRequest, v1.ListContainersResponse](
+			httpClient,
+			baseURL+DockerServiceListContainersProcedure,
+			connect.WithSchema(dockerServiceMethods.ByName("ListContainers")),
+			connect.WithClientOptions(opts...),
+		),
+		inspectContainer: connect.NewClient[v1.InspectContainerRequest, v1.InspectContainerResponse](
+			httpClient,
+			baseURL+DockerServiceInspectContainerProcedure,
+			connect.WithSchema(dockerServiceMethods.ByName("InspectContainer")),
+			connect.WithClientOptions(opts...),
+		),
+		listNetworks: connect.NewClient[v1.ListNetworksRequest, v1.ListNetworksResponse](
+			httpClient,
+			baseURL+DockerServiceListNetworksProcedure,
+			connect.WithSchema(dockerServiceMethods.ByName("ListNetworks")),
+			connect.WithClientOptions(opts...),
+		),
+		inspectNetwork: connect.NewClient[v1.InspectNetworkRequest, v1.InspectNetworkResponse](
+			httpClient,
+			baseURL+DockerServiceInspectNetworkProcedure,
+			connect.WithSchema(dockerServiceMethods.ByName("InspectNetwork")),
+			connect.WithClientOptions(opts...),
+		),
+		listVolumes: connect.NewClient[v1.ListVolumesRequest, v1.ListVolumesResponse](
+			httpClient,
+			baseURL+DockerServiceListVolumesProcedure,
+			connect.WithSchema(dockerServiceMethods.ByName("ListVolumes")),
+			connect.WithClientOptions(opts...),
+		),
+		inspectVolume: connect.NewClient[v1.InspectVolumeRequest, v1.InspectVolumeResponse](
+			httpClient,
+			baseURL+DockerServiceInspectVolumeProcedure,
+			connect.WithSchema(dockerServiceMethods.ByName("InspectVolume")),
+			connect.WithClientOptions(opts...),
+		),
+		listImages: connect.NewClient[v1.ListImagesRequest, v1.ListImagesResponse](
+			httpClient,
+			baseURL+DockerServiceListImagesProcedure,
+			connect.WithSchema(dockerServiceMethods.ByName("ListImages")),
+			connect.WithClientOptions(opts...),
+		),
+		inspectImage: connect.NewClient[v1.InspectImageRequest, v1.InspectImageResponse](
+			httpClient,
+			baseURL+DockerServiceInspectImageProcedure,
+			connect.WithSchema(dockerServiceMethods.ByName("InspectImage")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// dockerServiceClient implements DockerServiceClient.
+type dockerServiceClient struct {
+	listContainers   *connect.Client[v1.ListContainersRequest, v1.ListContainersResponse]
+	inspectContainer *connect.Client[v1.InspectContainerRequest, v1.InspectContainerResponse]
+	listNetworks     *connect.Client[v1.ListNetworksRequest, v1.ListNetworksResponse]
+	inspectNetwork   *connect.Client[v1.InspectNetworkRequest, v1.InspectNetworkResponse]
+	listVolumes      *connect.Client[v1.ListVolumesRequest, v1.ListVolumesResponse]
+	inspectVolume    *connect.Client[v1.InspectVolumeRequest, v1.InspectVolumeResponse]
+	listImages       *connect.Client[v1.ListImagesRequest, v1.ListImagesResponse]
+	inspectImage     *connect.Client[v1.InspectImageRequest, v1.InspectImageResponse]
+}
+
+// ListContainers calls composia.agent.v1.DockerService.ListContainers.
+func (c *dockerServiceClient) ListContainers(ctx context.Context, req *connect.Request[v1.ListContainersRequest]) (*connect.Response[v1.ListContainersResponse], error) {
+	return c.listContainers.CallUnary(ctx, req)
+}
+
+// InspectContainer calls composia.agent.v1.DockerService.InspectContainer.
+func (c *dockerServiceClient) InspectContainer(ctx context.Context, req *connect.Request[v1.InspectContainerRequest]) (*connect.Response[v1.InspectContainerResponse], error) {
+	return c.inspectContainer.CallUnary(ctx, req)
+}
+
+// ListNetworks calls composia.agent.v1.DockerService.ListNetworks.
+func (c *dockerServiceClient) ListNetworks(ctx context.Context, req *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error) {
+	return c.listNetworks.CallUnary(ctx, req)
+}
+
+// InspectNetwork calls composia.agent.v1.DockerService.InspectNetwork.
+func (c *dockerServiceClient) InspectNetwork(ctx context.Context, req *connect.Request[v1.InspectNetworkRequest]) (*connect.Response[v1.InspectNetworkResponse], error) {
+	return c.inspectNetwork.CallUnary(ctx, req)
+}
+
+// ListVolumes calls composia.agent.v1.DockerService.ListVolumes.
+func (c *dockerServiceClient) ListVolumes(ctx context.Context, req *connect.Request[v1.ListVolumesRequest]) (*connect.Response[v1.ListVolumesResponse], error) {
+	return c.listVolumes.CallUnary(ctx, req)
+}
+
+// InspectVolume calls composia.agent.v1.DockerService.InspectVolume.
+func (c *dockerServiceClient) InspectVolume(ctx context.Context, req *connect.Request[v1.InspectVolumeRequest]) (*connect.Response[v1.InspectVolumeResponse], error) {
+	return c.inspectVolume.CallUnary(ctx, req)
+}
+
+// ListImages calls composia.agent.v1.DockerService.ListImages.
+func (c *dockerServiceClient) ListImages(ctx context.Context, req *connect.Request[v1.ListImagesRequest]) (*connect.Response[v1.ListImagesResponse], error) {
+	return c.listImages.CallUnary(ctx, req)
+}
+
+// InspectImage calls composia.agent.v1.DockerService.InspectImage.
+func (c *dockerServiceClient) InspectImage(ctx context.Context, req *connect.Request[v1.InspectImageRequest]) (*connect.Response[v1.InspectImageResponse], error) {
+	return c.inspectImage.CallUnary(ctx, req)
+}
+
+// DockerServiceHandler is an implementation of the composia.agent.v1.DockerService service.
+type DockerServiceHandler interface {
+	ListContainers(context.Context, *connect.Request[v1.ListContainersRequest]) (*connect.Response[v1.ListContainersResponse], error)
+	InspectContainer(context.Context, *connect.Request[v1.InspectContainerRequest]) (*connect.Response[v1.InspectContainerResponse], error)
+	ListNetworks(context.Context, *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error)
+	InspectNetwork(context.Context, *connect.Request[v1.InspectNetworkRequest]) (*connect.Response[v1.InspectNetworkResponse], error)
+	ListVolumes(context.Context, *connect.Request[v1.ListVolumesRequest]) (*connect.Response[v1.ListVolumesResponse], error)
+	InspectVolume(context.Context, *connect.Request[v1.InspectVolumeRequest]) (*connect.Response[v1.InspectVolumeResponse], error)
+	ListImages(context.Context, *connect.Request[v1.ListImagesRequest]) (*connect.Response[v1.ListImagesResponse], error)
+	InspectImage(context.Context, *connect.Request[v1.InspectImageRequest]) (*connect.Response[v1.InspectImageResponse], error)
+}
+
+// NewDockerServiceHandler builds an HTTP handler from the service implementation. It returns the
+// path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewDockerServiceHandler(svc DockerServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	dockerServiceMethods := v1.File_proto_composia_agent_v1_agent_proto.Services().ByName("DockerService").Methods()
+	dockerServiceListContainersHandler := connect.NewUnaryHandler(
+		DockerServiceListContainersProcedure,
+		svc.ListContainers,
+		connect.WithSchema(dockerServiceMethods.ByName("ListContainers")),
+		connect.WithHandlerOptions(opts...),
+	)
+	dockerServiceInspectContainerHandler := connect.NewUnaryHandler(
+		DockerServiceInspectContainerProcedure,
+		svc.InspectContainer,
+		connect.WithSchema(dockerServiceMethods.ByName("InspectContainer")),
+		connect.WithHandlerOptions(opts...),
+	)
+	dockerServiceListNetworksHandler := connect.NewUnaryHandler(
+		DockerServiceListNetworksProcedure,
+		svc.ListNetworks,
+		connect.WithSchema(dockerServiceMethods.ByName("ListNetworks")),
+		connect.WithHandlerOptions(opts...),
+	)
+	dockerServiceInspectNetworkHandler := connect.NewUnaryHandler(
+		DockerServiceInspectNetworkProcedure,
+		svc.InspectNetwork,
+		connect.WithSchema(dockerServiceMethods.ByName("InspectNetwork")),
+		connect.WithHandlerOptions(opts...),
+	)
+	dockerServiceListVolumesHandler := connect.NewUnaryHandler(
+		DockerServiceListVolumesProcedure,
+		svc.ListVolumes,
+		connect.WithSchema(dockerServiceMethods.ByName("ListVolumes")),
+		connect.WithHandlerOptions(opts...),
+	)
+	dockerServiceInspectVolumeHandler := connect.NewUnaryHandler(
+		DockerServiceInspectVolumeProcedure,
+		svc.InspectVolume,
+		connect.WithSchema(dockerServiceMethods.ByName("InspectVolume")),
+		connect.WithHandlerOptions(opts...),
+	)
+	dockerServiceListImagesHandler := connect.NewUnaryHandler(
+		DockerServiceListImagesProcedure,
+		svc.ListImages,
+		connect.WithSchema(dockerServiceMethods.ByName("ListImages")),
+		connect.WithHandlerOptions(opts...),
+	)
+	dockerServiceInspectImageHandler := connect.NewUnaryHandler(
+		DockerServiceInspectImageProcedure,
+		svc.InspectImage,
+		connect.WithSchema(dockerServiceMethods.ByName("InspectImage")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/composia.agent.v1.DockerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case DockerServiceListContainersProcedure:
+			dockerServiceListContainersHandler.ServeHTTP(w, r)
+		case DockerServiceInspectContainerProcedure:
+			dockerServiceInspectContainerHandler.ServeHTTP(w, r)
+		case DockerServiceListNetworksProcedure:
+			dockerServiceListNetworksHandler.ServeHTTP(w, r)
+		case DockerServiceInspectNetworkProcedure:
+			dockerServiceInspectNetworkHandler.ServeHTTP(w, r)
+		case DockerServiceListVolumesProcedure:
+			dockerServiceListVolumesHandler.ServeHTTP(w, r)
+		case DockerServiceInspectVolumeProcedure:
+			dockerServiceInspectVolumeHandler.ServeHTTP(w, r)
+		case DockerServiceListImagesProcedure:
+			dockerServiceListImagesHandler.ServeHTTP(w, r)
+		case DockerServiceInspectImageProcedure:
+			dockerServiceInspectImageHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedDockerServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedDockerServiceHandler struct{}
+
+func (UnimplementedDockerServiceHandler) ListContainers(context.Context, *connect.Request[v1.ListContainersRequest]) (*connect.Response[v1.ListContainersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.ListContainers is not implemented"))
+}
+
+func (UnimplementedDockerServiceHandler) InspectContainer(context.Context, *connect.Request[v1.InspectContainerRequest]) (*connect.Response[v1.InspectContainerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.InspectContainer is not implemented"))
+}
+
+func (UnimplementedDockerServiceHandler) ListNetworks(context.Context, *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.ListNetworks is not implemented"))
+}
+
+func (UnimplementedDockerServiceHandler) InspectNetwork(context.Context, *connect.Request[v1.InspectNetworkRequest]) (*connect.Response[v1.InspectNetworkResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.InspectNetwork is not implemented"))
+}
+
+func (UnimplementedDockerServiceHandler) ListVolumes(context.Context, *connect.Request[v1.ListVolumesRequest]) (*connect.Response[v1.ListVolumesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.ListVolumes is not implemented"))
+}
+
+func (UnimplementedDockerServiceHandler) InspectVolume(context.Context, *connect.Request[v1.InspectVolumeRequest]) (*connect.Response[v1.InspectVolumeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.InspectVolume is not implemented"))
+}
+
+func (UnimplementedDockerServiceHandler) ListImages(context.Context, *connect.Request[v1.ListImagesRequest]) (*connect.Response[v1.ListImagesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.ListImages is not implemented"))
+}
+
+func (UnimplementedDockerServiceHandler) InspectImage(context.Context, *connect.Request[v1.InspectImageRequest]) (*connect.Response[v1.InspectImageResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.InspectImage is not implemented"))
 }

@@ -24,6 +24,17 @@ service BundleService {
   rpc GetServiceBundle(GetServiceBundleRequest) returns (stream GetServiceBundleResponse);
 }
 
+service DockerService {
+  rpc ListContainers(ListContainersRequest) returns (ListContainersResponse);
+  rpc InspectContainer(InspectContainerRequest) returns (InspectContainerResponse);
+  rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse);
+  rpc InspectNetwork(InspectNetworkRequest) returns (InspectNetworkResponse);
+  rpc ListVolumes(ListVolumesRequest) returns (ListVolumesResponse);
+  rpc InspectVolume(InspectVolumeRequest) returns (InspectVolumeResponse);
+  rpc ListImages(ListImagesRequest) returns (ListImagesResponse);
+  rpc InspectImage(InspectImageRequest) returns (InspectImageResponse);
+}
+
 message HeartbeatRequest {
   string node_id = 1;
   string agent_version = 2;
@@ -144,3 +155,97 @@ message ReportDockerStatsRequest {
 }
 
 message ReportDockerStatsResponse {}
+
+message ListContainersRequest {}
+
+message ContainerInfo {
+  string id = 1;
+  string name = 2;
+  string image = 3;
+  string state = 4;
+  string status = 5;
+  string created = 6;
+  map<string, string> labels = 7;
+}
+
+message ListContainersResponse {
+  repeated ContainerInfo containers = 1;
+}
+
+message InspectContainerRequest {
+  string container_id = 1;
+}
+
+message InspectContainerResponse {
+  string raw_json = 1;
+}
+
+message ListNetworksRequest {}
+
+message NetworkInfo {
+  string id = 1;
+  string name = 2;
+  string driver = 3;
+  string scope = 4;
+  bool internal = 5;
+  bool attachable = 6;
+  string created = 7;
+  map<string, string> labels = 8;
+}
+
+message ListNetworksResponse {
+  repeated NetworkInfo networks = 1;
+}
+
+message InspectNetworkRequest {
+  string network_id = 1;
+}
+
+message InspectNetworkResponse {
+  string raw_json = 1;
+}
+
+message ListVolumesRequest {}
+
+message VolumeInfo {
+  string name = 1;
+  string driver = 2;
+  string mountpoint = 3;
+  string scope = 4;
+  string created = 5;
+  map<string, string> labels = 6;
+}
+
+message ListVolumesResponse {
+  repeated VolumeInfo volumes = 1;
+}
+
+message InspectVolumeRequest {
+  string volume_name = 1;
+}
+
+message InspectVolumeResponse {
+  string raw_json = 1;
+}
+
+message ListImagesRequest {}
+
+message ImageInfo {
+  string id = 1;
+  repeated string repo_tags = 2;
+  int64 size = 3;
+  int64 virtual_size = 4;
+  string created = 5;
+}
+
+message ListImagesResponse {
+  repeated ImageInfo images = 1;
+}
+
+message InspectImageRequest {
+  string image_id = 1;
+}
+
+message InspectImageResponse {
+  string raw_json = 1;
+}
