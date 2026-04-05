@@ -3,12 +3,14 @@
 
   import type { ServiceFileNode } from '$lib/service-workspace';
 
-  export let nodes: ServiceFileNode[] = [];
-  export let activePath = '';
-  export let collapsedPaths: Set<string> = new Set();
-  export let depth = 0;
-  export let onSelect: (path: string) => void = () => {};
-  export let onToggle: (path: string) => void = () => {};
+export let nodes: ServiceFileNode[] = [];
+export let activePath = '';
+export let selectedPath = '';
+export let collapsedPaths: Set<string> = new Set();
+export let depth = 0;
+export let onOpenFile: (path: string) => void = () => {};
+export let onSelectNode: (path: string) => void = () => {};
+export let onToggle: (path: string) => void = () => {};
 </script>
 
 <div class="space-y-1">
@@ -17,9 +19,15 @@
       {#if node.isDir}
         <button
           type="button"
-          class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors"
+          class:bg-secondary={selectedPath === node.path}
+          class:text-secondary-foreground={selectedPath === node.path}
+          class:text-muted-foreground={selectedPath !== node.path}
           style={`padding-left:${depth * 12 + 8}px`}
-          on:click={() => onToggle(node.path)}
+          on:click={() => {
+            onSelectNode(node.path);
+            onToggle(node.path);
+          }}
         >
           {#if collapsedPaths.has(node.path)}
             <ChevronRight class="size-4" />
@@ -34,9 +42,11 @@
           <svelte:self
             nodes={node.children}
             activePath={activePath}
+            selectedPath={selectedPath}
             collapsedPaths={collapsedPaths}
             depth={depth + 1}
-            {onSelect}
+            {onOpenFile}
+            {onSelectNode}
             {onToggle}
           />
         {/if}
@@ -48,7 +58,10 @@
           class:text-secondary-foreground={activePath === node.path}
           class:text-muted-foreground={activePath !== node.path}
           style={`padding-left:${depth * 12 + 28}px`}
-          on:click={() => onSelect(node.path)}
+          on:click={() => {
+            onSelectNode(node.path);
+            onOpenFile(node.path);
+          }}
         >
           <FileText class="size-4" />
           <span class="truncate">{node.name}</span>

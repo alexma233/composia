@@ -304,6 +304,132 @@ func TestRepoServiceUpdateRepoFileCommitsAndKeepsWorktreeClean(t *testing.T) {
 	}
 }
 
+func TestRepoServiceCreateRepoDirectoryCommitsPlaceholder(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithContent(t, repoDir, map[string]string{"README.md": "hello\n"})
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	client := newRepoServiceClient(t, &repoServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
+	head, err := client.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
+	if err != nil {
+		t.Fatalf("get repo head: %v", err)
+	}
+	created, err := client.CreateRepoDirectory(context.Background(), connect.NewRequest(&controllerv1.CreateRepoDirectoryRequest{
+		Path:         "alpha/config",
+		BaseRevision: head.Msg.GetHeadRevision(),
+	}))
+	if err != nil {
+		t.Fatalf("create repo directory: %v", err)
+	}
+	if created.Msg.GetCommitId() == "" {
+		t.Fatalf("expected commit id for created directory")
+	}
+	if _, err := os.Stat(filepath.Join(repoDir, "alpha", "config", ".gitkeep")); err != nil {
+		t.Fatalf("expected .gitkeep placeholder: %v", err)
+	}
+	clean, err := repo.IsCleanWorkingTree(repoDir)
+	if err != nil {
+		t.Fatalf("check clean worktree: %v", err)
+	}
+	if !clean {
+		t.Fatalf("expected clean worktree after directory creation")
+	}
+}
+
+func TestRepoServiceMoveRepoPathRenamesTrackedFile(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithContent(t, repoDir, map[string]string{"alpha/app.env": "A=1\n"})
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	client := newRepoServiceClient(t, &repoServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
+	head, err := client.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
+	if err != nil {
+		t.Fatalf("get repo head: %v", err)
+	}
+	moved, err := client.MoveRepoPath(context.Background(), connect.NewRequest(&controllerv1.MoveRepoPathRequest{
+		SourcePath:      "alpha/app.env",
+		DestinationPath: "alpha/config/app.env",
+		BaseRevision:    head.Msg.GetHeadRevision(),
+	}))
+	if err != nil {
+		t.Fatalf("move repo path: %v", err)
+	}
+	if moved.Msg.GetCommitId() == "" {
+		t.Fatalf("expected commit id for move")
+	}
+	if _, err := os.Stat(filepath.Join(repoDir, "alpha", "config", "app.env")); err != nil {
+		t.Fatalf("expected moved file: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(repoDir, "alpha", "app.env")); !os.IsNotExist(err) {
+		t.Fatalf("expected source file to be removed, got %v", err)
+	}
+}
+
+func TestRepoServiceDeleteRepoPathRemovesTrackedFile(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithContent(t, repoDir, map[string]string{"alpha/.env": "A=1\n"})
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	client := newRepoServiceClient(t, &repoServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
+	head, err := client.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
+	if err != nil {
+		t.Fatalf("get repo head: %v", err)
+	}
+	deleted, err := client.DeleteRepoPath(context.Background(), connect.NewRequest(&controllerv1.DeleteRepoPathRequest{
+		Path:         "alpha/.env",
+		BaseRevision: head.Msg.GetHeadRevision(),
+	}))
+	if err != nil {
+		t.Fatalf("delete repo path: %v", err)
+	}
+	if deleted.Msg.GetCommitId() == "" {
+		t.Fatalf("expected commit id for delete")
+	}
+	if _, err := os.Stat(filepath.Join(repoDir, "alpha", ".env")); !os.IsNotExist(err) {
+		t.Fatalf("expected file to be deleted, got %v", err)
+	}
+	clean, err := repo.IsCleanWorkingTree(repoDir)
+	if err != nil {
+		t.Fatalf("check clean worktree: %v", err)
+	}
+	if !clean {
+		t.Fatalf("expected clean worktree after delete")
+	}
+}
+
 func TestRepoServiceUpdateRepoFileReturnsPushFailureWithoutRollback(t *testing.T) {
 	t.Parallel()
 

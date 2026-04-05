@@ -272,6 +272,36 @@ export async function updateRepoFile(path: string, content: string, baseRevision
   );
 }
 
+export async function createRepoDirectory(path: string, baseRevision: string, commitMessage = ''): Promise<RepoWriteResult> {
+  const config = requireControllerConfig();
+  return rpcCall<RepoWriteResult>(
+    config.baseUrl,
+    config.token,
+    '/composia.controller.v1.RepoService/CreateRepoDirectory',
+    { path, baseRevision, commitMessage }
+  );
+}
+
+export async function moveRepoPath(sourcePath: string, destinationPath: string, baseRevision: string, commitMessage = ''): Promise<RepoWriteResult> {
+  const config = requireControllerConfig();
+  return rpcCall<RepoWriteResult>(
+    config.baseUrl,
+    config.token,
+    '/composia.controller.v1.RepoService/MoveRepoPath',
+    { sourcePath, destinationPath, baseRevision, commitMessage }
+  );
+}
+
+export async function deleteRepoPath(path: string, baseRevision: string, commitMessage = ''): Promise<RepoWriteResult> {
+  const config = requireControllerConfig();
+  return rpcCall<RepoWriteResult>(
+    config.baseUrl,
+    config.token,
+    '/composia.controller.v1.RepoService/DeleteRepoPath',
+    { path, baseRevision, commitMessage }
+  );
+}
+
 export async function syncRepo(): Promise<RepoSyncResult> {
   const config = requireControllerConfig();
   return rpcCall<RepoSyncResult>(

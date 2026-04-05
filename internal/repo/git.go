@@ -134,18 +134,36 @@ func ListCommits(repoDir, cursor string, limit uint32) ([]CommitSummary, string,
 }
 
 func HasPathChanges(repoDir, relativePath string) (bool, error) {
-	output, err := gitOutput(repoDir, "status", "--short", "--", relativePath)
+	return HasPathsChanges(repoDir, relativePath)
+}
+
+func HasPathsChanges(repoDir string, relativePaths ...string) (bool, error) {
+	args := []string{"status", "--short"}
+	if len(relativePaths) > 0 {
+		args = append(args, "--")
+		args = append(args, relativePaths...)
+	}
+	output, err := gitOutput(repoDir, args...)
 	if err != nil {
-		return false, fmt.Errorf("read git status for %q: %w", relativePath, err)
+		return false, fmt.Errorf("read git status for %q: %w", strings.Join(relativePaths, ", "), err)
 	}
 	return strings.TrimSpace(output) != "", nil
 }
 
 func CommitPath(repoDir, relativePath, message, authorName, authorEmail string) (string, error) {
-	if _, err := gitOutput(repoDir, "add", "--", relativePath); err != nil {
-		return "", fmt.Errorf("stage repo path %q: %w", relativePath, err)
+	return CommitPaths(repoDir, []string{relativePath}, message, authorName, authorEmail)
+}
+
+func CommitPaths(repoDir string, relativePaths []string, message, authorName, authorEmail string) (string, error) {
+	if len(relativePaths) == 0 {
+		return "", fmt.Errorf("at least one repo path is required")
 	}
-	changed, err := HasPathChanges(repoDir, relativePath)
+	addArgs := []string{"add", "-A", "--"}
+	addArgs = append(addArgs, relativePaths...)
+	if _, err := gitOutput(repoDir, addArgs...); err != nil {
+		return "", fmt.Errorf("stage repo paths %q: %w", strings.Join(relativePaths, ", "), err)
+	}
+	changed, err := HasPathsChanges(repoDir, relativePaths...)
 	if err != nil {
 		return "", err
 	}
@@ -153,10 +171,10 @@ func CommitPath(repoDir, relativePath, message, authorName, authorEmail string) 
 		return "", ErrNoGitChanges
 	}
 	if message == "" {
-		message = fmt.Sprintf("update %s", relativePath)
+		message = fmt.Sprintf("update %s", relativePaths[0])
 	}
 	if err := gitCommandWithOptions(repoDir, gitAuthorEnv(authorName, authorEmail), []string{"commit.gpgsign=false"}, "commit", "-m", message); err != nil {
-		return "", fmt.Errorf("commit repo path %q: %w", relativePath, err)
+		return "", fmt.Errorf("commit repo paths %q: %w", strings.Join(relativePaths, ", "), err)
 	}
 	commitID, err := CurrentRevision(repoDir)
 	if err != nil {

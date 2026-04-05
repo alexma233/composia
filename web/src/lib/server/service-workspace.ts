@@ -1,8 +1,11 @@
 import type { RepoFileEntry, RepoWriteResult } from '$lib/server/controller';
 import type { ServiceFileNode, WorkspaceFile } from '$lib/service-workspace';
 import {
+  createRepoDirectory,
+  deleteRepoPath,
   loadRepoEntries,
   loadRepoFile,
+  moveRepoPath,
   updateRepoFile
 } from '$lib/server/controller';
 import { normalizeServiceRelativePath } from '$lib/service-workspace';
@@ -44,6 +47,39 @@ export async function saveServiceWorkspaceFile(
     },
     write
   };
+}
+
+export async function createServiceWorkspaceDirectory(
+  serviceDir: string,
+  relativePath: string,
+  baseRevision: string
+): Promise<RepoWriteResult> {
+  const normalized = normalizeServiceRelativePath(relativePath);
+  return createRepoDirectory(repoPathForServicePath(serviceDir, normalized), baseRevision);
+}
+
+export async function moveServiceWorkspacePath(
+  serviceDir: string,
+  sourcePath: string,
+  destinationPath: string,
+  baseRevision: string
+): Promise<RepoWriteResult> {
+  const normalizedSource = normalizeServiceRelativePath(sourcePath);
+  const normalizedDestination = normalizeServiceRelativePath(destinationPath);
+  return moveRepoPath(
+    repoPathForServicePath(serviceDir, normalizedSource),
+    repoPathForServicePath(serviceDir, normalizedDestination),
+    baseRevision
+  );
+}
+
+export async function deleteServiceWorkspacePath(
+  serviceDir: string,
+  relativePath: string,
+  baseRevision: string
+): Promise<RepoWriteResult> {
+  const normalized = normalizeServiceRelativePath(relativePath);
+  return deleteRepoPath(repoPathForServicePath(serviceDir, normalized), baseRevision);
 }
 
 async function loadDirectoryTree(serviceDir: string, relativeDir: string): Promise<ServiceFileNode[]> {

@@ -14,6 +14,9 @@
     if (!hasMeta) {
       return 'outline';
     }
+    if (runtimeStatus === 'needs_validation') {
+      return 'secondary';
+    }
     return runtimeStatusTone(runtimeStatus || 'unknown');
   }
 

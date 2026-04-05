@@ -45,8 +45,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
     }
 
     const [tasks, backups, fileTree] = await Promise.all([
-      workspace.serviceName ? loadServiceTasks(workspace.serviceName) : Promise.resolve([]),
-      workspace.serviceName ? loadServiceBackups(workspace.serviceName) : Promise.resolve([]),
+      workspace.isDeclared && workspace.serviceName ? loadServiceTasks(workspace.serviceName) : Promise.resolve([]),
+      workspace.isDeclared && workspace.serviceName ? loadServiceBackups(workspace.serviceName) : Promise.resolve([]),
       loadServiceFileTree(workspace.folder)
     ]);
     const requestedFile = url.searchParams.get('file') ?? '';

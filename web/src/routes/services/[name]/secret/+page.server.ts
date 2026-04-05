@@ -9,7 +9,7 @@ import {
   loadServiceSecret,
   updateServiceSecret
 } from '$lib/server/controller';
-import { loadServiceWorkspaces } from '$lib/server/service-index';
+import { loadServiceWorkspace } from '$lib/server/service-index';
 
 export const actions: Actions = {
   save: async ({ request, params }) => {
@@ -23,10 +23,10 @@ export const actions: Actions = {
     }
 
     try {
-      const workspace = (await loadServiceWorkspaces()).find((item) => item.folder === params.name);
-      if (!workspace?.serviceName) {
+      const workspace = await loadServiceWorkspace(params.name);
+      if (!workspace?.isDeclared || !workspace.serviceName) {
         return fail(400, {
-          error: 'Create composia-meta.yaml for this folder before editing secrets.',
+          error: 'Add a valid composia-meta.yaml for this folder before editing secrets.',
           content,
           commitMessage
         });
@@ -51,11 +51,11 @@ export const load: PageServerLoad = async ({ params }) => {
   }
 
   try {
-    const workspace = (await loadServiceWorkspaces()).find((item) => item.folder === params.name);
-    if (!workspace?.serviceName) {
+    const workspace = await loadServiceWorkspace(params.name);
+    if (!workspace?.isDeclared || !workspace.serviceName) {
       return {
         ready: true,
-        error: 'Create composia-meta.yaml for this folder before editing secrets.',
+        error: 'Add a valid composia-meta.yaml for this folder before editing secrets.',
         service: null,
         workspace,
         secret: null,

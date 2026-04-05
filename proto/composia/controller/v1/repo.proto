@@ -11,6 +11,9 @@ service RepoService {
   rpc ListRepoCommits(ListRepoCommitsRequest) returns (ListRepoCommitsResponse);
   rpc ValidateRepo(ValidateRepoRequest) returns (ValidateRepoResponse);
   rpc UpdateRepoFile(UpdateRepoFileRequest) returns (UpdateRepoFileResponse);
+  rpc CreateRepoDirectory(CreateRepoDirectoryRequest) returns (CreateRepoDirectoryResponse);
+  rpc MoveRepoPath(MoveRepoPathRequest) returns (MoveRepoPathResponse);
+  rpc DeleteRepoPath(DeleteRepoPathRequest) returns (DeleteRepoPathResponse);
   rpc SyncRepo(SyncRepoRequest) returns (SyncRepoResponse);
 }
 
@@ -87,6 +90,46 @@ message UpdateRepoFileRequest {
 }
 
 message UpdateRepoFileResponse {
+  string commit_id = 1;
+  string sync_status = 2;
+  string push_error = 3;
+  string last_successful_pull_at = 4;
+}
+
+message CreateRepoDirectoryRequest {
+  string path = 1;
+  string base_revision = 2;
+  string commit_message = 3;
+}
+
+message CreateRepoDirectoryResponse {
+  string commit_id = 1;
+  string sync_status = 2;
+  string push_error = 3;
+  string last_successful_pull_at = 4;
+}
+
+message MoveRepoPathRequest {
+  string source_path = 1;
+  string destination_path = 2;
+  string base_revision = 3;
+  string commit_message = 4;
+}
+
+message MoveRepoPathResponse {
+  string commit_id = 1;
+  string sync_status = 2;
+  string push_error = 3;
+  string last_successful_pull_at = 4;
+}
+
+message DeleteRepoPathRequest {
+  string path = 1;
+  string base_revision = 2;
+  string commit_message = 3;
+}
+
+message DeleteRepoPathResponse {
   string commit_id = 1;
   string sync_status = 2;
   string push_error = 3;

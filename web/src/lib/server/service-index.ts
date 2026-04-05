@@ -13,6 +13,7 @@ export type ServiceWorkspaceSummary = {
   displayName: string;
   serviceName: string;
   hasMeta: boolean;
+  isDeclared: boolean;
   runtimeStatus: string;
   updatedAt: string;
   node: string;
@@ -45,6 +46,7 @@ export async function loadServiceWorkspaces(): Promise<ServiceWorkspaceSummary[]
           displayName: declared.detail.name,
           serviceName: declared.detail.name,
           hasMeta: true,
+          isDeclared: true,
           runtimeStatus: declared.detail.runtimeStatus,
           updatedAt: declared.detail.updatedAt,
           node: declared.detail.node,
@@ -58,7 +60,8 @@ export async function loadServiceWorkspaces(): Promise<ServiceWorkspaceSummary[]
         displayName: meta?.name?.trim() || entry.name,
         serviceName: meta?.name?.trim() || '',
         hasMeta: Boolean(meta?.name?.trim()),
-        runtimeStatus: meta?.name ? 'unknown' : 'uninitialized',
+        isDeclared: false,
+        runtimeStatus: meta?.name ? 'needs_validation' : 'uninitialized',
         updatedAt: '',
         node: '',
         enabled: Boolean(meta?.name)
@@ -68,6 +71,10 @@ export async function loadServiceWorkspaces(): Promise<ServiceWorkspaceSummary[]
 
   workspaces.sort((left, right) => left.folder.localeCompare(right.folder));
   return workspaces;
+}
+
+export async function loadServiceWorkspace(folder: string): Promise<ServiceWorkspaceSummary | null> {
+	return (await loadServiceWorkspaces()).find((workspace) => workspace.folder === folder) ?? null;
 }
 
 async function loadDetail(summary: ServiceSummary) {

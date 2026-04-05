@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 import { normalizeServiceRelativePath } from '$lib/service-workspace';
+import { loadServiceWorkspace } from '$lib/server/service-index';
 import {
   loadServiceWorkspaceFile,
   saveServiceWorkspaceFile
@@ -39,8 +40,9 @@ export const POST: RequestHandler = async ({ params, request }) => {
       payload.content ?? '',
       payload.baseRevision
     );
+		const workspace = await loadServiceWorkspace(params.name);
 
-    return json(result);
+		return json({ ...result, workspace });
   } catch (error) {
     return json(
       { error: error instanceof Error ? error.message : 'Failed to save workspace file.' },

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Play, RefreshCcw, Save, Square, Upload, Wrench } from 'lucide-svelte';
+  import { FolderPlus, Pencil, Play, RefreshCcw, Save, Square, Trash2, Upload, Wrench } from 'lucide-svelte';
 
   import type { PageData } from './$types';
 
@@ -16,7 +16,7 @@
     TaskSummary
   } from '$lib/server/controller';
   import type { ServiceFileNode, WorkspaceFile } from '$lib/service-workspace';
-  import { normalizeServiceRelativePath, upsertFileNode } from '$lib/service-workspace';
+  import { findNode, normalizeServiceRelativePath, upsertFileNode } from '$lib/service-workspace';
 
   export let data: PageData;
 
@@ -27,6 +27,7 @@
 
   let fileTree: ServiceFileNode[] = data.fileTree;
   let collapsedPaths = new Set<string>();
+  let selectedNodePath = data.initialFile?.path ?? '';
   let openTabs: EditorTab[] = data.initialFile ? [createTab(data.initialFile)] : [];
   let activePath = data.initialFile?.path ?? '';
   let headRevision = data.repoHead?.headRevision ?? '';
@@ -43,9 +44,14 @@
   let errorMessage = data.error ?? '';
   let showNewFile = false;
   let newFilePath = '';
+  let showNewFolder = false;
+  let newFolderPath = '';
+  let showRename = false;
+  let renamePath = '';
   let workspace = data.workspace;
   let activeTab: EditorTab | null = openTabs.find((tab) => tab.path === activePath) ?? null;
   let canSave = Boolean(activeTab && activeTab.dirty && !saving);
+  let selectedNode = selectedNodePath ? findNode(fileTree, selectedNodePath) : null;
 
   function createTab(file: WorkspaceFile): EditorTab {
     return {
@@ -57,12 +63,14 @@
 
   $: activeTab = openTabs.find((tab) => tab.path === activePath) ?? null;
   $: canSave = Boolean(activeTab && activeTab.dirty && !saving);
+  $: selectedNode = selectedNodePath ? findNode(fileTree, selectedNodePath) : null;
 
   async function openFile(path: string) {
     try {
       const normalized = normalizeServiceRelativePath(path);
       const existing = openTabs.find((tab) => tab.path === normalized);
       if (existing) {
+        selectedNodePath = normalized;
         activePath = normalized;
         return;
       }
@@ -75,6 +83,7 @@
       }
 
       openTabs = [...openTabs, createTab(payload.file as WorkspaceFile)];
+      selectedNodePath = normalized;
       activePath = normalized;
       errorMessage = '';
     } catch (openError) {
@@ -87,6 +96,14 @@
     openTabs = nextTabs;
     if (activePath === path) {
       activePath = nextTabs[nextTabs.length - 1]?.path ?? '';
+    }
+  }
+
+  function selectNode(path: string) {
+    selectedNodePath = path;
+    showRename = false;
+    if (path) {
+      renamePath = path;
     }
   }
 
@@ -122,11 +139,12 @@
           baseRevision: headRevision
         })
       });
-      const payload = (await response.json()) as {
-        error?: string;
-        file?: WorkspaceFile;
-        write?: RepoWriteResult;
-      };
+    const payload = (await response.json()) as {
+      error?: string;
+      file?: WorkspaceFile;
+      write?: RepoWriteResult;
+      workspace?: PageData['workspace'];
+    };
       if (!response.ok || !payload.file || !payload.write) {
         throw new Error(payload.error ?? 'Failed to save file.');
       }
@@ -135,6 +153,7 @@
       syncStatus = payload.write.syncStatus;
       syncError = payload.write.pushError;
       lastSuccessfulPullAt = payload.write.lastSuccessfulPullAt;
+      workspace = payload.workspace ?? workspace;
       openTabs = openTabs.map((item) =>
         item.path === tab.path
           ? {
@@ -184,6 +203,7 @@
         error?: string;
         file?: WorkspaceFile;
         write?: RepoWriteResult;
+        workspace?: PageData['workspace'];
       };
       if (!response.ok || !payload.file || !payload.write) {
         throw new Error(payload.error ?? 'Failed to create file.');
@@ -193,8 +213,10 @@
       syncStatus = payload.write.syncStatus;
       syncError = payload.write.pushError;
       lastSuccessfulPullAt = payload.write.lastSuccessfulPullAt;
+      workspace = payload.workspace ?? workspace;
       fileTree = upsertFileNode(fileTree, normalized);
       openTabs = [...openTabs, createTab(payload.file)];
+      selectedNodePath = normalized;
       activePath = normalized;
       showNewFile = false;
       newFilePath = '';
@@ -204,6 +226,144 @@
     } finally {
       saving = false;
     }
+  }
+
+  async function createDirectory() {
+    if (!newFolderPath.trim()) {
+      return;
+    }
+
+    saving = true;
+    errorMessage = '';
+
+    try {
+      const normalized = normalizeServiceRelativePath(newFolderPath);
+      const response = await fetch(`/services/${workspace?.folder}/workspace/fs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_directory',
+          path: normalized,
+          baseRevision: headRevision
+        })
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.write) {
+        throw new Error(payload.error ?? 'Failed to create folder.');
+      }
+
+      applyFsMutation(payload);
+      selectedNodePath = normalized;
+      showNewFolder = false;
+      newFolderPath = '';
+      notice = `Created folder ${normalized}`;
+    } catch (directoryError) {
+      errorMessage = directoryError instanceof Error ? directoryError.message : 'Failed to create folder.';
+    } finally {
+      saving = false;
+    }
+  }
+
+  async function renameNode() {
+    if (!selectedNodePath || !renamePath.trim()) {
+      return;
+    }
+
+    saving = true;
+    errorMessage = '';
+
+    try {
+      const destination = normalizeServiceRelativePath(renamePath);
+      const response = await fetch(`/services/${workspace?.folder}/workspace/fs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'move',
+          sourcePath: selectedNodePath,
+          destinationPath: destination,
+          baseRevision: headRevision
+        })
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.write) {
+        throw new Error(payload.error ?? 'Failed to rename path.');
+      }
+
+      applyFsMutation(payload);
+      openTabs = openTabs.map((tab) => {
+        if (tab.path === selectedNodePath || tab.path.startsWith(`${selectedNodePath}/`)) {
+          const nextPath = destination + tab.path.slice(selectedNodePath.length);
+          return { ...tab, path: nextPath };
+        }
+        return tab;
+      });
+      if (activePath === selectedNodePath || activePath.startsWith(`${selectedNodePath}/`)) {
+        activePath = destination + activePath.slice(selectedNodePath.length);
+      }
+      selectedNodePath = destination;
+      renamePath = destination;
+      showRename = false;
+      notice = `Renamed to ${destination}`;
+    } catch (renameError) {
+      errorMessage = renameError instanceof Error ? renameError.message : 'Failed to rename path.';
+    } finally {
+      saving = false;
+    }
+  }
+
+  async function deleteNode() {
+    if (!selectedNodePath || !confirm(`Delete ${selectedNode?.isDir ? 'folder' : 'file'} ${selectedNodePath}?`)) {
+      return;
+    }
+
+    saving = true;
+    errorMessage = '';
+
+    try {
+      const deletedPath = selectedNodePath;
+      const response = await fetch(`/services/${workspace?.folder}/workspace/fs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete',
+          path: deletedPath,
+          baseRevision: headRevision
+        })
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.write) {
+        throw new Error(payload.error ?? 'Failed to delete path.');
+      }
+
+      applyFsMutation(payload);
+      const nextTabs = openTabs.filter(
+        (tab) => tab.path !== deletedPath && !tab.path.startsWith(`${deletedPath}/`)
+      );
+      openTabs = nextTabs;
+      if (activePath === deletedPath || activePath.startsWith(`${deletedPath}/`)) {
+        activePath = nextTabs[0]?.path ?? '';
+      }
+      selectedNodePath = '';
+      showRename = false;
+      notice = `Deleted ${deletedPath}`;
+    } catch (deleteError) {
+      errorMessage = deleteError instanceof Error ? deleteError.message : 'Failed to delete path.';
+    } finally {
+      saving = false;
+    }
+  }
+
+  function applyFsMutation(payload: {
+    write: RepoWriteResult;
+    workspace?: PageData['workspace'];
+    fileTree?: ServiceFileNode[];
+  }) {
+    headRevision = payload.write.commitId;
+    syncStatus = payload.write.syncStatus;
+    syncError = payload.write.pushError;
+    lastSuccessfulPullAt = payload.write.lastSuccessfulPullAt;
+    workspace = payload.workspace ?? workspace;
+    fileTree = payload.fileTree ?? fileTree;
   }
 
   async function triggerAction(action: 'deploy' | 'update' | 'stop' | 'restart' | 'backup') {
@@ -283,13 +443,18 @@
   <div class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)_320px]">
     <section class="flex min-h-0 flex-col rounded-lg border bg-card shadow-xs">
       <div class="flex items-center justify-between border-b px-4 py-3">
-          <div>
-            <div class="text-sm font-medium">Files</div>
-            <div class="text-xs text-muted-foreground">Scoped to `{workspace?.folder}`</div>
-          </div>
-        <Button type="button" variant="outline" size="sm" on:click={() => (showNewFile = !showNewFile)}>
-          New file
-        </Button>
+        <div>
+          <div class="text-sm font-medium">Files</div>
+          <div class="text-xs text-muted-foreground">Scoped to `{workspace?.folder}`</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <Button type="button" variant="outline" size="sm" on:click={() => (showNewFile = !showNewFile)}>
+            New file
+          </Button>
+          <Button type="button" variant="outline" size="sm" on:click={() => (showNewFolder = !showNewFolder)}>
+            <FolderPlus class="mr-2 size-4" />Folder
+          </Button>
+        </div>
       </div>
 
       {#if showNewFile}
@@ -306,12 +471,58 @@
         </div>
       {/if}
 
+      {#if showNewFolder}
+        <div class="space-y-3 border-b px-4 py-3">
+          <input
+            class="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none"
+            bind:value={newFolderPath}
+            placeholder="config/snippets"
+          />
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-xs text-muted-foreground">Empty folders are tracked with a hidden `.gitkeep` file.</p>
+            <Button type="button" size="sm" on:click={createDirectory} disabled={saving}>Create</Button>
+          </div>
+        </div>
+      {/if}
+
+      <div class="border-b px-4 py-3 text-sm">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <div class="font-medium">Selection</div>
+            <div class="text-xs text-muted-foreground">{selectedNodePath || 'Nothing selected'}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <Button type="button" variant="outline" size="sm" on:click={() => { showRename = !showRename; renamePath = selectedNodePath; }} disabled={!selectedNodePath || saving}>
+              <Pencil class="mr-2 size-4" />Rename
+            </Button>
+            <Button type="button" variant="outline" size="sm" on:click={deleteNode} disabled={!selectedNodePath || saving}>
+              <Trash2 class="mr-2 size-4" />Delete
+            </Button>
+          </div>
+        </div>
+
+        {#if showRename}
+          <div class="mt-3 space-y-3">
+            <input
+              class="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none"
+              bind:value={renamePath}
+              placeholder="new/path.yaml"
+            />
+            <div class="flex justify-end">
+              <Button type="button" size="sm" on:click={renameNode} disabled={!selectedNodePath || saving}>Apply</Button>
+            </div>
+          </div>
+        {/if}
+      </div>
+
       <div class="min-h-0 flex-1 overflow-auto px-2 py-3">
         <ServiceFileTree
           nodes={fileTree}
           {activePath}
+          selectedPath={selectedNodePath}
           {collapsedPaths}
-          onSelect={openFile}
+          onOpenFile={openFile}
+          onSelectNode={selectNode}
           onToggle={toggleDirectory}
         />
       </div>
@@ -364,29 +575,33 @@
         </div>
 
         <div class="grid gap-2">
-          <Button type="button" on:click={() => triggerAction('deploy')} disabled={!!actionBusy || !workspace?.serviceName}>
+          <Button type="button" on:click={() => triggerAction('deploy')} disabled={!!actionBusy || !workspace?.isDeclared}>
             <Play class="mr-2 size-4" />Deploy
           </Button>
-          <Button type="button" variant="outline" on:click={() => triggerAction('update')} disabled={!!actionBusy || !workspace?.serviceName}>
+          <Button type="button" variant="outline" on:click={() => triggerAction('update')} disabled={!!actionBusy || !workspace?.isDeclared}>
             <Upload class="mr-2 size-4" />Update
           </Button>
-          <Button type="button" variant="outline" on:click={() => triggerAction('restart')} disabled={!!actionBusy || !workspace?.serviceName}>
+          <Button type="button" variant="outline" on:click={() => triggerAction('restart')} disabled={!!actionBusy || !workspace?.isDeclared}>
             <RefreshCcw class="mr-2 size-4" />Restart
           </Button>
-          <Button type="button" variant="outline" on:click={() => triggerAction('stop')} disabled={!!actionBusy || !workspace?.serviceName}>
+          <Button type="button" variant="outline" on:click={() => triggerAction('stop')} disabled={!!actionBusy || !workspace?.isDeclared}>
             <Square class="mr-2 size-4" />Stop
           </Button>
-          <Button type="button" variant="outline" on:click={() => triggerAction('backup')} disabled={!!actionBusy || !workspace?.serviceName}>
+          <Button type="button" variant="outline" on:click={() => triggerAction('backup')} disabled={!!actionBusy || !workspace?.isDeclared}>
             <Wrench class="mr-2 size-4" />Backup
           </Button>
-          <a href={`/services/${workspace?.folder}/secret`} class="inline-flex h-10 items-center justify-center rounded-md border bg-background px-4 text-sm transition-colors hover:bg-accent hover:text-accent-foreground pointer-events-none opacity-50" class:pointer-events-auto={!!workspace?.serviceName} class:opacity-100={!!workspace?.serviceName}>
+          <a href={`/services/${workspace?.folder}/secret`} class="inline-flex h-10 items-center justify-center rounded-md border bg-background px-4 text-sm transition-colors hover:bg-accent hover:text-accent-foreground pointer-events-none opacity-50" class:pointer-events-auto={!!workspace?.isDeclared} class:opacity-100={!!workspace?.isDeclared}>
             Edit secret
           </a>
         </div>
 
-        {#if !workspace?.serviceName}
+        {#if !workspace?.hasMeta}
           <div class="mt-4 rounded-lg border border-dashed bg-muted/20 p-3 text-sm text-muted-foreground">
             This folder has no `composia-meta.yaml` yet. You can edit files now, then add the meta file to enable runtime actions.
+          </div>
+        {:else if !workspace?.isDeclared}
+          <div class="mt-4 rounded-lg border border-dashed bg-muted/20 p-3 text-sm text-muted-foreground">
+            `composia-meta.yaml` exists, but the controller has not accepted this service yet. Fix the meta file until the folder becomes a declared service.
           </div>
         {/if}
 

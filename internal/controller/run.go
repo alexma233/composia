@@ -1411,6 +1411,84 @@ func (server *repoServer) UpdateRepoFile(ctx context.Context, req *connect.Reque
 	}), nil
 }
 
+func (server *repoServer) CreateRepoDirectory(ctx context.Context, req *connect.Request[controllerv1.CreateRepoDirectoryRequest]) (*connect.Response[controllerv1.CreateRepoDirectoryResponse], error) {
+	if req.Msg == nil || req.Msg.GetPath() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("path is required"))
+	}
+	if req.Msg.GetBaseRevision() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base_revision is required"))
+	}
+	server.repoLock().Lock()
+	defer server.repoLock().Unlock()
+
+	baseSyncState, err := server.prepareRepoWritePaths(ctx, req.Msg.GetBaseRevision(), []string{req.Msg.GetPath()})
+	if err != nil {
+		return nil, err
+	}
+	result, err := server.createRepoDirectoryTransaction(ctx, req.Msg.GetPath(), req.Msg.GetCommitMessage(), baseSyncState)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&controllerv1.CreateRepoDirectoryResponse{
+		CommitId:             result.CommitID,
+		SyncStatus:           result.SyncStatus,
+		PushError:            result.PushError,
+		LastSuccessfulPullAt: result.LastSuccessfulPullAt,
+	}), nil
+}
+
+func (server *repoServer) MoveRepoPath(ctx context.Context, req *connect.Request[controllerv1.MoveRepoPathRequest]) (*connect.Response[controllerv1.MoveRepoPathResponse], error) {
+	if req.Msg == nil || req.Msg.GetSourcePath() == "" || req.Msg.GetDestinationPath() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("source_path and destination_path are required"))
+	}
+	if req.Msg.GetBaseRevision() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base_revision is required"))
+	}
+	server.repoLock().Lock()
+	defer server.repoLock().Unlock()
+
+	baseSyncState, err := server.prepareRepoWritePaths(ctx, req.Msg.GetBaseRevision(), []string{req.Msg.GetSourcePath(), req.Msg.GetDestinationPath()})
+	if err != nil {
+		return nil, err
+	}
+	result, err := server.moveRepoPathTransaction(ctx, req.Msg.GetSourcePath(), req.Msg.GetDestinationPath(), req.Msg.GetCommitMessage(), baseSyncState)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&controllerv1.MoveRepoPathResponse{
+		CommitId:             result.CommitID,
+		SyncStatus:           result.SyncStatus,
+		PushError:            result.PushError,
+		LastSuccessfulPullAt: result.LastSuccessfulPullAt,
+	}), nil
+}
+
+func (server *repoServer) DeleteRepoPath(ctx context.Context, req *connect.Request[controllerv1.DeleteRepoPathRequest]) (*connect.Response[controllerv1.DeleteRepoPathResponse], error) {
+	if req.Msg == nil || req.Msg.GetPath() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("path is required"))
+	}
+	if req.Msg.GetBaseRevision() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base_revision is required"))
+	}
+	server.repoLock().Lock()
+	defer server.repoLock().Unlock()
+
+	baseSyncState, err := server.prepareRepoWritePaths(ctx, req.Msg.GetBaseRevision(), []string{req.Msg.GetPath()})
+	if err != nil {
+		return nil, err
+	}
+	result, err := server.deleteRepoPathTransaction(ctx, req.Msg.GetPath(), req.Msg.GetCommitMessage(), baseSyncState)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&controllerv1.DeleteRepoPathResponse{
+		CommitId:             result.CommitID,
+		SyncStatus:           result.SyncStatus,
+		PushError:            result.PushError,
+		LastSuccessfulPullAt: result.LastSuccessfulPullAt,
+	}), nil
+}
+
 func (server *repoServer) repoLock() *sync.Mutex {
 	if server.repoMu == nil {
 		server.repoMu = &sync.Mutex{}
@@ -1525,6 +1603,10 @@ func (server *repoServer) syncRepoLocked(ctx context.Context) (store.RepoSyncSta
 }
 
 func (server *repoServer) prepareRepoWrite(ctx context.Context, baseRevision, relativePath string) (store.RepoSyncState, error) {
+	return server.prepareRepoWritePaths(ctx, baseRevision, []string{relativePath})
+}
+
+func (server *repoServer) prepareRepoWritePaths(ctx context.Context, baseRevision string, relativePaths []string) (store.RepoSyncState, error) {
 	if server.hasConfiguredRemote() {
 		if _, err := server.syncRepoLocked(ctx); err != nil {
 			return store.RepoSyncState{}, err
@@ -1540,7 +1622,7 @@ func (server *repoServer) prepareRepoWrite(ctx context.Context, baseRevision, re
 	if err := server.ensureCleanWorktree(); err != nil {
 		return store.RepoSyncState{}, err
 	}
-	if err := server.ensureRepoPathUnlocked(ctx, relativePath); err != nil {
+	if err := server.ensureRepoPathsUnlocked(ctx, relativePaths...); err != nil {
 		return store.RepoSyncState{}, err
 	}
 	return server.repoSyncState(ctx)
@@ -1565,6 +1647,10 @@ func (server *repoServer) refreshDeclaredServices(ctx context.Context) error {
 }
 
 func (server *repoServer) ensureRepoPathUnlocked(ctx context.Context, relativePath string) error {
+	return server.ensureRepoPathsUnlocked(ctx, relativePath)
+}
+
+func (server *repoServer) ensureRepoPathsUnlocked(ctx context.Context, relativePaths ...string) error {
 	if server.db == nil {
 		return nil
 	}
@@ -1572,22 +1658,24 @@ func (server *repoServer) ensureRepoPathUnlocked(ctx context.Context, relativePa
 	if err != nil {
 		return connect.NewError(connect.CodeInternal, err)
 	}
-	cleanPath := filepath.ToSlash(filepath.Clean(relativePath))
-	for _, service := range services {
-		serviceDir, err := filepath.Rel(server.cfg.RepoDir, service.Directory)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
-		}
-		serviceDir = filepath.ToSlash(filepath.Clean(serviceDir))
-		if !pathHitsServiceDir(cleanPath, serviceDir) {
-			continue
-		}
-		active, err := server.db.HasActiveServiceTask(ctx, service.Name)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal, err)
-		}
-		if active {
-			return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q has an active task", service.Name))
+	for _, relativePath := range relativePaths {
+		cleanPath := filepath.ToSlash(filepath.Clean(relativePath))
+		for _, service := range services {
+			serviceDir, err := filepath.Rel(server.cfg.RepoDir, service.Directory)
+			if err != nil {
+				return connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
+			}
+			serviceDir = filepath.ToSlash(filepath.Clean(serviceDir))
+			if !pathHitsServiceDir(cleanPath, serviceDir) {
+				continue
+			}
+			active, err := server.db.HasActiveServiceTask(ctx, service.Name)
+			if err != nil {
+				return connect.NewError(connect.CodeInternal, err)
+			}
+			if active {
+				return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q has an active task", service.Name))
+			}
 		}
 	}
 	return nil
@@ -1648,9 +1736,126 @@ func (server *repoServer) updateRepoFileTransaction(ctx context.Context, relativ
 		return repoWriteResult{}, connect.NewError(connect.CodeInternal, err)
 	}
 	committed = true
+	return server.finalizeRepoWrite(ctx, commitID, baseSyncState)
+}
+
+func (server *repoServer) createRepoDirectoryTransaction(ctx context.Context, relativePath, commitMessage string, baseSyncState store.RepoSyncState) (_ repoWriteResult, retErr error) {
+	snapshot, err := repo.CapturePath(server.cfg.RepoDir, relativePath)
+	if err != nil {
+		return repoWriteResult{}, mapRepoMutationError(err)
+	}
+	defer func() { _ = repo.CleanupPathSnapshot(snapshot) }()
+	committed := false
+	createdPath, err := repo.CreateDirectory(server.cfg.RepoDir, relativePath)
+	if err != nil {
+		return repoWriteResult{}, mapRepoMutationError(err)
+	}
+	defer func() {
+		if retErr == nil || committed {
+			return
+		}
+		_ = repo.RestorePath(server.cfg.RepoDir, snapshot)
+	}()
+	message := commitMessage
+	if message == "" {
+		message = defaultRepoCommitMessage("add", createdPath)
+	}
+	commitID, err := server.commitRepoPaths(createdPath, []string{createdPath}, message)
+	if err != nil {
+		return repoWriteResult{}, err
+	}
+	committed = true
+	return server.finalizeRepoWrite(ctx, commitID, baseSyncState)
+}
+
+func (server *repoServer) moveRepoPathTransaction(ctx context.Context, sourcePath, destinationPath, commitMessage string, baseSyncState store.RepoSyncState) (_ repoWriteResult, retErr error) {
+	sourceSnapshot, err := repo.CapturePath(server.cfg.RepoDir, sourcePath)
+	if err != nil {
+		return repoWriteResult{}, mapRepoMutationError(err)
+	}
+	defer func() { _ = repo.CleanupPathSnapshot(sourceSnapshot) }()
+	destinationSnapshot, err := repo.CapturePath(server.cfg.RepoDir, destinationPath)
+	if err != nil {
+		return repoWriteResult{}, mapRepoMutationError(err)
+	}
+	defer func() { _ = repo.CleanupPathSnapshot(destinationSnapshot) }()
+	committed := false
+	movedSource, movedDestination, err := repo.MovePath(server.cfg.RepoDir, sourcePath, destinationPath)
+	if err != nil {
+		return repoWriteResult{}, mapRepoMutationError(err)
+	}
+	defer func() {
+		if retErr == nil || committed {
+			return
+		}
+		_ = repo.RestorePath(server.cfg.RepoDir, destinationSnapshot)
+		_ = repo.RestorePath(server.cfg.RepoDir, sourceSnapshot)
+	}()
+	message := commitMessage
+	if message == "" {
+		message = fmt.Sprintf("move %s to %s", movedSource, movedDestination)
+	}
+	commitID, err := server.commitRepoPaths(movedDestination, []string{movedSource, movedDestination}, message)
+	if err != nil {
+		return repoWriteResult{}, err
+	}
+	committed = true
+	return server.finalizeRepoWrite(ctx, commitID, baseSyncState)
+}
+
+func (server *repoServer) deleteRepoPathTransaction(ctx context.Context, relativePath, commitMessage string, baseSyncState store.RepoSyncState) (_ repoWriteResult, retErr error) {
+	snapshot, err := repo.CapturePath(server.cfg.RepoDir, relativePath)
+	if err != nil {
+		return repoWriteResult{}, mapRepoMutationError(err)
+	}
+	defer func() { _ = repo.CleanupPathSnapshot(snapshot) }()
+	committed := false
+	deletedPath, err := repo.DeletePath(server.cfg.RepoDir, relativePath)
+	if err != nil {
+		return repoWriteResult{}, mapRepoMutationError(err)
+	}
+	defer func() {
+		if retErr == nil || committed {
+			return
+		}
+		_ = repo.RestorePath(server.cfg.RepoDir, snapshot)
+	}()
+	message := commitMessage
+	if message == "" {
+		message = defaultRepoCommitMessage("remove", deletedPath)
+	}
+	commitID, err := server.commitRepoPaths(deletedPath, []string{deletedPath}, message)
+	if err != nil {
+		return repoWriteResult{}, err
+	}
+	committed = true
+	return server.finalizeRepoWrite(ctx, commitID, baseSyncState)
+}
+
+func (server *repoServer) commitRepoPaths(primaryPath string, relativePaths []string, commitMessage string) (string, error) {
+	authorName := ""
+	authorEmail := ""
+	if server.cfg.Git != nil {
+		authorName = server.cfg.Git.AuthorName
+		authorEmail = server.cfg.Git.AuthorEmail
+	}
+	commitID, err := repo.CommitPaths(server.cfg.RepoDir, relativePaths, commitMessage, authorName, authorEmail)
+	if err != nil {
+		if errors.Is(err, repo.ErrNoGitChanges) {
+			return "", connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("repo path %q did not change", primaryPath))
+		}
+		return "", connect.NewError(connect.CodeInternal, err)
+	}
+	return commitID, nil
+}
+
+func (server *repoServer) finalizeRepoWrite(ctx context.Context, commitID string, baseSyncState store.RepoSyncState) (repoWriteResult, error) {
 	result := repoWriteResult{CommitID: commitID, SyncStatus: baseSyncState.SyncStatus, LastSuccessfulPullAt: baseSyncState.LastSuccessfulPullAt}
 	if !server.hasConfiguredRemote() {
 		result.SyncStatus = store.RepoSyncStatusLocalOnly
+		if err := server.refreshDeclaredServices(ctx); err != nil {
+			return repoWriteResult{}, err
+		}
 		return result, nil
 	}
 	branch, err := server.configuredRemoteBranch()
@@ -1692,6 +1897,21 @@ func (server *repoServer) updateRepoFileTransaction(ctx context.Context, relativ
 	result.SyncStatus = state.SyncStatus
 	result.LastSuccessfulPullAt = state.LastSuccessfulPullAt
 	return result, nil
+}
+
+func mapRepoMutationError(err error) error {
+	switch {
+	case errors.Is(err, repo.ErrRepoPathInvalid), errors.Is(err, repo.ErrRepoPathProtected):
+		return connect.NewError(connect.CodeInvalidArgument, err)
+	case errors.Is(err, repo.ErrRepoPathNotFound), errors.Is(err, repo.ErrRepoPathAlreadyExists), errors.Is(err, repo.ErrRepoPathNotFile), errors.Is(err, repo.ErrRepoPathNotDirectory):
+		return connect.NewError(connect.CodeFailedPrecondition, err)
+	default:
+		return connect.NewError(connect.CodeInternal, err)
+	}
+}
+
+func defaultRepoCommitMessage(action, relativePath string) string {
+	return fmt.Sprintf("%s %s", action, relativePath)
 }
 
 func (server *secretServer) GetServiceSecretEnv(ctx context.Context, req *connect.Request[controllerv1.GetServiceSecretEnvRequest]) (*connect.Response[controllerv1.GetServiceSecretEnvResponse], error) {

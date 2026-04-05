@@ -8,18 +8,18 @@ import {
   stopService,
   updateService
 } from '$lib/server/controller';
-import { loadServiceWorkspaces } from '$lib/server/service-index';
+import { loadServiceWorkspace } from '$lib/server/service-index';
 
 export const POST: RequestHandler = async ({ params, request }) => {
   try {
     const payload = (await request.json()) as { action?: string };
-    const workspace = (await loadServiceWorkspaces()).find((item) => item.folder === params.name);
+    const workspace = await loadServiceWorkspace(params.name);
     if (!workspace) {
       return json({ error: 'Service folder not found.' }, { status: 404 });
     }
-    if (!workspace.serviceName) {
+    if (!workspace.isDeclared || !workspace.serviceName) {
       return json(
-        { error: 'Create composia-meta.yaml for this folder before running service actions.' },
+        { error: 'Add a valid composia-meta.yaml for this folder before running service actions.' },
         { status: 400 }
       );
     }
