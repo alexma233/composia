@@ -2,6 +2,7 @@
   import type { PageData } from './$types';
 
   import { Badge } from '$lib/components/ui/badge';
+  import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { formatTimestamp, taskStatusTone } from '$lib/presenters';
 
   export let data: PageData;
@@ -23,23 +24,34 @@
       <div class="mb-6 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">{data.error}</div>
     {/if}
 
-    <div class="space-y-3">
-      {#each data.backups as backup}
-        <div class="rounded-lg border bg-background px-4 py-4">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div class="text-sm font-medium">{backup.serviceName} / {backup.dataName}</div>
-              <div class="text-xs text-muted-foreground">{backup.backupId} · task {backup.taskId}</div>
-            </div>
-            <Badge variant={taskStatusTone(backup.status)}>{backup.status}</Badge>
-          </div>
-          <div class="mt-2 text-sm text-muted-foreground">Finished {formatTimestamp(backup.finishedAt || backup.startedAt)}</div>
-        </div>
-      {/each}
-
-      {#if !data.backups.length}
-        <div class="rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-sm text-muted-foreground">No backups loaded.</div>
-      {/if}
-    </div>
+    {#if data.backups.length}
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Backup</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Task</TableHead>
+            <TableHead class="w-56">Finished</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {#each data.backups as backup}
+            <TableRow>
+              <TableCell>
+                <div class="font-medium">{backup.serviceName} / {backup.dataName}</div>
+                <div class="text-xs text-muted-foreground">{backup.backupId}</div>
+              </TableCell>
+              <TableCell>
+                <Badge variant={taskStatusTone(backup.status)}>{backup.status}</Badge>
+              </TableCell>
+              <TableCell class="text-muted-foreground">{backup.taskId}</TableCell>
+              <TableCell class="text-muted-foreground">{formatTimestamp(backup.finishedAt || backup.startedAt)}</TableCell>
+            </TableRow>
+          {/each}
+        </TableBody>
+      </Table>
+    {:else}
+      <div class="rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-sm text-muted-foreground">No backups loaded.</div>
+    {/if}
   </div>
 </div>

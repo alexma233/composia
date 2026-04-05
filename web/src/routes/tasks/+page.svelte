@@ -2,6 +2,7 @@
   import type { PageData } from './$types';
 
   import { Badge } from '$lib/components/ui/badge';
+  import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { formatTimestamp, taskStatusTone } from '$lib/presenters';
 
   export let data: PageData;
@@ -25,31 +26,38 @@
       </div>
     {/if}
 
-    <div class="space-y-3">
-      {#each data.tasks as task}
-        <a href={`/tasks/${task.taskId}`} class="block rounded-lg border bg-background px-4 py-4 transition-colors hover:bg-muted/40">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div class="text-base font-medium">{task.type}</div>
-              <div class="text-sm text-muted-foreground">
+    {#if data.tasks.length}
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Task</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Scope</TableHead>
+            <TableHead class="w-56">Created</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {#each data.tasks as task}
+            <TableRow>
+              <TableCell>
+                <a href={`/tasks/${task.taskId}`} class="font-medium hover:text-primary">{task.type}</a>
+                <div class="text-xs text-muted-foreground">{task.taskId}</div>
+              </TableCell>
+              <TableCell>
+                <Badge variant={taskStatusTone(task.status)}>{task.status}</Badge>
+              </TableCell>
+              <TableCell class="text-muted-foreground">
                 {task.serviceName || 'system task'} on {task.nodeId || 'n/a'}
-              </div>
-            </div>
-            <Badge variant={taskStatusTone(task.status)}>
-              {task.status}
-            </Badge>
-          </div>
-          <div class="mt-3 text-sm text-muted-foreground">
-            {task.taskId} · created {formatTimestamp(task.createdAt)}
-          </div>
-        </a>
-      {/each}
-
-      {#if !data.tasks.length}
-        <div class="rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-sm text-muted-foreground">
-          No tasks loaded.
-        </div>
-      {/if}
-    </div>
+              </TableCell>
+              <TableCell class="text-muted-foreground">{formatTimestamp(task.createdAt)}</TableCell>
+            </TableRow>
+          {/each}
+        </TableBody>
+      </Table>
+    {:else}
+      <div class="rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-sm text-muted-foreground">
+        No tasks loaded.
+      </div>
+    {/if}
   </div>
 </div>

@@ -2,6 +2,7 @@
   import type { PageData } from './$types';
 
   import { Badge } from '$lib/components/ui/badge';
+  import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { formatTimestamp, onlineStatusTone } from '$lib/presenters';
 
   export let data: PageData;
@@ -25,27 +26,36 @@
       </div>
     {/if}
 
-    <div class="space-y-3">
-      {#each data.nodes as node}
-        <a href={`/nodes/${node.nodeId}`} class="block rounded-lg border bg-background px-4 py-4 transition-colors hover:bg-muted/40">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div class="text-base font-medium">{node.displayName}</div>
-              <div class="text-sm text-muted-foreground">{node.nodeId}</div>
-            </div>
-            <Badge variant={onlineStatusTone(node.isOnline)}>
-              {node.isOnline ? 'online' : 'offline'}
-            </Badge>
-          </div>
-          <div class="mt-3 text-sm text-muted-foreground">Last heartbeat: {formatTimestamp(node.lastHeartbeat)}</div>
-        </a>
-      {/each}
-
-      {#if !data.nodes.length}
-        <div class="rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-sm text-muted-foreground">
-          No nodes loaded.
-        </div>
-      {/if}
-    </div>
+    {#if data.nodes.length}
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Node</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead class="w-56">Last heartbeat</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {#each data.nodes as node}
+            <TableRow>
+              <TableCell>
+                <a href={`/nodes/${node.nodeId}`} class="font-medium hover:text-primary">{node.displayName}</a>
+                <div class="text-xs text-muted-foreground">{node.nodeId}</div>
+              </TableCell>
+              <TableCell>
+                <Badge variant={onlineStatusTone(node.isOnline)}>
+                  {node.isOnline ? 'online' : 'offline'}
+                </Badge>
+              </TableCell>
+              <TableCell class="text-muted-foreground">{formatTimestamp(node.lastHeartbeat)}</TableCell>
+            </TableRow>
+          {/each}
+        </TableBody>
+      </Table>
+    {:else}
+      <div class="rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-sm text-muted-foreground">
+        No nodes loaded.
+      </div>
+    {/if}
   </div>
 </div>

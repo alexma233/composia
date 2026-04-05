@@ -2,6 +2,8 @@
   import type { PageData } from './$types';
 
   import { Badge } from '$lib/components/ui/badge';
+  import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
+  import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { formatTimestamp, runtimeStatusTone, taskStatusTone } from '$lib/presenters';
 
   export let data: PageData;
@@ -37,48 +39,79 @@
       {/if}
     </section>
 
-    <section class="grid gap-6 xl:grid-cols-2">
-      <article class="rounded-lg border bg-card p-6 shadow-xs">
-        <h2 class="mb-4 text-xl font-medium">Recent tasks</h2>
-        <div class="space-y-3">
-          {#each data.tasks as task}
-            <a href={`/tasks/${task.taskId}`} class="block rounded-lg border bg-background px-4 py-4 transition-colors hover:bg-muted/40">
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div class="text-sm font-medium">{task.type}</div>
-                  <div class="text-xs text-muted-foreground">{task.taskId}</div>
-                </div>
-                <Badge variant={taskStatusTone(task.status)}>{task.status}</Badge>
-              </div>
-              <div class="mt-2 text-sm text-muted-foreground">Created {formatTimestamp(task.createdAt)}</div>
-            </a>
-          {/each}
-          {#if !data.tasks.length}
+    <section class="rounded-lg border bg-card p-6 shadow-xs">
+      <Tabs value="tasks">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 class="text-xl font-medium">Activity</h2>
+            <p class="text-sm text-muted-foreground">Recent tasks and backups for this service.</p>
+          </div>
+          <TabsList>
+            <TabsTrigger value="tasks">Tasks</TabsTrigger>
+            <TabsTrigger value="backups">Backups</TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="tasks">
+          {#if data.tasks.length}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Task</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead class="w-56">Created</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {#each data.tasks as task}
+                  <TableRow>
+                    <TableCell>
+                      <a href={`/tasks/${task.taskId}`} class="font-medium hover:text-primary">{task.type}</a>
+                      <div class="text-xs text-muted-foreground">{task.taskId}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={taskStatusTone(task.status)}>{task.status}</Badge>
+                    </TableCell>
+                    <TableCell class="text-muted-foreground">{formatTimestamp(task.createdAt)}</TableCell>
+                  </TableRow>
+                {/each}
+              </TableBody>
+            </Table>
+          {:else}
             <div class="rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-sm text-muted-foreground">No tasks loaded.</div>
           {/if}
-        </div>
-      </article>
+        </TabsContent>
 
-      <article class="rounded-lg border bg-card p-6 shadow-xs">
-        <h2 class="mb-4 text-xl font-medium">Recent backups</h2>
-        <div class="space-y-3">
-          {#each data.backups as backup}
-            <div class="rounded-lg border bg-background px-4 py-4">
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div class="text-sm font-medium">{backup.dataName}</div>
-                  <div class="text-xs text-muted-foreground">{backup.backupId}</div>
-                </div>
-                <Badge variant={taskStatusTone(backup.status)}>{backup.status}</Badge>
-              </div>
-              <div class="mt-2 text-sm text-muted-foreground">Finished {formatTimestamp(backup.finishedAt || backup.startedAt)}</div>
-            </div>
-          {/each}
-          {#if !data.backups.length}
+        <TabsContent value="backups">
+          {#if data.backups.length}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead class="w-56">Finished</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {#each data.backups as backup}
+                  <TableRow>
+                    <TableCell>
+                      <div class="font-medium">{backup.dataName}</div>
+                      <div class="text-xs text-muted-foreground">{backup.backupId}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={taskStatusTone(backup.status)}>{backup.status}</Badge>
+                    </TableCell>
+                    <TableCell class="text-muted-foreground">{formatTimestamp(backup.finishedAt || backup.startedAt)}</TableCell>
+                  </TableRow>
+                {/each}
+              </TableBody>
+            </Table>
+          {:else}
             <div class="rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-sm text-muted-foreground">No backups loaded.</div>
           {/if}
-        </div>
-      </article>
+        </TabsContent>
+      </Tabs>
     </section>
   </div>
 </div>
