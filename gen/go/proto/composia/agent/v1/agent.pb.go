@@ -247,6 +247,7 @@ type AgentTask struct {
 	RepoRevision  string                 `protobuf:"bytes,5,opt,name=repo_revision,json=repoRevision,proto3" json:"repo_revision,omitempty"`
 	ServiceDir    string                 `protobuf:"bytes,6,opt,name=service_dir,json=serviceDir,proto3" json:"service_dir,omitempty"`
 	DataNames     []string               `protobuf:"bytes,7,rep,name=data_names,json=dataNames,proto3" json:"data_names,omitempty"`
+	ParamsJson    string                 `protobuf:"bytes,8,opt,name=params_json,json=paramsJson,proto3" json:"params_json,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -328,6 +329,13 @@ func (x *AgentTask) GetDataNames() []string {
 		return x.DataNames
 	}
 	return nil
+}
+
+func (x *AgentTask) GetParamsJson() string {
+	if x != nil {
+		return x.ParamsJson
+	}
+	return ""
 }
 
 type PullNextTaskResponse struct {
@@ -1070,6 +1078,210 @@ func (x *GetServiceBundleResponse) GetData() []byte {
 	return nil
 }
 
+type DockerStats struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	ContainersTotal     uint32                 `protobuf:"varint,1,opt,name=containers_total,json=containersTotal,proto3" json:"containers_total,omitempty"`
+	ContainersRunning   uint32                 `protobuf:"varint,2,opt,name=containers_running,json=containersRunning,proto3" json:"containers_running,omitempty"`
+	ContainersStopped   uint32                 `protobuf:"varint,3,opt,name=containers_stopped,json=containersStopped,proto3" json:"containers_stopped,omitempty"`
+	ContainersPaused    uint32                 `protobuf:"varint,4,opt,name=containers_paused,json=containersPaused,proto3" json:"containers_paused,omitempty"`
+	Images              uint32                 `protobuf:"varint,5,opt,name=images,proto3" json:"images,omitempty"`
+	Networks            uint32                 `protobuf:"varint,6,opt,name=networks,proto3" json:"networks,omitempty"`
+	Volumes             uint32                 `protobuf:"varint,7,opt,name=volumes,proto3" json:"volumes,omitempty"`
+	VolumesSizeBytes    uint64                 `protobuf:"varint,8,opt,name=volumes_size_bytes,json=volumesSizeBytes,proto3" json:"volumes_size_bytes,omitempty"`
+	DisksUsageBytes     uint64                 `protobuf:"varint,9,opt,name=disks_usage_bytes,json=disksUsageBytes,proto3" json:"disks_usage_bytes,omitempty"`
+	DockerServerVersion string                 `protobuf:"bytes,10,opt,name=docker_server_version,json=dockerServerVersion,proto3" json:"docker_server_version,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *DockerStats) Reset() {
+	*x = DockerStats{}
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DockerStats) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DockerStats) ProtoMessage() {}
+
+func (x *DockerStats) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DockerStats.ProtoReflect.Descriptor instead.
+func (*DockerStats) Descriptor() ([]byte, []int) {
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *DockerStats) GetContainersTotal() uint32 {
+	if x != nil {
+		return x.ContainersTotal
+	}
+	return 0
+}
+
+func (x *DockerStats) GetContainersRunning() uint32 {
+	if x != nil {
+		return x.ContainersRunning
+	}
+	return 0
+}
+
+func (x *DockerStats) GetContainersStopped() uint32 {
+	if x != nil {
+		return x.ContainersStopped
+	}
+	return 0
+}
+
+func (x *DockerStats) GetContainersPaused() uint32 {
+	if x != nil {
+		return x.ContainersPaused
+	}
+	return 0
+}
+
+func (x *DockerStats) GetImages() uint32 {
+	if x != nil {
+		return x.Images
+	}
+	return 0
+}
+
+func (x *DockerStats) GetNetworks() uint32 {
+	if x != nil {
+		return x.Networks
+	}
+	return 0
+}
+
+func (x *DockerStats) GetVolumes() uint32 {
+	if x != nil {
+		return x.Volumes
+	}
+	return 0
+}
+
+func (x *DockerStats) GetVolumesSizeBytes() uint64 {
+	if x != nil {
+		return x.VolumesSizeBytes
+	}
+	return 0
+}
+
+func (x *DockerStats) GetDisksUsageBytes() uint64 {
+	if x != nil {
+		return x.DisksUsageBytes
+	}
+	return 0
+}
+
+func (x *DockerStats) GetDockerServerVersion() string {
+	if x != nil {
+		return x.DockerServerVersion
+	}
+	return ""
+}
+
+type ReportDockerStatsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	Stats         *DockerStats           `protobuf:"bytes,2,opt,name=stats,proto3" json:"stats,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReportDockerStatsRequest) Reset() {
+	*x = ReportDockerStatsRequest{}
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportDockerStatsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportDockerStatsRequest) ProtoMessage() {}
+
+func (x *ReportDockerStatsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportDockerStatsRequest.ProtoReflect.Descriptor instead.
+func (*ReportDockerStatsRequest) Descriptor() ([]byte, []int) {
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *ReportDockerStatsRequest) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *ReportDockerStatsRequest) GetStats() *DockerStats {
+	if x != nil {
+		return x.Stats
+	}
+	return nil
+}
+
+type ReportDockerStatsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReportDockerStatsResponse) Reset() {
+	*x = ReportDockerStatsResponse{}
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportDockerStatsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportDockerStatsResponse) ProtoMessage() {}
+
+func (x *ReportDockerStatsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportDockerStatsResponse.ProtoReflect.Descriptor instead.
+func (*ReportDockerStatsResponse) Descriptor() ([]byte, []int) {
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{20}
+}
+
 var File_proto_composia_agent_v1_agent_proto protoreflect.FileDescriptor
 
 const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
@@ -1088,7 +1300,7 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\vreceived_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"receivedAt\".\n" +
 	"\x13PullNextTaskRequest\x12\x17\n" +
-	"\anode_id\x18\x01 \x01(\tR\x06nodeId\"\xd9\x01\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\"\xfa\x01\n" +
 	"\tAgentTask\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12!\n" +
@@ -1098,7 +1310,9 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\vservice_dir\x18\x06 \x01(\tR\n" +
 	"serviceDir\x12\x1d\n" +
 	"\n" +
-	"data_names\x18\a \x03(\tR\tdataNames\"c\n" +
+	"data_names\x18\a \x03(\tR\tdataNames\x12\x1f\n" +
+	"\vparams_json\x18\b \x01(\tR\n" +
+	"paramsJson\"c\n" +
 	"\x14PullNextTaskResponse\x12\x19\n" +
 	"\bhas_task\x18\x01 \x01(\bR\ahasTask\x120\n" +
 	"\x04task\x18\x02 \x01(\v2\x1c.composia.agent.v1.AgentTaskR\x04task\"\xab\x01\n" +
@@ -1151,14 +1365,31 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12#\n" +
 	"\rrepo_revision\x18\x02 \x01(\tR\frepoRevision\x12#\n" +
 	"\rrelative_root\x18\x03 \x01(\tR\frelativeRoot\x12\x12\n" +
-	"\x04data\x18\x04 \x01(\fR\x04data2\xa0\x05\n" +
+	"\x04data\x18\x04 \x01(\fR\x04data\"\x9f\x03\n" +
+	"\vDockerStats\x12)\n" +
+	"\x10containers_total\x18\x01 \x01(\rR\x0fcontainersTotal\x12-\n" +
+	"\x12containers_running\x18\x02 \x01(\rR\x11containersRunning\x12-\n" +
+	"\x12containers_stopped\x18\x03 \x01(\rR\x11containersStopped\x12+\n" +
+	"\x11containers_paused\x18\x04 \x01(\rR\x10containersPaused\x12\x16\n" +
+	"\x06images\x18\x05 \x01(\rR\x06images\x12\x1a\n" +
+	"\bnetworks\x18\x06 \x01(\rR\bnetworks\x12\x18\n" +
+	"\avolumes\x18\a \x01(\rR\avolumes\x12,\n" +
+	"\x12volumes_size_bytes\x18\b \x01(\x04R\x10volumesSizeBytes\x12*\n" +
+	"\x11disks_usage_bytes\x18\t \x01(\x04R\x0fdisksUsageBytes\x122\n" +
+	"\x15docker_server_version\x18\n" +
+	" \x01(\tR\x13dockerServerVersion\"i\n" +
+	"\x18ReportDockerStatsRequest\x12\x17\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x124\n" +
+	"\x05stats\x18\x02 \x01(\v2\x1e.composia.agent.v1.DockerStatsR\x05stats\"\x1b\n" +
+	"\x19ReportDockerStatsResponse2\x90\x06\n" +
 	"\x12AgentReportService\x12V\n" +
 	"\tHeartbeat\x12#.composia.agent.v1.HeartbeatRequest\x1a$.composia.agent.v1.HeartbeatResponse\x12h\n" +
 	"\x0fReportTaskState\x12).composia.agent.v1.ReportTaskStateRequest\x1a*.composia.agent.v1.ReportTaskStateResponse\x12t\n" +
 	"\x13ReportTaskStepState\x12-.composia.agent.v1.ReportTaskStepStateRequest\x1a..composia.agent.v1.ReportTaskStepStateResponse\x12i\n" +
 	"\x0eUploadTaskLogs\x12(.composia.agent.v1.UploadTaskLogsRequest\x1a).composia.agent.v1.UploadTaskLogsResponse(\x010\x01\x12q\n" +
 	"\x12ReportBackupResult\x12,.composia.agent.v1.ReportBackupResultRequest\x1a-.composia.agent.v1.ReportBackupResultResponse\x12t\n" +
-	"\x13ReportServiceStatus\x12-.composia.agent.v1.ReportServiceStatusRequest\x1a..composia.agent.v1.ReportServiceStatusResponse2s\n" +
+	"\x13ReportServiceStatus\x12-.composia.agent.v1.ReportServiceStatusRequest\x1a..composia.agent.v1.ReportServiceStatusResponse\x12n\n" +
+	"\x11ReportDockerStats\x12+.composia.agent.v1.ReportDockerStatsRequest\x1a,.composia.agent.v1.ReportDockerStatsResponse2s\n" +
 	"\x10AgentTaskService\x12_\n" +
 	"\fPullNextTask\x12&.composia.agent.v1.PullNextTaskRequest\x1a'.composia.agent.v1.PullNextTaskResponse2~\n" +
 	"\rBundleService\x12m\n" +
@@ -1176,7 +1407,7 @@ func file_proto_composia_agent_v1_agent_proto_rawDescGZIP() []byte {
 	return file_proto_composia_agent_v1_agent_proto_rawDescData
 }
 
-var file_proto_composia_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_proto_composia_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_proto_composia_agent_v1_agent_proto_goTypes = []any{
 	(*HeartbeatRequest)(nil),            // 0: composia.agent.v1.HeartbeatRequest
 	(*NodeRuntimeSummary)(nil),          // 1: composia.agent.v1.NodeRuntimeSummary
@@ -1196,41 +1427,47 @@ var file_proto_composia_agent_v1_agent_proto_goTypes = []any{
 	(*ReportServiceStatusResponse)(nil), // 15: composia.agent.v1.ReportServiceStatusResponse
 	(*GetServiceBundleRequest)(nil),     // 16: composia.agent.v1.GetServiceBundleRequest
 	(*GetServiceBundleResponse)(nil),    // 17: composia.agent.v1.GetServiceBundleResponse
-	(*timestamppb.Timestamp)(nil),       // 18: google.protobuf.Timestamp
+	(*DockerStats)(nil),                 // 18: composia.agent.v1.DockerStats
+	(*ReportDockerStatsRequest)(nil),    // 19: composia.agent.v1.ReportDockerStatsRequest
+	(*ReportDockerStatsResponse)(nil),   // 20: composia.agent.v1.ReportDockerStatsResponse
+	(*timestamppb.Timestamp)(nil),       // 21: google.protobuf.Timestamp
 }
 var file_proto_composia_agent_v1_agent_proto_depIdxs = []int32{
-	18, // 0: composia.agent.v1.HeartbeatRequest.sent_at:type_name -> google.protobuf.Timestamp
+	21, // 0: composia.agent.v1.HeartbeatRequest.sent_at:type_name -> google.protobuf.Timestamp
 	1,  // 1: composia.agent.v1.HeartbeatRequest.runtime:type_name -> composia.agent.v1.NodeRuntimeSummary
-	18, // 2: composia.agent.v1.HeartbeatResponse.received_at:type_name -> google.protobuf.Timestamp
+	21, // 2: composia.agent.v1.HeartbeatResponse.received_at:type_name -> google.protobuf.Timestamp
 	4,  // 3: composia.agent.v1.PullNextTaskResponse.task:type_name -> composia.agent.v1.AgentTask
-	18, // 4: composia.agent.v1.ReportTaskStateRequest.finished_at:type_name -> google.protobuf.Timestamp
-	18, // 5: composia.agent.v1.ReportTaskStepStateRequest.started_at:type_name -> google.protobuf.Timestamp
-	18, // 6: composia.agent.v1.ReportTaskStepStateRequest.finished_at:type_name -> google.protobuf.Timestamp
-	18, // 7: composia.agent.v1.UploadTaskLogsRequest.sent_at:type_name -> google.protobuf.Timestamp
-	18, // 8: composia.agent.v1.ReportBackupResultRequest.started_at:type_name -> google.protobuf.Timestamp
-	18, // 9: composia.agent.v1.ReportBackupResultRequest.finished_at:type_name -> google.protobuf.Timestamp
-	18, // 10: composia.agent.v1.ReportServiceStatusRequest.reported_at:type_name -> google.protobuf.Timestamp
-	0,  // 11: composia.agent.v1.AgentReportService.Heartbeat:input_type -> composia.agent.v1.HeartbeatRequest
-	6,  // 12: composia.agent.v1.AgentReportService.ReportTaskState:input_type -> composia.agent.v1.ReportTaskStateRequest
-	8,  // 13: composia.agent.v1.AgentReportService.ReportTaskStepState:input_type -> composia.agent.v1.ReportTaskStepStateRequest
-	10, // 14: composia.agent.v1.AgentReportService.UploadTaskLogs:input_type -> composia.agent.v1.UploadTaskLogsRequest
-	12, // 15: composia.agent.v1.AgentReportService.ReportBackupResult:input_type -> composia.agent.v1.ReportBackupResultRequest
-	14, // 16: composia.agent.v1.AgentReportService.ReportServiceStatus:input_type -> composia.agent.v1.ReportServiceStatusRequest
-	3,  // 17: composia.agent.v1.AgentTaskService.PullNextTask:input_type -> composia.agent.v1.PullNextTaskRequest
-	16, // 18: composia.agent.v1.BundleService.GetServiceBundle:input_type -> composia.agent.v1.GetServiceBundleRequest
-	2,  // 19: composia.agent.v1.AgentReportService.Heartbeat:output_type -> composia.agent.v1.HeartbeatResponse
-	7,  // 20: composia.agent.v1.AgentReportService.ReportTaskState:output_type -> composia.agent.v1.ReportTaskStateResponse
-	9,  // 21: composia.agent.v1.AgentReportService.ReportTaskStepState:output_type -> composia.agent.v1.ReportTaskStepStateResponse
-	11, // 22: composia.agent.v1.AgentReportService.UploadTaskLogs:output_type -> composia.agent.v1.UploadTaskLogsResponse
-	13, // 23: composia.agent.v1.AgentReportService.ReportBackupResult:output_type -> composia.agent.v1.ReportBackupResultResponse
-	15, // 24: composia.agent.v1.AgentReportService.ReportServiceStatus:output_type -> composia.agent.v1.ReportServiceStatusResponse
-	5,  // 25: composia.agent.v1.AgentTaskService.PullNextTask:output_type -> composia.agent.v1.PullNextTaskResponse
-	17, // 26: composia.agent.v1.BundleService.GetServiceBundle:output_type -> composia.agent.v1.GetServiceBundleResponse
-	19, // [19:27] is the sub-list for method output_type
-	11, // [11:19] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	21, // 4: composia.agent.v1.ReportTaskStateRequest.finished_at:type_name -> google.protobuf.Timestamp
+	21, // 5: composia.agent.v1.ReportTaskStepStateRequest.started_at:type_name -> google.protobuf.Timestamp
+	21, // 6: composia.agent.v1.ReportTaskStepStateRequest.finished_at:type_name -> google.protobuf.Timestamp
+	21, // 7: composia.agent.v1.UploadTaskLogsRequest.sent_at:type_name -> google.protobuf.Timestamp
+	21, // 8: composia.agent.v1.ReportBackupResultRequest.started_at:type_name -> google.protobuf.Timestamp
+	21, // 9: composia.agent.v1.ReportBackupResultRequest.finished_at:type_name -> google.protobuf.Timestamp
+	21, // 10: composia.agent.v1.ReportServiceStatusRequest.reported_at:type_name -> google.protobuf.Timestamp
+	18, // 11: composia.agent.v1.ReportDockerStatsRequest.stats:type_name -> composia.agent.v1.DockerStats
+	0,  // 12: composia.agent.v1.AgentReportService.Heartbeat:input_type -> composia.agent.v1.HeartbeatRequest
+	6,  // 13: composia.agent.v1.AgentReportService.ReportTaskState:input_type -> composia.agent.v1.ReportTaskStateRequest
+	8,  // 14: composia.agent.v1.AgentReportService.ReportTaskStepState:input_type -> composia.agent.v1.ReportTaskStepStateRequest
+	10, // 15: composia.agent.v1.AgentReportService.UploadTaskLogs:input_type -> composia.agent.v1.UploadTaskLogsRequest
+	12, // 16: composia.agent.v1.AgentReportService.ReportBackupResult:input_type -> composia.agent.v1.ReportBackupResultRequest
+	14, // 17: composia.agent.v1.AgentReportService.ReportServiceStatus:input_type -> composia.agent.v1.ReportServiceStatusRequest
+	19, // 18: composia.agent.v1.AgentReportService.ReportDockerStats:input_type -> composia.agent.v1.ReportDockerStatsRequest
+	3,  // 19: composia.agent.v1.AgentTaskService.PullNextTask:input_type -> composia.agent.v1.PullNextTaskRequest
+	16, // 20: composia.agent.v1.BundleService.GetServiceBundle:input_type -> composia.agent.v1.GetServiceBundleRequest
+	2,  // 21: composia.agent.v1.AgentReportService.Heartbeat:output_type -> composia.agent.v1.HeartbeatResponse
+	7,  // 22: composia.agent.v1.AgentReportService.ReportTaskState:output_type -> composia.agent.v1.ReportTaskStateResponse
+	9,  // 23: composia.agent.v1.AgentReportService.ReportTaskStepState:output_type -> composia.agent.v1.ReportTaskStepStateResponse
+	11, // 24: composia.agent.v1.AgentReportService.UploadTaskLogs:output_type -> composia.agent.v1.UploadTaskLogsResponse
+	13, // 25: composia.agent.v1.AgentReportService.ReportBackupResult:output_type -> composia.agent.v1.ReportBackupResultResponse
+	15, // 26: composia.agent.v1.AgentReportService.ReportServiceStatus:output_type -> composia.agent.v1.ReportServiceStatusResponse
+	20, // 27: composia.agent.v1.AgentReportService.ReportDockerStats:output_type -> composia.agent.v1.ReportDockerStatsResponse
+	5,  // 28: composia.agent.v1.AgentTaskService.PullNextTask:output_type -> composia.agent.v1.PullNextTaskResponse
+	17, // 29: composia.agent.v1.BundleService.GetServiceBundle:output_type -> composia.agent.v1.GetServiceBundleResponse
+	21, // [21:30] is the sub-list for method output_type
+	12, // [12:21] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_proto_composia_agent_v1_agent_proto_init() }
@@ -1244,7 +1481,7 @@ func file_proto_composia_agent_v1_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_agent_v1_agent_proto_rawDesc), len(file_proto_composia_agent_v1_agent_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   3,
 		},

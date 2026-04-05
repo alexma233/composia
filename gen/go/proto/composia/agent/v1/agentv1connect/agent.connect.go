@@ -55,6 +55,9 @@ const (
 	// AgentReportServiceReportServiceStatusProcedure is the fully-qualified name of the
 	// AgentReportService's ReportServiceStatus RPC.
 	AgentReportServiceReportServiceStatusProcedure = "/composia.agent.v1.AgentReportService/ReportServiceStatus"
+	// AgentReportServiceReportDockerStatsProcedure is the fully-qualified name of the
+	// AgentReportService's ReportDockerStats RPC.
+	AgentReportServiceReportDockerStatsProcedure = "/composia.agent.v1.AgentReportService/ReportDockerStats"
 	// AgentTaskServicePullNextTaskProcedure is the fully-qualified name of the AgentTaskService's
 	// PullNextTask RPC.
 	AgentTaskServicePullNextTaskProcedure = "/composia.agent.v1.AgentTaskService/PullNextTask"
@@ -71,6 +74,7 @@ type AgentReportServiceClient interface {
 	UploadTaskLogs(context.Context) *connect.BidiStreamForClient[v1.UploadTaskLogsRequest, v1.UploadTaskLogsResponse]
 	ReportBackupResult(context.Context, *connect.Request[v1.ReportBackupResultRequest]) (*connect.Response[v1.ReportBackupResultResponse], error)
 	ReportServiceStatus(context.Context, *connect.Request[v1.ReportServiceStatusRequest]) (*connect.Response[v1.ReportServiceStatusResponse], error)
+	ReportDockerStats(context.Context, *connect.Request[v1.ReportDockerStatsRequest]) (*connect.Response[v1.ReportDockerStatsResponse], error)
 }
 
 // NewAgentReportServiceClient constructs a client for the composia.agent.v1.AgentReportService
@@ -120,6 +124,12 @@ func NewAgentReportServiceClient(httpClient connect.HTTPClient, baseURL string, 
 			connect.WithSchema(agentReportServiceMethods.ByName("ReportServiceStatus")),
 			connect.WithClientOptions(opts...),
 		),
+		reportDockerStats: connect.NewClient[v1.ReportDockerStatsRequest, v1.ReportDockerStatsResponse](
+			httpClient,
+			baseURL+AgentReportServiceReportDockerStatsProcedure,
+			connect.WithSchema(agentReportServiceMethods.ByName("ReportDockerStats")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -131,6 +141,7 @@ type agentReportServiceClient struct {
 	uploadTaskLogs      *connect.Client[v1.UploadTaskLogsRequest, v1.UploadTaskLogsResponse]
 	reportBackupResult  *connect.Client[v1.ReportBackupResultRequest, v1.ReportBackupResultResponse]
 	reportServiceStatus *connect.Client[v1.ReportServiceStatusRequest, v1.ReportServiceStatusResponse]
+	reportDockerStats   *connect.Client[v1.ReportDockerStatsRequest, v1.ReportDockerStatsResponse]
 }
 
 // Heartbeat calls composia.agent.v1.AgentReportService.Heartbeat.
@@ -163,6 +174,11 @@ func (c *agentReportServiceClient) ReportServiceStatus(ctx context.Context, req 
 	return c.reportServiceStatus.CallUnary(ctx, req)
 }
 
+// ReportDockerStats calls composia.agent.v1.AgentReportService.ReportDockerStats.
+func (c *agentReportServiceClient) ReportDockerStats(ctx context.Context, req *connect.Request[v1.ReportDockerStatsRequest]) (*connect.Response[v1.ReportDockerStatsResponse], error) {
+	return c.reportDockerStats.CallUnary(ctx, req)
+}
+
 // AgentReportServiceHandler is an implementation of the composia.agent.v1.AgentReportService
 // service.
 type AgentReportServiceHandler interface {
@@ -172,6 +188,7 @@ type AgentReportServiceHandler interface {
 	UploadTaskLogs(context.Context, *connect.BidiStream[v1.UploadTaskLogsRequest, v1.UploadTaskLogsResponse]) error
 	ReportBackupResult(context.Context, *connect.Request[v1.ReportBackupResultRequest]) (*connect.Response[v1.ReportBackupResultResponse], error)
 	ReportServiceStatus(context.Context, *connect.Request[v1.ReportServiceStatusRequest]) (*connect.Response[v1.ReportServiceStatusResponse], error)
+	ReportDockerStats(context.Context, *connect.Request[v1.ReportDockerStatsRequest]) (*connect.Response[v1.ReportDockerStatsResponse], error)
 }
 
 // NewAgentReportServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -217,6 +234,12 @@ func NewAgentReportServiceHandler(svc AgentReportServiceHandler, opts ...connect
 		connect.WithSchema(agentReportServiceMethods.ByName("ReportServiceStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentReportServiceReportDockerStatsHandler := connect.NewUnaryHandler(
+		AgentReportServiceReportDockerStatsProcedure,
+		svc.ReportDockerStats,
+		connect.WithSchema(agentReportServiceMethods.ByName("ReportDockerStats")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.agent.v1.AgentReportService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentReportServiceHeartbeatProcedure:
@@ -231,6 +254,8 @@ func NewAgentReportServiceHandler(svc AgentReportServiceHandler, opts ...connect
 			agentReportServiceReportBackupResultHandler.ServeHTTP(w, r)
 		case AgentReportServiceReportServiceStatusProcedure:
 			agentReportServiceReportServiceStatusHandler.ServeHTTP(w, r)
+		case AgentReportServiceReportDockerStatsProcedure:
+			agentReportServiceReportDockerStatsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -262,6 +287,10 @@ func (UnimplementedAgentReportServiceHandler) ReportBackupResult(context.Context
 
 func (UnimplementedAgentReportServiceHandler) ReportServiceStatus(context.Context, *connect.Request[v1.ReportServiceStatusRequest]) (*connect.Response[v1.ReportServiceStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentReportService.ReportServiceStatus is not implemented"))
+}
+
+func (UnimplementedAgentReportServiceHandler) ReportDockerStats(context.Context, *connect.Request[v1.ReportDockerStatsRequest]) (*connect.Response[v1.ReportDockerStatsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentReportService.ReportDockerStats is not implemented"))
 }
 
 // AgentTaskServiceClient is a client for the composia.agent.v1.AgentTaskService service.

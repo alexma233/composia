@@ -385,6 +385,306 @@ func (x *GetNodeTasksResponse) GetNextCursor() string {
 	return ""
 }
 
+type GetNodeDockerStatsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetNodeDockerStatsRequest) Reset() {
+	*x = GetNodeDockerStatsRequest{}
+	mi := &file_proto_composia_controller_v1_node_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetNodeDockerStatsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetNodeDockerStatsRequest) ProtoMessage() {}
+
+func (x *GetNodeDockerStatsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_node_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetNodeDockerStatsRequest.ProtoReflect.Descriptor instead.
+func (*GetNodeDockerStatsRequest) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_node_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetNodeDockerStatsRequest) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+type DockerStats struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	ContainersTotal     uint32                 `protobuf:"varint,1,opt,name=containers_total,json=containersTotal,proto3" json:"containers_total,omitempty"`
+	ContainersRunning   uint32                 `protobuf:"varint,2,opt,name=containers_running,json=containersRunning,proto3" json:"containers_running,omitempty"`
+	ContainersStopped   uint32                 `protobuf:"varint,3,opt,name=containers_stopped,json=containersStopped,proto3" json:"containers_stopped,omitempty"`
+	ContainersPaused    uint32                 `protobuf:"varint,4,opt,name=containers_paused,json=containersPaused,proto3" json:"containers_paused,omitempty"`
+	Images              uint32                 `protobuf:"varint,5,opt,name=images,proto3" json:"images,omitempty"`
+	Networks            uint32                 `protobuf:"varint,6,opt,name=networks,proto3" json:"networks,omitempty"`
+	Volumes             uint32                 `protobuf:"varint,7,opt,name=volumes,proto3" json:"volumes,omitempty"`
+	VolumesSizeBytes    uint64                 `protobuf:"varint,8,opt,name=volumes_size_bytes,json=volumesSizeBytes,proto3" json:"volumes_size_bytes,omitempty"`
+	DisksUsageBytes     uint64                 `protobuf:"varint,9,opt,name=disks_usage_bytes,json=disksUsageBytes,proto3" json:"disks_usage_bytes,omitempty"`
+	DockerServerVersion string                 `protobuf:"bytes,10,opt,name=docker_server_version,json=dockerServerVersion,proto3" json:"docker_server_version,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *DockerStats) Reset() {
+	*x = DockerStats{}
+	mi := &file_proto_composia_controller_v1_node_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DockerStats) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DockerStats) ProtoMessage() {}
+
+func (x *DockerStats) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_node_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DockerStats.ProtoReflect.Descriptor instead.
+func (*DockerStats) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_node_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *DockerStats) GetContainersTotal() uint32 {
+	if x != nil {
+		return x.ContainersTotal
+	}
+	return 0
+}
+
+func (x *DockerStats) GetContainersRunning() uint32 {
+	if x != nil {
+		return x.ContainersRunning
+	}
+	return 0
+}
+
+func (x *DockerStats) GetContainersStopped() uint32 {
+	if x != nil {
+		return x.ContainersStopped
+	}
+	return 0
+}
+
+func (x *DockerStats) GetContainersPaused() uint32 {
+	if x != nil {
+		return x.ContainersPaused
+	}
+	return 0
+}
+
+func (x *DockerStats) GetImages() uint32 {
+	if x != nil {
+		return x.Images
+	}
+	return 0
+}
+
+func (x *DockerStats) GetNetworks() uint32 {
+	if x != nil {
+		return x.Networks
+	}
+	return 0
+}
+
+func (x *DockerStats) GetVolumes() uint32 {
+	if x != nil {
+		return x.Volumes
+	}
+	return 0
+}
+
+func (x *DockerStats) GetVolumesSizeBytes() uint64 {
+	if x != nil {
+		return x.VolumesSizeBytes
+	}
+	return 0
+}
+
+func (x *DockerStats) GetDisksUsageBytes() uint64 {
+	if x != nil {
+		return x.DisksUsageBytes
+	}
+	return 0
+}
+
+func (x *DockerStats) GetDockerServerVersion() string {
+	if x != nil {
+		return x.DockerServerVersion
+	}
+	return ""
+}
+
+type GetNodeDockerStatsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Stats         *DockerStats           `protobuf:"bytes,1,opt,name=stats,proto3" json:"stats,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetNodeDockerStatsResponse) Reset() {
+	*x = GetNodeDockerStatsResponse{}
+	mi := &file_proto_composia_controller_v1_node_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetNodeDockerStatsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetNodeDockerStatsResponse) ProtoMessage() {}
+
+func (x *GetNodeDockerStatsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_node_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetNodeDockerStatsResponse.ProtoReflect.Descriptor instead.
+func (*GetNodeDockerStatsResponse) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_node_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *GetNodeDockerStatsResponse) GetStats() *DockerStats {
+	if x != nil {
+		return x.Stats
+	}
+	return nil
+}
+
+type PruneNodeDockerRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	Target        string                 `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PruneNodeDockerRequest) Reset() {
+	*x = PruneNodeDockerRequest{}
+	mi := &file_proto_composia_controller_v1_node_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PruneNodeDockerRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PruneNodeDockerRequest) ProtoMessage() {}
+
+func (x *PruneNodeDockerRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_node_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PruneNodeDockerRequest.ProtoReflect.Descriptor instead.
+func (*PruneNodeDockerRequest) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_node_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *PruneNodeDockerRequest) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *PruneNodeDockerRequest) GetTarget() string {
+	if x != nil {
+		return x.Target
+	}
+	return ""
+}
+
+type PruneNodeDockerResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PruneNodeDockerResponse) Reset() {
+	*x = PruneNodeDockerResponse{}
+	mi := &file_proto_composia_controller_v1_node_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PruneNodeDockerResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PruneNodeDockerResponse) ProtoMessage() {}
+
+func (x *PruneNodeDockerResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_node_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PruneNodeDockerResponse.ProtoReflect.Descriptor instead.
+func (*PruneNodeDockerResponse) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_node_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *PruneNodeDockerResponse) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
 var File_proto_composia_controller_v1_node_proto protoreflect.FileDescriptor
 
 const file_proto_composia_controller_v1_node_proto_rawDesc = "" +
@@ -411,11 +711,34 @@ const file_proto_composia_controller_v1_node_proto_rawDesc = "" +
 	"\x14GetNodeTasksResponse\x129\n" +
 	"\x05tasks\x18\x01 \x03(\v2#.composia.controller.v1.TaskSummaryR\x05tasks\x12\x1f\n" +
 	"\vnext_cursor\x18\x02 \x01(\tR\n" +
-	"nextCursor2\xb6\x02\n" +
+	"nextCursor\"4\n" +
+	"\x19GetNodeDockerStatsRequest\x12\x17\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\"\x9f\x03\n" +
+	"\vDockerStats\x12)\n" +
+	"\x10containers_total\x18\x01 \x01(\rR\x0fcontainersTotal\x12-\n" +
+	"\x12containers_running\x18\x02 \x01(\rR\x11containersRunning\x12-\n" +
+	"\x12containers_stopped\x18\x03 \x01(\rR\x11containersStopped\x12+\n" +
+	"\x11containers_paused\x18\x04 \x01(\rR\x10containersPaused\x12\x16\n" +
+	"\x06images\x18\x05 \x01(\rR\x06images\x12\x1a\n" +
+	"\bnetworks\x18\x06 \x01(\rR\bnetworks\x12\x18\n" +
+	"\avolumes\x18\a \x01(\rR\avolumes\x12,\n" +
+	"\x12volumes_size_bytes\x18\b \x01(\x04R\x10volumesSizeBytes\x12*\n" +
+	"\x11disks_usage_bytes\x18\t \x01(\x04R\x0fdisksUsageBytes\x122\n" +
+	"\x15docker_server_version\x18\n" +
+	" \x01(\tR\x13dockerServerVersion\"W\n" +
+	"\x1aGetNodeDockerStatsResponse\x129\n" +
+	"\x05stats\x18\x01 \x01(\v2#.composia.controller.v1.DockerStatsR\x05stats\"I\n" +
+	"\x16PruneNodeDockerRequest\x12\x17\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x16\n" +
+	"\x06target\x18\x02 \x01(\tR\x06target\"2\n" +
+	"\x17PruneNodeDockerResponse\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId2\xa7\x04\n" +
 	"\vNodeService\x12`\n" +
 	"\tListNodes\x12(.composia.controller.v1.ListNodesRequest\x1a).composia.controller.v1.ListNodesResponse\x12Z\n" +
 	"\aGetNode\x12&.composia.controller.v1.GetNodeRequest\x1a'.composia.controller.v1.GetNodeResponse\x12i\n" +
-	"\fGetNodeTasks\x12+.composia.controller.v1.GetNodeTasksRequest\x1a,.composia.controller.v1.GetNodeTasksResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
+	"\fGetNodeTasks\x12+.composia.controller.v1.GetNodeTasksRequest\x1a,.composia.controller.v1.GetNodeTasksResponse\x12{\n" +
+	"\x12GetNodeDockerStats\x121.composia.controller.v1.GetNodeDockerStatsRequest\x1a2.composia.controller.v1.GetNodeDockerStatsResponse\x12r\n" +
+	"\x0fPruneNodeDocker\x12..composia.controller.v1.PruneNodeDockerRequest\x1a/.composia.controller.v1.PruneNodeDockerResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
 
 var (
 	file_proto_composia_controller_v1_node_proto_rawDescOnce sync.Once
@@ -429,32 +752,42 @@ func file_proto_composia_controller_v1_node_proto_rawDescGZIP() []byte {
 	return file_proto_composia_controller_v1_node_proto_rawDescData
 }
 
-var file_proto_composia_controller_v1_node_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_proto_composia_controller_v1_node_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_proto_composia_controller_v1_node_proto_goTypes = []any{
-	(*ListNodesRequest)(nil),     // 0: composia.controller.v1.ListNodesRequest
-	(*GetNodeRequest)(nil),       // 1: composia.controller.v1.GetNodeRequest
-	(*NodeSummary)(nil),          // 2: composia.controller.v1.NodeSummary
-	(*ListNodesResponse)(nil),    // 3: composia.controller.v1.ListNodesResponse
-	(*GetNodeResponse)(nil),      // 4: composia.controller.v1.GetNodeResponse
-	(*GetNodeTasksRequest)(nil),  // 5: composia.controller.v1.GetNodeTasksRequest
-	(*GetNodeTasksResponse)(nil), // 6: composia.controller.v1.GetNodeTasksResponse
-	(*TaskSummary)(nil),          // 7: composia.controller.v1.TaskSummary
+	(*ListNodesRequest)(nil),           // 0: composia.controller.v1.ListNodesRequest
+	(*GetNodeRequest)(nil),             // 1: composia.controller.v1.GetNodeRequest
+	(*NodeSummary)(nil),                // 2: composia.controller.v1.NodeSummary
+	(*ListNodesResponse)(nil),          // 3: composia.controller.v1.ListNodesResponse
+	(*GetNodeResponse)(nil),            // 4: composia.controller.v1.GetNodeResponse
+	(*GetNodeTasksRequest)(nil),        // 5: composia.controller.v1.GetNodeTasksRequest
+	(*GetNodeTasksResponse)(nil),       // 6: composia.controller.v1.GetNodeTasksResponse
+	(*GetNodeDockerStatsRequest)(nil),  // 7: composia.controller.v1.GetNodeDockerStatsRequest
+	(*DockerStats)(nil),                // 8: composia.controller.v1.DockerStats
+	(*GetNodeDockerStatsResponse)(nil), // 9: composia.controller.v1.GetNodeDockerStatsResponse
+	(*PruneNodeDockerRequest)(nil),     // 10: composia.controller.v1.PruneNodeDockerRequest
+	(*PruneNodeDockerResponse)(nil),    // 11: composia.controller.v1.PruneNodeDockerResponse
+	(*TaskSummary)(nil),                // 12: composia.controller.v1.TaskSummary
 }
 var file_proto_composia_controller_v1_node_proto_depIdxs = []int32{
-	2, // 0: composia.controller.v1.ListNodesResponse.nodes:type_name -> composia.controller.v1.NodeSummary
-	2, // 1: composia.controller.v1.GetNodeResponse.node:type_name -> composia.controller.v1.NodeSummary
-	7, // 2: composia.controller.v1.GetNodeTasksResponse.tasks:type_name -> composia.controller.v1.TaskSummary
-	0, // 3: composia.controller.v1.NodeService.ListNodes:input_type -> composia.controller.v1.ListNodesRequest
-	1, // 4: composia.controller.v1.NodeService.GetNode:input_type -> composia.controller.v1.GetNodeRequest
-	5, // 5: composia.controller.v1.NodeService.GetNodeTasks:input_type -> composia.controller.v1.GetNodeTasksRequest
-	3, // 6: composia.controller.v1.NodeService.ListNodes:output_type -> composia.controller.v1.ListNodesResponse
-	4, // 7: composia.controller.v1.NodeService.GetNode:output_type -> composia.controller.v1.GetNodeResponse
-	6, // 8: composia.controller.v1.NodeService.GetNodeTasks:output_type -> composia.controller.v1.GetNodeTasksResponse
-	6, // [6:9] is the sub-list for method output_type
-	3, // [3:6] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	2,  // 0: composia.controller.v1.ListNodesResponse.nodes:type_name -> composia.controller.v1.NodeSummary
+	2,  // 1: composia.controller.v1.GetNodeResponse.node:type_name -> composia.controller.v1.NodeSummary
+	12, // 2: composia.controller.v1.GetNodeTasksResponse.tasks:type_name -> composia.controller.v1.TaskSummary
+	8,  // 3: composia.controller.v1.GetNodeDockerStatsResponse.stats:type_name -> composia.controller.v1.DockerStats
+	0,  // 4: composia.controller.v1.NodeService.ListNodes:input_type -> composia.controller.v1.ListNodesRequest
+	1,  // 5: composia.controller.v1.NodeService.GetNode:input_type -> composia.controller.v1.GetNodeRequest
+	5,  // 6: composia.controller.v1.NodeService.GetNodeTasks:input_type -> composia.controller.v1.GetNodeTasksRequest
+	7,  // 7: composia.controller.v1.NodeService.GetNodeDockerStats:input_type -> composia.controller.v1.GetNodeDockerStatsRequest
+	10, // 8: composia.controller.v1.NodeService.PruneNodeDocker:input_type -> composia.controller.v1.PruneNodeDockerRequest
+	3,  // 9: composia.controller.v1.NodeService.ListNodes:output_type -> composia.controller.v1.ListNodesResponse
+	4,  // 10: composia.controller.v1.NodeService.GetNode:output_type -> composia.controller.v1.GetNodeResponse
+	6,  // 11: composia.controller.v1.NodeService.GetNodeTasks:output_type -> composia.controller.v1.GetNodeTasksResponse
+	9,  // 12: composia.controller.v1.NodeService.GetNodeDockerStats:output_type -> composia.controller.v1.GetNodeDockerStatsResponse
+	11, // 13: composia.controller.v1.NodeService.PruneNodeDocker:output_type -> composia.controller.v1.PruneNodeDockerResponse
+	9,  // [9:14] is the sub-list for method output_type
+	4,  // [4:9] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_proto_composia_controller_v1_node_proto_init() }
@@ -469,7 +802,7 @@ func file_proto_composia_controller_v1_node_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_controller_v1_node_proto_rawDesc), len(file_proto_composia_controller_v1_node_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

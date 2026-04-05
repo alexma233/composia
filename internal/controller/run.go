@@ -334,6 +334,41 @@ func (server *agentReportServer) Heartbeat(ctx context.Context, req *connect.Req
 	return connect.NewResponse(&agentv1.HeartbeatResponse{ReceivedAt: timestamppb.Now()}), nil
 }
 
+func (server *agentReportServer) ReportDockerStats(ctx context.Context, req *connect.Request[agentv1.ReportDockerStatsRequest]) (*connect.Response[agentv1.ReportDockerStatsResponse], error) {
+	if req.Msg.GetNodeId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
+	}
+	if req.Msg.GetStats() == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("stats is required"))
+	}
+
+	authenticatedNodeID, ok := rpcutil.BearerSubject(ctx)
+	if !ok || authenticatedNodeID != req.Msg.GetNodeId() {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("node_id does not match bearer token"))
+	}
+
+	stats := req.Msg.GetStats()
+	err := server.db.RecordDockerStats(ctx, store.DockerStats{
+		NodeID:              req.Msg.GetNodeId(),
+		ContainersTotal:     stats.GetContainersTotal(),
+		ContainersRunning:   stats.GetContainersRunning(),
+		ContainersStopped:   stats.GetContainersStopped(),
+		ContainersPaused:    stats.GetContainersPaused(),
+		Images:              stats.GetImages(),
+		Networks:            stats.GetNetworks(),
+		Volumes:             stats.GetVolumes(),
+		VolumesSizeBytes:    stats.GetVolumesSizeBytes(),
+		DisksUsageBytes:     stats.GetDisksUsageBytes(),
+		DockerServerVersion: stats.GetDockerServerVersion(),
+		ReportedAt:          time.Now().UTC(),
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&agentv1.ReportDockerStatsResponse{}), nil
+}
+
 func (server *agentReportServer) ReportTaskState(ctx context.Context, req *connect.Request[agentv1.ReportTaskStateRequest]) (*connect.Response[agentv1.ReportTaskStateResponse], error) {
 	if req.Msg.GetTaskId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
@@ -677,6 +712,7 @@ func (server *agentTaskServer) PullNextTask(ctx context.Context, req *connect.Re
 					RepoRevision: record.RepoRevision,
 					ServiceDir:   taskParams(record.ParamsJSON).ServiceDir,
 					DataNames:    taskParams(record.ParamsJSON).DataNames,
+					ParamsJson:   record.ParamsJSON,
 				},
 			}
 			return connect.NewResponse(response), nil
@@ -1160,6 +1196,72 @@ func (server *nodeServer) GetNodeTasks(ctx context.Context, req *connect.Request
 		response.Tasks = append(response.Tasks, taskSummaryMessage(record))
 	}
 	return connect.NewResponse(response), nil
+}
+
+func (server *nodeServer) GetNodeDockerStats(ctx context.Context, req *connect.Request[controllerv1.GetNodeDockerStatsRequest]) (*connect.Response[controllerv1.GetNodeDockerStatsResponse], error) {
+	if req.Msg == nil || req.Msg.GetNodeId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
+	}
+
+	stats, err := server.db.GetNodeDockerStats(ctx, req.Msg.GetNodeId())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&controllerv1.GetNodeDockerStatsResponse{
+		Stats: &controllerv1.DockerStats{
+			ContainersTotal:     stats.ContainersTotal,
+			ContainersRunning:   stats.ContainersRunning,
+			ContainersStopped:   stats.ContainersStopped,
+			ContainersPaused:    stats.ContainersPaused,
+			Images:              stats.Images,
+			Networks:            stats.Networks,
+			Volumes:             stats.Volumes,
+			VolumesSizeBytes:    stats.VolumesSizeBytes,
+			DisksUsageBytes:     stats.DisksUsageBytes,
+			DockerServerVersion: stats.DockerServerVersion,
+		},
+	}), nil
+}
+
+func (server *nodeServer) PruneNodeDocker(ctx context.Context, req *connect.Request[controllerv1.PruneNodeDockerRequest]) (*connect.Response[controllerv1.PruneNodeDockerResponse], error) {
+	if req.Msg == nil || req.Msg.GetNodeId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
+	}
+
+	target := req.Msg.GetTarget()
+	if target == "" {
+		target = "all"
+	}
+
+	snapshot, err := server.db.GetNodeSnapshot(ctx, req.Msg.GetNodeId())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if !snapshot.IsOnline {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("node %q is offline", req.Msg.GetNodeId()))
+	}
+
+	triggeredBy, _ := rpcutil.BearerSubject(ctx)
+	taskID := uuid.NewString()
+	paramsJSON := fmt.Sprintf(`{"target":%q}`, target)
+
+	_, err = server.db.CreateTask(ctx, task.Record{
+		TaskID:      taskID,
+		Type:        task.TypePrune,
+		Source:      task.SourceCLI,
+		TriggeredBy: triggeredBy,
+		NodeID:      req.Msg.GetNodeId(),
+		Status:      task.StatusPending,
+		ParamsJSON:  paramsJSON,
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&controllerv1.PruneNodeDockerResponse{
+		TaskId: taskID,
+	}), nil
 }
 
 func nodeSummary(node config.NodeConfig, snapshot store.NodeSnapshot) *controllerv1.NodeSummary {

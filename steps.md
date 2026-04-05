@@ -39,11 +39,11 @@ Still partial or not aligned with `plan.md` yet:
 - Remote Git sync semantics now exist for manual sync and write-time fetch/push flows, but background auto-pull using `pull_interval` is still not implemented.
 - `migrate` is still not implemented as the documented single-task workflow, and `awaiting_confirmation` is not yet exercised by a real controller flow.
 - Backup execution now covers the implemented export path and backup record reporting, but restore-driven workflows and migration reuse are still incomplete.
-- DNS, Caddy management, and prune are not implemented.
+- DNS update is implemented; Caddy management and prune (partial) are not fully implemented.
 - CLI config and a real CLI command surface are not implemented yet.
 - Scheduled update and backup execution are not implemented yet.
 - The current web UI reads real controller state and now includes core service actions and task log tailing, but it still lacks migrate and day-2 task entry points, task rerun UI, repo sync actions, and stronger repo/secret editing ergonomics.
-- The documented controller public API is still incomplete: `MigrateService`, `UpdateServiceDNS`, `ReloadNodeCaddy`, `PruneNode`, and `GetCurrentConfig` are not exposed yet.
+- The documented controller public API is still incomplete: `MigrateService`, `ReloadNodeCaddy`, `PruneNode` (partial), and `GetCurrentConfig` are not exposed yet. `UpdateServiceDNS` and `PruneNode` (basic) are now implemented.
 
 ## Execution Rule
 
@@ -205,14 +205,14 @@ Current note:
 
 ## Phase 8: Add DNS, Caddy, and Node Operations
 
-Status: pending
+Status: in progress
 
 Goal: implement the documented day-2 operational actions after repo writes and base service flows are stable.
 
-1. Add `dns_update` task behavior.
-2. Add `caddy_reload` task behavior.
-3. Add `prune` task behavior.
-4. Add the related controller public APIs.
+1. Add `dns_update` task behavior. (done)
+2. Add `caddy_reload` task behavior. (pending)
+3. Add `prune` task behavior. (partial - basic prune with all/containers/images/networks/volumes targets)
+4. Add the related controller public APIs. (partial)
 5. Keep task steps, logging, and node targeting aligned with the task model.
 
 Deliverable:

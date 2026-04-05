@@ -13,6 +13,7 @@ service AgentReportService {
   rpc UploadTaskLogs(stream UploadTaskLogsRequest) returns (stream UploadTaskLogsResponse);
   rpc ReportBackupResult(ReportBackupResultRequest) returns (ReportBackupResultResponse);
   rpc ReportServiceStatus(ReportServiceStatusRequest) returns (ReportServiceStatusResponse);
+  rpc ReportDockerStats(ReportDockerStatsRequest) returns (ReportDockerStatsResponse);
 }
 
 service AgentTaskService {
@@ -52,6 +53,7 @@ message AgentTask {
   string repo_revision = 5;
   string service_dir = 6;
   repeated string data_names = 7;
+  string params_json = 8;
 }
 
 message PullNextTaskResponse {
@@ -122,3 +124,23 @@ message GetServiceBundleResponse {
   string relative_root = 3;
   bytes data = 4;
 }
+
+message DockerStats {
+  uint32 containers_total = 1;
+  uint32 containers_running = 2;
+  uint32 containers_stopped = 3;
+  uint32 containers_paused = 4;
+  uint32 images = 5;
+  uint32 networks = 6;
+  uint32 volumes = 7;
+  uint64 volumes_size_bytes = 8;
+  uint64 disks_usage_bytes = 9;
+  string docker_server_version = 10;
+}
+
+message ReportDockerStatsRequest {
+  string node_id = 1;
+  DockerStats stats = 2;
+}
+
+message ReportDockerStatsResponse {}

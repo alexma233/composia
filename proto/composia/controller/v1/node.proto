@@ -10,6 +10,8 @@ service NodeService {
   rpc ListNodes(ListNodesRequest) returns (ListNodesResponse);
   rpc GetNode(GetNodeRequest) returns (GetNodeResponse);
   rpc GetNodeTasks(GetNodeTasksRequest) returns (GetNodeTasksResponse);
+  rpc GetNodeDockerStats(GetNodeDockerStatsRequest) returns (GetNodeDockerStatsResponse);
+  rpc PruneNodeDocker(PruneNodeDockerRequest) returns (PruneNodeDockerResponse);
 }
 
 message ListNodesRequest {}
@@ -44,4 +46,34 @@ message GetNodeTasksRequest {
 message GetNodeTasksResponse {
   repeated TaskSummary tasks = 1;
   string next_cursor = 2;
+}
+
+message GetNodeDockerStatsRequest {
+  string node_id = 1;
+}
+
+message DockerStats {
+  uint32 containers_total = 1;
+  uint32 containers_running = 2;
+  uint32 containers_stopped = 3;
+  uint32 containers_paused = 4;
+  uint32 images = 5;
+  uint32 networks = 6;
+  uint32 volumes = 7;
+  uint64 volumes_size_bytes = 8;
+  uint64 disks_usage_bytes = 9;
+  string docker_server_version = 10;
+}
+
+message GetNodeDockerStatsResponse {
+  DockerStats stats = 1;
+}
+
+message PruneNodeDockerRequest {
+  string node_id = 1;
+  string target = 2;
+}
+
+message PruneNodeDockerResponse {
+  string task_id = 1;
 }

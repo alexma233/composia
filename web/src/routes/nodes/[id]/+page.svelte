@@ -1,12 +1,23 @@
 <script lang="ts">
-  import type { PageData } from './$types';
+  import type { PageData, ActionData } from './$types';
+  import { enhance } from '$app/forms';
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
+  import { Button } from '$lib/components/ui/button';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { formatTimestamp, onlineStatusTone, taskStatusTone } from '$lib/presenters';
 
   export let data: PageData;
+  export let form: ActionData;
+
+  function formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
 </script>
 
 <div class="page-shell">
@@ -34,6 +45,82 @@
           </Alert>
         {/if}
       </CardHeader>
+    </Card>
+
+    <Card class="border-border/70 bg-card/95">
+      <CardHeader class="space-y-1">
+        <CardTitle class="section-title">Docker</CardTitle>
+        <CardDescription class="section-description">Docker resource usage and maintenance.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {#if data.dockerStats}
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div class="rounded-lg border border-border/70 bg-background/80 p-3">
+                <div class="text-2xl font-semibold">{data.dockerStats.containersRunning}/{data.dockerStats.containersTotal}</div>
+                <div class="text-xs text-muted-foreground">Containers</div>
+              </div>
+              <div class="rounded-lg border border-border/70 bg-background/80 p-3">
+                <div class="text-2xl font-semibold">{data.dockerStats.images}</div>
+                <div class="text-xs text-muted-foreground">Images</div>
+              </div>
+              <div class="rounded-lg border border-border/70 bg-background/80 p-3">
+                <div class="text-2xl font-semibold">{data.dockerStats.networks}</div>
+                <div class="text-xs text-muted-foreground">Networks</div>
+              </div>
+              <div class="rounded-lg border border-border/70 bg-background/80 p-3">
+                <div class="text-2xl font-semibold">{data.dockerStats.volumes}</div>
+                <div class="text-xs text-muted-foreground">Volumes</div>
+              </div>
+            </div>
+
+            <div class="text-sm text-muted-foreground">
+              Docker {data.dockerStats.dockerServerVersion || 'unknown version'}
+              {#if data.dockerStats.volumesSizeBytes > 0}
+                · {formatBytes(data.dockerStats.volumesSizeBytes)} in volumes
+              {/if}
+              {#if data.dockerStats.disksUsageBytes > 0}
+                · {formatBytes(data.dockerStats.disksUsageBytes)} disk usage
+              {/if}
+            </div>
+
+            {#if form?.error}
+              <Alert variant="destructive">
+                <AlertDescription>{form.error}</AlertDescription>
+              </Alert>
+            {/if}
+
+            {#if data.node?.isOnline}
+              <div class="flex flex-wrap gap-2">
+                <form method="POST" action="?/prune" use:enhance>
+                  <input type="hidden" name="target" value="all" />
+                  <Button variant="outline" size="sm" type="submit">Prune All</Button>
+                </form>
+                <form method="POST" action="?/prune" use:enhance>
+                  <input type="hidden" name="target" value="containers" />
+                  <Button variant="outline" size="sm" type="submit">Containers</Button>
+                </form>
+                <form method="POST" action="?/prune" use:enhance>
+                  <input type="hidden" name="target" value="images" />
+                  <Button variant="outline" size="sm" type="submit">Images</Button>
+                </form>
+                <form method="POST" action="?/prune" use:enhance>
+                  <input type="hidden" name="target" value="networks" />
+                  <Button variant="outline" size="sm" type="submit">Networks</Button>
+                </form>
+                <form method="POST" action="?/prune" use:enhance>
+                  <input type="hidden" name="target" value="volumes" />
+                  <Button variant="outline" size="sm" type="submit">Volumes</Button>
+                </form>
+              </div>
+            {:else}
+              <div class="text-sm text-muted-foreground">Node is offline. Prune operations require an online node.</div>
+            {/if}
+          </div>
+        {:else}
+          <div class="text-sm text-muted-foreground">No Docker stats available. Stats are reported by the agent.</div>
+        {/if}
+      </CardContent>
     </Card>
 
     <Card class="border-border/70 bg-card/95">

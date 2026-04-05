@@ -45,6 +45,21 @@ type NodeHeartbeat struct {
 	DiskFreeBytes       uint64
 }
 
+type DockerStats struct {
+	NodeID              string
+	ContainersTotal     uint32
+	ContainersRunning   uint32
+	ContainersStopped   uint32
+	ContainersPaused    uint32
+	Images              uint32
+	Networks            uint32
+	Volumes             uint32
+	VolumesSizeBytes    uint64
+	DisksUsageBytes     uint64
+	DockerServerVersion string
+	ReportedAt          time.Time
+}
+
 type ServiceSummary struct {
 	Name          string
 	IsDeclared    bool
@@ -447,6 +462,21 @@ func (db *DB) migrate(ctx context.Context) error {
 		`CREATE INDEX IF NOT EXISTS idx_services_declared_runtime_status ON services(is_declared, runtime_status);`,
 		`CREATE INDEX IF NOT EXISTS idx_backups_service_finished_at ON backups(service_name, finished_at DESC);`,
 		`CREATE INDEX IF NOT EXISTS idx_backups_status_finished_at ON backups(status, finished_at DESC);`,
+		`CREATE TABLE IF NOT EXISTS docker_stats (
+			node_id TEXT PRIMARY KEY,
+			containers_total INTEGER NOT NULL,
+			containers_running INTEGER NOT NULL,
+			containers_stopped INTEGER NOT NULL,
+			containers_paused INTEGER NOT NULL,
+			images INTEGER NOT NULL,
+			networks INTEGER NOT NULL,
+			volumes INTEGER NOT NULL,
+			volumes_size_bytes INTEGER NOT NULL,
+			disks_usage_bytes INTEGER NOT NULL,
+			docker_server_version TEXT NOT NULL,
+			reported_at TEXT NOT NULL,
+			FOREIGN KEY (node_id) REFERENCES nodes(node_id)
+		);`,
 	}
 
 	for _, statement := range statements {
@@ -489,4 +519,55 @@ func (db *DB) UpsertRepoSyncState(ctx context.Context, state RepoSyncState) erro
 		return fmt.Errorf("upsert repo sync state: %w", err)
 	}
 	return nil
+}
+
+func (db *DB) RecordDockerStats(ctx context.Context, stats DockerStats) error {
+	if _, err := db.sql.ExecContext(ctx, `
+		INSERT INTO docker_stats (
+			node_id, containers_total, containers_running, containers_stopped,
+			containers_paused, images, networks, volumes, volumes_size_bytes,
+			disks_usage_bytes, docker_server_version, reported_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(node_id) DO UPDATE SET
+			containers_total = excluded.containers_total,
+			containers_running = excluded.containers_running,
+			containers_stopped = excluded.containers_stopped,
+			containers_paused = excluded.containers_paused,
+			images = excluded.images,
+			networks = excluded.networks,
+			volumes = excluded.volumes,
+			volumes_size_bytes = excluded.volumes_size_bytes,
+			disks_usage_bytes = excluded.disks_usage_bytes,
+			docker_server_version = excluded.docker_server_version,
+			reported_at = excluded.reported_at
+	`, stats.NodeID, stats.ContainersTotal, stats.ContainersRunning, stats.ContainersStopped,
+		stats.ContainersPaused, stats.Images, stats.Networks, stats.Volumes,
+		stats.VolumesSizeBytes, stats.DisksUsageBytes, stats.DockerServerVersion,
+		stats.ReportedAt.Format(time.RFC3339)); err != nil {
+		return fmt.Errorf("record docker stats: %w", err)
+	}
+	return nil
+}
+
+func (db *DB) GetNodeDockerStats(ctx context.Context, nodeID string) (DockerStats, error) {
+	var stats DockerStats
+	var reportedAt string
+	err := db.sql.QueryRowContext(ctx, `
+		SELECT node_id, containers_total, containers_running, containers_stopped,
+			containers_paused, images, networks, volumes, volumes_size_bytes,
+			disks_usage_bytes, docker_server_version, reported_at
+		FROM docker_stats
+		WHERE node_id = ?
+	`, nodeID).Scan(&stats.NodeID, &stats.ContainersTotal, &stats.ContainersRunning,
+		&stats.ContainersStopped, &stats.ContainersPaused, &stats.Images, &stats.Networks,
+		&stats.Volumes, &stats.VolumesSizeBytes, &stats.DisksUsageBytes,
+		&stats.DockerServerVersion, &reportedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return DockerStats{}, nil
+	}
+	if err != nil {
+		return DockerStats{}, fmt.Errorf("get docker stats for node %q: %w", nodeID, err)
+	}
+	stats.ReportedAt, _ = time.Parse(time.RFC3339, reportedAt)
+	return stats, nil
 }

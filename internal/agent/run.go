@@ -95,6 +95,25 @@ func Run(ctx context.Context, configPath string) error {
 		}
 	}()
 
+	dockerStatsTicker := time.NewTicker(5 * time.Minute)
+	defer dockerStatsTicker.Stop()
+
+	go func() {
+		if err := reportDockerStats(ctx, reportClient, cfg); err != nil {
+			log.Printf("initial docker stats report failed: %v", err)
+		}
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-dockerStatsTicker.C:
+				if err := reportDockerStats(ctx, reportClient, cfg); err != nil {
+					log.Printf("docker stats report failed: %v", err)
+				}
+			}
+		}
+	}()
+
 	go func() {
 		for {
 			if ctx.Err() != nil {
@@ -143,6 +162,27 @@ func sendHeartbeat(ctx context.Context, client agentv1connect.AgentReportService
 	return nil
 }
 
+func reportDockerStats(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig) error {
+	stats, err := collectDockerStats()
+	if err != nil {
+		return err
+	}
+
+	request := &agentv1.ReportDockerStatsRequest{
+		NodeId: cfg.NodeID,
+		Stats:  stats,
+	}
+
+	callCtx, cancel := context.WithTimeout(ctx, heartbeatTimeout)
+	defer cancel()
+
+	_, err = client.ReportDockerStats(callCtx, connect.NewRequest(request))
+	if err != nil {
+		return fmt.Errorf("report docker stats: %w", err)
+	}
+	return nil
+}
+
 func pollAndRunTask(ctx context.Context, taskClient agentv1connect.AgentTaskServiceClient, bundleClient agentv1connect.BundleServiceClient, reportClient agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig) error {
 	callCtx, cancel := context.WithTimeout(ctx, pullNextTaskTimeout)
 	defer cancel()
@@ -185,6 +225,8 @@ func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return executeStopTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypeRestart):
 		return executeRestartTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
+	case string(task.TypePrune):
+		return executePruneTask(ctx, client, cfg, pulledTask, logUploader)
 	default:
 		return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, fmt.Sprintf("task type %q is not implemented", pulledTask.GetType()))
 	}
@@ -452,6 +494,100 @@ func executeRestartTask(ctx context.Context, bundleClient agentv1connect.BundleS
 		return err
 	}
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
+}
+
+type pruneTaskParams struct {
+	Target string `json:"target"`
+}
+
+func executePruneTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
+	params := parsePruneParams(pulledTask)
+	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting prune task: target=%s\n", params.Target)); err != nil {
+		return err
+	}
+
+	var pruneErr error
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepPrune, func() error {
+		pruneErr = runDockerPrune(ctx, params.Target, func(output string) error {
+			return uploadTaskLog(ctx, logUploader, output)
+		})
+		return pruneErr
+	}); err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+
+	if pruneErr != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, pruneErr.Error())
+		return pruneErr
+	}
+
+	if err := uploadTaskLog(ctx, logUploader, "prune task finished successfully\n"); err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
+	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
+}
+
+func parsePruneParams(pulledTask *agentv1.AgentTask) pruneTaskParams {
+	paramsJSON := pulledTask.GetParamsJson()
+	if paramsJSON == "" {
+		return pruneTaskParams{Target: "all"}
+	}
+	var params pruneTaskParams
+	if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
+		return pruneTaskParams{Target: "all"}
+	}
+	if params.Target == "" {
+		params.Target = "all"
+	}
+	return params
+}
+
+func runDockerPrune(ctx context.Context, target string, uploadLog func(string) error) error {
+	var args []string
+
+	switch target {
+	case "all":
+		return runDockerPruneAll(ctx, uploadLog)
+	case "containers":
+		args = []string{"container", "prune", "-f"}
+	case "networks":
+		args = []string{"network", "prune", "-f"}
+	case "images":
+		args = []string{"image", "prune", "-f"}
+	case "volumes":
+		args = []string{"volume", "prune", "-f"}
+	case "builder":
+		args = []string{"builder", "prune", "-f"}
+	default:
+		return fmt.Errorf("unknown prune target: %q", target)
+	}
+
+	cmd := exec.CommandContext(ctx, "docker", args...)
+	output, err := cmd.CombinedOutput()
+	if outStr := string(output); outStr != "" {
+		if logErr := uploadLog(outStr); logErr != nil {
+			return logErr
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("docker %s prune failed: %w", target, err)
+	}
+	return nil
+}
+
+func runDockerPruneAll(ctx context.Context, uploadLog func(string) error) error {
+	targets := []string{"containers", "networks", "images", "volumes", "builder"}
+	for _, target := range targets {
+		if err := uploadLog(fmt.Sprintf("pruning %s...\n", target)); err != nil {
+			return err
+		}
+		if err := runDockerPrune(ctx, target, uploadLog); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func localServiceRoot(repoDir string, pulledTask *agentv1.AgentTask, bundle *bundleResult) (string, error) {
@@ -1131,6 +1267,194 @@ func collectRuntimeSummary(path string) (*agentv1.NodeRuntimeSummary, error) {
 		DiskTotalBytes:      stat.Blocks * blockSize,
 		DiskFreeBytes:       stat.Bavail * blockSize,
 	}, nil
+}
+
+func collectDockerStats() (*agentv1.DockerStats, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	var stats agentv1.DockerStats
+	stats.DockerServerVersion = dockerServerVersion()
+
+	containers, err := dockerContainerStats(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect container stats: %w", err)
+	}
+	stats.ContainersTotal = containers.total
+	stats.ContainersRunning = containers.running
+	stats.ContainersStopped = containers.stopped
+	stats.ContainersPaused = containers.paused
+
+	images, err := dockerImageCount(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect image count: %w", err)
+	}
+	stats.Images = images
+
+	networks, err := dockerNetworkCount(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect network count: %w", err)
+	}
+	stats.Networks = networks
+
+	volumes, volumesSize, err := dockerVolumeStats(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect volume stats: %w", err)
+	}
+	stats.Volumes = volumes
+	stats.VolumesSizeBytes = volumesSize
+
+	stats.DisksUsageBytes, err = dockerDiskUsage(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect disk usage: %w", err)
+	}
+
+	return &stats, nil
+}
+
+type containerStats struct {
+	total   uint32
+	running uint32
+	stopped uint32
+	paused  uint32
+}
+
+func dockerContainerStats(ctx context.Context) (containerStats, error) {
+	output, err := exec.CommandContext(ctx, "docker", "ps", "-a", "--format", "{{.State}}").Output()
+	if err != nil {
+		return containerStats{}, nil
+	}
+
+	var stats containerStats
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, line := range lines {
+		switch strings.TrimSpace(line) {
+		case "running":
+			stats.running++
+		case "exited":
+			stats.stopped++
+		case "paused":
+			stats.paused++
+		}
+	}
+	stats.total = stats.running + stats.stopped + stats.paused
+	return stats, nil
+}
+
+func dockerImageCount(ctx context.Context) (uint32, error) {
+	output, err := exec.CommandContext(ctx, "docker", "images", "-q").Output()
+	if err != nil {
+		return 0, nil
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	count := uint32(0)
+	for _, line := range lines {
+		if strings.TrimSpace(line) != "" {
+			count++
+		}
+	}
+	return count, nil
+}
+
+func dockerNetworkCount(ctx context.Context) (uint32, error) {
+	output, err := exec.CommandContext(ctx, "docker", "network", "ls", "-q").Output()
+	if err != nil {
+		return 0, nil
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	count := uint32(0)
+	for _, line := range lines {
+		if strings.TrimSpace(line) != "" {
+			count++
+		}
+	}
+	return count, nil
+}
+
+func dockerVolumeStats(ctx context.Context) (uint32, uint64, error) {
+	output, err := exec.CommandContext(ctx, "docker", "volume", "ls", "-q").Output()
+	if err != nil {
+		return 0, 0, nil
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	count := uint32(0)
+	for _, line := range lines {
+		if strings.TrimSpace(line) != "" {
+			count++
+		}
+	}
+
+	sizeOutput, err := exec.CommandContext(ctx, "docker", "system", "df", "-v", "--format", "{{.RealSize}}").Output()
+	if err != nil {
+		return count, 0, nil
+	}
+
+	var totalSize uint64
+	sizeLines := strings.Split(strings.TrimSpace(string(sizeOutput)), "\n")
+	for _, line := range sizeLines {
+		line = strings.TrimSpace(line)
+		if line == "" || line == "0B" {
+			continue
+		}
+		if size, ok := parseSize(line); ok {
+			totalSize += size
+		}
+	}
+
+	return count, totalSize, nil
+}
+
+func parseSize(s string) (uint64, bool) {
+	s = strings.TrimSpace(s)
+	s = strings.ToUpper(s)
+
+	mult := uint64(1)
+	if strings.HasSuffix(s, "GIB") || strings.HasSuffix(s, "GB") {
+		mult = 1024 * 1024 * 1024
+		s = strings.TrimSuffix(strings.TrimSuffix(s, "GIB"), "GB")
+	} else if strings.HasSuffix(s, "MIB") || strings.HasSuffix(s, "MB") {
+		mult = 1024 * 1024
+		s = strings.TrimSuffix(strings.TrimSuffix(s, "MIB"), "MB")
+	} else if strings.HasSuffix(s, "KIB") || strings.HasSuffix(s, "KB") {
+		mult = 1024
+		s = strings.TrimSuffix(strings.TrimSuffix(s, "KIB"), "KB")
+	} else if strings.HasSuffix(s, "B") {
+		s = strings.TrimSuffix(s, "B")
+	}
+
+	s = strings.TrimSpace(s)
+	var size uint64
+	for _, c := range s {
+		if c >= '0' && c <= '9' {
+			size = size*10 + uint64(c-'0')
+		} else if c != '.' && c != ',' {
+			return 0, false
+		}
+	}
+	return size * mult, true
+}
+
+func dockerDiskUsage(ctx context.Context) (uint64, error) {
+	output, err := exec.CommandContext(ctx, "docker", "system", "df", "--format", "{{.Size}}").Output()
+	if err != nil {
+		return 0, nil
+	}
+
+	var total uint64
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || line == "0B" {
+			continue
+		}
+		if size, ok := parseSize(line); ok {
+			total += size
+		}
+	}
+	return total, nil
 }
 
 func dockerServerVersion() string {

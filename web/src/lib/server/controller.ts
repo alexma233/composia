@@ -62,6 +62,19 @@ export type TaskDetail = {
   steps: TaskStepSummary[];
 };
 
+export type NodeDockerStats = {
+  containersTotal: number;
+  containersRunning: number;
+  containersStopped: number;
+  containersPaused: number;
+  images: number;
+  networks: number;
+  volumes: number;
+  volumesSizeBytes: number;
+  disksUsageBytes: number;
+  dockerServerVersion: string;
+};
+
 export type ServiceDetail = {
   name: string;
   runtimeStatus: string;
@@ -478,6 +491,33 @@ export async function loadNodeTasks(
     { nodeId, pageSize },
   );
   return response.tasks ?? [];
+}
+
+export async function loadNodeDockerStats(
+  nodeId: string,
+): Promise<NodeDockerStats | null> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{ stats?: NodeDockerStats }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.NodeService/GetNodeDockerStats",
+    { nodeId },
+  );
+  return response.stats ?? null;
+}
+
+export async function pruneNodeDocker(
+  nodeId: string,
+  target = "all",
+): Promise<{ taskId: string }> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{ task_id: string }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.NodeService/PruneNodeDocker",
+    { nodeId, target },
+  );
+  return { taskId: response.task_id };
 }
 
 export async function loadTaskDetail(taskId: string): Promise<TaskDetail> {
