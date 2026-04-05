@@ -23,6 +23,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/config"
 	"forgejo.alexma.top/alexma233/composia/internal/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/rpcutil"
+	secretutil "forgejo.alexma.top/alexma233/composia/internal/secret"
 	"forgejo.alexma.top/alexma233/composia/internal/store"
 	"forgejo.alexma.top/alexma233/composia/internal/task"
 	"forgejo.alexma.top/alexma233/composia/internal/version"
@@ -131,12 +132,19 @@ func Run(ctx context.Context, configPath string) error {
 		connect.WithInterceptors(cliInterceptor),
 	)
 	mux.Handle(systemPath, systemHandler)
+	repoMu := &sync.Mutex{}
 
 	repoPath, repoHandler := controllerv1connect.NewRepoServiceHandler(
-		&repoServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: &sync.Mutex{}},
+		&repoServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: repoMu},
 		connect.WithInterceptors(cliInterceptor),
 	)
 	mux.Handle(repoPath, repoHandler)
+
+	secretPath, secretHandler := controllerv1connect.NewSecretServiceHandler(
+		&secretServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: repoMu},
+		connect.WithInterceptors(cliInterceptor),
+	)
+	mux.Handle(secretPath, secretHandler)
 
 	backupPath, backupHandler := controllerv1connect.NewBackupRecordServiceHandler(
 		&backupRecordServer{db: db},
@@ -216,6 +224,13 @@ type bundleServer struct {
 }
 
 type repoServer struct {
+	db               *store.DB
+	cfg              *config.ControllerConfig
+	availableNodeIDs map[string]struct{}
+	repoMu           *sync.Mutex
+}
+
+type secretServer struct {
 	db               *store.DB
 	cfg              *config.ControllerConfig
 	availableNodeIDs map[string]struct{}
@@ -405,10 +420,14 @@ func (server *bundleServer) GetServiceBundle(ctx context.Context, req *connect.R
 	if params.ServiceDir == "" {
 		return connect.NewError(connect.CodeFailedPrecondition, errors.New("deploy task is missing service_dir"))
 	}
+	extraFiles, err := bundleExtraFiles(server.cfg, detail.Record.RepoRevision, params.ServiceDir)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
 
 	pipeReader, pipeWriter := io.Pipe()
 	go func() {
-		pipeWriter.CloseWithError(repo.StreamServiceBundle(ctx, server.cfg.RepoDir, detail.Record.RepoRevision, params.ServiceDir, pipeWriter))
+		pipeWriter.CloseWithError(repo.StreamServiceBundleWithExtras(ctx, server.cfg.RepoDir, detail.Record.RepoRevision, params.ServiceDir, extraFiles, pipeWriter))
 	}()
 	defer pipeReader.Close()
 
@@ -435,6 +454,27 @@ func (server *bundleServer) GetServiceBundle(ctx context.Context, req *connect.R
 			return connect.NewError(connect.CodeInternal, fmt.Errorf("read bundle stream: %w", err))
 		}
 	}
+}
+
+func bundleExtraFiles(cfg *config.ControllerConfig, revision, serviceDir string) (map[string]string, error) {
+	if cfg.Secrets == nil {
+		return nil, nil
+	}
+	secretContent, err := repo.ReadFileAtRevision(cfg.RepoDir, revision, filepath.ToSlash(filepath.Join(serviceDir, ".secret.env.enc")))
+	if err != nil {
+		if strings.Contains(err.Error(), "does not exist") || strings.Contains(err.Error(), "exists on disk, but not in") {
+			return nil, nil
+		}
+		if strings.Contains(err.Error(), "pathspec") || strings.Contains(err.Error(), "invalid object name") || strings.Contains(err.Error(), "not found") {
+			return nil, nil
+		}
+		return nil, err
+	}
+	plaintext, err := secretutil.Decrypt([]byte(secretContent), cfg.Secrets)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]string{filepath.ToSlash(filepath.Join(serviceDir, ".secret.env")): plaintext}, nil
 }
 
 func (server *agentTaskServer) PullNextTask(ctx context.Context, req *connect.Request[agentv1.PullNextTaskRequest]) (*connect.Response[agentv1.PullNextTaskResponse], error) {
@@ -1221,6 +1261,92 @@ func (server *repoServer) updateRepoFileTransaction(ctx context.Context, relativ
 		return "", connect.NewError(connect.CodeInternal, err)
 	}
 	return commitID, nil
+}
+
+func (server *secretServer) GetServiceSecretEnv(ctx context.Context, req *connect.Request[controllerv1.GetServiceSecretEnvRequest]) (*connect.Response[controllerv1.GetServiceSecretEnvResponse], error) {
+	if req.Msg == nil || req.Msg.GetServiceName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+	if server.cfg.Secrets == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("controller secrets are not configured"))
+	}
+	service, secretPath, err := server.serviceSecretPath(req.Msg.GetServiceName())
+	if err != nil {
+		return nil, err
+	}
+	secretFile, err := repo.ReadFile(server.cfg.RepoDir, secretPath)
+	if err != nil {
+		if errors.Is(err, repo.ErrRepoPathNotFound) {
+			return connect.NewResponse(&controllerv1.GetServiceSecretEnvResponse{ServiceName: service.Name, Content: ""}), nil
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	plaintext, err := secretutil.Decrypt([]byte(secretFile.Content), server.cfg.Secrets)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&controllerv1.GetServiceSecretEnvResponse{ServiceName: service.Name, Content: plaintext}), nil
+}
+
+func (server *secretServer) UpdateServiceSecretEnv(ctx context.Context, req *connect.Request[controllerv1.UpdateServiceSecretEnvRequest]) (*connect.Response[controllerv1.UpdateServiceSecretEnvResponse], error) {
+	if req.Msg == nil || req.Msg.GetServiceName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+	if req.Msg.GetBaseRevision() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base_revision is required"))
+	}
+	if server.cfg.Secrets == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("controller secrets are not configured"))
+	}
+	service, secretPath, err := server.serviceSecretPath(req.Msg.GetServiceName())
+	if err != nil {
+		return nil, err
+	}
+	ciphertext, err := secretutil.Encrypt(req.Msg.GetContent(), server.cfg.Secrets)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	repoSrv := &repoServer{db: server.db, cfg: server.cfg, availableNodeIDs: server.availableNodeIDs, repoMu: server.repoMu}
+	repoSrv.repoLock().Lock()
+	defer repoSrv.repoLock().Unlock()
+	currentRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if currentRevision != req.Msg.GetBaseRevision() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("base_revision %q does not match current HEAD %q", req.Msg.GetBaseRevision(), currentRevision))
+	}
+	cleanWorktree, err := repo.IsCleanWorkingTree(server.cfg.RepoDir)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if !cleanWorktree {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("repo working tree is not clean"))
+	}
+	if err := repoSrv.ensureRepoPathUnlocked(ctx, secretPath); err != nil {
+		return nil, err
+	}
+	commitMessage := req.Msg.GetCommitMessage()
+	if commitMessage == "" {
+		commitMessage = fmt.Sprintf("update secrets for %s", service.Name)
+	}
+	commitID, err := repoSrv.updateRepoFileTransaction(ctx, secretPath, string(ciphertext), commitMessage)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&controllerv1.UpdateServiceSecretEnvResponse{CommitId: commitID}), nil
+}
+
+func (server *secretServer) serviceSecretPath(serviceName string) (*repo.Service, string, error) {
+	service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, serviceName)
+	if err != nil {
+		return nil, "", connect.NewError(connect.CodeNotFound, err)
+	}
+	serviceDir, err := filepath.Rel(server.cfg.RepoDir, service.Directory)
+	if err != nil {
+		return nil, "", connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
+	}
+	return &service, filepath.ToSlash(filepath.Join(serviceDir, ".secret.env.enc")), nil
 }
 
 func (server *taskServer) GetTask(ctx context.Context, req *connect.Request[controllerv1.GetTaskRequest]) (*connect.Response[controllerv1.GetTaskResponse], error) {

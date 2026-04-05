@@ -1,0 +1,63 @@
+package repo
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func TestValidateRepoCollectsErrorsAcrossFiles(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repoDir, "alpha"), 0o755); err != nil {
+		t.Fatalf("create alpha dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(repoDir, "beta"), 0o755); err != nil {
+		t.Fatalf("create beta dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "alpha", MetaFileName), []byte("name: shared\nnode: main\nunknown_field: true\n"), 0o644); err != nil {
+		t.Fatalf("write alpha meta: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "beta", MetaFileName), []byte("name: shared\nnode: missing-node\n"), 0o644); err != nil {
+		t.Fatalf("write beta meta: %v", err)
+	}
+
+	validationErrors := ValidateRepo(repoDir, map[string]struct{}{"main": {}})
+	if len(validationErrors) != 2 {
+		t.Fatalf("expected 2 validation errors, got %d: %+v", len(validationErrors), validationErrors)
+	}
+	if validationErrors[0].Path != "alpha/composia-meta.yaml" || !strings.Contains(validationErrors[0].Message, "unknown_field") {
+		t.Fatalf("unexpected first validation error: %+v", validationErrors[0])
+	}
+	if validationErrors[1].Path != "beta/composia-meta.yaml" || !strings.Contains(validationErrors[1].Message, "missing-node") {
+		t.Fatalf("unexpected second validation error: %+v", validationErrors[1])
+	}
+}
+
+func TestValidateRepoReportsDuplicateServiceNames(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repoDir, "alpha"), 0o755); err != nil {
+		t.Fatalf("create alpha dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(repoDir, "beta"), 0o755); err != nil {
+		t.Fatalf("create beta dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "alpha", MetaFileName), []byte("name: shared\nnode: main\n"), 0o644); err != nil {
+		t.Fatalf("write alpha meta: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "beta", MetaFileName), []byte("name: shared\nnode: main\n"), 0o644); err != nil {
+		t.Fatalf("write beta meta: %v", err)
+	}
+
+	validationErrors := ValidateRepo(repoDir, map[string]struct{}{"main": {}})
+	if len(validationErrors) != 2 {
+		t.Fatalf("expected 2 duplicate name errors, got %d: %+v", len(validationErrors), validationErrors)
+	}
+	if !strings.Contains(validationErrors[0].Message, "declared more than once") || !strings.Contains(validationErrors[1].Message, "declared more than once") {
+		t.Fatalf("unexpected duplicate errors: %+v", validationErrors)
+	}
+}
