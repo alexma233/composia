@@ -2,6 +2,10 @@
   import type { ActionData } from './$types';
   import type { PageData } from './$types';
 
+  import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import { Textarea } from '$lib/components/ui/textarea';
+
   export let data: PageData;
   export let form: ActionData;
 
@@ -22,89 +26,89 @@
   }
 </script>
 
-<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
   <div class="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-    <section class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+    <section class="rounded-lg border bg-card p-6 shadow-xs">
       <div class="mb-5">
-        <h1 class="text-2xl font-semibold text-white">Repo</h1>
-        <p class="text-sm text-slate-400">Minimal Git-backed repo browser through the controller API.</p>
+        <h1 class="text-2xl font-semibold">Repo</h1>
+        <p class="text-sm text-muted-foreground">Minimal Git-backed repo browser through the controller API.</p>
       </div>
 
       {#if data.head}
-        <div class="mb-6 rounded-2xl border border-white/8 bg-slate-950/45 p-4 text-sm text-slate-300">
-          <div>Branch: <span class="text-white">{data.head.branch || 'HEAD'}</span></div>
-          <div class="mt-1 break-all">Revision: <span class="text-white">{data.head.headRevision}</span></div>
-          <div class="mt-1">Worktree: <span class="text-white">{data.head.cleanWorktree ? 'clean' : 'dirty'}</span></div>
+        <div class="mb-6 rounded-lg border bg-background p-4 text-sm text-muted-foreground">
+          <div>Branch: <span class="text-foreground">{data.head.branch || 'HEAD'}</span></div>
+          <div class="mt-1 break-all">Revision: <span class="text-foreground">{data.head.headRevision}</span></div>
+          <div class="mt-1">Worktree: <span class="text-foreground">{data.head.cleanWorktree ? 'clean' : 'dirty'}</span></div>
         </div>
       {/if}
 
       {#if data.error}
-        <div class="mb-6 rounded-2xl border border-rose-400/20 bg-rose-400/10 p-4 text-sm text-rose-100">{data.error}</div>
+        <div class="mb-6 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">{data.error}</div>
       {/if}
 
-      <div class="mb-3 flex items-center justify-between gap-3 text-sm text-slate-400">
+      <div class="mb-3 flex items-center justify-between gap-3 text-sm text-muted-foreground">
         <span>Path: {data.path || '/'}</span>
         {#if data.path}
-          <a href={`/repo?path=${encodeURIComponent(parentPath(data.path))}`} class="rounded-full border border-white/10 bg-slate-950/45 px-3 py-1 text-xs text-slate-200">Up</a>
+          <a href={`/repo?path=${encodeURIComponent(parentPath(data.path))}`} class="inline-flex h-8 items-center rounded-md border bg-background px-3 text-xs transition-colors hover:bg-muted/40">Up</a>
         {/if}
       </div>
 
       <div class="space-y-2">
         {#each data.entries as entry}
           {#if entry.isDir}
-            <a href={`/repo?path=${encodeURIComponent(entry.path)}`} class="block rounded-2xl border border-white/8 bg-slate-950/45 px-4 py-3 text-sm text-slate-100 transition hover:border-sky-400/30">
+            <a href={`/repo?path=${encodeURIComponent(entry.path)}`} class="block rounded-lg border bg-background px-4 py-3 text-sm transition-colors hover:bg-muted/40">
               {entry.name}/
             </a>
           {:else}
-            <a href={`/repo?path=${encodeURIComponent(data.path)}&file=${encodeURIComponent(entry.path)}`} class="block rounded-2xl border border-white/8 bg-slate-950/45 px-4 py-3 text-sm text-slate-100 transition hover:border-sky-400/30">
+            <a href={`/repo?path=${encodeURIComponent(data.path)}&file=${encodeURIComponent(entry.path)}`} class="block rounded-lg border bg-background px-4 py-3 text-sm transition-colors hover:bg-muted/40">
               {entry.name}
             </a>
           {/if}
         {/each}
 
         {#if !data.entries.length}
-          <div class="rounded-2xl border border-dashed border-white/12 bg-slate-950/35 px-4 py-8 text-sm text-slate-400">No entries loaded.</div>
+          <div class="rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-sm text-muted-foreground">No entries loaded.</div>
         {/if}
       </div>
     </section>
 
-    <section class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+    <section class="rounded-lg border bg-card p-6 shadow-xs">
       <div class="mb-5">
-        <h2 class="text-xl font-medium text-white">File preview</h2>
-        <p class="text-sm text-slate-400">Selected file content from the controller repo API.</p>
+        <h2 class="text-xl font-medium">File preview</h2>
+        <p class="text-sm text-muted-foreground">Selected file content from the controller repo API.</p>
       </div>
 
       {#if data.file}
-        <div class="mb-4 text-sm text-slate-400">{data.file.path}</div>
+        <div class="mb-4 text-sm text-muted-foreground">{data.file.path}</div>
         {#if form?.error}
-          <div class="mb-4 rounded-2xl border border-rose-400/20 bg-rose-400/10 p-4 text-sm text-rose-100">{form.error}</div>
+          <div class="mb-4 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">{form.error}</div>
         {/if}
         <form method="POST" class="space-y-4">
           <input type="hidden" name="path" value={data.file.path} />
           <input type="hidden" name="baseRevision" value={data.head?.headRevision ?? ''} />
           <input type="hidden" name="/action" value="save" />
-          <label class="block space-y-2 text-sm text-slate-300">
+          <label class="block space-y-2 text-sm">
             <span>Commit message</span>
-            <input
+            <Input
               name="commitMessage"
               value={formValue('commitMessage')}
-              class="w-full rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-sm text-white outline-none"
             />
           </label>
-          <label class="block space-y-2 text-sm text-slate-300">
+          <label class="block space-y-2 text-sm">
             <span>Content</span>
-            <textarea
+            <Textarea
               name="content"
               rows="24"
-              class="w-full rounded-2xl border border-white/10 bg-slate-950/65 p-4 font-mono text-xs leading-6 text-slate-200 outline-none"
-            >{formValue('content') || data.file.content}</textarea>
+              value={formValue('content') || data.file.content}
+              class="font-mono text-xs leading-6"
+            />
           </label>
-          <button formaction="?/save" class="rounded-full border border-sky-400/30 bg-sky-400/15 px-4 py-2 text-sm text-sky-100 transition hover:bg-sky-400/20">
+          <Button type="submit" formaction="?/save">
             Save file
-          </button>
+          </Button>
         </form>
       {:else}
-        <div class="rounded-2xl border border-dashed border-white/12 bg-slate-950/35 px-4 py-12 text-sm text-slate-400">
+        <div class="rounded-lg border border-dashed bg-muted/20 px-4 py-12 text-sm text-muted-foreground">
           Select a file from the left pane to preview it.
         </div>
       {/if}

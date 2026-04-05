@@ -20,23 +20,27 @@ Implemented or mostly implemented:
 - Shared `config.yaml` loading and validation exist for the v1 `controller` and `agent` model.
 - Controller startup initializes local directories and opens SQLite.
 - SQLite schema exists for `nodes`, `services`, `tasks`, `task_steps`, and `backups`.
-- Minimal controller-agent ConnectRPC wiring exists.
+- Controller-agent ConnectRPC wiring exists for heartbeat, task pull, bundle download, task state, step state, log upload, backup reporting, and service runtime reporting.
 - Agent heartbeat works and node state is persisted.
 - Service repo scanning and `composia-meta.yaml` validation exist.
-- Controller APIs already expose read paths for services, tasks, nodes, backups, and repo inspection.
+- Controller APIs expose read paths for services, tasks, nodes, backups, repo inspection, repo editing, and service secret editing.
 - Agent can pull queued tasks and download bundles for service execution.
-- Basic remote task execution exists for `deploy`, `update`, `stop`, and `restart`.
+- Remote task execution exists for `deploy`, `update`, `stop`, `restart`, and `backup`.
+- Task logs stream from agent to controller and are persisted under `controller.log_dir`.
+- Repo write transactions and local Git commits exist for normal files and encrypted service secrets.
+- age-based secret decrypt and re-encrypt helpers exist.
+- The web UI is wired to real controller APIs for dashboard, services, nodes, tasks, backups, repo editing, and secret editing.
 
 Still partial or not aligned with `plan.md` yet:
 
-- Service runtime state is still inferred from completed tasks instead of coming from explicit agent status reporting.
-- Task log upload is not yet implemented with the planned streaming and resume semantics.
-- Backup execution is still placeholder behavior.
-- Repo write APIs, Git write transactions, and sync handling are not implemented.
-- Secret APIs and age-based secret workflows are not implemented.
+- `PullNextTask` still behaves like short polling rather than the planned long-poll contract.
+- Task `source` semantics are not fully aligned yet; several task creation paths still collapse to `cli` instead of preserving the documented caller source.
+- Repo write handling is still local-only and does not yet implement remote tracking semantics, push reporting, sync state, or `SyncRepo`.
+- Backup execution only covers the currently implemented manual export path; restore-driven workflows and migration reuse are still incomplete.
 - DNS, Caddy management, prune, and migrate are not implemented.
-- The web UI is still a placeholder shell.
-- There is leftover controller-side worker code that should not become a second execution architecture.
+- CLI config and a real CLI command surface are not implemented yet.
+- Scheduled update and backup execution are not implemented yet.
+- The current web UI works, but its visual style is too bloated for an operations console and should be simplified before more UI surface is added.
 
 ## Execution Rule
 
@@ -46,6 +50,18 @@ From this point forward, agents working in this repository should follow these r
 2. Prefer finishing and correcting already-started foundation work before adding more APIs or UI pages.
 3. Do not add new behavior that changes task semantics, repo semantics, or controller-agent responsibilities unless `plan.md` already defines it.
 4. Treat migration, backup, DNS, secrets, and repo writes as architecture-sensitive work that must match the documented v1 semantics, not shortcut variants.
+
+## Frontend Direction
+
+The current frontend already covers real controller workflows, so the next UI work should focus on correction, not expansion-first styling.
+
+1. Move away from the current bloated visual language.
+2. Prefer a denser and calmer operations-console style over a landing-page or marketing aesthetic.
+3. Reduce oversized cards, excessive blur, oversized rounded corners, and decorative empty space.
+4. Increase information density and scanability for services, nodes, tasks, backups, and repo views.
+5. Preserve responsive behavior on mobile, but do not sacrifice desktop density for oversized mobile-first spacing.
+6. Reuse a small set of layout and status patterns so the UI feels operational and systematic rather than ornamental.
+7. Before adding more pages or visual flourish, first simplify the existing dashboard, detail pages, and repo editor.
 
 ## Phase 1: Remove Architecture Drift
 
@@ -97,17 +113,14 @@ Deliverable:
 
 ## Phase 4: Add Safe Desired-State Repo Writes
 
-Status: pending
+Status: in progress
 
 Goal: let the controller own Git-backed desired state changes exactly as documented.
 
-1. Add repo lock handling.
-2. Add `RepoService.UpdateRepoFile`.
-3. Add repo validation during write transactions.
-4. Add service conflict checks for writes that touch locked service directories.
-5. Add commit creation with the configured author behavior.
-6. Add optional remote sync behavior, push reporting, and repo sync state.
-7. Add `RepoService.SyncRepo` with the documented clean-worktree requirements.
+1. Keep repo lock handling, validation, service conflict checks, and local commit creation aligned with `plan.md`.
+2. Add optional remote sync behavior, push reporting, and repo sync state.
+3. Add `RepoService.SyncRepo` with the documented clean-worktree requirements.
+4. Extend `GetRepoHead` to return the sync-related state expected by the plan.
 
 Deliverable:
 
@@ -115,16 +128,14 @@ Deliverable:
 
 ## Phase 5: Add Secret Handling
 
-Status: pending
+Status: in progress
 
 Goal: implement the selected age-based secrets model without leaving plaintext in `controller.repo_dir`.
 
-1. Add controller-side decryption for `.secret.env.enc`.
-2. Add controller-side re-encryption using the configured recipients.
-3. Add `SecretService.GetServiceSecretEnv`.
-4. Add `SecretService.UpdateServiceSecretEnv`.
-5. Reuse the same repo lock, validation, commit, and conflict rules as normal repo writes.
-6. Ensure decrypted runtime files are only included in agent bundles and never persisted in the controller Git working tree.
+1. Keep controller-side decryption and re-encryption aligned with the configured age settings.
+2. Keep `SecretService.GetServiceSecretEnv` and `SecretService.UpdateServiceSecretEnv` aligned with the same repo lock and conflict semantics as normal repo writes.
+3. Ensure decrypted runtime files are only included in agent bundles and never persisted in the controller Git working tree.
+4. Extend the remaining Git remote-sync semantics to secret writes as well.
 
 Deliverable:
 
@@ -132,16 +143,15 @@ Deliverable:
 
 ## Phase 6: Replace Placeholder Backup Behavior
 
-Status: pending
+Status: in progress
 
 Goal: turn the current backup scaffolding into the first real data-protection workflow.
 
 1. Keep `data_protect` parsing and validation aligned with the documented v1 strategies.
-2. Replace placeholder backup execution with real strategy execution.
-3. Support the documented v1 strategies only.
-4. Persist one backup record per data item.
-5. Add backup querying paths needed by the API and UI.
-6. Only add scheduling after manual backup behavior is correct.
+2. Keep the currently implemented manual backup execution path limited to the documented v1 strategies.
+3. Preserve one backup record per data item and keep backup query APIs stable.
+4. Fill the remaining gaps around restore-side reuse, migration integration, and edge-case coverage.
+5. Only add scheduling after manual backup behavior is correct.
 
 Deliverable:
 
@@ -149,21 +159,19 @@ Deliverable:
 
 ## Phase 7: Add Read-Write Web UI on Real APIs
 
-Status: pending
+Status: in progress
 
-Goal: replace the placeholder frontend with the actual control-plane UI described in `plan.md`.
+Goal: keep the existing real controller UI, but simplify its design and make it feel like an operations console instead of a decorative shell.
 
-1. Add service list and service detail pages.
-2. Add node list and node detail pages.
-3. Add task history and task detail pages, including log tailing.
-4. Add backup views.
-5. Add repo browsing and editing pages.
-6. Add service secret editing pages.
-7. Keep the UI responsive on mobile from the start.
+1. Simplify the current dashboard, service, node, task, backup, repo, and secret pages into a denser visual system.
+2. Replace the current oversized card-heavy style with flatter surfaces, tighter spacing, and clearer hierarchy.
+3. Add task log tailing and any remaining task controls still missing from the current pages.
+4. Keep repo and secret editing usable on both desktop and mobile without turning the layout into oversized stacked panels.
+5. Re-check all existing pages for consistent status badges, table/list density, and navigation patterns before adding more surface area.
 
 Deliverable:
 
-- The frontend becomes a real controller UI instead of a landing page shell.
+- The frontend is a real controller UI with a restrained, information-dense operational style.
 
 ## Phase 8: Add DNS, Caddy, and Node Operations
 
@@ -203,12 +211,13 @@ Deliverable:
 
 ## Recommended Immediate Next Step
 
-Start with Phases 1 through 3 only.
+Start with the remaining alignment work in Phases 1 through 3, then clean up the current UI style before adding more day-2 and migration surface area.
 
 That is the smallest correct next milestone for the current codebase:
 
 - remove architecture drift
 - finish the task foundation
 - make the first service actions reliable
+- simplify the current frontend visual language
 
-Do not start secrets, backup, DNS, migrate, or rich UI work until those alignment items are complete.
+Do not expand DNS, migrate, scheduling, or more UI surface area until those alignment items are complete.
