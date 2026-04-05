@@ -354,22 +354,25 @@ func (x *TaskStepSummary) GetFinishedAt() string {
 }
 
 type GetTaskResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	Type          string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	Source        string                 `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
-	ServiceName   string                 `protobuf:"bytes,4,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	NodeId        string                 `protobuf:"bytes,5,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	Status        string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
-	CreatedAt     string                 `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	StartedAt     string                 `protobuf:"bytes,8,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	FinishedAt    string                 `protobuf:"bytes,9,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
-	RepoRevision  string                 `protobuf:"bytes,10,opt,name=repo_revision,json=repoRevision,proto3" json:"repo_revision,omitempty"`
-	ErrorSummary  string                 `protobuf:"bytes,11,opt,name=error_summary,json=errorSummary,proto3" json:"error_summary,omitempty"`
-	LogPath       string                 `protobuf:"bytes,12,opt,name=log_path,json=logPath,proto3" json:"log_path,omitempty"`
-	Steps         []*TaskStepSummary     `protobuf:"bytes,13,rep,name=steps,proto3" json:"steps,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	TaskId          string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Type            string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	Source          string                 `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
+	ServiceName     string                 `protobuf:"bytes,4,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	NodeId          string                 `protobuf:"bytes,5,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	Status          string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
+	CreatedAt       string                 `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	StartedAt       string                 `protobuf:"bytes,8,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	FinishedAt      string                 `protobuf:"bytes,9,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	RepoRevision    string                 `protobuf:"bytes,10,opt,name=repo_revision,json=repoRevision,proto3" json:"repo_revision,omitempty"`
+	ErrorSummary    string                 `protobuf:"bytes,11,opt,name=error_summary,json=errorSummary,proto3" json:"error_summary,omitempty"`
+	LogPath         string                 `protobuf:"bytes,12,opt,name=log_path,json=logPath,proto3" json:"log_path,omitempty"`
+	Steps           []*TaskStepSummary     `protobuf:"bytes,13,rep,name=steps,proto3" json:"steps,omitempty"`
+	TriggeredBy     string                 `protobuf:"bytes,14,opt,name=triggered_by,json=triggeredBy,proto3" json:"triggered_by,omitempty"`
+	ResultRevision  string                 `protobuf:"bytes,15,opt,name=result_revision,json=resultRevision,proto3" json:"result_revision,omitempty"`
+	AttemptOfTaskId string                 `protobuf:"bytes,16,opt,name=attempt_of_task_id,json=attemptOfTaskId,proto3" json:"attempt_of_task_id,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *GetTaskResponse) Reset() {
@@ -491,6 +494,27 @@ func (x *GetTaskResponse) GetSteps() []*TaskStepSummary {
 		return x.Steps
 	}
 	return nil
+}
+
+func (x *GetTaskResponse) GetTriggeredBy() string {
+	if x != nil {
+		return x.TriggeredBy
+	}
+	return ""
+}
+
+func (x *GetTaskResponse) GetResultRevision() string {
+	if x != nil {
+		return x.ResultRevision
+	}
+	return ""
+}
+
+func (x *GetTaskResponse) GetAttemptOfTaskId() string {
+	if x != nil {
+		return x.AttemptOfTaskId
+	}
+	return ""
 }
 
 type TailTaskLogsRequest struct {
@@ -717,7 +741,7 @@ const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	"\n" +
 	"started_at\x18\x03 \x01(\tR\tstartedAt\x12\x1f\n" +
 	"\vfinished_at\x18\x04 \x01(\tR\n" +
-	"finishedAt\"\xad\x03\n" +
+	"finishedAt\"\xa6\x04\n" +
 	"\x0fGetTaskResponse\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x16\n" +
@@ -735,7 +759,10 @@ const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	" \x01(\tR\frepoRevision\x12#\n" +
 	"\rerror_summary\x18\v \x01(\tR\ferrorSummary\x12\x19\n" +
 	"\blog_path\x18\f \x01(\tR\alogPath\x12=\n" +
-	"\x05steps\x18\r \x03(\v2'.composia.controller.v1.TaskStepSummaryR\x05steps\".\n" +
+	"\x05steps\x18\r \x03(\v2'.composia.controller.v1.TaskStepSummaryR\x05steps\x12!\n" +
+	"\ftriggered_by\x18\x0e \x01(\tR\vtriggeredBy\x12'\n" +
+	"\x0fresult_revision\x18\x0f \x01(\tR\x0eresultRevision\x12+\n" +
+	"\x12attempt_of_task_id\x18\x10 \x01(\tR\x0fattemptOfTaskId\".\n" +
 	"\x13TailTaskLogsRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\"0\n" +
 	"\x14TailTaskLogsResponse\x12\x18\n" +

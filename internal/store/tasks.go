@@ -90,6 +90,9 @@ func (db *DB) CreateTask(ctx context.Context, record task.Record) (task.Record, 
 }
 
 func (db *DB) ClaimNextPendingTask(ctx context.Context, startedAt time.Time) (task.Record, error) {
+	db.claimMu.Lock()
+	defer db.claimMu.Unlock()
+
 	tx, err := db.sql.BeginTx(ctx, nil)
 	if err != nil {
 		return task.Record{}, fmt.Errorf("begin claim task transaction: %w", err)
@@ -108,6 +111,9 @@ func (db *DB) ClaimNextPendingTask(ctx context.Context, startedAt time.Time) (ta
 }
 
 func (db *DB) ClaimNextPendingTaskForNode(ctx context.Context, nodeID string, startedAt time.Time) (task.Record, error) {
+	db.claimMu.Lock()
+	defer db.claimMu.Unlock()
+
 	tx, err := db.sql.BeginTx(ctx, nil)
 	if err != nil {
 		return task.Record{}, fmt.Errorf("begin claim task transaction: %w", err)

@@ -116,17 +116,31 @@ func TestTaskServiceGetTaskReturnsSteps(t *testing.T) {
 	startedAt := createdAt.Add(1 * time.Minute)
 	finishedAt := createdAt.Add(2 * time.Minute)
 	if _, err := db.CreateTask(ctx, task.Record{
-		TaskID:       "task-detail",
-		Type:         task.TypeDeploy,
-		Source:       task.SourceCLI,
-		ServiceName:  "alpha",
-		NodeID:       "main",
-		Status:       task.StatusSucceeded,
-		CreatedAt:    createdAt,
-		StartedAt:    &startedAt,
-		FinishedAt:   &finishedAt,
-		RepoRevision: "deadbeef",
-		LogPath:      "/tmp/task-detail.log",
+		TaskID:      "task-origin",
+		Type:        task.TypeDeploy,
+		Source:      task.SourceCLI,
+		ServiceName: "alpha",
+		NodeID:      "main",
+		Status:      task.StatusSucceeded,
+		CreatedAt:   createdAt.Add(-10 * time.Minute),
+	}); err != nil {
+		t.Fatalf("create origin task fixture: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{
+		TaskID:          "task-detail",
+		Type:            task.TypeDeploy,
+		Source:          task.SourceCLI,
+		TriggeredBy:     "test-client",
+		ServiceName:     "alpha",
+		NodeID:          "main",
+		Status:          task.StatusSucceeded,
+		CreatedAt:       createdAt,
+		StartedAt:       &startedAt,
+		FinishedAt:      &finishedAt,
+		RepoRevision:    "deadbeef",
+		ResultRevision:  "feedface",
+		AttemptOfTaskID: "task-origin",
+		LogPath:         "/tmp/task-detail.log",
 	}); err != nil {
 		t.Fatalf("create task detail fixture: %v", err)
 	}
@@ -168,6 +182,15 @@ func TestTaskServiceGetTaskReturnsSteps(t *testing.T) {
 	}
 	if response.Msg.GetLogPath() != "/tmp/task-detail.log" {
 		t.Fatalf("expected log path /tmp/task-detail.log, got %q", response.Msg.GetLogPath())
+	}
+	if response.Msg.GetTriggeredBy() != "test-client" {
+		t.Fatalf("expected triggered_by test-client, got %q", response.Msg.GetTriggeredBy())
+	}
+	if response.Msg.GetResultRevision() != "feedface" {
+		t.Fatalf("expected result_revision feedface, got %q", response.Msg.GetResultRevision())
+	}
+	if response.Msg.GetAttemptOfTaskId() != "task-origin" {
+		t.Fatalf("expected attempt_of_task_id task-origin, got %q", response.Msg.GetAttemptOfTaskId())
 	}
 }
 

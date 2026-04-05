@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"sync"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -16,8 +17,9 @@ const DatabaseFileName = "composia.db"
 var ErrServiceNotFound = errors.New("service not found")
 
 type DB struct {
-	sql  *sql.DB
-	path string
+	sql     *sql.DB
+	path    string
+	claimMu sync.Mutex
 }
 
 type NodeHeartbeat struct {

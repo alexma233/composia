@@ -59,6 +59,9 @@ message GetTaskResponse {
   string error_summary = 11;
   string log_path = 12;
   repeated TaskStepSummary steps = 13;
+  string triggered_by = 14;
+  string result_revision = 15;
+  string attempt_of_task_id = 16;
 }
 
 message TailTaskLogsRequest {

@@ -1075,19 +1075,22 @@ func (server *taskServer) GetTask(ctx context.Context, req *connect.Request[cont
 	}
 
 	response := &controllerv1.GetTaskResponse{
-		TaskId:       detail.Record.TaskID,
-		Type:         string(detail.Record.Type),
-		Source:       string(detail.Record.Source),
-		ServiceName:  detail.Record.ServiceName,
-		NodeId:       detail.Record.NodeID,
-		Status:       string(detail.Record.Status),
-		CreatedAt:    detail.Record.CreatedAt.UTC().Format(time.RFC3339),
-		StartedAt:    formatNullableTime(detail.Record.StartedAt),
-		FinishedAt:   formatNullableTime(detail.Record.FinishedAt),
-		RepoRevision: detail.Record.RepoRevision,
-		ErrorSummary: detail.Record.ErrorSummary,
-		LogPath:      detail.Record.LogPath,
-		Steps:        make([]*controllerv1.TaskStepSummary, 0, len(detail.Steps)),
+		TaskId:          detail.Record.TaskID,
+		Type:            string(detail.Record.Type),
+		Source:          string(detail.Record.Source),
+		ServiceName:     detail.Record.ServiceName,
+		NodeId:          detail.Record.NodeID,
+		Status:          string(detail.Record.Status),
+		CreatedAt:       detail.Record.CreatedAt.UTC().Format(time.RFC3339),
+		StartedAt:       formatNullableTime(detail.Record.StartedAt),
+		FinishedAt:      formatNullableTime(detail.Record.FinishedAt),
+		RepoRevision:    detail.Record.RepoRevision,
+		ErrorSummary:    detail.Record.ErrorSummary,
+		LogPath:         detail.Record.LogPath,
+		TriggeredBy:     detail.Record.TriggeredBy,
+		ResultRevision:  detail.Record.ResultRevision,
+		AttemptOfTaskId: detail.Record.AttemptOfTaskID,
+		Steps:           make([]*controllerv1.TaskStepSummary, 0, len(detail.Steps)),
 	}
 	for _, step := range detail.Steps {
 		response.Steps = append(response.Steps, &controllerv1.TaskStepSummary{
