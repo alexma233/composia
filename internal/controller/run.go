@@ -29,6 +29,8 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/task"
 	"forgejo.alexma.top/alexma233/composia/internal/version"
 	"github.com/google/uuid"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -176,7 +178,7 @@ func Run(ctx context.Context, configPath string) error {
 
 	server := &http.Server{
 		Addr:              cfg.ListenAddr,
-		Handler:           mux,
+		Handler:           h2c.NewHandler(mux, &http2.Server{}),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

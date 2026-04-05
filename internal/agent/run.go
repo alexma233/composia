@@ -5,10 +5,12 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -27,6 +29,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/store"
 	"forgejo.alexma.top/alexma233/composia/internal/task"
 	"forgejo.alexma.top/alexma233/composia/internal/version"
+	"golang.org/x/net/http2"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gopkg.in/yaml.v3"
 )
@@ -54,7 +57,7 @@ func Run(ctx context.Context, configPath string) error {
 		return fmt.Errorf("create agent caddy.generated_dir %q: %w", cfg.CaddyGeneratedDir(), err)
 	}
 
-	httpClient := &http.Client{}
+	httpClient := controllerHTTPClient(cfg.ControllerAddr)
 	reportClient := agentv1connect.NewAgentReportServiceClient(
 		httpClient,
 		cfg.ControllerAddr,
@@ -1042,6 +1045,9 @@ func extractTarGz(archivePath, destinationDir string) error {
 			if err := outFile.Close(); err != nil {
 				return fmt.Errorf("close bundle file %q: %w", cleanTargetPath, err)
 			}
+		case tar.TypeXHeader, tar.TypeXGlobalHeader, tar.TypeGNULongName, tar.TypeGNULongLink:
+			// These entries carry tar metadata only and should not block bundle extraction.
+			continue
 		default:
 			return fmt.Errorf("unsupported tar entry type %d for %q", header.Typeflag, header.Name)
 		}
@@ -1149,4 +1155,17 @@ func bytesTrimSpace(value []byte) []byte {
 		end--
 	}
 	return value[start:end]
+}
+
+func controllerHTTPClient(controllerAddr string) *http.Client {
+	if strings.HasPrefix(strings.ToLower(controllerAddr), "http://") {
+		return &http.Client{Transport: &http2.Transport{
+			AllowHTTP: true,
+			DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
+				var dialer net.Dialer
+				return dialer.DialContext(ctx, network, addr)
+			},
+		}}
+	}
+	return &http.Client{}
 }

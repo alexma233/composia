@@ -79,6 +79,19 @@ func Open(stateDir string) (*DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite database %q: %w", databasePath, err)
 	}
+	sqlDB.SetMaxOpenConns(1)
+	sqlDB.SetMaxIdleConns(1)
+
+	for _, pragma := range []string{
+		`PRAGMA foreign_keys = ON;`,
+		`PRAGMA journal_mode = WAL;`,
+		`PRAGMA busy_timeout = 5000;`,
+	} {
+		if _, err := sqlDB.ExecContext(context.Background(), pragma); err != nil {
+			_ = sqlDB.Close()
+			return nil, fmt.Errorf("initialize sqlite pragma %q for %q: %w", pragma, databasePath, err)
+		}
+	}
 
 	db := &DB{sql: sqlDB, path: databasePath}
 	if err := db.migrate(context.Background()); err != nil {

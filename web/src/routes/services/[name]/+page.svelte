@@ -44,6 +44,8 @@
   let showNewFile = false;
   let newFilePath = '';
   let workspace = data.workspace;
+  let activeTab: EditorTab | null = openTabs.find((tab) => tab.path === activePath) ?? null;
+  let canSave = Boolean(activeTab && activeTab.dirty && !saving);
 
   function createTab(file: WorkspaceFile): EditorTab {
     return {
@@ -53,9 +55,8 @@
     };
   }
 
-  function currentTab() {
-    return openTabs.find((tab) => tab.path === activePath) ?? null;
-  }
+  $: activeTab = openTabs.find((tab) => tab.path === activePath) ?? null;
+  $: canSave = Boolean(activeTab && activeTab.dirty && !saving);
 
   async function openFile(path: string) {
     try {
@@ -102,7 +103,7 @@
   }
 
   async function saveCurrentTab() {
-    const tab = currentTab();
+    const tab = activeTab;
     if (!tab || !headRevision) {
       return;
     }
@@ -323,7 +324,7 @@
             <div class="text-sm font-medium">Editor</div>
             <div class="text-xs text-muted-foreground">CodeMirror workspace with automatic commit messages.</div>
           </div>
-          <Button type="button" size="sm" on:click={saveCurrentTab} disabled={!currentTab() || saving || !currentTab()?.dirty}>
+          <Button type="button" size="sm" on:click={saveCurrentTab} disabled={!canSave}>
             <Save class="mr-2 size-4" />
             Save
           </Button>
@@ -342,9 +343,11 @@
         </div>
       </div>
 
-      {#if currentTab()}
+      {#if activeTab}
         <div class="min-h-0 flex-1">
-          <CodeEditor path={currentTab()?.path ?? ''} value={currentTab()?.content ?? ''} on:change={(event) => updateCurrentTab(event.detail.value)} on:save={saveCurrentTab} />
+          {#key activePath}
+            <CodeEditor path={activeTab.path} value={activeTab.content} on:change={(event) => updateCurrentTab(event.detail.value)} on:save={saveCurrentTab} />
+          {/key}
         </div>
       {:else}
         <div class="flex min-h-0 flex-1 items-center justify-center text-sm text-muted-foreground">
