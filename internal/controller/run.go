@@ -82,6 +82,7 @@ func Run(ctx context.Context, configPath string) error {
 		return err
 	}
 	taskQueue := newTaskQueueNotifier()
+	taskResults := newTaskResultNotifier()
 
 	services, err := repo.DiscoverServices(cfg.RepoDir, availableNodeIDs)
 	if err != nil {
@@ -117,7 +118,7 @@ func Run(ctx context.Context, configPath string) error {
 	})
 
 	agentPath, agentHandler := agentv1connect.NewAgentReportServiceHandler(
-		&agentReportServer{db: db, logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: taskQueue},
+		&agentReportServer{db: db, logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: taskQueue, taskResults: taskResults},
 		connect.WithInterceptors(agentInterceptor),
 	)
 	mux.Handle(agentPath, agentHandler)
@@ -166,7 +167,7 @@ func Run(ctx context.Context, configPath string) error {
 	mux.Handle(servicePath, serviceHandler)
 
 	nodePath, nodeHandler := controllerv1connect.NewNodeServiceHandler(
-		&nodeServer{db: db, cfg: cfg, taskQueue: taskQueue},
+		&nodeServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults},
 		connect.WithInterceptors(cliInterceptor),
 	)
 	mux.Handle(nodePath, nodeHandler)
@@ -217,9 +218,10 @@ func sweepOfflineNodes(ctx context.Context, db *store.DB) {
 }
 
 type agentReportServer struct {
-	db        *store.DB
-	logState  *taskLogAckState
-	taskQueue *taskQueueNotifier
+	db          *store.DB
+	logState    *taskLogAckState
+	taskQueue   *taskQueueNotifier
+	taskResults *taskResultNotifier
 }
 
 type agentTaskServer struct {
@@ -388,6 +390,7 @@ func (server *agentReportServer) ReportTaskState(ctx context.Context, req *conne
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	server.resetTaskLogAck(req.Msg.GetTaskId())
+	server.taskResults.Notify(req.Msg.GetTaskId())
 	notifyTaskQueue(server.taskQueue)
 	return connect.NewResponse(&agentv1.ReportTaskStateResponse{}), nil
 }
@@ -770,9 +773,66 @@ type serviceTaskParams struct {
 }
 
 type nodeServer struct {
-	db        *store.DB
-	cfg       *config.ControllerConfig
-	taskQueue *taskQueueNotifier
+	db          *store.DB
+	cfg         *config.ControllerConfig
+	taskQueue   *taskQueueNotifier
+	taskResults *taskResultNotifier
+}
+
+type taskResultNotifier struct {
+	mu          sync.Mutex
+	subscribers map[string]map[chan struct{}]struct{}
+}
+
+func newTaskResultNotifier() *taskResultNotifier {
+	return &taskResultNotifier{subscribers: make(map[string]map[chan struct{}]struct{})}
+}
+
+func (notifier *taskResultNotifier) Subscribe(taskID string) chan struct{} {
+	if notifier == nil || taskID == "" {
+		return nil
+	}
+	ch := make(chan struct{}, 1)
+	notifier.mu.Lock()
+	defer notifier.mu.Unlock()
+	if notifier.subscribers[taskID] == nil {
+		notifier.subscribers[taskID] = make(map[chan struct{}]struct{})
+	}
+	notifier.subscribers[taskID][ch] = struct{}{}
+	return ch
+}
+
+func (notifier *taskResultNotifier) Unsubscribe(taskID string, ch chan struct{}) {
+	if notifier == nil || taskID == "" || ch == nil {
+		return
+	}
+	notifier.mu.Lock()
+	defer notifier.mu.Unlock()
+	subscribers := notifier.subscribers[taskID]
+	if subscribers == nil {
+		return
+	}
+	if _, ok := subscribers[ch]; ok {
+		delete(subscribers, ch)
+		close(ch)
+	}
+	if len(subscribers) == 0 {
+		delete(notifier.subscribers, taskID)
+	}
+}
+
+func (notifier *taskResultNotifier) Notify(taskID string) {
+	if notifier == nil || taskID == "" {
+		return
+	}
+	notifier.mu.Lock()
+	defer notifier.mu.Unlock()
+	for ch := range notifier.subscribers[taskID] {
+		select {
+		case ch <- struct{}{}:
+		default:
+		}
+	}
 }
 
 type taskServer struct {
@@ -1429,9 +1489,13 @@ func (server *nodeServer) executeDockerListTask(ctx context.Context, nodeID, res
 
 	notifyTaskQueue(server.taskQueue)
 
-	result, err := server.waitForDockerTaskResult(ctx, taskID, 30*time.Second)
+	detail, err := server.waitForTaskCompletion(ctx, taskID, 30*time.Second)
 	if err != nil {
 		return nil, err
+	}
+	result, err := readTaskLog(detail)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	return server.parseDockerListResult(resource, result)
@@ -1468,9 +1532,13 @@ func (server *nodeServer) executeDockerInspectTask(ctx context.Context, nodeID, 
 
 	notifyTaskQueue(server.taskQueue)
 
-	result, err := server.waitForDockerTaskResult(ctx, taskID, 30*time.Second)
+	detail, err := server.waitForTaskCompletion(ctx, taskID, 30*time.Second)
 	if err != nil {
 		return nil, err
+	}
+	result, err := readTaskLog(detail)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	payload, err := extractDockerTaskResult(result)
@@ -1481,35 +1549,44 @@ func (server *nodeServer) executeDockerInspectTask(ctx context.Context, nodeID, 
 	return payload, nil
 }
 
-func (server *nodeServer) waitForDockerTaskResult(ctx context.Context, taskID string, timeout time.Duration) (string, error) {
+func (server *nodeServer) waitForTaskCompletion(ctx context.Context, taskID string, timeout time.Duration) (store.TaskDetail, error) {
 	deadline := time.Now().Add(timeout)
-	ticker := time.NewTicker(500 * time.Millisecond)
-	defer ticker.Stop()
+	waitCh := server.taskResults.Subscribe(taskID)
+	defer server.taskResults.Unsubscribe(taskID, waitCh)
 
 	for {
-		select {
-		case <-ctx.Done():
-			return "", ctx.Err()
-		case <-ticker.C:
-			detail, err := server.db.GetTask(ctx, taskID)
-			if err != nil {
-				continue
-			}
+		detail, err := server.db.GetTask(ctx, taskID)
+		if err == nil {
 			if detail.Record.Status == task.StatusSucceeded {
-				logContent, err := os.ReadFile(detail.Record.LogPath)
-				if err != nil {
-					return "", fmt.Errorf("read task log: %w", err)
-				}
-				return string(logContent), nil
+				return detail, nil
 			}
 			if detail.Record.Status == task.StatusFailed {
-				return "", fmt.Errorf("task failed: %s", detail.Record.ErrorSummary)
-			}
-			if time.Now().After(deadline) {
-				return "", fmt.Errorf("timeout waiting for task result")
+				return store.TaskDetail{}, fmt.Errorf("task failed: %s", detail.Record.ErrorSummary)
 			}
 		}
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return store.TaskDetail{}, fmt.Errorf("timeout waiting for task result")
+		}
+		timer := time.NewTimer(remaining)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return store.TaskDetail{}, ctx.Err()
+		case <-waitCh:
+			timer.Stop()
+		case <-timer.C:
+			return store.TaskDetail{}, fmt.Errorf("timeout waiting for task result")
+		}
 	}
+}
+
+func readTaskLog(detail store.TaskDetail) (string, error) {
+	logContent, err := os.ReadFile(detail.Record.LogPath)
+	if err != nil {
+		return "", fmt.Errorf("read task log: %w", err)
+	}
+	return string(logContent), nil
 }
 
 func (server *nodeServer) parseDockerListResult(resource, logContent string) (*dockerListResult, error) {

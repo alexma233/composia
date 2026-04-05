@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import type { PageData } from './$types';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
@@ -8,9 +9,53 @@
 
   export let data: PageData;
 
+  type DockerContainerSummary = {
+    id: string;
+    name: string;
+    image: string;
+    state: string;
+    status: string;
+    created: string;
+    labels: Record<string, string>;
+    ports: string[];
+    networks: string[];
+    imageId: string;
+  };
+
   let searchQuery = '';
   let sortField: 'name' | 'state' | 'image' | 'created' = 'name';
   let sortDirection: 'asc' | 'desc' = 'asc';
+  let loading = data.ready;
+  let loadError = data.error;
+  let containers: DockerContainerSummary[] = data.containers || [];
+
+  async function loadContainers() {
+    if (!data.ready) {
+      loading = false;
+      return;
+    }
+
+    loading = true;
+    loadError = null;
+
+    try {
+      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/containers/data`);
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to load containers');
+      }
+      containers = payload.containers ?? [];
+    } catch (error) {
+      loadError = error instanceof Error ? error.message : 'Failed to load containers';
+      containers = [];
+    } finally {
+      loading = false;
+    }
+  }
+
+  onMount(() => {
+    void loadContainers();
+  });
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
@@ -49,14 +94,6 @@
     return `${Math.floor(diff / 86400)}d ago`;
   }
 
-  function formatBytes(bytes: number): string {
-    if (bytes === 0 || !bytes) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }
-
   function getStateVariant(state: string): Variant {
     const s = (state || '').toLowerCase();
     if (s === 'running') return 'success';
@@ -92,7 +129,7 @@
     </svg>`;
   };
 
-  $: filteredContainers = (data.containers || []).filter((c) => {
+  $: filteredContainers = containers.filter((c) => {
     const query = searchQuery.toLowerCase();
     return (
       c.name.toLowerCase().includes(query) ||
@@ -132,8 +169,8 @@
             <CardTitle class="page-title">Containers</CardTitle>
             <CardDescription class="page-description">
               Docker containers on {data.nodeId}
-              {#if data.containers}
-                <Badge variant="secondary" class="ml-2">{data.containers.length}</Badge>
+              {#if !loading}
+                <Badge variant="secondary" class="ml-2">{containers.length}</Badge>
               {/if}
             </CardDescription>
           </div>
@@ -168,12 +205,25 @@
               Clear
             </Button>
           {/if}
+          <Button variant="outline" size="sm" on:click={() => void loadContainers()} disabled={loading || !data.ready}>
+            {#if loading}Loading...{:else}Refresh{/if}
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
-        {#if data.error}
+        {#if loadError}
           <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-            {data.error}
+            {loadError}
+          </div>
+        {:else if loading}
+          <div class="flex min-h-[320px] items-center justify-center">
+            <div class="flex items-center gap-3 text-sm text-muted-foreground">
+              <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"></path>
+              </svg>
+              <span>Loading containers...</span>
+            </div>
           </div>
         {:else if sortedContainers.length > 0}
           <Table>
@@ -317,9 +367,9 @@
               {/each}
             </TableBody>
           </Table>
-          {#if filteredContainers.length !== data.containers?.length}
+          {#if filteredContainers.length !== containers.length}
             <div class="mt-3 text-xs text-muted-foreground text-center">
-              Showing {filteredContainers.length} of {data.containers?.length} containers
+              Showing {filteredContainers.length} of {containers.length} containers
             </div>
           {/if}
         {:else if searchQuery}

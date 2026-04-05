@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import type { PageData } from './$types';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
@@ -8,9 +9,55 @@
 
   export let data: PageData;
 
+  type DockerNetworkSummary = {
+    id: string;
+    name: string;
+    driver: string;
+    scope: string;
+    internal: boolean;
+    attachable: boolean;
+    created: string;
+    labels: Record<string, string>;
+    subnet: string;
+    gateway: string;
+    containersCount: number;
+    ipv6Enabled: boolean;
+  };
+
   let searchQuery = '';
   let sortField: 'name' | 'driver' | 'created' = 'name';
   let sortDirection: 'asc' | 'desc' = 'asc';
+  let loading = data.ready;
+  let loadError = data.error;
+  let networks: DockerNetworkSummary[] = data.networks || [];
+
+  async function loadNetworks() {
+    if (!data.ready) {
+      loading = false;
+      return;
+    }
+
+    loading = true;
+    loadError = null;
+
+    try {
+      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/networks/data`);
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to load networks');
+      }
+      networks = payload.networks ?? [];
+    } catch (error) {
+      loadError = error instanceof Error ? error.message : 'Failed to load networks';
+      networks = [];
+    } finally {
+      loading = false;
+    }
+  }
+
+  onMount(() => {
+    void loadNetworks();
+  });
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
@@ -85,7 +132,7 @@
     </svg>`;
   };
 
-  $: filteredNetworks = (data.networks || []).filter((n) => {
+  $: filteredNetworks = networks.filter((n) => {
     const query = searchQuery.toLowerCase();
     return (
       n.name.toLowerCase().includes(query) ||
@@ -121,8 +168,8 @@
             <CardTitle class="page-title">Networks</CardTitle>
             <CardDescription class="page-description">
               Docker networks on {data.nodeId}
-              {#if data.networks}
-                <Badge variant="secondary" class="ml-2">{data.networks.length}</Badge>
+              {#if !loading}
+                <Badge variant="secondary" class="ml-2">{networks.length}</Badge>
               {/if}
             </CardDescription>
           </div>
@@ -157,12 +204,25 @@
               Clear
             </Button>
           {/if}
+          <Button variant="outline" size="sm" on:click={() => void loadNetworks()} disabled={loading || !data.ready}>
+            {#if loading}Loading...{:else}Refresh{/if}
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
-        {#if data.error}
+        {#if loadError}
           <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-            {data.error}
+            {loadError}
+          </div>
+        {:else if loading}
+          <div class="flex min-h-[320px] items-center justify-center">
+            <div class="flex items-center gap-3 text-sm text-muted-foreground">
+              <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"></path>
+              </svg>
+              <span>Loading networks...</span>
+            </div>
           </div>
         {:else if sortedNetworks.length > 0}
           <Table>
@@ -261,9 +321,9 @@
               {/each}
             </TableBody>
           </Table>
-          {#if filteredNetworks.length !== data.networks?.length}
+          {#if filteredNetworks.length !== networks.length}
             <div class="mt-3 text-xs text-muted-foreground text-center">
-              Showing {filteredNetworks.length} of {data.networks?.length} networks
+              Showing {filteredNetworks.length} of {networks.length} networks
             </div>
           {/if}
         {:else if searchQuery}

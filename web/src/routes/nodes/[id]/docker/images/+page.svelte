@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import type { PageData } from './$types';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
@@ -8,9 +9,54 @@
 
   export let data: PageData;
 
+  type DockerImageSummary = {
+    id: string;
+    repoTags: string[];
+    size: number;
+    created: string;
+    repoDigests: string[];
+    virtualSize: number;
+    architecture: string;
+    os: string;
+    author: string;
+    containersCount: number;
+    isDangling: boolean;
+  };
+
   let searchQuery = '';
   let sortField: 'name' | 'size' | 'created' = 'name';
   let sortDirection: 'asc' | 'desc' = 'asc';
+  let loading = data.ready;
+  let loadError = data.error;
+  let images: DockerImageSummary[] = data.images || [];
+
+  async function loadImages() {
+    if (!data.ready) {
+      loading = false;
+      return;
+    }
+
+    loading = true;
+    loadError = null;
+
+    try {
+      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/images/data`);
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to load images');
+      }
+      images = payload.images ?? [];
+    } catch (error) {
+      loadError = error instanceof Error ? error.message : 'Failed to load images';
+      images = [];
+    } finally {
+      loading = false;
+    }
+  }
+
+  onMount(() => {
+    void loadImages();
+  });
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
@@ -81,7 +127,7 @@
     </svg>`;
   };
 
-  $: filteredImages = (data.images || []).filter((i) => {
+  $: filteredImages = images.filter((i) => {
     const query = searchQuery.toLowerCase();
     const tags = i.repoTags || [];
     return (
@@ -119,8 +165,8 @@
             <CardTitle class="page-title">Images</CardTitle>
             <CardDescription class="page-description">
               Docker images on {data.nodeId}
-              {#if data.images}
-                <Badge variant="secondary" class="ml-2">{data.images.length}</Badge>
+              {#if !loading}
+                <Badge variant="secondary" class="ml-2">{images.length}</Badge>
               {/if}
             </CardDescription>
           </div>
@@ -155,12 +201,25 @@
               Clear
             </Button>
           {/if}
+          <Button variant="outline" size="sm" on:click={() => void loadImages()} disabled={loading || !data.ready}>
+            {#if loading}Loading...{:else}Refresh{/if}
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
-        {#if data.error}
+        {#if loadError}
           <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-            {data.error}
+            {loadError}
+          </div>
+        {:else if loading}
+          <div class="flex min-h-[320px] items-center justify-center">
+            <div class="flex items-center gap-3 text-sm text-muted-foreground">
+              <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"></path>
+              </svg>
+              <span>Loading images...</span>
+            </div>
           </div>
         {:else if sortedImages.length > 0}
           <Table>
@@ -269,9 +328,9 @@
               {/each}
             </TableBody>
           </Table>
-          {#if filteredImages.length !== data.images?.length}
+          {#if filteredImages.length !== images.length}
             <div class="mt-3 text-xs text-muted-foreground text-center">
-              Showing {filteredImages.length} of {data.images?.length} images
+              Showing {filteredImages.length} of {images.length} images
             </div>
           {/if}
         {:else if searchQuery}
