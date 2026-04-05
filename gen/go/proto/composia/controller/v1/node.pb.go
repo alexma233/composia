@@ -738,6 +738,9 @@ type ContainerInfo struct {
 	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	Created       string                 `protobuf:"bytes,6,opt,name=created,proto3" json:"created,omitempty"`
 	Labels        map[string]string      `protobuf:"bytes,7,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Ports         []string               `protobuf:"bytes,8,rep,name=ports,proto3" json:"ports,omitempty"`
+	Networks      []string               `protobuf:"bytes,9,rep,name=networks,proto3" json:"networks,omitempty"`
+	ImageId       string                 `protobuf:"bytes,10,opt,name=image_id,json=imageId,proto3" json:"image_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -819,6 +822,27 @@ func (x *ContainerInfo) GetLabels() map[string]string {
 		return x.Labels
 	}
 	return nil
+}
+
+func (x *ContainerInfo) GetPorts() []string {
+	if x != nil {
+		return x.Ports
+	}
+	return nil
+}
+
+func (x *ContainerInfo) GetNetworks() []string {
+	if x != nil {
+		return x.Networks
+	}
+	return nil
+}
+
+func (x *ContainerInfo) GetImageId() string {
+	if x != nil {
+		return x.ImageId
+	}
+	return ""
 }
 
 type ListNodeContainersResponse struct {
@@ -1006,17 +1030,21 @@ func (x *ListNodeNetworksRequest) GetNodeId() string {
 }
 
 type NetworkInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Driver        string                 `protobuf:"bytes,3,opt,name=driver,proto3" json:"driver,omitempty"`
-	Scope         string                 `protobuf:"bytes,4,opt,name=scope,proto3" json:"scope,omitempty"`
-	Internal      bool                   `protobuf:"varint,5,opt,name=internal,proto3" json:"internal,omitempty"`
-	Attachable    bool                   `protobuf:"varint,6,opt,name=attachable,proto3" json:"attachable,omitempty"`
-	Created       string                 `protobuf:"bytes,7,opt,name=created,proto3" json:"created,omitempty"`
-	Labels        map[string]string      `protobuf:"bytes,8,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name            string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Driver          string                 `protobuf:"bytes,3,opt,name=driver,proto3" json:"driver,omitempty"`
+	Scope           string                 `protobuf:"bytes,4,opt,name=scope,proto3" json:"scope,omitempty"`
+	Internal        bool                   `protobuf:"varint,5,opt,name=internal,proto3" json:"internal,omitempty"`
+	Attachable      bool                   `protobuf:"varint,6,opt,name=attachable,proto3" json:"attachable,omitempty"`
+	Created         string                 `protobuf:"bytes,7,opt,name=created,proto3" json:"created,omitempty"`
+	Labels          map[string]string      `protobuf:"bytes,8,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Subnet          string                 `protobuf:"bytes,9,opt,name=subnet,proto3" json:"subnet,omitempty"`
+	Gateway         string                 `protobuf:"bytes,10,opt,name=gateway,proto3" json:"gateway,omitempty"`
+	ContainersCount uint32                 `protobuf:"varint,11,opt,name=containers_count,json=containersCount,proto3" json:"containers_count,omitempty"`
+	Ipv6Enabled     bool                   `protobuf:"varint,12,opt,name=ipv6_enabled,json=ipv6Enabled,proto3" json:"ipv6_enabled,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *NetworkInfo) Reset() {
@@ -1103,6 +1131,34 @@ func (x *NetworkInfo) GetLabels() map[string]string {
 		return x.Labels
 	}
 	return nil
+}
+
+func (x *NetworkInfo) GetSubnet() string {
+	if x != nil {
+		return x.Subnet
+	}
+	return ""
+}
+
+func (x *NetworkInfo) GetGateway() string {
+	if x != nil {
+		return x.Gateway
+	}
+	return ""
+}
+
+func (x *NetworkInfo) GetContainersCount() uint32 {
+	if x != nil {
+		return x.ContainersCount
+	}
+	return 0
+}
+
+func (x *NetworkInfo) GetIpv6Enabled() bool {
+	if x != nil {
+		return x.Ipv6Enabled
+	}
+	return false
 }
 
 type ListNodeNetworksResponse struct {
@@ -1290,15 +1346,18 @@ func (x *ListNodeVolumesRequest) GetNodeId() string {
 }
 
 type VolumeInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Driver        string                 `protobuf:"bytes,2,opt,name=driver,proto3" json:"driver,omitempty"`
-	Mountpoint    string                 `protobuf:"bytes,3,opt,name=mountpoint,proto3" json:"mountpoint,omitempty"`
-	Scope         string                 `protobuf:"bytes,4,opt,name=scope,proto3" json:"scope,omitempty"`
-	Created       string                 `protobuf:"bytes,5,opt,name=created,proto3" json:"created,omitempty"`
-	Labels        map[string]string      `protobuf:"bytes,6,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Name            string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Driver          string                 `protobuf:"bytes,2,opt,name=driver,proto3" json:"driver,omitempty"`
+	Mountpoint      string                 `protobuf:"bytes,3,opt,name=mountpoint,proto3" json:"mountpoint,omitempty"`
+	Scope           string                 `protobuf:"bytes,4,opt,name=scope,proto3" json:"scope,omitempty"`
+	Created         string                 `protobuf:"bytes,5,opt,name=created,proto3" json:"created,omitempty"`
+	Labels          map[string]string      `protobuf:"bytes,6,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	SizeBytes       int64                  `protobuf:"varint,7,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	ContainersCount uint32                 `protobuf:"varint,8,opt,name=containers_count,json=containersCount,proto3" json:"containers_count,omitempty"`
+	InUse           bool                   `protobuf:"varint,9,opt,name=in_use,json=inUse,proto3" json:"in_use,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *VolumeInfo) Reset() {
@@ -1371,6 +1430,27 @@ func (x *VolumeInfo) GetLabels() map[string]string {
 		return x.Labels
 	}
 	return nil
+}
+
+func (x *VolumeInfo) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+func (x *VolumeInfo) GetContainersCount() uint32 {
+	if x != nil {
+		return x.ContainersCount
+	}
+	return 0
+}
+
+func (x *VolumeInfo) GetInUse() bool {
+	if x != nil {
+		return x.InUse
+	}
+	return false
 }
 
 type ListNodeVolumesResponse struct {
@@ -1558,13 +1638,19 @@ func (x *ListNodeImagesRequest) GetNodeId() string {
 }
 
 type ImageInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	RepoTags      []string               `protobuf:"bytes,2,rep,name=repo_tags,json=repoTags,proto3" json:"repo_tags,omitempty"`
-	Size          int64                  `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
-	Created       string                 `protobuf:"bytes,4,opt,name=created,proto3" json:"created,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	RepoTags        []string               `protobuf:"bytes,2,rep,name=repo_tags,json=repoTags,proto3" json:"repo_tags,omitempty"`
+	Size            int64                  `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
+	Created         string                 `protobuf:"bytes,4,opt,name=created,proto3" json:"created,omitempty"`
+	RepoDigests     []string               `protobuf:"bytes,5,rep,name=repo_digests,json=repoDigests,proto3" json:"repo_digests,omitempty"`
+	VirtualSize     int64                  `protobuf:"varint,6,opt,name=virtual_size,json=virtualSize,proto3" json:"virtual_size,omitempty"`
+	Architecture    string                 `protobuf:"bytes,7,opt,name=architecture,proto3" json:"architecture,omitempty"`
+	Os              string                 `protobuf:"bytes,8,opt,name=os,proto3" json:"os,omitempty"`
+	ContainersCount uint32                 `protobuf:"varint,9,opt,name=containers_count,json=containersCount,proto3" json:"containers_count,omitempty"`
+	IsDangling      bool                   `protobuf:"varint,10,opt,name=is_dangling,json=isDangling,proto3" json:"is_dangling,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ImageInfo) Reset() {
@@ -1623,6 +1709,48 @@ func (x *ImageInfo) GetCreated() string {
 		return x.Created
 	}
 	return ""
+}
+
+func (x *ImageInfo) GetRepoDigests() []string {
+	if x != nil {
+		return x.RepoDigests
+	}
+	return nil
+}
+
+func (x *ImageInfo) GetVirtualSize() int64 {
+	if x != nil {
+		return x.VirtualSize
+	}
+	return 0
+}
+
+func (x *ImageInfo) GetArchitecture() string {
+	if x != nil {
+		return x.Architecture
+	}
+	return ""
+}
+
+func (x *ImageInfo) GetOs() string {
+	if x != nil {
+		return x.Os
+	}
+	return ""
+}
+
+func (x *ImageInfo) GetContainersCount() uint32 {
+	if x != nil {
+		return x.ContainersCount
+	}
+	return 0
+}
+
+func (x *ImageInfo) GetIsDangling() bool {
+	if x != nil {
+		return x.IsDangling
+	}
+	return false
 }
 
 type ListNodeImagesResponse struct {
@@ -1814,7 +1942,7 @@ const file_proto_composia_controller_v1_node_proto_rawDesc = "" +
 	"\x17PruneNodeDockerResponse\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\"4\n" +
 	"\x19ListNodeContainersRequest\x12\x17\n" +
-	"\anode_id\x18\x01 \x01(\tR\x06nodeId\"\x97\x02\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\"\xe4\x02\n" +
 	"\rContainerInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -1822,7 +1950,11 @@ const file_proto_composia_controller_v1_node_proto_rawDesc = "" +
 	"\x05state\x18\x04 \x01(\tR\x05state\x12\x16\n" +
 	"\x06status\x18\x05 \x01(\tR\x06status\x12\x18\n" +
 	"\acreated\x18\x06 \x01(\tR\acreated\x12I\n" +
-	"\x06labels\x18\a \x03(\v21.composia.controller.v1.ContainerInfo.LabelsEntryR\x06labels\x1a9\n" +
+	"\x06labels\x18\a \x03(\v21.composia.controller.v1.ContainerInfo.LabelsEntryR\x06labels\x12\x14\n" +
+	"\x05ports\x18\b \x03(\tR\x05ports\x12\x1a\n" +
+	"\bnetworks\x18\t \x03(\tR\bnetworks\x12\x19\n" +
+	"\bimage_id\x18\n" +
+	" \x01(\tR\aimageId\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"c\n" +
@@ -1836,7 +1968,7 @@ const file_proto_composia_controller_v1_node_proto_rawDesc = "" +
 	"\x1cInspectNodeContainerResponse\x12\x19\n" +
 	"\braw_json\x18\x01 \x01(\tR\arawJson\"2\n" +
 	"\x17ListNodeNetworksRequest\x12\x17\n" +
-	"\anode_id\x18\x01 \x01(\tR\x06nodeId\"\xb9\x02\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\"\xb9\x03\n" +
 	"\vNetworkInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
@@ -1847,7 +1979,12 @@ const file_proto_composia_controller_v1_node_proto_rawDesc = "" +
 	"attachable\x18\x06 \x01(\bR\n" +
 	"attachable\x12\x18\n" +
 	"\acreated\x18\a \x01(\tR\acreated\x12G\n" +
-	"\x06labels\x18\b \x03(\v2/.composia.controller.v1.NetworkInfo.LabelsEntryR\x06labels\x1a9\n" +
+	"\x06labels\x18\b \x03(\v2/.composia.controller.v1.NetworkInfo.LabelsEntryR\x06labels\x12\x16\n" +
+	"\x06subnet\x18\t \x01(\tR\x06subnet\x12\x18\n" +
+	"\agateway\x18\n" +
+	" \x01(\tR\agateway\x12)\n" +
+	"\x10containers_count\x18\v \x01(\rR\x0fcontainersCount\x12!\n" +
+	"\fipv6_enabled\x18\f \x01(\bR\vipv6Enabled\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"[\n" +
@@ -1860,7 +1997,7 @@ const file_proto_composia_controller_v1_node_proto_rawDesc = "" +
 	"\x1aInspectNodeNetworkResponse\x12\x19\n" +
 	"\braw_json\x18\x01 \x01(\tR\arawJson\"1\n" +
 	"\x16ListNodeVolumesRequest\x12\x17\n" +
-	"\anode_id\x18\x01 \x01(\tR\x06nodeId\"\x8b\x02\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\"\xec\x02\n" +
 	"\n" +
 	"VolumeInfo\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
@@ -1870,7 +2007,11 @@ const file_proto_composia_controller_v1_node_proto_rawDesc = "" +
 	"mountpoint\x12\x14\n" +
 	"\x05scope\x18\x04 \x01(\tR\x05scope\x12\x18\n" +
 	"\acreated\x18\x05 \x01(\tR\acreated\x12F\n" +
-	"\x06labels\x18\x06 \x03(\v2..composia.controller.v1.VolumeInfo.LabelsEntryR\x06labels\x1a9\n" +
+	"\x06labels\x18\x06 \x03(\v2..composia.controller.v1.VolumeInfo.LabelsEntryR\x06labels\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\a \x01(\x03R\tsizeBytes\x12)\n" +
+	"\x10containers_count\x18\b \x01(\rR\x0fcontainersCount\x12\x15\n" +
+	"\x06in_use\x18\t \x01(\bR\x05inUse\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"W\n" +
@@ -1883,12 +2024,20 @@ const file_proto_composia_controller_v1_node_proto_rawDesc = "" +
 	"\x19InspectNodeVolumeResponse\x12\x19\n" +
 	"\braw_json\x18\x01 \x01(\tR\arawJson\"0\n" +
 	"\x15ListNodeImagesRequest\x12\x17\n" +
-	"\anode_id\x18\x01 \x01(\tR\x06nodeId\"f\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\"\xac\x02\n" +
 	"\tImageInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\trepo_tags\x18\x02 \x03(\tR\brepoTags\x12\x12\n" +
 	"\x04size\x18\x03 \x01(\x03R\x04size\x12\x18\n" +
-	"\acreated\x18\x04 \x01(\tR\acreated\"S\n" +
+	"\acreated\x18\x04 \x01(\tR\acreated\x12!\n" +
+	"\frepo_digests\x18\x05 \x03(\tR\vrepoDigests\x12!\n" +
+	"\fvirtual_size\x18\x06 \x01(\x03R\vvirtualSize\x12\"\n" +
+	"\farchitecture\x18\a \x01(\tR\farchitecture\x12\x0e\n" +
+	"\x02os\x18\b \x01(\tR\x02os\x12)\n" +
+	"\x10containers_count\x18\t \x01(\rR\x0fcontainersCount\x12\x1f\n" +
+	"\vis_dangling\x18\n" +
+	" \x01(\bR\n" +
+	"isDangling\"S\n" +
 	"\x16ListNodeImagesResponse\x129\n" +
 	"\x06images\x18\x01 \x03(\v2!.composia.controller.v1.ImageInfoR\x06images\"M\n" +
 	"\x17InspectNodeImageRequest\x12\x17\n" +

@@ -48,3 +48,11 @@ Ask before proceeding if any of the following is true:
 
 If the next step is clear and already consistent with `plan.md`, implement it directly.
 If it is not clear, stop and ask a focused question in `zh_Hans`.
+
+## UI Component Library
+
+- The Web UI uses `shadcn-svelte` components.
+- Documentation: https://www.shadcn-svelte.com/
+- Available components are located in `/home/alexma/Projects/composia/web/src/lib/components/ui/`.
+- Prefer using existing shadcn-svelte components before creating custom ones.
+- Refer to `style.md` for visual design guidelines.

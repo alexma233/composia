@@ -25,38 +25,81 @@ func (s *dockerServer) ListContainers(ctx context.Context, _ *connect.Request[ag
 
 	var containers []*agentv1.ContainerInfo
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+
+	imageIDMap := make(map[string]string)
+	inspectOutput, _ := exec.CommandContext(ctx, "docker", "images", "--format", "{{.ID}}\t{{.Repository}}:{{.Tag}}").Output()
+	for _, line := range strings.Split(strings.TrimSpace(string(inspectOutput)), "\n") {
+		parts := strings.SplitN(line, "\t", 2)
+		if len(parts) == 2 {
+			imageIDMap[parts[1]] = parts[0]
+		}
+	}
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
 		var psData struct {
-			ID      string `json:"ID"`
-			Names   string `json:"Names"`
-			Image   string `json:"Image"`
-			State   string `json:"State"`
-			Status  string `json:"Status"`
-			Created string `json:"CreatedAt"`
-			Labels  string `json:"Labels"`
+			ID       string `json:"ID"`
+			Names    string `json:"Names"`
+			Image    string `json:"Image"`
+			State    string `json:"State"`
+			Status   string `json:"Status"`
+			Created  string `json:"CreatedAt"`
+			Labels   string `json:"Labels"`
+			Ports    string `json:"Ports"`
+			Networks string `json:"Networks"`
+			ImageID  string `json:"ImageID"`
+			Command  string `json:"Command"`
 		}
 		if err := json.Unmarshal([]byte(line), &psData); err != nil {
 			continue
 		}
 		labels := parseLabels(psData.Labels)
+		ports := parsePorts(psData.Ports)
+		networks := parseList(psData.Networks)
+		imageID := psData.ImageID
+		if imageID == "" {
+			imageID = imageIDMap[psData.Image]
+		}
+
+		createdTime := parseDockerCreatedAt(psData.Created)
+
 		containers = append(containers, &agentv1.ContainerInfo{
-			Id:      psData.ID,
-			Name:    psData.Names,
-			Image:   psData.Image,
-			State:   psData.State,
-			Status:  psData.Status,
-			Created: psData.Created,
-			Labels:  labels,
+			Id:       psData.ID,
+			Name:     strings.Split(psData.Names, ",")[0],
+			Image:    psData.Image,
+			State:    psData.State,
+			Status:   psData.Status,
+			Created:  createdTime,
+			Labels:   labels,
+			Ports:    ports,
+			Networks: networks,
+			ImageId:  imageID,
 		})
 	}
 
 	return connect.NewResponse(&agentv1.ListContainersResponse{
 		Containers: containers,
 	}), nil
+}
+
+func parseDockerCreatedAt(created string) string {
+	// Try RFC3339 format first
+	if t, err := time.Parse(time.RFC3339, created); err == nil {
+		return t.Format(time.RFC3339)
+	}
+	// Try "2006-01-02 15:04:05 -0700 MST" format
+	if t, err := time.Parse("2006-01-02 15:04:05 -0700 MST", created); err == nil {
+		return t.Format(time.RFC3339)
+	}
+	// Try "2006-01-02 15:04:05 MST" format
+	if t, err := time.Parse("2006-01-02 15:04:05 MST", created); err == nil {
+		return t.Format(time.RFC3339)
+	}
+	// Return as-is if parsing fails
+	return created
 }
 
 func (s *dockerServer) InspectContainer(ctx context.Context, req *connect.Request[agentv1.InspectContainerRequest]) (*connect.Response[agentv1.InspectContainerResponse], error) {
@@ -80,6 +123,7 @@ func (s *dockerServer) ListNetworks(ctx context.Context, _ *connect.Request[agen
 		return nil, fmt.Errorf("docker network ls: %w", err)
 	}
 
+	var networkIDs []string
 	var networks []*agentv1.NetworkInfo
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	for _, line := range lines {
@@ -111,6 +155,34 @@ func (s *dockerServer) ListNetworks(ctx context.Context, _ *connect.Request[agen
 			Created:    lsData.CreatedAt,
 			Labels:     labels,
 		})
+		networkIDs = append(networkIDs, lsData.ID)
+	}
+
+	for i, network := range networks {
+		inspectOutput, err := exec.CommandContext(ctx, "docker", "network", "inspect", "--format", "{{json .}}", network.Id).Output()
+		if err != nil {
+			continue
+		}
+		var inspectData struct {
+			IPAM struct {
+				Config []struct {
+					Subnet  string `json:"Subnet"`
+					Gateway string `json:"Gateway"`
+				} `json:"Config"`
+			} `json:"IPAM"`
+			EnableIPv6 bool `json:"EnableIPv6"`
+			Containers map[string]struct {
+				Name string `json:"Name"`
+			} `json:"Containers"`
+		}
+		if err := json.Unmarshal(inspectOutput, &inspectData); err == nil {
+			if len(inspectData.IPAM.Config) > 0 {
+				networks[i].Subnet = inspectData.IPAM.Config[0].Subnet
+				networks[i].Gateway = inspectData.IPAM.Config[0].Gateway
+			}
+			networks[i].Ipv6Enabled = inspectData.EnableIPv6
+			networks[i].ContainersCount = uint32(len(inspectData.Containers))
+		}
 	}
 
 	return connect.NewResponse(&agentv1.ListNetworksResponse{
@@ -159,20 +231,48 @@ func (s *dockerServer) ListVolumes(ctx context.Context, _ *connect.Request[agent
 		labels := parseLabels(volData.Labels)
 
 		created, _ := s.volumeCreatedTime(ctx, volData.Name)
+		sizeBytes, containersCount, inUse := s.volumeUsageData(ctx, volData.Name)
 
 		volumes = append(volumes, &agentv1.VolumeInfo{
-			Name:       volData.Name,
-			Driver:     volData.Driver,
-			Mountpoint: volData.Mountpoint,
-			Scope:      volData.Scope,
-			Created:    created,
-			Labels:     labels,
+			Name:            volData.Name,
+			Driver:          volData.Driver,
+			Mountpoint:      volData.Mountpoint,
+			Scope:           volData.Scope,
+			Created:         created,
+			Labels:          labels,
+			SizeBytes:       sizeBytes,
+			ContainersCount: uint32(containersCount),
+			InUse:           inUse,
 		})
 	}
 
 	return connect.NewResponse(&agentv1.ListVolumesResponse{
 		Volumes: volumes,
 	}), nil
+}
+
+func (s *dockerServer) volumeUsageData(ctx context.Context, volumeName string) (int64, int, bool) {
+	inspectOutput, err := exec.CommandContext(ctx, "docker", "volume", "inspect", "--format", "{{.UsageData.Size}}|{{len .UsageData.RefCount}}", volumeName).Output()
+	if err == nil {
+		parts := strings.Split(strings.TrimSpace(string(inspectOutput)), "|")
+		if len(parts) == 2 {
+			var size int64
+			fmt.Sscanf(parts[0], "%d", &size)
+			var count int
+			fmt.Sscanf(parts[1], "%d", &count)
+			return size, count, count > 0
+		}
+	}
+
+	containersOutput, err := exec.CommandContext(ctx, "docker", "ps", "-a", "--filter", "volume="+volumeName, "--format", "{{.ID}}").Output()
+	if err == nil {
+		count := len(strings.Split(strings.TrimSpace(string(containersOutput)), "\n"))
+		if count == 0 || (count == 1 && strings.TrimSpace(string(containersOutput)) == "") {
+			return 0, 0, false
+		}
+		return 0, count, true
+	}
+	return 0, 0, false
 }
 
 func (s *dockerServer) volumeCreatedTime(ctx context.Context, volumeName string) (string, error) {
@@ -206,6 +306,16 @@ func (s *dockerServer) ListImages(ctx context.Context, _ *connect.Request[agentv
 
 	var images []*agentv1.ImageInfo
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+
+	imageUsage := make(map[string]int)
+	containersOutput, _ := exec.CommandContext(ctx, "docker", "ps", "-a", "--format", "{{.Image}}").Output()
+	for _, line := range strings.Split(strings.TrimSpace(string(containersOutput)), "\n") {
+		imageName := strings.TrimSpace(line)
+		if imageName != "" {
+			imageUsage[imageName]++
+		}
+	}
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -217,15 +327,24 @@ func (s *dockerServer) ListImages(ctx context.Context, _ *connect.Request[agentv
 			Tag        string `json:"Tag"`
 			Size       string `json:"Size"`
 			CreatedAt  string `json:"CreatedAt"`
+			Digest     string `json:"Digest"`
 		}
 		if err := json.Unmarshal([]byte(line), &imgData); err != nil {
 			continue
 		}
 		var repoTags []string
-		if imgData.Repository != "<none>" && imgData.Tag != "<none>" {
-			repoTags = append(repoTags, imgData.Repository+":"+imgData.Tag)
-		} else if imgData.Repository != "<none>" {
-			repoTags = append(repoTags, imgData.Repository)
+		var repoDigests []string
+		isDangling := false
+
+		if imgData.Repository == "<none>" {
+			isDangling = true
+		} else {
+			if imgData.Tag != "<none>" {
+				repoTags = append(repoTags, imgData.Repository+":"+imgData.Tag)
+			}
+			if imgData.Digest != "" && imgData.Digest != "<none>" {
+				repoDigests = append(repoDigests, imgData.Repository+"@"+imgData.Digest)
+			}
 		}
 
 		size := parseDockerSize(imgData.Size)
@@ -234,11 +353,22 @@ func (s *dockerServer) ListImages(ctx context.Context, _ *connect.Request[agentv
 			created, _ = time.Parse(time.RFC3339, imgData.CreatedAt)
 		}
 
+		var containersCount uint32
+		for _, tag := range repoTags {
+			containersCount += uint32(imageUsage[tag])
+		}
+
 		images = append(images, &agentv1.ImageInfo{
-			Id:       imgData.ID,
-			RepoTags: repoTags,
-			Size:     size,
-			Created:  created.Format(time.RFC3339),
+			Id:              imgData.ID,
+			RepoTags:        repoTags,
+			Size:            size,
+			Created:         created.Format(time.RFC3339),
+			RepoDigests:     repoDigests,
+			VirtualSize:     0,
+			Architecture:    "",
+			Os:              "",
+			ContainersCount: containersCount,
+			IsDangling:      isDangling,
 		})
 	}
 
@@ -275,6 +405,34 @@ func parseLabels(labelsStr string) map[string]string {
 		}
 	}
 	return labels
+}
+
+func parsePorts(portsStr string) []string {
+	if portsStr == "" {
+		return nil
+	}
+	var ports []string
+	for _, p := range strings.Split(portsStr, ",") {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			ports = append(ports, p)
+		}
+	}
+	return ports
+}
+
+func parseList(listStr string) []string {
+	if listStr == "" {
+		return nil
+	}
+	var items []string
+	for _, item := range strings.Split(listStr, ",") {
+		item = strings.TrimSpace(item)
+		if item != "" {
+			items = append(items, item)
+		}
+	}
+	return items
 }
 
 func parseDockerSize(sizeStr string) int64 {

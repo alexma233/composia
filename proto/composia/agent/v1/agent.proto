@@ -166,6 +166,9 @@ message ContainerInfo {
   string status = 5;
   string created = 6;
   map<string, string> labels = 7;
+  repeated string ports = 8;
+  repeated string networks = 9;
+  string image_id = 10;
 }
 
 message ListContainersResponse {
@@ -191,6 +194,10 @@ message NetworkInfo {
   bool attachable = 6;
   string created = 7;
   map<string, string> labels = 8;
+  string subnet = 9;
+  string gateway = 10;
+  uint32 containers_count = 11;
+  bool ipv6_enabled = 12;
 }
 
 message ListNetworksResponse {
@@ -214,6 +221,9 @@ message VolumeInfo {
   string scope = 4;
   string created = 5;
   map<string, string> labels = 6;
+  int64 size_bytes = 7;
+  uint32 containers_count = 8;
+  bool in_use = 9;
 }
 
 message ListVolumesResponse {
@@ -236,6 +246,12 @@ message ImageInfo {
   int64 size = 3;
   int64 virtual_size = 4;
   string created = 5;
+  repeated string repo_digests = 6;
+  string architecture = 7;
+  string os = 8;
+  string author = 9;
+  uint32 containers_count = 10;
+  bool is_dangling = 11;
 }
 
 message ListImagesResponse {
