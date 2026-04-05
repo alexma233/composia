@@ -1,6 +1,6 @@
-import type { PageServerLoad } from './$types';
+import type { PageServerLoad } from "./$types";
 
-import { controllerConfig, loadDashboard } from '$lib/server/controller';
+import { controllerConfig, loadDashboard } from "$lib/server/controller";
 
 export const load: PageServerLoad = async () => {
   const config = controllerConfig();
@@ -8,7 +8,7 @@ export const load: PageServerLoad = async () => {
     return {
       ready: false,
       error: config.reason,
-      dashboard: null
+      dashboard: null,
     };
   }
 
@@ -16,13 +16,16 @@ export const load: PageServerLoad = async () => {
     return {
       ready: true,
       error: null,
-      dashboard: await loadDashboard()
+      dashboard: await loadDashboard(),
     };
   } catch (error) {
     return {
       ready: true,
-      error: error instanceof Error ? error.message : 'Failed to load dashboard data.',
-      dashboard: null
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to load dashboard data.",
+      dashboard: null,
     };
   }
 };

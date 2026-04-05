@@ -19,7 +19,7 @@ export let onToggle: (path: string) => void = () => {};
       {#if node.isDir}
         <button
           type="button"
-          class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors"
+          class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent/60"
           class:bg-secondary={selectedPath === node.path}
           class:text-secondary-foreground={selectedPath === node.path}
           class:text-muted-foreground={selectedPath !== node.path}
@@ -53,7 +53,7 @@ export let onToggle: (path: string) => void = () => {};
       {:else}
         <button
           type="button"
-          class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors"
+          class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent/60"
           class:bg-secondary={activePath === node.path}
           class:text-secondary-foreground={activePath === node.path}
           class:text-muted-foreground={activePath !== node.path}

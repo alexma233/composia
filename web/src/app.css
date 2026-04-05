@@ -4,7 +4,7 @@
 
 :root {
   --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
-  --background: 0 0% 100%;
+  --background: 220 33% 98%;
   --foreground: 222.2 47.4% 11.2%;
   --card: 0 0% 100%;
   --card-foreground: 222.2 47.4% 11.2%;
@@ -12,37 +12,37 @@
   --popover-foreground: 222.2 47.4% 11.2%;
   --primary: 221.2 83.2% 53.3%;
   --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96.1%;
+  --secondary: 220 26% 95%;
   --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
+  --muted: 220 26% 95%;
   --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
+  --accent: 220 26% 95%;
   --accent-foreground: 222.2 47.4% 11.2%;
   --destructive: 0 72.2% 50.6%;
   --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
+  --border: 220 21% 88%;
+  --input: 220 21% 88%;
   --ring: 221.2 83.2% 53.3%;
   --radius: 0.75rem;
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 47.4% 11.2%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 47.4% 11.2%;
-  --popover-foreground: 210 40% 98%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
+  --background: 224 31% 8%;
+  --foreground: 210 40% 96%;
+  --card: 224 25% 11%;
+  --card-foreground: 210 40% 96%;
+  --popover: 224 25% 11%;
+  --popover-foreground: 210 40% 96%;
+  --secondary: 223 19% 16%;
+  --secondary-foreground: 210 40% 96%;
+  --muted: 223 19% 15%;
+  --muted-foreground: 215 17% 72%;
+  --accent: 223 19% 16%;
   --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
+  --destructive: 0 72% 56%;
   --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
+  --border: 223 15% 22%;
+  --input: 223 15% 22%;
 }
 
 :root,
@@ -51,26 +51,26 @@
   --ring: 221.2 83.2% 53.3%;
 }
 
-:root[data-accent='emerald'],
-.dark[data-accent='emerald'] {
+:root[data-accent="emerald"],
+.dark[data-accent="emerald"] {
   --primary: 160 84% 39%;
   --ring: 160 84% 39%;
 }
 
-:root[data-accent='violet'],
-.dark[data-accent='violet'] {
+:root[data-accent="violet"],
+.dark[data-accent="violet"] {
   --primary: 262 83% 58%;
   --ring: 262 83% 58%;
 }
 
-:root[data-accent='rose'],
-.dark[data-accent='rose'] {
+:root[data-accent="rose"],
+.dark[data-accent="rose"] {
   --primary: 347 77% 50%;
   --ring: 347 77% 50%;
 }
 
-:root[data-accent='amber'],
-.dark[data-accent='amber'] {
+:root[data-accent="amber"],
+.dark[data-accent="amber"] {
   --primary: 38 92% 50%;
   --ring: 38 92% 50%;
 }
@@ -114,11 +114,79 @@
   body {
     @apply min-h-screen bg-background font-sans text-foreground antialiased;
     background-image:
-      radial-gradient(circle at top left, hsl(var(--primary) / 0.08), transparent 28%),
-      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background)) 100%);
+      radial-gradient(
+        circle at top left,
+        hsl(var(--primary) / 0.12),
+        transparent 24%
+      ),
+      radial-gradient(
+        circle at top right,
+        hsl(var(--primary) / 0.06),
+        transparent 18%
+      ),
+      linear-gradient(
+        180deg,
+        hsl(var(--background)) 0%,
+        hsl(var(--background)) 100%
+      );
+    background-attachment: fixed;
   }
 
   a {
     @apply text-foreground;
+  }
+}
+
+@layer components {
+  .page-shell {
+    @apply mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8;
+  }
+
+  .page-stack {
+    @apply space-y-6;
+  }
+
+  .page-title {
+    @apply text-2xl font-semibold tracking-tight sm:text-3xl;
+  }
+
+  .page-description {
+    @apply text-sm leading-6 text-muted-foreground;
+  }
+
+  .section-title {
+    @apply text-base font-semibold tracking-tight;
+  }
+
+  .section-description {
+    @apply text-sm leading-6 text-muted-foreground;
+  }
+
+  .metric-label {
+    @apply text-xs font-medium text-muted-foreground;
+  }
+
+  .metric-value {
+    @apply mt-2 text-3xl font-semibold tracking-tight;
+  }
+
+  .empty-state {
+    @apply rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-sm text-muted-foreground;
+  }
+
+  .surface-subtle {
+    @apply bg-muted/30 dark:bg-muted/20;
+  }
+
+  .kv-grid {
+    @apply grid gap-3 text-sm text-muted-foreground;
+  }
+
+  .kv-grid dt {
+    @apply text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground;
+  }
+
+  .kv-grid dd {
+    @apply mt-1 text-sm text-foreground;
   }
 }

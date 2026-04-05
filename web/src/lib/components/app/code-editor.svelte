@@ -2,9 +2,10 @@
   import { createEventDispatcher, onDestroy, onMount } from 'svelte';
 
   import { defaultKeymap, indentWithTab } from '@codemirror/commands';
+  import { githubDark } from '@fsegurai/codemirror-theme-github-dark';
+  import { githubLight } from '@fsegurai/codemirror-theme-github-light';
   import { markdown } from '@codemirror/lang-markdown';
   import { yaml } from '@codemirror/lang-yaml';
-  import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
   import { EditorState, Compartment } from '@codemirror/state';
   import { EditorView, keymap, lineNumbers } from '@codemirror/view';
   import { basicSetup } from 'codemirror';
@@ -20,18 +21,40 @@
 
   let host: HTMLDivElement;
   let editorView: EditorView | null = null;
+  let rootObserver: MutationObserver | null = null;
 
   const languageCompartment = new Compartment();
   const editableCompartment = new Compartment();
+  const themeCompartment = new Compartment();
+
+  const editorChromeTheme = EditorView.theme({
+    '&': {
+      height: '100%',
+      borderRadius: '0.75rem',
+      overflow: 'hidden',
+    },
+    '&.cm-focused': {
+      outline: 'none',
+    },
+    '.cm-scroller': {
+      overflow: 'auto',
+    },
+    '.cm-content': {
+      minHeight: '100%',
+    },
+  });
 
   onMount(() => {
+    const root = document.documentElement;
+
     editorView = new EditorView({
       state: EditorState.create({
         doc: value,
         extensions: [
           basicSetup,
           lineNumbers(),
-          syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+          themeCompartment.of(resolveTheme(root)),
+          editorChromeTheme,
           keymap.of([
             indentWithTab,
             ...defaultKeymap,
@@ -50,19 +73,28 @@
               dispatch('change', { value: update.state.doc.toString() });
             }
           }),
-          EditorView.theme({
-            '&': { height: '100%', backgroundColor: 'transparent' },
-            '.cm-scroller': { overflow: 'auto', fontFamily: 'var(--font-mono, monospace)' },
-            '.cm-content': { minHeight: '100%' },
-            '.cm-gutters': { backgroundColor: 'transparent', borderRight: '1px solid hsl(var(--border))' }
-          })
         ]
       }),
       parent: host
     });
+
+    rootObserver = new MutationObserver(() => syncTheme(root));
+    rootObserver.observe(root, {
+      attributes: true,
+      attributeFilter: ['class', 'data-theme-mode']
+    });
+
+    return () => {
+      rootObserver?.disconnect();
+      rootObserver = null;
+    };
   });
 
-  onDestroy(() => editorView?.destroy());
+  onDestroy(() => {
+    rootObserver?.disconnect();
+    rootObserver = null;
+    editorView?.destroy();
+  });
 
   $: if (editorView) {
     const currentValue = editorView.state.doc.toString();
@@ -80,6 +112,20 @@
     });
   }
 
+  function resolveTheme(root: HTMLElement) {
+    return root.classList.contains('dark') ? githubDark : githubLight;
+  }
+
+  function syncTheme(root: HTMLElement) {
+    if (!editorView) {
+      return;
+    }
+
+    editorView.dispatch({
+      effects: themeCompartment.reconfigure(resolveTheme(root))
+    });
+  }
+
   function languageExtension(filePath: string) {
     if (filePath.endsWith('.yaml') || filePath.endsWith('.yml')) {
       return yaml();
@@ -91,4 +137,4 @@
   }
 </script>
 
-<div bind:this={host} class="h-full min-h-0"></div>
+<div bind:this={host} class="h-full min-h-0 overflow-hidden rounded-xl"></div>

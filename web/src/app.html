@@ -6,15 +6,21 @@
     <script>
       (() => {
         const root = document.documentElement;
-        const locale = window.localStorage.getItem('composia.locale') ?? 'en-US';
-        const themeMode = window.localStorage.getItem('composia.theme-mode') ?? 'system';
-        const accent = window.localStorage.getItem('composia.accent-color') ?? 'blue';
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const resolvedTheme = themeMode === 'system' ? (prefersDark ? 'dark' : 'light') : themeMode;
+        const locale =
+          window.localStorage.getItem("composia.locale") ?? "en-US";
+        const themeMode =
+          window.localStorage.getItem("composia.theme-mode") ?? "system";
+        const accent =
+          window.localStorage.getItem("composia.accent-color") ?? "blue";
+        const prefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)",
+        ).matches;
+        const resolvedTheme =
+          themeMode === "system" ? (prefersDark ? "dark" : "light") : themeMode;
         root.lang = locale;
         root.dataset.themeMode = themeMode;
         root.dataset.accent = accent;
-        root.classList.toggle('dark', resolvedTheme === 'dark');
+        root.classList.toggle("dark", resolvedTheme === "dark");
         root.style.colorScheme = resolvedTheme;
       })();
     </script>
@@ -23,4 +29,4 @@
   <body data-sveltekit-preload-data="hover">
     <div style="display: contents">%sveltekit.body%</div>
   </body>
-  </html>
+</html>

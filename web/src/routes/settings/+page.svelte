@@ -2,102 +2,118 @@
   import type { PageData } from './$types';
 
   import ThemeControls from '$lib/components/app/theme-controls.svelte';
+  import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
+  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
 
   export let data: PageData;
 </script>
 
-<div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-  <div class="space-y-6">
-    <section class="rounded-lg border bg-card p-6 shadow-xs">
-      <h1 class="text-2xl font-semibold">Settings</h1>
-      <p class="mt-2 text-sm text-muted-foreground">
-        Controller environment and repo sync state for the current installation.
-      </p>
-    </section>
+<div class="page-shell">
+  <div class="page-stack">
+    <Card class="border-border/70 bg-card/95">
+      <CardHeader class="space-y-1">
+        <CardTitle class="page-title">Environment and appearance</CardTitle>
+        <CardDescription class="page-description">Local theme preferences and controller metadata.</CardDescription>
+      </CardHeader>
+    </Card>
 
     {#if data.error}
-      <section class="rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
-        {data.error}
-      </section>
+      <Alert variant="destructive">
+        <AlertTitle>Load failed</AlertTitle>
+        <AlertDescription>{data.error}</AlertDescription>
+      </Alert>
     {/if}
 
     <section class="grid gap-6 lg:grid-cols-2">
-      <article class="rounded-lg border bg-card p-6 shadow-xs">
-        <h2 class="text-lg font-medium">Appearance</h2>
-        <p class="mt-2 text-sm text-muted-foreground">
-          Theme mode and accent color for this browser session.
-        </p>
-        <div class="mt-4">
+      <Card class="border-border/70 bg-card/95">
+        <CardHeader class="space-y-1">
+          <CardTitle class="section-title">Appearance</CardTitle>
+          <CardDescription class="section-description">Theme and accent for this browser.</CardDescription>
+        </CardHeader>
+        <CardContent>
           <ThemeControls />
-        </div>
-      </article>
+        </CardContent>
+      </Card>
 
-      <article class="rounded-lg border bg-card p-6 shadow-xs">
-        <h2 class="text-lg font-medium">Controller</h2>
-        {#if data.system}
-          <dl class="mt-4 space-y-3 text-sm text-muted-foreground">
-            <div>
-              <dt>Version</dt>
-              <dd class="text-foreground">{data.system.version}</dd>
-            </div>
-            <div>
-              <dt>Controller address</dt>
-              <dd class="break-all text-foreground">{data.system.controllerAddr}</dd>
-            </div>
-            <div>
-              <dt>Repo dir</dt>
-              <dd class="break-all text-foreground">{data.system.repoDir}</dd>
-            </div>
-            <div>
-              <dt>State dir</dt>
-              <dd class="break-all text-foreground">{data.system.stateDir}</dd>
-            </div>
-            <div>
-              <dt>Log dir</dt>
-              <dd class="break-all text-foreground">{data.system.logDir}</dd>
-            </div>
-          </dl>
-        {:else}
-          <div class="mt-4 text-sm text-muted-foreground">No controller data loaded.</div>
-        {/if}
-      </article>
-
-      <article class="rounded-lg border bg-card p-6 shadow-xs">
-        <h2 class="text-lg font-medium">Repo sync</h2>
-        {#if data.repoHead}
-          <dl class="mt-4 space-y-3 text-sm text-muted-foreground">
-            <div>
-              <dt>Branch</dt>
-              <dd class="text-foreground">{data.repoHead.branch || 'HEAD'}</dd>
-            </div>
-            <div>
-              <dt>Revision</dt>
-              <dd class="break-all text-foreground">{data.repoHead.headRevision}</dd>
-            </div>
-            <div>
-              <dt>Sync status</dt>
-              <dd class="text-foreground">{data.repoHead.syncStatus || 'unknown'}</dd>
-            </div>
-            <div>
-              <dt>Worktree</dt>
-              <dd class="text-foreground">{data.repoHead.cleanWorktree ? 'clean' : 'dirty'}</dd>
-            </div>
-            {#if data.repoHead.lastSuccessfulPullAt}
+      <Card class="border-border/70 bg-card/95">
+        <CardHeader class="space-y-1">
+          <CardTitle class="section-title">Controller</CardTitle>
+          <CardDescription class="section-description">Current controller runtime paths.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {#if data.system}
+            <dl class="kv-grid">
               <div>
-                <dt>Last successful pull</dt>
-                <dd class="text-foreground">{data.repoHead.lastSuccessfulPullAt}</dd>
+                <dt>Version</dt>
+                <dd>{data.system.version}</dd>
               </div>
-            {/if}
-          </dl>
-          {#if data.repoHead.lastSyncError}
-            <div class="mt-4 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
-              {data.repoHead.lastSyncError}
-            </div>
+              <div>
+                <dt>Controller address</dt>
+                <dd class="break-all">{data.system.controllerAddr}</dd>
+              </div>
+              <div>
+                <dt>Repo dir</dt>
+                <dd class="break-all">{data.system.repoDir}</dd>
+              </div>
+              <div>
+                <dt>State dir</dt>
+                <dd class="break-all">{data.system.stateDir}</dd>
+              </div>
+              <div>
+                <dt>Log dir</dt>
+                <dd class="break-all">{data.system.logDir}</dd>
+              </div>
+            </dl>
+          {:else}
+            <div class="empty-state">No controller data loaded.</div>
           {/if}
-        {:else}
-          <div class="mt-4 text-sm text-muted-foreground">No repo state loaded.</div>
-        {/if}
-      </article>
+        </CardContent>
+      </Card>
+
+      <Card class="border-border/70 bg-card/95 lg:col-span-2">
+        <CardHeader class="space-y-1">
+          <CardTitle class="section-title">Repo sync</CardTitle>
+          <CardDescription class="section-description">Current revision and sync health.</CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          {#if data.repoHead}
+            <dl class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div class="surface-subtle rounded-lg border border-border/70 p-4">
+                <dt class="metric-label">Branch</dt>
+                <dd class="mt-2 text-sm font-medium text-foreground">{data.repoHead.branch || 'HEAD'}</dd>
+              </div>
+              <div class="surface-subtle rounded-lg border border-border/70 p-4">
+                <dt class="metric-label">Sync status</dt>
+                <dd class="mt-2 text-sm font-medium text-foreground">{data.repoHead.syncStatus || 'unknown'}</dd>
+              </div>
+              <div class="surface-subtle rounded-lg border border-border/70 p-4">
+                <dt class="metric-label">Worktree</dt>
+                <dd class="mt-2 text-sm font-medium text-foreground">{data.repoHead.cleanWorktree ? 'clean' : 'dirty'}</dd>
+              </div>
+              <div class="surface-subtle rounded-lg border border-border/70 p-4">
+                <dt class="metric-label">Last pull</dt>
+                <dd class="mt-2 text-sm font-medium text-foreground">
+                  {data.repoHead.lastSuccessfulPullAt || 'Never'}
+                </dd>
+              </div>
+            </dl>
+
+            <div class="rounded-lg border border-border/70 bg-background/80 p-4">
+              <div class="metric-label">Revision</div>
+              <div class="mt-2 break-all text-sm text-foreground">{data.repoHead.headRevision}</div>
+            </div>
+
+            {#if data.repoHead.lastSyncError}
+              <Alert variant="destructive">
+                <AlertTitle>Last sync error</AlertTitle>
+                <AlertDescription>{data.repoHead.lastSyncError}</AlertDescription>
+              </Alert>
+            {/if}
+          {:else}
+            <div class="empty-state">No repo state loaded.</div>
+          {/if}
+        </CardContent>
+      </Card>
     </section>
   </div>
 </div>

@@ -1,47 +1,55 @@
-import { json } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
+import { json } from "@sveltejs/kit";
+import type { RequestHandler } from "./$types";
 
 import {
   backupService,
   deployService,
   restartService,
   stopService,
-  updateService
-} from '$lib/server/controller';
-import { loadServiceWorkspace } from '$lib/server/service-index';
+  updateService,
+} from "$lib/server/controller";
+import { loadServiceWorkspace } from "$lib/server/service-index";
 
 export const POST: RequestHandler = async ({ params, request }) => {
   try {
     const payload = (await request.json()) as { action?: string };
     const workspace = await loadServiceWorkspace(params.name);
     if (!workspace) {
-      return json({ error: 'Service folder not found.' }, { status: 404 });
+      return json({ error: "Service folder not found." }, { status: 404 });
     }
     if (!workspace.isDeclared || !workspace.serviceName) {
       return json(
-        { error: 'Add a valid composia-meta.yaml for this folder before running service actions.' },
-        { status: 400 }
+        {
+          error:
+            "Add a valid composia-meta.yaml for this folder before running service actions.",
+        },
+        { status: 400 },
       );
     }
 
     switch (payload.action) {
-      case 'deploy':
+      case "deploy":
         return json(await deployService(workspace.serviceName));
-      case 'update':
+      case "update":
         return json(await updateService(workspace.serviceName));
-      case 'stop':
+      case "stop":
         return json(await stopService(workspace.serviceName));
-      case 'restart':
+      case "restart":
         return json(await restartService(workspace.serviceName));
-      case 'backup':
+      case "backup":
         return json(await backupService(workspace.serviceName));
       default:
-        return json({ error: 'Unsupported service action.' }, { status: 400 });
+        return json({ error: "Unsupported service action." }, { status: 400 });
     }
   } catch (error) {
     return json(
-      { error: error instanceof Error ? error.message : 'Failed to trigger service action.' },
-      { status: 400 }
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to trigger service action.",
+      },
+      { status: 400 },
     );
   }
 };

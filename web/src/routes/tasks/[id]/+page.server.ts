@@ -1,6 +1,6 @@
-import type { PageServerLoad } from './$types';
+import type { PageServerLoad } from "./$types";
 
-import { controllerConfig, loadTaskDetail } from '$lib/server/controller';
+import { controllerConfig, loadTaskDetail } from "$lib/server/controller";
 
 export const load: PageServerLoad = async ({ params }) => {
   const config = controllerConfig();
@@ -12,13 +12,14 @@ export const load: PageServerLoad = async ({ params }) => {
     return {
       ready: true,
       error: null,
-      task: await loadTaskDetail(params.id)
+      task: await loadTaskDetail(params.id),
     };
   } catch (error) {
     return {
       ready: true,
-      error: error instanceof Error ? error.message : 'Failed to load task detail.',
-      task: null
+      error:
+        error instanceof Error ? error.message : "Failed to load task detail.",
+      task: null,
     };
   }
 };

@@ -1,29 +1,33 @@
-import type { RepoFileEntry, RepoWriteResult } from '$lib/server/controller';
-import type { ServiceFileNode, WorkspaceFile } from '$lib/service-workspace';
+import type { RepoFileEntry, RepoWriteResult } from "$lib/server/controller";
+import type { ServiceFileNode, WorkspaceFile } from "$lib/service-workspace";
 import {
   createRepoDirectory,
   deleteRepoPath,
   loadRepoEntries,
   loadRepoFile,
   moveRepoPath,
-  updateRepoFile
-} from '$lib/server/controller';
-import { normalizeServiceRelativePath } from '$lib/service-workspace';
+  updateRepoFile,
+} from "$lib/server/controller";
+import { normalizeServiceRelativePath } from "$lib/service-workspace";
 
-export async function loadServiceFileTree(serviceDir: string): Promise<ServiceFileNode[]> {
-  return loadDirectoryTree(serviceDir, '');
+export async function loadServiceFileTree(
+  serviceDir: string,
+): Promise<ServiceFileNode[]> {
+  return loadDirectoryTree(serviceDir, "");
 }
 
 export async function loadServiceWorkspaceFile(
   serviceDir: string,
-  relativePath: string
+  relativePath: string,
 ): Promise<WorkspaceFile> {
   const normalized = normalizeServiceRelativePath(relativePath);
-  const file = await loadRepoFile(repoPathForServicePath(serviceDir, normalized));
+  const file = await loadRepoFile(
+    repoPathForServicePath(serviceDir, normalized),
+  );
   return {
     path: normalized,
     content: file.content,
-    size: file.size
+    size: file.size,
   };
 }
 
@@ -31,75 +35,95 @@ export async function saveServiceWorkspaceFile(
   serviceDir: string,
   relativePath: string,
   content: string,
-  baseRevision: string
+  baseRevision: string,
 ): Promise<{ file: WorkspaceFile; write: RepoWriteResult }> {
   const normalized = normalizeServiceRelativePath(relativePath);
   const write = await updateRepoFile(
     repoPathForServicePath(serviceDir, normalized),
     content,
-    baseRevision
+    baseRevision,
   );
   return {
     file: {
       path: normalized,
       content,
-      size: content.length
+      size: content.length,
     },
-    write
+    write,
   };
 }
 
 export async function createServiceWorkspaceDirectory(
   serviceDir: string,
   relativePath: string,
-  baseRevision: string
+  baseRevision: string,
 ): Promise<RepoWriteResult> {
   const normalized = normalizeServiceRelativePath(relativePath);
-  return createRepoDirectory(repoPathForServicePath(serviceDir, normalized), baseRevision);
+  return createRepoDirectory(
+    repoPathForServicePath(serviceDir, normalized),
+    baseRevision,
+  );
 }
 
 export async function moveServiceWorkspacePath(
   serviceDir: string,
   sourcePath: string,
   destinationPath: string,
-  baseRevision: string
+  baseRevision: string,
 ): Promise<RepoWriteResult> {
   const normalizedSource = normalizeServiceRelativePath(sourcePath);
   const normalizedDestination = normalizeServiceRelativePath(destinationPath);
   return moveRepoPath(
     repoPathForServicePath(serviceDir, normalizedSource),
     repoPathForServicePath(serviceDir, normalizedDestination),
-    baseRevision
+    baseRevision,
   );
 }
 
 export async function deleteServiceWorkspacePath(
   serviceDir: string,
   relativePath: string,
-  baseRevision: string
+  baseRevision: string,
 ): Promise<RepoWriteResult> {
   const normalized = normalizeServiceRelativePath(relativePath);
-  return deleteRepoPath(repoPathForServicePath(serviceDir, normalized), baseRevision);
+  return deleteRepoPath(
+    repoPathForServicePath(serviceDir, normalized),
+    baseRevision,
+  );
 }
 
-async function loadDirectoryTree(serviceDir: string, relativeDir: string): Promise<ServiceFileNode[]> {
-  const entries = await loadRepoEntries(repoPathForServicePath(serviceDir, relativeDir));
-  const visibleEntries = entries.filter((entry) => entry.name !== '.gitkeep');
+async function loadDirectoryTree(
+  serviceDir: string,
+  relativeDir: string,
+): Promise<ServiceFileNode[]> {
+  const entries = await loadRepoEntries(
+    repoPathForServicePath(serviceDir, relativeDir),
+  );
+  const visibleEntries = entries.filter((entry) => entry.name !== ".gitkeep");
   return Promise.all(visibleEntries.map((entry) => toNode(serviceDir, entry)));
 }
 
-async function toNode(serviceDir: string, entry: RepoFileEntry): Promise<ServiceFileNode> {
+async function toNode(
+  serviceDir: string,
+  entry: RepoFileEntry,
+): Promise<ServiceFileNode> {
   const relativePath = serviceRelativePath(serviceDir, entry.path);
   return {
     name: entry.name,
     path: relativePath,
     isDir: entry.isDir,
-    children: entry.isDir ? await loadDirectoryTree(serviceDir, relativePath) : []
+    children: entry.isDir
+      ? await loadDirectoryTree(serviceDir, relativePath)
+      : [],
   };
 }
 
-export function repoPathForServicePath(serviceDir: string, relativePath: string) {
-  const normalizedDir = serviceDir === '.' ? '' : normalizeServiceRelativePath(serviceDir);
+export function repoPathForServicePath(
+  serviceDir: string,
+  relativePath: string,
+) {
+  const normalizedDir =
+    serviceDir === "." ? "" : normalizeServiceRelativePath(serviceDir);
   const normalizedPath = normalizeServiceRelativePath(relativePath);
   if (!normalizedDir) {
     return normalizedPath;
@@ -111,13 +135,14 @@ export function repoPathForServicePath(serviceDir: string, relativePath: string)
 }
 
 function serviceRelativePath(serviceDir: string, repoPath: string) {
-  const normalizedDir = serviceDir === '.' ? '' : normalizeServiceRelativePath(serviceDir);
+  const normalizedDir =
+    serviceDir === "." ? "" : normalizeServiceRelativePath(serviceDir);
   const normalizedRepoPath = normalizeServiceRelativePath(repoPath);
   if (!normalizedDir) {
     return normalizedRepoPath;
   }
   if (normalizedRepoPath === normalizedDir) {
-    return '';
+    return "";
   }
   if (!normalizedRepoPath.startsWith(`${normalizedDir}/`)) {
     throw new Error(`Repo path ${repoPath} is outside service ${serviceDir}.`);

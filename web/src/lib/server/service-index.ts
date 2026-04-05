@@ -1,12 +1,12 @@
-import { parse } from 'yaml';
+import { parse } from "yaml";
 
-import type { ServiceDetail, ServiceSummary } from '$lib/server/controller';
+import type { ServiceDetail, ServiceSummary } from "$lib/server/controller";
 import {
   loadRepoEntries,
   loadRepoFile,
   loadServiceDetail,
-  loadServices
-} from '$lib/server/controller';
+  loadServices,
+} from "$lib/server/controller";
 
 export type ServiceWorkspaceSummary = {
   folder: string;
@@ -29,11 +29,21 @@ type MetaInfo = {
   parsed: ParsedMeta | null;
 };
 
-export async function loadServiceWorkspaces(): Promise<ServiceWorkspaceSummary[]> {
-  const [rootEntries, summaries] = await Promise.all([loadRepoEntries(''), loadServices(200)]);
+export async function loadServiceWorkspaces(): Promise<
+  ServiceWorkspaceSummary[]
+> {
+  const [rootEntries, summaries] = await Promise.all([
+    loadRepoEntries(""),
+    loadServices(200),
+  ]);
   const directories = rootEntries.filter((entry) => entry.isDir);
-  const details = await Promise.all(summaries.map((summary) => loadDetail(summary)));
-  const detailsByDirectory = new Map<string, { summary: ServiceSummary; detail: ServiceDetail }>();
+  const details = await Promise.all(
+    summaries.map((summary) => loadDetail(summary)),
+  );
+  const detailsByDirectory = new Map<
+    string,
+    { summary: ServiceSummary; detail: ServiceDetail }
+  >();
 
   for (const item of details) {
     if (!item) {
@@ -55,7 +65,7 @@ export async function loadServiceWorkspaces(): Promise<ServiceWorkspaceSummary[]
           runtimeStatus: declared.detail.runtimeStatus,
           updatedAt: declared.detail.updatedAt,
           node: declared.detail.node,
-          enabled: declared.detail.enabled
+          enabled: declared.detail.enabled,
         } satisfies ServiceWorkspaceSummary;
       }
 
@@ -63,30 +73,36 @@ export async function loadServiceWorkspaces(): Promise<ServiceWorkspaceSummary[]
       return {
         folder: entry.path,
         displayName: meta.parsed?.name?.trim() || entry.name,
-        serviceName: meta.parsed?.name?.trim() || '',
+        serviceName: meta.parsed?.name?.trim() || "",
         hasMeta: meta.exists,
         isDeclared: false,
-        runtimeStatus: meta.exists ? 'needs_validation' : 'uninitialized',
-        updatedAt: '',
-        node: '',
-        enabled: Boolean(meta.parsed?.name)
+        runtimeStatus: meta.exists ? "needs_validation" : "uninitialized",
+        updatedAt: "",
+        node: "",
+        enabled: Boolean(meta.parsed?.name),
       } satisfies ServiceWorkspaceSummary;
-    })
+    }),
   );
 
   workspaces.sort((left, right) => left.folder.localeCompare(right.folder));
   return workspaces;
 }
 
-export async function loadServiceWorkspace(folder: string): Promise<ServiceWorkspaceSummary | null> {
-	return (await loadServiceWorkspaces()).find((workspace) => workspace.folder === folder) ?? null;
+export async function loadServiceWorkspace(
+  folder: string,
+): Promise<ServiceWorkspaceSummary | null> {
+  return (
+    (await loadServiceWorkspaces()).find(
+      (workspace) => workspace.folder === folder,
+    ) ?? null
+  );
 }
 
 async function loadDetail(summary: ServiceSummary) {
   try {
     return {
       summary,
-      detail: await loadServiceDetail(summary.name)
+      detail: await loadServiceDetail(summary.name),
     };
   } catch {
     return null;
@@ -99,12 +115,12 @@ async function loadMeta(folder: string): Promise<MetaInfo> {
     const meta = parse(file.content) as ParsedMeta | null;
     return {
       exists: true,
-      parsed: meta && typeof meta === 'object' ? meta : null
+      parsed: meta && typeof meta === "object" ? meta : null,
     };
   } catch {
     return {
       exists: false,
-      parsed: null
+      parsed: null,
     };
   }
 }

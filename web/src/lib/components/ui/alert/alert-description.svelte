@@ -6,6 +6,6 @@
   export { className as class };
 </script>
 
-<th class={cn('h-10 px-3 text-left align-middle text-xs font-medium text-muted-foreground', className)} {...$$restProps}>
+<div class={cn('text-sm leading-6 text-current [&_p]:leading-6', className)} {...$$restProps}>
   <slot />
-</th>
+</div>

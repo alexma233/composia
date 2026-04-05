@@ -1,6 +1,6 @@
-import type { PageServerLoad } from './$types';
+import type { PageServerLoad } from "./$types";
 
-import { controllerConfig, loadNodes } from '$lib/server/controller';
+import { controllerConfig, loadNodes } from "$lib/server/controller";
 
 export const load: PageServerLoad = async () => {
   const config = controllerConfig();
@@ -12,13 +12,13 @@ export const load: PageServerLoad = async () => {
     return {
       ready: true,
       error: null,
-      nodes: await loadNodes()
+      nodes: await loadNodes(),
     };
   } catch (error) {
     return {
       ready: true,
-      error: error instanceof Error ? error.message : 'Failed to load nodes.',
-      nodes: []
+      error: error instanceof Error ? error.message : "Failed to load nodes.",
+      nodes: [],
     };
   }
 };

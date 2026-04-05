@@ -54,13 +54,18 @@
       <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div class="flex min-w-0 flex-wrap items-center gap-3">
           <div class="min-w-0">
-            <a href="/" class="text-sm font-semibold tracking-[0.24em] uppercase text-primary">{$messages.app.name}</a>
+            <a href="/" class="text-sm font-semibold text-primary">{$messages.app.name}</a>
           </div>
 
           {#if isServiceWorkspace($page.url.pathname) && data.navServices.length}
-            <label class="flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm text-muted-foreground">
-              <span>Service</span>
-              <select class="bg-transparent text-foreground outline-none" on:change={handleServiceSwitch}>
+            <label class="flex items-center gap-3 rounded-md border border-border/70 bg-card/80 px-3 py-2 text-sm text-muted-foreground shadow-xs">
+              <span class="text-xs font-medium text-muted-foreground">
+                Service
+              </span>
+              <select
+                class="min-w-36 bg-transparent text-sm font-medium text-foreground outline-none"
+                on:change={handleServiceSwitch}
+              >
                 {#each data.navServices as service}
                   <option value={service.folder} selected={service.folder === currentServiceName($page.url.pathname)}>{service.displayName}</option>
                 {/each}
@@ -75,10 +80,10 @@
               <a
                 href={link.href}
                 class={cn(
-                  'inline-flex h-9 items-center rounded-md border px-3 text-sm transition-colors',
+                  'inline-flex h-8 items-center justify-center rounded-md border px-3 text-xs font-medium transition-colors sm:h-9 sm:text-sm',
                   isActive(link.href, $page.url.pathname)
-                    ? 'border-border bg-secondary text-secondary-foreground'
-                    : 'border-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    ? 'border-border/70 bg-secondary/80 text-secondary-foreground shadow-xs'
+                    : 'text-muted-foreground hover:bg-accent/80 hover:text-accent-foreground'
                 )}
               >
                 {$messages.nav[link.labelKey]}

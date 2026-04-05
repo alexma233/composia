@@ -2,6 +2,8 @@
   import { browser } from '$app/environment';
   import { onDestroy } from 'svelte';
 
+  import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
+
   export let taskId = '';
 
   let content = '';
@@ -71,16 +73,17 @@
 </script>
 
 <div class="flex h-full min-h-0 flex-col">
-  <div class="mb-3 flex items-center justify-between gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+  <div class="mb-3 flex items-center justify-between gap-3 text-xs font-medium text-muted-foreground">
     <span>{taskId ? `Task ${taskId}` : 'No task selected'}</span>
     <span>{state}</span>
   </div>
 
   {#if error}
-    <div class="mb-3 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
-      {error}
-    </div>
+    <Alert variant="destructive" class="mb-3">
+      <AlertTitle>Log stream failed</AlertTitle>
+      <AlertDescription>{error}</AlertDescription>
+    </Alert>
   {/if}
 
-  <pre class="min-h-0 flex-1 overflow-auto rounded-lg border bg-background p-4 font-mono text-xs leading-6 whitespace-pre-wrap break-words">{content || 'Select a task to tail logs.'}</pre>
+  <pre class="min-h-0 flex-1 overflow-auto rounded-lg border border-border/70 bg-background/80 p-4 font-mono text-xs leading-6 whitespace-pre-wrap break-words">{content || 'Select a task to tail logs.'}</pre>
 </div>

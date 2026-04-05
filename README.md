@@ -33,7 +33,7 @@ bun install
 Start the placeholder web app:
 
 ```bash
-bun run dev:web
+bun run dev
 ```
 
 Run the backend in controller mode:

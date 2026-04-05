@@ -12,30 +12,33 @@ export type WorkspaceFile = {
 };
 
 export function normalizeServiceRelativePath(input: string) {
-  const trimmed = input.trim().replaceAll('\\', '/');
+  const trimmed = input.trim().replaceAll("\\", "/");
   if (!trimmed) {
-    return '';
+    return "";
   }
 
-  const parts = trimmed.split('/').filter(Boolean);
+  const parts = trimmed.split("/").filter(Boolean);
   if (!parts.length) {
-    return '';
+    return "";
   }
-  if (parts.some((part) => part === '.' || part === '..')) {
-    throw new Error('Path must stay inside the current service directory.');
+  if (parts.some((part) => part === "." || part === "..")) {
+    throw new Error("Path must stay inside the current service directory.");
   }
-  return parts.join('/');
+  return parts.join("/");
 }
 
 export function defaultServiceFilePath(nodes: ServiceFileNode[]) {
-  const preferred = findNode(nodes, 'composia-meta.yaml');
+  const preferred = findNode(nodes, "composia-meta.yaml");
   if (preferred) {
     return preferred.path;
   }
-  return firstFile(nodes)?.path ?? '';
+  return firstFile(nodes)?.path ?? "";
 }
 
-export function findNode(nodes: ServiceFileNode[], targetPath: string): ServiceFileNode | null {
+export function findNode(
+  nodes: ServiceFileNode[],
+  targetPath: string,
+): ServiceFileNode | null {
   for (const node of nodes) {
     if (node.path === targetPath) {
       return node;
@@ -50,16 +53,19 @@ export function findNode(nodes: ServiceFileNode[], targetPath: string): ServiceF
   return null;
 }
 
-export function upsertFileNode(nodes: ServiceFileNode[], filePath: string): ServiceFileNode[] {
+export function upsertFileNode(
+  nodes: ServiceFileNode[],
+  filePath: string,
+): ServiceFileNode[] {
   const normalized = normalizeServiceRelativePath(filePath);
   if (!normalized) {
     return nodes;
   }
 
   const root = structuredClone(nodes);
-  const segments = normalized.split('/');
+  const segments = normalized.split("/");
   let cursor = root;
-  let currentPath = '';
+  let currentPath = "";
 
   segments.forEach((segment, index) => {
     currentPath = currentPath ? `${currentPath}/${segment}` : segment;

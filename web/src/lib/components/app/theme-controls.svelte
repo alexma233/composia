@@ -13,7 +13,6 @@
     type ThemeMode
   } from '$lib/preferences';
   import { Button } from '$lib/components/ui/button';
-  import { Badge } from '$lib/components/ui/badge';
 
   const themeOptions: Array<{ value: ThemeMode; icon: typeof Sun; labelKey: 'light' | 'dark' | 'system' }> = [
     { value: 'light', icon: Sun, labelKey: 'light' },
@@ -22,34 +21,46 @@
   ];
 </script>
 
-<div class="flex flex-wrap items-center gap-3">
-  <div class="flex items-center gap-1 rounded-md border border-border bg-muted/40 p-1">
-    {#each themeOptions as option}
-      <Button
-        variant={$themeMode === option.value ? 'secondary' : 'ghost'}
-        size="sm"
-        aria-label={$messages.preferences[option.labelKey]}
-        on:click={() => setThemeMode(option.value)}
-      >
-        <svelte:component this={option.icon} />
-      </Button>
-    {/each}
+<div class="space-y-4">
+  <div class="space-y-2">
+    <div class="text-sm font-medium text-foreground">Theme</div>
+    <div class="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-background/80 p-2 shadow-xs">
+      {#each themeOptions as option}
+        <Button
+          variant={$themeMode === option.value ? 'secondary' : 'ghost'}
+          size="sm"
+          class="min-w-24 justify-start"
+          aria-label={$messages.preferences[option.labelKey]}
+          on:click={() => setThemeMode(option.value)}
+        >
+          <svelte:component this={option.icon} />
+          {$messages.preferences[option.labelKey]}
+        </Button>
+      {/each}
+    </div>
   </div>
 
-  <div class="hidden items-center gap-2 md:flex">
-    <Badge variant="outline">{$messages.preferences.accent}</Badge>
-    <div class="flex items-center gap-1">
+  <div class="space-y-2">
+    <div class="text-sm font-medium text-foreground">{$messages.preferences.accent}</div>
+    <div class="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-background/80 p-2 shadow-xs">
       {#each availableAccentColors as accent}
         <button
           type="button"
-          class="size-7 rounded-full border transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          class="inline-flex items-center gap-2 rounded-md border px-2.5 py-2 text-sm transition-colors hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           class:border-foreground={$accentColor === accent}
+          class:bg-accent={$accentColor === accent}
+          class:text-accent-foreground={$accentColor === accent}
           class:border-border={$accentColor !== accent}
-          style={`background:${accentMetadata[accent].preview}`}
           aria-label={accentMetadata[accent].label}
           aria-pressed={$accentColor === accent}
           on:click={() => setAccentColor(accent as AccentColor)}
-        ></button>
+        >
+          <span
+            class="size-4 rounded-full border border-black/10 shadow-xs dark:border-white/10"
+            style={`background:${accentMetadata[accent].preview}`}
+          ></span>
+          {accentMetadata[accent].label}
+        </button>
       {/each}
     </div>
   </div>
