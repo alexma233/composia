@@ -88,6 +88,9 @@ func TestSecretServiceGetAndUpdateServiceSecretEnv(t *testing.T) {
 	if updateResp.Msg.GetCommitId() == "" {
 		t.Fatalf("expected commit id in update response")
 	}
+	if updateResp.Msg.GetSyncStatus() != store.RepoSyncStatusLocalOnly {
+		t.Fatalf("expected local_only sync status, got %q", updateResp.Msg.GetSyncStatus())
+	}
 	plaintext, err := secretutil.DecryptFile(filepath.Join(repoDir, "alpha", ".secret.env.enc"), secretsCfg)
 	if err != nil {
 		t.Fatalf("decrypt updated secret: %v", err)

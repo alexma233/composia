@@ -32,8 +32,10 @@ import (
 )
 
 const (
-	heartbeatInterval = 15 * time.Second
-	taskPollInterval  = 1 * time.Second
+	heartbeatInterval      = 15 * time.Second
+	heartbeatTimeout       = 10 * time.Second
+	pullNextTaskTimeout    = 30 * time.Second
+	taskRetryAfterPollFail = 1 * time.Second
 )
 
 func Run(ctx context.Context, configPath string) error {
@@ -52,7 +54,7 @@ func Run(ctx context.Context, configPath string) error {
 		return fmt.Errorf("create agent caddy.generated_dir %q: %w", cfg.CaddyGeneratedDir(), err)
 	}
 
-	httpClient := &http.Client{Timeout: 10 * time.Second}
+	httpClient := &http.Client{}
 	reportClient := agentv1connect.NewAgentReportServiceClient(
 		httpClient,
 		cfg.ControllerAddr,
@@ -76,21 +78,41 @@ func Run(ctx context.Context, configPath string) error {
 
 	heartbeatTicker := time.NewTicker(heartbeatInterval)
 	defer heartbeatTicker.Stop()
-	taskTicker := time.NewTicker(taskPollInterval)
-	defer taskTicker.Stop()
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-heartbeatTicker.C:
+				if err := sendHeartbeat(ctx, reportClient, cfg); err != nil {
+					log.Printf("heartbeat failed: %v", err)
+				}
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			if ctx.Err() != nil {
+				return
+			}
+			if err := pollAndRunTask(ctx, taskClient, bundleClient, reportClient, cfg); err != nil {
+				if ctx.Err() != nil {
+					return
+				}
+				log.Printf("task poll failed: %v", err)
+				if !sleepWithContext(ctx, taskRetryAfterPollFail) {
+					return
+				}
+			}
+		}
+	}()
 
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-heartbeatTicker.C:
-			if err := sendHeartbeat(ctx, reportClient, cfg); err != nil {
-				log.Printf("heartbeat failed: %v", err)
-			}
-		case <-taskTicker.C:
-			if err := pollAndRunTask(ctx, taskClient, bundleClient, reportClient, cfg); err != nil {
-				log.Printf("task poll failed: %v", err)
-			}
 		}
 	}
 }
@@ -108,7 +130,7 @@ func sendHeartbeat(ctx context.Context, client agentv1connect.AgentReportService
 		Runtime:      runtime,
 	}
 
-	callCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	callCtx, cancel := context.WithTimeout(ctx, heartbeatTimeout)
 	defer cancel()
 
 	_, err = client.Heartbeat(callCtx, connect.NewRequest(request))
@@ -119,7 +141,7 @@ func sendHeartbeat(ctx context.Context, client agentv1connect.AgentReportService
 }
 
 func pollAndRunTask(ctx context.Context, taskClient agentv1connect.AgentTaskServiceClient, bundleClient agentv1connect.BundleServiceClient, reportClient agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig) error {
-	callCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	callCtx, cancel := context.WithTimeout(ctx, pullNextTaskTimeout)
 	defer cancel()
 
 	response, err := taskClient.PullNextTask(callCtx, connect.NewRequest(&agentv1.PullNextTaskRequest{NodeId: cfg.NodeID}))
@@ -131,6 +153,18 @@ func pollAndRunTask(ctx context.Context, taskClient agentv1connect.AgentTaskServ
 	}
 
 	return executePulledTask(ctx, bundleClient, reportClient, cfg, response.Msg.GetTask())
+}
+
+func sleepWithContext(ctx context.Context, duration time.Duration) bool {
+	timer := time.NewTimer(duration)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
 }
 
 func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask) error {

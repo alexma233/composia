@@ -6,10 +6,22 @@ import {
   loadRepoEntries,
   loadRepoFile,
   loadRepoHead,
+  syncRepo,
   updateRepoFile
 } from '$lib/server/controller';
 
 export const actions = {
+	sync: async ({ url }) => {
+		try {
+			await syncRepo();
+		} catch (error) {
+			return fail(500, {
+				error: error instanceof Error ? error.message : 'Failed to sync repo.'
+			});
+		}
+
+		throw redirect(303, url.pathname + url.search);
+	},
   save: async ({ request, url }) => {
     const form = await request.formData();
     const path = String(form.get('path') ?? '');

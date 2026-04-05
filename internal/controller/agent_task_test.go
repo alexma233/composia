@@ -163,3 +163,175 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 		t.Fatalf("expected runtime status running, got %q", snapshot.RuntimeStatus)
 	}
 }
+
+func TestAgentPullNextTaskLongPollWaitsForNewTask(t *testing.T) {
+	t.Parallel()
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", assertError("unexpected token")
+		}
+		return "main", nil
+	})
+	notifier := newTaskQueueNotifier()
+
+	mux := http.NewServeMux()
+	taskPath, taskHandler := agentv1connect.NewAgentTaskServiceHandler(&agentTaskServer{db: db, taskQueue: notifier, maxWait: 700 * time.Millisecond, retryInterval: 500 * time.Millisecond}, connect.WithInterceptors(interceptor))
+	mux.Handle(taskPath, taskHandler)
+	httpServer := httptest.NewUnstartedServer(mux)
+	httpServer.EnableHTTP2 = true
+	httpServer.StartTLS()
+	defer httpServer.Close()
+
+	taskClient := agentv1connect.NewAgentTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	pullCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	responseCh := make(chan *agentv1.PullNextTaskResponse, 1)
+	errCh := make(chan error, 1)
+	go func() {
+		response, err := taskClient.PullNextTask(pullCtx, connect.NewRequest(&agentv1.PullNextTaskRequest{NodeId: "main"}))
+		if err != nil {
+			errCh <- err
+			return
+		}
+		responseCh <- response.Msg
+	}()
+
+	time.Sleep(50 * time.Millisecond)
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: "demo"})
+	if err != nil {
+		t.Fatalf("marshal deploy task params: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{
+		TaskID:       "task-long-poll",
+		Type:         task.TypeDeploy,
+		Source:       task.SourceCLI,
+		ServiceName:  "demo",
+		NodeID:       "main",
+		ParamsJSON:   string(paramsJSON),
+		RepoRevision: "deadbeef",
+		CreatedAt:    time.Date(2026, 4, 5, 10, 0, 0, 0, time.UTC),
+	}); err != nil {
+		t.Fatalf("create task: %v", err)
+	}
+	notifier.Notify()
+
+	select {
+	case err := <-errCh:
+		t.Fatalf("pull next task: %v", err)
+	case response := <-responseCh:
+		if !response.GetHasTask() || response.GetTask().GetTaskId() != "task-long-poll" {
+			t.Fatalf("unexpected long-poll response: %+v", response)
+		}
+	case <-time.After(900 * time.Millisecond):
+		t.Fatalf("timed out waiting for long-poll response")
+	}
+}
+
+func TestAgentPullNextTaskLongPollWakesWhenRunningTaskCompletes(t *testing.T) {
+	t.Parallel()
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main", "node-2"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.SyncDeclaredServices(ctx, []string{"alpha", "bravo"}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	runningStartedAt := time.Date(2026, 4, 5, 11, 0, 10, 0, time.UTC)
+	if _, err := db.CreateTask(ctx, task.Record{
+		TaskID:      "task-running",
+		Type:        task.TypeDeploy,
+		Source:      task.SourceCLI,
+		ServiceName: "alpha",
+		NodeID:      "main",
+		Status:      task.StatusRunning,
+		CreatedAt:   time.Date(2026, 4, 5, 11, 0, 0, 0, time.UTC),
+		StartedAt:   &runningStartedAt,
+	}); err != nil {
+		t.Fatalf("create running task: %v", err)
+	}
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: "bravo"})
+	if err != nil {
+		t.Fatalf("marshal pending task params: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{
+		TaskID:       "task-pending",
+		Type:         task.TypeDeploy,
+		Source:       task.SourceCLI,
+		ServiceName:  "bravo",
+		NodeID:       "node-2",
+		ParamsJSON:   string(paramsJSON),
+		RepoRevision: "cafebabe",
+		CreatedAt:    time.Date(2026, 4, 5, 11, 1, 0, 0, time.UTC),
+	}); err != nil {
+		t.Fatalf("create pending task: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "node-2-token" {
+			return "", assertError("unexpected token")
+		}
+		return "node-2", nil
+	})
+	notifier := newTaskQueueNotifier()
+
+	mux := http.NewServeMux()
+	taskPath, taskHandler := agentv1connect.NewAgentTaskServiceHandler(&agentTaskServer{db: db, taskQueue: notifier, maxWait: time.Second, retryInterval: 700 * time.Millisecond}, connect.WithInterceptors(interceptor))
+	mux.Handle(taskPath, taskHandler)
+	httpServer := httptest.NewUnstartedServer(mux)
+	httpServer.EnableHTTP2 = true
+	httpServer.StartTLS()
+	defer httpServer.Close()
+
+	taskClient := agentv1connect.NewAgentTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("node-2-token")))
+	pullCtx, cancel := context.WithTimeout(context.Background(), 1500*time.Millisecond)
+	defer cancel()
+
+	responseCh := make(chan *agentv1.PullNextTaskResponse, 1)
+	errCh := make(chan error, 1)
+	startedAt := time.Now()
+	go func() {
+		response, err := taskClient.PullNextTask(pullCtx, connect.NewRequest(&agentv1.PullNextTaskRequest{NodeId: "node-2"}))
+		if err != nil {
+			errCh <- err
+			return
+		}
+		responseCh <- response.Msg
+	}()
+
+	time.Sleep(50 * time.Millisecond)
+	if err := db.CompleteTask(ctx, "task-running", task.StatusSucceeded, time.Date(2026, 4, 5, 11, 2, 0, 0, time.UTC), ""); err != nil {
+		t.Fatalf("complete running task: %v", err)
+	}
+	notifier.Notify()
+
+	select {
+	case err := <-errCh:
+		t.Fatalf("pull next task: %v", err)
+	case response := <-responseCh:
+		if elapsed := time.Since(startedAt); elapsed >= 500*time.Millisecond {
+			t.Fatalf("expected notifier wake-up before retry fallback, got %v", elapsed)
+		}
+		if !response.GetHasTask() || response.GetTask().GetTaskId() != "task-pending" {
+			t.Fatalf("unexpected response after running task completion: %+v", response)
+		}
+	case <-time.After(time.Second):
+		t.Fatalf("timed out waiting for pending task after completion")
+	}
+}

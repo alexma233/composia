@@ -22,6 +22,20 @@ type DB struct {
 	claimMu sync.Mutex
 }
 
+type RepoSyncState struct {
+	SyncStatus           string
+	LastSyncError        string
+	LastSuccessfulPullAt string
+}
+
+const (
+	RepoSyncStatusUnknown    = "unknown"
+	RepoSyncStatusLocalOnly  = "local_only"
+	RepoSyncStatusSynced     = "synced"
+	RepoSyncStatusPullFailed = "pull_failed"
+	RepoSyncStatusPushFailed = "push_failed"
+)
+
 type NodeHeartbeat struct {
 	NodeID              string
 	HeartbeatAt         time.Time
@@ -407,6 +421,12 @@ func (db *DB) migrate(ctx context.Context) error {
 			FOREIGN KEY (task_id) REFERENCES tasks(task_id),
 			FOREIGN KEY (service_name) REFERENCES services(service_name)
 		);`,
+		`CREATE TABLE IF NOT EXISTS repo_state (
+			singleton_id INTEGER PRIMARY KEY CHECK (singleton_id = 1),
+			sync_status TEXT NOT NULL,
+			last_sync_error TEXT,
+			last_successful_pull_at TEXT
+		);`,
 		`CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at DESC);`,
 		`CREATE INDEX IF NOT EXISTS idx_tasks_status_created_at ON tasks(status, created_at DESC);`,
 		`CREATE INDEX IF NOT EXISTS idx_tasks_service_created_at ON tasks(service_name, created_at DESC);`,
@@ -422,5 +442,38 @@ func (db *DB) migrate(ctx context.Context) error {
 		}
 	}
 
+	return nil
+}
+
+func (db *DB) GetRepoSyncState(ctx context.Context) (RepoSyncState, error) {
+	var state RepoSyncState
+	err := db.sql.QueryRowContext(ctx, `
+		SELECT sync_status, COALESCE(last_sync_error, ''), COALESCE(last_successful_pull_at, '')
+		FROM repo_state
+		WHERE singleton_id = 1
+	`).Scan(&state.SyncStatus, &state.LastSyncError, &state.LastSuccessfulPullAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return RepoSyncState{}, nil
+	}
+	if err != nil {
+		return RepoSyncState{}, fmt.Errorf("get repo sync state: %w", err)
+	}
+	return state, nil
+}
+
+func (db *DB) UpsertRepoSyncState(ctx context.Context, state RepoSyncState) error {
+	if state.SyncStatus == "" {
+		state.SyncStatus = RepoSyncStatusUnknown
+	}
+	if _, err := db.sql.ExecContext(ctx, `
+		INSERT INTO repo_state (singleton_id, sync_status, last_sync_error, last_successful_pull_at)
+		VALUES (1, ?, ?, ?)
+		ON CONFLICT(singleton_id) DO UPDATE SET
+			sync_status = excluded.sync_status,
+			last_sync_error = excluded.last_sync_error,
+			last_successful_pull_at = excluded.last_successful_pull_at
+	`, state.SyncStatus, nullableString(state.LastSyncError), nullableString(state.LastSuccessfulPullAt)); err != nil {
+		return fmt.Errorf("upsert repo sync state: %w", err)
+	}
 	return nil
 }

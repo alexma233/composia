@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -54,6 +55,9 @@ func TestRepoServiceGetRepoHeadReturnsMinimalSummary(t *testing.T) {
 	}
 	if !response.Msg.GetCleanWorktree() {
 		t.Fatalf("expected clean worktree")
+	}
+	if response.Msg.GetSyncStatus() != store.RepoSyncStatusLocalOnly {
+		t.Fatalf("expected local_only sync status, got %q", response.Msg.GetSyncStatus())
 	}
 }
 
@@ -117,6 +121,57 @@ func TestRepoServiceListRepoFilesAndGetRepoFile(t *testing.T) {
 	}
 	if getHeadResponse.Msg.GetCleanWorktree() {
 		t.Fatalf("expected dirty worktree after file modification")
+	}
+}
+
+func TestRepoServiceSyncRepoFastForwardsConfiguredRemote(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir, originDir, branch := createGitRepoWithBareRemote(t, rootDir, map[string]string{"README.md": "one\n"})
+	upstreamDir := filepath.Join(rootDir, "upstream")
+	gitClone(t, originDir, upstreamDir)
+	if err := os.WriteFile(filepath.Join(upstreamDir, "README.md"), []byte("two\n"), 0o644); err != nil {
+		t.Fatalf("rewrite upstream README: %v", err)
+	}
+	runGit(t, upstreamDir, "add", ".")
+	runGit(t, upstreamDir, "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "upstream")
+	runGit(t, upstreamDir, "push", originDir, "HEAD:refs/heads/"+branch)
+
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	client := newRepoServiceClient(t, &repoServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Git: &config.ControllerGitConfig{RemoteURL: originDir, Branch: branch}}, repoMu: &sync.Mutex{}})
+	response, err := client.SyncRepo(context.Background(), connect.NewRequest(&controllerv1.SyncRepoRequest{}))
+	if err != nil {
+		t.Fatalf("sync repo: %v", err)
+	}
+	if response.Msg.GetSyncStatus() != store.RepoSyncStatusSynced {
+		t.Fatalf("expected synced status, got %q", response.Msg.GetSyncStatus())
+	}
+	if response.Msg.GetLastSuccessfulPullAt() == "" {
+		t.Fatalf("expected last_successful_pull_at in sync response")
+	}
+	content, err := os.ReadFile(filepath.Join(repoDir, "README.md"))
+	if err != nil {
+		t.Fatalf("read synced README: %v", err)
+	}
+	if string(content) != "two\n" {
+		t.Fatalf("expected fast-forwarded README, got %q", string(content))
+	}
+	head, err := client.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
+	if err != nil {
+		t.Fatalf("get repo head after sync: %v", err)
+	}
+	if !head.Msg.GetHasRemote() || head.Msg.GetSyncStatus() != store.RepoSyncStatusSynced {
+		t.Fatalf("unexpected repo head after sync: %+v", head.Msg)
 	}
 }
 
@@ -243,6 +298,76 @@ func TestRepoServiceUpdateRepoFileCommitsAndKeepsWorktreeClean(t *testing.T) {
 	}
 	if currentRevision != updated.Msg.GetCommitId() {
 		t.Fatalf("expected HEAD %q, got %q", updated.Msg.GetCommitId(), currentRevision)
+	}
+	if updated.Msg.GetSyncStatus() != store.RepoSyncStatusLocalOnly {
+		t.Fatalf("expected local_only sync status, got %q", updated.Msg.GetSyncStatus())
+	}
+}
+
+func TestRepoServiceUpdateRepoFileReturnsPushFailureWithoutRollback(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir, originDir, branch := createGitRepoWithBareRemote(t, rootDir, map[string]string{"README.md": "hello\n"})
+	t.Cleanup(func() {
+		_ = chmodRecursive(originDir, 0o755)
+	})
+	if err := chmodRecursive(originDir, 0o555); err != nil {
+		t.Fatalf("chmod origin read-only: %v", err)
+	}
+
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	client := newRepoServiceClient(t, &repoServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Git: &config.ControllerGitConfig{RemoteURL: originDir, Branch: branch}}, repoMu: &sync.Mutex{}})
+	head, err := client.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
+	if err != nil {
+		t.Fatalf("get repo head: %v", err)
+	}
+	updated, err := client.UpdateRepoFile(context.Background(), connect.NewRequest(&controllerv1.UpdateRepoFileRequest{
+		Path:         "README.md",
+		Content:      "updated\n",
+		BaseRevision: head.Msg.GetHeadRevision(),
+	}))
+	if err != nil {
+		t.Fatalf("update repo file with push failure: %v", err)
+	}
+	if updated.Msg.GetCommitId() == "" {
+		t.Fatalf("expected local commit id on push failure")
+	}
+	if updated.Msg.GetSyncStatus() != store.RepoSyncStatusPushFailed {
+		t.Fatalf("expected push_failed sync status, got %q", updated.Msg.GetSyncStatus())
+	}
+	if updated.Msg.GetPushError() == "" {
+		t.Fatalf("expected push error in response")
+	}
+	currentRevision, err := repo.CurrentRevision(repoDir)
+	if err != nil {
+		t.Fatalf("read current revision: %v", err)
+	}
+	if currentRevision != updated.Msg.GetCommitId() {
+		t.Fatalf("expected HEAD to stay at local commit %q, got %q", updated.Msg.GetCommitId(), currentRevision)
+	}
+	clean, err := repo.IsCleanWorkingTree(repoDir)
+	if err != nil {
+		t.Fatalf("check clean worktree: %v", err)
+	}
+	if !clean {
+		t.Fatalf("expected clean worktree after push failure")
+	}
+	headAfter, err := client.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
+	if err != nil {
+		t.Fatalf("get repo head after push failure: %v", err)
+	}
+	if headAfter.Msg.GetSyncStatus() != store.RepoSyncStatusPushFailed || headAfter.Msg.GetLastSyncError() == "" {
+		t.Fatalf("unexpected repo head after push failure: %+v", headAfter.Msg)
 	}
 }
 
@@ -377,4 +502,54 @@ func TestRepoServiceUpdateRepoFileRejectsServiceWithActiveTask(t *testing.T) {
 	if updated.Msg.GetCommitId() == "" {
 		t.Fatalf("expected commit id for unrelated write")
 	}
+}
+
+func newRepoServiceClient(t *testing.T, server *repoServer) controllerv1connect.RepoServiceClient {
+	t.Helper()
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+	path, handler := controllerv1connect.NewRepoServiceHandler(server, connect.WithInterceptors(interceptor))
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	t.Cleanup(httpServer.Close)
+	return controllerv1connect.NewRepoServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+}
+
+func createGitRepoWithBareRemote(t *testing.T, rootDir string, files map[string]string) (string, string, string) {
+	t.Helper()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithContent(t, repoDir, files)
+	originDir := filepath.Join(rootDir, "origin.git")
+	if err := os.MkdirAll(originDir, 0o755); err != nil {
+		t.Fatalf("create origin dir: %v", err)
+	}
+	runGit(t, originDir, "init", "--bare")
+	branch, err := repo.CurrentBranch(repoDir)
+	if err != nil {
+		t.Fatalf("read current branch: %v", err)
+	}
+	runGit(t, repoDir, "push", originDir, "HEAD:refs/heads/"+branch)
+	return repoDir, originDir, branch
+}
+
+func gitClone(t *testing.T, sourceDir, cloneDir string) {
+	t.Helper()
+	output, err := exec.Command("git", "clone", sourceDir, cloneDir).CombinedOutput()
+	if err != nil {
+		t.Fatalf("git clone failed: %v\n%s", err, string(output))
+	}
+}
+
+func chmodRecursive(root string, mode os.FileMode) error {
+	return filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		return os.Chmod(path, mode)
+	})
 }

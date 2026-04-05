@@ -58,13 +58,16 @@ func (*GetRepoHeadRequest) Descriptor() ([]byte, []int) {
 }
 
 type GetRepoHeadResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	HeadRevision  string                 `protobuf:"bytes,1,opt,name=head_revision,json=headRevision,proto3" json:"head_revision,omitempty"`
-	Branch        string                 `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
-	HasRemote     bool                   `protobuf:"varint,3,opt,name=has_remote,json=hasRemote,proto3" json:"has_remote,omitempty"`
-	CleanWorktree bool                   `protobuf:"varint,4,opt,name=clean_worktree,json=cleanWorktree,proto3" json:"clean_worktree,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	HeadRevision         string                 `protobuf:"bytes,1,opt,name=head_revision,json=headRevision,proto3" json:"head_revision,omitempty"`
+	Branch               string                 `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
+	HasRemote            bool                   `protobuf:"varint,3,opt,name=has_remote,json=hasRemote,proto3" json:"has_remote,omitempty"`
+	CleanWorktree        bool                   `protobuf:"varint,4,opt,name=clean_worktree,json=cleanWorktree,proto3" json:"clean_worktree,omitempty"`
+	SyncStatus           string                 `protobuf:"bytes,5,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
+	LastSyncError        string                 `protobuf:"bytes,6,opt,name=last_sync_error,json=lastSyncError,proto3" json:"last_sync_error,omitempty"`
+	LastSuccessfulPullAt string                 `protobuf:"bytes,7,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *GetRepoHeadResponse) Reset() {
@@ -123,6 +126,27 @@ func (x *GetRepoHeadResponse) GetCleanWorktree() bool {
 		return x.CleanWorktree
 	}
 	return false
+}
+
+func (x *GetRepoHeadResponse) GetSyncStatus() string {
+	if x != nil {
+		return x.SyncStatus
+	}
+	return ""
+}
+
+func (x *GetRepoHeadResponse) GetLastSyncError() string {
+	if x != nil {
+		return x.LastSyncError
+	}
+	return ""
+}
+
+func (x *GetRepoHeadResponse) GetLastSuccessfulPullAt() string {
+	if x != nil {
+		return x.LastSuccessfulPullAt
+	}
+	return ""
 }
 
 type RepoFileEntry struct {
@@ -758,10 +782,13 @@ func (x *UpdateRepoFileRequest) GetCommitMessage() string {
 }
 
 type UpdateRepoFileResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CommitId      string                 `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	CommitId             string                 `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
+	SyncStatus           string                 `protobuf:"bytes,2,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
+	PushError            string                 `protobuf:"bytes,3,opt,name=push_error,json=pushError,proto3" json:"push_error,omitempty"`
+	LastSuccessfulPullAt string                 `protobuf:"bytes,4,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *UpdateRepoFileResponse) Reset() {
@@ -801,18 +828,155 @@ func (x *UpdateRepoFileResponse) GetCommitId() string {
 	return ""
 }
 
+func (x *UpdateRepoFileResponse) GetSyncStatus() string {
+	if x != nil {
+		return x.SyncStatus
+	}
+	return ""
+}
+
+func (x *UpdateRepoFileResponse) GetPushError() string {
+	if x != nil {
+		return x.PushError
+	}
+	return ""
+}
+
+func (x *UpdateRepoFileResponse) GetLastSuccessfulPullAt() string {
+	if x != nil {
+		return x.LastSuccessfulPullAt
+	}
+	return ""
+}
+
+type SyncRepoRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SyncRepoRequest) Reset() {
+	*x = SyncRepoRequest{}
+	mi := &file_proto_composia_controller_v1_repo_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SyncRepoRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SyncRepoRequest) ProtoMessage() {}
+
+func (x *SyncRepoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_repo_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SyncRepoRequest.ProtoReflect.Descriptor instead.
+func (*SyncRepoRequest) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_repo_proto_rawDescGZIP(), []int{15}
+}
+
+type SyncRepoResponse struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	HeadRevision         string                 `protobuf:"bytes,1,opt,name=head_revision,json=headRevision,proto3" json:"head_revision,omitempty"`
+	Branch               string                 `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
+	SyncStatus           string                 `protobuf:"bytes,3,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
+	LastSyncError        string                 `protobuf:"bytes,4,opt,name=last_sync_error,json=lastSyncError,proto3" json:"last_sync_error,omitempty"`
+	LastSuccessfulPullAt string                 `protobuf:"bytes,5,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *SyncRepoResponse) Reset() {
+	*x = SyncRepoResponse{}
+	mi := &file_proto_composia_controller_v1_repo_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SyncRepoResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SyncRepoResponse) ProtoMessage() {}
+
+func (x *SyncRepoResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_repo_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SyncRepoResponse.ProtoReflect.Descriptor instead.
+func (*SyncRepoResponse) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_repo_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *SyncRepoResponse) GetHeadRevision() string {
+	if x != nil {
+		return x.HeadRevision
+	}
+	return ""
+}
+
+func (x *SyncRepoResponse) GetBranch() string {
+	if x != nil {
+		return x.Branch
+	}
+	return ""
+}
+
+func (x *SyncRepoResponse) GetSyncStatus() string {
+	if x != nil {
+		return x.SyncStatus
+	}
+	return ""
+}
+
+func (x *SyncRepoResponse) GetLastSyncError() string {
+	if x != nil {
+		return x.LastSyncError
+	}
+	return ""
+}
+
+func (x *SyncRepoResponse) GetLastSuccessfulPullAt() string {
+	if x != nil {
+		return x.LastSuccessfulPullAt
+	}
+	return ""
+}
+
 var File_proto_composia_controller_v1_repo_proto protoreflect.FileDescriptor
 
 const file_proto_composia_controller_v1_repo_proto_rawDesc = "" +
 	"\n" +
 	"'proto/composia/controller/v1/repo.proto\x12\x16composia.controller.v1\"\x14\n" +
-	"\x12GetRepoHeadRequest\"\x98\x01\n" +
+	"\x12GetRepoHeadRequest\"\x98\x02\n" +
 	"\x13GetRepoHeadResponse\x12#\n" +
 	"\rhead_revision\x18\x01 \x01(\tR\fheadRevision\x12\x16\n" +
 	"\x06branch\x18\x02 \x01(\tR\x06branch\x12\x1d\n" +
 	"\n" +
 	"has_remote\x18\x03 \x01(\bR\thasRemote\x12%\n" +
-	"\x0eclean_worktree\x18\x04 \x01(\bR\rcleanWorktree\"b\n" +
+	"\x0eclean_worktree\x18\x04 \x01(\bR\rcleanWorktree\x12\x1f\n" +
+	"\vsync_status\x18\x05 \x01(\tR\n" +
+	"syncStatus\x12&\n" +
+	"\x0flast_sync_error\x18\x06 \x01(\tR\rlastSyncError\x125\n" +
+	"\x17last_successful_pull_at\x18\a \x01(\tR\x14lastSuccessfulPullAt\"b\n" +
 	"\rRepoFileEntry\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x15\n" +
@@ -850,16 +1014,30 @@ const file_proto_composia_controller_v1_repo_proto_rawDesc = "" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12#\n" +
 	"\rbase_revision\x18\x03 \x01(\tR\fbaseRevision\x12%\n" +
-	"\x0ecommit_message\x18\x04 \x01(\tR\rcommitMessage\"5\n" +
+	"\x0ecommit_message\x18\x04 \x01(\tR\rcommitMessage\"\xac\x01\n" +
 	"\x16UpdateRepoFileResponse\x12\x1b\n" +
-	"\tcommit_id\x18\x01 \x01(\tR\bcommitId2\x9b\x05\n" +
+	"\tcommit_id\x18\x01 \x01(\tR\bcommitId\x12\x1f\n" +
+	"\vsync_status\x18\x02 \x01(\tR\n" +
+	"syncStatus\x12\x1d\n" +
+	"\n" +
+	"push_error\x18\x03 \x01(\tR\tpushError\x125\n" +
+	"\x17last_successful_pull_at\x18\x04 \x01(\tR\x14lastSuccessfulPullAt\"\x11\n" +
+	"\x0fSyncRepoRequest\"\xcf\x01\n" +
+	"\x10SyncRepoResponse\x12#\n" +
+	"\rhead_revision\x18\x01 \x01(\tR\fheadRevision\x12\x16\n" +
+	"\x06branch\x18\x02 \x01(\tR\x06branch\x12\x1f\n" +
+	"\vsync_status\x18\x03 \x01(\tR\n" +
+	"syncStatus\x12&\n" +
+	"\x0flast_sync_error\x18\x04 \x01(\tR\rlastSyncError\x125\n" +
+	"\x17last_successful_pull_at\x18\x05 \x01(\tR\x14lastSuccessfulPullAt2\xfa\x05\n" +
 	"\vRepoService\x12f\n" +
 	"\vGetRepoHead\x12*.composia.controller.v1.GetRepoHeadRequest\x1a+.composia.controller.v1.GetRepoHeadResponse\x12l\n" +
 	"\rListRepoFiles\x12,.composia.controller.v1.ListRepoFilesRequest\x1a-.composia.controller.v1.ListRepoFilesResponse\x12f\n" +
 	"\vGetRepoFile\x12*.composia.controller.v1.GetRepoFileRequest\x1a+.composia.controller.v1.GetRepoFileResponse\x12r\n" +
 	"\x0fListRepoCommits\x12..composia.controller.v1.ListRepoCommitsRequest\x1a/.composia.controller.v1.ListRepoCommitsResponse\x12i\n" +
 	"\fValidateRepo\x12+.composia.controller.v1.ValidateRepoRequest\x1a,.composia.controller.v1.ValidateRepoResponse\x12o\n" +
-	"\x0eUpdateRepoFile\x12-.composia.controller.v1.UpdateRepoFileRequest\x1a..composia.controller.v1.UpdateRepoFileResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
+	"\x0eUpdateRepoFile\x12-.composia.controller.v1.UpdateRepoFileRequest\x1a..composia.controller.v1.UpdateRepoFileResponse\x12]\n" +
+	"\bSyncRepo\x12'.composia.controller.v1.SyncRepoRequest\x1a(.composia.controller.v1.SyncRepoResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
 
 var (
 	file_proto_composia_controller_v1_repo_proto_rawDescOnce sync.Once
@@ -873,7 +1051,7 @@ func file_proto_composia_controller_v1_repo_proto_rawDescGZIP() []byte {
 	return file_proto_composia_controller_v1_repo_proto_rawDescData
 }
 
-var file_proto_composia_controller_v1_repo_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_proto_composia_controller_v1_repo_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_proto_composia_controller_v1_repo_proto_goTypes = []any{
 	(*GetRepoHeadRequest)(nil),      // 0: composia.controller.v1.GetRepoHeadRequest
 	(*GetRepoHeadResponse)(nil),     // 1: composia.controller.v1.GetRepoHeadResponse
@@ -890,6 +1068,8 @@ var file_proto_composia_controller_v1_repo_proto_goTypes = []any{
 	(*ValidateRepoResponse)(nil),    // 12: composia.controller.v1.ValidateRepoResponse
 	(*UpdateRepoFileRequest)(nil),   // 13: composia.controller.v1.UpdateRepoFileRequest
 	(*UpdateRepoFileResponse)(nil),  // 14: composia.controller.v1.UpdateRepoFileResponse
+	(*SyncRepoRequest)(nil),         // 15: composia.controller.v1.SyncRepoRequest
+	(*SyncRepoResponse)(nil),        // 16: composia.controller.v1.SyncRepoResponse
 }
 var file_proto_composia_controller_v1_repo_proto_depIdxs = []int32{
 	2,  // 0: composia.controller.v1.ListRepoFilesResponse.entries:type_name -> composia.controller.v1.RepoFileEntry
@@ -901,14 +1081,16 @@ var file_proto_composia_controller_v1_repo_proto_depIdxs = []int32{
 	8,  // 6: composia.controller.v1.RepoService.ListRepoCommits:input_type -> composia.controller.v1.ListRepoCommitsRequest
 	11, // 7: composia.controller.v1.RepoService.ValidateRepo:input_type -> composia.controller.v1.ValidateRepoRequest
 	13, // 8: composia.controller.v1.RepoService.UpdateRepoFile:input_type -> composia.controller.v1.UpdateRepoFileRequest
-	1,  // 9: composia.controller.v1.RepoService.GetRepoHead:output_type -> composia.controller.v1.GetRepoHeadResponse
-	4,  // 10: composia.controller.v1.RepoService.ListRepoFiles:output_type -> composia.controller.v1.ListRepoFilesResponse
-	6,  // 11: composia.controller.v1.RepoService.GetRepoFile:output_type -> composia.controller.v1.GetRepoFileResponse
-	9,  // 12: composia.controller.v1.RepoService.ListRepoCommits:output_type -> composia.controller.v1.ListRepoCommitsResponse
-	12, // 13: composia.controller.v1.RepoService.ValidateRepo:output_type -> composia.controller.v1.ValidateRepoResponse
-	14, // 14: composia.controller.v1.RepoService.UpdateRepoFile:output_type -> composia.controller.v1.UpdateRepoFileResponse
-	9,  // [9:15] is the sub-list for method output_type
-	3,  // [3:9] is the sub-list for method input_type
+	15, // 9: composia.controller.v1.RepoService.SyncRepo:input_type -> composia.controller.v1.SyncRepoRequest
+	1,  // 10: composia.controller.v1.RepoService.GetRepoHead:output_type -> composia.controller.v1.GetRepoHeadResponse
+	4,  // 11: composia.controller.v1.RepoService.ListRepoFiles:output_type -> composia.controller.v1.ListRepoFilesResponse
+	6,  // 12: composia.controller.v1.RepoService.GetRepoFile:output_type -> composia.controller.v1.GetRepoFileResponse
+	9,  // 13: composia.controller.v1.RepoService.ListRepoCommits:output_type -> composia.controller.v1.ListRepoCommitsResponse
+	12, // 14: composia.controller.v1.RepoService.ValidateRepo:output_type -> composia.controller.v1.ValidateRepoResponse
+	14, // 15: composia.controller.v1.RepoService.UpdateRepoFile:output_type -> composia.controller.v1.UpdateRepoFileResponse
+	16, // 16: composia.controller.v1.RepoService.SyncRepo:output_type -> composia.controller.v1.SyncRepoResponse
+	10, // [10:17] is the sub-list for method output_type
+	3,  // [3:10] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
 	3,  // [3:3] is the sub-list for extension extendee
 	0,  // [0:3] is the sub-list for field type_name
@@ -925,7 +1107,7 @@ func file_proto_composia_controller_v1_repo_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_controller_v1_repo_proto_rawDesc), len(file_proto_composia_controller_v1_repo_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

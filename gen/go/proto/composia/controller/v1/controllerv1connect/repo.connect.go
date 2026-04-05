@@ -49,6 +49,8 @@ const (
 	// RepoServiceUpdateRepoFileProcedure is the fully-qualified name of the RepoService's
 	// UpdateRepoFile RPC.
 	RepoServiceUpdateRepoFileProcedure = "/composia.controller.v1.RepoService/UpdateRepoFile"
+	// RepoServiceSyncRepoProcedure is the fully-qualified name of the RepoService's SyncRepo RPC.
+	RepoServiceSyncRepoProcedure = "/composia.controller.v1.RepoService/SyncRepo"
 )
 
 // RepoServiceClient is a client for the composia.controller.v1.RepoService service.
@@ -59,6 +61,7 @@ type RepoServiceClient interface {
 	ListRepoCommits(context.Context, *connect.Request[v1.ListRepoCommitsRequest]) (*connect.Response[v1.ListRepoCommitsResponse], error)
 	ValidateRepo(context.Context, *connect.Request[v1.ValidateRepoRequest]) (*connect.Response[v1.ValidateRepoResponse], error)
 	UpdateRepoFile(context.Context, *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.UpdateRepoFileResponse], error)
+	SyncRepo(context.Context, *connect.Request[v1.SyncRepoRequest]) (*connect.Response[v1.SyncRepoResponse], error)
 }
 
 // NewRepoServiceClient constructs a client for the composia.controller.v1.RepoService service. By
@@ -108,6 +111,12 @@ func NewRepoServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(repoServiceMethods.ByName("UpdateRepoFile")),
 			connect.WithClientOptions(opts...),
 		),
+		syncRepo: connect.NewClient[v1.SyncRepoRequest, v1.SyncRepoResponse](
+			httpClient,
+			baseURL+RepoServiceSyncRepoProcedure,
+			connect.WithSchema(repoServiceMethods.ByName("SyncRepo")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -119,6 +128,7 @@ type repoServiceClient struct {
 	listRepoCommits *connect.Client[v1.ListRepoCommitsRequest, v1.ListRepoCommitsResponse]
 	validateRepo    *connect.Client[v1.ValidateRepoRequest, v1.ValidateRepoResponse]
 	updateRepoFile  *connect.Client[v1.UpdateRepoFileRequest, v1.UpdateRepoFileResponse]
+	syncRepo        *connect.Client[v1.SyncRepoRequest, v1.SyncRepoResponse]
 }
 
 // GetRepoHead calls composia.controller.v1.RepoService.GetRepoHead.
@@ -151,6 +161,11 @@ func (c *repoServiceClient) UpdateRepoFile(ctx context.Context, req *connect.Req
 	return c.updateRepoFile.CallUnary(ctx, req)
 }
 
+// SyncRepo calls composia.controller.v1.RepoService.SyncRepo.
+func (c *repoServiceClient) SyncRepo(ctx context.Context, req *connect.Request[v1.SyncRepoRequest]) (*connect.Response[v1.SyncRepoResponse], error) {
+	return c.syncRepo.CallUnary(ctx, req)
+}
+
 // RepoServiceHandler is an implementation of the composia.controller.v1.RepoService service.
 type RepoServiceHandler interface {
 	GetRepoHead(context.Context, *connect.Request[v1.GetRepoHeadRequest]) (*connect.Response[v1.GetRepoHeadResponse], error)
@@ -159,6 +174,7 @@ type RepoServiceHandler interface {
 	ListRepoCommits(context.Context, *connect.Request[v1.ListRepoCommitsRequest]) (*connect.Response[v1.ListRepoCommitsResponse], error)
 	ValidateRepo(context.Context, *connect.Request[v1.ValidateRepoRequest]) (*connect.Response[v1.ValidateRepoResponse], error)
 	UpdateRepoFile(context.Context, *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.UpdateRepoFileResponse], error)
+	SyncRepo(context.Context, *connect.Request[v1.SyncRepoRequest]) (*connect.Response[v1.SyncRepoResponse], error)
 }
 
 // NewRepoServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -204,6 +220,12 @@ func NewRepoServiceHandler(svc RepoServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(repoServiceMethods.ByName("UpdateRepoFile")),
 		connect.WithHandlerOptions(opts...),
 	)
+	repoServiceSyncRepoHandler := connect.NewUnaryHandler(
+		RepoServiceSyncRepoProcedure,
+		svc.SyncRepo,
+		connect.WithSchema(repoServiceMethods.ByName("SyncRepo")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.controller.v1.RepoService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case RepoServiceGetRepoHeadProcedure:
@@ -218,6 +240,8 @@ func NewRepoServiceHandler(svc RepoServiceHandler, opts ...connect.HandlerOption
 			repoServiceValidateRepoHandler.ServeHTTP(w, r)
 		case RepoServiceUpdateRepoFileProcedure:
 			repoServiceUpdateRepoFileHandler.ServeHTTP(w, r)
+		case RepoServiceSyncRepoProcedure:
+			repoServiceSyncRepoHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -249,4 +273,8 @@ func (UnimplementedRepoServiceHandler) ValidateRepo(context.Context, *connect.Re
 
 func (UnimplementedRepoServiceHandler) UpdateRepoFile(context.Context, *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.UpdateRepoFileResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoService.UpdateRepoFile is not implemented"))
+}
+
+func (UnimplementedRepoServiceHandler) SyncRepo(context.Context, *connect.Request[v1.SyncRepoRequest]) (*connect.Response[v1.SyncRepoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoService.SyncRepo is not implemented"))
 }

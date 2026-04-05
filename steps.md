@@ -30,17 +30,19 @@ Implemented or mostly implemented:
 - Repo write transactions and local Git commits exist for normal files and encrypted service secrets.
 - age-based secret decrypt and re-encrypt helpers exist.
 - The web UI is wired to real controller APIs for dashboard, services, nodes, tasks, backups, repo editing, and secret editing.
+- The frontend style simplification away from the earlier bloated shell has started and should no longer be treated as untouched work.
 
 Still partial or not aligned with `plan.md` yet:
 
 - `PullNextTask` still behaves like short polling rather than the planned long-poll contract.
 - Task `source` semantics are not fully aligned yet; several task creation paths still collapse to `cli` instead of preserving the documented caller source.
 - Repo write handling is still local-only and does not yet implement remote tracking semantics, push reporting, sync state, or `SyncRepo`.
+- `migrate` is still not implemented as the documented single-task workflow, and `awaiting_confirmation` is not yet exercised by a real controller flow.
 - Backup execution only covers the currently implemented manual export path; restore-driven workflows and migration reuse are still incomplete.
 - DNS, Caddy management, prune, and migrate are not implemented.
 - CLI config and a real CLI command surface are not implemented yet.
 - Scheduled update and backup execution are not implemented yet.
-- The current web UI works, but its visual style is too bloated for an operations console and should be simplified before more UI surface is added.
+- The current web UI reads real controller state and the initial visual cleanup is underway, but it still lacks task action entry points, task log tailing, repo sync feedback, and stronger repo/secret editing ergonomics.
 
 ## Execution Rule
 
@@ -53,15 +55,15 @@ From this point forward, agents working in this repository should follow these r
 
 ## Frontend Direction
 
-The current frontend already covers real controller workflows, so the next UI work should focus on correction, not expansion-first styling.
+The current frontend already covers real controller read paths, and the first round of style simplification has begun. The next UI work should treat operational completeness as the priority, then continue tightening the visual system.
 
-1. Move away from the current bloated visual language.
-2. Prefer a denser and calmer operations-console style over a landing-page or marketing aesthetic.
-3. Reduce oversized cards, excessive blur, oversized rounded corners, and decorative empty space.
-4. Increase information density and scanability for services, nodes, tasks, backups, and repo views.
-5. Preserve responsive behavior on mobile, but do not sacrifice desktop density for oversized mobile-first spacing.
-6. Reuse a small set of layout and status patterns so the UI feels operational and systematic rather than ornamental.
-7. Before adding more pages or visual flourish, first simplify the existing dashboard, detail pages, and repo editor.
+1. Keep the calmer operations-console direction and continue removing leftover decorative styling where it still hurts scanability.
+2. Prioritize missing controller actions before more aesthetic polish: deploy, update, stop, restart, backup, migrate, rerun, and other documented task entry points.
+3. Add task log tailing so task detail pages expose real-time execution output instead of only showing the log path.
+4. Expand repo and secret editing feedback to show commit results, revision changes, and future repo sync state once the backend exposes it.
+5. Upgrade repo and secret editing ergonomics after the API semantics are ready; the baseline textareas are acceptable temporarily but are not the intended end state.
+6. Continue increasing information density and scanability for services, nodes, tasks, backups, and repo views without regressing mobile usability.
+7. Reuse a small set of layout and status patterns so the UI feels operational and systematic rather than ornamental.
 
 ## Phase 1: Remove Architecture Drift
 
@@ -161,13 +163,14 @@ Deliverable:
 
 Status: in progress
 
-Goal: keep the existing real controller UI, but simplify its design and make it feel like an operations console instead of a decorative shell.
+Goal: keep the existing real controller UI, finish the missing controller interactions, and continue tightening it into a dense operations console.
 
-1. Simplify the current dashboard, service, node, task, backup, repo, and secret pages into a denser visual system.
-2. Replace the current oversized card-heavy style with flatter surfaces, tighter spacing, and clearer hierarchy.
-3. Add task log tailing and any remaining task controls still missing from the current pages.
-4. Keep repo and secret editing usable on both desktop and mobile without turning the layout into oversized stacked panels.
-5. Re-check all existing pages for consistent status badges, table/list density, and navigation patterns before adding more surface area.
+1. Add the missing task action entry points on the real service, task, and node pages.
+2. Add task log tailing to task detail pages.
+3. Surface repo write results clearly, and later extend the same pages with repo sync state and push reporting once the backend supports them.
+4. Keep repo and secret editing usable on both desktop and mobile, then improve editor ergonomics after the backend contract is complete.
+5. Continue simplifying the dashboard, service, node, task, backup, repo, and secret pages into a denser and more consistent visual system.
+6. Re-check all existing pages for consistent status badges, table/list density, and navigation patterns before adding more surface area.
 
 Deliverable:
 
@@ -211,13 +214,16 @@ Deliverable:
 
 ## Recommended Immediate Next Step
 
-Start with the remaining alignment work in Phases 1 through 3, then clean up the current UI style before adding more day-2 and migration surface area.
+Start with the remaining alignment work in Phases 1 through 4, then finish the missing operational UI interactions before adding more day-2 and migration surface area.
 
 That is the smallest correct next milestone for the current codebase:
 
 - remove architecture drift
 - finish the task foundation
 - make the first service actions reliable
-- simplify the current frontend visual language
+- implement remote Git sync semantics and repo sync reporting
+- finish the missing frontend task controls, log tailing, and repo/secret feedback
 
-Do not expand DNS, migrate, scheduling, or more UI surface area until those alignment items are complete.
+The initial frontend style refactor should be treated as underway, not as the primary blocker.
+
+Do not expand DNS, scheduling, or more UI surface area until those alignment items are complete. Implement `migrate` only as the documented workflow, not as a shortcut variant.

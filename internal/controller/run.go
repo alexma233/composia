@@ -35,6 +35,8 @@ import (
 const (
 	heartbeatOfflineAfter = 45 * time.Second
 	offlineSweepInterval  = 15 * time.Second
+	pullNextTaskMaxWait   = 25 * time.Second
+	pullNextTaskRetryWait = 500 * time.Millisecond
 )
 
 func Run(ctx context.Context, configPath string) error {
@@ -77,6 +79,7 @@ func Run(ctx context.Context, configPath string) error {
 	if _, err := db.RecoverRunningTasks(ctx, time.Now().UTC()); err != nil {
 		return err
 	}
+	taskQueue := newTaskQueueNotifier()
 
 	services, err := repo.DiscoverServices(cfg.RepoDir, availableNodeIDs)
 	if err != nil {
@@ -111,13 +114,13 @@ func Run(ctx context.Context, configPath string) error {
 	})
 
 	agentPath, agentHandler := agentv1connect.NewAgentReportServiceHandler(
-		&agentReportServer{db: db, logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}},
+		&agentReportServer{db: db, logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: taskQueue},
 		connect.WithInterceptors(agentInterceptor),
 	)
 	mux.Handle(agentPath, agentHandler)
 
 	agentTaskPath, agentTaskHandler := agentv1connect.NewAgentTaskServiceHandler(
-		&agentTaskServer{db: db},
+		&agentTaskServer{db: db, taskQueue: taskQueue},
 		connect.WithInterceptors(agentInterceptor),
 	)
 	mux.Handle(agentTaskPath, agentTaskHandler)
@@ -154,7 +157,7 @@ func Run(ctx context.Context, configPath string) error {
 	mux.Handle(backupPath, backupHandler)
 
 	servicePath, serviceHandler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs},
+		&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue},
 		connect.WithInterceptors(cliInterceptor),
 	)
 	mux.Handle(servicePath, serviceHandler)
@@ -166,7 +169,7 @@ func Run(ctx context.Context, configPath string) error {
 	mux.Handle(nodePath, nodeHandler)
 
 	taskPath, taskHandler := controllerv1connect.NewTaskServiceHandler(
-		&taskServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs},
+		&taskServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue},
 		connect.WithInterceptors(cliInterceptor),
 	)
 	mux.Handle(taskPath, taskHandler)
@@ -211,12 +214,16 @@ func sweepOfflineNodes(ctx context.Context, db *store.DB) {
 }
 
 type agentReportServer struct {
-	db       *store.DB
-	logState *taskLogAckState
+	db        *store.DB
+	logState  *taskLogAckState
+	taskQueue *taskQueueNotifier
 }
 
 type agentTaskServer struct {
-	db *store.DB
+	db            *store.DB
+	taskQueue     *taskQueueNotifier
+	maxWait       time.Duration
+	retryInterval time.Duration
 }
 
 type bundleServer struct {
@@ -231,11 +238,64 @@ type repoServer struct {
 	repoMu           *sync.Mutex
 }
 
+type repoWriteResult struct {
+	CommitID             string
+	SyncStatus           string
+	PushError            string
+	LastSuccessfulPullAt string
+}
+
 type secretServer struct {
 	db               *store.DB
 	cfg              *config.ControllerConfig
 	availableNodeIDs map[string]struct{}
 	repoMu           *sync.Mutex
+}
+
+type taskQueueNotifier struct {
+	mu          sync.Mutex
+	subscribers map[chan struct{}]struct{}
+}
+
+func newTaskQueueNotifier() *taskQueueNotifier {
+	return &taskQueueNotifier{subscribers: make(map[chan struct{}]struct{})}
+}
+
+func (notifier *taskQueueNotifier) Subscribe() chan struct{} {
+	if notifier == nil {
+		return nil
+	}
+	ch := make(chan struct{}, 1)
+	notifier.mu.Lock()
+	notifier.subscribers[ch] = struct{}{}
+	notifier.mu.Unlock()
+	return ch
+}
+
+func (notifier *taskQueueNotifier) Unsubscribe(ch chan struct{}) {
+	if notifier == nil || ch == nil {
+		return
+	}
+	notifier.mu.Lock()
+	if _, ok := notifier.subscribers[ch]; ok {
+		delete(notifier.subscribers, ch)
+		close(ch)
+	}
+	notifier.mu.Unlock()
+}
+
+func (notifier *taskQueueNotifier) Notify() {
+	if notifier == nil {
+		return
+	}
+	notifier.mu.Lock()
+	defer notifier.mu.Unlock()
+	for ch := range notifier.subscribers {
+		select {
+		case ch <- struct{}{}:
+		default:
+		}
+	}
 }
 
 func (server *agentReportServer) Heartbeat(ctx context.Context, req *connect.Request[agentv1.HeartbeatRequest]) (*connect.Response[agentv1.HeartbeatResponse], error) {
@@ -290,6 +350,7 @@ func (server *agentReportServer) ReportTaskState(ctx context.Context, req *conne
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	server.resetTaskLogAck(req.Msg.GetTaskId())
+	server.taskQueue.Notify()
 	return connect.NewResponse(&agentv1.ReportTaskStateResponse{}), nil
 }
 
@@ -596,27 +657,60 @@ func (server *agentTaskServer) PullNextTask(ctx context.Context, req *connect.Re
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("node_id does not match bearer token"))
 	}
 
-	record, err := server.db.ClaimNextPendingTaskForNode(ctx, req.Msg.GetNodeId(), time.Now().UTC())
-	if err != nil {
-		if errors.Is(err, store.ErrNoPendingTask) {
+	waitCh := server.taskQueue.Subscribe()
+	defer server.taskQueue.Unsubscribe(waitCh)
+	deadline := time.Now().Add(server.longPollMaxWait())
+
+	for {
+		record, err := server.db.ClaimNextPendingTaskForNode(ctx, req.Msg.GetNodeId(), time.Now().UTC())
+		if err == nil {
+			response := &agentv1.PullNextTaskResponse{
+				HasTask: true,
+				Task: &agentv1.AgentTask{
+					TaskId:       record.TaskID,
+					Type:         string(record.Type),
+					ServiceName:  record.ServiceName,
+					NodeId:       record.NodeID,
+					RepoRevision: record.RepoRevision,
+					ServiceDir:   taskParams(record.ParamsJSON).ServiceDir,
+					DataNames:    taskParams(record.ParamsJSON).DataNames,
+				},
+			}
+			return connect.NewResponse(response), nil
+		}
+		if !errors.Is(err, store.ErrNoPendingTask) {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
 			return connect.NewResponse(&agentv1.PullNextTaskResponse{HasTask: false}), nil
 		}
-		return nil, connect.NewError(connect.CodeInternal, err)
+		waitFor := minDuration(remaining, server.longPollRetryInterval())
+		timer := time.NewTimer(waitFor)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return nil, ctx.Err()
+		case <-waitCh:
+			timer.Stop()
+		case <-timer.C:
+		}
 	}
+}
 
-	response := &agentv1.PullNextTaskResponse{
-		HasTask: true,
-		Task: &agentv1.AgentTask{
-			TaskId:       record.TaskID,
-			Type:         string(record.Type),
-			ServiceName:  record.ServiceName,
-			NodeId:       record.NodeID,
-			RepoRevision: record.RepoRevision,
-			ServiceDir:   taskParams(record.ParamsJSON).ServiceDir,
-			DataNames:    taskParams(record.ParamsJSON).DataNames,
-		},
+func (server *agentTaskServer) longPollMaxWait() time.Duration {
+	if server.maxWait > 0 {
+		return server.maxWait
 	}
-	return connect.NewResponse(response), nil
+	return pullNextTaskMaxWait
+}
+
+func (server *agentTaskServer) longPollRetryInterval() time.Duration {
+	if server.retryInterval > 0 {
+		return server.retryInterval
+	}
+	return pullNextTaskRetryWait
 }
 
 type systemServer struct {
@@ -628,6 +722,7 @@ type serviceServer struct {
 	db               *store.DB
 	cfg              *config.ControllerConfig
 	availableNodeIDs map[string]struct{}
+	taskQueue        *taskQueueNotifier
 }
 
 type serviceTaskParams struct {
@@ -644,6 +739,7 @@ type taskServer struct {
 	db               *store.DB
 	cfg              *config.ControllerConfig
 	availableNodeIDs map[string]struct{}
+	taskQueue        *taskQueueNotifier
 }
 
 type backupRecordServer struct {
@@ -774,7 +870,7 @@ func (server *serviceServer) BackupService(ctx context.Context, req *connect.Req
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
-	createdTask, err := server.createServiceTask(ctx, req.Msg.GetServiceName(), task.TypeBackup, dataNames)
+	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), task.TypeBackup, dataNames, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
 	if err != nil {
 		return nil, err
 	}
@@ -790,7 +886,7 @@ func (server *serviceServer) DeployService(ctx context.Context, req *connect.Req
 	if req.Msg == nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
-	createdTask, err := server.createServiceTask(ctx, req.Msg.GetServiceName(), task.TypeDeploy, nil)
+	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), task.TypeDeploy, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
 	if err != nil {
 		return nil, err
 	}
@@ -807,7 +903,7 @@ func (server *serviceServer) UpdateService(ctx context.Context, req *connect.Req
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
-	createdTask, err := server.createServiceTask(ctx, req.Msg.GetServiceName(), task.TypeUpdate, nil)
+	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), task.TypeUpdate, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
 	if err != nil {
 		return nil, err
 	}
@@ -823,7 +919,7 @@ func (server *serviceServer) StopService(ctx context.Context, req *connect.Reque
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
-	createdTask, err := server.createServiceTask(ctx, req.Msg.GetServiceName(), task.TypeStop, nil)
+	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), task.TypeStop, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
 	if err != nil {
 		return nil, err
 	}
@@ -839,7 +935,7 @@ func (server *serviceServer) RestartService(ctx context.Context, req *connect.Re
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
-	createdTask, err := server.createServiceTask(ctx, req.Msg.GetServiceName(), task.TypeRestart, nil)
+	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), task.TypeRestart, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
 	if err != nil {
 		return nil, err
 	}
@@ -853,6 +949,7 @@ func (server *serviceServer) RestartService(ctx context.Context, req *connect.Re
 
 type serviceTaskCreateOptions struct {
 	AttemptOfTaskID string
+	Source          task.Source
 }
 
 func (server *serviceServer) createServiceTask(ctx context.Context, serviceName string, taskType task.Type, dataNames []string) (task.Record, error) {
@@ -894,10 +991,14 @@ func (server *serviceServer) createServiceTaskWithOptions(ctx context.Context, s
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode task params: %w", err))
 	}
 	taskID := uuid.NewString()
+	taskSource := options.Source
+	if taskSource == "" {
+		taskSource = task.SourceCLI
+	}
 	createdTask, err := server.db.CreateTask(ctx, task.Record{
 		TaskID:          taskID,
 		Type:            taskType,
-		Source:          task.SourceCLI,
+		Source:          taskSource,
 		TriggeredBy:     triggeredBy,
 		ServiceName:     service.Name,
 		NodeID:          service.Node,
@@ -912,6 +1013,7 @@ func (server *serviceServer) createServiceTaskWithOptions(ctx context.Context, s
 	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
 	}
+	server.taskQueue.Notify()
 	return createdTask, nil
 }
 
@@ -1128,7 +1230,7 @@ func backupSummaryMessage(backup store.BackupSummary) *controllerv1.BackupSummar
 	}
 }
 
-func (server *repoServer) GetRepoHead(_ context.Context, _ *connect.Request[controllerv1.GetRepoHeadRequest]) (*connect.Response[controllerv1.GetRepoHeadResponse], error) {
+func (server *repoServer) GetRepoHead(ctx context.Context, _ *connect.Request[controllerv1.GetRepoHeadRequest]) (*connect.Response[controllerv1.GetRepoHeadResponse], error) {
 	headRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -1137,19 +1239,22 @@ func (server *repoServer) GetRepoHead(_ context.Context, _ *connect.Request[cont
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	hasRemote, err := repo.HasRemote(server.cfg.RepoDir)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
 	cleanWorktree, err := repo.IsCleanWorkingTree(server.cfg.RepoDir)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	syncState, err := server.repoSyncState(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 	response := &controllerv1.GetRepoHeadResponse{
-		HeadRevision:  headRevision,
-		Branch:        branch,
-		HasRemote:     hasRemote,
-		CleanWorktree: cleanWorktree,
+		HeadRevision:         headRevision,
+		Branch:               branch,
+		HasRemote:            server.hasConfiguredRemote(),
+		CleanWorktree:        cleanWorktree,
+		SyncStatus:           syncState.SyncStatus,
+		LastSyncError:        syncState.LastSyncError,
+		LastSuccessfulPullAt: syncState.LastSuccessfulPullAt,
 	}
 	return connect.NewResponse(response), nil
 }
@@ -1243,6 +1348,40 @@ func (server *repoServer) ValidateRepo(_ context.Context, _ *connect.Request[con
 	return connect.NewResponse(response), nil
 }
 
+func (server *repoServer) SyncRepo(ctx context.Context, _ *connect.Request[controllerv1.SyncRepoRequest]) (*connect.Response[controllerv1.SyncRepoResponse], error) {
+	if !server.hasConfiguredRemote() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("repo remote sync is not configured"))
+	}
+	server.repoLock().Lock()
+	defer server.repoLock().Unlock()
+
+	if _, err := server.syncRepoLocked(ctx); err != nil {
+		return nil, err
+	}
+	if err := server.refreshDeclaredServices(ctx); err != nil {
+		return nil, err
+	}
+	headRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	branch, err := repo.CurrentBranch(server.cfg.RepoDir)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	syncState, err := server.repoSyncState(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&controllerv1.SyncRepoResponse{
+		HeadRevision:         headRevision,
+		Branch:               branch,
+		SyncStatus:           syncState.SyncStatus,
+		LastSyncError:        syncState.LastSyncError,
+		LastSuccessfulPullAt: syncState.LastSuccessfulPullAt,
+	}), nil
+}
+
 func (server *repoServer) UpdateRepoFile(ctx context.Context, req *connect.Request[controllerv1.UpdateRepoFileRequest]) (*connect.Response[controllerv1.UpdateRepoFileResponse], error) {
 	if req.Msg == nil || req.Msg.GetPath() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("path is required"))
@@ -1253,28 +1392,20 @@ func (server *repoServer) UpdateRepoFile(ctx context.Context, req *connect.Reque
 	server.repoLock().Lock()
 	defer server.repoLock().Unlock()
 
-	currentRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	if currentRevision != req.Msg.GetBaseRevision() {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("base_revision %q does not match current HEAD %q", req.Msg.GetBaseRevision(), currentRevision))
-	}
-	cleanWorktree, err := repo.IsCleanWorkingTree(server.cfg.RepoDir)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	if !cleanWorktree {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("repo working tree is not clean"))
-	}
-	if err := server.ensureRepoPathUnlocked(ctx, req.Msg.GetPath()); err != nil {
-		return nil, err
-	}
-	commitID, err := server.updateRepoFileTransaction(ctx, req.Msg.GetPath(), req.Msg.GetContent(), req.Msg.GetCommitMessage())
+	baseSyncState, err := server.prepareRepoWrite(ctx, req.Msg.GetBaseRevision(), req.Msg.GetPath())
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&controllerv1.UpdateRepoFileResponse{CommitId: commitID}), nil
+	result, err := server.updateRepoFileTransaction(ctx, req.Msg.GetPath(), req.Msg.GetContent(), req.Msg.GetCommitMessage(), baseSyncState)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&controllerv1.UpdateRepoFileResponse{
+		CommitId:             result.CommitID,
+		SyncStatus:           result.SyncStatus,
+		PushError:            result.PushError,
+		LastSuccessfulPullAt: result.LastSuccessfulPullAt,
+	}), nil
 }
 
 func (server *repoServer) repoLock() *sync.Mutex {
@@ -1282,6 +1413,152 @@ func (server *repoServer) repoLock() *sync.Mutex {
 		server.repoMu = &sync.Mutex{}
 	}
 	return server.repoMu
+}
+
+func (server *repoServer) hasConfiguredRemote() bool {
+	return server.cfg != nil && server.cfg.Git != nil && strings.TrimSpace(server.cfg.Git.RemoteURL) != ""
+}
+
+func (server *repoServer) repoSyncState(ctx context.Context) (store.RepoSyncState, error) {
+	if !server.hasConfiguredRemote() {
+		return store.RepoSyncState{SyncStatus: store.RepoSyncStatusLocalOnly}, nil
+	}
+	if server.db == nil {
+		return store.RepoSyncState{SyncStatus: store.RepoSyncStatusUnknown}, nil
+	}
+	state, err := server.db.GetRepoSyncState(ctx)
+	if err != nil {
+		return store.RepoSyncState{}, err
+	}
+	if state.SyncStatus == "" {
+		state.SyncStatus = store.RepoSyncStatusUnknown
+	}
+	return state, nil
+}
+
+func (server *repoServer) configuredRemoteBranch() (string, error) {
+	if server.cfg != nil && server.cfg.Git != nil && strings.TrimSpace(server.cfg.Git.Branch) != "" {
+		return strings.TrimSpace(server.cfg.Git.Branch), nil
+	}
+	branch, err := repo.CurrentBranch(server.cfg.RepoDir)
+	if err != nil {
+		return "", err
+	}
+	if branch == "" {
+		return "", fmt.Errorf("cannot determine repo branch for remote sync")
+	}
+	return branch, nil
+}
+
+func (server *repoServer) configuredGitAuthToken() (string, error) {
+	if server.cfg == nil || server.cfg.Git == nil || server.cfg.Git.Auth == nil || strings.TrimSpace(server.cfg.Git.Auth.TokenFile) == "" {
+		return "", nil
+	}
+	content, err := os.ReadFile(strings.TrimSpace(server.cfg.Git.Auth.TokenFile))
+	if err != nil {
+		return "", fmt.Errorf("read git auth token file: %w", err)
+	}
+	return strings.TrimSpace(string(content)), nil
+}
+
+func (server *repoServer) persistRepoSyncState(ctx context.Context, state store.RepoSyncState) error {
+	if server.db == nil {
+		return nil
+	}
+	return server.db.UpsertRepoSyncState(ctx, state)
+}
+
+func (server *repoServer) ensureCleanWorktree() error {
+	cleanWorktree, err := repo.IsCleanWorkingTree(server.cfg.RepoDir)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	if !cleanWorktree {
+		return connect.NewError(connect.CodeFailedPrecondition, errors.New("repo working tree is not clean"))
+	}
+	return nil
+}
+
+func (server *repoServer) syncRepoLocked(ctx context.Context) (store.RepoSyncState, error) {
+	if !server.hasConfiguredRemote() {
+		return store.RepoSyncState{SyncStatus: store.RepoSyncStatusLocalOnly}, connect.NewError(connect.CodeFailedPrecondition, errors.New("repo remote sync is not configured"))
+	}
+	if err := server.ensureCleanWorktree(); err != nil {
+		return store.RepoSyncState{}, err
+	}
+	branch, err := server.configuredRemoteBranch()
+	if err != nil {
+		return store.RepoSyncState{}, connect.NewError(connect.CodeInternal, err)
+	}
+	authToken, err := server.configuredGitAuthToken()
+	if err != nil {
+		return store.RepoSyncState{}, connect.NewError(connect.CodeInternal, err)
+	}
+	previousState, err := server.repoSyncState(ctx)
+	if err != nil {
+		return store.RepoSyncState{}, connect.NewError(connect.CodeInternal, err)
+	}
+	pulledAt := time.Now().UTC().Format(time.RFC3339)
+	if err := repo.FetchAndFastForward(server.cfg.RepoDir, strings.TrimSpace(server.cfg.Git.RemoteURL), branch, authToken); err != nil {
+		state := store.RepoSyncState{
+			SyncStatus:           store.RepoSyncStatusPullFailed,
+			LastSyncError:        err.Error(),
+			LastSuccessfulPullAt: previousState.LastSuccessfulPullAt,
+		}
+		if persistErr := server.persistRepoSyncState(ctx, state); persistErr != nil {
+			return store.RepoSyncState{}, connect.NewError(connect.CodeInternal, persistErr)
+		}
+		return state, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	state := store.RepoSyncState{
+		SyncStatus:           store.RepoSyncStatusSynced,
+		LastSyncError:        "",
+		LastSuccessfulPullAt: pulledAt,
+	}
+	if err := server.persistRepoSyncState(ctx, state); err != nil {
+		return store.RepoSyncState{}, connect.NewError(connect.CodeInternal, err)
+	}
+	return state, nil
+}
+
+func (server *repoServer) prepareRepoWrite(ctx context.Context, baseRevision, relativePath string) (store.RepoSyncState, error) {
+	if server.hasConfiguredRemote() {
+		if _, err := server.syncRepoLocked(ctx); err != nil {
+			return store.RepoSyncState{}, err
+		}
+	}
+	currentRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
+	if err != nil {
+		return store.RepoSyncState{}, connect.NewError(connect.CodeInternal, err)
+	}
+	if currentRevision != baseRevision {
+		return store.RepoSyncState{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("base_revision %q does not match current HEAD %q", baseRevision, currentRevision))
+	}
+	if err := server.ensureCleanWorktree(); err != nil {
+		return store.RepoSyncState{}, err
+	}
+	if err := server.ensureRepoPathUnlocked(ctx, relativePath); err != nil {
+		return store.RepoSyncState{}, err
+	}
+	return server.repoSyncState(ctx)
+}
+
+func (server *repoServer) refreshDeclaredServices(ctx context.Context) error {
+	if server.db == nil {
+		return nil
+	}
+	services, err := repo.DiscoverServices(server.cfg.RepoDir, server.availableNodeIDs)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	serviceNames := make([]string, 0, len(services))
+	for _, service := range services {
+		serviceNames = append(serviceNames, service.Name)
+	}
+	if err := server.db.SyncDeclaredServices(ctx, serviceNames); err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	return nil
 }
 
 func (server *repoServer) ensureRepoPathUnlocked(ctx context.Context, relativePath string) error {
@@ -1320,30 +1597,31 @@ func pathHitsServiceDir(targetPath, serviceDir string) bool {
 	return strings.HasPrefix(targetPath, serviceDir+"/")
 }
 
-func (server *repoServer) updateRepoFileTransaction(ctx context.Context, relativePath, content, commitMessage string) (_ string, retErr error) {
+func (server *repoServer) updateRepoFileTransaction(ctx context.Context, relativePath, content, commitMessage string, baseSyncState store.RepoSyncState) (_ repoWriteResult, retErr error) {
 	previous, readErr := repo.ReadFile(server.cfg.RepoDir, relativePath)
 	fileExisted := readErr == nil
+	committed := false
 	if readErr != nil && !errors.Is(readErr, repo.ErrRepoPathNotFound) {
 		switch {
 		case errors.Is(readErr, repo.ErrRepoPathInvalid), errors.Is(readErr, repo.ErrRepoPathProtected):
-			return "", connect.NewError(connect.CodeInvalidArgument, readErr)
+			return repoWriteResult{}, connect.NewError(connect.CodeInvalidArgument, readErr)
 		case errors.Is(readErr, repo.ErrRepoPathNotFile):
-			return "", connect.NewError(connect.CodeFailedPrecondition, readErr)
+			return repoWriteResult{}, connect.NewError(connect.CodeFailedPrecondition, readErr)
 		default:
-			return "", connect.NewError(connect.CodeInternal, readErr)
+			return repoWriteResult{}, connect.NewError(connect.CodeInternal, readErr)
 		}
 	}
 	writtenPath, err := repo.WriteFile(server.cfg.RepoDir, relativePath, content)
 	if err != nil {
 		switch {
 		case errors.Is(err, repo.ErrRepoPathInvalid), errors.Is(err, repo.ErrRepoPathProtected):
-			return "", connect.NewError(connect.CodeInvalidArgument, err)
+			return repoWriteResult{}, connect.NewError(connect.CodeInvalidArgument, err)
 		default:
-			return "", connect.NewError(connect.CodeInternal, err)
+			return repoWriteResult{}, connect.NewError(connect.CodeInternal, err)
 		}
 	}
 	defer func() {
-		if retErr == nil {
+		if retErr == nil || committed {
 			return
 		}
 		if fileExisted {
@@ -1355,7 +1633,7 @@ func (server *repoServer) updateRepoFileTransaction(ctx context.Context, relativ
 	}()
 	validationErrs := repo.ValidateRepo(server.cfg.RepoDir, server.availableNodeIDs)
 	if len(validationErrs) > 0 {
-		return "", connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("repo validation failed: %s", validationErrs[0].Message))
+		return repoWriteResult{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("repo validation failed: %s", validationErrs[0].Message))
 	}
 	authorName := ""
 	authorEmail := ""
@@ -1366,11 +1644,49 @@ func (server *repoServer) updateRepoFileTransaction(ctx context.Context, relativ
 	commitID, err := repo.CommitPath(server.cfg.RepoDir, writtenPath, commitMessage, authorName, authorEmail)
 	if err != nil {
 		if errors.Is(err, repo.ErrNoGitChanges) {
-			return "", connect.NewError(connect.CodeFailedPrecondition, errors.New("repo file content did not change"))
+			return repoWriteResult{}, connect.NewError(connect.CodeFailedPrecondition, errors.New("repo file content did not change"))
 		}
-		return "", connect.NewError(connect.CodeInternal, err)
+		return repoWriteResult{}, connect.NewError(connect.CodeInternal, err)
 	}
-	return commitID, nil
+	committed = true
+	result := repoWriteResult{CommitID: commitID, SyncStatus: baseSyncState.SyncStatus, LastSuccessfulPullAt: baseSyncState.LastSuccessfulPullAt}
+	if !server.hasConfiguredRemote() {
+		result.SyncStatus = store.RepoSyncStatusLocalOnly
+		return result, nil
+	}
+	branch, err := server.configuredRemoteBranch()
+	if err != nil {
+		return repoWriteResult{}, connect.NewError(connect.CodeInternal, err)
+	}
+	authToken, err := server.configuredGitAuthToken()
+	if err != nil {
+		return repoWriteResult{}, connect.NewError(connect.CodeInternal, err)
+	}
+	if err := repo.PushCurrentBranch(server.cfg.RepoDir, strings.TrimSpace(server.cfg.Git.RemoteURL), branch, authToken); err != nil {
+		state := store.RepoSyncState{
+			SyncStatus:           store.RepoSyncStatusPushFailed,
+			LastSyncError:        err.Error(),
+			LastSuccessfulPullAt: baseSyncState.LastSuccessfulPullAt,
+		}
+		if persistErr := server.persistRepoSyncState(ctx, state); persistErr != nil {
+			return repoWriteResult{}, connect.NewError(connect.CodeInternal, persistErr)
+		}
+		result.SyncStatus = state.SyncStatus
+		result.PushError = state.LastSyncError
+		result.LastSuccessfulPullAt = state.LastSuccessfulPullAt
+		return result, nil
+	}
+	state := store.RepoSyncState{
+		SyncStatus:           store.RepoSyncStatusSynced,
+		LastSyncError:        "",
+		LastSuccessfulPullAt: baseSyncState.LastSuccessfulPullAt,
+	}
+	if err := server.persistRepoSyncState(ctx, state); err != nil {
+		return repoWriteResult{}, connect.NewError(connect.CodeInternal, err)
+	}
+	result.SyncStatus = state.SyncStatus
+	result.LastSuccessfulPullAt = state.LastSuccessfulPullAt
+	return result, nil
 }
 
 func (server *secretServer) GetServiceSecretEnv(ctx context.Context, req *connect.Request[controllerv1.GetServiceSecretEnvRequest]) (*connect.Response[controllerv1.GetServiceSecretEnvResponse], error) {
@@ -1419,32 +1735,24 @@ func (server *secretServer) UpdateServiceSecretEnv(ctx context.Context, req *con
 	repoSrv := &repoServer{db: server.db, cfg: server.cfg, availableNodeIDs: server.availableNodeIDs, repoMu: server.repoMu}
 	repoSrv.repoLock().Lock()
 	defer repoSrv.repoLock().Unlock()
-	currentRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
+	baseSyncState, err := repoSrv.prepareRepoWrite(ctx, req.Msg.GetBaseRevision(), secretPath)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	if currentRevision != req.Msg.GetBaseRevision() {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("base_revision %q does not match current HEAD %q", req.Msg.GetBaseRevision(), currentRevision))
-	}
-	cleanWorktree, err := repo.IsCleanWorkingTree(server.cfg.RepoDir)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	if !cleanWorktree {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("repo working tree is not clean"))
-	}
-	if err := repoSrv.ensureRepoPathUnlocked(ctx, secretPath); err != nil {
 		return nil, err
 	}
 	commitMessage := req.Msg.GetCommitMessage()
 	if commitMessage == "" {
 		commitMessage = fmt.Sprintf("update secrets for %s", service.Name)
 	}
-	commitID, err := repoSrv.updateRepoFileTransaction(ctx, secretPath, string(ciphertext), commitMessage)
+	result, err := repoSrv.updateRepoFileTransaction(ctx, secretPath, string(ciphertext), commitMessage, baseSyncState)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&controllerv1.UpdateServiceSecretEnvResponse{CommitId: commitID}), nil
+	return connect.NewResponse(&controllerv1.UpdateServiceSecretEnvResponse{
+		CommitId:             result.CommitID,
+		SyncStatus:           result.SyncStatus,
+		PushError:            result.PushError,
+		LastSuccessfulPullAt: result.LastSuccessfulPullAt,
+	}), nil
 }
 
 func (server *secretServer) serviceSecretPath(serviceName string) (*repo.Service, string, error) {
@@ -1566,7 +1874,7 @@ func (server *taskServer) RunTaskAgain(ctx context.Context, req *connect.Request
 	}
 
 	params := taskParams(detail.Record.ParamsJSON)
-	createdTask, err := createServiceTaskWithOptions(ctx, server.db, server.cfg, server.availableNodeIDs, detail.Record.ServiceName, rerunType, params.DataNames, serviceTaskCreateOptions{AttemptOfTaskID: detail.Record.TaskID})
+	createdTask, err := createServiceTaskWithOptions(ctx, server.db, server.cfg, server.availableNodeIDs, detail.Record.ServiceName, rerunType, params.DataNames, serviceTaskCreateOptions{AttemptOfTaskID: detail.Record.TaskID, Source: requestTaskSource(req.Header())})
 	if err != nil {
 		return nil, err
 	}
@@ -1615,4 +1923,24 @@ func protoTime(value *timestamppb.Timestamp) *time.Time {
 	}
 	parsed := value.AsTime().UTC()
 	return &parsed
+}
+
+func minDuration(left, right time.Duration) time.Duration {
+	if left < right {
+		return left
+	}
+	return right
+}
+
+func requestTaskSource(header http.Header) task.Source {
+	switch strings.ToLower(strings.TrimSpace(header.Get("X-Composia-Source"))) {
+	case string(task.SourceWeb):
+		return task.SourceWeb
+	case string(task.SourceSchedule):
+		return task.SourceSchedule
+	case string(task.SourceSystem):
+		return task.SourceSystem
+	default:
+		return task.SourceCLI
+	}
 }

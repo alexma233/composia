@@ -186,10 +186,13 @@ func (x *UpdateServiceSecretEnvRequest) GetCommitMessage() string {
 }
 
 type UpdateServiceSecretEnvResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CommitId      string                 `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	CommitId             string                 `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
+	SyncStatus           string                 `protobuf:"bytes,2,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
+	PushError            string                 `protobuf:"bytes,3,opt,name=push_error,json=pushError,proto3" json:"push_error,omitempty"`
+	LastSuccessfulPullAt string                 `protobuf:"bytes,4,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *UpdateServiceSecretEnvResponse) Reset() {
@@ -229,6 +232,27 @@ func (x *UpdateServiceSecretEnvResponse) GetCommitId() string {
 	return ""
 }
 
+func (x *UpdateServiceSecretEnvResponse) GetSyncStatus() string {
+	if x != nil {
+		return x.SyncStatus
+	}
+	return ""
+}
+
+func (x *UpdateServiceSecretEnvResponse) GetPushError() string {
+	if x != nil {
+		return x.PushError
+	}
+	return ""
+}
+
+func (x *UpdateServiceSecretEnvResponse) GetLastSuccessfulPullAt() string {
+	if x != nil {
+		return x.LastSuccessfulPullAt
+	}
+	return ""
+}
+
 var File_proto_composia_controller_v1_secret_proto protoreflect.FileDescriptor
 
 const file_proto_composia_controller_v1_secret_proto_rawDesc = "" +
@@ -243,9 +267,14 @@ const file_proto_composia_controller_v1_secret_proto_rawDesc = "" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12#\n" +
 	"\rbase_revision\x18\x03 \x01(\tR\fbaseRevision\x12%\n" +
-	"\x0ecommit_message\x18\x04 \x01(\tR\rcommitMessage\"=\n" +
+	"\x0ecommit_message\x18\x04 \x01(\tR\rcommitMessage\"\xb4\x01\n" +
 	"\x1eUpdateServiceSecretEnvResponse\x12\x1b\n" +
-	"\tcommit_id\x18\x01 \x01(\tR\bcommitId2\x99\x02\n" +
+	"\tcommit_id\x18\x01 \x01(\tR\bcommitId\x12\x1f\n" +
+	"\vsync_status\x18\x02 \x01(\tR\n" +
+	"syncStatus\x12\x1d\n" +
+	"\n" +
+	"push_error\x18\x03 \x01(\tR\tpushError\x125\n" +
+	"\x17last_successful_pull_at\x18\x04 \x01(\tR\x14lastSuccessfulPullAt2\x99\x02\n" +
 	"\rSecretService\x12~\n" +
 	"\x13GetServiceSecretEnv\x122.composia.controller.v1.GetServiceSecretEnvRequest\x1a3.composia.controller.v1.GetServiceSecretEnvResponse\x12\x87\x01\n" +
 	"\x16UpdateServiceSecretEnv\x125.composia.controller.v1.UpdateServiceSecretEnvRequest\x1a6.composia.controller.v1.UpdateServiceSecretEnvResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"

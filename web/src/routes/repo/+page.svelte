@@ -29,9 +29,18 @@
 <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
   <div class="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
     <section class="rounded-lg border bg-card p-6 shadow-xs">
-      <div class="mb-5">
-        <h1 class="text-2xl font-semibold">Repo</h1>
-        <p class="text-sm text-muted-foreground">Minimal Git-backed repo browser through the controller API.</p>
+       <div class="mb-5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 class="text-2xl font-semibold">Repo</h1>
+            <p class="text-sm text-muted-foreground">Minimal Git-backed repo browser through the controller API.</p>
+          </div>
+          {#if data.head?.hasRemote}
+            <form method="POST">
+              <Button type="submit" formaction="?/sync" variant="outline">Sync repo</Button>
+            </form>
+          {/if}
+        </div>
       </div>
 
       {#if data.head}
@@ -39,6 +48,16 @@
           <div>Branch: <span class="text-foreground">{data.head.branch || 'HEAD'}</span></div>
           <div class="mt-1 break-all">Revision: <span class="text-foreground">{data.head.headRevision}</span></div>
           <div class="mt-1">Worktree: <span class="text-foreground">{data.head.cleanWorktree ? 'clean' : 'dirty'}</span></div>
+          <div class="mt-1">Remote: <span class="text-foreground">{data.head.hasRemote ? 'configured' : 'local only'}</span></div>
+          <div class="mt-1">Sync: <span class="text-foreground">{data.head.syncStatus || 'unknown'}</span></div>
+          {#if data.head.lastSuccessfulPullAt}
+            <div class="mt-1">Last pull: <span class="text-foreground">{data.head.lastSuccessfulPullAt}</span></div>
+          {/if}
+          {#if data.head.lastSyncError}
+            <div class="mt-2 rounded border border-destructive/20 bg-destructive/10 px-3 py-2 text-destructive">
+              {data.head.lastSyncError}
+            </div>
+          {/if}
         </div>
       {/if}
 

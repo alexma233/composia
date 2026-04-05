@@ -97,6 +97,25 @@ export type RepoHead = {
   branch: string;
   headRevision: string;
   cleanWorktree: boolean;
+  hasRemote: boolean;
+  syncStatus: string;
+  lastSyncError: string;
+  lastSuccessfulPullAt: string;
+};
+
+export type RepoWriteResult = {
+  commitId: string;
+  syncStatus: string;
+  pushError: string;
+  lastSuccessfulPullAt: string;
+};
+
+export type RepoSyncResult = {
+  headRevision: string;
+  branch: string;
+  syncStatus: string;
+  lastSyncError: string;
+  lastSuccessfulPullAt: string;
 };
 
 export type SecretEnv = {
@@ -236,13 +255,23 @@ export async function loadRepoFile(path: string): Promise<RepoFileContent> {
   );
 }
 
-export async function updateRepoFile(path: string, content: string, baseRevision: string, commitMessage = ''): Promise<{ commitId: string }> {
+export async function updateRepoFile(path: string, content: string, baseRevision: string, commitMessage = ''): Promise<RepoWriteResult> {
   const config = requireControllerConfig();
-  return rpcCall<{ commitId: string }>(
+  return rpcCall<RepoWriteResult>(
     config.baseUrl,
     config.token,
     '/composia.controller.v1.RepoService/UpdateRepoFile',
     { path, content, baseRevision, commitMessage }
+  );
+}
+
+export async function syncRepo(): Promise<RepoSyncResult> {
+  const config = requireControllerConfig();
+  return rpcCall<RepoSyncResult>(
+    config.baseUrl,
+    config.token,
+    '/composia.controller.v1.RepoService/SyncRepo',
+    {}
   );
 }
 
@@ -261,9 +290,9 @@ export async function updateServiceSecret(
   content: string,
   baseRevision: string,
   commitMessage = ''
-): Promise<{ commitId: string }> {
+): Promise<RepoWriteResult> {
   const config = requireControllerConfig();
-  return rpcCall<{ commitId: string }>(
+  return rpcCall<RepoWriteResult>(
     config.baseUrl,
     config.token,
     '/composia.controller.v1.SecretService/UpdateServiceSecretEnv',
@@ -349,7 +378,8 @@ async function rpcCall<T>(baseUrl: string, token: string, procedure: string, bod
     headers: {
       Authorization: `Bearer ${token}`,
       'Connect-Protocol-Version': '1',
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'X-Composia-Source': 'web'
     },
     body: JSON.stringify(body)
   });

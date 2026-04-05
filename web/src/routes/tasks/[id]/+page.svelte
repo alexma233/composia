@@ -1,10 +1,58 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+
   import type { PageData } from './$types';
 
   import { Badge } from '$lib/components/ui/badge';
   import { formatTimestamp, taskStatusTone } from '$lib/presenters';
 
   export let data: PageData;
+
+  let logContent = '';
+  let logState = 'idle';
+  let logError = '';
+
+  onMount(() => {
+    if (!data.task?.taskId || !data.task.logPath) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const decoder = new TextDecoder();
+    logState = 'connecting';
+
+    void (async () => {
+      try {
+        const response = await fetch(`/tasks/${data.task?.taskId}/logs`, {
+          signal: controller.signal
+        });
+        if (!response.ok || !response.body) {
+          throw new Error(`Failed to tail task logs: ${response.status}`);
+        }
+
+        logState = 'streaming';
+        const reader = response.body.getReader();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            break;
+          }
+          if (value) {
+            logContent += decoder.decode(value, { stream: true });
+          }
+        }
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        logState = 'failed';
+        logError = error instanceof Error ? error.message : 'Failed to tail task logs.';
+      }
+    })();
+
+    return () => controller.abort();
+  });
 </script>
 
 <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
@@ -91,6 +139,27 @@
           <div class="rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-sm text-muted-foreground">No task steps loaded.</div>
         {/if}
       </div>
+    </section>
+
+    <section class="rounded-lg border bg-card p-6 shadow-xs">
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-xl font-medium">Task logs</h2>
+        <div class="text-xs uppercase tracking-[0.2em] text-muted-foreground">{logState}</div>
+      </div>
+
+      {#if logError}
+        <div class="mb-4 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
+          {logError}
+        </div>
+      {/if}
+
+      {#if data.task?.logPath}
+        <pre class="max-h-[28rem] overflow-auto rounded-lg border bg-background p-4 font-mono text-xs leading-6 whitespace-pre-wrap break-words">{logContent || 'Waiting for task log output...'}</pre>
+      {:else}
+        <div class="rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-sm text-muted-foreground">
+          This task does not have a log file.
+        </div>
+      {/if}
     </section>
   </div>
 </div>

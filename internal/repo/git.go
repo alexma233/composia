@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -172,6 +173,35 @@ func ReadFileAtRevision(repoDir, revision, relativePath string) (string, error) 
 	return output, nil
 }
 
+func FetchAndFastForward(repoDir, remoteURL, branch, authToken string) error {
+	if remoteURL == "" {
+		return fmt.Errorf("remote URL is required")
+	}
+	if branch == "" {
+		return fmt.Errorf("remote branch is required")
+	}
+	if _, err := gitOutputWithOptions(repoDir, gitRemoteConfig(remoteURL, authToken), nil, "fetch", remoteURL, branch); err != nil {
+		return fmt.Errorf("fetch remote branch %q: %w", branch, err)
+	}
+	if err := gitCommand(repoDir, nil, "merge", "--ff-only", "FETCH_HEAD"); err != nil {
+		return fmt.Errorf("fast-forward to fetched HEAD: %w", err)
+	}
+	return nil
+}
+
+func PushCurrentBranch(repoDir, remoteURL, branch, authToken string) error {
+	if remoteURL == "" {
+		return fmt.Errorf("remote URL is required")
+	}
+	if branch == "" {
+		return fmt.Errorf("remote branch is required")
+	}
+	if err := gitCommandWithOptions(repoDir, nil, gitRemoteConfig(remoteURL, authToken), "push", remoteURL, "HEAD:refs/heads/"+branch); err != nil {
+		return fmt.Errorf("push HEAD to remote branch %q: %w", branch, err)
+	}
+	return nil
+}
+
 func gitAuthorEnv(authorName, authorEmail string) []string {
 	if authorName == "" {
 		authorName = "Composia"
@@ -188,8 +218,15 @@ func gitAuthorEnv(authorName, authorEmail string) []string {
 }
 
 func gitCommand(repoDir string, extraEnv []string, args ...string) error {
+	return gitCommandWithOptions(repoDir, extraEnv, nil, args...)
+}
+
+func gitCommandWithOptions(repoDir string, extraEnv, gitConfig []string, args ...string) error {
 	commandArgs := make([]string, 0, len(args)+2)
 	commandArgs = append(commandArgs, "-C", repoDir)
+	for _, configValue := range gitConfig {
+		commandArgs = append(commandArgs, "-c", configValue)
+	}
 	commandArgs = append(commandArgs, args...)
 
 	cmd := exec.Command("git", commandArgs...)
@@ -205,11 +242,21 @@ func gitCommand(repoDir string, extraEnv []string, args ...string) error {
 }
 
 func gitOutput(repoDir string, args ...string) (string, error) {
+	return gitOutputWithOptions(repoDir, nil, nil, args...)
+}
+
+func gitOutputWithOptions(repoDir string, extraEnv, gitConfig []string, args ...string) (string, error) {
 	commandArgs := make([]string, 0, len(args)+2)
 	commandArgs = append(commandArgs, "-C", repoDir)
+	for _, configValue := range gitConfig {
+		commandArgs = append(commandArgs, "-c", configValue)
+	}
 	commandArgs = append(commandArgs, args...)
 
 	cmd := exec.Command("git", commandArgs...)
+	if len(extraEnv) > 0 {
+		cmd.Env = append(os.Environ(), extraEnv...)
+	}
 	output, err := cmd.Output()
 	if err != nil {
 		var stderr bytes.Buffer
@@ -219,4 +266,15 @@ func gitOutput(repoDir string, args ...string) (string, error) {
 		return "", fmt.Errorf("git %s: %w %s", strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
 	}
 	return string(output), nil
+}
+
+func gitRemoteConfig(remoteURL, authToken string) []string {
+	if authToken == "" {
+		return nil
+	}
+	parsed, err := url.Parse(remoteURL)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return nil
+	}
+	return []string{"http.extraHeader=Authorization: Bearer " + authToken}
 }

@@ -11,6 +11,7 @@ service RepoService {
   rpc ListRepoCommits(ListRepoCommitsRequest) returns (ListRepoCommitsResponse);
   rpc ValidateRepo(ValidateRepoRequest) returns (ValidateRepoResponse);
   rpc UpdateRepoFile(UpdateRepoFileRequest) returns (UpdateRepoFileResponse);
+  rpc SyncRepo(SyncRepoRequest) returns (SyncRepoResponse);
 }
 
 message GetRepoHeadRequest {}
@@ -20,6 +21,9 @@ message GetRepoHeadResponse {
   string branch = 2;
   bool has_remote = 3;
   bool clean_worktree = 4;
+  string sync_status = 5;
+  string last_sync_error = 6;
+  string last_successful_pull_at = 7;
 }
 
 message RepoFileEntry {
@@ -84,4 +88,17 @@ message UpdateRepoFileRequest {
 
 message UpdateRepoFileResponse {
   string commit_id = 1;
+  string sync_status = 2;
+  string push_error = 3;
+  string last_successful_pull_at = 4;
+}
+
+message SyncRepoRequest {}
+
+message SyncRepoResponse {
+  string head_revision = 1;
+  string branch = 2;
+  string sync_status = 3;
+  string last_sync_error = 4;
+  string last_successful_pull_at = 5;
 }
