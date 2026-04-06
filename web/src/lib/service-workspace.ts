@@ -62,7 +62,7 @@ export function upsertFileNode(
     return nodes;
   }
 
-  const root = structuredClone(nodes);
+  const root = JSON.parse(JSON.stringify(nodes));
   const segments = normalized.split("/");
   let cursor = root;
   let currentPath = "";
@@ -70,11 +70,11 @@ export function upsertFileNode(
   segments.forEach((segment, index) => {
     currentPath = currentPath ? `${currentPath}/${segment}` : segment;
     const isDir = index < segments.length - 1;
-    let next = cursor.find((entry) => entry.name === segment);
+    let next = cursor.find((entry: ServiceFileNode) => entry.name === segment);
     if (!next) {
       next = { name: segment, path: currentPath, isDir, children: [] };
       cursor.push(next);
-      cursor.sort((left, right) => {
+      cursor.sort((left: ServiceFileNode, right: ServiceFileNode) => {
         if (left.isDir !== right.isDir) {
           return left.isDir ? -1 : 1;
         }

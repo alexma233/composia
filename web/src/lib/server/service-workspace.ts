@@ -5,8 +5,10 @@ import {
   deleteRepoPath,
   loadRepoEntries,
   loadRepoFile,
+  loadSecret,
   moveRepoPath,
   updateRepoFile,
+  updateSecret,
 } from "$lib/server/controller";
 import { normalizeServiceRelativePath } from "$lib/service-workspace";
 
@@ -17,32 +19,54 @@ export async function loadServiceFileTree(
 }
 
 export async function loadServiceWorkspaceFile(
+  serviceName: string | null,
   serviceDir: string,
   relativePath: string,
 ): Promise<WorkspaceFile> {
   const normalized = normalizeServiceRelativePath(relativePath);
-  const file = await loadRepoFile(
-    repoPathForServicePath(serviceDir, normalized),
-  );
+  let content: string;
+  if (normalized.endsWith(".enc")) {
+    if (!serviceName) {
+      throw new Error("Cannot load encrypted file for undeclared service");
+    }
+    const secret = await loadSecret(serviceName, normalized);
+    content = secret.content ?? "";
+  } else {
+    const file = await loadRepoFile(
+      repoPathForServicePath(serviceDir, normalized),
+    );
+    content = file.content ?? "";
+  }
   return {
     path: normalized,
-    content: file.content,
-    size: file.size,
+    content,
+    size: content.length,
   };
 }
 
 export async function saveServiceWorkspaceFile(
+  serviceName: string,
   serviceDir: string,
   relativePath: string,
   content: string,
   baseRevision: string,
 ): Promise<{ file: WorkspaceFile; write: RepoWriteResult }> {
   const normalized = normalizeServiceRelativePath(relativePath);
-  const write = await updateRepoFile(
-    repoPathForServicePath(serviceDir, normalized),
-    content,
-    baseRevision,
-  );
+  let write: RepoWriteResult;
+  if (normalized.endsWith(".enc")) {
+    write = await updateSecret(
+      serviceName,
+      normalized,
+      content,
+      baseRevision,
+    );
+  } else {
+    write = await updateRepoFile(
+      repoPathForServicePath(serviceDir, normalized),
+      content,
+      baseRevision,
+    );
+  }
   return {
     file: {
       path: normalized,

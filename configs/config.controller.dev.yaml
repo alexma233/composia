@@ -13,6 +13,11 @@ controller:
       display_name: "Main"
       enabled: true
       token: "main-agent-token"
+  secrets:
+    provider: age
+    identity_file: "./configs/age-identity.key"
+    recipient_file: "./configs/age-recipients.txt"
+    armor: true
 
 agent:
   controller_addr: "http://127.0.0.1:7001"

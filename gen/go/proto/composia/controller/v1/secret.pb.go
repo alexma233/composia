@@ -21,27 +21,28 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type GetServiceSecretEnvRequest struct {
+type GetSecretRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	FilePath      string                 `protobuf:"bytes,2,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetServiceSecretEnvRequest) Reset() {
-	*x = GetServiceSecretEnvRequest{}
+func (x *GetSecretRequest) Reset() {
+	*x = GetSecretRequest{}
 	mi := &file_proto_composia_controller_v1_secret_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetServiceSecretEnvRequest) String() string {
+func (x *GetSecretRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetServiceSecretEnvRequest) ProtoMessage() {}
+func (*GetSecretRequest) ProtoMessage() {}
 
-func (x *GetServiceSecretEnvRequest) ProtoReflect() protoreflect.Message {
+func (x *GetSecretRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_composia_controller_v1_secret_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -53,40 +54,48 @@ func (x *GetServiceSecretEnvRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetServiceSecretEnvRequest.ProtoReflect.Descriptor instead.
-func (*GetServiceSecretEnvRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetSecretRequest.ProtoReflect.Descriptor instead.
+func (*GetSecretRequest) Descriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_secret_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *GetServiceSecretEnvRequest) GetServiceName() string {
+func (x *GetSecretRequest) GetServiceName() string {
 	if x != nil {
 		return x.ServiceName
 	}
 	return ""
 }
 
-type GetServiceSecretEnvResponse struct {
+func (x *GetSecretRequest) GetFilePath() string {
+	if x != nil {
+		return x.FilePath
+	}
+	return ""
+}
+
+type GetSecretResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	FilePath      string                 `protobuf:"bytes,2,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"`
+	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetServiceSecretEnvResponse) Reset() {
-	*x = GetServiceSecretEnvResponse{}
+func (x *GetSecretResponse) Reset() {
+	*x = GetSecretResponse{}
 	mi := &file_proto_composia_controller_v1_secret_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetServiceSecretEnvResponse) String() string {
+func (x *GetSecretResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetServiceSecretEnvResponse) ProtoMessage() {}
+func (*GetSecretResponse) ProtoMessage() {}
 
-func (x *GetServiceSecretEnvResponse) ProtoReflect() protoreflect.Message {
+func (x *GetSecretResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_composia_controller_v1_secret_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -98,49 +107,57 @@ func (x *GetServiceSecretEnvResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetServiceSecretEnvResponse.ProtoReflect.Descriptor instead.
-func (*GetServiceSecretEnvResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetSecretResponse.ProtoReflect.Descriptor instead.
+func (*GetSecretResponse) Descriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_secret_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *GetServiceSecretEnvResponse) GetServiceName() string {
+func (x *GetSecretResponse) GetServiceName() string {
 	if x != nil {
 		return x.ServiceName
 	}
 	return ""
 }
 
-func (x *GetServiceSecretEnvResponse) GetContent() string {
+func (x *GetSecretResponse) GetFilePath() string {
+	if x != nil {
+		return x.FilePath
+	}
+	return ""
+}
+
+func (x *GetSecretResponse) GetContent() string {
 	if x != nil {
 		return x.Content
 	}
 	return ""
 }
 
-type UpdateServiceSecretEnvRequest struct {
+type UpdateSecretRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
-	BaseRevision  string                 `protobuf:"bytes,3,opt,name=base_revision,json=baseRevision,proto3" json:"base_revision,omitempty"`
-	CommitMessage string                 `protobuf:"bytes,4,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
+	FilePath      string                 `protobuf:"bytes,2,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"`
+	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
+	BaseRevision  string                 `protobuf:"bytes,4,opt,name=base_revision,json=baseRevision,proto3" json:"base_revision,omitempty"`
+	CommitMessage string                 `protobuf:"bytes,5,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *UpdateServiceSecretEnvRequest) Reset() {
-	*x = UpdateServiceSecretEnvRequest{}
+func (x *UpdateSecretRequest) Reset() {
+	*x = UpdateSecretRequest{}
 	mi := &file_proto_composia_controller_v1_secret_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UpdateServiceSecretEnvRequest) String() string {
+func (x *UpdateSecretRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UpdateServiceSecretEnvRequest) ProtoMessage() {}
+func (*UpdateSecretRequest) ProtoMessage() {}
 
-func (x *UpdateServiceSecretEnvRequest) ProtoReflect() protoreflect.Message {
+func (x *UpdateSecretRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_composia_controller_v1_secret_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -152,40 +169,47 @@ func (x *UpdateServiceSecretEnvRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateServiceSecretEnvRequest.ProtoReflect.Descriptor instead.
-func (*UpdateServiceSecretEnvRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use UpdateSecretRequest.ProtoReflect.Descriptor instead.
+func (*UpdateSecretRequest) Descriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_secret_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *UpdateServiceSecretEnvRequest) GetServiceName() string {
+func (x *UpdateSecretRequest) GetServiceName() string {
 	if x != nil {
 		return x.ServiceName
 	}
 	return ""
 }
 
-func (x *UpdateServiceSecretEnvRequest) GetContent() string {
+func (x *UpdateSecretRequest) GetFilePath() string {
+	if x != nil {
+		return x.FilePath
+	}
+	return ""
+}
+
+func (x *UpdateSecretRequest) GetContent() string {
 	if x != nil {
 		return x.Content
 	}
 	return ""
 }
 
-func (x *UpdateServiceSecretEnvRequest) GetBaseRevision() string {
+func (x *UpdateSecretRequest) GetBaseRevision() string {
 	if x != nil {
 		return x.BaseRevision
 	}
 	return ""
 }
 
-func (x *UpdateServiceSecretEnvRequest) GetCommitMessage() string {
+func (x *UpdateSecretRequest) GetCommitMessage() string {
 	if x != nil {
 		return x.CommitMessage
 	}
 	return ""
 }
 
-type UpdateServiceSecretEnvResponse struct {
+type UpdateSecretResponse struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
 	CommitId             string                 `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
 	SyncStatus           string                 `protobuf:"bytes,2,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
@@ -195,20 +219,20 @@ type UpdateServiceSecretEnvResponse struct {
 	sizeCache            protoimpl.SizeCache
 }
 
-func (x *UpdateServiceSecretEnvResponse) Reset() {
-	*x = UpdateServiceSecretEnvResponse{}
+func (x *UpdateSecretResponse) Reset() {
+	*x = UpdateSecretResponse{}
 	mi := &file_proto_composia_controller_v1_secret_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UpdateServiceSecretEnvResponse) String() string {
+func (x *UpdateSecretResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UpdateServiceSecretEnvResponse) ProtoMessage() {}
+func (*UpdateSecretResponse) ProtoMessage() {}
 
-func (x *UpdateServiceSecretEnvResponse) ProtoReflect() protoreflect.Message {
+func (x *UpdateSecretResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_composia_controller_v1_secret_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -220,33 +244,33 @@ func (x *UpdateServiceSecretEnvResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateServiceSecretEnvResponse.ProtoReflect.Descriptor instead.
-func (*UpdateServiceSecretEnvResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use UpdateSecretResponse.ProtoReflect.Descriptor instead.
+func (*UpdateSecretResponse) Descriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_secret_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *UpdateServiceSecretEnvResponse) GetCommitId() string {
+func (x *UpdateSecretResponse) GetCommitId() string {
 	if x != nil {
 		return x.CommitId
 	}
 	return ""
 }
 
-func (x *UpdateServiceSecretEnvResponse) GetSyncStatus() string {
+func (x *UpdateSecretResponse) GetSyncStatus() string {
 	if x != nil {
 		return x.SyncStatus
 	}
 	return ""
 }
 
-func (x *UpdateServiceSecretEnvResponse) GetPushError() string {
+func (x *UpdateSecretResponse) GetPushError() string {
 	if x != nil {
 		return x.PushError
 	}
 	return ""
 }
 
-func (x *UpdateServiceSecretEnvResponse) GetLastSuccessfulPullAt() string {
+func (x *UpdateSecretResponse) GetLastSuccessfulPullAt() string {
 	if x != nil {
 		return x.LastSuccessfulPullAt
 	}
@@ -257,27 +281,30 @@ var File_proto_composia_controller_v1_secret_proto protoreflect.FileDescriptor
 
 const file_proto_composia_controller_v1_secret_proto_rawDesc = "" +
 	"\n" +
-	")proto/composia/controller/v1/secret.proto\x12\x16composia.controller.v1\"?\n" +
-	"\x1aGetServiceSecretEnvRequest\x12!\n" +
-	"\fservice_name\x18\x01 \x01(\tR\vserviceName\"Z\n" +
-	"\x1bGetServiceSecretEnvResponse\x12!\n" +
-	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\tR\acontent\"\xa8\x01\n" +
-	"\x1dUpdateServiceSecretEnvRequest\x12!\n" +
-	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\tR\acontent\x12#\n" +
-	"\rbase_revision\x18\x03 \x01(\tR\fbaseRevision\x12%\n" +
-	"\x0ecommit_message\x18\x04 \x01(\tR\rcommitMessage\"\xb4\x01\n" +
-	"\x1eUpdateServiceSecretEnvResponse\x12\x1b\n" +
+	")proto/composia/controller/v1/secret.proto\x12\x16composia.controller.v1\"R\n" +
+	"\x10GetSecretRequest\x12!\n" +
+	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x1b\n" +
+	"\tfile_path\x18\x02 \x01(\tR\bfilePath\"m\n" +
+	"\x11GetSecretResponse\x12!\n" +
+	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x1b\n" +
+	"\tfile_path\x18\x02 \x01(\tR\bfilePath\x12\x18\n" +
+	"\acontent\x18\x03 \x01(\tR\acontent\"\xbb\x01\n" +
+	"\x13UpdateSecretRequest\x12!\n" +
+	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x1b\n" +
+	"\tfile_path\x18\x02 \x01(\tR\bfilePath\x12\x18\n" +
+	"\acontent\x18\x03 \x01(\tR\acontent\x12#\n" +
+	"\rbase_revision\x18\x04 \x01(\tR\fbaseRevision\x12%\n" +
+	"\x0ecommit_message\x18\x05 \x01(\tR\rcommitMessage\"\xaa\x01\n" +
+	"\x14UpdateSecretResponse\x12\x1b\n" +
 	"\tcommit_id\x18\x01 \x01(\tR\bcommitId\x12\x1f\n" +
 	"\vsync_status\x18\x02 \x01(\tR\n" +
 	"syncStatus\x12\x1d\n" +
 	"\n" +
 	"push_error\x18\x03 \x01(\tR\tpushError\x125\n" +
-	"\x17last_successful_pull_at\x18\x04 \x01(\tR\x14lastSuccessfulPullAt2\x99\x02\n" +
-	"\rSecretService\x12~\n" +
-	"\x13GetServiceSecretEnv\x122.composia.controller.v1.GetServiceSecretEnvRequest\x1a3.composia.controller.v1.GetServiceSecretEnvResponse\x12\x87\x01\n" +
-	"\x16UpdateServiceSecretEnv\x125.composia.controller.v1.UpdateServiceSecretEnvRequest\x1a6.composia.controller.v1.UpdateServiceSecretEnvResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
+	"\x17last_successful_pull_at\x18\x04 \x01(\tR\x14lastSuccessfulPullAt2\xdc\x01\n" +
+	"\rSecretService\x12`\n" +
+	"\tGetSecret\x12(.composia.controller.v1.GetSecretRequest\x1a).composia.controller.v1.GetSecretResponse\x12i\n" +
+	"\fUpdateSecret\x12+.composia.controller.v1.UpdateSecretRequest\x1a,.composia.controller.v1.UpdateSecretResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
 
 var (
 	file_proto_composia_controller_v1_secret_proto_rawDescOnce sync.Once
@@ -293,16 +320,16 @@ func file_proto_composia_controller_v1_secret_proto_rawDescGZIP() []byte {
 
 var file_proto_composia_controller_v1_secret_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_proto_composia_controller_v1_secret_proto_goTypes = []any{
-	(*GetServiceSecretEnvRequest)(nil),     // 0: composia.controller.v1.GetServiceSecretEnvRequest
-	(*GetServiceSecretEnvResponse)(nil),    // 1: composia.controller.v1.GetServiceSecretEnvResponse
-	(*UpdateServiceSecretEnvRequest)(nil),  // 2: composia.controller.v1.UpdateServiceSecretEnvRequest
-	(*UpdateServiceSecretEnvResponse)(nil), // 3: composia.controller.v1.UpdateServiceSecretEnvResponse
+	(*GetSecretRequest)(nil),     // 0: composia.controller.v1.GetSecretRequest
+	(*GetSecretResponse)(nil),    // 1: composia.controller.v1.GetSecretResponse
+	(*UpdateSecretRequest)(nil),  // 2: composia.controller.v1.UpdateSecretRequest
+	(*UpdateSecretResponse)(nil), // 3: composia.controller.v1.UpdateSecretResponse
 }
 var file_proto_composia_controller_v1_secret_proto_depIdxs = []int32{
-	0, // 0: composia.controller.v1.SecretService.GetServiceSecretEnv:input_type -> composia.controller.v1.GetServiceSecretEnvRequest
-	2, // 1: composia.controller.v1.SecretService.UpdateServiceSecretEnv:input_type -> composia.controller.v1.UpdateServiceSecretEnvRequest
-	1, // 2: composia.controller.v1.SecretService.GetServiceSecretEnv:output_type -> composia.controller.v1.GetServiceSecretEnvResponse
-	3, // 3: composia.controller.v1.SecretService.UpdateServiceSecretEnv:output_type -> composia.controller.v1.UpdateServiceSecretEnvResponse
+	0, // 0: composia.controller.v1.SecretService.GetSecret:input_type -> composia.controller.v1.GetSecretRequest
+	2, // 1: composia.controller.v1.SecretService.UpdateSecret:input_type -> composia.controller.v1.UpdateSecretRequest
+	1, // 2: composia.controller.v1.SecretService.GetSecret:output_type -> composia.controller.v1.GetSecretResponse
+	3, // 3: composia.controller.v1.SecretService.UpdateSecret:output_type -> composia.controller.v1.UpdateSecretResponse
 	2, // [2:4] is the sub-list for method output_type
 	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

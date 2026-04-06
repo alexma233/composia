@@ -191,6 +191,18 @@ func ReadFileAtRevision(repoDir, revision, relativePath string) (string, error) 
 	return output, nil
 }
 
+func ListFilesAtRevision(repoDir, revision, relativePath string) ([]string, error) {
+	output, err := gitOutput(repoDir, "ls-tree", "--name-only", "-r", revision+":"+filepath.ToSlash(relativePath))
+	if err != nil {
+		return nil, fmt.Errorf("list files at revision %q for %q: %w", revision, relativePath, err)
+	}
+	if output == "" {
+		return nil, nil
+	}
+	lines := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
+	return lines, nil
+}
+
 func FetchAndFastForward(repoDir, remoteURL, branch, authToken string) error {
 	if remoteURL == "" {
 		return fmt.Errorf("remote URL is required")

@@ -73,15 +73,15 @@ func TestSecretServiceGetAndUpdateServiceSecretEnv(t *testing.T) {
 	defer httpServer.Close()
 
 	client := controllerv1connect.NewSecretServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
-	getResp, err := client.GetServiceSecretEnv(ctx, connect.NewRequest(&controllerv1.GetServiceSecretEnvRequest{ServiceName: "alpha"}))
+	getResp, err := client.GetSecret(ctx, connect.NewRequest(&controllerv1.GetSecretRequest{ServiceName: "alpha", FilePath: ".secret.env.enc"}))
 	if err != nil {
-		t.Fatalf("get service secret env: %v", err)
+		t.Fatalf("get secret: %v", err)
 	}
 	if getResp.Msg.GetContent() != "TOKEN=before\n" {
 		t.Fatalf("unexpected decrypted content %q", getResp.Msg.GetContent())
 	}
 	headRevision := mustCurrentRevision(t, repoDir)
-	updateResp, err := client.UpdateServiceSecretEnv(ctx, connect.NewRequest(&controllerv1.UpdateServiceSecretEnvRequest{ServiceName: "alpha", Content: "TOKEN=after\n", BaseRevision: headRevision}))
+	updateResp, err := client.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{ServiceName: "alpha", FilePath: ".secret.env.enc", Content: "TOKEN=after\n", BaseRevision: headRevision}))
 	if err != nil {
 		t.Fatalf("update service secret env: %v", err)
 	}
@@ -144,7 +144,7 @@ func TestSecretServiceUpdateRejectsActiveServiceTask(t *testing.T) {
 	defer httpServer.Close()
 
 	client := controllerv1connect.NewSecretServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
-	_, err = client.UpdateServiceSecretEnv(ctx, connect.NewRequest(&controllerv1.UpdateServiceSecretEnvRequest{ServiceName: "alpha", Content: "TOKEN=x\n", BaseRevision: mustCurrentRevision(t, repoDir)}))
+	_, err = client.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{ServiceName: "alpha", FilePath: ".secret.env.enc", Content: "TOKEN=x\n", BaseRevision: mustCurrentRevision(t, repoDir)}))
 	if err == nil {
 		t.Fatalf("expected active task conflict")
 	}

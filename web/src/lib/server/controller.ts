@@ -145,6 +145,7 @@ export type RepoSyncResult = {
 
 export type SecretEnv = {
   serviceName: string;
+  filePath: string;
   content: string;
 };
 
@@ -400,20 +401,22 @@ export async function syncRepo(): Promise<RepoSyncResult> {
   );
 }
 
-export async function loadServiceSecret(
+export async function loadSecret(
   serviceName: string,
+  filePath: string,
 ): Promise<SecretEnv> {
   const config = requireControllerConfig();
   return rpcCall<SecretEnv>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.SecretService/GetServiceSecretEnv",
-    { serviceName },
+    "/composia.controller.v1.SecretService/GetSecret",
+    { serviceName, filePath },
   );
 }
 
-export async function updateServiceSecret(
+export async function updateSecret(
   serviceName: string,
+  filePath: string,
   content: string,
   baseRevision: string,
   commitMessage = "",
@@ -422,8 +425,8 @@ export async function updateServiceSecret(
   return rpcCall<RepoWriteResult>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.SecretService/UpdateServiceSecretEnv",
-    { serviceName, content, baseRevision, commitMessage },
+    "/composia.controller.v1.SecretService/UpdateSecret",
+    { serviceName, filePath, content, baseRevision, commitMessage },
   );
 }
 

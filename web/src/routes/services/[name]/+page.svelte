@@ -161,7 +161,6 @@
       syncStatus = payload.write.syncStatus;
       syncError = payload.write.pushError;
       lastSuccessfulPullAt = payload.write.lastSuccessfulPullAt;
-      workspace = payload.workspace ?? workspace;
       openTabs = openTabs.map((item) =>
         item.path === tab.path
           ? {
@@ -221,7 +220,6 @@
       syncStatus = payload.write.syncStatus;
       syncError = payload.write.pushError;
       lastSuccessfulPullAt = payload.write.lastSuccessfulPullAt;
-      workspace = payload.workspace ?? workspace;
       fileTree = upsertFileNode(fileTree, normalized);
       openTabs = [...openTabs, createTab(payload.file)];
       selectedNodePath = normalized;
@@ -691,9 +689,6 @@
             <Button type="button" variant="outline" onclick={() => triggerAction('dns_update')} disabled={!!actionBusy || !workspace?.isDeclared}>
               <Upload class="mr-2 size-4" />DNS update
             </Button>
-            <a href={`/services/${workspace?.folder}/secret`} class="inline-flex h-10 items-center justify-center rounded-md border border-border bg-background px-4 text-sm transition-colors hover:bg-accent hover:text-accent-foreground pointer-events-none opacity-50" class:pointer-events-auto={!!workspace?.isDeclared} class:opacity-100={!!workspace?.isDeclared}>
-              Edit secret
-            </a>
             <Button type="button" variant="outline" onclick={() => { showServiceRename = !showServiceRename; renameServiceFolder = workspace?.folder ?? ''; }} disabled={saving}>
               <Pencil class="mr-2 size-4" />Rename folder
             </Button>

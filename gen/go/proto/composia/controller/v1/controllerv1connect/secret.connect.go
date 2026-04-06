@@ -33,18 +33,17 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// SecretServiceGetServiceSecretEnvProcedure is the fully-qualified name of the SecretService's
-	// GetServiceSecretEnv RPC.
-	SecretServiceGetServiceSecretEnvProcedure = "/composia.controller.v1.SecretService/GetServiceSecretEnv"
-	// SecretServiceUpdateServiceSecretEnvProcedure is the fully-qualified name of the SecretService's
-	// UpdateServiceSecretEnv RPC.
-	SecretServiceUpdateServiceSecretEnvProcedure = "/composia.controller.v1.SecretService/UpdateServiceSecretEnv"
+	// SecretServiceGetSecretProcedure is the fully-qualified name of the SecretService's GetSecret RPC.
+	SecretServiceGetSecretProcedure = "/composia.controller.v1.SecretService/GetSecret"
+	// SecretServiceUpdateSecretProcedure is the fully-qualified name of the SecretService's
+	// UpdateSecret RPC.
+	SecretServiceUpdateSecretProcedure = "/composia.controller.v1.SecretService/UpdateSecret"
 )
 
 // SecretServiceClient is a client for the composia.controller.v1.SecretService service.
 type SecretServiceClient interface {
-	GetServiceSecretEnv(context.Context, *connect.Request[v1.GetServiceSecretEnvRequest]) (*connect.Response[v1.GetServiceSecretEnvResponse], error)
-	UpdateServiceSecretEnv(context.Context, *connect.Request[v1.UpdateServiceSecretEnvRequest]) (*connect.Response[v1.UpdateServiceSecretEnvResponse], error)
+	GetSecret(context.Context, *connect.Request[v1.GetSecretRequest]) (*connect.Response[v1.GetSecretResponse], error)
+	UpdateSecret(context.Context, *connect.Request[v1.UpdateSecretRequest]) (*connect.Response[v1.UpdateSecretResponse], error)
 }
 
 // NewSecretServiceClient constructs a client for the composia.controller.v1.SecretService service.
@@ -58,16 +57,16 @@ func NewSecretServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 	baseURL = strings.TrimRight(baseURL, "/")
 	secretServiceMethods := v1.File_proto_composia_controller_v1_secret_proto.Services().ByName("SecretService").Methods()
 	return &secretServiceClient{
-		getServiceSecretEnv: connect.NewClient[v1.GetServiceSecretEnvRequest, v1.GetServiceSecretEnvResponse](
+		getSecret: connect.NewClient[v1.GetSecretRequest, v1.GetSecretResponse](
 			httpClient,
-			baseURL+SecretServiceGetServiceSecretEnvProcedure,
-			connect.WithSchema(secretServiceMethods.ByName("GetServiceSecretEnv")),
+			baseURL+SecretServiceGetSecretProcedure,
+			connect.WithSchema(secretServiceMethods.ByName("GetSecret")),
 			connect.WithClientOptions(opts...),
 		),
-		updateServiceSecretEnv: connect.NewClient[v1.UpdateServiceSecretEnvRequest, v1.UpdateServiceSecretEnvResponse](
+		updateSecret: connect.NewClient[v1.UpdateSecretRequest, v1.UpdateSecretResponse](
 			httpClient,
-			baseURL+SecretServiceUpdateServiceSecretEnvProcedure,
-			connect.WithSchema(secretServiceMethods.ByName("UpdateServiceSecretEnv")),
+			baseURL+SecretServiceUpdateSecretProcedure,
+			connect.WithSchema(secretServiceMethods.ByName("UpdateSecret")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -75,24 +74,24 @@ func NewSecretServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 
 // secretServiceClient implements SecretServiceClient.
 type secretServiceClient struct {
-	getServiceSecretEnv    *connect.Client[v1.GetServiceSecretEnvRequest, v1.GetServiceSecretEnvResponse]
-	updateServiceSecretEnv *connect.Client[v1.UpdateServiceSecretEnvRequest, v1.UpdateServiceSecretEnvResponse]
+	getSecret    *connect.Client[v1.GetSecretRequest, v1.GetSecretResponse]
+	updateSecret *connect.Client[v1.UpdateSecretRequest, v1.UpdateSecretResponse]
 }
 
-// GetServiceSecretEnv calls composia.controller.v1.SecretService.GetServiceSecretEnv.
-func (c *secretServiceClient) GetServiceSecretEnv(ctx context.Context, req *connect.Request[v1.GetServiceSecretEnvRequest]) (*connect.Response[v1.GetServiceSecretEnvResponse], error) {
-	return c.getServiceSecretEnv.CallUnary(ctx, req)
+// GetSecret calls composia.controller.v1.SecretService.GetSecret.
+func (c *secretServiceClient) GetSecret(ctx context.Context, req *connect.Request[v1.GetSecretRequest]) (*connect.Response[v1.GetSecretResponse], error) {
+	return c.getSecret.CallUnary(ctx, req)
 }
 
-// UpdateServiceSecretEnv calls composia.controller.v1.SecretService.UpdateServiceSecretEnv.
-func (c *secretServiceClient) UpdateServiceSecretEnv(ctx context.Context, req *connect.Request[v1.UpdateServiceSecretEnvRequest]) (*connect.Response[v1.UpdateServiceSecretEnvResponse], error) {
-	return c.updateServiceSecretEnv.CallUnary(ctx, req)
+// UpdateSecret calls composia.controller.v1.SecretService.UpdateSecret.
+func (c *secretServiceClient) UpdateSecret(ctx context.Context, req *connect.Request[v1.UpdateSecretRequest]) (*connect.Response[v1.UpdateSecretResponse], error) {
+	return c.updateSecret.CallUnary(ctx, req)
 }
 
 // SecretServiceHandler is an implementation of the composia.controller.v1.SecretService service.
 type SecretServiceHandler interface {
-	GetServiceSecretEnv(context.Context, *connect.Request[v1.GetServiceSecretEnvRequest]) (*connect.Response[v1.GetServiceSecretEnvResponse], error)
-	UpdateServiceSecretEnv(context.Context, *connect.Request[v1.UpdateServiceSecretEnvRequest]) (*connect.Response[v1.UpdateServiceSecretEnvResponse], error)
+	GetSecret(context.Context, *connect.Request[v1.GetSecretRequest]) (*connect.Response[v1.GetSecretResponse], error)
+	UpdateSecret(context.Context, *connect.Request[v1.UpdateSecretRequest]) (*connect.Response[v1.UpdateSecretResponse], error)
 }
 
 // NewSecretServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -102,24 +101,24 @@ type SecretServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewSecretServiceHandler(svc SecretServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	secretServiceMethods := v1.File_proto_composia_controller_v1_secret_proto.Services().ByName("SecretService").Methods()
-	secretServiceGetServiceSecretEnvHandler := connect.NewUnaryHandler(
-		SecretServiceGetServiceSecretEnvProcedure,
-		svc.GetServiceSecretEnv,
-		connect.WithSchema(secretServiceMethods.ByName("GetServiceSecretEnv")),
+	secretServiceGetSecretHandler := connect.NewUnaryHandler(
+		SecretServiceGetSecretProcedure,
+		svc.GetSecret,
+		connect.WithSchema(secretServiceMethods.ByName("GetSecret")),
 		connect.WithHandlerOptions(opts...),
 	)
-	secretServiceUpdateServiceSecretEnvHandler := connect.NewUnaryHandler(
-		SecretServiceUpdateServiceSecretEnvProcedure,
-		svc.UpdateServiceSecretEnv,
-		connect.WithSchema(secretServiceMethods.ByName("UpdateServiceSecretEnv")),
+	secretServiceUpdateSecretHandler := connect.NewUnaryHandler(
+		SecretServiceUpdateSecretProcedure,
+		svc.UpdateSecret,
+		connect.WithSchema(secretServiceMethods.ByName("UpdateSecret")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/composia.controller.v1.SecretService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case SecretServiceGetServiceSecretEnvProcedure:
-			secretServiceGetServiceSecretEnvHandler.ServeHTTP(w, r)
-		case SecretServiceUpdateServiceSecretEnvProcedure:
-			secretServiceUpdateServiceSecretEnvHandler.ServeHTTP(w, r)
+		case SecretServiceGetSecretProcedure:
+			secretServiceGetSecretHandler.ServeHTTP(w, r)
+		case SecretServiceUpdateSecretProcedure:
+			secretServiceUpdateSecretHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -129,10 +128,10 @@ func NewSecretServiceHandler(svc SecretServiceHandler, opts ...connect.HandlerOp
 // UnimplementedSecretServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedSecretServiceHandler struct{}
 
-func (UnimplementedSecretServiceHandler) GetServiceSecretEnv(context.Context, *connect.Request[v1.GetServiceSecretEnvRequest]) (*connect.Response[v1.GetServiceSecretEnvResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.SecretService.GetServiceSecretEnv is not implemented"))
+func (UnimplementedSecretServiceHandler) GetSecret(context.Context, *connect.Request[v1.GetSecretRequest]) (*connect.Response[v1.GetSecretResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.SecretService.GetSecret is not implemented"))
 }
 
-func (UnimplementedSecretServiceHandler) UpdateServiceSecretEnv(context.Context, *connect.Request[v1.UpdateServiceSecretEnvRequest]) (*connect.Response[v1.UpdateServiceSecretEnvResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.SecretService.UpdateServiceSecretEnv is not implemented"))
+func (UnimplementedSecretServiceHandler) UpdateSecret(context.Context, *connect.Request[v1.UpdateSecretRequest]) (*connect.Response[v1.UpdateSecretResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.SecretService.UpdateSecret is not implemented"))
 }

@@ -12,7 +12,9 @@ export const GET: RequestHandler = async ({ params, url }) => {
   const path = url.searchParams.get("path") ?? "";
 
   try {
+    const workspace = await loadServiceWorkspace(params.name);
     const file = await loadServiceWorkspaceFile(
+      workspace?.serviceName ?? null,
       params.name,
       normalizeServiceRelativePath(path),
     );
@@ -32,6 +34,14 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
 export const POST: RequestHandler = async ({ params, request }) => {
   try {
+    const workspace = await loadServiceWorkspace(params.name);
+    if (!workspace?.serviceName) {
+      return json(
+        { error: "Service is not declared. Add composia-meta.yaml before editing files." },
+        { status: 400 },
+      );
+    }
+
     const payload = (await request.json()) as {
       path?: string;
       content?: string;
@@ -46,14 +56,14 @@ export const POST: RequestHandler = async ({ params, request }) => {
     }
 
     const result = await saveServiceWorkspaceFile(
+      workspace.serviceName,
       params.name,
       normalizeServiceRelativePath(payload.path),
       payload.content ?? "",
       payload.baseRevision,
     );
-    const workspace = await loadServiceWorkspace(params.name);
 
-    return json({ ...result, workspace });
+    return json({ file: result.file, write: result.write });
   } catch (error) {
     return json(
       {

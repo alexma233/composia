@@ -670,12 +670,18 @@ func bundleExtraFiles(cfg *config.ControllerConfig, record task.Record, params s
 		return extraFiles, nil
 	}
 	if cfg.Secrets != nil {
-		plaintext, err := readOptionalSecretPlaintext(cfg, record.RepoRevision, params.ServiceDir)
+		encFiles, err := listEncryptedFiles(cfg.RepoDir, record.RepoRevision, params.ServiceDir)
 		if err != nil {
 			return nil, err
 		}
-		if plaintext != "" {
-			extraFiles[filepath.ToSlash(filepath.Join(params.ServiceDir, ".secret.env"))] = plaintext
+		for _, encFile := range encFiles {
+			fullPath := filepath.ToSlash(filepath.Join(params.ServiceDir, encFile))
+			decrypted, err := decryptFileAtRevision(cfg, record.RepoRevision, fullPath)
+			if err != nil {
+				return nil, err
+			}
+			decryptedPath := strings.TrimSuffix(encFile, ".enc")
+			extraFiles[filepath.ToSlash(filepath.Join(params.ServiceDir, decryptedPath))] = decrypted
 		}
 	}
 	if record.Type == task.TypeBackup {
@@ -693,8 +699,25 @@ func bundleExtraFiles(cfg *config.ControllerConfig, record task.Record, params s
 	return extraFiles, nil
 }
 
-func readOptionalSecretPlaintext(cfg *config.ControllerConfig, revision, serviceDir string) (string, error) {
-	secretContent, err := repo.ReadFileAtRevision(cfg.RepoDir, revision, filepath.ToSlash(filepath.Join(serviceDir, ".secret.env.enc")))
+func listEncryptedFiles(repoDir, revision, serviceDir string) ([]string, error) {
+	files, err := repo.ListFilesAtRevision(repoDir, revision, serviceDir)
+	if err != nil {
+		if isMissingRevisionPathError(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var encFiles []string
+	for _, f := range files {
+		if strings.HasSuffix(f, ".enc") {
+			encFiles = append(encFiles, f)
+		}
+	}
+	return encFiles, nil
+}
+
+func decryptFileAtRevision(cfg *config.ControllerConfig, revision, encFilePath string) (string, error) {
+	secretContent, err := repo.ReadFileAtRevision(cfg.RepoDir, revision, encFilePath)
 	if err != nil {
 		if isMissingRevisionPathError(err) {
 			return "", nil
@@ -2693,21 +2716,24 @@ func defaultRepoCommitMessage(action, relativePath string) string {
 	return fmt.Sprintf("%s %s", action, relativePath)
 }
 
-func (server *secretServer) GetServiceSecretEnv(ctx context.Context, req *connect.Request[controllerv1.GetServiceSecretEnvRequest]) (*connect.Response[controllerv1.GetServiceSecretEnvResponse], error) {
+func (server *secretServer) GetSecret(ctx context.Context, req *connect.Request[controllerv1.GetSecretRequest]) (*connect.Response[controllerv1.GetSecretResponse], error) {
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+	if req.Msg.GetFilePath() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("file_path is required"))
 	}
 	if server.cfg.Secrets == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("controller secrets are not configured"))
 	}
-	service, secretPath, err := server.serviceSecretPath(req.Msg.GetServiceName())
+	service, filePath, err := server.resolveServiceFilePath(req.Msg.GetServiceName(), req.Msg.GetFilePath())
 	if err != nil {
 		return nil, err
 	}
-	secretFile, err := repo.ReadFile(server.cfg.RepoDir, secretPath)
+	secretFile, err := repo.ReadFile(server.cfg.RepoDir, filePath)
 	if err != nil {
 		if errors.Is(err, repo.ErrRepoPathNotFound) {
-			return connect.NewResponse(&controllerv1.GetServiceSecretEnvResponse{ServiceName: service.Name, Content: ""}), nil
+			return connect.NewResponse(&controllerv1.GetSecretResponse{ServiceName: service.Name, FilePath: req.Msg.GetFilePath(), Content: ""}), nil
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -2715,12 +2741,15 @@ func (server *secretServer) GetServiceSecretEnv(ctx context.Context, req *connec
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	return connect.NewResponse(&controllerv1.GetServiceSecretEnvResponse{ServiceName: service.Name, Content: plaintext}), nil
+	return connect.NewResponse(&controllerv1.GetSecretResponse{ServiceName: service.Name, FilePath: req.Msg.GetFilePath(), Content: plaintext}), nil
 }
 
-func (server *secretServer) UpdateServiceSecretEnv(ctx context.Context, req *connect.Request[controllerv1.UpdateServiceSecretEnvRequest]) (*connect.Response[controllerv1.UpdateServiceSecretEnvResponse], error) {
+func (server *secretServer) UpdateSecret(ctx context.Context, req *connect.Request[controllerv1.UpdateSecretRequest]) (*connect.Response[controllerv1.UpdateSecretResponse], error) {
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+	if req.Msg.GetFilePath() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("file_path is required"))
 	}
 	if req.Msg.GetBaseRevision() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base_revision is required"))
@@ -2728,7 +2757,7 @@ func (server *secretServer) UpdateServiceSecretEnv(ctx context.Context, req *con
 	if server.cfg.Secrets == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("controller secrets are not configured"))
 	}
-	service, secretPath, err := server.serviceSecretPath(req.Msg.GetServiceName())
+	service, filePath, err := server.resolveServiceFilePath(req.Msg.GetServiceName(), req.Msg.GetFilePath())
 	if err != nil {
 		return nil, err
 	}
@@ -2739,19 +2768,19 @@ func (server *secretServer) UpdateServiceSecretEnv(ctx context.Context, req *con
 	repoSrv := &repoServer{db: server.db, cfg: server.cfg, availableNodeIDs: server.availableNodeIDs, repoMu: server.repoMu}
 	repoSrv.repoLock().Lock()
 	defer repoSrv.repoLock().Unlock()
-	baseSyncState, err := repoSrv.prepareRepoWrite(ctx, req.Msg.GetBaseRevision(), secretPath)
+	baseSyncState, err := repoSrv.prepareRepoWrite(ctx, req.Msg.GetBaseRevision(), filePath)
 	if err != nil {
 		return nil, err
 	}
 	commitMessage := req.Msg.GetCommitMessage()
 	if commitMessage == "" {
-		commitMessage = fmt.Sprintf("update secrets for %s", service.Name)
+		commitMessage = fmt.Sprintf("update encrypted file %s for %s", req.Msg.GetFilePath(), service.Name)
 	}
-	result, err := repoSrv.updateRepoFileTransaction(ctx, secretPath, string(ciphertext), commitMessage, baseSyncState)
+	result, err := repoSrv.updateRepoFileTransaction(ctx, filePath, string(ciphertext), commitMessage, baseSyncState)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&controllerv1.UpdateServiceSecretEnvResponse{
+	return connect.NewResponse(&controllerv1.UpdateSecretResponse{
 		CommitId:             result.CommitID,
 		SyncStatus:           result.SyncStatus,
 		PushError:            result.PushError,
@@ -2759,7 +2788,7 @@ func (server *secretServer) UpdateServiceSecretEnv(ctx context.Context, req *con
 	}), nil
 }
 
-func (server *secretServer) serviceSecretPath(serviceName string) (*repo.Service, string, error) {
+func (server *secretServer) resolveServiceFilePath(serviceName, filePath string) (*repo.Service, string, error) {
 	service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, serviceName)
 	if err != nil {
 		return nil, "", connect.NewError(connect.CodeNotFound, err)
@@ -2768,7 +2797,15 @@ func (server *secretServer) serviceSecretPath(serviceName string) (*repo.Service
 	if err != nil {
 		return nil, "", connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
 	}
-	return &service, filepath.ToSlash(filepath.Join(serviceDir, ".secret.env.enc")), nil
+	cleanPath := filepath.ToSlash(filepath.Clean(filePath))
+	if strings.HasPrefix(cleanPath, "../") || strings.Contains(cleanPath, "/../") {
+		return nil, "", connect.NewError(connect.CodeInvalidArgument, errors.New("file_path must not escape service directory"))
+	}
+	if filepath.IsAbs(cleanPath) {
+		return nil, "", connect.NewError(connect.CodeInvalidArgument, errors.New("file_path must be relative"))
+	}
+	fullPath := filepath.ToSlash(filepath.Join(serviceDir, cleanPath))
+	return &service, fullPath, nil
 }
 
 func (server *taskServer) GetTask(ctx context.Context, req *connect.Request[controllerv1.GetTaskRequest]) (*connect.Response[controllerv1.GetTaskResponse], error) {
