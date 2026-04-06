@@ -50,13 +50,13 @@ export const load: PageServerLoad = async ({ params, url }) => {
       };
     }
 
-    const [tasks, backups, fileTree] = await Promise.all([
+    const [tasksResult, backupsResult, fileTree] = await Promise.all([
       workspace.isDeclared && workspace.serviceName
         ? loadServiceTasks(workspace.serviceName)
-        : Promise.resolve([]),
+        : Promise.resolve({ items: [], nextCursor: "", totalCount: 0 }),
       workspace.isDeclared && workspace.serviceName
         ? loadServiceBackups(workspace.serviceName)
-        : Promise.resolve([]),
+        : Promise.resolve({ items: [], nextCursor: "", totalCount: 0 }),
       loadServiceFileTree(workspace.folder),
     ]);
     const requestedFile = url.searchParams.get("file") ?? "";
@@ -71,8 +71,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
       ready: true,
       error: null,
       workspace,
-      tasks,
-      backups,
+      tasks: tasksResult.items,
+      backups: backupsResult.items,
       repoHead,
       fileTree,
       initialFile,

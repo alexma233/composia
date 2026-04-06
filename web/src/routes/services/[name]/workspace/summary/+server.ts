@@ -11,16 +11,16 @@ export const GET: RequestHandler = async ({ params }) => {
       return json({ error: "Service folder not found." }, { status: 404 });
     }
 
-    const [tasks, backups] = await Promise.all([
+    const [tasksResult, backupsResult] = await Promise.all([
       workspace.isDeclared && workspace.serviceName
         ? loadServiceTasks(workspace.serviceName)
-        : Promise.resolve([]),
+        : Promise.resolve({ items: [], nextCursor: "", totalCount: 0 }),
       workspace.isDeclared && workspace.serviceName
         ? loadServiceBackups(workspace.serviceName)
-        : Promise.resolve([]),
+        : Promise.resolve({ items: [], nextCursor: "", totalCount: 0 }),
     ]);
 
-    return json({ workspace, tasks, backups });
+    return json({ workspace, tasks: tasksResult.items, backups: backupsResult.items });
   } catch (error) {
     return json(
       {

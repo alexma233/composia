@@ -37,12 +37,12 @@ message GetServiceTasksRequest {
   string service_name = 1;
   string status = 2;
   uint32 page_size = 3;
-  string cursor = 4;
+  uint32 page = 4;
 }
 
 message GetServiceTasksResponse {
   repeated TaskSummary tasks = 1;
-  string next_cursor = 2;
+  uint32 total_count = 2;
 }
 
 message GetServiceBackupsRequest {
@@ -50,12 +50,12 @@ message GetServiceBackupsRequest {
   string status = 2;
   string data_name = 3;
   uint32 page_size = 4;
-  string cursor = 5;
+  uint32 page = 5;
 }
 
 message GetServiceBackupsResponse {
   repeated BackupSummary backups = 1;
-  string next_cursor = 2;
+  uint32 total_count = 2;
 }
 
 message BackupServiceRequest {
@@ -122,7 +122,7 @@ message RestartServiceResponse {
 message ListServicesRequest {
   string runtime_status = 1;
   uint32 page_size = 2;
-  string cursor = 3;
+  uint32 page = 3;
 }
 
 message ServiceSummary {
@@ -134,5 +134,5 @@ message ServiceSummary {
 
 message ListServicesResponse {
   repeated ServiceSummary services = 1;
-  string next_cursor = 2;
+  uint32 total_count = 2;
 }

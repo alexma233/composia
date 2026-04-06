@@ -154,7 +154,7 @@ type GetServiceTasksRequest struct {
 	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
 	PageSize      uint32                 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	Cursor        string                 `protobuf:"bytes,4,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	Page          uint32                 `protobuf:"varint,4,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -210,17 +210,17 @@ func (x *GetServiceTasksRequest) GetPageSize() uint32 {
 	return 0
 }
 
-func (x *GetServiceTasksRequest) GetCursor() string {
+func (x *GetServiceTasksRequest) GetPage() uint32 {
 	if x != nil {
-		return x.Cursor
+		return x.Page
 	}
-	return ""
+	return 0
 }
 
 type GetServiceTasksResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Tasks         []*TaskSummary         `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
-	NextCursor    string                 `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
+	TotalCount    uint32                 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -262,11 +262,11 @@ func (x *GetServiceTasksResponse) GetTasks() []*TaskSummary {
 	return nil
 }
 
-func (x *GetServiceTasksResponse) GetNextCursor() string {
+func (x *GetServiceTasksResponse) GetTotalCount() uint32 {
 	if x != nil {
-		return x.NextCursor
+		return x.TotalCount
 	}
-	return ""
+	return 0
 }
 
 type GetServiceBackupsRequest struct {
@@ -275,7 +275,7 @@ type GetServiceBackupsRequest struct {
 	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
 	DataName      string                 `protobuf:"bytes,3,opt,name=data_name,json=dataName,proto3" json:"data_name,omitempty"`
 	PageSize      uint32                 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	Cursor        string                 `protobuf:"bytes,5,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	Page          uint32                 `protobuf:"varint,5,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -338,17 +338,17 @@ func (x *GetServiceBackupsRequest) GetPageSize() uint32 {
 	return 0
 }
 
-func (x *GetServiceBackupsRequest) GetCursor() string {
+func (x *GetServiceBackupsRequest) GetPage() uint32 {
 	if x != nil {
-		return x.Cursor
+		return x.Page
 	}
-	return ""
+	return 0
 }
 
 type GetServiceBackupsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Backups       []*BackupSummary       `protobuf:"bytes,1,rep,name=backups,proto3" json:"backups,omitempty"`
-	NextCursor    string                 `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
+	TotalCount    uint32                 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -390,11 +390,11 @@ func (x *GetServiceBackupsResponse) GetBackups() []*BackupSummary {
 	return nil
 }
 
-func (x *GetServiceBackupsResponse) GetNextCursor() string {
+func (x *GetServiceBackupsResponse) GetTotalCount() uint32 {
 	if x != nil {
-		return x.NextCursor
+		return x.TotalCount
 	}
-	return ""
+	return 0
 }
 
 type BackupServiceRequest struct {
@@ -1033,7 +1033,7 @@ type ListServicesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RuntimeStatus string                 `protobuf:"bytes,1,opt,name=runtime_status,json=runtimeStatus,proto3" json:"runtime_status,omitempty"`
 	PageSize      uint32                 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	Cursor        string                 `protobuf:"bytes,3,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	Page          uint32                 `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1082,11 +1082,11 @@ func (x *ListServicesRequest) GetPageSize() uint32 {
 	return 0
 }
 
-func (x *ListServicesRequest) GetCursor() string {
+func (x *ListServicesRequest) GetPage() uint32 {
 	if x != nil {
-		return x.Cursor
+		return x.Page
 	}
-	return ""
+	return 0
 }
 
 type ServiceSummary struct {
@@ -1160,7 +1160,7 @@ func (x *ServiceSummary) GetUpdatedAt() string {
 type ListServicesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Services      []*ServiceSummary      `protobuf:"bytes,1,rep,name=services,proto3" json:"services,omitempty"`
-	NextCursor    string                 `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
+	TotalCount    uint32                 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1202,11 +1202,11 @@ func (x *ListServicesResponse) GetServices() []*ServiceSummary {
 	return nil
 }
 
-func (x *ListServicesResponse) GetNextCursor() string {
+func (x *ListServicesResponse) GetTotalCount() uint32 {
 	if x != nil {
-		return x.NextCursor
+		return x.TotalCount
 	}
-	return ""
+	return 0
 }
 
 var File_proto_composia_controller_v1_service_proto protoreflect.FileDescriptor
@@ -1223,26 +1223,26 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"updated_at\x18\x03 \x01(\tR\tupdatedAt\x12\x12\n" +
 	"\x04node\x18\x04 \x01(\tR\x04node\x12\x18\n" +
 	"\aenabled\x18\x05 \x01(\bR\aenabled\x12\x1c\n" +
-	"\tdirectory\x18\x06 \x01(\tR\tdirectory\"\x88\x01\n" +
+	"\tdirectory\x18\x06 \x01(\tR\tdirectory\"\x84\x01\n" +
 	"\x16GetServiceTasksRequest\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\rR\bpageSize\x12\x16\n" +
-	"\x06cursor\x18\x04 \x01(\tR\x06cursor\"u\n" +
+	"\tpage_size\x18\x03 \x01(\rR\bpageSize\x12\x12\n" +
+	"\x04page\x18\x04 \x01(\rR\x04page\"u\n" +
 	"\x17GetServiceTasksResponse\x129\n" +
 	"\x05tasks\x18\x01 \x03(\v2#.composia.controller.v1.TaskSummaryR\x05tasks\x12\x1f\n" +
-	"\vnext_cursor\x18\x02 \x01(\tR\n" +
-	"nextCursor\"\xa7\x01\n" +
+	"\vtotal_count\x18\x02 \x01(\rR\n" +
+	"totalCount\"\xa3\x01\n" +
 	"\x18GetServiceBackupsRequest\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x1b\n" +
 	"\tdata_name\x18\x03 \x01(\tR\bdataName\x12\x1b\n" +
-	"\tpage_size\x18\x04 \x01(\rR\bpageSize\x12\x16\n" +
-	"\x06cursor\x18\x05 \x01(\tR\x06cursor\"}\n" +
+	"\tpage_size\x18\x04 \x01(\rR\bpageSize\x12\x12\n" +
+	"\x04page\x18\x05 \x01(\rR\x04page\"}\n" +
 	"\x19GetServiceBackupsResponse\x12?\n" +
 	"\abackups\x18\x01 \x03(\v2%.composia.controller.v1.BackupSummaryR\abackups\x12\x1f\n" +
-	"\vnext_cursor\x18\x02 \x01(\tR\n" +
-	"nextCursor\"X\n" +
+	"\vtotal_count\x18\x02 \x01(\rR\n" +
+	"totalCount\"X\n" +
 	"\x14BackupServiceRequest\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x1d\n" +
 	"\n" +
@@ -1280,11 +1280,11 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"\x16RestartServiceResponse\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12#\n" +
-	"\rrepo_revision\x18\x03 \x01(\tR\frepoRevision\"q\n" +
+	"\rrepo_revision\x18\x03 \x01(\tR\frepoRevision\"m\n" +
 	"\x13ListServicesRequest\x12%\n" +
 	"\x0eruntime_status\x18\x01 \x01(\tR\rruntimeStatus\x12\x1b\n" +
-	"\tpage_size\x18\x02 \x01(\rR\bpageSize\x12\x16\n" +
-	"\x06cursor\x18\x03 \x01(\tR\x06cursor\"\x8b\x01\n" +
+	"\tpage_size\x18\x02 \x01(\rR\bpageSize\x12\x12\n" +
+	"\x04page\x18\x03 \x01(\rR\x04page\"\x8b\x01\n" +
 	"\x0eServiceSummary\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
 	"\vis_declared\x18\x02 \x01(\bR\n" +
@@ -1294,8 +1294,8 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"updated_at\x18\x04 \x01(\tR\tupdatedAt\"{\n" +
 	"\x14ListServicesResponse\x12B\n" +
 	"\bservices\x18\x01 \x03(\v2&.composia.controller.v1.ServiceSummaryR\bservices\x12\x1f\n" +
-	"\vnext_cursor\x18\x02 \x01(\tR\n" +
-	"nextCursor2\xe8\b\n" +
+	"\vtotal_count\x18\x02 \x01(\rR\n" +
+	"totalCount2\xe8\b\n" +
 	"\x0eServiceService\x12i\n" +
 	"\fListServices\x12+.composia.controller.v1.ListServicesRequest\x1a,.composia.controller.v1.ListServicesResponse\x12c\n" +
 	"\n" +

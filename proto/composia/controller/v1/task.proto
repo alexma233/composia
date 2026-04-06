@@ -15,7 +15,7 @@ message ListTasksRequest {
   string status = 1;
   string service_name = 2;
   uint32 page_size = 3;
-  string cursor = 4;
+  uint32 page = 4;
   string node_id = 5;
   string type = 6;
 }
@@ -31,7 +31,7 @@ message TaskSummary {
 
 message ListTasksResponse {
   repeated TaskSummary tasks = 1;
-  string next_cursor = 2;
+  uint32 total_count = 2;
 }
 
 message GetTaskRequest {

@@ -90,8 +90,8 @@ func TestTaskServiceListTasks(t *testing.T) {
 	if response.Msg.GetTasks()[0].GetTaskId() != "task-2" {
 		t.Fatalf("expected newest task task-2, got %q", response.Msg.GetTasks()[0].GetTaskId())
 	}
-	if response.Msg.GetNextCursor() != "task-2" {
-		t.Fatalf("expected next cursor task-2, got %q", response.Msg.GetNextCursor())
+	if response.Msg.GetTotalCount() != 2 {
+		t.Fatalf("expected total count 2, got %d", response.Msg.GetTotalCount())
 	}
 
 	filtered, err := client.ListTasks(ctx, connect.NewRequest(&controllerv1.ListTasksRequest{NodeId: "main", Type: string(task.TypeDeploy), PageSize: 10}))

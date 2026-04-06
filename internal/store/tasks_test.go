@@ -249,26 +249,23 @@ func TestListTasksAppliesFiltersAndCursor(t *testing.T) {
 		t.Fatalf("create task-3: %v", err)
 	}
 
-	tasks, nextCursor, err := db.ListTasks(ctx, string(task.StatusFailed), "", "", "", "", 1)
+	tasks, totalCount, err := db.ListTasks(ctx, string(task.StatusFailed), "", "", "", 1, 1)
 	if err != nil {
 		t.Fatalf("list failed tasks: %v", err)
 	}
 	if len(tasks) != 1 || tasks[0].TaskID != "task-3" {
 		t.Fatalf("unexpected failed task page: %+v", tasks)
 	}
-	if nextCursor != "task-3" {
-		t.Fatalf("expected next cursor task-3, got %q", nextCursor)
+	if totalCount != 2 {
+		t.Fatalf("expected total count 2, got %d", totalCount)
 	}
 
-	tasks, nextCursor, err = db.ListTasks(ctx, "", "alpha", "", "", nextCursor, 10)
+	tasks, _, err = db.ListTasks(ctx, "", "alpha", "", "", 1, 10)
 	if err != nil {
-		t.Fatalf("list alpha tasks after cursor: %v", err)
+		t.Fatalf("list alpha tasks: %v", err)
 	}
 	if len(tasks) != 2 || tasks[0].TaskID != "task-2" || tasks[1].TaskID != "task-1" {
 		t.Fatalf("unexpected alpha task page: %+v", tasks)
-	}
-	if nextCursor != "" {
-		t.Fatalf("expected empty next cursor, got %q", nextCursor)
 	}
 }
 
@@ -295,15 +292,12 @@ func TestListTasksAppliesNodeAndTypeFilters(t *testing.T) {
 		t.Fatalf("create task-3: %v", err)
 	}
 
-	tasks, nextCursor, err := db.ListTasks(ctx, "", "", "node-2", string(task.TypeDeploy), "", 10)
+	tasks, _, err := db.ListTasks(ctx, "", "", "node-2", string(task.TypeDeploy), 1, 10)
 	if err != nil {
 		t.Fatalf("list filtered tasks: %v", err)
 	}
 	if len(tasks) != 1 || tasks[0].TaskID != "task-3" {
 		t.Fatalf("unexpected filtered task list: %+v", tasks)
-	}
-	if nextCursor != "" {
-		t.Fatalf("expected empty next cursor, got %q", nextCursor)
 	}
 }
 

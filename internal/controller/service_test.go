@@ -72,8 +72,8 @@ func TestServiceServiceListServices(t *testing.T) {
 	if response.Msg.GetServices()[0].GetRuntimeStatus() != "unknown" {
 		t.Fatalf("expected runtime_status unknown, got %q", response.Msg.GetServices()[0].GetRuntimeStatus())
 	}
-	if response.Msg.GetNextCursor() != "alpha" {
-		t.Fatalf("expected next cursor alpha, got %q", response.Msg.GetNextCursor())
+	if response.Msg.GetTotalCount() != 2 {
+		t.Fatalf("expected total count 2, got %d", response.Msg.GetTotalCount())
 	}
 }
 

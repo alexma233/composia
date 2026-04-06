@@ -32,10 +32,11 @@ type MetaInfo = {
 export async function loadServiceWorkspaces(): Promise<
   ServiceWorkspaceSummary[]
 > {
-  const [rootEntries, summaries] = await Promise.all([
+  const [rootEntries, summariesResult] = await Promise.all([
     loadRepoEntries(""),
     loadServices(200),
   ]);
+  const summaries = summariesResult.items;
   const directories = rootEntries.filter((entry) => entry.isDir);
   const details = await Promise.all(
     summaries.map((summary) => loadDetail(summary)),

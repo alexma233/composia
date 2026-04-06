@@ -2,6 +2,11 @@ import { env } from "$env/dynamic/private";
 
 type RpcRequest = Record<string, unknown>;
 
+export type PaginatedResult<T> = {
+  items: T[];
+  totalCount: number;
+};
+
 export type SystemStatus = {
   version: string;
   configuredNodeCount: number;
@@ -175,7 +180,7 @@ export async function loadDashboard(): Promise<DashboardData> {
     throw new Error(config.reason);
   }
 
-  const [system, services, nodes, tasks] = await Promise.all([
+  const [system, servicesResult, nodes, tasksResult] = await Promise.all([
     loadSystemStatus(),
     loadServices(8),
     loadNodes(),
@@ -184,9 +189,9 @@ export async function loadDashboard(): Promise<DashboardData> {
 
   return {
     system,
-    services,
+    services: servicesResult.items,
     nodes,
-    tasks,
+    tasks: tasksResult.items,
   };
 }
 
@@ -200,15 +205,21 @@ export async function loadSystemStatus(): Promise<SystemStatus> {
   );
 }
 
-export async function loadServices(pageSize = 50): Promise<ServiceSummary[]> {
+export async function loadServices(page = 1, pageSize = 50): Promise<PaginatedResult<ServiceSummary>> {
   const config = requireControllerConfig();
-  const response = await rpcCall<{ services?: ServiceSummary[] }>(
+  const response = await rpcCall<{
+    services?: ServiceSummary[];
+    total_count?: number;
+  }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.ServiceService/ListServices",
-    { pageSize },
+    { page, page_size: pageSize },
   );
-  return response.services ?? [];
+  return {
+    items: response.services ?? [],
+    totalCount: response.total_count ?? 0,
+  };
 }
 
 export async function loadNodes(): Promise<NodeSummary[]> {
@@ -222,26 +233,38 @@ export async function loadNodes(): Promise<NodeSummary[]> {
   return response.nodes ?? [];
 }
 
-export async function loadTasks(pageSize = 50): Promise<TaskSummary[]> {
+export async function loadTasks(page = 1, pageSize = 50): Promise<PaginatedResult<TaskSummary>> {
   const config = requireControllerConfig();
-  const response = await rpcCall<{ tasks?: TaskSummary[] }>(
+  const response = await rpcCall<{
+    tasks?: TaskSummary[];
+    total_count?: number;
+  }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.TaskService/ListTasks",
-    { pageSize },
+    { page, page_size: pageSize },
   );
-  return response.tasks ?? [];
+  return {
+    items: response.tasks ?? [],
+    totalCount: response.total_count ?? 0,
+  };
 }
 
-export async function loadBackups(pageSize = 100): Promise<BackupSummary[]> {
+export async function loadBackups(page = 1, pageSize = 100): Promise<PaginatedResult<BackupSummary>> {
   const config = requireControllerConfig();
-  const response = await rpcCall<{ backups?: BackupSummary[] }>(
+  const response = await rpcCall<{
+    backups?: BackupSummary[];
+    total_count?: number;
+  }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.BackupRecordService/ListBackups",
-    { pageSize },
+    { page, page_size: pageSize },
   );
-  return response.backups ?? [];
+  return {
+    items: response.backups ?? [],
+    totalCount: response.total_count ?? 0,
+  };
 }
 
 export async function loadRepoHead(): Promise<RepoHead> {
@@ -384,30 +407,44 @@ export async function loadServiceDetail(
 
 export async function loadServiceTasks(
   serviceName: string,
+  page = 1,
   pageSize = 20,
-): Promise<TaskSummary[]> {
+): Promise<PaginatedResult<TaskSummary>> {
   const config = requireControllerConfig();
-  const response = await rpcCall<{ tasks?: TaskSummary[] }>(
+  const response = await rpcCall<{
+    tasks?: TaskSummary[];
+    total_count?: number;
+  }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.ServiceService/GetServiceTasks",
-    { serviceName, pageSize },
+    { service_name: serviceName, page, page_size: pageSize },
   );
-  return response.tasks ?? [];
+  return {
+    items: response.tasks ?? [],
+    totalCount: response.total_count ?? 0,
+  };
 }
 
 export async function loadServiceBackups(
   serviceName: string,
+  page = 1,
   pageSize = 20,
-): Promise<BackupSummary[]> {
+): Promise<PaginatedResult<BackupSummary>> {
   const config = requireControllerConfig();
-  const response = await rpcCall<{ backups?: BackupSummary[] }>(
+  const response = await rpcCall<{
+    backups?: BackupSummary[];
+    total_count?: number;
+  }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.ServiceService/GetServiceBackups",
-    { serviceName, pageSize },
+    { service_name: serviceName, page, page_size: pageSize },
   );
-  return response.backups ?? [];
+  return {
+    items: response.backups ?? [],
+    totalCount: response.total_count ?? 0,
+  };
 }
 
 export async function deployService(
@@ -481,16 +518,23 @@ export async function loadNodeDetail(
 
 export async function loadNodeTasks(
   nodeId: string,
+  page = 1,
   pageSize = 20,
-): Promise<TaskSummary[]> {
+): Promise<PaginatedResult<TaskSummary>> {
   const config = requireControllerConfig();
-  const response = await rpcCall<{ tasks?: TaskSummary[] }>(
+  const response = await rpcCall<{
+    tasks?: TaskSummary[];
+    total_count?: number;
+  }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.NodeService/GetNodeTasks",
-    { nodeId, pageSize },
+    { node_id: nodeId, page, page_size: pageSize },
   );
-  return response.tasks ?? [];
+  return {
+    items: response.tasks ?? [],
+    totalCount: response.total_count ?? 0,
+  };
 }
 
 export async function loadNodeDockerStats(

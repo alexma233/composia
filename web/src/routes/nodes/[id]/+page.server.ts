@@ -21,7 +21,7 @@ export const load: PageServerLoad = async ({ params }) => {
   }
 
   try {
-    const [node, tasks, dockerStats] = await Promise.all([
+    const [node, tasksResult, dockerStats] = await Promise.all([
       loadNodeDetail(params.id),
       loadNodeTasks(params.id),
       loadNodeDockerStats(params.id),
@@ -31,7 +31,7 @@ export const load: PageServerLoad = async ({ params }) => {
       ready: true,
       error: null,
       node,
-      tasks,
+      tasks: tasksResult.items,
       dockerStats,
     };
   } catch (error) {

@@ -34,26 +34,23 @@ func TestListDeclaredServicesAppliesCursorAndFilter(t *testing.T) {
 		t.Fatalf("update stopped service: %v", err)
 	}
 
-	services, nextCursor, err := db.ListDeclaredServices(ctx, "", "", 2)
+	services, totalCount, err := db.ListDeclaredServices(ctx, "", 1, 2)
 	if err != nil {
 		t.Fatalf("list declared services page 1: %v", err)
 	}
 	if len(services) != 2 || services[0].Name != "alpha" || services[1].Name != "bravo" {
 		t.Fatalf("unexpected first page: %+v", services)
 	}
-	if nextCursor != "bravo" {
-		t.Fatalf("expected next cursor bravo, got %q", nextCursor)
+	if totalCount != 3 {
+		t.Fatalf("expected total count 3, got %d", totalCount)
 	}
 
-	services, nextCursor, err = db.ListDeclaredServices(ctx, "running", "", 10)
+	services, _, err = db.ListDeclaredServices(ctx, "running", 1, 10)
 	if err != nil {
 		t.Fatalf("list filtered services: %v", err)
 	}
 	if len(services) != 2 || services[0].Name != "alpha" || services[1].Name != "charlie" {
 		t.Fatalf("unexpected filtered services: %+v", services)
-	}
-	if nextCursor != "" {
-		t.Fatalf("expected empty next cursor, got %q", nextCursor)
 	}
 }
 

@@ -243,55 +243,52 @@ func (db *DB) SyncDeclaredServices(ctx context.Context, serviceNames []string) e
 	return nil
 }
 
-func (db *DB) ListDeclaredServices(ctx context.Context, runtimeStatusFilter, cursor string, limit uint32) ([]ServiceSummary, string, error) {
+func (db *DB) ListDeclaredServices(ctx context.Context, runtimeStatusFilter string, page, limit uint32) ([]ServiceSummary, uint32, error) {
 	if limit == 0 {
 		limit = 100
 	}
+	if page == 0 {
+		page = 1
+	}
 
-	query := `
-		SELECT service_name, is_declared, runtime_status, updated_at
-		FROM services
-		WHERE is_declared = 1
-	`
+	whereClause := "WHERE is_declared = 1"
 	args := make([]any, 0, 3)
 
 	if runtimeStatusFilter != "" {
-		query += ` AND runtime_status = ?`
+		whereClause += ` AND runtime_status = ?`
 		args = append(args, runtimeStatusFilter)
 	}
-	if cursor != "" {
-		query += ` AND service_name > ?`
-		args = append(args, cursor)
+
+	var totalCount uint32
+	countQuery := `SELECT COUNT(*) FROM services ` + whereClause
+	if err := db.sql.QueryRowContext(ctx, countQuery, args...).Scan(&totalCount); err != nil {
+		return nil, 0, fmt.Errorf("count declared services: %w", err)
 	}
 
-	query += ` ORDER BY service_name ASC LIMIT ?`
-	args = append(args, limit+1)
+	offset := (page - 1) * limit
+	query := `SELECT service_name, is_declared, runtime_status, updated_at FROM services ` + whereClause
+	query += ` ORDER BY service_name ASC LIMIT ? OFFSET ?`
+	args = append(args, limit, offset)
 
 	rows, err := db.sql.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, "", fmt.Errorf("list declared services: %w", err)
+		return nil, 0, fmt.Errorf("list declared services: %w", err)
 	}
 	defer rows.Close()
 
 	services := make([]ServiceSummary, 0, limit)
-	var nextCursor string
 	for rows.Next() {
 		var service ServiceSummary
 		if err := rows.Scan(&service.Name, &service.IsDeclared, &service.RuntimeStatus, &service.UpdatedAt); err != nil {
-			return nil, "", fmt.Errorf("scan declared service: %w", err)
+			return nil, 0, fmt.Errorf("scan declared service: %w", err)
 		}
 		services = append(services, service)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, "", fmt.Errorf("iterate declared services: %w", err)
+		return nil, 0, fmt.Errorf("iterate declared services: %w", err)
 	}
 
-	if uint32(len(services)) > limit {
-		nextCursor = services[limit-1].Name
-		services = services[:limit]
-	}
-
-	return services, nextCursor, nil
+	return services, totalCount, nil
 }
 
 func (db *DB) GetServiceSnapshot(ctx context.Context, serviceName string) (ServiceSnapshot, error) {

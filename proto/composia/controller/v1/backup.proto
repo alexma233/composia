@@ -24,12 +24,12 @@ message ListBackupsRequest {
   string status = 2;
   string data_name = 3;
   uint32 page_size = 4;
-  string cursor = 5;
+  uint32 page = 5;
 }
 
 message ListBackupsResponse {
   repeated BackupSummary backups = 1;
-  string next_cursor = 2;
+  uint32 total_count = 2;
 }
 
 message GetBackupRequest {

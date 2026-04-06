@@ -446,72 +446,64 @@ func (db *DB) TaskNodeID(ctx context.Context, taskID string) (string, error) {
 	return nodeID, nil
 }
 
-func (db *DB) ListTasks(ctx context.Context, statusFilter, serviceNameFilter, nodeIDFilter, typeFilter, cursor string, limit uint32) ([]TaskSummary, string, error) {
+func (db *DB) ListTasks(ctx context.Context, statusFilter, serviceNameFilter, nodeIDFilter, typeFilter string, page, limit uint32) ([]TaskSummary, uint32, error) {
 	if limit == 0 {
 		limit = 100
 	}
+	if page == 0 {
+		page = 1
+	}
 
-	query := `
-		SELECT task_id, type, status, COALESCE(service_name, ''), COALESCE(node_id, ''), created_at
-		FROM tasks
-		WHERE 1 = 1
-	`
+	whereClause := "WHERE 1 = 1"
 	args := make([]any, 0, 6)
 
 	if statusFilter != "" {
-		query += ` AND status = ?`
+		whereClause += ` AND status = ?`
 		args = append(args, statusFilter)
 	}
 	if serviceNameFilter != "" {
-		query += ` AND service_name = ?`
+		whereClause += ` AND service_name = ?`
 		args = append(args, serviceNameFilter)
 	}
 	if nodeIDFilter != "" {
-		query += ` AND node_id = ?`
+		whereClause += ` AND node_id = ?`
 		args = append(args, nodeIDFilter)
 	}
 	if typeFilter != "" {
-		query += ` AND type = ?`
+		whereClause += ` AND type = ?`
 		args = append(args, typeFilter)
 	}
 
-	if cursor != "" {
-		cursorCreatedAt, err := db.taskCreatedAt(ctx, cursor)
-		if err != nil {
-			return nil, "", err
-		}
-		query += ` AND (created_at < ? OR (created_at = ? AND task_id < ?))`
-		args = append(args, cursorCreatedAt, cursorCreatedAt, cursor)
+	var totalCount uint32
+	countQuery := `SELECT COUNT(*) FROM tasks ` + whereClause
+	if err := db.sql.QueryRowContext(ctx, countQuery, args...).Scan(&totalCount); err != nil {
+		return nil, 0, fmt.Errorf("count tasks: %w", err)
 	}
 
-	query += ` ORDER BY created_at DESC, task_id DESC LIMIT ?`
-	args = append(args, limit+1)
+	offset := (page - 1) * limit
+	query := `SELECT task_id, type, status, COALESCE(service_name, ''), COALESCE(node_id, ''), created_at FROM tasks ` + whereClause
+	query += ` ORDER BY created_at DESC, task_id DESC LIMIT ? OFFSET ?`
+	args = append(args, limit, offset)
 
 	rows, err := db.sql.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, "", fmt.Errorf("list tasks: %w", err)
+		return nil, 0, fmt.Errorf("list tasks: %w", err)
 	}
 	defer rows.Close()
 
 	tasks := make([]TaskSummary, 0, limit)
-	var nextCursor string
 	for rows.Next() {
 		var record TaskSummary
 		if err := rows.Scan(&record.TaskID, &record.Type, &record.Status, &record.ServiceName, &record.NodeID, &record.CreatedAt); err != nil {
-			return nil, "", fmt.Errorf("scan task summary: %w", err)
+			return nil, 0, fmt.Errorf("scan task summary: %w", err)
 		}
 		tasks = append(tasks, record)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, "", fmt.Errorf("iterate task summaries: %w", err)
+		return nil, 0, fmt.Errorf("iterate task summaries: %w", err)
 	}
 
-	if uint32(len(tasks)) > limit {
-		nextCursor = tasks[limit-1].TaskID
-		tasks = tasks[:limit]
-	}
-
-	return tasks, nextCursor, nil
+	return tasks, totalCount, nil
 }
 
 func (db *DB) GetTask(ctx context.Context, taskID string) (TaskDetail, error) {

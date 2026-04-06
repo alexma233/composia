@@ -73,63 +73,58 @@ func (db *DB) UpsertBackupRecord(ctx context.Context, detail BackupDetail) error
 	return nil
 }
 
-func (db *DB) ListBackups(ctx context.Context, serviceNameFilter, statusFilter, dataNameFilter, cursor string, limit uint32) ([]BackupSummary, string, error) {
+func (db *DB) ListBackups(ctx context.Context, serviceNameFilter, statusFilter, dataNameFilter string, page, limit uint32) ([]BackupSummary, uint32, error) {
 	if limit == 0 {
 		limit = 100
 	}
+	if page == 0 {
+		page = 1
+	}
 
-	query := `
-		SELECT backup_id, task_id, service_name, data_name, status, started_at, COALESCE(finished_at, '')
-		FROM backups
-		WHERE 1 = 1
-	`
+	whereClause := "WHERE 1 = 1"
 	args := make([]any, 0, 6)
 	if serviceNameFilter != "" {
-		query += ` AND service_name = ?`
+		whereClause += ` AND service_name = ?`
 		args = append(args, serviceNameFilter)
 	}
 	if statusFilter != "" {
-		query += ` AND status = ?`
+		whereClause += ` AND status = ?`
 		args = append(args, statusFilter)
 	}
 	if dataNameFilter != "" {
-		query += ` AND data_name = ?`
+		whereClause += ` AND data_name = ?`
 		args = append(args, dataNameFilter)
 	}
-	if cursor != "" {
-		cursorSortTime, err := db.backupSortTime(ctx, cursor)
-		if err != nil {
-			return nil, "", err
-		}
-		query += ` AND (COALESCE(finished_at, started_at) < ? OR (COALESCE(finished_at, started_at) = ? AND backup_id < ?))`
-		args = append(args, cursorSortTime, cursorSortTime, cursor)
+
+	var totalCount uint32
+	countQuery := `SELECT COUNT(*) FROM backups ` + whereClause
+	if err := db.sql.QueryRowContext(ctx, countQuery, args...).Scan(&totalCount); err != nil {
+		return nil, 0, fmt.Errorf("count backups: %w", err)
 	}
-	query += ` ORDER BY COALESCE(finished_at, started_at) DESC, backup_id DESC LIMIT ?`
-	args = append(args, limit+1)
+
+	offset := (page - 1) * limit
+	query := `SELECT backup_id, task_id, service_name, data_name, status, started_at, COALESCE(finished_at, '') FROM backups ` + whereClause
+	query += ` ORDER BY COALESCE(finished_at, started_at) DESC, backup_id DESC LIMIT ? OFFSET ?`
+	args = append(args, limit, offset)
 
 	rows, err := db.sql.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, "", fmt.Errorf("list backups: %w", err)
+		return nil, 0, fmt.Errorf("list backups: %w", err)
 	}
 	defer rows.Close()
 
 	backups := make([]BackupSummary, 0, limit)
-	var nextCursor string
 	for rows.Next() {
 		var backup BackupSummary
 		if err := rows.Scan(&backup.BackupID, &backup.TaskID, &backup.ServiceName, &backup.DataName, &backup.Status, &backup.StartedAt, &backup.FinishedAt); err != nil {
-			return nil, "", fmt.Errorf("scan backup summary: %w", err)
+			return nil, 0, fmt.Errorf("scan backup summary: %w", err)
 		}
 		backups = append(backups, backup)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, "", fmt.Errorf("iterate backups: %w", err)
+		return nil, 0, fmt.Errorf("iterate backups: %w", err)
 	}
-	if uint32(len(backups)) > limit {
-		nextCursor = backups[limit-1].BackupID
-		backups = backups[:limit]
-	}
-	return backups, nextCursor, nil
+	return backups, totalCount, nil
 }
 
 func (db *DB) GetBackup(ctx context.Context, backupID string) (BackupDetail, error) {

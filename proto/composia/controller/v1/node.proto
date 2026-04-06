@@ -48,12 +48,12 @@ message GetNodeTasksRequest {
   string node_id = 1;
   string status = 2;
   uint32 page_size = 3;
-  string cursor = 4;
+  uint32 page = 4;
 }
 
 message GetNodeTasksResponse {
   repeated TaskSummary tasks = 1;
-  string next_cursor = 2;
+  uint32 total_count = 2;
 }
 
 message GetNodeDockerStatsRequest {

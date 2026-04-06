@@ -119,7 +119,7 @@ type ListBackupsRequest struct {
 	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
 	DataName      string                 `protobuf:"bytes,3,opt,name=data_name,json=dataName,proto3" json:"data_name,omitempty"`
 	PageSize      uint32                 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	Cursor        string                 `protobuf:"bytes,5,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	Page          uint32                 `protobuf:"varint,5,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -182,17 +182,17 @@ func (x *ListBackupsRequest) GetPageSize() uint32 {
 	return 0
 }
 
-func (x *ListBackupsRequest) GetCursor() string {
+func (x *ListBackupsRequest) GetPage() uint32 {
 	if x != nil {
-		return x.Cursor
+		return x.Page
 	}
-	return ""
+	return 0
 }
 
 type ListBackupsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Backups       []*BackupSummary       `protobuf:"bytes,1,rep,name=backups,proto3" json:"backups,omitempty"`
-	NextCursor    string                 `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
+	TotalCount    uint32                 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -234,11 +234,11 @@ func (x *ListBackupsResponse) GetBackups() []*BackupSummary {
 	return nil
 }
 
-func (x *ListBackupsResponse) GetNextCursor() string {
+func (x *ListBackupsResponse) GetTotalCount() uint32 {
 	if x != nil {
-		return x.NextCursor
+		return x.TotalCount
 	}
-	return ""
+	return 0
 }
 
 type GetBackupRequest struct {
@@ -407,17 +407,17 @@ const file_proto_composia_controller_v1_backup_proto_rawDesc = "" +
 	"\n" +
 	"started_at\x18\x06 \x01(\tR\tstartedAt\x12\x1f\n" +
 	"\vfinished_at\x18\a \x01(\tR\n" +
-	"finishedAt\"\xa1\x01\n" +
+	"finishedAt\"\x9d\x01\n" +
 	"\x12ListBackupsRequest\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x1b\n" +
 	"\tdata_name\x18\x03 \x01(\tR\bdataName\x12\x1b\n" +
-	"\tpage_size\x18\x04 \x01(\rR\bpageSize\x12\x16\n" +
-	"\x06cursor\x18\x05 \x01(\tR\x06cursor\"w\n" +
+	"\tpage_size\x18\x04 \x01(\rR\bpageSize\x12\x12\n" +
+	"\x04page\x18\x05 \x01(\rR\x04page\"w\n" +
 	"\x13ListBackupsResponse\x12?\n" +
 	"\abackups\x18\x01 \x03(\v2%.composia.controller.v1.BackupSummaryR\abackups\x12\x1f\n" +
-	"\vnext_cursor\x18\x02 \x01(\tR\n" +
-	"nextCursor\"/\n" +
+	"\vtotal_count\x18\x02 \x01(\rR\n" +
+	"totalCount\"/\n" +
 	"\x10GetBackupRequest\x12\x1b\n" +
 	"\tbackup_id\x18\x01 \x01(\tR\bbackupId\"\xa9\x02\n" +
 	"\x11GetBackupResponse\x12\x1b\n" +

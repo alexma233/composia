@@ -31,26 +31,23 @@ func TestListBackupsAppliesFiltersAndCursor(t *testing.T) {
 		t.Fatalf("insert backup-2: %v", err)
 	}
 
-	backups, nextCursor, err := db.ListBackups(ctx, "", "", "", "", 1)
+	backups, totalCount, err := db.ListBackups(ctx, "", "", "", 1, 1)
 	if err != nil {
 		t.Fatalf("list backups: %v", err)
 	}
 	if len(backups) != 1 || backups[0].BackupID != "backup-2" {
 		t.Fatalf("unexpected backup page: %+v", backups)
 	}
-	if nextCursor != "backup-2" {
-		t.Fatalf("expected next cursor backup-2, got %q", nextCursor)
+	if totalCount != 2 {
+		t.Fatalf("expected total count 2, got %d", totalCount)
 	}
 
-	backups, nextCursor, err = db.ListBackups(ctx, "alpha", "", "config", "", 10)
+	backups, _, err = db.ListBackups(ctx, "alpha", "", "config", 1, 10)
 	if err != nil {
 		t.Fatalf("list alpha backups: %v", err)
 	}
 	if len(backups) != 1 || backups[0].BackupID != "backup-1" {
 		t.Fatalf("unexpected filtered backups: %+v", backups)
-	}
-	if nextCursor != "" {
-		t.Fatalf("expected empty next cursor, got %q", nextCursor)
 	}
 }
 

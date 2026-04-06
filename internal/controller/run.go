@@ -1043,14 +1043,14 @@ func (server *serviceServer) ListServices(ctx context.Context, req *connect.Requ
 		req.Msg = &controllerv1.ListServicesRequest{}
 	}
 
-	services, nextCursor, err := server.db.ListDeclaredServices(ctx, req.Msg.GetRuntimeStatus(), req.Msg.GetCursor(), req.Msg.GetPageSize())
+	services, totalCount, err := server.db.ListDeclaredServices(ctx, req.Msg.GetRuntimeStatus(), req.Msg.GetPage(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	response := &controllerv1.ListServicesResponse{
 		Services:   make([]*controllerv1.ServiceSummary, 0, len(services)),
-		NextCursor: nextCursor,
+		TotalCount: totalCount,
 	}
 	for _, service := range services {
 		response.Services = append(response.Services, &controllerv1.ServiceSummary{
@@ -1097,13 +1097,13 @@ func (server *serviceServer) GetServiceTasks(ctx context.Context, req *connect.R
 	if _, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName()); err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
-	tasks, nextCursor, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), req.Msg.GetServiceName(), "", "", req.Msg.GetCursor(), req.Msg.GetPageSize())
+	tasks, totalCount, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), req.Msg.GetServiceName(), "", "", req.Msg.GetPage(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	response := &controllerv1.GetServiceTasksResponse{
 		Tasks:      make([]*controllerv1.TaskSummary, 0, len(tasks)),
-		NextCursor: nextCursor,
+		TotalCount: totalCount,
 	}
 	for _, record := range tasks {
 		response.Tasks = append(response.Tasks, taskSummaryMessage(record))
@@ -1118,13 +1118,13 @@ func (server *serviceServer) GetServiceBackups(ctx context.Context, req *connect
 	if _, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName()); err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
-	backups, nextCursor, err := server.db.ListBackups(ctx, req.Msg.GetServiceName(), req.Msg.GetStatus(), req.Msg.GetDataName(), req.Msg.GetCursor(), req.Msg.GetPageSize())
+	backups, totalCount, err := server.db.ListBackups(ctx, req.Msg.GetServiceName(), req.Msg.GetStatus(), req.Msg.GetDataName(), req.Msg.GetPage(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	response := &controllerv1.GetServiceBackupsResponse{
 		Backups:    make([]*controllerv1.BackupSummary, 0, len(backups)),
-		NextCursor: nextCursor,
+		TotalCount: totalCount,
 	}
 	for _, backup := range backups {
 		response.Backups = append(response.Backups, backupSummaryMessage(backup))
@@ -1418,13 +1418,13 @@ func (server *nodeServer) GetNodeTasks(ctx context.Context, req *connect.Request
 	if !configured {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("node %q is not configured", req.Msg.GetNodeId()))
 	}
-	tasks, nextCursor, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), "", req.Msg.GetNodeId(), "", req.Msg.GetCursor(), req.Msg.GetPageSize())
+	tasks, totalCount, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), "", req.Msg.GetNodeId(), "", req.Msg.GetPage(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	response := &controllerv1.GetNodeTasksResponse{
 		Tasks:      make([]*controllerv1.TaskSummary, 0, len(tasks)),
-		NextCursor: nextCursor,
+		TotalCount: totalCount,
 	}
 	for _, record := range tasks {
 		response.Tasks = append(response.Tasks, taskSummaryMessage(record))
@@ -1930,14 +1930,14 @@ func (server *taskServer) ListTasks(ctx context.Context, req *connect.Request[co
 		req.Msg = &controllerv1.ListTasksRequest{}
 	}
 
-	tasks, nextCursor, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), req.Msg.GetServiceName(), req.Msg.GetNodeId(), req.Msg.GetType(), req.Msg.GetCursor(), req.Msg.GetPageSize())
+	tasks, totalCount, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), req.Msg.GetServiceName(), req.Msg.GetNodeId(), req.Msg.GetType(), req.Msg.GetPage(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	response := &controllerv1.ListTasksResponse{
 		Tasks:      make([]*controllerv1.TaskSummary, 0, len(tasks)),
-		NextCursor: nextCursor,
+		TotalCount: totalCount,
 	}
 	for _, record := range tasks {
 		response.Tasks = append(response.Tasks, taskSummaryMessage(record))
@@ -1961,13 +1961,13 @@ func (server *backupRecordServer) ListBackups(ctx context.Context, req *connect.
 	if req.Msg == nil {
 		req.Msg = &controllerv1.ListBackupsRequest{}
 	}
-	backups, nextCursor, err := server.db.ListBackups(ctx, req.Msg.GetServiceName(), req.Msg.GetStatus(), req.Msg.GetDataName(), req.Msg.GetCursor(), req.Msg.GetPageSize())
+	backups, totalCount, err := server.db.ListBackups(ctx, req.Msg.GetServiceName(), req.Msg.GetStatus(), req.Msg.GetDataName(), req.Msg.GetPage(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	response := &controllerv1.ListBackupsResponse{
 		Backups:    make([]*controllerv1.BackupSummary, 0, len(backups)),
-		NextCursor: nextCursor,
+		TotalCount: totalCount,
 	}
 	for _, backup := range backups {
 		response.Backups = append(response.Backups, backupSummaryMessage(backup))
