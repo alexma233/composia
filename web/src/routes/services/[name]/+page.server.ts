@@ -3,8 +3,8 @@ import type { PageServerLoad } from "./$types";
 import {
   controllerConfig,
   loadRepoHead,
-  loadServiceBackups,
-  loadServiceTasks,
+  loadBackups,
+  loadTasks,
 } from "$lib/server/controller";
 import {
   defaultServiceFilePath,
@@ -52,11 +52,11 @@ export const load: PageServerLoad = async ({ params, url }) => {
 
     const [tasksResult, backupsResult, fileTree] = await Promise.all([
       workspace.isDeclared && workspace.serviceName
-        ? loadServiceTasks(workspace.serviceName)
-        : Promise.resolve({ items: [], nextCursor: "", totalCount: 0 }),
+        ? loadTasks(1, 20, { serviceName: workspace.serviceName })
+        : Promise.resolve({ items: [], totalCount: 0 }),
       workspace.isDeclared && workspace.serviceName
-        ? loadServiceBackups(workspace.serviceName)
-        : Promise.resolve({ items: [], nextCursor: "", totalCount: 0 }),
+        ? loadBackups(1, 20, { serviceName: workspace.serviceName })
+        : Promise.resolve({ items: [], totalCount: 0 }),
       loadServiceFileTree(workspace.folder),
     ]);
     const requestedFile = url.searchParams.get("file") ?? "";

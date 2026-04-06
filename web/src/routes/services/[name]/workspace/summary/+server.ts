@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
-import { loadServiceBackups, loadServiceTasks } from "$lib/server/controller";
+import { loadBackups, loadTasks } from "$lib/server/controller";
 import { loadServiceWorkspace } from "$lib/server/service-index";
 
 export const GET: RequestHandler = async ({ params }) => {
@@ -13,11 +13,11 @@ export const GET: RequestHandler = async ({ params }) => {
 
     const [tasksResult, backupsResult] = await Promise.all([
       workspace.isDeclared && workspace.serviceName
-        ? loadServiceTasks(workspace.serviceName)
-        : Promise.resolve({ items: [], nextCursor: "", totalCount: 0 }),
+        ? loadTasks(1, 20, { serviceName: workspace.serviceName })
+        : Promise.resolve({ items: [], totalCount: 0 }),
       workspace.isDeclared && workspace.serviceName
-        ? loadServiceBackups(workspace.serviceName)
-        : Promise.resolve({ items: [], nextCursor: "", totalCount: 0 }),
+        ? loadBackups(1, 20, { serviceName: workspace.serviceName })
+        : Promise.resolve({ items: [], totalCount: 0 }),
     ]);
 
     return json({ workspace, tasks: tasksResult.items, backups: backupsResult.items });

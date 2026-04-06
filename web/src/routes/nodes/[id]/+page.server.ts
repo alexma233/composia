@@ -3,7 +3,7 @@ import type { PageServerLoad, Actions } from "./$types";
 import {
   controllerConfig,
   loadNodeDetail,
-  loadNodeTasks,
+  loadTasks,
   loadNodeDockerStats,
   pruneNodeDocker,
 } from "$lib/server/controller";
@@ -23,7 +23,7 @@ export const load: PageServerLoad = async ({ params }) => {
   try {
     const [node, tasksResult, dockerStats] = await Promise.all([
       loadNodeDetail(params.id),
-      loadNodeTasks(params.id),
+      loadTasks(1, 20, { nodeId: params.id }),
       loadNodeDockerStats(params.id),
     ]);
 
