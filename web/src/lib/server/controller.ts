@@ -209,16 +209,16 @@ export async function loadServices(page = 1, pageSize = 50): Promise<PaginatedRe
   const config = requireControllerConfig();
   const response = await rpcCall<{
     services?: ServiceSummary[];
-    total_count?: number;
+    totalCount?: number;
   }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.ServiceService/ListServices",
-    { page, page_size: pageSize },
+    { page, pageSize },
   );
   return {
     items: response.services ?? [],
-    totalCount: response.total_count ?? 0,
+    totalCount: response.totalCount ?? 0,
   };
 }
 
@@ -237,16 +237,16 @@ export async function loadTasks(page = 1, pageSize = 50): Promise<PaginatedResul
   const config = requireControllerConfig();
   const response = await rpcCall<{
     tasks?: TaskSummary[];
-    total_count?: number;
+    totalCount?: number;
   }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.TaskService/ListTasks",
-    { page, page_size: pageSize },
+    { page, pageSize },
   );
   return {
     items: response.tasks ?? [],
-    totalCount: response.total_count ?? 0,
+    totalCount: response.totalCount ?? 0,
   };
 }
 
@@ -254,16 +254,16 @@ export async function loadBackups(page = 1, pageSize = 100): Promise<PaginatedRe
   const config = requireControllerConfig();
   const response = await rpcCall<{
     backups?: BackupSummary[];
-    total_count?: number;
+    totalCount?: number;
   }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.BackupRecordService/ListBackups",
-    { page, page_size: pageSize },
+    { page, pageSize },
   );
   return {
     items: response.backups ?? [],
-    totalCount: response.total_count ?? 0,
+    totalCount: response.totalCount ?? 0,
   };
 }
 
@@ -413,16 +413,16 @@ export async function loadServiceTasks(
   const config = requireControllerConfig();
   const response = await rpcCall<{
     tasks?: TaskSummary[];
-    total_count?: number;
+    totalCount?: number;
   }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.ServiceService/GetServiceTasks",
-    { service_name: serviceName, page, page_size: pageSize },
+    { serviceName, page, pageSize },
   );
   return {
     items: response.tasks ?? [],
-    totalCount: response.total_count ?? 0,
+    totalCount: response.totalCount ?? 0,
   };
 }
 
@@ -434,16 +434,16 @@ export async function loadServiceBackups(
   const config = requireControllerConfig();
   const response = await rpcCall<{
     backups?: BackupSummary[];
-    total_count?: number;
+    totalCount?: number;
   }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.ServiceService/GetServiceBackups",
-    { service_name: serviceName, page, page_size: pageSize },
+    { serviceName, page, pageSize },
   );
   return {
     items: response.backups ?? [],
-    totalCount: response.total_count ?? 0,
+    totalCount: response.totalCount ?? 0,
   };
 }
 
@@ -524,16 +524,16 @@ export async function loadNodeTasks(
   const config = requireControllerConfig();
   const response = await rpcCall<{
     tasks?: TaskSummary[];
-    total_count?: number;
+    totalCount?: number;
   }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.NodeService/GetNodeTasks",
-    { node_id: nodeId, page, page_size: pageSize },
+    { nodeId, page, pageSize },
   );
   return {
     items: response.tasks ?? [],
-    totalCount: response.total_count ?? 0,
+    totalCount: response.totalCount ?? 0,
   };
 }
 
