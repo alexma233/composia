@@ -34,7 +34,7 @@ export async function loadServiceWorkspaces(): Promise<
 > {
   const [rootEntries, summariesResult] = await Promise.all([
     loadRepoEntries(""),
-    loadServices(200),
+    loadServices(1, 200),
   ]);
   const summaries = summariesResult.items;
   const directories = rootEntries.filter((entry) => entry.isDir);
@@ -105,7 +105,11 @@ async function loadDetail(summary: ServiceSummary) {
       summary,
       detail: await loadServiceDetail(summary.name),
     };
-  } catch {
+  } catch (error) {
+    console.error(
+      `Failed to load service detail for ${summary.name}:`,
+      error instanceof Error ? error.message : error,
+    );
     return null;
   }
 }
