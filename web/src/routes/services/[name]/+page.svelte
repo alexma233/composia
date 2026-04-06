@@ -674,16 +674,16 @@
         <CardContent class="space-y-4 p-4 pt-0">
           <div class="grid gap-2">
             <Button type="button" onclick={() => triggerAction('deploy')} disabled={!!actionBusy || !workspace?.isDeclared}>
-              <Play class="mr-2 size-4" />Deploy
+              <Play class="mr-2 size-4" />Deploy (Up)
             </Button>
             <Button type="button" variant="outline" onclick={() => triggerAction('update')} disabled={!!actionBusy || !workspace?.isDeclared}>
-              <Upload class="mr-2 size-4" />Update
+              <Upload class="mr-2 size-4" />Update (Pull + Up)
             </Button>
             <Button type="button" variant="outline" onclick={() => triggerAction('restart')} disabled={!!actionBusy || !workspace?.isDeclared}>
-              <RefreshCcw class="mr-2 size-4" />Restart
+              <RefreshCcw class="mr-2 size-4" />Restart (Down + Up)
             </Button>
             <Button type="button" variant="outline" onclick={() => triggerAction('stop')} disabled={!!actionBusy || !workspace?.isDeclared}>
-              <Square class="mr-2 size-4" />Stop
+              <Square class="mr-2 size-4" />Stop (Down)
             </Button>
             <Button type="button" variant="outline" onclick={() => triggerAction('backup')} disabled={!!actionBusy || !workspace?.isDeclared}>
               <Wrench class="mr-2 size-4" />Backup
