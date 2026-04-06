@@ -4,249 +4,361 @@ This document turns `plan.md` into a practical execution order for the current r
 
 ## Source of Truth
 
-- `plan.md` is the product and architecture source of truth.
-- `steps.md` is only an implementation ordering document.
-- If `steps.md` and `plan.md` ever conflict, follow `plan.md`.
-- Do not treat scaffolding, placeholders, or partial APIs as "done" if their behavior still differs from `plan.md`.
-- Before adding new surface area, first remove any architectural drift from the current implementation.
+- `plan.md` 是产品和架构的真相源。
+- `steps.md` 只是一个执行排序文档。
+- 如果 `steps.md` 和 `plan.md` 有冲突，以 `plan.md` 为准。
+- 不要把 scaffold、占位符或不完整的 API 当作"已完成"。
+- 在增加新功能之前，先消除当前的架构漂移。
+
+## 当前代码库状态
+
+代码库已超越初始 scaffold 阶段。
+
+### 已实现或大部分实现
+
+**核心基础设施：**
+- `composia controller` 和 `composia agent` 子命令已存在。
+- `config.yaml` 加载和验证已实现（controller 和 agent 模型）。
+- Controller 启动初始化本地目录和打开 SQLite。
+- SQLite schema 存在：`nodes`、`services`、`tasks`、`task_steps`、`backups`、repo sync state。
+- Controller-agent ConnectRPC 连接已存在：heartbeat、long-poll task pull、bundle download、task state、step state、log upload、backup reporting、service runtime reporting、Docker stats reporting。
+- Agent heartbeat 工作正常，节点状态已持久化。
+- 服务 repo 扫描和 `composia-meta.yaml` 验证已存在。
 
-## Current Repository State
+**Controller Public API（已完成）：**
+- `ServiceService`：ListServices、GetService、GetServiceTasks、GetServiceBackups、DeployService、UpdateService、StopService、RestartService、BackupService、UpdateServiceDNS
+- `TaskService`：ListTasks、GetTask、TailTaskLogs、RunTaskAgain
+- `BackupRecordService`：ListBackups、GetBackup
+- `NodeService`：ListNodes、GetNode、GetNodeTasks、GetNodeDockerStats、PruneNodeDocker、ListNodeContainers/Networks/Volumes/Images、InspectNodeContainer/Network/Volume/Image
+- `RepoService`：GetRepoHead、ListRepoFiles、GetRepoFile、UpdateRepoFile、ListRepoCommits、SyncRepo
+- `SecretService`：GetServiceSecretEnv、UpdateServiceSecretEnv
+- `SystemService`：GetSystemStatus、GetCurrentConfig
 
-The repository is no longer at the initial scaffold stage.
+**Agent 任务执行（已完成）：**
+- `deploy`：完整实现（bundle download、render、compose-up steps）
+- `update`：完整实现（pull + compose-up steps）
+- `stop`：完整实现（download bundle、compose-down）
+- `restart`：完整实现（compose-down + compose-up）
+- `backup`：完整实现（rustic、files.copy、files.tar_after_stop、database.pgdumpall）
+- `prune`：完整实现（targets: all、containers、networks、images、volumes、builder）
+- `dns_update`：Controller 端实现（Cloudflare 集成）
 
-Implemented or mostly implemented:
+**其他已实现：**
+- Repo Git 操作（lock handling、commit、fetch+fast-forward、push）
+- age-based secret 加密/解密
+- 自动 repo pull（使用 `pull_interval`）
+- Web UI 连接到真实 controller API
+- Docker 浏览 API（containers、networks、images、volumes）
 
-- `composia controller` and `composia agent` subcommands exist.
-- Shared `config.yaml` loading and validation exist for the v1 `controller` and `agent` model.
-- Controller startup initializes local directories and opens SQLite.
-- SQLite schema exists for `nodes`, `services`, `tasks`, `task_steps`, `backups`, and repo sync state.
-- Controller-agent ConnectRPC wiring exists for heartbeat, long-poll task pull, bundle download, task state, step state, log upload, backup reporting, and service runtime reporting.
-- Agent heartbeat works and node state is persisted.
-- Service repo scanning and `composia-meta.yaml` validation exist.
-- Controller APIs expose read paths for services, tasks, nodes, backups, repo inspection, repo editing, service secret editing, task log tailing, task rerun, and manual repo sync.
-- Agent can pull queued tasks and download bundles for service execution.
-- Remote task execution exists for `deploy`, `update`, `stop`, `restart`, and `backup`.
-- Task logs stream from agent to controller and are persisted under `controller.log_dir`.
-- Repo write transactions and Git commits exist for normal files and encrypted service secrets, including optional remote `fetch + fast-forward`, push attempts, and sync-state reporting.
-- age-based secret decrypt and re-encrypt helpers exist.
-- The web UI is wired to real controller APIs for dashboard, services, nodes, tasks, backups, repo editing, secret editing, service actions, repo sync state display, and task log tailing.
-- The frontend style simplification away from the earlier bloated shell has started and should no longer be treated as untouched work.
+### 尚未实现
 
-Still partial or not aligned with `plan.md` yet:
+**缺失的 API（proto 中）：**
+- `ServiceService.MigrateService` - 未实现
+- `NodeService.ReloadNodeCaddy` - 未实现
 
-- `PullNextTask` now follows a long-poll shape, but the broader controller-agent execution contract still needs to stay aligned as more task types are added.
-- Task `source` semantics are improved for web-triggered calls, but the full documented caller matrix still needs to remain consistent as CLI, schedule, and system triggers are added.
-- Remote Git sync semantics exist for manual sync, write-time fetch/push flows, and background auto-pull using `pull_interval`.
-- `migrate` is still not implemented as the documented single-task workflow, and `awaiting_confirmation` is not yet exercised by a real controller flow.
-- Backup execution now covers the implemented export path and backup record reporting, but restore-driven workflows and migration reuse are still incomplete.
-- DNS update is implemented; prune is fully implemented; Caddy management (caddy_reload task + ReloadNodeCaddy API) is not implemented.
-- CLI config and a real CLI command surface are not implemented yet.
-- Scheduled update and backup execution are not implemented yet.
-- `auto_deploy` option (auto-trigger deploy after repo changes) is documented in plan.md but not implemented.
-- The current web UI reads real controller state and now includes core service actions and task log tailing, but it still lacks migrate and day-2 task entry points, task rerun UI, repo sync actions, and stronger repo/secret editing ergonomics.
-- The documented controller public API is still incomplete: `MigrateService` and `ReloadNodeCaddy` are not exposed yet. `UpdateServiceDNS`, `PruneNodeDocker`, and `GetCurrentConfig` are now implemented.
+**缺失的任务执行：**
+- `migrate` 任务类型 - 未实现
+- `caddy_reload` 任务类型 - 未实现
 
-## Execution Rule
+**缺失的备份/恢复功能：**
+- restore 任务类型 - 未实现
+- `RestoreService` API - 未实现
+- 迁移复用备份数据的工作流 - 不完整
 
-From this point forward, agents working in this repository should follow these rules:
+**缺失的功能：**
+- CLI 命令面（`composia-cli.yaml` 处理） - 未实现
+- 定时任务调度（cron/scheduler） - 未实现
+- `auto_deploy` 配置选项 - 已文档化但未连接到任务创建
+- CodeMirror 6 网页编辑器 - 未实现（只有基础 textareas）
+- AI/MCP/Skills - 未实现（v1 不计划）
 
-1. Keep the implementation aligned with `plan.md`, even if that means tightening or replacing existing placeholder behavior.
-2. Prefer finishing and correcting already-started foundation work before adding more APIs or UI pages.
-3. Do not add new behavior that changes task semantics, repo semantics, or controller-agent responsibilities unless `plan.md` already defines it.
-4. Treat migration, backup, DNS, secrets, and repo writes as architecture-sensitive work that must match the documented v1 semantics, not shortcut variants.
+---
 
-## Frontend Direction
+## 执行规则
 
-The current frontend already covers real controller read paths, and the first round of style simplification has begun. The next UI work should treat operational completeness as the priority, then continue tightening the visual system.
+1. 保持实现与 `plan.md` 一致，即使需要收紧或替换现有占位符行为。
+2. 优先完成已开始的基础工作，再添加更多 API 或 UI 页面。
+3. 不要添加改变任务语义、repo 语义或 controller-agent 职责的新行为，除非 `plan.md` 已定义。
+4. 将迁移、备份、DNS、secrets 和 repo 写入视为架构敏感工作，必须匹配文档化的 v1 语义，而不是快捷变体。
 
-1. Keep the calmer operations-console direction and continue removing leftover decorative styling where it still hurts scanability.
-2. Prioritize missing controller actions before more aesthetic polish: deploy, update, stop, restart, backup, migrate, rerun, and other documented task entry points.
-3. Add task log tailing so task detail pages expose real-time execution output instead of only showing the log path.
-4. Expand repo and secret editing feedback to show commit results, revision changes, and future repo sync state once the backend exposes it.
-5. Upgrade repo and secret editing ergonomics after the API semantics are ready; the baseline textareas are acceptable temporarily but are not the intended end state.
-6. Continue increasing information density and scanability for services, nodes, tasks, backups, and repo views without regressing mobile usability.
-7. Reuse a small set of layout and status patterns so the UI feels operational and systematic rather than ornamental.
+---
 
-## Phase 1: Remove Architecture Drift
+## Phase 1: 消除架构漂移
 
-Status: mostly complete
+**状态：大部分完成**
 
-Goal: make the current backend match the controller-agent contract described in `plan.md` before expanding the feature surface.
+目标：在扩展功能之前，使当前后端与 `plan.md` 中描述的 controller-agent 契约匹配。
 
-1. Keep `controller` as the durable state owner and task scheduler.
-2. Keep `agent` as the execution side through `PullNextTask` and `GetServiceBundle`.
-3. Remove, rewrite, or clearly retire leftover controller-local worker paths that imply a competing execution model.
-4. Add explicit agent-to-controller service runtime reporting instead of deriving runtime state only from terminal task results.
-5. Move task log upload toward the planned streaming contract so the protocol shape does not drift further.
+已完成：
+1. `controller` 是持久状态所有者和任务调度器。
+2. `agent` 是通过 `PullNextTask` 和 `GetServiceBundle` 的执行端。
+3. 任务日志从 agent 流式上传到 controller 并持久化。
+4. Agent 报告服务运行时状态。
 
-Deliverable:
+待完成：
+- 无
 
-- The running architecture is internally consistent and matches `plan.md`.
+---
 
-## Phase 2: Finish the Task Foundation
+## Phase 2: 完成任务基础
 
-Status: completed
+**状态：已完成**
 
-Goal: make the existing task system reliable and strictly conform to the documented v1 task model.
+目标：使现有任务系统可靠且严格符合文档化的 v1 任务模型。
 
-1. Keep every task bound to a specific `repo_revision`.
-2. Enforce global serial execution semantics as documented.
-3. Preserve the `pending`, `running`, `awaiting_confirmation`, and terminal state rules exactly as described in `plan.md`.
-4. Keep task step summaries and per-task logs under `controller.log_dir`.
-5. Preserve restart recovery behavior for `running` tasks and keep `awaiting_confirmation` tasks intact.
-6. Keep service-level conflict checks aligned with the repo write conflict rules in `plan.md`.
+已完成：
+1. 每个任务绑定到特定 `repo_revision`。
+2. 全局串行执行语义。
+3. `pending`、`running`、`awaiting_confirmation` 和终态规则。
+4. 任务步骤摘要和每任务日志在 `controller.log_dir`。
+5. `running` 任务的重启恢复行为。
+6. 服务级冲突检查与 repo 写入冲突规则一致。
 
-Deliverable:
+待完成：
+- `awaiting_confirmation` 保留用于未来真实的迁移工作流。
 
-- Tasks are durable, observable, and semantically consistent with the plan.
+---
 
-Remaining focus:
+## Phase 3: 稳定第一个真实服务操作
 
-- Keep `awaiting_confirmation` reserved for the future real migration workflow rather than treating enum support alone as completion.
-- Keep `source` and rerun semantics aligned as more trigger types are added.
+**状态：已完成**
 
-## Phase 3: Stabilize the First Real Service Actions
+目标：在添加更广泛工作流之前，完成已开始 day-1 服务操作。
 
-Status: completed
+已完成：
+1. `deploy` 是第一个完全支持的端到端任务。
+2. `update`、`stop`、`restart` 任务步骤和运行时效果符合计划。
+3. Agent 报告的运行时状态。
+4. 任务日志流式回传。
 
-Goal: finish the already-started day-1 service operations before adding broader workflows.
+---
 
-1. Keep `deploy` as the first fully supported end-to-end task.
-2. Finish `update`, `stop`, and `restart` so their task steps and runtime effects match the plan.
-3. Replace runtime-status guessing with agent-reported runtime state.
-4. Add stronger end-to-end tests around bundle download, task execution, and task state persistence.
+## Phase 4: 添加安全的 desired-state Repo 写入
 
-Deliverable:
+**状态：大部分完成**
 
-- `deploy`, `update`, `stop`, and `restart` are trustworthy controller-agent flows.
+目标：让 controller 完全按照文档管理 Git-backed desired state 变更。
 
-## Phase 4: Add Safe Desired-State Repo Writes
+已完成：
+1. Repo lock 处理、验证、服务冲突检查和本地 commit 创建。
+2. 可选远程同步行为、push 报告和 repo sync 状态。
+3. `RepoService.SyncRepo` 实现。
+4. `GetRepoHead` 返回同步相关状态。
+5. `GetCurrentConfig` API 已实现。
 
-Status: mostly complete
+待完成：
+- `auto_deploy` 选项（auto-deploy after repo changes）已文档化但未实现。
 
-Goal: let the controller own Git-backed desired state changes exactly as documented.
+---
 
-1. Keep repo lock handling, validation, service conflict checks, and local commit creation aligned with `plan.md`.
-2. Add optional remote sync behavior, push reporting, and repo sync state.
-3. Add `RepoService.SyncRepo` with the documented clean-worktree requirements.
-4. Extend `GetRepoHead` to return the sync-related state expected by the plan.
-5. Add the remaining documented system/config read surface and keep remote-sync behavior consistent across normal files and secrets.
+## Phase 5: 添加 Secret 处理
 
-Deliverable:
+**状态：已完成**
 
-- Desired-state file edits are safe, validated, committed, and consistent with the Git model in `plan.md`.
+目标：实现选定的 age-based secrets 模型，不在 `controller.repo_dir` 留下明文。
 
-Current note:
+已完成：
+1. Controller 端解密和重新加密与配置的 age 设置一致。
+2. `SecretService.GetServiceSecretEnv` 和 `UpdateServiceSecretEnv` 与普通 repo 写入的 repo lock 和冲突语义一致。
+3. 解密后的运行时文件只包含在 agent bundle 中，不持久化在 controller Git 工作树。
+4. Git remote-sync 语义扩展到 secret 写入。
 
-- The core remote-sync and sync-reporting behavior is already present; scheduled auto-pull is now implemented.
-- `GetCurrentConfig` API is now implemented, exposing sanitized config for settings and diagnostics pages.
-- `auto_deploy` option (auto-deploy after repo changes) is documented in plan.md but not yet implemented; it is off by default and can be enabled in config. This should be implemented in a later phase.
+---
 
-## Phase 5: Add Secret Handling
+## Phase 6: 替换占位符备份行为
 
-Status: in progress
+**状态：进行中**
 
-Goal: implement the selected age-based secrets model without leaving plaintext in `controller.repo_dir`.
+目标：将当前备份 scaffold 转变为第一个真实数据保护工作流。
 
-1. Keep controller-side decryption and re-encryption aligned with the configured age settings.
-2. Keep `SecretService.GetServiceSecretEnv` and `SecretService.UpdateServiceSecretEnv` aligned with the same repo lock and conflict semantics as normal repo writes.
-3. Ensure decrypted runtime files are only included in agent bundles and never persisted in the controller Git working tree.
-4. Extend the remaining Git remote-sync semantics to secret writes as well.
+已完成：
+- 备份执行使用 rustic provider、files.copy、files.tar_after_stop、database.pgdumpall
+- 备份记录持久化到 SQLite
+- 备份查询 API 稳定
 
-Deliverable:
+待完成：
+1. restore 任务执行 - 未实现
+2. 迁移复用备份数据的工作流 - 不完整
+3. `database.pgimport` restore 策略 - 未实现
+4. `files.untar` restore 策略 - 未实现
+5. 定时备份执行 - 未实现
 
-- Service secrets follow the documented age-based workflow.
+---
 
-Current note:
+## Phase 7: 添加 Read-Write Web UI
 
-- The core age decrypt/re-encrypt path is implemented; remaining work is mostly keeping it aligned with the rest of the repo-sync semantics and future UX improvements.
+**状态：进行中**
 
-## Phase 6: Replace Placeholder Backup Behavior
+目标：保留现有真实 controller UI，完成缺失的 controller 交互，并继续将其收紧为密集操作控制台。
 
-Status: in progress
+已完成：
+- Dashboard、services、nodes、tasks、backups 页面连接到真实 API
+- 服务动作（deploy、update、stop、restart、backup）
+- 任务日志 tailing
+- Repo 编辑和 sync 状态显示
+- Secret 编辑
+- Docker 浏览（containers、networks、images、volumes）
 
-Goal: turn the current backup scaffolding into the first real data-protection workflow.
+待完成：
+1. `MigrateService` UI 入口
+2. `ReloadNodeCaddy` UI 入口
+3. 任务 rerun UI 的完整控件
+4. Repo sync 手动触发按钮（push）
+5. CodeMirror 6 编辑器替换基础 textareas
+6. 备份详情页的 restore 入口（未来）
 
-1. Keep `data_protect` parsing and validation aligned with the documented v1 strategies.
-2. Keep the currently implemented manual backup execution path limited to the documented v1 strategies.
-3. Preserve one backup record per data item and keep backup query APIs stable.
-4. Fill the remaining gaps around restore-side reuse, migration integration, and edge-case coverage.
-5. Only add scheduling after manual backup behavior is correct.
+---
 
-Deliverable:
+## Phase 8: 添加 DNS、Caddy 和节点操作
 
-- Backup tasks produce real artifacts and real backup records.
+**状态：进行中**
 
-Current note:
+目标：在 repo 写入和基础服务流稳定后，实现文档化的 day-2 操作动作。
 
-- Manual backup execution and backup record persistence are already real; restore-side workflows and migration reuse are still missing.
+已完成：
+1. `dns_update` 任务行为 - controller 端 Cloudflare 集成
+2. `prune` 任务行为 - all/containers/images/networks/volumes/builder targets
+3. `PruneNodeDocker` API
 
-## Phase 7: Add Read-Write Web UI on Real APIs
+待完成：
+1. `caddy_reload` 任务行为 - 未实现
+   - 需要在 agent 添加 Caddyfile 验证和 reload 执行逻辑
+   - 需要 `ReloadNodeCaddy` API
+2. `ReloadNodeCaddy` API - 未实现
 
-Status: in progress
+---
 
-Goal: keep the existing real controller UI, finish the missing controller interactions, and continue tightening it into a dense operations console.
+## Phase 9: 最后添加迁移
 
-1. Add the missing task action entry points on the real service, task, and node pages.
-2. Add task log tailing to task detail pages.
-3. Surface repo write results clearly, and later extend the same pages with repo sync state and push reporting once the backend supports them.
-4. Keep repo and secret editing usable on both desktop and mobile, then improve editor ergonomics after the backend contract is complete.
-5. Continue simplifying the dashboard, service, node, task, backup, repo, and secret pages into a denser and more consistent visual system.
-6. Re-check all existing pages for consistent status badges, table/list density, and navigation patterns before adding more surface area.
+**状态：待开始**
 
-Deliverable:
+目标：仅在整个平台语义稳定后，实现最复杂的 v1 工作流。
 
-- The frontend is a real controller UI with a restrained, information-dense operational style.
+待实现：
+1. `MigrateService(target_node_id)` RPC
+2. `migrate` 任务类型，包括：
+   - 源节点数据导出（使用 `migrate.data[]` 引用的 `backup` 定义）
+   - 数据和运行时文件传输到目标节点
+   - 目标节点数据恢复（使用 `restore` 定义）
+   - 目标节点服务启动
+   - 刷新目标节点 Caddy 生成目录
+   - 重建源节点 Caddy 生成目录（移除旧服务片段）
+   - DNS 更新
+   - `persist_repo` 阶段：修改 `composia-meta.yaml.node` 并 commit/push
+3. `awaiting_confirmation` 状态用于迁移后人工验证和 repo 对账
+4. 迁移冲突处理：当 `persist_repo` 时 `HEAD` 已变化但变化触及该服务目录
 
-Current note:
+---
 
-- Service actions and task log tailing are already present. The remaining UI gaps are rerun controls, repo sync actions, migrate/day-2 operations, and stronger editing ergonomics.
+## 待实现的 API（来自 plan.md v1 规范）
 
-## Phase 8: Add DNS, Caddy, and Node Operations
+### ServiceService
+- [ ] `MigrateService(target_node_id)` - 创建迁移任务，接收目标 node_id
 
-Status: in progress
+### NodeService  
+- [ ] `ReloadNodeCaddy(node_id)` - 创建 caddy_reload 任务
 
-Goal: implement the documented day-2 operational actions after repo writes and base service flows are stable.
+---
 
-1. Add `dns_update` task behavior. (done)
-2. Add `caddy_reload` task behavior. (not implemented - no task execution logic, no ReloadNodeCaddy API)
-3. Add `prune` task behavior. (done - all/containers/images/networks/volumes targets implemented)
-4. Add the related controller public APIs. (partial - PruneNodeDocker done, ReloadNodeCaddy not implemented)
-5. Keep task steps, logging, and node targeting aligned with the task model.
+## 待实现的备份/恢复功能
 
-Deliverable:
+### 备份策略（已实现）
+- [x] `files.copy`
+- [x] `files.tar_after_stop`
+- [x] `database.pgdumpall`
 
-- Day-2 node and ingress operations work through the same task system.
+### 备份策略（未实现）
+- [ ] 其他 provider（通过 PR 扩展）
 
-## Phase 9: Add Migration Last
+### 恢复策略（未实现）
+- [ ] `database.pgimport`
+- [ ] `files.untar`
+- [ ] `files.copy` (restore)
 
-Status: pending
+---
 
-Goal: implement the most complex v1 workflow only after the rest of the platform semantics are stable.
+## 待实现的 CLI 命令（v1）
 
-1. Add `MigrateService(target_node_id)`.
-2. Validate `migrate.data[]` exactly as documented.
-3. Export selected data from the source node.
-4. Transfer artifacts and runtime files to the target node.
-5. Restore data and start the target service.
-6. Refresh Caddy and DNS as documented.
-7. Persist the repo `node` change only after runtime cutover succeeds.
-8. Use `awaiting_confirmation` exactly as defined in `plan.md`.
-9. Apply the documented repo conflict and reconciliation rules during `persist_repo`.
+根据 plan.md，CLI 应支持：
 
-Deliverable:
+```
+service list/get/deploy/stop/restart/update/backup/migrate/logs
+task list/get/run-again/logs
+backup list/get
+node list/get/tasks/reload-caddy/prune
+repo head/files/get/update/history/sync
+secret get/update
+system status
+caddy reload
+dns update
+```
 
-- Migration works with explicit operator confirmation and the same failure boundaries described in the plan.
+当前状态：CLI 配置文件格式已定义但 CLI 命令面未实现。
 
-## Recommended Immediate Next Step
+---
 
-Phases 2, 3, and 4 are now mostly complete. The next milestone focuses on finishing the remaining gaps and preparing for more advanced workflows:
+## 待实现的 Web UI 功能
 
-- finish the backup restore and migration workflows (Phase 6 and Phase 9)
-- add Caddy management (caddy_reload task) if needed for day-2 operations
-- implement `auto_deploy` config option for automatic deployment after repo changes
-- finish the missing frontend task controls, repo sync actions, and repo/secret feedback
+### 页面（已完成）
+- [x] 服务列表
+- [x] 服务详情
+- [x] 节点列表
+- [x] 节点详情 + Docker 浏览
+- [x] 备份状态
+- [x] 任务历史
+- [x] 设置页（配置显示、repo sync 状态）
+- [x] Repo 文件浏览和编辑
+- [x] Secret 编辑
 
-The initial frontend style refactor should be treated as underway, not as the primary blocker.
+### 页面（待实现）
+- [ ] 文档页
+- [ ] CodeMirror 6 编辑器（替换基础 textareas）
 
-Do not expand DNS, scheduling, or more UI surface area until those alignment items are complete. Implement `migrate` only as the documented workflow, not as a shortcut variant.
+### UI 操作（待实现）
+- [ ] MigrateService 入口
+- [ ] ReloadNodeCaddy 入口
+- [ ] 手动 push trigger（repo sync 页面）
+- [ ] 备份 restore 入口（未来）
+
+---
+
+## 推荐的直接下一步
+
+Phase 2、3 和 4 大部分已完成。下一个里程碑专注于完成剩余差距并为更高级工作流做准备：
+
+1. **添加 Caddy 管理**
+   - 实现 `caddy_reload` 任务
+   - 实现 `ReloadNodeCaddy` API
+   - 在 agent 添加 Caddyfile 验证和 reload 执行
+
+2. **实现迁移（Phase 9）**
+   - 添加 `MigrateService` API
+   - 添加 `migrate` 任务执行逻辑
+   - 实现 `awaiting_confirmation` 流
+
+3. **完成备份恢复功能**
+   - 实现 `database.pgimport` 和 `files.untar` restore 策略
+   - 添加 restore 任务类型
+   - 添加备份 restore UI
+
+4. **实现 auto_deploy**
+   - 将 `auto_deploy` 配置选项连接到任务创建
+
+5. **实现 CLI 命令面**
+   - 处理 `composia-cli.yaml` 配置
+   - 实现核心 CLI 子命令
+
+6. **完善 Web UI**
+   - CodeMirror 6 编辑器
+   - 迁移和 caddy reload 入口
+   - 手动 push trigger
+
+---
+
+## 架构要点提醒
+
+- 不要扩展 DNS、调度或更多 UI 区域，直到这些对齐项目完成。
+- 仅按文档化的工作流实现 `migrate`，不是快捷变体。
+- 保持 controller 作为持久状态所有者，agent 作为执行端。
+- 所有 repo 写入必须经过 repo lock 串行化。
+- 服务级冲突规则：`pending`、`running` 或 `awaiting_confirmation` 任务存在时，不允许创建该服务的新任务，也不允许写入触及该服务目录的 repo 文件。
