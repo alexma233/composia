@@ -7,18 +7,18 @@
   import ThemeControls from '$lib/components/app/theme-controls.svelte';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Button } from '$lib/components/ui/button';
-  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 
-  export let data: PageData;
+  let { data }: { data: PageData } = $props();
 
-  let syncing = false;
-  let syncError = '';
-  let syncResult: {
+  let syncing = $state(false);
+  let syncError = $state('');
+  let syncResult = $state<{
     headRevision?: string;
     syncStatus?: string;
     lastSyncError?: string;
     lastSuccessfulPullAt?: string;
-  } | null = null;
+  } | null>(null);
 
   async function syncRepo() {
     syncing = true;
@@ -50,18 +50,17 @@
     }
   }
 
-  $: displayHeadRevision = syncResult?.headRevision ?? data.repoHead?.headRevision ?? '';
-  $: displaySyncStatus = syncResult?.syncStatus ?? data.repoHead?.syncStatus ?? 'unknown';
-  $: displayLastSyncError = syncResult?.lastSyncError ?? data.repoHead?.lastSyncError ?? '';
-  $: displayLastPull = syncResult?.lastSuccessfulPullAt ?? data.repoHead?.lastSuccessfulPullAt ?? 'Never';
+  let displayHeadRevision = $derived(syncResult?.headRevision ?? data.repoHead?.headRevision ?? '');
+  let displaySyncStatus = $derived(syncResult?.syncStatus ?? data.repoHead?.syncStatus ?? 'unknown');
+  let displayLastSyncError = $derived(syncResult?.lastSyncError ?? data.repoHead?.lastSyncError ?? '');
+  let displayLastPull = $derived(syncResult?.lastSuccessfulPullAt ?? data.repoHead?.lastSuccessfulPullAt ?? 'Never');
 </script>
 
 <div class="page-shell">
   <div class="page-stack">
     <Card class="border-border/70 bg-card/95">
-      <CardHeader class="space-y-1">
-        <CardTitle class="page-title">Environment and appearance</CardTitle>
-        <CardDescription class="page-description">Local theme preferences and controller metadata.</CardDescription>
+      <CardHeader>
+        <CardTitle class="page-title">Settings</CardTitle>
       </CardHeader>
     </Card>
 
@@ -74,9 +73,8 @@
 
     <section class="grid gap-6 lg:grid-cols-2">
       <Card class="border-border/70 bg-card/95">
-        <CardHeader class="space-y-1">
+        <CardHeader>
           <CardTitle class="section-title">Appearance</CardTitle>
-          <CardDescription class="section-description">Theme and accent for this browser.</CardDescription>
         </CardHeader>
         <CardContent>
           <ThemeControls />
@@ -84,9 +82,8 @@
       </Card>
 
       <Card class="border-border/70 bg-card/95">
-        <CardHeader class="space-y-1">
+        <CardHeader>
           <CardTitle class="section-title">Controller</CardTitle>
-          <CardDescription class="section-description">Current controller runtime paths.</CardDescription>
         </CardHeader>
         <CardContent>
           {#if data.system}
@@ -120,11 +117,8 @@
 
       <Card class="border-border/70 bg-card/95 lg:col-span-2">
         <CardHeader class="flex flex-row items-center justify-between gap-3">
-          <div class="space-y-1">
-            <CardTitle class="section-title">Repo sync</CardTitle>
-            <CardDescription class="section-description">Current revision and sync health.</CardDescription>
-          </div>
-          <Button type="button" variant="outline" size="sm" on:click={syncRepo} disabled={syncing}>
+          <CardTitle class="section-title">Repo sync</CardTitle>
+          <Button type="button" variant="outline" size="sm" onclick={syncRepo} disabled={syncing}>
             <RefreshCw class="mr-2 size-4" />
             {syncing ? 'Syncing...' : 'Sync Repo'}
           </Button>

@@ -7,7 +7,7 @@
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
 
-  export let data: PageData;
+  let { data }: { data: PageData } = $props();
 
   type DockerImageSummary = {
     id: string;
@@ -23,12 +23,12 @@
     isDangling: boolean;
   };
 
-  let searchQuery = '';
-  let sortField: 'name' | 'size' | 'created' = 'name';
-  let sortDirection: 'asc' | 'desc' = 'asc';
-  let loading = data.ready;
-  let loadError = data.error;
-  let images: DockerImageSummary[] = data.images || [];
+  let searchQuery = $state('');
+  let sortField = $state<'name' | 'size' | 'created'>('name');
+  let sortDirection = $state<'asc' | 'desc'>('asc');
+  let loading = $state(data.ready);
+  let loadError = $state(data.error);
+  let images = $state<DockerImageSummary[]>(data.images || []);
 
   async function loadImages() {
     if (!data.ready) {
@@ -127,7 +127,7 @@
     </svg>`;
   };
 
-  $: filteredImages = images.filter((i) => {
+  let filteredImages = $derived(images.filter((i) => {
     const query = searchQuery.toLowerCase();
     const tags = i.repoTags || [];
     return (
@@ -135,9 +135,9 @@
       i.id.toLowerCase().includes(query) ||
       (i.architecture || '').toLowerCase().includes(query)
     );
-  });
+  }));
 
-  $: sortedImages = [...filteredImages].sort((a, b) => {
+  let sortedImages = $derived([...filteredImages].sort((a, b) => {
     let comparison = 0;
     const aTags = a.repoTags || [];
     const bTags = b.repoTags || [];
@@ -153,7 +153,7 @@
         break;
     }
     return sortDirection === 'asc' ? comparison : -comparison;
-  });
+  }));
 </script>
 
 <div class="page-shell">
@@ -197,11 +197,11 @@
             />
           </div>
           {#if searchQuery}
-            <Button variant="ghost" size="sm" on:click={() => (searchQuery = '')}>
+            <Button variant="ghost" size="sm" onclick={() => (searchQuery = '')}>
               Clear
             </Button>
           {/if}
-          <Button variant="outline" size="sm" on:click={() => void loadImages()} disabled={loading || !data.ready}>
+          <Button variant="outline" size="sm" onclick={() => void loadImages()} disabled={loading || !data.ready}>
             {#if loading}Loading...{:else}Refresh{/if}
           </Button>
         </div>
@@ -226,13 +226,13 @@
             <TableHeader>
               <TableRow>
                 <TableHead class="w-[40%]">
-                  <button class="flex items-center gap-1 hover:text-foreground" on:click={() => handleSort('name')}>
+                  <button class="flex items-center gap-1 hover:text-foreground" onclick={() => handleSort('name')}>
                     Image
                     {@html SortIcon('name')}
                   </button>
                 </TableHead>
                 <TableHead class="w-[15%]">
-                  <button class="flex items-center gap-1 hover:text-foreground" on:click={() => handleSort('size')}>
+                  <button class="flex items-center gap-1 hover:text-foreground" onclick={() => handleSort('size')}>
                     Size
                     {@html SortIcon('size')}
                   </button>
@@ -240,7 +240,7 @@
                 <TableHead class="w-[20%]">Architecture</TableHead>
                 <TableHead class="w-[15%]">Usage</TableHead>
                 <TableHead class="w-[15%]">
-                  <button class="flex items-center gap-1 hover:text-foreground" on:click={() => handleSort('created')}>
+                  <button class="flex items-center gap-1 hover:text-foreground" onclick={() => handleSort('created')}>
                     Created
                     {@html SortIcon('created')}
                   </button>
@@ -280,7 +280,7 @@
                           {formatShortId(image.id)}
                         </code>
                         <button
-                          on:click={() => copyToClipboard(image.id)}
+                          onclick={() => copyToClipboard(image.id)}
                           class="text-muted-foreground hover:text-foreground"
                           title="Copy full ID"
                         >

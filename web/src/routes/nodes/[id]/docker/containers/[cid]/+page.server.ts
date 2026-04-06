@@ -1,4 +1,4 @@
-import type { PageServerLoad } from './$types';
+import type { PageServerLoad } from "./$types";
 
 import { controllerConfig, inspectNodeContainer } from "$lib/server/controller";
 
@@ -15,7 +15,10 @@ export const load: PageServerLoad = async ({ params }) => {
   }
 
   try {
-    const rawJson = await inspectNodeContainer(params.id, decodeURIComponent(params.cid));
+    const rawJson = await inspectNodeContainer(
+      params.id,
+      decodeURIComponent(params.cid),
+    );
     return {
       ready: true,
       error: null,
@@ -26,7 +29,8 @@ export const load: PageServerLoad = async ({ params }) => {
   } catch (error) {
     return {
       ready: true,
-      error: error instanceof Error ? error.message : "Failed to inspect container",
+      error:
+        error instanceof Error ? error.message : "Failed to inspect container",
       nodeId: params.id,
       containerId: decodeURIComponent(params.cid),
       rawJson: null,

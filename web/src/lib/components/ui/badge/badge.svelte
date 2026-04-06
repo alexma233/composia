@@ -1,4 +1,4 @@
-<script lang="ts" context="module">
+<script lang="ts" module>
   import { cva, type VariantProps } from 'class-variance-authority';
 
   export const badgeVariants = cva(
@@ -27,12 +27,16 @@
 <script lang="ts">
   import { cn } from '$lib/utils';
 
-  export let variant: Variant = 'default';
-  export let className = '';
+  interface Props {
+    variant?: Variant;
+    class?: string;
+    children?: import('svelte').Snippet;
+    [key: string]: unknown;
+  }
 
-  export { className as class };
+  let { variant = 'default', class: className = '', children, ...restProps }: Props = $props();
 </script>
 
-<span class={cn(badgeVariants({ variant }), className)} {...$$restProps}>
-  <slot />
+<span class={cn(badgeVariants({ variant }), className)} {...restProps}>
+  {@render children?.()}
 </span>

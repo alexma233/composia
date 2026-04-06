@@ -2,15 +2,29 @@
   import { ChevronDown, ChevronRight, FileText, Folder } from 'lucide-svelte';
 
   import type { ServiceFileNode } from '$lib/service-workspace';
+  import ServiceFileTree from './service-file-tree.svelte';
 
-export let nodes: ServiceFileNode[] = [];
-export let activePath = '';
-export let selectedPath = '';
-export let collapsedPaths: Set<string> = new Set();
-export let depth = 0;
-export let onOpenFile: (path: string) => void = () => {};
-export let onSelectNode: (path: string) => void = () => {};
-export let onToggle: (path: string) => void = () => {};
+  interface Props {
+    nodes?: ServiceFileNode[];
+    activePath?: string;
+    selectedPath?: string;
+    collapsedPaths?: Set<string>;
+    depth?: number;
+    onOpenFile?: (path: string) => void;
+    onSelectNode?: (path: string) => void;
+    onToggle?: (path: string) => void;
+  }
+
+  let {
+    nodes = [],
+    activePath = '',
+    selectedPath = '',
+    collapsedPaths = new Set(),
+    depth = 0,
+    onOpenFile = () => {},
+    onSelectNode = () => {},
+    onToggle = () => {}
+  }: Props = $props();
 </script>
 
 <div class="space-y-1">
@@ -23,8 +37,8 @@ export let onToggle: (path: string) => void = () => {};
           class:bg-secondary={selectedPath === node.path}
           class:text-secondary-foreground={selectedPath === node.path}
           class:text-muted-foreground={selectedPath !== node.path}
-          style={`padding-left:${depth * 12 + 8}px`}
-          on:click={() => {
+          style="padding-left:{depth * 12 + 8}px"
+          onclick={() => {
             onSelectNode(node.path);
             onToggle(node.path);
           }}
@@ -39,7 +53,7 @@ export let onToggle: (path: string) => void = () => {};
         </button>
 
         {#if !collapsedPaths.has(node.path)}
-          <svelte:self
+          <ServiceFileTree
             nodes={node.children}
             activePath={activePath}
             selectedPath={selectedPath}
@@ -57,8 +71,8 @@ export let onToggle: (path: string) => void = () => {};
           class:bg-secondary={activePath === node.path}
           class:text-secondary-foreground={activePath === node.path}
           class:text-muted-foreground={activePath !== node.path}
-          style={`padding-left:${depth * 12 + 28}px`}
-          on:click={() => {
+          style="padding-left:{depth * 12 + 28}px"
+          onclick={() => {
             onSelectNode(node.path);
             onOpenFile(node.path);
           }}

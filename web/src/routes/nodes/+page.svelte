@@ -3,7 +3,7 @@
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
-  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { formatTimestamp, onlineStatusTone } from '$lib/presenters';
 
@@ -14,10 +14,7 @@
   <Card class="border-border/70 bg-card/95">
     <CardHeader class="gap-4">
       <div class="flex items-start justify-between gap-4">
-        <div class="space-y-1">
-          <CardTitle class="page-title">Node status</CardTitle>
-          <CardDescription class="page-description">Configured nodes and heartbeat state.</CardDescription>
-        </div>
+        <CardTitle class="page-title">Nodes</CardTitle>
         <Badge variant="outline">{data.nodes.length}</Badge>
       </div>
 

@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte';
   import { FilePlus, FolderPlus, Pencil, Play, RefreshCcw, Save, Square, Trash2, Upload, Wrench } from 'lucide-svelte';
 
   import type { PageData } from './$types';
 
   import CodeEditor from '$lib/components/app/code-editor.svelte';
   import ServiceFileTree from '$lib/components/app/service-file-tree.svelte';
+  import TaskItem from '$lib/components/app/task-item.svelte';
   import TaskLogStream from '$lib/components/app/task-log-stream.svelte';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
@@ -23,43 +23,39 @@
   import type { ServiceFileNode, WorkspaceFile } from '$lib/service-workspace';
   import { findNode, normalizeServiceRelativePath, upsertFileNode } from '$lib/service-workspace';
 
-  export let data: PageData;
+  let { data }: { data: PageData } = $props();
 
   type EditorTab = WorkspaceFile & {
     savedContent: string;
     dirty: boolean;
   };
 
-  let fileTree: ServiceFileNode[] = data.fileTree;
-  let collapsedPaths = new Set<string>();
-  let selectedNodePath = data.initialFile?.path ?? '';
-  let openTabs: EditorTab[] = data.initialFile ? [createTab(data.initialFile)] : [];
-  let activePath = data.initialFile?.path ?? '';
-  let headRevision = data.repoHead?.headRevision ?? '';
-  let syncStatus = data.repoHead?.syncStatus ?? '';
-  let syncError = data.repoHead?.lastSyncError ?? '';
-  let lastSuccessfulPullAt = data.repoHead?.lastSuccessfulPullAt ?? '';
-  let tasks: TaskSummary[] = data.tasks;
-  let backups: BackupSummary[] = data.backups;
-  let selectedTaskId = data.tasks[0]?.taskId ?? '';
-  let logsExpanded = false;
-  let actionBusy = '';
-  let saving = false;
-  let errorMessage = data.error ?? '';
-  let showNewFile = false;
-  let newFilePath = '';
-  let showNewFolder = false;
-  let newFolderPath = '';
-  let showRename = false;
-  let renamePath = '';
-  let showServiceRename = false;
-  let renameServiceFolder = data.workspace?.folder ?? '';
-  let workspace = data.workspace;
-  let activeTab: EditorTab | null = openTabs.find((tab) => tab.path === activePath) ?? null;
-  let canSave = Boolean(activeTab && activeTab.dirty && !saving);
-  let selectedNode = selectedNodePath ? findNode(fileTree, selectedNodePath) : null;
-  let refreshTimer: ReturnType<typeof setTimeout> | null = null;
-  let recentTasks: TaskSummary[] = [];
+  let fileTree = $state<ServiceFileNode[]>(data.fileTree);
+  let collapsedPaths = $state(new Set<string>());
+  let selectedNodePath = $state(data.initialFile?.path ?? '');
+  let openTabs = $state<EditorTab[]>(data.initialFile ? [createTab(data.initialFile)] : []);
+  let activePath = $state(data.initialFile?.path ?? '');
+  let headRevision = $state(data.repoHead?.headRevision ?? '');
+  let syncStatus = $state(data.repoHead?.syncStatus ?? '');
+  let syncError = $state(data.repoHead?.lastSyncError ?? '');
+  let lastSuccessfulPullAt = $state(data.repoHead?.lastSuccessfulPullAt ?? '');
+  let tasks = $state<TaskSummary[]>(data.tasks);
+  let backups = $state<BackupSummary[]>(data.backups);
+  let selectedTaskId = $state(data.tasks[0]?.taskId ?? '');
+  let logsExpanded = $state(false);
+  let actionBusy = $state('');
+  let saving = $state(false);
+  let errorMessage = $state(data.error ?? '');
+  let showNewFile = $state(false);
+  let newFilePath = $state('');
+  let showNewFolder = $state(false);
+  let newFolderPath = $state('');
+  let showRename = $state(false);
+  let renamePath = $state('');
+  let showServiceRename = $state(false);
+  let renameServiceFolder = $state(data.workspace?.folder ?? '');
+  let workspace = $state(data.workspace);
+  let refreshTimer = $state<ReturnType<typeof setTimeout> | null>(null);
 
   function createTab(file: WorkspaceFile): EditorTab {
     return {
@@ -69,12 +65,14 @@
     };
   }
 
-  $: activeTab = openTabs.find((tab) => tab.path === activePath) ?? null;
-  $: canSave = Boolean(activeTab && activeTab.dirty && !saving);
-  $: selectedNode = selectedNodePath ? findNode(fileTree, selectedNodePath) : null;
-  $: recentTasks = tasks.filter((task) => isTaskRecent(task.createdAt)).slice(0, 4);
+  let activeTab = $derived(openTabs.find((tab) => tab.path === activePath) ?? null);
+  let canSave = $derived(Boolean(activeTab && activeTab.dirty && !saving));
+  let selectedNode = $derived(selectedNodePath ? findNode(fileTree, selectedNodePath) : null);
+  let recentTasks = $derived(tasks.filter((task) => isTaskRecent(task.createdAt)).slice(0, 4));
 
-  onDestroy(stopActionRefresh);
+  $effect(() => {
+    return () => stopActionRefresh();
+  });
 
   async function openFile(path: string) {
     try {
@@ -571,24 +569,21 @@
   <div class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)_320px]">
     <Card class="flex min-h-0 flex-col border-border/70 bg-card/95">
       <CardHeader class="border-b px-4 py-3">
-        <div class="space-y-1">
-          <CardTitle class="section-title">Files</CardTitle>
-          <CardDescription class="section-description">Workspace tree.</CardDescription>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <Button type="button" variant="outline" size="sm" on:click={() => (showNewFile = !showNewFile)}>
-            <FilePlus class="mr-2 size-4" />New file
-          </Button>
-          <Button type="button" variant="outline" size="sm" on:click={() => (showNewFolder = !showNewFolder)}>
-            <FolderPlus class="mr-2 size-4" />New folder
-          </Button>
-          <Button type="button" variant="outline" size="sm" on:click={() => { showRename = !showRename; renamePath = selectedNodePath; }} disabled={!selectedNodePath || saving}>
-            <Pencil class="mr-2 size-4" />Rename
-          </Button>
-          <Button type="button" variant="outline" size="sm" on:click={deleteNode} disabled={!selectedNodePath || saving}>
-            <Trash2 class="mr-2 size-4" />Delete
-          </Button>
-        </div>
+        <CardTitle class="section-title">Files</CardTitle>
+<div class="flex flex-wrap items-center gap-2">
+           <Button type="button" variant="outline" size="sm" onclick={() => (showNewFile = !showNewFile)}>
+             <FilePlus class="mr-2 size-4" />New file
+           </Button>
+           <Button type="button" variant="outline" size="sm" onclick={() => (showNewFolder = !showNewFolder)}>
+             <FolderPlus class="mr-2 size-4" />New folder
+           </Button>
+           <Button type="button" variant="outline" size="sm" onclick={() => { showRename = !showRename; renamePath = selectedNodePath; }} disabled={!selectedNodePath || saving}>
+             <Pencil class="mr-2 size-4" />Rename
+           </Button>
+           <Button type="button" variant="outline" size="sm" onclick={deleteNode} disabled={!selectedNodePath || saving}>
+             <Trash2 class="mr-2 size-4" />Delete
+           </Button>
+         </div>
       </CardHeader>
 
       {#if showNewFile}
@@ -596,7 +591,7 @@
           <Input bind:value={newFilePath} placeholder="config/new-file.yaml" />
           <div class="flex items-center justify-between gap-3">
             <p class="text-xs text-muted-foreground">Parents are created automatically.</p>
-            <Button type="button" size="sm" on:click={createFile} disabled={saving}>Create</Button>
+            <Button type="button" size="sm" onclick={createFile} disabled={saving}>Create</Button>
           </div>
         </div>
       {/if}
@@ -606,7 +601,7 @@
           <Input bind:value={newFolderPath} placeholder="config/snippets" />
           <div class="flex items-center justify-between gap-3">
             <p class="text-xs text-muted-foreground">Tracked with `.gitkeep`.</p>
-            <Button type="button" size="sm" on:click={createDirectory} disabled={saving}>Create</Button>
+            <Button type="button" size="sm" onclick={createDirectory} disabled={saving}>Create</Button>
           </div>
         </div>
       {/if}
@@ -616,7 +611,7 @@
           <div class="space-y-3">
             <Input bind:value={renamePath} placeholder="new/path.yaml" />
             <div class="flex justify-end">
-              <Button type="button" size="sm" on:click={renameNode} disabled={!selectedNodePath || saving}>Apply</Button>
+              <Button type="button" size="sm" onclick={renameNode} disabled={!selectedNodePath || saving}>Apply</Button>
             </div>
           </div>
         </div>
@@ -638,11 +633,8 @@
     <Card class="flex min-h-0 flex-col border-border/70 bg-card/95">
       <CardHeader class="border-b px-3 py-3">
         <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <div class="space-y-1">
-            <CardTitle class="section-title">Editor</CardTitle>
-            <CardDescription class="section-description">Open files.</CardDescription>
-          </div>
-          <Button type="button" size="sm" on:click={saveCurrentTab} disabled={!canSave}>
+          <CardTitle class="section-title">Editor</CardTitle>
+          <Button type="button" size="sm" onclick={saveCurrentTab} disabled={!canSave}>
             <Save class="mr-2 size-4" />
             Save
           </Button>
@@ -651,11 +643,11 @@
         <div class="flex flex-wrap gap-2">
           {#each openTabs as tab}
             <div class="inline-flex items-center gap-2 rounded-md border border-border/70 bg-background/80 px-3 py-1.5 text-sm" class:bg-secondary={tab.path === activePath}>
-              <button type="button" class="max-w-48 truncate" on:click={() => (activePath = tab.path)}>
+              <button type="button" class="max-w-48 truncate" onclick={() => (activePath = tab.path)}>
                 {tab.path}
                 {#if tab.dirty}*{/if}
               </button>
-              <button type="button" class="text-xs text-muted-foreground hover:text-foreground" on:click={() => closeTab(tab.path)}>x</button>
+              <button type="button" class="text-xs text-muted-foreground hover:text-foreground" onclick={() => closeTab(tab.path)}>x</button>
             </div>
           {/each}
         </div>
@@ -676,39 +668,36 @@
 
     <section class="flex min-h-0 flex-col gap-4">
       <Card class="border-border/70 bg-card/95">
-        <CardHeader class="p-4">
-          <div class="space-y-1">
-            <CardTitle class="section-title">Operations</CardTitle>
-            <CardDescription class="section-description">Run service actions.</CardDescription>
-          </div>
+        <CardHeader class="flex items-center justify-between gap-3 p-4">
+          <CardTitle class="section-title">Operations</CardTitle>
         </CardHeader>
         <CardContent class="space-y-4 p-4 pt-0">
           <div class="grid gap-2">
-            <Button type="button" on:click={() => triggerAction('deploy')} disabled={!!actionBusy || !workspace?.isDeclared}>
+            <Button type="button" onclick={() => triggerAction('deploy')} disabled={!!actionBusy || !workspace?.isDeclared}>
               <Play class="mr-2 size-4" />Deploy
             </Button>
-            <Button type="button" variant="outline" on:click={() => triggerAction('update')} disabled={!!actionBusy || !workspace?.isDeclared}>
+            <Button type="button" variant="outline" onclick={() => triggerAction('update')} disabled={!!actionBusy || !workspace?.isDeclared}>
               <Upload class="mr-2 size-4" />Update
             </Button>
-            <Button type="button" variant="outline" on:click={() => triggerAction('restart')} disabled={!!actionBusy || !workspace?.isDeclared}>
+            <Button type="button" variant="outline" onclick={() => triggerAction('restart')} disabled={!!actionBusy || !workspace?.isDeclared}>
               <RefreshCcw class="mr-2 size-4" />Restart
             </Button>
-            <Button type="button" variant="outline" on:click={() => triggerAction('stop')} disabled={!!actionBusy || !workspace?.isDeclared}>
+            <Button type="button" variant="outline" onclick={() => triggerAction('stop')} disabled={!!actionBusy || !workspace?.isDeclared}>
               <Square class="mr-2 size-4" />Stop
             </Button>
-            <Button type="button" variant="outline" on:click={() => triggerAction('backup')} disabled={!!actionBusy || !workspace?.isDeclared}>
+            <Button type="button" variant="outline" onclick={() => triggerAction('backup')} disabled={!!actionBusy || !workspace?.isDeclared}>
               <Wrench class="mr-2 size-4" />Backup
             </Button>
-            <Button type="button" variant="outline" on:click={() => triggerAction('dns_update')} disabled={!!actionBusy || !workspace?.isDeclared}>
+            <Button type="button" variant="outline" onclick={() => triggerAction('dns_update')} disabled={!!actionBusy || !workspace?.isDeclared}>
               <Upload class="mr-2 size-4" />DNS update
             </Button>
             <a href={`/services/${workspace?.folder}/secret`} class="inline-flex h-10 items-center justify-center rounded-md border border-border bg-background px-4 text-sm transition-colors hover:bg-accent hover:text-accent-foreground pointer-events-none opacity-50" class:pointer-events-auto={!!workspace?.isDeclared} class:opacity-100={!!workspace?.isDeclared}>
               Edit secret
             </a>
-            <Button type="button" variant="outline" on:click={() => { showServiceRename = !showServiceRename; renameServiceFolder = workspace?.folder ?? ''; }} disabled={saving}>
+            <Button type="button" variant="outline" onclick={() => { showServiceRename = !showServiceRename; renameServiceFolder = workspace?.folder ?? ''; }} disabled={saving}>
               <Pencil class="mr-2 size-4" />Rename folder
             </Button>
-            <Button type="button" variant="outline" class="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive" on:click={deleteServiceRoot} disabled={saving}>
+            <Button type="button" variant="outline" class="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive" onclick={deleteServiceRoot} disabled={saving}>
               <Trash2 class="mr-2 size-4" />Delete service
             </Button>
           </div>
@@ -717,7 +706,7 @@
             <div class="space-y-3 border-t pt-4">
               <Input bind:value={renameServiceFolder} placeholder="new-service-folder" />
               <div class="flex justify-end">
-                <Button type="button" size="sm" on:click={renameServiceRoot} disabled={saving}>Apply</Button>
+                <Button type="button" size="sm" onclick={renameServiceRoot} disabled={saving}>Apply</Button>
               </div>
             </div>
           {/if}
@@ -751,29 +740,17 @@
       </Card>
 
       <Card class="border-border/70 bg-card/95">
-        <CardHeader class="p-4">
-          <div class="flex items-center justify-between gap-3">
-            <div class="space-y-1">
-              <CardTitle class="section-title">Recent tasks</CardTitle>
-              <CardDescription class="section-description">Last 24 hours.</CardDescription>
-            </div>
-            <button type="button" class="text-xs text-muted-foreground hover:text-foreground" on:click={() => (logsExpanded = !logsExpanded)}>
-              {logsExpanded ? 'Hide logs' : 'Show logs'}
-            </button>
+        <CardHeader class="flex items-center justify-between gap-3 p-4">
+          <div class="space-y-1">
+            <CardTitle class="section-title">Recent tasks</CardTitle>
           </div>
+          <button type="button" class="text-xs text-muted-foreground hover:text-foreground" onclick={() => (logsExpanded = !logsExpanded)}>
+            {logsExpanded ? 'Hide logs' : 'Show logs'}
+          </button>
         </CardHeader>
-        <CardContent class="space-y-2 p-4 pt-0">
+        <CardContent class="space-y-3 p-4 pt-0">
           {#each recentTasks as task}
-            <button type="button" class="block w-full rounded-lg border border-border/70 bg-background/80 px-3 py-3 text-left transition-colors hover:bg-accent/60" on:click={() => { selectedTaskId = task.taskId; logsExpanded = true; }}>
-              <div class="flex items-center justify-between gap-3">
-                <div class="min-w-0">
-                  <div class="truncate text-sm font-medium">{task.type}</div>
-                  <div class="truncate text-xs text-muted-foreground">{task.taskId}</div>
-                </div>
-                <Badge variant={taskStatusTone(task.status)}>{task.status}</Badge>
-              </div>
-              <div class="mt-2 text-xs text-muted-foreground">{formatTimestamp(task.createdAt)}</div>
-            </button>
+            <TaskItem {task} showService={false} />
           {/each}
           {#if !recentTasks.length}
             <div class="empty-state px-3 py-6">No recent tasks.</div>
@@ -783,10 +760,7 @@
 
       <Card class="border-border/70 bg-card/95">
         <CardHeader class="p-4">
-          <div class="space-y-1">
-            <CardTitle class="section-title">Recent backups</CardTitle>
-            <CardDescription class="section-description">Latest backup results.</CardDescription>
-          </div>
+          <CardTitle class="section-title">Recent backups</CardTitle>
         </CardHeader>
         <CardContent class="space-y-2 p-4 pt-0">
           {#each backups.slice(0, 6) as backup}
@@ -810,11 +784,8 @@
   </div>
 
   <Card class="mt-4 border-border/70 bg-card/95">
-    <button type="button" class="flex w-full items-center justify-between px-4 py-3 text-left" on:click={() => (logsExpanded = !logsExpanded)}>
-      <div>
-        <div class="section-title">Logs</div>
-        <div class="section-description">Live output for the selected task.</div>
-      </div>
+    <button type="button" class="flex w-full items-center justify-between px-4 py-3 text-left" onclick={() => (logsExpanded = !logsExpanded)}>
+      <CardTitle class="section-title">Logs</CardTitle>
       <span class="text-xs text-muted-foreground">{logsExpanded ? 'Collapse' : 'Expand'}</span>
     </button>
 

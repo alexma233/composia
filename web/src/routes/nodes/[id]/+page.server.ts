@@ -11,7 +11,13 @@ import {
 export const load: PageServerLoad = async ({ params }) => {
   const config = controllerConfig();
   if (!config.ready) {
-    return { ready: false, error: config.reason, node: null, tasks: [], dockerStats: null };
+    return {
+      ready: false,
+      error: config.reason,
+      node: null,
+      tasks: [],
+      dockerStats: null,
+    };
   }
 
   try {

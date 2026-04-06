@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createEventDispatcher, onDestroy, onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
 
   import { defaultKeymap, indentWithTab } from '@codemirror/commands';
   import { githubDark } from '@fsegurai/codemirror-theme-github-dark';
@@ -10,14 +10,15 @@
   import { EditorView, keymap, lineNumbers } from '@codemirror/view';
   import { basicSetup } from 'codemirror';
 
-  const dispatch = createEventDispatcher<{
-    change: { value: string };
-    save: void;
-  }>();
+  interface Props {
+    value?: string;
+    path?: string;
+    readOnly?: boolean;
+    onchange?: (event: { value: string }) => void;
+    onsave?: () => void;
+  }
 
-  export let value = '';
-  export let path = '';
-  export let readOnly = false;
+  let { value = $bindable(''), path = '', readOnly = false, onchange, onsave }: Props = $props();
 
   let host: HTMLDivElement;
   let editorView: EditorView | null = null;
@@ -61,7 +62,7 @@
             {
               key: 'Mod-s',
               run: () => {
-                dispatch('save');
+                onsave?.();
                 return true;
               }
             }
@@ -70,7 +71,7 @@
           editableCompartment.of(EditorView.editable.of(!readOnly)),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
-              dispatch('change', { value: update.state.doc.toString() });
+              onchange?.({ value: update.state.doc.toString() });
             }
           }),
         ]
@@ -96,21 +97,23 @@
     editorView?.destroy();
   });
 
-  $: if (editorView) {
-    const currentValue = editorView.state.doc.toString();
-    if (currentValue !== value) {
+  $effect(() => {
+    if (editorView) {
+      const currentValue = editorView.state.doc.toString();
+      if (currentValue !== value) {
+        editorView.dispatch({
+          changes: { from: 0, to: currentValue.length, insert: value }
+        });
+      }
+
       editorView.dispatch({
-        changes: { from: 0, to: currentValue.length, insert: value }
+        effects: [
+          languageCompartment.reconfigure(languageExtension(path)),
+          editableCompartment.reconfigure(EditorView.editable.of(!readOnly))
+        ]
       });
     }
-
-    editorView.dispatch({
-      effects: [
-        languageCompartment.reconfigure(languageExtension(path)),
-        editableCompartment.reconfigure(EditorView.editable.of(!readOnly))
-      ]
-    });
-  }
+  });
 
   function resolveTheme(root: HTMLElement) {
     return root.classList.contains('dark') ? githubDark : githubLight;

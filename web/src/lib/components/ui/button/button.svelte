@@ -33,14 +33,25 @@
   type Variant = VariantProps<typeof buttonVariants>['variant'];
   type Size = VariantProps<typeof buttonVariants>['size'];
 
-  export let variant: Variant = 'default';
-  export let size: Size = 'default';
-  export let type: 'button' | 'submit' | 'reset' = 'button';
-  export let className = '';
+  interface Props {
+    variant?: Variant;
+    size?: Size;
+    type?: 'button' | 'submit' | 'reset';
+    class?: string;
+    children?: import('svelte').Snippet;
+    [key: string]: unknown;
+  }
 
-  export { className as class };
+  let {
+    variant = 'default',
+    size = 'default',
+    type = 'button',
+    class: className = '',
+    children,
+    ...restProps
+  }: Props = $props();
 </script>
 
-<button type={type} class={cn(buttonVariants({ variant, size }), className)} on:click {...$$restProps}>
-  <slot />
+<button type={type} class={cn(buttonVariants({ variant, size }), className)} {...restProps}>
+  {@render children?.()}
 </button>

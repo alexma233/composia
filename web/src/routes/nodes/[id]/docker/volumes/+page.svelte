@@ -7,7 +7,7 @@
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
 
-  export let data: PageData;
+  let { data }: { data: PageData } = $props();
 
   type DockerVolumeSummary = {
     name: string;
@@ -21,12 +21,12 @@
     inUse: boolean;
   };
 
-  let searchQuery = '';
-  let sortField: 'name' | 'driver' | 'created' = 'name';
-  let sortDirection: 'asc' | 'desc' = 'asc';
-  let loading = data.ready;
-  let loadError = data.error;
-  let volumes: DockerVolumeSummary[] = data.volumes || [];
+  let searchQuery = $state('');
+  let sortField = $state<'name' | 'driver' | 'created'>('name');
+  let sortDirection = $state<'asc' | 'desc'>('asc');
+  let loading = $state(data.ready);
+  let loadError = $state(data.error);
+  let volumes = $state<DockerVolumeSummary[]>(data.volumes || []);
 
   async function loadVolumes() {
     if (!data.ready) {
@@ -121,16 +121,16 @@
     </svg>`;
   };
 
-  $: filteredVolumes = volumes.filter((v) => {
+  let filteredVolumes = $derived(volumes.filter((v) => {
     const query = searchQuery.toLowerCase();
     return (
       v.name.toLowerCase().includes(query) ||
       v.driver.toLowerCase().includes(query) ||
       v.mountpoint.toLowerCase().includes(query)
     );
-  });
+  }));
 
-  $: sortedVolumes = [...filteredVolumes].sort((a, b) => {
+  let sortedVolumes = $derived([...filteredVolumes].sort((a, b) => {
     let comparison = 0;
     switch (sortField) {
       case 'name':
@@ -144,7 +144,7 @@
         break;
     }
     return sortDirection === 'asc' ? comparison : -comparison;
-  });
+  }));
 </script>
 
 <div class="page-shell">
@@ -188,11 +188,11 @@
             />
           </div>
           {#if searchQuery}
-            <Button variant="ghost" size="sm" on:click={() => (searchQuery = '')}>
+            <Button variant="ghost" size="sm" onclick={() => (searchQuery = '')}>
               Clear
             </Button>
           {/if}
-          <Button variant="outline" size="sm" on:click={() => void loadVolumes()} disabled={loading || !data.ready}>
+          <Button variant="outline" size="sm" onclick={() => void loadVolumes()} disabled={loading || !data.ready}>
             {#if loading}Loading...{:else}Refresh{/if}
           </Button>
         </div>
@@ -217,7 +217,7 @@
             <TableHeader>
               <TableRow>
                 <TableHead class="w-[25%]">
-                  <button class="flex items-center gap-1 hover:text-foreground" on:click={() => handleSort('name')}>
+                  <button class="flex items-center gap-1 hover:text-foreground" onclick={() => handleSort('name')}>
                     Name
                     {@html SortIcon('name')}
                   </button>
@@ -228,7 +228,7 @@
                 <TableHead class="w-[25%]">Mount Point</TableHead>
                 <TableHead class="w-[10%]">Scope</TableHead>
                 <TableHead class="w-[15%]">
-                  <button class="flex items-center gap-1 hover:text-foreground" on:click={() => handleSort('created')}>
+                  <button class="flex items-center gap-1 hover:text-foreground" onclick={() => handleSort('created')}>
                     Created
                     {@html SortIcon('created')}
                   </button>
@@ -280,7 +280,7 @@
                         {volume.mountpoint}
                       </code>
                       <button
-                        on:click={() => copyToClipboard(volume.mountpoint)}
+                        onclick={() => copyToClipboard(volume.mountpoint)}
                         class="text-muted-foreground hover:text-foreground shrink-0"
                         title="Copy mount point"
                       >

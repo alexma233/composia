@@ -1,7 +1,22 @@
-import type { Writable } from "svelte/store";
+import type { Snippet } from "svelte";
 
 export type TabsContext = {
-  value: Writable<string>;
+  value: string;
+  setValue: (value: string) => void;
 };
 
 export const tabsContextKey = Symbol("tabs");
+
+export type TabsTriggerProps = {
+  value?: string;
+  class?: string;
+  children?: Snippet;
+  [key: string]: unknown;
+};
+
+export type TabsContentProps = {
+  value?: string;
+  class?: string;
+  children?: Snippet;
+  [key: string]: unknown;
+};

@@ -7,7 +7,7 @@
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
 
-  export let data: PageData;
+  let { data }: { data: PageData } = $props();
 
   type DockerContainerSummary = {
     id: string;
@@ -22,12 +22,12 @@
     imageId: string;
   };
 
-  let searchQuery = '';
-  let sortField: 'name' | 'state' | 'image' | 'created' = 'name';
-  let sortDirection: 'asc' | 'desc' = 'asc';
-  let loading = data.ready;
-  let loadError = data.error;
-  let containers: DockerContainerSummary[] = data.containers || [];
+  let searchQuery = $state('');
+  let sortField = $state<'name' | 'state' | 'image' | 'created'>('name');
+  let sortDirection = $state<'asc' | 'desc'>('asc');
+  let loading = $state(data.ready);
+  let loadError = $state(data.error);
+  let containers = $state<DockerContainerSummary[]>(data.containers || []);
 
   async function loadContainers() {
     if (!data.ready) {
@@ -129,7 +129,7 @@
     </svg>`;
   };
 
-  $: filteredContainers = containers.filter((c) => {
+  let filteredContainers = $derived(containers.filter((c) => {
     const query = searchQuery.toLowerCase();
     return (
       c.name.toLowerCase().includes(query) ||
@@ -138,9 +138,9 @@
       c.id.toLowerCase().includes(query) ||
       (c.networks || []).some((n) => n.toLowerCase().includes(query))
     );
-  });
+  }));
 
-  $: sortedContainers = [...filteredContainers].sort((a, b) => {
+  let sortedContainers = $derived([...filteredContainers].sort((a, b) => {
     let comparison = 0;
     switch (sortField) {
       case 'name':
@@ -157,7 +157,7 @@
         break;
     }
     return sortDirection === 'asc' ? comparison : -comparison;
-  });
+  }));
 </script>
 
 <div class="page-shell">
@@ -201,11 +201,11 @@
             />
           </div>
           {#if searchQuery}
-            <Button variant="ghost" size="sm" on:click={() => (searchQuery = '')}>
+            <Button variant="ghost" size="sm" onclick={() => (searchQuery = '')}>
               Clear
             </Button>
           {/if}
-          <Button variant="outline" size="sm" on:click={() => void loadContainers()} disabled={loading || !data.ready}>
+          <Button variant="outline" size="sm" onclick={() => void loadContainers()} disabled={loading || !data.ready}>
             {#if loading}Loading...{:else}Refresh{/if}
           </Button>
         </div>
@@ -232,7 +232,7 @@
                 <TableHead class="w-[30%]">
                   <button
                     class="flex items-center gap-1 hover:text-foreground"
-                    on:click={() => handleSort('name')}
+                    onclick={() => handleSort('name')}
                   >
                     Name
                     {@html SortIcon('name')}
@@ -241,7 +241,7 @@
                 <TableHead class="w-[10%]">
                   <button
                     class="flex items-center gap-1 hover:text-foreground"
-                    on:click={() => handleSort('state')}
+                    onclick={() => handleSort('state')}
                   >
                     State
                     {@html SortIcon('state')}
@@ -250,7 +250,7 @@
                 <TableHead class="w-[20%]">
                   <button
                     class="flex items-center gap-1 hover:text-foreground"
-                    on:click={() => handleSort('image')}
+                    onclick={() => handleSort('image')}
                   >
                     Image
                     {@html SortIcon('image')}
@@ -261,7 +261,7 @@
                 <TableHead class="w-[15%]">
                   <button
                     class="flex items-center gap-1 hover:text-foreground"
-                    on:click={() => handleSort('created')}
+                    onclick={() => handleSort('created')}
                   >
                     Created
                     {@html SortIcon('created')}
@@ -284,11 +284,11 @@
                         <code class="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
                           {formatShortId(container.id)}
                         </code>
-                        <button
-                          on:click={() => copyToClipboard(container.id)}
-                          class="text-muted-foreground hover:text-foreground"
-                          title="Copy full ID"
-                        >
+<button
+                           onclick={() => copyToClipboard(container.id)}
+                           class="text-muted-foreground hover:text-foreground"
+                           title="Copy full ID"
+                         >
                           <svg
                             class="h-3.5 w-3.5"
                             viewBox="0 0 24 24"

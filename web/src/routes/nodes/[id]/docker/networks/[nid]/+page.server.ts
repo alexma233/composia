@@ -1,4 +1,4 @@
-import type { PageServerLoad } from './$types';
+import type { PageServerLoad } from "./$types";
 
 import { controllerConfig, inspectNodeNetwork } from "$lib/server/controller";
 
@@ -15,7 +15,10 @@ export const load: PageServerLoad = async ({ params }) => {
   }
 
   try {
-    const rawJson = await inspectNodeNetwork(params.id, decodeURIComponent(params.nid));
+    const rawJson = await inspectNodeNetwork(
+      params.id,
+      decodeURIComponent(params.nid),
+    );
     return {
       ready: true,
       error: null,
@@ -26,7 +29,8 @@ export const load: PageServerLoad = async ({ params }) => {
   } catch (error) {
     return {
       ready: true,
-      error: error instanceof Error ? error.message : "Failed to inspect network",
+      error:
+        error instanceof Error ? error.message : "Failed to inspect network",
       nodeId: params.id,
       networkId: decodeURIComponent(params.nid),
       rawJson: null,

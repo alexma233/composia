@@ -4,25 +4,33 @@
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
 
-  export let taskId = '';
+  interface Props {
+    taskId?: string;
+  }
 
-  let content = '';
-  let state = 'idle';
-  let error = '';
-  let streamTaskId = '';
+  let { taskId = '' }: Props = $props();
+
+  let content: string = $state('');
+  let streamState: string = $state('idle');
+  let errorMsg: string = $state('');
+  let streamTaskId: string = $state('');
   let controller: AbortController | null = null;
 
-  $: if (browser && taskId && taskId !== streamTaskId) {
-    void startStream(taskId);
-  }
+  $effect(() => {
+    if (browser && taskId && taskId !== streamTaskId) {
+      void startStream(taskId);
+    }
+  });
 
-  $: if (browser && !taskId && streamTaskId) {
-    stopStream();
-    content = '';
-    state = 'idle';
-    error = '';
-    streamTaskId = '';
-  }
+  $effect(() => {
+    if (browser && !taskId && streamTaskId) {
+      stopStream();
+      content = '';
+      streamState = 'idle';
+      errorMsg = '';
+      streamTaskId = '';
+    }
+  });
 
   onDestroy(stopStream);
 
@@ -30,8 +38,8 @@
     stopStream();
     controller = new AbortController();
     content = '';
-    error = '';
-    state = 'connecting';
+    errorMsg = '';
+    streamState = 'connecting';
     streamTaskId = nextTaskId;
 
     try {
@@ -42,7 +50,7 @@
         throw new Error(`Failed to tail task logs: ${response.status}`);
       }
 
-      state = 'streaming';
+      streamState = 'streaming';
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
 
@@ -56,13 +64,13 @@
         }
       }
 
-      state = 'completed';
-    } catch (streamError) {
+      streamState = 'completed';
+    } catch (err) {
       if (controller?.signal.aborted) {
         return;
       }
-      state = 'failed';
-      error = streamError instanceof Error ? streamError.message : 'Failed to stream task logs.';
+      streamState = 'failed';
+      errorMsg = err instanceof Error ? err.message : 'Failed to stream task logs.';
     }
   }
 
@@ -75,13 +83,13 @@
 <div class="flex h-full min-h-0 flex-col">
   <div class="mb-3 flex items-center justify-between gap-3 text-xs font-medium text-muted-foreground">
     <span>{taskId ? `Task ${taskId}` : 'No task selected'}</span>
-    <span>{state}</span>
+    <span>{streamState}</span>
   </div>
 
-  {#if error}
+  {#if errorMsg}
     <Alert variant="destructive" class="mb-3">
       <AlertTitle>Log stream failed</AlertTitle>
-      <AlertDescription>{error}</AlertDescription>
+      <AlertDescription>{errorMsg}</AlertDescription>
     </Alert>
   {/if}
 

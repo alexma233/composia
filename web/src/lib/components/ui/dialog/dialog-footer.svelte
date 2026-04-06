@@ -10,6 +10,6 @@
   let { class: className = '', children, ...restProps }: Props = $props();
 </script>
 
-<th class={cn('h-10 px-3 text-left align-middle text-xs font-medium text-muted-foreground', className)} {...restProps}>
+<div class={cn('flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2', className)} {...restProps}>
   {@render children?.()}
-</th>
+</div>

@@ -179,7 +179,7 @@ export async function loadDashboard(): Promise<DashboardData> {
     loadSystemStatus(),
     loadServices(8),
     loadNodes(),
-    loadTasks(8),
+    loadTasks(6),
   ]);
 
   return {

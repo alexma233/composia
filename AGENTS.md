@@ -56,3 +56,55 @@ If it is not clear, stop and ask a focused question in `zh_Hans`.
 - Available components are located in `/home/alexma/Projects/composia/web/src/lib/components/ui/`.
 - Prefer using existing shadcn-svelte components before creating custom ones.
 - Refer to `style.md` for visual design guidelines.
+
+## Svelte 5 Syntax Requirements
+
+- All Svelte components must use Svelte 5 runes mode syntax.
+- Use `$props()` instead of `export let` for component props:
+
+  ```svelte
+  <script>
+    let { name, count = 0 }: { name: string; count?: number } = $props();
+  </script>
+  ```
+
+- Use `$state()` for reactive state:
+
+  ```svelte
+  <script>
+    let count = $state(0);
+  </script>
+  ```
+
+- Use `$derived()` for computed values:
+
+  ```svelte
+  <script>
+    let count = $state(0);
+    let doubled = $derived(count * 2);
+  </script>
+  ```
+
+- Use `$effect()` for side effects (replaces `$:` reactive statements):
+
+  ```svelte
+  <script>
+    let count = $state(0);
+    $effect(() => {
+      console.log(count);
+    });
+  </script>
+  ```
+
+- Use `$bindable()` for two-way binding props:
+
+  ```svelte
+  <script>
+    let { value = $bindable() } = $props();
+  </script>
+  ```
+
+- Use `onclick` instead of `on:click` for event handlers.
+- Use `{@render children?.()}` instead of `<slot />` for content projection.
+- Use `...restProps` instead of `$$restProps` for spreading additional props.
+- Component props must be typed with TypeScript interfaces.

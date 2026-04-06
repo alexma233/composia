@@ -17,12 +17,16 @@
 
   type Variant = VariantProps<typeof alertVariants>['variant'];
 
-  export let variant: Variant = 'default';
-  export let className = '';
+  interface Props {
+    variant?: Variant;
+    class?: string;
+    children?: import('svelte').Snippet;
+    [key: string]: unknown;
+  }
 
-  export { className as class };
+  let { variant = 'default', class: className = '', children, ...restProps }: Props = $props();
 </script>
 
-<div role="alert" class={cn(alertVariants({ variant }), className)} {...$$restProps}>
-  <slot />
+<div role="alert" class={cn(alertVariants({ variant }), className)} {...restProps}>
+  {@render children?.()}
 </div>

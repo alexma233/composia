@@ -7,7 +7,7 @@
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
 
-  export let data: PageData;
+  let { data }: { data: PageData } = $props();
 
   type DockerNetworkSummary = {
     id: string;
@@ -24,12 +24,12 @@
     ipv6Enabled: boolean;
   };
 
-  let searchQuery = '';
-  let sortField: 'name' | 'driver' | 'created' = 'name';
-  let sortDirection: 'asc' | 'desc' = 'asc';
-  let loading = data.ready;
-  let loadError = data.error;
-  let networks: DockerNetworkSummary[] = data.networks || [];
+  let searchQuery = $state('');
+  let sortField = $state<'name' | 'driver' | 'created'>('name');
+  let sortDirection = $state<'asc' | 'desc'>('asc');
+  let loading = $state(data.ready);
+  let loadError = $state(data.error);
+  let networks = $state<DockerNetworkSummary[]>(data.networks || []);
 
   async function loadNetworks() {
     if (!data.ready) {
@@ -132,7 +132,7 @@
     </svg>`;
   };
 
-  $: filteredNetworks = networks.filter((n) => {
+  let filteredNetworks = $derived(networks.filter((n) => {
     const query = searchQuery.toLowerCase();
     return (
       n.name.toLowerCase().includes(query) ||
@@ -140,9 +140,9 @@
       n.id.toLowerCase().includes(query) ||
       n.scope.toLowerCase().includes(query)
     );
-  });
+  }));
 
-  $: sortedNetworks = [...filteredNetworks].sort((a, b) => {
+  let sortedNetworks = $derived([...filteredNetworks].sort((a, b) => {
     let comparison = 0;
     switch (sortField) {
       case 'name':
@@ -156,7 +156,7 @@
         break;
     }
     return sortDirection === 'asc' ? comparison : -comparison;
-  });
+  }));
 </script>
 
 <div class="page-shell">
@@ -200,11 +200,11 @@
             />
           </div>
           {#if searchQuery}
-            <Button variant="ghost" size="sm" on:click={() => (searchQuery = '')}>
+            <Button variant="ghost" size="sm" onclick={() => (searchQuery = '')}>
               Clear
             </Button>
           {/if}
-          <Button variant="outline" size="sm" on:click={() => void loadNetworks()} disabled={loading || !data.ready}>
+          <Button variant="outline" size="sm" onclick={() => void loadNetworks()} disabled={loading || !data.ready}>
             {#if loading}Loading...{:else}Refresh{/if}
           </Button>
         </div>
@@ -229,13 +229,13 @@
             <TableHeader>
               <TableRow>
                 <TableHead class="w-[30%]">
-                  <button class="flex items-center gap-1 hover:text-foreground" on:click={() => handleSort('name')}>
+                  <button class="flex items-center gap-1 hover:text-foreground" onclick={() => handleSort('name')}>
                     Name
                     {@html SortIcon('name')}
                   </button>
                 </TableHead>
                 <TableHead class="w-[10%]">
-                  <button class="flex items-center gap-1 hover:text-foreground" on:click={() => handleSort('driver')}>
+                  <button class="flex items-center gap-1 hover:text-foreground" onclick={() => handleSort('driver')}>
                     Driver
                     {@html SortIcon('driver')}
                   </button>
@@ -244,7 +244,7 @@
                 <TableHead class="w-[15%]">Subnet</TableHead>
                 <TableHead class="w-[10%]">Containers</TableHead>
                 <TableHead class="w-[20%]">
-                  <button class="flex items-center gap-1 hover:text-foreground" on:click={() => handleSort('created')}>
+                  <button class="flex items-center gap-1 hover:text-foreground" onclick={() => handleSort('created')}>
                     Created
                     {@html SortIcon('created')}
                   </button>
@@ -272,7 +272,7 @@
                           {formatShortId(network.id)}
                         </code>
                         <button
-                          on:click={() => copyToClipboard(network.id)}
+                          onclick={() => copyToClipboard(network.id)}
                           class="text-muted-foreground hover:text-foreground"
                           title="Copy full ID"
                         >

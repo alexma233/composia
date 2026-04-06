@@ -1,7 +1,7 @@
-import { json } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
+import { json } from "@sveltejs/kit";
+import type { RequestHandler } from "./$types";
 
-import { controllerConfig, listNodeNetworks } from '$lib/server/controller';
+import { controllerConfig, listNodeNetworks } from "$lib/server/controller";
 
 export const GET: RequestHandler = async ({ params }) => {
   const config = controllerConfig();
@@ -15,7 +15,8 @@ export const GET: RequestHandler = async ({ params }) => {
   } catch (error) {
     return json(
       {
-        error: error instanceof Error ? error.message : 'Failed to load networks',
+        error:
+          error instanceof Error ? error.message : "Failed to load networks",
         networks: [],
       },
       { status: 500 },

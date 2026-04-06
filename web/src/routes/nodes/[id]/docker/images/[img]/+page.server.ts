@@ -1,4 +1,4 @@
-import type { PageServerLoad } from './$types';
+import type { PageServerLoad } from "./$types";
 
 import { controllerConfig, inspectNodeImage } from "$lib/server/controller";
 
@@ -15,7 +15,10 @@ export const load: PageServerLoad = async ({ params }) => {
   }
 
   try {
-    const rawJson = await inspectNodeImage(params.id, decodeURIComponent(params.img));
+    const rawJson = await inspectNodeImage(
+      params.id,
+      decodeURIComponent(params.img),
+    );
     return {
       ready: true,
       error: null,

@@ -1,34 +1,35 @@
 <script lang="ts">
   import type { ActionData, PageData } from './$types';
 
+  import { Plus } from 'lucide-svelte';
+
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
-  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Dialog, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
   import { Input } from '$lib/components/ui/input';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { formatTimestamp, runtimeStatusTone } from '$lib/presenters';
 
-  export let data: PageData;
-  export let form: ActionData;
+  let { data, form }: { data: PageData; form: ActionData } = $props();
 
-  function workspaceTone(hasMeta: boolean, runtimeStatus: string) {
-    if (!hasMeta) {
-      return 'outline';
-    }
-    if (runtimeStatus === 'needs_validation') {
-      return 'secondary';
-    }
+  let showDialog = $state(false);
+  let newFolder = $state(form?.folder ?? '');
+
+  $effect(() => {
+    newFolder = form?.folder ?? '';
+  });
+
+  function statusTone(hasMeta: boolean, runtimeStatus: string) {
+    if (!hasMeta) return 'outline';
+    if (runtimeStatus === 'needs_validation') return 'secondary';
     return runtimeStatusTone(runtimeStatus || 'unknown');
   }
 
-  function workspaceStatus(hasMeta: boolean, runtimeStatus: string) {
-    if (!hasMeta) {
-      return 'no meta';
-    }
-    if (runtimeStatus === 'needs_validation') {
-      return 'meta draft';
-    }
+  function statusText(hasMeta: boolean, runtimeStatus: string) {
+    if (!hasMeta) return 'no meta';
+    if (runtimeStatus === 'needs_validation') return 'meta draft';
     return runtimeStatus || 'unknown';
   }
 </script>
@@ -38,36 +39,23 @@
     <CardHeader class="gap-4">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="space-y-1">
-          <div class="space-y-1">
-            <h1 class="page-title">Service workspace</h1>
-            <p class="page-description">Declared services and uninitialized folders.</p>
-          </div>
+          <CardTitle class="page-title">Services</CardTitle>
         </div>
-        <Badge variant="outline">{data.services.length}</Badge>
+        <div class="flex items-center gap-3">
+          {#if data.repoHead}
+            <Button type="button" onclick={() => (showDialog = true)}>
+              <Plus class="mr-2 size-4" />
+              Create service
+            </Button>
+          {/if}
+          <Badge variant="outline">{data.services.length}</Badge>
+        </div>
       </div>
-
-      {#if data.repoHead}
-        <form method="POST" class="flex flex-wrap items-end gap-3 rounded-lg border border-border/70 bg-background/80 p-4">
-          <input type="hidden" name="baseRevision" value={data.repoHead.headRevision} />
-          <label class="flex min-w-[260px] flex-1 flex-col gap-2 text-sm">
-            <span class="font-medium text-foreground">New service folder</span>
-            <Input name="folder" value={form?.folder ?? ''} placeholder="my-service" />
-          </label>
-          <Button type="submit" formaction="?/create">Create service</Button>
-        </form>
-      {/if}
 
       {#if data.error}
         <Alert variant="destructive">
           <AlertTitle>Load failed</AlertTitle>
           <AlertDescription>{data.error}</AlertDescription>
-        </Alert>
-      {/if}
-
-      {#if form?.error}
-        <Alert variant="destructive">
-          <AlertTitle>Create failed</AlertTitle>
-          <AlertDescription>{form.error}</AlertDescription>
         </Alert>
       {/if}
     </CardHeader>
@@ -94,8 +82,8 @@
                 </TableCell>
                 <TableCell class="text-muted-foreground">{service.folder}</TableCell>
                 <TableCell>
-                  <Badge variant={workspaceTone(service.hasMeta, service.runtimeStatus)}>
-                    {workspaceStatus(service.hasMeta, service.runtimeStatus)}
+                  <Badge variant={statusTone(service.hasMeta, service.runtimeStatus)}>
+                    {statusText(service.hasMeta, service.runtimeStatus)}
                   </Badge>
                 </TableCell>
                 <TableCell class="text-muted-foreground">
@@ -117,3 +105,31 @@
     </CardContent>
   </Card>
 </div>
+
+{#if showDialog && data.repoHead}
+  <Dialog bind:visible={showDialog} class="sm:max-w-md">
+    <form method="POST" action="?/create">
+      <DialogHeader>
+        <DialogTitle>Create service</DialogTitle>
+        <DialogDescription>Create a new service folder in the repository.</DialogDescription>
+      </DialogHeader>
+      <div class="grid gap-4 py-4">
+        <input type="hidden" name="baseRevision" value={data.repoHead.headRevision} />
+        <div class="grid gap-2">
+          <label for="folder" class="text-sm font-medium">Folder name</label>
+          <Input id="folder" name="folder" bind:value={newFolder} placeholder="my-service" />
+        </div>
+        {#if form?.error}
+          <Alert variant="destructive">
+            <AlertTitle>Create failed</AlertTitle>
+            <AlertDescription>{form.error}</AlertDescription>
+          </Alert>
+        {/if}
+      </div>
+      <DialogFooter>
+        <Button type="button" variant="outline" onclick={() => (showDialog = false)}>Cancel</Button>
+        <Button type="submit">Create</Button>
+      </DialogFooter>
+    </form>
+  </Dialog>
+{/if}

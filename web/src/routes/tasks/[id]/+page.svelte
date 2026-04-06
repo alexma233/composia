@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { RotateCcw } from 'lucide-svelte';
   import { toast } from 'svelte-sonner';
   import { goto } from '$app/navigation';
@@ -12,12 +11,12 @@
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { formatTimestamp, taskStatusTone } from '$lib/presenters';
 
-  export let data: PageData;
+  let { data }: { data: PageData } = $props();
 
-  let logContent = '';
-  let logState = 'idle';
-  let logError = '';
-  let rerunning = false;
+  let logContent = $state('');
+  let logState = $state('idle');
+  let logError = $state('');
+  let rerunning = $state(false);
 
   function isTerminalStatus(status: string): boolean {
     return status === 'succeeded' || status === 'failed' || status === 'cancelled';
@@ -50,7 +49,7 @@
     }
   }
 
-  onMount(() => {
+  $effect(() => {
     if (!data.task?.taskId || !data.task.logPath) {
       return;
     }
@@ -110,7 +109,7 @@
                 {data.task.status}
               </Badge>
               {#if isTerminalStatus(data.task.status)}
-                <Button type="button" variant="outline" size="sm" on:click={runAgain} disabled={rerunning}>
+                <Button type="button" variant="outline" size="sm" onclick={runAgain} disabled={rerunning}>
                   <RotateCcw class="mr-2 size-4" />
                   {rerunning ? 'Running...' : 'Run Again'}
                 </Button>
@@ -177,7 +176,6 @@
     <Card class="border-border/70 bg-card/95">
       <CardHeader class="space-y-1">
         <CardTitle class="section-title">Task steps</CardTitle>
-        <CardDescription class="section-description">Recorded execution steps.</CardDescription>
       </CardHeader>
       <CardContent>
         <div class="space-y-3">
@@ -201,10 +199,7 @@
 
     <Card class="border-border/70 bg-card/95">
       <CardHeader class="flex flex-row items-center justify-between gap-3">
-        <div class="space-y-1">
-          <CardTitle class="section-title">Task logs</CardTitle>
-          <CardDescription class="section-description">Live log tail for this task.</CardDescription>
-        </div>
+        <CardTitle class="section-title">Task logs</CardTitle>
         <div class="metric-label">{logState}</div>
       </CardHeader>
       <CardContent class="space-y-4">

@@ -3,7 +3,7 @@
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
-  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { formatTimestamp, taskStatusTone } from '$lib/presenters';
 
@@ -14,10 +14,7 @@
   <Card class="border-border/70 bg-card/95">
     <CardHeader class="gap-4">
       <div class="flex items-start justify-between gap-4">
-        <div class="space-y-1">
-          <CardTitle class="page-title">Backup history</CardTitle>
-          <CardDescription class="page-description">Controller-recorded backup runs.</CardDescription>
-        </div>
+        <CardTitle class="page-title">Backups</CardTitle>
         <Badge variant="outline">{data.backups.length}</Badge>
       </div>
 

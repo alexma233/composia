@@ -31,7 +31,7 @@
           size="sm"
           class="min-w-24 justify-start"
           aria-label={$messages.preferences[option.labelKey]}
-          on:click={() => setThemeMode(option.value)}
+          onclick={() => setThemeMode(option.value)}
         >
           <svelte:component this={option.icon} />
           {$messages.preferences[option.labelKey]}
@@ -53,7 +53,7 @@
           class:border-border={$accentColor !== accent}
           aria-label={accentMetadata[accent].label}
           aria-pressed={$accentColor === accent}
-          on:click={() => setAccentColor(accent as AccentColor)}
+          onclick={() => setAccentColor(accent as AccentColor)}
         >
           <span
             class="size-4 rounded-full border border-black/10 shadow-xs dark:border-white/10"

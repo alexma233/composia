@@ -1,22 +1,30 @@
 <script lang="ts">
   import { setContext } from 'svelte';
-  import { writable } from 'svelte/store';
 
   import { tabsContextKey, type TabsContext } from './context';
   import { cn } from '$lib/utils';
 
-  export let value = '';
-  export let className = '';
+  interface Props {
+    value?: string;
+    class?: string;
+    children?: import('svelte').Snippet;
+    [key: string]: unknown;
+  }
 
-  const currentValue = writable(value);
+  let { value = '', class: className = '', children, ...restProps }: Props = $props();
 
-  setContext<TabsContext>(tabsContextKey, {
-    value: currentValue
+  let currentValue = $state(value);
+
+  $effect(() => {
+    currentValue = value;
   });
 
-  export { className as class };
+  setContext<TabsContext>(tabsContextKey, {
+    get value() { return currentValue; },
+    setValue: (v: string) => { currentValue = v; }
+  });
 </script>
 
-<div class={cn('space-y-4', className)} {...$$restProps}>
-  <slot />
+<div class={cn('space-y-4', className)} {...restProps}>
+  {@render children?.()}
 </div>
