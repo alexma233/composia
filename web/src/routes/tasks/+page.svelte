@@ -14,13 +14,12 @@
     PaginationNext,
     PaginationPrev,
   } from '$lib/components/ui/pagination';
-  import { taskStatusTone } from '$lib/presenters';
   import TaskItem from '$lib/components/app/task-item.svelte';
 
   let { data }: { data: PageData } = $props();
 
   const pageSize = 20;
-  let totalPages = $derived(Math.ceil(data.totalCount / pageSize));
+  let totalPages = $derived(data.totalCount > 0 ? Math.ceil(data.totalCount / pageSize) : 0);
   let currentPath = $derived($page.url.pathname);
 
   $effect(() => {
@@ -32,6 +31,31 @@
     params.set('page', page.toString());
     return `${currentPath}?${params.toString()}`;
   }
+
+  let pageNumbers = $derived((() => {
+    if (totalPages <= 1) return [];
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const current = data.page;
+    const pages: (number | 'ellipsis')[] = [];
+    if (current <= 4) {
+      for (let i = 1; i <= 5; i++) pages.push(i);
+      pages.push('ellipsis');
+      pages.push(totalPages);
+    } else if (current >= totalPages - 3) {
+      pages.push(1);
+      pages.push('ellipsis');
+      for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      pages.push('ellipsis');
+      for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+      pages.push('ellipsis');
+      pages.push(totalPages);
+    }
+    return pages;
+  })());
 </script>
 
 <div class="page-shell">
@@ -71,22 +95,17 @@
                 </PaginationItem>
               {/if}
 
-              {#each Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                if (totalPages <= 5) return i + 1;
-                if (data.page <= 3) return i + 1;
-                if (data.page >= totalPages - 2) return totalPages - 4 + i;
-                return data.page - 2 + i;
-              }) as pageNum}
-                <PaginationItem>
-                  <PaginationLink page={pageNum} href={pageUrl(pageNum)} active={pageNum === data.page}>
-                    {pageNum}
-                  </PaginationLink>
-                </PaginationItem>
+              {#each pageNumbers as pageNum}
+                {#if pageNum === 'ellipsis'}
+                  <PaginationItem>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                {:else}
+                  <PaginationItem>
+                    <PaginationLink page={pageNum} href={pageUrl(pageNum)} active={pageNum === data.page} />
+                  </PaginationItem>
+                {/if}
               {/each}
-
-              {#if totalPages > 5 && data.page < totalPages - 2}
-                <PaginationEllipsis />
-              {/if}
 
               {#if data.page < totalPages}
                 <PaginationItem>
