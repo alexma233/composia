@@ -182,9 +182,9 @@ export async function loadDashboard(): Promise<DashboardData> {
 
   const [system, servicesResult, nodes, tasksResult] = await Promise.all([
     loadSystemStatus(),
-    loadServices(8),
+    loadServices(1, 8),
     loadNodes(),
-    loadTasks(6),
+    loadTasks(1, 6),
   ]);
 
   return {
