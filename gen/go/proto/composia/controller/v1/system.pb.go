@@ -158,6 +158,510 @@ func (x *GetSystemStatusResponse) GetLogDir() string {
 	return ""
 }
 
+type GetCurrentConfigRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCurrentConfigRequest) Reset() {
+	*x = GetCurrentConfigRequest{}
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCurrentConfigRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCurrentConfigRequest) ProtoMessage() {}
+
+func (x *GetCurrentConfigRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCurrentConfigRequest.ProtoReflect.Descriptor instead.
+func (*GetCurrentConfigRequest) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{2}
+}
+
+type GetCurrentConfigResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ListenAddr     string                 `protobuf:"bytes,1,opt,name=listen_addr,json=listenAddr,proto3" json:"listen_addr,omitempty"`
+	ControllerAddr string                 `protobuf:"bytes,2,opt,name=controller_addr,json=controllerAddr,proto3" json:"controller_addr,omitempty"`
+	Git            *GitConfigSummary      `protobuf:"bytes,3,opt,name=git,proto3" json:"git,omitempty"`
+	Nodes          []*NodeConfigSummary   `protobuf:"bytes,4,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	CliTokens      []*CLITokenSummary     `protobuf:"bytes,5,rep,name=cli_tokens,json=cliTokens,proto3" json:"cli_tokens,omitempty"`
+	Dns            *DNSConfigSummary      `protobuf:"bytes,6,opt,name=dns,proto3" json:"dns,omitempty"`
+	Backup         *BackupConfigSummary   `protobuf:"bytes,7,opt,name=backup,proto3" json:"backup,omitempty"`
+	Secrets        *SecretsConfigSummary  `protobuf:"bytes,8,opt,name=secrets,proto3" json:"secrets,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetCurrentConfigResponse) Reset() {
+	*x = GetCurrentConfigResponse{}
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCurrentConfigResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCurrentConfigResponse) ProtoMessage() {}
+
+func (x *GetCurrentConfigResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCurrentConfigResponse.ProtoReflect.Descriptor instead.
+func (*GetCurrentConfigResponse) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetCurrentConfigResponse) GetListenAddr() string {
+	if x != nil {
+		return x.ListenAddr
+	}
+	return ""
+}
+
+func (x *GetCurrentConfigResponse) GetControllerAddr() string {
+	if x != nil {
+		return x.ControllerAddr
+	}
+	return ""
+}
+
+func (x *GetCurrentConfigResponse) GetGit() *GitConfigSummary {
+	if x != nil {
+		return x.Git
+	}
+	return nil
+}
+
+func (x *GetCurrentConfigResponse) GetNodes() []*NodeConfigSummary {
+	if x != nil {
+		return x.Nodes
+	}
+	return nil
+}
+
+func (x *GetCurrentConfigResponse) GetCliTokens() []*CLITokenSummary {
+	if x != nil {
+		return x.CliTokens
+	}
+	return nil
+}
+
+func (x *GetCurrentConfigResponse) GetDns() *DNSConfigSummary {
+	if x != nil {
+		return x.Dns
+	}
+	return nil
+}
+
+func (x *GetCurrentConfigResponse) GetBackup() *BackupConfigSummary {
+	if x != nil {
+		return x.Backup
+	}
+	return nil
+}
+
+func (x *GetCurrentConfigResponse) GetSecrets() *SecretsConfigSummary {
+	if x != nil {
+		return x.Secrets
+	}
+	return nil
+}
+
+type GitConfigSummary struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RemoteUrl     string                 `protobuf:"bytes,1,opt,name=remote_url,json=remoteUrl,proto3" json:"remote_url,omitempty"`
+	Branch        string                 `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
+	PullInterval  string                 `protobuf:"bytes,3,opt,name=pull_interval,json=pullInterval,proto3" json:"pull_interval,omitempty"`
+	HasAuth       bool                   `protobuf:"varint,4,opt,name=has_auth,json=hasAuth,proto3" json:"has_auth,omitempty"`
+	AuthorName    string                 `protobuf:"bytes,5,opt,name=author_name,json=authorName,proto3" json:"author_name,omitempty"`
+	AuthorEmail   string                 `protobuf:"bytes,6,opt,name=author_email,json=authorEmail,proto3" json:"author_email,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GitConfigSummary) Reset() {
+	*x = GitConfigSummary{}
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GitConfigSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GitConfigSummary) ProtoMessage() {}
+
+func (x *GitConfigSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GitConfigSummary.ProtoReflect.Descriptor instead.
+func (*GitConfigSummary) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GitConfigSummary) GetRemoteUrl() string {
+	if x != nil {
+		return x.RemoteUrl
+	}
+	return ""
+}
+
+func (x *GitConfigSummary) GetBranch() string {
+	if x != nil {
+		return x.Branch
+	}
+	return ""
+}
+
+func (x *GitConfigSummary) GetPullInterval() string {
+	if x != nil {
+		return x.PullInterval
+	}
+	return ""
+}
+
+func (x *GitConfigSummary) GetHasAuth() bool {
+	if x != nil {
+		return x.HasAuth
+	}
+	return false
+}
+
+func (x *GitConfigSummary) GetAuthorName() string {
+	if x != nil {
+		return x.AuthorName
+	}
+	return ""
+}
+
+func (x *GitConfigSummary) GetAuthorEmail() string {
+	if x != nil {
+		return x.AuthorEmail
+	}
+	return ""
+}
+
+type NodeConfigSummary struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Enabled       bool                   `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	PublicIpv4    string                 `protobuf:"bytes,4,opt,name=public_ipv4,json=publicIpv4,proto3" json:"public_ipv4,omitempty"`
+	PublicIpv6    string                 `protobuf:"bytes,5,opt,name=public_ipv6,json=publicIpv6,proto3" json:"public_ipv6,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NodeConfigSummary) Reset() {
+	*x = NodeConfigSummary{}
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NodeConfigSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NodeConfigSummary) ProtoMessage() {}
+
+func (x *NodeConfigSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NodeConfigSummary.ProtoReflect.Descriptor instead.
+func (*NodeConfigSummary) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *NodeConfigSummary) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *NodeConfigSummary) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *NodeConfigSummary) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *NodeConfigSummary) GetPublicIpv4() string {
+	if x != nil {
+		return x.PublicIpv4
+	}
+	return ""
+}
+
+func (x *NodeConfigSummary) GetPublicIpv6() string {
+	if x != nil {
+		return x.PublicIpv6
+	}
+	return ""
+}
+
+type CLITokenSummary struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Enabled       bool                   `protobuf:"varint,2,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Comment       string                 `protobuf:"bytes,3,opt,name=comment,proto3" json:"comment,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CLITokenSummary) Reset() {
+	*x = CLITokenSummary{}
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CLITokenSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CLITokenSummary) ProtoMessage() {}
+
+func (x *CLITokenSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CLITokenSummary.ProtoReflect.Descriptor instead.
+func (*CLITokenSummary) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *CLITokenSummary) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CLITokenSummary) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *CLITokenSummary) GetComment() string {
+	if x != nil {
+		return x.Comment
+	}
+	return ""
+}
+
+type DNSConfigSummary struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	HasCloudflare bool                   `protobuf:"varint,1,opt,name=has_cloudflare,json=hasCloudflare,proto3" json:"has_cloudflare,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DNSConfigSummary) Reset() {
+	*x = DNSConfigSummary{}
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DNSConfigSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DNSConfigSummary) ProtoMessage() {}
+
+func (x *DNSConfigSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DNSConfigSummary.ProtoReflect.Descriptor instead.
+func (*DNSConfigSummary) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *DNSConfigSummary) GetHasCloudflare() bool {
+	if x != nil {
+		return x.HasCloudflare
+	}
+	return false
+}
+
+type BackupConfigSummary struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	HasRustic     bool                   `protobuf:"varint,1,opt,name=has_rustic,json=hasRustic,proto3" json:"has_rustic,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BackupConfigSummary) Reset() {
+	*x = BackupConfigSummary{}
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BackupConfigSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BackupConfigSummary) ProtoMessage() {}
+
+func (x *BackupConfigSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BackupConfigSummary.ProtoReflect.Descriptor instead.
+func (*BackupConfigSummary) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *BackupConfigSummary) GetHasRustic() bool {
+	if x != nil {
+		return x.HasRustic
+	}
+	return false
+}
+
+type SecretsConfigSummary struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	HasIdentity   bool                   `protobuf:"varint,2,opt,name=has_identity,json=hasIdentity,proto3" json:"has_identity,omitempty"`
+	HasRecipient  bool                   `protobuf:"varint,3,opt,name=has_recipient,json=hasRecipient,proto3" json:"has_recipient,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SecretsConfigSummary) Reset() {
+	*x = SecretsConfigSummary{}
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SecretsConfigSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SecretsConfigSummary) ProtoMessage() {}
+
+func (x *SecretsConfigSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SecretsConfigSummary.ProtoReflect.Descriptor instead.
+func (*SecretsConfigSummary) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *SecretsConfigSummary) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *SecretsConfigSummary) GetHasIdentity() bool {
+	if x != nil {
+		return x.HasIdentity
+	}
+	return false
+}
+
+func (x *SecretsConfigSummary) GetHasRecipient() bool {
+	if x != nil {
+		return x.HasRecipient
+	}
+	return false
+}
+
 var File_proto_composia_controller_v1_system_proto protoreflect.FileDescriptor
 
 const file_proto_composia_controller_v1_system_proto_rawDesc = "" +
@@ -172,9 +676,52 @@ const file_proto_composia_controller_v1_system_proto_rawDesc = "" +
 	"\x0fcontroller_addr\x18\x05 \x01(\tR\x0econtrollerAddr\x12\x19\n" +
 	"\brepo_dir\x18\x06 \x01(\tR\arepoDir\x12\x1b\n" +
 	"\tstate_dir\x18\a \x01(\tR\bstateDir\x12\x17\n" +
-	"\alog_dir\x18\b \x01(\tR\x06logDir2\x83\x01\n" +
+	"\alog_dir\x18\b \x01(\tR\x06logDir\"\x19\n" +
+	"\x17GetCurrentConfigRequest\"\xf2\x03\n" +
+	"\x18GetCurrentConfigResponse\x12\x1f\n" +
+	"\vlisten_addr\x18\x01 \x01(\tR\n" +
+	"listenAddr\x12'\n" +
+	"\x0fcontroller_addr\x18\x02 \x01(\tR\x0econtrollerAddr\x12:\n" +
+	"\x03git\x18\x03 \x01(\v2(.composia.controller.v1.GitConfigSummaryR\x03git\x12?\n" +
+	"\x05nodes\x18\x04 \x03(\v2).composia.controller.v1.NodeConfigSummaryR\x05nodes\x12F\n" +
+	"\n" +
+	"cli_tokens\x18\x05 \x03(\v2'.composia.controller.v1.CLITokenSummaryR\tcliTokens\x12:\n" +
+	"\x03dns\x18\x06 \x01(\v2(.composia.controller.v1.DNSConfigSummaryR\x03dns\x12C\n" +
+	"\x06backup\x18\a \x01(\v2+.composia.controller.v1.BackupConfigSummaryR\x06backup\x12F\n" +
+	"\asecrets\x18\b \x01(\v2,.composia.controller.v1.SecretsConfigSummaryR\asecrets\"\xcd\x01\n" +
+	"\x10GitConfigSummary\x12\x1d\n" +
+	"\n" +
+	"remote_url\x18\x01 \x01(\tR\tremoteUrl\x12\x16\n" +
+	"\x06branch\x18\x02 \x01(\tR\x06branch\x12#\n" +
+	"\rpull_interval\x18\x03 \x01(\tR\fpullInterval\x12\x19\n" +
+	"\bhas_auth\x18\x04 \x01(\bR\ahasAuth\x12\x1f\n" +
+	"\vauthor_name\x18\x05 \x01(\tR\n" +
+	"authorName\x12!\n" +
+	"\fauthor_email\x18\x06 \x01(\tR\vauthorEmail\"\xa2\x01\n" +
+	"\x11NodeConfigSummary\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
+	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x18\n" +
+	"\aenabled\x18\x03 \x01(\bR\aenabled\x12\x1f\n" +
+	"\vpublic_ipv4\x18\x04 \x01(\tR\n" +
+	"publicIpv4\x12\x1f\n" +
+	"\vpublic_ipv6\x18\x05 \x01(\tR\n" +
+	"publicIpv6\"Y\n" +
+	"\x0fCLITokenSummary\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\aenabled\x18\x02 \x01(\bR\aenabled\x12\x18\n" +
+	"\acomment\x18\x03 \x01(\tR\acomment\"9\n" +
+	"\x10DNSConfigSummary\x12%\n" +
+	"\x0ehas_cloudflare\x18\x01 \x01(\bR\rhasCloudflare\"4\n" +
+	"\x13BackupConfigSummary\x12\x1d\n" +
+	"\n" +
+	"has_rustic\x18\x01 \x01(\bR\thasRustic\"z\n" +
+	"\x14SecretsConfigSummary\x12\x1a\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\x12!\n" +
+	"\fhas_identity\x18\x02 \x01(\bR\vhasIdentity\x12#\n" +
+	"\rhas_recipient\x18\x03 \x01(\bR\fhasRecipient2\xfa\x01\n" +
 	"\rSystemService\x12r\n" +
-	"\x0fGetSystemStatus\x12..composia.controller.v1.GetSystemStatusRequest\x1a/.composia.controller.v1.GetSystemStatusResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
+	"\x0fGetSystemStatus\x12..composia.controller.v1.GetSystemStatusRequest\x1a/.composia.controller.v1.GetSystemStatusResponse\x12u\n" +
+	"\x10GetCurrentConfig\x12/.composia.controller.v1.GetCurrentConfigRequest\x1a0.composia.controller.v1.GetCurrentConfigResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
 
 var (
 	file_proto_composia_controller_v1_system_proto_rawDescOnce sync.Once
@@ -188,21 +735,37 @@ func file_proto_composia_controller_v1_system_proto_rawDescGZIP() []byte {
 	return file_proto_composia_controller_v1_system_proto_rawDescData
 }
 
-var file_proto_composia_controller_v1_system_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_proto_composia_controller_v1_system_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_proto_composia_controller_v1_system_proto_goTypes = []any{
-	(*GetSystemStatusRequest)(nil),  // 0: composia.controller.v1.GetSystemStatusRequest
-	(*GetSystemStatusResponse)(nil), // 1: composia.controller.v1.GetSystemStatusResponse
-	(*timestamppb.Timestamp)(nil),   // 2: google.protobuf.Timestamp
+	(*GetSystemStatusRequest)(nil),   // 0: composia.controller.v1.GetSystemStatusRequest
+	(*GetSystemStatusResponse)(nil),  // 1: composia.controller.v1.GetSystemStatusResponse
+	(*GetCurrentConfigRequest)(nil),  // 2: composia.controller.v1.GetCurrentConfigRequest
+	(*GetCurrentConfigResponse)(nil), // 3: composia.controller.v1.GetCurrentConfigResponse
+	(*GitConfigSummary)(nil),         // 4: composia.controller.v1.GitConfigSummary
+	(*NodeConfigSummary)(nil),        // 5: composia.controller.v1.NodeConfigSummary
+	(*CLITokenSummary)(nil),          // 6: composia.controller.v1.CLITokenSummary
+	(*DNSConfigSummary)(nil),         // 7: composia.controller.v1.DNSConfigSummary
+	(*BackupConfigSummary)(nil),      // 8: composia.controller.v1.BackupConfigSummary
+	(*SecretsConfigSummary)(nil),     // 9: composia.controller.v1.SecretsConfigSummary
+	(*timestamppb.Timestamp)(nil),    // 10: google.protobuf.Timestamp
 }
 var file_proto_composia_controller_v1_system_proto_depIdxs = []int32{
-	2, // 0: composia.controller.v1.GetSystemStatusResponse.now:type_name -> google.protobuf.Timestamp
-	0, // 1: composia.controller.v1.SystemService.GetSystemStatus:input_type -> composia.controller.v1.GetSystemStatusRequest
-	1, // 2: composia.controller.v1.SystemService.GetSystemStatus:output_type -> composia.controller.v1.GetSystemStatusResponse
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	10, // 0: composia.controller.v1.GetSystemStatusResponse.now:type_name -> google.protobuf.Timestamp
+	4,  // 1: composia.controller.v1.GetCurrentConfigResponse.git:type_name -> composia.controller.v1.GitConfigSummary
+	5,  // 2: composia.controller.v1.GetCurrentConfigResponse.nodes:type_name -> composia.controller.v1.NodeConfigSummary
+	6,  // 3: composia.controller.v1.GetCurrentConfigResponse.cli_tokens:type_name -> composia.controller.v1.CLITokenSummary
+	7,  // 4: composia.controller.v1.GetCurrentConfigResponse.dns:type_name -> composia.controller.v1.DNSConfigSummary
+	8,  // 5: composia.controller.v1.GetCurrentConfigResponse.backup:type_name -> composia.controller.v1.BackupConfigSummary
+	9,  // 6: composia.controller.v1.GetCurrentConfigResponse.secrets:type_name -> composia.controller.v1.SecretsConfigSummary
+	0,  // 7: composia.controller.v1.SystemService.GetSystemStatus:input_type -> composia.controller.v1.GetSystemStatusRequest
+	2,  // 8: composia.controller.v1.SystemService.GetCurrentConfig:input_type -> composia.controller.v1.GetCurrentConfigRequest
+	1,  // 9: composia.controller.v1.SystemService.GetSystemStatus:output_type -> composia.controller.v1.GetSystemStatusResponse
+	3,  // 10: composia.controller.v1.SystemService.GetCurrentConfig:output_type -> composia.controller.v1.GetCurrentConfigResponse
+	9,  // [9:11] is the sub-list for method output_type
+	7,  // [7:9] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_proto_composia_controller_v1_system_proto_init() }
@@ -216,7 +779,7 @@ func file_proto_composia_controller_v1_system_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_controller_v1_system_proto_rawDesc), len(file_proto_composia_controller_v1_system_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

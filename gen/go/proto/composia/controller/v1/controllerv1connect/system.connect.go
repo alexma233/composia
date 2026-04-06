@@ -36,11 +36,15 @@ const (
 	// SystemServiceGetSystemStatusProcedure is the fully-qualified name of the SystemService's
 	// GetSystemStatus RPC.
 	SystemServiceGetSystemStatusProcedure = "/composia.controller.v1.SystemService/GetSystemStatus"
+	// SystemServiceGetCurrentConfigProcedure is the fully-qualified name of the SystemService's
+	// GetCurrentConfig RPC.
+	SystemServiceGetCurrentConfigProcedure = "/composia.controller.v1.SystemService/GetCurrentConfig"
 )
 
 // SystemServiceClient is a client for the composia.controller.v1.SystemService service.
 type SystemServiceClient interface {
 	GetSystemStatus(context.Context, *connect.Request[v1.GetSystemStatusRequest]) (*connect.Response[v1.GetSystemStatusResponse], error)
+	GetCurrentConfig(context.Context, *connect.Request[v1.GetCurrentConfigRequest]) (*connect.Response[v1.GetCurrentConfigResponse], error)
 }
 
 // NewSystemServiceClient constructs a client for the composia.controller.v1.SystemService service.
@@ -60,12 +64,19 @@ func NewSystemServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(systemServiceMethods.ByName("GetSystemStatus")),
 			connect.WithClientOptions(opts...),
 		),
+		getCurrentConfig: connect.NewClient[v1.GetCurrentConfigRequest, v1.GetCurrentConfigResponse](
+			httpClient,
+			baseURL+SystemServiceGetCurrentConfigProcedure,
+			connect.WithSchema(systemServiceMethods.ByName("GetCurrentConfig")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // systemServiceClient implements SystemServiceClient.
 type systemServiceClient struct {
-	getSystemStatus *connect.Client[v1.GetSystemStatusRequest, v1.GetSystemStatusResponse]
+	getSystemStatus  *connect.Client[v1.GetSystemStatusRequest, v1.GetSystemStatusResponse]
+	getCurrentConfig *connect.Client[v1.GetCurrentConfigRequest, v1.GetCurrentConfigResponse]
 }
 
 // GetSystemStatus calls composia.controller.v1.SystemService.GetSystemStatus.
@@ -73,9 +84,15 @@ func (c *systemServiceClient) GetSystemStatus(ctx context.Context, req *connect.
 	return c.getSystemStatus.CallUnary(ctx, req)
 }
 
+// GetCurrentConfig calls composia.controller.v1.SystemService.GetCurrentConfig.
+func (c *systemServiceClient) GetCurrentConfig(ctx context.Context, req *connect.Request[v1.GetCurrentConfigRequest]) (*connect.Response[v1.GetCurrentConfigResponse], error) {
+	return c.getCurrentConfig.CallUnary(ctx, req)
+}
+
 // SystemServiceHandler is an implementation of the composia.controller.v1.SystemService service.
 type SystemServiceHandler interface {
 	GetSystemStatus(context.Context, *connect.Request[v1.GetSystemStatusRequest]) (*connect.Response[v1.GetSystemStatusResponse], error)
+	GetCurrentConfig(context.Context, *connect.Request[v1.GetCurrentConfigRequest]) (*connect.Response[v1.GetCurrentConfigResponse], error)
 }
 
 // NewSystemServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -91,10 +108,18 @@ func NewSystemServiceHandler(svc SystemServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(systemServiceMethods.ByName("GetSystemStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
+	systemServiceGetCurrentConfigHandler := connect.NewUnaryHandler(
+		SystemServiceGetCurrentConfigProcedure,
+		svc.GetCurrentConfig,
+		connect.WithSchema(systemServiceMethods.ByName("GetCurrentConfig")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.controller.v1.SystemService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SystemServiceGetSystemStatusProcedure:
 			systemServiceGetSystemStatusHandler.ServeHTTP(w, r)
+		case SystemServiceGetCurrentConfigProcedure:
+			systemServiceGetCurrentConfigHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -106,4 +131,8 @@ type UnimplementedSystemServiceHandler struct{}
 
 func (UnimplementedSystemServiceHandler) GetSystemStatus(context.Context, *connect.Request[v1.GetSystemStatusRequest]) (*connect.Response[v1.GetSystemStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.SystemService.GetSystemStatus is not implemented"))
+}
+
+func (UnimplementedSystemServiceHandler) GetCurrentConfig(context.Context, *connect.Request[v1.GetCurrentConfigRequest]) (*connect.Response[v1.GetCurrentConfigResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.SystemService.GetCurrentConfig is not implemented"))
 }

@@ -8,6 +8,7 @@ option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia
 
 service SystemService {
   rpc GetSystemStatus(GetSystemStatusRequest) returns (GetSystemStatusResponse);
+  rpc GetCurrentConfig(GetCurrentConfigRequest) returns (GetCurrentConfigResponse);
 }
 
 message GetSystemStatusRequest {}
@@ -21,4 +22,54 @@ message GetSystemStatusResponse {
   string repo_dir = 6;
   string state_dir = 7;
   string log_dir = 8;
+}
+
+message GetCurrentConfigRequest {}
+
+message GetCurrentConfigResponse {
+  string listen_addr = 1;
+  string controller_addr = 2;
+  GitConfigSummary git = 3;
+  repeated NodeConfigSummary nodes = 4;
+  repeated CLITokenSummary cli_tokens = 5;
+  DNSConfigSummary dns = 6;
+  BackupConfigSummary backup = 7;
+  SecretsConfigSummary secrets = 8;
+}
+
+message GitConfigSummary {
+  string remote_url = 1;
+  string branch = 2;
+  string pull_interval = 3;
+  bool has_auth = 4;
+  string author_name = 5;
+  string author_email = 6;
+}
+
+message NodeConfigSummary {
+  string id = 1;
+  string display_name = 2;
+  bool enabled = 3;
+  string public_ipv4 = 4;
+  string public_ipv6 = 5;
+}
+
+message CLITokenSummary {
+  string name = 1;
+  bool enabled = 2;
+  string comment = 3;
+}
+
+message DNSConfigSummary {
+  bool has_cloudflare = 1;
+}
+
+message BackupConfigSummary {
+  bool has_rustic = 1;
+}
+
+message SecretsConfigSummary {
+  string provider = 1;
+  bool has_identity = 2;
+  bool has_recipient = 3;
 }

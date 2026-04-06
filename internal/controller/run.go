@@ -970,6 +970,74 @@ func (server *systemServer) GetSystemStatus(ctx context.Context, _ *connect.Requ
 	return connect.NewResponse(response), nil
 }
 
+func (server *systemServer) GetCurrentConfig(ctx context.Context, _ *connect.Request[controllerv1.GetCurrentConfigRequest]) (*connect.Response[controllerv1.GetCurrentConfigResponse], error) {
+	response := &controllerv1.GetCurrentConfigResponse{
+		ListenAddr:     server.cfg.ListenAddr,
+		ControllerAddr: server.cfg.ControllerAddr,
+	}
+
+	if server.cfg.Git != nil {
+		response.Git = &controllerv1.GitConfigSummary{
+			RemoteUrl:    server.cfg.Git.RemoteURL,
+			Branch:       server.cfg.Git.Branch,
+			PullInterval: server.cfg.Git.PullInterval,
+			HasAuth:      server.cfg.Git.Auth != nil && server.cfg.Git.Auth.TokenFile != "",
+			AuthorName:   server.cfg.Git.AuthorName,
+			AuthorEmail:  server.cfg.Git.AuthorEmail,
+		}
+	}
+
+	response.Nodes = make([]*controllerv1.NodeConfigSummary, 0, len(server.cfg.Nodes))
+	for _, node := range server.cfg.Nodes {
+		enabled := true
+		if node.Enabled != nil {
+			enabled = *node.Enabled
+		}
+		response.Nodes = append(response.Nodes, &controllerv1.NodeConfigSummary{
+			Id:          node.ID,
+			DisplayName: node.DisplayName,
+			Enabled:     enabled,
+			PublicIpv4:  node.PublicIPv4,
+			PublicIpv6:  node.PublicIPv6,
+		})
+	}
+
+	response.CliTokens = make([]*controllerv1.CLITokenSummary, 0, len(server.cfg.CLITokens))
+	for _, token := range server.cfg.CLITokens {
+		enabled := true
+		if token.Enabled != nil {
+			enabled = *token.Enabled
+		}
+		response.CliTokens = append(response.CliTokens, &controllerv1.CLITokenSummary{
+			Name:    token.Name,
+			Enabled: enabled,
+			Comment: token.Comment,
+		})
+	}
+
+	if server.cfg.DNS != nil && server.cfg.DNS.Cloudflare != nil {
+		response.Dns = &controllerv1.DNSConfigSummary{
+			HasCloudflare: server.cfg.DNS.Cloudflare.APITokenFile != "",
+		}
+	}
+
+	if server.cfg.Backup != nil && server.cfg.Backup.Rustic != nil {
+		response.Backup = &controllerv1.BackupConfigSummary{
+			HasRustic: server.cfg.Backup.Rustic.Repository != "",
+		}
+	}
+
+	if server.cfg.Secrets != nil {
+		response.Secrets = &controllerv1.SecretsConfigSummary{
+			Provider:     server.cfg.Secrets.Provider,
+			HasIdentity:  server.cfg.Secrets.IdentityFile != "",
+			HasRecipient: server.cfg.Secrets.RecipientFile != "",
+		}
+	}
+
+	return connect.NewResponse(response), nil
+}
+
 func (server *serviceServer) ListServices(ctx context.Context, req *connect.Request[controllerv1.ListServicesRequest]) (*connect.Response[controllerv1.ListServicesResponse], error) {
 	if req.Msg == nil {
 		req.Msg = &controllerv1.ListServicesRequest{}

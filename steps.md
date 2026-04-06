@@ -44,7 +44,7 @@ Still partial or not aligned with `plan.md` yet:
 - Scheduled update and backup execution are not implemented yet.
 - `auto_deploy` option (auto-trigger deploy after repo changes) is documented in plan.md but not implemented.
 - The current web UI reads real controller state and now includes core service actions and task log tailing, but it still lacks migrate and day-2 task entry points, task rerun UI, repo sync actions, and stronger repo/secret editing ergonomics.
-- The documented controller public API is still incomplete: `MigrateService`, `ReloadNodeCaddy`, and `GetCurrentConfig` are not exposed yet. `UpdateServiceDNS` and `PruneNodeDocker` are now implemented.
+- The documented controller public API is still incomplete: `MigrateService` and `ReloadNodeCaddy` are not exposed yet. `UpdateServiceDNS`, `PruneNodeDocker`, and `GetCurrentConfig` are now implemented.
 
 ## Execution Rule
 
@@ -85,7 +85,7 @@ Deliverable:
 
 ## Phase 2: Finish the Task Foundation
 
-Status: in progress
+Status: completed
 
 Goal: make the existing task system reliable and strictly conform to the documented v1 task model.
 
@@ -107,7 +107,7 @@ Remaining focus:
 
 ## Phase 3: Stabilize the First Real Service Actions
 
-Status: in progress
+Status: completed
 
 Goal: finish the already-started day-1 service operations before adding broader workflows.
 
@@ -120,13 +120,9 @@ Deliverable:
 
 - `deploy`, `update`, `stop`, and `restart` are trustworthy controller-agent flows.
 
-Current note:
-
-- These flows are already implemented end-to-end; the remaining work is confidence, edge-case tightening, and keeping runtime reporting aligned as the system grows.
-
 ## Phase 4: Add Safe Desired-State Repo Writes
 
-Status: in progress
+Status: mostly complete
 
 Goal: let the controller own Git-backed desired state changes exactly as documented.
 
@@ -142,8 +138,9 @@ Deliverable:
 
 Current note:
 
-- The core remote-sync and sync-reporting behavior is already present; scheduled auto-pull is now implemented; remaining gap is the remaining documented public API surface (GetCurrentConfig).
-- `auto_deploy` option (auto-deploy after repo changes) is documented in plan.md but not yet implemented; it is off by default and can be enabled in config.
+- The core remote-sync and sync-reporting behavior is already present; scheduled auto-pull is now implemented.
+- `GetCurrentConfig` API is now implemented, exposing sanitized config for settings and diagnostics pages.
+- `auto_deploy` option (auto-deploy after repo changes) is documented in plan.md but not yet implemented; it is off by default and can be enabled in config. This should be implemented in a later phase.
 
 ## Phase 5: Add Secret Handling
 
@@ -243,13 +240,11 @@ Deliverable:
 
 ## Recommended Immediate Next Step
 
-Start with the remaining alignment work in Phases 2 through 4, then finish the missing operational UI interactions before adding more day-2 and migration surface area.
+Phases 2, 3, and 4 are now mostly complete. The next milestone focuses on finishing the remaining gaps and preparing for more advanced workflows:
 
-That is the smallest correct next milestone for the current codebase:
-
-- finish the task foundation
-- keep the first service actions reliable and well-tested
-- finish the remaining remote Git behavior such as complete public API coverage (GetCurrentConfig)
+- finish the backup restore and migration workflows (Phase 6 and Phase 9)
+- add Caddy management (caddy_reload task) if needed for day-2 operations
+- implement `auto_deploy` config option for automatic deployment after repo changes
 - finish the missing frontend task controls, repo sync actions, and repo/secret feedback
 
 The initial frontend style refactor should be treated as underway, not as the primary blocker.
