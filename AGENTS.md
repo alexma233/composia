@@ -27,6 +27,7 @@ This file defines repository-wide collaboration rules for human contributors and
 - Assume operators and contributors are technical users by default.
 - Do not preserve old APIs for compatibility unless the user explicitly requires it.
 - Breaking changes are acceptable when they simplify the system and stay aligned with `plan.md`.
+- NEVER bypass GPG signing for commits (e.g., do not use `--no-gpg-sign` or similar flags).
 
 ## Current Delivery Strategy
 
@@ -51,9 +52,13 @@ If it is not clear, stop and ask a focused question in `zh_Hans`.
 
 ## UI Component Library
 
-- The Web UI uses `shadcn-svelte` components.
+- The Web UI MUST use `shadcn-svelte` components.
 - Documentation: https://www.shadcn-svelte.com/
 - Available components are located in `/home/alexma/Projects/composia/web/src/lib/components/ui/`.
+- When adding new shadcn-svelte components, use `bunx` command:
+  ```bash
+  cd web && bunx shadcn-svelte@latest add <component-name>
+  ```
 - Prefer using existing shadcn-svelte components before creating custom ones.
 - Refer to `style.md` for visual design guidelines.
 
