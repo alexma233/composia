@@ -5,6 +5,7 @@
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import {
     Pagination,
     PaginationContent,
@@ -14,7 +15,6 @@
     PaginationNext,
     PaginationPrev,
   } from '$lib/components/ui/pagination';
-  import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { formatTimestamp, taskStatusTone } from '$lib/presenters';
 
   let { data }: { data: PageData } = $props();

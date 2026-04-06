@@ -41,19 +41,6 @@ export type TaskSummary = {
   createdAt: string;
 };
 
-export type TaskFilter = {
-  serviceName?: string;
-  nodeId?: string;
-  status?: string;
-  type?: string;
-};
-
-export type BackupFilter = {
-  serviceName?: string;
-  status?: string;
-  dataName?: string;
-};
-
 export type TaskStepSummary = {
   stepName: string;
   status: string;
@@ -246,6 +233,19 @@ export async function loadNodes(): Promise<NodeSummary[]> {
   return response.nodes ?? [];
 }
 
+export type TaskFilter = {
+  serviceName?: string;
+  nodeId?: string;
+  status?: string;
+  type?: string;
+};
+
+export type BackupFilter = {
+  serviceName?: string;
+  status?: string;
+  dataName?: string;
+};
+
 export async function loadTasks(
   page = 1,
   pageSize = 50,
@@ -262,10 +262,10 @@ export async function loadTasks(
     {
       page,
       pageSize,
-      serviceName: filter?.serviceName,
-      nodeId: filter?.nodeId,
-      status: filter?.status,
-      type: filter?.type,
+      status: filter?.status ?? "",
+      service_name: filter?.serviceName ?? "",
+      node_id: filter?.nodeId ?? "",
+      type: filter?.type ?? "",
     },
   );
   return {
@@ -290,9 +290,9 @@ export async function loadBackups(
     {
       page,
       pageSize,
-      serviceName: filter?.serviceName,
-      status: filter?.status,
-      dataName: filter?.dataName,
+      service_name: filter?.serviceName ?? "",
+      status: filter?.status ?? "",
+      data_name: filter?.dataName ?? "",
     },
   );
   return {

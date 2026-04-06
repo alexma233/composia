@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
-import { loadBackups, loadTasks } from "$lib/server/controller";
+import { loadTasks, loadBackups } from "$lib/server/controller";
 import { loadServiceWorkspace } from "$lib/server/service-index";
 
 export const GET: RequestHandler = async ({ params }) => {

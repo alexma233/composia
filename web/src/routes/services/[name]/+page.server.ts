@@ -3,8 +3,8 @@ import type { PageServerLoad } from "./$types";
 import {
   controllerConfig,
   loadRepoHead,
-  loadBackups,
   loadTasks,
+  loadBackups,
 } from "$lib/server/controller";
 import {
   defaultServiceFilePath,
