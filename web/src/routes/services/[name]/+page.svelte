@@ -656,7 +656,7 @@
       {#if activeTab}
         <div class="min-h-0 flex-1">
           {#key activePath}
-            <CodeEditor path={activeTab.path} value={activeTab.content} on:change={(event) => updateCurrentTab(event.detail.value)} on:save={saveCurrentTab} />
+            <CodeEditor path={activeTab.path} value={activeTab.content} onchange={({ value }) => updateCurrentTab(value)} onsave={saveCurrentTab} />
           {/key}
         </div>
       {:else}
