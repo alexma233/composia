@@ -138,7 +138,7 @@
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div class="text-sm font-medium">{task.type}</div>
-                  <div class="text-xs text-muted-foreground">{task.serviceName || 'system task'}</div>
+                  <div class="text-xs text-muted-foreground">{task.serviceName ? task.serviceName : 'node-level'}</div>
                 </div>
                 <Badge variant={taskStatusTone(task.status)}>{task.status}</Badge>
               </div>

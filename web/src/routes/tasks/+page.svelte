@@ -51,7 +51,7 @@
                   <Badge variant={taskStatusTone(task.status)}>{task.status}</Badge>
                 </TableCell>
                 <TableCell class="text-muted-foreground">
-                  {task.serviceName || 'system task'} on {task.nodeId || 'n/a'}
+                  {task.serviceName ? task.serviceName : `node: ${task.nodeId || 'n/a'}`}
                 </TableCell>
                 <TableCell class="text-muted-foreground">{formatTimestamp(task.createdAt)}</TableCell>
               </TableRow>

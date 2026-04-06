@@ -1415,7 +1415,7 @@ func (server *nodeServer) PruneNodeDocker(ctx context.Context, req *connect.Requ
 	_, err = server.db.CreateTask(ctx, task.Record{
 		TaskID:      taskID,
 		Type:        task.TypePrune,
-		Source:      task.SourceCLI,
+		Source:      requestTaskSource(req.Header()),
 		TriggeredBy: triggeredBy,
 		NodeID:      req.Msg.GetNodeId(),
 		Status:      task.StatusPending,
@@ -1435,7 +1435,7 @@ func (server *nodeServer) ListNodeContainers(ctx context.Context, req *connect.R
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
 
-	result, err := server.executeDockerListTask(ctx, req.Msg.GetNodeId(), "containers")
+	result, err := server.executeDockerListTask(ctx, req.Header(), req.Msg.GetNodeId(), "containers")
 	if err != nil {
 		return nil, err
 	}
@@ -1450,7 +1450,7 @@ func (server *nodeServer) InspectNodeContainer(ctx context.Context, req *connect
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and container_id are required"))
 	}
 
-	result, err := server.executeDockerInspectTask(ctx, req.Msg.GetNodeId(), "container", req.Msg.GetContainerId())
+	result, err := server.executeDockerInspectTask(ctx, req.Header(), req.Msg.GetNodeId(), "container", req.Msg.GetContainerId())
 	if err != nil {
 		return nil, err
 	}
@@ -1465,7 +1465,7 @@ func (server *nodeServer) ListNodeNetworks(ctx context.Context, req *connect.Req
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
 
-	result, err := server.executeDockerListTask(ctx, req.Msg.GetNodeId(), "networks")
+	result, err := server.executeDockerListTask(ctx, req.Header(), req.Msg.GetNodeId(), "networks")
 	if err != nil {
 		return nil, err
 	}
@@ -1480,7 +1480,7 @@ func (server *nodeServer) InspectNodeNetwork(ctx context.Context, req *connect.R
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and network_id are required"))
 	}
 
-	result, err := server.executeDockerInspectTask(ctx, req.Msg.GetNodeId(), "network", req.Msg.GetNetworkId())
+	result, err := server.executeDockerInspectTask(ctx, req.Header(), req.Msg.GetNodeId(), "network", req.Msg.GetNetworkId())
 	if err != nil {
 		return nil, err
 	}
@@ -1495,7 +1495,7 @@ func (server *nodeServer) ListNodeVolumes(ctx context.Context, req *connect.Requ
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
 
-	result, err := server.executeDockerListTask(ctx, req.Msg.GetNodeId(), "volumes")
+	result, err := server.executeDockerListTask(ctx, req.Header(), req.Msg.GetNodeId(), "volumes")
 	if err != nil {
 		return nil, err
 	}
@@ -1510,7 +1510,7 @@ func (server *nodeServer) InspectNodeVolume(ctx context.Context, req *connect.Re
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and volume_name are required"))
 	}
 
-	result, err := server.executeDockerInspectTask(ctx, req.Msg.GetNodeId(), "volume", req.Msg.GetVolumeName())
+	result, err := server.executeDockerInspectTask(ctx, req.Header(), req.Msg.GetNodeId(), "volume", req.Msg.GetVolumeName())
 	if err != nil {
 		return nil, err
 	}
@@ -1525,7 +1525,7 @@ func (server *nodeServer) ListNodeImages(ctx context.Context, req *connect.Reque
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
 
-	result, err := server.executeDockerListTask(ctx, req.Msg.GetNodeId(), "images")
+	result, err := server.executeDockerListTask(ctx, req.Header(), req.Msg.GetNodeId(), "images")
 	if err != nil {
 		return nil, err
 	}
@@ -1540,7 +1540,7 @@ func (server *nodeServer) InspectNodeImage(ctx context.Context, req *connect.Req
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and image_id are required"))
 	}
 
-	result, err := server.executeDockerInspectTask(ctx, req.Msg.GetNodeId(), "image", req.Msg.GetImageId())
+	result, err := server.executeDockerInspectTask(ctx, req.Header(), req.Msg.GetNodeId(), "image", req.Msg.GetImageId())
 	if err != nil {
 		return nil, err
 	}
@@ -1563,7 +1563,7 @@ const (
 	dockerTaskResultEnd   = "COMPOSIA_DOCKER_RESULT_END"
 )
 
-func (server *nodeServer) executeDockerListTask(ctx context.Context, nodeID, resource string) (*dockerListResult, error) {
+func (server *nodeServer) executeDockerListTask(ctx context.Context, header http.Header, nodeID, resource string) (*dockerListResult, error) {
 	snapshot, err := server.db.GetNodeSnapshot(ctx, nodeID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -1578,7 +1578,7 @@ func (server *nodeServer) executeDockerListTask(ctx context.Context, nodeID, res
 	createdTask, err := server.db.CreateTask(ctx, task.Record{
 		TaskID:      taskID,
 		Type:        task.TypeDockerList,
-		Source:      task.SourceCLI,
+		Source:      requestTaskSource(header),
 		TriggeredBy: "controller",
 		NodeID:      nodeID,
 		Status:      task.StatusPending,
@@ -1606,7 +1606,7 @@ func (server *nodeServer) executeDockerListTask(ctx context.Context, nodeID, res
 	return server.parseDockerListResult(resource, result)
 }
 
-func (server *nodeServer) executeDockerInspectTask(ctx context.Context, nodeID, resource, id string) (*dockerListResult, error) {
+func (server *nodeServer) executeDockerInspectTask(ctx context.Context, header http.Header, nodeID, resource, id string) (*dockerListResult, error) {
 	snapshot, err := server.db.GetNodeSnapshot(ctx, nodeID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -1621,7 +1621,7 @@ func (server *nodeServer) executeDockerInspectTask(ctx context.Context, nodeID, 
 	createdTask, err := server.db.CreateTask(ctx, task.Record{
 		TaskID:      taskID,
 		Type:        task.TypeDockerInspect,
-		Source:      task.SourceCLI,
+		Source:      requestTaskSource(header),
 		TriggeredBy: "controller",
 		NodeID:      nodeID,
 		Status:      task.StatusPending,

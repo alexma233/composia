@@ -66,7 +66,7 @@
             <div class="space-y-1">
               <CardTitle class="page-title">{data.task.type}</CardTitle>
               <CardDescription class="page-description">
-                {data.task.taskId} · {data.task.serviceName || 'system task'} · {data.task.nodeId || 'n/a'}
+                {data.task.taskId} · {data.task.serviceName || `node: ${data.task.nodeId || 'n/a'}`}
               </CardDescription>
             </div>
             <Badge variant={taskStatusTone(data.task.status)}>

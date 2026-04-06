@@ -167,7 +167,7 @@
                     <div class="flex flex-wrap items-center justify-between gap-3">
                       <div class="min-w-0">
                         <div class="truncate text-sm font-medium">
-                          {task.type} {task.serviceName ? `for ${task.serviceName}` : ''}
+                          {task.type} {task.serviceName ? `for ${task.serviceName}` : `on ${task.nodeId || 'n/a'}`}
                         </div>
                         <div class="text-xs text-muted-foreground">
                           {task.taskId} on {task.nodeId || 'n/a'}
