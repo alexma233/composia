@@ -585,7 +585,9 @@ function toNumber(value: unknown): number {
   return 0;
 }
 
-export async function listNodeContainers(nodeId: string): Promise<DockerContainerSummary[]> {
+export async function listNodeContainers(
+  nodeId: string,
+): Promise<DockerContainerSummary[]> {
   const config = requireControllerConfig();
   const response = await rpcCall<{
     containers?: Array<{
@@ -621,7 +623,10 @@ export async function listNodeContainers(nodeId: string): Promise<DockerContaine
   }));
 }
 
-export async function inspectNodeContainer(nodeId: string, containerId: string): Promise<string> {
+export async function inspectNodeContainer(
+  nodeId: string,
+  containerId: string,
+): Promise<string> {
   const config = requireControllerConfig();
   const response = await rpcCall<{ rawJson?: string; raw_json?: string }>(
     config.baseUrl,
@@ -632,7 +637,9 @@ export async function inspectNodeContainer(nodeId: string, containerId: string):
   return response.rawJson ?? response.raw_json ?? "{}";
 }
 
-export async function listNodeNetworks(nodeId: string): Promise<DockerNetworkSummary[]> {
+export async function listNodeNetworks(
+  nodeId: string,
+): Promise<DockerNetworkSummary[]> {
   const config = requireControllerConfig();
   const response = await rpcCall<{
     networks?: Array<{
@@ -673,7 +680,10 @@ export async function listNodeNetworks(nodeId: string): Promise<DockerNetworkSum
   }));
 }
 
-export async function inspectNodeNetwork(nodeId: string, networkId: string): Promise<string> {
+export async function inspectNodeNetwork(
+  nodeId: string,
+  networkId: string,
+): Promise<string> {
   const config = requireControllerConfig();
   const response = await rpcCall<{ rawJson?: string; raw_json?: string }>(
     config.baseUrl,
@@ -684,7 +694,9 @@ export async function inspectNodeNetwork(nodeId: string, networkId: string): Pro
   return response.rawJson ?? response.raw_json ?? "{}";
 }
 
-export async function listNodeVolumes(nodeId: string): Promise<DockerVolumeSummary[]> {
+export async function listNodeVolumes(
+  nodeId: string,
+): Promise<DockerVolumeSummary[]> {
   const config = requireControllerConfig();
   const response = await rpcCall<{
     volumes?: Array<{
@@ -720,7 +732,10 @@ export async function listNodeVolumes(nodeId: string): Promise<DockerVolumeSumma
   }));
 }
 
-export async function inspectNodeVolume(nodeId: string, volumeName: string): Promise<string> {
+export async function inspectNodeVolume(
+  nodeId: string,
+  volumeName: string,
+): Promise<string> {
   const config = requireControllerConfig();
   const response = await rpcCall<{ rawJson?: string; raw_json?: string }>(
     config.baseUrl,
@@ -731,7 +746,9 @@ export async function inspectNodeVolume(nodeId: string, volumeName: string): Pro
   return response.rawJson ?? response.raw_json ?? "{}";
 }
 
-export async function listNodeImages(nodeId: string): Promise<DockerImageSummary[]> {
+export async function listNodeImages(
+  nodeId: string,
+): Promise<DockerImageSummary[]> {
   const config = requireControllerConfig();
   const response = await rpcCall<{
     images?: Array<{
@@ -773,7 +790,10 @@ export async function listNodeImages(nodeId: string): Promise<DockerImageSummary
   }));
 }
 
-export async function inspectNodeImage(nodeId: string, imageId: string): Promise<string> {
+export async function inspectNodeImage(
+  nodeId: string,
+  imageId: string,
+): Promise<string> {
   const config = requireControllerConfig();
   const response = await rpcCall<{ rawJson?: string; raw_json?: string }>(
     config.baseUrl,
@@ -792,6 +812,14 @@ export async function loadTaskDetail(taskId: string): Promise<TaskDetail> {
     "/composia.controller.v1.TaskService/GetTask",
     { taskId },
   );
+}
+
+export async function runTaskAgain(
+  taskId: string,
+): Promise<ServiceActionResult> {
+  return callServiceAction("/composia.controller.v1.TaskService/RunTaskAgain", {
+    taskId,
+  });
 }
 
 function requireControllerConfig() {

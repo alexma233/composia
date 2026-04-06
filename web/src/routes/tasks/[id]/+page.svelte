@@ -1,10 +1,14 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { RotateCcw } from 'lucide-svelte';
+  import { toast } from 'svelte-sonner';
+  import { goto } from '$app/navigation';
 
   import type { PageData } from './$types';
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
+  import { Button } from '$lib/components/ui/button';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { formatTimestamp, taskStatusTone } from '$lib/presenters';
 
@@ -13,6 +17,38 @@
   let logContent = '';
   let logState = 'idle';
   let logError = '';
+  let rerunning = false;
+
+  function isTerminalStatus(status: string): boolean {
+    return status === 'succeeded' || status === 'failed' || status === 'cancelled';
+  }
+
+  async function runAgain() {
+    if (!data.task?.taskId || rerunning) {
+      return;
+    }
+
+    rerunning = true;
+
+    try {
+      const response = await fetch(`/tasks/${data.task.taskId}/rerun`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload.taskId) {
+        throw new Error(payload.error ?? 'Failed to run task again.');
+      }
+
+      toast.success(`Task rerun started: ${payload.taskId.slice(0, 12)}`);
+      goto(`/tasks/${payload.taskId}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to run task again.');
+    } finally {
+      rerunning = false;
+    }
+  }
 
   onMount(() => {
     if (!data.task?.taskId || !data.task.logPath) {
@@ -69,9 +105,17 @@
                 {data.task.taskId} · {data.task.serviceName || `node: ${data.task.nodeId || 'n/a'}`}
               </CardDescription>
             </div>
-            <Badge variant={taskStatusTone(data.task.status)}>
-              {data.task.status}
-            </Badge>
+            <div class="flex items-center gap-2">
+              <Badge variant={taskStatusTone(data.task.status)}>
+                {data.task.status}
+              </Badge>
+              {#if isTerminalStatus(data.task.status)}
+                <Button type="button" variant="outline" size="sm" on:click={runAgain} disabled={rerunning}>
+                  <RotateCcw class="mr-2 size-4" />
+                  {rerunning ? 'Running...' : 'Run Again'}
+                </Button>
+              {/if}
+            </div>
           </div>
         {/if}
 
