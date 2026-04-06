@@ -104,6 +104,7 @@ agent 落盘后，服务目录中会有解密后的 `.secret.env` 供 `docker co
 - `remote_url`：可选；存在时启用托管拉取。
 - `branch`：可选；默认 remote HEAD。
 - `pull_interval`：在托管拉取模式下必填；使用 Go duration 格式，如 `30s`、`5m`。
+- `auto_deploy`：可选；默认 `false`；设为 `true` 时，auto-pull 在检测到 repo revision 变化后会为所有已部署服务自动创建 `deploy` 任务；任务按服务逐个串行执行，具体顺序由系统决定。
 - `auth.token_file`：可选；Git 认证 token 文件路径；为未来扩展 SSH/key 留结构空间。
 - `author_name`：可选；默认 `Composia`；用于生成 commit。
 - `author_email`：可选；默认 `composia@localhost`；用于生成 commit。
@@ -200,6 +201,7 @@ controller:
     remote_url: "https://github.com/example/selfhosted.git"
     branch: "main"
     pull_interval: "1m"
+    auto_deploy: false
     author_name: "Composia"
     author_email: "composia@example.com"
     auth:

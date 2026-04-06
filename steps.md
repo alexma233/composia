@@ -36,14 +36,15 @@ Still partial or not aligned with `plan.md` yet:
 
 - `PullNextTask` now follows a long-poll shape, but the broader controller-agent execution contract still needs to stay aligned as more task types are added.
 - Task `source` semantics are improved for web-triggered calls, but the full documented caller matrix still needs to remain consistent as CLI, schedule, and system triggers are added.
-- Remote Git sync semantics now exist for manual sync and write-time fetch/push flows, but background auto-pull using `pull_interval` is still not implemented.
+- Remote Git sync semantics exist for manual sync, write-time fetch/push flows, and background auto-pull using `pull_interval`.
 - `migrate` is still not implemented as the documented single-task workflow, and `awaiting_confirmation` is not yet exercised by a real controller flow.
 - Backup execution now covers the implemented export path and backup record reporting, but restore-driven workflows and migration reuse are still incomplete.
-- DNS update is implemented; Caddy management and prune (partial) are not fully implemented.
+- DNS update is implemented; prune is fully implemented; Caddy management (caddy_reload task + ReloadNodeCaddy API) is not implemented.
 - CLI config and a real CLI command surface are not implemented yet.
 - Scheduled update and backup execution are not implemented yet.
+- `auto_deploy` option (auto-trigger deploy after repo changes) is documented in plan.md but not implemented.
 - The current web UI reads real controller state and now includes core service actions and task log tailing, but it still lacks migrate and day-2 task entry points, task rerun UI, repo sync actions, and stronger repo/secret editing ergonomics.
-- The documented controller public API is still incomplete: `MigrateService`, `ReloadNodeCaddy`, `PruneNode` (partial), and `GetCurrentConfig` are not exposed yet. `UpdateServiceDNS` and `PruneNode` (basic) are now implemented.
+- The documented controller public API is still incomplete: `MigrateService`, `ReloadNodeCaddy`, and `GetCurrentConfig` are not exposed yet. `UpdateServiceDNS` and `PruneNodeDocker` are now implemented.
 
 ## Execution Rule
 
@@ -141,7 +142,8 @@ Deliverable:
 
 Current note:
 
-- The core remote-sync and sync-reporting behavior is already present; the main remaining gap is scheduled auto-pull plus the remaining documented public API surface.
+- The core remote-sync and sync-reporting behavior is already present; scheduled auto-pull is now implemented; remaining gap is the remaining documented public API surface (GetCurrentConfig).
+- `auto_deploy` option (auto-deploy after repo changes) is documented in plan.md but not yet implemented; it is off by default and can be enabled in config.
 
 ## Phase 5: Add Secret Handling
 
@@ -210,9 +212,9 @@ Status: in progress
 Goal: implement the documented day-2 operational actions after repo writes and base service flows are stable.
 
 1. Add `dns_update` task behavior. (done)
-2. Add `caddy_reload` task behavior. (pending)
-3. Add `prune` task behavior. (partial - basic prune with all/containers/images/networks/volumes targets)
-4. Add the related controller public APIs. (partial)
+2. Add `caddy_reload` task behavior. (not implemented - no task execution logic, no ReloadNodeCaddy API)
+3. Add `prune` task behavior. (done - all/containers/images/networks/volumes targets implemented)
+4. Add the related controller public APIs. (partial - PruneNodeDocker done, ReloadNodeCaddy not implemented)
 5. Keep task steps, logging, and node targeting aligned with the task model.
 
 Deliverable:
@@ -247,7 +249,7 @@ That is the smallest correct next milestone for the current codebase:
 
 - finish the task foundation
 - keep the first service actions reliable and well-tested
-- finish the remaining remote Git behavior such as scheduled auto-pull and complete public API coverage
+- finish the remaining remote Git behavior such as complete public API coverage (GetCurrentConfig)
 - finish the missing frontend task controls, repo sync actions, and repo/secret feedback
 
 The initial frontend style refactor should be treated as underway, not as the primary blocker.

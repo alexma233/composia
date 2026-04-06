@@ -185,6 +185,7 @@ func Run(ctx context.Context, configPath string) error {
 	}
 
 	go sweepOfflineNodes(ctx, db)
+	go autoPullRepo(ctx, cfg, db, availableNodeIDs, repoMu)
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -215,6 +216,110 @@ func sweepOfflineNodes(ctx context.Context, db *store.DB) {
 			}
 		}
 	}
+}
+
+func autoPullRepo(ctx context.Context, cfg *config.ControllerConfig, db *store.DB, availableNodeIDs map[string]struct{}, repoMu *sync.Mutex) {
+	if cfg.Git == nil || strings.TrimSpace(cfg.Git.RemoteURL) == "" || strings.TrimSpace(cfg.Git.PullInterval) == "" {
+		return
+	}
+	interval, err := time.ParseDuration(strings.TrimSpace(cfg.Git.PullInterval))
+	if err != nil {
+		log.Printf("auto-pull: invalid pull_interval %q: %v", cfg.Git.PullInterval, err)
+		return
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			pullMu := sync.Mutex{}
+			if !pullMu.TryLock() {
+				continue
+			}
+			repoMu.Lock()
+			previousRevision, _ := repo.CurrentRevision(cfg.RepoDir)
+			_, pullErr := autoPullFetchAndFastForward(ctx, cfg, db)
+			repoMu.Unlock()
+			pullMu.Unlock()
+
+			if pullErr != nil {
+				log.Printf("auto-pull failed: %v", pullErr)
+				continue
+			}
+			newRevision, _ := repo.CurrentRevision(cfg.RepoDir)
+			if newRevision != previousRevision {
+				log.Printf("auto-pull: repo updated from %s to %s", previousRevision[:8], newRevision[:8])
+				if err := refreshDeclaredServices(db, cfg, availableNodeIDs); err != nil {
+					log.Printf("auto-pull: refresh declared services failed: %v", err)
+				}
+			}
+		}
+	}
+}
+
+func autoPullFetchAndFastForward(ctx context.Context, cfg *config.ControllerConfig, db *store.DB) (store.RepoSyncState, error) {
+	cleanWorktree, err := repo.IsCleanWorkingTree(cfg.RepoDir)
+	if err != nil {
+		return store.RepoSyncState{SyncStatus: store.RepoSyncStatusUnknown}, fmt.Errorf("check worktree clean: %w", err)
+	}
+	if !cleanWorktree {
+		return store.RepoSyncState{SyncStatus: store.RepoSyncStatusLocalOnly}, nil
+	}
+	branch := strings.TrimSpace(cfg.Git.Branch)
+	if branch == "" {
+		branch, err = repo.CurrentBranch(cfg.RepoDir)
+		if err != nil {
+			return store.RepoSyncState{SyncStatus: store.RepoSyncStatusUnknown}, fmt.Errorf("get current branch: %w", err)
+		}
+	}
+	authToken := ""
+	if cfg.Git.Auth != nil && strings.TrimSpace(cfg.Git.Auth.TokenFile) != "" {
+		tokenContent, err := os.ReadFile(strings.TrimSpace(cfg.Git.Auth.TokenFile))
+		if err != nil {
+			return store.RepoSyncState{SyncStatus: store.RepoSyncStatusUnknown}, fmt.Errorf("read git auth token: %w", err)
+		}
+		authToken = strings.TrimSpace(string(tokenContent))
+	}
+	previousState, err := db.GetRepoSyncState(ctx)
+	if err != nil {
+		previousState = store.RepoSyncState{}
+	}
+	pulledAt := time.Now().UTC().Format(time.RFC3339)
+	if err := repo.FetchAndFastForward(cfg.RepoDir, strings.TrimSpace(cfg.Git.RemoteURL), branch, authToken); err != nil {
+		state := store.RepoSyncState{
+			SyncStatus:           store.RepoSyncStatusPullFailed,
+			LastSyncError:        err.Error(),
+			LastSuccessfulPullAt: previousState.LastSuccessfulPullAt,
+		}
+		if persistErr := db.UpsertRepoSyncState(ctx, state); persistErr != nil {
+			return store.RepoSyncState{}, fmt.Errorf("persist pull failed state: %w", persistErr)
+		}
+		return state, fmt.Errorf("fetch and fast-forward: %w", err)
+	}
+	state := store.RepoSyncState{
+		SyncStatus:           store.RepoSyncStatusSynced,
+		LastSyncError:        "",
+		LastSuccessfulPullAt: pulledAt,
+	}
+	if err := db.UpsertRepoSyncState(ctx, state); err != nil {
+		return store.RepoSyncState{}, fmt.Errorf("persist synced state: %w", err)
+	}
+	return state, nil
+}
+
+func refreshDeclaredServices(db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}) error {
+	services, err := repo.DiscoverServices(cfg.RepoDir, availableNodeIDs)
+	if err != nil {
+		return err
+	}
+	serviceNames := make([]string, 0, len(services))
+	for _, service := range services {
+		serviceNames = append(serviceNames, service.Name)
+	}
+	return db.SyncDeclaredServices(context.Background(), serviceNames)
 }
 
 type agentReportServer struct {
