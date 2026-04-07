@@ -292,11 +292,11 @@ func (db *DB) ListDeclaredServices(ctx context.Context, runtimeStatusFilter stri
 		page = 1
 	}
 
-	whereClause := "WHERE is_declared = 1"
+	whereClause := "WHERE services.is_declared = 1"
 	args := make([]any, 0, 3)
 
 	if runtimeStatusFilter != "" {
-		whereClause += ` AND runtime_status = ?`
+		whereClause += ` AND services.runtime_status = ?`
 		args = append(args, runtimeStatusFilter)
 	}
 
@@ -307,11 +307,27 @@ func (db *DB) ListDeclaredServices(ctx context.Context, runtimeStatusFilter stri
 	}
 
 	offset := (page - 1) * limit
-	query := `SELECT service_name, is_declared, runtime_status, updated_at FROM services ` + whereClause
-	query += ` ORDER BY service_name ASC LIMIT ? OFFSET ?`
-	args = append(args, limit, offset)
+	query := `
+		SELECT
+			services.service_name,
+			services.is_declared,
+			services.runtime_status,
+			services.updated_at,
+			COUNT(service_instances.node_id) AS instance_count,
+			COALESCE(SUM(CASE WHEN service_instances.runtime_status = ? THEN 1 ELSE 0 END), 0) AS running_count,
+			COALESCE(SUM(CASE WHEN service_instances.is_declared = 1 THEN 1 ELSE 0 END), 0) AS target_node_count
+		FROM services
+		LEFT JOIN service_instances ON service_instances.service_name = services.service_name
+		` + whereClause + `
+		GROUP BY services.service_name, services.is_declared, services.runtime_status, services.updated_at
+		ORDER BY services.service_name ASC
+		LIMIT ? OFFSET ?`
+	queryArgs := make([]any, 0, len(args)+3)
+	queryArgs = append(queryArgs, ServiceRuntimeRunning)
+	queryArgs = append(queryArgs, args...)
+	queryArgs = append(queryArgs, limit, offset)
 
-	rows, err := db.sql.QueryContext(ctx, query, args...)
+	rows, err := db.sql.QueryContext(ctx, query, queryArgs...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list declared services: %w", err)
 	}
@@ -320,17 +336,16 @@ func (db *DB) ListDeclaredServices(ctx context.Context, runtimeStatusFilter stri
 	services := make([]ServiceSummary, 0, limit)
 	for rows.Next() {
 		var service ServiceSummary
-		if err := rows.Scan(&service.Name, &service.IsDeclared, &service.RuntimeStatus, &service.UpdatedAt); err != nil {
+		if err := rows.Scan(
+			&service.Name,
+			&service.IsDeclared,
+			&service.RuntimeStatus,
+			&service.UpdatedAt,
+			&service.InstanceCount,
+			&service.RunningCount,
+			&service.TargetNodeCount,
+		); err != nil {
 			return nil, 0, fmt.Errorf("scan declared service: %w", err)
-		}
-		if err := db.sql.QueryRowContext(ctx, `
-			SELECT COUNT(*),
-			       SUM(CASE WHEN runtime_status = ? THEN 1 ELSE 0 END),
-			       SUM(CASE WHEN is_declared = 1 THEN 1 ELSE 0 END)
-			FROM service_instances
-			WHERE service_name = ?
-		`, ServiceRuntimeRunning, service.Name).Scan(&service.InstanceCount, &service.RunningCount, &service.TargetNodeCount); err != nil {
-			return nil, 0, fmt.Errorf("read declared service instance counts for %q: %w", service.Name, err)
 		}
 		services = append(services, service)
 	}

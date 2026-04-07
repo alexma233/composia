@@ -84,8 +84,12 @@ func TestUpdateServiceInstanceRuntimeStatusValidatesAndPersists(t *testing.T) {
 	if snapshot.RuntimeStatus != ServiceRuntimeRunning {
 		t.Fatalf("expected runtime status running, got %q", snapshot.RuntimeStatus)
 	}
-	if snapshot.UpdatedAt != reportedAt.Format(time.RFC3339) {
-		t.Fatalf("expected updated_at %q, got %q", reportedAt.Format(time.RFC3339), snapshot.UpdatedAt)
+	instance, err := db.GetServiceInstanceSnapshot(ctx, "alpha", "main")
+	if err != nil {
+		t.Fatalf("get service instance snapshot: %v", err)
+	}
+	if instance.UpdatedAt != reportedAt.Format(time.RFC3339) {
+		t.Fatalf("expected instance updated_at %q, got %q", reportedAt.Format(time.RFC3339), instance.UpdatedAt)
 	}
 
 	if err := db.UpdateServiceInstanceRuntimeStatus(ctx, "alpha", "main", "broken", reportedAt); err == nil {
