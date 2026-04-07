@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package composia.controller.v1;
+
+option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
+
+service ContainerService {
+  rpc StartContainer(StartContainerRequest) returns (StartContainerResponse);
+  rpc StopContainer(StopContainerRequest) returns (StopContainerResponse);
+  rpc RestartContainer(RestartContainerRequest) returns (RestartContainerResponse);
+  rpc GetContainerLogs(GetContainerLogsRequest) returns (GetContainerLogsResponse);
+  rpc OpenContainerExec(OpenContainerExecRequest) returns (OpenContainerExecResponse);
+}
+
+message StartContainerRequest {
+  string node_id = 1;
+  string container_id = 2;
+}
+
+message StartContainerResponse {
+  string task_id = 1;
+  string status = 2;
+}
+
+message StopContainerRequest {
+  string node_id = 1;
+  string container_id = 2;
+}
+
+message StopContainerResponse {
+  string task_id = 1;
+  string status = 2;
+}
+
+message RestartContainerRequest {
+  string node_id = 1;
+  string container_id = 2;
+}
+
+message RestartContainerResponse {
+  string task_id = 1;
+  string status = 2;
+}
+
+message GetContainerLogsRequest {
+  string node_id = 1;
+  string container_id = 2;
+  string tail = 3;
+  bool timestamps = 4;
+}
+
+message GetContainerLogsResponse {
+  string content = 1;
+}
+
+message OpenContainerExecRequest {
+  string node_id = 1;
+  string container_id = 2;
+  repeated string command = 3;
+  uint32 rows = 4;
+  uint32 cols = 5;
+}
+
+message OpenContainerExecResponse {
+  string session_id = 1;
+  string websocket_path = 2;
+}

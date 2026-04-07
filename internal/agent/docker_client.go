@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/image"
@@ -44,6 +45,40 @@ func (d *DockerClient) ContainerInspect(ctx context.Context, containerID string)
 		return container.InspectResponse{}, fmt.Errorf("failed to inspect container: %w", err)
 	}
 	return c.Container, nil
+}
+
+func (d *DockerClient) ContainerStart(ctx context.Context, containerID string) error {
+	if _, err := d.cli.ContainerStart(ctx, containerID, client.ContainerStartOptions{}); err != nil {
+		return fmt.Errorf("failed to start container: %w", err)
+	}
+	return nil
+}
+
+func (d *DockerClient) ContainerStop(ctx context.Context, containerID string) error {
+	if _, err := d.cli.ContainerStop(ctx, containerID, client.ContainerStopOptions{}); err != nil {
+		return fmt.Errorf("failed to stop container: %w", err)
+	}
+	return nil
+}
+
+func (d *DockerClient) ContainerRestart(ctx context.Context, containerID string) error {
+	if _, err := d.cli.ContainerRestart(ctx, containerID, client.ContainerRestartOptions{}); err != nil {
+		return fmt.Errorf("failed to restart container: %w", err)
+	}
+	return nil
+}
+
+func (d *DockerClient) ContainerLogs(ctx context.Context, containerID, tail string, timestamps bool) (io.ReadCloser, error) {
+	logs, err := d.cli.ContainerLogs(ctx, containerID, client.ContainerLogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Tail:       tail,
+		Timestamps: timestamps,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get container logs: %w", err)
+	}
+	return logs, nil
 }
 
 func (d *DockerClient) ImageList(ctx context.Context) ([]image.Summary, error) {

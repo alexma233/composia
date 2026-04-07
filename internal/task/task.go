@@ -16,6 +16,10 @@ const (
 	TypePrune         Type = "prune"
 	TypeDockerList    Type = "docker_list"
 	TypeDockerInspect Type = "docker_inspect"
+	TypeDockerStart   Type = "docker_start"
+	TypeDockerStop    Type = "docker_stop"
+	TypeDockerRestart Type = "docker_restart"
+	TypeDockerLogs    Type = "docker_logs"
 )
 
 type Status string
@@ -74,6 +78,10 @@ const (
 	StepFinalize      StepName = "finalize"
 	StepDockerList    StepName = "docker_list"
 	StepDockerInspect StepName = "docker_inspect"
+	StepDockerStart   StepName = "docker_start"
+	StepDockerStop    StepName = "docker_stop"
+	StepDockerRestart StepName = "docker_restart"
+	StepDockerLogs    StepName = "docker_logs"
 )
 
 type StepRecord struct {

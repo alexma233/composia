@@ -14,6 +14,7 @@ service AgentReportService {
   rpc ReportBackupResult(ReportBackupResultRequest) returns (ReportBackupResultResponse);
   rpc ReportServiceInstanceStatus(ReportServiceInstanceStatusRequest) returns (ReportServiceInstanceStatusResponse);
   rpc ReportDockerStats(ReportDockerStatsRequest) returns (ReportDockerStatsResponse);
+  rpc OpenExecTunnel(stream OpenExecTunnelRequest) returns (stream OpenExecTunnelResponse);
 }
 
 service AgentTaskService {
@@ -27,6 +28,10 @@ service BundleService {
 service DockerService {
   rpc ListContainers(ListContainersRequest) returns (ListContainersResponse);
   rpc InspectContainer(InspectContainerRequest) returns (InspectContainerResponse);
+  rpc StartContainer(StartContainerRequest) returns (StartContainerResponse);
+  rpc StopContainer(StopContainerRequest) returns (StopContainerResponse);
+  rpc RestartContainer(RestartContainerRequest) returns (RestartContainerResponse);
+  rpc GetContainerLogs(GetContainerLogsRequest) returns (GetContainerLogsResponse);
   rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse);
   rpc InspectNetwork(InspectNetworkRequest) returns (InspectNetworkResponse);
   rpc ListVolumes(ListVolumesRequest) returns (ListVolumesResponse);
@@ -101,6 +106,28 @@ message UploadTaskLogsRequest {
 message UploadTaskLogsResponse {
   string task_id = 1;
   uint64 last_confirmed_seq = 2;
+}
+
+message OpenExecTunnelRequest {
+  string session_id = 1;
+  string kind = 2;
+  bytes payload = 3;
+  uint32 rows = 4;
+  uint32 cols = 5;
+  string node_id = 6;
+  string container_id = 7;
+  repeated string command = 8;
+}
+
+message OpenExecTunnelResponse {
+  string session_id = 1;
+  string kind = 2;
+  bytes payload = 3;
+  uint32 rows = 4;
+  uint32 cols = 5;
+  string error = 6;
+  string container_id = 7;
+  repeated string command = 8;
 }
 
 message ReportBackupResultRequest {
@@ -182,6 +209,34 @@ message InspectContainerRequest {
 
 message InspectContainerResponse {
   string raw_json = 1;
+}
+
+message StartContainerRequest {
+  string container_id = 1;
+}
+
+message StartContainerResponse {}
+
+message StopContainerRequest {
+  string container_id = 1;
+}
+
+message StopContainerResponse {}
+
+message RestartContainerRequest {
+  string container_id = 1;
+}
+
+message RestartContainerResponse {}
+
+message GetContainerLogsRequest {
+  string container_id = 1;
+  string tail = 2;
+  bool timestamps = 3;
+}
+
+message GetContainerLogsResponse {
+  string content = 1;
 }
 
 message ListNetworksRequest {}

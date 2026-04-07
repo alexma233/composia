@@ -1,9 +1,11 @@
 package agent
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"time"
 
 	"connectrpc.com/connect"
@@ -11,6 +13,7 @@ import (
 	agentv1connect "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
 	"forgejo.alexma.top/alexma233/composia/internal/config"
 	"forgejo.alexma.top/alexma233/composia/internal/task"
+	"github.com/moby/moby/api/pkg/stdcopy"
 	"github.com/moby/moby/api/types/mount"
 )
 
@@ -25,6 +28,7 @@ type dockerTaskResult struct {
 	Volumes    []*agentv1.VolumeInfo    `json:"volumes,omitempty"`
 	Images     []*agentv1.ImageInfo     `json:"images,omitempty"`
 	RawJSON    string                   `json:"raw_json,omitempty"`
+	Content    string                   `json:"content,omitempty"`
 }
 
 type dockerServer struct {
@@ -115,6 +119,69 @@ func (s *dockerServer) InspectContainer(ctx context.Context, req *connect.Reques
 	return connect.NewResponse(&agentv1.InspectContainerResponse{
 		RawJson: string(jsonData),
 	}), nil
+}
+
+func (s *dockerServer) StartContainer(ctx context.Context, req *connect.Request[agentv1.StartContainerRequest]) (*connect.Response[agentv1.StartContainerResponse], error) {
+	if req.Msg.GetContainerId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("container_id is required"))
+	}
+	if err := s.client.ContainerStart(ctx, req.Msg.GetContainerId()); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&agentv1.StartContainerResponse{}), nil
+}
+
+func (s *dockerServer) StopContainer(ctx context.Context, req *connect.Request[agentv1.StopContainerRequest]) (*connect.Response[agentv1.StopContainerResponse], error) {
+	if req.Msg.GetContainerId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("container_id is required"))
+	}
+	if err := s.client.ContainerStop(ctx, req.Msg.GetContainerId()); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&agentv1.StopContainerResponse{}), nil
+}
+
+func (s *dockerServer) RestartContainer(ctx context.Context, req *connect.Request[agentv1.RestartContainerRequest]) (*connect.Response[agentv1.RestartContainerResponse], error) {
+	if req.Msg.GetContainerId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("container_id is required"))
+	}
+	if err := s.client.ContainerRestart(ctx, req.Msg.GetContainerId()); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&agentv1.RestartContainerResponse{}), nil
+}
+
+func (s *dockerServer) GetContainerLogs(ctx context.Context, req *connect.Request[agentv1.GetContainerLogsRequest]) (*connect.Response[agentv1.GetContainerLogsResponse], error) {
+	if req.Msg.GetContainerId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("container_id is required"))
+	}
+	inspect, err := s.client.ContainerInspect(ctx, req.Msg.GetContainerId())
+	if err != nil {
+		return nil, err
+	}
+	reader, err := s.client.ContainerLogs(ctx, req.Msg.GetContainerId(), req.Msg.GetTail(), req.Msg.GetTimestamps())
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	var content string
+	if inspect.Config != nil && inspect.Config.Tty {
+		bytesContent, err := io.ReadAll(reader)
+		if err != nil {
+			return nil, fmt.Errorf("read container logs: %w", err)
+		}
+		content = string(bytesContent)
+	} else {
+		var stdout bytes.Buffer
+		var stderr bytes.Buffer
+		if _, err := stdcopy.StdCopy(&stdout, &stderr, reader); err != nil {
+			return nil, fmt.Errorf("decode container logs: %w", err)
+		}
+		content = stdout.String() + stderr.String()
+	}
+
+	return connect.NewResponse(&agentv1.GetContainerLogsResponse{Content: content}), nil
 }
 
 func (s *dockerServer) ListNetworks(ctx context.Context, _ *connect.Request[agentv1.ListNetworksRequest]) (*connect.Response[agentv1.ListNetworksResponse], error) {
@@ -355,10 +422,17 @@ func executeDockerTask(ctx context.Context, client agentv1connect.AgentReportSer
 				return uploadTaskLog(ctx, logUploader, output)
 			})
 		}
-	} else {
+	} else if params.Action == "inspect" {
 		stepName = "docker_inspect"
 		execute = func() error {
 			return runDockerInspect(ctx, params.Resource, params.ID, func(output string) error {
+				return uploadTaskLog(ctx, logUploader, output)
+			})
+		}
+	} else {
+		stepName = fmt.Sprintf("docker_%s", params.Action)
+		execute = func() error {
+			return runDockerCommand(ctx, params, func(output string) error {
 				return uploadTaskLog(ctx, logUploader, output)
 			})
 		}
@@ -377,9 +451,11 @@ func executeDockerTask(ctx context.Context, client agentv1connect.AgentReportSer
 }
 
 type dockerListParams struct {
-	Action   string `json:"action"`
-	Resource string `json:"resource"`
-	ID       string `json:"id,omitempty"`
+	Action     string `json:"action"`
+	Resource   string `json:"resource"`
+	ID         string `json:"id,omitempty"`
+	Tail       string `json:"tail,omitempty"`
+	Timestamps bool   `json:"timestamps,omitempty"`
 }
 
 func parseDockerListParams(paramsJSON string) dockerListParams {
@@ -482,6 +558,46 @@ func runDockerInspect(ctx context.Context, resource, id string, uploadLog func(s
 		payload.RawJSON = resp.Msg.GetRawJson()
 	default:
 		return fmt.Errorf("unknown resource type: %s", resource)
+	}
+
+	return uploadDockerTaskResult(uploadLog, payload)
+}
+
+func runDockerCommand(ctx context.Context, params dockerListParams, uploadLog func(string) error) error {
+	server, err := newDockerServer()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = server.client.Close()
+	}()
+
+	var payload dockerTaskResult
+	switch params.Action {
+	case "start":
+		if _, err := server.StartContainer(ctx, connect.NewRequest(&agentv1.StartContainerRequest{ContainerId: params.ID})); err != nil {
+			return err
+		}
+	case "stop":
+		if _, err := server.StopContainer(ctx, connect.NewRequest(&agentv1.StopContainerRequest{ContainerId: params.ID})); err != nil {
+			return err
+		}
+	case "restart":
+		if _, err := server.RestartContainer(ctx, connect.NewRequest(&agentv1.RestartContainerRequest{ContainerId: params.ID})); err != nil {
+			return err
+		}
+	case "logs":
+		resp, err := server.GetContainerLogs(ctx, connect.NewRequest(&agentv1.GetContainerLogsRequest{
+			ContainerId: params.ID,
+			Tail:        params.Tail,
+			Timestamps:  params.Timestamps,
+		}))
+		if err != nil {
+			return err
+		}
+		payload.Content = resp.Msg.GetContent()
+	default:
+		return fmt.Errorf("unknown docker action: %s", params.Action)
 	}
 
 	return uploadDockerTaskResult(uploadLog, payload)

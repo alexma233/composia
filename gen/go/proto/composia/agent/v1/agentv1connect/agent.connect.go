@@ -60,6 +60,9 @@ const (
 	// AgentReportServiceReportDockerStatsProcedure is the fully-qualified name of the
 	// AgentReportService's ReportDockerStats RPC.
 	AgentReportServiceReportDockerStatsProcedure = "/composia.agent.v1.AgentReportService/ReportDockerStats"
+	// AgentReportServiceOpenExecTunnelProcedure is the fully-qualified name of the AgentReportService's
+	// OpenExecTunnel RPC.
+	AgentReportServiceOpenExecTunnelProcedure = "/composia.agent.v1.AgentReportService/OpenExecTunnel"
 	// AgentTaskServicePullNextTaskProcedure is the fully-qualified name of the AgentTaskService's
 	// PullNextTask RPC.
 	AgentTaskServicePullNextTaskProcedure = "/composia.agent.v1.AgentTaskService/PullNextTask"
@@ -72,6 +75,18 @@ const (
 	// DockerServiceInspectContainerProcedure is the fully-qualified name of the DockerService's
 	// InspectContainer RPC.
 	DockerServiceInspectContainerProcedure = "/composia.agent.v1.DockerService/InspectContainer"
+	// DockerServiceStartContainerProcedure is the fully-qualified name of the DockerService's
+	// StartContainer RPC.
+	DockerServiceStartContainerProcedure = "/composia.agent.v1.DockerService/StartContainer"
+	// DockerServiceStopContainerProcedure is the fully-qualified name of the DockerService's
+	// StopContainer RPC.
+	DockerServiceStopContainerProcedure = "/composia.agent.v1.DockerService/StopContainer"
+	// DockerServiceRestartContainerProcedure is the fully-qualified name of the DockerService's
+	// RestartContainer RPC.
+	DockerServiceRestartContainerProcedure = "/composia.agent.v1.DockerService/RestartContainer"
+	// DockerServiceGetContainerLogsProcedure is the fully-qualified name of the DockerService's
+	// GetContainerLogs RPC.
+	DockerServiceGetContainerLogsProcedure = "/composia.agent.v1.DockerService/GetContainerLogs"
 	// DockerServiceListNetworksProcedure is the fully-qualified name of the DockerService's
 	// ListNetworks RPC.
 	DockerServiceListNetworksProcedure = "/composia.agent.v1.DockerService/ListNetworks"
@@ -101,6 +116,7 @@ type AgentReportServiceClient interface {
 	ReportBackupResult(context.Context, *connect.Request[v1.ReportBackupResultRequest]) (*connect.Response[v1.ReportBackupResultResponse], error)
 	ReportServiceInstanceStatus(context.Context, *connect.Request[v1.ReportServiceInstanceStatusRequest]) (*connect.Response[v1.ReportServiceInstanceStatusResponse], error)
 	ReportDockerStats(context.Context, *connect.Request[v1.ReportDockerStatsRequest]) (*connect.Response[v1.ReportDockerStatsResponse], error)
+	OpenExecTunnel(context.Context) *connect.BidiStreamForClient[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse]
 }
 
 // NewAgentReportServiceClient constructs a client for the composia.agent.v1.AgentReportService
@@ -156,6 +172,12 @@ func NewAgentReportServiceClient(httpClient connect.HTTPClient, baseURL string, 
 			connect.WithSchema(agentReportServiceMethods.ByName("ReportDockerStats")),
 			connect.WithClientOptions(opts...),
 		),
+		openExecTunnel: connect.NewClient[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse](
+			httpClient,
+			baseURL+AgentReportServiceOpenExecTunnelProcedure,
+			connect.WithSchema(agentReportServiceMethods.ByName("OpenExecTunnel")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -168,6 +190,7 @@ type agentReportServiceClient struct {
 	reportBackupResult          *connect.Client[v1.ReportBackupResultRequest, v1.ReportBackupResultResponse]
 	reportServiceInstanceStatus *connect.Client[v1.ReportServiceInstanceStatusRequest, v1.ReportServiceInstanceStatusResponse]
 	reportDockerStats           *connect.Client[v1.ReportDockerStatsRequest, v1.ReportDockerStatsResponse]
+	openExecTunnel              *connect.Client[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse]
 }
 
 // Heartbeat calls composia.agent.v1.AgentReportService.Heartbeat.
@@ -206,6 +229,11 @@ func (c *agentReportServiceClient) ReportDockerStats(ctx context.Context, req *c
 	return c.reportDockerStats.CallUnary(ctx, req)
 }
 
+// OpenExecTunnel calls composia.agent.v1.AgentReportService.OpenExecTunnel.
+func (c *agentReportServiceClient) OpenExecTunnel(ctx context.Context) *connect.BidiStreamForClient[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse] {
+	return c.openExecTunnel.CallBidiStream(ctx)
+}
+
 // AgentReportServiceHandler is an implementation of the composia.agent.v1.AgentReportService
 // service.
 type AgentReportServiceHandler interface {
@@ -216,6 +244,7 @@ type AgentReportServiceHandler interface {
 	ReportBackupResult(context.Context, *connect.Request[v1.ReportBackupResultRequest]) (*connect.Response[v1.ReportBackupResultResponse], error)
 	ReportServiceInstanceStatus(context.Context, *connect.Request[v1.ReportServiceInstanceStatusRequest]) (*connect.Response[v1.ReportServiceInstanceStatusResponse], error)
 	ReportDockerStats(context.Context, *connect.Request[v1.ReportDockerStatsRequest]) (*connect.Response[v1.ReportDockerStatsResponse], error)
+	OpenExecTunnel(context.Context, *connect.BidiStream[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse]) error
 }
 
 // NewAgentReportServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -267,6 +296,12 @@ func NewAgentReportServiceHandler(svc AgentReportServiceHandler, opts ...connect
 		connect.WithSchema(agentReportServiceMethods.ByName("ReportDockerStats")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentReportServiceOpenExecTunnelHandler := connect.NewBidiStreamHandler(
+		AgentReportServiceOpenExecTunnelProcedure,
+		svc.OpenExecTunnel,
+		connect.WithSchema(agentReportServiceMethods.ByName("OpenExecTunnel")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.agent.v1.AgentReportService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentReportServiceHeartbeatProcedure:
@@ -283,6 +318,8 @@ func NewAgentReportServiceHandler(svc AgentReportServiceHandler, opts ...connect
 			agentReportServiceReportServiceInstanceStatusHandler.ServeHTTP(w, r)
 		case AgentReportServiceReportDockerStatsProcedure:
 			agentReportServiceReportDockerStatsHandler.ServeHTTP(w, r)
+		case AgentReportServiceOpenExecTunnelProcedure:
+			agentReportServiceOpenExecTunnelHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -318,6 +355,10 @@ func (UnimplementedAgentReportServiceHandler) ReportServiceInstanceStatus(contex
 
 func (UnimplementedAgentReportServiceHandler) ReportDockerStats(context.Context, *connect.Request[v1.ReportDockerStatsRequest]) (*connect.Response[v1.ReportDockerStatsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentReportService.ReportDockerStats is not implemented"))
+}
+
+func (UnimplementedAgentReportServiceHandler) OpenExecTunnel(context.Context, *connect.BidiStream[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentReportService.OpenExecTunnel is not implemented"))
 }
 
 // AgentTaskServiceClient is a client for the composia.agent.v1.AgentTaskService service.
@@ -464,6 +505,10 @@ func (UnimplementedBundleServiceHandler) GetServiceBundle(context.Context, *conn
 type DockerServiceClient interface {
 	ListContainers(context.Context, *connect.Request[v1.ListContainersRequest]) (*connect.Response[v1.ListContainersResponse], error)
 	InspectContainer(context.Context, *connect.Request[v1.InspectContainerRequest]) (*connect.Response[v1.InspectContainerResponse], error)
+	StartContainer(context.Context, *connect.Request[v1.StartContainerRequest]) (*connect.Response[v1.StartContainerResponse], error)
+	StopContainer(context.Context, *connect.Request[v1.StopContainerRequest]) (*connect.Response[v1.StopContainerResponse], error)
+	RestartContainer(context.Context, *connect.Request[v1.RestartContainerRequest]) (*connect.Response[v1.RestartContainerResponse], error)
+	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error)
 	ListNetworks(context.Context, *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error)
 	InspectNetwork(context.Context, *connect.Request[v1.InspectNetworkRequest]) (*connect.Response[v1.InspectNetworkResponse], error)
 	ListVolumes(context.Context, *connect.Request[v1.ListVolumesRequest]) (*connect.Response[v1.ListVolumesResponse], error)
@@ -493,6 +538,30 @@ func NewDockerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			httpClient,
 			baseURL+DockerServiceInspectContainerProcedure,
 			connect.WithSchema(dockerServiceMethods.ByName("InspectContainer")),
+			connect.WithClientOptions(opts...),
+		),
+		startContainer: connect.NewClient[v1.StartContainerRequest, v1.StartContainerResponse](
+			httpClient,
+			baseURL+DockerServiceStartContainerProcedure,
+			connect.WithSchema(dockerServiceMethods.ByName("StartContainer")),
+			connect.WithClientOptions(opts...),
+		),
+		stopContainer: connect.NewClient[v1.StopContainerRequest, v1.StopContainerResponse](
+			httpClient,
+			baseURL+DockerServiceStopContainerProcedure,
+			connect.WithSchema(dockerServiceMethods.ByName("StopContainer")),
+			connect.WithClientOptions(opts...),
+		),
+		restartContainer: connect.NewClient[v1.RestartContainerRequest, v1.RestartContainerResponse](
+			httpClient,
+			baseURL+DockerServiceRestartContainerProcedure,
+			connect.WithSchema(dockerServiceMethods.ByName("RestartContainer")),
+			connect.WithClientOptions(opts...),
+		),
+		getContainerLogs: connect.NewClient[v1.GetContainerLogsRequest, v1.GetContainerLogsResponse](
+			httpClient,
+			baseURL+DockerServiceGetContainerLogsProcedure,
+			connect.WithSchema(dockerServiceMethods.ByName("GetContainerLogs")),
 			connect.WithClientOptions(opts...),
 		),
 		listNetworks: connect.NewClient[v1.ListNetworksRequest, v1.ListNetworksResponse](
@@ -538,6 +607,10 @@ func NewDockerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 type dockerServiceClient struct {
 	listContainers   *connect.Client[v1.ListContainersRequest, v1.ListContainersResponse]
 	inspectContainer *connect.Client[v1.InspectContainerRequest, v1.InspectContainerResponse]
+	startContainer   *connect.Client[v1.StartContainerRequest, v1.StartContainerResponse]
+	stopContainer    *connect.Client[v1.StopContainerRequest, v1.StopContainerResponse]
+	restartContainer *connect.Client[v1.RestartContainerRequest, v1.RestartContainerResponse]
+	getContainerLogs *connect.Client[v1.GetContainerLogsRequest, v1.GetContainerLogsResponse]
 	listNetworks     *connect.Client[v1.ListNetworksRequest, v1.ListNetworksResponse]
 	inspectNetwork   *connect.Client[v1.InspectNetworkRequest, v1.InspectNetworkResponse]
 	listVolumes      *connect.Client[v1.ListVolumesRequest, v1.ListVolumesResponse]
@@ -554,6 +627,26 @@ func (c *dockerServiceClient) ListContainers(ctx context.Context, req *connect.R
 // InspectContainer calls composia.agent.v1.DockerService.InspectContainer.
 func (c *dockerServiceClient) InspectContainer(ctx context.Context, req *connect.Request[v1.InspectContainerRequest]) (*connect.Response[v1.InspectContainerResponse], error) {
 	return c.inspectContainer.CallUnary(ctx, req)
+}
+
+// StartContainer calls composia.agent.v1.DockerService.StartContainer.
+func (c *dockerServiceClient) StartContainer(ctx context.Context, req *connect.Request[v1.StartContainerRequest]) (*connect.Response[v1.StartContainerResponse], error) {
+	return c.startContainer.CallUnary(ctx, req)
+}
+
+// StopContainer calls composia.agent.v1.DockerService.StopContainer.
+func (c *dockerServiceClient) StopContainer(ctx context.Context, req *connect.Request[v1.StopContainerRequest]) (*connect.Response[v1.StopContainerResponse], error) {
+	return c.stopContainer.CallUnary(ctx, req)
+}
+
+// RestartContainer calls composia.agent.v1.DockerService.RestartContainer.
+func (c *dockerServiceClient) RestartContainer(ctx context.Context, req *connect.Request[v1.RestartContainerRequest]) (*connect.Response[v1.RestartContainerResponse], error) {
+	return c.restartContainer.CallUnary(ctx, req)
+}
+
+// GetContainerLogs calls composia.agent.v1.DockerService.GetContainerLogs.
+func (c *dockerServiceClient) GetContainerLogs(ctx context.Context, req *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error) {
+	return c.getContainerLogs.CallUnary(ctx, req)
 }
 
 // ListNetworks calls composia.agent.v1.DockerService.ListNetworks.
@@ -590,6 +683,10 @@ func (c *dockerServiceClient) InspectImage(ctx context.Context, req *connect.Req
 type DockerServiceHandler interface {
 	ListContainers(context.Context, *connect.Request[v1.ListContainersRequest]) (*connect.Response[v1.ListContainersResponse], error)
 	InspectContainer(context.Context, *connect.Request[v1.InspectContainerRequest]) (*connect.Response[v1.InspectContainerResponse], error)
+	StartContainer(context.Context, *connect.Request[v1.StartContainerRequest]) (*connect.Response[v1.StartContainerResponse], error)
+	StopContainer(context.Context, *connect.Request[v1.StopContainerRequest]) (*connect.Response[v1.StopContainerResponse], error)
+	RestartContainer(context.Context, *connect.Request[v1.RestartContainerRequest]) (*connect.Response[v1.RestartContainerResponse], error)
+	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error)
 	ListNetworks(context.Context, *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error)
 	InspectNetwork(context.Context, *connect.Request[v1.InspectNetworkRequest]) (*connect.Response[v1.InspectNetworkResponse], error)
 	ListVolumes(context.Context, *connect.Request[v1.ListVolumesRequest]) (*connect.Response[v1.ListVolumesResponse], error)
@@ -615,6 +712,30 @@ func NewDockerServiceHandler(svc DockerServiceHandler, opts ...connect.HandlerOp
 		DockerServiceInspectContainerProcedure,
 		svc.InspectContainer,
 		connect.WithSchema(dockerServiceMethods.ByName("InspectContainer")),
+		connect.WithHandlerOptions(opts...),
+	)
+	dockerServiceStartContainerHandler := connect.NewUnaryHandler(
+		DockerServiceStartContainerProcedure,
+		svc.StartContainer,
+		connect.WithSchema(dockerServiceMethods.ByName("StartContainer")),
+		connect.WithHandlerOptions(opts...),
+	)
+	dockerServiceStopContainerHandler := connect.NewUnaryHandler(
+		DockerServiceStopContainerProcedure,
+		svc.StopContainer,
+		connect.WithSchema(dockerServiceMethods.ByName("StopContainer")),
+		connect.WithHandlerOptions(opts...),
+	)
+	dockerServiceRestartContainerHandler := connect.NewUnaryHandler(
+		DockerServiceRestartContainerProcedure,
+		svc.RestartContainer,
+		connect.WithSchema(dockerServiceMethods.ByName("RestartContainer")),
+		connect.WithHandlerOptions(opts...),
+	)
+	dockerServiceGetContainerLogsHandler := connect.NewUnaryHandler(
+		DockerServiceGetContainerLogsProcedure,
+		svc.GetContainerLogs,
+		connect.WithSchema(dockerServiceMethods.ByName("GetContainerLogs")),
 		connect.WithHandlerOptions(opts...),
 	)
 	dockerServiceListNetworksHandler := connect.NewUnaryHandler(
@@ -659,6 +780,14 @@ func NewDockerServiceHandler(svc DockerServiceHandler, opts ...connect.HandlerOp
 			dockerServiceListContainersHandler.ServeHTTP(w, r)
 		case DockerServiceInspectContainerProcedure:
 			dockerServiceInspectContainerHandler.ServeHTTP(w, r)
+		case DockerServiceStartContainerProcedure:
+			dockerServiceStartContainerHandler.ServeHTTP(w, r)
+		case DockerServiceStopContainerProcedure:
+			dockerServiceStopContainerHandler.ServeHTTP(w, r)
+		case DockerServiceRestartContainerProcedure:
+			dockerServiceRestartContainerHandler.ServeHTTP(w, r)
+		case DockerServiceGetContainerLogsProcedure:
+			dockerServiceGetContainerLogsHandler.ServeHTTP(w, r)
 		case DockerServiceListNetworksProcedure:
 			dockerServiceListNetworksHandler.ServeHTTP(w, r)
 		case DockerServiceInspectNetworkProcedure:
@@ -686,6 +815,22 @@ func (UnimplementedDockerServiceHandler) ListContainers(context.Context, *connec
 
 func (UnimplementedDockerServiceHandler) InspectContainer(context.Context, *connect.Request[v1.InspectContainerRequest]) (*connect.Response[v1.InspectContainerResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.InspectContainer is not implemented"))
+}
+
+func (UnimplementedDockerServiceHandler) StartContainer(context.Context, *connect.Request[v1.StartContainerRequest]) (*connect.Response[v1.StartContainerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.StartContainer is not implemented"))
+}
+
+func (UnimplementedDockerServiceHandler) StopContainer(context.Context, *connect.Request[v1.StopContainerRequest]) (*connect.Response[v1.StopContainerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.StopContainer is not implemented"))
+}
+
+func (UnimplementedDockerServiceHandler) RestartContainer(context.Context, *connect.Request[v1.RestartContainerRequest]) (*connect.Response[v1.RestartContainerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.RestartContainer is not implemented"))
+}
+
+func (UnimplementedDockerServiceHandler) GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.GetContainerLogs is not implemented"))
 }
 
 func (UnimplementedDockerServiceHandler) ListNetworks(context.Context, *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error) {

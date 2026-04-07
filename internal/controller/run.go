@@ -83,6 +83,7 @@ func Run(ctx context.Context, configPath string) error {
 	}
 	taskQueue := newTaskQueueNotifier()
 	taskResults := newTaskResultNotifier()
+	execManager := newExecTunnelManager()
 
 	services, err := repo.DiscoverServices(cfg.RepoDir, availableNodeIDs)
 	if err != nil {
@@ -118,7 +119,7 @@ func Run(ctx context.Context, configPath string) error {
 	})
 
 	agentPath, agentHandler := agentv1connect.NewAgentReportServiceHandler(
-		&agentReportServer{db: db, logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: taskQueue, taskResults: taskResults},
+		&agentReportServer{db: db, logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: taskQueue, taskResults: taskResults, execManager: execManager},
 		connect.WithInterceptors(agentInterceptor),
 	)
 	mux.Handle(agentPath, agentHandler)
@@ -177,6 +178,13 @@ func Run(ctx context.Context, configPath string) error {
 		connect.WithInterceptors(cliInterceptor),
 	)
 	mux.Handle(nodePath, nodeHandler)
+
+	containerPath, containerHandler := controllerv1connect.NewContainerServiceHandler(
+		&containerServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults, execManager: execManager},
+		connect.WithInterceptors(cliInterceptor),
+	)
+	mux.Handle(containerPath, containerHandler)
+	mux.HandleFunc("/ws/container-exec/", execManager.handleWebsocket)
 
 	taskPath, taskHandler := controllerv1connect.NewTaskServiceHandler(
 		&taskServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue},
@@ -333,6 +341,7 @@ type agentReportServer struct {
 	logState    *taskLogAckState
 	taskQueue   *taskQueueNotifier
 	taskResults *taskResultNotifier
+	execManager *execTunnelManager
 }
 
 type agentTaskServer struct {
@@ -921,6 +930,14 @@ type nodeServer struct {
 	cfg         *config.ControllerConfig
 	taskQueue   *taskQueueNotifier
 	taskResults *taskResultNotifier
+}
+
+type containerServer struct {
+	db          *store.DB
+	cfg         *config.ControllerConfig
+	taskQueue   *taskQueueNotifier
+	taskResults *taskResultNotifier
+	execManager *execTunnelManager
 }
 
 type taskResultNotifier struct {
@@ -1709,6 +1726,7 @@ type dockerListResult struct {
 	Volumes    []*controllerv1.VolumeInfo    `json:"volumes,omitempty"`
 	Images     []*controllerv1.ImageInfo     `json:"images,omitempty"`
 	RawJSON    string                        `json:"raw_json,omitempty"`
+	Content    string                        `json:"content,omitempty"`
 }
 
 const (
@@ -1805,6 +1823,132 @@ func (server *nodeServer) executeDockerInspectTask(ctx context.Context, header h
 	}
 
 	return payload, nil
+}
+
+func (server *containerServer) StartContainer(ctx context.Context, req *connect.Request[controllerv1.StartContainerRequest]) (*connect.Response[controllerv1.StartContainerResponse], error) {
+	record, err := server.createContainerTask(ctx, req.Header(), req.Msg.GetNodeId(), req.Msg.GetContainerId(), task.TypeDockerStart, map[string]any{"action": "start", "resource": "container", "id": req.Msg.GetContainerId()})
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&controllerv1.StartContainerResponse{TaskId: record.TaskID, Status: string(record.Status)}), nil
+}
+
+func (server *containerServer) StopContainer(ctx context.Context, req *connect.Request[controllerv1.StopContainerRequest]) (*connect.Response[controllerv1.StopContainerResponse], error) {
+	record, err := server.createContainerTask(ctx, req.Header(), req.Msg.GetNodeId(), req.Msg.GetContainerId(), task.TypeDockerStop, map[string]any{"action": "stop", "resource": "container", "id": req.Msg.GetContainerId()})
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&controllerv1.StopContainerResponse{TaskId: record.TaskID, Status: string(record.Status)}), nil
+}
+
+func (server *containerServer) RestartContainer(ctx context.Context, req *connect.Request[controllerv1.RestartContainerRequest]) (*connect.Response[controllerv1.RestartContainerResponse], error) {
+	record, err := server.createContainerTask(ctx, req.Header(), req.Msg.GetNodeId(), req.Msg.GetContainerId(), task.TypeDockerRestart, map[string]any{"action": "restart", "resource": "container", "id": req.Msg.GetContainerId()})
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&controllerv1.RestartContainerResponse{TaskId: record.TaskID, Status: string(record.Status)}), nil
+}
+
+func (server *containerServer) GetContainerLogs(ctx context.Context, req *connect.Request[controllerv1.GetContainerLogsRequest]) (*connect.Response[controllerv1.GetContainerLogsResponse], error) {
+	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetContainerId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and container_id are required"))
+	}
+	detail, err := server.executeContainerLogsTask(ctx, req.Header(), req.Msg.GetNodeId(), req.Msg.GetContainerId(), req.Msg.GetTail(), req.Msg.GetTimestamps())
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&controllerv1.GetContainerLogsResponse{Content: detail.Content}), nil
+}
+
+func (server *containerServer) createContainerTask(ctx context.Context, header http.Header, nodeID, containerID string, taskType task.Type, params map[string]any) (task.Record, error) {
+	if nodeID == "" || containerID == "" {
+		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and container_id are required"))
+	}
+	if err := validateTaskTargetNode(ctx, server.db, server.cfg, nodeID, taskType); err != nil {
+		return task.Record{}, err
+	}
+	paramsJSON, err := json.Marshal(params)
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("marshal params: %w", err))
+	}
+	triggeredBy, _ := rpcutil.BearerSubject(ctx)
+	taskID := uuid.NewString()
+	createdTask, err := server.db.CreateTask(ctx, task.Record{
+		TaskID:      taskID,
+		Type:        taskType,
+		Source:      requestTaskSource(header),
+		TriggeredBy: triggeredBy,
+		NodeID:      nodeID,
+		Status:      task.StatusPending,
+		ParamsJSON:  string(paramsJSON),
+		LogPath:     filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+	})
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, err)
+	}
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
+	}
+	notifyTaskQueue(server.taskQueue)
+	return createdTask, nil
+}
+
+func (server *containerServer) executeContainerLogsTask(ctx context.Context, header http.Header, nodeID, containerID, tail string, timestamps bool) (*dockerListResult, error) {
+	createdTask, err := server.createContainerTask(ctx, header, nodeID, containerID, task.TypeDockerLogs, map[string]any{
+		"action":     "logs",
+		"resource":   "container",
+		"id":         containerID,
+		"tail":       tail,
+		"timestamps": timestamps,
+	})
+	if err != nil {
+		return nil, err
+	}
+	detail, err := server.waitForTaskCompletion(ctx, createdTask.TaskID, 30*time.Second)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeDeadlineExceeded, err)
+	}
+	result, err := readTaskLog(detail)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	payload, err := extractDockerTaskResult(result)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return payload, nil
+}
+
+func (server *containerServer) waitForTaskCompletion(ctx context.Context, taskID string, timeout time.Duration) (store.TaskDetail, error) {
+	deadline := time.Now().Add(timeout)
+	waitCh := server.taskResults.Subscribe(taskID)
+	defer server.taskResults.Unsubscribe(taskID, waitCh)
+
+	for {
+		detail, err := server.db.GetTask(ctx, taskID)
+		if err == nil {
+			if detail.Record.Status == task.StatusSucceeded {
+				return detail, nil
+			}
+			if detail.Record.Status == task.StatusFailed {
+				return store.TaskDetail{}, fmt.Errorf("task failed: %s", detail.Record.ErrorSummary)
+			}
+		}
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return store.TaskDetail{}, fmt.Errorf("timeout waiting for task result")
+		}
+		timer := time.NewTimer(remaining)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return store.TaskDetail{}, ctx.Err()
+		case <-waitCh:
+			timer.Stop()
+		case <-timer.C:
+			return store.TaskDetail{}, fmt.Errorf("timeout waiting for task result")
+		}
+	}
 }
 
 func (server *nodeServer) waitForTaskCompletion(ctx context.Context, taskID string, timeout time.Duration) (store.TaskDetail, error) {
