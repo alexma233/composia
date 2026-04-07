@@ -109,7 +109,7 @@
         return;
       }
 
-      const response = await fetch(`/services/${workspace?.folder}/workspace/file?path=${encodeURIComponent(normalized)}`);
+      const response = await fetch(`/services/${workspace?.folder}/workspace?path=${encodeURIComponent(normalized)}`);
       const payload = await response.json();
       if (!response.ok) {
         errorMessage = payload.error ?? 'Failed to open file.';
@@ -163,10 +163,11 @@
     errorMessage = '';
 
     try {
-      const response = await fetch(`/services/${workspace?.folder}/workspace/file`, {
+      const response = await fetch(`/services/${workspace?.folder}/workspace`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'write_file',
           path: tab.path,
           content: tab.content,
           baseRevision: headRevision
@@ -222,10 +223,11 @@
       saving = true;
       errorMessage = '';
 
-      const response = await fetch(`/services/${workspace?.folder}/workspace/file`, {
+      const response = await fetch(`/services/${workspace?.folder}/workspace`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'write_file',
           path: normalized,
           content: '',
           baseRevision: headRevision
@@ -269,7 +271,7 @@
 
     try {
       const normalized = normalizeServiceRelativePath(newFolderPath);
-      const response = await fetch(`/services/${workspace?.folder}/workspace/fs`, {
+      const response = await fetch(`/services/${workspace?.folder}/workspace`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -305,7 +307,7 @@
 
     try {
       const destination = normalizeServiceRelativePath(renamePath);
-      const response = await fetch(`/services/${workspace?.folder}/workspace/fs`, {
+      const response = await fetch(`/services/${workspace?.folder}/workspace`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -352,11 +354,11 @@
 
     try {
       const deletedPath = selectedNodePath;
-      const response = await fetch(`/services/${workspace?.folder}/workspace/fs`, {
+      const response = await fetch(`/services/${workspace?.folder}/workspace`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'delete',
+          action: 'delete_path',
           path: deletedPath,
           baseRevision: headRevision
         })
@@ -398,7 +400,7 @@
   }
 
   async function refreshServiceSummary() {
-    const response = await fetch(`/services/${workspace?.folder}/workspace/summary`);
+    const response = await fetch(`/services/${workspace?.folder}/workspace`);
     const payload = await response.json();
     if (!response.ok) {
       throw new Error(payload.error ?? 'Failed to refresh service summary.');
@@ -462,10 +464,10 @@
     errorMessage = '';
 
     try {
-      const response = await fetch(`/services/${workspace?.folder}/workspace/action`, {
+      const response = await fetch(`/services/${workspace?.folder}/workspace`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action })
+        body: JSON.stringify({ action: 'run_service_action', serviceAction: action })
       });
       const payload = (await response.json()) as ServiceActionResult & { error?: string };
       if (!response.ok || !payload.taskId) {
@@ -501,11 +503,11 @@
     errorMessage = '';
 
     try {
-      const response = await fetch(`/services/${workspace?.folder}/workspace/service`, {
+      const response = await fetch(`/services/${workspace?.folder}/workspace`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'rename',
+          action: 'rename_service_root',
           folder: renameServiceFolder,
           baseRevision: headRevision
         })
@@ -531,11 +533,11 @@
     errorMessage = '';
 
     try {
-      const response = await fetch(`/services/${workspace.folder}/workspace/service`, {
+      const response = await fetch(`/services/${workspace.folder}/workspace`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'delete',
+          action: 'delete_service_root',
           baseRevision: headRevision
         })
       });

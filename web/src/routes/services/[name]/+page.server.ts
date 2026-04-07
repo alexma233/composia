@@ -3,19 +3,13 @@ import type { PageServerLoad } from "./$types";
 import {
   controllerConfig,
   loadRepoHead,
-  loadTasks,
-  loadBackups,
-  loadServiceDetail,
 } from "$lib/server/controller";
 import {
   defaultServiceFilePath,
   normalizeServiceRelativePath,
 } from "$lib/service-workspace";
-import {
-  loadServiceFileTree,
-  loadServiceWorkspaceFile,
-} from "$lib/server/service-workspace";
-import { loadServiceWorkspaces } from "$lib/server/service-index";
+import { loadServiceWorkspaceFile } from "$lib/server/service-workspace";
+import { loadServiceWorkspaceSummary } from "$lib/server/service-workspace-route";
 
 export const load: PageServerLoad = async ({ params, url }) => {
   const config = controllerConfig();
@@ -26,6 +20,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
       workspace: null,
       tasks: [],
       backups: [],
+      serviceDetail: null,
+      nodeContainers: [],
       repoHead: null,
       fileTree: [],
       initialFile: null,
@@ -33,36 +29,11 @@ export const load: PageServerLoad = async ({ params, url }) => {
   }
 
   try {
-    const [workspaces, repoHead] = await Promise.all([
-      loadServiceWorkspaces(),
+    const [summary, repoHead] = await Promise.all([
+      loadServiceWorkspaceSummary(params.name),
       loadRepoHead(),
     ]);
-    const workspace = workspaces.find((item) => item.folder === params.name);
-    if (!workspace) {
-      return {
-        ready: true,
-        error: `Service folder ${params.name} was not found.`,
-        workspace: null,
-        tasks: [],
-        backups: [],
-        repoHead,
-        fileTree: [],
-        initialFile: null,
-      };
-    }
-
-    const [tasksResult, backupsResult, fileTree, serviceDetail] = await Promise.all([
-      workspace.isDeclared && workspace.serviceName
-        ? loadTasks(1, 20, { serviceName: workspace.serviceName })
-        : Promise.resolve({ items: [], totalCount: 0 }),
-      workspace.isDeclared && workspace.serviceName
-        ? loadBackups(1, 20, { serviceName: workspace.serviceName })
-        : Promise.resolve({ items: [], totalCount: 0 }),
-      loadServiceFileTree(workspace.folder),
-      workspace.isDeclared && workspace.serviceName
-        ? loadServiceDetail(workspace.serviceName)
-        : Promise.resolve(null),
-    ]);
+    const { workspace, tasks, backups, serviceDetail, fileTree } = summary;
     const nodeContainers = serviceDetail?.instances ?? [];
     const requestedFile = url.searchParams.get("file") ?? "";
     const activeFilePath = requestedFile
@@ -76,8 +47,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
       ready: true,
       error: null,
       workspace,
-      tasks: tasksResult.items,
-      backups: backupsResult.items,
+      tasks,
+      backups,
       serviceDetail,
       nodeContainers,
       repoHead,
@@ -85,12 +56,15 @@ export const load: PageServerLoad = async ({ params, url }) => {
       initialFile,
     };
   } catch (error) {
+    const message =
+      error instanceof Response
+        ? await error.text()
+        : error instanceof Error
+          ? error.message
+          : "Failed to load service detail.";
     return {
       ready: true,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to load service detail.",
+      error: message,
       workspace: null,
       tasks: [],
       backups: [],
