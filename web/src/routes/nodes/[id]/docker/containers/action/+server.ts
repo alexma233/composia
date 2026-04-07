@@ -3,9 +3,8 @@ import type { RequestHandler } from "./$types";
 
 import {
   controllerConfig,
-  restartContainer,
-  startContainer,
-  stopContainer,
+  runContainerAction,
+  type ContainerAction,
 } from "$lib/server/controller";
 
 export const POST: RequestHandler = async ({ params, request }) => {
@@ -25,16 +24,12 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
   try {
     const nodeId = params.id;
-    switch (payload.action) {
-      case "start":
-        return json(await startContainer(nodeId, payload.containerId));
-      case "stop":
-        return json(await stopContainer(nodeId, payload.containerId));
-      case "restart":
-        return json(await restartContainer(nodeId, payload.containerId));
-      default:
-        return json({ error: `Unsupported action: ${payload.action}` }, { status: 400 });
+
+    if (!isContainerAction(payload.action)) {
+      return json({ error: `Unsupported action: ${payload.action}` }, { status: 400 });
     }
+
+    return json(await runContainerAction(nodeId, payload.containerId, payload.action));
   } catch (error) {
     return json(
       { error: error instanceof Error ? error.message : "Failed to run container action" },
@@ -42,3 +37,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
     );
   }
 };
+
+function isContainerAction(action: string | undefined): action is ContainerAction {
+  return action === "start" || action === "stop" || action === "restart";
+}

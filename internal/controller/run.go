@@ -1205,119 +1205,60 @@ func (server *serviceServer) GetServiceBackups(ctx context.Context, req *connect
 	return connect.NewResponse(response), nil
 }
 
-func (server *serviceServer) BackupService(ctx context.Context, req *connect.Request[controllerv1.BackupServiceRequest]) (*connect.Response[controllerv1.BackupServiceResponse], error) {
+func (server *serviceServer) RunServiceAction(ctx context.Context, req *connect.Request[controllerv1.RunServiceActionRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
+
 	service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
-	dataNames, err := repo.ValidateRequestedBackupDataNames(service, req.Msg.GetDataNames())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
-	}
-	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeIds(), task.TypeBackup, dataNames, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
-	if err != nil {
-		return nil, err
-	}
-	response := &controllerv1.BackupServiceResponse{
-		TaskId:       createdTask.TaskID,
-		Status:       string(createdTask.Status),
-		RepoRevision: createdTask.RepoRevision,
-	}
-	return connect.NewResponse(response), nil
-}
 
-func (server *serviceServer) UpdateServiceDNS(ctx context.Context, req *connect.Request[controllerv1.UpdateServiceDNSRequest]) (*connect.Response[controllerv1.UpdateServiceDNSResponse], error) {
-	if req.Msg == nil || req.Msg.GetServiceName() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
-	}
-	service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeNotFound, err)
-	}
-	if service.Meta.Network == nil || service.Meta.Network.DNS == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not declare network.dns", service.Name))
-	}
-	if server.cfg.DNS == nil || server.cfg.DNS.Cloudflare == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("controller dns.cloudflare is not configured"))
-	}
-	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), nil, task.TypeDNSUpdate, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
-	if err != nil {
-		return nil, err
-	}
-	response := &controllerv1.UpdateServiceDNSResponse{
-		TaskId:       createdTask.TaskID,
-		Status:       string(createdTask.Status),
-		RepoRevision: createdTask.RepoRevision,
-	}
-	return connect.NewResponse(response), nil
-}
+	var (
+		taskType  task.Type
+		nodeIDs   []string
+		dataNames []string
+	)
 
-func (server *serviceServer) DeployService(ctx context.Context, req *connect.Request[controllerv1.DeployServiceRequest]) (*connect.Response[controllerv1.DeployServiceResponse], error) {
-	if req.Msg == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	switch req.Msg.GetAction() {
+	case controllerv1.ServiceAction_SERVICE_ACTION_DEPLOY:
+		taskType = task.TypeDeploy
+		nodeIDs = req.Msg.GetNodeIds()
+	case controllerv1.ServiceAction_SERVICE_ACTION_UPDATE:
+		taskType = task.TypeUpdate
+		nodeIDs = req.Msg.GetNodeIds()
+	case controllerv1.ServiceAction_SERVICE_ACTION_STOP:
+		taskType = task.TypeStop
+		nodeIDs = req.Msg.GetNodeIds()
+	case controllerv1.ServiceAction_SERVICE_ACTION_RESTART:
+		taskType = task.TypeRestart
+		nodeIDs = req.Msg.GetNodeIds()
+	case controllerv1.ServiceAction_SERVICE_ACTION_BACKUP:
+		taskType = task.TypeBackup
+		nodeIDs = req.Msg.GetNodeIds()
+		dataNames, err = repo.ValidateRequestedBackupDataNames(service, req.Msg.GetDataNames())
+		if err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+	case controllerv1.ServiceAction_SERVICE_ACTION_DNS_UPDATE:
+		taskType = task.TypeDNSUpdate
+		if service.Meta.Network == nil || service.Meta.Network.DNS == nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not declare network.dns", service.Name))
+		}
+		if server.cfg.DNS == nil || server.cfg.DNS.Cloudflare == nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("controller dns.cloudflare is not configured"))
+		}
+	default:
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("action is required"))
 	}
-	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeIds(), task.TypeDeploy, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
+
+	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), nodeIDs, taskType, dataNames, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
 	if err != nil {
 		return nil, err
 	}
 
-	response := &controllerv1.DeployServiceResponse{
-		TaskId:       createdTask.TaskID,
-		Status:       string(createdTask.Status),
-		RepoRevision: createdTask.RepoRevision,
-	}
-	return connect.NewResponse(response), nil
-}
-
-func (server *serviceServer) UpdateService(ctx context.Context, req *connect.Request[controllerv1.UpdateServiceRequest]) (*connect.Response[controllerv1.UpdateServiceResponse], error) {
-	if req.Msg == nil || req.Msg.GetServiceName() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
-	}
-	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeIds(), task.TypeUpdate, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
-	if err != nil {
-		return nil, err
-	}
-	response := &controllerv1.UpdateServiceResponse{
-		TaskId:       createdTask.TaskID,
-		Status:       string(createdTask.Status),
-		RepoRevision: createdTask.RepoRevision,
-	}
-	return connect.NewResponse(response), nil
-}
-
-func (server *serviceServer) StopService(ctx context.Context, req *connect.Request[controllerv1.StopServiceRequest]) (*connect.Response[controllerv1.StopServiceResponse], error) {
-	if req.Msg == nil || req.Msg.GetServiceName() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
-	}
-	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeIds(), task.TypeStop, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
-	if err != nil {
-		return nil, err
-	}
-	response := &controllerv1.StopServiceResponse{
-		TaskId:       createdTask.TaskID,
-		Status:       string(createdTask.Status),
-		RepoRevision: createdTask.RepoRevision,
-	}
-	return connect.NewResponse(response), nil
-}
-
-func (server *serviceServer) RestartService(ctx context.Context, req *connect.Request[controllerv1.RestartServiceRequest]) (*connect.Response[controllerv1.RestartServiceResponse], error) {
-	if req.Msg == nil || req.Msg.GetServiceName() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
-	}
-	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeIds(), task.TypeRestart, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
-	if err != nil {
-		return nil, err
-	}
-	response := &controllerv1.RestartServiceResponse{
-		TaskId:       createdTask.TaskID,
-		Status:       string(createdTask.Status),
-		RepoRevision: createdTask.RepoRevision,
-	}
-	return connect.NewResponse(response), nil
+	return connect.NewResponse(taskActionResponse(createdTask)), nil
 }
 
 type serviceTaskCreateOptions struct {
@@ -1831,28 +1772,32 @@ func (server *nodeServer) executeDockerInspectTask(ctx context.Context, header h
 	return payload, nil
 }
 
-func (server *containerServer) StartContainer(ctx context.Context, req *connect.Request[controllerv1.StartContainerRequest]) (*connect.Response[controllerv1.StartContainerResponse], error) {
-	record, err := server.createContainerTask(ctx, req.Header(), req.Msg.GetNodeId(), req.Msg.GetContainerId(), task.TypeDockerStart, map[string]any{"action": "start", "resource": "container", "id": req.Msg.GetContainerId()})
-	if err != nil {
-		return nil, err
+func (server *containerServer) RunContainerAction(ctx context.Context, req *connect.Request[controllerv1.RunContainerActionRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
+	if req.Msg == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id, container_id, and action are required"))
 	}
-	return connect.NewResponse(&controllerv1.StartContainerResponse{TaskId: record.TaskID, Status: string(record.Status)}), nil
-}
 
-func (server *containerServer) StopContainer(ctx context.Context, req *connect.Request[controllerv1.StopContainerRequest]) (*connect.Response[controllerv1.StopContainerResponse], error) {
-	record, err := server.createContainerTask(ctx, req.Header(), req.Msg.GetNodeId(), req.Msg.GetContainerId(), task.TypeDockerStop, map[string]any{"action": "stop", "resource": "container", "id": req.Msg.GetContainerId()})
-	if err != nil {
-		return nil, err
+	var taskType task.Type
+	var action string
+	switch req.Msg.GetAction() {
+	case controllerv1.ContainerAction_CONTAINER_ACTION_START:
+		taskType = task.TypeDockerStart
+		action = "start"
+	case controllerv1.ContainerAction_CONTAINER_ACTION_STOP:
+		taskType = task.TypeDockerStop
+		action = "stop"
+	case controllerv1.ContainerAction_CONTAINER_ACTION_RESTART:
+		taskType = task.TypeDockerRestart
+		action = "restart"
+	default:
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("action is required"))
 	}
-	return connect.NewResponse(&controllerv1.StopContainerResponse{TaskId: record.TaskID, Status: string(record.Status)}), nil
-}
 
-func (server *containerServer) RestartContainer(ctx context.Context, req *connect.Request[controllerv1.RestartContainerRequest]) (*connect.Response[controllerv1.RestartContainerResponse], error) {
-	record, err := server.createContainerTask(ctx, req.Header(), req.Msg.GetNodeId(), req.Msg.GetContainerId(), task.TypeDockerRestart, map[string]any{"action": "restart", "resource": "container", "id": req.Msg.GetContainerId()})
+	record, err := server.createContainerTask(ctx, req.Header(), req.Msg.GetNodeId(), req.Msg.GetContainerId(), taskType, map[string]any{"action": action, "resource": "container", "id": req.Msg.GetContainerId()})
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&controllerv1.RestartContainerResponse{TaskId: record.TaskID, Status: string(record.Status)}), nil
+	return connect.NewResponse(taskActionResponse(record)), nil
 }
 
 func (server *containerServer) GetContainerLogs(ctx context.Context, req *connect.Request[controllerv1.GetContainerLogsRequest]) (*connect.Response[controllerv1.GetContainerLogsResponse], error) {
@@ -3180,7 +3125,7 @@ func (server *taskServer) TailTaskLogs(ctx context.Context, req *connect.Request
 	}
 }
 
-func (server *taskServer) RunTaskAgain(ctx context.Context, req *connect.Request[controllerv1.RunTaskAgainRequest]) (*connect.Response[controllerv1.RunTaskAgainResponse], error) {
+func (server *taskServer) RunTaskAgain(ctx context.Context, req *connect.Request[controllerv1.RunTaskAgainRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
 	if req.Msg == nil || req.Msg.GetTaskId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
 	}
@@ -3212,12 +3157,7 @@ func (server *taskServer) RunTaskAgain(ctx context.Context, req *connect.Request
 	if err != nil {
 		return nil, err
 	}
-	response := &controllerv1.RunTaskAgainResponse{
-		TaskId:       createdTask.TaskID,
-		Status:       string(createdTask.Status),
-		RepoRevision: createdTask.RepoRevision,
-	}
-	return connect.NewResponse(response), nil
+	return connect.NewResponse(taskActionResponse(createdTask)), nil
 }
 
 func (server *serviceInstanceServer) ListServiceInstances(ctx context.Context, req *connect.Request[controllerv1.ListServiceInstancesRequest]) (*connect.Response[controllerv1.ListServiceInstancesResponse], error) {
@@ -3260,36 +3200,30 @@ func (server *serviceInstanceServer) GetServiceInstance(ctx context.Context, req
 	return connect.NewResponse(&controllerv1.GetServiceInstanceResponse{Instance: detail}), nil
 }
 
-func (server *serviceInstanceServer) DeployServiceInstance(ctx context.Context, req *connect.Request[controllerv1.DeployServiceInstanceRequest]) (*connect.Response[controllerv1.DeployServiceInstanceResponse], error) {
-	createdTask, err := server.createInstanceTask(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId(), task.TypeDeploy, nil, requestTaskSource(req.Header()))
-	if err != nil {
-		return nil, err
+func (server *serviceInstanceServer) RunServiceInstanceAction(ctx context.Context, req *connect.Request[controllerv1.RunServiceInstanceActionRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
+	if req.Msg == nil || req.Msg.GetServiceName() == "" || req.Msg.GetNodeId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name, node_id, and action are required"))
 	}
-	return connect.NewResponse(&controllerv1.DeployServiceInstanceResponse{TaskId: createdTask.TaskID, Status: string(createdTask.Status), RepoRevision: createdTask.RepoRevision}), nil
-}
 
-func (server *serviceInstanceServer) UpdateServiceInstance(ctx context.Context, req *connect.Request[controllerv1.UpdateServiceInstanceRequest]) (*connect.Response[controllerv1.UpdateServiceInstanceResponse], error) {
-	createdTask, err := server.createInstanceTask(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId(), task.TypeUpdate, nil, requestTaskSource(req.Header()))
-	if err != nil {
-		return nil, err
+	var taskType task.Type
+	switch req.Msg.GetAction() {
+	case controllerv1.ServiceInstanceAction_SERVICE_INSTANCE_ACTION_DEPLOY:
+		taskType = task.TypeDeploy
+	case controllerv1.ServiceInstanceAction_SERVICE_INSTANCE_ACTION_UPDATE:
+		taskType = task.TypeUpdate
+	case controllerv1.ServiceInstanceAction_SERVICE_INSTANCE_ACTION_STOP:
+		taskType = task.TypeStop
+	case controllerv1.ServiceInstanceAction_SERVICE_INSTANCE_ACTION_RESTART:
+		taskType = task.TypeRestart
+	default:
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("action is required"))
 	}
-	return connect.NewResponse(&controllerv1.UpdateServiceInstanceResponse{TaskId: createdTask.TaskID, Status: string(createdTask.Status), RepoRevision: createdTask.RepoRevision}), nil
-}
 
-func (server *serviceInstanceServer) StopServiceInstance(ctx context.Context, req *connect.Request[controllerv1.StopServiceInstanceRequest]) (*connect.Response[controllerv1.StopServiceInstanceResponse], error) {
-	createdTask, err := server.createInstanceTask(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId(), task.TypeStop, nil, requestTaskSource(req.Header()))
+	createdTask, err := server.createInstanceTask(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId(), taskType, nil, requestTaskSource(req.Header()))
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&controllerv1.StopServiceInstanceResponse{TaskId: createdTask.TaskID, Status: string(createdTask.Status), RepoRevision: createdTask.RepoRevision}), nil
-}
-
-func (server *serviceInstanceServer) RestartServiceInstance(ctx context.Context, req *connect.Request[controllerv1.RestartServiceInstanceRequest]) (*connect.Response[controllerv1.RestartServiceInstanceResponse], error) {
-	createdTask, err := server.createInstanceTask(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId(), task.TypeRestart, nil, requestTaskSource(req.Header()))
-	if err != nil {
-		return nil, err
-	}
-	return connect.NewResponse(&controllerv1.RestartServiceInstanceResponse{TaskId: createdTask.TaskID, Status: string(createdTask.Status), RepoRevision: createdTask.RepoRevision}), nil
+	return connect.NewResponse(taskActionResponse(createdTask)), nil
 }
 
 func (server *serviceInstanceServer) createInstanceTask(ctx context.Context, serviceName, nodeID string, taskType task.Type, dataNames []string, source task.Source) (task.Record, error) {
@@ -3304,6 +3238,14 @@ func formatNullableTime(value *time.Time) string {
 		return ""
 	}
 	return value.UTC().Format(time.RFC3339)
+}
+
+func taskActionResponse(record task.Record) *controllerv1.TaskActionResponse {
+	return &controllerv1.TaskActionResponse{
+		TaskId:       record.TaskID,
+		Status:       string(record.Status),
+		RepoRevision: record.RepoRevision,
+	}
 }
 
 func readNewLogContent(logPath string, offset int64) (string, int64, error) {

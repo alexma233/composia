@@ -322,7 +322,7 @@ func TestServiceServiceDeployServiceCreatesPendingTask(t *testing.T) {
 		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")),
 	)
 
-	response, err := client.DeployService(ctx, connect.NewRequest(&controllerv1.DeployServiceRequest{ServiceName: "demo"}))
+	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_DEPLOY}))
 	if err != nil {
 		t.Fatalf("deploy service: %v", err)
 	}
@@ -421,7 +421,7 @@ func TestServiceServiceDeployServiceIgnoresUnrelatedInvalidDraft(t *testing.T) {
 		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")),
 	)
 
-	response, err := client.DeployService(ctx, connect.NewRequest(&controllerv1.DeployServiceRequest{ServiceName: "demo"}))
+	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_DEPLOY}))
 	if err != nil {
 		t.Fatalf("deploy service with unrelated invalid draft: %v", err)
 	}
@@ -497,7 +497,7 @@ func TestServiceServiceDeployServiceUsesWebSourceHeader(t *testing.T) {
 		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token"), requestInterceptor),
 	)
 
-	response, err := client.DeployService(ctx, connect.NewRequest(&controllerv1.DeployServiceRequest{ServiceName: "demo"}))
+	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_DEPLOY}))
 	if err != nil {
 		t.Fatalf("deploy service: %v", err)
 	}
@@ -561,7 +561,7 @@ func TestServiceServiceDeployServiceRejectsOfflineOrDisabledNode(t *testing.T) {
 	}
 
 	offlineClient := makeClient([]config.NodeConfig{{ID: "main"}})
-	_, err = offlineClient.DeployService(ctx, connect.NewRequest(&controllerv1.DeployServiceRequest{ServiceName: "demo"}))
+	_, err = offlineClient.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_DEPLOY}))
 	if err == nil {
 		t.Fatalf("expected offline node deploy to fail")
 	}
@@ -574,7 +574,7 @@ func TestServiceServiceDeployServiceRejectsOfflineOrDisabledNode(t *testing.T) {
 		t.Fatalf("record heartbeat: %v", err)
 	}
 	disabledClient := makeClient([]config.NodeConfig{{ID: "main", Enabled: boolPtr(false), Token: "main-token"}, {ID: "other", Enabled: &trueValue}})
-	_, err = disabledClient.DeployService(ctx, connect.NewRequest(&controllerv1.DeployServiceRequest{ServiceName: "demo"}))
+	_, err = disabledClient.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_DEPLOY}))
 	if err == nil {
 		t.Fatalf("expected disabled node deploy to fail")
 	}
@@ -634,7 +634,7 @@ func TestServiceServiceStopAndRestartCreatePendingTasks(t *testing.T) {
 
 	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 
-	stopResponse, err := client.StopService(ctx, connect.NewRequest(&controllerv1.StopServiceRequest{ServiceName: "demo"}))
+	stopResponse, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_STOP}))
 	if err != nil {
 		t.Fatalf("stop service: %v", err)
 	}
@@ -645,7 +645,7 @@ func TestServiceServiceStopAndRestartCreatePendingTasks(t *testing.T) {
 		t.Fatalf("complete stop task: %v", err)
 	}
 
-	restartResponse, err := client.RestartService(ctx, connect.NewRequest(&controllerv1.RestartServiceRequest{ServiceName: "demo"}))
+	restartResponse, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_RESTART}))
 	if err != nil {
 		t.Fatalf("restart service: %v", err)
 	}
@@ -704,7 +704,7 @@ func TestServiceServiceUpdateCreatesPendingTask(t *testing.T) {
 	defer httpServer.Close()
 
 	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
-	response, err := client.UpdateService(ctx, connect.NewRequest(&controllerv1.UpdateServiceRequest{ServiceName: "demo"}))
+	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_UPDATE}))
 	if err != nil {
 		t.Fatalf("update service: %v", err)
 	}
@@ -784,7 +784,7 @@ func TestServiceServiceUpdateServiceDNSCreatesPendingTaskWithoutOnlineNode(t *te
 		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token"), requestInterceptor),
 	)
 
-	response, err := client.UpdateServiceDNS(ctx, connect.NewRequest(&controllerv1.UpdateServiceDNSRequest{ServiceName: "demo"}))
+	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_DNS_UPDATE}))
 	if err != nil {
 		t.Fatalf("update service dns: %v", err)
 	}
@@ -853,7 +853,7 @@ func TestServiceServiceBackupCreatesPendingTaskWithDefaultDataNames(t *testing.T
 	defer httpServer.Close()
 
 	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
-	response, err := client.BackupService(ctx, connect.NewRequest(&controllerv1.BackupServiceRequest{ServiceName: "alpha"}))
+	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "alpha", Action: controllerv1.ServiceAction_SERVICE_ACTION_BACKUP}))
 	if err != nil {
 		t.Fatalf("backup service: %v", err)
 	}

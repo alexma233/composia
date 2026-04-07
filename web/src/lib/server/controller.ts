@@ -123,6 +123,14 @@ export type ServiceActionResult = {
   repoRevision: string;
 };
 
+export type ServiceAction =
+  | "deploy"
+  | "update"
+  | "stop"
+  | "restart"
+  | "backup"
+  | "dns_update";
+
 export type BackupSummary = {
   backupId: string;
   taskId: string;
@@ -551,65 +559,22 @@ export async function loadServiceDetail(
   };
 }
 
-export async function deployService(
+export async function runServiceAction(
   serviceName: string,
-  nodeIds: string[] = [],
+  action: ServiceAction,
+  options: {
+    nodeIds?: string[];
+    dataNames?: string[];
+  } = {},
 ): Promise<ServiceActionResult> {
   return callServiceAction(
-    "/composia.controller.v1.ServiceService/DeployService",
-    { serviceName, nodeIds },
-  );
-}
-
-export async function updateService(
-  serviceName: string,
-  nodeIds: string[] = [],
-): Promise<ServiceActionResult> {
-  return callServiceAction(
-    "/composia.controller.v1.ServiceService/UpdateService",
-    { serviceName, nodeIds },
-  );
-}
-
-export async function stopService(
-  serviceName: string,
-  nodeIds: string[] = [],
-): Promise<ServiceActionResult> {
-  return callServiceAction(
-    "/composia.controller.v1.ServiceService/StopService",
-    { serviceName, nodeIds },
-  );
-}
-
-export async function restartService(
-  serviceName: string,
-  nodeIds: string[] = [],
-): Promise<ServiceActionResult> {
-  return callServiceAction(
-    "/composia.controller.v1.ServiceService/RestartService",
+    "/composia.controller.v1.ServiceService/RunServiceAction",
     {
       serviceName,
-      nodeIds,
+      action: toServiceActionEnum(action),
+      nodeIds: options.nodeIds ?? [],
+      dataNames: options.dataNames ?? [],
     },
-  );
-}
-
-export async function backupService(
-  serviceName: string,
-  nodeIds: string[] = [],
-): Promise<ServiceActionResult> {
-  return callServiceAction(
-    "/composia.controller.v1.ServiceService/BackupService",
-    { serviceName, nodeIds },
-  );
-}
-
-export async function updateServiceDNS(
-  serviceName: string,
-): Promise<ServiceActionResult> {
-  return callServiceAction(
-    "/composia.controller.v1.ServiceService/UpdateServiceDNS",
-    { serviceName },
   );
 }
 
@@ -666,10 +631,9 @@ export type DockerContainerSummary = {
   imageId: string;
 };
 
-export type ContainerActionResult = {
-  taskId: string;
-  status: string;
-};
+export type ContainerActionResult = ServiceActionResult;
+
+export type ContainerAction = "start" | "stop" | "restart";
 
 export type ContainerExecSession = {
   sessionId: string;
@@ -780,42 +744,14 @@ export async function inspectNodeContainer(
   return response.rawJson ?? response.raw_json ?? "{}";
 }
 
-export async function startContainer(
+export async function runContainerAction(
   nodeId: string,
   containerId: string,
+  action: ContainerAction,
 ): Promise<ContainerActionResult> {
-  const config = requireControllerConfig();
-  return rpcCall<ContainerActionResult>(
-    config.baseUrl,
-    config.token,
-    "/composia.controller.v1.ContainerService/StartContainer",
-    { nodeId, containerId },
-  );
-}
-
-export async function stopContainer(
-  nodeId: string,
-  containerId: string,
-): Promise<ContainerActionResult> {
-  const config = requireControllerConfig();
-  return rpcCall<ContainerActionResult>(
-    config.baseUrl,
-    config.token,
-    "/composia.controller.v1.ContainerService/StopContainer",
-    { nodeId, containerId },
-  );
-}
-
-export async function restartContainer(
-  nodeId: string,
-  containerId: string,
-): Promise<ContainerActionResult> {
-  const config = requireControllerConfig();
-  return rpcCall<ContainerActionResult>(
-    config.baseUrl,
-    config.token,
-    "/composia.controller.v1.ContainerService/RestartContainer",
-    { nodeId, containerId },
+  return callTaskAction(
+    "/composia.controller.v1.ContainerService/RunContainerAction",
+    { nodeId, containerId, action: toContainerActionEnum(action) },
   );
 }
 
@@ -1031,7 +967,7 @@ export async function loadTaskDetail(taskId: string): Promise<TaskDetail> {
 export async function runTaskAgain(
   taskId: string,
 ): Promise<ServiceActionResult> {
-  return callServiceAction("/composia.controller.v1.TaskService/RunTaskAgain", {
+  return callTaskAction("/composia.controller.v1.TaskService/RunTaskAgain", {
     taskId,
   });
 }
@@ -1048,13 +984,60 @@ async function callServiceAction(
   procedure: string,
   body: RpcRequest,
 ): Promise<ServiceActionResult> {
+  return callTaskAction(procedure, body);
+}
+
+async function callTaskAction(
+  procedure: string,
+  body: RpcRequest,
+): Promise<ServiceActionResult> {
   const config = requireControllerConfig();
-  return rpcCall<ServiceActionResult>(
+  const response = await rpcCall<{
+    taskId?: string;
+    task_id?: string;
+    status?: string;
+    repoRevision?: string;
+    repo_revision?: string;
+  }>(
     config.baseUrl,
     config.token,
     procedure,
     body,
   );
+
+  return {
+    taskId: response.taskId ?? response.task_id ?? "",
+    status: response.status ?? "",
+    repoRevision: response.repoRevision ?? response.repo_revision ?? "",
+  };
+}
+
+function toServiceActionEnum(action: ServiceAction): number {
+  switch (action) {
+    case "deploy":
+      return 1;
+    case "update":
+      return 2;
+    case "stop":
+      return 3;
+    case "restart":
+      return 4;
+    case "backup":
+      return 5;
+    case "dns_update":
+      return 6;
+  }
+}
+
+function toContainerActionEnum(action: ContainerAction): number {
+  switch (action) {
+    case "start":
+      return 1;
+    case "stop":
+      return 2;
+    case "restart":
+      return 3;
+  }
 }
 
 async function rpcCall<T>(

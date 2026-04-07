@@ -33,15 +33,9 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// ContainerServiceStartContainerProcedure is the fully-qualified name of the ContainerService's
-	// StartContainer RPC.
-	ContainerServiceStartContainerProcedure = "/composia.controller.v1.ContainerService/StartContainer"
-	// ContainerServiceStopContainerProcedure is the fully-qualified name of the ContainerService's
-	// StopContainer RPC.
-	ContainerServiceStopContainerProcedure = "/composia.controller.v1.ContainerService/StopContainer"
-	// ContainerServiceRestartContainerProcedure is the fully-qualified name of the ContainerService's
-	// RestartContainer RPC.
-	ContainerServiceRestartContainerProcedure = "/composia.controller.v1.ContainerService/RestartContainer"
+	// ContainerServiceRunContainerActionProcedure is the fully-qualified name of the ContainerService's
+	// RunContainerAction RPC.
+	ContainerServiceRunContainerActionProcedure = "/composia.controller.v1.ContainerService/RunContainerAction"
 	// ContainerServiceGetContainerLogsProcedure is the fully-qualified name of the ContainerService's
 	// GetContainerLogs RPC.
 	ContainerServiceGetContainerLogsProcedure = "/composia.controller.v1.ContainerService/GetContainerLogs"
@@ -52,9 +46,7 @@ const (
 
 // ContainerServiceClient is a client for the composia.controller.v1.ContainerService service.
 type ContainerServiceClient interface {
-	StartContainer(context.Context, *connect.Request[v1.StartContainerRequest]) (*connect.Response[v1.StartContainerResponse], error)
-	StopContainer(context.Context, *connect.Request[v1.StopContainerRequest]) (*connect.Response[v1.StopContainerResponse], error)
-	RestartContainer(context.Context, *connect.Request[v1.RestartContainerRequest]) (*connect.Response[v1.RestartContainerResponse], error)
+	RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
 	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error)
 	OpenContainerExec(context.Context, *connect.Request[v1.OpenContainerExecRequest]) (*connect.Response[v1.OpenContainerExecResponse], error)
 }
@@ -70,22 +62,10 @@ func NewContainerServiceClient(httpClient connect.HTTPClient, baseURL string, op
 	baseURL = strings.TrimRight(baseURL, "/")
 	containerServiceMethods := v1.File_proto_composia_controller_v1_container_proto.Services().ByName("ContainerService").Methods()
 	return &containerServiceClient{
-		startContainer: connect.NewClient[v1.StartContainerRequest, v1.StartContainerResponse](
+		runContainerAction: connect.NewClient[v1.RunContainerActionRequest, v1.TaskActionResponse](
 			httpClient,
-			baseURL+ContainerServiceStartContainerProcedure,
-			connect.WithSchema(containerServiceMethods.ByName("StartContainer")),
-			connect.WithClientOptions(opts...),
-		),
-		stopContainer: connect.NewClient[v1.StopContainerRequest, v1.StopContainerResponse](
-			httpClient,
-			baseURL+ContainerServiceStopContainerProcedure,
-			connect.WithSchema(containerServiceMethods.ByName("StopContainer")),
-			connect.WithClientOptions(opts...),
-		),
-		restartContainer: connect.NewClient[v1.RestartContainerRequest, v1.RestartContainerResponse](
-			httpClient,
-			baseURL+ContainerServiceRestartContainerProcedure,
-			connect.WithSchema(containerServiceMethods.ByName("RestartContainer")),
+			baseURL+ContainerServiceRunContainerActionProcedure,
+			connect.WithSchema(containerServiceMethods.ByName("RunContainerAction")),
 			connect.WithClientOptions(opts...),
 		),
 		getContainerLogs: connect.NewClient[v1.GetContainerLogsRequest, v1.GetContainerLogsResponse](
@@ -105,26 +85,14 @@ func NewContainerServiceClient(httpClient connect.HTTPClient, baseURL string, op
 
 // containerServiceClient implements ContainerServiceClient.
 type containerServiceClient struct {
-	startContainer    *connect.Client[v1.StartContainerRequest, v1.StartContainerResponse]
-	stopContainer     *connect.Client[v1.StopContainerRequest, v1.StopContainerResponse]
-	restartContainer  *connect.Client[v1.RestartContainerRequest, v1.RestartContainerResponse]
-	getContainerLogs  *connect.Client[v1.GetContainerLogsRequest, v1.GetContainerLogsResponse]
-	openContainerExec *connect.Client[v1.OpenContainerExecRequest, v1.OpenContainerExecResponse]
+	runContainerAction *connect.Client[v1.RunContainerActionRequest, v1.TaskActionResponse]
+	getContainerLogs   *connect.Client[v1.GetContainerLogsRequest, v1.GetContainerLogsResponse]
+	openContainerExec  *connect.Client[v1.OpenContainerExecRequest, v1.OpenContainerExecResponse]
 }
 
-// StartContainer calls composia.controller.v1.ContainerService.StartContainer.
-func (c *containerServiceClient) StartContainer(ctx context.Context, req *connect.Request[v1.StartContainerRequest]) (*connect.Response[v1.StartContainerResponse], error) {
-	return c.startContainer.CallUnary(ctx, req)
-}
-
-// StopContainer calls composia.controller.v1.ContainerService.StopContainer.
-func (c *containerServiceClient) StopContainer(ctx context.Context, req *connect.Request[v1.StopContainerRequest]) (*connect.Response[v1.StopContainerResponse], error) {
-	return c.stopContainer.CallUnary(ctx, req)
-}
-
-// RestartContainer calls composia.controller.v1.ContainerService.RestartContainer.
-func (c *containerServiceClient) RestartContainer(ctx context.Context, req *connect.Request[v1.RestartContainerRequest]) (*connect.Response[v1.RestartContainerResponse], error) {
-	return c.restartContainer.CallUnary(ctx, req)
+// RunContainerAction calls composia.controller.v1.ContainerService.RunContainerAction.
+func (c *containerServiceClient) RunContainerAction(ctx context.Context, req *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return c.runContainerAction.CallUnary(ctx, req)
 }
 
 // GetContainerLogs calls composia.controller.v1.ContainerService.GetContainerLogs.
@@ -140,9 +108,7 @@ func (c *containerServiceClient) OpenContainerExec(ctx context.Context, req *con
 // ContainerServiceHandler is an implementation of the composia.controller.v1.ContainerService
 // service.
 type ContainerServiceHandler interface {
-	StartContainer(context.Context, *connect.Request[v1.StartContainerRequest]) (*connect.Response[v1.StartContainerResponse], error)
-	StopContainer(context.Context, *connect.Request[v1.StopContainerRequest]) (*connect.Response[v1.StopContainerResponse], error)
-	RestartContainer(context.Context, *connect.Request[v1.RestartContainerRequest]) (*connect.Response[v1.RestartContainerResponse], error)
+	RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
 	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error)
 	OpenContainerExec(context.Context, *connect.Request[v1.OpenContainerExecRequest]) (*connect.Response[v1.OpenContainerExecResponse], error)
 }
@@ -154,22 +120,10 @@ type ContainerServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewContainerServiceHandler(svc ContainerServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	containerServiceMethods := v1.File_proto_composia_controller_v1_container_proto.Services().ByName("ContainerService").Methods()
-	containerServiceStartContainerHandler := connect.NewUnaryHandler(
-		ContainerServiceStartContainerProcedure,
-		svc.StartContainer,
-		connect.WithSchema(containerServiceMethods.ByName("StartContainer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	containerServiceStopContainerHandler := connect.NewUnaryHandler(
-		ContainerServiceStopContainerProcedure,
-		svc.StopContainer,
-		connect.WithSchema(containerServiceMethods.ByName("StopContainer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	containerServiceRestartContainerHandler := connect.NewUnaryHandler(
-		ContainerServiceRestartContainerProcedure,
-		svc.RestartContainer,
-		connect.WithSchema(containerServiceMethods.ByName("RestartContainer")),
+	containerServiceRunContainerActionHandler := connect.NewUnaryHandler(
+		ContainerServiceRunContainerActionProcedure,
+		svc.RunContainerAction,
+		connect.WithSchema(containerServiceMethods.ByName("RunContainerAction")),
 		connect.WithHandlerOptions(opts...),
 	)
 	containerServiceGetContainerLogsHandler := connect.NewUnaryHandler(
@@ -186,12 +140,8 @@ func NewContainerServiceHandler(svc ContainerServiceHandler, opts ...connect.Han
 	)
 	return "/composia.controller.v1.ContainerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case ContainerServiceStartContainerProcedure:
-			containerServiceStartContainerHandler.ServeHTTP(w, r)
-		case ContainerServiceStopContainerProcedure:
-			containerServiceStopContainerHandler.ServeHTTP(w, r)
-		case ContainerServiceRestartContainerProcedure:
-			containerServiceRestartContainerHandler.ServeHTTP(w, r)
+		case ContainerServiceRunContainerActionProcedure:
+			containerServiceRunContainerActionHandler.ServeHTTP(w, r)
 		case ContainerServiceGetContainerLogsProcedure:
 			containerServiceGetContainerLogsHandler.ServeHTTP(w, r)
 		case ContainerServiceOpenContainerExecProcedure:
@@ -205,16 +155,8 @@ func NewContainerServiceHandler(svc ContainerServiceHandler, opts ...connect.Han
 // UnimplementedContainerServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedContainerServiceHandler struct{}
 
-func (UnimplementedContainerServiceHandler) StartContainer(context.Context, *connect.Request[v1.StartContainerRequest]) (*connect.Response[v1.StartContainerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ContainerService.StartContainer is not implemented"))
-}
-
-func (UnimplementedContainerServiceHandler) StopContainer(context.Context, *connect.Request[v1.StopContainerRequest]) (*connect.Response[v1.StopContainerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ContainerService.StopContainer is not implemented"))
-}
-
-func (UnimplementedContainerServiceHandler) RestartContainer(context.Context, *connect.Request[v1.RestartContainerRequest]) (*connect.Response[v1.RestartContainerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ContainerService.RestartContainer is not implemented"))
+func (UnimplementedContainerServiceHandler) RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ContainerService.RunContainerAction is not implemented"))
 }
 
 func (UnimplementedContainerServiceHandler) GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error) {

@@ -75,15 +75,9 @@ const (
 	// DockerServiceInspectContainerProcedure is the fully-qualified name of the DockerService's
 	// InspectContainer RPC.
 	DockerServiceInspectContainerProcedure = "/composia.agent.v1.DockerService/InspectContainer"
-	// DockerServiceStartContainerProcedure is the fully-qualified name of the DockerService's
-	// StartContainer RPC.
-	DockerServiceStartContainerProcedure = "/composia.agent.v1.DockerService/StartContainer"
-	// DockerServiceStopContainerProcedure is the fully-qualified name of the DockerService's
-	// StopContainer RPC.
-	DockerServiceStopContainerProcedure = "/composia.agent.v1.DockerService/StopContainer"
-	// DockerServiceRestartContainerProcedure is the fully-qualified name of the DockerService's
-	// RestartContainer RPC.
-	DockerServiceRestartContainerProcedure = "/composia.agent.v1.DockerService/RestartContainer"
+	// DockerServiceRunContainerActionProcedure is the fully-qualified name of the DockerService's
+	// RunContainerAction RPC.
+	DockerServiceRunContainerActionProcedure = "/composia.agent.v1.DockerService/RunContainerAction"
 	// DockerServiceGetContainerLogsProcedure is the fully-qualified name of the DockerService's
 	// GetContainerLogs RPC.
 	DockerServiceGetContainerLogsProcedure = "/composia.agent.v1.DockerService/GetContainerLogs"
@@ -505,9 +499,7 @@ func (UnimplementedBundleServiceHandler) GetServiceBundle(context.Context, *conn
 type DockerServiceClient interface {
 	ListContainers(context.Context, *connect.Request[v1.ListContainersRequest]) (*connect.Response[v1.ListContainersResponse], error)
 	InspectContainer(context.Context, *connect.Request[v1.InspectContainerRequest]) (*connect.Response[v1.InspectContainerResponse], error)
-	StartContainer(context.Context, *connect.Request[v1.StartContainerRequest]) (*connect.Response[v1.StartContainerResponse], error)
-	StopContainer(context.Context, *connect.Request[v1.StopContainerRequest]) (*connect.Response[v1.StopContainerResponse], error)
-	RestartContainer(context.Context, *connect.Request[v1.RestartContainerRequest]) (*connect.Response[v1.RestartContainerResponse], error)
+	RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.RunContainerActionResponse], error)
 	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error)
 	ListNetworks(context.Context, *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error)
 	InspectNetwork(context.Context, *connect.Request[v1.InspectNetworkRequest]) (*connect.Response[v1.InspectNetworkResponse], error)
@@ -540,22 +532,10 @@ func NewDockerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(dockerServiceMethods.ByName("InspectContainer")),
 			connect.WithClientOptions(opts...),
 		),
-		startContainer: connect.NewClient[v1.StartContainerRequest, v1.StartContainerResponse](
+		runContainerAction: connect.NewClient[v1.RunContainerActionRequest, v1.RunContainerActionResponse](
 			httpClient,
-			baseURL+DockerServiceStartContainerProcedure,
-			connect.WithSchema(dockerServiceMethods.ByName("StartContainer")),
-			connect.WithClientOptions(opts...),
-		),
-		stopContainer: connect.NewClient[v1.StopContainerRequest, v1.StopContainerResponse](
-			httpClient,
-			baseURL+DockerServiceStopContainerProcedure,
-			connect.WithSchema(dockerServiceMethods.ByName("StopContainer")),
-			connect.WithClientOptions(opts...),
-		),
-		restartContainer: connect.NewClient[v1.RestartContainerRequest, v1.RestartContainerResponse](
-			httpClient,
-			baseURL+DockerServiceRestartContainerProcedure,
-			connect.WithSchema(dockerServiceMethods.ByName("RestartContainer")),
+			baseURL+DockerServiceRunContainerActionProcedure,
+			connect.WithSchema(dockerServiceMethods.ByName("RunContainerAction")),
 			connect.WithClientOptions(opts...),
 		),
 		getContainerLogs: connect.NewClient[v1.GetContainerLogsRequest, v1.GetContainerLogsResponse](
@@ -605,18 +585,16 @@ func NewDockerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 
 // dockerServiceClient implements DockerServiceClient.
 type dockerServiceClient struct {
-	listContainers   *connect.Client[v1.ListContainersRequest, v1.ListContainersResponse]
-	inspectContainer *connect.Client[v1.InspectContainerRequest, v1.InspectContainerResponse]
-	startContainer   *connect.Client[v1.StartContainerRequest, v1.StartContainerResponse]
-	stopContainer    *connect.Client[v1.StopContainerRequest, v1.StopContainerResponse]
-	restartContainer *connect.Client[v1.RestartContainerRequest, v1.RestartContainerResponse]
-	getContainerLogs *connect.Client[v1.GetContainerLogsRequest, v1.GetContainerLogsResponse]
-	listNetworks     *connect.Client[v1.ListNetworksRequest, v1.ListNetworksResponse]
-	inspectNetwork   *connect.Client[v1.InspectNetworkRequest, v1.InspectNetworkResponse]
-	listVolumes      *connect.Client[v1.ListVolumesRequest, v1.ListVolumesResponse]
-	inspectVolume    *connect.Client[v1.InspectVolumeRequest, v1.InspectVolumeResponse]
-	listImages       *connect.Client[v1.ListImagesRequest, v1.ListImagesResponse]
-	inspectImage     *connect.Client[v1.InspectImageRequest, v1.InspectImageResponse]
+	listContainers     *connect.Client[v1.ListContainersRequest, v1.ListContainersResponse]
+	inspectContainer   *connect.Client[v1.InspectContainerRequest, v1.InspectContainerResponse]
+	runContainerAction *connect.Client[v1.RunContainerActionRequest, v1.RunContainerActionResponse]
+	getContainerLogs   *connect.Client[v1.GetContainerLogsRequest, v1.GetContainerLogsResponse]
+	listNetworks       *connect.Client[v1.ListNetworksRequest, v1.ListNetworksResponse]
+	inspectNetwork     *connect.Client[v1.InspectNetworkRequest, v1.InspectNetworkResponse]
+	listVolumes        *connect.Client[v1.ListVolumesRequest, v1.ListVolumesResponse]
+	inspectVolume      *connect.Client[v1.InspectVolumeRequest, v1.InspectVolumeResponse]
+	listImages         *connect.Client[v1.ListImagesRequest, v1.ListImagesResponse]
+	inspectImage       *connect.Client[v1.InspectImageRequest, v1.InspectImageResponse]
 }
 
 // ListContainers calls composia.agent.v1.DockerService.ListContainers.
@@ -629,19 +607,9 @@ func (c *dockerServiceClient) InspectContainer(ctx context.Context, req *connect
 	return c.inspectContainer.CallUnary(ctx, req)
 }
 
-// StartContainer calls composia.agent.v1.DockerService.StartContainer.
-func (c *dockerServiceClient) StartContainer(ctx context.Context, req *connect.Request[v1.StartContainerRequest]) (*connect.Response[v1.StartContainerResponse], error) {
-	return c.startContainer.CallUnary(ctx, req)
-}
-
-// StopContainer calls composia.agent.v1.DockerService.StopContainer.
-func (c *dockerServiceClient) StopContainer(ctx context.Context, req *connect.Request[v1.StopContainerRequest]) (*connect.Response[v1.StopContainerResponse], error) {
-	return c.stopContainer.CallUnary(ctx, req)
-}
-
-// RestartContainer calls composia.agent.v1.DockerService.RestartContainer.
-func (c *dockerServiceClient) RestartContainer(ctx context.Context, req *connect.Request[v1.RestartContainerRequest]) (*connect.Response[v1.RestartContainerResponse], error) {
-	return c.restartContainer.CallUnary(ctx, req)
+// RunContainerAction calls composia.agent.v1.DockerService.RunContainerAction.
+func (c *dockerServiceClient) RunContainerAction(ctx context.Context, req *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.RunContainerActionResponse], error) {
+	return c.runContainerAction.CallUnary(ctx, req)
 }
 
 // GetContainerLogs calls composia.agent.v1.DockerService.GetContainerLogs.
@@ -683,9 +651,7 @@ func (c *dockerServiceClient) InspectImage(ctx context.Context, req *connect.Req
 type DockerServiceHandler interface {
 	ListContainers(context.Context, *connect.Request[v1.ListContainersRequest]) (*connect.Response[v1.ListContainersResponse], error)
 	InspectContainer(context.Context, *connect.Request[v1.InspectContainerRequest]) (*connect.Response[v1.InspectContainerResponse], error)
-	StartContainer(context.Context, *connect.Request[v1.StartContainerRequest]) (*connect.Response[v1.StartContainerResponse], error)
-	StopContainer(context.Context, *connect.Request[v1.StopContainerRequest]) (*connect.Response[v1.StopContainerResponse], error)
-	RestartContainer(context.Context, *connect.Request[v1.RestartContainerRequest]) (*connect.Response[v1.RestartContainerResponse], error)
+	RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.RunContainerActionResponse], error)
 	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error)
 	ListNetworks(context.Context, *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error)
 	InspectNetwork(context.Context, *connect.Request[v1.InspectNetworkRequest]) (*connect.Response[v1.InspectNetworkResponse], error)
@@ -714,22 +680,10 @@ func NewDockerServiceHandler(svc DockerServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(dockerServiceMethods.ByName("InspectContainer")),
 		connect.WithHandlerOptions(opts...),
 	)
-	dockerServiceStartContainerHandler := connect.NewUnaryHandler(
-		DockerServiceStartContainerProcedure,
-		svc.StartContainer,
-		connect.WithSchema(dockerServiceMethods.ByName("StartContainer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	dockerServiceStopContainerHandler := connect.NewUnaryHandler(
-		DockerServiceStopContainerProcedure,
-		svc.StopContainer,
-		connect.WithSchema(dockerServiceMethods.ByName("StopContainer")),
-		connect.WithHandlerOptions(opts...),
-	)
-	dockerServiceRestartContainerHandler := connect.NewUnaryHandler(
-		DockerServiceRestartContainerProcedure,
-		svc.RestartContainer,
-		connect.WithSchema(dockerServiceMethods.ByName("RestartContainer")),
+	dockerServiceRunContainerActionHandler := connect.NewUnaryHandler(
+		DockerServiceRunContainerActionProcedure,
+		svc.RunContainerAction,
+		connect.WithSchema(dockerServiceMethods.ByName("RunContainerAction")),
 		connect.WithHandlerOptions(opts...),
 	)
 	dockerServiceGetContainerLogsHandler := connect.NewUnaryHandler(
@@ -780,12 +734,8 @@ func NewDockerServiceHandler(svc DockerServiceHandler, opts ...connect.HandlerOp
 			dockerServiceListContainersHandler.ServeHTTP(w, r)
 		case DockerServiceInspectContainerProcedure:
 			dockerServiceInspectContainerHandler.ServeHTTP(w, r)
-		case DockerServiceStartContainerProcedure:
-			dockerServiceStartContainerHandler.ServeHTTP(w, r)
-		case DockerServiceStopContainerProcedure:
-			dockerServiceStopContainerHandler.ServeHTTP(w, r)
-		case DockerServiceRestartContainerProcedure:
-			dockerServiceRestartContainerHandler.ServeHTTP(w, r)
+		case DockerServiceRunContainerActionProcedure:
+			dockerServiceRunContainerActionHandler.ServeHTTP(w, r)
 		case DockerServiceGetContainerLogsProcedure:
 			dockerServiceGetContainerLogsHandler.ServeHTTP(w, r)
 		case DockerServiceListNetworksProcedure:
@@ -817,16 +767,8 @@ func (UnimplementedDockerServiceHandler) InspectContainer(context.Context, *conn
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.InspectContainer is not implemented"))
 }
 
-func (UnimplementedDockerServiceHandler) StartContainer(context.Context, *connect.Request[v1.StartContainerRequest]) (*connect.Response[v1.StartContainerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.StartContainer is not implemented"))
-}
-
-func (UnimplementedDockerServiceHandler) StopContainer(context.Context, *connect.Request[v1.StopContainerRequest]) (*connect.Response[v1.StopContainerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.StopContainer is not implemented"))
-}
-
-func (UnimplementedDockerServiceHandler) RestartContainer(context.Context, *connect.Request[v1.RestartContainerRequest]) (*connect.Response[v1.RestartContainerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.RestartContainer is not implemented"))
+func (UnimplementedDockerServiceHandler) RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.RunContainerActionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.RunContainerAction is not implemented"))
 }
 
 func (UnimplementedDockerServiceHandler) GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error) {

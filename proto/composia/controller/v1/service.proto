@@ -12,21 +12,13 @@ service ServiceService {
   rpc GetService(GetServiceRequest) returns (GetServiceResponse);
   rpc GetServiceTasks(GetServiceTasksRequest) returns (GetServiceTasksResponse);
   rpc GetServiceBackups(GetServiceBackupsRequest) returns (GetServiceBackupsResponse);
-  rpc BackupService(BackupServiceRequest) returns (BackupServiceResponse);
-  rpc UpdateServiceDNS(UpdateServiceDNSRequest) returns (UpdateServiceDNSResponse);
-  rpc DeployService(DeployServiceRequest) returns (DeployServiceResponse);
-  rpc UpdateService(UpdateServiceRequest) returns (UpdateServiceResponse);
-  rpc StopService(StopServiceRequest) returns (StopServiceResponse);
-  rpc RestartService(RestartServiceRequest) returns (RestartServiceResponse);
+  rpc RunServiceAction(RunServiceActionRequest) returns (TaskActionResponse);
 }
 
 service ServiceInstanceService {
   rpc ListServiceInstances(ListServiceInstancesRequest) returns (ListServiceInstancesResponse);
   rpc GetServiceInstance(GetServiceInstanceRequest) returns (GetServiceInstanceResponse);
-  rpc DeployServiceInstance(DeployServiceInstanceRequest) returns (DeployServiceInstanceResponse);
-  rpc UpdateServiceInstance(UpdateServiceInstanceRequest) returns (UpdateServiceInstanceResponse);
-  rpc StopServiceInstance(StopServiceInstanceRequest) returns (StopServiceInstanceResponse);
-  rpc RestartServiceInstance(RestartServiceInstanceRequest) returns (RestartServiceInstanceResponse);
+  rpc RunServiceInstanceAction(RunServiceInstanceActionRequest) returns (TaskActionResponse);
 }
 
 message ServiceInstanceSummary {
@@ -113,114 +105,35 @@ message GetServiceBackupsResponse {
   uint32 total_count = 2;
 }
 
-message BackupServiceRequest {
+enum ServiceAction {
+  SERVICE_ACTION_UNSPECIFIED = 0;
+  SERVICE_ACTION_DEPLOY = 1;
+  SERVICE_ACTION_UPDATE = 2;
+  SERVICE_ACTION_STOP = 3;
+  SERVICE_ACTION_RESTART = 4;
+  SERVICE_ACTION_BACKUP = 5;
+  SERVICE_ACTION_DNS_UPDATE = 6;
+}
+
+message RunServiceActionRequest {
   string service_name = 1;
-  repeated string data_names = 2;
+  ServiceAction action = 2;
   repeated string node_ids = 3;
+  repeated string data_names = 4;
 }
 
-message BackupServiceResponse {
-  string task_id = 1;
-  string status = 2;
-  string repo_revision = 3;
+enum ServiceInstanceAction {
+  SERVICE_INSTANCE_ACTION_UNSPECIFIED = 0;
+  SERVICE_INSTANCE_ACTION_DEPLOY = 1;
+  SERVICE_INSTANCE_ACTION_UPDATE = 2;
+  SERVICE_INSTANCE_ACTION_STOP = 3;
+  SERVICE_INSTANCE_ACTION_RESTART = 4;
 }
 
-message UpdateServiceDNSRequest {
-  string service_name = 1;
-}
-
-message UpdateServiceDNSResponse {
-  string task_id = 1;
-  string status = 2;
-  string repo_revision = 3;
-}
-
-message DeployServiceRequest {
-  string service_name = 1;
-  repeated string node_ids = 2;
-}
-
-message DeployServiceResponse {
-  string task_id = 1;
-  string status = 2;
-  string repo_revision = 3;
-}
-
-message UpdateServiceRequest {
-  string service_name = 1;
-  repeated string node_ids = 2;
-}
-
-message UpdateServiceResponse {
-  string task_id = 1;
-  string status = 2;
-  string repo_revision = 3;
-}
-
-message StopServiceRequest {
-  string service_name = 1;
-  repeated string node_ids = 2;
-}
-
-message StopServiceResponse {
-  string task_id = 1;
-  string status = 2;
-  string repo_revision = 3;
-}
-
-message RestartServiceRequest {
-  string service_name = 1;
-  repeated string node_ids = 2;
-}
-
-message DeployServiceInstanceRequest {
+message RunServiceInstanceActionRequest {
   string service_name = 1;
   string node_id = 2;
-}
-
-message DeployServiceInstanceResponse {
-  string task_id = 1;
-  string status = 2;
-  string repo_revision = 3;
-}
-
-message UpdateServiceInstanceRequest {
-  string service_name = 1;
-  string node_id = 2;
-}
-
-message UpdateServiceInstanceResponse {
-  string task_id = 1;
-  string status = 2;
-  string repo_revision = 3;
-}
-
-message StopServiceInstanceRequest {
-  string service_name = 1;
-  string node_id = 2;
-}
-
-message StopServiceInstanceResponse {
-  string task_id = 1;
-  string status = 2;
-  string repo_revision = 3;
-}
-
-message RestartServiceInstanceRequest {
-  string service_name = 1;
-  string node_id = 2;
-}
-
-message RestartServiceInstanceResponse {
-  string task_id = 1;
-  string status = 2;
-  string repo_revision = 3;
-}
-
-message RestartServiceResponse {
-  string task_id = 1;
-  string status = 2;
-  string repo_revision = 3;
+  ServiceInstanceAction action = 3;
 }
 
 message ListServicesRequest {

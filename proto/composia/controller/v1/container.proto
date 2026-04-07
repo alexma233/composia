@@ -2,44 +2,27 @@ syntax = "proto3";
 
 package composia.controller.v1;
 
+import "proto/composia/controller/v1/task.proto";
+
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
 service ContainerService {
-  rpc StartContainer(StartContainerRequest) returns (StartContainerResponse);
-  rpc StopContainer(StopContainerRequest) returns (StopContainerResponse);
-  rpc RestartContainer(RestartContainerRequest) returns (RestartContainerResponse);
+  rpc RunContainerAction(RunContainerActionRequest) returns (TaskActionResponse);
   rpc GetContainerLogs(GetContainerLogsRequest) returns (GetContainerLogsResponse);
   rpc OpenContainerExec(OpenContainerExecRequest) returns (OpenContainerExecResponse);
 }
 
-message StartContainerRequest {
+enum ContainerAction {
+  CONTAINER_ACTION_UNSPECIFIED = 0;
+  CONTAINER_ACTION_START = 1;
+  CONTAINER_ACTION_STOP = 2;
+  CONTAINER_ACTION_RESTART = 3;
+}
+
+message RunContainerActionRequest {
   string node_id = 1;
   string container_id = 2;
-}
-
-message StartContainerResponse {
-  string task_id = 1;
-  string status = 2;
-}
-
-message StopContainerRequest {
-  string node_id = 1;
-  string container_id = 2;
-}
-
-message StopContainerResponse {
-  string task_id = 1;
-  string status = 2;
-}
-
-message RestartContainerRequest {
-  string node_id = 1;
-  string container_id = 2;
-}
-
-message RestartContainerResponse {
-  string task_id = 1;
-  string status = 2;
+  ContainerAction action = 3;
 }
 
 message GetContainerLogsRequest {

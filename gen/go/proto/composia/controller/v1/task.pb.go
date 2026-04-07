@@ -21,6 +21,66 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type TaskActionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	RepoRevision  string                 `protobuf:"bytes,3,opt,name=repo_revision,json=repoRevision,proto3" json:"repo_revision,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskActionResponse) Reset() {
+	*x = TaskActionResponse{}
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskActionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskActionResponse) ProtoMessage() {}
+
+func (x *TaskActionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskActionResponse.ProtoReflect.Descriptor instead.
+func (*TaskActionResponse) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *TaskActionResponse) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *TaskActionResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *TaskActionResponse) GetRepoRevision() string {
+	if x != nil {
+		return x.RepoRevision
+	}
+	return ""
+}
+
 type ListTasksRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
@@ -35,7 +95,7 @@ type ListTasksRequest struct {
 
 func (x *ListTasksRequest) Reset() {
 	*x = ListTasksRequest{}
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[0]
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -47,7 +107,7 @@ func (x *ListTasksRequest) String() string {
 func (*ListTasksRequest) ProtoMessage() {}
 
 func (x *ListTasksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[0]
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -60,7 +120,7 @@ func (x *ListTasksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTasksRequest.ProtoReflect.Descriptor instead.
 func (*ListTasksRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{0}
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ListTasksRequest) GetStatus() string {
@@ -119,7 +179,7 @@ type TaskSummary struct {
 
 func (x *TaskSummary) Reset() {
 	*x = TaskSummary{}
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[1]
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -131,7 +191,7 @@ func (x *TaskSummary) String() string {
 func (*TaskSummary) ProtoMessage() {}
 
 func (x *TaskSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[1]
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -144,7 +204,7 @@ func (x *TaskSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskSummary.ProtoReflect.Descriptor instead.
 func (*TaskSummary) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{1}
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *TaskSummary) GetTaskId() string {
@@ -199,7 +259,7 @@ type ListTasksResponse struct {
 
 func (x *ListTasksResponse) Reset() {
 	*x = ListTasksResponse{}
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[2]
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -211,7 +271,7 @@ func (x *ListTasksResponse) String() string {
 func (*ListTasksResponse) ProtoMessage() {}
 
 func (x *ListTasksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[2]
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -224,7 +284,7 @@ func (x *ListTasksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTasksResponse.ProtoReflect.Descriptor instead.
 func (*ListTasksResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{2}
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ListTasksResponse) GetTasks() []*TaskSummary {
@@ -250,7 +310,7 @@ type GetTaskRequest struct {
 
 func (x *GetTaskRequest) Reset() {
 	*x = GetTaskRequest{}
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[3]
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -262,7 +322,7 @@ func (x *GetTaskRequest) String() string {
 func (*GetTaskRequest) ProtoMessage() {}
 
 func (x *GetTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[3]
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -275,7 +335,7 @@ func (x *GetTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTaskRequest.ProtoReflect.Descriptor instead.
 func (*GetTaskRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{3}
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetTaskRequest) GetTaskId() string {
@@ -297,7 +357,7 @@ type TaskStepSummary struct {
 
 func (x *TaskStepSummary) Reset() {
 	*x = TaskStepSummary{}
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[4]
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -309,7 +369,7 @@ func (x *TaskStepSummary) String() string {
 func (*TaskStepSummary) ProtoMessage() {}
 
 func (x *TaskStepSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[4]
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -322,7 +382,7 @@ func (x *TaskStepSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskStepSummary.ProtoReflect.Descriptor instead.
 func (*TaskStepSummary) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{4}
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *TaskStepSummary) GetStepName() string {
@@ -377,7 +437,7 @@ type GetTaskResponse struct {
 
 func (x *GetTaskResponse) Reset() {
 	*x = GetTaskResponse{}
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[5]
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -389,7 +449,7 @@ func (x *GetTaskResponse) String() string {
 func (*GetTaskResponse) ProtoMessage() {}
 
 func (x *GetTaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[5]
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -402,7 +462,7 @@ func (x *GetTaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTaskResponse.ProtoReflect.Descriptor instead.
 func (*GetTaskResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{5}
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetTaskResponse) GetTaskId() string {
@@ -526,7 +586,7 @@ type TailTaskLogsRequest struct {
 
 func (x *TailTaskLogsRequest) Reset() {
 	*x = TailTaskLogsRequest{}
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[6]
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -538,7 +598,7 @@ func (x *TailTaskLogsRequest) String() string {
 func (*TailTaskLogsRequest) ProtoMessage() {}
 
 func (x *TailTaskLogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[6]
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -551,7 +611,7 @@ func (x *TailTaskLogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TailTaskLogsRequest.ProtoReflect.Descriptor instead.
 func (*TailTaskLogsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{6}
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *TailTaskLogsRequest) GetTaskId() string {
@@ -570,7 +630,7 @@ type TailTaskLogsResponse struct {
 
 func (x *TailTaskLogsResponse) Reset() {
 	*x = TailTaskLogsResponse{}
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[7]
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -582,7 +642,7 @@ func (x *TailTaskLogsResponse) String() string {
 func (*TailTaskLogsResponse) ProtoMessage() {}
 
 func (x *TailTaskLogsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[7]
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -595,7 +655,7 @@ func (x *TailTaskLogsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TailTaskLogsResponse.ProtoReflect.Descriptor instead.
 func (*TailTaskLogsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{7}
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *TailTaskLogsResponse) GetContent() string {
@@ -614,7 +674,7 @@ type RunTaskAgainRequest struct {
 
 func (x *RunTaskAgainRequest) Reset() {
 	*x = RunTaskAgainRequest{}
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[8]
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -626,7 +686,7 @@ func (x *RunTaskAgainRequest) String() string {
 func (*RunTaskAgainRequest) ProtoMessage() {}
 
 func (x *RunTaskAgainRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[8]
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -639,7 +699,7 @@ func (x *RunTaskAgainRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunTaskAgainRequest.ProtoReflect.Descriptor instead.
 func (*RunTaskAgainRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{8}
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *RunTaskAgainRequest) GetTaskId() string {
@@ -649,71 +709,15 @@ func (x *RunTaskAgainRequest) GetTaskId() string {
 	return ""
 }
 
-type RunTaskAgainResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	RepoRevision  string                 `protobuf:"bytes,3,opt,name=repo_revision,json=repoRevision,proto3" json:"repo_revision,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RunTaskAgainResponse) Reset() {
-	*x = RunTaskAgainResponse{}
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RunTaskAgainResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RunTaskAgainResponse) ProtoMessage() {}
-
-func (x *RunTaskAgainResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RunTaskAgainResponse.ProtoReflect.Descriptor instead.
-func (*RunTaskAgainResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *RunTaskAgainResponse) GetTaskId() string {
-	if x != nil {
-		return x.TaskId
-	}
-	return ""
-}
-
-func (x *RunTaskAgainResponse) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-func (x *RunTaskAgainResponse) GetRepoRevision() string {
-	if x != nil {
-		return x.RepoRevision
-	}
-	return ""
-}
-
 var File_proto_composia_controller_v1_task_proto protoreflect.FileDescriptor
 
 const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	"\n" +
-	"'proto/composia/controller/v1/task.proto\x12\x16composia.controller.v1\"\xab\x01\n" +
+	"'proto/composia/controller/v1/task.proto\x12\x16composia.controller.v1\"j\n" +
+	"\x12TaskActionResponse\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x16\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\x12#\n" +
+	"\rrepo_revision\x18\x03 \x01(\tR\frepoRevision\"\xab\x01\n" +
 	"\x10ListTasksRequest\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12!\n" +
 	"\fservice_name\x18\x02 \x01(\tR\vserviceName\x12\x1b\n" +
@@ -768,16 +772,12 @@ const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	"\x14TailTaskLogsResponse\x12\x18\n" +
 	"\acontent\x18\x01 \x01(\tR\acontent\".\n" +
 	"\x13RunTaskAgainRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\"l\n" +
-	"\x14RunTaskAgainResponse\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\x12#\n" +
-	"\rrepo_revision\x18\x03 \x01(\tR\frepoRevision2\xa3\x03\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId2\xa1\x03\n" +
 	"\vTaskService\x12`\n" +
 	"\tListTasks\x12(.composia.controller.v1.ListTasksRequest\x1a).composia.controller.v1.ListTasksResponse\x12Z\n" +
 	"\aGetTask\x12&.composia.controller.v1.GetTaskRequest\x1a'.composia.controller.v1.GetTaskResponse\x12k\n" +
-	"\fTailTaskLogs\x12+.composia.controller.v1.TailTaskLogsRequest\x1a,.composia.controller.v1.TailTaskLogsResponse0\x01\x12i\n" +
-	"\fRunTaskAgain\x12+.composia.controller.v1.RunTaskAgainRequest\x1a,.composia.controller.v1.RunTaskAgainResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
+	"\fTailTaskLogs\x12+.composia.controller.v1.TailTaskLogsRequest\x1a,.composia.controller.v1.TailTaskLogsResponse0\x01\x12g\n" +
+	"\fRunTaskAgain\x12+.composia.controller.v1.RunTaskAgainRequest\x1a*.composia.controller.v1.TaskActionResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
 
 var (
 	file_proto_composia_controller_v1_task_proto_rawDescOnce sync.Once
@@ -793,28 +793,28 @@ func file_proto_composia_controller_v1_task_proto_rawDescGZIP() []byte {
 
 var file_proto_composia_controller_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_proto_composia_controller_v1_task_proto_goTypes = []any{
-	(*ListTasksRequest)(nil),     // 0: composia.controller.v1.ListTasksRequest
-	(*TaskSummary)(nil),          // 1: composia.controller.v1.TaskSummary
-	(*ListTasksResponse)(nil),    // 2: composia.controller.v1.ListTasksResponse
-	(*GetTaskRequest)(nil),       // 3: composia.controller.v1.GetTaskRequest
-	(*TaskStepSummary)(nil),      // 4: composia.controller.v1.TaskStepSummary
-	(*GetTaskResponse)(nil),      // 5: composia.controller.v1.GetTaskResponse
-	(*TailTaskLogsRequest)(nil),  // 6: composia.controller.v1.TailTaskLogsRequest
-	(*TailTaskLogsResponse)(nil), // 7: composia.controller.v1.TailTaskLogsResponse
-	(*RunTaskAgainRequest)(nil),  // 8: composia.controller.v1.RunTaskAgainRequest
-	(*RunTaskAgainResponse)(nil), // 9: composia.controller.v1.RunTaskAgainResponse
+	(*TaskActionResponse)(nil),   // 0: composia.controller.v1.TaskActionResponse
+	(*ListTasksRequest)(nil),     // 1: composia.controller.v1.ListTasksRequest
+	(*TaskSummary)(nil),          // 2: composia.controller.v1.TaskSummary
+	(*ListTasksResponse)(nil),    // 3: composia.controller.v1.ListTasksResponse
+	(*GetTaskRequest)(nil),       // 4: composia.controller.v1.GetTaskRequest
+	(*TaskStepSummary)(nil),      // 5: composia.controller.v1.TaskStepSummary
+	(*GetTaskResponse)(nil),      // 6: composia.controller.v1.GetTaskResponse
+	(*TailTaskLogsRequest)(nil),  // 7: composia.controller.v1.TailTaskLogsRequest
+	(*TailTaskLogsResponse)(nil), // 8: composia.controller.v1.TailTaskLogsResponse
+	(*RunTaskAgainRequest)(nil),  // 9: composia.controller.v1.RunTaskAgainRequest
 }
 var file_proto_composia_controller_v1_task_proto_depIdxs = []int32{
-	1, // 0: composia.controller.v1.ListTasksResponse.tasks:type_name -> composia.controller.v1.TaskSummary
-	4, // 1: composia.controller.v1.GetTaskResponse.steps:type_name -> composia.controller.v1.TaskStepSummary
-	0, // 2: composia.controller.v1.TaskService.ListTasks:input_type -> composia.controller.v1.ListTasksRequest
-	3, // 3: composia.controller.v1.TaskService.GetTask:input_type -> composia.controller.v1.GetTaskRequest
-	6, // 4: composia.controller.v1.TaskService.TailTaskLogs:input_type -> composia.controller.v1.TailTaskLogsRequest
-	8, // 5: composia.controller.v1.TaskService.RunTaskAgain:input_type -> composia.controller.v1.RunTaskAgainRequest
-	2, // 6: composia.controller.v1.TaskService.ListTasks:output_type -> composia.controller.v1.ListTasksResponse
-	5, // 7: composia.controller.v1.TaskService.GetTask:output_type -> composia.controller.v1.GetTaskResponse
-	7, // 8: composia.controller.v1.TaskService.TailTaskLogs:output_type -> composia.controller.v1.TailTaskLogsResponse
-	9, // 9: composia.controller.v1.TaskService.RunTaskAgain:output_type -> composia.controller.v1.RunTaskAgainResponse
+	2, // 0: composia.controller.v1.ListTasksResponse.tasks:type_name -> composia.controller.v1.TaskSummary
+	5, // 1: composia.controller.v1.GetTaskResponse.steps:type_name -> composia.controller.v1.TaskStepSummary
+	1, // 2: composia.controller.v1.TaskService.ListTasks:input_type -> composia.controller.v1.ListTasksRequest
+	4, // 3: composia.controller.v1.TaskService.GetTask:input_type -> composia.controller.v1.GetTaskRequest
+	7, // 4: composia.controller.v1.TaskService.TailTaskLogs:input_type -> composia.controller.v1.TailTaskLogsRequest
+	9, // 5: composia.controller.v1.TaskService.RunTaskAgain:input_type -> composia.controller.v1.RunTaskAgainRequest
+	3, // 6: composia.controller.v1.TaskService.ListTasks:output_type -> composia.controller.v1.ListTasksResponse
+	6, // 7: composia.controller.v1.TaskService.GetTask:output_type -> composia.controller.v1.GetTaskResponse
+	8, // 8: composia.controller.v1.TaskService.TailTaskLogs:output_type -> composia.controller.v1.TailTaskLogsResponse
+	0, // 9: composia.controller.v1.TaskService.RunTaskAgain:output_type -> composia.controller.v1.TaskActionResponse
 	6, // [6:10] is the sub-list for method output_type
 	2, // [2:6] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name

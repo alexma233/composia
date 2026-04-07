@@ -1,14 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
-import {
-  backupService,
-  deployService,
-  restartService,
-  stopService,
-  updateService,
-  updateServiceDNS,
-} from "$lib/server/controller";
+import { runServiceAction, type ServiceAction } from "$lib/server/controller";
 import { loadServiceWorkspace } from "$lib/server/service-index";
 
 export const POST: RequestHandler = async ({ params, request }) => {
@@ -28,22 +21,11 @@ export const POST: RequestHandler = async ({ params, request }) => {
       );
     }
 
-    switch (payload.action) {
-      case "deploy":
-        return json(await deployService(workspace.serviceName));
-      case "update":
-        return json(await updateService(workspace.serviceName));
-      case "stop":
-        return json(await stopService(workspace.serviceName));
-      case "restart":
-        return json(await restartService(workspace.serviceName));
-      case "backup":
-        return json(await backupService(workspace.serviceName));
-      case "dns_update":
-        return json(await updateServiceDNS(workspace.serviceName));
-      default:
-        return json({ error: "Unsupported service action." }, { status: 400 });
+    if (!isServiceAction(payload.action)) {
+      return json({ error: "Unsupported service action." }, { status: 400 });
     }
+
+    return json(await runServiceAction(workspace.serviceName, payload.action));
   } catch (error) {
     return json(
       {
@@ -56,3 +38,14 @@ export const POST: RequestHandler = async ({ params, request }) => {
     );
   }
 };
+
+function isServiceAction(action: string | undefined): action is ServiceAction {
+  return (
+    action === "deploy" ||
+    action === "update" ||
+    action === "stop" ||
+    action === "restart" ||
+    action === "backup" ||
+    action === "dns_update"
+  );
+}

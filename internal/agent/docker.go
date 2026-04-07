@@ -121,34 +121,29 @@ func (s *dockerServer) InspectContainer(ctx context.Context, req *connect.Reques
 	}), nil
 }
 
-func (s *dockerServer) StartContainer(ctx context.Context, req *connect.Request[agentv1.StartContainerRequest]) (*connect.Response[agentv1.StartContainerResponse], error) {
+func (s *dockerServer) RunContainerAction(ctx context.Context, req *connect.Request[agentv1.RunContainerActionRequest]) (*connect.Response[agentv1.RunContainerActionResponse], error) {
 	if req.Msg.GetContainerId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("container_id is required"))
 	}
-	if err := s.client.ContainerStart(ctx, req.Msg.GetContainerId()); err != nil {
-		return nil, err
-	}
-	return connect.NewResponse(&agentv1.StartContainerResponse{}), nil
-}
 
-func (s *dockerServer) StopContainer(ctx context.Context, req *connect.Request[agentv1.StopContainerRequest]) (*connect.Response[agentv1.StopContainerResponse], error) {
-	if req.Msg.GetContainerId() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("container_id is required"))
+	switch req.Msg.GetAction() {
+	case agentv1.ContainerAction_CONTAINER_ACTION_START:
+		if err := s.client.ContainerStart(ctx, req.Msg.GetContainerId()); err != nil {
+			return nil, err
+		}
+	case agentv1.ContainerAction_CONTAINER_ACTION_STOP:
+		if err := s.client.ContainerStop(ctx, req.Msg.GetContainerId()); err != nil {
+			return nil, err
+		}
+	case agentv1.ContainerAction_CONTAINER_ACTION_RESTART:
+		if err := s.client.ContainerRestart(ctx, req.Msg.GetContainerId()); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("action is required"))
 	}
-	if err := s.client.ContainerStop(ctx, req.Msg.GetContainerId()); err != nil {
-		return nil, err
-	}
-	return connect.NewResponse(&agentv1.StopContainerResponse{}), nil
-}
 
-func (s *dockerServer) RestartContainer(ctx context.Context, req *connect.Request[agentv1.RestartContainerRequest]) (*connect.Response[agentv1.RestartContainerResponse], error) {
-	if req.Msg.GetContainerId() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("container_id is required"))
-	}
-	if err := s.client.ContainerRestart(ctx, req.Msg.GetContainerId()); err != nil {
-		return nil, err
-	}
-	return connect.NewResponse(&agentv1.RestartContainerResponse{}), nil
+	return connect.NewResponse(&agentv1.RunContainerActionResponse{}), nil
 }
 
 func (s *dockerServer) GetContainerLogs(ctx context.Context, req *connect.Request[agentv1.GetContainerLogsRequest]) (*connect.Response[agentv1.GetContainerLogsResponse], error) {
@@ -575,15 +570,15 @@ func runDockerCommand(ctx context.Context, params dockerListParams, uploadLog fu
 	var payload dockerTaskResult
 	switch params.Action {
 	case "start":
-		if _, err := server.StartContainer(ctx, connect.NewRequest(&agentv1.StartContainerRequest{ContainerId: params.ID})); err != nil {
+		if _, err := server.RunContainerAction(ctx, connect.NewRequest(&agentv1.RunContainerActionRequest{ContainerId: params.ID, Action: agentv1.ContainerAction_CONTAINER_ACTION_START})); err != nil {
 			return err
 		}
 	case "stop":
-		if _, err := server.StopContainer(ctx, connect.NewRequest(&agentv1.StopContainerRequest{ContainerId: params.ID})); err != nil {
+		if _, err := server.RunContainerAction(ctx, connect.NewRequest(&agentv1.RunContainerActionRequest{ContainerId: params.ID, Action: agentv1.ContainerAction_CONTAINER_ACTION_STOP})); err != nil {
 			return err
 		}
 	case "restart":
-		if _, err := server.RestartContainer(ctx, connect.NewRequest(&agentv1.RestartContainerRequest{ContainerId: params.ID})); err != nil {
+		if _, err := server.RunContainerAction(ctx, connect.NewRequest(&agentv1.RunContainerActionRequest{ContainerId: params.ID, Action: agentv1.ContainerAction_CONTAINER_ACTION_RESTART})); err != nil {
 			return err
 		}
 	case "logs":

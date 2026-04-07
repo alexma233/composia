@@ -21,133 +21,82 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type StartContainerRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	ContainerId   string                 `protobuf:"bytes,2,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
+type ContainerAction int32
 
-func (x *StartContainerRequest) Reset() {
-	*x = StartContainerRequest{}
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
+const (
+	ContainerAction_CONTAINER_ACTION_UNSPECIFIED ContainerAction = 0
+	ContainerAction_CONTAINER_ACTION_START       ContainerAction = 1
+	ContainerAction_CONTAINER_ACTION_STOP        ContainerAction = 2
+	ContainerAction_CONTAINER_ACTION_RESTART     ContainerAction = 3
+)
 
-func (x *StartContainerRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StartContainerRequest) ProtoMessage() {}
-
-func (x *StartContainerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
+// Enum value maps for ContainerAction.
+var (
+	ContainerAction_name = map[int32]string{
+		0: "CONTAINER_ACTION_UNSPECIFIED",
+		1: "CONTAINER_ACTION_START",
+		2: "CONTAINER_ACTION_STOP",
+		3: "CONTAINER_ACTION_RESTART",
 	}
-	return mi.MessageOf(x)
+	ContainerAction_value = map[string]int32{
+		"CONTAINER_ACTION_UNSPECIFIED": 0,
+		"CONTAINER_ACTION_START":       1,
+		"CONTAINER_ACTION_STOP":        2,
+		"CONTAINER_ACTION_RESTART":     3,
+	}
+)
+
+func (x ContainerAction) Enum() *ContainerAction {
+	p := new(ContainerAction)
+	*p = x
+	return p
 }
 
-// Deprecated: Use StartContainerRequest.ProtoReflect.Descriptor instead.
-func (*StartContainerRequest) Descriptor() ([]byte, []int) {
+func (x ContainerAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ContainerAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_composia_controller_v1_container_proto_enumTypes[0].Descriptor()
+}
+
+func (ContainerAction) Type() protoreflect.EnumType {
+	return &file_proto_composia_controller_v1_container_proto_enumTypes[0]
+}
+
+func (x ContainerAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ContainerAction.Descriptor instead.
+func (ContainerAction) EnumDescriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *StartContainerRequest) GetNodeId() string {
-	if x != nil {
-		return x.NodeId
-	}
-	return ""
-}
-
-func (x *StartContainerRequest) GetContainerId() string {
-	if x != nil {
-		return x.ContainerId
-	}
-	return ""
-}
-
-type StartContainerResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StartContainerResponse) Reset() {
-	*x = StartContainerResponse{}
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StartContainerResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StartContainerResponse) ProtoMessage() {}
-
-func (x *StartContainerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StartContainerResponse.ProtoReflect.Descriptor instead.
-func (*StartContainerResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *StartContainerResponse) GetTaskId() string {
-	if x != nil {
-		return x.TaskId
-	}
-	return ""
-}
-
-func (x *StartContainerResponse) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-type StopContainerRequest struct {
+type RunContainerActionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	ContainerId   string                 `protobuf:"bytes,2,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	Action        ContainerAction        `protobuf:"varint,3,opt,name=action,proto3,enum=composia.controller.v1.ContainerAction" json:"action,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *StopContainerRequest) Reset() {
-	*x = StopContainerRequest{}
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[2]
+func (x *RunContainerActionRequest) Reset() {
+	*x = RunContainerActionRequest{}
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StopContainerRequest) String() string {
+func (x *RunContainerActionRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StopContainerRequest) ProtoMessage() {}
+func (*RunContainerActionRequest) ProtoMessage() {}
 
-func (x *StopContainerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[2]
+func (x *RunContainerActionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -158,179 +107,30 @@ func (x *StopContainerRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StopContainerRequest.ProtoReflect.Descriptor instead.
-func (*StopContainerRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{2}
+// Deprecated: Use RunContainerActionRequest.ProtoReflect.Descriptor instead.
+func (*RunContainerActionRequest) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *StopContainerRequest) GetNodeId() string {
+func (x *RunContainerActionRequest) GetNodeId() string {
 	if x != nil {
 		return x.NodeId
 	}
 	return ""
 }
 
-func (x *StopContainerRequest) GetContainerId() string {
+func (x *RunContainerActionRequest) GetContainerId() string {
 	if x != nil {
 		return x.ContainerId
 	}
 	return ""
 }
 
-type StopContainerResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StopContainerResponse) Reset() {
-	*x = StopContainerResponse{}
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StopContainerResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StopContainerResponse) ProtoMessage() {}
-
-func (x *StopContainerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[3]
+func (x *RunContainerActionRequest) GetAction() ContainerAction {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
+		return x.Action
 	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StopContainerResponse.ProtoReflect.Descriptor instead.
-func (*StopContainerResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *StopContainerResponse) GetTaskId() string {
-	if x != nil {
-		return x.TaskId
-	}
-	return ""
-}
-
-func (x *StopContainerResponse) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-type RestartContainerRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	ContainerId   string                 `protobuf:"bytes,2,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RestartContainerRequest) Reset() {
-	*x = RestartContainerRequest{}
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RestartContainerRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RestartContainerRequest) ProtoMessage() {}
-
-func (x *RestartContainerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RestartContainerRequest.ProtoReflect.Descriptor instead.
-func (*RestartContainerRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *RestartContainerRequest) GetNodeId() string {
-	if x != nil {
-		return x.NodeId
-	}
-	return ""
-}
-
-func (x *RestartContainerRequest) GetContainerId() string {
-	if x != nil {
-		return x.ContainerId
-	}
-	return ""
-}
-
-type RestartContainerResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RestartContainerResponse) Reset() {
-	*x = RestartContainerResponse{}
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RestartContainerResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RestartContainerResponse) ProtoMessage() {}
-
-func (x *RestartContainerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RestartContainerResponse.ProtoReflect.Descriptor instead.
-func (*RestartContainerResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *RestartContainerResponse) GetTaskId() string {
-	if x != nil {
-		return x.TaskId
-	}
-	return ""
-}
-
-func (x *RestartContainerResponse) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
+	return ContainerAction_CONTAINER_ACTION_UNSPECIFIED
 }
 
 type GetContainerLogsRequest struct {
@@ -345,7 +145,7 @@ type GetContainerLogsRequest struct {
 
 func (x *GetContainerLogsRequest) Reset() {
 	*x = GetContainerLogsRequest{}
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[6]
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -357,7 +157,7 @@ func (x *GetContainerLogsRequest) String() string {
 func (*GetContainerLogsRequest) ProtoMessage() {}
 
 func (x *GetContainerLogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[6]
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -370,7 +170,7 @@ func (x *GetContainerLogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetContainerLogsRequest.ProtoReflect.Descriptor instead.
 func (*GetContainerLogsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{6}
+	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetContainerLogsRequest) GetNodeId() string {
@@ -410,7 +210,7 @@ type GetContainerLogsResponse struct {
 
 func (x *GetContainerLogsResponse) Reset() {
 	*x = GetContainerLogsResponse{}
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[7]
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -422,7 +222,7 @@ func (x *GetContainerLogsResponse) String() string {
 func (*GetContainerLogsResponse) ProtoMessage() {}
 
 func (x *GetContainerLogsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[7]
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -435,7 +235,7 @@ func (x *GetContainerLogsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetContainerLogsResponse.ProtoReflect.Descriptor instead.
 func (*GetContainerLogsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{7}
+	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetContainerLogsResponse) GetContent() string {
@@ -458,7 +258,7 @@ type OpenContainerExecRequest struct {
 
 func (x *OpenContainerExecRequest) Reset() {
 	*x = OpenContainerExecRequest{}
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[8]
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -470,7 +270,7 @@ func (x *OpenContainerExecRequest) String() string {
 func (*OpenContainerExecRequest) ProtoMessage() {}
 
 func (x *OpenContainerExecRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[8]
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -483,7 +283,7 @@ func (x *OpenContainerExecRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenContainerExecRequest.ProtoReflect.Descriptor instead.
 func (*OpenContainerExecRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{8}
+	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *OpenContainerExecRequest) GetNodeId() string {
@@ -531,7 +331,7 @@ type OpenContainerExecResponse struct {
 
 func (x *OpenContainerExecResponse) Reset() {
 	*x = OpenContainerExecResponse{}
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[9]
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -543,7 +343,7 @@ func (x *OpenContainerExecResponse) String() string {
 func (*OpenContainerExecResponse) ProtoMessage() {}
 
 func (x *OpenContainerExecResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[9]
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -556,7 +356,7 @@ func (x *OpenContainerExecResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenContainerExecResponse.ProtoReflect.Descriptor instead.
 func (*OpenContainerExecResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{9}
+	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *OpenContainerExecResponse) GetSessionId() string {
@@ -577,25 +377,11 @@ var File_proto_composia_controller_v1_container_proto protoreflect.FileDescripto
 
 const file_proto_composia_controller_v1_container_proto_rawDesc = "" +
 	"\n" +
-	",proto/composia/controller/v1/container.proto\x12\x16composia.controller.v1\"S\n" +
-	"\x15StartContainerRequest\x12\x17\n" +
+	",proto/composia/controller/v1/container.proto\x12\x16composia.controller.v1\x1a'proto/composia/controller/v1/task.proto\"\x98\x01\n" +
+	"\x19RunContainerActionRequest\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12!\n" +
-	"\fcontainer_id\x18\x02 \x01(\tR\vcontainerId\"I\n" +
-	"\x16StartContainerResponse\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\"R\n" +
-	"\x14StopContainerRequest\x12\x17\n" +
-	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12!\n" +
-	"\fcontainer_id\x18\x02 \x01(\tR\vcontainerId\"H\n" +
-	"\x15StopContainerResponse\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\"U\n" +
-	"\x17RestartContainerRequest\x12\x17\n" +
-	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12!\n" +
-	"\fcontainer_id\x18\x02 \x01(\tR\vcontainerId\"K\n" +
-	"\x18RestartContainerResponse\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\"\x89\x01\n" +
+	"\fcontainer_id\x18\x02 \x01(\tR\vcontainerId\x12?\n" +
+	"\x06action\x18\x03 \x01(\x0e2'.composia.controller.v1.ContainerActionR\x06action\"\x89\x01\n" +
 	"\x17GetContainerLogsRequest\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12!\n" +
 	"\fcontainer_id\x18\x02 \x01(\tR\vcontainerId\x12\x12\n" +
@@ -614,11 +400,14 @@ const file_proto_composia_controller_v1_container_proto_rawDesc = "" +
 	"\x19OpenContainerExecResponse\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12%\n" +
-	"\x0ewebsocket_path\x18\x02 \x01(\tR\rwebsocketPath2\xd9\x04\n" +
-	"\x10ContainerService\x12o\n" +
-	"\x0eStartContainer\x12-.composia.controller.v1.StartContainerRequest\x1a..composia.controller.v1.StartContainerResponse\x12l\n" +
-	"\rStopContainer\x12,.composia.controller.v1.StopContainerRequest\x1a-.composia.controller.v1.StopContainerResponse\x12u\n" +
-	"\x10RestartContainer\x12/.composia.controller.v1.RestartContainerRequest\x1a0.composia.controller.v1.RestartContainerResponse\x12u\n" +
+	"\x0ewebsocket_path\x18\x02 \x01(\tR\rwebsocketPath*\x88\x01\n" +
+	"\x0fContainerAction\x12 \n" +
+	"\x1cCONTAINER_ACTION_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x16CONTAINER_ACTION_START\x10\x01\x12\x19\n" +
+	"\x15CONTAINER_ACTION_STOP\x10\x02\x12\x1c\n" +
+	"\x18CONTAINER_ACTION_RESTART\x10\x032\xf8\x02\n" +
+	"\x10ContainerService\x12s\n" +
+	"\x12RunContainerAction\x121.composia.controller.v1.RunContainerActionRequest\x1a*.composia.controller.v1.TaskActionResponse\x12u\n" +
 	"\x10GetContainerLogs\x12/.composia.controller.v1.GetContainerLogsRequest\x1a0.composia.controller.v1.GetContainerLogsResponse\x12x\n" +
 	"\x11OpenContainerExec\x120.composia.controller.v1.OpenContainerExecRequest\x1a1.composia.controller.v1.OpenContainerExecResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
 
@@ -634,35 +423,30 @@ func file_proto_composia_controller_v1_container_proto_rawDescGZIP() []byte {
 	return file_proto_composia_controller_v1_container_proto_rawDescData
 }
 
-var file_proto_composia_controller_v1_container_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_proto_composia_controller_v1_container_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_proto_composia_controller_v1_container_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_proto_composia_controller_v1_container_proto_goTypes = []any{
-	(*StartContainerRequest)(nil),     // 0: composia.controller.v1.StartContainerRequest
-	(*StartContainerResponse)(nil),    // 1: composia.controller.v1.StartContainerResponse
-	(*StopContainerRequest)(nil),      // 2: composia.controller.v1.StopContainerRequest
-	(*StopContainerResponse)(nil),     // 3: composia.controller.v1.StopContainerResponse
-	(*RestartContainerRequest)(nil),   // 4: composia.controller.v1.RestartContainerRequest
-	(*RestartContainerResponse)(nil),  // 5: composia.controller.v1.RestartContainerResponse
-	(*GetContainerLogsRequest)(nil),   // 6: composia.controller.v1.GetContainerLogsRequest
-	(*GetContainerLogsResponse)(nil),  // 7: composia.controller.v1.GetContainerLogsResponse
-	(*OpenContainerExecRequest)(nil),  // 8: composia.controller.v1.OpenContainerExecRequest
-	(*OpenContainerExecResponse)(nil), // 9: composia.controller.v1.OpenContainerExecResponse
+	(ContainerAction)(0),              // 0: composia.controller.v1.ContainerAction
+	(*RunContainerActionRequest)(nil), // 1: composia.controller.v1.RunContainerActionRequest
+	(*GetContainerLogsRequest)(nil),   // 2: composia.controller.v1.GetContainerLogsRequest
+	(*GetContainerLogsResponse)(nil),  // 3: composia.controller.v1.GetContainerLogsResponse
+	(*OpenContainerExecRequest)(nil),  // 4: composia.controller.v1.OpenContainerExecRequest
+	(*OpenContainerExecResponse)(nil), // 5: composia.controller.v1.OpenContainerExecResponse
+	(*TaskActionResponse)(nil),        // 6: composia.controller.v1.TaskActionResponse
 }
 var file_proto_composia_controller_v1_container_proto_depIdxs = []int32{
-	0, // 0: composia.controller.v1.ContainerService.StartContainer:input_type -> composia.controller.v1.StartContainerRequest
-	2, // 1: composia.controller.v1.ContainerService.StopContainer:input_type -> composia.controller.v1.StopContainerRequest
-	4, // 2: composia.controller.v1.ContainerService.RestartContainer:input_type -> composia.controller.v1.RestartContainerRequest
-	6, // 3: composia.controller.v1.ContainerService.GetContainerLogs:input_type -> composia.controller.v1.GetContainerLogsRequest
-	8, // 4: composia.controller.v1.ContainerService.OpenContainerExec:input_type -> composia.controller.v1.OpenContainerExecRequest
-	1, // 5: composia.controller.v1.ContainerService.StartContainer:output_type -> composia.controller.v1.StartContainerResponse
-	3, // 6: composia.controller.v1.ContainerService.StopContainer:output_type -> composia.controller.v1.StopContainerResponse
-	5, // 7: composia.controller.v1.ContainerService.RestartContainer:output_type -> composia.controller.v1.RestartContainerResponse
-	7, // 8: composia.controller.v1.ContainerService.GetContainerLogs:output_type -> composia.controller.v1.GetContainerLogsResponse
-	9, // 9: composia.controller.v1.ContainerService.OpenContainerExec:output_type -> composia.controller.v1.OpenContainerExecResponse
-	5, // [5:10] is the sub-list for method output_type
-	0, // [0:5] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0, // 0: composia.controller.v1.RunContainerActionRequest.action:type_name -> composia.controller.v1.ContainerAction
+	1, // 1: composia.controller.v1.ContainerService.RunContainerAction:input_type -> composia.controller.v1.RunContainerActionRequest
+	2, // 2: composia.controller.v1.ContainerService.GetContainerLogs:input_type -> composia.controller.v1.GetContainerLogsRequest
+	4, // 3: composia.controller.v1.ContainerService.OpenContainerExec:input_type -> composia.controller.v1.OpenContainerExecRequest
+	6, // 4: composia.controller.v1.ContainerService.RunContainerAction:output_type -> composia.controller.v1.TaskActionResponse
+	3, // 5: composia.controller.v1.ContainerService.GetContainerLogs:output_type -> composia.controller.v1.GetContainerLogsResponse
+	5, // 6: composia.controller.v1.ContainerService.OpenContainerExec:output_type -> composia.controller.v1.OpenContainerExecResponse
+	4, // [4:7] is the sub-list for method output_type
+	1, // [1:4] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_proto_composia_controller_v1_container_proto_init() }
@@ -670,18 +454,20 @@ func file_proto_composia_controller_v1_container_proto_init() {
 	if File_proto_composia_controller_v1_container_proto != nil {
 		return
 	}
+	file_proto_composia_controller_v1_task_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_controller_v1_container_proto_rawDesc), len(file_proto_composia_controller_v1_container_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   10,
+			NumEnums:      1,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_proto_composia_controller_v1_container_proto_goTypes,
 		DependencyIndexes: file_proto_composia_controller_v1_container_proto_depIdxs,
+		EnumInfos:         file_proto_composia_controller_v1_container_proto_enumTypes,
 		MessageInfos:      file_proto_composia_controller_v1_container_proto_msgTypes,
 	}.Build()
 	File_proto_composia_controller_v1_container_proto = out.File

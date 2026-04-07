@@ -8,7 +8,13 @@ service TaskService {
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
   rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
   rpc TailTaskLogs(TailTaskLogsRequest) returns (stream TailTaskLogsResponse);
-  rpc RunTaskAgain(RunTaskAgainRequest) returns (RunTaskAgainResponse);
+  rpc RunTaskAgain(RunTaskAgainRequest) returns (TaskActionResponse);
+}
+
+message TaskActionResponse {
+  string task_id = 1;
+  string status = 2;
+  string repo_revision = 3;
 }
 
 message ListTasksRequest {
@@ -74,10 +80,4 @@ message TailTaskLogsResponse {
 
 message RunTaskAgainRequest {
   string task_id = 1;
-}
-
-message RunTaskAgainResponse {
-  string task_id = 1;
-  string status = 2;
-  string repo_revision = 3;
 }

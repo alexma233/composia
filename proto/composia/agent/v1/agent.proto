@@ -28,9 +28,7 @@ service BundleService {
 service DockerService {
   rpc ListContainers(ListContainersRequest) returns (ListContainersResponse);
   rpc InspectContainer(InspectContainerRequest) returns (InspectContainerResponse);
-  rpc StartContainer(StartContainerRequest) returns (StartContainerResponse);
-  rpc StopContainer(StopContainerRequest) returns (StopContainerResponse);
-  rpc RestartContainer(RestartContainerRequest) returns (RestartContainerResponse);
+  rpc RunContainerAction(RunContainerActionRequest) returns (RunContainerActionResponse);
   rpc GetContainerLogs(GetContainerLogsRequest) returns (GetContainerLogsResponse);
   rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse);
   rpc InspectNetwork(InspectNetworkRequest) returns (InspectNetworkResponse);
@@ -211,23 +209,19 @@ message InspectContainerResponse {
   string raw_json = 1;
 }
 
-message StartContainerRequest {
-  string container_id = 1;
+enum ContainerAction {
+  CONTAINER_ACTION_UNSPECIFIED = 0;
+  CONTAINER_ACTION_START = 1;
+  CONTAINER_ACTION_STOP = 2;
+  CONTAINER_ACTION_RESTART = 3;
 }
 
-message StartContainerResponse {}
-
-message StopContainerRequest {
+message RunContainerActionRequest {
   string container_id = 1;
+  ContainerAction action = 2;
 }
 
-message StopContainerResponse {}
-
-message RestartContainerRequest {
-  string container_id = 1;
-}
-
-message RestartContainerResponse {}
+message RunContainerActionResponse {}
 
 message GetContainerLogsRequest {
   string container_id = 1;
