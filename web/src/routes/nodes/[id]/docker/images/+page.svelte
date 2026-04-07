@@ -3,7 +3,7 @@
   import type { PageData } from './$types';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
-  import { Badge, type Variant } from '$lib/components/ui/badge';
+  import { Badge } from '$lib/components/ui/badge';
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
   import { formatBytes, formatDockerTimestamp, formatShortId } from '$lib/presenters';
@@ -224,7 +224,7 @@
                   </TableCell>
                   <TableCell>
                     {#if image.containersCount && image.containersCount > 0}
-                      <Badge variant="success">{image.containersCount} container{image.containersCount > 1 ? 's' : ''}</Badge>
+                      <Badge variant="default">{image.containersCount} container{image.containersCount > 1 ? 's' : ''}</Badge>
                     {:else}
                       <Badge variant="secondary">Unused</Badge>
                     {/if}

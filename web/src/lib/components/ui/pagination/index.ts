@@ -1,17 +1,31 @@
-import Pagination from "./pagination.svelte";
-import PaginationContent from "./pagination-content.svelte";
-import PaginationItem from "./pagination-item.svelte";
-import PaginationLink from "./pagination-link.svelte";
-import PaginationEllipsis from "./pagination-ellipsis.svelte";
-import PaginationPrev from "./pagination-prev.svelte";
-import PaginationNext from "./pagination-next.svelte";
+import Root from "./pagination.svelte";
+import Content from "./pagination-content.svelte";
+import Item from "./pagination-item.svelte";
+import Link from "./pagination-link.svelte";
+import PrevButton from "./pagination-prev-button.svelte";
+import NextButton from "./pagination-next-button.svelte";
+import Ellipsis from "./pagination-ellipsis.svelte";
+import Previous from "./pagination-previous.svelte";
+import Next from "./pagination-next.svelte";
 
 export {
-	Pagination,
-	PaginationContent,
-	PaginationItem,
-	PaginationLink,
-	PaginationEllipsis,
-	PaginationPrev,
-	PaginationNext,
+	Root,
+	Content,
+	Item,
+	Link,
+	PrevButton, // old
+	NextButton, // old
+	Ellipsis,
+	Previous,
+	Next,
+	//
+	Root as Pagination,
+	Content as PaginationContent,
+	Item as PaginationItem,
+	Link as PaginationLink,
+	PrevButton as PaginationPrevButton, // old
+	NextButton as PaginationNextButton, // old
+	Ellipsis as PaginationEllipsis,
+	Previous as PaginationPrevious,
+	Next as PaginationNext,
 };

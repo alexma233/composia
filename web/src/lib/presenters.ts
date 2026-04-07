@@ -1,3 +1,5 @@
+import type { BadgeVariant } from '$lib/components/ui/badge';
+
 export function formatTimestamp(value: string) {
   if (!value) {
     return "N/A";
@@ -6,36 +8,36 @@ export function formatTimestamp(value: string) {
   return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString();
 }
 
-export function taskStatusTone(status: string) {
+export function taskStatusTone(status: string): BadgeVariant {
   switch (status) {
     case "running":
-      return "info";
+      return "outline";
     case "succeeded":
-      return "success";
+      return "default";
     case "pending":
-      return "warning";
+      return "secondary";
     case "failed":
-      return "danger";
+      return "destructive";
     default:
       return "secondary";
   }
 }
 
-export function runtimeStatusTone(status: string) {
+export function runtimeStatusTone(status: string): BadgeVariant {
   switch (status) {
     case "running":
-      return "success";
+      return "default";
     case "stopped":
       return "secondary";
     case "error":
-      return "danger";
+      return "destructive";
     default:
-      return "warning";
+      return "outline";
   }
 }
 
-export function onlineStatusTone(isOnline: boolean) {
-  return isOnline ? "success" : "secondary";
+export function onlineStatusTone(isOnline: boolean): BadgeVariant {
+  return isOnline ? "default" : "secondary";
 }
 
 export function formatBytes(bytes: number) {

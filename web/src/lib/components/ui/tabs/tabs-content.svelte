@@ -1,24 +1,17 @@
 <script lang="ts">
-  import { getContext } from 'svelte';
+	import { Tabs as TabsPrimitive } from "bits-ui";
+	import { cn } from "$lib/utils.js";
 
-  import { cn } from '$lib/utils';
-  import { tabsContextKey, type TabsContext } from './context';
-
-  interface Props {
-    value?: string;
-    class?: string;
-    children?: import('svelte').Snippet;
-    [key: string]: unknown;
-  }
-
-  let { value = '', class: className = '', children, ...restProps }: Props = $props();
-
-  const context = getContext<TabsContext>(tabsContextKey);
-  let active = $derived(context.value === value);
+	let {
+		ref = $bindable(null),
+		class: className,
+		...restProps
+	}: TabsPrimitive.ContentProps = $props();
 </script>
 
-{#if active}
-  <div class={cn('focus-visible:outline-none', className)} data-state="active" {...restProps}>
-    {@render children?.()}
-  </div>
-{/if}
+<TabsPrimitive.Content
+	bind:ref
+	data-slot="tabs-content"
+	class={cn("text-xs/relaxed flex-1 outline-none", className)}
+	{...restProps}
+/>

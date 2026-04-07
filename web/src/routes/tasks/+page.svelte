@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { PageData } from './$types';
+  import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import type { Snippet } from 'svelte';
 
@@ -12,8 +13,8 @@
     PaginationEllipsis,
     PaginationItem,
     PaginationLink,
-    PaginationNext,
-    PaginationPrev,
+    PaginationNextButton,
+    PaginationPrevButton,
   } from '$lib/components/ui/pagination';
   import TaskItem from '$lib/components/app/task-item.svelte';
 
@@ -27,6 +28,11 @@
   const pageSize = 20;
   let totalPages = $derived(data.totalCount > 0 ? Math.ceil(data.totalCount / pageSize) : 0);
   let currentPath = $derived($page.url.pathname);
+  let currentPage = $state(1);
+
+  $effect(() => {
+    currentPage = data.page;
+  });
 
   $effect(() => {
     document.title = `Tasks - Composia`;
@@ -38,30 +44,13 @@
     return `${currentPath}?${params.toString()}`;
   }
 
-  let pageNumbers = $derived((() => {
-    if (totalPages <= 1) return [];
-    if (totalPages <= 7) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
+  $effect(() => {
+    if (currentPage === data.page) {
+      return;
     }
-    const current = data.page;
-    const pages: (number | 'ellipsis')[] = [];
-    if (current <= 4) {
-      for (let i = 1; i <= 5; i++) pages.push(i);
-      pages.push('ellipsis');
-      pages.push(totalPages);
-    } else if (current >= totalPages - 3) {
-      pages.push(1);
-      pages.push('ellipsis');
-      for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
-    } else {
-      pages.push(1);
-      pages.push('ellipsis');
-      for (let i = current - 1; i <= current + 1; i++) pages.push(i);
-      pages.push('ellipsis');
-      pages.push(totalPages);
-    }
-    return pages;
-  })());
+
+    void goto(pageUrl(currentPage));
+  });
 </script>
 
 <div class="page-shell">
@@ -93,32 +82,30 @@
 
       {#if totalPages > 1}
         <div class="mt-6">
-          <Pagination>
-            <PaginationContent>
-              {#if data.page > 1}
+          <Pagination count={data.totalCount} perPage={pageSize} bind:page={currentPage}>
+            {#snippet children({ pages, currentPage })}
+              <PaginationContent>
                 <PaginationItem>
-                  <PaginationPrev href={pageUrl(data.page - 1)} />
+                  <PaginationPrevButton />
                 </PaginationItem>
-              {/if}
 
-              {#each pageNumbers as pageNum}
-                {#if pageNum === 'ellipsis'}
-                  <PaginationItem>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                {:else}
-                  <PaginationItem>
-                    <PaginationLink page={pageNum} href={pageUrl(pageNum)} active={pageNum === data.page} />
-                  </PaginationItem>
-                {/if}
-              {/each}
+                {#each pages as page (page.key)}
+                  {#if page.type === 'ellipsis'}
+                    <PaginationItem>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  {:else}
+                    <PaginationItem>
+                      <PaginationLink {page} isActive={currentPage === page.value} />
+                    </PaginationItem>
+                  {/if}
+                {/each}
 
-              {#if data.page < totalPages}
                 <PaginationItem>
-                  <PaginationNext href={pageUrl(data.page + 1)} />
+                  <PaginationNextButton />
                 </PaginationItem>
-              {/if}
-            </PaginationContent>
+              </PaginationContent>
+            {/snippet}
           </Pagination>
         </div>
       {/if}

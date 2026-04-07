@@ -1,17 +1,17 @@
 <script lang="ts">
-  import { cn } from '$lib/utils';
+	import type { HTMLTableAttributes } from "svelte/elements";
+	import { cn, type WithElementRef } from "$lib/utils.js";
 
-  interface Props {
-    class?: string;
-    children?: import('svelte').Snippet;
-    [key: string]: unknown;
-  }
-
-  let { class: className = '', children, ...restProps }: Props = $props();
+	let {
+		ref = $bindable(null),
+		class: className,
+		children,
+		...restProps
+	}: WithElementRef<HTMLTableAttributes> = $props();
 </script>
 
-<div class={cn('relative w-full overflow-x-auto', className)}>
-  <table class="w-full caption-bottom text-sm" {...restProps}>
-    {@render children?.()}
-  </table>
+<div data-slot="table-container" class="relative w-full overflow-x-auto">
+	<table bind:this={ref} data-slot="table" class={cn("w-full caption-bottom text-xs", className)} {...restProps}>
+		{@render children?.()}
+	</table>
 </div>

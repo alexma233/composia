@@ -1,15 +1,23 @@
 <script lang="ts">
-  import { cn } from '$lib/utils';
+	import type { HTMLAttributes } from "svelte/elements";
+	import { cn, type WithElementRef } from "$lib/utils.js";
 
-  interface Props {
-    class?: string;
-    children?: import('svelte').Snippet;
-    [key: string]: unknown;
-  }
-
-  let { class: className = '', children, ...restProps }: Props = $props();
+	let {
+		ref = $bindable(null),
+		class: className,
+		children,
+		...restProps
+	}: WithElementRef<HTMLAttributes<HTMLDivElement>> = $props();
 </script>
 
-<div class={cn('text-sm leading-6 text-current [&_p]:leading-6', className)} {...restProps}>
-  {@render children?.()}
+<div
+	bind:this={ref}
+	data-slot="alert-description"
+	class={cn(
+		"text-muted-foreground text-xs/relaxed text-balance md:text-pretty [&_p:not(:last-child)]:mb-4 [&_a]:hover:text-foreground [&_a]:underline [&_a]:underline-offset-3",
+		className
+	)}
+	{...restProps}
+>
+	{@render children?.()}
 </div>

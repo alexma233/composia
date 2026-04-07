@@ -1,12 +1,17 @@
-import Alert from "./alert.svelte";
-import AlertDescription from "./alert-description.svelte";
-import AlertTitle from "./alert-title.svelte";
+import Root from "./alert.svelte";
+import Description from "./alert-description.svelte";
+import Title from "./alert-title.svelte";
+import Action from "./alert-action.svelte";
+export { alertVariants, type AlertVariant } from "./alert.svelte";
 
 export {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-  Alert as Root,
-  AlertDescription as Description,
-  AlertTitle as Title,
+	Root,
+	Description,
+	Title,
+	Action,
+	//
+	Root as Alert,
+	Description as AlertDescription,
+	Title as AlertTitle,
+	Action as AlertAction,
 };

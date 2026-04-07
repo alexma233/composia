@@ -1,32 +1,43 @@
-<script lang="ts">
-  import { cva, type VariantProps } from 'class-variance-authority';
+<script lang="ts" module>
+	import { type VariantProps, tv } from "tailwind-variants";
 
-  import { cn } from '$lib/utils';
+	export const alertVariants = tv({
+		base: "grid gap-0.5 rounded-lg border px-2 py-1.5 text-left text-xs/relaxed has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-1.5 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-3.5 group/alert relative w-full",
+		variants: {
+			variant: {
+				default: "bg-card text-card-foreground",
+				destructive: "text-destructive bg-card *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current",
+			},
+		},
+		defaultVariants: {
+			variant: "default",
+		},
+	});
 
-  export const alertVariants = cva('relative w-full rounded-lg border px-4 py-3 text-sm', {
-    variants: {
-      variant: {
-        default: 'border-border bg-card text-card-foreground',
-        destructive: 'border-destructive/20 bg-destructive/10 text-destructive dark:border-destructive/30'
-      }
-    },
-    defaultVariants: {
-      variant: 'default'
-    }
-  });
-
-  type Variant = VariantProps<typeof alertVariants>['variant'];
-
-  interface Props {
-    variant?: Variant;
-    class?: string;
-    children?: import('svelte').Snippet;
-    [key: string]: unknown;
-  }
-
-  let { variant = 'default', class: className = '', children, ...restProps }: Props = $props();
+	export type AlertVariant = VariantProps<typeof alertVariants>["variant"];
 </script>
 
-<div role="alert" class={cn(alertVariants({ variant }), className)} {...restProps}>
-  {@render children?.()}
+<script lang="ts">
+	import type { HTMLAttributes } from "svelte/elements";
+	import { cn, type WithElementRef } from "$lib/utils.js";
+
+	let {
+		ref = $bindable(null),
+		class: className,
+		variant = "default",
+		children,
+		...restProps
+	}: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
+		variant?: AlertVariant;
+	} = $props();
+</script>
+
+<div
+	bind:this={ref}
+	data-slot="alert"
+	role="alert"
+	class={cn(alertVariants({ variant }), className)}
+	{...restProps}
+>
+	{@render children?.()}
 </div>

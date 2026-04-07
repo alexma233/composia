@@ -1,21 +1,28 @@
 <script lang="ts">
-	import { cn } from "$lib/utils";
-	import type { Snippet } from "svelte";
-	import type { HTMLAttributes } from "svelte/elements";
+	import { Pagination as PaginationPrimitive } from "bits-ui";
+
+	import { cn } from "$lib/utils.js";
 
 	let {
+		ref = $bindable(null),
 		class: className,
-		children,
+		count = 0,
+		perPage = 10,
+		page = $bindable(1),
+		siblingCount = 1,
 		...restProps
-	}: HTMLAttributes<HTMLElement> & {
-		children?: Snippet<[]>;
-	} = $props();
+	}: PaginationPrimitive.RootProps = $props();
 </script>
 
-<nav
+<PaginationPrimitive.Root
+	bind:ref
+	bind:page
+	role="navigation"
 	aria-label="pagination"
-	class={cn("mx-auto flex w-full justify-center", className)}
+	data-slot="pagination"
+	{count}
+	{perPage}
+	{siblingCount}
+	class={cn("cn-pagination mx-auto flex w-full justify-center", className)}
 	{...restProps}
->
-	{@render children?.()}
-</nav>
+/>

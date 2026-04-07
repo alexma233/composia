@@ -36,11 +36,11 @@
     return date.toLocaleString();
   }
 
-  function getDriverColor(driver: string): 'default' | 'info' | 'success' | 'secondary' {
+  function getDriverColor(driver: string): 'default' | 'outline' | 'secondary' {
     const d = driver?.toLowerCase() || '';
     if (d === 'bridge') return 'default';
-    if (d === 'host') return 'info';
-    if (d === 'overlay') return 'success';
+    if (d === 'host') return 'outline';
+    if (d === 'overlay') return 'default';
     return 'secondary';
   }
 </script>
@@ -68,7 +68,7 @@
           </div>
           <div class="flex items-center gap-2">
             {#if networkData}
-              <Badge variant={networkData.Scope === 'local' ? 'secondary' : 'info'}>
+              <Badge variant={networkData.Scope === 'local' ? 'secondary' : 'outline'}>
                 {networkData.Scope}
               </Badge>
             {/if}
@@ -148,13 +148,13 @@
                     {/if}
                     <div class="flex justify-between">
                       <span class="text-muted-foreground">IPv4 Enabled</span>
-                      <Badge variant={networkData.EnableIPv4 === false ? 'secondary' : 'success'}>
+                      <Badge variant={networkData.EnableIPv4 === false ? 'secondary' : 'default'}>
                         {networkData.EnableIPv4 !== false ? 'Yes' : 'No'}
                       </Badge>
                     </div>
                     <div class="flex justify-between">
                       <span class="text-muted-foreground">IPv6 Enabled</span>
-                      <Badge variant={networkData.EnableIPv6 ? 'success' : 'secondary'}>
+                      <Badge variant={networkData.EnableIPv6 ? 'default' : 'secondary'}>
                         {networkData.EnableIPv6 ? 'Yes' : 'No'}
                       </Badge>
                     </div>
@@ -168,19 +168,19 @@
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex justify-between">
                       <span class="text-muted-foreground">Internal</span>
-                      <Badge variant={networkData.Internal ? 'warning' : 'secondary'}>
+                      <Badge variant={networkData.Internal ? 'outline' : 'secondary'}>
                         {networkData.Internal ? 'Yes' : 'No'}
                       </Badge>
                     </div>
                     <div class="flex justify-between">
                       <span class="text-muted-foreground">Attachable</span>
-                      <Badge variant={networkData.Attachable ? 'success' : 'secondary'}>
+                      <Badge variant={networkData.Attachable ? 'default' : 'secondary'}>
                         {networkData.Attachable ? 'Yes' : 'No'}
                       </Badge>
                     </div>
                     <div class="flex justify-between">
                       <span class="text-muted-foreground">Ingress</span>
-                      <Badge variant={networkData.Ingress ? 'info' : 'secondary'}>
+                      <Badge variant={networkData.Ingress ? 'outline' : 'secondary'}>
                         {networkData.Ingress ? 'Yes' : 'No'}
                       </Badge>
                     </div>

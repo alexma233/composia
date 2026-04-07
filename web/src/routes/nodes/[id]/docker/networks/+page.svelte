@@ -3,7 +3,7 @@
   import type { PageData } from './$types';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
-  import { Badge, type Variant } from '$lib/components/ui/badge';
+  import { Badge, type BadgeVariant } from '$lib/components/ui/badge';
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
   import { formatDockerTimestamp, formatShortId } from '$lib/presenters';
@@ -79,10 +79,10 @@
     return name === 'bridge' || name === 'host' || name === 'none';
   }
 
-  function getDriverVariant(driver: string): Variant {
+  function getDriverVariant(driver: string): BadgeVariant {
     const d = driver.toLowerCase();
     if (d === 'bridge' || d === 'host') return 'default';
-    if (d === 'overlay') return 'info';
+    if (d === 'overlay') return 'outline';
     if (d === 'macvlan') return 'secondary';
     return 'outline';
   }
@@ -225,7 +225,7 @@
                   </TableCell>
                   <TableCell>
                     {#if network.containersCount > 0}
-                      <Badge variant="success">{network.containersCount}</Badge>
+                      <Badge variant="default">{network.containersCount}</Badge>
                     {:else}
                       <span class="text-muted-foreground">0</span>
                     {/if}

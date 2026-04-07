@@ -1,42 +1,49 @@
 <script lang="ts" module>
-  import { cva, type VariantProps } from 'class-variance-authority';
+	import { type VariantProps, tv } from "tailwind-variants";
 
-  export const badgeVariants = cva(
-    'inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors',
-    {
-      variants: {
-        variant: {
-          default: 'border-primary/20 bg-primary/10 text-primary',
-          secondary: 'border-border bg-secondary text-secondary-foreground',
-          success: 'border-emerald-600/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-          warning: 'border-amber-600/20 bg-amber-500/10 text-amber-700 dark:text-amber-300',
-          danger: 'border-rose-600/20 bg-rose-500/10 text-rose-700 dark:text-rose-300',
-          info: 'border-sky-600/20 bg-sky-500/10 text-sky-700 dark:text-sky-300',
-          outline: 'border-border text-foreground'
-        }
-      },
-      defaultVariants: {
-        variant: 'default'
-      }
-    }
-  );
+	export const badgeVariants = tv({
+		base: "h-5 gap-1 rounded-full border border-transparent px-2 py-0.5 text-[0.625rem] font-medium transition-all has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&>svg]:size-2.5! focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive group/badge inline-flex w-fit shrink-0 items-center justify-center overflow-hidden whitespace-nowrap transition-colors focus-visible:ring-[3px] [&>svg]:pointer-events-none",
+		variants: {
+			variant: {
+				default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
+				secondary: "bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",
+				destructive: "bg-destructive/10 [a]:hover:bg-destructive/20 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 text-destructive dark:bg-destructive/20",
+				outline: "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground bg-input/20 dark:bg-input/30",
+				ghost: "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
+				link: "text-primary underline-offset-4 hover:underline",
+			},
+		},
+		defaultVariants: {
+			variant: "default",
+		},
+	});
 
-  export type Variant = VariantProps<typeof badgeVariants>['variant'];
+	export type BadgeVariant = VariantProps<typeof badgeVariants>["variant"];
 </script>
 
 <script lang="ts">
-  import { cn } from '$lib/utils';
+	import type { HTMLAnchorAttributes } from "svelte/elements";
+	import { cn, type WithElementRef } from "$lib/utils.js";
 
-  interface Props {
-    variant?: Variant;
-    class?: string;
-    children?: import('svelte').Snippet;
-    [key: string]: unknown;
-  }
-
-  let { variant = 'default', class: className = '', children, ...restProps }: Props = $props();
+	let {
+		ref = $bindable(null),
+		href,
+		class: className,
+		variant = "default",
+		children,
+		...restProps
+	}: WithElementRef<HTMLAnchorAttributes> & {
+		variant?: BadgeVariant;
+	} = $props();
 </script>
 
-<span class={cn(badgeVariants({ variant }), className)} {...restProps}>
-  {@render children?.()}
-</span>
+<svelte:element
+	this={href ? "a" : "span"}
+	bind:this={ref}
+	data-slot="badge"
+	{href}
+	class={cn(badgeVariants({ variant }), className)}
+	{...restProps}
+>
+	{@render children?.()}
+</svelte:element>

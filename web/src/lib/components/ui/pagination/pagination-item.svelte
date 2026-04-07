@@ -1,17 +1,14 @@
 <script lang="ts">
-	import { cn } from "$lib/utils";
-	import type { Snippet } from "svelte";
-	import type { HTMLAttributes } from "svelte/elements";
+	import type { HTMLLiAttributes } from "svelte/elements";
+	import type { WithElementRef } from "$lib/utils.js";
 
 	let {
-		class: className,
+		ref = $bindable(null),
 		children,
 		...restProps
-	}: HTMLAttributes<HTMLElement> & {
-		children?: Snippet<[]>;
-	} = $props();
+	}: WithElementRef<HTMLLiAttributes> = $props();
 </script>
 
-<li class={cn("", className)} {...restProps}>
+<li bind:this={ref} data-slot="pagination-item" {...restProps}>
 	{@render children?.()}
 </li>

@@ -2,7 +2,7 @@
   import type { PageData } from './$types';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
-  import { Badge, type Variant } from '$lib/components/ui/badge';
+  import { Badge, type BadgeVariant } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
 
   interface Props {
@@ -53,13 +53,13 @@
     return `${Math.floor(diff / 86400)}d`;
   }
 
-  function getStateVariant(state: string): Variant {
+  function getStateVariant(state: string): BadgeVariant {
     const s = (state || '').toLowerCase();
-    if (s === 'running') return 'success';
-    if (s === 'created' || s === 'starting') return 'info';
+    if (s === 'running') return 'default';
+    if (s === 'created' || s === 'starting') return 'outline';
     if (s === 'paused') return 'secondary';
-    if (s === 'restarting' || s === 'unhealthy') return 'warning';
-    if (s === 'exited' || s === 'dead' || s === 'removing') return 'danger';
+    if (s === 'restarting' || s === 'unhealthy') return 'outline';
+    if (s === 'exited' || s === 'dead' || s === 'removing') return 'destructive';
     return 'default';
   }
 

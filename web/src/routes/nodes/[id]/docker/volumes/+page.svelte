@@ -205,7 +205,7 @@
                   </TableCell>
                   <TableCell>
                     {#if volume.inUse}
-                      <Badge variant="success">{volume.containersCount} container{volume.containersCount > 1 ? 's' : ''}</Badge>
+                      <Badge variant="default">{volume.containersCount} container{volume.containersCount > 1 ? 's' : ''}</Badge>
                     {:else}
                       <Badge variant="secondary">Unused</Badge>
                     {/if}

@@ -193,7 +193,7 @@
                     </div>
                     <div class="flex justify-between">
                       <span class="text-muted-foreground">Ref Count</span>
-                      <Badge variant={volumeData.UsageData.RefCount > 0 ? 'success' : 'secondary'}>
+                      <Badge variant={volumeData.UsageData.RefCount > 0 ? 'default' : 'secondary'}>
                         {volumeData.UsageData.RefCount} container{volumeData.UsageData.RefCount !== 1 ? 's' : ''}
                       </Badge>
                     </div>

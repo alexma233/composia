@@ -1,15 +1,22 @@
 <script lang="ts">
-	import { cn } from "$lib/utils";
-	import PaginationItem from "./pagination-item.svelte";
+	import type { HTMLAttributes } from "svelte/elements";
+	import { cn, type WithElementRef, type WithoutChildren } from "$lib/utils.js";
+	import MoreHorizontalIcon from '@lucide/svelte/icons/more-horizontal';
 
 	let {
+		ref = $bindable(null),
 		class: className,
 		...restProps
-	}: { class?: string } = $props();
+	}: WithoutChildren<WithElementRef<HTMLAttributes<HTMLSpanElement>>> = $props();
 </script>
 
-<PaginationItem>
-	<span class={cn("flex h-9 w-9 items-center justify-center", className)} {...restProps}>
-		&#8230;
-	</span>
-</PaginationItem>
+<span
+	bind:this={ref}
+	aria-hidden="true"
+	data-slot="pagination-ellipsis"
+	class={cn("size-7 items-center justify-center [&_svg:not([class*='size-'])]:size-3.5 flex items-center justify-center", className)}
+	{...restProps}
+>
+	<MoreHorizontalIcon  />
+	<span class="sr-only">More pages</span>
+</span>
