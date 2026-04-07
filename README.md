@@ -103,3 +103,9 @@ The next backend steps are:
 ## Attributions
 
 - [Dockman](https://github.com/RA341/dockman) - Docker management UI reference for Docker resource list/inspect page patterns (AGPL-3.0)
+
+## License
+
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See [LICENSE](LICENSE) for details.
+
+If you require a commercial license for use cases not permitted under AGPL-3.0, please contact the author.
