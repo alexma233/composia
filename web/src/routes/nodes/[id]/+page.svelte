@@ -24,9 +24,15 @@
           <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="space-y-1">
               <CardTitle class="page-title">{data.node.displayName}</CardTitle>
-              <p class="text-sm text-muted-foreground">
-                {data.node.nodeId} · last heartbeat {formatTimestamp(data.node.lastHeartbeat)}
-              </p>
+              {#if data.node.displayName !== data.node.nodeId}
+                <p class="text-sm text-muted-foreground">
+                  {data.node.nodeId} · last heartbeat {formatTimestamp(data.node.lastHeartbeat)}
+                </p>
+              {:else}
+                <p class="text-sm text-muted-foreground">
+                  last heartbeat {formatTimestamp(data.node.lastHeartbeat)}
+                </p>
+              {/if}
             </div>
             <Badge variant={onlineStatusTone(data.node.isOnline)}>
               {data.node.isOnline ? 'online' : 'offline'}
@@ -93,19 +99,19 @@
                 </form>
                 <form method="POST" action="?/prune" use:enhance>
                   <input type="hidden" name="target" value="containers" />
-                  <Button variant="outline" size="sm" type="submit">Containers</Button>
+                  <Button variant="outline" size="sm" type="submit">Prune Containers</Button>
                 </form>
                 <form method="POST" action="?/prune" use:enhance>
                   <input type="hidden" name="target" value="images" />
-                  <Button variant="outline" size="sm" type="submit">Images</Button>
+                  <Button variant="outline" size="sm" type="submit">Prune Images</Button>
                 </form>
                 <form method="POST" action="?/prune" use:enhance>
                   <input type="hidden" name="target" value="networks" />
-                  <Button variant="outline" size="sm" type="submit">Networks</Button>
+                  <Button variant="outline" size="sm" type="submit">Prune Networks</Button>
                 </form>
                 <form method="POST" action="?/prune" use:enhance>
                   <input type="hidden" name="target" value="volumes" />
-                  <Button variant="outline" size="sm" type="submit">Volumes</Button>
+                  <Button variant="outline" size="sm" type="submit">Prune Volumes</Button>
                 </form>
               </div>
             {:else}

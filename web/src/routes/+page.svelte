@@ -62,7 +62,7 @@
             {#if data.dashboard?.services.length}
               {#each data.dashboard.services as service}
                 <a
-                  href={`/services/${service.name}`}
+                  href={`/services/${service.folder ?? service.name}`}
                   class="list-row"
                 >
                   <div class="flex flex-wrap items-center justify-between gap-3">

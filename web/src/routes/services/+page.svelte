@@ -108,9 +108,6 @@
               <TableRow>
                 <TableCell>
                   <a href={`/services/${service.folder}`} class="font-medium hover:text-primary">{service.displayName}</a>
-                  {#if service.serviceName && service.serviceName !== service.folder}
-                    <div class="text-xs text-muted-foreground">meta: {service.serviceName}</div>
-                  {/if}
                 </TableCell>
                 <TableCell class="text-muted-foreground">{service.folder}</TableCell>
                 <TableCell>

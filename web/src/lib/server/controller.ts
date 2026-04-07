@@ -19,6 +19,7 @@ export type SystemStatus = {
 
 export type ServiceSummary = {
   name: string;
+  folder?: string;
   isDeclared: boolean;
   runtimeStatus: string;
   updatedAt: string;
@@ -193,16 +194,28 @@ export async function loadDashboard(): Promise<DashboardData> {
     throw new Error(config.reason);
   }
 
-  const [system, servicesResult, nodes, tasksResult] = await Promise.all([
+  const [system, servicesResult, nodes, tasksResult, allWorkspaces] = await Promise.all([
     loadSystemStatus(),
     loadServices(1, 8),
     loadNodes(),
     loadTasks(1, 6),
+    import("$lib/server/service-index").then(({ loadServiceWorkspaces }) =>
+      loadServiceWorkspaces(),
+    ),
   ]);
+
+  const foldersByServiceName = new Map(
+    allWorkspaces
+      .filter((workspace) => workspace.isDeclared && workspace.serviceName)
+      .map((workspace) => [workspace.serviceName, workspace.folder] as const),
+  );
 
   return {
     system,
-    services: servicesResult.items,
+    services: servicesResult.items.map((service) => ({
+      ...service,
+      folder: foldersByServiceName.get(service.name) ?? service.folder ?? service.name,
+    })),
     nodes,
     tasks: tasksResult.items,
   };
