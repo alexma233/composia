@@ -24,7 +24,7 @@
 <div class="space-y-4">
   <div class="space-y-2">
     <div class="text-sm font-medium text-foreground">Theme</div>
-    <div class="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-background/80 p-2 shadow-xs">
+    <div class="toolbar-surface flex flex-wrap items-center gap-2">
       {#each themeOptions as option}
         <Button
           variant={$themeMode === option.value ? 'secondary' : 'ghost'}
@@ -42,7 +42,7 @@
 
   <div class="space-y-2">
     <div class="text-sm font-medium text-foreground">{$messages.preferences.accent}</div>
-    <div class="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-background/80 p-2 shadow-xs">
+    <div class="toolbar-surface flex flex-wrap items-center gap-2">
       {#each availableAccentColors as accent}
         <Button
           variant={$accentColor === accent ? 'secondary' : 'outline'}

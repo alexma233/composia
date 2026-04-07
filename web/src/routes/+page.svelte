@@ -42,8 +42,8 @@
 <div class="page-shell">
   <div class="page-stack">
     <section class="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-      <Card class="border-border/70 bg-card/95">
-        <CardHeader class="gap-4">
+		<Card>
+			<CardHeader>
           <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="space-y-2">
               <div class="space-y-1">
@@ -52,7 +52,7 @@
               </div>
             </div>
 
-            <div class="surface-subtle rounded-lg border border-border/70 px-4 py-3 text-right text-sm shadow-xs">
+            <div class="metric-card px-4 py-3 text-right text-sm">
               <div class="font-medium text-foreground">
                 {data.dashboard?.system.version ?? 'Controller unavailable'}
               </div>
@@ -69,21 +69,21 @@
         </CardHeader>
       </Card>
 
-      <div class="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
-        <Card class="border-border/70 bg-card/90">
-          <CardHeader class="p-5">
+		<div class="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+			<Card>
+				<CardHeader class="p-5">
             <CardDescription class="metric-label">Configured nodes</CardDescription>
             <CardTitle class="metric-value">{data.dashboard?.system.configuredNodeCount ?? '-'}</CardTitle>
           </CardHeader>
         </Card>
-        <Card class="border-border/70 bg-card/90">
-          <CardHeader class="p-5">
+			<Card>
+				<CardHeader class="p-5">
             <CardDescription class="metric-label">Online nodes</CardDescription>
             <CardTitle class="metric-value">{data.dashboard?.system.onlineNodeCount ?? '-'}</CardTitle>
           </CardHeader>
         </Card>
-        <Card class="border-border/70 bg-card/90">
-          <CardHeader class="p-5">
+			<Card>
+				<CardHeader class="p-5">
             <CardDescription class="metric-label">Recent tasks</CardDescription>
             <CardTitle class="metric-value">{recentTasks.length}</CardTitle>
           </CardHeader>
@@ -92,7 +92,7 @@
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-      <Card class="border-border/70 bg-card/95">
+		<Card>
         <CardHeader class="flex flex-row items-start justify-between gap-4">
           <div class="space-y-1">
             <CardTitle class="section-title">Services</CardTitle>
@@ -105,7 +105,7 @@
               {#each data.dashboard.services as service}
                 <a
                   href={`/services/${service.name}`}
-                  class="block rounded-lg border border-border/70 bg-background/80 px-4 py-3 transition-colors hover:bg-accent/60"
+                  class="list-row"
                 >
                   <div class="flex flex-wrap items-center justify-between gap-3">
                     <div class="min-w-0 flex-1">
@@ -128,7 +128,7 @@
       </Card>
 
       <div class="grid gap-6">
-        <Card class="border-border/70 bg-card/95">
+			<Card>
           <CardHeader class="flex flex-row items-start justify-between gap-4">
             <div class="space-y-1">
               <CardTitle class="section-title">Nodes</CardTitle>
@@ -141,7 +141,7 @@
                 {#each data.dashboard.nodes as node}
                   <a
                     href={`/nodes/${node.nodeId}`}
-                    class="block rounded-lg border border-border/70 bg-background/80 px-4 py-3 transition-colors hover:bg-accent/60"
+                    class="list-row"
                   >
                     <div class="flex flex-wrap items-center justify-between gap-3">
                       <div class="min-w-0 flex-1">
@@ -164,7 +164,7 @@
           </CardContent>
         </Card>
 
-        <Card class="border-border/70 bg-card/95">
+			<Card>
           <CardHeader class="flex flex-row items-start justify-between gap-4">
             <div class="space-y-1">
               <CardTitle class="section-title">Recent tasks</CardTitle>

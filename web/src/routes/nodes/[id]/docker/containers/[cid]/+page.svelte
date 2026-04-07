@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { PageData } from './$types';
+  import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
   import { Badge, type BadgeVariant } from '$lib/components/ui/badge';
@@ -74,8 +75,8 @@
 
 <div class="page-shell">
   <div class="page-stack">
-    <Card class="border-border/70 bg-card/95">
-      <CardHeader class="gap-4">
+		<Card>
+			<CardHeader>
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div class="space-y-1">
             <CardTitle class="page-title">
@@ -108,13 +109,15 @@
 
       <CardContent>
         {#if data.error}
-          <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-            {data.error}
-          </div>
+          <Alert variant="destructive">
+            <AlertTitle>Load failed</AlertTitle>
+            <AlertDescription>{data.error}</AlertDescription>
+          </Alert>
         {:else if parseError}
-          <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-            Failed to parse container data: {parseError}
-          </div>
+          <Alert variant="destructive">
+            <AlertTitle>Parse failed</AlertTitle>
+            <AlertDescription>Failed to parse container data: {parseError}</AlertDescription>
+          </Alert>
         {:else if containerData}
           <Tabs value="info" class="w-full">
             <TabsList class="mb-4">
@@ -489,7 +492,7 @@
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <pre class="text-xs font-mono overflow-auto whitespace-pre-wrap break-all bg-background/80 p-4 rounded-lg border border-border/70 max-h-[600px]">{JSON.stringify(containerData, null, 2)}</pre>
+                  <pre class="code-surface max-h-[600px] overflow-auto break-all">{JSON.stringify(containerData, null, 2)}</pre>
                 </CardContent>
               </Card>
             </TabsContent>

@@ -53,8 +53,8 @@
 </script>
 
 <div class="page-shell">
-  <Card class="border-border/70 bg-card/95">
-    <CardHeader class="gap-4">
+	<Card>
+		<CardHeader>
       <div class="flex items-start justify-between gap-4">
         <CardTitle class="page-title">Backups</CardTitle>
         <Badge variant="outline">{data.totalCount}</Badge>

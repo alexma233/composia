@@ -98,8 +98,8 @@
 
 <div class="page-shell">
   <div class="page-stack">
-    <Card class="border-border/70 bg-card/95">
-      <CardHeader class="gap-4">
+		<Card>
+			<CardHeader>
         {#if data.task}
           <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="space-y-1">
@@ -133,36 +133,36 @@
       {#if data.task}
         <CardContent class="space-y-4">
           <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div class="surface-subtle rounded-lg border border-border/70 p-4">
+            <div class="metric-card">
               <div class="metric-label">Source</div>
               <div class="mt-2 text-sm text-foreground">{data.task.source || 'N/A'}</div>
             </div>
-            <div class="surface-subtle rounded-lg border border-border/70 p-4">
+            <div class="metric-card">
               <div class="metric-label">Triggered by</div>
               <div class="mt-2 text-sm text-foreground">{data.task.triggeredBy || 'N/A'}</div>
             </div>
-            <div class="surface-subtle rounded-lg border border-border/70 p-4">
+            <div class="metric-card">
               <div class="metric-label">Created</div>
               <div class="mt-2 text-sm text-foreground">{formatTimestamp(data.task.createdAt)}</div>
             </div>
-            <div class="surface-subtle rounded-lg border border-border/70 p-4">
+            <div class="metric-card">
               <div class="metric-label">Finished</div>
               <div class="mt-2 text-sm text-foreground">{formatTimestamp(data.task.finishedAt)}</div>
             </div>
           </div>
 
           <div class="grid gap-4 xl:grid-cols-2">
-            <div class="rounded-lg border border-border/70 bg-background/80 p-4">
+            <div class="inset-card">
               <div class="metric-label">Repo revision</div>
               <div class="mt-2 break-all text-sm text-foreground">{data.task.repoRevision || 'N/A'}</div>
             </div>
-            <div class="rounded-lg border border-border/70 bg-background/80 p-4">
+            <div class="inset-card">
               <div class="metric-label">Result revision</div>
               <div class="mt-2 break-all text-sm text-foreground">{data.task.resultRevision || 'N/A'}</div>
             </div>
           </div>
 
-          <div class="rounded-lg border border-border/70 bg-background/80 p-4">
+          <div class="inset-card">
             <div class="metric-label">Log path</div>
             <div class="mt-2 break-all text-sm text-foreground">{data.task.logPath || 'N/A'}</div>
           </div>
@@ -177,14 +177,14 @@
       {/if}
     </Card>
 
-    <Card class="border-border/70 bg-card/95">
+		<Card>
       <CardHeader class="space-y-1">
         <CardTitle class="section-title">Task steps</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="space-y-3">
           {#each data.task?.steps ?? [] as step}
-            <div class="rounded-lg border border-border/70 bg-background/80 px-4 py-4">
+            <div class="inset-card px-4 py-4">
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="text-sm font-medium">{step.stepName}</div>
                 <Badge variant={taskStatusTone(step.status)}>{step.status}</Badge>
@@ -201,7 +201,7 @@
       </CardContent>
     </Card>
 
-    <Card class="border-border/70 bg-card/95">
+		<Card>
       <CardHeader class="flex flex-row items-center justify-between gap-3">
         <CardTitle class="section-title">Task logs</CardTitle>
         <div class="metric-label">{logState}</div>
@@ -215,7 +215,7 @@
         {/if}
 
         {#if data.task?.logPath}
-          <pre class="max-h-[28rem] overflow-auto rounded-lg border border-border/70 bg-background/80 p-4 font-mono text-xs leading-6 whitespace-pre-wrap break-words">{logContent || 'Waiting for task log output...'}</pre>
+          <pre class="code-surface max-h-[28rem] overflow-auto">{logContent || 'Waiting for task log output...'}</pre>
         {:else}
           <div class="empty-state">This task does not have a log file.</div>
         {/if}

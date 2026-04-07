@@ -22,7 +22,7 @@
 
 <a
   href={`/tasks/${task.taskId}`}
-  class="block rounded-lg border border-border/70 bg-background/80 px-4 py-3 transition-colors hover:bg-accent/60"
+  class="list-row"
 >
   <div class="flex flex-wrap items-center justify-between gap-3">
     <div class="min-w-0 flex-1">

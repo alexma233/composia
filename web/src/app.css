@@ -220,6 +220,50 @@
     @apply bg-muted/30 dark:bg-muted/20;
   }
 
+  .metric-card {
+    @apply rounded-lg border bg-muted/20 p-4;
+  }
+
+  .inset-card {
+    @apply rounded-lg border bg-background p-4;
+  }
+
+  .list-row {
+    @apply block rounded-lg border bg-background px-4 py-3 transition-colors hover:bg-accent/60;
+  }
+
+  .list-row-compact {
+    @apply rounded-lg border bg-background px-3 py-3 text-sm;
+  }
+
+  .stat-link {
+    @apply rounded-lg border bg-background p-3 transition-colors hover:bg-accent/60;
+  }
+
+  .code-surface {
+    @apply rounded-lg border bg-background p-4 font-mono text-xs leading-6 whitespace-pre-wrap break-words;
+  }
+
+  .muted-action {
+    @apply text-xs text-muted-foreground transition-colors hover:text-foreground;
+  }
+
+  .toolbar-surface {
+    @apply rounded-lg border bg-background p-2;
+  }
+
+  .nav-pill {
+    @apply inline-flex h-8 items-center justify-center rounded-md border px-3 text-xs font-medium transition-colors sm:h-9 sm:text-sm;
+  }
+
+  .nav-pill-active {
+    @apply bg-secondary text-secondary-foreground;
+  }
+
+  .nav-pill-inactive {
+    @apply text-muted-foreground hover:bg-accent/80 hover:text-accent-foreground;
+  }
+
   .kv-grid {
     @apply grid gap-3 text-sm text-muted-foreground;
   }

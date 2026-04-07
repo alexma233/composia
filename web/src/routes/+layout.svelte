@@ -71,7 +71,7 @@
           </div>
 
           {#if isServiceWorkspace($page.url.pathname) && data.navServices.length}
-            <div class="flex items-center gap-3 rounded-md border border-border/70 bg-card/80 px-3 py-2 text-sm text-muted-foreground shadow-xs">
+            <div class="toolbar-surface flex items-center gap-3 text-sm text-muted-foreground">
               <span class="text-xs font-medium text-muted-foreground">
                 Service
               </span>
@@ -97,10 +97,10 @@
               <a
                 href={link.href}
                 class={cn(
-                  'inline-flex h-8 items-center justify-center rounded-md border px-3 text-xs font-medium transition-colors sm:h-9 sm:text-sm',
+                  'nav-pill',
                   isActive(link.href, $page.url.pathname)
-                    ? 'border-border/70 bg-secondary/80 text-secondary-foreground shadow-xs'
-                    : 'text-muted-foreground hover:bg-accent/80 hover:text-accent-foreground'
+                    ? 'nav-pill-active'
+                    : 'nav-pill-inactive'
                 )}
               >
                 {$messages.nav[link.labelKey]}

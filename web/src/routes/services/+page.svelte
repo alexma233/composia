@@ -40,8 +40,8 @@
 </script>
 
 <div class="page-shell">
-  <Card class="border-border/70 bg-card/95">
-    <CardHeader class="gap-4">
+	<Card>
+		<CardHeader>
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="space-y-1">
           <CardTitle class="page-title">Services</CardTitle>

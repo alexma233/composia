@@ -62,7 +62,7 @@
 
 <div class="page-shell">
   <div class="page-stack">
-    <Card class="border-border/70 bg-card/95">
+		<Card>
       <CardHeader>
         <CardTitle class="page-title">Settings</CardTitle>
       </CardHeader>
@@ -76,7 +76,7 @@
     {/if}
 
     <section class="grid gap-6 lg:grid-cols-2">
-      <Card class="border-border/70 bg-card/95">
+			<Card>
         <CardHeader>
           <CardTitle class="section-title">Appearance</CardTitle>
         </CardHeader>
@@ -85,7 +85,7 @@
         </CardContent>
       </Card>
 
-      <Card class="border-border/70 bg-card/95">
+			<Card>
         <CardHeader>
           <CardTitle class="section-title">Controller</CardTitle>
         </CardHeader>
@@ -119,7 +119,7 @@
         </CardContent>
       </Card>
 
-      <Card class="border-border/70 bg-card/95 lg:col-span-2">
+		<Card class="lg:col-span-2">
         <CardHeader class="flex flex-row items-center justify-between gap-3">
           <CardTitle class="section-title">Repo sync</CardTitle>
           <Button type="button" variant="outline" size="sm" onclick={syncRepo} disabled={syncing}>
@@ -137,25 +137,25 @@
 
           {#if data.repoHead || syncResult}
             <dl class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div class="surface-subtle rounded-lg border border-border/70 p-4">
+              <div class="metric-card">
                 <dt class="metric-label">Branch</dt>
                 <dd class="mt-2 text-sm font-medium text-foreground">{data.repoHead?.branch || 'HEAD'}</dd>
               </div>
-              <div class="surface-subtle rounded-lg border border-border/70 p-4">
+              <div class="metric-card">
                 <dt class="metric-label">Sync status</dt>
                 <dd class="mt-2 text-sm font-medium text-foreground">{displaySyncStatus}</dd>
               </div>
-              <div class="surface-subtle rounded-lg border border-border/70 p-4">
+              <div class="metric-card">
                 <dt class="metric-label">Worktree</dt>
                 <dd class="mt-2 text-sm font-medium text-foreground">{data.repoHead?.cleanWorktree ? 'clean' : 'dirty'}</dd>
               </div>
-              <div class="surface-subtle rounded-lg border border-border/70 p-4">
+              <div class="metric-card">
                 <dt class="metric-label">Last pull</dt>
                 <dd class="mt-2 text-sm font-medium text-foreground">{displayLastPull}</dd>
               </div>
             </dl>
 
-            <div class="rounded-lg border border-border/70 bg-background/80 p-4">
+            <div class="inset-card">
               <div class="metric-label">Revision</div>
               <div class="mt-2 break-all text-sm text-foreground">{displayHeadRevision}</div>
             </div>

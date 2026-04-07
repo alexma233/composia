@@ -561,7 +561,7 @@
 </script>
 
 <div class="mx-auto flex min-h-[calc(100vh-72px)] max-w-[1600px] flex-col px-4 py-6 sm:px-6 lg:px-8">
-  <Card class="mb-4 border-border/70 bg-card/95">
+  <Card class="mb-4">
     <CardHeader class="gap-4 p-4 sm:p-5">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="space-y-1">
@@ -588,7 +588,7 @@
   {/if}
 
   <div class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)_320px]">
-    <Card class="flex min-h-0 flex-col border-border/70 bg-card/95">
+    <Card class="flex min-h-0 flex-col">
       <CardHeader class="border-b px-4 py-3">
         <CardTitle class="section-title">Files</CardTitle>
 <div class="flex flex-wrap items-center gap-2">
@@ -663,7 +663,7 @@
       </div>
     </Card>
 
-    <Card class="flex min-h-0 flex-col border-border/70 bg-card/95">
+    <Card class="flex min-h-0 flex-col">
       <CardHeader class="border-b px-3 py-3">
         <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
           <CardTitle class="section-title">Editor</CardTitle>
@@ -675,7 +675,7 @@
 
         <div class="flex flex-wrap gap-2">
           {#each openTabs as tab}
-            <div class="inline-flex items-center gap-2 rounded-md border border-border/70 bg-background/80 px-3 py-1.5 text-sm" class:bg-secondary={tab.path === activePath}>
+            <div class="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-sm" class:bg-secondary={tab.path === activePath}>
               <button type="button" class="max-w-48 truncate" onclick={() => (activePath = tab.path)}>
                 {tab.path}
                 {#if tab.dirty}*{/if}
@@ -700,7 +700,7 @@
     </Card>
 
     <section class="flex min-h-0 flex-col gap-4">
-      <Card class="border-border/70 bg-card/95">
+		<Card>
         <CardHeader class="flex items-center justify-between gap-3 p-4">
           <CardTitle class="section-title">Operations</CardTitle>
         </CardHeader>
@@ -769,12 +769,12 @@
         </CardContent>
       </Card>
 
-      <Card class="border-border/70 bg-card/95">
+		<Card>
         <CardHeader class="flex items-center justify-between gap-3 p-4">
           <div class="space-y-1">
             <CardTitle class="section-title">Recent tasks</CardTitle>
           </div>
-          <button type="button" class="text-xs text-muted-foreground hover:text-foreground" onclick={() => (logsExpanded = !logsExpanded)}>
+          <button type="button" class="muted-action" onclick={() => (logsExpanded = !logsExpanded)}>
             {logsExpanded ? 'Hide logs' : 'Show logs'}
           </button>
         </CardHeader>
@@ -788,13 +788,13 @@
         </CardContent>
       </Card>
 
-      <Card class="border-border/70 bg-card/95">
+		<Card>
         <CardHeader class="p-4">
           <CardTitle class="section-title">Recent backups</CardTitle>
         </CardHeader>
         <CardContent class="space-y-2 p-4 pt-0">
           {#each backups.slice(0, 6) as backup}
-            <div class="rounded-lg border border-border/70 bg-background/80 px-3 py-3 text-sm">
+            <div class="list-row-compact">
               <div class="flex items-center justify-between gap-3">
                 <div>
                   <div class="font-medium">{backup.dataName}</div>
@@ -814,7 +814,7 @@
   </div>
 
   <Collapsible bind:open={logsExpanded}>
-    <Card class="mt-4 border-border/70 bg-card/95">
+    <Card class="mt-4">
       <CollapsibleTrigger class="flex w-full items-center justify-between px-4 py-3 text-left">
         <CardTitle class="section-title">Logs</CardTitle>
         <span class="text-xs text-muted-foreground">{logsExpanded ? 'Collapse' : 'Expand'}</span>

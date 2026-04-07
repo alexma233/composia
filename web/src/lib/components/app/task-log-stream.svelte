@@ -93,5 +93,5 @@
     </Alert>
   {/if}
 
-  <pre class="min-h-0 flex-1 overflow-auto rounded-lg border border-border/70 bg-background/80 p-4 font-mono text-xs leading-6 whitespace-pre-wrap break-words">{content || 'Select a task to tail logs.'}</pre>
+  <pre class="code-surface min-h-0 flex-1 overflow-auto">{content || 'Select a task to tail logs.'}</pre>
 </div>

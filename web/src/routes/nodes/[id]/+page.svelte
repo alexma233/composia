@@ -18,8 +18,8 @@
 
 <div class="page-shell">
   <div class="page-stack">
-    <Card class="border-border/70 bg-card/95">
-      <CardHeader class="gap-4">
+		<Card>
+			<CardHeader>
         {#if data.node}
           <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="space-y-1">
@@ -43,7 +43,7 @@
       </CardHeader>
     </Card>
 
-    <Card class="border-border/70 bg-card/95">
+		<Card>
       <CardHeader>
         <CardTitle class="section-title">Docker</CardTitle>
       </CardHeader>
@@ -51,19 +51,19 @@
         {#if data.dockerStats}
           <div class="space-y-4">
             <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <a href="/nodes/{data.node?.nodeId}/docker/containers" class="rounded-lg border border-border/70 bg-background/80 p-3 transition-colors hover:bg-accent/60">
+              <a href="/nodes/{data.node?.nodeId}/docker/containers" class="stat-link">
                 <div class="text-2xl font-semibold">{data.dockerStats.containersRunning}/{data.dockerStats.containersTotal}</div>
                 <div class="text-xs text-muted-foreground">Containers</div>
               </a>
-              <a href="/nodes/{data.node?.nodeId}/docker/images" class="rounded-lg border border-border/70 bg-background/80 p-3 transition-colors hover:bg-accent/60">
+              <a href="/nodes/{data.node?.nodeId}/docker/images" class="stat-link">
                 <div class="text-2xl font-semibold">{data.dockerStats.images}</div>
                 <div class="text-xs text-muted-foreground">Images</div>
               </a>
-              <a href="/nodes/{data.node?.nodeId}/docker/networks" class="rounded-lg border border-border/70 bg-background/80 p-3 transition-colors hover:bg-accent/60">
+              <a href="/nodes/{data.node?.nodeId}/docker/networks" class="stat-link">
                 <div class="text-2xl font-semibold">{data.dockerStats.networks}</div>
                 <div class="text-xs text-muted-foreground">Networks</div>
               </a>
-              <a href="/nodes/{data.node?.nodeId}/docker/volumes" class="rounded-lg border border-border/70 bg-background/80 p-3 transition-colors hover:bg-accent/60">
+              <a href="/nodes/{data.node?.nodeId}/docker/volumes" class="stat-link">
                 <div class="text-2xl font-semibold">{data.dockerStats.volumes}</div>
                 <div class="text-xs text-muted-foreground">Volumes</div>
               </a>
@@ -118,7 +118,7 @@
       </CardContent>
     </Card>
 
-    <Card class="border-border/70 bg-card/95">
+		<Card>
       <CardHeader>
         <CardTitle class="section-title">Recent tasks</CardTitle>
       </CardHeader>
@@ -127,7 +127,7 @@
           {#each data.tasks as task}
             <a
               href={`/tasks/${task.taskId}`}
-              class="block rounded-lg border border-border/70 bg-background/80 px-4 py-3 transition-colors hover:bg-accent/60"
+              class="list-row"
             >
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="min-w-0 flex-1">
