@@ -9,6 +9,9 @@
   import { formatBytes, formatDockerTimestamp, formatShortId } from '$lib/presenters';
   import CopyButton from '$lib/components/app/copy-button.svelte';
   import SortableTableHead from '$lib/components/app/sortable-table-head.svelte';
+  import Spinner from '$lib/components/ui/spinner/spinner.svelte';
+  import SearchIcon from '@lucide/svelte/icons/search';
+  import { Alert, AlertDescription } from '$lib/components/ui/alert';
 
   interface Props {
     data: PageData;
@@ -130,18 +133,7 @@
 
         <div class="flex items-center gap-3">
           <div class="relative flex-1 max-w-sm">
-            <svg
-              class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
+            <SearchIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
               placeholder="Search images..."
@@ -161,16 +153,13 @@
       </CardHeader>
       <CardContent>
         {#if loadError}
-          <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-            {loadError}
-          </div>
+          <Alert variant="destructive">
+            <AlertDescription>{loadError}</AlertDescription>
+          </Alert>
         {:else if loading}
           <div class="flex min-h-[320px] items-center justify-center">
             <div class="flex items-center gap-3 text-sm text-muted-foreground">
-              <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"></path>
-              </svg>
+              <Spinner />
               <span>Loading images...</span>
             </div>
           </div>

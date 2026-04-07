@@ -7,6 +7,11 @@
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
   import { formatDockerTimestamp, formatShortId } from '$lib/presenters';
+  import CopyButton from '$lib/components/app/copy-button.svelte';
+  import SortableTableHead from '$lib/components/app/sortable-table-head.svelte';
+  import Spinner from '$lib/components/ui/spinner/spinner.svelte';
+  import SearchIcon from '@lucide/svelte/icons/search';
+  import { Alert, AlertDescription } from '$lib/components/ui/alert';
 
   interface Props {
     data: PageData;
@@ -68,10 +73,6 @@
     void loadContainers();
   });
 
-  function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text);
-  }
-
   function getStateVariant(state: string): Variant {
     const s = (state || '').toLowerCase();
     if (s === 'running') return 'success';
@@ -82,30 +83,14 @@
     return 'default';
   }
 
-  function handleSort(field: typeof sortField) {
+  function handleSort(field: string) {
     if (sortField === field) {
       sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
-      sortField = field;
+      sortField = field as typeof sortField;
       sortDirection = 'asc';
     }
   }
-
-  const SortIcon = (field: typeof sortField) => {
-    if (sortField !== field) {
-      return `<svg class="w-3 h-3 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M7 15l5 5 5-5M7 9l5-5 5 5"/>
-      </svg>`;
-    }
-    if (sortDirection === 'asc') {
-      return `<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 5v14M5 12l7-7 7 7"/>
-      </svg>`;
-    }
-    return `<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M12 19V5M5 12l7 7 7-7"/>
-    </svg>`;
-  };
 
   let filteredContainers = $derived(containers.filter((c) => {
     const query = searchQuery.toLowerCase();
@@ -159,18 +144,7 @@
 
         <div class="flex items-center gap-3">
           <div class="relative flex-1 max-w-sm">
-            <svg
-              class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
+            <SearchIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
               placeholder="Search containers..."
@@ -190,16 +164,13 @@
       </CardHeader>
       <CardContent>
         {#if loadError}
-          <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-            {loadError}
-          </div>
+          <Alert variant="destructive">
+            <AlertDescription>{loadError}</AlertDescription>
+          </Alert>
         {:else if loading}
           <div class="flex min-h-[320px] items-center justify-center">
             <div class="flex items-center gap-3 text-sm text-muted-foreground">
-              <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"></path>
-              </svg>
+              <Spinner />
               <span>Loading containers...</span>
             </div>
           </div>
@@ -207,44 +178,12 @@
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead class="w-[30%]">
-                  <button
-                    class="flex items-center gap-1 hover:text-foreground"
-                    onclick={() => handleSort('name')}
-                  >
-                    Name
-                    {@html SortIcon('name')}
-                  </button>
-                </TableHead>
-                <TableHead class="w-[10%]">
-                  <button
-                    class="flex items-center gap-1 hover:text-foreground"
-                    onclick={() => handleSort('state')}
-                  >
-                    State
-                    {@html SortIcon('state')}
-                  </button>
-                </TableHead>
-                <TableHead class="w-[20%]">
-                  <button
-                    class="flex items-center gap-1 hover:text-foreground"
-                    onclick={() => handleSort('image')}
-                  >
-                    Image
-                    {@html SortIcon('image')}
-                  </button>
-                </TableHead>
+                <SortableTableHead field="name" label="Name" {sortField} {sortDirection} onSort={handleSort} class="w-[30%]" />
+                <SortableTableHead field="state" label="State" {sortField} {sortDirection} onSort={handleSort} class="w-[10%]" />
+                <SortableTableHead field="image" label="Image" {sortField} {sortDirection} onSort={handleSort} class="w-[20%]" />
                 <TableHead class="w-[15%]">Ports</TableHead>
                 <TableHead class="w-[15%]">Networks</TableHead>
-                <TableHead class="w-[15%]">
-                  <button
-                    class="flex items-center gap-1 hover:text-foreground"
-                    onclick={() => handleSort('created')}
-                  >
-                    Created
-                    {@html SortIcon('created')}
-                  </button>
-                </TableHead>
+                <SortableTableHead field="created" label="Created" {sortField} {sortDirection} onSort={handleSort} class="w-[15%]" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -262,24 +201,7 @@
                         <code class="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
                           {formatShortId(container.id)}
                         </code>
-<button
-                           onclick={() => copyToClipboard(container.id)}
-                           class="text-muted-foreground hover:text-foreground"
-                           title="Copy full ID"
-                         >
-                          <svg
-                            class="h-3.5 w-3.5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          >
-                            <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-                          </svg>
-                        </button>
+                        <CopyButton text={container.id} label="Copy full ID" />
                       </div>
                       {#if container.labels && Object.keys(container.labels).length > 0}
                         <div class="flex flex-wrap gap-1">
