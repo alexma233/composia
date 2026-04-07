@@ -120,12 +120,8 @@ func (db *DB) ClaimNextPendingTaskForNode(ctx context.Context, nodeID string, st
 	}
 	defer tx.Rollback()
 
-	var runningCount int
-	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM tasks WHERE status = ?`, string(task.StatusRunning)).Scan(&runningCount); err != nil {
-		return task.Record{}, fmt.Errorf("count running tasks: %w", err)
-	}
-	if runningCount > 0 {
-		return task.Record{}, ErrNoPendingTask
+	if err := ensureNoRunningTask(ctx, tx); err != nil {
+		return task.Record{}, err
 	}
 
 	record, err := claimNextPendingTaskForNode(ctx, tx, nodeID, startedAt)
@@ -149,12 +145,8 @@ func (db *DB) ClaimNextPendingTaskOfType(ctx context.Context, taskType task.Type
 	}
 	defer tx.Rollback()
 
-	var runningCount int
-	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM tasks WHERE status = ?`, string(task.StatusRunning)).Scan(&runningCount); err != nil {
-		return task.Record{}, fmt.Errorf("count running tasks: %w", err)
-	}
-	if runningCount > 0 {
-		return task.Record{}, ErrNoPendingTask
+	if err := ensureNoRunningTask(ctx, tx); err != nil {
+		return task.Record{}, err
 	}
 
 	record, err := claimNextPendingTaskOfType(ctx, tx, taskType, startedAt)
@@ -169,7 +161,7 @@ func (db *DB) ClaimNextPendingTaskOfType(ctx context.Context, taskType task.Type
 }
 
 func claimNextPendingTask(ctx context.Context, tx *sql.Tx, startedAt time.Time) (task.Record, error) {
-	row := tx.QueryRowContext(ctx, `
+	return claimPendingTaskByQuery(ctx, tx, startedAt, "query next pending task", `
 		SELECT task_id, type, source, COALESCE(triggered_by, ''), COALESCE(service_name, ''), COALESCE(node_id, ''),
 		       status, COALESCE(params_json, ''), COALESCE(log_path, ''), COALESCE(repo_revision, ''),
 		       COALESCE(result_revision, ''), COALESCE(attempt_of_task_id, ''), created_at
@@ -178,65 +170,10 @@ func claimNextPendingTask(ctx context.Context, tx *sql.Tx, startedAt time.Time) 
 		ORDER BY created_at ASC, task_id ASC
 		LIMIT 1
 	`, string(task.StatusPending))
-
-	var record task.Record
-	var rawType string
-	var rawSource string
-	var rawStatus string
-	var createdAt string
-	if err := row.Scan(
-		&record.TaskID,
-		&rawType,
-		&rawSource,
-		&record.TriggeredBy,
-		&record.ServiceName,
-		&record.NodeID,
-		&rawStatus,
-		&record.ParamsJSON,
-		&record.LogPath,
-		&record.RepoRevision,
-		&record.ResultRevision,
-		&record.AttemptOfTaskID,
-		&createdAt,
-	); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return task.Record{}, ErrNoPendingTask
-		}
-		return task.Record{}, fmt.Errorf("query next pending task: %w", err)
-	}
-
-	updated, err := tx.ExecContext(ctx, `
-		UPDATE tasks
-		SET status = ?, started_at = ?
-		WHERE task_id = ? AND status = ?
-	`, string(task.StatusRunning), startedAt.UTC().Format(time.RFC3339), record.TaskID, string(task.StatusPending))
-	if err != nil {
-		return task.Record{}, fmt.Errorf("mark task %q running: %w", record.TaskID, err)
-	}
-	affected, err := updated.RowsAffected()
-	if err != nil {
-		return task.Record{}, fmt.Errorf("read claim task rows affected: %w", err)
-	}
-	if affected == 0 {
-		return task.Record{}, ErrNoPendingTask
-	}
-
-	parsedCreatedAt, err := time.Parse(time.RFC3339, createdAt)
-	if err != nil {
-		return task.Record{}, fmt.Errorf("parse task %q created_at: %w", record.TaskID, err)
-	}
-
-	record.Type = task.Type(rawType)
-	record.Source = task.Source(rawSource)
-	record.Status = task.Status(rawStatus)
-	record.CreatedAt = parsedCreatedAt.UTC()
-	record.Status = task.StatusRunning
-	record.StartedAt = timePtr(startedAt.UTC())
-	return record, nil
 }
 
 func claimNextPendingTaskForNode(ctx context.Context, tx *sql.Tx, nodeID string, startedAt time.Time) (task.Record, error) {
-	row := tx.QueryRowContext(ctx, `
+	return claimPendingTaskByQuery(ctx, tx, startedAt, fmt.Sprintf("query next pending task for node %q", nodeID), `
 		SELECT task_id, type, source, COALESCE(triggered_by, ''), COALESCE(service_name, ''), COALESCE(node_id, ''),
 		       status, COALESCE(params_json, ''), COALESCE(log_path, ''), COALESCE(repo_revision, ''),
 		       COALESCE(result_revision, ''), COALESCE(attempt_of_task_id, ''), created_at
@@ -245,65 +182,10 @@ func claimNextPendingTaskForNode(ctx context.Context, tx *sql.Tx, nodeID string,
 		ORDER BY created_at ASC, task_id ASC
 		LIMIT 1
 	`, string(task.StatusPending), nodeID, string(task.TypeDNSUpdate))
-
-	var record task.Record
-	var rawType string
-	var rawSource string
-	var rawStatus string
-	var createdAt string
-	if err := row.Scan(
-		&record.TaskID,
-		&rawType,
-		&rawSource,
-		&record.TriggeredBy,
-		&record.ServiceName,
-		&record.NodeID,
-		&rawStatus,
-		&record.ParamsJSON,
-		&record.LogPath,
-		&record.RepoRevision,
-		&record.ResultRevision,
-		&record.AttemptOfTaskID,
-		&createdAt,
-	); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return task.Record{}, ErrNoPendingTask
-		}
-		return task.Record{}, fmt.Errorf("query next pending task for node %q: %w", nodeID, err)
-	}
-
-	updated, err := tx.ExecContext(ctx, `
-		UPDATE tasks
-		SET status = ?, started_at = ?
-		WHERE task_id = ? AND status = ?
-	`, string(task.StatusRunning), startedAt.UTC().Format(time.RFC3339), record.TaskID, string(task.StatusPending))
-	if err != nil {
-		return task.Record{}, fmt.Errorf("mark task %q running: %w", record.TaskID, err)
-	}
-	affected, err := updated.RowsAffected()
-	if err != nil {
-		return task.Record{}, fmt.Errorf("read claim task rows affected: %w", err)
-	}
-	if affected == 0 {
-		return task.Record{}, ErrNoPendingTask
-	}
-
-	parsedCreatedAt, err := time.Parse(time.RFC3339, createdAt)
-	if err != nil {
-		return task.Record{}, fmt.Errorf("parse task %q created_at: %w", record.TaskID, err)
-	}
-
-	record.Type = task.Type(rawType)
-	record.Source = task.Source(rawSource)
-	record.Status = task.Status(rawStatus)
-	record.CreatedAt = parsedCreatedAt.UTC()
-	record.Status = task.StatusRunning
-	record.StartedAt = timePtr(startedAt.UTC())
-	return record, nil
 }
 
 func claimNextPendingTaskOfType(ctx context.Context, tx *sql.Tx, taskType task.Type, startedAt time.Time) (task.Record, error) {
-	row := tx.QueryRowContext(ctx, `
+	return claimPendingTaskByQuery(ctx, tx, startedAt, fmt.Sprintf("query next pending task of type %q", taskType), `
 		SELECT task_id, type, source, COALESCE(triggered_by, ''), COALESCE(service_name, ''), COALESCE(node_id, ''),
 		       status, COALESCE(params_json, ''), COALESCE(log_path, ''), COALESCE(repo_revision, ''),
 		       COALESCE(result_revision, ''), COALESCE(attempt_of_task_id, ''), created_at
@@ -312,7 +194,41 @@ func claimNextPendingTaskOfType(ctx context.Context, tx *sql.Tx, taskType task.T
 		ORDER BY created_at ASC, task_id ASC
 		LIMIT 1
 	`, string(task.StatusPending), string(taskType))
+}
 
+func ensureNoRunningTask(ctx context.Context, tx *sql.Tx) error {
+	var runningCount int
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM tasks WHERE status = ?`, string(task.StatusRunning)).Scan(&runningCount); err != nil {
+		return fmt.Errorf("count running tasks: %w", err)
+	}
+	if runningCount > 0 {
+		return ErrNoPendingTask
+	}
+	return nil
+}
+
+func claimPendingTaskByQuery(ctx context.Context, tx *sql.Tx, startedAt time.Time, queryLabel, query string, args ...any) (task.Record, error) {
+	row := tx.QueryRowContext(ctx, query, args...)
+
+	record, createdAt, err := scanPendingTaskRecord(row)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return task.Record{}, ErrNoPendingTask
+		}
+		return task.Record{}, fmt.Errorf("%s: %w", queryLabel, err)
+	}
+
+	if err := markTaskRunning(ctx, tx, record.TaskID, startedAt); err != nil {
+		return task.Record{}, err
+	}
+
+	record.CreatedAt = createdAt.UTC()
+	record.Status = task.StatusRunning
+	record.StartedAt = timePtr(startedAt.UTC())
+	return record, nil
+}
+
+func scanPendingTaskRecord(row *sql.Row) (task.Record, time.Time, error) {
 	var record task.Record
 	var rawType string
 	var rawSource string
@@ -333,40 +249,37 @@ func claimNextPendingTaskOfType(ctx context.Context, tx *sql.Tx, taskType task.T
 		&record.AttemptOfTaskID,
 		&createdAt,
 	); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return task.Record{}, ErrNoPendingTask
-		}
-		return task.Record{}, fmt.Errorf("query next pending task of type %q: %w", taskType, err)
-	}
-
-	updated, err := tx.ExecContext(ctx, `
-		UPDATE tasks
-		SET status = ?, started_at = ?
-		WHERE task_id = ? AND status = ?
-	`, string(task.StatusRunning), startedAt.UTC().Format(time.RFC3339), record.TaskID, string(task.StatusPending))
-	if err != nil {
-		return task.Record{}, fmt.Errorf("mark task %q running: %w", record.TaskID, err)
-	}
-	affected, err := updated.RowsAffected()
-	if err != nil {
-		return task.Record{}, fmt.Errorf("read claim task rows affected: %w", err)
-	}
-	if affected == 0 {
-		return task.Record{}, ErrNoPendingTask
+		return task.Record{}, time.Time{}, err
 	}
 
 	parsedCreatedAt, err := time.Parse(time.RFC3339, createdAt)
 	if err != nil {
-		return task.Record{}, fmt.Errorf("parse task %q created_at: %w", record.TaskID, err)
+		return task.Record{}, time.Time{}, fmt.Errorf("parse task %q created_at: %w", record.TaskID, err)
 	}
 
 	record.Type = task.Type(rawType)
 	record.Source = task.Source(rawSource)
 	record.Status = task.Status(rawStatus)
-	record.CreatedAt = parsedCreatedAt.UTC()
-	record.Status = task.StatusRunning
-	record.StartedAt = timePtr(startedAt.UTC())
-	return record, nil
+	return record, parsedCreatedAt, nil
+}
+
+func markTaskRunning(ctx context.Context, tx *sql.Tx, taskID string, startedAt time.Time) error {
+	updated, err := tx.ExecContext(ctx, `
+		UPDATE tasks
+		SET status = ?, started_at = ?
+		WHERE task_id = ? AND status = ?
+	`, string(task.StatusRunning), startedAt.UTC().Format(time.RFC3339), taskID, string(task.StatusPending))
+	if err != nil {
+		return fmt.Errorf("mark task %q running: %w", taskID, err)
+	}
+	affected, err := updated.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read claim task rows affected: %w", err)
+	}
+	if affected == 0 {
+		return ErrNoPendingTask
+	}
+	return nil
 }
 
 func (db *DB) CompleteTask(ctx context.Context, taskID string, status task.Status, finishedAt time.Time, errorSummary string) error {

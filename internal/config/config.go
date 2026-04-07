@@ -204,14 +204,8 @@ func validateController(file *File) error {
 	}
 
 	if file.Agent != nil {
-		if file.Agent.NodeID != LocalMainNodeID {
-			return fmt.Errorf("agent.node_id must be %q when controller and agent share one config file", LocalMainNodeID)
-		}
-		if samePath(controller.RepoDir, file.Agent.RepoDir) {
-			return fmt.Errorf("controller.repo_dir and agent.repo_dir must not use the same path")
-		}
-		if !hasNode(controller.Nodes, LocalMainNodeID) {
-			return fmt.Errorf("controller.nodes must include %q when a local agent is configured", LocalMainNodeID)
+		if err := validateSharedControllerAgentConfig(controller, file.Agent); err != nil {
+			return err
 		}
 	}
 
@@ -236,15 +230,22 @@ func validateAgent(file *File) error {
 		return fmt.Errorf("agent.state_dir is required")
 	}
 	if file.Controller != nil {
-		if agent.NodeID != LocalMainNodeID {
-			return fmt.Errorf("agent.node_id must be %q when controller and agent share one config file", LocalMainNodeID)
+		if err := validateSharedControllerAgentConfig(file.Controller, agent); err != nil {
+			return err
 		}
-		if samePath(file.Controller.RepoDir, agent.RepoDir) {
-			return fmt.Errorf("controller.repo_dir and agent.repo_dir must not use the same path")
-		}
-		if !hasNode(file.Controller.Nodes, LocalMainNodeID) {
-			return fmt.Errorf("controller.nodes must include %q when a local agent is configured", LocalMainNodeID)
-		}
+	}
+	return nil
+}
+
+func validateSharedControllerAgentConfig(controller *ControllerConfig, agent *AgentConfig) error {
+	if agent.NodeID != LocalMainNodeID {
+		return fmt.Errorf("agent.node_id must be %q when controller and agent share one config file", LocalMainNodeID)
+	}
+	if samePath(controller.RepoDir, agent.RepoDir) {
+		return fmt.Errorf("controller.repo_dir and agent.repo_dir must not use the same path")
+	}
+	if !hasNode(controller.Nodes, LocalMainNodeID) {
+		return fmt.Errorf("controller.nodes must include %q when a local agent is configured", LocalMainNodeID)
 	}
 	return nil
 }

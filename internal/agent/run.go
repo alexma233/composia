@@ -75,44 +75,12 @@ func Run(ctx context.Context, configPath string) error {
 	)
 
 	log.Printf("composia agent loops started: node_id=%s controller=%s", cfg.NodeID, cfg.ControllerAddr)
-	if err := sendHeartbeat(ctx, reportClient, cfg); err != nil {
-		log.Printf("initial heartbeat failed: %v", err)
-	}
-
-	heartbeatTicker := time.NewTicker(heartbeatInterval)
-	defer heartbeatTicker.Stop()
-
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-heartbeatTicker.C:
-				if err := sendHeartbeat(ctx, reportClient, cfg); err != nil {
-					log.Printf("heartbeat failed: %v", err)
-				}
-			}
-		}
-	}()
-
-	dockerStatsTicker := time.NewTicker(5 * time.Minute)
-	defer dockerStatsTicker.Stop()
-
-	go func() {
-		if err := reportDockerStats(ctx, reportClient, cfg); err != nil {
-			log.Printf("initial docker stats report failed: %v", err)
-		}
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-dockerStatsTicker.C:
-				if err := reportDockerStats(ctx, reportClient, cfg); err != nil {
-					log.Printf("docker stats report failed: %v", err)
-				}
-			}
-		}
-	}()
+	startPeriodicTask(ctx, heartbeatInterval, "initial heartbeat", "heartbeat", func() error {
+		return sendHeartbeat(ctx, reportClient, cfg)
+	})
+	startPeriodicTask(ctx, 5*time.Minute, "initial docker stats report", "docker stats report", func() error {
+		return reportDockerStats(ctx, reportClient, cfg)
+	})
 
 	startExecTunnelLoop(ctx, reportClient, cfg.NodeID)
 
@@ -162,6 +130,28 @@ func sendHeartbeat(ctx context.Context, client agentv1connect.AgentReportService
 		return fmt.Errorf("send heartbeat: %w", err)
 	}
 	return nil
+}
+
+func startPeriodicTask(ctx context.Context, interval time.Duration, initialLabel, repeatLabel string, run func() error) {
+	go func() {
+		if err := run(); err != nil {
+			log.Printf("%s failed: %v", initialLabel, err)
+		}
+
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if err := run(); err != nil {
+					log.Printf("%s failed: %v", repeatLabel, err)
+				}
+			}
+		}
+	}()
 }
 
 func reportDockerStats(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig) error {
@@ -249,9 +239,7 @@ func executeDeployTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		}
 		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepComposeUp, func() error {
 		projectName, err := loadComposeProjectName(bundle.RootPath, pulledTask.GetServiceName())
@@ -262,24 +250,18 @@ func executeDeployTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepFinalize, func() error {
 		return uploadTaskLog(ctx, logUploader, "finalize step completed after compose up\n")
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeRunning); err != nil {
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := uploadTaskLog(ctx, logUploader, "deploy task finished successfully\n"); err != nil {
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
 }
@@ -297,9 +279,7 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		}
 		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepPull, func() error {
 		projectName, err := loadComposeProjectName(bundle.RootPath, pulledTask.GetServiceName())
@@ -310,9 +290,7 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepComposeUp, func() error {
 		projectName, err := loadComposeProjectName(bundle.RootPath, pulledTask.GetServiceName())
@@ -323,24 +301,18 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepFinalize, func() error {
 		return uploadTaskLog(ctx, logUploader, "finalize step completed after compose pull and up\n")
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeRunning); err != nil {
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := uploadTaskLog(ctx, logUploader, "update task finished successfully\n"); err != nil {
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
 }
@@ -348,8 +320,7 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 func executeBackupTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
 	if len(pulledTask.GetDataNames()) == 0 {
 		err := fmt.Errorf("backup task is missing data_names")
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	var bundle *bundleResult
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
@@ -360,13 +331,11 @@ func executeBackupTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		}
 		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
 	}); err != nil {
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	runtimeConfig, err := loadBackupRuntimeConfig(bundle.RootPath)
 	if err != nil {
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting remote backup task for service=%s data_names=%s\n", pulledTask.GetServiceName(), strings.Join(pulledTask.GetDataNames(), ","))); err != nil {
 		return err
@@ -388,12 +357,10 @@ func executeBackupTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		}
 		return nil
 	}); err != nil {
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := uploadTaskLog(ctx, logUploader, "backup task finished successfully\n"); err != nil {
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
 }
@@ -408,14 +375,11 @@ func executeStopTask(ctx context.Context, bundleClient agentv1connect.BundleServ
 		}
 		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, bundle)
 	if err != nil {
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting remote stop task for service=%s dir=%s\n", pulledTask.GetServiceName(), serviceRoot)); err != nil {
 		return err
@@ -429,17 +393,13 @@ func executeStopTask(ctx context.Context, bundleClient agentv1connect.BundleServ
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeStopped); err != nil {
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := uploadTaskLog(ctx, logUploader, "stop task finished successfully\n"); err != nil {
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
 }
@@ -454,48 +414,38 @@ func executeRestartTask(ctx context.Context, bundleClient agentv1connect.BundleS
 		}
 		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, bundle)
 	if err != nil {
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting remote restart task for service=%s dir=%s\n", pulledTask.GetServiceName(), serviceRoot)); err != nil {
 		return err
 	}
 	projectName, err := loadComposeProjectName(serviceRoot, pulledTask.GetServiceName())
 	if err != nil {
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepComposeDown, func() error {
 		return runComposeDown(ctx, serviceRoot, projectName, func(output string) error {
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepComposeUp, func() error {
 		return runComposeUp(ctx, serviceRoot, projectName, func(output string) error {
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeRunning); err != nil {
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := uploadTaskLog(ctx, logUploader, "restart task finished successfully\n"); err != nil {
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
 }
@@ -517,18 +467,15 @@ func executePruneTask(ctx context.Context, client agentv1connect.AgentReportServ
 		})
 		return pruneErr
 	}); err != nil {
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 
 	if pruneErr != nil {
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, pruneErr.Error())
-		return pruneErr
+		return failTask(ctx, client, pulledTask.GetTaskId(), pruneErr)
 	}
 
 	if err := uploadTaskLog(ctx, logUploader, "prune task finished successfully\n"); err != nil {
-		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
-		return err
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
 }
@@ -638,6 +585,16 @@ func reportTaskCompletion(ctx context.Context, client agentv1connect.AgentReport
 		return fmt.Errorf("report task completion: %w", err)
 	}
 	return nil
+}
+
+func failTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, taskID string, err error) error {
+	_ = reportTaskCompletion(ctx, client, taskID, task.StatusFailed, err.Error())
+	return err
+}
+
+func failServiceTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, err error) error {
+	_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
+	return failTask(ctx, client, pulledTask.GetTaskId(), err)
 }
 
 func uploadTaskLog(ctx context.Context, logUploader *taskLogUploader, content string) error {

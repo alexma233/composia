@@ -58,33 +58,13 @@ func (uploader *taskLogUploader) Close() error {
 
 func (uploader *taskLogUploader) flush(ctx context.Context) error {
 	for len(uploader.pending) > 0 {
-		if err := uploader.ensureStream(ctx); err != nil {
+		current := uploader.pending[0]
+		acked, err := uploader.sendPendingLog(ctx, current)
+		if err != nil {
 			return err
 		}
-		current := uploader.pending[0]
-		if err := uploader.stream.Send(current); err != nil {
-			if err := uploader.reconnect(ctx); err != nil {
-				return err
-			}
+		if !acked {
 			continue
-		}
-		ack, err := uploader.stream.Receive()
-		if err != nil {
-			if err := uploader.reconnect(ctx); err != nil {
-				return err
-			}
-			continue
-		}
-		if ack.GetTaskId() != "" && ack.GetTaskId() != uploader.taskID {
-			return fmt.Errorf("unexpected log ack task_id %q", ack.GetTaskId())
-		}
-		if ack.GetLastConfirmedSeq() < uploader.lastConfirmedSeq {
-			return fmt.Errorf("log ack moved backwards from %d to %d", uploader.lastConfirmedSeq, ack.GetLastConfirmedSeq())
-		}
-		uploader.lastConfirmedSeq = ack.GetLastConfirmedSeq()
-		uploader.dropConfirmed()
-		if uploader.lastConfirmedSeq < current.GetSeq() {
-			return fmt.Errorf("controller acked seq %d while waiting for %d", uploader.lastConfirmedSeq, current.GetSeq())
 		}
 	}
 	return nil
@@ -106,6 +86,44 @@ func (uploader *taskLogUploader) reconnect(ctx context.Context) error {
 	case <-time.After(logStreamRetryDelay):
 	}
 	uploader.stream = uploader.client.UploadTaskLogs(ctx)
+	return nil
+}
+
+func (uploader *taskLogUploader) sendPendingLog(ctx context.Context, current *agentv1.UploadTaskLogsRequest) (bool, error) {
+	if err := uploader.ensureStream(ctx); err != nil {
+		return false, err
+	}
+	if err := uploader.stream.Send(current); err != nil {
+		if err := uploader.reconnect(ctx); err != nil {
+			return false, err
+		}
+		return false, nil
+	}
+	ack, err := uploader.stream.Receive()
+	if err != nil {
+		if err := uploader.reconnect(ctx); err != nil {
+			return false, err
+		}
+		return false, nil
+	}
+	if err := uploader.applyAck(current, ack); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (uploader *taskLogUploader) applyAck(current *agentv1.UploadTaskLogsRequest, ack *agentv1.UploadTaskLogsResponse) error {
+	if ack.GetTaskId() != "" && ack.GetTaskId() != uploader.taskID {
+		return fmt.Errorf("unexpected log ack task_id %q", ack.GetTaskId())
+	}
+	if ack.GetLastConfirmedSeq() < uploader.lastConfirmedSeq {
+		return fmt.Errorf("log ack moved backwards from %d to %d", uploader.lastConfirmedSeq, ack.GetLastConfirmedSeq())
+	}
+	uploader.lastConfirmedSeq = ack.GetLastConfirmedSeq()
+	uploader.dropConfirmed()
+	if uploader.lastConfirmedSeq < current.GetSeq() {
+		return fmt.Errorf("controller acked seq %d while waiting for %d", uploader.lastConfirmedSeq, current.GetSeq())
+	}
 	return nil
 }
 

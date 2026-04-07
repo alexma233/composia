@@ -69,6 +69,11 @@ type execWSEvent struct {
 	Session string `json:"session_id,omitempty"`
 }
 
+type execTunnelTarget struct {
+	session *execSession
+	tunnel  *agentExecTunnel
+}
+
 func newExecTunnelManager() *execTunnelManager {
 	return &execTunnelManager{
 		tunnels:  make(map[string]*agentExecTunnel),
@@ -144,22 +149,28 @@ func (manager *execTunnelManager) openSession(nodeID, containerID string, comman
 func (manager *execTunnelManager) sendToSessionNode(sessionID string, message *agentv1.OpenExecTunnelResponse) error {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
-	session := manager.sessions[sessionID]
-	if session == nil || session.closed {
-		return fmt.Errorf("session %q is closed", sessionID)
+	target, err := manager.sessionTargetLocked(sessionID)
+	if err != nil {
+		return err
 	}
-	tunnel := manager.tunnels[session.nodeID]
-	if tunnel == nil {
-		return fmt.Errorf("node %q tunnel is unavailable", session.nodeID)
-	}
-	tunnel.sendCh <- message
+	target.tunnel.sendCh <- message
 	return nil
 }
 
+func (manager *execTunnelManager) sessionTargetLocked(sessionID string) (execTunnelTarget, error) {
+	session := manager.sessions[sessionID]
+	if session == nil || session.closed {
+		return execTunnelTarget{}, fmt.Errorf("session %q is closed", sessionID)
+	}
+	tunnel := manager.tunnels[session.nodeID]
+	if tunnel == nil {
+		return execTunnelTarget{}, fmt.Errorf("node %q tunnel is unavailable", session.nodeID)
+	}
+	return execTunnelTarget{session: session, tunnel: tunnel}, nil
+}
+
 func (manager *execTunnelManager) deliverFromAgent(message *agentv1.OpenExecTunnelRequest) {
-	manager.mu.Lock()
-	session := manager.sessions[message.GetSessionId()]
-	manager.mu.Unlock()
+	session := manager.lookupSession(message.GetSessionId())
 	if session == nil {
 		return
 	}
@@ -168,6 +179,12 @@ func (manager *execTunnelManager) deliverFromAgent(message *agentv1.OpenExecTunn
 	default:
 		manager.closeSession(message.GetSessionId())
 	}
+}
+
+func (manager *execTunnelManager) lookupSession(sessionID string) *execSession {
+	manager.mu.Lock()
+	defer manager.mu.Unlock()
+	return manager.sessions[sessionID]
 }
 
 func (manager *execTunnelManager) takeSession(sessionID string) (*execSession, error) {
@@ -228,7 +245,7 @@ func (manager *execTunnelManager) handleWebsocket(w http.ResponseWriter, r *http
 	defer conn.Close()
 	defer manager.closeSession(sessionID)
 
-	if err := conn.WriteJSON(execWSEvent{Type: execKindReady, Session: sessionID}); err != nil {
+	if err := writeExecWSEvent(conn, execKindReady, sessionID, ""); err != nil {
 		return
 	}
 
@@ -241,29 +258,36 @@ func (manager *execTunnelManager) handleWebsocket(w http.ResponseWriter, r *http
 		select {
 		case err := <-readErrCh:
 			if err != nil && !websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
-				_ = conn.WriteJSON(execWSEvent{Type: execKindError, Message: err.Error(), Session: sessionID})
+				_ = writeExecWSEvent(conn, execKindError, sessionID, err.Error())
 			}
 			return
 		case message, ok := <-session.incoming:
-			if !ok {
-				_ = conn.WriteJSON(execWSEvent{Type: execKindClosed, Session: sessionID})
-				return
-			}
-			switch message.GetKind() {
-			case execKindOutput:
-				if err := conn.WriteMessage(websocket.BinaryMessage, append([]byte(nil), message.GetPayload()...)); err != nil {
-					return
-				}
-			case execKindError:
-				if err := conn.WriteJSON(execWSEvent{Type: execKindError, Message: string(message.GetPayload()), Session: sessionID}); err != nil {
-					return
-				}
-			case execKindClosed:
-				_ = conn.WriteJSON(execWSEvent{Type: execKindClosed, Message: string(message.GetPayload()), Session: sessionID})
+			if !manager.forwardAgentMessageToBrowser(conn, sessionID, message, ok) {
 				return
 			}
 		}
 	}
+}
+
+func (manager *execTunnelManager) forwardAgentMessageToBrowser(conn *websocket.Conn, sessionID string, message *agentv1.OpenExecTunnelRequest, ok bool) bool {
+	if !ok {
+		_ = writeExecWSEvent(conn, execKindClosed, sessionID, "")
+		return false
+	}
+	switch message.GetKind() {
+	case execKindOutput:
+		if err := conn.WriteMessage(websocket.BinaryMessage, append([]byte(nil), message.GetPayload()...)); err != nil {
+			return false
+		}
+	case execKindError:
+		if err := writeExecWSEvent(conn, execKindError, sessionID, string(message.GetPayload())); err != nil {
+			return false
+		}
+	case execKindClosed:
+		_ = writeExecWSEvent(conn, execKindClosed, sessionID, string(message.GetPayload()))
+		return false
+	}
+	return true
 }
 
 func (manager *execTunnelManager) readBrowserMessages(conn *websocket.Conn, session *execSession) error {
@@ -274,7 +298,7 @@ func (manager *execTunnelManager) readBrowserMessages(conn *websocket.Conn, sess
 		}
 		switch messageType {
 		case websocket.BinaryMessage:
-			if err := manager.sendToSessionNode(session.id, &agentv1.OpenExecTunnelResponse{SessionId: session.id, Kind: execKindStdin, Payload: payload}); err != nil {
+			if err := manager.sendBrowserPayload(session.id, execKindStdin, payload); err != nil {
 				return err
 			}
 		case websocket.TextMessage:
@@ -282,23 +306,35 @@ func (manager *execTunnelManager) readBrowserMessages(conn *websocket.Conn, sess
 			if err := json.Unmarshal(payload, &control); err == nil && control.Type != "" {
 				switch control.Type {
 				case execKindResize:
-					if err := manager.sendToSessionNode(session.id, &agentv1.OpenExecTunnelResponse{SessionId: session.id, Kind: execKindResize, Rows: control.Rows, Cols: control.Cols}); err != nil {
+					if err := manager.sendBrowserResize(session.id, control.Rows, control.Cols); err != nil {
 						return err
 					}
 				case execKindClose:
 					return nil
 				default:
-					if err := manager.sendToSessionNode(session.id, &agentv1.OpenExecTunnelResponse{SessionId: session.id, Kind: execKindStdin, Payload: payload}); err != nil {
+					if err := manager.sendBrowserPayload(session.id, execKindStdin, payload); err != nil {
 						return err
 					}
 				}
 				continue
 			}
-			if err := manager.sendToSessionNode(session.id, &agentv1.OpenExecTunnelResponse{SessionId: session.id, Kind: execKindStdin, Payload: payload}); err != nil {
+			if err := manager.sendBrowserPayload(session.id, execKindStdin, payload); err != nil {
 				return err
 			}
 		}
 	}
+}
+
+func (manager *execTunnelManager) sendBrowserPayload(sessionID, kind string, payload []byte) error {
+	return manager.sendToSessionNode(sessionID, &agentv1.OpenExecTunnelResponse{SessionId: sessionID, Kind: kind, Payload: payload})
+}
+
+func (manager *execTunnelManager) sendBrowserResize(sessionID string, rows, cols uint32) error {
+	return manager.sendToSessionNode(sessionID, &agentv1.OpenExecTunnelResponse{SessionId: sessionID, Kind: execKindResize, Rows: rows, Cols: cols})
+}
+
+func writeExecWSEvent(conn *websocket.Conn, kind, sessionID, message string) error {
+	return conn.WriteJSON(execWSEvent{Type: kind, Message: message, Session: sessionID})
 }
 
 func (server *agentReportServer) OpenExecTunnel(ctx context.Context, stream *connect.BidiStream[agentv1.OpenExecTunnelRequest, agentv1.OpenExecTunnelResponse]) error {

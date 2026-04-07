@@ -117,80 +117,11 @@ func Run(ctx context.Context, configPath string) error {
 		}
 		return name, nil
 	})
-
-	agentPath, agentHandler := agentv1connect.NewAgentReportServiceHandler(
-		&agentReportServer{db: db, logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: taskQueue, taskResults: taskResults, execManager: execManager},
-		connect.WithInterceptors(agentInterceptor),
-	)
-	mux.Handle(agentPath, agentHandler)
-
-	agentTaskPath, agentTaskHandler := agentv1connect.NewAgentTaskServiceHandler(
-		&agentTaskServer{db: db, taskQueue: taskQueue},
-		connect.WithInterceptors(agentInterceptor),
-	)
-	mux.Handle(agentTaskPath, agentTaskHandler)
-
-	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(
-		&bundleServer{db: db, cfg: cfg},
-		connect.WithInterceptors(agentInterceptor),
-	)
-	mux.Handle(bundlePath, bundleHandler)
-
-	systemPath, systemHandler := controllerv1connect.NewSystemServiceHandler(
-		&systemServer{db: db, cfg: cfg},
-		connect.WithInterceptors(cliInterceptor),
-	)
-	mux.Handle(systemPath, systemHandler)
 	repoMu := &sync.Mutex{}
 
-	repoPath, repoHandler := controllerv1connect.NewRepoServiceHandler(
-		&repoServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: repoMu},
-		connect.WithInterceptors(cliInterceptor),
-	)
-	mux.Handle(repoPath, repoHandler)
-
-	secretPath, secretHandler := controllerv1connect.NewSecretServiceHandler(
-		&secretServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: repoMu},
-		connect.WithInterceptors(cliInterceptor),
-	)
-	mux.Handle(secretPath, secretHandler)
-
-	backupPath, backupHandler := controllerv1connect.NewBackupRecordServiceHandler(
-		&backupRecordServer{db: db},
-		connect.WithInterceptors(cliInterceptor),
-	)
-	mux.Handle(backupPath, backupHandler)
-
-	servicePath, serviceHandler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults},
-		connect.WithInterceptors(cliInterceptor),
-	)
-	mux.Handle(servicePath, serviceHandler)
-
-	serviceInstancePath, serviceInstanceHandler := controllerv1connect.NewServiceInstanceServiceHandler(
-		&serviceInstanceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults},
-		connect.WithInterceptors(cliInterceptor),
-	)
-	mux.Handle(serviceInstancePath, serviceInstanceHandler)
-
-	nodePath, nodeHandler := controllerv1connect.NewNodeServiceHandler(
-		&nodeServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults},
-		connect.WithInterceptors(cliInterceptor),
-	)
-	mux.Handle(nodePath, nodeHandler)
-
-	containerPath, containerHandler := controllerv1connect.NewContainerServiceHandler(
-		&containerServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults, execManager: execManager},
-		connect.WithInterceptors(cliInterceptor),
-	)
-	mux.Handle(containerPath, containerHandler)
+	registerAgentHandlers(mux, cfg, db, agentInterceptor, taskQueue, taskResults, execManager)
+	registerCLIHandlers(mux, cfg, db, cliInterceptor, availableNodeIDs, taskQueue, taskResults, execManager, repoMu)
 	mux.HandleFunc("/ws/container-exec/", execManager.handleWebsocket)
-
-	taskPath, taskHandler := controllerv1connect.NewTaskServiceHandler(
-		&taskServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue},
-		connect.WithInterceptors(cliInterceptor),
-	)
-	mux.Handle(taskPath, taskHandler)
 
 	server := &http.Server{
 		Addr:              cfg.ListenAddr,
@@ -214,6 +145,82 @@ func Run(ctx context.Context, configPath string) error {
 		return fmt.Errorf("run controller server: %w", err)
 	}
 	return nil
+}
+
+func registerAgentHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, execManager *execTunnelManager) {
+	agentPath, agentHandler := agentv1connect.NewAgentReportServiceHandler(
+		&agentReportServer{db: db, logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: taskQueue, taskResults: taskResults, execManager: execManager},
+		connect.WithInterceptors(interceptor),
+	)
+	mux.Handle(agentPath, agentHandler)
+
+	agentTaskPath, agentTaskHandler := agentv1connect.NewAgentTaskServiceHandler(
+		&agentTaskServer{db: db, taskQueue: taskQueue},
+		connect.WithInterceptors(interceptor),
+	)
+	mux.Handle(agentTaskPath, agentTaskHandler)
+
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(
+		&bundleServer{db: db, cfg: cfg},
+		connect.WithInterceptors(interceptor),
+	)
+	mux.Handle(bundlePath, bundleHandler)
+}
+
+func registerCLIHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, availableNodeIDs map[string]struct{}, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, execManager *execTunnelManager, repoMu *sync.Mutex) {
+	systemPath, systemHandler := controllerv1connect.NewSystemServiceHandler(
+		&systemServer{db: db, cfg: cfg},
+		connect.WithInterceptors(interceptor),
+	)
+	mux.Handle(systemPath, systemHandler)
+
+	repoPath, repoHandler := controllerv1connect.NewRepoServiceHandler(
+		&repoServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: repoMu},
+		connect.WithInterceptors(interceptor),
+	)
+	mux.Handle(repoPath, repoHandler)
+
+	secretPath, secretHandler := controllerv1connect.NewSecretServiceHandler(
+		&secretServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: repoMu},
+		connect.WithInterceptors(interceptor),
+	)
+	mux.Handle(secretPath, secretHandler)
+
+	backupPath, backupHandler := controllerv1connect.NewBackupRecordServiceHandler(
+		&backupRecordServer{db: db},
+		connect.WithInterceptors(interceptor),
+	)
+	mux.Handle(backupPath, backupHandler)
+
+	servicePath, serviceHandler := controllerv1connect.NewServiceServiceHandler(
+		&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults},
+		connect.WithInterceptors(interceptor),
+	)
+	mux.Handle(servicePath, serviceHandler)
+
+	serviceInstancePath, serviceInstanceHandler := controllerv1connect.NewServiceInstanceServiceHandler(
+		&serviceInstanceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults},
+		connect.WithInterceptors(interceptor),
+	)
+	mux.Handle(serviceInstancePath, serviceInstanceHandler)
+
+	nodePath, nodeHandler := controllerv1connect.NewNodeServiceHandler(
+		&nodeServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults},
+		connect.WithInterceptors(interceptor),
+	)
+	mux.Handle(nodePath, nodeHandler)
+
+	containerPath, containerHandler := controllerv1connect.NewContainerServiceHandler(
+		&containerServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults, execManager: execManager},
+		connect.WithInterceptors(interceptor),
+	)
+	mux.Handle(containerPath, containerHandler)
+
+	taskPath, taskHandler := controllerv1connect.NewTaskServiceHandler(
+		&taskServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue},
+		connect.WithInterceptors(interceptor),
+	)
+	mux.Handle(taskPath, taskHandler)
 }
 
 func sweepOfflineNodes(ctx context.Context, db *store.DB) {
@@ -249,15 +256,10 @@ func autoPullRepo(ctx context.Context, cfg *config.ControllerConfig, db *store.D
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			pullMu := sync.Mutex{}
-			if !pullMu.TryLock() {
-				continue
-			}
 			repoMu.Lock()
 			previousRevision, _ := repo.CurrentRevision(cfg.RepoDir)
 			_, pullErr := autoPullFetchAndFastForward(ctx, cfg, db)
 			repoMu.Unlock()
-			pullMu.Unlock()
 
 			if pullErr != nil {
 				log.Printf("auto-pull failed: %v", pullErr)
