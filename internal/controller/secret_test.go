@@ -49,7 +49,7 @@ func TestSecretServiceGetAndUpdateServiceSecretEnv(t *testing.T) {
 	}
 	defer db.Close()
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -120,7 +120,7 @@ func TestSecretServiceUpdateRejectsActiveServiceTask(t *testing.T) {
 	}
 	defer db.Close()
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-alpha", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "alpha", Status: task.StatusPending}); err != nil {

@@ -25,7 +25,7 @@ func TestTaskServiceListTasks(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -110,7 +110,7 @@ func TestTaskServiceGetTaskReturnsSteps(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -211,7 +211,7 @@ func TestTaskServiceTailTaskLogsStreamsExistingAndNewContent(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -277,7 +277,7 @@ func TestTaskServiceRunTaskAgainCreatesNewPendingTask(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -338,7 +338,7 @@ func TestTaskServiceRunTaskAgainSupportsBackup(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {

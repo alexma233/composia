@@ -168,7 +168,7 @@ func TestNodeServiceGetNodeTasksReturnsFilteredTasks(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main", "node-2"}); err != nil {

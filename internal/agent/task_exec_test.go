@@ -499,11 +499,11 @@ func (server *agentExecutionTestReportServer) ReportBackupResult(_ context.Conte
 	return connect.NewResponse(&agentv1.ReportBackupResultResponse{}), nil
 }
 
-func (server *agentExecutionTestReportServer) ReportServiceStatus(_ context.Context, req *connect.Request[agentv1.ReportServiceStatusRequest]) (*connect.Response[agentv1.ReportServiceStatusResponse], error) {
+func (server *agentExecutionTestReportServer) ReportServiceInstanceStatus(_ context.Context, req *connect.Request[agentv1.ReportServiceInstanceStatusRequest]) (*connect.Response[agentv1.ReportServiceInstanceStatusResponse], error) {
 	server.mu.Lock()
 	defer server.mu.Unlock()
 	server.runtimeStatus = req.Msg.GetRuntimeStatus()
-	return connect.NewResponse(&agentv1.ReportServiceStatusResponse{}), nil
+	return connect.NewResponse(&agentv1.ReportServiceInstanceStatusResponse{}), nil
 }
 
 var _ agentv1connect.AgentReportServiceHandler = (*agentExecutionTestReportServer)(nil)

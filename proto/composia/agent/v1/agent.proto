@@ -12,7 +12,7 @@ service AgentReportService {
   rpc ReportTaskStepState(ReportTaskStepStateRequest) returns (ReportTaskStepStateResponse);
   rpc UploadTaskLogs(stream UploadTaskLogsRequest) returns (stream UploadTaskLogsResponse);
   rpc ReportBackupResult(ReportBackupResultRequest) returns (ReportBackupResultResponse);
-  rpc ReportServiceStatus(ReportServiceStatusRequest) returns (ReportServiceStatusResponse);
+  rpc ReportServiceInstanceStatus(ReportServiceInstanceStatusRequest) returns (ReportServiceInstanceStatusResponse);
   rpc ReportDockerStats(ReportDockerStatsRequest) returns (ReportDockerStatsResponse);
 }
 
@@ -117,13 +117,14 @@ message ReportBackupResultRequest {
 
 message ReportBackupResultResponse {}
 
-message ReportServiceStatusRequest {
+message ReportServiceInstanceStatusRequest {
   string service_name = 1;
-  string runtime_status = 2;
-  google.protobuf.Timestamp reported_at = 3;
+  string node_id = 2;
+  string runtime_status = 3;
+  google.protobuf.Timestamp reported_at = 4;
 }
 
-message ReportServiceStatusResponse {}
+message ReportServiceInstanceStatusResponse {}
 
 message GetServiceBundleRequest {
   string task_id = 1;

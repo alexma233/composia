@@ -247,7 +247,7 @@ func executeDeployTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		}
 		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
+		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -260,18 +260,18 @@ func executeDeployTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
+		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepFinalize, func() error {
 		return uploadTaskLog(ctx, logUploader, "finalize step completed after compose up\n")
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
+		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
-	if err := reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeRunning); err != nil {
+	if err := reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeRunning); err != nil {
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -295,7 +295,7 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		}
 		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
+		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -308,7 +308,7 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
+		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -321,18 +321,18 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
+		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepFinalize, func() error {
 		return uploadTaskLog(ctx, logUploader, "finalize step completed after compose pull and up\n")
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
+		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
-	if err := reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeRunning); err != nil {
+	if err := reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeRunning); err != nil {
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -406,7 +406,7 @@ func executeStopTask(ctx context.Context, bundleClient agentv1connect.BundleServ
 		}
 		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
+		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -427,11 +427,11 @@ func executeStopTask(ctx context.Context, bundleClient agentv1connect.BundleServ
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
+		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
-	if err := reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeStopped); err != nil {
+	if err := reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeStopped); err != nil {
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -452,7 +452,7 @@ func executeRestartTask(ctx context.Context, bundleClient agentv1connect.BundleS
 		}
 		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
+		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -474,7 +474,7 @@ func executeRestartTask(ctx context.Context, bundleClient agentv1connect.BundleS
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
+		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -483,11 +483,11 @@ func executeRestartTask(ctx context.Context, bundleClient agentv1connect.BundleS
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
-		_ = reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeError)
+		_ = reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeError)
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
-	if err := reportServiceStatus(ctx, client, pulledTask.GetServiceName(), store.ServiceRuntimeRunning); err != nil {
+	if err := reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeRunning); err != nil {
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
@@ -1020,14 +1020,15 @@ func sanitizeStagePath(value string) string {
 	return replacer.Replace(strings.TrimPrefix(strings.TrimPrefix(value, "./"), "/"))
 }
 
-func reportServiceStatus(ctx context.Context, client agentv1connect.AgentReportServiceClient, serviceName, runtimeStatus string) error {
-	_, err := client.ReportServiceStatus(ctx, connect.NewRequest(&agentv1.ReportServiceStatusRequest{
+func reportServiceStatus(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, serviceName, runtimeStatus string) error {
+	_, err := client.ReportServiceInstanceStatus(ctx, connect.NewRequest(&agentv1.ReportServiceInstanceStatusRequest{
 		ServiceName:   serviceName,
+		NodeId:        cfg.NodeID,
 		RuntimeStatus: runtimeStatus,
 		ReportedAt:    timestamppb.Now(),
 	}))
 	if err != nil {
-		return fmt.Errorf("report service status: %w", err)
+		return fmt.Errorf("report service instance status: %w", err)
 	}
 	return nil
 }

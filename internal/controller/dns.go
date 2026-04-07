@@ -248,7 +248,10 @@ func desiredDNSRecordSets(service repo.Service, cfg *config.ControllerConfig, re
 	if value != "" {
 		return desiredDNSRecordSetsForValue(relativeName, ttl, strings.ToUpper(strings.TrimSpace(dnsConfig.RecordType)), value)
 	}
-	node, err := configuredNode(cfg, service.Node)
+	if len(service.TargetNodes) != 1 {
+		return nil, fmt.Errorf("service %q must target exactly one node when network.dns.value is empty", service.Name)
+	}
+	node, err := configuredNode(cfg, service.TargetNodes[0])
 	if err != nil {
 		return nil, err
 	}

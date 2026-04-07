@@ -14,12 +14,12 @@ import (
 const MetaFileName = "composia-meta.yaml"
 
 type Service struct {
-	Name      string
-	Directory string
-	MetaPath  string
-	Node      string
-	Enabled   bool
-	Meta      ServiceMeta
+	Name        string
+	Directory   string
+	MetaPath    string
+	TargetNodes []string
+	Enabled     bool
+	Meta        ServiceMeta
 }
 
 type ServiceMeta struct {
@@ -27,6 +27,7 @@ type ServiceMeta struct {
 	ProjectName string             `yaml:"project_name"`
 	Enabled     *bool              `yaml:"enabled"`
 	Node        string             `yaml:"node"`
+	Nodes       []string           `yaml:"nodes"`
 	Network     *NetworkConfig     `yaml:"network"`
 	Update      *UpdateConfig      `yaml:"update"`
 	DataProtect *DataProtectConfig `yaml:"data_protect"`
@@ -200,17 +201,14 @@ func strictServiceFromMeta(path string, meta ServiceMeta, availableNodeIDs map[s
 	if err := validateServiceMeta(path, &meta, availableNodeIDs); err != nil {
 		return Service{}, err
 	}
-	targetNode := meta.Node
-	if targetNode == "" {
-		targetNode = "main"
-	}
+	targetNodes := normalizedTargetNodes(meta)
 	return Service{
-		Name:      meta.Name,
-		Directory: filepath.Dir(path),
-		MetaPath:  path,
-		Node:      targetNode,
-		Enabled:   boolValue(meta.Enabled, true),
-		Meta:      meta,
+		Name:        meta.Name,
+		Directory:   filepath.Dir(path),
+		MetaPath:    path,
+		TargetNodes: targetNodes,
+		Enabled:     boolValue(meta.Enabled, true),
+		Meta:        meta,
 	}, nil
 }
 
@@ -234,12 +232,23 @@ func validateServiceMeta(path string, meta *ServiceMeta, availableNodeIDs map[st
 		return fmt.Errorf("service meta %q: name is required", path)
 	}
 
-	targetNode := meta.Node
-	if targetNode == "" {
-		targetNode = "main"
+	if meta.Node != "" && len(meta.Nodes) > 0 {
+		return fmt.Errorf("service meta %q: node and nodes cannot both be set", path)
 	}
-	if _, ok := availableNodeIDs[targetNode]; !ok {
-		return fmt.Errorf("service meta %q: node %q is not configured", path, targetNode)
+
+	targetNodes := normalizedTargetNodes(*meta)
+	if len(targetNodes) == 0 {
+		return fmt.Errorf("service meta %q: at least one target node is required", path)
+	}
+	seenNodes := make(map[string]struct{}, len(targetNodes))
+	for _, nodeID := range targetNodes {
+		if _, ok := availableNodeIDs[nodeID]; !ok {
+			return fmt.Errorf("service meta %q: node %q is not configured", path, nodeID)
+		}
+		if _, exists := seenNodes[nodeID]; exists {
+			return fmt.Errorf("service meta %q: node %q is duplicated", path, nodeID)
+		}
+		seenNodes[nodeID] = struct{}{}
 	}
 
 	if meta.Network != nil {
@@ -385,6 +394,25 @@ func boolValue(value *bool, fallback bool) bool {
 		return fallback
 	}
 	return *value
+}
+
+func normalizedTargetNodes(meta ServiceMeta) []string {
+	if len(meta.Nodes) > 0 {
+		nodes := make([]string, 0, len(meta.Nodes))
+		for _, nodeID := range meta.Nodes {
+			nodeID = strings.TrimSpace(nodeID)
+			if nodeID == "" {
+				continue
+			}
+			nodes = append(nodes, nodeID)
+		}
+		return nodes
+	}
+	targetNode := strings.TrimSpace(meta.Node)
+	if targetNode == "" {
+		targetNode = "main"
+	}
+	return []string{targetNode}
 }
 
 func EnabledBackupDataNames(service Service) []string {

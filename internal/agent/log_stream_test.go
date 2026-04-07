@@ -90,6 +90,6 @@ func (server *logUploadTestServer) ReportBackupResult(context.Context, *connect.
 	return nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("not used"))
 }
 
-func (server *logUploadTestServer) ReportServiceStatus(context.Context, *connect.Request[agentv1.ReportServiceStatusRequest]) (*connect.Response[agentv1.ReportServiceStatusResponse], error) {
+func (server *logUploadTestServer) ReportServiceInstanceStatus(context.Context, *connect.Request[agentv1.ReportServiceInstanceStatusRequest]) (*connect.Response[agentv1.ReportServiceInstanceStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("not used"))
 }

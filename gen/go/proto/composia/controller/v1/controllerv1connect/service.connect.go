@@ -23,6 +23,8 @@ const _ = connect.IsAtLeastVersion1_13_0
 const (
 	// ServiceServiceName is the fully-qualified name of the ServiceService service.
 	ServiceServiceName = "composia.controller.v1.ServiceService"
+	// ServiceInstanceServiceName is the fully-qualified name of the ServiceInstanceService service.
+	ServiceInstanceServiceName = "composia.controller.v1.ServiceInstanceService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -63,6 +65,24 @@ const (
 	// ServiceServiceRestartServiceProcedure is the fully-qualified name of the ServiceService's
 	// RestartService RPC.
 	ServiceServiceRestartServiceProcedure = "/composia.controller.v1.ServiceService/RestartService"
+	// ServiceInstanceServiceListServiceInstancesProcedure is the fully-qualified name of the
+	// ServiceInstanceService's ListServiceInstances RPC.
+	ServiceInstanceServiceListServiceInstancesProcedure = "/composia.controller.v1.ServiceInstanceService/ListServiceInstances"
+	// ServiceInstanceServiceGetServiceInstanceProcedure is the fully-qualified name of the
+	// ServiceInstanceService's GetServiceInstance RPC.
+	ServiceInstanceServiceGetServiceInstanceProcedure = "/composia.controller.v1.ServiceInstanceService/GetServiceInstance"
+	// ServiceInstanceServiceDeployServiceInstanceProcedure is the fully-qualified name of the
+	// ServiceInstanceService's DeployServiceInstance RPC.
+	ServiceInstanceServiceDeployServiceInstanceProcedure = "/composia.controller.v1.ServiceInstanceService/DeployServiceInstance"
+	// ServiceInstanceServiceUpdateServiceInstanceProcedure is the fully-qualified name of the
+	// ServiceInstanceService's UpdateServiceInstance RPC.
+	ServiceInstanceServiceUpdateServiceInstanceProcedure = "/composia.controller.v1.ServiceInstanceService/UpdateServiceInstance"
+	// ServiceInstanceServiceStopServiceInstanceProcedure is the fully-qualified name of the
+	// ServiceInstanceService's StopServiceInstance RPC.
+	ServiceInstanceServiceStopServiceInstanceProcedure = "/composia.controller.v1.ServiceInstanceService/StopServiceInstance"
+	// ServiceInstanceServiceRestartServiceInstanceProcedure is the fully-qualified name of the
+	// ServiceInstanceService's RestartServiceInstance RPC.
+	ServiceInstanceServiceRestartServiceInstanceProcedure = "/composia.controller.v1.ServiceInstanceService/RestartServiceInstance"
 )
 
 // ServiceServiceClient is a client for the composia.controller.v1.ServiceService service.
@@ -367,4 +387,208 @@ func (UnimplementedServiceServiceHandler) StopService(context.Context, *connect.
 
 func (UnimplementedServiceServiceHandler) RestartService(context.Context, *connect.Request[v1.RestartServiceRequest]) (*connect.Response[v1.RestartServiceResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.RestartService is not implemented"))
+}
+
+// ServiceInstanceServiceClient is a client for the composia.controller.v1.ServiceInstanceService
+// service.
+type ServiceInstanceServiceClient interface {
+	ListServiceInstances(context.Context, *connect.Request[v1.ListServiceInstancesRequest]) (*connect.Response[v1.ListServiceInstancesResponse], error)
+	GetServiceInstance(context.Context, *connect.Request[v1.GetServiceInstanceRequest]) (*connect.Response[v1.GetServiceInstanceResponse], error)
+	DeployServiceInstance(context.Context, *connect.Request[v1.DeployServiceInstanceRequest]) (*connect.Response[v1.DeployServiceInstanceResponse], error)
+	UpdateServiceInstance(context.Context, *connect.Request[v1.UpdateServiceInstanceRequest]) (*connect.Response[v1.UpdateServiceInstanceResponse], error)
+	StopServiceInstance(context.Context, *connect.Request[v1.StopServiceInstanceRequest]) (*connect.Response[v1.StopServiceInstanceResponse], error)
+	RestartServiceInstance(context.Context, *connect.Request[v1.RestartServiceInstanceRequest]) (*connect.Response[v1.RestartServiceInstanceResponse], error)
+}
+
+// NewServiceInstanceServiceClient constructs a client for the
+// composia.controller.v1.ServiceInstanceService service. By default, it uses the Connect protocol
+// with the binary Protobuf Codec, asks for gzipped responses, and sends uncompressed requests. To
+// use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or connect.WithGRPCWeb()
+// options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewServiceInstanceServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ServiceInstanceServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	serviceInstanceServiceMethods := v1.File_proto_composia_controller_v1_service_proto.Services().ByName("ServiceInstanceService").Methods()
+	return &serviceInstanceServiceClient{
+		listServiceInstances: connect.NewClient[v1.ListServiceInstancesRequest, v1.ListServiceInstancesResponse](
+			httpClient,
+			baseURL+ServiceInstanceServiceListServiceInstancesProcedure,
+			connect.WithSchema(serviceInstanceServiceMethods.ByName("ListServiceInstances")),
+			connect.WithClientOptions(opts...),
+		),
+		getServiceInstance: connect.NewClient[v1.GetServiceInstanceRequest, v1.GetServiceInstanceResponse](
+			httpClient,
+			baseURL+ServiceInstanceServiceGetServiceInstanceProcedure,
+			connect.WithSchema(serviceInstanceServiceMethods.ByName("GetServiceInstance")),
+			connect.WithClientOptions(opts...),
+		),
+		deployServiceInstance: connect.NewClient[v1.DeployServiceInstanceRequest, v1.DeployServiceInstanceResponse](
+			httpClient,
+			baseURL+ServiceInstanceServiceDeployServiceInstanceProcedure,
+			connect.WithSchema(serviceInstanceServiceMethods.ByName("DeployServiceInstance")),
+			connect.WithClientOptions(opts...),
+		),
+		updateServiceInstance: connect.NewClient[v1.UpdateServiceInstanceRequest, v1.UpdateServiceInstanceResponse](
+			httpClient,
+			baseURL+ServiceInstanceServiceUpdateServiceInstanceProcedure,
+			connect.WithSchema(serviceInstanceServiceMethods.ByName("UpdateServiceInstance")),
+			connect.WithClientOptions(opts...),
+		),
+		stopServiceInstance: connect.NewClient[v1.StopServiceInstanceRequest, v1.StopServiceInstanceResponse](
+			httpClient,
+			baseURL+ServiceInstanceServiceStopServiceInstanceProcedure,
+			connect.WithSchema(serviceInstanceServiceMethods.ByName("StopServiceInstance")),
+			connect.WithClientOptions(opts...),
+		),
+		restartServiceInstance: connect.NewClient[v1.RestartServiceInstanceRequest, v1.RestartServiceInstanceResponse](
+			httpClient,
+			baseURL+ServiceInstanceServiceRestartServiceInstanceProcedure,
+			connect.WithSchema(serviceInstanceServiceMethods.ByName("RestartServiceInstance")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// serviceInstanceServiceClient implements ServiceInstanceServiceClient.
+type serviceInstanceServiceClient struct {
+	listServiceInstances   *connect.Client[v1.ListServiceInstancesRequest, v1.ListServiceInstancesResponse]
+	getServiceInstance     *connect.Client[v1.GetServiceInstanceRequest, v1.GetServiceInstanceResponse]
+	deployServiceInstance  *connect.Client[v1.DeployServiceInstanceRequest, v1.DeployServiceInstanceResponse]
+	updateServiceInstance  *connect.Client[v1.UpdateServiceInstanceRequest, v1.UpdateServiceInstanceResponse]
+	stopServiceInstance    *connect.Client[v1.StopServiceInstanceRequest, v1.StopServiceInstanceResponse]
+	restartServiceInstance *connect.Client[v1.RestartServiceInstanceRequest, v1.RestartServiceInstanceResponse]
+}
+
+// ListServiceInstances calls composia.controller.v1.ServiceInstanceService.ListServiceInstances.
+func (c *serviceInstanceServiceClient) ListServiceInstances(ctx context.Context, req *connect.Request[v1.ListServiceInstancesRequest]) (*connect.Response[v1.ListServiceInstancesResponse], error) {
+	return c.listServiceInstances.CallUnary(ctx, req)
+}
+
+// GetServiceInstance calls composia.controller.v1.ServiceInstanceService.GetServiceInstance.
+func (c *serviceInstanceServiceClient) GetServiceInstance(ctx context.Context, req *connect.Request[v1.GetServiceInstanceRequest]) (*connect.Response[v1.GetServiceInstanceResponse], error) {
+	return c.getServiceInstance.CallUnary(ctx, req)
+}
+
+// DeployServiceInstance calls composia.controller.v1.ServiceInstanceService.DeployServiceInstance.
+func (c *serviceInstanceServiceClient) DeployServiceInstance(ctx context.Context, req *connect.Request[v1.DeployServiceInstanceRequest]) (*connect.Response[v1.DeployServiceInstanceResponse], error) {
+	return c.deployServiceInstance.CallUnary(ctx, req)
+}
+
+// UpdateServiceInstance calls composia.controller.v1.ServiceInstanceService.UpdateServiceInstance.
+func (c *serviceInstanceServiceClient) UpdateServiceInstance(ctx context.Context, req *connect.Request[v1.UpdateServiceInstanceRequest]) (*connect.Response[v1.UpdateServiceInstanceResponse], error) {
+	return c.updateServiceInstance.CallUnary(ctx, req)
+}
+
+// StopServiceInstance calls composia.controller.v1.ServiceInstanceService.StopServiceInstance.
+func (c *serviceInstanceServiceClient) StopServiceInstance(ctx context.Context, req *connect.Request[v1.StopServiceInstanceRequest]) (*connect.Response[v1.StopServiceInstanceResponse], error) {
+	return c.stopServiceInstance.CallUnary(ctx, req)
+}
+
+// RestartServiceInstance calls
+// composia.controller.v1.ServiceInstanceService.RestartServiceInstance.
+func (c *serviceInstanceServiceClient) RestartServiceInstance(ctx context.Context, req *connect.Request[v1.RestartServiceInstanceRequest]) (*connect.Response[v1.RestartServiceInstanceResponse], error) {
+	return c.restartServiceInstance.CallUnary(ctx, req)
+}
+
+// ServiceInstanceServiceHandler is an implementation of the
+// composia.controller.v1.ServiceInstanceService service.
+type ServiceInstanceServiceHandler interface {
+	ListServiceInstances(context.Context, *connect.Request[v1.ListServiceInstancesRequest]) (*connect.Response[v1.ListServiceInstancesResponse], error)
+	GetServiceInstance(context.Context, *connect.Request[v1.GetServiceInstanceRequest]) (*connect.Response[v1.GetServiceInstanceResponse], error)
+	DeployServiceInstance(context.Context, *connect.Request[v1.DeployServiceInstanceRequest]) (*connect.Response[v1.DeployServiceInstanceResponse], error)
+	UpdateServiceInstance(context.Context, *connect.Request[v1.UpdateServiceInstanceRequest]) (*connect.Response[v1.UpdateServiceInstanceResponse], error)
+	StopServiceInstance(context.Context, *connect.Request[v1.StopServiceInstanceRequest]) (*connect.Response[v1.StopServiceInstanceResponse], error)
+	RestartServiceInstance(context.Context, *connect.Request[v1.RestartServiceInstanceRequest]) (*connect.Response[v1.RestartServiceInstanceResponse], error)
+}
+
+// NewServiceInstanceServiceHandler builds an HTTP handler from the service implementation. It
+// returns the path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewServiceInstanceServiceHandler(svc ServiceInstanceServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	serviceInstanceServiceMethods := v1.File_proto_composia_controller_v1_service_proto.Services().ByName("ServiceInstanceService").Methods()
+	serviceInstanceServiceListServiceInstancesHandler := connect.NewUnaryHandler(
+		ServiceInstanceServiceListServiceInstancesProcedure,
+		svc.ListServiceInstances,
+		connect.WithSchema(serviceInstanceServiceMethods.ByName("ListServiceInstances")),
+		connect.WithHandlerOptions(opts...),
+	)
+	serviceInstanceServiceGetServiceInstanceHandler := connect.NewUnaryHandler(
+		ServiceInstanceServiceGetServiceInstanceProcedure,
+		svc.GetServiceInstance,
+		connect.WithSchema(serviceInstanceServiceMethods.ByName("GetServiceInstance")),
+		connect.WithHandlerOptions(opts...),
+	)
+	serviceInstanceServiceDeployServiceInstanceHandler := connect.NewUnaryHandler(
+		ServiceInstanceServiceDeployServiceInstanceProcedure,
+		svc.DeployServiceInstance,
+		connect.WithSchema(serviceInstanceServiceMethods.ByName("DeployServiceInstance")),
+		connect.WithHandlerOptions(opts...),
+	)
+	serviceInstanceServiceUpdateServiceInstanceHandler := connect.NewUnaryHandler(
+		ServiceInstanceServiceUpdateServiceInstanceProcedure,
+		svc.UpdateServiceInstance,
+		connect.WithSchema(serviceInstanceServiceMethods.ByName("UpdateServiceInstance")),
+		connect.WithHandlerOptions(opts...),
+	)
+	serviceInstanceServiceStopServiceInstanceHandler := connect.NewUnaryHandler(
+		ServiceInstanceServiceStopServiceInstanceProcedure,
+		svc.StopServiceInstance,
+		connect.WithSchema(serviceInstanceServiceMethods.ByName("StopServiceInstance")),
+		connect.WithHandlerOptions(opts...),
+	)
+	serviceInstanceServiceRestartServiceInstanceHandler := connect.NewUnaryHandler(
+		ServiceInstanceServiceRestartServiceInstanceProcedure,
+		svc.RestartServiceInstance,
+		connect.WithSchema(serviceInstanceServiceMethods.ByName("RestartServiceInstance")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/composia.controller.v1.ServiceInstanceService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case ServiceInstanceServiceListServiceInstancesProcedure:
+			serviceInstanceServiceListServiceInstancesHandler.ServeHTTP(w, r)
+		case ServiceInstanceServiceGetServiceInstanceProcedure:
+			serviceInstanceServiceGetServiceInstanceHandler.ServeHTTP(w, r)
+		case ServiceInstanceServiceDeployServiceInstanceProcedure:
+			serviceInstanceServiceDeployServiceInstanceHandler.ServeHTTP(w, r)
+		case ServiceInstanceServiceUpdateServiceInstanceProcedure:
+			serviceInstanceServiceUpdateServiceInstanceHandler.ServeHTTP(w, r)
+		case ServiceInstanceServiceStopServiceInstanceProcedure:
+			serviceInstanceServiceStopServiceInstanceHandler.ServeHTTP(w, r)
+		case ServiceInstanceServiceRestartServiceInstanceProcedure:
+			serviceInstanceServiceRestartServiceInstanceHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedServiceInstanceServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedServiceInstanceServiceHandler struct{}
+
+func (UnimplementedServiceInstanceServiceHandler) ListServiceInstances(context.Context, *connect.Request[v1.ListServiceInstancesRequest]) (*connect.Response[v1.ListServiceInstancesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceInstanceService.ListServiceInstances is not implemented"))
+}
+
+func (UnimplementedServiceInstanceServiceHandler) GetServiceInstance(context.Context, *connect.Request[v1.GetServiceInstanceRequest]) (*connect.Response[v1.GetServiceInstanceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceInstanceService.GetServiceInstance is not implemented"))
+}
+
+func (UnimplementedServiceInstanceServiceHandler) DeployServiceInstance(context.Context, *connect.Request[v1.DeployServiceInstanceRequest]) (*connect.Response[v1.DeployServiceInstanceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceInstanceService.DeployServiceInstance is not implemented"))
+}
+
+func (UnimplementedServiceInstanceServiceHandler) UpdateServiceInstance(context.Context, *connect.Request[v1.UpdateServiceInstanceRequest]) (*connect.Response[v1.UpdateServiceInstanceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceInstanceService.UpdateServiceInstance is not implemented"))
+}
+
+func (UnimplementedServiceInstanceServiceHandler) StopServiceInstance(context.Context, *connect.Request[v1.StopServiceInstanceRequest]) (*connect.Response[v1.StopServiceInstanceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceInstanceService.StopServiceInstance is not implemented"))
+}
+
+func (UnimplementedServiceInstanceServiceHandler) RestartServiceInstance(context.Context, *connect.Request[v1.RestartServiceInstanceRequest]) (*connect.Response[v1.RestartServiceInstanceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceInstanceService.RestartServiceInstance is not implemented"))
 }

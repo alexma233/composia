@@ -22,6 +22,17 @@ export type ServiceSummary = {
   isDeclared: boolean;
   runtimeStatus: string;
   updatedAt: string;
+  instanceCount: number;
+  runningCount: number;
+  targetNodeCount: number;
+};
+
+export type ServiceInstanceSummary = {
+  serviceName: string;
+  nodeId: string;
+  runtimeStatus: string;
+  updatedAt: string;
+  isDeclared: boolean;
 };
 
 export type NodeSummary = {
@@ -84,9 +95,10 @@ export type ServiceDetail = {
   name: string;
   runtimeStatus: string;
   updatedAt: string;
-  node: string;
+  nodes: string[];
   enabled: boolean;
   directory: string;
+  instances: ServiceInstanceSummary[];
 };
 
 export type ServiceActionResult = {
@@ -209,7 +221,11 @@ export async function loadSystemStatus(): Promise<SystemStatus> {
 export async function loadServices(page = 1, pageSize = 50): Promise<PaginatedResult<ServiceSummary>> {
   const config = requireControllerConfig();
   const response = await rpcCall<{
-    services?: ServiceSummary[];
+    services?: Array<ServiceSummary & {
+      instance_count?: number;
+      running_count?: number;
+      target_node_count?: number;
+    }>;
     totalCount?: number;
   }>(
     config.baseUrl,
@@ -218,7 +234,12 @@ export async function loadServices(page = 1, pageSize = 50): Promise<PaginatedRe
     { page, pageSize },
   );
   return {
-    items: response.services ?? [],
+    items: (response.services ?? []).map((service) => ({
+      ...service,
+      instanceCount: service.instanceCount ?? service.instance_count ?? 0,
+      runningCount: service.runningCount ?? service.running_count ?? 0,
+      targetNodeCount: service.targetNodeCount ?? service.target_node_count ?? 0,
+    })),
     totalCount: response.totalCount ?? 0,
   };
 }
@@ -434,58 +455,101 @@ export async function loadServiceDetail(
   serviceName: string,
 ): Promise<ServiceDetail> {
   const config = requireControllerConfig();
-  return rpcCall<ServiceDetail>(
+  const response = await rpcCall<{
+    name: string;
+    runtimeStatus?: string;
+    runtime_status?: string;
+    updatedAt?: string;
+    updated_at?: string;
+    nodes?: string[];
+    enabled: boolean;
+    directory: string;
+    instances?: Array<{
+      serviceName?: string;
+      service_name?: string;
+      nodeId?: string;
+      node_id?: string;
+      runtimeStatus?: string;
+      runtime_status?: string;
+      updatedAt?: string;
+      updated_at?: string;
+      isDeclared?: boolean;
+      is_declared?: boolean;
+    }>;
+  }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.ServiceService/GetService",
     { serviceName },
   );
+  return {
+    name: response.name,
+    runtimeStatus: response.runtimeStatus ?? response.runtime_status ?? "unknown",
+    updatedAt: response.updatedAt ?? response.updated_at ?? "",
+    nodes: response.nodes ?? [],
+    enabled: response.enabled,
+    directory: response.directory,
+    instances: (response.instances ?? []).map((instance) => ({
+      serviceName: instance.serviceName ?? instance.service_name ?? serviceName,
+      nodeId: instance.nodeId ?? instance.node_id ?? "",
+      runtimeStatus:
+        instance.runtimeStatus ?? instance.runtime_status ?? "unknown",
+      updatedAt: instance.updatedAt ?? instance.updated_at ?? "",
+      isDeclared: instance.isDeclared ?? instance.is_declared ?? false,
+    })),
+  };
 }
 
 export async function deployService(
   serviceName: string,
+  nodeIds: string[] = [],
 ): Promise<ServiceActionResult> {
   return callServiceAction(
     "/composia.controller.v1.ServiceService/DeployService",
-    { serviceName },
+    { serviceName, nodeIds },
   );
 }
 
 export async function updateService(
   serviceName: string,
+  nodeIds: string[] = [],
 ): Promise<ServiceActionResult> {
   return callServiceAction(
     "/composia.controller.v1.ServiceService/UpdateService",
-    { serviceName },
+    { serviceName, nodeIds },
   );
 }
 
 export async function stopService(
   serviceName: string,
+  nodeIds: string[] = [],
 ): Promise<ServiceActionResult> {
   return callServiceAction(
     "/composia.controller.v1.ServiceService/StopService",
-    { serviceName },
+    { serviceName, nodeIds },
   );
 }
 
 export async function restartService(
   serviceName: string,
+  nodeIds: string[] = [],
 ): Promise<ServiceActionResult> {
   return callServiceAction(
     "/composia.controller.v1.ServiceService/RestartService",
     {
       serviceName,
+      nodeIds,
     },
   );
 }
 
 export async function backupService(
   serviceName: string,
+  nodeIds: string[] = [],
 ): Promise<ServiceActionResult> {
   return callServiceAction(
     "/composia.controller.v1.ServiceService/BackupService",
-    { serviceName },
+    { serviceName, nodeIds },
   );
 }
 

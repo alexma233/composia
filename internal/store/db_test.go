@@ -23,7 +23,7 @@ func TestListDeclaredServicesAppliesCursorAndFilter(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha", "bravo", "charlie"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo", "charlie"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 
@@ -54,7 +54,7 @@ func TestListDeclaredServicesAppliesCursorAndFilter(t *testing.T) {
 	}
 }
 
-func TestUpdateServiceRuntimeStatusValidatesAndPersists(t *testing.T) {
+func TestUpdateServiceInstanceRuntimeStatusValidatesAndPersists(t *testing.T) {
 	t.Parallel()
 
 	stateDir := filepath.Join(t.TempDir(), "state")
@@ -69,12 +69,12 @@ func TestUpdateServiceRuntimeStatusValidatesAndPersists(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	reportedAt := time.Date(2026, 4, 5, 10, 0, 0, 0, time.UTC)
-	if err := db.UpdateServiceRuntimeStatus(ctx, "alpha", ServiceRuntimeRunning, reportedAt); err != nil {
-		t.Fatalf("update service runtime status: %v", err)
+	if err := db.UpdateServiceInstanceRuntimeStatus(ctx, "alpha", "main", ServiceRuntimeRunning, reportedAt); err != nil {
+		t.Fatalf("update service instance runtime status: %v", err)
 	}
 
 	snapshot, err := db.GetServiceSnapshot(ctx, "alpha")
@@ -88,7 +88,7 @@ func TestUpdateServiceRuntimeStatusValidatesAndPersists(t *testing.T) {
 		t.Fatalf("expected updated_at %q, got %q", reportedAt.Format(time.RFC3339), snapshot.UpdatedAt)
 	}
 
-	if err := db.UpdateServiceRuntimeStatus(ctx, "alpha", "broken", reportedAt); err == nil {
+	if err := db.UpdateServiceInstanceRuntimeStatus(ctx, "alpha", "main", "broken", reportedAt); err == nil {
 		t.Fatalf("expected invalid runtime status error")
 	}
 }

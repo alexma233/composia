@@ -29,7 +29,7 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
 	}
-	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: "demo"})
@@ -134,8 +134,8 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	if _, err := reportClient.ReportTaskState(ctx, connect.NewRequest(&agentv1.ReportTaskStateRequest{TaskId: "task-remote", Status: "succeeded", FinishedAt: finishedAt})); err != nil {
 		t.Fatalf("report task state: %v", err)
 	}
-	if _, err := reportClient.ReportServiceStatus(ctx, connect.NewRequest(&agentv1.ReportServiceStatusRequest{ServiceName: "demo", RuntimeStatus: store.ServiceRuntimeRunning, ReportedAt: finishedAt})); err != nil {
-		t.Fatalf("report service status: %v", err)
+	if _, err := reportClient.ReportServiceInstanceStatus(ctx, connect.NewRequest(&agentv1.ReportServiceInstanceStatusRequest{ServiceName: "demo", NodeId: "main", RuntimeStatus: store.ServiceRuntimeRunning, ReportedAt: finishedAt})); err != nil {
+		t.Fatalf("report service instance status: %v", err)
 	}
 
 	detail, err := db.GetTask(ctx, "task-remote")
@@ -174,7 +174,7 @@ func TestAgentPullNextTaskLongPollWaitsForNewTask(t *testing.T) {
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
 	}
-	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 
@@ -250,7 +250,7 @@ func TestAgentPullNextTaskLongPollWakesWhenRunningTaskCompletes(t *testing.T) {
 	if err := db.SyncConfiguredNodes(ctx, []string{"main", "node-2"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
 	}
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha", "bravo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	runningStartedAt := time.Date(2026, 4, 5, 11, 0, 10, 0, time.UTC)

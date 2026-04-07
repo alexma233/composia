@@ -15,7 +15,7 @@ func TestListBackupsAppliesFiltersAndCursor(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha", "bravo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-1", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "alpha", CreatedAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
@@ -58,7 +58,7 @@ func TestGetBackupReturnsDetail(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-1", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "alpha", CreatedAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {

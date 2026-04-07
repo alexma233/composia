@@ -50,8 +50,8 @@ migrate:
 	if services[0].Name != "vaultwarden" {
 		t.Fatalf("expected service name vaultwarden, got %q", services[0].Name)
 	}
-	if services[0].Node != "node-2" {
-		t.Fatalf("expected node node-2, got %q", services[0].Node)
+	if len(services[0].TargetNodes) != 1 || services[0].TargetNodes[0] != "node-2" {
+		t.Fatalf("expected target nodes [node-2], got %+v", services[0].TargetNodes)
 	}
 }
 

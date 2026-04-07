@@ -33,7 +33,7 @@ func TestServiceServiceListServices(t *testing.T) {
 	}
 	defer db.Close()
 
-	if err := db.SyncDeclaredServices(context.Background(), []string{"alpha", "bravo"}); err != nil {
+	if err := syncDeclaredServicesForTests(context.Background(), db, "alpha", "bravo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 
@@ -95,7 +95,7 @@ func TestServiceServiceGetServiceReturnsMinimalSummary(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-alpha", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "alpha", CreatedAt: time.Date(2026, 4, 4, 10, 0, 0, 0, time.UTC)}); err != nil {
@@ -104,8 +104,8 @@ func TestServiceServiceGetServiceReturnsMinimalSummary(t *testing.T) {
 	if err := db.CompleteTask(ctx, "task-alpha", task.StatusSucceeded, time.Date(2026, 4, 4, 10, 5, 0, 0, time.UTC), ""); err != nil {
 		t.Fatalf("complete task: %v", err)
 	}
-	if err := db.UpdateServiceRuntimeStatus(ctx, "alpha", store.ServiceRuntimeRunning, time.Date(2026, 4, 4, 10, 5, 30, 0, time.UTC)); err != nil {
-		t.Fatalf("update service runtime status: %v", err)
+	if err := db.UpdateServiceInstanceRuntimeStatus(ctx, "alpha", "main", store.ServiceRuntimeRunning, time.Date(2026, 4, 4, 10, 5, 30, 0, time.UTC)); err != nil {
+		t.Fatalf("update service instance runtime status: %v", err)
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
@@ -129,8 +129,11 @@ func TestServiceServiceGetServiceReturnsMinimalSummary(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get service: %v", err)
 	}
-	if response.Msg.GetName() != "alpha" || response.Msg.GetNode() != "main" {
+	if response.Msg.GetName() != "alpha" || len(response.Msg.GetNodes()) != 1 || response.Msg.GetNodes()[0] != "main" {
 		t.Fatalf("unexpected service response: %+v", response.Msg)
+	}
+	if len(response.Msg.GetInstances()) != 1 || response.Msg.GetInstances()[0].GetNodeId() != "main" {
+		t.Fatalf("unexpected service instances: %+v", response.Msg.GetInstances())
 	}
 	if !response.Msg.GetEnabled() {
 		t.Fatalf("expected enabled service")
@@ -158,7 +161,7 @@ func TestServiceServiceGetServiceTasksReturnsFilteredTasks(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha", "bravo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -217,7 +220,7 @@ func TestServiceServiceGetServiceBackupsReturnsFilteredBackups(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha", "bravo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-1", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "alpha", CreatedAt: time.Date(2026, 4, 4, 11, 0, 0, 0, time.UTC)}); err != nil {
@@ -281,7 +284,7 @@ func TestServiceServiceDeployServiceCreatesPendingTask(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -380,7 +383,7 @@ func TestServiceServiceDeployServiceIgnoresUnrelatedInvalidDraft(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -450,7 +453,7 @@ func TestServiceServiceDeployServiceUsesWebSourceHeader(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -531,7 +534,7 @@ func TestServiceServiceDeployServiceRejectsOfflineOrDisabledNode(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -603,7 +606,7 @@ func TestServiceServiceStopAndRestartCreatePendingTasks(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -674,7 +677,7 @@ func TestServiceServiceUpdateCreatesPendingTask(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -738,7 +741,7 @@ func TestServiceServiceUpdateServiceDNSCreatesPendingTaskWithoutOnlineNode(t *te
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -824,7 +827,7 @@ func TestServiceServiceBackupCreatesPendingTaskWithDefaultDataNames(t *testing.T
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {

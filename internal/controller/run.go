@@ -88,11 +88,11 @@ func Run(ctx context.Context, configPath string) error {
 	if err != nil {
 		return err
 	}
-	serviceNames := make([]string, 0, len(services))
+	declaredServices := make(map[string][]string, len(services))
 	for _, service := range services {
-		serviceNames = append(serviceNames, service.Name)
+		declaredServices[service.Name] = append([]string(nil), service.TargetNodes...)
 	}
-	if err := db.SyncDeclaredServices(ctx, serviceNames); err != nil {
+	if err := db.SyncDeclaredServices(ctx, declaredServices); err != nil {
 		return err
 	}
 	go runControllerTasks(ctx, &controllerTaskExecutor{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, dnsProviders: defaultDNSProviderFactory{}})
@@ -165,6 +165,12 @@ func Run(ctx context.Context, configPath string) error {
 		connect.WithInterceptors(cliInterceptor),
 	)
 	mux.Handle(servicePath, serviceHandler)
+
+	serviceInstancePath, serviceInstanceHandler := controllerv1connect.NewServiceInstanceServiceHandler(
+		&serviceInstanceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue},
+		connect.WithInterceptors(cliInterceptor),
+	)
+	mux.Handle(serviceInstancePath, serviceInstanceHandler)
 
 	nodePath, nodeHandler := controllerv1connect.NewNodeServiceHandler(
 		&nodeServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults},
@@ -315,11 +321,11 @@ func refreshDeclaredServices(db *store.DB, cfg *config.ControllerConfig, availab
 	if err != nil {
 		return err
 	}
-	serviceNames := make([]string, 0, len(services))
+	declaredServices := make(map[string][]string, len(services))
 	for _, service := range services {
-		serviceNames = append(serviceNames, service.Name)
+		declaredServices[service.Name] = append([]string(nil), service.TargetNodes...)
 	}
-	return db.SyncDeclaredServices(context.Background(), serviceNames)
+	return db.SyncDeclaredServices(context.Background(), declaredServices)
 }
 
 type agentReportServer struct {
@@ -567,9 +573,12 @@ func (server *agentReportServer) ReportBackupResult(ctx context.Context, req *co
 	return connect.NewResponse(&agentv1.ReportBackupResultResponse{}), nil
 }
 
-func (server *agentReportServer) ReportServiceStatus(ctx context.Context, req *connect.Request[agentv1.ReportServiceStatusRequest]) (*connect.Response[agentv1.ReportServiceStatusResponse], error) {
+func (server *agentReportServer) ReportServiceInstanceStatus(ctx context.Context, req *connect.Request[agentv1.ReportServiceInstanceStatusRequest]) (*connect.Response[agentv1.ReportServiceInstanceStatusResponse], error) {
 	if req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+	if req.Msg.GetNodeId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
 	if !store.IsValidServiceRuntimeStatus(req.Msg.GetRuntimeStatus()) {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid runtime_status %q", req.Msg.GetRuntimeStatus()))
@@ -578,13 +587,13 @@ func (server *agentReportServer) ReportServiceStatus(ctx context.Context, req *c
 	if req.Msg.GetReportedAt() != nil {
 		reportedAt = req.Msg.GetReportedAt().AsTime().UTC()
 	}
-	if err := server.db.UpdateServiceRuntimeStatus(ctx, req.Msg.GetServiceName(), req.Msg.GetRuntimeStatus(), reportedAt); err != nil {
+	if err := server.db.UpdateServiceInstanceRuntimeStatus(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId(), req.Msg.GetRuntimeStatus(), reportedAt); err != nil {
 		if errors.Is(err, store.ErrServiceNotFound) {
 			return nil, connect.NewError(connect.CodeNotFound, err)
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	return connect.NewResponse(&agentv1.ReportServiceStatusResponse{}), nil
+	return connect.NewResponse(&agentv1.ReportServiceInstanceStatusResponse{}), nil
 }
 
 func ensureTaskNodeMatch(ctx context.Context, db *store.DB, taskID string) error {
@@ -895,6 +904,13 @@ type serviceServer struct {
 	taskQueue        *taskQueueNotifier
 }
 
+type serviceInstanceServer struct {
+	db               *store.DB
+	cfg              *config.ControllerConfig
+	availableNodeIDs map[string]struct{}
+	taskQueue        *taskQueueNotifier
+}
+
 type serviceTaskParams struct {
 	ServiceDir string   `json:"service_dir"`
 	DataNames  []string `json:"data_names,omitempty"`
@@ -1077,10 +1093,13 @@ func (server *serviceServer) ListServices(ctx context.Context, req *connect.Requ
 	}
 	for _, service := range services {
 		response.Services = append(response.Services, &controllerv1.ServiceSummary{
-			Name:          service.Name,
-			IsDeclared:    service.IsDeclared,
-			RuntimeStatus: service.RuntimeStatus,
-			UpdatedAt:     service.UpdatedAt,
+			Name:            service.Name,
+			IsDeclared:      service.IsDeclared,
+			RuntimeStatus:   service.RuntimeStatus,
+			UpdatedAt:       service.UpdatedAt,
+			InstanceCount:   service.InstanceCount,
+			RunningCount:    service.RunningCount,
+			TargetNodeCount: service.TargetNodeCount,
 		})
 	}
 
@@ -1102,13 +1121,21 @@ func (server *serviceServer) GetService(ctx context.Context, req *connect.Reques
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	instances, err := server.db.ListServiceInstances(ctx, service.Name)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 	response := &controllerv1.GetServiceResponse{
 		Name:          service.Name,
 		RuntimeStatus: snapshot.RuntimeStatus,
 		UpdatedAt:     snapshot.UpdatedAt,
-		Node:          service.Node,
+		Nodes:         append([]string(nil), service.TargetNodes...),
 		Enabled:       service.Enabled,
 		Directory:     filepath.ToSlash(mustRelativeServiceDir(server.cfg.RepoDir, service.Directory)),
+		Instances:     make([]*controllerv1.ServiceInstanceSummary, 0, len(instances)),
+	}
+	for _, instance := range instances {
+		response.Instances = append(response.Instances, serviceInstanceSummaryMessage(instance))
 	}
 	return connect.NewResponse(response), nil
 }
@@ -1167,7 +1194,7 @@ func (server *serviceServer) BackupService(ctx context.Context, req *connect.Req
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
-	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), task.TypeBackup, dataNames, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
+	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeIds(), task.TypeBackup, dataNames, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
 	if err != nil {
 		return nil, err
 	}
@@ -1193,7 +1220,7 @@ func (server *serviceServer) UpdateServiceDNS(ctx context.Context, req *connect.
 	if server.cfg.DNS == nil || server.cfg.DNS.Cloudflare == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("controller dns.cloudflare is not configured"))
 	}
-	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), task.TypeDNSUpdate, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
+	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), nil, task.TypeDNSUpdate, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
 	if err != nil {
 		return nil, err
 	}
@@ -1209,7 +1236,7 @@ func (server *serviceServer) DeployService(ctx context.Context, req *connect.Req
 	if req.Msg == nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
-	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), task.TypeDeploy, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
+	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeIds(), task.TypeDeploy, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
 	if err != nil {
 		return nil, err
 	}
@@ -1226,7 +1253,7 @@ func (server *serviceServer) UpdateService(ctx context.Context, req *connect.Req
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
-	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), task.TypeUpdate, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
+	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeIds(), task.TypeUpdate, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
 	if err != nil {
 		return nil, err
 	}
@@ -1242,7 +1269,7 @@ func (server *serviceServer) StopService(ctx context.Context, req *connect.Reque
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
-	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), task.TypeStop, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
+	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeIds(), task.TypeStop, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
 	if err != nil {
 		return nil, err
 	}
@@ -1258,7 +1285,7 @@ func (server *serviceServer) RestartService(ctx context.Context, req *connect.Re
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
-	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), task.TypeRestart, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
+	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeIds(), task.TypeRestart, nil, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
 	if err != nil {
 		return nil, err
 	}
@@ -1275,29 +1302,37 @@ type serviceTaskCreateOptions struct {
 	Source          task.Source
 }
 
-func (server *serviceServer) createServiceTask(ctx context.Context, serviceName string, taskType task.Type, dataNames []string) (task.Record, error) {
-	return server.createServiceTaskWithOptions(ctx, serviceName, taskType, dataNames, serviceTaskCreateOptions{})
+func (server *serviceServer) createServiceTask(ctx context.Context, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string) (task.Record, error) {
+	return server.createServiceTaskWithOptions(ctx, serviceName, nodeIDs, taskType, dataNames, serviceTaskCreateOptions{})
 }
 
-func (server *serviceServer) createServiceTaskWithOptions(ctx context.Context, serviceName string, taskType task.Type, dataNames []string, options serviceTaskCreateOptions) (task.Record, error) {
+func (server *serviceServer) createServiceTaskWithOptions(ctx context.Context, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string, options serviceTaskCreateOptions) (task.Record, error) {
 	if serviceName == "" {
 		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
-	}
-
-	hasActiveTask, err := server.db.HasActiveServiceTask(ctx, serviceName)
-	if err != nil {
-		return task.Record{}, connect.NewError(connect.CodeInternal, err)
-	}
-	if hasActiveTask {
-		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q already has an active task", serviceName))
 	}
 
 	service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, serviceName)
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeNotFound, err)
 	}
-	if err := validateTaskTargetNode(ctx, server.db, server.cfg, service.Node, taskType); err != nil {
-		return task.Record{}, err
+	targetNodeIDs, err := resolveTargetNodeIDs(service, nodeIDs)
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	if len(targetNodeIDs) == 0 {
+		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not have any target nodes", serviceName))
+	}
+	for _, nodeID := range targetNodeIDs {
+		if err := validateTaskTargetNode(ctx, server.db, server.cfg, nodeID, taskType); err != nil {
+			return task.Record{}, err
+		}
+		active, err := server.db.HasActiveServiceInstanceTask(ctx, serviceName, nodeID)
+		if err != nil {
+			return task.Record{}, connect.NewError(connect.CodeInternal, err)
+		}
+		if active {
+			return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service instance %q@%q already has an active task", serviceName, nodeID))
+		}
 	}
 	repoRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
 	if err != nil {
@@ -1313,39 +1348,66 @@ func (server *serviceServer) createServiceTaskWithOptions(ctx context.Context, s
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode task params: %w", err))
 	}
-	taskID := uuid.NewString()
 	taskSource := options.Source
 	if taskSource == "" {
 		taskSource = task.SourceCLI
 	}
-	createdTask, err := server.db.CreateTask(ctx, task.Record{
-		TaskID:          taskID,
-		Type:            taskType,
-		Source:          taskSource,
-		TriggeredBy:     triggeredBy,
-		ServiceName:     service.Name,
-		NodeID:          service.Node,
-		ParamsJSON:      string(paramsJSON),
-		RepoRevision:    repoRevision,
-		AttemptOfTaskID: options.AttemptOfTaskID,
-		LogPath:         filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
-	})
-	if err != nil {
-		return task.Record{}, connect.NewError(connect.CodeInternal, err)
-	}
-	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
-		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
+	createdTasks := make([]task.Record, 0, len(targetNodeIDs))
+	for _, nodeID := range targetNodeIDs {
+		taskID := uuid.NewString()
+		createdTask, err := server.db.CreateTask(ctx, task.Record{
+			TaskID:          taskID,
+			Type:            taskType,
+			Source:          taskSource,
+			TriggeredBy:     triggeredBy,
+			ServiceName:     service.Name,
+			NodeID:          nodeID,
+			ParamsJSON:      string(paramsJSON),
+			RepoRevision:    repoRevision,
+			AttemptOfTaskID: options.AttemptOfTaskID,
+			LogPath:         filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+		})
+		if err != nil {
+			return task.Record{}, connect.NewError(connect.CodeInternal, err)
+		}
+		if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+			return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
+		}
+		createdTasks = append(createdTasks, createdTask)
 	}
 	notifyTaskQueue(server.taskQueue)
-	return createdTask, nil
+	return createdTasks[0], nil
 }
 
-func createServiceTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName string, taskType task.Type, dataNames []string) (task.Record, error) {
-	return (&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs}).createServiceTask(ctx, serviceName, taskType, dataNames)
+func createServiceTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string) (task.Record, error) {
+	return (&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs}).createServiceTask(ctx, serviceName, nodeIDs, taskType, dataNames)
 }
 
-func createServiceTaskWithOptions(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName string, taskType task.Type, dataNames []string, options serviceTaskCreateOptions) (task.Record, error) {
-	return (&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs}).createServiceTaskWithOptions(ctx, serviceName, taskType, dataNames, options)
+func createServiceTaskWithOptions(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string, options serviceTaskCreateOptions) (task.Record, error) {
+	return (&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs}).createServiceTaskWithOptions(ctx, serviceName, nodeIDs, taskType, dataNames, options)
+}
+
+func resolveTargetNodeIDs(service repo.Service, requested []string) ([]string, error) {
+	if len(requested) == 0 {
+		return append([]string(nil), service.TargetNodes...), nil
+	}
+	allowed := make(map[string]struct{}, len(service.TargetNodes))
+	for _, nodeID := range service.TargetNodes {
+		allowed[nodeID] = struct{}{}
+	}
+	resolved := make([]string, 0, len(requested))
+	seen := make(map[string]struct{}, len(requested))
+	for _, nodeID := range requested {
+		if _, ok := allowed[nodeID]; !ok {
+			return nil, fmt.Errorf("service %q is not declared on node %q", service.Name, nodeID)
+		}
+		if _, exists := seen[nodeID]; exists {
+			continue
+		}
+		seen[nodeID] = struct{}{}
+		resolved = append(resolved, nodeID)
+	}
+	return resolved, nil
 }
 
 func validateTaskTargetNode(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, nodeID string, taskType task.Type) error {
@@ -1980,6 +2042,16 @@ func taskSummaryMessage(record store.TaskSummary) *controllerv1.TaskSummary {
 	}
 }
 
+func serviceInstanceSummaryMessage(record store.ServiceInstanceSnapshot) *controllerv1.ServiceInstanceSummary {
+	return &controllerv1.ServiceInstanceSummary{
+		ServiceName:   record.ServiceName,
+		NodeId:        record.NodeID,
+		RuntimeStatus: record.RuntimeStatus,
+		UpdatedAt:     record.UpdatedAt,
+		IsDeclared:    record.IsDeclared,
+	}
+}
+
 func (server *backupRecordServer) ListBackups(ctx context.Context, req *connect.Request[controllerv1.ListBackupsRequest]) (*connect.Response[controllerv1.ListBackupsResponse], error) {
 	if req.Msg == nil {
 		req.Msg = &controllerv1.ListBackupsRequest{}
@@ -2438,11 +2510,11 @@ func (server *repoServer) refreshDeclaredServices(ctx context.Context) error {
 	if err != nil {
 		return connect.NewError(connect.CodeInternal, err)
 	}
-	serviceNames := make([]string, 0, len(services))
+	declaredServices := make(map[string][]string, len(services))
 	for _, service := range services {
-		serviceNames = append(serviceNames, service.Name)
+		declaredServices[service.Name] = append([]string(nil), service.TargetNodes...)
 	}
-	if err := server.db.SyncDeclaredServices(ctx, serviceNames); err != nil {
+	if err := server.db.SyncDeclaredServices(ctx, declaredServices); err != nil {
 		return connect.NewError(connect.CodeInternal, err)
 	}
 	return nil
@@ -2915,7 +2987,11 @@ func (server *taskServer) RunTaskAgain(ctx context.Context, req *connect.Request
 	}
 
 	params := taskParams(detail.Record.ParamsJSON)
-	createdTask, err := createServiceTaskWithOptions(ctx, server.db, server.cfg, server.availableNodeIDs, detail.Record.ServiceName, rerunType, params.DataNames, serviceTaskCreateOptions{AttemptOfTaskID: detail.Record.TaskID, Source: requestTaskSource(req.Header())})
+	var targetNodeIDs []string
+	if detail.Record.NodeID != "" {
+		targetNodeIDs = []string{detail.Record.NodeID}
+	}
+	createdTask, err := createServiceTaskWithOptions(ctx, server.db, server.cfg, server.availableNodeIDs, detail.Record.ServiceName, targetNodeIDs, rerunType, params.DataNames, serviceTaskCreateOptions{AttemptOfTaskID: detail.Record.TaskID, Source: requestTaskSource(req.Header())})
 	if err != nil {
 		return nil, err
 	}
@@ -2925,6 +3001,80 @@ func (server *taskServer) RunTaskAgain(ctx context.Context, req *connect.Request
 		RepoRevision: createdTask.RepoRevision,
 	}
 	return connect.NewResponse(response), nil
+}
+
+func (server *serviceInstanceServer) ListServiceInstances(ctx context.Context, req *connect.Request[controllerv1.ListServiceInstancesRequest]) (*connect.Response[controllerv1.ListServiceInstancesResponse], error) {
+	if req.Msg == nil || req.Msg.GetServiceName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+	if _, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName()); err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	instances, err := server.db.ListServiceInstances(ctx, req.Msg.GetServiceName())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	response := &controllerv1.ListServiceInstancesResponse{Instances: make([]*controllerv1.ServiceInstanceSummary, 0, len(instances))}
+	for _, instance := range instances {
+		response.Instances = append(response.Instances, serviceInstanceSummaryMessage(instance))
+	}
+	return connect.NewResponse(response), nil
+}
+
+func (server *serviceInstanceServer) GetServiceInstance(ctx context.Context, req *connect.Request[controllerv1.GetServiceInstanceRequest]) (*connect.Response[controllerv1.GetServiceInstanceResponse], error) {
+	if req.Msg == nil || req.Msg.GetServiceName() == "" || req.Msg.GetNodeId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name and node_id are required"))
+	}
+	if _, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName()); err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	instance, err := server.db.GetServiceInstanceSnapshot(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId())
+	if err != nil {
+		if errors.Is(err, store.ErrServiceNotFound) {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&controllerv1.GetServiceInstanceResponse{Instance: serviceInstanceSummaryMessage(instance)}), nil
+}
+
+func (server *serviceInstanceServer) DeployServiceInstance(ctx context.Context, req *connect.Request[controllerv1.DeployServiceInstanceRequest]) (*connect.Response[controllerv1.DeployServiceInstanceResponse], error) {
+	createdTask, err := server.createInstanceTask(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId(), task.TypeDeploy, nil, requestTaskSource(req.Header()))
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&controllerv1.DeployServiceInstanceResponse{TaskId: createdTask.TaskID, Status: string(createdTask.Status), RepoRevision: createdTask.RepoRevision}), nil
+}
+
+func (server *serviceInstanceServer) UpdateServiceInstance(ctx context.Context, req *connect.Request[controllerv1.UpdateServiceInstanceRequest]) (*connect.Response[controllerv1.UpdateServiceInstanceResponse], error) {
+	createdTask, err := server.createInstanceTask(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId(), task.TypeUpdate, nil, requestTaskSource(req.Header()))
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&controllerv1.UpdateServiceInstanceResponse{TaskId: createdTask.TaskID, Status: string(createdTask.Status), RepoRevision: createdTask.RepoRevision}), nil
+}
+
+func (server *serviceInstanceServer) StopServiceInstance(ctx context.Context, req *connect.Request[controllerv1.StopServiceInstanceRequest]) (*connect.Response[controllerv1.StopServiceInstanceResponse], error) {
+	createdTask, err := server.createInstanceTask(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId(), task.TypeStop, nil, requestTaskSource(req.Header()))
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&controllerv1.StopServiceInstanceResponse{TaskId: createdTask.TaskID, Status: string(createdTask.Status), RepoRevision: createdTask.RepoRevision}), nil
+}
+
+func (server *serviceInstanceServer) RestartServiceInstance(ctx context.Context, req *connect.Request[controllerv1.RestartServiceInstanceRequest]) (*connect.Response[controllerv1.RestartServiceInstanceResponse], error) {
+	createdTask, err := server.createInstanceTask(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId(), task.TypeRestart, nil, requestTaskSource(req.Header()))
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&controllerv1.RestartServiceInstanceResponse{TaskId: createdTask.TaskID, Status: string(createdTask.Status), RepoRevision: createdTask.RepoRevision}), nil
+}
+
+func (server *serviceInstanceServer) createInstanceTask(ctx context.Context, serviceName, nodeID string, taskType task.Type, dataNames []string, source task.Source) (task.Record, error) {
+	if serviceName == "" || nodeID == "" {
+		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name and node_id are required"))
+	}
+	return createServiceTaskWithOptions(ctx, server.db, server.cfg, server.availableNodeIDs, serviceName, []string{nodeID}, taskType, dataNames, serviceTaskCreateOptions{Source: source})
 }
 
 func formatNullableTime(value *time.Time) string {

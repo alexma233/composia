@@ -435,6 +435,25 @@ func (db *DB) HasActiveServiceTask(ctx context.Context, serviceName string) (boo
 	return count > 0, nil
 }
 
+func (db *DB) HasActiveServiceInstanceTask(ctx context.Context, serviceName, nodeID string) (bool, error) {
+	var count int
+	err := db.sql.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM tasks
+		WHERE service_name = ? AND node_id = ? AND status IN (?, ?, ?)
+	`,
+		serviceName,
+		nodeID,
+		string(task.StatusPending),
+		string(task.StatusRunning),
+		string(task.StatusAwaitingConfirmation),
+	).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("count active tasks for service instance %q@%q: %w", serviceName, nodeID, err)
+	}
+	return count > 0, nil
+}
+
 func (db *DB) TaskNodeID(ctx context.Context, taskID string) (string, error) {
 	var nodeID string
 	if err := db.sql.QueryRowContext(ctx, `SELECT COALESCE(node_id, '') FROM tasks WHERE task_id = ?`, taskID).Scan(&nodeID); err != nil {
@@ -691,12 +710,31 @@ func updateServiceFromCompletedTask(ctx context.Context, tx *sql.Tx, taskID stri
 	if serviceName == "" {
 		return nil
 	}
+	var nodeID string
+	if err := tx.QueryRowContext(ctx, `SELECT COALESCE(node_id, '') FROM tasks WHERE task_id = ?`, taskID).Scan(&nodeID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrTaskNotFound
+		}
+		return fmt.Errorf("read completed task %q node for service refresh: %w", taskID, err)
+	}
 	if _, err := tx.ExecContext(ctx, `
 		UPDATE services
 		SET last_task_id = ?, updated_at = ?
 		WHERE service_name = ?
 	`, taskID, finishedAt.UTC().Format(time.RFC3339), serviceName); err != nil {
-		return fmt.Errorf("update service runtime status for %q: %w", serviceName, err)
+		return fmt.Errorf("update service summary for %q: %w", serviceName, err)
+	}
+	if nodeID != "" {
+		if _, err := tx.ExecContext(ctx, `
+			UPDATE service_instances
+			SET last_task_id = ?, updated_at = ?
+			WHERE service_name = ? AND node_id = ?
+		`, taskID, finishedAt.UTC().Format(time.RFC3339), serviceName, nodeID); err != nil {
+			return fmt.Errorf("update service instance summary for %q@%q: %w", serviceName, nodeID, err)
+		}
+		if err := refreshServiceAggregateStatusTx(ctx, tx, serviceName); err != nil {
+			return err
+		}
 	}
 	return nil
 }

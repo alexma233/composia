@@ -236,7 +236,7 @@ func TestListTasksAppliesFiltersAndCursor(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha", "bravo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-1", Type: task.TypeDeploy, Source: task.SourceCLI, Status: task.StatusSucceeded, ServiceName: "alpha", CreatedAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
@@ -276,7 +276,7 @@ func TestListTasksAppliesNodeAndTypeFilters(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"alpha", "bravo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main", "node-2"}); err != nil {
@@ -308,13 +308,13 @@ func TestCompleteTaskUpdatesLastTaskWithoutOverwritingRuntimeStatus(t *testing.T
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
-	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-deploy", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "demo", CreatedAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-deploy", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", CreatedAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
 		t.Fatalf("create deploy task: %v", err)
 	}
-	if err := db.UpdateServiceRuntimeStatus(ctx, "demo", ServiceRuntimeStopped, time.Date(2026, 4, 4, 12, 1, 0, 0, time.UTC)); err != nil {
+	if err := db.UpdateServiceInstanceRuntimeStatus(ctx, "demo", "main", ServiceRuntimeStopped, time.Date(2026, 4, 4, 12, 1, 0, 0, time.UTC)); err != nil {
 		t.Fatalf("set initial runtime status: %v", err)
 	}
 	finishedAt := time.Date(2026, 4, 4, 12, 5, 0, 0, time.UTC)

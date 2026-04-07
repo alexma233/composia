@@ -61,17 +61,32 @@ type DockerStats struct {
 }
 
 type ServiceSummary struct {
-	Name          string
-	IsDeclared    bool
-	RuntimeStatus string
-	UpdatedAt     string
+	Name            string
+	IsDeclared      bool
+	RuntimeStatus   string
+	UpdatedAt       string
+	InstanceCount   uint32
+	RunningCount    uint32
+	TargetNodeCount uint32
 }
 
 type ServiceSnapshot struct {
-	Name          string
+	Name            string
+	IsDeclared      bool
+	RuntimeStatus   string
+	UpdatedAt       string
+	InstanceCount   uint32
+	RunningCount    uint32
+	TargetNodeCount uint32
+}
+
+type ServiceInstanceSnapshot struct {
+	ServiceName   string
+	NodeID        string
 	IsDeclared    bool
 	RuntimeStatus string
 	UpdatedAt     string
+	LastTaskID    string
 }
 
 type NodeSnapshot struct {
@@ -213,7 +228,7 @@ func (db *DB) NodeCounts(ctx context.Context) (uint64, uint64, error) {
 	return configured, online, nil
 }
 
-func (db *DB) SyncDeclaredServices(ctx context.Context, serviceNames []string) error {
+func (db *DB) SyncDeclaredServices(ctx context.Context, services map[string][]string) error {
 	tx, err := db.sql.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin service sync transaction: %w", err)
@@ -223,9 +238,21 @@ func (db *DB) SyncDeclaredServices(ctx context.Context, serviceNames []string) e
 	if _, err := tx.ExecContext(ctx, `UPDATE services SET is_declared = 0`); err != nil {
 		return fmt.Errorf("mark services undeclared: %w", err)
 	}
+	if _, err := tx.ExecContext(ctx, `UPDATE service_instances SET is_declared = 0`); err != nil {
+		return fmt.Errorf("mark service instances undeclared: %w", err)
+	}
 
 	updatedAt := time.Now().UTC().Format(time.RFC3339)
-	for _, serviceName := range serviceNames {
+	for serviceName, nodeIDs := range services {
+		for _, nodeID := range nodeIDs {
+			if _, err := tx.ExecContext(ctx, `
+				INSERT INTO nodes (node_id, is_configured, is_online)
+				VALUES (?, 0, 0)
+				ON CONFLICT(node_id) DO NOTHING
+			`, nodeID); err != nil {
+				return fmt.Errorf("ensure node %q for declared service %q: %w", nodeID, serviceName, err)
+			}
+		}
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO services (service_name, is_declared, runtime_status, updated_at)
 			VALUES (?, 1, 'unknown', ?)
@@ -234,6 +261,20 @@ func (db *DB) SyncDeclaredServices(ctx context.Context, serviceNames []string) e
 				updated_at = excluded.updated_at
 		`, serviceName, updatedAt); err != nil {
 			return fmt.Errorf("upsert declared service %q: %w", serviceName, err)
+		}
+		for _, nodeID := range nodeIDs {
+			if _, err := tx.ExecContext(ctx, `
+				INSERT INTO service_instances (service_name, node_id, is_declared, runtime_status, updated_at)
+				VALUES (?, ?, 1, 'unknown', ?)
+				ON CONFLICT(service_name, node_id) DO UPDATE SET
+					is_declared = 1,
+					updated_at = excluded.updated_at
+			`, serviceName, nodeID, updatedAt); err != nil {
+				return fmt.Errorf("upsert declared service instance %q@%q: %w", serviceName, nodeID, err)
+			}
+		}
+		if err := refreshServiceAggregateStatusTx(ctx, tx, serviceName); err != nil {
+			return err
 		}
 	}
 
@@ -282,6 +323,15 @@ func (db *DB) ListDeclaredServices(ctx context.Context, runtimeStatusFilter stri
 		if err := rows.Scan(&service.Name, &service.IsDeclared, &service.RuntimeStatus, &service.UpdatedAt); err != nil {
 			return nil, 0, fmt.Errorf("scan declared service: %w", err)
 		}
+		if err := db.sql.QueryRowContext(ctx, `
+			SELECT COUNT(*),
+			       SUM(CASE WHEN runtime_status = ? THEN 1 ELSE 0 END),
+			       SUM(CASE WHEN is_declared = 1 THEN 1 ELSE 0 END)
+			FROM service_instances
+			WHERE service_name = ?
+		`, ServiceRuntimeRunning, service.Name).Scan(&service.InstanceCount, &service.RunningCount, &service.TargetNodeCount); err != nil {
+			return nil, 0, fmt.Errorf("read declared service instance counts for %q: %w", service.Name, err)
+		}
 		services = append(services, service)
 	}
 	if err := rows.Err(); err != nil {
@@ -303,6 +353,57 @@ func (db *DB) GetServiceSnapshot(ctx context.Context, serviceName string) (Servi
 			return ServiceSnapshot{}, ErrServiceNotFound
 		}
 		return ServiceSnapshot{}, fmt.Errorf("get service snapshot %q: %w", serviceName, err)
+	}
+	if err := db.sql.QueryRowContext(ctx, `
+		SELECT COUNT(*),
+		       SUM(CASE WHEN runtime_status = ? THEN 1 ELSE 0 END),
+		       SUM(CASE WHEN is_declared = 1 THEN 1 ELSE 0 END)
+		FROM service_instances
+		WHERE service_name = ?
+	`, ServiceRuntimeRunning, serviceName).Scan(&snapshot.InstanceCount, &snapshot.RunningCount, &snapshot.TargetNodeCount); err != nil {
+		return ServiceSnapshot{}, fmt.Errorf("get service snapshot instance counts %q: %w", serviceName, err)
+	}
+	return snapshot, nil
+}
+
+func (db *DB) ListServiceInstances(ctx context.Context, serviceName string) ([]ServiceInstanceSnapshot, error) {
+	rows, err := db.sql.QueryContext(ctx, `
+		SELECT service_name, node_id, is_declared, runtime_status, COALESCE(updated_at, ''), COALESCE(last_task_id, '')
+		FROM service_instances
+		WHERE service_name = ?
+		ORDER BY node_id ASC
+	`, serviceName)
+	if err != nil {
+		return nil, fmt.Errorf("list service instances for %q: %w", serviceName, err)
+	}
+	defer rows.Close()
+
+	instances := make([]ServiceInstanceSnapshot, 0)
+	for rows.Next() {
+		var snapshot ServiceInstanceSnapshot
+		if err := rows.Scan(&snapshot.ServiceName, &snapshot.NodeID, &snapshot.IsDeclared, &snapshot.RuntimeStatus, &snapshot.UpdatedAt, &snapshot.LastTaskID); err != nil {
+			return nil, fmt.Errorf("scan service instance for %q: %w", serviceName, err)
+		}
+		instances = append(instances, snapshot)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate service instances for %q: %w", serviceName, err)
+	}
+	return instances, nil
+}
+
+func (db *DB) GetServiceInstanceSnapshot(ctx context.Context, serviceName, nodeID string) (ServiceInstanceSnapshot, error) {
+	var snapshot ServiceInstanceSnapshot
+	err := db.sql.QueryRowContext(ctx, `
+		SELECT service_name, node_id, is_declared, runtime_status, COALESCE(updated_at, ''), COALESCE(last_task_id, '')
+		FROM service_instances
+		WHERE service_name = ? AND node_id = ?
+	`, serviceName, nodeID).Scan(&snapshot.ServiceName, &snapshot.NodeID, &snapshot.IsDeclared, &snapshot.RuntimeStatus, &snapshot.UpdatedAt, &snapshot.LastTaskID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ServiceInstanceSnapshot{}, ErrServiceNotFound
+		}
+		return ServiceInstanceSnapshot{}, fmt.Errorf("get service instance snapshot %q@%q: %w", serviceName, nodeID, err)
 	}
 	return snapshot, nil
 }
@@ -348,27 +449,41 @@ func (db *DB) GetNodeSnapshot(ctx context.Context, nodeID string) (NodeSnapshot,
 	return snapshot, nil
 }
 
-func (db *DB) UpdateServiceRuntimeStatus(ctx context.Context, serviceName, runtimeStatus string, updatedAt time.Time) error {
+func (db *DB) UpdateServiceInstanceRuntimeStatus(ctx context.Context, serviceName, nodeID, runtimeStatus string, updatedAt time.Time) error {
 	if serviceName == "" {
 		return fmt.Errorf("service name is required")
+	}
+	if nodeID == "" {
+		return fmt.Errorf("node id is required")
 	}
 	if !IsValidServiceRuntimeStatus(runtimeStatus) {
 		return fmt.Errorf("invalid service runtime status %q", runtimeStatus)
 	}
-	result, err := db.sql.ExecContext(ctx, `
-		UPDATE services
-		SET runtime_status = ?, updated_at = ?
-		WHERE service_name = ?
-	`, runtimeStatus, updatedAt.UTC().Format(time.RFC3339), serviceName)
+	tx, err := db.sql.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("update runtime status for service %q: %w", serviceName, err)
+		return fmt.Errorf("begin service instance runtime update for %q@%q: %w", serviceName, nodeID, err)
+	}
+	defer tx.Rollback()
+	result, err := tx.ExecContext(ctx, `
+		UPDATE service_instances
+		SET runtime_status = ?, updated_at = ?
+		WHERE service_name = ? AND node_id = ?
+	`, runtimeStatus, updatedAt.UTC().Format(time.RFC3339), serviceName, nodeID)
+	if err != nil {
+		return fmt.Errorf("update runtime status for service instance %q@%q: %w", serviceName, nodeID, err)
 	}
 	affected, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("read updated runtime status rows for service %q: %w", serviceName, err)
+		return fmt.Errorf("read updated runtime status rows for service instance %q@%q: %w", serviceName, nodeID, err)
 	}
 	if affected == 0 {
 		return ErrServiceNotFound
+	}
+	if err := refreshServiceAggregateStatusTx(ctx, tx, serviceName); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit service instance runtime update for %q@%q: %w", serviceName, nodeID, err)
 	}
 	return nil
 }
@@ -401,6 +516,18 @@ func (db *DB) migrate(ctx context.Context) error {
 			runtime_status TEXT NOT NULL,
 			last_task_id TEXT,
 			updated_at TEXT NOT NULL,
+			FOREIGN KEY (last_task_id) REFERENCES tasks(task_id)
+		);`,
+		`CREATE TABLE IF NOT EXISTS service_instances (
+			service_name TEXT NOT NULL,
+			node_id TEXT NOT NULL,
+			is_declared INTEGER NOT NULL,
+			runtime_status TEXT NOT NULL,
+			last_task_id TEXT,
+			updated_at TEXT NOT NULL,
+			PRIMARY KEY (service_name, node_id),
+			FOREIGN KEY (service_name) REFERENCES services(service_name),
+			FOREIGN KEY (node_id) REFERENCES nodes(node_id),
 			FOREIGN KEY (last_task_id) REFERENCES tasks(task_id)
 		);`,
 		`CREATE TABLE IF NOT EXISTS tasks (
@@ -457,6 +584,8 @@ func (db *DB) migrate(ctx context.Context) error {
 		`CREATE INDEX IF NOT EXISTS idx_tasks_service_created_at ON tasks(service_name, created_at DESC);`,
 		`CREATE INDEX IF NOT EXISTS idx_tasks_node_created_at ON tasks(node_id, created_at DESC);`,
 		`CREATE INDEX IF NOT EXISTS idx_services_declared_runtime_status ON services(is_declared, runtime_status);`,
+		`CREATE INDEX IF NOT EXISTS idx_service_instances_service_node ON service_instances(service_name, node_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_service_instances_service_runtime_status ON service_instances(service_name, runtime_status);`,
 		`CREATE INDEX IF NOT EXISTS idx_backups_service_finished_at ON backups(service_name, finished_at DESC);`,
 		`CREATE INDEX IF NOT EXISTS idx_backups_status_finished_at ON backups(status, finished_at DESC);`,
 		`CREATE TABLE IF NOT EXISTS docker_stats (
@@ -483,6 +612,74 @@ func (db *DB) migrate(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func refreshServiceAggregateStatusTx(ctx context.Context, tx *sql.Tx, serviceName string) error {
+	rows, err := tx.QueryContext(ctx, `
+		SELECT runtime_status
+		FROM service_instances
+		WHERE service_name = ? AND is_declared = 1
+	`, serviceName)
+	if err != nil {
+		return fmt.Errorf("list service instance runtime states for %q: %w", serviceName, err)
+	}
+	defer rows.Close()
+
+	statuses := make([]string, 0)
+	for rows.Next() {
+		var status string
+		if err := rows.Scan(&status); err != nil {
+			return fmt.Errorf("scan service instance runtime state for %q: %w", serviceName, err)
+		}
+		statuses = append(statuses, status)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate service instance runtime states for %q: %w", serviceName, err)
+	}
+
+	aggregate := ServiceRuntimeUnknown
+	switch {
+	case len(statuses) == 0:
+		aggregate = ServiceRuntimeUnknown
+	case allStatusesEqual(statuses, ServiceRuntimeRunning):
+		aggregate = ServiceRuntimeRunning
+	case allStatusesEqual(statuses, ServiceRuntimeStopped):
+		aggregate = ServiceRuntimeStopped
+	case hasStatus(statuses, ServiceRuntimeError):
+		aggregate = ServiceRuntimeError
+	default:
+		aggregate = ServiceRuntimeUnknown
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE services
+		SET runtime_status = ?
+		WHERE service_name = ?
+	`, aggregate, serviceName); err != nil {
+		return fmt.Errorf("refresh service aggregate status for %q: %w", serviceName, err)
+	}
+	return nil
+}
+
+func allStatusesEqual(statuses []string, expected string) bool {
+	if len(statuses) == 0 {
+		return false
+	}
+	for _, status := range statuses {
+		if status != expected {
+			return false
+		}
+	}
+	return true
+}
+
+func hasStatus(statuses []string, expected string) bool {
+	for _, status := range statuses {
+		if status == expected {
+			return true
+		}
+	}
+	return false
 }
 
 func (db *DB) GetRepoSyncState(ctx context.Context) (RepoSyncState, error) {

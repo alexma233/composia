@@ -20,6 +20,23 @@ service ServiceService {
   rpc RestartService(RestartServiceRequest) returns (RestartServiceResponse);
 }
 
+service ServiceInstanceService {
+  rpc ListServiceInstances(ListServiceInstancesRequest) returns (ListServiceInstancesResponse);
+  rpc GetServiceInstance(GetServiceInstanceRequest) returns (GetServiceInstanceResponse);
+  rpc DeployServiceInstance(DeployServiceInstanceRequest) returns (DeployServiceInstanceResponse);
+  rpc UpdateServiceInstance(UpdateServiceInstanceRequest) returns (UpdateServiceInstanceResponse);
+  rpc StopServiceInstance(StopServiceInstanceRequest) returns (StopServiceInstanceResponse);
+  rpc RestartServiceInstance(RestartServiceInstanceRequest) returns (RestartServiceInstanceResponse);
+}
+
+message ServiceInstanceSummary {
+  string service_name = 1;
+  string node_id = 2;
+  string runtime_status = 3;
+  string updated_at = 4;
+  bool is_declared = 5;
+}
+
 message GetServiceRequest {
   string service_name = 1;
 }
@@ -28,9 +45,27 @@ message GetServiceResponse {
   string name = 1;
   string runtime_status = 2;
   string updated_at = 3;
-  string node = 4;
+  repeated string nodes = 4;
   bool enabled = 5;
   string directory = 6;
+  repeated ServiceInstanceSummary instances = 7;
+}
+
+message ListServiceInstancesRequest {
+  string service_name = 1;
+}
+
+message ListServiceInstancesResponse {
+  repeated ServiceInstanceSummary instances = 1;
+}
+
+message GetServiceInstanceRequest {
+  string service_name = 1;
+  string node_id = 2;
+}
+
+message GetServiceInstanceResponse {
+  ServiceInstanceSummary instance = 1;
 }
 
 message GetServiceTasksRequest {
@@ -61,6 +96,7 @@ message GetServiceBackupsResponse {
 message BackupServiceRequest {
   string service_name = 1;
   repeated string data_names = 2;
+  repeated string node_ids = 3;
 }
 
 message BackupServiceResponse {
@@ -81,6 +117,7 @@ message UpdateServiceDNSResponse {
 
 message DeployServiceRequest {
   string service_name = 1;
+  repeated string node_ids = 2;
 }
 
 message DeployServiceResponse {
@@ -91,6 +128,7 @@ message DeployServiceResponse {
 
 message UpdateServiceRequest {
   string service_name = 1;
+  repeated string node_ids = 2;
 }
 
 message UpdateServiceResponse {
@@ -101,6 +139,7 @@ message UpdateServiceResponse {
 
 message StopServiceRequest {
   string service_name = 1;
+  repeated string node_ids = 2;
 }
 
 message StopServiceResponse {
@@ -111,6 +150,51 @@ message StopServiceResponse {
 
 message RestartServiceRequest {
   string service_name = 1;
+  repeated string node_ids = 2;
+}
+
+message DeployServiceInstanceRequest {
+  string service_name = 1;
+  string node_id = 2;
+}
+
+message DeployServiceInstanceResponse {
+  string task_id = 1;
+  string status = 2;
+  string repo_revision = 3;
+}
+
+message UpdateServiceInstanceRequest {
+  string service_name = 1;
+  string node_id = 2;
+}
+
+message UpdateServiceInstanceResponse {
+  string task_id = 1;
+  string status = 2;
+  string repo_revision = 3;
+}
+
+message StopServiceInstanceRequest {
+  string service_name = 1;
+  string node_id = 2;
+}
+
+message StopServiceInstanceResponse {
+  string task_id = 1;
+  string status = 2;
+  string repo_revision = 3;
+}
+
+message RestartServiceInstanceRequest {
+  string service_name = 1;
+  string node_id = 2;
+}
+
+message RestartServiceInstanceResponse {
+  string task_id = 1;
+  string status = 2;
+  string repo_revision = 3;
 }
 
 message RestartServiceResponse {
@@ -130,6 +214,9 @@ message ServiceSummary {
   bool is_declared = 2;
   string runtime_status = 3;
   string updated_at = 4;
+  uint32 instance_count = 5;
+  uint32 running_count = 6;
+  uint32 target_node_count = 7;
 }
 
 message ListServicesResponse {

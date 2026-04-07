@@ -65,7 +65,7 @@ export async function loadServiceWorkspaces(): Promise<
           isDeclared: true,
           runtimeStatus: declared.detail.runtimeStatus,
           updatedAt: declared.detail.updatedAt,
-          node: declared.detail.node,
+          node: declared.detail.nodes.join(", "),
           enabled: declared.detail.enabled,
         } satisfies ServiceWorkspaceSummary;
       }

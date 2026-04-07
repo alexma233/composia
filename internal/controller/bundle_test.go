@@ -48,7 +48,7 @@ func TestBundleServiceStreamsTaskBundle(t *testing.T) {
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
 	}
-	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: "demo"})
@@ -127,7 +127,7 @@ func TestBundleServiceInjectsDecryptedSecretEnv(t *testing.T) {
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
 	}
-	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: "demo"})
@@ -201,7 +201,7 @@ func TestBundleServiceInjectsBackupRuntimeConfig(t *testing.T) {
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
 	}
-	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: "demo", DataNames: []string{"config"}})

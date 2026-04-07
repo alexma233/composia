@@ -87,7 +87,7 @@ func TestExecuteDNSUpdateTaskSyncsDualStackRecords(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	if err := db.SyncDeclaredServices(ctx, []string{"demo"}); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
