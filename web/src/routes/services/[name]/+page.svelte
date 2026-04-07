@@ -12,7 +12,11 @@
   import { Button } from '$lib/components/ui/button';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '$lib/components/ui/collapsible';
+  import { Dialog, DialogTitle, DialogDescription, DialogFooter, DialogHeader } from '$lib/components/ui/dialog';
+  import DialogContent from '$lib/components/ui/dialog/dialog-content.svelte';
+  import DialogOverlay from '$lib/components/ui/dialog/dialog-overlay.svelte';
   import { Input } from '$lib/components/ui/input';
+  import * as Popover from '$lib/components/ui/popover';
   import { toast } from 'svelte-sonner';
   import { formatTimestamp, runtimeStatusTone, taskStatusTone } from '$lib/presenters';
   import type {
@@ -53,6 +57,7 @@
   let newFolderPath = $state('');
   let showRename = $state(false);
   let renamePath = $state('');
+  let showDeleteDialog = $state(false);
   let showServiceRename = $state(false);
   let renameServiceFolder = $state('');
   let workspace = $state<PageData['workspace']>(null);
@@ -587,40 +592,52 @@
       <CardHeader class="border-b px-4 py-3">
         <CardTitle class="section-title">Files</CardTitle>
 <div class="flex flex-wrap items-center gap-2">
-           <Button type="button" variant="outline" size="sm" onclick={() => (showNewFile = !showNewFile)}>
-             <FilePlus class="mr-2 size-4" />New file
-           </Button>
-           <Button type="button" variant="outline" size="sm" onclick={() => (showNewFolder = !showNewFolder)}>
-             <FolderPlus class="mr-2 size-4" />New folder
-           </Button>
+           <Popover.Root bind:open={showNewFile}>
+             <Popover.Trigger class="inline-flex">
+               {#snippet child({ props: triggerProps })}
+                 <Button type="button" variant="outline" size="sm" {...triggerProps}>
+                   <FilePlus class="mr-2 size-4" />New file
+                 </Button>
+               {/snippet}
+             </Popover.Trigger>
+             <Popover.Content class="w-80" sideOffset={8}>
+               <div class="space-y-3">
+                 <Input bind:value={newFilePath} placeholder="config/new-file.yaml" />
+                 <div class="flex items-center justify-between gap-3">
+                   <p class="text-xs text-muted-foreground">Parents are created automatically.</p>
+                   <Button type="button" size="sm" onclick={createFile} disabled={saving}>Create</Button>
+                 </div>
+               </div>
+             </Popover.Content>
+           </Popover.Root>
+
+           <Popover.Root bind:open={showNewFolder}>
+             <Popover.Trigger class="inline-flex">
+               {#snippet child({ props: triggerProps })}
+                 <Button type="button" variant="outline" size="sm" {...triggerProps}>
+                   <FolderPlus class="mr-2 size-4" />New folder
+                 </Button>
+               {/snippet}
+             </Popover.Trigger>
+             <Popover.Content class="w-80" sideOffset={8}>
+               <div class="space-y-3">
+                 <Input bind:value={newFolderPath} placeholder="config/snippets" />
+                 <div class="flex items-center justify-between gap-3">
+                   <p class="text-xs text-muted-foreground">Tracked with `.gitkeep`.</p>
+                   <Button type="button" size="sm" onclick={createDirectory} disabled={saving}>Create</Button>
+                 </div>
+               </div>
+             </Popover.Content>
+           </Popover.Root>
+
            <Button type="button" variant="outline" size="sm" onclick={() => { showRename = !showRename; renamePath = selectedNodePath; }} disabled={!selectedNodePath || saving}>
              <Pencil class="mr-2 size-4" />Rename
            </Button>
-           <Button type="button" variant="outline" size="sm" onclick={deleteNode} disabled={!selectedNodePath || saving}>
+           <Button type="button" variant="outline" size="sm" onclick={() => (showDeleteDialog = true)} disabled={!selectedNodePath || saving}>
              <Trash2 class="mr-2 size-4" />Delete
            </Button>
-         </div>
+          </div>
       </CardHeader>
-
-      {#if showNewFile}
-        <div class="space-y-3 border-b px-4 py-3">
-          <Input bind:value={newFilePath} placeholder="config/new-file.yaml" />
-          <div class="flex items-center justify-between gap-3">
-            <p class="text-xs text-muted-foreground">Parents are created automatically.</p>
-            <Button type="button" size="sm" onclick={createFile} disabled={saving}>Create</Button>
-          </div>
-        </div>
-      {/if}
-
-      {#if showNewFolder}
-        <div class="space-y-3 border-b px-4 py-3">
-          <Input bind:value={newFolderPath} placeholder="config/snippets" />
-          <div class="flex items-center justify-between gap-3">
-            <p class="text-xs text-muted-foreground">Tracked with `.gitkeep`.</p>
-            <Button type="button" size="sm" onclick={createDirectory} disabled={saving}>Create</Button>
-          </div>
-        </div>
-      {/if}
 
       {#if showRename}
         <div class="border-b px-4 py-3 text-sm">
@@ -809,4 +826,20 @@
       </CollapsibleContent>
     </Card>
   </Collapsible>
+
+<Dialog bind:open={showDeleteDialog}>
+  <DialogOverlay />
+  <DialogContent class="max-w-sm">
+    <DialogHeader>
+      <DialogTitle>Delete {selectedNode?.isDir ? 'folder' : 'file'}?</DialogTitle>
+      <DialogDescription>
+        Are you sure you want to delete <span class="font-mono text-foreground">{selectedNodePath}</span>? This action cannot be undone.
+      </DialogDescription>
+    </DialogHeader>
+    <DialogFooter>
+      <Button type="button" variant="outline" onclick={() => (showDeleteDialog = false)}>Cancel</Button>
+      <Button type="button" variant="destructive" onclick={() => { showDeleteDialog = false; deleteNode(); }} disabled={saving}>Delete</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
 </div>

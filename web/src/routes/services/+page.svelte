@@ -7,10 +7,8 @@
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
-  import { Dialog, DialogTitle, DialogDescription, DialogFooter, DialogHeader } from '$lib/components/ui/dialog';
-  import DialogContent from '$lib/components/ui/dialog/dialog-content.svelte';
-  import DialogOverlay from '$lib/components/ui/dialog/dialog-overlay.svelte';
   import { Input } from '$lib/components/ui/input';
+  import * as Popover from '$lib/components/ui/popover';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { formatTimestamp, runtimeStatusTone } from '$lib/presenters';
 
@@ -50,10 +48,37 @@
         </div>
         <div class="flex items-center gap-3">
           {#if data.repoHead}
-            <Button type="button" onclick={() => (showDialog = true)}>
-              <Plus class="mr-2 size-4" />
-              Create service
-            </Button>
+            <Popover.Root bind:open={showDialog}>
+              <Popover.Trigger class="inline-flex">
+                {#snippet child({ props: triggerProps })}
+                  <Button type="button" {...triggerProps}>
+                    <Plus class="mr-2 size-4" />
+                    Create service
+                  </Button>
+                {/snippet}
+              </Popover.Trigger>
+              <Popover.Content class="w-80" align="end" sideOffset={8}>
+                <form method="POST" action="?/create">
+                  <div class="space-y-4">
+                    <p class="text-sm font-medium">Create service</p>
+                    <input type="hidden" name="baseRevision" value={data.repoHead.headRevision} />
+                    <div class="grid gap-2">
+                      <label for="folder" class="text-sm font-medium">Folder name</label>
+                      <Input id="folder" name="folder" bind:value={newFolder} placeholder="my-service" />
+                    </div>
+                    {#if form?.error}
+                      <Alert variant="destructive">
+                        <AlertTitle>Create failed</AlertTitle>
+                        <AlertDescription>{form.error}</AlertDescription>
+                      </Alert>
+                    {/if}
+                    <div class="flex justify-end gap-2">
+                      <Button type="submit" size="sm">Create</Button>
+                    </div>
+                  </div>
+                </form>
+              </Popover.Content>
+            </Popover.Root>
           {/if}
           <Badge variant="outline">{data.services.length}</Badge>
         </div>
@@ -112,34 +137,3 @@
     </CardContent>
   </Card>
 </div>
-
-{#if showDialog && data.repoHead}
-  <Dialog bind:open={showDialog}>
-    <DialogOverlay />
-    <DialogContent class="sm:max-w-md">
-      <form method="POST" action="?/create">
-        <DialogHeader>
-          <DialogTitle>Create service</DialogTitle>
-          <DialogDescription>Create a new service folder in the repository.</DialogDescription>
-        </DialogHeader>
-        <div class="grid gap-4 py-4">
-          <input type="hidden" name="baseRevision" value={data.repoHead.headRevision} />
-          <div class="grid gap-2">
-            <label for="folder" class="text-sm font-medium">Folder name</label>
-            <Input id="folder" name="folder" bind:value={newFolder} placeholder="my-service" />
-          </div>
-          {#if form?.error}
-            <Alert variant="destructive">
-              <AlertTitle>Create failed</AlertTitle>
-              <AlertDescription>{form.error}</AlertDescription>
-            </Alert>
-          {/if}
-        </div>
-        <DialogFooter>
-          <Button type="button" variant="outline" onclick={() => (showDialog = false)}>Cancel</Button>
-          <Button type="submit">Create</Button>
-        </DialogFooter>
-      </form>
-    </DialogContent>
-  </Dialog>
-{/if}
