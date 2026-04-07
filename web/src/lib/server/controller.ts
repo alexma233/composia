@@ -36,6 +36,21 @@ export type ServiceInstanceSummary = {
   isDeclared: boolean;
 };
 
+export type ServiceContainerSummary = {
+  containerId: string;
+  name: string;
+  image: string;
+  state: string;
+  status: string;
+  created: string;
+  composeProject: string;
+  composeService: string;
+};
+
+export type ServiceInstanceDetail = ServiceInstanceSummary & {
+  containers: ServiceContainerSummary[];
+};
+
 export type NodeSummary = {
   nodeId: string;
   displayName: string;
@@ -99,7 +114,7 @@ export type ServiceDetail = {
   nodes: string[];
   enabled: boolean;
   directory: string;
-  instances: ServiceInstanceSummary[];
+  instances: ServiceInstanceDetail[];
 };
 
 export type ServiceActionResult = {
@@ -488,6 +503,19 @@ export async function loadServiceDetail(
       updated_at?: string;
       isDeclared?: boolean;
       is_declared?: boolean;
+      containers?: Array<{
+        containerId?: string;
+        container_id?: string;
+        name?: string;
+        image?: string;
+        state?: string;
+        status?: string;
+        created?: string;
+        composeProject?: string;
+        compose_project?: string;
+        composeService?: string;
+        compose_service?: string;
+      }>;
     }>;
   }>(
     config.baseUrl,
@@ -509,6 +537,16 @@ export async function loadServiceDetail(
         instance.runtimeStatus ?? instance.runtime_status ?? "unknown",
       updatedAt: instance.updatedAt ?? instance.updated_at ?? "",
       isDeclared: instance.isDeclared ?? instance.is_declared ?? false,
+      containers: (instance.containers ?? []).map((container) => ({
+        containerId: container.containerId ?? container.container_id ?? "",
+        name: container.name ?? "",
+        image: container.image ?? "",
+        state: container.state ?? "unknown",
+        status: container.status ?? "",
+        created: container.created ?? "",
+        composeProject: container.composeProject ?? container.compose_project ?? "",
+        composeService: container.composeService ?? container.compose_service ?? "",
+      })),
     })),
   };
 }
@@ -628,6 +666,16 @@ export type DockerContainerSummary = {
   imageId: string;
 };
 
+export type ContainerActionResult = {
+  taskId: string;
+  status: string;
+};
+
+export type ContainerExecSession = {
+  sessionId: string;
+  websocketPath: string;
+};
+
 export type DockerNetworkSummary = {
   id: string;
   name: string;
@@ -730,6 +778,77 @@ export async function inspectNodeContainer(
     { nodeId, containerId },
   );
   return response.rawJson ?? response.raw_json ?? "{}";
+}
+
+export async function startContainer(
+  nodeId: string,
+  containerId: string,
+): Promise<ContainerActionResult> {
+  const config = requireControllerConfig();
+  return rpcCall<ContainerActionResult>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.ContainerService/StartContainer",
+    { nodeId, containerId },
+  );
+}
+
+export async function stopContainer(
+  nodeId: string,
+  containerId: string,
+): Promise<ContainerActionResult> {
+  const config = requireControllerConfig();
+  return rpcCall<ContainerActionResult>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.ContainerService/StopContainer",
+    { nodeId, containerId },
+  );
+}
+
+export async function restartContainer(
+  nodeId: string,
+  containerId: string,
+): Promise<ContainerActionResult> {
+  const config = requireControllerConfig();
+  return rpcCall<ContainerActionResult>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.ContainerService/RestartContainer",
+    { nodeId, containerId },
+  );
+}
+
+export async function getContainerLogs(
+  nodeId: string,
+  containerId: string,
+  tail = "200",
+  timestamps = false,
+): Promise<string> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{ content?: string }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.ContainerService/GetContainerLogs",
+    { nodeId, containerId, tail, timestamps },
+  );
+  return response.content ?? "";
+}
+
+export async function openContainerExec(
+  nodeId: string,
+  containerId: string,
+  command: string[] = [],
+  rows = 24,
+  cols = 80,
+): Promise<ContainerExecSession> {
+  const config = requireControllerConfig();
+  return rpcCall<ContainerExecSession>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.ContainerService/OpenContainerExec",
+    { nodeId, containerId, command, rows, cols },
+  );
 }
 
 export async function listNodeNetworks(

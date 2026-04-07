@@ -2,7 +2,7 @@ import type { PageServerLoad } from "./$types";
 
 import { controllerConfig, inspectNodeContainer } from "$lib/server/controller";
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, url }) => {
   const config = controllerConfig();
   if (!config.ready) {
     return {
@@ -10,6 +10,7 @@ export const load: PageServerLoad = async ({ params }) => {
       error: config.reason,
       nodeId: params.id,
       containerId: decodeURIComponent(params.cid),
+      initialTab: url.searchParams.get("tab") ?? "info",
       rawJson: null,
     };
   }
@@ -24,6 +25,7 @@ export const load: PageServerLoad = async ({ params }) => {
       error: null,
       nodeId: params.id,
       containerId: decodeURIComponent(params.cid),
+      initialTab: url.searchParams.get("tab") ?? "info",
       rawJson,
     };
   } catch (error) {
@@ -33,6 +35,7 @@ export const load: PageServerLoad = async ({ params }) => {
         error instanceof Error ? error.message : "Failed to inspect container",
       nodeId: params.id,
       containerId: decodeURIComponent(params.cid),
+      initialTab: url.searchParams.get("tab") ?? "info",
       rawJson: null,
     };
   }

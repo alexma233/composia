@@ -61,6 +61,7 @@
   let showServiceRename = $state(false);
   let renameServiceFolder = $state('');
   let workspace = $state<PageData['workspace']>(null);
+  let nodeContainers = $state<NonNullable<PageData['nodeContainers']>>([]);
   let refreshTimer = $state<ReturnType<typeof setTimeout> | null>(null);
 
   $effect(() => {
@@ -78,6 +79,7 @@
     errorMessage = data.error ?? '';
     renameServiceFolder = data.workspace?.folder ?? '';
     workspace = data.workspace;
+    nodeContainers = (data.nodeContainers ?? []) as NonNullable<PageData['nodeContainers']>;
   });
 
   function createTab(file: WorkspaceFile): EditorTab {
@@ -561,7 +563,7 @@
 </script>
 
 <div class="mx-auto flex min-h-[calc(100vh-72px)] max-w-[1600px] flex-col px-4 py-6 sm:px-6 lg:px-8">
-  <Card class="mb-4">
+      <Card class="mb-4">
     <CardHeader class="gap-4 p-4 sm:p-5">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="space-y-1">
@@ -579,6 +581,46 @@
       </div>
     </CardHeader>
   </Card>
+
+  {#if (nodeContainers ?? []).length > 0}
+    <Card class="mb-4">
+      <CardHeader class="p-4">
+        <CardTitle class="section-title">Instances</CardTitle>
+        <CardDescription>Containers grouped by node for this service.</CardDescription>
+      </CardHeader>
+      <CardContent class="grid gap-3 p-4 pt-0 md:grid-cols-2 xl:grid-cols-3">
+        {#each nodeContainers ?? [] as instance}
+          <div class="rounded-lg border border-border/60 bg-muted/20 p-3">
+            <div class="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <div class="font-medium">{instance.nodeId}</div>
+                <div class="text-xs text-muted-foreground">{formatTimestamp(instance.updatedAt)}</div>
+              </div>
+              <Badge variant={runtimeStatusTone(instance.runtimeStatus)}>{instance.runtimeStatus}</Badge>
+            </div>
+            {#if instance.containers.length > 0}
+              <div class="space-y-2">
+                {#each instance.containers as container}
+                  <a href="/nodes/{instance.nodeId}/docker/containers/{encodeURIComponent(container.containerId)}" class="block rounded-md border border-border/60 bg-background px-3 py-2 transition-colors hover:bg-accent/40">
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="font-medium">{container.name}</div>
+                      <Badge variant={runtimeStatusTone(container.state)}>{container.state}</Badge>
+                    </div>
+                    <div class="mt-1 text-xs text-muted-foreground">{container.image}</div>
+                    <div class="mt-1 text-[11px] text-muted-foreground/80">
+                      {container.composeProject}/{container.composeService}
+                    </div>
+                  </a>
+                {/each}
+              </div>
+            {:else}
+              <div class="text-sm text-muted-foreground">No matching containers reported on this node.</div>
+            {/if}
+          </div>
+        {/each}
+      </CardContent>
+    </Card>
+  {/if}
 
   {#if errorMessage}
     <Alert variant="destructive" class="mb-4">

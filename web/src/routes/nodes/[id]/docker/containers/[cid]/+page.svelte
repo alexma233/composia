@@ -1,10 +1,14 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+  import { toast } from 'svelte-sonner';
   import type { PageData } from './$types';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
   import { Badge, type BadgeVariant } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import Textarea from '$lib/components/ui/textarea/textarea.svelte';
 
   interface Props {
     data: PageData;
@@ -14,6 +18,19 @@
 
   let containerData = $state<any>(null);
   let parseError = $state<string | null>(null);
+  let activeTab = $state('info');
+  let logs = $state('');
+  let logsLoading = $state(false);
+  let logsError = $state('');
+  let logTail = $state('200');
+  let actionBusy = $state('');
+  let terminalCommand = $state('/bin/sh');
+  let terminalConnecting = $state(false);
+  let terminalError = $state('');
+  let terminalOutput = $state('');
+  let terminalInput = $state('');
+  let terminalSessionId = $state('');
+  let terminalSocket = $state<WebSocket | null>(null);
 
   $effect(() => {
     if (!data.rawJson) {
@@ -71,6 +88,124 @@
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
+
+  async function loadLogs() {
+    logsLoading = true;
+    logsError = '';
+    try {
+      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/containers/${encodeURIComponent(data.containerId)}/logs?tail=${encodeURIComponent(logTail)}`);
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Failed to load logs');
+      }
+      logs = payload.content ?? '';
+    } catch (error) {
+      logsError = error instanceof Error ? error.message : 'Failed to load logs';
+      logs = '';
+    } finally {
+      logsLoading = false;
+    }
+  }
+
+  async function runAction(action: 'start' | 'stop' | 'restart') {
+    actionBusy = action;
+    try {
+      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/containers/action`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, containerId: data.containerId })
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? `Failed to ${action} container`);
+      }
+      toast.success(`${action} queued: ${payload.taskId?.slice(0, 12) ?? 'task'}`);
+      window.location.reload();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : `Failed to ${action} container.`);
+    } finally {
+      actionBusy = '';
+    }
+  }
+
+  function disconnectTerminal() {
+    terminalSocket?.close();
+    terminalSocket = null;
+    terminalSessionId = '';
+  }
+
+  async function connectTerminal() {
+    terminalConnecting = true;
+    terminalError = '';
+    terminalOutput = '';
+    disconnectTerminal();
+    try {
+      const command = terminalCommand.trim() ? terminalCommand.trim().split(/\s+/) : [];
+      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/containers/${encodeURIComponent(data.containerId)}/exec`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command, rows: 32, cols: 120 })
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Failed to open terminal');
+      }
+      terminalSessionId = payload.sessionId ?? '';
+      const socket = new WebSocket(payload.websocketUrl);
+      socket.binaryType = 'arraybuffer';
+      socket.onmessage = (event) => {
+        if (typeof event.data === 'string') {
+          try {
+            const message = JSON.parse(event.data) as { type?: string; message?: string };
+            if (message.type === 'error' && message.message) {
+              terminalError = message.message;
+            }
+            if (message.type === 'closed') {
+              terminalOutput = `${terminalOutput}\n[session closed]`.trim();
+            }
+          } catch {
+            terminalOutput = `${terminalOutput}${event.data}`;
+          }
+          return;
+        }
+        const text = new TextDecoder().decode(event.data instanceof ArrayBuffer ? event.data : new Uint8Array());
+        terminalOutput = `${terminalOutput}${text}`;
+      };
+      socket.onerror = () => {
+        terminalError = 'Terminal connection error';
+      };
+      socket.onclose = () => {
+        terminalSocket = null;
+      };
+      terminalSocket = socket;
+    } catch (error) {
+      terminalError = error instanceof Error ? error.message : 'Failed to open terminal';
+    } finally {
+      terminalConnecting = false;
+    }
+  }
+
+  function sendTerminalInput() {
+    if (!terminalSocket || terminalSocket.readyState !== WebSocket.OPEN || !terminalInput) {
+      return;
+    }
+    terminalSocket.send(terminalInput);
+    terminalInput = '';
+  }
+
+  onMount(() => {
+    activeTab = data.initialTab ?? 'info';
+    if (activeTab === 'logs') {
+      void loadLogs();
+    }
+    return () => disconnectTerminal();
+  });
+
+  $effect(() => {
+    if (activeTab === 'logs' && !logs && !logsLoading) {
+      void loadLogs();
+    }
+  });
 </script>
 
 <div class="page-shell">
@@ -100,6 +235,9 @@
                 {containerData.State?.Status || 'unknown'}
               </Badge>
             {/if}
+            <Button variant="outline" size="sm" onclick={() => void runAction('start')} disabled={actionBusy !== '' || containerData?.State?.Status?.toLowerCase() === 'running'}>Start</Button>
+            <Button variant="outline" size="sm" onclick={() => void runAction('stop')} disabled={actionBusy !== '' || containerData?.State?.Status?.toLowerCase() !== 'running'}>Stop</Button>
+            <Button variant="outline" size="sm" onclick={() => void runAction('restart')} disabled={actionBusy !== ''}>Restart</Button>
             <a href="/nodes/{data.nodeId}/docker/containers" class="text-sm text-muted-foreground hover:underline">
               Back to containers
             </a>
@@ -119,9 +257,11 @@
             <AlertDescription>Failed to parse container data: {parseError}</AlertDescription>
           </Alert>
         {:else if containerData}
-          <Tabs value="info" class="w-full">
+          <Tabs bind:value={activeTab} class="w-full">
             <TabsList class="mb-4">
               <TabsTrigger value="info">Info</TabsTrigger>
+              <TabsTrigger value="logs">Logs</TabsTrigger>
+              <TabsTrigger value="terminal">Terminal</TabsTrigger>
               <TabsTrigger value="config">Config</TabsTrigger>
               <TabsTrigger value="env">Environment</TabsTrigger>
               <TabsTrigger value="network">Network</TabsTrigger>
@@ -237,6 +377,66 @@
                       </code>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="logs" class="space-y-4">
+              <Card>
+                <CardHeader class="pb-3">
+                  <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <CardTitle class="text-base">Container Logs</CardTitle>
+                      <CardDescription>Fetch recent stdout and stderr output.</CardDescription>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <Input bind:value={logTail} class="w-24" />
+                      <Button variant="outline" size="sm" onclick={() => void loadLogs()} disabled={logsLoading}>Refresh</Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {#if logsError}
+                    <Alert variant="destructive">
+                      <AlertDescription>{logsError}</AlertDescription>
+                    </Alert>
+                  {/if}
+                  <pre class="code-surface min-h-[320px] max-h-[560px] overflow-auto break-all text-xs">{logsLoading ? 'Loading logs...' : (logs || 'No logs returned.')}</pre>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="terminal" class="space-y-4">
+              <Card>
+                <CardHeader class="pb-3">
+                  <CardTitle class="text-base">Terminal</CardTitle>
+                  <CardDescription>Open an interactive exec session through the controller tunnel.</CardDescription>
+                </CardHeader>
+                <CardContent class="space-y-4">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <Input bind:value={terminalCommand} placeholder="/bin/sh" class="min-w-[220px] flex-1" />
+                    <Button onclick={() => void connectTerminal()} disabled={terminalConnecting}>
+                      {terminalSocket ? 'Reconnect' : 'Connect'}
+                    </Button>
+                    <Button variant="outline" onclick={disconnectTerminal} disabled={!terminalSocket}>Disconnect</Button>
+                  </div>
+
+                  {#if terminalError}
+                    <Alert variant="destructive">
+                      <AlertDescription>{terminalError}</AlertDescription>
+                    </Alert>
+                  {/if}
+
+                  <Textarea readonly value={terminalOutput || (terminalConnecting ? 'Connecting terminal...' : 'Connect to start a shell session.')} class="min-h-[320px] font-mono text-xs" />
+
+                  <div class="flex gap-2">
+                    <Input bind:value={terminalInput} placeholder="Type command input and press Send" onkeydown={(event: KeyboardEvent) => { if (event.key === 'Enter') { event.preventDefault(); sendTerminalInput(); } }} />
+                    <Button variant="outline" onclick={sendTerminalInput} disabled={!terminalSocket || !terminalInput}>Send</Button>
+                  </div>
+
+                  {#if terminalSessionId}
+                    <div class="text-xs text-muted-foreground">Session {terminalSessionId}</div>
+                  {/if}
                 </CardContent>
               </Card>
             </TabsContent>

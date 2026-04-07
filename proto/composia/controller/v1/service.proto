@@ -37,6 +37,26 @@ message ServiceInstanceSummary {
   bool is_declared = 5;
 }
 
+message ServiceContainerSummary {
+  string container_id = 1;
+  string name = 2;
+  string image = 3;
+  string state = 4;
+  string status = 5;
+  string created = 6;
+  string compose_project = 7;
+  string compose_service = 8;
+}
+
+message ServiceInstanceDetail {
+  string service_name = 1;
+  string node_id = 2;
+  string runtime_status = 3;
+  string updated_at = 4;
+  bool is_declared = 5;
+  repeated ServiceContainerSummary containers = 6;
+}
+
 message GetServiceRequest {
   string service_name = 1;
 }
@@ -48,7 +68,7 @@ message GetServiceResponse {
   repeated string nodes = 4;
   bool enabled = 5;
   string directory = 6;
-  repeated ServiceInstanceSummary instances = 7;
+  repeated ServiceInstanceDetail instances = 7;
 }
 
 message ListServiceInstancesRequest {
@@ -65,7 +85,7 @@ message GetServiceInstanceRequest {
 }
 
 message GetServiceInstanceResponse {
-  ServiceInstanceSummary instance = 1;
+  ServiceInstanceDetail instance = 1;
 }
 
 message GetServiceTasksRequest {

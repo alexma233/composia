@@ -5,6 +5,7 @@ import {
   loadRepoHead,
   loadTasks,
   loadBackups,
+  loadServiceDetail,
 } from "$lib/server/controller";
 import {
   defaultServiceFilePath,
@@ -50,7 +51,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
       };
     }
 
-    const [tasksResult, backupsResult, fileTree] = await Promise.all([
+    const [tasksResult, backupsResult, fileTree, serviceDetail] = await Promise.all([
       workspace.isDeclared && workspace.serviceName
         ? loadTasks(1, 20, { serviceName: workspace.serviceName })
         : Promise.resolve({ items: [], totalCount: 0 }),
@@ -58,7 +59,11 @@ export const load: PageServerLoad = async ({ params, url }) => {
         ? loadBackups(1, 20, { serviceName: workspace.serviceName })
         : Promise.resolve({ items: [], totalCount: 0 }),
       loadServiceFileTree(workspace.folder),
+      workspace.isDeclared && workspace.serviceName
+        ? loadServiceDetail(workspace.serviceName)
+        : Promise.resolve(null),
     ]);
+    const nodeContainers = serviceDetail?.instances ?? [];
     const requestedFile = url.searchParams.get("file") ?? "";
     const activeFilePath = requestedFile
       ? normalizeServiceRelativePath(requestedFile)
@@ -73,6 +78,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
       workspace,
       tasks: tasksResult.items,
       backups: backupsResult.items,
+      serviceDetail,
+      nodeContainers,
       repoHead,
       fileTree,
       initialFile,
@@ -87,6 +94,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
       workspace: null,
       tasks: [],
       backups: [],
+      serviceDetail: null,
+      nodeContainers: [],
       repoHead: null,
       fileTree: [],
       initialFile: null,

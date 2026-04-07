@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { toast } from 'svelte-sonner';
   import type { PageData } from './$types';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
@@ -38,6 +39,7 @@
   let loading = $state(false);
   let loadError = $state<string | null>(null);
   let containers = $state<DockerContainerSummary[]>([]);
+  let actionBusyId = $state('');
 
   $effect(() => {
     loading = !data.ready;
@@ -67,6 +69,31 @@
     } finally {
       loading = false;
     }
+  }
+
+  async function runAction(containerId: string, action: 'start' | 'stop' | 'restart') {
+    actionBusyId = `${containerId}:${action}`;
+    try {
+      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/containers/action`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, containerId })
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? `Failed to ${action} container`);
+      }
+      toast.success(`${action} queued: ${payload.taskId?.slice(0, 12) ?? 'task'}`);
+      await loadContainers();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : `Failed to ${action} container.`);
+    } finally {
+      actionBusyId = '';
+    }
+  }
+
+  function isActionBusy(containerId: string, action: 'start' | 'stop' | 'restart') {
+    return actionBusyId === `${containerId}:${action}`;
   }
 
   onMount(() => {
@@ -183,7 +210,8 @@
                 <SortableTableHead field="image" label="Image" {sortField} {sortDirection} onSort={handleSort} class="w-[20%]" />
                 <TableHead class="w-[15%]">Ports</TableHead>
                 <TableHead class="w-[15%]">Networks</TableHead>
-                <SortableTableHead field="created" label="Created" {sortField} {sortDirection} onSort={handleSort} class="w-[15%]" />
+                <SortableTableHead field="created" label="Created" {sortField} {sortDirection} onSort={handleSort} class="w-[12%]" />
+                <TableHead class="w-[18%]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -261,6 +289,40 @@
                   <TableCell>
                     <div class="text-sm text-muted-foreground" title={container.created}>
                       {formatDockerTimestamp(container.created)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div class="flex flex-wrap gap-2">
+                      <a href="/nodes/{data.nodeId}/docker/containers/{encodeURIComponent(container.id)}?tab=logs">
+                        <Button variant="outline" size="sm">Logs</Button>
+                      </a>
+                      <a href="/nodes/{data.nodeId}/docker/containers/{encodeURIComponent(container.id)}?tab=terminal">
+                        <Button variant="outline" size="sm">Terminal</Button>
+                      </a>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onclick={() => void runAction(container.id, 'start')}
+                        disabled={isActionBusy(container.id, 'start') || container.state.toLowerCase() === 'running'}
+                      >
+                        Start
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onclick={() => void runAction(container.id, 'stop')}
+                        disabled={isActionBusy(container.id, 'stop') || container.state.toLowerCase() !== 'running'}
+                      >
+                        Stop
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onclick={() => void runAction(container.id, 'restart')}
+                        disabled={isActionBusy(container.id, 'restart')}
+                      >
+                        Restart
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>

@@ -162,13 +162,13 @@ func Run(ctx context.Context, configPath string) error {
 	mux.Handle(backupPath, backupHandler)
 
 	servicePath, serviceHandler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue},
+		&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults},
 		connect.WithInterceptors(cliInterceptor),
 	)
 	mux.Handle(servicePath, serviceHandler)
 
 	serviceInstancePath, serviceInstanceHandler := controllerv1connect.NewServiceInstanceServiceHandler(
-		&serviceInstanceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue},
+		&serviceInstanceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults},
 		connect.WithInterceptors(cliInterceptor),
 	)
 	mux.Handle(serviceInstancePath, serviceInstanceHandler)
@@ -911,6 +911,7 @@ type serviceServer struct {
 	cfg              *config.ControllerConfig
 	availableNodeIDs map[string]struct{}
 	taskQueue        *taskQueueNotifier
+	taskResults      *taskResultNotifier
 }
 
 type serviceInstanceServer struct {
@@ -918,6 +919,7 @@ type serviceInstanceServer struct {
 	cfg              *config.ControllerConfig
 	availableNodeIDs map[string]struct{}
 	taskQueue        *taskQueueNotifier
+	taskResults      *taskResultNotifier
 }
 
 type serviceTaskParams struct {
@@ -1149,10 +1151,14 @@ func (server *serviceServer) GetService(ctx context.Context, req *connect.Reques
 		Nodes:         append([]string(nil), service.TargetNodes...),
 		Enabled:       service.Enabled,
 		Directory:     filepath.ToSlash(mustRelativeServiceDir(server.cfg.RepoDir, service.Directory)),
-		Instances:     make([]*controllerv1.ServiceInstanceSummary, 0, len(instances)),
+		Instances:     make([]*controllerv1.ServiceInstanceDetail, 0, len(instances)),
 	}
 	for _, instance := range instances {
-		response.Instances = append(response.Instances, serviceInstanceSummaryMessage(instance))
+		detail, err := buildServiceInstanceDetail(ctx, server.db, server.cfg, server.taskQueue, server.taskResults, service, instance)
+		if err != nil {
+			return nil, err
+		}
+		response.Instances = append(response.Instances, detail)
 	}
 	return connect.NewResponse(response), nil
 }
@@ -2196,6 +2202,73 @@ func serviceInstanceSummaryMessage(record store.ServiceInstanceSnapshot) *contro
 	}
 }
 
+func serviceContainerSummaryMessage(container *controllerv1.ContainerInfo) *controllerv1.ServiceContainerSummary {
+	if container == nil {
+		return nil
+	}
+	labels := container.GetLabels()
+	return &controllerv1.ServiceContainerSummary{
+		ContainerId:    container.GetId(),
+		Name:           container.GetName(),
+		Image:          container.GetImage(),
+		State:          container.GetState(),
+		Status:         container.GetStatus(),
+		Created:        container.GetCreated(),
+		ComposeProject: labels["com.docker.compose.project"],
+		ComposeService: labels["com.docker.compose.service"],
+	}
+}
+
+func serviceInstanceDetailMessage(record store.ServiceInstanceSnapshot, containers []*controllerv1.ServiceContainerSummary) *controllerv1.ServiceInstanceDetail {
+	return &controllerv1.ServiceInstanceDetail{
+		ServiceName:   record.ServiceName,
+		NodeId:        record.NodeID,
+		RuntimeStatus: record.RuntimeStatus,
+		UpdatedAt:     record.UpdatedAt,
+		IsDeclared:    record.IsDeclared,
+		Containers:    containers,
+	}
+}
+
+func buildServiceInstanceDetail(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, service repo.Service, instance store.ServiceInstanceSnapshot) (*controllerv1.ServiceInstanceDetail, error) {
+	nodeServer := &nodeServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults}
+	containers, err := listServiceInstanceContainers(ctx, nodeServer, service, instance.NodeID)
+	if err != nil {
+		var connectErr *connect.Error
+		if errors.As(err, &connectErr) {
+			if connectErr.Code() == connect.CodeFailedPrecondition || connectErr.Code() == connect.CodeNotFound {
+				return serviceInstanceDetailMessage(instance, nil), nil
+			}
+			return nil, err
+		}
+		return nil, err
+	}
+	return serviceInstanceDetailMessage(instance, containers), nil
+}
+
+func listServiceInstanceContainers(ctx context.Context, nodeServer *nodeServer, service repo.Service, nodeID string) ([]*controllerv1.ServiceContainerSummary, error) {
+	if nodeServer == nil {
+		return nil, nil
+	}
+	result, err := nodeServer.executeDockerListTask(ctx, make(http.Header), nodeID, "containers")
+	if err != nil {
+		return nil, err
+	}
+	projectName := service.Meta.ProjectName
+	if projectName == "" {
+		projectName = service.Name
+	}
+	items := make([]*controllerv1.ServiceContainerSummary, 0, len(result.Containers))
+	for _, container := range result.Containers {
+		labels := container.GetLabels()
+		if labels["com.docker.compose.project"] != projectName {
+			continue
+		}
+		items = append(items, serviceContainerSummaryMessage(container))
+	}
+	return items, nil
+}
+
 func (server *backupRecordServer) ListBackups(ctx context.Context, req *connect.Request[controllerv1.ListBackupsRequest]) (*connect.Response[controllerv1.ListBackupsResponse], error) {
 	if req.Msg == nil {
 		req.Msg = &controllerv1.ListBackupsRequest{}
@@ -3169,7 +3242,8 @@ func (server *serviceInstanceServer) GetServiceInstance(ctx context.Context, req
 	if req.Msg == nil || req.Msg.GetServiceName() == "" || req.Msg.GetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name and node_id are required"))
 	}
-	if _, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName()); err != nil {
+	service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName())
+	if err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
 	instance, err := server.db.GetServiceInstanceSnapshot(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId())
@@ -3179,7 +3253,11 @@ func (server *serviceInstanceServer) GetServiceInstance(ctx context.Context, req
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	return connect.NewResponse(&controllerv1.GetServiceInstanceResponse{Instance: serviceInstanceSummaryMessage(instance)}), nil
+	detail, err := buildServiceInstanceDetail(ctx, server.db, server.cfg, server.taskQueue, server.taskResults, service, instance)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&controllerv1.GetServiceInstanceResponse{Instance: detail}), nil
 }
 
 func (server *serviceInstanceServer) DeployServiceInstance(ctx context.Context, req *connect.Request[controllerv1.DeployServiceInstanceRequest]) (*connect.Response[controllerv1.DeployServiceInstanceResponse], error) {
