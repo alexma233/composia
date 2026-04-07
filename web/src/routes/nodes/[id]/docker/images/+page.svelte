@@ -6,8 +6,15 @@
   import { Badge, type Variant } from '$lib/components/ui/badge';
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
+  import { formatBytes, formatDockerTimestamp, formatShortId } from '$lib/presenters';
+  import CopyButton from '$lib/components/app/copy-button.svelte';
+  import SortableTableHead from '$lib/components/app/sortable-table-head.svelte';
 
-  let { data }: { data: PageData } = $props();
+  interface Props {
+    data: PageData;
+  }
+
+  let { data }: Props = $props();
 
   type DockerImageSummary = {
     id: string;
@@ -26,9 +33,15 @@
   let searchQuery = $state('');
   let sortField = $state<'name' | 'size' | 'created'>('name');
   let sortDirection = $state<'asc' | 'desc'>('asc');
-  let loading = $state(data.ready);
-  let loadError = $state(data.error);
-  let images = $state<DockerImageSummary[]>(data.images || []);
+  let loading = $state(false);
+  let loadError = $state<string | null>(null);
+  let images = $state<DockerImageSummary[]>([]);
+
+  $effect(() => {
+    loading = !data.ready;
+    loadError = data.error ?? null;
+    images = data.images || [];
+  });
 
   async function loadImages() {
     if (!data.ready) {
@@ -58,74 +71,14 @@
     void loadImages();
   });
 
-  function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text);
-  }
-
-  function formatShortId(id: string): string {
-    return id.substring(0, 12);
-  }
-
-  function formatSize(bytes: number): string {
-    if (!bytes) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }
-
-  function formatRelativeTime(timestamp: string): string {
-    if (!timestamp) return '-';
-    
-    // Handle Docker's "2006-01-02 15:04:05 +0700 MST" format
-    let date: Date;
-    if (timestamp.includes(' +') || timestamp.includes(' -')) {
-      const cleaned = timestamp.replace(/\s+[+-]\d{4}\s+\w+$/, '');
-      const parts = cleaned.split(' ');
-      if (parts.length === 2) {
-        date = new Date(parts[0] + 'T' + parts[1]);
-      } else {
-        date = new Date(cleaned);
-      }
-    } else {
-      date = new Date(timestamp);
-    }
-    
-    if (isNaN(date.getTime())) return timestamp;
-    const now = new Date();
-    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (diff < 0) return 'just now';
-    if (diff < 60) return `${diff}s ago`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return `${Math.floor(diff / 86400)}d ago`;
-  }
-
-  function handleSort(field: typeof sortField) {
+  function handleSort(field: string) {
     if (sortField === field) {
       sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
-      sortField = field;
+      sortField = field as typeof sortField;
       sortDirection = 'asc';
     }
   }
-
-  const SortIcon = (field: typeof sortField) => {
-    if (sortField !== field) {
-      return `<svg class="w-3 h-3 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M7 15l5 5 5-5M7 9l5-5 5 5"/>
-      </svg>`;
-    }
-    if (sortDirection === 'asc') {
-      return `<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 5v14M5 12l7-7 7 7"/>
-      </svg>`;
-    }
-    return `<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M12 19V5M5 12l7 7 7-7"/>
-    </svg>`;
-  };
 
   let filteredImages = $derived(images.filter((i) => {
     const query = searchQuery.toLowerCase();
@@ -225,26 +178,11 @@
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead class="w-[40%]">
-                  <button class="flex items-center gap-1 hover:text-foreground" onclick={() => handleSort('name')}>
-                    Image
-                    {@html SortIcon('name')}
-                  </button>
-                </TableHead>
-                <TableHead class="w-[15%]">
-                  <button class="flex items-center gap-1 hover:text-foreground" onclick={() => handleSort('size')}>
-                    Size
-                    {@html SortIcon('size')}
-                  </button>
-                </TableHead>
+                <SortableTableHead field="name" label="Image" {sortField} {sortDirection} onSort={handleSort} class="w-[40%]" />
+                <SortableTableHead field="size" label="Size" {sortField} {sortDirection} onSort={handleSort} class="w-[15%]" />
                 <TableHead class="w-[20%]">Architecture</TableHead>
                 <TableHead class="w-[15%]">Usage</TableHead>
-                <TableHead class="w-[15%]">
-                  <button class="flex items-center gap-1 hover:text-foreground" onclick={() => handleSort('created')}>
-                    Created
-                    {@html SortIcon('created')}
-                  </button>
-                </TableHead>
+                <SortableTableHead field="created" label="Created" {sortField} {sortDirection} onSort={handleSort} class="w-[15%]" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -279,29 +217,12 @@
                         <code class="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
                           {formatShortId(image.id)}
                         </code>
-                        <button
-                          onclick={() => copyToClipboard(image.id)}
-                          class="text-muted-foreground hover:text-foreground"
-                          title="Copy full ID"
-                        >
-                          <svg
-                            class="h-3.5 w-3.5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          >
-                            <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-                          </svg>
-                        </button>
+                        <CopyButton text={image.id} label="Copy full ID" />
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span class="text-sm">{formatSize(image.size)}</span>
+                      <span class="text-sm">{formatBytes(image.size)}</span>
                   </TableCell>
                   <TableCell>
                     <div class="text-sm">
@@ -320,9 +241,9 @@
                     {/if}
                   </TableCell>
                   <TableCell>
-                    <div class="text-sm text-muted-foreground" title={image.created}>
-                      {formatRelativeTime(image.created)}
-                    </div>
+                      <div class="text-sm text-muted-foreground" title={image.created}>
+                        {formatDockerTimestamp(image.created)}
+                      </div>
                   </TableCell>
                 </TableRow>
               {/each}

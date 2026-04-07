@@ -4,25 +4,31 @@
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
   import { Badge } from '$lib/components/ui/badge';
 
-  export let data: PageData;
+  interface Props {
+    data: PageData;
+  }
 
-  let volumeData: any = null;
-  let parseError: string | null = null;
+  let { data }: Props = $props();
 
-  $: {
-    if (data.rawJson) {
-      try {
-        const parsed = JSON.parse(data.rawJson);
-        volumeData = Array.isArray(parsed) ? parsed[0] : parsed;
-        parseError = null;
-      } catch (e) {
-        parseError = e instanceof Error ? e.message : 'Failed to parse volume data';
-        volumeData = null;
-      }
-    } else {
+  let volumeData = $state<any>(null);
+  let parseError = $state<string | null>(null);
+
+  $effect(() => {
+    if (!data.rawJson) {
+      volumeData = null;
+      parseError = null;
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(data.rawJson);
+      volumeData = Array.isArray(parsed) ? parsed[0] : parsed;
+      parseError = null;
+    } catch (error) {
+      parseError = error instanceof Error ? error.message : 'Failed to parse volume data';
       volumeData = null;
     }
-  }
+  });
 
   function formatSize(bytes: number): string {
     if (!bytes) return '-';

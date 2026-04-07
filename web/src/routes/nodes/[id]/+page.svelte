@@ -6,18 +6,14 @@
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
-  import { formatTimestamp, onlineStatusTone, taskStatusTone } from '$lib/presenters';
+  import { formatBytes, formatTimestamp, onlineStatusTone, taskStatusTone } from '$lib/presenters';
 
-  export let data: PageData;
-  export let form: ActionData;
-
-  function formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  interface Props {
+    data: PageData;
+    form: ActionData;
   }
+
+  let { data, form }: Props = $props();
 </script>
 
 <div class="page-shell">

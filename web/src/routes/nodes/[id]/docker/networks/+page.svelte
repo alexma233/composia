@@ -6,8 +6,13 @@
   import { Badge, type Variant } from '$lib/components/ui/badge';
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
+  import { formatDockerTimestamp, formatShortId } from '$lib/presenters';
 
-  let { data }: { data: PageData } = $props();
+  interface Props {
+    data: PageData;
+  }
+
+  let { data }: Props = $props();
 
   type DockerNetworkSummary = {
     id: string;
@@ -27,9 +32,15 @@
   let searchQuery = $state('');
   let sortField = $state<'name' | 'driver' | 'created'>('name');
   let sortDirection = $state<'asc' | 'desc'>('asc');
-  let loading = $state(data.ready);
-  let loadError = $state(data.error);
-  let networks = $state<DockerNetworkSummary[]>(data.networks || []);
+  let loading = $state(false);
+  let loadError = $state<string | null>(null);
+  let networks = $state<DockerNetworkSummary[]>([]);
+
+  $effect(() => {
+    loading = !data.ready;
+    loadError = data.error ?? null;
+    networks = data.networks || [];
+  });
 
   async function loadNetworks() {
     if (!data.ready) {
@@ -61,38 +72,6 @@
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
-  }
-
-  function formatShortId(id: string): string {
-    return id.substring(0, 12);
-  }
-
-  function formatRelativeTime(timestamp: string): string {
-    if (!timestamp) return '-';
-    
-    // Handle Docker's "2006-01-02 15:04:05 +0700 MST" format
-    let date: Date;
-    if (timestamp.includes(' +') || timestamp.includes(' -')) {
-      const cleaned = timestamp.replace(/\s+[+-]\d{4}\s+\w+$/, '');
-      const parts = cleaned.split(' ');
-      if (parts.length === 2) {
-        date = new Date(parts[0] + 'T' + parts[1]);
-      } else {
-        date = new Date(cleaned);
-      }
-    } else {
-      date = new Date(timestamp);
-    }
-    
-    if (isNaN(date.getTime())) return timestamp;
-    const now = new Date();
-    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (diff < 0) return 'just now';
-    if (diff < 60) return `${diff}s ago`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return `${Math.floor(diff / 86400)}d ago`;
   }
 
   function isSystemNetwork(name: string): boolean {
@@ -314,7 +293,7 @@
                   </TableCell>
                   <TableCell>
                     <div class="text-sm text-muted-foreground" title={network.created}>
-                      {formatRelativeTime(network.created)}
+                      {formatDockerTimestamp(network.created)}
                     </div>
                   </TableCell>
                 </TableRow>

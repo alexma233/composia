@@ -7,7 +7,11 @@
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { formatTimestamp, onlineStatusTone } from '$lib/presenters';
 
-  export let data: PageData;
+  interface Props {
+    data: PageData;
+  }
+
+  let { data }: Props = $props();
 </script>
 
 <div class="page-shell">

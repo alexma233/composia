@@ -11,6 +11,7 @@
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '$lib/components/ui/collapsible';
   import { Input } from '$lib/components/ui/input';
   import { toast } from 'svelte-sonner';
   import { formatTimestamp, runtimeStatusTone, taskStatusTone } from '$lib/presenters';
@@ -30,22 +31,22 @@
     dirty: boolean;
   };
 
-  let fileTree = $state<ServiceFileNode[]>(data.fileTree);
+  let fileTree = $state<ServiceFileNode[]>([]);
   let collapsedPaths = $state(new Set<string>());
-  let selectedNodePath = $state(data.initialFile?.path ?? '');
-  let openTabs = $state<EditorTab[]>(data.initialFile ? [createTab(data.initialFile)] : []);
-  let activePath = $state(data.initialFile?.path ?? '');
-  let headRevision = $state(data.repoHead?.headRevision ?? '');
-  let syncStatus = $state(data.repoHead?.syncStatus ?? '');
-  let syncError = $state(data.repoHead?.lastSyncError ?? '');
-  let lastSuccessfulPullAt = $state(data.repoHead?.lastSuccessfulPullAt ?? '');
-  let tasks = $state<TaskSummary[]>(data.tasks);
-  let backups = $state<BackupSummary[]>(data.backups);
-  let selectedTaskId = $state(data.tasks[0]?.taskId ?? '');
+  let selectedNodePath = $state('');
+  let openTabs = $state<EditorTab[]>([]);
+  let activePath = $state('');
+  let headRevision = $state('');
+  let syncStatus = $state('');
+  let syncError = $state('');
+  let lastSuccessfulPullAt = $state('');
+  let tasks = $state<TaskSummary[]>([]);
+  let backups = $state<BackupSummary[]>([]);
+  let selectedTaskId = $state('');
   let logsExpanded = $state(false);
   let actionBusy = $state('');
   let saving = $state(false);
-  let errorMessage = $state(data.error ?? '');
+  let errorMessage = $state('');
   let showNewFile = $state(false);
   let newFilePath = $state('');
   let showNewFolder = $state(false);
@@ -53,9 +54,26 @@
   let showRename = $state(false);
   let renamePath = $state('');
   let showServiceRename = $state(false);
-  let renameServiceFolder = $state(data.workspace?.folder ?? '');
-  let workspace = $state(data.workspace);
+  let renameServiceFolder = $state('');
+  let workspace = $state<PageData['workspace']>(null);
   let refreshTimer = $state<ReturnType<typeof setTimeout> | null>(null);
+
+  $effect(() => {
+    fileTree = data.fileTree;
+    openTabs = data.initialFile ? [createTab(data.initialFile)] : [];
+    selectedNodePath = data.initialFile?.path ?? '';
+    activePath = data.initialFile?.path ?? '';
+    headRevision = data.repoHead?.headRevision ?? '';
+    syncStatus = data.repoHead?.syncStatus ?? '';
+    syncError = data.repoHead?.lastSyncError ?? '';
+    lastSuccessfulPullAt = data.repoHead?.lastSuccessfulPullAt ?? '';
+    tasks = data.tasks;
+    backups = data.backups;
+    selectedTaskId = data.tasks[0]?.taskId ?? '';
+    errorMessage = data.error ?? '';
+    renameServiceFolder = data.workspace?.folder ?? '';
+    workspace = data.workspace;
+  });
 
   function createTab(file: WorkspaceFile): EditorTab {
     return {
@@ -778,16 +796,17 @@
     </section>
   </div>
 
-  <Card class="mt-4 border-border/70 bg-card/95">
-    <button type="button" class="flex w-full items-center justify-between px-4 py-3 text-left" onclick={() => (logsExpanded = !logsExpanded)}>
-      <CardTitle class="section-title">Logs</CardTitle>
-      <span class="text-xs text-muted-foreground">{logsExpanded ? 'Collapse' : 'Expand'}</span>
-    </button>
-
-    {#if logsExpanded}
-      <div class="h-80 border-t px-4 py-4">
-        <TaskLogStream taskId={selectedTaskId} />
-      </div>
-    {/if}
-  </Card>
+  <Collapsible bind:open={logsExpanded}>
+    <Card class="mt-4 border-border/70 bg-card/95">
+      <CollapsibleTrigger class="flex w-full items-center justify-between px-4 py-3 text-left">
+        <CardTitle class="section-title">Logs</CardTitle>
+        <span class="text-xs text-muted-foreground">{logsExpanded ? 'Collapse' : 'Expand'}</span>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div class="h-80 border-t px-4 py-4">
+          <TaskLogStream taskId={selectedTaskId} />
+        </div>
+      </CollapsibleContent>
+    </Card>
+  </Collapsible>
 </div>

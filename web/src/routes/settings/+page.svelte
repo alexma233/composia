@@ -9,7 +9,11 @@
   import { Button } from '$lib/components/ui/button';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 
-  let { data }: { data: PageData } = $props();
+  interface Props {
+    data: PageData;
+  }
+
+  let { data }: Props = $props();
 
   let syncing = $state(false);
   let syncError = $state('');

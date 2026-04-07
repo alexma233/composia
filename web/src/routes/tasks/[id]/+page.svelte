@@ -11,7 +11,11 @@
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { formatTimestamp, taskStatusTone } from '$lib/presenters';
 
-  let { data }: { data: PageData } = $props();
+  interface Props {
+    data: PageData;
+  }
+
+  let { data }: Props = $props();
 
   let logContent = $state('');
   let logState = $state('idle');

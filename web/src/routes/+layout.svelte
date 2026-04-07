@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
+  import type { Snippet } from 'svelte';
 
   import type { LayoutData } from './$types';
 
@@ -8,13 +9,23 @@
 
   import type { Dictionary } from '$lib/i18n/messages/en-us';
   import { Toaster } from '$lib/components/ui/sonner';
+  import { TooltipProvider } from '$lib/components/ui/tooltip';
   import { messages } from '$lib/i18n';
   import { initializePreferences } from '$lib/preferences';
   import { cn } from '$lib/utils';
+  import { Select } from '$lib/components/ui/select';
+  import SelectContent from '$lib/components/ui/select/select-content.svelte';
+  import SelectItem from '$lib/components/ui/select/select-item.svelte';
+  import SelectTrigger from '$lib/components/ui/select/select-trigger.svelte';
 
   type NavKey = keyof Dictionary['nav'];
 
-  export let data: LayoutData;
+  interface Props {
+    data: LayoutData;
+    children?: Snippet;
+  }
+
+  let { data, children }: Props = $props();
 
   const links: Array<{ href: string; labelKey: NavKey }> = [
     { href: '/', labelKey: 'overview' },
@@ -39,16 +50,18 @@
     return isServiceWorkspace(pathname) ? pathname.split('/')[2] ?? '' : '';
   }
 
-  function handleServiceSwitch(event: Event) {
-    const target = event.currentTarget as HTMLSelectElement;
-    if (target.value) {
-      window.location.href = `/services/${target.value}`;
+  let selectedService = $state(currentServiceName($page.url.pathname));
+
+  function handleServiceSwitch(value: string) {
+    if (value) {
+      window.location.href = `/services/${value}`;
     }
   }
 </script>
 
 <div class="min-h-screen bg-transparent text-foreground">
   <Toaster />
+  <TooltipProvider />
   <header class="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
     <div class="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-3 sm:px-6 lg:px-8">
       <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -58,19 +71,23 @@
           </div>
 
           {#if isServiceWorkspace($page.url.pathname) && data.navServices.length}
-            <label class="flex items-center gap-3 rounded-md border border-border/70 bg-card/80 px-3 py-2 text-sm text-muted-foreground shadow-xs">
+            <div class="flex items-center gap-3 rounded-md border border-border/70 bg-card/80 px-3 py-2 text-sm text-muted-foreground shadow-xs">
               <span class="text-xs font-medium text-muted-foreground">
                 Service
               </span>
-              <select
-                class="min-w-36 bg-transparent text-sm font-medium text-foreground outline-none"
-                on:change={handleServiceSwitch}
-              >
-                {#each data.navServices as service}
-                  <option value={service.folder} selected={service.folder === currentServiceName($page.url.pathname)}>{service.displayName}</option>
-                {/each}
-              </select>
-            </label>
+              <Select type="single" bind:value={selectedService as any} onValueChange={(value: string) => handleServiceSwitch(value)}>
+                <SelectTrigger class="min-w-36 border-0 bg-transparent p-0 text-sm font-medium text-foreground shadow-none outline-none focus:ring-0">
+                  <span class="truncate">
+                    {data.navServices.find(s => s.folder === selectedService)?.displayName ?? 'Select...'}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  {#each data.navServices as service}
+                    <SelectItem value={service.folder}>{service.displayName}</SelectItem>
+                  {/each}
+                </SelectContent>
+              </Select>
+            </div>
           {/if}
         </div>
 
@@ -95,5 +112,5 @@
     </div>
   </header>
 
-  <slot />
+  {@render children?.()}
 </div>

@@ -7,15 +7,22 @@
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
-  import { Dialog, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
+  import { Dialog, DialogTitle, DialogDescription, DialogFooter, DialogHeader } from '$lib/components/ui/dialog';
+  import DialogContent from '$lib/components/ui/dialog/dialog-content.svelte';
+  import DialogOverlay from '$lib/components/ui/dialog/dialog-overlay.svelte';
   import { Input } from '$lib/components/ui/input';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { formatTimestamp, runtimeStatusTone } from '$lib/presenters';
 
-  let { data, form }: { data: PageData; form: ActionData } = $props();
+  interface Props {
+    data: PageData;
+    form: ActionData;
+  }
+
+  let { data, form }: Props = $props();
 
   let showDialog = $state(false);
-  let newFolder = $state(form?.folder ?? '');
+  let newFolder = $state('');
 
   $effect(() => {
     newFolder = form?.folder ?? '';
@@ -107,29 +114,32 @@
 </div>
 
 {#if showDialog && data.repoHead}
-  <Dialog bind:visible={showDialog} class="sm:max-w-md">
-    <form method="POST" action="?/create">
-      <DialogHeader>
-        <DialogTitle>Create service</DialogTitle>
-        <DialogDescription>Create a new service folder in the repository.</DialogDescription>
-      </DialogHeader>
-      <div class="grid gap-4 py-4">
-        <input type="hidden" name="baseRevision" value={data.repoHead.headRevision} />
-        <div class="grid gap-2">
-          <label for="folder" class="text-sm font-medium">Folder name</label>
-          <Input id="folder" name="folder" bind:value={newFolder} placeholder="my-service" />
+  <Dialog bind:open={showDialog}>
+    <DialogOverlay />
+    <DialogContent class="sm:max-w-md">
+      <form method="POST" action="?/create">
+        <DialogHeader>
+          <DialogTitle>Create service</DialogTitle>
+          <DialogDescription>Create a new service folder in the repository.</DialogDescription>
+        </DialogHeader>
+        <div class="grid gap-4 py-4">
+          <input type="hidden" name="baseRevision" value={data.repoHead.headRevision} />
+          <div class="grid gap-2">
+            <label for="folder" class="text-sm font-medium">Folder name</label>
+            <Input id="folder" name="folder" bind:value={newFolder} placeholder="my-service" />
+          </div>
+          {#if form?.error}
+            <Alert variant="destructive">
+              <AlertTitle>Create failed</AlertTitle>
+              <AlertDescription>{form.error}</AlertDescription>
+            </Alert>
+          {/if}
         </div>
-        {#if form?.error}
-          <Alert variant="destructive">
-            <AlertTitle>Create failed</AlertTitle>
-            <AlertDescription>{form.error}</AlertDescription>
-          </Alert>
-        {/if}
-      </div>
-      <DialogFooter>
-        <Button type="button" variant="outline" onclick={() => (showDialog = false)}>Cancel</Button>
-        <Button type="submit">Create</Button>
-      </DialogFooter>
-    </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onclick={() => (showDialog = false)}>Cancel</Button>
+          <Button type="submit">Create</Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
   </Dialog>
 {/if}

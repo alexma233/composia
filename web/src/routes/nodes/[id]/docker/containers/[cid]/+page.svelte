@@ -5,25 +5,31 @@
   import { Badge, type Variant } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
 
-  export let data: PageData;
+  interface Props {
+    data: PageData;
+  }
 
-  let containerData: any = null;
-  let parseError: string | null = null;
+  let { data }: Props = $props();
 
-  $: {
-    if (data.rawJson) {
-      try {
-        const parsed = JSON.parse(data.rawJson);
-        containerData = Array.isArray(parsed) ? parsed[0] : parsed;
-        parseError = null;
-      } catch (e) {
-        parseError = e instanceof Error ? e.message : 'Failed to parse container data';
-        containerData = null;
-      }
-    } else {
+  let containerData = $state<any>(null);
+  let parseError = $state<string | null>(null);
+
+  $effect(() => {
+    if (!data.rawJson) {
+      containerData = null;
+      parseError = null;
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(data.rawJson);
+      containerData = Array.isArray(parsed) ? parsed[0] : parsed;
+      parseError = null;
+    } catch (error) {
+      parseError = error instanceof Error ? error.message : 'Failed to parse container data';
       containerData = null;
     }
-  }
+  });
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);

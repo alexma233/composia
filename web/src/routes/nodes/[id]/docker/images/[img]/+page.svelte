@@ -3,34 +3,32 @@
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
   import { Badge } from '$lib/components/ui/badge';
+  import { formatBytes, parseJsonList } from '$lib/presenters';
 
-  export let data: PageData;
+  interface Props {
+    data: PageData;
+  }
 
-  let imageData: any = null;
-  let parseError: string | null = null;
+  let { data }: Props = $props();
 
-  $: {
-    if (data.rawJson) {
-      try {
-        const parsed = JSON.parse(data.rawJson);
-        imageData = Array.isArray(parsed) ? parsed[0] : parsed;
-        parseError = null;
-      } catch (e) {
-        parseError = e instanceof Error ? e.message : 'Failed to parse image data';
-        imageData = null;
-      }
-    } else {
+  let imageData = $state<any>(null);
+  let parseError = $state<string | null>(null);
+
+  $effect(() => {
+    if (!data.rawJson) {
+      imageData = null;
+      parseError = null;
+      return;
+    }
+
+    try {
+      imageData = parseJsonList(data.rawJson);
+      parseError = null;
+    } catch (error) {
+      parseError = error instanceof Error ? error.message : 'Failed to parse image data';
       imageData = null;
     }
-  }
-
-  function formatSize(bytes: number): string {
-    if (!bytes) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }
+  });
 
   function formatDate(timestamp: string): string {
     if (!timestamp) return '-';
@@ -129,7 +127,7 @@
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex justify-between">
                       <span class="text-muted-foreground">Size</span>
-                      <Badge variant="secondary">{formatSize(imageData.Size || imageData.VirtualSize)}</Badge>
+                      <Badge variant="secondary">{formatBytes(imageData.Size || imageData.VirtualSize)}</Badge>
                     </div>
                     <div class="flex justify-between">
                       <span class="text-muted-foreground">Architecture</span>

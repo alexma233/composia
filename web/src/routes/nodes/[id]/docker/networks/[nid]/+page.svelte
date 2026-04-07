@@ -4,25 +4,31 @@
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
   import { Badge } from '$lib/components/ui/badge';
 
-  export let data: PageData;
+  interface Props {
+    data: PageData;
+  }
 
-  let networkData: any = null;
-  let parseError: string | null = null;
+  let { data }: Props = $props();
 
-  $: {
-    if (data.rawJson) {
-      try {
-        const parsed = JSON.parse(data.rawJson);
-        networkData = Array.isArray(parsed) ? parsed[0] : parsed;
-        parseError = null;
-      } catch (e) {
-        parseError = e instanceof Error ? e.message : 'Failed to parse network data';
-        networkData = null;
-      }
-    } else {
+  let networkData = $state<any>(null);
+  let parseError = $state<string | null>(null);
+
+  $effect(() => {
+    if (!data.rawJson) {
+      networkData = null;
+      parseError = null;
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(data.rawJson);
+      networkData = Array.isArray(parsed) ? parsed[0] : parsed;
+      parseError = null;
+    } catch (error) {
+      parseError = error instanceof Error ? error.message : 'Failed to parse network data';
       networkData = null;
     }
-  }
+  });
 
   function formatDate(timestamp: string): string {
     if (!timestamp) return '-';

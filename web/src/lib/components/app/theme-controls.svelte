@@ -44,13 +44,10 @@
     <div class="text-sm font-medium text-foreground">{$messages.preferences.accent}</div>
     <div class="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-background/80 p-2 shadow-xs">
       {#each availableAccentColors as accent}
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 rounded-md border px-2.5 py-2 text-sm transition-colors hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          class:border-foreground={$accentColor === accent}
-          class:bg-accent={$accentColor === accent}
-          class:text-accent-foreground={$accentColor === accent}
-          class:border-border={$accentColor !== accent}
+        <Button
+          variant={$accentColor === accent ? 'secondary' : 'outline'}
+          size="sm"
+          class="gap-2"
           aria-label={accentMetadata[accent].label}
           aria-pressed={$accentColor === accent}
           onclick={() => setAccentColor(accent as AccentColor)}
@@ -60,7 +57,7 @@
             style={`background:${accentMetadata[accent].preview}`}
           ></span>
           {accentMetadata[accent].label}
-        </button>
+        </Button>
       {/each}
     </div>
   </div>

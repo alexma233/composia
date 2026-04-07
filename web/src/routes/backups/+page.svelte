@@ -17,7 +17,11 @@
   } from '$lib/components/ui/pagination';
   import { formatTimestamp, taskStatusTone } from '$lib/presenters';
 
-  let { data }: { data: PageData } = $props();
+  interface Props {
+    data: PageData;
+  }
+
+  let { data }: Props = $props();
 
   const pageSize = 20;
   let totalPages = $derived(data.totalCount > 0 ? Math.ceil(data.totalCount / pageSize) : 0);

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { PageData } from './$types';
+  import type { Snippet } from 'svelte';
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
@@ -7,7 +8,12 @@
   import { formatTimestamp, onlineStatusTone, runtimeStatusTone } from '$lib/presenters';
   import TaskItem from '$lib/components/app/task-item.svelte';
 
-  export let data: PageData;
+  interface Props {
+    data: PageData;
+    children?: Snippet;
+  }
+
+  let { data }: Props = $props();
 
   function onlineSummary() {
     if (!data.dashboard) return 'No runtime data';
@@ -20,9 +26,9 @@
     return Date.now() - createdAtMs <= 24 * 60 * 60 * 1000;
   }
 
-  $: recentTasks = (data.dashboard?.tasks ?? [])
+  let recentTasks = $derived((data.dashboard?.tasks ?? [])
     .filter((t) => isTaskRecent(t.createdAt))
-    .slice(0, 6);
+    .slice(0, 6));
 </script>
 
 <svelte:head>

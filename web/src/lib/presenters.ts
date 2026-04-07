@@ -37,3 +37,54 @@ export function runtimeStatusTone(status: string) {
 export function onlineStatusTone(isOnline: boolean) {
   return isOnline ? "success" : "secondary";
 }
+
+export function formatBytes(bytes: number) {
+  if (bytes === 0 || !bytes) {
+    return "0 B";
+  }
+
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+}
+
+export function formatShortId(value: string, length = 12) {
+  if (!value) {
+    return "-";
+  }
+
+  return value.length > length ? value.slice(0, length) : value;
+}
+
+export function parseJsonList(rawJson: string) {
+  if (!rawJson) {
+    return null;
+  }
+
+  const parsed = JSON.parse(rawJson);
+  return Array.isArray(parsed) ? parsed[0] : parsed;
+}
+
+export function formatDockerTimestamp(timestamp: string) {
+  if (!timestamp) {
+    return '-';
+  }
+
+  const cleaned = timestamp.replace(/\s+[+-]\d{4}\s+\w+$/, '');
+  const parts = cleaned.split(' ');
+  const parsed = parts.length === 2 ? new Date(`${parts[0]}T${parts[1]}`) : new Date(cleaned);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return timestamp;
+  }
+
+  const diff = Math.floor((Date.now() - parsed.getTime()) / 1000);
+
+  if (diff < 0) return 'just now';
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}

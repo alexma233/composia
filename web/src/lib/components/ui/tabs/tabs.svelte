@@ -13,7 +13,7 @@
 
   let { value = '', class: className = '', children, ...restProps }: Props = $props();
 
-  let currentValue = $state(value);
+  let currentValue = $state('');
 
   $effect(() => {
     currentValue = value;

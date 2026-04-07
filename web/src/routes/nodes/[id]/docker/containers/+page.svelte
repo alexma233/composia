@@ -6,8 +6,13 @@
   import { Badge, type Variant } from '$lib/components/ui/badge';
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
+  import { formatDockerTimestamp, formatShortId } from '$lib/presenters';
 
-  let { data }: { data: PageData } = $props();
+  interface Props {
+    data: PageData;
+  }
+
+  let { data }: Props = $props();
 
   type DockerContainerSummary = {
     id: string;
@@ -25,9 +30,15 @@
   let searchQuery = $state('');
   let sortField = $state<'name' | 'state' | 'image' | 'created'>('name');
   let sortDirection = $state<'asc' | 'desc'>('asc');
-  let loading = $state(data.ready);
-  let loadError = $state(data.error);
-  let containers = $state<DockerContainerSummary[]>(data.containers || []);
+  let loading = $state(false);
+  let loadError = $state<string | null>(null);
+  let containers = $state<DockerContainerSummary[]>([]);
+
+  $effect(() => {
+    loading = !data.ready;
+    loadError = data.error ?? null;
+    containers = data.containers || [];
+  });
 
   async function loadContainers() {
     if (!data.ready) {
@@ -59,39 +70,6 @@
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
-  }
-
-  function formatShortId(id: string): string {
-    return id.substring(0, 12);
-  }
-
-  function formatRelativeTime(timestamp: string): string {
-    if (!timestamp) return '-';
-    
-    // Handle Docker's "2006-01-02 15:04:05 +0700 MST" format
-    let date: Date;
-    if (timestamp.includes(' +') || timestamp.includes(' -')) {
-      // Remove timezone suffix like " +0800 CST" and parse
-      const cleaned = timestamp.replace(/\s+[+-]\d{4}\s+\w+$/, '');
-      const parts = cleaned.split(' ');
-      if (parts.length === 2) {
-        date = new Date(parts[0] + 'T' + parts[1]);
-      } else {
-        date = new Date(cleaned);
-      }
-    } else {
-      date = new Date(timestamp);
-    }
-    
-    if (isNaN(date.getTime())) return timestamp;
-    const now = new Date();
-    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (diff < 0) return 'just now';
-    if (diff < 60) return `${diff}s ago`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return `${Math.floor(diff / 86400)}d ago`;
   }
 
   function getStateVariant(state: string): Variant {
@@ -360,7 +338,7 @@
                   </TableCell>
                   <TableCell>
                     <div class="text-sm text-muted-foreground" title={container.created}>
-                      {formatRelativeTime(container.created)}
+                      {formatDockerTimestamp(container.created)}
                     </div>
                   </TableCell>
                 </TableRow>

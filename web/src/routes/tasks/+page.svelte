@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from './$types';
   import { page } from '$app/stores';
+  import type { Snippet } from 'svelte';
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
@@ -16,7 +17,12 @@
   } from '$lib/components/ui/pagination';
   import TaskItem from '$lib/components/app/task-item.svelte';
 
-  let { data }: { data: PageData } = $props();
+  interface Props {
+    data: PageData;
+    children?: Snippet;
+  }
+
+  let { data }: Props = $props();
 
   const pageSize = 20;
   let totalPages = $derived(data.totalCount > 0 ? Math.ceil(data.totalCount / pageSize) : 0);
