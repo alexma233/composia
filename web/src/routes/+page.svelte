@@ -4,7 +4,7 @@
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
-  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { formatTimestamp, onlineStatusTone, runtimeStatusTone } from '$lib/presenters';
   import TaskItem from '$lib/components/app/task-item.svelte';
 
@@ -15,11 +15,6 @@
 
   let { data }: Props = $props();
 
-  function onlineSummary() {
-    if (!data.dashboard) return 'No runtime data';
-    return `${data.dashboard.system.onlineNodeCount}/${data.dashboard.system.configuredNodeCount} nodes online`;
-  }
-
   function isTaskRecent(createdAt: string) {
     const createdAtMs = Date.parse(createdAt);
     if (Number.isNaN(createdAtMs)) return false;
@@ -29,6 +24,10 @@
   let recentTasks = $derived((data.dashboard?.tasks ?? [])
     .filter((t) => isTaskRecent(t.createdAt))
     .slice(0, 6));
+
+  function totalTaskCount() {
+    return 'totalTaskCount' in data ? data.totalTaskCount : 0;
+  }
 </script>
 
 <svelte:head>
@@ -41,61 +40,20 @@
 
 <div class="page-shell">
   <div class="page-stack">
-    <section class="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-		<Card>
-			<CardHeader>
-          <div class="flex flex-wrap items-start justify-between gap-4">
-            <div class="space-y-2">
-              <div class="space-y-1">
-                <h1 class="page-title">Control plane overview</h1>
-                <p class="page-description">Live state for services, nodes, and tasks.</p>
-              </div>
-            </div>
-
-            <div class="metric-card px-4 py-3 text-right text-sm">
-              <div class="font-medium text-foreground">
-                {data.dashboard?.system.version ?? 'Controller unavailable'}
-              </div>
-              <div class="text-muted-foreground">{onlineSummary()}</div>
-            </div>
-          </div>
-
-          {#if data.error}
-            <Alert variant="destructive">
-              <AlertTitle>Controller error</AlertTitle>
-              <AlertDescription>{data.error}</AlertDescription>
-            </Alert>
-          {/if}
-        </CardHeader>
-      </Card>
-
-		<div class="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
-			<Card>
-				<CardHeader class="p-5">
-            <CardDescription class="metric-label">Configured nodes</CardDescription>
-            <CardTitle class="metric-value">{data.dashboard?.system.configuredNodeCount ?? '-'}</CardTitle>
-          </CardHeader>
-        </Card>
-			<Card>
-				<CardHeader class="p-5">
-            <CardDescription class="metric-label">Online nodes</CardDescription>
-            <CardTitle class="metric-value">{data.dashboard?.system.onlineNodeCount ?? '-'}</CardTitle>
-          </CardHeader>
-        </Card>
-			<Card>
-				<CardHeader class="p-5">
-            <CardDescription class="metric-label">Recent tasks</CardDescription>
-            <CardTitle class="metric-value">{recentTasks.length}</CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
-    </section>
+    {#if data.error}
+      <Alert variant="destructive">
+        <AlertTitle>Controller error</AlertTitle>
+        <AlertDescription>{data.error}</AlertDescription>
+      </Alert>
+    {/if}
 
     <section class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
 		<Card>
         <CardHeader class="flex flex-row items-start justify-between gap-4">
           <div class="space-y-1">
-            <CardTitle class="section-title">Services</CardTitle>
+            <CardTitle class="section-title">
+              <a class="hover:text-foreground/80 transition-colors" href="/services">Services</a>
+            </CardTitle>
           </div>
           <Badge variant="outline">{data.dashboard?.services.length ?? 0}</Badge>
         </CardHeader>
@@ -131,7 +89,9 @@
 			<Card>
           <CardHeader class="flex flex-row items-start justify-between gap-4">
             <div class="space-y-1">
-              <CardTitle class="section-title">Nodes</CardTitle>
+              <CardTitle class="section-title">
+                <a class="hover:text-foreground/80 transition-colors" href="/nodes">Nodes</a>
+              </CardTitle>
             </div>
             <Badge variant="outline">{data.dashboard?.nodes.length ?? 0}</Badge>
           </CardHeader>
@@ -167,9 +127,11 @@
 			<Card>
           <CardHeader class="flex flex-row items-start justify-between gap-4">
             <div class="space-y-1">
-              <CardTitle class="section-title">Recent tasks</CardTitle>
+              <CardTitle class="section-title">
+                <a class="hover:text-foreground/80 transition-colors" href="/tasks">Tasks</a>
+              </CardTitle>
             </div>
-            <Badge variant="outline">{recentTasks.length}</Badge>
+            <Badge variant="outline">{totalTaskCount()}</Badge>
           </CardHeader>
           <CardContent>
             <div class="space-y-3">
