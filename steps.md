@@ -36,11 +36,13 @@ This document turns `plan.md` into a practical execution order for the current r
 - 服务 repo 扫描和 `composia-meta.yaml` 验证已存在。
 - Docker 浏览 API（containers、networks、images、volumes）已存在，但仍然挂在 node 维度上。
 
-**Controller Public API（已存在，但需要重构语义）：**
-- `ServiceService`
+**Controller Public API（已实现 multi-node 语义）：**
+- `ServiceService` - ListServices, GetService(含instances), GetServiceTasks, GetServiceBackups, RunServiceAction
+- `ServiceInstanceService` - ListServiceInstances, GetServiceInstance, RunServiceInstanceAction
+- `ContainerService` - RunContainerAction, GetContainerLogs, OpenContainerExec
 - `TaskService`
 - `BackupRecordService`
-- `NodeService`
+- `NodeService` - ListNodes, GetNode, GetNodeTasks, GetNodeDockerStats, PruneNodeDocker
 - `RepoService`
 - `SecretService`
 - `SystemService`
@@ -58,20 +60,20 @@ This document turns `plan.md` into a practical execution order for the current r
 
 以下内容仍然错误地假设 service 只有一个 node：
 
-1. `composia-meta.yaml` 只支持 `node`。
-2. `repo.Service` 只保留单个 `Node`。
-3. `services` 表把运行时状态直接挂在 service 上。
-4. agent 上报运行时状态时只传 `service_name`，不传 `node_id`。
-5. `DeployService/UpdateService/StopService/RestartService/BackupService` 一次只创建一条 task。
-6. `GetService` 只返回单个 `node`。
-7. Web UI 仍然把 service 当作单节点部署对象。
+1. ~~`composia-meta.yaml` 只支持 `node`~~ - 已支持 `nodes[]`
+2. ~~`repo.Service` 只保留单个 `Node`~~ - 已改为 `TargetNodes []string`
+3. ~~`services` 表把运行时状态直接挂在 service 上~~ - 已改为 `service_instances` 表
+4. ~~agent 上报运行时状态时只传 `service_name`，不传 `node_id`~~ - 已通过 `ReportServiceInstanceStatus` 上报 `service_name + node_id`
+5. ~~`DeployService/UpdateService/StopService/RestartService/BackupService` 一次只创建一条 task~~ - 已通过 `RunServiceAction` + `node_ids[]` 实现 fan-out
+6. ~~`GetService` 只返回单个 `node`~~ - 已返回 `nodes[]` 和 `instances[]`
+7. ~~Web UI 仍然把 service 当作单节点部署对象~~ - 已更新
 
 ### 必须新增的一等对象
 
-1. `Service`
-2. `ServiceInstance`
-3. `Container`
-4. `Node`
+1. ~~`Service`~~ - 已实现
+2. ~~`ServiceInstance`~~ - 已实现
+3. ~~`Container`~~ - 已实现
+4. ~~`Node`~~ - 已实现
 
 ---
 
@@ -86,30 +88,30 @@ This document turns `plan.md` into a practical execution order for the current r
 
 ## Phase 1: 切换到 Multi-Node 语义
 
-**状态：进行中**
+**状态：已完成**
 
 目标：在扩展 Caddy 和容器操作之前，把当前后端从"单 service 对应单 node"切换到"service 定义 + service instance"契约。
 
-待完成：
-1. `composia-meta.yaml` 从 `node` 切换为 `nodes[]`。
-2. `repo.Service` 改为持有 `TargetNodes`。
+已完成：
+1. `composia-meta.yaml` 支持 `nodes[]` 数组（仍兼容旧 `node` 字段）。
+2. `repo.Service` 持有 `TargetNodes []string`。
 3. repo 验证、扫描、查找逻辑全部切换为 multi-node。
-4. `services` 表仅表示逻辑服务；新增 `service_instances` 表表示实例。
-5. 所有 service 运行时状态从 instance 聚合得到。
-6. agent 运行时上报切换到 `service_name + node_id`。
+4. `services` 表仅表示逻辑服务；`service_instances` 表表示实例（主键 `service_name, node_id`）。
+5. Agent 通过 `ReportServiceInstanceStatus` 上报 `service_name + node_id`。
+6. `ServiceInstanceService` API 实现（ListServiceInstances, GetServiceInstance, RunServiceInstanceAction）。
 
 ---
 
 ## Phase 2: 完成 Multi-Target 任务基础
 
-**状态：进行中**
+**状态：已完成**
 
 目标：使任务系统可靠且严格符合 multi-node 的 v1 任务模型。
 
-待完成：
-1. service 动作改为 fan-out 到多个 instance task。
+已完成：
+1. service 动作通过 `RunServiceAction` + `node_ids[]` 进行 fan-out。
 2. service 级冲突检查改为 service 和 instance 分层检查。
-3. 任务详情保留 `service_name` 和 `node_id`，明确指向实例级目标。
+3. 任务详情保留 `service_name` 和 `node_id`。
 4. `RunTaskAgain` 语义与 instance 目标保持一致。
 5. `awaiting_confirmation` 保留用于未来真实的迁移工作流。
 
@@ -117,13 +119,13 @@ This document turns `plan.md` into a practical execution order for the current r
 
 ## Phase 3: 稳定第一个真实 ServiceInstance 操作
 
-**状态：进行中**
+**状态：已完成**
 
 目标：在添加更广泛工作流之前，完成已开始的 day-1 instance 操作。
 
-待完成：
-1. `deploy`、`update`、`stop`、`restart` 对单个 instance 的行为必须稳定。
-2. service 级动作只作为批量入口，内部展开为 instance 动作。
+已完成：
+1. `deploy`、`update`、`stop`、`restart` 对单个 instance 的行为已稳定。
+2. service 级动作作为批量入口，内部展开为 instance 动作。
 3. Agent 报告的是 instance 运行时状态，而不是全局 service 状态。
 4. 任务日志继续流式回传。
 
@@ -190,17 +192,18 @@ This document turns `plan.md` into a practical execution order for the current r
 - Repo 编辑和 sync 状态显示
 - Secret 编辑
 - Docker 浏览（containers、networks、images、volumes）
+- Service 详情页显示 instances 列表和聚合状态
+- ServiceInstance 详情页（通过 GetServiceInstance API）
+- Container 详情页增加日志、start/stop/restart、terminal exec（基础实现）
 
 待完成：
-1. Service 详情页显示 instances 列表和聚合状态。
-2. ServiceInstance 详情页。
-3. Container 详情页增加日志、start/stop/restart、exec terminal。
-4. `MigrateService` UI 入口。
-5. `ReloadNodeCaddy` UI 入口。
-6. 任务 rerun UI 的完整控件。
-7. Repo sync 手动触发按钮（push）。
-8. CodeMirror 6 编辑器替换基础 textareas。
-9. 备份详情页的 restore 入口（未来）。
+1. `MigrateService` UI 入口。
+2. `ReloadNodeCaddy` UI 入口。
+3. 任务 rerun UI 的完整控件。
+4. Repo sync 手动触发按钮（push）。
+5. CodeMirror 6 编辑器替换基础 textareas。
+6. 备份详情页的 restore 入口（未来）。
+7. **Service 管理页面需要重新设计**：当前页面混合了文件编辑、实例管理、操作入口等多重职责，需要拆分为更清晰的 multi-node 架构视图。
 
 ---
 
@@ -214,14 +217,15 @@ This document turns `plan.md` into a practical execution order for the current r
 1. `dns_update` 任务行为 - controller 端 Cloudflare 集成
 2. `prune` 任务行为 - all/containers/images/networks/volumes/builder targets
 3. `PruneNodeDocker` API
+4. Container logs API - `GET /nodes/{id}/docker/containers/{cid}/logs`
+5. Container start/stop/restart API - `POST /nodes/{id}/docker/containers/action`
+6. Container exec session API - `POST /nodes/{id}/docker/containers/{cid}/exec`
 
 待完成：
 1. `caddy_reload` 任务行为 - 未实现
 2. `ReloadNodeCaddy` API - 未实现
 3. `caddy` 作为多节点 service 的实例扇出语义 - 未实现
-4. Container logs API - 未实现
-5. Container start/stop/restart API - 未实现
-6. Container exec session API - 未实现
+4. **Docker exec (terminal) 需要进一步开发**：Web 端 terminal 只是简单的文本输入/输出，缺少专业的 terminal UI 组件（xterm.js 或类似），需要实现完整的浏览器端 terminal 交互（支持滚动、复制粘贴、 ANSI 颜色等）。
 
 ---
 
@@ -250,44 +254,31 @@ This document turns `plan.md` into a practical execution order for the current r
 ## 目标 API 结构
 
 ### ServiceService
-- [ ] `ListServices`
-- [ ] `GetService`
-- [ ] `GetServiceTasks`
-- [ ] `GetServiceBackups`
-- [ ] `DeployService`
-- [ ] `UpdateService`
-- [ ] `StopService`
-- [ ] `RestartService`
-- [ ] `BackupService`
-- [ ] `UpdateServiceDNS`
-- [ ] `MigrateService(target_node_id)`
+- [x] `ListServices` - 返回 `ServiceSummary[]`，含 instance_count/running_count/target_node_count
+- [x] `GetService` - 返回 `ServiceDetail`，含 `nodes[]` 和 `instances[]`
+- [x] `GetServiceTasks`
+- [x] `GetServiceBackups`
+- [x] `RunServiceAction` - 支持 `node_ids[]` 数组进行 fan-out，`data_names[]` 用于 backup
+- [ ] `UpdateServiceDNS` - 通过 `RunServiceAction` + `SERVICE_ACTION_DNS_UPDATE` 实现
+- [ ] `MigrateService(target_node_id)` - 未实现
 
 ### ServiceInstanceService
-- [ ] `ListServiceInstances`
-- [ ] `GetServiceInstance(service_name, node_id)`
-- [ ] `DeployServiceInstance(service_name, node_id)`
-- [ ] `UpdateServiceInstance(service_name, node_id)`
-- [ ] `StopServiceInstance(service_name, node_id)`
-- [ ] `RestartServiceInstance(service_name, node_id)`
-- [ ] `BackupServiceInstance(service_name, node_id)`
-- [ ] `ListServiceInstanceContainers(service_name, node_id)`
+- [x] `ListServiceInstances` - 返回 `ServiceInstanceSummary[]`
+- [x] `GetServiceInstance(service_name, node_id)` - 返回 `ServiceInstanceDetail`，含 `containers[]`
+- [x] `RunServiceInstanceAction` - 针对单个 instance 执行动作
 
 ### ContainerService
-- [ ] `ListContainers`
-- [ ] `GetContainer(node_id, container_id)`
-- [ ] `TailContainerLogs(node_id, container_id)`
-- [ ] `StartContainer(node_id, container_id)`
-- [ ] `StopContainer(node_id, container_id)`
-- [ ] `RestartContainer(node_id, container_id)`
-- [ ] `CreateContainerExecSession(node_id, container_id)`
+- [x] `RunContainerAction(node_id, container_id, action)` - start/stop/restart
+- [x] `GetContainerLogs(node_id, container_id, tail, timestamps)`
+- [x] `OpenContainerExec(node_id, container_id, command, rows, cols)` - 返回 websocket path
 
 ### NodeService
-- [ ] `ListNodes`
-- [ ] `GetNode`
-- [ ] `GetNodeTasks`
-- [ ] `GetNodeDockerStats`
-- [ ] `PruneNodeDocker(node_id)`
-- [ ] `ReloadNodeCaddy(node_id)`
+- [x] `ListNodes` - 返回 `NodeSummary[]`
+- [x] `GetNode`
+- [x] `GetNodeTasks`
+- [x] `GetNodeDockerStats`
+- [x] `PruneNodeDocker(node_id)`
+- [ ] `ReloadNodeCaddy(node_id)` - 未实现
 
 ---
 
@@ -314,11 +305,14 @@ dns update
 
 ## 推荐的直接下一步
 
-1. 完成 repo schema 和 store schema 的 multi-node 重构。
-2. 完成 `ServiceInstanceService` 和 service fan-out 任务创建。
-3. 完成 agent 的 instance 状态上报改造。
-4. 完成 `ContainerService` 的 logs/start/stop/restart/exec 基础接口。
-5. 将 Caddy 接到多节点 service model 上。
+1. ~~完成 repo schema 和 store schema 的 multi-node 重构~~ - 已完成
+2. ~~完成 `ServiceInstanceService` 和 service fan-out 任务创建~~ - 已完成
+3. ~~完成 agent 的 instance 状态上报改造~~ - 已完成
+4. ~~完成 `ContainerService` 的 logs/start/stop/restart/exec 基础接口~~ - 已完成
+5. 实现 `ReloadNodeCaddy` API 和 UI 入口
+6. 实现 `caddy_reload` 任务行为
+7. 实现 `MigrateService` UI 和后端
+8. 实现 restore 任务执行（Phase 6 待完成项）
 
 ---
 
