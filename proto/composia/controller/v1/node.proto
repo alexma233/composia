@@ -6,16 +6,22 @@ import "proto/composia/controller/v1/task.proto";
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
-service NodeService {
+service NodeQueryService {
   rpc ListNodes(ListNodesRequest) returns (ListNodesResponse);
   rpc GetNode(GetNodeRequest) returns (GetNodeResponse);
   rpc GetNodeTasks(GetNodeTasksRequest) returns (GetNodeTasksResponse);
   rpc GetNodeDockerStats(GetNodeDockerStatsRequest) returns (GetNodeDockerStatsResponse);
+}
+
+service NodeMaintenanceService {
   rpc SyncNodeCaddyFiles(SyncNodeCaddyFilesRequest) returns (SyncNodeCaddyFilesResponse);
   rpc ReloadNodeCaddy(ReloadNodeCaddyRequest) returns (ReloadNodeCaddyResponse);
   rpc PruneNodeDocker(PruneNodeDockerRequest) returns (PruneNodeDockerResponse);
   rpc ForgetNodeRustic(ForgetNodeRusticRequest) returns (ForgetNodeRusticResponse);
   rpc PruneNodeRustic(PruneNodeRusticRequest) returns (PruneNodeRusticResponse);
+}
+
+service DockerQueryService {
   rpc ListNodeContainers(ListNodeContainersRequest) returns (ListNodeContainersResponse);
   rpc InspectNodeContainer(InspectNodeContainerRequest) returns (InspectNodeContainerResponse);
   rpc ListNodeNetworks(ListNodeNetworksRequest) returns (ListNodeNetworksResponse);

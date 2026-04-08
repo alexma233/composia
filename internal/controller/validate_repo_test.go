@@ -14,7 +14,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/rpcutil"
 )
 
-func TestRepoServiceValidateRepoReturnsStructuredErrors(t *testing.T) {
+func TestRepoQueryServiceValidateRepoReturnsStructuredErrors(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -30,8 +30,8 @@ func TestRepoServiceValidateRepoReturnsStructuredErrors(t *testing.T) {
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewRepoServiceHandler(
-		&repoServer{cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}}},
+	path, handler := controllerv1connect.NewRepoQueryServiceHandler(
+		&repoQueryServer{cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -39,7 +39,7 @@ func TestRepoServiceValidateRepoReturnsStructuredErrors(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewRepoServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewRepoQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	response, err := client.ValidateRepo(context.Background(), connect.NewRequest(&controllerv1.ValidateRepoRequest{}))
 	if err != nil {
 		t.Fatalf("validate repo: %v", err)

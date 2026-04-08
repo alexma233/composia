@@ -175,11 +175,17 @@ func registerCLIHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *s
 	)
 	mux.Handle(systemPath, systemHandler)
 
-	repoPath, repoHandler := controllerv1connect.NewRepoServiceHandler(
-		&repoServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: repoMu},
+	repoQueryPath, repoQueryHandler := controllerv1connect.NewRepoQueryServiceHandler(
+		&repoQueryServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: repoMu},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(repoPath, repoHandler)
+	mux.Handle(repoQueryPath, repoQueryHandler)
+
+	repoCommandPath, repoCommandHandler := controllerv1connect.NewRepoCommandServiceHandler(
+		&repoCommandServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: repoMu},
+		connect.WithInterceptors(interceptor),
+	)
+	mux.Handle(repoCommandPath, repoCommandHandler)
 
 	secretPath, secretHandler := controllerv1connect.NewSecretServiceHandler(
 		&secretServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: repoMu},
@@ -193,11 +199,17 @@ func registerCLIHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *s
 	)
 	mux.Handle(backupPath, backupHandler)
 
-	servicePath, serviceHandler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults, repoMu: repoMu},
+	serviceQueryPath, serviceQueryHandler := controllerv1connect.NewServiceQueryServiceHandler(
+		&serviceQueryServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults, repoMu: repoMu},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(servicePath, serviceHandler)
+	mux.Handle(serviceQueryPath, serviceQueryHandler)
+
+	serviceCommandPath, serviceCommandHandler := controllerv1connect.NewServiceCommandServiceHandler(
+		&serviceCommandServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults, repoMu: repoMu},
+		connect.WithInterceptors(interceptor),
+	)
+	mux.Handle(serviceCommandPath, serviceCommandHandler)
 
 	serviceInstancePath, serviceInstanceHandler := controllerv1connect.NewServiceInstanceServiceHandler(
 		&serviceInstanceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults},
@@ -205,11 +217,23 @@ func registerCLIHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *s
 	)
 	mux.Handle(serviceInstancePath, serviceInstanceHandler)
 
-	nodePath, nodeHandler := controllerv1connect.NewNodeServiceHandler(
-		&nodeServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults},
+	nodeQueryPath, nodeQueryHandler := controllerv1connect.NewNodeQueryServiceHandler(
+		&nodeQueryServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(nodePath, nodeHandler)
+	mux.Handle(nodeQueryPath, nodeQueryHandler)
+
+	nodeMaintenancePath, nodeMaintenanceHandler := controllerv1connect.NewNodeMaintenanceServiceHandler(
+		&nodeMaintenanceServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults},
+		connect.WithInterceptors(interceptor),
+	)
+	mux.Handle(nodeMaintenancePath, nodeMaintenanceHandler)
+
+	dockerQueryPath, dockerQueryHandler := controllerv1connect.NewDockerQueryServiceHandler(
+		&dockerQueryServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults},
+		connect.WithInterceptors(interceptor),
+	)
+	mux.Handle(dockerQueryPath, dockerQueryHandler)
 
 	containerPath, containerHandler := controllerv1connect.NewContainerServiceHandler(
 		&containerServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults, execManager: execManager},
@@ -359,13 +383,6 @@ type agentTaskServer struct {
 type bundleServer struct {
 	db  *store.DB
 	cfg *config.ControllerConfig
-}
-
-type repoServer struct {
-	db               *store.DB
-	cfg              *config.ControllerConfig
-	availableNodeIDs map[string]struct{}
-	repoMu           *sync.Mutex
 }
 
 type repoWriteResult struct {
@@ -1163,7 +1180,16 @@ type systemServer struct {
 	availableNodeIDs map[string]struct{}
 }
 
-type serviceServer struct {
+type serviceQueryServer struct {
+	db               *store.DB
+	cfg              *config.ControllerConfig
+	availableNodeIDs map[string]struct{}
+	taskQueue        *taskQueueNotifier
+	taskResults      *taskResultNotifier
+	repoMu           *sync.Mutex
+}
+
+type serviceCommandServer struct {
 	db               *store.DB
 	cfg              *config.ControllerConfig
 	availableNodeIDs map[string]struct{}
@@ -1201,11 +1227,39 @@ type rusticPruneTaskParams struct {
 	DataName    string `json:"data_name,omitempty"`
 }
 
-type nodeServer struct {
+type nodeQueryServer struct {
 	db          *store.DB
 	cfg         *config.ControllerConfig
 	taskQueue   *taskQueueNotifier
 	taskResults *taskResultNotifier
+}
+
+type nodeMaintenanceServer struct {
+	db          *store.DB
+	cfg         *config.ControllerConfig
+	taskQueue   *taskQueueNotifier
+	taskResults *taskResultNotifier
+}
+
+type dockerQueryServer struct {
+	db          *store.DB
+	cfg         *config.ControllerConfig
+	taskQueue   *taskQueueNotifier
+	taskResults *taskResultNotifier
+}
+
+type repoQueryServer struct {
+	db               *store.DB
+	cfg              *config.ControllerConfig
+	availableNodeIDs map[string]struct{}
+	repoMu           *sync.Mutex
+}
+
+type repoCommandServer struct {
+	db               *store.DB
+	cfg              *config.ControllerConfig
+	availableNodeIDs map[string]struct{}
+	repoMu           *sync.Mutex
 }
 
 type containerServer struct {
@@ -1370,7 +1424,7 @@ func (server *systemServer) GetCurrentConfig(ctx context.Context, _ *connect.Req
 	return connect.NewResponse(response), nil
 }
 
-func (server *serviceServer) ListServices(ctx context.Context, req *connect.Request[controllerv1.ListServicesRequest]) (*connect.Response[controllerv1.ListServicesResponse], error) {
+func (server *serviceQueryServer) ListServices(ctx context.Context, req *connect.Request[controllerv1.ListServicesRequest]) (*connect.Response[controllerv1.ListServicesResponse], error) {
 	if req.Msg == nil {
 		req.Msg = &controllerv1.ListServicesRequest{}
 	}
@@ -1399,7 +1453,7 @@ func (server *serviceServer) ListServices(ctx context.Context, req *connect.Requ
 	return connect.NewResponse(response), nil
 }
 
-func (server *serviceServer) GetService(ctx context.Context, req *connect.Request[controllerv1.GetServiceRequest]) (*connect.Response[controllerv1.GetServiceResponse], error) {
+func (server *serviceQueryServer) GetService(ctx context.Context, req *connect.Request[controllerv1.GetServiceRequest]) (*connect.Response[controllerv1.GetServiceResponse], error) {
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
@@ -1437,7 +1491,7 @@ func (server *serviceServer) GetService(ctx context.Context, req *connect.Reques
 	return connect.NewResponse(response), nil
 }
 
-func (server *serviceServer) GetServiceTasks(ctx context.Context, req *connect.Request[controllerv1.GetServiceTasksRequest]) (*connect.Response[controllerv1.GetServiceTasksResponse], error) {
+func (server *serviceQueryServer) GetServiceTasks(ctx context.Context, req *connect.Request[controllerv1.GetServiceTasksRequest]) (*connect.Response[controllerv1.GetServiceTasksResponse], error) {
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
@@ -1458,7 +1512,7 @@ func (server *serviceServer) GetServiceTasks(ctx context.Context, req *connect.R
 	return connect.NewResponse(response), nil
 }
 
-func (server *serviceServer) GetServiceBackups(ctx context.Context, req *connect.Request[controllerv1.GetServiceBackupsRequest]) (*connect.Response[controllerv1.GetServiceBackupsResponse], error) {
+func (server *serviceQueryServer) GetServiceBackups(ctx context.Context, req *connect.Request[controllerv1.GetServiceBackupsRequest]) (*connect.Response[controllerv1.GetServiceBackupsResponse], error) {
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
@@ -1479,7 +1533,7 @@ func (server *serviceServer) GetServiceBackups(ctx context.Context, req *connect
 	return connect.NewResponse(response), nil
 }
 
-func (server *serviceServer) UpdateServiceTargetNodes(ctx context.Context, req *connect.Request[controllerv1.UpdateServiceTargetNodesRequest]) (*connect.Response[controllerv1.UpdateServiceTargetNodesResponse], error) {
+func (server *serviceCommandServer) UpdateServiceTargetNodes(ctx context.Context, req *connect.Request[controllerv1.UpdateServiceTargetNodesRequest]) (*connect.Response[controllerv1.UpdateServiceTargetNodesResponse], error) {
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
@@ -1494,7 +1548,7 @@ func (server *serviceServer) UpdateServiceTargetNodes(ctx context.Context, req *
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
-	repoSrv := &repoServer{db: server.db, cfg: server.cfg, availableNodeIDs: server.availableNodeIDs, repoMu: server.repoMu}
+	repoSrv := &repoCommandServer{db: server.db, cfg: server.cfg, availableNodeIDs: server.availableNodeIDs, repoMu: server.repoMu}
 	commitMessage := req.Msg.GetCommitMessage()
 	if commitMessage == "" {
 		commitMessage = fmt.Sprintf("update target nodes for %s", service.Name)
@@ -1517,7 +1571,7 @@ func (server *serviceServer) UpdateServiceTargetNodes(ctx context.Context, req *
 	}), nil
 }
 
-func (server *serviceServer) RunServiceAction(ctx context.Context, req *connect.Request[controllerv1.RunServiceActionRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
+func (server *serviceCommandServer) RunServiceAction(ctx context.Context, req *connect.Request[controllerv1.RunServiceActionRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
@@ -1578,11 +1632,11 @@ type serviceTaskCreateOptions struct {
 	Source          task.Source
 }
 
-func (server *serviceServer) createServiceTask(ctx context.Context, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string) (task.Record, error) {
+func (server *serviceCommandServer) createServiceTask(ctx context.Context, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string) (task.Record, error) {
 	return server.createServiceTaskWithOptions(ctx, serviceName, nodeIDs, taskType, dataNames, serviceTaskCreateOptions{})
 }
 
-func (server *serviceServer) createServiceTaskWithOptions(ctx context.Context, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string, options serviceTaskCreateOptions) (task.Record, error) {
+func (server *serviceCommandServer) createServiceTaskWithOptions(ctx context.Context, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string, options serviceTaskCreateOptions) (task.Record, error) {
 	if serviceName == "" {
 		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
@@ -1656,11 +1710,11 @@ func (server *serviceServer) createServiceTaskWithOptions(ctx context.Context, s
 }
 
 func createServiceTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string) (task.Record, error) {
-	return (&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs}).createServiceTask(ctx, serviceName, nodeIDs, taskType, dataNames)
+	return (&serviceCommandServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs}).createServiceTask(ctx, serviceName, nodeIDs, taskType, dataNames)
 }
 
 func createServiceTaskWithOptions(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string, options serviceTaskCreateOptions) (task.Record, error) {
-	return (&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs}).createServiceTaskWithOptions(ctx, serviceName, nodeIDs, taskType, dataNames, options)
+	return (&serviceCommandServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs}).createServiceTaskWithOptions(ctx, serviceName, nodeIDs, taskType, dataNames, options)
 }
 
 func resolveTargetNodeIDs(service repo.Service, requested []string) ([]string, error) {
@@ -1724,7 +1778,7 @@ func taskParams(paramsJSON string) serviceTaskParams {
 	return params
 }
 
-func (server *nodeServer) ListNodes(ctx context.Context, _ *connect.Request[controllerv1.ListNodesRequest]) (*connect.Response[controllerv1.ListNodesResponse], error) {
+func (server *nodeQueryServer) ListNodes(ctx context.Context, _ *connect.Request[controllerv1.ListNodesRequest]) (*connect.Response[controllerv1.ListNodesResponse], error) {
 	snapshots, err := server.db.ListNodeSnapshots(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -1745,7 +1799,7 @@ func (server *nodeServer) ListNodes(ctx context.Context, _ *connect.Request[cont
 	return connect.NewResponse(response), nil
 }
 
-func (server *nodeServer) GetNode(ctx context.Context, req *connect.Request[controllerv1.GetNodeRequest]) (*connect.Response[controllerv1.GetNodeResponse], error) {
+func (server *nodeQueryServer) GetNode(ctx context.Context, req *connect.Request[controllerv1.GetNodeRequest]) (*connect.Response[controllerv1.GetNodeResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
@@ -1765,7 +1819,7 @@ func (server *nodeServer) GetNode(ctx context.Context, req *connect.Request[cont
 	return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("node %q is not configured", req.Msg.GetNodeId()))
 }
 
-func (server *nodeServer) GetNodeTasks(ctx context.Context, req *connect.Request[controllerv1.GetNodeTasksRequest]) (*connect.Response[controllerv1.GetNodeTasksResponse], error) {
+func (server *nodeQueryServer) GetNodeTasks(ctx context.Context, req *connect.Request[controllerv1.GetNodeTasksRequest]) (*connect.Response[controllerv1.GetNodeTasksResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
@@ -1793,7 +1847,7 @@ func (server *nodeServer) GetNodeTasks(ctx context.Context, req *connect.Request
 	return connect.NewResponse(response), nil
 }
 
-func (server *nodeServer) GetNodeDockerStats(ctx context.Context, req *connect.Request[controllerv1.GetNodeDockerStatsRequest]) (*connect.Response[controllerv1.GetNodeDockerStatsResponse], error) {
+func (server *nodeQueryServer) GetNodeDockerStats(ctx context.Context, req *connect.Request[controllerv1.GetNodeDockerStatsRequest]) (*connect.Response[controllerv1.GetNodeDockerStatsResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
@@ -1819,7 +1873,7 @@ func (server *nodeServer) GetNodeDockerStats(ctx context.Context, req *connect.R
 	}), nil
 }
 
-func (server *nodeServer) ReloadNodeCaddy(ctx context.Context, req *connect.Request[controllerv1.ReloadNodeCaddyRequest]) (*connect.Response[controllerv1.ReloadNodeCaddyResponse], error) {
+func (server *nodeMaintenanceServer) ReloadNodeCaddy(ctx context.Context, req *connect.Request[controllerv1.ReloadNodeCaddyRequest]) (*connect.Response[controllerv1.ReloadNodeCaddyResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
@@ -1834,7 +1888,7 @@ func (server *nodeServer) ReloadNodeCaddy(ctx context.Context, req *connect.Requ
 	return connect.NewResponse(&controllerv1.ReloadNodeCaddyResponse{TaskId: createdTask.TaskID}), nil
 }
 
-func (server *nodeServer) SyncNodeCaddyFiles(ctx context.Context, req *connect.Request[controllerv1.SyncNodeCaddyFilesRequest]) (*connect.Response[controllerv1.SyncNodeCaddyFilesResponse], error) {
+func (server *nodeMaintenanceServer) SyncNodeCaddyFiles(ctx context.Context, req *connect.Request[controllerv1.SyncNodeCaddyFilesRequest]) (*connect.Response[controllerv1.SyncNodeCaddyFilesResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
@@ -1846,7 +1900,7 @@ func (server *nodeServer) SyncNodeCaddyFiles(ctx context.Context, req *connect.R
 	return connect.NewResponse(&controllerv1.SyncNodeCaddyFilesResponse{TaskId: createdTask.TaskID}), nil
 }
 
-func (server *nodeServer) PruneNodeDocker(ctx context.Context, req *connect.Request[controllerv1.PruneNodeDockerRequest]) (*connect.Response[controllerv1.PruneNodeDockerResponse], error) {
+func (server *nodeMaintenanceServer) PruneNodeDocker(ctx context.Context, req *connect.Request[controllerv1.PruneNodeDockerRequest]) (*connect.Response[controllerv1.PruneNodeDockerResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
@@ -1886,7 +1940,7 @@ func (server *nodeServer) PruneNodeDocker(ctx context.Context, req *connect.Requ
 	}), nil
 }
 
-func (server *nodeServer) PruneNodeRustic(ctx context.Context, req *connect.Request[controllerv1.PruneNodeRusticRequest]) (*connect.Response[controllerv1.PruneNodeRusticResponse], error) {
+func (server *nodeMaintenanceServer) PruneNodeRustic(ctx context.Context, req *connect.Request[controllerv1.PruneNodeRusticRequest]) (*connect.Response[controllerv1.PruneNodeRusticResponse], error) {
 	if req.Msg == nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("request is required"))
 	}
@@ -1906,7 +1960,7 @@ func (server *nodeServer) PruneNodeRustic(ctx context.Context, req *connect.Requ
 	return connect.NewResponse(&controllerv1.PruneNodeRusticResponse{TaskId: createdTask.TaskID}), nil
 }
 
-func (server *nodeServer) ForgetNodeRustic(ctx context.Context, req *connect.Request[controllerv1.ForgetNodeRusticRequest]) (*connect.Response[controllerv1.ForgetNodeRusticResponse], error) {
+func (server *nodeMaintenanceServer) ForgetNodeRustic(ctx context.Context, req *connect.Request[controllerv1.ForgetNodeRusticRequest]) (*connect.Response[controllerv1.ForgetNodeRusticResponse], error) {
 	if req.Msg == nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("request is required"))
 	}
@@ -1926,7 +1980,7 @@ func (server *nodeServer) ForgetNodeRustic(ctx context.Context, req *connect.Req
 	return connect.NewResponse(&controllerv1.ForgetNodeRusticResponse{TaskId: createdTask.TaskID}), nil
 }
 
-func (server *nodeServer) ListNodeContainers(ctx context.Context, req *connect.Request[controllerv1.ListNodeContainersRequest]) (*connect.Response[controllerv1.ListNodeContainersResponse], error) {
+func (server *dockerQueryServer) ListNodeContainers(ctx context.Context, req *connect.Request[controllerv1.ListNodeContainersRequest]) (*connect.Response[controllerv1.ListNodeContainersResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
@@ -1941,7 +1995,7 @@ func (server *nodeServer) ListNodeContainers(ctx context.Context, req *connect.R
 	}), nil
 }
 
-func (server *nodeServer) InspectNodeContainer(ctx context.Context, req *connect.Request[controllerv1.InspectNodeContainerRequest]) (*connect.Response[controllerv1.InspectNodeContainerResponse], error) {
+func (server *dockerQueryServer) InspectNodeContainer(ctx context.Context, req *connect.Request[controllerv1.InspectNodeContainerRequest]) (*connect.Response[controllerv1.InspectNodeContainerResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetContainerId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and container_id are required"))
 	}
@@ -1956,7 +2010,7 @@ func (server *nodeServer) InspectNodeContainer(ctx context.Context, req *connect
 	}), nil
 }
 
-func (server *nodeServer) ListNodeNetworks(ctx context.Context, req *connect.Request[controllerv1.ListNodeNetworksRequest]) (*connect.Response[controllerv1.ListNodeNetworksResponse], error) {
+func (server *dockerQueryServer) ListNodeNetworks(ctx context.Context, req *connect.Request[controllerv1.ListNodeNetworksRequest]) (*connect.Response[controllerv1.ListNodeNetworksResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
@@ -1971,7 +2025,7 @@ func (server *nodeServer) ListNodeNetworks(ctx context.Context, req *connect.Req
 	}), nil
 }
 
-func (server *nodeServer) InspectNodeNetwork(ctx context.Context, req *connect.Request[controllerv1.InspectNodeNetworkRequest]) (*connect.Response[controllerv1.InspectNodeNetworkResponse], error) {
+func (server *dockerQueryServer) InspectNodeNetwork(ctx context.Context, req *connect.Request[controllerv1.InspectNodeNetworkRequest]) (*connect.Response[controllerv1.InspectNodeNetworkResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetNetworkId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and network_id are required"))
 	}
@@ -1986,7 +2040,7 @@ func (server *nodeServer) InspectNodeNetwork(ctx context.Context, req *connect.R
 	}), nil
 }
 
-func (server *nodeServer) ListNodeVolumes(ctx context.Context, req *connect.Request[controllerv1.ListNodeVolumesRequest]) (*connect.Response[controllerv1.ListNodeVolumesResponse], error) {
+func (server *dockerQueryServer) ListNodeVolumes(ctx context.Context, req *connect.Request[controllerv1.ListNodeVolumesRequest]) (*connect.Response[controllerv1.ListNodeVolumesResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
@@ -2001,7 +2055,7 @@ func (server *nodeServer) ListNodeVolumes(ctx context.Context, req *connect.Requ
 	}), nil
 }
 
-func (server *nodeServer) InspectNodeVolume(ctx context.Context, req *connect.Request[controllerv1.InspectNodeVolumeRequest]) (*connect.Response[controllerv1.InspectNodeVolumeResponse], error) {
+func (server *dockerQueryServer) InspectNodeVolume(ctx context.Context, req *connect.Request[controllerv1.InspectNodeVolumeRequest]) (*connect.Response[controllerv1.InspectNodeVolumeResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetVolumeName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and volume_name are required"))
 	}
@@ -2016,7 +2070,7 @@ func (server *nodeServer) InspectNodeVolume(ctx context.Context, req *connect.Re
 	}), nil
 }
 
-func (server *nodeServer) ListNodeImages(ctx context.Context, req *connect.Request[controllerv1.ListNodeImagesRequest]) (*connect.Response[controllerv1.ListNodeImagesResponse], error) {
+func (server *dockerQueryServer) ListNodeImages(ctx context.Context, req *connect.Request[controllerv1.ListNodeImagesRequest]) (*connect.Response[controllerv1.ListNodeImagesResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
@@ -2031,7 +2085,7 @@ func (server *nodeServer) ListNodeImages(ctx context.Context, req *connect.Reque
 	}), nil
 }
 
-func (server *nodeServer) InspectNodeImage(ctx context.Context, req *connect.Request[controllerv1.InspectNodeImageRequest]) (*connect.Response[controllerv1.InspectNodeImageResponse], error) {
+func (server *dockerQueryServer) InspectNodeImage(ctx context.Context, req *connect.Request[controllerv1.InspectNodeImageRequest]) (*connect.Response[controllerv1.InspectNodeImageResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetImageId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and image_id are required"))
 	}
@@ -2060,7 +2114,7 @@ const (
 	dockerTaskResultEnd   = "COMPOSIA_DOCKER_RESULT_END"
 )
 
-func (server *nodeServer) executeDockerListTask(ctx context.Context, header http.Header, nodeID, resource string) (*dockerListResult, error) {
+func (server *dockerQueryServer) executeDockerListTask(ctx context.Context, header http.Header, nodeID, resource string) (*dockerListResult, error) {
 	snapshot, err := server.db.GetNodeSnapshot(ctx, nodeID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -2103,7 +2157,7 @@ func (server *nodeServer) executeDockerListTask(ctx context.Context, header http
 	return server.parseDockerListResult(resource, result)
 }
 
-func (server *nodeServer) executeDockerInspectTask(ctx context.Context, header http.Header, nodeID, resource, id string) (*dockerListResult, error) {
+func (server *dockerQueryServer) executeDockerInspectTask(ctx context.Context, header http.Header, nodeID, resource, id string) (*dockerListResult, error) {
 	snapshot, err := server.db.GetNodeSnapshot(ctx, nodeID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -2281,7 +2335,7 @@ func (server *containerServer) waitForTaskCompletion(ctx context.Context, taskID
 	}
 }
 
-func (server *nodeServer) waitForTaskCompletion(ctx context.Context, taskID string, timeout time.Duration) (store.TaskDetail, error) {
+func (server *dockerQueryServer) waitForTaskCompletion(ctx context.Context, taskID string, timeout time.Duration) (store.TaskDetail, error) {
 	deadline := time.Now().Add(timeout)
 	waitCh := server.taskResults.Subscribe(taskID)
 	defer server.taskResults.Unsubscribe(taskID, waitCh)
@@ -2321,7 +2375,7 @@ func readTaskLog(detail store.TaskDetail) (string, error) {
 	return string(logContent), nil
 }
 
-func (server *nodeServer) parseDockerListResult(resource, logContent string) (*dockerListResult, error) {
+func (server *dockerQueryServer) parseDockerListResult(resource, logContent string) (*dockerListResult, error) {
 	payload, err := extractDockerTaskResult(logContent)
 	if err == nil {
 		return payload, nil
@@ -2352,7 +2406,7 @@ func extractDockerTaskResult(logContent string) (*dockerListResult, error) {
 	return &result, nil
 }
 
-func (server *nodeServer) parseLegacyDockerListResult(resource, logContent string) (*dockerListResult, error) {
+func (server *dockerQueryServer) parseLegacyDockerListResult(resource, logContent string) (*dockerListResult, error) {
 	lines := strings.Split(strings.TrimSpace(logContent), "\n")
 	result := &dockerListResult{}
 
@@ -2555,8 +2609,8 @@ func serviceInstanceDetailMessage(record store.ServiceInstanceSnapshot, containe
 }
 
 func buildServiceInstanceDetail(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, service repo.Service, instance store.ServiceInstanceSnapshot) (*controllerv1.ServiceInstanceDetail, error) {
-	nodeServer := &nodeServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults}
-	containers, err := listServiceInstanceContainers(ctx, nodeServer, service, instance.NodeID)
+	dockerQuery := &dockerQueryServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults}
+	containers, err := listServiceInstanceContainers(ctx, dockerQuery, service, instance.NodeID)
 	if err != nil {
 		var connectErr *connect.Error
 		if errors.As(err, &connectErr) {
@@ -2570,11 +2624,11 @@ func buildServiceInstanceDetail(ctx context.Context, db *store.DB, cfg *config.C
 	return serviceInstanceDetailMessage(instance, containers), nil
 }
 
-func listServiceInstanceContainers(ctx context.Context, nodeServer *nodeServer, service repo.Service, nodeID string) ([]*controllerv1.ServiceContainerSummary, error) {
-	if nodeServer == nil {
+func listServiceInstanceContainers(ctx context.Context, dockerQuery *dockerQueryServer, service repo.Service, nodeID string) ([]*controllerv1.ServiceContainerSummary, error) {
+	if dockerQuery == nil {
 		return nil, nil
 	}
-	result, err := nodeServer.executeDockerListTask(ctx, make(http.Header), nodeID, "containers")
+	result, err := dockerQuery.executeDockerListTask(ctx, make(http.Header), nodeID, "containers")
 	if err != nil {
 		return nil, err
 	}
@@ -2648,7 +2702,7 @@ func backupSummaryMessage(backup store.BackupSummary) *controllerv1.BackupSummar
 	}
 }
 
-func (server *repoServer) GetRepoHead(ctx context.Context, _ *connect.Request[controllerv1.GetRepoHeadRequest]) (*connect.Response[controllerv1.GetRepoHeadResponse], error) {
+func (server *repoQueryServer) GetRepoHead(ctx context.Context, _ *connect.Request[controllerv1.GetRepoHeadRequest]) (*connect.Response[controllerv1.GetRepoHeadResponse], error) {
 	headRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -2677,7 +2731,7 @@ func (server *repoServer) GetRepoHead(ctx context.Context, _ *connect.Request[co
 	return connect.NewResponse(response), nil
 }
 
-func (server *repoServer) ListRepoFiles(_ context.Context, req *connect.Request[controllerv1.ListRepoFilesRequest]) (*connect.Response[controllerv1.ListRepoFilesResponse], error) {
+func (server *repoQueryServer) ListRepoFiles(_ context.Context, req *connect.Request[controllerv1.ListRepoFilesRequest]) (*connect.Response[controllerv1.ListRepoFilesResponse], error) {
 	if req.Msg == nil {
 		req.Msg = &controllerv1.ListRepoFilesRequest{}
 	}
@@ -2704,7 +2758,7 @@ func (server *repoServer) ListRepoFiles(_ context.Context, req *connect.Request[
 	return connect.NewResponse(response), nil
 }
 
-func (server *repoServer) GetRepoFile(_ context.Context, req *connect.Request[controllerv1.GetRepoFileRequest]) (*connect.Response[controllerv1.GetRepoFileResponse], error) {
+func (server *repoQueryServer) GetRepoFile(_ context.Context, req *connect.Request[controllerv1.GetRepoFileRequest]) (*connect.Response[controllerv1.GetRepoFileResponse], error) {
 	if req.Msg == nil || req.Msg.GetPath() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("path is required"))
 	}
@@ -2727,7 +2781,7 @@ func (server *repoServer) GetRepoFile(_ context.Context, req *connect.Request[co
 	return connect.NewResponse(response), nil
 }
 
-func (server *repoServer) ListRepoCommits(_ context.Context, req *connect.Request[controllerv1.ListRepoCommitsRequest]) (*connect.Response[controllerv1.ListRepoCommitsResponse], error) {
+func (server *repoQueryServer) ListRepoCommits(_ context.Context, req *connect.Request[controllerv1.ListRepoCommitsRequest]) (*connect.Response[controllerv1.ListRepoCommitsResponse], error) {
 	if req.Msg == nil {
 		req.Msg = &controllerv1.ListRepoCommitsRequest{}
 	}
@@ -2749,7 +2803,7 @@ func (server *repoServer) ListRepoCommits(_ context.Context, req *connect.Reques
 	return connect.NewResponse(response), nil
 }
 
-func (server *repoServer) ValidateRepo(_ context.Context, _ *connect.Request[controllerv1.ValidateRepoRequest]) (*connect.Response[controllerv1.ValidateRepoResponse], error) {
+func (server *repoQueryServer) ValidateRepo(_ context.Context, _ *connect.Request[controllerv1.ValidateRepoRequest]) (*connect.Response[controllerv1.ValidateRepoResponse], error) {
 	availableNodeIDs := make(map[string]struct{}, len(server.cfg.Nodes))
 	for _, node := range server.cfg.Nodes {
 		availableNodeIDs[node.ID] = struct{}{}
@@ -2766,7 +2820,15 @@ func (server *repoServer) ValidateRepo(_ context.Context, _ *connect.Request[con
 	return connect.NewResponse(response), nil
 }
 
-func (server *repoServer) SyncRepo(ctx context.Context, _ *connect.Request[controllerv1.SyncRepoRequest]) (*connect.Response[controllerv1.SyncRepoResponse], error) {
+func (server *repoQueryServer) hasConfiguredRemote() bool {
+	return (&repoCommandServer{cfg: server.cfg}).hasConfiguredRemote()
+}
+
+func (server *repoQueryServer) repoSyncState(ctx context.Context) (store.RepoSyncState, error) {
+	return (&repoCommandServer{db: server.db, cfg: server.cfg}).repoSyncState(ctx)
+}
+
+func (server *repoCommandServer) SyncRepo(ctx context.Context, _ *connect.Request[controllerv1.SyncRepoRequest]) (*connect.Response[controllerv1.SyncRepoResponse], error) {
 	if !server.hasConfiguredRemote() {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("repo remote sync is not configured"))
 	}
@@ -2800,7 +2862,7 @@ func (server *repoServer) SyncRepo(ctx context.Context, _ *connect.Request[contr
 	}), nil
 }
 
-func (server *repoServer) UpdateRepoFile(ctx context.Context, req *connect.Request[controllerv1.UpdateRepoFileRequest]) (*connect.Response[controllerv1.UpdateRepoFileResponse], error) {
+func (server *repoCommandServer) UpdateRepoFile(ctx context.Context, req *connect.Request[controllerv1.UpdateRepoFileRequest]) (*connect.Response[controllerv1.UpdateRepoFileResponse], error) {
 	if req.Msg == nil || req.Msg.GetPath() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("path is required"))
 	}
@@ -2821,7 +2883,7 @@ func (server *repoServer) UpdateRepoFile(ctx context.Context, req *connect.Reque
 	}), nil
 }
 
-func (server *repoServer) CreateRepoDirectory(ctx context.Context, req *connect.Request[controllerv1.CreateRepoDirectoryRequest]) (*connect.Response[controllerv1.CreateRepoDirectoryResponse], error) {
+func (server *repoCommandServer) CreateRepoDirectory(ctx context.Context, req *connect.Request[controllerv1.CreateRepoDirectoryRequest]) (*connect.Response[controllerv1.CreateRepoDirectoryResponse], error) {
 	if req.Msg == nil || req.Msg.GetPath() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("path is required"))
 	}
@@ -2842,7 +2904,7 @@ func (server *repoServer) CreateRepoDirectory(ctx context.Context, req *connect.
 	}), nil
 }
 
-func (server *repoServer) MoveRepoPath(ctx context.Context, req *connect.Request[controllerv1.MoveRepoPathRequest]) (*connect.Response[controllerv1.MoveRepoPathResponse], error) {
+func (server *repoCommandServer) MoveRepoPath(ctx context.Context, req *connect.Request[controllerv1.MoveRepoPathRequest]) (*connect.Response[controllerv1.MoveRepoPathResponse], error) {
 	if req.Msg == nil || req.Msg.GetSourcePath() == "" || req.Msg.GetDestinationPath() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("source_path and destination_path are required"))
 	}
@@ -2863,7 +2925,7 @@ func (server *repoServer) MoveRepoPath(ctx context.Context, req *connect.Request
 	}), nil
 }
 
-func (server *repoServer) DeleteRepoPath(ctx context.Context, req *connect.Request[controllerv1.DeleteRepoPathRequest]) (*connect.Response[controllerv1.DeleteRepoPathResponse], error) {
+func (server *repoCommandServer) DeleteRepoPath(ctx context.Context, req *connect.Request[controllerv1.DeleteRepoPathRequest]) (*connect.Response[controllerv1.DeleteRepoPathResponse], error) {
 	if req.Msg == nil || req.Msg.GetPath() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("path is required"))
 	}
@@ -2884,14 +2946,14 @@ func (server *repoServer) DeleteRepoPath(ctx context.Context, req *connect.Reque
 	}), nil
 }
 
-func (server *repoServer) repoLock() *sync.Mutex {
+func (server *repoCommandServer) repoLock() *sync.Mutex {
 	if server.repoMu == nil {
 		server.repoMu = &sync.Mutex{}
 	}
 	return server.repoMu
 }
 
-func (server *repoServer) runRepoWrite(ctx context.Context, baseRevision string, relativePaths []string, run func(baseSyncState store.RepoSyncState) (repoWriteResult, error)) (repoWriteResult, error) {
+func (server *repoCommandServer) runRepoWrite(ctx context.Context, baseRevision string, relativePaths []string, run func(baseSyncState store.RepoSyncState) (repoWriteResult, error)) (repoWriteResult, error) {
 	server.repoLock().Lock()
 	defer server.repoLock().Unlock()
 
@@ -2902,11 +2964,11 @@ func (server *repoServer) runRepoWrite(ctx context.Context, baseRevision string,
 	return run(baseSyncState)
 }
 
-func (server *repoServer) hasConfiguredRemote() bool {
+func (server *repoCommandServer) hasConfiguredRemote() bool {
 	return server.cfg != nil && server.cfg.Git != nil && strings.TrimSpace(server.cfg.Git.RemoteURL) != ""
 }
 
-func (server *repoServer) repoSyncState(ctx context.Context) (store.RepoSyncState, error) {
+func (server *repoCommandServer) repoSyncState(ctx context.Context) (store.RepoSyncState, error) {
 	if !server.hasConfiguredRemote() {
 		return store.RepoSyncState{SyncStatus: store.RepoSyncStatusLocalOnly}, nil
 	}
@@ -2923,7 +2985,7 @@ func (server *repoServer) repoSyncState(ctx context.Context) (store.RepoSyncStat
 	return state, nil
 }
 
-func (server *repoServer) configuredRemoteBranch() (string, error) {
+func (server *repoCommandServer) configuredRemoteBranch() (string, error) {
 	if server.cfg != nil && server.cfg.Git != nil && strings.TrimSpace(server.cfg.Git.Branch) != "" {
 		return strings.TrimSpace(server.cfg.Git.Branch), nil
 	}
@@ -2937,7 +2999,7 @@ func (server *repoServer) configuredRemoteBranch() (string, error) {
 	return branch, nil
 }
 
-func (server *repoServer) configuredGitAuthToken() (string, error) {
+func (server *repoCommandServer) configuredGitAuthToken() (string, error) {
 	if server.cfg == nil || server.cfg.Git == nil || server.cfg.Git.Auth == nil || strings.TrimSpace(server.cfg.Git.Auth.TokenFile) == "" {
 		return "", nil
 	}
@@ -2948,14 +3010,14 @@ func (server *repoServer) configuredGitAuthToken() (string, error) {
 	return strings.TrimSpace(string(content)), nil
 }
 
-func (server *repoServer) persistRepoSyncState(ctx context.Context, state store.RepoSyncState) error {
+func (server *repoCommandServer) persistRepoSyncState(ctx context.Context, state store.RepoSyncState) error {
 	if server.db == nil {
 		return nil
 	}
 	return server.db.UpsertRepoSyncState(ctx, state)
 }
 
-func (server *repoServer) ensureCleanWorktree() error {
+func (server *repoCommandServer) ensureCleanWorktree() error {
 	cleanWorktree, err := repo.IsCleanWorkingTree(server.cfg.RepoDir)
 	if err != nil {
 		return connect.NewError(connect.CodeInternal, err)
@@ -2966,7 +3028,7 @@ func (server *repoServer) ensureCleanWorktree() error {
 	return nil
 }
 
-func (server *repoServer) syncRepoLocked(ctx context.Context) (store.RepoSyncState, error) {
+func (server *repoCommandServer) syncRepoLocked(ctx context.Context) (store.RepoSyncState, error) {
 	if !server.hasConfiguredRemote() {
 		return store.RepoSyncState{SyncStatus: store.RepoSyncStatusLocalOnly}, connect.NewError(connect.CodeFailedPrecondition, errors.New("repo remote sync is not configured"))
 	}
@@ -3008,11 +3070,11 @@ func (server *repoServer) syncRepoLocked(ctx context.Context) (store.RepoSyncSta
 	return state, nil
 }
 
-func (server *repoServer) prepareRepoWrite(ctx context.Context, baseRevision, relativePath string) (store.RepoSyncState, error) {
+func (server *repoCommandServer) prepareRepoWrite(ctx context.Context, baseRevision, relativePath string) (store.RepoSyncState, error) {
 	return server.prepareRepoWritePaths(ctx, baseRevision, []string{relativePath})
 }
 
-func (server *repoServer) prepareRepoWritePaths(ctx context.Context, baseRevision string, relativePaths []string) (store.RepoSyncState, error) {
+func (server *repoCommandServer) prepareRepoWritePaths(ctx context.Context, baseRevision string, relativePaths []string) (store.RepoSyncState, error) {
 	if err := server.syncRepoBeforeWrite(ctx); err != nil {
 		return store.RepoSyncState{}, err
 	}
@@ -3025,7 +3087,7 @@ func (server *repoServer) prepareRepoWritePaths(ctx context.Context, baseRevisio
 	return server.repoSyncState(ctx)
 }
 
-func (server *repoServer) syncRepoBeforeWrite(ctx context.Context) error {
+func (server *repoCommandServer) syncRepoBeforeWrite(ctx context.Context) error {
 	if !server.hasConfiguredRemote() {
 		return nil
 	}
@@ -3033,7 +3095,7 @@ func (server *repoServer) syncRepoBeforeWrite(ctx context.Context) error {
 	return err
 }
 
-func (server *repoServer) verifyRepoWriteBaseRevision(baseRevision string) error {
+func (server *repoCommandServer) verifyRepoWriteBaseRevision(baseRevision string) error {
 	currentRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
 	if err != nil {
 		return connect.NewError(connect.CodeInternal, err)
@@ -3044,14 +3106,14 @@ func (server *repoServer) verifyRepoWriteBaseRevision(baseRevision string) error
 	return nil
 }
 
-func (server *repoServer) verifyRepoWriteAllowed(ctx context.Context, relativePaths ...string) error {
+func (server *repoCommandServer) verifyRepoWriteAllowed(ctx context.Context, relativePaths ...string) error {
 	if err := server.ensureCleanWorktree(); err != nil {
 		return err
 	}
 	return server.ensureRepoPathsUnlocked(ctx, relativePaths...)
 }
 
-func (server *repoServer) refreshDeclaredServices(ctx context.Context) error {
+func (server *repoCommandServer) refreshDeclaredServices(ctx context.Context) error {
 	if server.db == nil {
 		return nil
 	}
@@ -3069,11 +3131,11 @@ func (server *repoServer) refreshDeclaredServices(ctx context.Context) error {
 	return nil
 }
 
-func (server *repoServer) ensureRepoPathUnlocked(ctx context.Context, relativePath string) error {
+func (server *repoCommandServer) ensureRepoPathUnlocked(ctx context.Context, relativePath string) error {
 	return server.ensureRepoPathsUnlocked(ctx, relativePath)
 }
 
-func (server *repoServer) ensureRepoPathsUnlocked(ctx context.Context, relativePaths ...string) error {
+func (server *repoCommandServer) ensureRepoPathsUnlocked(ctx context.Context, relativePaths ...string) error {
 	if server.db == nil {
 		return nil
 	}
@@ -3111,7 +3173,7 @@ func pathHitsServiceDir(targetPath, serviceDir string) bool {
 	return strings.HasPrefix(targetPath, serviceDir+"/")
 }
 
-func (server *repoServer) updateRepoFileTransaction(ctx context.Context, relativePath, content, commitMessage string, baseSyncState store.RepoSyncState) (_ repoWriteResult, retErr error) {
+func (server *repoCommandServer) updateRepoFileTransaction(ctx context.Context, relativePath, content, commitMessage string, baseSyncState store.RepoSyncState) (_ repoWriteResult, retErr error) {
 	previous, readErr := repo.ReadFile(server.cfg.RepoDir, relativePath)
 	fileExisted := readErr == nil
 	committed := false
@@ -3162,7 +3224,7 @@ func (server *repoServer) updateRepoFileTransaction(ctx context.Context, relativ
 	return server.finalizeRepoWrite(ctx, commitID, baseSyncState)
 }
 
-func (server *repoServer) createRepoDirectoryTransaction(ctx context.Context, relativePath, commitMessage string, baseSyncState store.RepoSyncState) (_ repoWriteResult, retErr error) {
+func (server *repoCommandServer) createRepoDirectoryTransaction(ctx context.Context, relativePath, commitMessage string, baseSyncState store.RepoSyncState) (_ repoWriteResult, retErr error) {
 	snapshot, err := repo.CapturePath(server.cfg.RepoDir, relativePath)
 	if err != nil {
 		return repoWriteResult{}, mapRepoMutationError(err)
@@ -3191,7 +3253,7 @@ func (server *repoServer) createRepoDirectoryTransaction(ctx context.Context, re
 	return server.finalizeRepoWrite(ctx, commitID, baseSyncState)
 }
 
-func (server *repoServer) moveRepoPathTransaction(ctx context.Context, sourcePath, destinationPath, commitMessage string, baseSyncState store.RepoSyncState) (_ repoWriteResult, retErr error) {
+func (server *repoCommandServer) moveRepoPathTransaction(ctx context.Context, sourcePath, destinationPath, commitMessage string, baseSyncState store.RepoSyncState) (_ repoWriteResult, retErr error) {
 	sourceSnapshot, err := repo.CapturePath(server.cfg.RepoDir, sourcePath)
 	if err != nil {
 		return repoWriteResult{}, mapRepoMutationError(err)
@@ -3226,7 +3288,7 @@ func (server *repoServer) moveRepoPathTransaction(ctx context.Context, sourcePat
 	return server.finalizeRepoWrite(ctx, commitID, baseSyncState)
 }
 
-func (server *repoServer) deleteRepoPathTransaction(ctx context.Context, relativePath, commitMessage string, baseSyncState store.RepoSyncState) (_ repoWriteResult, retErr error) {
+func (server *repoCommandServer) deleteRepoPathTransaction(ctx context.Context, relativePath, commitMessage string, baseSyncState store.RepoSyncState) (_ repoWriteResult, retErr error) {
 	snapshot, err := repo.CapturePath(server.cfg.RepoDir, relativePath)
 	if err != nil {
 		return repoWriteResult{}, mapRepoMutationError(err)
@@ -3255,7 +3317,7 @@ func (server *repoServer) deleteRepoPathTransaction(ctx context.Context, relativ
 	return server.finalizeRepoWrite(ctx, commitID, baseSyncState)
 }
 
-func (server *repoServer) commitRepoPaths(primaryPath string, relativePaths []string, commitMessage string) (string, error) {
+func (server *repoCommandServer) commitRepoPaths(primaryPath string, relativePaths []string, commitMessage string) (string, error) {
 	authorName := ""
 	authorEmail := ""
 	if server.cfg.Git != nil {
@@ -3272,7 +3334,7 @@ func (server *repoServer) commitRepoPaths(primaryPath string, relativePaths []st
 	return commitID, nil
 }
 
-func (server *repoServer) finalizeRepoWrite(ctx context.Context, commitID string, baseSyncState store.RepoSyncState) (repoWriteResult, error) {
+func (server *repoCommandServer) finalizeRepoWrite(ctx context.Context, commitID string, baseSyncState store.RepoSyncState) (repoWriteResult, error) {
 	result, err := server.finalizeRepoGitState(ctx, commitID, baseSyncState)
 	if err != nil {
 		return repoWriteResult{}, err
@@ -3283,7 +3345,7 @@ func (server *repoServer) finalizeRepoWrite(ctx context.Context, commitID string
 	return result, nil
 }
 
-func (server *repoServer) finalizeRepoGitState(ctx context.Context, commitID string, baseSyncState store.RepoSyncState) (repoWriteResult, error) {
+func (server *repoCommandServer) finalizeRepoGitState(ctx context.Context, commitID string, baseSyncState store.RepoSyncState) (repoWriteResult, error) {
 	result := repoWriteResult{CommitID: commitID, SyncStatus: baseSyncState.SyncStatus, LastSuccessfulPullAt: baseSyncState.LastSuccessfulPullAt}
 	if !server.hasConfiguredRemote() {
 		result.SyncStatus = store.RepoSyncStatusLocalOnly
@@ -3388,7 +3450,7 @@ func (server *secretServer) UpdateSecret(ctx context.Context, req *connect.Reque
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	repoSrv := &repoServer{db: server.db, cfg: server.cfg, availableNodeIDs: server.availableNodeIDs, repoMu: server.repoMu}
+	repoSrv := &repoCommandServer{db: server.db, cfg: server.cfg, availableNodeIDs: server.availableNodeIDs, repoMu: server.repoMu}
 	commitMessage := req.Msg.GetCommitMessage()
 	if commitMessage == "" {
 		commitMessage = fmt.Sprintf("update encrypted file %s for %s", req.Msg.GetFilePath(), service.Name)

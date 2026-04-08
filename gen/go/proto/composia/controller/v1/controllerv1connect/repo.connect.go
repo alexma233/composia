@@ -21,8 +21,10 @@ import (
 const _ = connect.IsAtLeastVersion1_13_0
 
 const (
-	// RepoServiceName is the fully-qualified name of the RepoService service.
-	RepoServiceName = "composia.controller.v1.RepoService"
+	// RepoQueryServiceName is the fully-qualified name of the RepoQueryService service.
+	RepoQueryServiceName = "composia.controller.v1.RepoQueryService"
+	// RepoCommandServiceName is the fully-qualified name of the RepoCommandService service.
+	RepoCommandServiceName = "composia.controller.v1.RepoCommandService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -33,42 +35,215 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// RepoServiceGetRepoHeadProcedure is the fully-qualified name of the RepoService's GetRepoHead RPC.
-	RepoServiceGetRepoHeadProcedure = "/composia.controller.v1.RepoService/GetRepoHead"
-	// RepoServiceListRepoFilesProcedure is the fully-qualified name of the RepoService's ListRepoFiles
-	// RPC.
-	RepoServiceListRepoFilesProcedure = "/composia.controller.v1.RepoService/ListRepoFiles"
-	// RepoServiceGetRepoFileProcedure is the fully-qualified name of the RepoService's GetRepoFile RPC.
-	RepoServiceGetRepoFileProcedure = "/composia.controller.v1.RepoService/GetRepoFile"
-	// RepoServiceListRepoCommitsProcedure is the fully-qualified name of the RepoService's
+	// RepoQueryServiceGetRepoHeadProcedure is the fully-qualified name of the RepoQueryService's
+	// GetRepoHead RPC.
+	RepoQueryServiceGetRepoHeadProcedure = "/composia.controller.v1.RepoQueryService/GetRepoHead"
+	// RepoQueryServiceListRepoFilesProcedure is the fully-qualified name of the RepoQueryService's
+	// ListRepoFiles RPC.
+	RepoQueryServiceListRepoFilesProcedure = "/composia.controller.v1.RepoQueryService/ListRepoFiles"
+	// RepoQueryServiceGetRepoFileProcedure is the fully-qualified name of the RepoQueryService's
+	// GetRepoFile RPC.
+	RepoQueryServiceGetRepoFileProcedure = "/composia.controller.v1.RepoQueryService/GetRepoFile"
+	// RepoQueryServiceListRepoCommitsProcedure is the fully-qualified name of the RepoQueryService's
 	// ListRepoCommits RPC.
-	RepoServiceListRepoCommitsProcedure = "/composia.controller.v1.RepoService/ListRepoCommits"
-	// RepoServiceValidateRepoProcedure is the fully-qualified name of the RepoService's ValidateRepo
-	// RPC.
-	RepoServiceValidateRepoProcedure = "/composia.controller.v1.RepoService/ValidateRepo"
-	// RepoServiceUpdateRepoFileProcedure is the fully-qualified name of the RepoService's
+	RepoQueryServiceListRepoCommitsProcedure = "/composia.controller.v1.RepoQueryService/ListRepoCommits"
+	// RepoQueryServiceValidateRepoProcedure is the fully-qualified name of the RepoQueryService's
+	// ValidateRepo RPC.
+	RepoQueryServiceValidateRepoProcedure = "/composia.controller.v1.RepoQueryService/ValidateRepo"
+	// RepoCommandServiceUpdateRepoFileProcedure is the fully-qualified name of the RepoCommandService's
 	// UpdateRepoFile RPC.
-	RepoServiceUpdateRepoFileProcedure = "/composia.controller.v1.RepoService/UpdateRepoFile"
-	// RepoServiceCreateRepoDirectoryProcedure is the fully-qualified name of the RepoService's
-	// CreateRepoDirectory RPC.
-	RepoServiceCreateRepoDirectoryProcedure = "/composia.controller.v1.RepoService/CreateRepoDirectory"
-	// RepoServiceMoveRepoPathProcedure is the fully-qualified name of the RepoService's MoveRepoPath
-	// RPC.
-	RepoServiceMoveRepoPathProcedure = "/composia.controller.v1.RepoService/MoveRepoPath"
-	// RepoServiceDeleteRepoPathProcedure is the fully-qualified name of the RepoService's
+	RepoCommandServiceUpdateRepoFileProcedure = "/composia.controller.v1.RepoCommandService/UpdateRepoFile"
+	// RepoCommandServiceCreateRepoDirectoryProcedure is the fully-qualified name of the
+	// RepoCommandService's CreateRepoDirectory RPC.
+	RepoCommandServiceCreateRepoDirectoryProcedure = "/composia.controller.v1.RepoCommandService/CreateRepoDirectory"
+	// RepoCommandServiceMoveRepoPathProcedure is the fully-qualified name of the RepoCommandService's
+	// MoveRepoPath RPC.
+	RepoCommandServiceMoveRepoPathProcedure = "/composia.controller.v1.RepoCommandService/MoveRepoPath"
+	// RepoCommandServiceDeleteRepoPathProcedure is the fully-qualified name of the RepoCommandService's
 	// DeleteRepoPath RPC.
-	RepoServiceDeleteRepoPathProcedure = "/composia.controller.v1.RepoService/DeleteRepoPath"
-	// RepoServiceSyncRepoProcedure is the fully-qualified name of the RepoService's SyncRepo RPC.
-	RepoServiceSyncRepoProcedure = "/composia.controller.v1.RepoService/SyncRepo"
+	RepoCommandServiceDeleteRepoPathProcedure = "/composia.controller.v1.RepoCommandService/DeleteRepoPath"
+	// RepoCommandServiceSyncRepoProcedure is the fully-qualified name of the RepoCommandService's
+	// SyncRepo RPC.
+	RepoCommandServiceSyncRepoProcedure = "/composia.controller.v1.RepoCommandService/SyncRepo"
 )
 
-// RepoServiceClient is a client for the composia.controller.v1.RepoService service.
-type RepoServiceClient interface {
+// RepoQueryServiceClient is a client for the composia.controller.v1.RepoQueryService service.
+type RepoQueryServiceClient interface {
 	GetRepoHead(context.Context, *connect.Request[v1.GetRepoHeadRequest]) (*connect.Response[v1.GetRepoHeadResponse], error)
 	ListRepoFiles(context.Context, *connect.Request[v1.ListRepoFilesRequest]) (*connect.Response[v1.ListRepoFilesResponse], error)
 	GetRepoFile(context.Context, *connect.Request[v1.GetRepoFileRequest]) (*connect.Response[v1.GetRepoFileResponse], error)
 	ListRepoCommits(context.Context, *connect.Request[v1.ListRepoCommitsRequest]) (*connect.Response[v1.ListRepoCommitsResponse], error)
 	ValidateRepo(context.Context, *connect.Request[v1.ValidateRepoRequest]) (*connect.Response[v1.ValidateRepoResponse], error)
+}
+
+// NewRepoQueryServiceClient constructs a client for the composia.controller.v1.RepoQueryService
+// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
+// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
+// the connect.WithGRPC() or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewRepoQueryServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) RepoQueryServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	repoQueryServiceMethods := v1.File_proto_composia_controller_v1_repo_proto.Services().ByName("RepoQueryService").Methods()
+	return &repoQueryServiceClient{
+		getRepoHead: connect.NewClient[v1.GetRepoHeadRequest, v1.GetRepoHeadResponse](
+			httpClient,
+			baseURL+RepoQueryServiceGetRepoHeadProcedure,
+			connect.WithSchema(repoQueryServiceMethods.ByName("GetRepoHead")),
+			connect.WithClientOptions(opts...),
+		),
+		listRepoFiles: connect.NewClient[v1.ListRepoFilesRequest, v1.ListRepoFilesResponse](
+			httpClient,
+			baseURL+RepoQueryServiceListRepoFilesProcedure,
+			connect.WithSchema(repoQueryServiceMethods.ByName("ListRepoFiles")),
+			connect.WithClientOptions(opts...),
+		),
+		getRepoFile: connect.NewClient[v1.GetRepoFileRequest, v1.GetRepoFileResponse](
+			httpClient,
+			baseURL+RepoQueryServiceGetRepoFileProcedure,
+			connect.WithSchema(repoQueryServiceMethods.ByName("GetRepoFile")),
+			connect.WithClientOptions(opts...),
+		),
+		listRepoCommits: connect.NewClient[v1.ListRepoCommitsRequest, v1.ListRepoCommitsResponse](
+			httpClient,
+			baseURL+RepoQueryServiceListRepoCommitsProcedure,
+			connect.WithSchema(repoQueryServiceMethods.ByName("ListRepoCommits")),
+			connect.WithClientOptions(opts...),
+		),
+		validateRepo: connect.NewClient[v1.ValidateRepoRequest, v1.ValidateRepoResponse](
+			httpClient,
+			baseURL+RepoQueryServiceValidateRepoProcedure,
+			connect.WithSchema(repoQueryServiceMethods.ByName("ValidateRepo")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// repoQueryServiceClient implements RepoQueryServiceClient.
+type repoQueryServiceClient struct {
+	getRepoHead     *connect.Client[v1.GetRepoHeadRequest, v1.GetRepoHeadResponse]
+	listRepoFiles   *connect.Client[v1.ListRepoFilesRequest, v1.ListRepoFilesResponse]
+	getRepoFile     *connect.Client[v1.GetRepoFileRequest, v1.GetRepoFileResponse]
+	listRepoCommits *connect.Client[v1.ListRepoCommitsRequest, v1.ListRepoCommitsResponse]
+	validateRepo    *connect.Client[v1.ValidateRepoRequest, v1.ValidateRepoResponse]
+}
+
+// GetRepoHead calls composia.controller.v1.RepoQueryService.GetRepoHead.
+func (c *repoQueryServiceClient) GetRepoHead(ctx context.Context, req *connect.Request[v1.GetRepoHeadRequest]) (*connect.Response[v1.GetRepoHeadResponse], error) {
+	return c.getRepoHead.CallUnary(ctx, req)
+}
+
+// ListRepoFiles calls composia.controller.v1.RepoQueryService.ListRepoFiles.
+func (c *repoQueryServiceClient) ListRepoFiles(ctx context.Context, req *connect.Request[v1.ListRepoFilesRequest]) (*connect.Response[v1.ListRepoFilesResponse], error) {
+	return c.listRepoFiles.CallUnary(ctx, req)
+}
+
+// GetRepoFile calls composia.controller.v1.RepoQueryService.GetRepoFile.
+func (c *repoQueryServiceClient) GetRepoFile(ctx context.Context, req *connect.Request[v1.GetRepoFileRequest]) (*connect.Response[v1.GetRepoFileResponse], error) {
+	return c.getRepoFile.CallUnary(ctx, req)
+}
+
+// ListRepoCommits calls composia.controller.v1.RepoQueryService.ListRepoCommits.
+func (c *repoQueryServiceClient) ListRepoCommits(ctx context.Context, req *connect.Request[v1.ListRepoCommitsRequest]) (*connect.Response[v1.ListRepoCommitsResponse], error) {
+	return c.listRepoCommits.CallUnary(ctx, req)
+}
+
+// ValidateRepo calls composia.controller.v1.RepoQueryService.ValidateRepo.
+func (c *repoQueryServiceClient) ValidateRepo(ctx context.Context, req *connect.Request[v1.ValidateRepoRequest]) (*connect.Response[v1.ValidateRepoResponse], error) {
+	return c.validateRepo.CallUnary(ctx, req)
+}
+
+// RepoQueryServiceHandler is an implementation of the composia.controller.v1.RepoQueryService
+// service.
+type RepoQueryServiceHandler interface {
+	GetRepoHead(context.Context, *connect.Request[v1.GetRepoHeadRequest]) (*connect.Response[v1.GetRepoHeadResponse], error)
+	ListRepoFiles(context.Context, *connect.Request[v1.ListRepoFilesRequest]) (*connect.Response[v1.ListRepoFilesResponse], error)
+	GetRepoFile(context.Context, *connect.Request[v1.GetRepoFileRequest]) (*connect.Response[v1.GetRepoFileResponse], error)
+	ListRepoCommits(context.Context, *connect.Request[v1.ListRepoCommitsRequest]) (*connect.Response[v1.ListRepoCommitsResponse], error)
+	ValidateRepo(context.Context, *connect.Request[v1.ValidateRepoRequest]) (*connect.Response[v1.ValidateRepoResponse], error)
+}
+
+// NewRepoQueryServiceHandler builds an HTTP handler from the service implementation. It returns the
+// path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewRepoQueryServiceHandler(svc RepoQueryServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	repoQueryServiceMethods := v1.File_proto_composia_controller_v1_repo_proto.Services().ByName("RepoQueryService").Methods()
+	repoQueryServiceGetRepoHeadHandler := connect.NewUnaryHandler(
+		RepoQueryServiceGetRepoHeadProcedure,
+		svc.GetRepoHead,
+		connect.WithSchema(repoQueryServiceMethods.ByName("GetRepoHead")),
+		connect.WithHandlerOptions(opts...),
+	)
+	repoQueryServiceListRepoFilesHandler := connect.NewUnaryHandler(
+		RepoQueryServiceListRepoFilesProcedure,
+		svc.ListRepoFiles,
+		connect.WithSchema(repoQueryServiceMethods.ByName("ListRepoFiles")),
+		connect.WithHandlerOptions(opts...),
+	)
+	repoQueryServiceGetRepoFileHandler := connect.NewUnaryHandler(
+		RepoQueryServiceGetRepoFileProcedure,
+		svc.GetRepoFile,
+		connect.WithSchema(repoQueryServiceMethods.ByName("GetRepoFile")),
+		connect.WithHandlerOptions(opts...),
+	)
+	repoQueryServiceListRepoCommitsHandler := connect.NewUnaryHandler(
+		RepoQueryServiceListRepoCommitsProcedure,
+		svc.ListRepoCommits,
+		connect.WithSchema(repoQueryServiceMethods.ByName("ListRepoCommits")),
+		connect.WithHandlerOptions(opts...),
+	)
+	repoQueryServiceValidateRepoHandler := connect.NewUnaryHandler(
+		RepoQueryServiceValidateRepoProcedure,
+		svc.ValidateRepo,
+		connect.WithSchema(repoQueryServiceMethods.ByName("ValidateRepo")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/composia.controller.v1.RepoQueryService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case RepoQueryServiceGetRepoHeadProcedure:
+			repoQueryServiceGetRepoHeadHandler.ServeHTTP(w, r)
+		case RepoQueryServiceListRepoFilesProcedure:
+			repoQueryServiceListRepoFilesHandler.ServeHTTP(w, r)
+		case RepoQueryServiceGetRepoFileProcedure:
+			repoQueryServiceGetRepoFileHandler.ServeHTTP(w, r)
+		case RepoQueryServiceListRepoCommitsProcedure:
+			repoQueryServiceListRepoCommitsHandler.ServeHTTP(w, r)
+		case RepoQueryServiceValidateRepoProcedure:
+			repoQueryServiceValidateRepoHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedRepoQueryServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedRepoQueryServiceHandler struct{}
+
+func (UnimplementedRepoQueryServiceHandler) GetRepoHead(context.Context, *connect.Request[v1.GetRepoHeadRequest]) (*connect.Response[v1.GetRepoHeadResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoQueryService.GetRepoHead is not implemented"))
+}
+
+func (UnimplementedRepoQueryServiceHandler) ListRepoFiles(context.Context, *connect.Request[v1.ListRepoFilesRequest]) (*connect.Response[v1.ListRepoFilesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoQueryService.ListRepoFiles is not implemented"))
+}
+
+func (UnimplementedRepoQueryServiceHandler) GetRepoFile(context.Context, *connect.Request[v1.GetRepoFileRequest]) (*connect.Response[v1.GetRepoFileResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoQueryService.GetRepoFile is not implemented"))
+}
+
+func (UnimplementedRepoQueryServiceHandler) ListRepoCommits(context.Context, *connect.Request[v1.ListRepoCommitsRequest]) (*connect.Response[v1.ListRepoCommitsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoQueryService.ListRepoCommits is not implemented"))
+}
+
+func (UnimplementedRepoQueryServiceHandler) ValidateRepo(context.Context, *connect.Request[v1.ValidateRepoRequest]) (*connect.Response[v1.ValidateRepoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoQueryService.ValidateRepo is not implemented"))
+}
+
+// RepoCommandServiceClient is a client for the composia.controller.v1.RepoCommandService service.
+type RepoCommandServiceClient interface {
 	UpdateRepoFile(context.Context, *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.UpdateRepoFileResponse], error)
 	CreateRepoDirectory(context.Context, *connect.Request[v1.CreateRepoDirectoryRequest]) (*connect.Response[v1.CreateRepoDirectoryResponse], error)
 	MoveRepoPath(context.Context, *connect.Request[v1.MoveRepoPathRequest]) (*connect.Response[v1.MoveRepoPathResponse], error)
@@ -76,87 +251,52 @@ type RepoServiceClient interface {
 	SyncRepo(context.Context, *connect.Request[v1.SyncRepoRequest]) (*connect.Response[v1.SyncRepoResponse], error)
 }
 
-// NewRepoServiceClient constructs a client for the composia.controller.v1.RepoService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
+// NewRepoCommandServiceClient constructs a client for the composia.controller.v1.RepoCommandService
+// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
+// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
+// the connect.WithGRPC() or connect.WithGRPCWeb() options.
 //
 // The URL supplied here should be the base URL for the Connect or gRPC server (for example,
 // http://api.acme.com or https://acme.com/grpc).
-func NewRepoServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) RepoServiceClient {
+func NewRepoCommandServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) RepoCommandServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
-	repoServiceMethods := v1.File_proto_composia_controller_v1_repo_proto.Services().ByName("RepoService").Methods()
-	return &repoServiceClient{
-		getRepoHead: connect.NewClient[v1.GetRepoHeadRequest, v1.GetRepoHeadResponse](
-			httpClient,
-			baseURL+RepoServiceGetRepoHeadProcedure,
-			connect.WithSchema(repoServiceMethods.ByName("GetRepoHead")),
-			connect.WithClientOptions(opts...),
-		),
-		listRepoFiles: connect.NewClient[v1.ListRepoFilesRequest, v1.ListRepoFilesResponse](
-			httpClient,
-			baseURL+RepoServiceListRepoFilesProcedure,
-			connect.WithSchema(repoServiceMethods.ByName("ListRepoFiles")),
-			connect.WithClientOptions(opts...),
-		),
-		getRepoFile: connect.NewClient[v1.GetRepoFileRequest, v1.GetRepoFileResponse](
-			httpClient,
-			baseURL+RepoServiceGetRepoFileProcedure,
-			connect.WithSchema(repoServiceMethods.ByName("GetRepoFile")),
-			connect.WithClientOptions(opts...),
-		),
-		listRepoCommits: connect.NewClient[v1.ListRepoCommitsRequest, v1.ListRepoCommitsResponse](
-			httpClient,
-			baseURL+RepoServiceListRepoCommitsProcedure,
-			connect.WithSchema(repoServiceMethods.ByName("ListRepoCommits")),
-			connect.WithClientOptions(opts...),
-		),
-		validateRepo: connect.NewClient[v1.ValidateRepoRequest, v1.ValidateRepoResponse](
-			httpClient,
-			baseURL+RepoServiceValidateRepoProcedure,
-			connect.WithSchema(repoServiceMethods.ByName("ValidateRepo")),
-			connect.WithClientOptions(opts...),
-		),
+	repoCommandServiceMethods := v1.File_proto_composia_controller_v1_repo_proto.Services().ByName("RepoCommandService").Methods()
+	return &repoCommandServiceClient{
 		updateRepoFile: connect.NewClient[v1.UpdateRepoFileRequest, v1.UpdateRepoFileResponse](
 			httpClient,
-			baseURL+RepoServiceUpdateRepoFileProcedure,
-			connect.WithSchema(repoServiceMethods.ByName("UpdateRepoFile")),
+			baseURL+RepoCommandServiceUpdateRepoFileProcedure,
+			connect.WithSchema(repoCommandServiceMethods.ByName("UpdateRepoFile")),
 			connect.WithClientOptions(opts...),
 		),
 		createRepoDirectory: connect.NewClient[v1.CreateRepoDirectoryRequest, v1.CreateRepoDirectoryResponse](
 			httpClient,
-			baseURL+RepoServiceCreateRepoDirectoryProcedure,
-			connect.WithSchema(repoServiceMethods.ByName("CreateRepoDirectory")),
+			baseURL+RepoCommandServiceCreateRepoDirectoryProcedure,
+			connect.WithSchema(repoCommandServiceMethods.ByName("CreateRepoDirectory")),
 			connect.WithClientOptions(opts...),
 		),
 		moveRepoPath: connect.NewClient[v1.MoveRepoPathRequest, v1.MoveRepoPathResponse](
 			httpClient,
-			baseURL+RepoServiceMoveRepoPathProcedure,
-			connect.WithSchema(repoServiceMethods.ByName("MoveRepoPath")),
+			baseURL+RepoCommandServiceMoveRepoPathProcedure,
+			connect.WithSchema(repoCommandServiceMethods.ByName("MoveRepoPath")),
 			connect.WithClientOptions(opts...),
 		),
 		deleteRepoPath: connect.NewClient[v1.DeleteRepoPathRequest, v1.DeleteRepoPathResponse](
 			httpClient,
-			baseURL+RepoServiceDeleteRepoPathProcedure,
-			connect.WithSchema(repoServiceMethods.ByName("DeleteRepoPath")),
+			baseURL+RepoCommandServiceDeleteRepoPathProcedure,
+			connect.WithSchema(repoCommandServiceMethods.ByName("DeleteRepoPath")),
 			connect.WithClientOptions(opts...),
 		),
 		syncRepo: connect.NewClient[v1.SyncRepoRequest, v1.SyncRepoResponse](
 			httpClient,
-			baseURL+RepoServiceSyncRepoProcedure,
-			connect.WithSchema(repoServiceMethods.ByName("SyncRepo")),
+			baseURL+RepoCommandServiceSyncRepoProcedure,
+			connect.WithSchema(repoCommandServiceMethods.ByName("SyncRepo")),
 			connect.WithClientOptions(opts...),
 		),
 	}
 }
 
-// repoServiceClient implements RepoServiceClient.
-type repoServiceClient struct {
-	getRepoHead         *connect.Client[v1.GetRepoHeadRequest, v1.GetRepoHeadResponse]
-	listRepoFiles       *connect.Client[v1.ListRepoFilesRequest, v1.ListRepoFilesResponse]
-	getRepoFile         *connect.Client[v1.GetRepoFileRequest, v1.GetRepoFileResponse]
-	listRepoCommits     *connect.Client[v1.ListRepoCommitsRequest, v1.ListRepoCommitsResponse]
-	validateRepo        *connect.Client[v1.ValidateRepoRequest, v1.ValidateRepoResponse]
+// repoCommandServiceClient implements RepoCommandServiceClient.
+type repoCommandServiceClient struct {
 	updateRepoFile      *connect.Client[v1.UpdateRepoFileRequest, v1.UpdateRepoFileResponse]
 	createRepoDirectory *connect.Client[v1.CreateRepoDirectoryRequest, v1.CreateRepoDirectoryResponse]
 	moveRepoPath        *connect.Client[v1.MoveRepoPathRequest, v1.MoveRepoPathResponse]
@@ -164,63 +304,34 @@ type repoServiceClient struct {
 	syncRepo            *connect.Client[v1.SyncRepoRequest, v1.SyncRepoResponse]
 }
 
-// GetRepoHead calls composia.controller.v1.RepoService.GetRepoHead.
-func (c *repoServiceClient) GetRepoHead(ctx context.Context, req *connect.Request[v1.GetRepoHeadRequest]) (*connect.Response[v1.GetRepoHeadResponse], error) {
-	return c.getRepoHead.CallUnary(ctx, req)
-}
-
-// ListRepoFiles calls composia.controller.v1.RepoService.ListRepoFiles.
-func (c *repoServiceClient) ListRepoFiles(ctx context.Context, req *connect.Request[v1.ListRepoFilesRequest]) (*connect.Response[v1.ListRepoFilesResponse], error) {
-	return c.listRepoFiles.CallUnary(ctx, req)
-}
-
-// GetRepoFile calls composia.controller.v1.RepoService.GetRepoFile.
-func (c *repoServiceClient) GetRepoFile(ctx context.Context, req *connect.Request[v1.GetRepoFileRequest]) (*connect.Response[v1.GetRepoFileResponse], error) {
-	return c.getRepoFile.CallUnary(ctx, req)
-}
-
-// ListRepoCommits calls composia.controller.v1.RepoService.ListRepoCommits.
-func (c *repoServiceClient) ListRepoCommits(ctx context.Context, req *connect.Request[v1.ListRepoCommitsRequest]) (*connect.Response[v1.ListRepoCommitsResponse], error) {
-	return c.listRepoCommits.CallUnary(ctx, req)
-}
-
-// ValidateRepo calls composia.controller.v1.RepoService.ValidateRepo.
-func (c *repoServiceClient) ValidateRepo(ctx context.Context, req *connect.Request[v1.ValidateRepoRequest]) (*connect.Response[v1.ValidateRepoResponse], error) {
-	return c.validateRepo.CallUnary(ctx, req)
-}
-
-// UpdateRepoFile calls composia.controller.v1.RepoService.UpdateRepoFile.
-func (c *repoServiceClient) UpdateRepoFile(ctx context.Context, req *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.UpdateRepoFileResponse], error) {
+// UpdateRepoFile calls composia.controller.v1.RepoCommandService.UpdateRepoFile.
+func (c *repoCommandServiceClient) UpdateRepoFile(ctx context.Context, req *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.UpdateRepoFileResponse], error) {
 	return c.updateRepoFile.CallUnary(ctx, req)
 }
 
-// CreateRepoDirectory calls composia.controller.v1.RepoService.CreateRepoDirectory.
-func (c *repoServiceClient) CreateRepoDirectory(ctx context.Context, req *connect.Request[v1.CreateRepoDirectoryRequest]) (*connect.Response[v1.CreateRepoDirectoryResponse], error) {
+// CreateRepoDirectory calls composia.controller.v1.RepoCommandService.CreateRepoDirectory.
+func (c *repoCommandServiceClient) CreateRepoDirectory(ctx context.Context, req *connect.Request[v1.CreateRepoDirectoryRequest]) (*connect.Response[v1.CreateRepoDirectoryResponse], error) {
 	return c.createRepoDirectory.CallUnary(ctx, req)
 }
 
-// MoveRepoPath calls composia.controller.v1.RepoService.MoveRepoPath.
-func (c *repoServiceClient) MoveRepoPath(ctx context.Context, req *connect.Request[v1.MoveRepoPathRequest]) (*connect.Response[v1.MoveRepoPathResponse], error) {
+// MoveRepoPath calls composia.controller.v1.RepoCommandService.MoveRepoPath.
+func (c *repoCommandServiceClient) MoveRepoPath(ctx context.Context, req *connect.Request[v1.MoveRepoPathRequest]) (*connect.Response[v1.MoveRepoPathResponse], error) {
 	return c.moveRepoPath.CallUnary(ctx, req)
 }
 
-// DeleteRepoPath calls composia.controller.v1.RepoService.DeleteRepoPath.
-func (c *repoServiceClient) DeleteRepoPath(ctx context.Context, req *connect.Request[v1.DeleteRepoPathRequest]) (*connect.Response[v1.DeleteRepoPathResponse], error) {
+// DeleteRepoPath calls composia.controller.v1.RepoCommandService.DeleteRepoPath.
+func (c *repoCommandServiceClient) DeleteRepoPath(ctx context.Context, req *connect.Request[v1.DeleteRepoPathRequest]) (*connect.Response[v1.DeleteRepoPathResponse], error) {
 	return c.deleteRepoPath.CallUnary(ctx, req)
 }
 
-// SyncRepo calls composia.controller.v1.RepoService.SyncRepo.
-func (c *repoServiceClient) SyncRepo(ctx context.Context, req *connect.Request[v1.SyncRepoRequest]) (*connect.Response[v1.SyncRepoResponse], error) {
+// SyncRepo calls composia.controller.v1.RepoCommandService.SyncRepo.
+func (c *repoCommandServiceClient) SyncRepo(ctx context.Context, req *connect.Request[v1.SyncRepoRequest]) (*connect.Response[v1.SyncRepoResponse], error) {
 	return c.syncRepo.CallUnary(ctx, req)
 }
 
-// RepoServiceHandler is an implementation of the composia.controller.v1.RepoService service.
-type RepoServiceHandler interface {
-	GetRepoHead(context.Context, *connect.Request[v1.GetRepoHeadRequest]) (*connect.Response[v1.GetRepoHeadResponse], error)
-	ListRepoFiles(context.Context, *connect.Request[v1.ListRepoFilesRequest]) (*connect.Response[v1.ListRepoFilesResponse], error)
-	GetRepoFile(context.Context, *connect.Request[v1.GetRepoFileRequest]) (*connect.Response[v1.GetRepoFileResponse], error)
-	ListRepoCommits(context.Context, *connect.Request[v1.ListRepoCommitsRequest]) (*connect.Response[v1.ListRepoCommitsResponse], error)
-	ValidateRepo(context.Context, *connect.Request[v1.ValidateRepoRequest]) (*connect.Response[v1.ValidateRepoResponse], error)
+// RepoCommandServiceHandler is an implementation of the composia.controller.v1.RepoCommandService
+// service.
+type RepoCommandServiceHandler interface {
 	UpdateRepoFile(context.Context, *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.UpdateRepoFileResponse], error)
 	CreateRepoDirectory(context.Context, *connect.Request[v1.CreateRepoDirectoryRequest]) (*connect.Response[v1.CreateRepoDirectoryResponse], error)
 	MoveRepoPath(context.Context, *connect.Request[v1.MoveRepoPathRequest]) (*connect.Response[v1.MoveRepoPathResponse], error)
@@ -228,140 +339,80 @@ type RepoServiceHandler interface {
 	SyncRepo(context.Context, *connect.Request[v1.SyncRepoRequest]) (*connect.Response[v1.SyncRepoResponse], error)
 }
 
-// NewRepoServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
+// NewRepoCommandServiceHandler builds an HTTP handler from the service implementation. It returns
+// the path on which to mount the handler and the handler itself.
 //
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
-func NewRepoServiceHandler(svc RepoServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	repoServiceMethods := v1.File_proto_composia_controller_v1_repo_proto.Services().ByName("RepoService").Methods()
-	repoServiceGetRepoHeadHandler := connect.NewUnaryHandler(
-		RepoServiceGetRepoHeadProcedure,
-		svc.GetRepoHead,
-		connect.WithSchema(repoServiceMethods.ByName("GetRepoHead")),
-		connect.WithHandlerOptions(opts...),
-	)
-	repoServiceListRepoFilesHandler := connect.NewUnaryHandler(
-		RepoServiceListRepoFilesProcedure,
-		svc.ListRepoFiles,
-		connect.WithSchema(repoServiceMethods.ByName("ListRepoFiles")),
-		connect.WithHandlerOptions(opts...),
-	)
-	repoServiceGetRepoFileHandler := connect.NewUnaryHandler(
-		RepoServiceGetRepoFileProcedure,
-		svc.GetRepoFile,
-		connect.WithSchema(repoServiceMethods.ByName("GetRepoFile")),
-		connect.WithHandlerOptions(opts...),
-	)
-	repoServiceListRepoCommitsHandler := connect.NewUnaryHandler(
-		RepoServiceListRepoCommitsProcedure,
-		svc.ListRepoCommits,
-		connect.WithSchema(repoServiceMethods.ByName("ListRepoCommits")),
-		connect.WithHandlerOptions(opts...),
-	)
-	repoServiceValidateRepoHandler := connect.NewUnaryHandler(
-		RepoServiceValidateRepoProcedure,
-		svc.ValidateRepo,
-		connect.WithSchema(repoServiceMethods.ByName("ValidateRepo")),
-		connect.WithHandlerOptions(opts...),
-	)
-	repoServiceUpdateRepoFileHandler := connect.NewUnaryHandler(
-		RepoServiceUpdateRepoFileProcedure,
+func NewRepoCommandServiceHandler(svc RepoCommandServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	repoCommandServiceMethods := v1.File_proto_composia_controller_v1_repo_proto.Services().ByName("RepoCommandService").Methods()
+	repoCommandServiceUpdateRepoFileHandler := connect.NewUnaryHandler(
+		RepoCommandServiceUpdateRepoFileProcedure,
 		svc.UpdateRepoFile,
-		connect.WithSchema(repoServiceMethods.ByName("UpdateRepoFile")),
+		connect.WithSchema(repoCommandServiceMethods.ByName("UpdateRepoFile")),
 		connect.WithHandlerOptions(opts...),
 	)
-	repoServiceCreateRepoDirectoryHandler := connect.NewUnaryHandler(
-		RepoServiceCreateRepoDirectoryProcedure,
+	repoCommandServiceCreateRepoDirectoryHandler := connect.NewUnaryHandler(
+		RepoCommandServiceCreateRepoDirectoryProcedure,
 		svc.CreateRepoDirectory,
-		connect.WithSchema(repoServiceMethods.ByName("CreateRepoDirectory")),
+		connect.WithSchema(repoCommandServiceMethods.ByName("CreateRepoDirectory")),
 		connect.WithHandlerOptions(opts...),
 	)
-	repoServiceMoveRepoPathHandler := connect.NewUnaryHandler(
-		RepoServiceMoveRepoPathProcedure,
+	repoCommandServiceMoveRepoPathHandler := connect.NewUnaryHandler(
+		RepoCommandServiceMoveRepoPathProcedure,
 		svc.MoveRepoPath,
-		connect.WithSchema(repoServiceMethods.ByName("MoveRepoPath")),
+		connect.WithSchema(repoCommandServiceMethods.ByName("MoveRepoPath")),
 		connect.WithHandlerOptions(opts...),
 	)
-	repoServiceDeleteRepoPathHandler := connect.NewUnaryHandler(
-		RepoServiceDeleteRepoPathProcedure,
+	repoCommandServiceDeleteRepoPathHandler := connect.NewUnaryHandler(
+		RepoCommandServiceDeleteRepoPathProcedure,
 		svc.DeleteRepoPath,
-		connect.WithSchema(repoServiceMethods.ByName("DeleteRepoPath")),
+		connect.WithSchema(repoCommandServiceMethods.ByName("DeleteRepoPath")),
 		connect.WithHandlerOptions(opts...),
 	)
-	repoServiceSyncRepoHandler := connect.NewUnaryHandler(
-		RepoServiceSyncRepoProcedure,
+	repoCommandServiceSyncRepoHandler := connect.NewUnaryHandler(
+		RepoCommandServiceSyncRepoProcedure,
 		svc.SyncRepo,
-		connect.WithSchema(repoServiceMethods.ByName("SyncRepo")),
+		connect.WithSchema(repoCommandServiceMethods.ByName("SyncRepo")),
 		connect.WithHandlerOptions(opts...),
 	)
-	return "/composia.controller.v1.RepoService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return "/composia.controller.v1.RepoCommandService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case RepoServiceGetRepoHeadProcedure:
-			repoServiceGetRepoHeadHandler.ServeHTTP(w, r)
-		case RepoServiceListRepoFilesProcedure:
-			repoServiceListRepoFilesHandler.ServeHTTP(w, r)
-		case RepoServiceGetRepoFileProcedure:
-			repoServiceGetRepoFileHandler.ServeHTTP(w, r)
-		case RepoServiceListRepoCommitsProcedure:
-			repoServiceListRepoCommitsHandler.ServeHTTP(w, r)
-		case RepoServiceValidateRepoProcedure:
-			repoServiceValidateRepoHandler.ServeHTTP(w, r)
-		case RepoServiceUpdateRepoFileProcedure:
-			repoServiceUpdateRepoFileHandler.ServeHTTP(w, r)
-		case RepoServiceCreateRepoDirectoryProcedure:
-			repoServiceCreateRepoDirectoryHandler.ServeHTTP(w, r)
-		case RepoServiceMoveRepoPathProcedure:
-			repoServiceMoveRepoPathHandler.ServeHTTP(w, r)
-		case RepoServiceDeleteRepoPathProcedure:
-			repoServiceDeleteRepoPathHandler.ServeHTTP(w, r)
-		case RepoServiceSyncRepoProcedure:
-			repoServiceSyncRepoHandler.ServeHTTP(w, r)
+		case RepoCommandServiceUpdateRepoFileProcedure:
+			repoCommandServiceUpdateRepoFileHandler.ServeHTTP(w, r)
+		case RepoCommandServiceCreateRepoDirectoryProcedure:
+			repoCommandServiceCreateRepoDirectoryHandler.ServeHTTP(w, r)
+		case RepoCommandServiceMoveRepoPathProcedure:
+			repoCommandServiceMoveRepoPathHandler.ServeHTTP(w, r)
+		case RepoCommandServiceDeleteRepoPathProcedure:
+			repoCommandServiceDeleteRepoPathHandler.ServeHTTP(w, r)
+		case RepoCommandServiceSyncRepoProcedure:
+			repoCommandServiceSyncRepoHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
 	})
 }
 
-// UnimplementedRepoServiceHandler returns CodeUnimplemented from all methods.
-type UnimplementedRepoServiceHandler struct{}
+// UnimplementedRepoCommandServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedRepoCommandServiceHandler struct{}
 
-func (UnimplementedRepoServiceHandler) GetRepoHead(context.Context, *connect.Request[v1.GetRepoHeadRequest]) (*connect.Response[v1.GetRepoHeadResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoService.GetRepoHead is not implemented"))
+func (UnimplementedRepoCommandServiceHandler) UpdateRepoFile(context.Context, *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.UpdateRepoFileResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoCommandService.UpdateRepoFile is not implemented"))
 }
 
-func (UnimplementedRepoServiceHandler) ListRepoFiles(context.Context, *connect.Request[v1.ListRepoFilesRequest]) (*connect.Response[v1.ListRepoFilesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoService.ListRepoFiles is not implemented"))
+func (UnimplementedRepoCommandServiceHandler) CreateRepoDirectory(context.Context, *connect.Request[v1.CreateRepoDirectoryRequest]) (*connect.Response[v1.CreateRepoDirectoryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoCommandService.CreateRepoDirectory is not implemented"))
 }
 
-func (UnimplementedRepoServiceHandler) GetRepoFile(context.Context, *connect.Request[v1.GetRepoFileRequest]) (*connect.Response[v1.GetRepoFileResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoService.GetRepoFile is not implemented"))
+func (UnimplementedRepoCommandServiceHandler) MoveRepoPath(context.Context, *connect.Request[v1.MoveRepoPathRequest]) (*connect.Response[v1.MoveRepoPathResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoCommandService.MoveRepoPath is not implemented"))
 }
 
-func (UnimplementedRepoServiceHandler) ListRepoCommits(context.Context, *connect.Request[v1.ListRepoCommitsRequest]) (*connect.Response[v1.ListRepoCommitsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoService.ListRepoCommits is not implemented"))
+func (UnimplementedRepoCommandServiceHandler) DeleteRepoPath(context.Context, *connect.Request[v1.DeleteRepoPathRequest]) (*connect.Response[v1.DeleteRepoPathResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoCommandService.DeleteRepoPath is not implemented"))
 }
 
-func (UnimplementedRepoServiceHandler) ValidateRepo(context.Context, *connect.Request[v1.ValidateRepoRequest]) (*connect.Response[v1.ValidateRepoResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoService.ValidateRepo is not implemented"))
-}
-
-func (UnimplementedRepoServiceHandler) UpdateRepoFile(context.Context, *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.UpdateRepoFileResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoService.UpdateRepoFile is not implemented"))
-}
-
-func (UnimplementedRepoServiceHandler) CreateRepoDirectory(context.Context, *connect.Request[v1.CreateRepoDirectoryRequest]) (*connect.Response[v1.CreateRepoDirectoryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoService.CreateRepoDirectory is not implemented"))
-}
-
-func (UnimplementedRepoServiceHandler) MoveRepoPath(context.Context, *connect.Request[v1.MoveRepoPathRequest]) (*connect.Response[v1.MoveRepoPathResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoService.MoveRepoPath is not implemented"))
-}
-
-func (UnimplementedRepoServiceHandler) DeleteRepoPath(context.Context, *connect.Request[v1.DeleteRepoPathRequest]) (*connect.Response[v1.DeleteRepoPathResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoService.DeleteRepoPath is not implemented"))
-}
-
-func (UnimplementedRepoServiceHandler) SyncRepo(context.Context, *connect.Request[v1.SyncRepoRequest]) (*connect.Response[v1.SyncRepoResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoService.SyncRepo is not implemented"))
+func (UnimplementedRepoCommandServiceHandler) SyncRepo(context.Context, *connect.Request[v1.SyncRepoRequest]) (*connect.Response[v1.SyncRepoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoCommandService.SyncRepo is not implemented"))
 }

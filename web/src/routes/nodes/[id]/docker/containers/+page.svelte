@@ -47,7 +47,7 @@
     containers = data.containers || [];
   });
 
-  async function loadContainers() {
+  async function refreshContainers() {
     if (!data.ready) {
       loading = false;
       return;
@@ -57,7 +57,7 @@
     loadError = null;
 
     try {
-      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/containers/data`);
+      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/containers`);
       const payload = await response.json();
       if (!response.ok) {
         throw new Error(payload.error || 'Failed to load containers');
@@ -71,20 +71,19 @@
     }
   }
 
-  async function runAction(containerId: string, action: 'start' | 'stop' | 'restart') {
+  async function queueContainerAction(containerId: string, action: 'start' | 'stop' | 'restart') {
     actionBusyId = `${containerId}:${action}`;
     try {
-      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/containers/action`, {
+      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/containers/${encodeURIComponent(containerId)}/actions/${action}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, containerId })
+        headers: { 'Content-Type': 'application/json' }
       });
       const payload = await response.json();
       if (!response.ok) {
         throw new Error(payload.error ?? `Failed to ${action} container`);
       }
       toast.success(`${action} queued: ${payload.taskId?.slice(0, 12) ?? 'task'}`);
-      await loadContainers();
+      await refreshContainers();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : `Failed to ${action} container.`);
     } finally {
@@ -97,7 +96,7 @@
   }
 
   onMount(() => {
-    void loadContainers();
+    void refreshContainers();
   });
 
   function getStateVariant(state: string): BadgeVariant {
@@ -184,7 +183,7 @@
               Clear
             </Button>
           {/if}
-          <Button variant="outline" size="sm" onclick={() => void loadContainers()} disabled={loading || !data.ready}>
+          <Button variant="outline" size="sm" onclick={() => void refreshContainers()} disabled={loading || !data.ready}>
             {#if loading}Loading...{:else}Refresh{/if}
           </Button>
         </div>
@@ -302,7 +301,7 @@
                       <Button
                         variant="outline"
                         size="sm"
-                        onclick={() => void runAction(container.id, 'start')}
+                        onclick={() => void queueContainerAction(container.id, 'start')}
                         disabled={isActionBusy(container.id, 'start') || container.state.toLowerCase() === 'running'}
                       >
                         Start
@@ -310,7 +309,7 @@
                       <Button
                         variant="outline"
                         size="sm"
-                        onclick={() => void runAction(container.id, 'stop')}
+                        onclick={() => void queueContainerAction(container.id, 'stop')}
                         disabled={isActionBusy(container.id, 'stop') || container.state.toLowerCase() !== 'running'}
                       >
                         Stop
@@ -318,7 +317,7 @@
                       <Button
                         variant="outline"
                         size="sm"
-                        onclick={() => void runAction(container.id, 'restart')}
+                        onclick={() => void queueContainerAction(container.id, 'restart')}
                         disabled={isActionBusy(container.id, 'restart')}
                       >
                         Restart

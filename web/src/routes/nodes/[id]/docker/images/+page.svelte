@@ -46,7 +46,7 @@
     images = data.images || [];
   });
 
-  async function loadImages() {
+  async function refreshImages() {
     if (!data.ready) {
       loading = false;
       return;
@@ -56,7 +56,7 @@
     loadError = null;
 
     try {
-      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/images/data`);
+      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/images`);
       const payload = await response.json();
       if (!response.ok) {
         throw new Error(payload.error || 'Failed to load images');
@@ -71,7 +71,7 @@
   }
 
   onMount(() => {
-    void loadImages();
+    void refreshImages();
   });
 
   function handleSort(field: string) {
@@ -146,7 +146,7 @@
               Clear
             </Button>
           {/if}
-          <Button variant="outline" size="sm" onclick={() => void loadImages()} disabled={loading || !data.ready}>
+          <Button variant="outline" size="sm" onclick={() => void refreshImages()} disabled={loading || !data.ready}>
             {#if loading}Loading...{:else}Refresh{/if}
           </Button>
         </div>

@@ -21,8 +21,12 @@ import (
 const _ = connect.IsAtLeastVersion1_13_0
 
 const (
-	// NodeServiceName is the fully-qualified name of the NodeService service.
-	NodeServiceName = "composia.controller.v1.NodeService"
+	// NodeQueryServiceName is the fully-qualified name of the NodeQueryService service.
+	NodeQueryServiceName = "composia.controller.v1.NodeQueryService"
+	// NodeMaintenanceServiceName is the fully-qualified name of the NodeMaintenanceService service.
+	NodeMaintenanceServiceName = "composia.controller.v1.NodeMaintenanceService"
+	// DockerQueryServiceName is the fully-qualified name of the DockerQueryService service.
+	DockerQueryServiceName = "composia.controller.v1.DockerQueryService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -33,68 +37,387 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// NodeServiceListNodesProcedure is the fully-qualified name of the NodeService's ListNodes RPC.
-	NodeServiceListNodesProcedure = "/composia.controller.v1.NodeService/ListNodes"
-	// NodeServiceGetNodeProcedure is the fully-qualified name of the NodeService's GetNode RPC.
-	NodeServiceGetNodeProcedure = "/composia.controller.v1.NodeService/GetNode"
-	// NodeServiceGetNodeTasksProcedure is the fully-qualified name of the NodeService's GetNodeTasks
+	// NodeQueryServiceListNodesProcedure is the fully-qualified name of the NodeQueryService's
+	// ListNodes RPC.
+	NodeQueryServiceListNodesProcedure = "/composia.controller.v1.NodeQueryService/ListNodes"
+	// NodeQueryServiceGetNodeProcedure is the fully-qualified name of the NodeQueryService's GetNode
 	// RPC.
-	NodeServiceGetNodeTasksProcedure = "/composia.controller.v1.NodeService/GetNodeTasks"
-	// NodeServiceGetNodeDockerStatsProcedure is the fully-qualified name of the NodeService's
+	NodeQueryServiceGetNodeProcedure = "/composia.controller.v1.NodeQueryService/GetNode"
+	// NodeQueryServiceGetNodeTasksProcedure is the fully-qualified name of the NodeQueryService's
+	// GetNodeTasks RPC.
+	NodeQueryServiceGetNodeTasksProcedure = "/composia.controller.v1.NodeQueryService/GetNodeTasks"
+	// NodeQueryServiceGetNodeDockerStatsProcedure is the fully-qualified name of the NodeQueryService's
 	// GetNodeDockerStats RPC.
-	NodeServiceGetNodeDockerStatsProcedure = "/composia.controller.v1.NodeService/GetNodeDockerStats"
-	// NodeServiceSyncNodeCaddyFilesProcedure is the fully-qualified name of the NodeService's
-	// SyncNodeCaddyFiles RPC.
-	NodeServiceSyncNodeCaddyFilesProcedure = "/composia.controller.v1.NodeService/SyncNodeCaddyFiles"
-	// NodeServiceReloadNodeCaddyProcedure is the fully-qualified name of the NodeService's
-	// ReloadNodeCaddy RPC.
-	NodeServiceReloadNodeCaddyProcedure = "/composia.controller.v1.NodeService/ReloadNodeCaddy"
-	// NodeServicePruneNodeDockerProcedure is the fully-qualified name of the NodeService's
-	// PruneNodeDocker RPC.
-	NodeServicePruneNodeDockerProcedure = "/composia.controller.v1.NodeService/PruneNodeDocker"
-	// NodeServiceForgetNodeRusticProcedure is the fully-qualified name of the NodeService's
-	// ForgetNodeRustic RPC.
-	NodeServiceForgetNodeRusticProcedure = "/composia.controller.v1.NodeService/ForgetNodeRustic"
-	// NodeServicePruneNodeRusticProcedure is the fully-qualified name of the NodeService's
-	// PruneNodeRustic RPC.
-	NodeServicePruneNodeRusticProcedure = "/composia.controller.v1.NodeService/PruneNodeRustic"
-	// NodeServiceListNodeContainersProcedure is the fully-qualified name of the NodeService's
-	// ListNodeContainers RPC.
-	NodeServiceListNodeContainersProcedure = "/composia.controller.v1.NodeService/ListNodeContainers"
-	// NodeServiceInspectNodeContainerProcedure is the fully-qualified name of the NodeService's
-	// InspectNodeContainer RPC.
-	NodeServiceInspectNodeContainerProcedure = "/composia.controller.v1.NodeService/InspectNodeContainer"
-	// NodeServiceListNodeNetworksProcedure is the fully-qualified name of the NodeService's
-	// ListNodeNetworks RPC.
-	NodeServiceListNodeNetworksProcedure = "/composia.controller.v1.NodeService/ListNodeNetworks"
-	// NodeServiceInspectNodeNetworkProcedure is the fully-qualified name of the NodeService's
-	// InspectNodeNetwork RPC.
-	NodeServiceInspectNodeNetworkProcedure = "/composia.controller.v1.NodeService/InspectNodeNetwork"
-	// NodeServiceListNodeVolumesProcedure is the fully-qualified name of the NodeService's
-	// ListNodeVolumes RPC.
-	NodeServiceListNodeVolumesProcedure = "/composia.controller.v1.NodeService/ListNodeVolumes"
-	// NodeServiceInspectNodeVolumeProcedure is the fully-qualified name of the NodeService's
-	// InspectNodeVolume RPC.
-	NodeServiceInspectNodeVolumeProcedure = "/composia.controller.v1.NodeService/InspectNodeVolume"
-	// NodeServiceListNodeImagesProcedure is the fully-qualified name of the NodeService's
+	NodeQueryServiceGetNodeDockerStatsProcedure = "/composia.controller.v1.NodeQueryService/GetNodeDockerStats"
+	// NodeMaintenanceServiceSyncNodeCaddyFilesProcedure is the fully-qualified name of the
+	// NodeMaintenanceService's SyncNodeCaddyFiles RPC.
+	NodeMaintenanceServiceSyncNodeCaddyFilesProcedure = "/composia.controller.v1.NodeMaintenanceService/SyncNodeCaddyFiles"
+	// NodeMaintenanceServiceReloadNodeCaddyProcedure is the fully-qualified name of the
+	// NodeMaintenanceService's ReloadNodeCaddy RPC.
+	NodeMaintenanceServiceReloadNodeCaddyProcedure = "/composia.controller.v1.NodeMaintenanceService/ReloadNodeCaddy"
+	// NodeMaintenanceServicePruneNodeDockerProcedure is the fully-qualified name of the
+	// NodeMaintenanceService's PruneNodeDocker RPC.
+	NodeMaintenanceServicePruneNodeDockerProcedure = "/composia.controller.v1.NodeMaintenanceService/PruneNodeDocker"
+	// NodeMaintenanceServiceForgetNodeRusticProcedure is the fully-qualified name of the
+	// NodeMaintenanceService's ForgetNodeRustic RPC.
+	NodeMaintenanceServiceForgetNodeRusticProcedure = "/composia.controller.v1.NodeMaintenanceService/ForgetNodeRustic"
+	// NodeMaintenanceServicePruneNodeRusticProcedure is the fully-qualified name of the
+	// NodeMaintenanceService's PruneNodeRustic RPC.
+	NodeMaintenanceServicePruneNodeRusticProcedure = "/composia.controller.v1.NodeMaintenanceService/PruneNodeRustic"
+	// DockerQueryServiceListNodeContainersProcedure is the fully-qualified name of the
+	// DockerQueryService's ListNodeContainers RPC.
+	DockerQueryServiceListNodeContainersProcedure = "/composia.controller.v1.DockerQueryService/ListNodeContainers"
+	// DockerQueryServiceInspectNodeContainerProcedure is the fully-qualified name of the
+	// DockerQueryService's InspectNodeContainer RPC.
+	DockerQueryServiceInspectNodeContainerProcedure = "/composia.controller.v1.DockerQueryService/InspectNodeContainer"
+	// DockerQueryServiceListNodeNetworksProcedure is the fully-qualified name of the
+	// DockerQueryService's ListNodeNetworks RPC.
+	DockerQueryServiceListNodeNetworksProcedure = "/composia.controller.v1.DockerQueryService/ListNodeNetworks"
+	// DockerQueryServiceInspectNodeNetworkProcedure is the fully-qualified name of the
+	// DockerQueryService's InspectNodeNetwork RPC.
+	DockerQueryServiceInspectNodeNetworkProcedure = "/composia.controller.v1.DockerQueryService/InspectNodeNetwork"
+	// DockerQueryServiceListNodeVolumesProcedure is the fully-qualified name of the
+	// DockerQueryService's ListNodeVolumes RPC.
+	DockerQueryServiceListNodeVolumesProcedure = "/composia.controller.v1.DockerQueryService/ListNodeVolumes"
+	// DockerQueryServiceInspectNodeVolumeProcedure is the fully-qualified name of the
+	// DockerQueryService's InspectNodeVolume RPC.
+	DockerQueryServiceInspectNodeVolumeProcedure = "/composia.controller.v1.DockerQueryService/InspectNodeVolume"
+	// DockerQueryServiceListNodeImagesProcedure is the fully-qualified name of the DockerQueryService's
 	// ListNodeImages RPC.
-	NodeServiceListNodeImagesProcedure = "/composia.controller.v1.NodeService/ListNodeImages"
-	// NodeServiceInspectNodeImageProcedure is the fully-qualified name of the NodeService's
-	// InspectNodeImage RPC.
-	NodeServiceInspectNodeImageProcedure = "/composia.controller.v1.NodeService/InspectNodeImage"
+	DockerQueryServiceListNodeImagesProcedure = "/composia.controller.v1.DockerQueryService/ListNodeImages"
+	// DockerQueryServiceInspectNodeImageProcedure is the fully-qualified name of the
+	// DockerQueryService's InspectNodeImage RPC.
+	DockerQueryServiceInspectNodeImageProcedure = "/composia.controller.v1.DockerQueryService/InspectNodeImage"
 )
 
-// NodeServiceClient is a client for the composia.controller.v1.NodeService service.
-type NodeServiceClient interface {
+// NodeQueryServiceClient is a client for the composia.controller.v1.NodeQueryService service.
+type NodeQueryServiceClient interface {
 	ListNodes(context.Context, *connect.Request[v1.ListNodesRequest]) (*connect.Response[v1.ListNodesResponse], error)
 	GetNode(context.Context, *connect.Request[v1.GetNodeRequest]) (*connect.Response[v1.GetNodeResponse], error)
 	GetNodeTasks(context.Context, *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error)
 	GetNodeDockerStats(context.Context, *connect.Request[v1.GetNodeDockerStatsRequest]) (*connect.Response[v1.GetNodeDockerStatsResponse], error)
+}
+
+// NewNodeQueryServiceClient constructs a client for the composia.controller.v1.NodeQueryService
+// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
+// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
+// the connect.WithGRPC() or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewNodeQueryServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) NodeQueryServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	nodeQueryServiceMethods := v1.File_proto_composia_controller_v1_node_proto.Services().ByName("NodeQueryService").Methods()
+	return &nodeQueryServiceClient{
+		listNodes: connect.NewClient[v1.ListNodesRequest, v1.ListNodesResponse](
+			httpClient,
+			baseURL+NodeQueryServiceListNodesProcedure,
+			connect.WithSchema(nodeQueryServiceMethods.ByName("ListNodes")),
+			connect.WithClientOptions(opts...),
+		),
+		getNode: connect.NewClient[v1.GetNodeRequest, v1.GetNodeResponse](
+			httpClient,
+			baseURL+NodeQueryServiceGetNodeProcedure,
+			connect.WithSchema(nodeQueryServiceMethods.ByName("GetNode")),
+			connect.WithClientOptions(opts...),
+		),
+		getNodeTasks: connect.NewClient[v1.GetNodeTasksRequest, v1.GetNodeTasksResponse](
+			httpClient,
+			baseURL+NodeQueryServiceGetNodeTasksProcedure,
+			connect.WithSchema(nodeQueryServiceMethods.ByName("GetNodeTasks")),
+			connect.WithClientOptions(opts...),
+		),
+		getNodeDockerStats: connect.NewClient[v1.GetNodeDockerStatsRequest, v1.GetNodeDockerStatsResponse](
+			httpClient,
+			baseURL+NodeQueryServiceGetNodeDockerStatsProcedure,
+			connect.WithSchema(nodeQueryServiceMethods.ByName("GetNodeDockerStats")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// nodeQueryServiceClient implements NodeQueryServiceClient.
+type nodeQueryServiceClient struct {
+	listNodes          *connect.Client[v1.ListNodesRequest, v1.ListNodesResponse]
+	getNode            *connect.Client[v1.GetNodeRequest, v1.GetNodeResponse]
+	getNodeTasks       *connect.Client[v1.GetNodeTasksRequest, v1.GetNodeTasksResponse]
+	getNodeDockerStats *connect.Client[v1.GetNodeDockerStatsRequest, v1.GetNodeDockerStatsResponse]
+}
+
+// ListNodes calls composia.controller.v1.NodeQueryService.ListNodes.
+func (c *nodeQueryServiceClient) ListNodes(ctx context.Context, req *connect.Request[v1.ListNodesRequest]) (*connect.Response[v1.ListNodesResponse], error) {
+	return c.listNodes.CallUnary(ctx, req)
+}
+
+// GetNode calls composia.controller.v1.NodeQueryService.GetNode.
+func (c *nodeQueryServiceClient) GetNode(ctx context.Context, req *connect.Request[v1.GetNodeRequest]) (*connect.Response[v1.GetNodeResponse], error) {
+	return c.getNode.CallUnary(ctx, req)
+}
+
+// GetNodeTasks calls composia.controller.v1.NodeQueryService.GetNodeTasks.
+func (c *nodeQueryServiceClient) GetNodeTasks(ctx context.Context, req *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error) {
+	return c.getNodeTasks.CallUnary(ctx, req)
+}
+
+// GetNodeDockerStats calls composia.controller.v1.NodeQueryService.GetNodeDockerStats.
+func (c *nodeQueryServiceClient) GetNodeDockerStats(ctx context.Context, req *connect.Request[v1.GetNodeDockerStatsRequest]) (*connect.Response[v1.GetNodeDockerStatsResponse], error) {
+	return c.getNodeDockerStats.CallUnary(ctx, req)
+}
+
+// NodeQueryServiceHandler is an implementation of the composia.controller.v1.NodeQueryService
+// service.
+type NodeQueryServiceHandler interface {
+	ListNodes(context.Context, *connect.Request[v1.ListNodesRequest]) (*connect.Response[v1.ListNodesResponse], error)
+	GetNode(context.Context, *connect.Request[v1.GetNodeRequest]) (*connect.Response[v1.GetNodeResponse], error)
+	GetNodeTasks(context.Context, *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error)
+	GetNodeDockerStats(context.Context, *connect.Request[v1.GetNodeDockerStatsRequest]) (*connect.Response[v1.GetNodeDockerStatsResponse], error)
+}
+
+// NewNodeQueryServiceHandler builds an HTTP handler from the service implementation. It returns the
+// path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewNodeQueryServiceHandler(svc NodeQueryServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	nodeQueryServiceMethods := v1.File_proto_composia_controller_v1_node_proto.Services().ByName("NodeQueryService").Methods()
+	nodeQueryServiceListNodesHandler := connect.NewUnaryHandler(
+		NodeQueryServiceListNodesProcedure,
+		svc.ListNodes,
+		connect.WithSchema(nodeQueryServiceMethods.ByName("ListNodes")),
+		connect.WithHandlerOptions(opts...),
+	)
+	nodeQueryServiceGetNodeHandler := connect.NewUnaryHandler(
+		NodeQueryServiceGetNodeProcedure,
+		svc.GetNode,
+		connect.WithSchema(nodeQueryServiceMethods.ByName("GetNode")),
+		connect.WithHandlerOptions(opts...),
+	)
+	nodeQueryServiceGetNodeTasksHandler := connect.NewUnaryHandler(
+		NodeQueryServiceGetNodeTasksProcedure,
+		svc.GetNodeTasks,
+		connect.WithSchema(nodeQueryServiceMethods.ByName("GetNodeTasks")),
+		connect.WithHandlerOptions(opts...),
+	)
+	nodeQueryServiceGetNodeDockerStatsHandler := connect.NewUnaryHandler(
+		NodeQueryServiceGetNodeDockerStatsProcedure,
+		svc.GetNodeDockerStats,
+		connect.WithSchema(nodeQueryServiceMethods.ByName("GetNodeDockerStats")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/composia.controller.v1.NodeQueryService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case NodeQueryServiceListNodesProcedure:
+			nodeQueryServiceListNodesHandler.ServeHTTP(w, r)
+		case NodeQueryServiceGetNodeProcedure:
+			nodeQueryServiceGetNodeHandler.ServeHTTP(w, r)
+		case NodeQueryServiceGetNodeTasksProcedure:
+			nodeQueryServiceGetNodeTasksHandler.ServeHTTP(w, r)
+		case NodeQueryServiceGetNodeDockerStatsProcedure:
+			nodeQueryServiceGetNodeDockerStatsHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedNodeQueryServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedNodeQueryServiceHandler struct{}
+
+func (UnimplementedNodeQueryServiceHandler) ListNodes(context.Context, *connect.Request[v1.ListNodesRequest]) (*connect.Response[v1.ListNodesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeQueryService.ListNodes is not implemented"))
+}
+
+func (UnimplementedNodeQueryServiceHandler) GetNode(context.Context, *connect.Request[v1.GetNodeRequest]) (*connect.Response[v1.GetNodeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeQueryService.GetNode is not implemented"))
+}
+
+func (UnimplementedNodeQueryServiceHandler) GetNodeTasks(context.Context, *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeQueryService.GetNodeTasks is not implemented"))
+}
+
+func (UnimplementedNodeQueryServiceHandler) GetNodeDockerStats(context.Context, *connect.Request[v1.GetNodeDockerStatsRequest]) (*connect.Response[v1.GetNodeDockerStatsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeQueryService.GetNodeDockerStats is not implemented"))
+}
+
+// NodeMaintenanceServiceClient is a client for the composia.controller.v1.NodeMaintenanceService
+// service.
+type NodeMaintenanceServiceClient interface {
 	SyncNodeCaddyFiles(context.Context, *connect.Request[v1.SyncNodeCaddyFilesRequest]) (*connect.Response[v1.SyncNodeCaddyFilesResponse], error)
 	ReloadNodeCaddy(context.Context, *connect.Request[v1.ReloadNodeCaddyRequest]) (*connect.Response[v1.ReloadNodeCaddyResponse], error)
 	PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error)
 	ForgetNodeRustic(context.Context, *connect.Request[v1.ForgetNodeRusticRequest]) (*connect.Response[v1.ForgetNodeRusticResponse], error)
 	PruneNodeRustic(context.Context, *connect.Request[v1.PruneNodeRusticRequest]) (*connect.Response[v1.PruneNodeRusticResponse], error)
+}
+
+// NewNodeMaintenanceServiceClient constructs a client for the
+// composia.controller.v1.NodeMaintenanceService service. By default, it uses the Connect protocol
+// with the binary Protobuf Codec, asks for gzipped responses, and sends uncompressed requests. To
+// use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or connect.WithGRPCWeb()
+// options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewNodeMaintenanceServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) NodeMaintenanceServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	nodeMaintenanceServiceMethods := v1.File_proto_composia_controller_v1_node_proto.Services().ByName("NodeMaintenanceService").Methods()
+	return &nodeMaintenanceServiceClient{
+		syncNodeCaddyFiles: connect.NewClient[v1.SyncNodeCaddyFilesRequest, v1.SyncNodeCaddyFilesResponse](
+			httpClient,
+			baseURL+NodeMaintenanceServiceSyncNodeCaddyFilesProcedure,
+			connect.WithSchema(nodeMaintenanceServiceMethods.ByName("SyncNodeCaddyFiles")),
+			connect.WithClientOptions(opts...),
+		),
+		reloadNodeCaddy: connect.NewClient[v1.ReloadNodeCaddyRequest, v1.ReloadNodeCaddyResponse](
+			httpClient,
+			baseURL+NodeMaintenanceServiceReloadNodeCaddyProcedure,
+			connect.WithSchema(nodeMaintenanceServiceMethods.ByName("ReloadNodeCaddy")),
+			connect.WithClientOptions(opts...),
+		),
+		pruneNodeDocker: connect.NewClient[v1.PruneNodeDockerRequest, v1.PruneNodeDockerResponse](
+			httpClient,
+			baseURL+NodeMaintenanceServicePruneNodeDockerProcedure,
+			connect.WithSchema(nodeMaintenanceServiceMethods.ByName("PruneNodeDocker")),
+			connect.WithClientOptions(opts...),
+		),
+		forgetNodeRustic: connect.NewClient[v1.ForgetNodeRusticRequest, v1.ForgetNodeRusticResponse](
+			httpClient,
+			baseURL+NodeMaintenanceServiceForgetNodeRusticProcedure,
+			connect.WithSchema(nodeMaintenanceServiceMethods.ByName("ForgetNodeRustic")),
+			connect.WithClientOptions(opts...),
+		),
+		pruneNodeRustic: connect.NewClient[v1.PruneNodeRusticRequest, v1.PruneNodeRusticResponse](
+			httpClient,
+			baseURL+NodeMaintenanceServicePruneNodeRusticProcedure,
+			connect.WithSchema(nodeMaintenanceServiceMethods.ByName("PruneNodeRustic")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// nodeMaintenanceServiceClient implements NodeMaintenanceServiceClient.
+type nodeMaintenanceServiceClient struct {
+	syncNodeCaddyFiles *connect.Client[v1.SyncNodeCaddyFilesRequest, v1.SyncNodeCaddyFilesResponse]
+	reloadNodeCaddy    *connect.Client[v1.ReloadNodeCaddyRequest, v1.ReloadNodeCaddyResponse]
+	pruneNodeDocker    *connect.Client[v1.PruneNodeDockerRequest, v1.PruneNodeDockerResponse]
+	forgetNodeRustic   *connect.Client[v1.ForgetNodeRusticRequest, v1.ForgetNodeRusticResponse]
+	pruneNodeRustic    *connect.Client[v1.PruneNodeRusticRequest, v1.PruneNodeRusticResponse]
+}
+
+// SyncNodeCaddyFiles calls composia.controller.v1.NodeMaintenanceService.SyncNodeCaddyFiles.
+func (c *nodeMaintenanceServiceClient) SyncNodeCaddyFiles(ctx context.Context, req *connect.Request[v1.SyncNodeCaddyFilesRequest]) (*connect.Response[v1.SyncNodeCaddyFilesResponse], error) {
+	return c.syncNodeCaddyFiles.CallUnary(ctx, req)
+}
+
+// ReloadNodeCaddy calls composia.controller.v1.NodeMaintenanceService.ReloadNodeCaddy.
+func (c *nodeMaintenanceServiceClient) ReloadNodeCaddy(ctx context.Context, req *connect.Request[v1.ReloadNodeCaddyRequest]) (*connect.Response[v1.ReloadNodeCaddyResponse], error) {
+	return c.reloadNodeCaddy.CallUnary(ctx, req)
+}
+
+// PruneNodeDocker calls composia.controller.v1.NodeMaintenanceService.PruneNodeDocker.
+func (c *nodeMaintenanceServiceClient) PruneNodeDocker(ctx context.Context, req *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error) {
+	return c.pruneNodeDocker.CallUnary(ctx, req)
+}
+
+// ForgetNodeRustic calls composia.controller.v1.NodeMaintenanceService.ForgetNodeRustic.
+func (c *nodeMaintenanceServiceClient) ForgetNodeRustic(ctx context.Context, req *connect.Request[v1.ForgetNodeRusticRequest]) (*connect.Response[v1.ForgetNodeRusticResponse], error) {
+	return c.forgetNodeRustic.CallUnary(ctx, req)
+}
+
+// PruneNodeRustic calls composia.controller.v1.NodeMaintenanceService.PruneNodeRustic.
+func (c *nodeMaintenanceServiceClient) PruneNodeRustic(ctx context.Context, req *connect.Request[v1.PruneNodeRusticRequest]) (*connect.Response[v1.PruneNodeRusticResponse], error) {
+	return c.pruneNodeRustic.CallUnary(ctx, req)
+}
+
+// NodeMaintenanceServiceHandler is an implementation of the
+// composia.controller.v1.NodeMaintenanceService service.
+type NodeMaintenanceServiceHandler interface {
+	SyncNodeCaddyFiles(context.Context, *connect.Request[v1.SyncNodeCaddyFilesRequest]) (*connect.Response[v1.SyncNodeCaddyFilesResponse], error)
+	ReloadNodeCaddy(context.Context, *connect.Request[v1.ReloadNodeCaddyRequest]) (*connect.Response[v1.ReloadNodeCaddyResponse], error)
+	PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error)
+	ForgetNodeRustic(context.Context, *connect.Request[v1.ForgetNodeRusticRequest]) (*connect.Response[v1.ForgetNodeRusticResponse], error)
+	PruneNodeRustic(context.Context, *connect.Request[v1.PruneNodeRusticRequest]) (*connect.Response[v1.PruneNodeRusticResponse], error)
+}
+
+// NewNodeMaintenanceServiceHandler builds an HTTP handler from the service implementation. It
+// returns the path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewNodeMaintenanceServiceHandler(svc NodeMaintenanceServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	nodeMaintenanceServiceMethods := v1.File_proto_composia_controller_v1_node_proto.Services().ByName("NodeMaintenanceService").Methods()
+	nodeMaintenanceServiceSyncNodeCaddyFilesHandler := connect.NewUnaryHandler(
+		NodeMaintenanceServiceSyncNodeCaddyFilesProcedure,
+		svc.SyncNodeCaddyFiles,
+		connect.WithSchema(nodeMaintenanceServiceMethods.ByName("SyncNodeCaddyFiles")),
+		connect.WithHandlerOptions(opts...),
+	)
+	nodeMaintenanceServiceReloadNodeCaddyHandler := connect.NewUnaryHandler(
+		NodeMaintenanceServiceReloadNodeCaddyProcedure,
+		svc.ReloadNodeCaddy,
+		connect.WithSchema(nodeMaintenanceServiceMethods.ByName("ReloadNodeCaddy")),
+		connect.WithHandlerOptions(opts...),
+	)
+	nodeMaintenanceServicePruneNodeDockerHandler := connect.NewUnaryHandler(
+		NodeMaintenanceServicePruneNodeDockerProcedure,
+		svc.PruneNodeDocker,
+		connect.WithSchema(nodeMaintenanceServiceMethods.ByName("PruneNodeDocker")),
+		connect.WithHandlerOptions(opts...),
+	)
+	nodeMaintenanceServiceForgetNodeRusticHandler := connect.NewUnaryHandler(
+		NodeMaintenanceServiceForgetNodeRusticProcedure,
+		svc.ForgetNodeRustic,
+		connect.WithSchema(nodeMaintenanceServiceMethods.ByName("ForgetNodeRustic")),
+		connect.WithHandlerOptions(opts...),
+	)
+	nodeMaintenanceServicePruneNodeRusticHandler := connect.NewUnaryHandler(
+		NodeMaintenanceServicePruneNodeRusticProcedure,
+		svc.PruneNodeRustic,
+		connect.WithSchema(nodeMaintenanceServiceMethods.ByName("PruneNodeRustic")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/composia.controller.v1.NodeMaintenanceService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case NodeMaintenanceServiceSyncNodeCaddyFilesProcedure:
+			nodeMaintenanceServiceSyncNodeCaddyFilesHandler.ServeHTTP(w, r)
+		case NodeMaintenanceServiceReloadNodeCaddyProcedure:
+			nodeMaintenanceServiceReloadNodeCaddyHandler.ServeHTTP(w, r)
+		case NodeMaintenanceServicePruneNodeDockerProcedure:
+			nodeMaintenanceServicePruneNodeDockerHandler.ServeHTTP(w, r)
+		case NodeMaintenanceServiceForgetNodeRusticProcedure:
+			nodeMaintenanceServiceForgetNodeRusticHandler.ServeHTTP(w, r)
+		case NodeMaintenanceServicePruneNodeRusticProcedure:
+			nodeMaintenanceServicePruneNodeRusticHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedNodeMaintenanceServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedNodeMaintenanceServiceHandler struct{}
+
+func (UnimplementedNodeMaintenanceServiceHandler) SyncNodeCaddyFiles(context.Context, *connect.Request[v1.SyncNodeCaddyFilesRequest]) (*connect.Response[v1.SyncNodeCaddyFilesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeMaintenanceService.SyncNodeCaddyFiles is not implemented"))
+}
+
+func (UnimplementedNodeMaintenanceServiceHandler) ReloadNodeCaddy(context.Context, *connect.Request[v1.ReloadNodeCaddyRequest]) (*connect.Response[v1.ReloadNodeCaddyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeMaintenanceService.ReloadNodeCaddy is not implemented"))
+}
+
+func (UnimplementedNodeMaintenanceServiceHandler) PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeMaintenanceService.PruneNodeDocker is not implemented"))
+}
+
+func (UnimplementedNodeMaintenanceServiceHandler) ForgetNodeRustic(context.Context, *connect.Request[v1.ForgetNodeRusticRequest]) (*connect.Response[v1.ForgetNodeRusticResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeMaintenanceService.ForgetNodeRustic is not implemented"))
+}
+
+func (UnimplementedNodeMaintenanceServiceHandler) PruneNodeRustic(context.Context, *connect.Request[v1.PruneNodeRusticRequest]) (*connect.Response[v1.PruneNodeRusticResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeMaintenanceService.PruneNodeRustic is not implemented"))
+}
+
+// DockerQueryServiceClient is a client for the composia.controller.v1.DockerQueryService service.
+type DockerQueryServiceClient interface {
 	ListNodeContainers(context.Context, *connect.Request[v1.ListNodeContainersRequest]) (*connect.Response[v1.ListNodeContainersResponse], error)
 	InspectNodeContainer(context.Context, *connect.Request[v1.InspectNodeContainerRequest]) (*connect.Response[v1.InspectNodeContainerResponse], error)
 	ListNodeNetworks(context.Context, *connect.Request[v1.ListNodeNetworksRequest]) (*connect.Response[v1.ListNodeNetworksResponse], error)
@@ -105,133 +428,70 @@ type NodeServiceClient interface {
 	InspectNodeImage(context.Context, *connect.Request[v1.InspectNodeImageRequest]) (*connect.Response[v1.InspectNodeImageResponse], error)
 }
 
-// NewNodeServiceClient constructs a client for the composia.controller.v1.NodeService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
+// NewDockerQueryServiceClient constructs a client for the composia.controller.v1.DockerQueryService
+// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
+// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
+// the connect.WithGRPC() or connect.WithGRPCWeb() options.
 //
 // The URL supplied here should be the base URL for the Connect or gRPC server (for example,
 // http://api.acme.com or https://acme.com/grpc).
-func NewNodeServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) NodeServiceClient {
+func NewDockerQueryServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) DockerQueryServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
-	nodeServiceMethods := v1.File_proto_composia_controller_v1_node_proto.Services().ByName("NodeService").Methods()
-	return &nodeServiceClient{
-		listNodes: connect.NewClient[v1.ListNodesRequest, v1.ListNodesResponse](
-			httpClient,
-			baseURL+NodeServiceListNodesProcedure,
-			connect.WithSchema(nodeServiceMethods.ByName("ListNodes")),
-			connect.WithClientOptions(opts...),
-		),
-		getNode: connect.NewClient[v1.GetNodeRequest, v1.GetNodeResponse](
-			httpClient,
-			baseURL+NodeServiceGetNodeProcedure,
-			connect.WithSchema(nodeServiceMethods.ByName("GetNode")),
-			connect.WithClientOptions(opts...),
-		),
-		getNodeTasks: connect.NewClient[v1.GetNodeTasksRequest, v1.GetNodeTasksResponse](
-			httpClient,
-			baseURL+NodeServiceGetNodeTasksProcedure,
-			connect.WithSchema(nodeServiceMethods.ByName("GetNodeTasks")),
-			connect.WithClientOptions(opts...),
-		),
-		getNodeDockerStats: connect.NewClient[v1.GetNodeDockerStatsRequest, v1.GetNodeDockerStatsResponse](
-			httpClient,
-			baseURL+NodeServiceGetNodeDockerStatsProcedure,
-			connect.WithSchema(nodeServiceMethods.ByName("GetNodeDockerStats")),
-			connect.WithClientOptions(opts...),
-		),
-		syncNodeCaddyFiles: connect.NewClient[v1.SyncNodeCaddyFilesRequest, v1.SyncNodeCaddyFilesResponse](
-			httpClient,
-			baseURL+NodeServiceSyncNodeCaddyFilesProcedure,
-			connect.WithSchema(nodeServiceMethods.ByName("SyncNodeCaddyFiles")),
-			connect.WithClientOptions(opts...),
-		),
-		reloadNodeCaddy: connect.NewClient[v1.ReloadNodeCaddyRequest, v1.ReloadNodeCaddyResponse](
-			httpClient,
-			baseURL+NodeServiceReloadNodeCaddyProcedure,
-			connect.WithSchema(nodeServiceMethods.ByName("ReloadNodeCaddy")),
-			connect.WithClientOptions(opts...),
-		),
-		pruneNodeDocker: connect.NewClient[v1.PruneNodeDockerRequest, v1.PruneNodeDockerResponse](
-			httpClient,
-			baseURL+NodeServicePruneNodeDockerProcedure,
-			connect.WithSchema(nodeServiceMethods.ByName("PruneNodeDocker")),
-			connect.WithClientOptions(opts...),
-		),
-		forgetNodeRustic: connect.NewClient[v1.ForgetNodeRusticRequest, v1.ForgetNodeRusticResponse](
-			httpClient,
-			baseURL+NodeServiceForgetNodeRusticProcedure,
-			connect.WithSchema(nodeServiceMethods.ByName("ForgetNodeRustic")),
-			connect.WithClientOptions(opts...),
-		),
-		pruneNodeRustic: connect.NewClient[v1.PruneNodeRusticRequest, v1.PruneNodeRusticResponse](
-			httpClient,
-			baseURL+NodeServicePruneNodeRusticProcedure,
-			connect.WithSchema(nodeServiceMethods.ByName("PruneNodeRustic")),
-			connect.WithClientOptions(opts...),
-		),
+	dockerQueryServiceMethods := v1.File_proto_composia_controller_v1_node_proto.Services().ByName("DockerQueryService").Methods()
+	return &dockerQueryServiceClient{
 		listNodeContainers: connect.NewClient[v1.ListNodeContainersRequest, v1.ListNodeContainersResponse](
 			httpClient,
-			baseURL+NodeServiceListNodeContainersProcedure,
-			connect.WithSchema(nodeServiceMethods.ByName("ListNodeContainers")),
+			baseURL+DockerQueryServiceListNodeContainersProcedure,
+			connect.WithSchema(dockerQueryServiceMethods.ByName("ListNodeContainers")),
 			connect.WithClientOptions(opts...),
 		),
 		inspectNodeContainer: connect.NewClient[v1.InspectNodeContainerRequest, v1.InspectNodeContainerResponse](
 			httpClient,
-			baseURL+NodeServiceInspectNodeContainerProcedure,
-			connect.WithSchema(nodeServiceMethods.ByName("InspectNodeContainer")),
+			baseURL+DockerQueryServiceInspectNodeContainerProcedure,
+			connect.WithSchema(dockerQueryServiceMethods.ByName("InspectNodeContainer")),
 			connect.WithClientOptions(opts...),
 		),
 		listNodeNetworks: connect.NewClient[v1.ListNodeNetworksRequest, v1.ListNodeNetworksResponse](
 			httpClient,
-			baseURL+NodeServiceListNodeNetworksProcedure,
-			connect.WithSchema(nodeServiceMethods.ByName("ListNodeNetworks")),
+			baseURL+DockerQueryServiceListNodeNetworksProcedure,
+			connect.WithSchema(dockerQueryServiceMethods.ByName("ListNodeNetworks")),
 			connect.WithClientOptions(opts...),
 		),
 		inspectNodeNetwork: connect.NewClient[v1.InspectNodeNetworkRequest, v1.InspectNodeNetworkResponse](
 			httpClient,
-			baseURL+NodeServiceInspectNodeNetworkProcedure,
-			connect.WithSchema(nodeServiceMethods.ByName("InspectNodeNetwork")),
+			baseURL+DockerQueryServiceInspectNodeNetworkProcedure,
+			connect.WithSchema(dockerQueryServiceMethods.ByName("InspectNodeNetwork")),
 			connect.WithClientOptions(opts...),
 		),
 		listNodeVolumes: connect.NewClient[v1.ListNodeVolumesRequest, v1.ListNodeVolumesResponse](
 			httpClient,
-			baseURL+NodeServiceListNodeVolumesProcedure,
-			connect.WithSchema(nodeServiceMethods.ByName("ListNodeVolumes")),
+			baseURL+DockerQueryServiceListNodeVolumesProcedure,
+			connect.WithSchema(dockerQueryServiceMethods.ByName("ListNodeVolumes")),
 			connect.WithClientOptions(opts...),
 		),
 		inspectNodeVolume: connect.NewClient[v1.InspectNodeVolumeRequest, v1.InspectNodeVolumeResponse](
 			httpClient,
-			baseURL+NodeServiceInspectNodeVolumeProcedure,
-			connect.WithSchema(nodeServiceMethods.ByName("InspectNodeVolume")),
+			baseURL+DockerQueryServiceInspectNodeVolumeProcedure,
+			connect.WithSchema(dockerQueryServiceMethods.ByName("InspectNodeVolume")),
 			connect.WithClientOptions(opts...),
 		),
 		listNodeImages: connect.NewClient[v1.ListNodeImagesRequest, v1.ListNodeImagesResponse](
 			httpClient,
-			baseURL+NodeServiceListNodeImagesProcedure,
-			connect.WithSchema(nodeServiceMethods.ByName("ListNodeImages")),
+			baseURL+DockerQueryServiceListNodeImagesProcedure,
+			connect.WithSchema(dockerQueryServiceMethods.ByName("ListNodeImages")),
 			connect.WithClientOptions(opts...),
 		),
 		inspectNodeImage: connect.NewClient[v1.InspectNodeImageRequest, v1.InspectNodeImageResponse](
 			httpClient,
-			baseURL+NodeServiceInspectNodeImageProcedure,
-			connect.WithSchema(nodeServiceMethods.ByName("InspectNodeImage")),
+			baseURL+DockerQueryServiceInspectNodeImageProcedure,
+			connect.WithSchema(dockerQueryServiceMethods.ByName("InspectNodeImage")),
 			connect.WithClientOptions(opts...),
 		),
 	}
 }
 
-// nodeServiceClient implements NodeServiceClient.
-type nodeServiceClient struct {
-	listNodes            *connect.Client[v1.ListNodesRequest, v1.ListNodesResponse]
-	getNode              *connect.Client[v1.GetNodeRequest, v1.GetNodeResponse]
-	getNodeTasks         *connect.Client[v1.GetNodeTasksRequest, v1.GetNodeTasksResponse]
-	getNodeDockerStats   *connect.Client[v1.GetNodeDockerStatsRequest, v1.GetNodeDockerStatsResponse]
-	syncNodeCaddyFiles   *connect.Client[v1.SyncNodeCaddyFilesRequest, v1.SyncNodeCaddyFilesResponse]
-	reloadNodeCaddy      *connect.Client[v1.ReloadNodeCaddyRequest, v1.ReloadNodeCaddyResponse]
-	pruneNodeDocker      *connect.Client[v1.PruneNodeDockerRequest, v1.PruneNodeDockerResponse]
-	forgetNodeRustic     *connect.Client[v1.ForgetNodeRusticRequest, v1.ForgetNodeRusticResponse]
-	pruneNodeRustic      *connect.Client[v1.PruneNodeRusticRequest, v1.PruneNodeRusticResponse]
+// dockerQueryServiceClient implements DockerQueryServiceClient.
+type dockerQueryServiceClient struct {
 	listNodeContainers   *connect.Client[v1.ListNodeContainersRequest, v1.ListNodeContainersResponse]
 	inspectNodeContainer *connect.Client[v1.InspectNodeContainerRequest, v1.InspectNodeContainerResponse]
 	listNodeNetworks     *connect.Client[v1.ListNodeNetworksRequest, v1.ListNodeNetworksResponse]
@@ -242,102 +502,49 @@ type nodeServiceClient struct {
 	inspectNodeImage     *connect.Client[v1.InspectNodeImageRequest, v1.InspectNodeImageResponse]
 }
 
-// ListNodes calls composia.controller.v1.NodeService.ListNodes.
-func (c *nodeServiceClient) ListNodes(ctx context.Context, req *connect.Request[v1.ListNodesRequest]) (*connect.Response[v1.ListNodesResponse], error) {
-	return c.listNodes.CallUnary(ctx, req)
-}
-
-// GetNode calls composia.controller.v1.NodeService.GetNode.
-func (c *nodeServiceClient) GetNode(ctx context.Context, req *connect.Request[v1.GetNodeRequest]) (*connect.Response[v1.GetNodeResponse], error) {
-	return c.getNode.CallUnary(ctx, req)
-}
-
-// GetNodeTasks calls composia.controller.v1.NodeService.GetNodeTasks.
-func (c *nodeServiceClient) GetNodeTasks(ctx context.Context, req *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error) {
-	return c.getNodeTasks.CallUnary(ctx, req)
-}
-
-// GetNodeDockerStats calls composia.controller.v1.NodeService.GetNodeDockerStats.
-func (c *nodeServiceClient) GetNodeDockerStats(ctx context.Context, req *connect.Request[v1.GetNodeDockerStatsRequest]) (*connect.Response[v1.GetNodeDockerStatsResponse], error) {
-	return c.getNodeDockerStats.CallUnary(ctx, req)
-}
-
-// SyncNodeCaddyFiles calls composia.controller.v1.NodeService.SyncNodeCaddyFiles.
-func (c *nodeServiceClient) SyncNodeCaddyFiles(ctx context.Context, req *connect.Request[v1.SyncNodeCaddyFilesRequest]) (*connect.Response[v1.SyncNodeCaddyFilesResponse], error) {
-	return c.syncNodeCaddyFiles.CallUnary(ctx, req)
-}
-
-// ReloadNodeCaddy calls composia.controller.v1.NodeService.ReloadNodeCaddy.
-func (c *nodeServiceClient) ReloadNodeCaddy(ctx context.Context, req *connect.Request[v1.ReloadNodeCaddyRequest]) (*connect.Response[v1.ReloadNodeCaddyResponse], error) {
-	return c.reloadNodeCaddy.CallUnary(ctx, req)
-}
-
-// PruneNodeDocker calls composia.controller.v1.NodeService.PruneNodeDocker.
-func (c *nodeServiceClient) PruneNodeDocker(ctx context.Context, req *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error) {
-	return c.pruneNodeDocker.CallUnary(ctx, req)
-}
-
-// ForgetNodeRustic calls composia.controller.v1.NodeService.ForgetNodeRustic.
-func (c *nodeServiceClient) ForgetNodeRustic(ctx context.Context, req *connect.Request[v1.ForgetNodeRusticRequest]) (*connect.Response[v1.ForgetNodeRusticResponse], error) {
-	return c.forgetNodeRustic.CallUnary(ctx, req)
-}
-
-// PruneNodeRustic calls composia.controller.v1.NodeService.PruneNodeRustic.
-func (c *nodeServiceClient) PruneNodeRustic(ctx context.Context, req *connect.Request[v1.PruneNodeRusticRequest]) (*connect.Response[v1.PruneNodeRusticResponse], error) {
-	return c.pruneNodeRustic.CallUnary(ctx, req)
-}
-
-// ListNodeContainers calls composia.controller.v1.NodeService.ListNodeContainers.
-func (c *nodeServiceClient) ListNodeContainers(ctx context.Context, req *connect.Request[v1.ListNodeContainersRequest]) (*connect.Response[v1.ListNodeContainersResponse], error) {
+// ListNodeContainers calls composia.controller.v1.DockerQueryService.ListNodeContainers.
+func (c *dockerQueryServiceClient) ListNodeContainers(ctx context.Context, req *connect.Request[v1.ListNodeContainersRequest]) (*connect.Response[v1.ListNodeContainersResponse], error) {
 	return c.listNodeContainers.CallUnary(ctx, req)
 }
 
-// InspectNodeContainer calls composia.controller.v1.NodeService.InspectNodeContainer.
-func (c *nodeServiceClient) InspectNodeContainer(ctx context.Context, req *connect.Request[v1.InspectNodeContainerRequest]) (*connect.Response[v1.InspectNodeContainerResponse], error) {
+// InspectNodeContainer calls composia.controller.v1.DockerQueryService.InspectNodeContainer.
+func (c *dockerQueryServiceClient) InspectNodeContainer(ctx context.Context, req *connect.Request[v1.InspectNodeContainerRequest]) (*connect.Response[v1.InspectNodeContainerResponse], error) {
 	return c.inspectNodeContainer.CallUnary(ctx, req)
 }
 
-// ListNodeNetworks calls composia.controller.v1.NodeService.ListNodeNetworks.
-func (c *nodeServiceClient) ListNodeNetworks(ctx context.Context, req *connect.Request[v1.ListNodeNetworksRequest]) (*connect.Response[v1.ListNodeNetworksResponse], error) {
+// ListNodeNetworks calls composia.controller.v1.DockerQueryService.ListNodeNetworks.
+func (c *dockerQueryServiceClient) ListNodeNetworks(ctx context.Context, req *connect.Request[v1.ListNodeNetworksRequest]) (*connect.Response[v1.ListNodeNetworksResponse], error) {
 	return c.listNodeNetworks.CallUnary(ctx, req)
 }
 
-// InspectNodeNetwork calls composia.controller.v1.NodeService.InspectNodeNetwork.
-func (c *nodeServiceClient) InspectNodeNetwork(ctx context.Context, req *connect.Request[v1.InspectNodeNetworkRequest]) (*connect.Response[v1.InspectNodeNetworkResponse], error) {
+// InspectNodeNetwork calls composia.controller.v1.DockerQueryService.InspectNodeNetwork.
+func (c *dockerQueryServiceClient) InspectNodeNetwork(ctx context.Context, req *connect.Request[v1.InspectNodeNetworkRequest]) (*connect.Response[v1.InspectNodeNetworkResponse], error) {
 	return c.inspectNodeNetwork.CallUnary(ctx, req)
 }
 
-// ListNodeVolumes calls composia.controller.v1.NodeService.ListNodeVolumes.
-func (c *nodeServiceClient) ListNodeVolumes(ctx context.Context, req *connect.Request[v1.ListNodeVolumesRequest]) (*connect.Response[v1.ListNodeVolumesResponse], error) {
+// ListNodeVolumes calls composia.controller.v1.DockerQueryService.ListNodeVolumes.
+func (c *dockerQueryServiceClient) ListNodeVolumes(ctx context.Context, req *connect.Request[v1.ListNodeVolumesRequest]) (*connect.Response[v1.ListNodeVolumesResponse], error) {
 	return c.listNodeVolumes.CallUnary(ctx, req)
 }
 
-// InspectNodeVolume calls composia.controller.v1.NodeService.InspectNodeVolume.
-func (c *nodeServiceClient) InspectNodeVolume(ctx context.Context, req *connect.Request[v1.InspectNodeVolumeRequest]) (*connect.Response[v1.InspectNodeVolumeResponse], error) {
+// InspectNodeVolume calls composia.controller.v1.DockerQueryService.InspectNodeVolume.
+func (c *dockerQueryServiceClient) InspectNodeVolume(ctx context.Context, req *connect.Request[v1.InspectNodeVolumeRequest]) (*connect.Response[v1.InspectNodeVolumeResponse], error) {
 	return c.inspectNodeVolume.CallUnary(ctx, req)
 }
 
-// ListNodeImages calls composia.controller.v1.NodeService.ListNodeImages.
-func (c *nodeServiceClient) ListNodeImages(ctx context.Context, req *connect.Request[v1.ListNodeImagesRequest]) (*connect.Response[v1.ListNodeImagesResponse], error) {
+// ListNodeImages calls composia.controller.v1.DockerQueryService.ListNodeImages.
+func (c *dockerQueryServiceClient) ListNodeImages(ctx context.Context, req *connect.Request[v1.ListNodeImagesRequest]) (*connect.Response[v1.ListNodeImagesResponse], error) {
 	return c.listNodeImages.CallUnary(ctx, req)
 }
 
-// InspectNodeImage calls composia.controller.v1.NodeService.InspectNodeImage.
-func (c *nodeServiceClient) InspectNodeImage(ctx context.Context, req *connect.Request[v1.InspectNodeImageRequest]) (*connect.Response[v1.InspectNodeImageResponse], error) {
+// InspectNodeImage calls composia.controller.v1.DockerQueryService.InspectNodeImage.
+func (c *dockerQueryServiceClient) InspectNodeImage(ctx context.Context, req *connect.Request[v1.InspectNodeImageRequest]) (*connect.Response[v1.InspectNodeImageResponse], error) {
 	return c.inspectNodeImage.CallUnary(ctx, req)
 }
 
-// NodeServiceHandler is an implementation of the composia.controller.v1.NodeService service.
-type NodeServiceHandler interface {
-	ListNodes(context.Context, *connect.Request[v1.ListNodesRequest]) (*connect.Response[v1.ListNodesResponse], error)
-	GetNode(context.Context, *connect.Request[v1.GetNodeRequest]) (*connect.Response[v1.GetNodeResponse], error)
-	GetNodeTasks(context.Context, *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error)
-	GetNodeDockerStats(context.Context, *connect.Request[v1.GetNodeDockerStatsRequest]) (*connect.Response[v1.GetNodeDockerStatsResponse], error)
-	SyncNodeCaddyFiles(context.Context, *connect.Request[v1.SyncNodeCaddyFilesRequest]) (*connect.Response[v1.SyncNodeCaddyFilesResponse], error)
-	ReloadNodeCaddy(context.Context, *connect.Request[v1.ReloadNodeCaddyRequest]) (*connect.Response[v1.ReloadNodeCaddyResponse], error)
-	PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error)
-	ForgetNodeRustic(context.Context, *connect.Request[v1.ForgetNodeRusticRequest]) (*connect.Response[v1.ForgetNodeRusticResponse], error)
-	PruneNodeRustic(context.Context, *connect.Request[v1.PruneNodeRusticRequest]) (*connect.Response[v1.PruneNodeRusticResponse], error)
+// DockerQueryServiceHandler is an implementation of the composia.controller.v1.DockerQueryService
+// service.
+type DockerQueryServiceHandler interface {
 	ListNodeContainers(context.Context, *connect.Request[v1.ListNodeContainersRequest]) (*connect.Response[v1.ListNodeContainersResponse], error)
 	InspectNodeContainer(context.Context, *connect.Request[v1.InspectNodeContainerRequest]) (*connect.Response[v1.InspectNodeContainerResponse], error)
 	ListNodeNetworks(context.Context, *connect.Request[v1.ListNodeNetworksRequest]) (*connect.Response[v1.ListNodeNetworksResponse], error)
@@ -348,224 +555,116 @@ type NodeServiceHandler interface {
 	InspectNodeImage(context.Context, *connect.Request[v1.InspectNodeImageRequest]) (*connect.Response[v1.InspectNodeImageResponse], error)
 }
 
-// NewNodeServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
+// NewDockerQueryServiceHandler builds an HTTP handler from the service implementation. It returns
+// the path on which to mount the handler and the handler itself.
 //
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
-func NewNodeServiceHandler(svc NodeServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	nodeServiceMethods := v1.File_proto_composia_controller_v1_node_proto.Services().ByName("NodeService").Methods()
-	nodeServiceListNodesHandler := connect.NewUnaryHandler(
-		NodeServiceListNodesProcedure,
-		svc.ListNodes,
-		connect.WithSchema(nodeServiceMethods.ByName("ListNodes")),
-		connect.WithHandlerOptions(opts...),
-	)
-	nodeServiceGetNodeHandler := connect.NewUnaryHandler(
-		NodeServiceGetNodeProcedure,
-		svc.GetNode,
-		connect.WithSchema(nodeServiceMethods.ByName("GetNode")),
-		connect.WithHandlerOptions(opts...),
-	)
-	nodeServiceGetNodeTasksHandler := connect.NewUnaryHandler(
-		NodeServiceGetNodeTasksProcedure,
-		svc.GetNodeTasks,
-		connect.WithSchema(nodeServiceMethods.ByName("GetNodeTasks")),
-		connect.WithHandlerOptions(opts...),
-	)
-	nodeServiceGetNodeDockerStatsHandler := connect.NewUnaryHandler(
-		NodeServiceGetNodeDockerStatsProcedure,
-		svc.GetNodeDockerStats,
-		connect.WithSchema(nodeServiceMethods.ByName("GetNodeDockerStats")),
-		connect.WithHandlerOptions(opts...),
-	)
-	nodeServiceSyncNodeCaddyFilesHandler := connect.NewUnaryHandler(
-		NodeServiceSyncNodeCaddyFilesProcedure,
-		svc.SyncNodeCaddyFiles,
-		connect.WithSchema(nodeServiceMethods.ByName("SyncNodeCaddyFiles")),
-		connect.WithHandlerOptions(opts...),
-	)
-	nodeServiceReloadNodeCaddyHandler := connect.NewUnaryHandler(
-		NodeServiceReloadNodeCaddyProcedure,
-		svc.ReloadNodeCaddy,
-		connect.WithSchema(nodeServiceMethods.ByName("ReloadNodeCaddy")),
-		connect.WithHandlerOptions(opts...),
-	)
-	nodeServicePruneNodeDockerHandler := connect.NewUnaryHandler(
-		NodeServicePruneNodeDockerProcedure,
-		svc.PruneNodeDocker,
-		connect.WithSchema(nodeServiceMethods.ByName("PruneNodeDocker")),
-		connect.WithHandlerOptions(opts...),
-	)
-	nodeServiceForgetNodeRusticHandler := connect.NewUnaryHandler(
-		NodeServiceForgetNodeRusticProcedure,
-		svc.ForgetNodeRustic,
-		connect.WithSchema(nodeServiceMethods.ByName("ForgetNodeRustic")),
-		connect.WithHandlerOptions(opts...),
-	)
-	nodeServicePruneNodeRusticHandler := connect.NewUnaryHandler(
-		NodeServicePruneNodeRusticProcedure,
-		svc.PruneNodeRustic,
-		connect.WithSchema(nodeServiceMethods.ByName("PruneNodeRustic")),
-		connect.WithHandlerOptions(opts...),
-	)
-	nodeServiceListNodeContainersHandler := connect.NewUnaryHandler(
-		NodeServiceListNodeContainersProcedure,
+func NewDockerQueryServiceHandler(svc DockerQueryServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	dockerQueryServiceMethods := v1.File_proto_composia_controller_v1_node_proto.Services().ByName("DockerQueryService").Methods()
+	dockerQueryServiceListNodeContainersHandler := connect.NewUnaryHandler(
+		DockerQueryServiceListNodeContainersProcedure,
 		svc.ListNodeContainers,
-		connect.WithSchema(nodeServiceMethods.ByName("ListNodeContainers")),
+		connect.WithSchema(dockerQueryServiceMethods.ByName("ListNodeContainers")),
 		connect.WithHandlerOptions(opts...),
 	)
-	nodeServiceInspectNodeContainerHandler := connect.NewUnaryHandler(
-		NodeServiceInspectNodeContainerProcedure,
+	dockerQueryServiceInspectNodeContainerHandler := connect.NewUnaryHandler(
+		DockerQueryServiceInspectNodeContainerProcedure,
 		svc.InspectNodeContainer,
-		connect.WithSchema(nodeServiceMethods.ByName("InspectNodeContainer")),
+		connect.WithSchema(dockerQueryServiceMethods.ByName("InspectNodeContainer")),
 		connect.WithHandlerOptions(opts...),
 	)
-	nodeServiceListNodeNetworksHandler := connect.NewUnaryHandler(
-		NodeServiceListNodeNetworksProcedure,
+	dockerQueryServiceListNodeNetworksHandler := connect.NewUnaryHandler(
+		DockerQueryServiceListNodeNetworksProcedure,
 		svc.ListNodeNetworks,
-		connect.WithSchema(nodeServiceMethods.ByName("ListNodeNetworks")),
+		connect.WithSchema(dockerQueryServiceMethods.ByName("ListNodeNetworks")),
 		connect.WithHandlerOptions(opts...),
 	)
-	nodeServiceInspectNodeNetworkHandler := connect.NewUnaryHandler(
-		NodeServiceInspectNodeNetworkProcedure,
+	dockerQueryServiceInspectNodeNetworkHandler := connect.NewUnaryHandler(
+		DockerQueryServiceInspectNodeNetworkProcedure,
 		svc.InspectNodeNetwork,
-		connect.WithSchema(nodeServiceMethods.ByName("InspectNodeNetwork")),
+		connect.WithSchema(dockerQueryServiceMethods.ByName("InspectNodeNetwork")),
 		connect.WithHandlerOptions(opts...),
 	)
-	nodeServiceListNodeVolumesHandler := connect.NewUnaryHandler(
-		NodeServiceListNodeVolumesProcedure,
+	dockerQueryServiceListNodeVolumesHandler := connect.NewUnaryHandler(
+		DockerQueryServiceListNodeVolumesProcedure,
 		svc.ListNodeVolumes,
-		connect.WithSchema(nodeServiceMethods.ByName("ListNodeVolumes")),
+		connect.WithSchema(dockerQueryServiceMethods.ByName("ListNodeVolumes")),
 		connect.WithHandlerOptions(opts...),
 	)
-	nodeServiceInspectNodeVolumeHandler := connect.NewUnaryHandler(
-		NodeServiceInspectNodeVolumeProcedure,
+	dockerQueryServiceInspectNodeVolumeHandler := connect.NewUnaryHandler(
+		DockerQueryServiceInspectNodeVolumeProcedure,
 		svc.InspectNodeVolume,
-		connect.WithSchema(nodeServiceMethods.ByName("InspectNodeVolume")),
+		connect.WithSchema(dockerQueryServiceMethods.ByName("InspectNodeVolume")),
 		connect.WithHandlerOptions(opts...),
 	)
-	nodeServiceListNodeImagesHandler := connect.NewUnaryHandler(
-		NodeServiceListNodeImagesProcedure,
+	dockerQueryServiceListNodeImagesHandler := connect.NewUnaryHandler(
+		DockerQueryServiceListNodeImagesProcedure,
 		svc.ListNodeImages,
-		connect.WithSchema(nodeServiceMethods.ByName("ListNodeImages")),
+		connect.WithSchema(dockerQueryServiceMethods.ByName("ListNodeImages")),
 		connect.WithHandlerOptions(opts...),
 	)
-	nodeServiceInspectNodeImageHandler := connect.NewUnaryHandler(
-		NodeServiceInspectNodeImageProcedure,
+	dockerQueryServiceInspectNodeImageHandler := connect.NewUnaryHandler(
+		DockerQueryServiceInspectNodeImageProcedure,
 		svc.InspectNodeImage,
-		connect.WithSchema(nodeServiceMethods.ByName("InspectNodeImage")),
+		connect.WithSchema(dockerQueryServiceMethods.ByName("InspectNodeImage")),
 		connect.WithHandlerOptions(opts...),
 	)
-	return "/composia.controller.v1.NodeService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return "/composia.controller.v1.DockerQueryService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case NodeServiceListNodesProcedure:
-			nodeServiceListNodesHandler.ServeHTTP(w, r)
-		case NodeServiceGetNodeProcedure:
-			nodeServiceGetNodeHandler.ServeHTTP(w, r)
-		case NodeServiceGetNodeTasksProcedure:
-			nodeServiceGetNodeTasksHandler.ServeHTTP(w, r)
-		case NodeServiceGetNodeDockerStatsProcedure:
-			nodeServiceGetNodeDockerStatsHandler.ServeHTTP(w, r)
-		case NodeServiceSyncNodeCaddyFilesProcedure:
-			nodeServiceSyncNodeCaddyFilesHandler.ServeHTTP(w, r)
-		case NodeServiceReloadNodeCaddyProcedure:
-			nodeServiceReloadNodeCaddyHandler.ServeHTTP(w, r)
-		case NodeServicePruneNodeDockerProcedure:
-			nodeServicePruneNodeDockerHandler.ServeHTTP(w, r)
-		case NodeServiceForgetNodeRusticProcedure:
-			nodeServiceForgetNodeRusticHandler.ServeHTTP(w, r)
-		case NodeServicePruneNodeRusticProcedure:
-			nodeServicePruneNodeRusticHandler.ServeHTTP(w, r)
-		case NodeServiceListNodeContainersProcedure:
-			nodeServiceListNodeContainersHandler.ServeHTTP(w, r)
-		case NodeServiceInspectNodeContainerProcedure:
-			nodeServiceInspectNodeContainerHandler.ServeHTTP(w, r)
-		case NodeServiceListNodeNetworksProcedure:
-			nodeServiceListNodeNetworksHandler.ServeHTTP(w, r)
-		case NodeServiceInspectNodeNetworkProcedure:
-			nodeServiceInspectNodeNetworkHandler.ServeHTTP(w, r)
-		case NodeServiceListNodeVolumesProcedure:
-			nodeServiceListNodeVolumesHandler.ServeHTTP(w, r)
-		case NodeServiceInspectNodeVolumeProcedure:
-			nodeServiceInspectNodeVolumeHandler.ServeHTTP(w, r)
-		case NodeServiceListNodeImagesProcedure:
-			nodeServiceListNodeImagesHandler.ServeHTTP(w, r)
-		case NodeServiceInspectNodeImageProcedure:
-			nodeServiceInspectNodeImageHandler.ServeHTTP(w, r)
+		case DockerQueryServiceListNodeContainersProcedure:
+			dockerQueryServiceListNodeContainersHandler.ServeHTTP(w, r)
+		case DockerQueryServiceInspectNodeContainerProcedure:
+			dockerQueryServiceInspectNodeContainerHandler.ServeHTTP(w, r)
+		case DockerQueryServiceListNodeNetworksProcedure:
+			dockerQueryServiceListNodeNetworksHandler.ServeHTTP(w, r)
+		case DockerQueryServiceInspectNodeNetworkProcedure:
+			dockerQueryServiceInspectNodeNetworkHandler.ServeHTTP(w, r)
+		case DockerQueryServiceListNodeVolumesProcedure:
+			dockerQueryServiceListNodeVolumesHandler.ServeHTTP(w, r)
+		case DockerQueryServiceInspectNodeVolumeProcedure:
+			dockerQueryServiceInspectNodeVolumeHandler.ServeHTTP(w, r)
+		case DockerQueryServiceListNodeImagesProcedure:
+			dockerQueryServiceListNodeImagesHandler.ServeHTTP(w, r)
+		case DockerQueryServiceInspectNodeImageProcedure:
+			dockerQueryServiceInspectNodeImageHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
 	})
 }
 
-// UnimplementedNodeServiceHandler returns CodeUnimplemented from all methods.
-type UnimplementedNodeServiceHandler struct{}
+// UnimplementedDockerQueryServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedDockerQueryServiceHandler struct{}
 
-func (UnimplementedNodeServiceHandler) ListNodes(context.Context, *connect.Request[v1.ListNodesRequest]) (*connect.Response[v1.ListNodesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.ListNodes is not implemented"))
+func (UnimplementedDockerQueryServiceHandler) ListNodeContainers(context.Context, *connect.Request[v1.ListNodeContainersRequest]) (*connect.Response[v1.ListNodeContainersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.DockerQueryService.ListNodeContainers is not implemented"))
 }
 
-func (UnimplementedNodeServiceHandler) GetNode(context.Context, *connect.Request[v1.GetNodeRequest]) (*connect.Response[v1.GetNodeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.GetNode is not implemented"))
+func (UnimplementedDockerQueryServiceHandler) InspectNodeContainer(context.Context, *connect.Request[v1.InspectNodeContainerRequest]) (*connect.Response[v1.InspectNodeContainerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.DockerQueryService.InspectNodeContainer is not implemented"))
 }
 
-func (UnimplementedNodeServiceHandler) GetNodeTasks(context.Context, *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.GetNodeTasks is not implemented"))
+func (UnimplementedDockerQueryServiceHandler) ListNodeNetworks(context.Context, *connect.Request[v1.ListNodeNetworksRequest]) (*connect.Response[v1.ListNodeNetworksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.DockerQueryService.ListNodeNetworks is not implemented"))
 }
 
-func (UnimplementedNodeServiceHandler) GetNodeDockerStats(context.Context, *connect.Request[v1.GetNodeDockerStatsRequest]) (*connect.Response[v1.GetNodeDockerStatsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.GetNodeDockerStats is not implemented"))
+func (UnimplementedDockerQueryServiceHandler) InspectNodeNetwork(context.Context, *connect.Request[v1.InspectNodeNetworkRequest]) (*connect.Response[v1.InspectNodeNetworkResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.DockerQueryService.InspectNodeNetwork is not implemented"))
 }
 
-func (UnimplementedNodeServiceHandler) SyncNodeCaddyFiles(context.Context, *connect.Request[v1.SyncNodeCaddyFilesRequest]) (*connect.Response[v1.SyncNodeCaddyFilesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.SyncNodeCaddyFiles is not implemented"))
+func (UnimplementedDockerQueryServiceHandler) ListNodeVolumes(context.Context, *connect.Request[v1.ListNodeVolumesRequest]) (*connect.Response[v1.ListNodeVolumesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.DockerQueryService.ListNodeVolumes is not implemented"))
 }
 
-func (UnimplementedNodeServiceHandler) ReloadNodeCaddy(context.Context, *connect.Request[v1.ReloadNodeCaddyRequest]) (*connect.Response[v1.ReloadNodeCaddyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.ReloadNodeCaddy is not implemented"))
+func (UnimplementedDockerQueryServiceHandler) InspectNodeVolume(context.Context, *connect.Request[v1.InspectNodeVolumeRequest]) (*connect.Response[v1.InspectNodeVolumeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.DockerQueryService.InspectNodeVolume is not implemented"))
 }
 
-func (UnimplementedNodeServiceHandler) PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.PruneNodeDocker is not implemented"))
+func (UnimplementedDockerQueryServiceHandler) ListNodeImages(context.Context, *connect.Request[v1.ListNodeImagesRequest]) (*connect.Response[v1.ListNodeImagesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.DockerQueryService.ListNodeImages is not implemented"))
 }
 
-func (UnimplementedNodeServiceHandler) ForgetNodeRustic(context.Context, *connect.Request[v1.ForgetNodeRusticRequest]) (*connect.Response[v1.ForgetNodeRusticResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.ForgetNodeRustic is not implemented"))
-}
-
-func (UnimplementedNodeServiceHandler) PruneNodeRustic(context.Context, *connect.Request[v1.PruneNodeRusticRequest]) (*connect.Response[v1.PruneNodeRusticResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.PruneNodeRustic is not implemented"))
-}
-
-func (UnimplementedNodeServiceHandler) ListNodeContainers(context.Context, *connect.Request[v1.ListNodeContainersRequest]) (*connect.Response[v1.ListNodeContainersResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.ListNodeContainers is not implemented"))
-}
-
-func (UnimplementedNodeServiceHandler) InspectNodeContainer(context.Context, *connect.Request[v1.InspectNodeContainerRequest]) (*connect.Response[v1.InspectNodeContainerResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.InspectNodeContainer is not implemented"))
-}
-
-func (UnimplementedNodeServiceHandler) ListNodeNetworks(context.Context, *connect.Request[v1.ListNodeNetworksRequest]) (*connect.Response[v1.ListNodeNetworksResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.ListNodeNetworks is not implemented"))
-}
-
-func (UnimplementedNodeServiceHandler) InspectNodeNetwork(context.Context, *connect.Request[v1.InspectNodeNetworkRequest]) (*connect.Response[v1.InspectNodeNetworkResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.InspectNodeNetwork is not implemented"))
-}
-
-func (UnimplementedNodeServiceHandler) ListNodeVolumes(context.Context, *connect.Request[v1.ListNodeVolumesRequest]) (*connect.Response[v1.ListNodeVolumesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.ListNodeVolumes is not implemented"))
-}
-
-func (UnimplementedNodeServiceHandler) InspectNodeVolume(context.Context, *connect.Request[v1.InspectNodeVolumeRequest]) (*connect.Response[v1.InspectNodeVolumeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.InspectNodeVolume is not implemented"))
-}
-
-func (UnimplementedNodeServiceHandler) ListNodeImages(context.Context, *connect.Request[v1.ListNodeImagesRequest]) (*connect.Response[v1.ListNodeImagesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.ListNodeImages is not implemented"))
-}
-
-func (UnimplementedNodeServiceHandler) InspectNodeImage(context.Context, *connect.Request[v1.InspectNodeImageRequest]) (*connect.Response[v1.InspectNodeImageResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.InspectNodeImage is not implemented"))
+func (UnimplementedDockerQueryServiceHandler) InspectNodeImage(context.Context, *connect.Request[v1.InspectNodeImageRequest]) (*connect.Response[v1.InspectNodeImageResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.DockerQueryService.InspectNodeImage is not implemented"))
 }

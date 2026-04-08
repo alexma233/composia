@@ -20,7 +20,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (server *serviceServer) MigrateService(ctx context.Context, req *connect.Request[controllerv1.MigrateServiceRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
+func (server *serviceCommandServer) MigrateService(ctx context.Context, req *connect.Request[controllerv1.MigrateServiceRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
 	if req.Msg == nil || req.Msg.GetServiceName() == "" || req.Msg.GetSourceNodeId() == "" || req.Msg.GetTargetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name, source_node_id, and target_node_id are required"))
 	}
@@ -336,7 +336,7 @@ func (executor *controllerTaskExecutor) persistMigratedTargetNodes(ctx context.C
 	if err != nil {
 		return fmt.Errorf("resolve service meta path: %w", err)
 	}
-	repoSrv := &repoServer{db: executor.db, cfg: executor.cfg, availableNodeIDs: executor.availableNodeIDs, repoMu: executor.repoMu}
+	repoSrv := &repoCommandServer{db: executor.db, cfg: executor.cfg, availableNodeIDs: executor.availableNodeIDs, repoMu: executor.repoMu}
 	executor.repoMu.Lock()
 	defer executor.repoMu.Unlock()
 	if err := repoSrv.syncRepoBeforeWrite(ctx); err != nil {

@@ -44,7 +44,7 @@
     volumes = data.volumes || [];
   });
 
-  async function loadVolumes() {
+  async function refreshVolumes() {
     if (!data.ready) {
       loading = false;
       return;
@@ -54,7 +54,7 @@
     loadError = null;
 
     try {
-      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/volumes/data`);
+      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/volumes`);
       const payload = await response.json();
       if (!response.ok) {
         throw new Error(payload.error || 'Failed to load volumes');
@@ -69,7 +69,7 @@
   }
 
   onMount(() => {
-    void loadVolumes();
+    void refreshVolumes();
   });
 
   function handleSort(field: string) {
@@ -141,7 +141,7 @@
               Clear
             </Button>
           {/if}
-          <Button variant="outline" size="sm" onclick={() => void loadVolumes()} disabled={loading || !data.ready}>
+          <Button variant="outline" size="sm" onclick={() => void refreshVolumes()} disabled={loading || !data.ready}>
             {#if loading}Loading...{:else}Refresh{/if}
           </Button>
         </div>

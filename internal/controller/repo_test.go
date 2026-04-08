@@ -20,7 +20,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/task"
 )
 
-func TestRepoServiceGetRepoHeadReturnsMinimalSummary(t *testing.T) {
+func TestRepoQueryServiceGetRepoHeadReturnsMinimalSummary(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -33,8 +33,8 @@ func TestRepoServiceGetRepoHeadReturnsMinimalSummary(t *testing.T) {
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewRepoServiceHandler(
-		&repoServer{cfg: &config.ControllerConfig{RepoDir: repoDir}},
+	path, handler := controllerv1connect.NewRepoQueryServiceHandler(
+		&repoQueryServer{cfg: &config.ControllerConfig{RepoDir: repoDir}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -42,7 +42,7 @@ func TestRepoServiceGetRepoHeadReturnsMinimalSummary(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewRepoServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewRepoQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	response, err := client.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
 	if err != nil {
 		t.Fatalf("get repo head: %v", err)
@@ -61,7 +61,7 @@ func TestRepoServiceGetRepoHeadReturnsMinimalSummary(t *testing.T) {
 	}
 }
 
-func TestRepoServiceListRepoFilesAndGetRepoFile(t *testing.T) {
+func TestRepoQueryServiceListRepoFilesAndGetRepoFile(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -77,8 +77,8 @@ func TestRepoServiceListRepoFilesAndGetRepoFile(t *testing.T) {
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewRepoServiceHandler(
-		&repoServer{cfg: &config.ControllerConfig{RepoDir: repoDir}},
+	path, handler := controllerv1connect.NewRepoQueryServiceHandler(
+		&repoQueryServer{cfg: &config.ControllerConfig{RepoDir: repoDir}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -86,7 +86,7 @@ func TestRepoServiceListRepoFilesAndGetRepoFile(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewRepoServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewRepoQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	listResponse, err := client.ListRepoFiles(context.Background(), connect.NewRequest(&controllerv1.ListRepoFilesRequest{}))
 	if err != nil {
 		t.Fatalf("list repo files: %v", err)
@@ -124,7 +124,7 @@ func TestRepoServiceListRepoFilesAndGetRepoFile(t *testing.T) {
 	}
 }
 
-func TestRepoServiceSyncRepoFastForwardsConfiguredRemote(t *testing.T) {
+func TestRepoCommandServiceSyncRepoFastForwardsConfiguredRemote(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -148,8 +148,9 @@ func TestRepoServiceSyncRepoFastForwardsConfiguredRemote(t *testing.T) {
 	}
 	defer db.Close()
 
-	client := newRepoServiceClient(t, &repoServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Git: &config.ControllerGitConfig{RemoteURL: originDir, Branch: branch}}, repoMu: &sync.Mutex{}})
-	response, err := client.SyncRepo(context.Background(), connect.NewRequest(&controllerv1.SyncRepoRequest{}))
+	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Git: &config.ControllerGitConfig{RemoteURL: originDir, Branch: branch}}, repoMu: &sync.Mutex{}})
+	commandClient := newRepoCommandServiceClient(t, &repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Git: &config.ControllerGitConfig{RemoteURL: originDir, Branch: branch}}, repoMu: &sync.Mutex{}})
+	response, err := commandClient.SyncRepo(context.Background(), connect.NewRequest(&controllerv1.SyncRepoRequest{}))
 	if err != nil {
 		t.Fatalf("sync repo: %v", err)
 	}
@@ -166,7 +167,7 @@ func TestRepoServiceSyncRepoFastForwardsConfiguredRemote(t *testing.T) {
 	if string(content) != "two\n" {
 		t.Fatalf("expected fast-forwarded README, got %q", string(content))
 	}
-	head, err := client.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
+	head, err := queryClient.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
 	if err != nil {
 		t.Fatalf("get repo head after sync: %v", err)
 	}
@@ -175,7 +176,7 @@ func TestRepoServiceSyncRepoFastForwardsConfiguredRemote(t *testing.T) {
 	}
 }
 
-func TestRepoServiceListRepoCommitsReturnsPagedSummaries(t *testing.T) {
+func TestRepoQueryServiceListRepoCommitsReturnsPagedSummaries(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -195,8 +196,8 @@ func TestRepoServiceListRepoCommitsReturnsPagedSummaries(t *testing.T) {
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewRepoServiceHandler(
-		&repoServer{cfg: &config.ControllerConfig{RepoDir: repoDir}},
+	path, handler := controllerv1connect.NewRepoQueryServiceHandler(
+		&repoQueryServer{cfg: &config.ControllerConfig{RepoDir: repoDir}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -204,7 +205,7 @@ func TestRepoServiceListRepoCommitsReturnsPagedSummaries(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewRepoServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewRepoQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	firstPage, err := client.ListRepoCommits(context.Background(), connect.NewRequest(&controllerv1.ListRepoCommitsRequest{PageSize: 1}))
 	if err != nil {
 		t.Fatalf("list first commit page: %v", err)
@@ -228,7 +229,7 @@ func TestRepoServiceListRepoCommitsReturnsPagedSummaries(t *testing.T) {
 	}
 }
 
-func TestRepoServiceUpdateRepoFileCommitsAndKeepsWorktreeClean(t *testing.T) {
+func TestRepoCommandServiceUpdateRepoFileCommitsAndKeepsWorktreeClean(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -252,8 +253,8 @@ func TestRepoServiceUpdateRepoFileCommitsAndKeepsWorktreeClean(t *testing.T) {
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewRepoServiceHandler(
-		&repoServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}},
+	path, handler := controllerv1connect.NewRepoCommandServiceHandler(
+		&repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -261,8 +262,9 @@ func TestRepoServiceUpdateRepoFileCommitsAndKeepsWorktreeClean(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewRepoServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
-	head, err := client.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
+	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
+	client := controllerv1connect.NewRepoCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	head, err := queryClient.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
 	if err != nil {
 		t.Fatalf("get repo head: %v", err)
 	}
@@ -304,7 +306,7 @@ func TestRepoServiceUpdateRepoFileCommitsAndKeepsWorktreeClean(t *testing.T) {
 	}
 }
 
-func TestRepoServiceCreateRepoDirectoryCommitsPlaceholder(t *testing.T) {
+func TestRepoCommandServiceCreateRepoDirectoryCommitsPlaceholder(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -320,8 +322,9 @@ func TestRepoServiceCreateRepoDirectoryCommitsPlaceholder(t *testing.T) {
 	}
 	defer db.Close()
 
-	client := newRepoServiceClient(t, &repoServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
-	head, err := client.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
+	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
+	client := newRepoCommandServiceClient(t, &repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
+	head, err := queryClient.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
 	if err != nil {
 		t.Fatalf("get repo head: %v", err)
 	}
@@ -347,7 +350,7 @@ func TestRepoServiceCreateRepoDirectoryCommitsPlaceholder(t *testing.T) {
 	}
 }
 
-func TestRepoServiceMoveRepoPathRenamesTrackedFile(t *testing.T) {
+func TestRepoCommandServiceMoveRepoPathRenamesTrackedFile(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -363,8 +366,9 @@ func TestRepoServiceMoveRepoPathRenamesTrackedFile(t *testing.T) {
 	}
 	defer db.Close()
 
-	client := newRepoServiceClient(t, &repoServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
-	head, err := client.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
+	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
+	client := newRepoCommandServiceClient(t, &repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
+	head, err := queryClient.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
 	if err != nil {
 		t.Fatalf("get repo head: %v", err)
 	}
@@ -387,7 +391,7 @@ func TestRepoServiceMoveRepoPathRenamesTrackedFile(t *testing.T) {
 	}
 }
 
-func TestRepoServiceDeleteRepoPathRemovesTrackedFile(t *testing.T) {
+func TestRepoCommandServiceDeleteRepoPathRemovesTrackedFile(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -403,8 +407,9 @@ func TestRepoServiceDeleteRepoPathRemovesTrackedFile(t *testing.T) {
 	}
 	defer db.Close()
 
-	client := newRepoServiceClient(t, &repoServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
-	head, err := client.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
+	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
+	client := newRepoCommandServiceClient(t, &repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
+	head, err := queryClient.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
 	if err != nil {
 		t.Fatalf("get repo head: %v", err)
 	}
@@ -430,7 +435,7 @@ func TestRepoServiceDeleteRepoPathRemovesTrackedFile(t *testing.T) {
 	}
 }
 
-func TestRepoServiceUpdateRepoFileReturnsPushFailureWithoutRollback(t *testing.T) {
+func TestRepoCommandServiceUpdateRepoFileReturnsPushFailureWithoutRollback(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -452,8 +457,9 @@ func TestRepoServiceUpdateRepoFileReturnsPushFailureWithoutRollback(t *testing.T
 	}
 	defer db.Close()
 
-	client := newRepoServiceClient(t, &repoServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Git: &config.ControllerGitConfig{RemoteURL: originDir, Branch: branch}}, repoMu: &sync.Mutex{}})
-	head, err := client.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
+	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Git: &config.ControllerGitConfig{RemoteURL: originDir, Branch: branch}}, repoMu: &sync.Mutex{}})
+	client := newRepoCommandServiceClient(t, &repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Git: &config.ControllerGitConfig{RemoteURL: originDir, Branch: branch}}, repoMu: &sync.Mutex{}})
+	head, err := queryClient.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
 	if err != nil {
 		t.Fatalf("get repo head: %v", err)
 	}
@@ -488,7 +494,7 @@ func TestRepoServiceUpdateRepoFileReturnsPushFailureWithoutRollback(t *testing.T
 	if !clean {
 		t.Fatalf("expected clean worktree after push failure")
 	}
-	headAfter, err := client.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
+	headAfter, err := queryClient.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
 	if err != nil {
 		t.Fatalf("get repo head after push failure: %v", err)
 	}
@@ -497,7 +503,7 @@ func TestRepoServiceUpdateRepoFileReturnsPushFailureWithoutRollback(t *testing.T
 	}
 }
 
-func TestRepoServiceUpdateRepoFileAllowsInvalidMetaDraft(t *testing.T) {
+func TestRepoCommandServiceUpdateRepoFileAllowsInvalidMetaDraft(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -519,8 +525,8 @@ func TestRepoServiceUpdateRepoFileAllowsInvalidMetaDraft(t *testing.T) {
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewRepoServiceHandler(
-		&repoServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}, repoMu: &sync.Mutex{}},
+	path, handler := controllerv1connect.NewRepoCommandServiceHandler(
+		&repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}, repoMu: &sync.Mutex{}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -528,8 +534,9 @@ func TestRepoServiceUpdateRepoFileAllowsInvalidMetaDraft(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewRepoServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
-	head, err := client.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
+	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}, repoMu: &sync.Mutex{}})
+	client := controllerv1connect.NewRepoCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	head, err := queryClient.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
 	if err != nil {
 		t.Fatalf("get repo head: %v", err)
 	}
@@ -564,7 +571,7 @@ func TestRepoServiceUpdateRepoFileAllowsInvalidMetaDraft(t *testing.T) {
 	}
 }
 
-func TestRepoServiceUpdateRepoFileRejectsServiceWithActiveTask(t *testing.T) {
+func TestRepoCommandServiceUpdateRepoFileRejectsServiceWithActiveTask(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -596,8 +603,8 @@ func TestRepoServiceUpdateRepoFileRejectsServiceWithActiveTask(t *testing.T) {
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewRepoServiceHandler(
-		&repoServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}, repoMu: &sync.Mutex{}},
+	path, handler := controllerv1connect.NewRepoCommandServiceHandler(
+		&repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}, repoMu: &sync.Mutex{}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -605,8 +612,9 @@ func TestRepoServiceUpdateRepoFileRejectsServiceWithActiveTask(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewRepoServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
-	head, err := client.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
+	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}, repoMu: &sync.Mutex{}})
+	client := controllerv1connect.NewRepoCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	head, err := queryClient.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
 	if err != nil {
 		t.Fatalf("get repo head: %v", err)
 	}
@@ -634,7 +642,7 @@ func TestRepoServiceUpdateRepoFileRejectsServiceWithActiveTask(t *testing.T) {
 	}
 }
 
-func newRepoServiceClient(t *testing.T, server *repoServer) controllerv1connect.RepoServiceClient {
+func newRepoCommandServiceClient(t *testing.T, server *repoCommandServer) controllerv1connect.RepoCommandServiceClient {
 	t.Helper()
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
 		if token != "cli-token" {
@@ -642,12 +650,28 @@ func newRepoServiceClient(t *testing.T, server *repoServer) controllerv1connect.
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewRepoServiceHandler(server, connect.WithInterceptors(interceptor))
+	path, handler := controllerv1connect.NewRepoCommandServiceHandler(server, connect.WithInterceptors(interceptor))
 	mux := http.NewServeMux()
 	mux.Handle(path, handler)
 	httpServer := httptest.NewServer(mux)
 	t.Cleanup(httpServer.Close)
-	return controllerv1connect.NewRepoServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	return controllerv1connect.NewRepoCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+}
+
+func newRepoQueryServiceClient(t *testing.T, server *repoQueryServer) controllerv1connect.RepoQueryServiceClient {
+	t.Helper()
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+	path, handler := controllerv1connect.NewRepoQueryServiceHandler(server, connect.WithInterceptors(interceptor))
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	t.Cleanup(httpServer.Close)
+	return controllerv1connect.NewRepoQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 }
 
 func createGitRepoWithBareRemote(t *testing.T, rootDir string, files map[string]string) (string, string, string) {

@@ -1456,13 +1456,14 @@ const file_proto_composia_controller_v1_repo_proto_rawDesc = "" +
 	"\vsync_status\x18\x03 \x01(\tR\n" +
 	"syncStatus\x12&\n" +
 	"\x0flast_sync_error\x18\x04 \x01(\tR\rlastSyncError\x125\n" +
-	"\x17last_successful_pull_at\x18\x05 \x01(\tR\x14lastSuccessfulPullAt2\xd6\b\n" +
-	"\vRepoService\x12f\n" +
+	"\x17last_successful_pull_at\x18\x05 \x01(\tR\x14lastSuccessfulPullAt2\xaf\x04\n" +
+	"\x10RepoQueryService\x12f\n" +
 	"\vGetRepoHead\x12*.composia.controller.v1.GetRepoHeadRequest\x1a+.composia.controller.v1.GetRepoHeadResponse\x12l\n" +
 	"\rListRepoFiles\x12,.composia.controller.v1.ListRepoFilesRequest\x1a-.composia.controller.v1.ListRepoFilesResponse\x12f\n" +
 	"\vGetRepoFile\x12*.composia.controller.v1.GetRepoFileRequest\x1a+.composia.controller.v1.GetRepoFileResponse\x12r\n" +
 	"\x0fListRepoCommits\x12..composia.controller.v1.ListRepoCommitsRequest\x1a/.composia.controller.v1.ListRepoCommitsResponse\x12i\n" +
-	"\fValidateRepo\x12+.composia.controller.v1.ValidateRepoRequest\x1a,.composia.controller.v1.ValidateRepoResponse\x12o\n" +
+	"\fValidateRepo\x12+.composia.controller.v1.ValidateRepoRequest\x1a,.composia.controller.v1.ValidateRepoResponse2\xc0\x04\n" +
+	"\x12RepoCommandService\x12o\n" +
 	"\x0eUpdateRepoFile\x12-.composia.controller.v1.UpdateRepoFileRequest\x1a..composia.controller.v1.UpdateRepoFileResponse\x12~\n" +
 	"\x13CreateRepoDirectory\x122.composia.controller.v1.CreateRepoDirectoryRequest\x1a3.composia.controller.v1.CreateRepoDirectoryResponse\x12i\n" +
 	"\fMoveRepoPath\x12+.composia.controller.v1.MoveRepoPathRequest\x1a,.composia.controller.v1.MoveRepoPathResponse\x12o\n" +
@@ -1511,26 +1512,26 @@ var file_proto_composia_controller_v1_repo_proto_depIdxs = []int32{
 	2,  // 0: composia.controller.v1.ListRepoFilesResponse.entries:type_name -> composia.controller.v1.RepoFileEntry
 	7,  // 1: composia.controller.v1.ListRepoCommitsResponse.commits:type_name -> composia.controller.v1.RepoCommitSummary
 	10, // 2: composia.controller.v1.ValidateRepoResponse.errors:type_name -> composia.controller.v1.RepoValidationError
-	0,  // 3: composia.controller.v1.RepoService.GetRepoHead:input_type -> composia.controller.v1.GetRepoHeadRequest
-	3,  // 4: composia.controller.v1.RepoService.ListRepoFiles:input_type -> composia.controller.v1.ListRepoFilesRequest
-	5,  // 5: composia.controller.v1.RepoService.GetRepoFile:input_type -> composia.controller.v1.GetRepoFileRequest
-	8,  // 6: composia.controller.v1.RepoService.ListRepoCommits:input_type -> composia.controller.v1.ListRepoCommitsRequest
-	11, // 7: composia.controller.v1.RepoService.ValidateRepo:input_type -> composia.controller.v1.ValidateRepoRequest
-	13, // 8: composia.controller.v1.RepoService.UpdateRepoFile:input_type -> composia.controller.v1.UpdateRepoFileRequest
-	15, // 9: composia.controller.v1.RepoService.CreateRepoDirectory:input_type -> composia.controller.v1.CreateRepoDirectoryRequest
-	17, // 10: composia.controller.v1.RepoService.MoveRepoPath:input_type -> composia.controller.v1.MoveRepoPathRequest
-	19, // 11: composia.controller.v1.RepoService.DeleteRepoPath:input_type -> composia.controller.v1.DeleteRepoPathRequest
-	21, // 12: composia.controller.v1.RepoService.SyncRepo:input_type -> composia.controller.v1.SyncRepoRequest
-	1,  // 13: composia.controller.v1.RepoService.GetRepoHead:output_type -> composia.controller.v1.GetRepoHeadResponse
-	4,  // 14: composia.controller.v1.RepoService.ListRepoFiles:output_type -> composia.controller.v1.ListRepoFilesResponse
-	6,  // 15: composia.controller.v1.RepoService.GetRepoFile:output_type -> composia.controller.v1.GetRepoFileResponse
-	9,  // 16: composia.controller.v1.RepoService.ListRepoCommits:output_type -> composia.controller.v1.ListRepoCommitsResponse
-	12, // 17: composia.controller.v1.RepoService.ValidateRepo:output_type -> composia.controller.v1.ValidateRepoResponse
-	14, // 18: composia.controller.v1.RepoService.UpdateRepoFile:output_type -> composia.controller.v1.UpdateRepoFileResponse
-	16, // 19: composia.controller.v1.RepoService.CreateRepoDirectory:output_type -> composia.controller.v1.CreateRepoDirectoryResponse
-	18, // 20: composia.controller.v1.RepoService.MoveRepoPath:output_type -> composia.controller.v1.MoveRepoPathResponse
-	20, // 21: composia.controller.v1.RepoService.DeleteRepoPath:output_type -> composia.controller.v1.DeleteRepoPathResponse
-	22, // 22: composia.controller.v1.RepoService.SyncRepo:output_type -> composia.controller.v1.SyncRepoResponse
+	0,  // 3: composia.controller.v1.RepoQueryService.GetRepoHead:input_type -> composia.controller.v1.GetRepoHeadRequest
+	3,  // 4: composia.controller.v1.RepoQueryService.ListRepoFiles:input_type -> composia.controller.v1.ListRepoFilesRequest
+	5,  // 5: composia.controller.v1.RepoQueryService.GetRepoFile:input_type -> composia.controller.v1.GetRepoFileRequest
+	8,  // 6: composia.controller.v1.RepoQueryService.ListRepoCommits:input_type -> composia.controller.v1.ListRepoCommitsRequest
+	11, // 7: composia.controller.v1.RepoQueryService.ValidateRepo:input_type -> composia.controller.v1.ValidateRepoRequest
+	13, // 8: composia.controller.v1.RepoCommandService.UpdateRepoFile:input_type -> composia.controller.v1.UpdateRepoFileRequest
+	15, // 9: composia.controller.v1.RepoCommandService.CreateRepoDirectory:input_type -> composia.controller.v1.CreateRepoDirectoryRequest
+	17, // 10: composia.controller.v1.RepoCommandService.MoveRepoPath:input_type -> composia.controller.v1.MoveRepoPathRequest
+	19, // 11: composia.controller.v1.RepoCommandService.DeleteRepoPath:input_type -> composia.controller.v1.DeleteRepoPathRequest
+	21, // 12: composia.controller.v1.RepoCommandService.SyncRepo:input_type -> composia.controller.v1.SyncRepoRequest
+	1,  // 13: composia.controller.v1.RepoQueryService.GetRepoHead:output_type -> composia.controller.v1.GetRepoHeadResponse
+	4,  // 14: composia.controller.v1.RepoQueryService.ListRepoFiles:output_type -> composia.controller.v1.ListRepoFilesResponse
+	6,  // 15: composia.controller.v1.RepoQueryService.GetRepoFile:output_type -> composia.controller.v1.GetRepoFileResponse
+	9,  // 16: composia.controller.v1.RepoQueryService.ListRepoCommits:output_type -> composia.controller.v1.ListRepoCommitsResponse
+	12, // 17: composia.controller.v1.RepoQueryService.ValidateRepo:output_type -> composia.controller.v1.ValidateRepoResponse
+	14, // 18: composia.controller.v1.RepoCommandService.UpdateRepoFile:output_type -> composia.controller.v1.UpdateRepoFileResponse
+	16, // 19: composia.controller.v1.RepoCommandService.CreateRepoDirectory:output_type -> composia.controller.v1.CreateRepoDirectoryResponse
+	18, // 20: composia.controller.v1.RepoCommandService.MoveRepoPath:output_type -> composia.controller.v1.MoveRepoPathResponse
+	20, // 21: composia.controller.v1.RepoCommandService.DeleteRepoPath:output_type -> composia.controller.v1.DeleteRepoPathResponse
+	22, // 22: composia.controller.v1.RepoCommandService.SyncRepo:output_type -> composia.controller.v1.SyncRepoResponse
 	13, // [13:23] is the sub-list for method output_type
 	3,  // [3:13] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
@@ -1551,7 +1552,7 @@ func file_proto_composia_controller_v1_repo_proto_init() {
 			NumEnums:      0,
 			NumMessages:   23,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   2,
 		},
 		GoTypes:           file_proto_composia_controller_v1_repo_proto_goTypes,
 		DependencyIndexes: file_proto_composia_controller_v1_repo_proto_depIdxs,

@@ -47,7 +47,7 @@
     networks = data.networks || [];
   });
 
-  async function loadNetworks() {
+  async function refreshNetworks() {
     if (!data.ready) {
       loading = false;
       return;
@@ -57,7 +57,7 @@
     loadError = null;
 
     try {
-      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/networks/data`);
+      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/networks`);
       const payload = await response.json();
       if (!response.ok) {
         throw new Error(payload.error || 'Failed to load networks');
@@ -72,7 +72,7 @@
   }
 
   onMount(() => {
-    void loadNetworks();
+    void refreshNetworks();
   });
 
   function isSystemNetwork(name: string): boolean {
@@ -157,7 +157,7 @@
               Clear
             </Button>
           {/if}
-          <Button variant="outline" size="sm" onclick={() => void loadNetworks()} disabled={loading || !data.ready}>
+          <Button variant="outline" size="sm" onclick={() => void refreshNetworks()} disabled={loading || !data.ready}>
             {#if loading}Loading...{:else}Refresh{/if}
           </Button>
         </div>

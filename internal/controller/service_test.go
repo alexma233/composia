@@ -21,7 +21,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/task"
 )
 
-func TestServiceServiceListServices(t *testing.T) {
+func TestServiceQueryServiceListServices(t *testing.T) {
 	t.Parallel()
 
 	stateDir := filepath.Join(t.TempDir(), "state")
@@ -46,8 +46,8 @@ func TestServiceServiceListServices(t *testing.T) {
 		return "test-client", nil
 	})
 
-	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db},
+	path, handler := controllerv1connect.NewServiceQueryServiceHandler(
+		&serviceQueryServer{db: db},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -55,7 +55,7 @@ func TestServiceServiceListServices(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceServiceClient(
+	client := controllerv1connect.NewServiceQueryServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
 		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")),
@@ -79,7 +79,7 @@ func TestServiceServiceListServices(t *testing.T) {
 	}
 }
 
-func TestServiceServiceGetServiceReturnsMinimalSummary(t *testing.T) {
+func TestServiceQueryServiceGetServiceReturnsMinimalSummary(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -117,8 +117,8 @@ func TestServiceServiceGetServiceReturnsMinimalSummary(t *testing.T) {
 		return "test-client", nil
 	})
 
-	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, availableNodeIDs: map[string]struct{}{"main": {}}},
+	path, handler := controllerv1connect.NewServiceQueryServiceHandler(
+		&serviceQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, availableNodeIDs: map[string]struct{}{"main": {}}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -126,7 +126,7 @@ func TestServiceServiceGetServiceReturnsMinimalSummary(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	response, err := client.GetService(ctx, connect.NewRequest(&controllerv1.GetServiceRequest{ServiceName: "alpha"}))
 	if err != nil {
 		t.Fatalf("get service: %v", err)
@@ -145,7 +145,7 @@ func TestServiceServiceGetServiceReturnsMinimalSummary(t *testing.T) {
 	}
 }
 
-func TestServiceServiceGetServiceTasksReturnsFilteredTasks(t *testing.T) {
+func TestServiceQueryServiceGetServiceTasksReturnsFilteredTasks(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -185,8 +185,8 @@ func TestServiceServiceGetServiceTasksReturnsFilteredTasks(t *testing.T) {
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, availableNodeIDs: map[string]struct{}{"main": {}}},
+	path, handler := controllerv1connect.NewServiceQueryServiceHandler(
+		&serviceQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, availableNodeIDs: map[string]struct{}{"main": {}}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -194,7 +194,7 @@ func TestServiceServiceGetServiceTasksReturnsFilteredTasks(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	response, err := client.GetServiceTasks(ctx, connect.NewRequest(&controllerv1.GetServiceTasksRequest{ServiceName: "alpha", PageSize: 10}))
 	if err != nil {
 		t.Fatalf("get service tasks: %v", err)
@@ -204,7 +204,7 @@ func TestServiceServiceGetServiceTasksReturnsFilteredTasks(t *testing.T) {
 	}
 }
 
-func TestServiceServiceGetServiceBackupsReturnsFilteredBackups(t *testing.T) {
+func TestServiceQueryServiceGetServiceBackupsReturnsFilteredBackups(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -244,8 +244,8 @@ func TestServiceServiceGetServiceBackupsReturnsFilteredBackups(t *testing.T) {
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, availableNodeIDs: map[string]struct{}{"main": {}}},
+	path, handler := controllerv1connect.NewServiceQueryServiceHandler(
+		&serviceQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, availableNodeIDs: map[string]struct{}{"main": {}}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -253,7 +253,7 @@ func TestServiceServiceGetServiceBackupsReturnsFilteredBackups(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	response, err := client.GetServiceBackups(ctx, connect.NewRequest(&controllerv1.GetServiceBackupsRequest{ServiceName: "alpha", PageSize: 10}))
 	if err != nil {
 		t.Fatalf("get service backups: %v", err)
@@ -263,7 +263,7 @@ func TestServiceServiceGetServiceBackupsReturnsFilteredBackups(t *testing.T) {
 	}
 }
 
-func TestServiceServiceUpdateServiceTargetNodesRewritesMetaAndCommits(t *testing.T) {
+func TestServiceCommandServiceUpdateServiceTargetNodesRewritesMetaAndCommits(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -289,16 +289,24 @@ func TestServiceServiceUpdateServiceTargetNodesRewritesMetaAndCommits(t *testing
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}, {ID: "edge"}}}, availableNodeIDs: map[string]struct{}{"main": {}, "edge": {}}, repoMu: &sync.Mutex{}},
+	commandServer := &serviceCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}, {ID: "edge"}}}, availableNodeIDs: map[string]struct{}{"main": {}, "edge": {}}, repoMu: &sync.Mutex{}}
+	queryServer := &serviceQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}, {ID: "edge"}}}, availableNodeIDs: map[string]struct{}{"main": {}, "edge": {}}, repoMu: &sync.Mutex{}}
+	path, handler := controllerv1connect.NewServiceCommandServiceHandler(
+		commandServer,
+		connect.WithInterceptors(interceptor),
+	)
+	queryPath, queryHandler := controllerv1connect.NewServiceQueryServiceHandler(
+		queryServer,
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
 	mux.Handle(path, handler)
+	mux.Handle(queryPath, queryHandler)
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	queryClient := controllerv1connect.NewServiceQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	response, err := client.UpdateServiceTargetNodes(ctx, connect.NewRequest(&controllerv1.UpdateServiceTargetNodesRequest{ServiceName: "alpha", NodeIds: []string{"main", "edge"}, BaseRevision: mustCurrentRevision(t, repoDir)}))
 	if err != nil {
 		t.Fatalf("update service target nodes: %v", err)
@@ -316,7 +324,7 @@ func TestServiceServiceUpdateServiceTargetNodesRewritesMetaAndCommits(t *testing
 	if string(metaContent) != "name: alpha\nnodes:\n  - main\n  - edge\n" {
 		t.Fatalf("unexpected rewritten meta content: %q", string(metaContent))
 	}
-	serviceResp, err := client.GetService(ctx, connect.NewRequest(&controllerv1.GetServiceRequest{ServiceName: "alpha"}))
+	serviceResp, err := queryClient.GetService(ctx, connect.NewRequest(&controllerv1.GetServiceRequest{ServiceName: "alpha"}))
 	if err != nil {
 		t.Fatalf("get service after target node update: %v", err)
 	}
@@ -339,7 +347,7 @@ func TestServiceServiceUpdateServiceTargetNodesRewritesMetaAndCommits(t *testing
 	}
 }
 
-func TestServiceServiceUpdateServiceTargetNodesRejectsInvalidNode(t *testing.T) {
+func TestServiceCommandServiceUpdateServiceTargetNodesRejectsInvalidNode(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -358,8 +366,8 @@ func TestServiceServiceUpdateServiceTargetNodesRejectsInvalidNode(t *testing.T) 
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}, repoMu: &sync.Mutex{}},
+	path, handler := controllerv1connect.NewServiceCommandServiceHandler(
+		&serviceCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}, repoMu: &sync.Mutex{}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -367,7 +375,7 @@ func TestServiceServiceUpdateServiceTargetNodesRejectsInvalidNode(t *testing.T) 
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	_, err := client.UpdateServiceTargetNodes(ctx, connect.NewRequest(&controllerv1.UpdateServiceTargetNodesRequest{ServiceName: "alpha", NodeIds: []string{"missing"}, BaseRevision: mustCurrentRevision(t, repoDir)}))
 	if err == nil {
 		t.Fatalf("expected invalid node error")
@@ -377,7 +385,7 @@ func TestServiceServiceUpdateServiceTargetNodesRejectsInvalidNode(t *testing.T) 
 	}
 }
 
-func TestServiceServiceUpdateServiceTargetNodesRejectsActiveServiceTask(t *testing.T) {
+func TestServiceCommandServiceUpdateServiceTargetNodesRejectsActiveServiceTask(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -399,8 +407,8 @@ func TestServiceServiceUpdateServiceTargetNodesRejectsActiveServiceTask(t *testi
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}, {ID: "edge"}}}, availableNodeIDs: map[string]struct{}{"main": {}, "edge": {}}, repoMu: &sync.Mutex{}},
+	path, handler := controllerv1connect.NewServiceCommandServiceHandler(
+		&serviceCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}, {ID: "edge"}}}, availableNodeIDs: map[string]struct{}{"main": {}, "edge": {}}, repoMu: &sync.Mutex{}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -408,7 +416,7 @@ func TestServiceServiceUpdateServiceTargetNodesRejectsActiveServiceTask(t *testi
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	_, err := client.UpdateServiceTargetNodes(ctx, connect.NewRequest(&controllerv1.UpdateServiceTargetNodesRequest{ServiceName: "alpha", NodeIds: []string{"main", "edge"}, BaseRevision: mustCurrentRevision(t, repoDir)}))
 	if err == nil {
 		t.Fatalf("expected active task conflict")
@@ -418,7 +426,7 @@ func TestServiceServiceUpdateServiceTargetNodesRejectsActiveServiceTask(t *testi
 	}
 }
 
-func TestServiceServiceDeployServiceCreatesPendingTask(t *testing.T) {
+func TestServiceCommandServiceDeployCreatesPendingTask(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -458,8 +466,8 @@ func TestServiceServiceDeployServiceCreatesPendingTask(t *testing.T) {
 		return "test-client", nil
 	})
 
-	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{
+	path, handler := controllerv1connect.NewServiceCommandServiceHandler(
+		&serviceCommandServer{
 			db:  db,
 			cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}},
 			availableNodeIDs: map[string]struct{}{
@@ -473,7 +481,7 @@ func TestServiceServiceDeployServiceCreatesPendingTask(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceServiceClient(
+	client := controllerv1connect.NewServiceCommandServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
 		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")),
@@ -511,7 +519,7 @@ func TestServiceServiceDeployServiceCreatesPendingTask(t *testing.T) {
 	}
 }
 
-func TestServiceServiceDeployServiceIgnoresUnrelatedInvalidDraft(t *testing.T) {
+func TestServiceCommandServiceDeployIgnoresUnrelatedInvalidDraft(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -557,8 +565,8 @@ func TestServiceServiceDeployServiceIgnoresUnrelatedInvalidDraft(t *testing.T) {
 		return "test-client", nil
 	})
 
-	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{
+	path, handler := controllerv1connect.NewServiceCommandServiceHandler(
+		&serviceCommandServer{
 			db:  db,
 			cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}},
 			availableNodeIDs: map[string]struct{}{
@@ -572,7 +580,7 @@ func TestServiceServiceDeployServiceIgnoresUnrelatedInvalidDraft(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceServiceClient(
+	client := controllerv1connect.NewServiceCommandServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
 		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")),
@@ -587,7 +595,7 @@ func TestServiceServiceDeployServiceIgnoresUnrelatedInvalidDraft(t *testing.T) {
 	}
 }
 
-func TestServiceServiceDeployServiceUsesWebSourceHeader(t *testing.T) {
+func TestServiceCommandServiceDeployUsesWebSourceHeader(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -627,8 +635,8 @@ func TestServiceServiceDeployServiceUsesWebSourceHeader(t *testing.T) {
 		return "test-client", nil
 	})
 
-	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{
+	path, handler := controllerv1connect.NewServiceCommandServiceHandler(
+		&serviceCommandServer{
 			db:  db,
 			cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}},
 			availableNodeIDs: map[string]struct{}{
@@ -648,7 +656,7 @@ func TestServiceServiceDeployServiceUsesWebSourceHeader(t *testing.T) {
 			return next(ctx, req)
 		}
 	})
-	client := controllerv1connect.NewServiceServiceClient(
+	client := controllerv1connect.NewServiceCommandServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
 		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token"), requestInterceptor),
@@ -668,7 +676,7 @@ func TestServiceServiceDeployServiceUsesWebSourceHeader(t *testing.T) {
 	}
 }
 
-func TestServiceServiceCaddySyncCreatesPendingTask(t *testing.T) {
+func TestServiceCommandServiceCaddySyncCreatesPendingTask(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -711,8 +719,8 @@ func TestServiceServiceCaddySyncCreatesPendingTask(t *testing.T) {
 		return "test-client", nil
 	})
 
-	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}},
+	path, handler := controllerv1connect.NewServiceCommandServiceHandler(
+		&serviceCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -722,7 +730,7 @@ func TestServiceServiceCaddySyncCreatesPendingTask(t *testing.T) {
 
 }
 
-func TestServiceServiceDeployServiceRejectsOfflineOrDisabledNode(t *testing.T) {
+func TestServiceCommandServiceDeployRejectsOfflineOrDisabledNode(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -759,16 +767,16 @@ func TestServiceServiceDeployServiceRejectsOfflineOrDisabledNode(t *testing.T) {
 		return "test-client", nil
 	})
 
-	makeClient := func(nodes []config.NodeConfig) controllerv1connect.ServiceServiceClient {
-		path, handler := controllerv1connect.NewServiceServiceHandler(
-			&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: nodes}, availableNodeIDs: map[string]struct{}{"main": {}}},
+	makeClient := func(nodes []config.NodeConfig) controllerv1connect.ServiceCommandServiceClient {
+		path, handler := controllerv1connect.NewServiceCommandServiceHandler(
+			&serviceCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: nodes}, availableNodeIDs: map[string]struct{}{"main": {}}},
 			connect.WithInterceptors(interceptor),
 		)
 		mux := http.NewServeMux()
 		mux.Handle(path, handler)
 		httpServer := httptest.NewServer(mux)
 		t.Cleanup(httpServer.Close)
-		return controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+		return controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	}
 
 	offlineClient := makeClient([]config.NodeConfig{{ID: "main"}})
@@ -794,7 +802,7 @@ func TestServiceServiceDeployServiceRejectsOfflineOrDisabledNode(t *testing.T) {
 	}
 }
 
-func TestServiceServiceStopAndRestartCreatePendingTasks(t *testing.T) {
+func TestServiceCommandServiceStopAndRestartCreatePendingTasks(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -834,8 +842,8 @@ func TestServiceServiceStopAndRestartCreatePendingTasks(t *testing.T) {
 		return "test-client", nil
 	})
 
-	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}},
+	path, handler := controllerv1connect.NewServiceCommandServiceHandler(
+		&serviceCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -843,7 +851,7 @@ func TestServiceServiceStopAndRestartCreatePendingTasks(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 
 	stopResponse, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_STOP}))
 	if err != nil {
@@ -865,7 +873,7 @@ func TestServiceServiceStopAndRestartCreatePendingTasks(t *testing.T) {
 	}
 }
 
-func TestServiceServiceUpdateCreatesPendingTask(t *testing.T) {
+func TestServiceCommandServiceUpdateCreatesPendingTask(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -905,8 +913,8 @@ func TestServiceServiceUpdateCreatesPendingTask(t *testing.T) {
 		return "test-client", nil
 	})
 
-	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}},
+	path, handler := controllerv1connect.NewServiceCommandServiceHandler(
+		&serviceCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -914,7 +922,7 @@ func TestServiceServiceUpdateCreatesPendingTask(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_UPDATE}))
 	if err != nil {
 		t.Fatalf("update service: %v", err)
@@ -924,7 +932,7 @@ func TestServiceServiceUpdateCreatesPendingTask(t *testing.T) {
 	}
 }
 
-func TestServiceServiceUpdateServiceDNSCreatesPendingTaskWithoutOnlineNode(t *testing.T) {
+func TestServiceCommandServiceUpdateDNSCreatesPendingTaskWithoutOnlineNode(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -965,8 +973,8 @@ func TestServiceServiceUpdateServiceDNSCreatesPendingTaskWithoutOnlineNode(t *te
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{
+	path, handler := controllerv1connect.NewServiceCommandServiceHandler(
+		&serviceCommandServer{
 			db: db,
 			cfg: &config.ControllerConfig{
 				RepoDir: repoDir,
@@ -989,7 +997,7 @@ func TestServiceServiceUpdateServiceDNSCreatesPendingTaskWithoutOnlineNode(t *te
 			return next(ctx, req)
 		}
 	})
-	client := controllerv1connect.NewServiceServiceClient(
+	client := controllerv1connect.NewServiceCommandServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
 		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token"), requestInterceptor),
@@ -1014,7 +1022,7 @@ func TestServiceServiceUpdateServiceDNSCreatesPendingTaskWithoutOnlineNode(t *te
 	}
 }
 
-func TestServiceServiceBackupCreatesPendingTaskWithDefaultDataNames(t *testing.T) {
+func TestServiceCommandServiceBackupCreatesPendingTaskWithDefaultDataNames(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -1054,8 +1062,8 @@ func TestServiceServiceBackupCreatesPendingTaskWithDefaultDataNames(t *testing.T
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}},
+	path, handler := controllerv1connect.NewServiceCommandServiceHandler(
+		&serviceCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -1063,7 +1071,7 @@ func TestServiceServiceBackupCreatesPendingTaskWithDefaultDataNames(t *testing.T
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "alpha", Action: controllerv1.ServiceAction_SERVICE_ACTION_BACKUP}))
 	if err != nil {
 		t.Fatalf("backup service: %v", err)
@@ -1081,7 +1089,7 @@ func TestServiceServiceBackupCreatesPendingTaskWithDefaultDataNames(t *testing.T
 	}
 }
 
-func TestServiceServiceMigrateCreatesPendingControllerTask(t *testing.T) {
+func TestServiceCommandServiceMigrateCreatesPendingControllerTask(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -1123,8 +1131,8 @@ func TestServiceServiceMigrateCreatesPendingControllerTask(t *testing.T) {
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}, {ID: "edge"}}}, availableNodeIDs: map[string]struct{}{"main": {}, "edge": {}}},
+	path, handler := controllerv1connect.NewServiceCommandServiceHandler(
+		&serviceCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}, {ID: "edge"}}}, availableNodeIDs: map[string]struct{}{"main": {}, "edge": {}}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -1132,7 +1140,7 @@ func TestServiceServiceMigrateCreatesPendingControllerTask(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	response, err := client.MigrateService(ctx, connect.NewRequest(&controllerv1.MigrateServiceRequest{ServiceName: "alpha", SourceNodeId: "main", TargetNodeId: "edge"}))
 	if err != nil {
 		t.Fatalf("migrate service: %v", err)

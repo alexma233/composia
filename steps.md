@@ -27,13 +27,17 @@
 - Docker 浏览 API（containers、networks、images、volumes）已存在，但仍然挂在 node 维度上。
 
 **Controller Public API（已实现 multi-node 语义）：**
-- `ServiceService` - ListServices, GetService(含instances), GetServiceTasks, GetServiceBackups, RunServiceAction
+- `ServiceQueryService` - ListServices, GetService(含instances), GetServiceTasks, GetServiceBackups
+- `ServiceCommandService` - UpdateServiceTargetNodes, RunServiceAction, MigrateService
 - `ServiceInstanceService` - ListServiceInstances, GetServiceInstance, RunServiceInstanceAction
 - `ContainerService` - RunContainerAction, GetContainerLogs, OpenContainerExec
 - `TaskService`
 - `BackupRecordService`
-- `NodeService` - ListNodes, GetNode, GetNodeTasks, GetNodeDockerStats, SyncNodeCaddyFiles, ReloadNodeCaddy, PruneNodeDocker
-- `RepoService`
+- `NodeQueryService` - ListNodes, GetNode, GetNodeTasks, GetNodeDockerStats
+- `NodeMaintenanceService` - SyncNodeCaddyFiles, ReloadNodeCaddy, PruneNodeDocker, ForgetNodeRustic, PruneNodeRustic
+- `DockerQueryService` - ListNodeContainers, InspectNodeContainer, ListNodeNetworks, InspectNodeNetwork, ListNodeVolumes, InspectNodeVolume, ListNodeImages, InspectNodeImage
+- `RepoQueryService`
+- `RepoCommandService`
 - `SecretService`
 - `SystemService`
 
@@ -136,7 +140,7 @@
 2. Repo 文件写入、目录创建、路径移动、路径删除、secret 写入都复用同一套 repo 写前检查和本地 commit 语义。
 3. Repo 写事务内部已整理为清晰边界：写前检查、具体 mutation、Git 收尾（push/sync state）、declared services 刷新分别收口。
 4. Push 失败时保留本地 commit，并继续通过 repo sync state 向 API/UI 报告 `push_failed`。
-5. `ServiceService.UpdateServiceTargetNodes` 已实现，controller 可以通过受控 API 定向改写 `composia-meta.yaml.nodes`，并复用现有 repo 写事务。
+5. `ServiceCommandService.UpdateServiceTargetNodes` 已实现，controller 可以通过受控 API 定向改写 `composia-meta.yaml.nodes`，并复用现有 repo 写事务。
 6. Repo lock 处理、验证、服务冲突检查和本地 commit 创建工作正常。
 7. 可选远程同步行为、push 报告和 repo sync 状态工作正常。
 
@@ -223,7 +227,7 @@
 8. `stop` 成功后自动删除对应 generated Caddy 片段并串联 `caddy_reload`
 9. `PruneNodeDocker` API
 10. Container logs API - `GET /nodes/{id}/docker/containers/{cid}/logs`
-11. Container start/stop/restart API - `POST /nodes/{id}/docker/containers/action`
+11. Container start/stop/restart API - `POST /nodes/{id}/docker/containers/{cid}/actions/{action}`
 12. Container exec session API - `POST /nodes/{id}/docker/containers/{cid}/exec`
 
 待完成：
@@ -267,11 +271,13 @@
 
 ## 目标 API 结构
 
-### ServiceService
+### ServiceQueryService
 - [x] `ListServices` - 返回 `ServiceSummary[]`，含 instance_count/running_count/target_node_count
 - [x] `GetService` - 返回 `ServiceDetail`，含 `nodes[]` 和 `instances[]`
 - [x] `GetServiceTasks`
 - [x] `GetServiceBackups`
+
+### ServiceCommandService
 - [x] `UpdateServiceTargetNodes` - 定向改写 `composia-meta.yaml.nodes`
 - [x] `RunServiceAction` - 支持 `node_ids[]` 数组进行 fan-out，`data_names[]` 用于 backup
 - [x] `UpdateServiceDNS` - 通过 `RunServiceAction` + `SERVICE_ACTION_DNS_UPDATE` 实现
@@ -287,13 +293,42 @@
 - [x] `GetContainerLogs(node_id, container_id, tail, timestamps)`
 - [x] `OpenContainerExec(node_id, container_id, command, rows, cols)` - 返回 websocket path
 
-### NodeService
+### NodeQueryService
 - [x] `ListNodes` - 返回 `NodeSummary[]`
 - [x] `GetNode`
 - [x] `GetNodeTasks`
 - [x] `GetNodeDockerStats`
+
+### NodeMaintenanceService
 - [x] `PruneNodeDocker(node_id)`
 - [x] `ReloadNodeCaddy(node_id)`
+- [x] `SyncNodeCaddyFiles(node_id)`
+- [x] `ForgetNodeRustic(...)`
+- [x] `PruneNodeRustic(...)`
+
+### DockerQueryService
+- [x] `ListNodeContainers(node_id)`
+- [x] `InspectNodeContainer(node_id, container_id)`
+- [x] `ListNodeNetworks(node_id)`
+- [x] `InspectNodeNetwork(node_id, network_id)`
+- [x] `ListNodeVolumes(node_id)`
+- [x] `InspectNodeVolume(node_id, volume_name)`
+- [x] `ListNodeImages(node_id)`
+- [x] `InspectNodeImage(node_id, image_id)`
+
+### RepoQueryService
+- [x] `GetRepoHead`
+- [x] `ListRepoFiles`
+- [x] `GetRepoFile`
+- [x] `ListRepoCommits`
+- [x] `ValidateRepo`
+
+### RepoCommandService
+- [x] `UpdateRepoFile`
+- [x] `CreateRepoDirectory`
+- [x] `MoveRepoPath`
+- [x] `DeleteRepoPath`
+- [x] `SyncRepo`
 
 ---
 

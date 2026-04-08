@@ -107,13 +107,12 @@
     }
   }
 
-  async function runAction(action: 'start' | 'stop' | 'restart') {
+  async function queueContainerAction(action: 'start' | 'stop' | 'restart') {
     actionBusy = action;
     try {
-      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/containers/action`, {
+      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/containers/${encodeURIComponent(data.containerId)}/actions/${action}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, containerId: data.containerId })
+        headers: { 'Content-Type': 'application/json' }
       });
       const payload = await response.json();
       if (!response.ok) {
@@ -235,9 +234,9 @@
                 {containerData.State?.Status || 'unknown'}
               </Badge>
             {/if}
-            <Button variant="outline" size="sm" onclick={() => void runAction('start')} disabled={actionBusy !== '' || containerData?.State?.Status?.toLowerCase() === 'running'}>Start</Button>
-            <Button variant="outline" size="sm" onclick={() => void runAction('stop')} disabled={actionBusy !== '' || containerData?.State?.Status?.toLowerCase() !== 'running'}>Stop</Button>
-            <Button variant="outline" size="sm" onclick={() => void runAction('restart')} disabled={actionBusy !== ''}>Restart</Button>
+            <Button variant="outline" size="sm" onclick={() => void queueContainerAction('start')} disabled={actionBusy !== '' || containerData?.State?.Status?.toLowerCase() === 'running'}>Start</Button>
+            <Button variant="outline" size="sm" onclick={() => void queueContainerAction('stop')} disabled={actionBusy !== '' || containerData?.State?.Status?.toLowerCase() !== 'running'}>Stop</Button>
+            <Button variant="outline" size="sm" onclick={() => void queueContainerAction('restart')} disabled={actionBusy !== ''}>Restart</Button>
             <a href="/nodes/{data.nodeId}/docker/containers" class="text-sm text-muted-foreground hover:underline">
               Back to containers
             </a>

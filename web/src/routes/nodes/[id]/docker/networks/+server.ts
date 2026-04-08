@@ -15,8 +15,7 @@ export const GET: RequestHandler = async ({ params }) => {
   } catch (error) {
     return json(
       {
-        error:
-          error instanceof Error ? error.message : "Failed to load networks",
+        error: error instanceof Error ? error.message : "Failed to load networks",
         networks: [],
       },
       { status: 500 },

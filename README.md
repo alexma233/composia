@@ -192,24 +192,19 @@ plan.md               # product and architecture notes
 
 ## Current Scope
 
-This repository currently contains a minimal development scaffold only:
+This repository now contains a working controller, agent foundation, and Web UI for the first full control-plane slice:
 
-- Go module and binary entrypoint
-- Bun workspace and SvelteKit app shell
+- Go controller and agent entrypoints
+- Bun workspace and SvelteKit Web UI
 - Strict controller and agent config loading
-- SQLite schema initialization
-- Minimal ConnectRPC heartbeat and system status APIs
-- Strict `composia-meta.yaml` parsing and service discovery
-- Service snapshot refresh into SQLite
+- SQLite initialization and persistent controller state
+- ConnectRPC controller-agent link for heartbeat, long-poll task pull, bundle download, task state, step state, log upload, backup reporting, and Docker stats reporting
+- Multi-node `composia-meta.yaml` parsing, repo validation, and service discovery
+- Git-backed desired-state repo read/write APIs with sync state tracking
+- Query/command split controller APIs for services, repo, nodes, and Docker inspection
+- Task execution for deploy, update, stop, restart, backup, DNS update, Caddy sync/reload, Docker prune, and service migration orchestration
+- Web UI pages for dashboard, services, service instances, containers, nodes, tasks, backups, repo editing, secrets, and Docker resource browsing
 - Example controller and agent config files
-- Git ignore and editor config
-
-The next backend steps are:
-
-1. Add the durable task queue.
-2. Expose read-only service and node APIs.
-3. Implement the first `deploy` flow.
-4. Add task logs and task detail views.
 
 ## Attributions
 

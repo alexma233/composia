@@ -171,11 +171,10 @@
     errorMessage = '';
 
     try {
-      const response = await fetch(`/services/${workspace?.folder}/workspace`, {
-        method: 'POST',
+      const response = await fetch(`/services/${workspace?.folder}/workspace/file`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'write_file',
           path: tab.path,
           content: tab.content,
           baseRevision: headRevision
@@ -231,11 +230,10 @@
       saving = true;
       errorMessage = '';
 
-      const response = await fetch(`/services/${workspace?.folder}/workspace`, {
-        method: 'POST',
+      const response = await fetch(`/services/${workspace?.folder}/workspace/file`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'write_file',
           path: normalized,
           content: '',
           baseRevision: headRevision
@@ -279,11 +277,10 @@
 
     try {
       const normalized = normalizeServiceRelativePath(newFolderPath);
-      const response = await fetch(`/services/${workspace?.folder}/workspace`, {
+      const response = await fetch(`/services/${workspace?.folder}/workspace/directories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'create_directory',
           path: normalized,
           baseRevision: headRevision
         })
@@ -315,11 +312,10 @@
 
     try {
       const destination = normalizeServiceRelativePath(renamePath);
-      const response = await fetch(`/services/${workspace?.folder}/workspace`, {
-        method: 'POST',
+      const response = await fetch(`/services/${workspace?.folder}/workspace/path`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'move',
           sourcePath: selectedNodePath,
           destinationPath: destination,
           baseRevision: headRevision
@@ -362,11 +358,10 @@
 
     try {
       const deletedPath = selectedNodePath;
-      const response = await fetch(`/services/${workspace?.folder}/workspace`, {
-        method: 'POST',
+      const response = await fetch(`/services/${workspace?.folder}/workspace/path`, {
+        method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'delete_path',
           path: deletedPath,
           baseRevision: headRevision
         })
@@ -472,10 +467,9 @@
     errorMessage = '';
 
     try {
-      const response = await fetch(`/services/${workspace?.folder}/workspace`, {
+      const response = await fetch(`/services/${workspace?.folder}/actions/${action}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'run_service_action', serviceAction: action })
+        headers: { 'Content-Type': 'application/json' }
       });
       const payload = (await response.json()) as ServiceActionResult & { error?: string };
       if (!response.ok || !payload.taskId) {
@@ -510,10 +504,9 @@
     errorMessage = '';
 
     try {
-      const response = await fetch(`/services/${workspace.folder}/workspace`, {
+      const response = await fetch(`/services/${workspace.folder}/actions/caddy-sync`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'sync_caddy_files' })
+        headers: { 'Content-Type': 'application/json' }
       });
       const payload = (await response.json()) as { taskId?: string; error?: string };
       if (!response.ok || !payload.taskId) {
@@ -548,11 +541,10 @@
     errorMessage = '';
 
     try {
-      const response = await fetch(`/services/${workspace.folder}/workspace`, {
+      const response = await fetch(`/services/${workspace.folder}/actions/migrate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'migrate_service',
           sourceNodeId: migrateSourceNode,
           targetNodeId: migrateTargetNode.trim()
         })
@@ -590,11 +582,10 @@
     errorMessage = '';
 
     try {
-      const response = await fetch(`/services/${workspace?.folder}/workspace`, {
-        method: 'POST',
+      const response = await fetch(`/services/${workspace?.folder}/root`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'rename_service_root',
           folder: renameServiceFolder,
           baseRevision: headRevision
         })
@@ -620,11 +611,10 @@
     errorMessage = '';
 
     try {
-      const response = await fetch(`/services/${workspace.folder}/workspace`, {
-        method: 'POST',
+      const response = await fetch(`/services/${workspace.folder}/root`, {
+        method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'delete_service_root',
           baseRevision: headRevision
         })
       });

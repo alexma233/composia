@@ -21,8 +21,10 @@ import (
 const _ = connect.IsAtLeastVersion1_13_0
 
 const (
-	// ServiceServiceName is the fully-qualified name of the ServiceService service.
-	ServiceServiceName = "composia.controller.v1.ServiceService"
+	// ServiceQueryServiceName is the fully-qualified name of the ServiceQueryService service.
+	ServiceQueryServiceName = "composia.controller.v1.ServiceQueryService"
+	// ServiceCommandServiceName is the fully-qualified name of the ServiceCommandService service.
+	ServiceCommandServiceName = "composia.controller.v1.ServiceCommandService"
 	// ServiceInstanceServiceName is the fully-qualified name of the ServiceInstanceService service.
 	ServiceInstanceServiceName = "composia.controller.v1.ServiceInstanceService"
 )
@@ -35,27 +37,27 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// ServiceServiceListServicesProcedure is the fully-qualified name of the ServiceService's
+	// ServiceQueryServiceListServicesProcedure is the fully-qualified name of the ServiceQueryService's
 	// ListServices RPC.
-	ServiceServiceListServicesProcedure = "/composia.controller.v1.ServiceService/ListServices"
-	// ServiceServiceGetServiceProcedure is the fully-qualified name of the ServiceService's GetService
-	// RPC.
-	ServiceServiceGetServiceProcedure = "/composia.controller.v1.ServiceService/GetService"
-	// ServiceServiceGetServiceTasksProcedure is the fully-qualified name of the ServiceService's
-	// GetServiceTasks RPC.
-	ServiceServiceGetServiceTasksProcedure = "/composia.controller.v1.ServiceService/GetServiceTasks"
-	// ServiceServiceGetServiceBackupsProcedure is the fully-qualified name of the ServiceService's
-	// GetServiceBackups RPC.
-	ServiceServiceGetServiceBackupsProcedure = "/composia.controller.v1.ServiceService/GetServiceBackups"
-	// ServiceServiceUpdateServiceTargetNodesProcedure is the fully-qualified name of the
-	// ServiceService's UpdateServiceTargetNodes RPC.
-	ServiceServiceUpdateServiceTargetNodesProcedure = "/composia.controller.v1.ServiceService/UpdateServiceTargetNodes"
-	// ServiceServiceRunServiceActionProcedure is the fully-qualified name of the ServiceService's
-	// RunServiceAction RPC.
-	ServiceServiceRunServiceActionProcedure = "/composia.controller.v1.ServiceService/RunServiceAction"
-	// ServiceServiceMigrateServiceProcedure is the fully-qualified name of the ServiceService's
-	// MigrateService RPC.
-	ServiceServiceMigrateServiceProcedure = "/composia.controller.v1.ServiceService/MigrateService"
+	ServiceQueryServiceListServicesProcedure = "/composia.controller.v1.ServiceQueryService/ListServices"
+	// ServiceQueryServiceGetServiceProcedure is the fully-qualified name of the ServiceQueryService's
+	// GetService RPC.
+	ServiceQueryServiceGetServiceProcedure = "/composia.controller.v1.ServiceQueryService/GetService"
+	// ServiceQueryServiceGetServiceTasksProcedure is the fully-qualified name of the
+	// ServiceQueryService's GetServiceTasks RPC.
+	ServiceQueryServiceGetServiceTasksProcedure = "/composia.controller.v1.ServiceQueryService/GetServiceTasks"
+	// ServiceQueryServiceGetServiceBackupsProcedure is the fully-qualified name of the
+	// ServiceQueryService's GetServiceBackups RPC.
+	ServiceQueryServiceGetServiceBackupsProcedure = "/composia.controller.v1.ServiceQueryService/GetServiceBackups"
+	// ServiceCommandServiceUpdateServiceTargetNodesProcedure is the fully-qualified name of the
+	// ServiceCommandService's UpdateServiceTargetNodes RPC.
+	ServiceCommandServiceUpdateServiceTargetNodesProcedure = "/composia.controller.v1.ServiceCommandService/UpdateServiceTargetNodes"
+	// ServiceCommandServiceRunServiceActionProcedure is the fully-qualified name of the
+	// ServiceCommandService's RunServiceAction RPC.
+	ServiceCommandServiceRunServiceActionProcedure = "/composia.controller.v1.ServiceCommandService/RunServiceAction"
+	// ServiceCommandServiceMigrateServiceProcedure is the fully-qualified name of the
+	// ServiceCommandService's MigrateService RPC.
+	ServiceCommandServiceMigrateServiceProcedure = "/composia.controller.v1.ServiceCommandService/MigrateService"
 	// ServiceInstanceServiceListServiceInstancesProcedure is the fully-qualified name of the
 	// ServiceInstanceService's ListServiceInstances RPC.
 	ServiceInstanceServiceListServiceInstancesProcedure = "/composia.controller.v1.ServiceInstanceService/ListServiceInstances"
@@ -67,230 +69,279 @@ const (
 	ServiceInstanceServiceRunServiceInstanceActionProcedure = "/composia.controller.v1.ServiceInstanceService/RunServiceInstanceAction"
 )
 
-// ServiceServiceClient is a client for the composia.controller.v1.ServiceService service.
-type ServiceServiceClient interface {
+// ServiceQueryServiceClient is a client for the composia.controller.v1.ServiceQueryService service.
+type ServiceQueryServiceClient interface {
 	ListServices(context.Context, *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error)
 	GetService(context.Context, *connect.Request[v1.GetServiceRequest]) (*connect.Response[v1.GetServiceResponse], error)
 	GetServiceTasks(context.Context, *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error)
 	GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error)
-	UpdateServiceTargetNodes(context.Context, *connect.Request[v1.UpdateServiceTargetNodesRequest]) (*connect.Response[v1.UpdateServiceTargetNodesResponse], error)
-	RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
-	MigrateService(context.Context, *connect.Request[v1.MigrateServiceRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 
-// NewServiceServiceClient constructs a client for the composia.controller.v1.ServiceService
-// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
-// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
-// the connect.WithGRPC() or connect.WithGRPCWeb() options.
+// NewServiceQueryServiceClient constructs a client for the
+// composia.controller.v1.ServiceQueryService service. By default, it uses the Connect protocol with
+// the binary Protobuf Codec, asks for gzipped responses, and sends uncompressed requests. To use
+// the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or connect.WithGRPCWeb() options.
 //
 // The URL supplied here should be the base URL for the Connect or gRPC server (for example,
 // http://api.acme.com or https://acme.com/grpc).
-func NewServiceServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ServiceServiceClient {
+func NewServiceQueryServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ServiceQueryServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
-	serviceServiceMethods := v1.File_proto_composia_controller_v1_service_proto.Services().ByName("ServiceService").Methods()
-	return &serviceServiceClient{
+	serviceQueryServiceMethods := v1.File_proto_composia_controller_v1_service_proto.Services().ByName("ServiceQueryService").Methods()
+	return &serviceQueryServiceClient{
 		listServices: connect.NewClient[v1.ListServicesRequest, v1.ListServicesResponse](
 			httpClient,
-			baseURL+ServiceServiceListServicesProcedure,
-			connect.WithSchema(serviceServiceMethods.ByName("ListServices")),
+			baseURL+ServiceQueryServiceListServicesProcedure,
+			connect.WithSchema(serviceQueryServiceMethods.ByName("ListServices")),
 			connect.WithClientOptions(opts...),
 		),
 		getService: connect.NewClient[v1.GetServiceRequest, v1.GetServiceResponse](
 			httpClient,
-			baseURL+ServiceServiceGetServiceProcedure,
-			connect.WithSchema(serviceServiceMethods.ByName("GetService")),
+			baseURL+ServiceQueryServiceGetServiceProcedure,
+			connect.WithSchema(serviceQueryServiceMethods.ByName("GetService")),
 			connect.WithClientOptions(opts...),
 		),
 		getServiceTasks: connect.NewClient[v1.GetServiceTasksRequest, v1.GetServiceTasksResponse](
 			httpClient,
-			baseURL+ServiceServiceGetServiceTasksProcedure,
-			connect.WithSchema(serviceServiceMethods.ByName("GetServiceTasks")),
+			baseURL+ServiceQueryServiceGetServiceTasksProcedure,
+			connect.WithSchema(serviceQueryServiceMethods.ByName("GetServiceTasks")),
 			connect.WithClientOptions(opts...),
 		),
 		getServiceBackups: connect.NewClient[v1.GetServiceBackupsRequest, v1.GetServiceBackupsResponse](
 			httpClient,
-			baseURL+ServiceServiceGetServiceBackupsProcedure,
-			connect.WithSchema(serviceServiceMethods.ByName("GetServiceBackups")),
-			connect.WithClientOptions(opts...),
-		),
-		updateServiceTargetNodes: connect.NewClient[v1.UpdateServiceTargetNodesRequest, v1.UpdateServiceTargetNodesResponse](
-			httpClient,
-			baseURL+ServiceServiceUpdateServiceTargetNodesProcedure,
-			connect.WithSchema(serviceServiceMethods.ByName("UpdateServiceTargetNodes")),
-			connect.WithClientOptions(opts...),
-		),
-		runServiceAction: connect.NewClient[v1.RunServiceActionRequest, v1.TaskActionResponse](
-			httpClient,
-			baseURL+ServiceServiceRunServiceActionProcedure,
-			connect.WithSchema(serviceServiceMethods.ByName("RunServiceAction")),
-			connect.WithClientOptions(opts...),
-		),
-		migrateService: connect.NewClient[v1.MigrateServiceRequest, v1.TaskActionResponse](
-			httpClient,
-			baseURL+ServiceServiceMigrateServiceProcedure,
-			connect.WithSchema(serviceServiceMethods.ByName("MigrateService")),
+			baseURL+ServiceQueryServiceGetServiceBackupsProcedure,
+			connect.WithSchema(serviceQueryServiceMethods.ByName("GetServiceBackups")),
 			connect.WithClientOptions(opts...),
 		),
 	}
 }
 
-// serviceServiceClient implements ServiceServiceClient.
-type serviceServiceClient struct {
-	listServices             *connect.Client[v1.ListServicesRequest, v1.ListServicesResponse]
-	getService               *connect.Client[v1.GetServiceRequest, v1.GetServiceResponse]
-	getServiceTasks          *connect.Client[v1.GetServiceTasksRequest, v1.GetServiceTasksResponse]
-	getServiceBackups        *connect.Client[v1.GetServiceBackupsRequest, v1.GetServiceBackupsResponse]
-	updateServiceTargetNodes *connect.Client[v1.UpdateServiceTargetNodesRequest, v1.UpdateServiceTargetNodesResponse]
-	runServiceAction         *connect.Client[v1.RunServiceActionRequest, v1.TaskActionResponse]
-	migrateService           *connect.Client[v1.MigrateServiceRequest, v1.TaskActionResponse]
+// serviceQueryServiceClient implements ServiceQueryServiceClient.
+type serviceQueryServiceClient struct {
+	listServices      *connect.Client[v1.ListServicesRequest, v1.ListServicesResponse]
+	getService        *connect.Client[v1.GetServiceRequest, v1.GetServiceResponse]
+	getServiceTasks   *connect.Client[v1.GetServiceTasksRequest, v1.GetServiceTasksResponse]
+	getServiceBackups *connect.Client[v1.GetServiceBackupsRequest, v1.GetServiceBackupsResponse]
 }
 
-// ListServices calls composia.controller.v1.ServiceService.ListServices.
-func (c *serviceServiceClient) ListServices(ctx context.Context, req *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error) {
+// ListServices calls composia.controller.v1.ServiceQueryService.ListServices.
+func (c *serviceQueryServiceClient) ListServices(ctx context.Context, req *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error) {
 	return c.listServices.CallUnary(ctx, req)
 }
 
-// GetService calls composia.controller.v1.ServiceService.GetService.
-func (c *serviceServiceClient) GetService(ctx context.Context, req *connect.Request[v1.GetServiceRequest]) (*connect.Response[v1.GetServiceResponse], error) {
+// GetService calls composia.controller.v1.ServiceQueryService.GetService.
+func (c *serviceQueryServiceClient) GetService(ctx context.Context, req *connect.Request[v1.GetServiceRequest]) (*connect.Response[v1.GetServiceResponse], error) {
 	return c.getService.CallUnary(ctx, req)
 }
 
-// GetServiceTasks calls composia.controller.v1.ServiceService.GetServiceTasks.
-func (c *serviceServiceClient) GetServiceTasks(ctx context.Context, req *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error) {
+// GetServiceTasks calls composia.controller.v1.ServiceQueryService.GetServiceTasks.
+func (c *serviceQueryServiceClient) GetServiceTasks(ctx context.Context, req *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error) {
 	return c.getServiceTasks.CallUnary(ctx, req)
 }
 
-// GetServiceBackups calls composia.controller.v1.ServiceService.GetServiceBackups.
-func (c *serviceServiceClient) GetServiceBackups(ctx context.Context, req *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error) {
+// GetServiceBackups calls composia.controller.v1.ServiceQueryService.GetServiceBackups.
+func (c *serviceQueryServiceClient) GetServiceBackups(ctx context.Context, req *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error) {
 	return c.getServiceBackups.CallUnary(ctx, req)
 }
 
-// UpdateServiceTargetNodes calls composia.controller.v1.ServiceService.UpdateServiceTargetNodes.
-func (c *serviceServiceClient) UpdateServiceTargetNodes(ctx context.Context, req *connect.Request[v1.UpdateServiceTargetNodesRequest]) (*connect.Response[v1.UpdateServiceTargetNodesResponse], error) {
-	return c.updateServiceTargetNodes.CallUnary(ctx, req)
-}
-
-// RunServiceAction calls composia.controller.v1.ServiceService.RunServiceAction.
-func (c *serviceServiceClient) RunServiceAction(ctx context.Context, req *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error) {
-	return c.runServiceAction.CallUnary(ctx, req)
-}
-
-// MigrateService calls composia.controller.v1.ServiceService.MigrateService.
-func (c *serviceServiceClient) MigrateService(ctx context.Context, req *connect.Request[v1.MigrateServiceRequest]) (*connect.Response[v1.TaskActionResponse], error) {
-	return c.migrateService.CallUnary(ctx, req)
-}
-
-// ServiceServiceHandler is an implementation of the composia.controller.v1.ServiceService service.
-type ServiceServiceHandler interface {
+// ServiceQueryServiceHandler is an implementation of the composia.controller.v1.ServiceQueryService
+// service.
+type ServiceQueryServiceHandler interface {
 	ListServices(context.Context, *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error)
 	GetService(context.Context, *connect.Request[v1.GetServiceRequest]) (*connect.Response[v1.GetServiceResponse], error)
 	GetServiceTasks(context.Context, *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error)
 	GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error)
-	UpdateServiceTargetNodes(context.Context, *connect.Request[v1.UpdateServiceTargetNodesRequest]) (*connect.Response[v1.UpdateServiceTargetNodesResponse], error)
-	RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
-	MigrateService(context.Context, *connect.Request[v1.MigrateServiceRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 
-// NewServiceServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
+// NewServiceQueryServiceHandler builds an HTTP handler from the service implementation. It returns
+// the path on which to mount the handler and the handler itself.
 //
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
-func NewServiceServiceHandler(svc ServiceServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	serviceServiceMethods := v1.File_proto_composia_controller_v1_service_proto.Services().ByName("ServiceService").Methods()
-	serviceServiceListServicesHandler := connect.NewUnaryHandler(
-		ServiceServiceListServicesProcedure,
+func NewServiceQueryServiceHandler(svc ServiceQueryServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	serviceQueryServiceMethods := v1.File_proto_composia_controller_v1_service_proto.Services().ByName("ServiceQueryService").Methods()
+	serviceQueryServiceListServicesHandler := connect.NewUnaryHandler(
+		ServiceQueryServiceListServicesProcedure,
 		svc.ListServices,
-		connect.WithSchema(serviceServiceMethods.ByName("ListServices")),
+		connect.WithSchema(serviceQueryServiceMethods.ByName("ListServices")),
 		connect.WithHandlerOptions(opts...),
 	)
-	serviceServiceGetServiceHandler := connect.NewUnaryHandler(
-		ServiceServiceGetServiceProcedure,
+	serviceQueryServiceGetServiceHandler := connect.NewUnaryHandler(
+		ServiceQueryServiceGetServiceProcedure,
 		svc.GetService,
-		connect.WithSchema(serviceServiceMethods.ByName("GetService")),
+		connect.WithSchema(serviceQueryServiceMethods.ByName("GetService")),
 		connect.WithHandlerOptions(opts...),
 	)
-	serviceServiceGetServiceTasksHandler := connect.NewUnaryHandler(
-		ServiceServiceGetServiceTasksProcedure,
+	serviceQueryServiceGetServiceTasksHandler := connect.NewUnaryHandler(
+		ServiceQueryServiceGetServiceTasksProcedure,
 		svc.GetServiceTasks,
-		connect.WithSchema(serviceServiceMethods.ByName("GetServiceTasks")),
+		connect.WithSchema(serviceQueryServiceMethods.ByName("GetServiceTasks")),
 		connect.WithHandlerOptions(opts...),
 	)
-	serviceServiceGetServiceBackupsHandler := connect.NewUnaryHandler(
-		ServiceServiceGetServiceBackupsProcedure,
+	serviceQueryServiceGetServiceBackupsHandler := connect.NewUnaryHandler(
+		ServiceQueryServiceGetServiceBackupsProcedure,
 		svc.GetServiceBackups,
-		connect.WithSchema(serviceServiceMethods.ByName("GetServiceBackups")),
+		connect.WithSchema(serviceQueryServiceMethods.ByName("GetServiceBackups")),
 		connect.WithHandlerOptions(opts...),
 	)
-	serviceServiceUpdateServiceTargetNodesHandler := connect.NewUnaryHandler(
-		ServiceServiceUpdateServiceTargetNodesProcedure,
-		svc.UpdateServiceTargetNodes,
-		connect.WithSchema(serviceServiceMethods.ByName("UpdateServiceTargetNodes")),
-		connect.WithHandlerOptions(opts...),
-	)
-	serviceServiceRunServiceActionHandler := connect.NewUnaryHandler(
-		ServiceServiceRunServiceActionProcedure,
-		svc.RunServiceAction,
-		connect.WithSchema(serviceServiceMethods.ByName("RunServiceAction")),
-		connect.WithHandlerOptions(opts...),
-	)
-	serviceServiceMigrateServiceHandler := connect.NewUnaryHandler(
-		ServiceServiceMigrateServiceProcedure,
-		svc.MigrateService,
-		connect.WithSchema(serviceServiceMethods.ByName("MigrateService")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/composia.controller.v1.ServiceService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return "/composia.controller.v1.ServiceQueryService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case ServiceServiceListServicesProcedure:
-			serviceServiceListServicesHandler.ServeHTTP(w, r)
-		case ServiceServiceGetServiceProcedure:
-			serviceServiceGetServiceHandler.ServeHTTP(w, r)
-		case ServiceServiceGetServiceTasksProcedure:
-			serviceServiceGetServiceTasksHandler.ServeHTTP(w, r)
-		case ServiceServiceGetServiceBackupsProcedure:
-			serviceServiceGetServiceBackupsHandler.ServeHTTP(w, r)
-		case ServiceServiceUpdateServiceTargetNodesProcedure:
-			serviceServiceUpdateServiceTargetNodesHandler.ServeHTTP(w, r)
-		case ServiceServiceRunServiceActionProcedure:
-			serviceServiceRunServiceActionHandler.ServeHTTP(w, r)
-		case ServiceServiceMigrateServiceProcedure:
-			serviceServiceMigrateServiceHandler.ServeHTTP(w, r)
+		case ServiceQueryServiceListServicesProcedure:
+			serviceQueryServiceListServicesHandler.ServeHTTP(w, r)
+		case ServiceQueryServiceGetServiceProcedure:
+			serviceQueryServiceGetServiceHandler.ServeHTTP(w, r)
+		case ServiceQueryServiceGetServiceTasksProcedure:
+			serviceQueryServiceGetServiceTasksHandler.ServeHTTP(w, r)
+		case ServiceQueryServiceGetServiceBackupsProcedure:
+			serviceQueryServiceGetServiceBackupsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
 	})
 }
 
-// UnimplementedServiceServiceHandler returns CodeUnimplemented from all methods.
-type UnimplementedServiceServiceHandler struct{}
+// UnimplementedServiceQueryServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedServiceQueryServiceHandler struct{}
 
-func (UnimplementedServiceServiceHandler) ListServices(context.Context, *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.ListServices is not implemented"))
+func (UnimplementedServiceQueryServiceHandler) ListServices(context.Context, *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceQueryService.ListServices is not implemented"))
 }
 
-func (UnimplementedServiceServiceHandler) GetService(context.Context, *connect.Request[v1.GetServiceRequest]) (*connect.Response[v1.GetServiceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.GetService is not implemented"))
+func (UnimplementedServiceQueryServiceHandler) GetService(context.Context, *connect.Request[v1.GetServiceRequest]) (*connect.Response[v1.GetServiceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceQueryService.GetService is not implemented"))
 }
 
-func (UnimplementedServiceServiceHandler) GetServiceTasks(context.Context, *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.GetServiceTasks is not implemented"))
+func (UnimplementedServiceQueryServiceHandler) GetServiceTasks(context.Context, *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceQueryService.GetServiceTasks is not implemented"))
 }
 
-func (UnimplementedServiceServiceHandler) GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.GetServiceBackups is not implemented"))
+func (UnimplementedServiceQueryServiceHandler) GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceQueryService.GetServiceBackups is not implemented"))
 }
 
-func (UnimplementedServiceServiceHandler) UpdateServiceTargetNodes(context.Context, *connect.Request[v1.UpdateServiceTargetNodesRequest]) (*connect.Response[v1.UpdateServiceTargetNodesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.UpdateServiceTargetNodes is not implemented"))
+// ServiceCommandServiceClient is a client for the composia.controller.v1.ServiceCommandService
+// service.
+type ServiceCommandServiceClient interface {
+	UpdateServiceTargetNodes(context.Context, *connect.Request[v1.UpdateServiceTargetNodesRequest]) (*connect.Response[v1.UpdateServiceTargetNodesResponse], error)
+	RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
+	MigrateService(context.Context, *connect.Request[v1.MigrateServiceRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 
-func (UnimplementedServiceServiceHandler) RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.RunServiceAction is not implemented"))
+// NewServiceCommandServiceClient constructs a client for the
+// composia.controller.v1.ServiceCommandService service. By default, it uses the Connect protocol
+// with the binary Protobuf Codec, asks for gzipped responses, and sends uncompressed requests. To
+// use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or connect.WithGRPCWeb()
+// options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewServiceCommandServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ServiceCommandServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	serviceCommandServiceMethods := v1.File_proto_composia_controller_v1_service_proto.Services().ByName("ServiceCommandService").Methods()
+	return &serviceCommandServiceClient{
+		updateServiceTargetNodes: connect.NewClient[v1.UpdateServiceTargetNodesRequest, v1.UpdateServiceTargetNodesResponse](
+			httpClient,
+			baseURL+ServiceCommandServiceUpdateServiceTargetNodesProcedure,
+			connect.WithSchema(serviceCommandServiceMethods.ByName("UpdateServiceTargetNodes")),
+			connect.WithClientOptions(opts...),
+		),
+		runServiceAction: connect.NewClient[v1.RunServiceActionRequest, v1.TaskActionResponse](
+			httpClient,
+			baseURL+ServiceCommandServiceRunServiceActionProcedure,
+			connect.WithSchema(serviceCommandServiceMethods.ByName("RunServiceAction")),
+			connect.WithClientOptions(opts...),
+		),
+		migrateService: connect.NewClient[v1.MigrateServiceRequest, v1.TaskActionResponse](
+			httpClient,
+			baseURL+ServiceCommandServiceMigrateServiceProcedure,
+			connect.WithSchema(serviceCommandServiceMethods.ByName("MigrateService")),
+			connect.WithClientOptions(opts...),
+		),
+	}
 }
 
-func (UnimplementedServiceServiceHandler) MigrateService(context.Context, *connect.Request[v1.MigrateServiceRequest]) (*connect.Response[v1.TaskActionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.MigrateService is not implemented"))
+// serviceCommandServiceClient implements ServiceCommandServiceClient.
+type serviceCommandServiceClient struct {
+	updateServiceTargetNodes *connect.Client[v1.UpdateServiceTargetNodesRequest, v1.UpdateServiceTargetNodesResponse]
+	runServiceAction         *connect.Client[v1.RunServiceActionRequest, v1.TaskActionResponse]
+	migrateService           *connect.Client[v1.MigrateServiceRequest, v1.TaskActionResponse]
+}
+
+// UpdateServiceTargetNodes calls
+// composia.controller.v1.ServiceCommandService.UpdateServiceTargetNodes.
+func (c *serviceCommandServiceClient) UpdateServiceTargetNodes(ctx context.Context, req *connect.Request[v1.UpdateServiceTargetNodesRequest]) (*connect.Response[v1.UpdateServiceTargetNodesResponse], error) {
+	return c.updateServiceTargetNodes.CallUnary(ctx, req)
+}
+
+// RunServiceAction calls composia.controller.v1.ServiceCommandService.RunServiceAction.
+func (c *serviceCommandServiceClient) RunServiceAction(ctx context.Context, req *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return c.runServiceAction.CallUnary(ctx, req)
+}
+
+// MigrateService calls composia.controller.v1.ServiceCommandService.MigrateService.
+func (c *serviceCommandServiceClient) MigrateService(ctx context.Context, req *connect.Request[v1.MigrateServiceRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return c.migrateService.CallUnary(ctx, req)
+}
+
+// ServiceCommandServiceHandler is an implementation of the
+// composia.controller.v1.ServiceCommandService service.
+type ServiceCommandServiceHandler interface {
+	UpdateServiceTargetNodes(context.Context, *connect.Request[v1.UpdateServiceTargetNodesRequest]) (*connect.Response[v1.UpdateServiceTargetNodesResponse], error)
+	RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
+	MigrateService(context.Context, *connect.Request[v1.MigrateServiceRequest]) (*connect.Response[v1.TaskActionResponse], error)
+}
+
+// NewServiceCommandServiceHandler builds an HTTP handler from the service implementation. It
+// returns the path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewServiceCommandServiceHandler(svc ServiceCommandServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	serviceCommandServiceMethods := v1.File_proto_composia_controller_v1_service_proto.Services().ByName("ServiceCommandService").Methods()
+	serviceCommandServiceUpdateServiceTargetNodesHandler := connect.NewUnaryHandler(
+		ServiceCommandServiceUpdateServiceTargetNodesProcedure,
+		svc.UpdateServiceTargetNodes,
+		connect.WithSchema(serviceCommandServiceMethods.ByName("UpdateServiceTargetNodes")),
+		connect.WithHandlerOptions(opts...),
+	)
+	serviceCommandServiceRunServiceActionHandler := connect.NewUnaryHandler(
+		ServiceCommandServiceRunServiceActionProcedure,
+		svc.RunServiceAction,
+		connect.WithSchema(serviceCommandServiceMethods.ByName("RunServiceAction")),
+		connect.WithHandlerOptions(opts...),
+	)
+	serviceCommandServiceMigrateServiceHandler := connect.NewUnaryHandler(
+		ServiceCommandServiceMigrateServiceProcedure,
+		svc.MigrateService,
+		connect.WithSchema(serviceCommandServiceMethods.ByName("MigrateService")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/composia.controller.v1.ServiceCommandService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case ServiceCommandServiceUpdateServiceTargetNodesProcedure:
+			serviceCommandServiceUpdateServiceTargetNodesHandler.ServeHTTP(w, r)
+		case ServiceCommandServiceRunServiceActionProcedure:
+			serviceCommandServiceRunServiceActionHandler.ServeHTTP(w, r)
+		case ServiceCommandServiceMigrateServiceProcedure:
+			serviceCommandServiceMigrateServiceHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedServiceCommandServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedServiceCommandServiceHandler struct{}
+
+func (UnimplementedServiceCommandServiceHandler) UpdateServiceTargetNodes(context.Context, *connect.Request[v1.UpdateServiceTargetNodesRequest]) (*connect.Response[v1.UpdateServiceTargetNodesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceCommandService.UpdateServiceTargetNodes is not implemented"))
+}
+
+func (UnimplementedServiceCommandServiceHandler) RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceCommandService.RunServiceAction is not implemented"))
+}
+
+func (UnimplementedServiceCommandServiceHandler) MigrateService(context.Context, *connect.Request[v1.MigrateServiceRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceCommandService.MigrateService is not implemented"))
 }
 
 // ServiceInstanceServiceClient is a client for the composia.controller.v1.ServiceInstanceService

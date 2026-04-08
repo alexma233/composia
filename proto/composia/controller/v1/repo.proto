@@ -4,12 +4,15 @@ package composia.controller.v1;
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
-service RepoService {
+service RepoQueryService {
   rpc GetRepoHead(GetRepoHeadRequest) returns (GetRepoHeadResponse);
   rpc ListRepoFiles(ListRepoFilesRequest) returns (ListRepoFilesResponse);
   rpc GetRepoFile(GetRepoFileRequest) returns (GetRepoFileResponse);
   rpc ListRepoCommits(ListRepoCommitsRequest) returns (ListRepoCommitsResponse);
   rpc ValidateRepo(ValidateRepoRequest) returns (ValidateRepoResponse);
+}
+
+service RepoCommandService {
   rpc UpdateRepoFile(UpdateRepoFileRequest) returns (UpdateRepoFileResponse);
   rpc CreateRepoDirectory(CreateRepoDirectoryRequest) returns (CreateRepoDirectoryResponse);
   rpc MoveRepoPath(MoveRepoPathRequest) returns (MoveRepoPathResponse);

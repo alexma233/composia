@@ -137,7 +137,7 @@ export async function migrateService(
   targetNodeId: string,
 ): Promise<ServiceActionResult> {
   return callServiceAction(
-    "/composia.controller.v1.ServiceService/MigrateService",
+    "/composia.controller.v1.ServiceCommandService/MigrateService",
     { serviceName, sourceNodeId, targetNodeId },
   );
 }
@@ -277,7 +277,7 @@ export async function loadServices(page = 1, pageSize = 50): Promise<PaginatedRe
   }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.ServiceService/ListServices",
+    "/composia.controller.v1.ServiceQueryService/ListServices",
     { page, pageSize },
   );
   return {
@@ -296,7 +296,7 @@ export async function loadNodes(): Promise<NodeSummary[]> {
   const response = await rpcCall<{ nodes?: NodeSummary[] }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.NodeService/ListNodes",
+    "/composia.controller.v1.NodeQueryService/ListNodes",
     {},
   );
   return response.nodes ?? [];
@@ -375,7 +375,7 @@ export async function loadRepoHead(): Promise<RepoHead> {
   return rpcCall<RepoHead>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.RepoService/GetRepoHead",
+    "/composia.controller.v1.RepoQueryService/GetRepoHead",
     {},
   );
 }
@@ -385,7 +385,7 @@ export async function loadRepoEntries(path = ""): Promise<RepoFileEntry[]> {
   const response = await rpcCall<{ entries?: RepoFileEntry[] }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.RepoService/ListRepoFiles",
+    "/composia.controller.v1.RepoQueryService/ListRepoFiles",
     { path },
   );
   return response.entries ?? [];
@@ -396,7 +396,7 @@ export async function loadRepoFile(path: string): Promise<RepoFileContent> {
   return rpcCall<RepoFileContent>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.RepoService/GetRepoFile",
+    "/composia.controller.v1.RepoQueryService/GetRepoFile",
     { path },
   );
 }
@@ -411,7 +411,7 @@ export async function updateRepoFile(
   return rpcCall<RepoWriteResult>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.RepoService/UpdateRepoFile",
+    "/composia.controller.v1.RepoCommandService/UpdateRepoFile",
     { path, content, baseRevision, commitMessage },
   );
 }
@@ -425,7 +425,7 @@ export async function createRepoDirectory(
   return rpcCall<RepoWriteResult>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.RepoService/CreateRepoDirectory",
+    "/composia.controller.v1.RepoCommandService/CreateRepoDirectory",
     { path, baseRevision, commitMessage },
   );
 }
@@ -440,7 +440,7 @@ export async function moveRepoPath(
   return rpcCall<RepoWriteResult>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.RepoService/MoveRepoPath",
+    "/composia.controller.v1.RepoCommandService/MoveRepoPath",
     { sourcePath, destinationPath, baseRevision, commitMessage },
   );
 }
@@ -454,7 +454,7 @@ export async function deleteRepoPath(
   return rpcCall<RepoWriteResult>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.RepoService/DeleteRepoPath",
+    "/composia.controller.v1.RepoCommandService/DeleteRepoPath",
     { path, baseRevision, commitMessage },
   );
 }
@@ -464,7 +464,7 @@ export async function syncRepo(): Promise<RepoSyncResult> {
   return rpcCall<RepoSyncResult>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.RepoService/SyncRepo",
+    "/composia.controller.v1.RepoCommandService/SyncRepo",
     {},
   );
 }
@@ -539,7 +539,7 @@ export async function loadServiceDetail(
   }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.ServiceService/GetService",
+    "/composia.controller.v1.ServiceQueryService/GetService",
     { serviceName },
   );
   return {
@@ -579,7 +579,7 @@ export async function runServiceAction(
   } = {},
 ): Promise<ServiceActionResult> {
   return callServiceAction(
-    "/composia.controller.v1.ServiceService/RunServiceAction",
+    "/composia.controller.v1.ServiceCommandService/RunServiceAction",
     {
       serviceName,
       action: toServiceActionEnum(action),
@@ -596,7 +596,7 @@ export async function loadNodeDetail(
   const response = await rpcCall<{ node?: NodeSummary }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.NodeService/GetNode",
+    "/composia.controller.v1.NodeQueryService/GetNode",
     { nodeId },
   );
   return response.node ?? null;
@@ -609,7 +609,7 @@ export async function loadNodeDockerStats(
   const response = await rpcCall<{ stats?: NodeDockerStats }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.NodeService/GetNodeDockerStats",
+    "/composia.controller.v1.NodeQueryService/GetNodeDockerStats",
     { nodeId },
   );
   return response.stats ?? null;
@@ -623,7 +623,7 @@ export async function pruneNodeDocker(
   const response = await rpcCall<{ task_id: string }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.NodeService/PruneNodeDocker",
+    "/composia.controller.v1.NodeMaintenanceService/PruneNodeDocker",
     { nodeId, target },
   );
   return { taskId: response.task_id };
@@ -638,7 +638,7 @@ export async function forgetNodeRustic(options: {
   const response = await rpcCall<{ task_id: string }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.NodeService/ForgetNodeRustic",
+    "/composia.controller.v1.NodeMaintenanceService/ForgetNodeRustic",
     {
       nodeId: options.nodeId ?? "",
       serviceName: options.serviceName ?? "",
@@ -657,7 +657,7 @@ export async function pruneNodeRustic(options: {
   const response = await rpcCall<{ task_id: string }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.NodeService/PruneNodeRustic",
+    "/composia.controller.v1.NodeMaintenanceService/PruneNodeRustic",
     {
       nodeId: options.nodeId ?? "",
       serviceName: options.serviceName ?? "",
@@ -674,7 +674,7 @@ export async function reloadNodeCaddy(
   const response = await rpcCall<{ task_id: string }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.NodeService/ReloadNodeCaddy",
+    "/composia.controller.v1.NodeMaintenanceService/ReloadNodeCaddy",
     { nodeId },
   );
   return { taskId: response.task_id };
@@ -688,7 +688,7 @@ export async function syncNodeCaddyFiles(
   const response = await rpcCall<{ task_id: string }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.NodeService/SyncNodeCaddyFiles",
+    "/composia.controller.v1.NodeMaintenanceService/SyncNodeCaddyFiles",
     { nodeId, serviceName: options.serviceName ?? "", fullRebuild: options.fullRebuild ?? false },
   );
   return { taskId: response.task_id };
@@ -789,7 +789,7 @@ export async function listNodeContainers(
   }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.NodeService/ListNodeContainers",
+    "/composia.controller.v1.DockerQueryService/ListNodeContainers",
     { nodeId },
   );
   return (response.containers ?? []).map((c) => ({
@@ -814,7 +814,7 @@ export async function inspectNodeContainer(
   const response = await rpcCall<{ rawJson?: string; raw_json?: string }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.NodeService/InspectNodeContainer",
+    "/composia.controller.v1.DockerQueryService/InspectNodeContainer",
     { nodeId, containerId },
   );
   return response.rawJson ?? response.raw_json ?? "{}";
@@ -887,7 +887,7 @@ export async function listNodeNetworks(
   }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.NodeService/ListNodeNetworks",
+    "/composia.controller.v1.DockerQueryService/ListNodeNetworks",
     { nodeId },
   );
   return (response.networks ?? []).map((n) => ({
@@ -914,7 +914,7 @@ export async function inspectNodeNetwork(
   const response = await rpcCall<{ rawJson?: string; raw_json?: string }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.NodeService/InspectNodeNetwork",
+    "/composia.controller.v1.DockerQueryService/InspectNodeNetwork",
     { nodeId, networkId },
   );
   return response.rawJson ?? response.raw_json ?? "{}";
@@ -942,7 +942,7 @@ export async function listNodeVolumes(
   }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.NodeService/ListNodeVolumes",
+    "/composia.controller.v1.DockerQueryService/ListNodeVolumes",
     { nodeId },
   );
   return (response.volumes ?? []).map((v) => ({
@@ -966,7 +966,7 @@ export async function inspectNodeVolume(
   const response = await rpcCall<{ rawJson?: string; raw_json?: string }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.NodeService/InspectNodeVolume",
+    "/composia.controller.v1.DockerQueryService/InspectNodeVolume",
     { nodeId, volumeName },
   );
   return response.rawJson ?? response.raw_json ?? "{}";
@@ -998,7 +998,7 @@ export async function listNodeImages(
   }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.NodeService/ListNodeImages",
+    "/composia.controller.v1.DockerQueryService/ListNodeImages",
     { nodeId },
   );
   return (response.images ?? []).map((i) => ({
@@ -1024,7 +1024,7 @@ export async function inspectNodeImage(
   const response = await rpcCall<{ rawJson?: string; raw_json?: string }>(
     config.baseUrl,
     config.token,
-    "/composia.controller.v1.NodeService/InspectNodeImage",
+    "/composia.controller.v1.DockerQueryService/InspectNodeImage",
     { nodeId, imageId },
   );
   return response.rawJson ?? response.raw_json ?? "{}";

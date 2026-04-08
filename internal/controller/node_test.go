@@ -19,7 +19,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/task"
 )
 
-func TestNodeServiceListNodes(t *testing.T) {
+func TestNodeQueryServiceListNodes(t *testing.T) {
 	t.Parallel()
 
 	stateDir := filepath.Join(t.TempDir(), "state")
@@ -51,8 +51,8 @@ func TestNodeServiceListNodes(t *testing.T) {
 		return "test-client", nil
 	})
 
-	path, handler := controllerv1connect.NewNodeServiceHandler(
-		&nodeServer{
+	path, handler := controllerv1connect.NewNodeQueryServiceHandler(
+		&nodeQueryServer{
 			db: db,
 			cfg: &config.ControllerConfig{
 				Nodes: []config.NodeConfig{
@@ -69,7 +69,7 @@ func TestNodeServiceListNodes(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewNodeServiceClient(
+	client := controllerv1connect.NewNodeQueryServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
 		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")),
@@ -99,7 +99,7 @@ func TestNodeServiceListNodes(t *testing.T) {
 	}
 }
 
-func TestNodeServiceGetNodeReturnsMinimalSummary(t *testing.T) {
+func TestNodeQueryServiceGetNodeReturnsMinimalSummary(t *testing.T) {
 	t.Parallel()
 
 	stateDir := filepath.Join(t.TempDir(), "state")
@@ -131,8 +131,8 @@ func TestNodeServiceGetNodeReturnsMinimalSummary(t *testing.T) {
 		return "test-client", nil
 	})
 
-	path, handler := controllerv1connect.NewNodeServiceHandler(
-		&nodeServer{db: db, cfg: &config.ControllerConfig{Nodes: []config.NodeConfig{{ID: "main", DisplayName: "Main"}}}},
+	path, handler := controllerv1connect.NewNodeQueryServiceHandler(
+		&nodeQueryServer{db: db, cfg: &config.ControllerConfig{Nodes: []config.NodeConfig{{ID: "main", DisplayName: "Main"}}}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -140,7 +140,7 @@ func TestNodeServiceGetNodeReturnsMinimalSummary(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewNodeServiceClient(
+	client := controllerv1connect.NewNodeQueryServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
 		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")),
@@ -158,7 +158,7 @@ func TestNodeServiceGetNodeReturnsMinimalSummary(t *testing.T) {
 	}
 }
 
-func TestNodeServiceGetNodeTasksReturnsFilteredTasks(t *testing.T) {
+func TestNodeQueryServiceGetNodeTasksReturnsFilteredTasks(t *testing.T) {
 	t.Parallel()
 
 	stateDir := filepath.Join(t.TempDir(), "state")
@@ -191,8 +191,8 @@ func TestNodeServiceGetNodeTasksReturnsFilteredTasks(t *testing.T) {
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewNodeServiceHandler(
-		&nodeServer{db: db, cfg: &config.ControllerConfig{Nodes: []config.NodeConfig{{ID: "main"}, {ID: "node-2"}}}},
+	path, handler := controllerv1connect.NewNodeQueryServiceHandler(
+		&nodeQueryServer{db: db, cfg: &config.ControllerConfig{Nodes: []config.NodeConfig{{ID: "main"}, {ID: "node-2"}}}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -200,7 +200,7 @@ func TestNodeServiceGetNodeTasksReturnsFilteredTasks(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewNodeServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewNodeQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	response, err := client.GetNodeTasks(ctx, connect.NewRequest(&controllerv1.GetNodeTasksRequest{NodeId: "main", PageSize: 10}))
 	if err != nil {
 		t.Fatalf("get node tasks: %v", err)
@@ -210,7 +210,7 @@ func TestNodeServiceGetNodeTasksReturnsFilteredTasks(t *testing.T) {
 	}
 }
 
-func TestNodeServiceReloadNodeCaddyCreatesTask(t *testing.T) {
+func TestNodeMaintenanceServiceReloadNodeCaddyCreatesTask(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -245,8 +245,8 @@ func TestNodeServiceReloadNodeCaddyCreatesTask(t *testing.T) {
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewNodeServiceHandler(
-		&nodeServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, taskQueue: newTaskQueueNotifier(), taskResults: newTaskResultNotifier()},
+	path, handler := controllerv1connect.NewNodeMaintenanceServiceHandler(
+		&nodeMaintenanceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, taskQueue: newTaskQueueNotifier(), taskResults: newTaskResultNotifier()},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -254,7 +254,7 @@ func TestNodeServiceReloadNodeCaddyCreatesTask(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewNodeServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewNodeMaintenanceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	response, err := client.ReloadNodeCaddy(ctx, connect.NewRequest(&controllerv1.ReloadNodeCaddyRequest{NodeId: "main"}))
 	if err != nil {
 		t.Fatalf("reload node caddy: %v", err)
@@ -274,7 +274,7 @@ func TestNodeServiceReloadNodeCaddyCreatesTask(t *testing.T) {
 	}
 }
 
-func TestNodeServiceSyncNodeCaddyFilesCreatesSyncTask(t *testing.T) {
+func TestNodeMaintenanceServiceSyncNodeCaddyFilesCreatesSyncTask(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -307,8 +307,8 @@ func TestNodeServiceSyncNodeCaddyFilesCreatesSyncTask(t *testing.T) {
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewNodeServiceHandler(
-		&nodeServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, taskQueue: newTaskQueueNotifier(), taskResults: newTaskResultNotifier()},
+	path, handler := controllerv1connect.NewNodeMaintenanceServiceHandler(
+		&nodeMaintenanceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, taskQueue: newTaskQueueNotifier(), taskResults: newTaskResultNotifier()},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -316,7 +316,7 @@ func TestNodeServiceSyncNodeCaddyFilesCreatesSyncTask(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewNodeServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewNodeMaintenanceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	response, err := client.SyncNodeCaddyFiles(ctx, connect.NewRequest(&controllerv1.SyncNodeCaddyFilesRequest{NodeId: "main", ServiceName: "demo"}))
 	if err != nil {
 		t.Fatalf("sync node caddy files: %v", err)
@@ -334,7 +334,7 @@ func TestNodeServiceSyncNodeCaddyFilesCreatesSyncTask(t *testing.T) {
 	}
 }
 
-func TestNodeServicePruneNodeRusticCreatesRusticPruneTask(t *testing.T) {
+func TestNodeMaintenanceServicePruneNodeRusticCreatesRusticPruneTask(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -366,8 +366,8 @@ func TestNodeServicePruneNodeRusticCreatesRusticPruneTask(t *testing.T) {
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewNodeServiceHandler(
-		&nodeServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}, Rustic: &config.ControllerRusticConfig{MainNodes: []string{"main"}}}, taskQueue: newTaskQueueNotifier(), taskResults: newTaskResultNotifier()},
+	path, handler := controllerv1connect.NewNodeMaintenanceServiceHandler(
+		&nodeMaintenanceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}, Rustic: &config.ControllerRusticConfig{MainNodes: []string{"main"}}}, taskQueue: newTaskQueueNotifier(), taskResults: newTaskResultNotifier()},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -375,7 +375,7 @@ func TestNodeServicePruneNodeRusticCreatesRusticPruneTask(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewNodeServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewNodeMaintenanceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	response, err := client.PruneNodeRustic(ctx, connect.NewRequest(&controllerv1.PruneNodeRusticRequest{ServiceName: "demo", DataName: "db"}))
 	if err != nil {
 		t.Fatalf("prune node rustic: %v", err)
@@ -395,7 +395,7 @@ func TestNodeServicePruneNodeRusticCreatesRusticPruneTask(t *testing.T) {
 	}
 }
 
-func TestNodeServiceForgetNodeRusticCreatesRusticForgetTask(t *testing.T) {
+func TestNodeMaintenanceServiceForgetNodeRusticCreatesRusticForgetTask(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -427,8 +427,8 @@ func TestNodeServiceForgetNodeRusticCreatesRusticForgetTask(t *testing.T) {
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewNodeServiceHandler(
-		&nodeServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}, Rustic: &config.ControllerRusticConfig{MainNodes: []string{"main"}}}, taskQueue: newTaskQueueNotifier(), taskResults: newTaskResultNotifier()},
+	path, handler := controllerv1connect.NewNodeMaintenanceServiceHandler(
+		&nodeMaintenanceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}, Rustic: &config.ControllerRusticConfig{MainNodes: []string{"main"}}}, taskQueue: newTaskQueueNotifier(), taskResults: newTaskResultNotifier()},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -436,7 +436,7 @@ func TestNodeServiceForgetNodeRusticCreatesRusticForgetTask(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewNodeServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewNodeMaintenanceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
 	response, err := client.ForgetNodeRustic(ctx, connect.NewRequest(&controllerv1.ForgetNodeRusticRequest{ServiceName: "demo", DataName: "db"}))
 	if err != nil {
 		t.Fatalf("forget node rustic: %v", err)
