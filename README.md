@@ -1,4 +1,26 @@
-# composia
+# Composia
+
+<div align="center">
+  <p><strong>Main Repository</strong></p>
+  <p>
+    <a href="https://forgejo.alexma.top/alexma233/composia">
+      <img src="https://img.shields.io/gitea/stars/alexma233/composia?gitea_url=https://forgejo.alexma.top&style=for-the-badge&label=AlexMa's%20Forgejo%20Stars" alt="Forgejo Stars" />
+    </a>
+  </p>
+
+  <p>Mirrors</p>
+  <p>
+    <a href="https://codeberg.org/alexma233/composia">
+      <img src="https://img.shields.io/gitea/stars/alexma233/composia?gitea_url=https://codeberg.org&style=flat-square&label=Codeberg%20Stars" alt="Codeberg Stars" />
+    </a>
+    <a href="https://github.com/alexma233/composia">
+      <img src="https://img.shields.io/github/stars/alexma233/composia?style=flat-square&label=GitHub%20Stars" alt="GitHub Stars" />
+    </a>
+    <a href="https://tangled.org/fur.im/composia">
+      <img src="https://img.shields.io/badge/Tangled-View%20Repo-blue?style=flat-square" alt="Tangled" />
+    </a>
+  </p>
+</div>
 
 Composia is a self-hosted service manager built around service definitions, a single control plane, and one or more execution agents.
 
