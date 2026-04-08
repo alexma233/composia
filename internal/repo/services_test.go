@@ -125,6 +125,23 @@ func TestFindServiceIgnoresUnrelatedInvalidDraft(t *testing.T) {
 	}
 }
 
+func TestRewriteServiceTargetNodesUpdatesOnlyTargetNodes(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	metaPath := filepath.Join(repoDir, "alpha", MetaFileName)
+	writeFile(t, metaPath, "name: alpha\nnode: node-1\nnetwork:\n  caddy:\n    enabled: true\n    source: ./Caddyfile\n")
+
+	updated, err := RewriteServiceTargetNodes(metaPath, []string{"node-1", "node-2"}, map[string]struct{}{"node-1": {}, "node-2": {}})
+	if err != nil {
+		t.Fatalf("rewrite target nodes: %v", err)
+	}
+	expected := "name: alpha\nnetwork:\n  caddy:\n    enabled: true\n    source: ./Caddyfile\nnodes:\n  - node-1\n  - node-2\n"
+	if updated != expected {
+		t.Fatalf("unexpected rewritten meta:\n%s", updated)
+	}
+}
+
 func writeFile(t *testing.T, path, content string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

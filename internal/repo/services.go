@@ -330,6 +330,82 @@ func LoadServiceMeta(path string) (ServiceMeta, error) {
 	return loadServiceMeta(path)
 }
 
+func RewriteServiceTargetNodes(path string, nodeIDs []string, availableNodeIDs map[string]struct{}) (string, error) {
+	meta, err := loadServiceMeta(path)
+	if err != nil {
+		return "", err
+	}
+	normalizedNodes := normalizeNodeIDs(nodeIDs)
+	meta.Node = ""
+	meta.Nodes = append([]string(nil), normalizedNodes...)
+	if err := validateServiceMeta(path, &meta, availableNodeIDs); err != nil {
+		return "", err
+	}
+	rawContent, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("read service meta %q: %w", path, err)
+	}
+	var document yaml.Node
+	decoder := yaml.NewDecoder(strings.NewReader(string(rawContent)))
+	decoder.KnownFields(true)
+	if err := decoder.Decode(&document); err != nil {
+		return "", fmt.Errorf("decode service meta %q: %w", path, err)
+	}
+	updateServiceTargetNodesNode(&document, normalizedNodes)
+	var builder strings.Builder
+	encoder := yaml.NewEncoder(&builder)
+	encoder.SetIndent(2)
+	err = encoder.Encode(&document)
+	_ = encoder.Close()
+	if err != nil {
+		return "", fmt.Errorf("encode service meta %q: %w", path, err)
+	}
+	return builder.String(), nil
+}
+
+func updateServiceTargetNodesNode(document *yaml.Node, nodeIDs []string) {
+	if document == nil || len(document.Content) == 0 {
+		return
+	}
+	mapping := document.Content[0]
+	if mapping.Kind != yaml.MappingNode {
+		return
+	}
+	removeMappingKey(mapping, "node")
+	setMappingSequence(mapping, "nodes", nodeIDs)
+}
+
+func removeMappingKey(mapping *yaml.Node, key string) {
+	if mapping == nil || mapping.Kind != yaml.MappingNode {
+		return
+	}
+	for index := 0; index+1 < len(mapping.Content); index += 2 {
+		if mapping.Content[index].Value != key {
+			continue
+		}
+		mapping.Content = append(mapping.Content[:index], mapping.Content[index+2:]...)
+		return
+	}
+}
+
+func setMappingSequence(mapping *yaml.Node, key string, values []string) {
+	if mapping == nil || mapping.Kind != yaml.MappingNode {
+		return
+	}
+	sequence := &yaml.Node{Kind: yaml.SequenceNode, Tag: "!!seq"}
+	for _, value := range values {
+		sequence.Content = append(sequence.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: value})
+	}
+	for index := 0; index+1 < len(mapping.Content); index += 2 {
+		if mapping.Content[index].Value != key {
+			continue
+		}
+		mapping.Content[index+1] = sequence
+		return
+	}
+	mapping.Content = append(mapping.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: key}, sequence)
+}
+
 func validateServiceMeta(path string, meta *ServiceMeta, availableNodeIDs map[string]struct{}) error {
 	if meta.Name == "" {
 		return fmt.Errorf("service meta %q: name is required", path)
@@ -544,21 +620,25 @@ func boolValue(value *bool, fallback bool) bool {
 
 func normalizedTargetNodes(meta ServiceMeta) []string {
 	if len(meta.Nodes) > 0 {
-		nodes := make([]string, 0, len(meta.Nodes))
-		for _, nodeID := range meta.Nodes {
-			nodeID = strings.TrimSpace(nodeID)
-			if nodeID == "" {
-				continue
-			}
-			nodes = append(nodes, nodeID)
-		}
-		return nodes
+		return normalizeNodeIDs(meta.Nodes)
 	}
 	targetNode := strings.TrimSpace(meta.Node)
 	if targetNode == "" {
 		targetNode = "main"
 	}
 	return []string{targetNode}
+}
+
+func normalizeNodeIDs(nodeIDs []string) []string {
+	nodes := make([]string, 0, len(nodeIDs))
+	for _, nodeID := range nodeIDs {
+		nodeID = strings.TrimSpace(nodeID)
+		if nodeID == "" {
+			continue
+		}
+		nodes = append(nodes, nodeID)
+	}
+	return nodes
 }
 
 func EnabledBackupDataNames(service Service) []string {

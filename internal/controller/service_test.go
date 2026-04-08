@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1/controllerv1connect"
 	"forgejo.alexma.top/alexma233/composia/internal/config"
+	"forgejo.alexma.top/alexma233/composia/internal/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/store"
 	"forgejo.alexma.top/alexma233/composia/internal/task"
@@ -258,6 +260,161 @@ func TestServiceServiceGetServiceBackupsReturnsFilteredBackups(t *testing.T) {
 	}
 	if len(response.Msg.GetBackups()) != 1 || response.Msg.GetBackups()[0].GetBackupId() != "backup-1" {
 		t.Fatalf("unexpected service backup list: %+v", response.Msg.GetBackups())
+	}
+}
+
+func TestServiceServiceUpdateServiceTargetNodesRewritesMetaAndCommits(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithService(t, repoDir, "alpha", "main")
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+	ctx := context.Background()
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+	path, handler := controllerv1connect.NewServiceServiceHandler(
+		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}, {ID: "edge"}}}, availableNodeIDs: map[string]struct{}{"main": {}, "edge": {}}, repoMu: &sync.Mutex{}},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	response, err := client.UpdateServiceTargetNodes(ctx, connect.NewRequest(&controllerv1.UpdateServiceTargetNodesRequest{ServiceName: "alpha", NodeIds: []string{"main", "edge"}, BaseRevision: mustCurrentRevision(t, repoDir)}))
+	if err != nil {
+		t.Fatalf("update service target nodes: %v", err)
+	}
+	if response.Msg.GetCommitId() == "" {
+		t.Fatalf("expected commit id in response")
+	}
+	if response.Msg.GetSyncStatus() != store.RepoSyncStatusLocalOnly {
+		t.Fatalf("expected local_only sync status, got %q", response.Msg.GetSyncStatus())
+	}
+	metaContent, err := os.ReadFile(filepath.Join(repoDir, "alpha", "composia-meta.yaml"))
+	if err != nil {
+		t.Fatalf("read rewritten meta: %v", err)
+	}
+	if string(metaContent) != "name: alpha\nnodes:\n  - main\n  - edge\n" {
+		t.Fatalf("unexpected rewritten meta content: %q", string(metaContent))
+	}
+	serviceResp, err := client.GetService(ctx, connect.NewRequest(&controllerv1.GetServiceRequest{ServiceName: "alpha"}))
+	if err != nil {
+		t.Fatalf("get service after target node update: %v", err)
+	}
+	if len(serviceResp.Msg.GetNodes()) != 2 || serviceResp.Msg.GetNodes()[0] != "main" || serviceResp.Msg.GetNodes()[1] != "edge" {
+		t.Fatalf("unexpected service nodes after update: %+v", serviceResp.Msg.GetNodes())
+	}
+	clean, err := repo.IsCleanWorkingTree(repoDir)
+	if err != nil {
+		t.Fatalf("check clean worktree: %v", err)
+	}
+	if !clean {
+		t.Fatalf("expected clean worktree after target node update")
+	}
+	currentRevision, err := repo.CurrentRevision(repoDir)
+	if err != nil {
+		t.Fatalf("read current revision: %v", err)
+	}
+	if currentRevision != response.Msg.GetCommitId() {
+		t.Fatalf("expected HEAD %q, got %q", response.Msg.GetCommitId(), currentRevision)
+	}
+}
+
+func TestServiceServiceUpdateServiceTargetNodesRejectsInvalidNode(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithService(t, repoDir, "alpha", "main")
+	db := openControllerTestDB(t)
+	defer db.Close()
+	ctx := context.Background()
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+	path, handler := controllerv1connect.NewServiceServiceHandler(
+		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}, repoMu: &sync.Mutex{}},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	_, err := client.UpdateServiceTargetNodes(ctx, connect.NewRequest(&controllerv1.UpdateServiceTargetNodesRequest{ServiceName: "alpha", NodeIds: []string{"missing"}, BaseRevision: mustCurrentRevision(t, repoDir)}))
+	if err == nil {
+		t.Fatalf("expected invalid node error")
+	}
+	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Fatalf("expected failed precondition, got %v", err)
+	}
+}
+
+func TestServiceServiceUpdateServiceTargetNodesRejectsActiveServiceTask(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithService(t, repoDir, "alpha", "main")
+	db := openControllerTestDB(t)
+	defer db.Close()
+	ctx := context.Background()
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-alpha", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "alpha", Status: task.StatusPending}); err != nil {
+		t.Fatalf("create active task: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+	path, handler := controllerv1connect.NewServiceServiceHandler(
+		&serviceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}, {ID: "edge"}}}, availableNodeIDs: map[string]struct{}{"main": {}, "edge": {}}, repoMu: &sync.Mutex{}},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewServiceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	_, err := client.UpdateServiceTargetNodes(ctx, connect.NewRequest(&controllerv1.UpdateServiceTargetNodesRequest{ServiceName: "alpha", NodeIds: []string{"main", "edge"}, BaseRevision: mustCurrentRevision(t, repoDir)}))
+	if err == nil {
+		t.Fatalf("expected active task conflict")
+	}
+	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Fatalf("expected failed precondition, got %v", err)
 	}
 }
 

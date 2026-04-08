@@ -146,10 +146,11 @@ This document turns `plan.md` into a practical execution order for the current r
 2. Repo 文件写入、目录创建、路径移动、路径删除、secret 写入都复用同一套 repo 写前检查和本地 commit 语义。
 3. Repo 写事务内部已整理为清晰边界：写前检查、具体 mutation、Git 收尾（push/sync state）、declared services 刷新分别收口。
 4. Push 失败时保留本地 commit，并继续通过 repo sync state 向 API/UI 报告 `push_failed`。
+5. `ServiceService.UpdateServiceTargetNodes` 已实现，controller 可以通过受控 API 定向改写 `composia-meta.yaml.nodes`，并复用现有 repo 写事务。
 
 待完成：
 1. Repo lock 处理、验证、服务冲突检查和本地 commit 创建继续有效。
-2. `composia-meta.yaml.nodes` 的改写逻辑与迁移工作流对齐。
+2. `UpdateServiceTargetNodes` 需要与迁移工作流的 `persist_repo` 阶段对齐。
 3. 可选远程同步行为、push 报告和 repo sync 状态继续工作。
 4. `auto_deploy` 选项（auto-deploy after repo changes）后续接到 instance 扇出任务创建。
 
@@ -273,6 +274,7 @@ This document turns `plan.md` into a practical execution order for the current r
 - [x] `GetService` - 返回 `ServiceDetail`，含 `nodes[]` 和 `instances[]`
 - [x] `GetServiceTasks`
 - [x] `GetServiceBackups`
+- [x] `UpdateServiceTargetNodes` - 定向改写 `composia-meta.yaml.nodes`
 - [x] `RunServiceAction` - 支持 `node_ids[]` 数组进行 fan-out，`data_names[]` 用于 backup
 - [ ] `UpdateServiceDNS` - 通过 `RunServiceAction` + `SERVICE_ACTION_DNS_UPDATE` 实现
 - [ ] `MigrateService(target_node_id)` - 未实现

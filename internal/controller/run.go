@@ -195,7 +195,7 @@ func registerCLIHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *s
 	mux.Handle(backupPath, backupHandler)
 
 	servicePath, serviceHandler := controllerv1connect.NewServiceServiceHandler(
-		&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults},
+		&serviceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults, repoMu: repoMu},
 		connect.WithInterceptors(interceptor),
 	)
 	mux.Handle(servicePath, serviceHandler)
@@ -1116,6 +1116,7 @@ type serviceServer struct {
 	availableNodeIDs map[string]struct{}
 	taskQueue        *taskQueueNotifier
 	taskResults      *taskResultNotifier
+	repoMu           *sync.Mutex
 }
 
 type serviceInstanceServer struct {
@@ -1414,6 +1415,44 @@ func (server *serviceServer) GetServiceBackups(ctx context.Context, req *connect
 		response.Backups = append(response.Backups, backupSummaryMessage(backup))
 	}
 	return connect.NewResponse(response), nil
+}
+
+func (server *serviceServer) UpdateServiceTargetNodes(ctx context.Context, req *connect.Request[controllerv1.UpdateServiceTargetNodesRequest]) (*connect.Response[controllerv1.UpdateServiceTargetNodesResponse], error) {
+	if req.Msg == nil || req.Msg.GetServiceName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+	if req.Msg.GetBaseRevision() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base_revision is required"))
+	}
+	service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	updatedContent, err := repo.RewriteServiceTargetNodes(service.MetaPath, req.Msg.GetNodeIds(), server.availableNodeIDs)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	repoSrv := &repoServer{db: server.db, cfg: server.cfg, availableNodeIDs: server.availableNodeIDs, repoMu: server.repoMu}
+	commitMessage := req.Msg.GetCommitMessage()
+	if commitMessage == "" {
+		commitMessage = fmt.Sprintf("update target nodes for %s", service.Name)
+	}
+	relativeMetaPath, err := filepath.Rel(server.cfg.RepoDir, service.MetaPath)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service meta path: %w", err))
+	}
+	result, err := repoSrv.runRepoWrite(ctx, req.Msg.GetBaseRevision(), []string{relativeMetaPath}, func(baseSyncState store.RepoSyncState) (repoWriteResult, error) {
+		return repoSrv.updateRepoFileTransaction(ctx, relativeMetaPath, updatedContent, commitMessage, baseSyncState)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&controllerv1.UpdateServiceTargetNodesResponse{
+		CommitId:             result.CommitID,
+		SyncStatus:           result.SyncStatus,
+		PushError:            result.PushError,
+		LastSuccessfulPullAt: result.LastSuccessfulPullAt,
+	}), nil
 }
 
 func (server *serviceServer) RunServiceAction(ctx context.Context, req *connect.Request[controllerv1.RunServiceActionRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {

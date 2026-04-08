@@ -47,6 +47,9 @@ const (
 	// ServiceServiceGetServiceBackupsProcedure is the fully-qualified name of the ServiceService's
 	// GetServiceBackups RPC.
 	ServiceServiceGetServiceBackupsProcedure = "/composia.controller.v1.ServiceService/GetServiceBackups"
+	// ServiceServiceUpdateServiceTargetNodesProcedure is the fully-qualified name of the
+	// ServiceService's UpdateServiceTargetNodes RPC.
+	ServiceServiceUpdateServiceTargetNodesProcedure = "/composia.controller.v1.ServiceService/UpdateServiceTargetNodes"
 	// ServiceServiceRunServiceActionProcedure is the fully-qualified name of the ServiceService's
 	// RunServiceAction RPC.
 	ServiceServiceRunServiceActionProcedure = "/composia.controller.v1.ServiceService/RunServiceAction"
@@ -67,6 +70,7 @@ type ServiceServiceClient interface {
 	GetService(context.Context, *connect.Request[v1.GetServiceRequest]) (*connect.Response[v1.GetServiceResponse], error)
 	GetServiceTasks(context.Context, *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error)
 	GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error)
+	UpdateServiceTargetNodes(context.Context, *connect.Request[v1.UpdateServiceTargetNodesRequest]) (*connect.Response[v1.UpdateServiceTargetNodesResponse], error)
 	RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 
@@ -105,6 +109,12 @@ func NewServiceServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(serviceServiceMethods.ByName("GetServiceBackups")),
 			connect.WithClientOptions(opts...),
 		),
+		updateServiceTargetNodes: connect.NewClient[v1.UpdateServiceTargetNodesRequest, v1.UpdateServiceTargetNodesResponse](
+			httpClient,
+			baseURL+ServiceServiceUpdateServiceTargetNodesProcedure,
+			connect.WithSchema(serviceServiceMethods.ByName("UpdateServiceTargetNodes")),
+			connect.WithClientOptions(opts...),
+		),
 		runServiceAction: connect.NewClient[v1.RunServiceActionRequest, v1.TaskActionResponse](
 			httpClient,
 			baseURL+ServiceServiceRunServiceActionProcedure,
@@ -116,11 +126,12 @@ func NewServiceServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // serviceServiceClient implements ServiceServiceClient.
 type serviceServiceClient struct {
-	listServices      *connect.Client[v1.ListServicesRequest, v1.ListServicesResponse]
-	getService        *connect.Client[v1.GetServiceRequest, v1.GetServiceResponse]
-	getServiceTasks   *connect.Client[v1.GetServiceTasksRequest, v1.GetServiceTasksResponse]
-	getServiceBackups *connect.Client[v1.GetServiceBackupsRequest, v1.GetServiceBackupsResponse]
-	runServiceAction  *connect.Client[v1.RunServiceActionRequest, v1.TaskActionResponse]
+	listServices             *connect.Client[v1.ListServicesRequest, v1.ListServicesResponse]
+	getService               *connect.Client[v1.GetServiceRequest, v1.GetServiceResponse]
+	getServiceTasks          *connect.Client[v1.GetServiceTasksRequest, v1.GetServiceTasksResponse]
+	getServiceBackups        *connect.Client[v1.GetServiceBackupsRequest, v1.GetServiceBackupsResponse]
+	updateServiceTargetNodes *connect.Client[v1.UpdateServiceTargetNodesRequest, v1.UpdateServiceTargetNodesResponse]
+	runServiceAction         *connect.Client[v1.RunServiceActionRequest, v1.TaskActionResponse]
 }
 
 // ListServices calls composia.controller.v1.ServiceService.ListServices.
@@ -143,6 +154,11 @@ func (c *serviceServiceClient) GetServiceBackups(ctx context.Context, req *conne
 	return c.getServiceBackups.CallUnary(ctx, req)
 }
 
+// UpdateServiceTargetNodes calls composia.controller.v1.ServiceService.UpdateServiceTargetNodes.
+func (c *serviceServiceClient) UpdateServiceTargetNodes(ctx context.Context, req *connect.Request[v1.UpdateServiceTargetNodesRequest]) (*connect.Response[v1.UpdateServiceTargetNodesResponse], error) {
+	return c.updateServiceTargetNodes.CallUnary(ctx, req)
+}
+
 // RunServiceAction calls composia.controller.v1.ServiceService.RunServiceAction.
 func (c *serviceServiceClient) RunServiceAction(ctx context.Context, req *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error) {
 	return c.runServiceAction.CallUnary(ctx, req)
@@ -154,6 +170,7 @@ type ServiceServiceHandler interface {
 	GetService(context.Context, *connect.Request[v1.GetServiceRequest]) (*connect.Response[v1.GetServiceResponse], error)
 	GetServiceTasks(context.Context, *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error)
 	GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error)
+	UpdateServiceTargetNodes(context.Context, *connect.Request[v1.UpdateServiceTargetNodesRequest]) (*connect.Response[v1.UpdateServiceTargetNodesResponse], error)
 	RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 
@@ -188,6 +205,12 @@ func NewServiceServiceHandler(svc ServiceServiceHandler, opts ...connect.Handler
 		connect.WithSchema(serviceServiceMethods.ByName("GetServiceBackups")),
 		connect.WithHandlerOptions(opts...),
 	)
+	serviceServiceUpdateServiceTargetNodesHandler := connect.NewUnaryHandler(
+		ServiceServiceUpdateServiceTargetNodesProcedure,
+		svc.UpdateServiceTargetNodes,
+		connect.WithSchema(serviceServiceMethods.ByName("UpdateServiceTargetNodes")),
+		connect.WithHandlerOptions(opts...),
+	)
 	serviceServiceRunServiceActionHandler := connect.NewUnaryHandler(
 		ServiceServiceRunServiceActionProcedure,
 		svc.RunServiceAction,
@@ -204,6 +227,8 @@ func NewServiceServiceHandler(svc ServiceServiceHandler, opts ...connect.Handler
 			serviceServiceGetServiceTasksHandler.ServeHTTP(w, r)
 		case ServiceServiceGetServiceBackupsProcedure:
 			serviceServiceGetServiceBackupsHandler.ServeHTTP(w, r)
+		case ServiceServiceUpdateServiceTargetNodesProcedure:
+			serviceServiceUpdateServiceTargetNodesHandler.ServeHTTP(w, r)
 		case ServiceServiceRunServiceActionProcedure:
 			serviceServiceRunServiceActionHandler.ServeHTTP(w, r)
 		default:
@@ -229,6 +254,10 @@ func (UnimplementedServiceServiceHandler) GetServiceTasks(context.Context, *conn
 
 func (UnimplementedServiceServiceHandler) GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.GetServiceBackups is not implemented"))
+}
+
+func (UnimplementedServiceServiceHandler) UpdateServiceTargetNodes(context.Context, *connect.Request[v1.UpdateServiceTargetNodesRequest]) (*connect.Response[v1.UpdateServiceTargetNodesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.UpdateServiceTargetNodes is not implemented"))
 }
 
 func (UnimplementedServiceServiceHandler) RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error) {
