@@ -6,11 +6,17 @@
     "web"
   ],
   "scripts": {
-    "dev": "bun run --cwd web dev",
-    "build": "bun run --cwd web build",
-    "preview": "bun run --cwd web preview",
-    "check": "bun run --cwd web check",
-    "format": "bun run --cwd web format",
-    "format:write": "bun run --cwd web format:write"
+    "web:dev": "bun run --cwd web dev",
+    "web:build": "bun run --cwd web build",
+    "web:preview": "bun run --cwd web preview",
+    "web:check": "bun run --cwd web check",
+    "web:format": "bun run --cwd web format",
+    "web:format:write": "bun run --cwd web format:write",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "devDependencies": {
+    "vitepress": "^2.0.0-alpha.17"
   }
 }

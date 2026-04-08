@@ -57,7 +57,7 @@ bun run dev
 
 ## 访问界面
 
-打开浏览器访问 http://localhost:5173 查看 Web 界面。
+打开浏览器访问 `http://localhost:5173` 查看 Web 界面。
 
 ## 下一步
 

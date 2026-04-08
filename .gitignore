@@ -179,3 +179,7 @@ web/.vercel/
 .vscode/
 .DS_Store
 config.local.yaml
+
+# Vitepress
+docs/.vitepress/dist
+docs/.vitepress/cache

@@ -57,7 +57,7 @@ bun run dev
 
 ## Access the Interface
 
-Open your browser and visit http://localhost:5173 to view the web interface.
+Open your browser and visit `http://localhost:5173` to view the web interface.
 
 ## Next Steps
 
