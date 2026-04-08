@@ -54,6 +54,14 @@ EOF
 docker compose up -d
 ```
 
+By default, `docker-compose.yaml` uses the self-hosted Forgejo registry.
+If you prefer GHCR, replace the image references in `docker-compose.yaml` with:
+
+```yaml
+ghcr.io/alexma233/composia:latest
+ghcr.io/alexma233/composia-web:latest
+```
+
 This will pull the pre-built images and start:
 - `controller` on `:7001`
 - `web` on `:3000`
@@ -64,6 +72,10 @@ This will pull the pre-built images and start:
 Open your browser and visit `http://localhost:3000` to view the web interface.
 
 The default development CLI token is `dev-admin-token`.
+
+Published images:
+- Default: `forgejo.alexma.top/alexma233/composia` and `forgejo.alexma.top/alexma233/composia-web`
+- Alternative: `ghcr.io/alexma233/composia` and `ghcr.io/alexma233/composia-web`
 
 ### 4. Stop the stack
 

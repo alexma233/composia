@@ -88,6 +88,14 @@ Run the stack with Docker Compose:
 docker compose up -d
 ```
 
+By default, `docker-compose.yaml` pulls images from the self-hosted Forgejo registry.
+If you prefer GHCR, replace the image references in `docker-compose.yaml` with:
+
+```yaml
+ghcr.io/alexma233/composia:latest
+ghcr.io/alexma233/composia-web:latest
+```
+
 The compose stack starts these services:
 
 - `controller` on `:7001`
@@ -98,10 +106,10 @@ Access the web UI at `http://localhost:3000`.
 
 Pre-built images are published to:
 
-- `forgejo.alexma.top/alexma233/composia`
-- `forgejo.alexma.top/alexma233/composia-web`
-- `ghcr.io/alexma233/composia`
-- `ghcr.io/alexma233/composia-web`
+- Default registry: `forgejo.alexma.top/alexma233/composia`
+- Default registry: `forgejo.alexma.top/alexma233/composia-web`
+- Alternative registry: `ghcr.io/alexma233/composia`
+- Alternative registry: `ghcr.io/alexma233/composia-web`
 
 To stop the stack:
 

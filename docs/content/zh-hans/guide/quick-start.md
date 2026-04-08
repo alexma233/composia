@@ -54,6 +54,14 @@ EOF
 docker compose up -d
 ```
 
+默认情况下，`docker-compose.yaml` 使用自建的 Forgejo registry。
+如果你更希望使用 GHCR，请将 `docker-compose.yaml` 中的镜像地址替换为：
+
+```yaml
+ghcr.io/alexma233/composia:latest
+ghcr.io/alexma233/composia-web:latest
+```
+
 这将拉取预构建的镜像并启动：
 - `controller` 在 `:7001`
 - `web` 在 `:3000`
@@ -64,6 +72,10 @@ docker compose up -d
 打开浏览器访问 `http://localhost:3000` 查看 Web 界面。
 
 默认的开发 CLI 令牌是 `dev-admin-token`。
+
+已发布的镜像地址：
+- 默认：`forgejo.alexma.top/alexma233/composia` 和 `forgejo.alexma.top/alexma233/composia-web`
+- 可选：`ghcr.io/alexma233/composia` 和 `ghcr.io/alexma233/composia-web`
 
 ### 4. 停止服务栈
 
