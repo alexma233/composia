@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -330,6 +331,128 @@ func TestNodeServiceSyncNodeCaddyFilesCreatesSyncTask(t *testing.T) {
 	params := taskParams(detail.Record.ParamsJSON)
 	if len(params.ServiceDirs) != 1 || params.ServiceDirs[0] != "demo" || params.FullRebuild {
 		t.Fatalf("unexpected caddy sync params: %+v", params)
+	}
+}
+
+func TestNodeServicePruneNodeRusticCreatesRusticPruneTask(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	logDir := filepath.Join(rootDir, "logs")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"backup/composia-meta.yaml": "name: backup\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n",
+	})
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create task log dir: %v", err)
+	}
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := syncDeclaredServicesForTests(ctx, db, "backup"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+	path, handler := controllerv1connect.NewNodeServiceHandler(
+		&nodeServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}, Rustic: &config.ControllerRusticConfig{MainNodes: []string{"main"}}}, taskQueue: newTaskQueueNotifier(), taskResults: newTaskResultNotifier()},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewNodeServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	response, err := client.PruneNodeRustic(ctx, connect.NewRequest(&controllerv1.PruneNodeRusticRequest{ServiceName: "demo", DataName: "db"}))
+	if err != nil {
+		t.Fatalf("prune node rustic: %v", err)
+	}
+	detail, err := db.GetTask(ctx, response.Msg.GetTaskId())
+	if err != nil {
+		t.Fatalf("get created task: %v", err)
+	}
+	if detail.Record.Type != task.TypeRusticPrune {
+		t.Fatalf("expected rustic_prune task type, got %q", detail.Record.Type)
+	}
+	if detail.Record.ServiceName != "backup" || detail.Record.NodeID != "main" {
+		t.Fatalf("unexpected created task record: %+v", detail.Record)
+	}
+	if !strings.Contains(detail.Record.ParamsJSON, `"service_name":"demo"`) || !strings.Contains(detail.Record.ParamsJSON, `"data_name":"db"`) {
+		t.Fatalf("unexpected rustic prune params %q", detail.Record.ParamsJSON)
+	}
+}
+
+func TestNodeServiceForgetNodeRusticCreatesRusticForgetTask(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	logDir := filepath.Join(rootDir, "logs")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"backup/composia-meta.yaml": "name: backup\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n",
+	})
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create task log dir: %v", err)
+	}
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := syncDeclaredServicesForTests(ctx, db, "backup"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+	path, handler := controllerv1connect.NewNodeServiceHandler(
+		&nodeServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}, Rustic: &config.ControllerRusticConfig{MainNodes: []string{"main"}}}, taskQueue: newTaskQueueNotifier(), taskResults: newTaskResultNotifier()},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewNodeServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	response, err := client.ForgetNodeRustic(ctx, connect.NewRequest(&controllerv1.ForgetNodeRusticRequest{ServiceName: "demo", DataName: "db"}))
+	if err != nil {
+		t.Fatalf("forget node rustic: %v", err)
+	}
+	detail, err := db.GetTask(ctx, response.Msg.GetTaskId())
+	if err != nil {
+		t.Fatalf("get created task: %v", err)
+	}
+	if detail.Record.Type != task.TypeRusticForget {
+		t.Fatalf("expected rustic_forget task type, got %q", detail.Record.Type)
+	}
+	if detail.Record.ServiceName != "backup" || detail.Record.NodeID != "main" {
+		t.Fatalf("unexpected created task record: %+v", detail.Record)
+	}
+	if !strings.Contains(detail.Record.ParamsJSON, `"service_name":"demo"`) || !strings.Contains(detail.Record.ParamsJSON, `"data_name":"db"`) {
+		t.Fatalf("unexpected rustic forget params %q", detail.Record.ParamsJSON)
 	}
 }
 

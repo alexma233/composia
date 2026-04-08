@@ -13,6 +13,9 @@ controller:
       display_name: "Main"
       enabled: true
       token: "main-agent-token"
+  rustic:
+    main_nodes:
+      - "main"
   secrets:
     provider: age
     identity_file: "./configs/age-identity.key"

@@ -20,6 +20,7 @@ func ValidateRepo(repoDir string, availableNodeIDs map[string]struct{}) []Valida
 	errorsByPath := make([]ValidationError, 0)
 	seenServiceNames := make(map[string]string)
 	caddyInfraPaths := make([]string, 0, 1)
+	rusticInfraPaths := make([]string, 0, 1)
 
 	_ = filepath.WalkDir(repoDir, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -56,12 +57,21 @@ func ValidateRepo(repoDir string, availableNodeIDs map[string]struct{}) []Valida
 		if meta.Infra != nil && meta.Infra.Caddy != nil {
 			caddyInfraPaths = append(caddyInfraPaths, path)
 		}
+		if meta.Infra != nil && meta.Infra.Rustic != nil {
+			rusticInfraPaths = append(rusticInfraPaths, path)
+		}
 		return nil
 	})
 
 	if len(caddyInfraPaths) > 1 {
 		for _, path := range caddyInfraPaths {
 			errorsByPath = append(errorsByPath, ValidationError{Path: relativePath(repoDir, path), Message: "infra.caddy may only be declared once in the repository"})
+		}
+	}
+
+	if len(rusticInfraPaths) > 1 {
+		for _, path := range rusticInfraPaths {
+			errorsByPath = append(errorsByPath, ValidationError{Path: relativePath(repoDir, path), Message: "infra.rustic may only be declared once in the repository"})
 		}
 	}
 

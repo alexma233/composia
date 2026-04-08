@@ -179,17 +179,9 @@ func TestBundleServiceInjectsBackupRuntimeConfig(t *testing.T) {
 	rootDir := t.TempDir()
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"demo/composia-meta.yaml": "name: demo\nnode: main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\nbackup:\n  data:\n    - name: config\n      retain: --keep-daily 7 --prune\n",
+		"demo/composia-meta.yaml":   "name: demo\nnode: main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\nbackup:\n  data:\n    - name: config\n      provider: rustic\n",
+		"backup/composia-meta.yaml": "name: backup\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n",
 	})
-	secretsCfg := writeAgeTestConfig(t, rootDir)
-	passwordFile := filepath.Join(rootDir, "rustic.password")
-	envFile := filepath.Join(rootDir, "rustic.env")
-	if err := os.WriteFile(passwordFile, []byte("pw\n"), 0o600); err != nil {
-		t.Fatalf("write rustic password file: %v", err)
-	}
-	if err := os.WriteFile(envFile, []byte("AWS_ACCESS_KEY_ID=test\n"), 0o600); err != nil {
-		t.Fatalf("write rustic env file: %v", err)
-	}
 	revision, err := repo.CurrentRevision(repoDir)
 	if err != nil {
 		t.Fatalf("read current revision: %v", err)
@@ -201,7 +193,7 @@ func TestBundleServiceInjectsBackupRuntimeConfig(t *testing.T) {
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
 	}
-	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "demo", "backup"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: "demo", DataNames: []string{"config"}})
@@ -219,7 +211,7 @@ func TestBundleServiceInjectsBackupRuntimeConfig(t *testing.T) {
 		return "main", nil
 	})
 	mux := http.NewServeMux()
-	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(&bundleServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}, Secrets: secretsCfg, Backup: &config.ControllerBackupConfig{Rustic: &config.RusticBackupConfig{Repository: "s3:https://example.invalid/repo", PasswordFile: passwordFile, EnvFiles: []string{envFile}}}}}, connect.WithInterceptors(interceptor))
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(&bundleServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}}}, connect.WithInterceptors(interceptor))
 	mux.Handle(bundlePath, bundleHandler)
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
@@ -243,7 +235,7 @@ func TestBundleServiceInjectsBackupRuntimeConfig(t *testing.T) {
 	if payload == "" {
 		t.Fatalf("expected backup runtime config in bundle")
 	}
-	if !strings.Contains(payload, `"repository":"s3:https://example.invalid/repo"`) || !strings.Contains(payload, `"strategy":"files.copy"`) || !strings.Contains(payload, `"retain":"--keep-daily 7 --prune"`) || !strings.Contains(payload, `"composia-service:demo"`) {
+	if !strings.Contains(payload, `"service_name":"backup"`) || !strings.Contains(payload, `"compose_service":"rustic"`) || !strings.Contains(payload, `"profile":"prod"`) || !strings.Contains(payload, `"node_id":"main"`) || !strings.Contains(payload, `"strategy":"files.copy"`) || !strings.Contains(payload, `"composia-service:demo"`) {
 		t.Fatalf("unexpected backup runtime payload %q", payload)
 	}
 }

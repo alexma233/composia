@@ -15,6 +15,8 @@ const (
 	TypeCaddySync     Type = "caddy_sync"
 	TypeCaddyReload   Type = "caddy_reload"
 	TypePrune         Type = "prune"
+	TypeRusticForget  Type = "rustic_forget"
+	TypeRusticPrune   Type = "rustic_prune"
 	TypeDockerList    Type = "docker_list"
 	TypeDockerInspect Type = "docker_inspect"
 	TypeDockerStart   Type = "docker_start"

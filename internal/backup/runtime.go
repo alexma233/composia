@@ -6,9 +6,11 @@ type RuntimeConfig struct {
 }
 
 type RusticConfig struct {
-	Repository string            `json:"repository"`
-	Password   string            `json:"password"`
-	Env        map[string]string `json:"env,omitempty"`
+	ServiceName    string `json:"service_name"`
+	ServiceDir     string `json:"service_dir"`
+	ComposeService string `json:"compose_service"`
+	Profile        string `json:"profile,omitempty"`
+	NodeID         string `json:"node_id"`
 }
 
 type RuntimeItem struct {
@@ -18,5 +20,4 @@ type RuntimeItem struct {
 	Include  []string `json:"include,omitempty"`
 	Provider string   `json:"provider"`
 	Tags     []string `json:"tags,omitempty"`
-	Retain   string   `json:"retain,omitempty"`
 }

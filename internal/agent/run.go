@@ -222,6 +222,10 @@ func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return executeRestartTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypePrune):
 		return executePruneTask(ctx, client, cfg, pulledTask, logUploader)
+	case string(task.TypeRusticForget):
+		return executeRusticForgetTask(ctx, client, cfg, pulledTask, logUploader)
+	case string(task.TypeRusticPrune):
+		return executeRusticPruneTask(ctx, client, cfg, pulledTask, logUploader)
 	case string(task.TypeCaddySync):
 		return executeCaddySyncTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypeCaddyReload):
@@ -474,6 +478,11 @@ type pruneTaskParams struct {
 	Target string `json:"target"`
 }
 
+type rusticPruneTaskParams struct {
+	ServiceName string `json:"service_name,omitempty"`
+	DataName    string `json:"data_name,omitempty"`
+}
+
 func executePruneTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
 	params := parsePruneParams(pulledTask)
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting prune task: target=%s\n", params.Target)); err != nil {
@@ -495,6 +504,57 @@ func executePruneTask(ctx context.Context, client agentv1connect.AgentReportServ
 	}
 
 	if err := uploadTaskLog(ctx, logUploader, "prune task finished successfully\n"); err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
+}
+
+func executeRusticPruneTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
+	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, nil)
+	if err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	rusticMeta, err := loadRusticPruneMeta(serviceRoot)
+	if err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting rustic forget task for service=%s compose_service=%s\n", pulledTask.GetServiceName(), rusticMeta.ComposeService)); err != nil {
+		return err
+	}
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepPrune, func() error {
+		return runRusticPrune(ctx, serviceRoot, rusticMeta, func(output string) error {
+			return uploadTaskLog(ctx, logUploader, output)
+		})
+	}); err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	if err := uploadTaskLog(ctx, logUploader, "rustic prune task finished successfully\n"); err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
+}
+
+func executeRusticForgetTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
+	params := parseRusticPruneParams(pulledTask)
+	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, nil)
+	if err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	rusticMeta, err := loadRusticPruneMeta(serviceRoot)
+	if err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting rustic prune task for service=%s compose_service=%s\n", pulledTask.GetServiceName(), rusticMeta.ComposeService)); err != nil {
+		return err
+	}
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepPrune, func() error {
+		return runRusticForget(ctx, serviceRoot, rusticMeta, params, pulledTask.GetNodeId(), func(output string) error {
+			return uploadTaskLog(ctx, logUploader, output)
+		})
+	}); err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	if err := uploadTaskLog(ctx, logUploader, "rustic forget task finished successfully\n"); err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
@@ -559,6 +619,11 @@ type caddyServiceMeta struct {
 	Source string
 }
 
+type rusticPruneMeta struct {
+	ComposeService string
+	Profile        string
+}
+
 func loadCaddyInfraMeta(serviceDir string) (caddyInfraMeta, error) {
 	meta, err := repo.LoadServiceMeta(filepath.Join(serviceDir, "composia-meta.yaml"))
 	if err != nil {
@@ -578,6 +643,14 @@ func loadServiceCaddyMeta(serviceDir string) (caddyServiceMeta, error) {
 	return caddyServiceMeta{Source: repo.CaddySource(repo.Service{Meta: meta})}, nil
 }
 
+func loadRusticPruneMeta(serviceDir string) (rusticPruneMeta, error) {
+	meta, err := repo.LoadServiceMeta(filepath.Join(serviceDir, "composia-meta.yaml"))
+	if err != nil {
+		return rusticPruneMeta{}, err
+	}
+	return rusticPruneMeta{ComposeService: meta.RusticComposeService(), Profile: meta.RusticProfile()}, nil
+}
+
 func parsePruneParams(pulledTask *agentv1.AgentTask) pruneTaskParams {
 	paramsJSON := pulledTask.GetParamsJson()
 	if paramsJSON == "" {
@@ -589,6 +662,18 @@ func parsePruneParams(pulledTask *agentv1.AgentTask) pruneTaskParams {
 	}
 	if params.Target == "" {
 		params.Target = "all"
+	}
+	return params
+}
+
+func parseRusticPruneParams(pulledTask *agentv1.AgentTask) rusticPruneTaskParams {
+	paramsJSON := pulledTask.GetParamsJson()
+	if paramsJSON == "" {
+		return rusticPruneTaskParams{}
+	}
+	var params rusticPruneTaskParams
+	if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
+		return rusticPruneTaskParams{}
 	}
 	return params
 }
@@ -635,6 +720,52 @@ func runDockerPruneAll(ctx context.Context, uploadLog func(string) error) error 
 		if err := runDockerPrune(ctx, target, uploadLog); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func runRusticForget(ctx context.Context, serviceDir string, meta rusticPruneMeta, params rusticPruneTaskParams, nodeID string, uploadLog func(string) error) error {
+	args := []string{"compose", "exec", "-T", meta.ComposeService, "rustic"}
+	if meta.Profile != "" {
+		args = append(args, "-P", meta.Profile)
+	}
+	args = append(args, "forget", "--filter-host", nodeID)
+	if params.ServiceName != "" {
+		args = append(args, "--filter-tags", "composia-service:"+params.ServiceName)
+	}
+	if params.DataName != "" {
+		args = append(args, "--filter-tags", "composia-data:"+params.DataName)
+	}
+	command := exec.CommandContext(ctx, "docker", args...)
+	command.Dir = serviceDir
+	output, err := command.CombinedOutput()
+	if len(output) > 0 {
+		if logErr := uploadLog(string(output)); logErr != nil {
+			return logErr
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("docker compose exec rustic forget failed: %w", err)
+	}
+	return nil
+}
+
+func runRusticPrune(ctx context.Context, serviceDir string, meta rusticPruneMeta, uploadLog func(string) error) error {
+	args := []string{"compose", "exec", "-T", meta.ComposeService, "rustic"}
+	if meta.Profile != "" {
+		args = append(args, "-P", meta.Profile)
+	}
+	args = append(args, "prune")
+	command := exec.CommandContext(ctx, "docker", args...)
+	command.Dir = serviceDir
+	output, err := command.CombinedOutput()
+	if len(output) > 0 {
+		if logErr := uploadLog(string(output)); logErr != nil {
+			return logErr
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("docker compose exec rustic prune failed: %w", err)
 	}
 	return nil
 }
@@ -881,6 +1012,12 @@ func loadBackupRuntimeConfig(serviceRoot string) (*backupcfg.RuntimeConfig, erro
 	if cfg.Rustic == nil {
 		return nil, fmt.Errorf("backup runtime config is missing rustic provider")
 	}
+	if cfg.Rustic.ServiceDir == "" {
+		return nil, fmt.Errorf("backup runtime config is missing rustic service_dir")
+	}
+	if cfg.Rustic.NodeID == "" {
+		return nil, fmt.Errorf("backup runtime config is missing rustic node_id")
+	}
 	if len(cfg.Items) == 0 {
 		return nil, fmt.Errorf("backup runtime config did not include any items")
 	}
@@ -897,11 +1034,9 @@ func backupRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot
 	if err := stageBackupItem(ctx, serviceRoot, stagingDir, item, logUploader); err != nil {
 		return "", time.Time{}, time.Time{}, err
 	}
-	artifactRef, err := runRusticBackup(ctx, rustic, stagingDir, item, logUploader)
+	rusticRoot := filepath.Join(cfg.RepoDir, rustic.ServiceDir)
+	artifactRef, err := runRusticBackup(ctx, rusticRoot, rustic, stagingDir, item, logUploader)
 	if err != nil {
-		return "", time.Time{}, time.Time{}, err
-	}
-	if err := applyRusticRetention(ctx, rustic, item, logUploader); err != nil {
 		return "", time.Time{}, time.Time{}, err
 	}
 	return artifactRef, startedAt, time.Now().UTC(), nil
@@ -1107,26 +1242,18 @@ func runComposePGDumpAll(ctx context.Context, serviceDir, projectName, serviceNa
 
 var rusticSnapshotRegexp = regexp.MustCompile(`snapshot\s+([0-9a-fA-F]+)\s+saved`)
 
-func runRusticBackup(ctx context.Context, rustic *backupcfg.RusticConfig, sourceDir string, item backupcfg.RuntimeItem, logUploader *taskLogUploader) (string, error) {
-	passwordFile, err := os.CreateTemp("", "composia-rustic-password-*")
-	if err != nil {
-		return "", fmt.Errorf("create rustic password temp file: %w", err)
+func runRusticBackup(ctx context.Context, rusticDir string, rustic *backupcfg.RusticConfig, sourceDir string, item backupcfg.RuntimeItem, logUploader *taskLogUploader) (string, error) {
+	args := []string{"compose", "exec", "-T", rustic.ComposeService, "rustic"}
+	if rustic.Profile != "" {
+		args = append(args, "-P", rustic.Profile)
 	}
-	passwordPath := passwordFile.Name()
-	defer os.Remove(passwordPath)
-	if _, err := passwordFile.WriteString(rustic.Password + "\n"); err != nil {
-		passwordFile.Close()
-		return "", fmt.Errorf("write rustic password temp file: %w", err)
-	}
-	if err := passwordFile.Close(); err != nil {
-		return "", fmt.Errorf("close rustic password temp file: %w", err)
-	}
-	args := []string{"-r", rustic.Repository, "--password-file", passwordPath, "backup", sourceDir, "--as-path", item.Name}
-	for _, tag := range buildRusticTags(item.Name, item.Tags) {
+	args = append(args, "backup", "--host", rustic.NodeID)
+	for _, tag := range buildRusticTags(item.Tags) {
 		args = append(args, "--tag", tag)
 	}
-	command := exec.CommandContext(ctx, "rustic", args...)
-	command.Env = append(os.Environ(), mapEnvToSlice(rustic.Env)...)
+	args = append(args, sourceDir, "--as-path", item.Name)
+	command := exec.CommandContext(ctx, "docker", args...)
+	command.Dir = rusticDir
 	output, err := command.CombinedOutput()
 	if len(output) > 0 {
 		if logErr := uploadTaskLog(ctx, logUploader, string(output)); logErr != nil {
@@ -1134,7 +1261,7 @@ func runRusticBackup(ctx context.Context, rustic *backupcfg.RusticConfig, source
 		}
 	}
 	if err != nil {
-		return "", fmt.Errorf("rustic backup failed: %w", err)
+		return "", fmt.Errorf("docker compose exec rustic backup failed: %w", err)
 	}
 	matches := rusticSnapshotRegexp.FindStringSubmatch(string(output))
 	if len(matches) != 2 {
@@ -1142,83 +1269,11 @@ func runRusticBackup(ctx context.Context, rustic *backupcfg.RusticConfig, source
 	}
 	return matches[1], nil
 }
-
-func applyRusticRetention(ctx context.Context, rustic *backupcfg.RusticConfig, item backupcfg.RuntimeItem, logUploader *taskLogUploader) error {
-	if strings.TrimSpace(item.Retain) == "" {
-		return nil
-	}
-	retainArgs, err := parseRetainArgs(item.Retain)
-	if err != nil {
-		return err
-	}
-	passwordFile, err := os.CreateTemp("", "composia-rustic-password-*")
-	if err != nil {
-		return fmt.Errorf("create rustic password temp file: %w", err)
-	}
-	passwordPath := passwordFile.Name()
-	defer os.Remove(passwordPath)
-	if _, err := passwordFile.WriteString(rustic.Password + "\n"); err != nil {
-		passwordFile.Close()
-		return fmt.Errorf("write rustic password temp file: %w", err)
-	}
-	if err := passwordFile.Close(); err != nil {
-		return fmt.Errorf("close rustic password temp file: %w", err)
-	}
-	args := []string{"-r", rustic.Repository, "--password-file", passwordPath, "forget"}
-	for _, tag := range buildRusticTags(item.Name, item.Tags) {
-		args = append(args, "--tag", tag)
-	}
-	args = append(args, retainArgs...)
-	command := exec.CommandContext(ctx, "rustic", args...)
-	command.Env = append(os.Environ(), mapEnvToSlice(rustic.Env)...)
-	output, err := command.CombinedOutput()
-	if len(output) > 0 {
-		if logErr := uploadTaskLog(ctx, logUploader, string(output)); logErr != nil {
-			return logErr
-		}
-	}
-	if err != nil {
-		return fmt.Errorf("rustic forget failed: %w", err)
-	}
-	return nil
-}
-
-func buildRusticTags(name string, explicit []string) []string {
+func buildRusticTags(explicit []string) []string {
 	if len(explicit) > 0 {
 		return explicit
 	}
-	return []string{"composia-data:" + name}
-}
-
-func parseRetainArgs(retain string) ([]string, error) {
-	fields := strings.Fields(retain)
-	if len(fields) == 0 {
-		return nil, nil
-	}
-	for index, field := range fields {
-		if !strings.HasPrefix(field, "--") {
-			if index == 0 {
-				return nil, fmt.Errorf("retain must start with rustic forget flags")
-			}
-			continue
-		}
-		if field == "--prune" || strings.HasPrefix(field, "--keep-") || strings.HasPrefix(field, "--keep-within") {
-			continue
-		}
-		return nil, fmt.Errorf("retain flag %q is not allowed", field)
-	}
-	return fields, nil
-}
-
-func mapEnvToSlice(values map[string]string) []string {
-	if len(values) == 0 {
-		return nil
-	}
-	result := make([]string, 0, len(values))
-	for key, value := range values {
-		result = append(result, key+"="+value)
-	}
-	return result
+	return nil
 }
 
 func sanitizeStagePath(value string) string {

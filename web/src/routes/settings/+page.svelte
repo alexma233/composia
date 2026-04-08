@@ -17,6 +17,9 @@
 
   let syncing = $state(false);
   let syncError = $state('');
+  let rusticBusy = $state<'forget' | 'prune' | ''>('');
+  let rusticError = $state('');
+  let rusticTaskId = $state('');
   let syncResult = $state<{
     headRevision?: string;
     syncStatus?: string;
@@ -51,6 +54,31 @@
       syncError = error instanceof Error ? error.message : 'Failed to sync repo.';
     } finally {
       syncing = false;
+    }
+  }
+
+  async function runRusticAction(action: 'forget' | 'prune') {
+    rusticBusy = action;
+    rusticError = '';
+    rusticTaskId = '';
+
+    try {
+      const response = await fetch(`/settings/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? `Failed to start rustic ${action}.`);
+      }
+
+      rusticTaskId = payload.taskId ?? '';
+      toast.success(`Rustic ${action} started`);
+    } catch (error) {
+      rusticError = error instanceof Error ? error.message : `Failed to start rustic ${action}.`;
+    } finally {
+      rusticBusy = '';
     }
   }
 
@@ -168,6 +196,51 @@
             {/if}
           {:else}
             <div class="empty-state">No repo state loaded.</div>
+          {/if}
+        </CardContent>
+      </Card>
+
+		<Card class="lg:col-span-2">
+        <CardHeader class="flex flex-row items-center justify-between gap-3">
+          <CardTitle class="section-title">Rustic maintenance</CardTitle>
+          <div class="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onclick={() => runRusticAction('forget')}
+              disabled={rusticBusy !== ''}
+            >
+              {rusticBusy === 'forget' ? 'Starting...' : 'Forget'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onclick={() => runRusticAction('prune')}
+              disabled={rusticBusy !== ''}
+            >
+              {rusticBusy === 'prune' ? 'Starting...' : 'Prune'}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <div class="text-sm text-muted-foreground">
+            Run global rustic maintenance on a controller-selected main node.
+          </div>
+
+          {#if rusticError}
+            <Alert variant="destructive">
+              <AlertTitle>Rustic maintenance failed</AlertTitle>
+              <AlertDescription>{rusticError}</AlertDescription>
+            </Alert>
+          {/if}
+
+          {#if rusticTaskId}
+            <div class="inset-card">
+              <div class="metric-label">Last task</div>
+              <div class="mt-2 break-all text-sm text-foreground">{rusticTaskId}</div>
+            </div>
           {/if}
         </CardContent>
       </Card>

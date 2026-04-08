@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -748,7 +749,7 @@ func bundleExtraFiles(cfg *config.ControllerConfig, record task.Record, params s
 		}
 	}
 	if record.Type == task.TypeBackup {
-		payload, err := buildBackupRuntimePayload(cfg, record.ServiceName, record.RepoRevision, params)
+		payload, err := buildBackupRuntimePayload(cfg, record.ServiceName, record.NodeID, record.RepoRevision, params)
 		if err != nil {
 			return nil, err
 		}
@@ -799,13 +800,18 @@ func isMissingRevisionPathError(err error) bool {
 	return strings.Contains(message, "does not exist") || strings.Contains(message, "exists on disk, but not in") || strings.Contains(message, "pathspec") || strings.Contains(message, "invalid object name") || strings.Contains(message, "not found")
 }
 
-func buildBackupRuntimePayload(cfg *config.ControllerConfig, serviceName, revision string, params serviceTaskParams) (string, error) {
-	if cfg.Backup == nil || cfg.Backup.Rustic == nil {
-		return "", fmt.Errorf("controller backup.rustic is required for backup tasks")
-	}
+func buildBackupRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeID, revision string, params serviceTaskParams) (string, error) {
 	service, err := repo.FindService(cfg.RepoDir, configuredNodeIDs(cfg), serviceName)
 	if err != nil {
 		return "", err
+	}
+	rusticService, err := repo.FindRusticInfraService(cfg.RepoDir, configuredNodeIDs(cfg))
+	if err != nil {
+		return "", err
+	}
+	rusticServiceDir, err := filepath.Rel(cfg.RepoDir, rusticService.Directory)
+	if err != nil {
+		return "", fmt.Errorf("resolve rustic service directory: %w", err)
 	}
 	selected := make(map[string]struct{}, len(params.DataNames))
 	for _, name := range params.DataNames {
@@ -817,59 +823,24 @@ func buildBackupRuntimePayload(cfg *config.ControllerConfig, serviceName, revisi
 			continue
 		}
 		provider := "rustic"
-		retain := ""
 		for _, backupItem := range service.Meta.Backup.Data {
 			if backupItem.Name == data.Name {
 				if backupItem.Provider != "" {
 					provider = backupItem.Provider
 				}
-				retain = backupItem.Retain
 				break
 			}
 		}
 		if provider != "rustic" {
 			return "", fmt.Errorf("backup provider %q is not implemented", provider)
 		}
-		items = append(items, backupcfg.RuntimeItem{Name: data.Name, Strategy: data.Backup.Strategy, Service: data.Backup.Service, Include: append([]string(nil), data.Backup.Include...), Provider: provider, Tags: []string{"composia-service:" + serviceName, "composia-data:" + data.Name}, Retain: retain})
+		items = append(items, backupcfg.RuntimeItem{Name: data.Name, Strategy: data.Backup.Strategy, Service: data.Backup.Service, Include: append([]string(nil), data.Backup.Include...), Provider: provider, Tags: []string{"composia-service:" + serviceName, "composia-data:" + data.Name}})
 	}
-	passwordContent, err := os.ReadFile(cfg.Backup.Rustic.PasswordFile)
-	if err != nil {
-		return "", fmt.Errorf("read rustic password file: %w", err)
-	}
-	envValues, err := loadBackupEnvFiles(cfg.Backup.Rustic.EnvFiles)
-	if err != nil {
-		return "", err
-	}
-	payload, err := json.Marshal(backupcfg.RuntimeConfig{Rustic: &backupcfg.RusticConfig{Repository: cfg.Backup.Rustic.Repository, Password: strings.TrimSpace(string(passwordContent)), Env: envValues}, Items: items})
+	payload, err := json.Marshal(backupcfg.RuntimeConfig{Rustic: &backupcfg.RusticConfig{ServiceName: rusticService.Name, ServiceDir: rusticServiceDir, ComposeService: rusticService.Meta.RusticComposeService(), Profile: rusticService.Meta.RusticProfile(), NodeID: nodeID}, Items: items})
 	if err != nil {
 		return "", fmt.Errorf("marshal backup runtime config for %s at %s: %w", serviceName, revision, err)
 	}
 	return string(payload), nil
-}
-
-func loadBackupEnvFiles(paths []string) (map[string]string, error) {
-	if len(paths) == 0 {
-		return nil, nil
-	}
-	values := map[string]string{}
-	for _, path := range paths {
-		content, err := os.ReadFile(path)
-		if err != nil {
-			return nil, fmt.Errorf("read backup env file %q: %w", path, err)
-		}
-		for lineNumber, line := range strings.Split(string(content), "\n") {
-			line = strings.TrimSpace(line)
-			if line == "" || strings.HasPrefix(line, "#") {
-				continue
-			}
-			key, value, ok := strings.Cut(line, "=")
-			if !ok {
-				return nil, fmt.Errorf("backup env file %q line %d must be KEY=VALUE", path, lineNumber+1)
-			}
-			values[strings.TrimSpace(key)] = strings.TrimSpace(value)
-		}
-	}
-	return values, nil
 }
 
 func configuredNodeIDs(cfg *config.ControllerConfig) map[string]struct{} {
@@ -996,6 +967,77 @@ func createNodeCaddySyncTask(ctx context.Context, db *store.DB, cfg *config.Cont
 	return createdTask, nil
 }
 
+func chooseRusticMainNode(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, taskType task.Type) (string, error) {
+	rusticService, err := repo.FindRusticInfraService(cfg.RepoDir, availableNodeIDs)
+	if err != nil {
+		return "", err
+	}
+	candidates := append([]string(nil), rusticService.TargetNodes...)
+	if cfg.Rustic != nil && len(cfg.Rustic.MainNodes) > 0 {
+		allowed := make(map[string]struct{}, len(cfg.Rustic.MainNodes))
+		for _, nodeID := range cfg.Rustic.MainNodes {
+			allowed[nodeID] = struct{}{}
+		}
+		filtered := make([]string, 0, len(candidates))
+		for _, nodeID := range candidates {
+			if _, ok := allowed[nodeID]; ok {
+				filtered = append(filtered, nodeID)
+			}
+		}
+		candidates = filtered
+	}
+	if len(candidates) == 0 {
+		return "", fmt.Errorf("rustic infra service does not have any eligible main nodes")
+	}
+	online := make([]string, 0, len(candidates))
+	for _, nodeID := range candidates {
+		if err := validateTaskTargetNode(ctx, db, cfg, nodeID, taskType); err == nil {
+			online = append(online, nodeID)
+		}
+	}
+	if len(online) == 0 {
+		return "", fmt.Errorf("no eligible online rustic main node is available")
+	}
+	return online[rand.Intn(len(online))], nil
+}
+
+func createNodeRusticMaintenanceTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, nodeID string, taskType task.Type, params rusticPruneTaskParams, source task.Source) (task.Record, error) {
+	if err := validateTaskTargetNode(ctx, db, cfg, nodeID, taskType); err != nil {
+		return task.Record{}, err
+	}
+	rusticService, err := repo.FindRusticInfraService(cfg.RepoDir, availableNodeIDs)
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	if !slices.Contains(rusticService.TargetNodes, nodeID) {
+		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("rustic infra service is not declared on node %q", nodeID))
+	}
+	paramsJSON, err := json.Marshal(params)
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode rustic prune task params: %w", err))
+	}
+	triggeredBy, _ := rpcutil.BearerSubject(ctx)
+	taskID := uuid.NewString()
+	createdTask, err := db.CreateTask(ctx, task.Record{
+		TaskID:      taskID,
+		Type:        taskType,
+		Source:      source,
+		TriggeredBy: triggeredBy,
+		ServiceName: rusticService.Name,
+		NodeID:      nodeID,
+		Status:      task.StatusPending,
+		ParamsJSON:  string(paramsJSON),
+		LogPath:     filepath.Join(cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+	})
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, err)
+	}
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
+	}
+	return createdTask, nil
+}
+
 func (server *agentTaskServer) PullNextTask(ctx context.Context, req *connect.Request[agentv1.PullNextTaskRequest]) (*connect.Response[agentv1.PullNextTaskResponse], error) {
 	if req.Msg.GetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
@@ -1063,8 +1105,9 @@ func (server *agentTaskServer) longPollRetryInterval() time.Duration {
 }
 
 type systemServer struct {
-	db  *store.DB
-	cfg *config.ControllerConfig
+	db               *store.DB
+	cfg              *config.ControllerConfig
+	availableNodeIDs map[string]struct{}
 }
 
 type serviceServer struct {
@@ -1088,6 +1131,11 @@ type serviceTaskParams struct {
 	ServiceDirs []string `json:"service_dirs,omitempty"`
 	DataNames   []string `json:"data_names,omitempty"`
 	FullRebuild bool     `json:"full_rebuild,omitempty"`
+}
+
+type rusticPruneTaskParams struct {
+	ServiceName string `json:"service_name,omitempty"`
+	DataName    string `json:"data_name,omitempty"`
 }
 
 type nodeServer struct {
@@ -1242,9 +1290,9 @@ func (server *systemServer) GetCurrentConfig(ctx context.Context, _ *connect.Req
 		}
 	}
 
-	if server.cfg.Backup != nil && server.cfg.Backup.Rustic != nil {
+	if _, err := repo.FindRusticInfraService(server.cfg.RepoDir, server.availableNodeIDs); err == nil {
 		response.Backup = &controllerv1.BackupConfigSummary{
-			HasRustic: server.cfg.Backup.Rustic.Repository != "",
+			HasRustic: true,
 		}
 	}
 
@@ -1735,6 +1783,46 @@ func (server *nodeServer) PruneNodeDocker(ctx context.Context, req *connect.Requ
 	return connect.NewResponse(&controllerv1.PruneNodeDockerResponse{
 		TaskId: taskID,
 	}), nil
+}
+
+func (server *nodeServer) PruneNodeRustic(ctx context.Context, req *connect.Request[controllerv1.PruneNodeRusticRequest]) (*connect.Response[controllerv1.PruneNodeRusticResponse], error) {
+	if req.Msg == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("request is required"))
+	}
+	nodeID := req.Msg.GetNodeId()
+	var err error
+	if nodeID == "" {
+		nodeID, err = chooseRusticMainNode(ctx, server.db, server.cfg, configuredNodeIDs(server.cfg), task.TypeRusticPrune)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+	}
+	createdTask, err := createNodeRusticMaintenanceTask(ctx, server.db, server.cfg, configuredNodeIDs(server.cfg), nodeID, task.TypeRusticPrune, rusticPruneTaskParams{ServiceName: req.Msg.GetServiceName(), DataName: req.Msg.GetDataName()}, requestTaskSource(req.Header()))
+	if err != nil {
+		return nil, err
+	}
+	notifyTaskQueue(server.taskQueue)
+	return connect.NewResponse(&controllerv1.PruneNodeRusticResponse{TaskId: createdTask.TaskID}), nil
+}
+
+func (server *nodeServer) ForgetNodeRustic(ctx context.Context, req *connect.Request[controllerv1.ForgetNodeRusticRequest]) (*connect.Response[controllerv1.ForgetNodeRusticResponse], error) {
+	if req.Msg == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("request is required"))
+	}
+	nodeID := req.Msg.GetNodeId()
+	var err error
+	if nodeID == "" {
+		nodeID, err = chooseRusticMainNode(ctx, server.db, server.cfg, configuredNodeIDs(server.cfg), task.TypeRusticForget)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+	}
+	createdTask, err := createNodeRusticMaintenanceTask(ctx, server.db, server.cfg, configuredNodeIDs(server.cfg), nodeID, task.TypeRusticForget, rusticPruneTaskParams{ServiceName: req.Msg.GetServiceName(), DataName: req.Msg.GetDataName()}, requestTaskSource(req.Header()))
+	if err != nil {
+		return nil, err
+	}
+	notifyTaskQueue(server.taskQueue)
+	return connect.NewResponse(&controllerv1.ForgetNodeRusticResponse{TaskId: createdTask.TaskID}), nil
 }
 
 func (server *nodeServer) ListNodeContainers(ctx context.Context, req *connect.Request[controllerv1.ListNodeContainersRequest]) (*connect.Response[controllerv1.ListNodeContainersResponse], error) {

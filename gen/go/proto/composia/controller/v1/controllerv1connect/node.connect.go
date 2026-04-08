@@ -52,6 +52,12 @@ const (
 	// NodeServicePruneNodeDockerProcedure is the fully-qualified name of the NodeService's
 	// PruneNodeDocker RPC.
 	NodeServicePruneNodeDockerProcedure = "/composia.controller.v1.NodeService/PruneNodeDocker"
+	// NodeServiceForgetNodeRusticProcedure is the fully-qualified name of the NodeService's
+	// ForgetNodeRustic RPC.
+	NodeServiceForgetNodeRusticProcedure = "/composia.controller.v1.NodeService/ForgetNodeRustic"
+	// NodeServicePruneNodeRusticProcedure is the fully-qualified name of the NodeService's
+	// PruneNodeRustic RPC.
+	NodeServicePruneNodeRusticProcedure = "/composia.controller.v1.NodeService/PruneNodeRustic"
 	// NodeServiceListNodeContainersProcedure is the fully-qualified name of the NodeService's
 	// ListNodeContainers RPC.
 	NodeServiceListNodeContainersProcedure = "/composia.controller.v1.NodeService/ListNodeContainers"
@@ -87,6 +93,8 @@ type NodeServiceClient interface {
 	SyncNodeCaddyFiles(context.Context, *connect.Request[v1.SyncNodeCaddyFilesRequest]) (*connect.Response[v1.SyncNodeCaddyFilesResponse], error)
 	ReloadNodeCaddy(context.Context, *connect.Request[v1.ReloadNodeCaddyRequest]) (*connect.Response[v1.ReloadNodeCaddyResponse], error)
 	PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error)
+	ForgetNodeRustic(context.Context, *connect.Request[v1.ForgetNodeRusticRequest]) (*connect.Response[v1.ForgetNodeRusticResponse], error)
+	PruneNodeRustic(context.Context, *connect.Request[v1.PruneNodeRusticRequest]) (*connect.Response[v1.PruneNodeRusticResponse], error)
 	ListNodeContainers(context.Context, *connect.Request[v1.ListNodeContainersRequest]) (*connect.Response[v1.ListNodeContainersResponse], error)
 	InspectNodeContainer(context.Context, *connect.Request[v1.InspectNodeContainerRequest]) (*connect.Response[v1.InspectNodeContainerResponse], error)
 	ListNodeNetworks(context.Context, *connect.Request[v1.ListNodeNetworksRequest]) (*connect.Response[v1.ListNodeNetworksResponse], error)
@@ -150,6 +158,18 @@ func NewNodeServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(nodeServiceMethods.ByName("PruneNodeDocker")),
 			connect.WithClientOptions(opts...),
 		),
+		forgetNodeRustic: connect.NewClient[v1.ForgetNodeRusticRequest, v1.ForgetNodeRusticResponse](
+			httpClient,
+			baseURL+NodeServiceForgetNodeRusticProcedure,
+			connect.WithSchema(nodeServiceMethods.ByName("ForgetNodeRustic")),
+			connect.WithClientOptions(opts...),
+		),
+		pruneNodeRustic: connect.NewClient[v1.PruneNodeRusticRequest, v1.PruneNodeRusticResponse](
+			httpClient,
+			baseURL+NodeServicePruneNodeRusticProcedure,
+			connect.WithSchema(nodeServiceMethods.ByName("PruneNodeRustic")),
+			connect.WithClientOptions(opts...),
+		),
 		listNodeContainers: connect.NewClient[v1.ListNodeContainersRequest, v1.ListNodeContainersResponse](
 			httpClient,
 			baseURL+NodeServiceListNodeContainersProcedure,
@@ -210,6 +230,8 @@ type nodeServiceClient struct {
 	syncNodeCaddyFiles   *connect.Client[v1.SyncNodeCaddyFilesRequest, v1.SyncNodeCaddyFilesResponse]
 	reloadNodeCaddy      *connect.Client[v1.ReloadNodeCaddyRequest, v1.ReloadNodeCaddyResponse]
 	pruneNodeDocker      *connect.Client[v1.PruneNodeDockerRequest, v1.PruneNodeDockerResponse]
+	forgetNodeRustic     *connect.Client[v1.ForgetNodeRusticRequest, v1.ForgetNodeRusticResponse]
+	pruneNodeRustic      *connect.Client[v1.PruneNodeRusticRequest, v1.PruneNodeRusticResponse]
 	listNodeContainers   *connect.Client[v1.ListNodeContainersRequest, v1.ListNodeContainersResponse]
 	inspectNodeContainer *connect.Client[v1.InspectNodeContainerRequest, v1.InspectNodeContainerResponse]
 	listNodeNetworks     *connect.Client[v1.ListNodeNetworksRequest, v1.ListNodeNetworksResponse]
@@ -253,6 +275,16 @@ func (c *nodeServiceClient) ReloadNodeCaddy(ctx context.Context, req *connect.Re
 // PruneNodeDocker calls composia.controller.v1.NodeService.PruneNodeDocker.
 func (c *nodeServiceClient) PruneNodeDocker(ctx context.Context, req *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error) {
 	return c.pruneNodeDocker.CallUnary(ctx, req)
+}
+
+// ForgetNodeRustic calls composia.controller.v1.NodeService.ForgetNodeRustic.
+func (c *nodeServiceClient) ForgetNodeRustic(ctx context.Context, req *connect.Request[v1.ForgetNodeRusticRequest]) (*connect.Response[v1.ForgetNodeRusticResponse], error) {
+	return c.forgetNodeRustic.CallUnary(ctx, req)
+}
+
+// PruneNodeRustic calls composia.controller.v1.NodeService.PruneNodeRustic.
+func (c *nodeServiceClient) PruneNodeRustic(ctx context.Context, req *connect.Request[v1.PruneNodeRusticRequest]) (*connect.Response[v1.PruneNodeRusticResponse], error) {
+	return c.pruneNodeRustic.CallUnary(ctx, req)
 }
 
 // ListNodeContainers calls composia.controller.v1.NodeService.ListNodeContainers.
@@ -304,6 +336,8 @@ type NodeServiceHandler interface {
 	SyncNodeCaddyFiles(context.Context, *connect.Request[v1.SyncNodeCaddyFilesRequest]) (*connect.Response[v1.SyncNodeCaddyFilesResponse], error)
 	ReloadNodeCaddy(context.Context, *connect.Request[v1.ReloadNodeCaddyRequest]) (*connect.Response[v1.ReloadNodeCaddyResponse], error)
 	PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error)
+	ForgetNodeRustic(context.Context, *connect.Request[v1.ForgetNodeRusticRequest]) (*connect.Response[v1.ForgetNodeRusticResponse], error)
+	PruneNodeRustic(context.Context, *connect.Request[v1.PruneNodeRusticRequest]) (*connect.Response[v1.PruneNodeRusticResponse], error)
 	ListNodeContainers(context.Context, *connect.Request[v1.ListNodeContainersRequest]) (*connect.Response[v1.ListNodeContainersResponse], error)
 	InspectNodeContainer(context.Context, *connect.Request[v1.InspectNodeContainerRequest]) (*connect.Response[v1.InspectNodeContainerResponse], error)
 	ListNodeNetworks(context.Context, *connect.Request[v1.ListNodeNetworksRequest]) (*connect.Response[v1.ListNodeNetworksResponse], error)
@@ -361,6 +395,18 @@ func NewNodeServiceHandler(svc NodeServiceHandler, opts ...connect.HandlerOption
 		NodeServicePruneNodeDockerProcedure,
 		svc.PruneNodeDocker,
 		connect.WithSchema(nodeServiceMethods.ByName("PruneNodeDocker")),
+		connect.WithHandlerOptions(opts...),
+	)
+	nodeServiceForgetNodeRusticHandler := connect.NewUnaryHandler(
+		NodeServiceForgetNodeRusticProcedure,
+		svc.ForgetNodeRustic,
+		connect.WithSchema(nodeServiceMethods.ByName("ForgetNodeRustic")),
+		connect.WithHandlerOptions(opts...),
+	)
+	nodeServicePruneNodeRusticHandler := connect.NewUnaryHandler(
+		NodeServicePruneNodeRusticProcedure,
+		svc.PruneNodeRustic,
+		connect.WithSchema(nodeServiceMethods.ByName("PruneNodeRustic")),
 		connect.WithHandlerOptions(opts...),
 	)
 	nodeServiceListNodeContainersHandler := connect.NewUnaryHandler(
@@ -427,6 +473,10 @@ func NewNodeServiceHandler(svc NodeServiceHandler, opts ...connect.HandlerOption
 			nodeServiceReloadNodeCaddyHandler.ServeHTTP(w, r)
 		case NodeServicePruneNodeDockerProcedure:
 			nodeServicePruneNodeDockerHandler.ServeHTTP(w, r)
+		case NodeServiceForgetNodeRusticProcedure:
+			nodeServiceForgetNodeRusticHandler.ServeHTTP(w, r)
+		case NodeServicePruneNodeRusticProcedure:
+			nodeServicePruneNodeRusticHandler.ServeHTTP(w, r)
 		case NodeServiceListNodeContainersProcedure:
 			nodeServiceListNodeContainersHandler.ServeHTTP(w, r)
 		case NodeServiceInspectNodeContainerProcedure:
@@ -478,6 +528,14 @@ func (UnimplementedNodeServiceHandler) ReloadNodeCaddy(context.Context, *connect
 
 func (UnimplementedNodeServiceHandler) PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.PruneNodeDocker is not implemented"))
+}
+
+func (UnimplementedNodeServiceHandler) ForgetNodeRustic(context.Context, *connect.Request[v1.ForgetNodeRusticRequest]) (*connect.Response[v1.ForgetNodeRusticResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.ForgetNodeRustic is not implemented"))
+}
+
+func (UnimplementedNodeServiceHandler) PruneNodeRustic(context.Context, *connect.Request[v1.PruneNodeRusticRequest]) (*connect.Response[v1.PruneNodeRusticResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.PruneNodeRustic is not implemented"))
 }
 
 func (UnimplementedNodeServiceHandler) ListNodeContainers(context.Context, *connect.Request[v1.ListNodeContainersRequest]) (*connect.Response[v1.ListNodeContainersResponse], error) {

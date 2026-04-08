@@ -618,6 +618,44 @@ export async function pruneNodeDocker(
   return { taskId: response.task_id };
 }
 
+export async function forgetNodeRustic(options: {
+  nodeId?: string;
+  serviceName?: string;
+  dataName?: string;
+} = {}): Promise<{ taskId: string }> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{ task_id: string }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.NodeService/ForgetNodeRustic",
+    {
+      nodeId: options.nodeId ?? "",
+      serviceName: options.serviceName ?? "",
+      dataName: options.dataName ?? "",
+    },
+  );
+  return { taskId: response.task_id };
+}
+
+export async function pruneNodeRustic(options: {
+  nodeId?: string;
+  serviceName?: string;
+  dataName?: string;
+} = {}): Promise<{ taskId: string }> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{ task_id: string }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.NodeService/PruneNodeRustic",
+    {
+      nodeId: options.nodeId ?? "",
+      serviceName: options.serviceName ?? "",
+      dataName: options.dataName ?? "",
+    },
+  );
+  return { taskId: response.task_id };
+}
+
 export async function reloadNodeCaddy(
   nodeId: string,
 ): Promise<{ taskId: string }> {

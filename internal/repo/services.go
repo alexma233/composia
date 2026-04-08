@@ -37,12 +37,18 @@ type ServiceMeta struct {
 }
 
 type InfraConfig struct {
-	Caddy *InfraCaddyConfig `yaml:"caddy"`
+	Caddy  *InfraCaddyConfig  `yaml:"caddy"`
+	Rustic *InfraRusticConfig `yaml:"rustic"`
 }
 
 type InfraCaddyConfig struct {
 	ComposeService string `yaml:"compose_service"`
 	ConfigDir      string `yaml:"config_dir"`
+}
+
+type InfraRusticConfig struct {
+	ComposeService string `yaml:"compose_service"`
+	Profile        string `yaml:"profile"`
 }
 
 type NetworkConfig struct {
@@ -97,7 +103,6 @@ type BackupItem struct {
 	Provider string `yaml:"provider"`
 	Enabled  *bool  `yaml:"enabled"`
 	Schedule string `yaml:"schedule"`
-	Retain   string `yaml:"retain"`
 }
 
 type MigrateConfig struct {
@@ -239,6 +244,48 @@ func FindCaddyInfraService(repoDir string, availableNodeIDs map[string]struct{})
 		return *matched, nil
 	}
 	return Service{}, fmt.Errorf("caddy infra service is not declared")
+}
+
+func FindRusticInfraService(repoDir string, availableNodeIDs map[string]struct{}) (Service, error) {
+	var matched *Service
+	err := filepath.WalkDir(repoDir, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() {
+			if entry.Name() == ".git" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if entry.Name() != MetaFileName {
+			return nil
+		}
+
+		meta, err := loadServiceMeta(path)
+		if err != nil {
+			return nil
+		}
+		if meta.Infra == nil || meta.Infra.Rustic == nil {
+			return nil
+		}
+		service, err := strictServiceFromMeta(path, meta, availableNodeIDs)
+		if err != nil {
+			return err
+		}
+		if matched != nil {
+			return fmt.Errorf("rustic infra service is declared more than once: %s and %s", matched.MetaPath, path)
+		}
+		matched = &service
+		return nil
+	})
+	if err != nil {
+		return Service{}, err
+	}
+	if matched != nil {
+		return *matched, nil
+	}
+	return Service{}, fmt.Errorf("rustic infra service is not declared")
 }
 
 func strictServiceFromMetaPath(path string, availableNodeIDs map[string]struct{}) (Service, error) {
@@ -398,6 +445,9 @@ func validateInfra(path string, infra *InfraConfig) error {
 	if infra.Caddy != nil && strings.TrimSpace(infra.Caddy.ConfigDir) == "" && infra.Caddy.ConfigDir != "" {
 		return fmt.Errorf("service meta %q: infra.caddy.config_dir must not be empty when set", path)
 	}
+	if infra.Rustic != nil && strings.TrimSpace(infra.Rustic.ComposeService) == "" && infra.Rustic.ComposeService != "" {
+		return fmt.Errorf("service meta %q: infra.rustic.compose_service must not be empty when set", path)
+	}
 	return nil
 }
 
@@ -413,6 +463,20 @@ func (meta ServiceMeta) CaddyConfigDir() string {
 		return strings.TrimSpace(meta.Infra.Caddy.ConfigDir)
 	}
 	return "/etc/caddy"
+}
+
+func (meta ServiceMeta) RusticComposeService() string {
+	if meta.Infra != nil && meta.Infra.Rustic != nil && strings.TrimSpace(meta.Infra.Rustic.ComposeService) != "" {
+		return strings.TrimSpace(meta.Infra.Rustic.ComposeService)
+	}
+	return "rustic"
+}
+
+func (meta ServiceMeta) RusticProfile() string {
+	if meta.Infra != nil && meta.Infra.Rustic != nil && strings.TrimSpace(meta.Infra.Rustic.Profile) != "" {
+		return strings.TrimSpace(meta.Infra.Rustic.Profile)
+	}
+	return ""
 }
 
 func validateUpdate(path string, update *UpdateConfig) error {

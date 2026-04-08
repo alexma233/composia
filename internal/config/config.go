@@ -26,7 +26,7 @@ type ControllerConfig struct {
 	Nodes          []NodeConfig             `yaml:"nodes"`
 	CLITokens      []CLITokenConfig         `yaml:"cli_tokens"`
 	DNS            *ControllerDNSConfig     `yaml:"dns"`
-	Backup         *ControllerBackupConfig  `yaml:"backup"`
+	Rustic         *ControllerRusticConfig  `yaml:"rustic"`
 	Secrets        *ControllerSecretsConfig `yaml:"secrets"`
 }
 
@@ -67,14 +67,8 @@ type CloudflareDNSConfig struct {
 	APITokenFile string `yaml:"api_token_file"`
 }
 
-type ControllerBackupConfig struct {
-	Rustic *RusticBackupConfig `yaml:"rustic"`
-}
-
-type RusticBackupConfig struct {
-	Repository   string   `yaml:"repository"`
-	PasswordFile string   `yaml:"password_file"`
-	EnvFiles     []string `yaml:"env_files"`
+type ControllerRusticConfig struct {
+	MainNodes []string `yaml:"main_nodes"`
 }
 
 type ControllerSecretsConfig struct {
@@ -176,6 +170,18 @@ func validateController(file *File) error {
 			return fmt.Errorf("controller.nodes[%q] is duplicated", node.ID)
 		}
 		seenNodeIDs[node.ID] = struct{}{}
+	}
+
+	if controller.Rustic != nil {
+		for _, nodeID := range controller.Rustic.MainNodes {
+			nodeID = strings.TrimSpace(nodeID)
+			if nodeID == "" {
+				return fmt.Errorf("controller.rustic.main_nodes[] must not be empty")
+			}
+			if _, exists := seenNodeIDs[nodeID]; !exists {
+				return fmt.Errorf("controller.rustic.main_nodes[%q] must reference a configured controller.nodes entry", nodeID)
+			}
+		}
 	}
 
 	if controller.Git != nil && controller.Git.RemoteURL != "" && controller.Git.PullInterval == "" {

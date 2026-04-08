@@ -89,3 +89,31 @@ func TestValidateRepoReportsDuplicateCaddyInfraServices(t *testing.T) {
 		t.Fatalf("unexpected caddy infra errors: %+v", validationErrors)
 	}
 }
+
+func TestValidateRepoReportsDuplicateRusticInfraServices(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repoDir, "alpha"), 0o755); err != nil {
+		t.Fatalf("create alpha dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(repoDir, "beta"), 0o755); err != nil {
+		t.Fatalf("create beta dir: %v", err)
+	}
+	alpha := "name: alpha\nnode: main\ninfra:\n  rustic: {}\n"
+	beta := "name: beta\nnode: main\ninfra:\n  rustic: {}\n"
+	if err := os.WriteFile(filepath.Join(repoDir, "alpha", MetaFileName), []byte(alpha), 0o644); err != nil {
+		t.Fatalf("write alpha meta: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "beta", MetaFileName), []byte(beta), 0o644); err != nil {
+		t.Fatalf("write beta meta: %v", err)
+	}
+
+	validationErrors := ValidateRepo(repoDir, map[string]struct{}{"main": {}})
+	if len(validationErrors) != 2 {
+		t.Fatalf("expected 2 rustic infra errors, got %d: %+v", len(validationErrors), validationErrors)
+	}
+	if !strings.Contains(validationErrors[0].Message, "infra.rustic may only be declared once") || !strings.Contains(validationErrors[1].Message, "infra.rustic may only be declared once") {
+		t.Fatalf("unexpected rustic infra errors: %+v", validationErrors)
+	}
+}

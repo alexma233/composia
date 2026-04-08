@@ -42,8 +42,14 @@ func TestExecuteStopTaskDownloadsBundleAndRunsComposeDown(t *testing.T) {
 	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o755); err != nil {
+		t.Fatalf("create backup repo dir: %v", err)
+	}
 	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
 		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n"), 0o644); err != nil {
+		t.Fatalf("write backup meta: %v", err)
 	}
 	if err := os.MkdirAll(cfg.CaddyGeneratedDir(), 0o755); err != nil {
 		t.Fatalf("create caddy generated dir: %v", err)
@@ -133,29 +139,36 @@ func TestExecuteStopTaskDownloadsBundleAndRunsComposeDown(t *testing.T) {
 func TestExecuteBackupTaskRunsRusticAndReportsSnapshot(t *testing.T) {
 	rootDir := t.TempDir()
 	binDir := filepath.Join(rootDir, "bin")
-	rusticArgsFile := filepath.Join(rootDir, "rustic-args.txt")
-	rusticPath := filepath.Join(binDir, "rustic")
+	dockerArgsFile := filepath.Join(rootDir, "docker-args.txt")
+	dockerPath := filepath.Join(binDir, "docker")
 	if err := os.MkdirAll(binDir, 0o755); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
-	rusticScript := "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_RUSTIC_ARGS_FILE\"\nif [ \"$5\" = \"backup\" ]; then printf 'snapshot abc12345 saved\\n'; else printf 'forget done\\n'; fi\n"
-	if err := os.WriteFile(rusticPath, []byte(rusticScript), 0o755); err != nil {
-		t.Fatalf("write fake rustic script: %v", err)
+	dockerScript := "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_ARGS_FILE\"\nprintf 'snapshot abc12345 saved\\n'\n"
+	if err := os.WriteFile(dockerPath, []byte(dockerScript), 0o755); err != nil {
+		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("TEST_RUSTIC_ARGS_FILE", rusticArgsFile)
+	t.Setenv("TEST_DOCKER_ARGS_FILE", dockerArgsFile)
 
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
 	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o755); err != nil {
+		t.Fatalf("create backup repo dir: %v", err)
+	}
 	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
 		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
+		t.Fatalf("write backup meta: %v", err)
 	}
 	bundle := buildBundleArchive(t, map[string]string{
 		"demo/composia-meta.yaml":    "name: demo\n",
 		"demo/config/app.env":        "HELLO=world\n",
-		"demo/.composia-backup.json": `{"rustic":{"repository":"s3:https://example.invalid/repo","password":"secret-password"},"items":[{"name":"config","strategy":"files.copy","include":["./config"],"provider":"rustic","tags":["composia-service:demo","composia-data:config"],"retain":"--keep-daily 7 --prune"}]}`,
+		"backup/composia-meta.yaml":  "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n",
+		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","profile":"prod","node_id":"main"},"items":[{"name":"config","strategy":"files.copy","include":["./config"],"provider":"rustic","tags":["composia-service:demo","composia-data:config","composia-node:main"]}]}`,
 	})
 	reportServer := &agentExecutionTestReportServer{}
 	bundleMux := http.NewServeMux()
@@ -192,16 +205,16 @@ func TestExecuteBackupTaskRunsRusticAndReportsSnapshot(t *testing.T) {
 		t.Fatalf("execute backup task: %v", err)
 	}
 
-	argsContent, err := os.ReadFile(rusticArgsFile)
+	argsContent, err := os.ReadFile(dockerArgsFile)
 	if err != nil {
-		t.Fatalf("read rustic args file: %v", err)
+		t.Fatalf("read docker args file: %v", err)
 	}
 	argsLog := string(argsContent)
-	if !strings.Contains(argsLog, "-r s3:https://example.invalid/repo --password-file") || !strings.Contains(argsLog, "backup") {
+	if !strings.Contains(argsLog, "compose exec -T rustic rustic -P prod backup --host main") {
 		t.Fatalf("unexpected rustic args %q", string(argsContent))
 	}
-	if !strings.Contains(argsLog, "--tag composia-service:demo --tag composia-data:config") || !strings.Contains(argsLog, "forget --tag composia-service:demo --tag composia-data:config --keep-daily 7 --prune") {
-		t.Fatalf("expected backup and forget commands with tags/retain, got %q", argsLog)
+	if !strings.Contains(argsLog, "--tag composia-service:demo --tag composia-data:config --tag composia-node:main") {
+		t.Fatalf("expected backup tags in docker args, got %q", argsLog)
 	}
 	reportServer.mu.Lock()
 	defer reportServer.mu.Unlock()
@@ -225,8 +238,14 @@ func TestExecuteCaddySyncTaskCopiesServiceCaddyFile(t *testing.T) {
 	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o755); err != nil {
+		t.Fatalf("create backup repo dir: %v", err)
+	}
 	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
 		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
+		t.Fatalf("write backup meta: %v", err)
 	}
 
 	bundle := buildBundleArchive(t, map[string]string{
@@ -286,18 +305,13 @@ func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	rootDir := t.TempDir()
 	binDir := filepath.Join(rootDir, "bin")
 	dockerLogFile := filepath.Join(rootDir, "docker.log")
-	rusticPath := filepath.Join(binDir, "rustic")
 	dockerPath := filepath.Join(binDir, "docker")
 	if err := os.MkdirAll(binDir, 0o755); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
-	dockerScript := "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\n"
-	rusticScript := "#!/bin/sh\ntest -f \"$6/config.tar.gz\" || exit 42\nprintf 'snapshot aaa999 saved\\n'\n"
+	dockerScript := "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\ncase \"$*\" in *\" rustic backup \"*) printf 'snapshot aaa999 saved\\n' ;; esac\n"
 	if err := os.WriteFile(dockerPath, []byte(dockerScript), 0o755); err != nil {
 		t.Fatalf("write fake docker script: %v", err)
-	}
-	if err := os.WriteFile(rusticPath, []byte(rusticScript), 0o755); err != nil {
-		t.Fatalf("write fake rustic script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("TEST_DOCKER_LOG_FILE", dockerLogFile)
@@ -306,13 +320,20 @@ func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o755); err != nil {
+		t.Fatalf("create backup repo dir: %v", err)
+	}
 	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
 		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
+		t.Fatalf("write backup meta: %v", err)
 	}
 	bundle := buildBundleArchive(t, map[string]string{
 		"demo/composia-meta.yaml":    "name: demo\n",
 		"demo/config/app.env":        "HELLO=world\n",
-		"demo/.composia-backup.json": `{"rustic":{"repository":"local:/tmp/repo","password":"pw"},"items":[{"name":"config","strategy":"files.tar_after_stop","include":["./config"],"provider":"rustic"}]}`,
+		"backup/composia-meta.yaml":  "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n",
+		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","node_id":"main"},"items":[{"name":"config","strategy":"files.tar_after_stop","include":["./config"],"provider":"rustic"}]}`,
 	})
 	reportServer := &agentExecutionTestReportServer{}
 	bundleMux := http.NewServeMux()
@@ -350,7 +371,7 @@ func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read docker log: %v", err)
 	}
-	if !strings.Contains(string(dockerLog), "compose --project-name demo down") || !strings.Contains(string(dockerLog), "compose --project-name demo up -d") {
+	if !strings.Contains(string(dockerLog), "compose --project-name demo down") || !strings.Contains(string(dockerLog), "compose --project-name demo up -d") || !strings.Contains(string(dockerLog), "compose exec -T rustic rustic backup --host main") {
 		t.Fatalf("expected compose down and up around backup, got %q", string(dockerLog))
 	}
 	reportServer.mu.Lock()
@@ -364,18 +385,13 @@ func TestExecuteBackupTaskRunsPGDumpAll(t *testing.T) {
 	rootDir := t.TempDir()
 	binDir := filepath.Join(rootDir, "bin")
 	dockerLogFile := filepath.Join(rootDir, "docker.log")
-	rusticPath := filepath.Join(binDir, "rustic")
 	dockerPath := filepath.Join(binDir, "docker")
 	if err := os.MkdirAll(binDir, 0o755); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
-	dockerScript := "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\nif [ \"$4\" = \"exec\" ]; then printf 'dump-sql\\n'; fi\n"
-	rusticScript := "#!/bin/sh\ntest -f \"$6/db.sql\" || exit 43\nprintf 'snapshot abc888 saved\\n'\n"
+	dockerScript := "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\ncase \"$*\" in *\"postgres pg_dumpall\"*) printf 'dump-sql\\n' ;; *\" rustic backup \"*) printf 'snapshot abc888 saved\\n' ;; esac\n"
 	if err := os.WriteFile(dockerPath, []byte(dockerScript), 0o755); err != nil {
 		t.Fatalf("write fake docker script: %v", err)
-	}
-	if err := os.WriteFile(rusticPath, []byte(rusticScript), 0o755); err != nil {
-		t.Fatalf("write fake rustic script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("TEST_DOCKER_LOG_FILE", dockerLogFile)
@@ -384,12 +400,19 @@ func TestExecuteBackupTaskRunsPGDumpAll(t *testing.T) {
 	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o755); err != nil {
+		t.Fatalf("create backup repo dir: %v", err)
+	}
 	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
+		t.Fatalf("write backup meta: %v", err)
+	}
 	bundle := buildBundleArchive(t, map[string]string{
 		"demo/composia-meta.yaml":    "name: demo\n",
-		"demo/.composia-backup.json": `{"rustic":{"repository":"local:/tmp/repo","password":"pw"},"items":[{"name":"db","strategy":"database.pgdumpall","service":"postgres","provider":"rustic"}]}`,
+		"backup/composia-meta.yaml":  "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n",
+		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","node_id":"main"},"items":[{"name":"db","strategy":"database.pgdumpall","service":"postgres","provider":"rustic"}]}`,
 	})
 	reportServer := &agentExecutionTestReportServer{}
 	bundleMux := http.NewServeMux()
@@ -440,13 +463,13 @@ func TestExecuteBackupTaskRunsPGDumpAll(t *testing.T) {
 func TestExecuteBackupTaskReportsFailedBackupItem(t *testing.T) {
 	rootDir := t.TempDir()
 	binDir := filepath.Join(rootDir, "bin")
-	rusticPath := filepath.Join(binDir, "rustic")
+	dockerPath := filepath.Join(binDir, "docker")
 	if err := os.MkdirAll(binDir, 0o755); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
-	rusticScript := "#!/bin/sh\nprintf 'backup failed\\n' >&2\nexit 44\n"
-	if err := os.WriteFile(rusticPath, []byte(rusticScript), 0o755); err != nil {
-		t.Fatalf("write fake rustic script: %v", err)
+	dockerScript := "#!/bin/sh\nprintf 'backup failed\\n' >&2\nexit 44\n"
+	if err := os.WriteFile(dockerPath, []byte(dockerScript), 0o755); err != nil {
+		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
@@ -460,7 +483,8 @@ func TestExecuteBackupTaskReportsFailedBackupItem(t *testing.T) {
 	bundle := buildBundleArchive(t, map[string]string{
 		"demo/composia-meta.yaml":    "name: demo\n",
 		"demo/config/app.env":        "HELLO=world\n",
-		"demo/.composia-backup.json": `{"rustic":{"repository":"local:/tmp/repo","password":"pw"},"items":[{"name":"config","strategy":"files.copy","include":["./config"],"provider":"rustic"}]}`,
+		"backup/composia-meta.yaml":  "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n",
+		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","node_id":"main"},"items":[{"name":"config","strategy":"files.copy","include":["./config"],"provider":"rustic"}]}`,
 	})
 	reportServer := &agentExecutionTestReportServer{}
 	bundleMux := http.NewServeMux()
@@ -580,6 +604,156 @@ func TestExecuteCaddyReloadTaskRunsComposeExec(t *testing.T) {
 	}
 	if reportServer.stepStatuses[task.StepCaddyReload] != string(task.StatusSucceeded) {
 		t.Fatalf("expected caddy_reload step succeeded, got %+v", reportServer.stepStatuses)
+	}
+}
+
+func TestExecuteRusticForgetTaskRunsComposeExec(t *testing.T) {
+	rootDir := t.TempDir()
+	binDir := filepath.Join(rootDir, "bin")
+	argsFile := filepath.Join(rootDir, "args.txt")
+	pwdFile := filepath.Join(rootDir, "pwd.txt")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatalf("create bin dir: %v", err)
+	}
+	dockerPath := filepath.Join(binDir, "docker")
+	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n"
+	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake docker script: %v", err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("TEST_ARGS_FILE", argsFile)
+	t.Setenv("TEST_PWD_FILE", pwdFile)
+
+	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o755); err != nil {
+		t.Fatalf("create backup repo dir: %v", err)
+	}
+	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n"), 0o644); err != nil {
+		t.Fatalf("write backup meta: %v", err)
+	}
+
+	reportServer := &agentExecutionTestReportServer{}
+	reportMux := http.NewServeMux()
+	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(reportServer, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	reportMux.Handle(reportPath, reportHandler)
+	reportHTTPServer := httptest.NewUnstartedServer(reportMux)
+	reportHTTPServer.EnableHTTP2 = true
+	reportHTTPServer.StartTLS()
+	defer reportHTTPServer.Close()
+
+	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	logUploader := newTaskLogUploader(reportClient, "task-rustic-forget")
+	defer logUploader.Close()
+
+	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-forget", Type: string(task.TypeRusticForget), ServiceName: "backup", NodeId: "main", ServiceDir: "backup", ParamsJson: `{"service_name":"demo","data_name":"db"}`}
+	if err := executeRusticForgetTask(context.Background(), reportClient, cfg, pulledTask, logUploader); err != nil {
+		t.Fatalf("execute rustic forget task: %v", err)
+	}
+
+	argsContent, err := os.ReadFile(argsFile)
+	if err != nil {
+		t.Fatalf("read args file: %v", err)
+	}
+	if got := string(argsContent); got != "compose exec -T rustic rustic -P prod forget --filter-host main --filter-tags composia-service:demo --filter-tags composia-data:db " {
+		t.Fatalf("unexpected docker args %q", got)
+	}
+	pwdContent, err := os.ReadFile(pwdFile)
+	if err != nil {
+		t.Fatalf("read pwd file: %v", err)
+	}
+	if string(bytesTrimSpace(pwdContent)) != filepath.Join(cfg.RepoDir, "backup") {
+		t.Fatalf("expected docker cwd %q, got %q", filepath.Join(cfg.RepoDir, "backup"), string(bytesTrimSpace(pwdContent)))
+	}
+	reportServer.mu.Lock()
+	defer reportServer.mu.Unlock()
+	if reportServer.taskStatus != string(task.StatusSucceeded) {
+		t.Fatalf("expected succeeded task status, got %q", reportServer.taskStatus)
+	}
+	if reportServer.stepStatuses[task.StepPrune] != string(task.StatusSucceeded) {
+		t.Fatalf("expected prune step succeeded, got %+v", reportServer.stepStatuses)
+	}
+}
+
+func TestExecuteRusticPruneTaskRunsComposeExec(t *testing.T) {
+	rootDir := t.TempDir()
+	binDir := filepath.Join(rootDir, "bin")
+	argsFile := filepath.Join(rootDir, "args.txt")
+	pwdFile := filepath.Join(rootDir, "pwd.txt")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatalf("create bin dir: %v", err)
+	}
+	dockerPath := filepath.Join(binDir, "docker")
+	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n"
+	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake docker script: %v", err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("TEST_ARGS_FILE", argsFile)
+	t.Setenv("TEST_PWD_FILE", pwdFile)
+
+	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o755); err != nil {
+		t.Fatalf("create backup repo dir: %v", err)
+	}
+	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n"), 0o644); err != nil {
+		t.Fatalf("write backup meta: %v", err)
+	}
+
+	reportServer := &agentExecutionTestReportServer{}
+	reportMux := http.NewServeMux()
+	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(reportServer, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	reportMux.Handle(reportPath, reportHandler)
+	reportHTTPServer := httptest.NewUnstartedServer(reportMux)
+	reportHTTPServer.EnableHTTP2 = true
+	reportHTTPServer.StartTLS()
+	defer reportHTTPServer.Close()
+
+	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	logUploader := newTaskLogUploader(reportClient, "task-rustic-prune")
+	defer logUploader.Close()
+
+	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-prune", Type: string(task.TypeRusticPrune), ServiceName: "backup", NodeId: "main", ServiceDir: "backup"}
+	if err := executeRusticPruneTask(context.Background(), reportClient, cfg, pulledTask, logUploader); err != nil {
+		t.Fatalf("execute rustic prune task: %v", err)
+	}
+
+	argsContent, err := os.ReadFile(argsFile)
+	if err != nil {
+		t.Fatalf("read args file: %v", err)
+	}
+	if got := string(argsContent); got != "compose exec -T rustic rustic -P prod prune " {
+		t.Fatalf("unexpected docker args %q", got)
+	}
+	pwdContent, err := os.ReadFile(pwdFile)
+	if err != nil {
+		t.Fatalf("read pwd file: %v", err)
+	}
+	if string(bytesTrimSpace(pwdContent)) != filepath.Join(cfg.RepoDir, "backup") {
+		t.Fatalf("expected docker cwd %q, got %q", filepath.Join(cfg.RepoDir, "backup"), string(bytesTrimSpace(pwdContent)))
+	}
+	reportServer.mu.Lock()
+	defer reportServer.mu.Unlock()
+	if reportServer.taskStatus != string(task.StatusSucceeded) {
+		t.Fatalf("expected succeeded task status, got %q", reportServer.taskStatus)
+	}
+	if reportServer.stepStatuses[task.StepPrune] != string(task.StatusSucceeded) {
+		t.Fatalf("expected prune step succeeded, got %+v", reportServer.stepStatuses)
 	}
 }
 
