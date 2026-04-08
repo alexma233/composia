@@ -12,17 +12,78 @@ Composia is a self-hosted service manager built around service definitions, a si
 
 ## Prerequisites
 
-- Go 1.25+
-- Bun 1.3+
 - Docker Engine + Docker Compose v2
-- SQLite3
-- Git
-
-These tools are planned but not yet wired into the scaffold:
-
-- `caddy`
 
 ## Quick Start
+
+Create a config file for the container stack:
+
+```bash
+mkdir -p configs
+cat > configs/config.compose.yaml << 'EOF'
+controller:
+  listen_addr: ":7001"
+  controller_addr: "http://controller:7001"
+  repo_dir: "/data/repo-controller"
+  state_dir: "/data/state-controller"
+  log_dir: "/data/logs"
+  cli_tokens:
+    - name: "compose-admin"
+      token: "dev-admin-token"
+      enabled: true
+  nodes:
+    - id: "main"
+      display_name: "Main"
+      enabled: true
+      token: "main-agent-token"
+  rustic:
+    main_nodes:
+      - "main"
+  secrets:
+    provider: age
+    identity_file: "/app/configs/age-identity.key"
+    recipient_file: "/app/configs/age-recipients.txt"
+    armor: true
+
+agent:
+  controller_addr: "http://controller:7001"
+  node_id: "main"
+  token: "main-agent-token"
+  repo_dir: "/data/repo-agent"
+  state_dir: "/data/state-agent"
+EOF
+```
+
+Run the stack with Docker Compose:
+
+```bash
+docker compose up -d
+```
+
+The compose stack starts these services:
+
+- `controller` on `:7001`
+- `web` on `:3000`
+- `agent` connected to the local Docker socket
+
+Access the web UI at `http://localhost:3000`.
+
+To stop the stack:
+
+```bash
+docker compose down
+```
+
+Note: The example config uses a development CLI token (`dev-admin-token`). For production, generate your own tokens and update `configs/config.compose.yaml`.
+
+## Development
+
+Prerequisites for local development:
+
+- Go 1.25+
+- Bun 1.3+
+- SQLite3
+- Git
 
 Install frontend dependencies:
 
@@ -54,23 +115,6 @@ Run a second agent with a different node ID:
 ```bash
 go run ./cmd/composia agent -config ./configs/config.agent.dev.yaml
 ```
-
-Run the containerized stack with Docker Compose:
-
-```bash
-docker compose up -d
-```
-
-The compose stack starts these services:
-
-- `controller` on `:7001`
-- `web` on `:3000`
-- `agent` connected to the local Docker socket
-
-The included `configs/config.compose.yaml` is wired for container networking and uses:
-
-- `COMPOSIA_CONTROLLER_ADDR=http://controller:7001`
-- `COMPOSIA_CLI_TOKEN=dev-admin-token`
 
 Generate protobuf and Connect stubs:
 
