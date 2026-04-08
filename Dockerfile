@@ -1,0 +1,32 @@
+FROM --platform=$BUILDPLATFORM golang:1.25 AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
+
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} \
+    go build -trimpath -ldflags="-s -w" -o /composia ./cmd/composia
+
+FROM alpine:3.22 AS final
+
+WORKDIR /app
+
+RUN apk add --no-cache ca-certificates docker-cli docker-cli-compose git
+
+COPY --from=builder /composia /usr/local/bin/composia
+
+RUN adduser -D -u 65532 composia && \
+    mkdir -p /app && \
+    chown -R composia:composia /app
+
+USER composia
+
+ENTRYPOINT ["/usr/local/bin/composia"]
+CMD ["controller", "-config", "/app/config.yaml"]

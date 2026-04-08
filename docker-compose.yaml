@@ -1,0 +1,72 @@
+services:
+  init-repo-controller:
+    image: alpine/git:2.49.1
+    working_dir: /data/repo-controller
+    command:
+      - sh
+      - -c
+      - |
+        if [ ! -d .git ]; then
+          git init
+        fi
+    volumes:
+      - controller_repo:/data/repo-controller
+
+  controller:
+    image: forgejo.alexma.top/alexma233/composia:latest
+    depends_on:
+      init-repo-controller:
+        condition: service_completed_successfully
+    command: ["controller", "-config", "/app/configs/config.compose.yaml"]
+    ports:
+      - "7001:7001"
+    volumes:
+      - ./configs:/app/configs:ro
+      - controller_repo:/data/repo-controller
+      - controller_state:/data/state-controller
+      - controller_logs:/data/logs
+    networks:
+      - composia
+    restart: unless-stopped
+
+  agent:
+    image: forgejo.alexma.top/alexma233/composia:latest
+    depends_on:
+      controller:
+        condition: service_started
+    command: ["agent", "-config", "/app/configs/config.compose.yaml"]
+    volumes:
+      - ./configs:/app/configs:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - agent_repo:/data/repo-agent
+      - agent_state:/data/state-agent
+    networks:
+      - composia
+    restart: unless-stopped
+
+  web:
+    image: forgejo.alexma.top/alexma233/composia-web:latest
+    depends_on:
+      controller:
+        condition: service_started
+    environment:
+      COMPOSIA_CONTROLLER_ADDR: http://controller:7001
+      COMPOSIA_CLI_TOKEN: dev-admin-token
+      HOST: 0.0.0.0
+      PORT: "3000"
+    ports:
+      - "3000:3000"
+    networks:
+      - composia
+    restart: unless-stopped
+
+networks:
+  composia:
+    name: composia
+
+volumes:
+  controller_repo:
+  controller_state:
+  controller_logs:
+  agent_repo:
+  agent_state:

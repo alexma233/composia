@@ -1,0 +1,100 @@
+name: Dev Docker Build
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - "package.json"
+      - "bun.lock"
+      - "web/**"
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".forgejo/workflows/dev-build-docker.yaml"
+      - ".forgejo/workflows/release-build-docker.yaml"
+  workflow_dispatch:
+
+env:
+  REGISTRY_HOST: forgejo.alexma.top
+  BACKEND_IMAGE_NAME: forgejo.alexma.top/${{ github.repository }}
+  WEB_IMAGE_NAME: forgejo.alexma.top/${{ github.repository_owner }}/composia-web
+  PLATFORMS: linux/amd64,linux/arm64
+
+jobs:
+  docker-backend:
+    runs-on: docker-amd64-dind
+    steps:
+      - name: Checkout
+        uses: https://forgejo.alexma.top/actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: https://forgejo.alexma.top/actions/docker-setup-buildx-action@v3
+
+      - name: Login to Forgejo Registry
+        uses: https://forgejo.alexma.top/actions/docker-login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_HOST }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Docker meta
+        id: meta
+        uses: https://forgejo.alexma.top/actions/docker-metadata-action@v5
+        with:
+          images: ${{ env.BACKEND_IMAGE_NAME }}
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=ci-{{branch}}-{{sha}},enable=true
+
+      - name: Build and push
+        uses: https://forgejo.alexma.top/actions/docker-build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: ${{ env.PLATFORMS }}
+          builder: ${{ steps.buildx.outputs.name }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  docker-web:
+    runs-on: docker-amd64-dind
+    steps:
+      - name: Checkout
+        uses: https://forgejo.alexma.top/actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: https://forgejo.alexma.top/actions/docker-setup-buildx-action@v3
+
+      - name: Login to Forgejo Registry
+        uses: https://forgejo.alexma.top/actions/docker-login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_HOST }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Docker meta
+        id: meta
+        uses: https://forgejo.alexma.top/actions/docker-metadata-action@v5
+        with:
+          images: ${{ env.WEB_IMAGE_NAME }}
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=ci-{{branch}}-{{sha}},enable=true
+
+      - name: Build and push
+        uses: https://forgejo.alexma.top/actions/docker-build-push-action@v5
+        with:
+          context: .
+          file: ./web/Dockerfile
+          push: true
+          platforms: ${{ env.PLATFORMS }}
+          builder: ${{ steps.buildx.outputs.name }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

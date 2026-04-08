@@ -14,6 +14,7 @@
   "devDependencies": {
     "@fontsource-variable/inter": "^5.2.8",
     "@internationalized/date": "^3.12.0",
+    "@sveltejs/adapter-node": "latest",
     "@lucide/svelte": "^0.577.0",
     "@sveltejs/adapter-auto": "latest",
     "@sveltejs/kit": "latest",

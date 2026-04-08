@@ -55,6 +55,23 @@ Run a second agent with a different node ID:
 go run ./cmd/composia agent -config ./configs/config.agent.dev.yaml
 ```
 
+Run the containerized stack with Docker Compose:
+
+```bash
+docker compose up -d
+```
+
+The compose stack starts these services:
+
+- `controller` on `:7001`
+- `web` on `:3000`
+- `agent` connected to the local Docker socket
+
+The included `configs/config.compose.yaml` is wired for container networking and uses:
+
+- `COMPOSIA_CONTROLLER_ADDR=http://controller:7001`
+- `COMPOSIA_CLI_TOKEN=dev-admin-token`
+
 Generate protobuf and Connect stubs:
 
 ```bash

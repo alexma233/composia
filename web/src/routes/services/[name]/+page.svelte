@@ -19,7 +19,6 @@
   import * as Popover from '$lib/components/ui/popover';
   import { toast } from 'svelte-sonner';
   import { formatTimestamp, runtimeStatusTone, taskStatusTone } from '$lib/presenters';
-  import { syncNodeCaddyFiles } from '$lib/server/controller';
   import type {
     BackupSummary,
     RepoWriteResult,
@@ -503,7 +502,15 @@
     errorMessage = '';
 
     try {
-      const payload = await syncNodeCaddyFiles(workspace.node, { serviceName: workspace.serviceName });
+      const response = await fetch(`/services/${workspace.folder}/workspace`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'sync_caddy_files' })
+      });
+      const payload = (await response.json()) as { taskId?: string; error?: string };
+      if (!response.ok || !payload.taskId) {
+        throw new Error(payload.error ?? 'Failed to sync Caddy file.');
+      }
       const newTask: TaskSummary = {
         taskId: payload.taskId,
         type: 'caddy_sync',

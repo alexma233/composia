@@ -5,6 +5,7 @@ import {
   deleteRepoPath,
   moveRepoPath,
   runServiceAction,
+  syncNodeCaddyFiles,
   type ServiceAction,
 } from "$lib/server/controller";
 import {
@@ -39,6 +40,7 @@ type WorkspaceAction =
   | "move"
   | "delete_path"
   | "run_service_action"
+  | "sync_caddy_files"
   | "rename_service_root"
   | "delete_service_root";
 
@@ -53,6 +55,7 @@ const workspaceActionHandlers: Record<WorkspaceAction, WorkspaceActionHandler> =
   move: handleWorkspaceFs,
   delete_path: handleWorkspaceFs,
   run_service_action: handleServiceAction,
+  sync_caddy_files: handleCaddySync,
   rename_service_root: handleServiceRoot,
   delete_service_root: handleServiceRoot,
 };
@@ -180,6 +183,13 @@ async function handleServiceAction(folder: string, payload: WorkspacePostPayload
     return json({ error: "Unsupported service action." }, { status: 400 });
   }
   return json(await runServiceAction(workspace.serviceName, payload.serviceAction));
+}
+
+async function handleCaddySync(folder: string) {
+  const workspace = await requireDeclaredWorkspace(folder);
+  return json(
+    await syncNodeCaddyFiles(workspace.node, { serviceName: workspace.serviceName }),
+  );
 }
 
 async function handleServiceRoot(folder: string, payload: WorkspacePostPayload) {
