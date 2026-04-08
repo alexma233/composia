@@ -19,6 +19,7 @@ type ValidationError struct {
 func ValidateRepo(repoDir string, availableNodeIDs map[string]struct{}) []ValidationError {
 	errorsByPath := make([]ValidationError, 0)
 	seenServiceNames := make(map[string]string)
+	caddyInfraPaths := make([]string, 0, 1)
 
 	_ = filepath.WalkDir(repoDir, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -52,8 +53,17 @@ func ValidateRepo(repoDir string, availableNodeIDs map[string]struct{}) []Valida
 			return nil
 		}
 		seenServiceNames[meta.Name] = path
+		if meta.Infra != nil && meta.Infra.Caddy != nil {
+			caddyInfraPaths = append(caddyInfraPaths, path)
+		}
 		return nil
 	})
+
+	if len(caddyInfraPaths) > 1 {
+		for _, path := range caddyInfraPaths {
+			errorsByPath = append(errorsByPath, ValidationError{Path: relativePath(repoDir, path), Message: "infra.caddy may only be declared once in the repository"})
+		}
+	}
 
 	sort.SliceStable(errorsByPath, func(left, right int) bool {
 		if errorsByPath[left].Path == errorsByPath[right].Path {

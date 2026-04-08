@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FilePlus, FolderPlus, Pencil, Play, RefreshCcw, Save, Square, Trash2, Upload, Wrench } from 'lucide-svelte';
+  import { Copy, FilePlus, FolderPlus, Pencil, Play, RefreshCcw, Save, Square, Trash2, Upload, Wrench } from 'lucide-svelte';
 
   import type { PageData } from './$types';
 
@@ -19,6 +19,7 @@
   import * as Popover from '$lib/components/ui/popover';
   import { toast } from 'svelte-sonner';
   import { formatTimestamp, runtimeStatusTone, taskStatusTone } from '$lib/presenters';
+  import { syncNodeCaddyFiles } from '$lib/server/controller';
   import type {
     BackupSummary,
     RepoWriteResult,
@@ -494,6 +495,35 @@
     }
   }
 
+  async function triggerCaddySync() {
+    if (!workspace?.isDeclared || !workspace?.node || !workspace?.serviceName) {
+      return;
+    }
+    actionBusy = 'caddy_sync';
+    errorMessage = '';
+
+    try {
+      const payload = await syncNodeCaddyFiles(workspace.node, { serviceName: workspace.serviceName });
+      const newTask: TaskSummary = {
+        taskId: payload.taskId,
+        type: 'caddy_sync',
+        status: 'pending',
+        serviceName: workspace.serviceName,
+        nodeId: workspace.node,
+        createdAt: new Date().toISOString()
+      };
+      tasks = [newTask, ...tasks].slice(0, 12);
+      selectedTaskId = payload.taskId;
+      logsExpanded = true;
+      toast.success(`caddy_sync queued as ${payload.taskId}`);
+      startActionRefresh(payload.taskId);
+    } catch (actionError) {
+      errorMessage = actionError instanceof Error ? actionError.message : 'Failed to sync Caddy file.';
+    } finally {
+      actionBusy = '';
+    }
+  }
+
   async function renameServiceRoot() {
     if (!renameServiceFolder.trim()) {
       return;
@@ -767,6 +797,9 @@
             </Button>
             <Button type="button" variant="outline" onclick={() => triggerAction('dns_update')} disabled={!!actionBusy || !workspace?.isDeclared}>
               <Upload class="mr-2 size-4" />DNS update
+            </Button>
+            <Button type="button" variant="outline" onclick={() => triggerCaddySync()} disabled={!!actionBusy || !workspace?.isDeclared || !workspace?.node}>
+              <Copy class="mr-2 size-4" />Sync Caddy file
             </Button>
             <Button type="button" variant="outline" onclick={() => { showServiceRename = !showServiceRename; renameServiceFolder = workspace?.folder ?? ''; }} disabled={saving}>
               <Pencil class="mr-2 size-4" />Rename folder

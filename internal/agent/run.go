@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -25,11 +26,13 @@ import (
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
 	backupcfg "forgejo.alexma.top/alexma233/composia/internal/backup"
 	"forgejo.alexma.top/alexma233/composia/internal/config"
+	"forgejo.alexma.top/alexma233/composia/internal/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/store"
 	"forgejo.alexma.top/alexma233/composia/internal/task"
 	"forgejo.alexma.top/alexma233/composia/internal/version"
 	"golang.org/x/net/http2"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gopkg.in/yaml.v3"
 )
@@ -219,6 +222,10 @@ func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return executeRestartTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypePrune):
 		return executePruneTask(ctx, client, cfg, pulledTask, logUploader)
+	case string(task.TypeCaddySync):
+		return executeCaddySyncTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
+	case string(task.TypeCaddyReload):
+		return executeCaddyReloadTask(ctx, client, cfg, pulledTask, logUploader)
 	case string(task.TypeDockerList), string(task.TypeDockerInspect), string(task.TypeDockerStart), string(task.TypeDockerStop), string(task.TypeDockerRestart), string(task.TypeDockerLogs):
 		return executeDockerTask(ctx, client, cfg, pulledTask, logUploader)
 	default:
@@ -250,6 +257,9 @@ func executeDeployTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
+	}
+	if err := executeCaddySyncStep(ctx, client, cfg, pulledTask, logUploader, bundle.RootPath); err != nil {
 		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepFinalize, func() error {
@@ -301,6 +311,9 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
+	}
+	if err := executeCaddySyncStep(ctx, client, cfg, pulledTask, logUploader, bundle.RootPath); err != nil {
 		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepFinalize, func() error {
@@ -395,6 +408,13 @@ func executeStopTask(ctx context.Context, bundleClient agentv1connect.BundleServ
 	}); err != nil {
 		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepCaddySync, func() error {
+		return removeServiceCaddyFile(ctx, cfg, pulledTask.GetServiceName(), func(output string) error {
+			return uploadTaskLog(ctx, logUploader, output)
+		})
+	}); err != nil {
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
+	}
 	if err := reportServiceStatus(ctx, client, cfg, pulledTask.GetServiceName(), store.ServiceRuntimeStopped); err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
@@ -480,6 +500,84 @@ func executePruneTask(ctx context.Context, client agentv1connect.AgentReportServ
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
 }
 
+func executeCaddyReloadTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
+	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, nil)
+	if err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	caddyMeta, err := loadCaddyInfraMeta(serviceRoot)
+	if err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting caddy reload task for service=%s compose_service=%s config_dir=%s\n", pulledTask.GetServiceName(), caddyMeta.ComposeService, caddyMeta.ConfigDir)); err != nil {
+		return err
+	}
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepCaddyReload, func() error {
+		projectName, err := loadComposeProjectName(serviceRoot, pulledTask.GetServiceName())
+		if err != nil {
+			return err
+		}
+		return runCaddyReload(ctx, serviceRoot, projectName, caddyMeta.ComposeService, caddyMeta.ConfigDir, func(output string) error {
+			return uploadTaskLog(ctx, logUploader, output)
+		})
+	}); err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	if err := uploadTaskLog(ctx, logUploader, "caddy reload task finished successfully\n"); err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
+}
+
+func executeCaddySyncTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
+	params := decodeTaskParams(pulledTask.GetParamsJson())
+	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting caddy sync task for service=%s node=%s repo_revision=%s full_rebuild=%t\n", pulledTask.GetServiceName(), pulledTask.GetNodeId(), pulledTask.GetRepoRevision(), params.FullRebuild)); err != nil {
+		return err
+	}
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
+		return uploadTaskLog(ctx, logUploader, "render step completed for caddy sync task\n")
+	}); err != nil {
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
+	}
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepCaddySync, func() error {
+		return syncCaddyFilesForTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
+	}); err != nil {
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
+	}
+	if err := uploadTaskLog(ctx, logUploader, "caddy sync task finished successfully\n"); err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
+}
+
+type caddyInfraMeta struct {
+	ComposeService string
+	ConfigDir      string
+}
+
+type caddyServiceMeta struct {
+	Source string
+}
+
+func loadCaddyInfraMeta(serviceDir string) (caddyInfraMeta, error) {
+	meta, err := repo.LoadServiceMeta(filepath.Join(serviceDir, "composia-meta.yaml"))
+	if err != nil {
+		return caddyInfraMeta{}, err
+	}
+	return caddyInfraMeta{
+		ComposeService: meta.CaddyComposeService(),
+		ConfigDir:      meta.CaddyConfigDir(),
+	}, nil
+}
+
+func loadServiceCaddyMeta(serviceDir string) (caddyServiceMeta, error) {
+	meta, err := repo.LoadServiceMeta(filepath.Join(serviceDir, "composia-meta.yaml"))
+	if err != nil {
+		return caddyServiceMeta{}, err
+	}
+	return caddyServiceMeta{Source: repo.CaddySource(repo.Service{Meta: meta})}, nil
+}
+
 func parsePruneParams(pulledTask *agentv1.AgentTask) pruneTaskParams {
 	paramsJSON := pulledTask.GetParamsJson()
 	if paramsJSON == "" {
@@ -539,6 +637,155 @@ func runDockerPruneAll(ctx context.Context, uploadLog func(string) error) error 
 		}
 	}
 	return nil
+}
+
+func runCaddyReload(ctx context.Context, serviceDir, projectName, composeService, configDir string, uploadLog func(string) error) error {
+	configPath := filepath.Join(configDir, "Caddyfile")
+	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "exec", "-T", composeService, "caddy", "reload", "--config", configPath, "--adapter", "caddyfile")
+	command.Dir = serviceDir
+	output, err := command.CombinedOutput()
+	if len(output) > 0 {
+		if logErr := uploadLog(string(output)); logErr != nil {
+			return logErr
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("docker compose exec caddy reload failed: %w", err)
+	}
+	return nil
+}
+
+func executeCaddySyncStep(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader, serviceRoot string) error {
+	return executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepCaddySync, func() error {
+		return syncServiceCaddyFile(ctx, cfg, pulledTask.GetServiceName(), serviceRoot, func(output string) error {
+			return uploadTaskLog(ctx, logUploader, output)
+		})
+	})
+}
+
+func syncCaddyFilesForTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
+	params := decodeTaskParams(pulledTask.GetParamsJson())
+	serviceDirs := append([]string(nil), params.ServiceDirs...)
+	if len(serviceDirs) == 0 && pulledTask.GetServiceDir() != "" {
+		serviceDirs = []string{pulledTask.GetServiceDir()}
+	}
+	if params.FullRebuild {
+		entries, err := os.ReadDir(cfg.CaddyGeneratedDir())
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("read generated caddy directory: %w", err)
+		}
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".caddy") {
+				continue
+			}
+			if err := os.Remove(filepath.Join(cfg.CaddyGeneratedDir(), entry.Name())); err != nil {
+				return fmt.Errorf("remove generated caddy file %q: %w", entry.Name(), err)
+			}
+			if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("removed generated caddy file %s\n", filepath.Join(cfg.CaddyGeneratedDir(), entry.Name()))); err != nil {
+				return err
+			}
+		}
+	}
+	for _, serviceDir := range serviceDirs {
+		bundleTask := proto.Clone(pulledTask).(*agentv1.AgentTask)
+		bundleTask.ServiceDir = serviceDir
+		bundleTask.ServiceName = filepath.Base(serviceDir)
+		bundle, err := downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId())
+		if err != nil {
+			return err
+		}
+		serviceRoot, err := localServiceRoot(cfg.RepoDir, bundleTask, bundle)
+		if err != nil {
+			return err
+		}
+		if err := syncServiceCaddyFile(ctx, cfg, bundleTask.GetServiceName(), serviceRoot, func(output string) error {
+			return uploadTaskLog(ctx, logUploader, output)
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func decodeTaskParams(paramsJSON string) controllerTaskParams {
+	if paramsJSON == "" {
+		return controllerTaskParams{}
+	}
+	var params controllerTaskParams
+	if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
+		return controllerTaskParams{}
+	}
+	return params
+}
+
+type controllerTaskParams struct {
+	ServiceDirs []string `json:"service_dirs,omitempty"`
+	FullRebuild bool     `json:"full_rebuild,omitempty"`
+}
+
+func syncServiceCaddyFile(ctx context.Context, cfg *config.AgentConfig, serviceName, serviceRoot string, uploadLog func(string) error) error {
+	meta, err := loadServiceCaddyMeta(serviceRoot)
+	if err != nil {
+		return err
+	}
+	if meta.Source == "" {
+		if err := uploadLog(fmt.Sprintf("service=%s does not enable network.caddy, skipping caddy sync\n", serviceName)); err != nil {
+			return err
+		}
+		return nil
+	}
+	sourcePath, err := resolveServiceCaddySourcePath(serviceRoot, meta.Source)
+	if err != nil {
+		return err
+	}
+	targetPath := filepath.Join(cfg.CaddyGeneratedDir(), serviceName+".caddy")
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+		return fmt.Errorf("create generated caddy directory for %q: %w", targetPath, err)
+	}
+	contents, err := os.ReadFile(sourcePath)
+	if err != nil {
+		return fmt.Errorf("read caddy source %q: %w", sourcePath, err)
+	}
+	if err := os.WriteFile(targetPath, contents, 0o644); err != nil {
+		return fmt.Errorf("write generated caddy file %q: %w", targetPath, err)
+	}
+	if err := uploadLog(fmt.Sprintf("synced caddy file source=%s target=%s\n", sourcePath, targetPath)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func removeServiceCaddyFile(ctx context.Context, cfg *config.AgentConfig, serviceName string, uploadLog func(string) error) error {
+	targetPath := filepath.Join(cfg.CaddyGeneratedDir(), serviceName+".caddy")
+	if err := os.Remove(targetPath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			if err := uploadLog(fmt.Sprintf("generated caddy file %s does not exist, skipping removal\n", targetPath)); err != nil {
+				return err
+			}
+			return nil
+		}
+		return fmt.Errorf("remove generated caddy file %q: %w", targetPath, err)
+	}
+	if err := uploadLog(fmt.Sprintf("removed generated caddy file %s\n", targetPath)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func resolveServiceCaddySourcePath(serviceRoot, source string) (string, error) {
+	cleanSource := filepath.Clean(strings.TrimSpace(source))
+	if cleanSource == "." || cleanSource == "" {
+		return "", fmt.Errorf("network.caddy.source must not be empty")
+	}
+	resolved := filepath.Join(serviceRoot, cleanSource)
+	relative, err := filepath.Rel(serviceRoot, resolved)
+	if err != nil {
+		return "", fmt.Errorf("resolve caddy source path: %w", err)
+	}
+	if relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("network.caddy.source %q escapes service root", source)
+	}
+	return resolved, nil
 }
 
 func localServiceRoot(repoDir string, pulledTask *agentv1.AgentTask, bundle *bundleResult) (string, error) {

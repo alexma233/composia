@@ -113,6 +113,7 @@ enum ServiceAction {
   SERVICE_ACTION_RESTART = 4;
   SERVICE_ACTION_BACKUP = 5;
   SERVICE_ACTION_DNS_UPDATE = 6;
+  SERVICE_ACTION_CADDY_SYNC = 7;
 }
 
 message RunServiceActionRequest {

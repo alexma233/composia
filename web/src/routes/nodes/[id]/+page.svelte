@@ -93,6 +93,12 @@
 
             {#if data.node?.isOnline}
               <div class="flex flex-wrap gap-2">
+                <form method="POST" action="?/syncCaddyFiles" use:enhance>
+                  <Button variant="outline" size="sm" type="submit">Rebuild Caddy files</Button>
+                </form>
+                <form method="POST" action="?/reloadCaddy" use:enhance>
+                  <Button variant="outline" size="sm" type="submit">Reload Caddy</Button>
+                </form>
                 <form method="POST" action="?/prune" use:enhance>
                   <input type="hidden" name="target" value="all" />
                   <Button variant="outline" size="sm" type="submit">Prune All</Button>
@@ -115,7 +121,7 @@
                 </form>
               </div>
             {:else}
-              <div class="text-sm text-muted-foreground">Node is offline. Prune operations require an online node.</div>
+              <div class="text-sm text-muted-foreground">Node is offline. Caddy sync, Caddy reload, and prune operations require an online node.</div>
             {/if}
           </div>
         {:else}

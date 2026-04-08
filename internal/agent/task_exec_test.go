@@ -45,10 +45,17 @@ func TestExecuteStopTaskDownloadsBundleAndRunsComposeDown(t *testing.T) {
 	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
+	if err := os.MkdirAll(cfg.CaddyGeneratedDir(), 0o755); err != nil {
+		t.Fatalf("create caddy generated dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(cfg.CaddyGeneratedDir(), "demo.caddy"), []byte("demo"), 0o644); err != nil {
+		t.Fatalf("seed generated caddy file: %v", err)
+	}
 
 	bundle := buildBundleArchive(t, map[string]string{
-		"demo/composia-meta.yaml":  "name: demo\n",
+		"demo/composia-meta.yaml":  "name: demo\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
 		"demo/docker-compose.yaml": "services: {}\n",
+		"demo/demo.caddy":          "demo.example.com { reverse_proxy 127.0.0.1:8080 }\n",
 	})
 	reportServer := &agentExecutionTestReportServer{}
 	bundleMux := http.NewServeMux()
@@ -106,6 +113,9 @@ func TestExecuteStopTaskDownloadsBundleAndRunsComposeDown(t *testing.T) {
 	if string(bytesTrimSpace(pwdContent)) != filepath.Join(cfg.RepoDir, "demo") {
 		t.Fatalf("expected docker cwd %q, got %q", filepath.Join(cfg.RepoDir, "demo"), string(bytesTrimSpace(pwdContent)))
 	}
+	if _, err := os.Stat(filepath.Join(cfg.CaddyGeneratedDir(), "demo.caddy")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected generated caddy file removed, got stat err=%v", err)
+	}
 
 	reportServer.mu.Lock()
 	defer reportServer.mu.Unlock()
@@ -115,7 +125,7 @@ func TestExecuteStopTaskDownloadsBundleAndRunsComposeDown(t *testing.T) {
 	if reportServer.runtimeStatus != store.ServiceRuntimeStopped {
 		t.Fatalf("expected stopped runtime status, got %q", reportServer.runtimeStatus)
 	}
-	if len(reportServer.stepStatuses) == 0 || reportServer.stepStatuses[task.StepRender] != string(task.StatusSucceeded) || reportServer.stepStatuses[task.StepComposeDown] != string(task.StatusSucceeded) {
+	if len(reportServer.stepStatuses) == 0 || reportServer.stepStatuses[task.StepRender] != string(task.StatusSucceeded) || reportServer.stepStatuses[task.StepComposeDown] != string(task.StatusSucceeded) || reportServer.stepStatuses[task.StepCaddySync] != string(task.StatusSucceeded) {
 		t.Fatalf("unexpected step statuses %+v", reportServer.stepStatuses)
 	}
 }
@@ -206,6 +216,69 @@ func TestExecuteBackupTaskRunsRusticAndReportsSnapshot(t *testing.T) {
 	}
 	if reportServer.backupStatus != string(task.StatusSucceeded) {
 		t.Fatalf("expected succeeded backup status, got %q", reportServer.backupStatus)
+	}
+}
+
+func TestExecuteCaddySyncTaskCopiesServiceCaddyFile(t *testing.T) {
+	rootDir := t.TempDir()
+	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
+	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+		t.Fatalf("create repo dir: %v", err)
+	}
+	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+
+	bundle := buildBundleArchive(t, map[string]string{
+		"demo/composia-meta.yaml":  "name: demo\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
+		"demo/docker-compose.yaml": "services: {}\n",
+		"demo/demo.caddy":          "demo.example.com { reverse_proxy 127.0.0.1:8080 }\n",
+	})
+	reportServer := &agentExecutionTestReportServer{}
+	bundleMux := http.NewServeMux()
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle, expectedTaskID: "task-caddy-sync"}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	bundleMux.Handle(bundlePath, bundleHandler)
+	bundleHTTPServer := httptest.NewServer(bundleMux)
+	defer bundleHTTPServer.Close()
+
+	reportMux := http.NewServeMux()
+	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(reportServer, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	reportMux.Handle(reportPath, reportHandler)
+	reportHTTPServer := httptest.NewUnstartedServer(reportMux)
+	reportHTTPServer.EnableHTTP2 = true
+	reportHTTPServer.StartTLS()
+	defer reportHTTPServer.Close()
+
+	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	logUploader := newTaskLogUploader(reportClient, "task-caddy-sync")
+	defer logUploader.Close()
+
+	pulledTask := &agentv1.AgentTask{TaskId: "task-caddy-sync", Type: string(task.TypeCaddySync), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo"}
+	if err := executeCaddySyncTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
+		t.Fatalf("execute caddy sync task: %v", err)
+	}
+	content, err := os.ReadFile(filepath.Join(cfg.CaddyGeneratedDir(), "demo.caddy"))
+	if err != nil {
+		t.Fatalf("read generated caddy file: %v", err)
+	}
+	if string(content) != "demo.example.com { reverse_proxy 127.0.0.1:8080 }\n" {
+		t.Fatalf("unexpected generated caddy file %q", string(content))
+	}
+	reportServer.mu.Lock()
+	defer reportServer.mu.Unlock()
+	if reportServer.stepStatuses[task.StepCaddySync] != string(task.StatusSucceeded) {
+		t.Fatalf("expected caddy_sync step succeeded, got %+v", reportServer.stepStatuses)
 	}
 }
 
@@ -431,6 +504,82 @@ func TestExecuteBackupTaskReportsFailedBackupItem(t *testing.T) {
 	}
 	if reportServer.backupErrorSummary == "" {
 		t.Fatalf("expected backup error summary to be recorded")
+	}
+}
+
+func TestExecuteCaddyReloadTaskRunsComposeExec(t *testing.T) {
+	rootDir := t.TempDir()
+	binDir := filepath.Join(rootDir, "bin")
+	argsFile := filepath.Join(rootDir, "args.txt")
+	pwdFile := filepath.Join(rootDir, "pwd.txt")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatalf("create bin dir: %v", err)
+	}
+	dockerPath := filepath.Join(binDir, "docker")
+	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n"
+	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake docker script: %v", err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("TEST_ARGS_FILE", argsFile)
+	t.Setenv("TEST_PWD_FILE", pwdFile)
+
+	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "caddy"), 0o755); err != nil {
+		t.Fatalf("create repo caddy dir: %v", err)
+	}
+	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "caddy", "composia-meta.yaml"), []byte("name: edge-proxy\nproject_name: infra-caddy\nnode: main\ninfra:\n  caddy:\n    compose_service: edge\n    config_dir: /etc/caddy\n"), 0o644); err != nil {
+		t.Fatalf("write caddy meta: %v", err)
+	}
+
+	reportServer := &agentExecutionTestReportServer{}
+	reportMux := http.NewServeMux()
+	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(reportServer, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	reportMux.Handle(reportPath, reportHandler)
+	reportHTTPServer := httptest.NewUnstartedServer(reportMux)
+	reportHTTPServer.EnableHTTP2 = true
+	reportHTTPServer.StartTLS()
+	defer reportHTTPServer.Close()
+
+	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	logUploader := newTaskLogUploader(reportClient, "task-caddy-reload")
+	defer logUploader.Close()
+
+	pulledTask := &agentv1.AgentTask{TaskId: "task-caddy-reload", Type: string(task.TypeCaddyReload), ServiceName: "edge-proxy", NodeId: "main", ServiceDir: "caddy"}
+	if err := executeCaddyReloadTask(context.Background(), reportClient, cfg, pulledTask, logUploader); err != nil {
+		t.Fatalf("execute caddy reload task: %v", err)
+	}
+
+	argsContent, err := os.ReadFile(argsFile)
+	if err != nil {
+		t.Fatalf("read args file: %v", err)
+	}
+	if string(argsContent) != "compose --project-name infra-caddy exec -T edge caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile " {
+		t.Fatalf("unexpected docker args %q", string(argsContent))
+	}
+	pwdContent, err := os.ReadFile(pwdFile)
+	if err != nil {
+		t.Fatalf("read pwd file: %v", err)
+	}
+	if string(bytesTrimSpace(pwdContent)) != filepath.Join(cfg.RepoDir, "caddy") {
+		t.Fatalf("expected docker cwd %q, got %q", filepath.Join(cfg.RepoDir, "caddy"), string(bytesTrimSpace(pwdContent)))
+	}
+
+	reportServer.mu.Lock()
+	defer reportServer.mu.Unlock()
+	if reportServer.taskStatus != string(task.StatusSucceeded) {
+		t.Fatalf("expected succeeded task status, got %q", reportServer.taskStatus)
+	}
+	if reportServer.stepStatuses[task.StepCaddyReload] != string(task.StatusSucceeded) {
+		t.Fatalf("expected caddy_reload step succeeded, got %+v", reportServer.stepStatuses)
 	}
 }
 

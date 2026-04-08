@@ -42,19 +42,23 @@ This document turns `plan.md` into a practical execution order for the current r
 - `ContainerService` - RunContainerAction, GetContainerLogs, OpenContainerExec
 - `TaskService`
 - `BackupRecordService`
-- `NodeService` - ListNodes, GetNode, GetNodeTasks, GetNodeDockerStats, PruneNodeDocker
+- `NodeService` - ListNodes, GetNode, GetNodeTasks, GetNodeDockerStats, SyncNodeCaddyFiles, ReloadNodeCaddy, PruneNodeDocker
 - `RepoService`
 - `SecretService`
 - `SystemService`
 
 **Agent 任务执行（已完成）：**
-- `deploy`：完整实现（bundle download、render、compose-up steps）
-- `update`：完整实现（pull + compose-up steps）
-- `stop`：完整实现（download bundle、compose-down）
+- `deploy`：完整实现（bundle download、render、compose-up、caddy-sync steps）
+- `update`：完整实现（pull + compose-up + caddy-sync steps）
+- `stop`：完整实现（download bundle、compose-down、remove generated caddy file）
 - `restart`：完整实现（compose-down + compose-up）
 - `backup`：完整实现（rustic、files.copy、files.tar_after_stop、database.pgdumpall）
 - `prune`：完整实现（targets: all、containers、networks、images、volumes、builder）
 - `dns_update`：Controller 端实现（Cloudflare 集成）
+- `caddy_sync`：Agent 端实现（同步单 service Caddy 片段，或重建整个 node 的 generated_dir）
+- `caddy_reload`：Agent 端实现（docker compose exec caddy reload）
+- `deploy`/`update` 成功后自动为对应节点串联 `caddy_reload`（当 service 启用 `network.caddy`）
+- `stop` 成功后自动删除对应 generated Caddy 片段，并为对应节点串联 `caddy_reload`
 
 ### 当前的架构漂移
 
@@ -216,16 +220,21 @@ This document turns `plan.md` into a practical execution order for the current r
 已完成：
 1. `dns_update` 任务行为 - controller 端 Cloudflare 集成
 2. `prune` 任务行为 - all/containers/images/networks/volumes/builder targets
-3. `PruneNodeDocker` API
-4. Container logs API - `GET /nodes/{id}/docker/containers/{cid}/logs`
-5. Container start/stop/restart API - `POST /nodes/{id}/docker/containers/action`
-6. Container exec session API - `POST /nodes/{id}/docker/containers/{cid}/exec`
+3. `caddy_sync` 任务行为 - 支持单 service 同步和 node 全量重建 generated Caddy files
+4. `SyncNodeCaddyFiles` API
+5. `caddy_reload` 任务行为
+6. `ReloadNodeCaddy` API
+7. `deploy`/`update` 成功后自动为对应节点同步 Caddy 文件并串联 `caddy_reload`
+8. `stop` 成功后自动删除对应 generated Caddy 片段并串联 `caddy_reload`
+9. `PruneNodeDocker` API
+10. Container logs API - `GET /nodes/{id}/docker/containers/{cid}/logs`
+11. Container start/stop/restart API - `POST /nodes/{id}/docker/containers/action`
+12. Container exec session API - `POST /nodes/{id}/docker/containers/{cid}/exec`
 
 待完成：
-1. `caddy_reload` 任务行为 - 未实现
-2. `ReloadNodeCaddy` API - 未实现
-3. `caddy` 作为多节点 service 的实例扇出语义 - 未实现
-4. **Docker exec (terminal) 需要进一步开发**：Web 端 terminal 只是简单的文本输入/输出，缺少专业的 terminal UI 组件（xterm.js 或类似），需要实现完整的浏览器端 terminal 交互（支持滚动、复制粘贴、 ANSI 颜色等）。
+1. `caddy` 作为多节点 service 的实例扇出语义 - 未实现
+2. `migrate` 完成后需要在源节点和目标节点都触发 `caddy_reload` - 未实现
+3. **Docker exec (terminal) 需要进一步开发**：Web 端 terminal 只是简单的文本输入/输出，缺少专业的 terminal UI 组件（xterm.js 或类似），需要实现完整的浏览器端 terminal 交互（支持滚动、复制粘贴、 ANSI 颜色等）。
 
 ---
 
@@ -242,8 +251,8 @@ This document turns `plan.md` into a practical execution order for the current r
    - 数据和运行时文件传输到目标节点
    - 目标节点数据恢复（使用 `restore` 定义）
    - 目标节点 service instance 启动
-   - 刷新目标节点 Caddy 生成目录
-   - 重建源节点 Caddy 生成目录（移除旧服务片段）
+   - 刷新目标节点 Caddy 生成目录并触发目标节点 `caddy_reload`
+   - 重建源节点 Caddy 生成目录（移除旧服务片段）并触发源节点 `caddy_reload`
    - DNS 更新
    - `persist_repo` 阶段：修改 `composia-meta.yaml.nodes` 并 commit/push
 3. `awaiting_confirmation` 状态用于迁移后人工验证和 repo 对账

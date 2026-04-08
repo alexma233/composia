@@ -15,6 +15,10 @@ func TestDiscoverServicesParsesValidService(t *testing.T) {
 	writeFile(t, metaPath, strings.TrimSpace(`
 name: vaultwarden
 node: node-2
+infra:
+  caddy:
+    compose_service: edge
+    config_dir: /etc/caddy
 network:
   caddy:
     enabled: true
@@ -52,6 +56,12 @@ migrate:
 	}
 	if len(services[0].TargetNodes) != 1 || services[0].TargetNodes[0] != "node-2" {
 		t.Fatalf("expected target nodes [node-2], got %+v", services[0].TargetNodes)
+	}
+	if got := services[0].Meta.CaddyComposeService(); got != "edge" {
+		t.Fatalf("expected caddy compose service edge, got %q", got)
+	}
+	if got := services[0].Meta.CaddyConfigDir(); got != "/etc/caddy" {
+		t.Fatalf("expected caddy config dir /etc/caddy, got %q", got)
 	}
 }
 

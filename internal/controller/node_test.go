@@ -116,6 +116,9 @@ func TestNodeServiceGetNodeReturnsMinimalSummary(t *testing.T) {
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
 	}
+	if err := syncDeclaredServicesForTests(ctx, db, "caddy"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
 	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
 		t.Fatalf("record heartbeat: %v", err)
 	}
@@ -203,6 +206,130 @@ func TestNodeServiceGetNodeTasksReturnsFilteredTasks(t *testing.T) {
 	}
 	if len(response.Msg.GetTasks()) != 1 || response.Msg.GetTasks()[0].GetTaskId() != "task-1" {
 		t.Fatalf("unexpected node task list: %+v", response.Msg.GetTasks())
+	}
+}
+
+func TestNodeServiceReloadNodeCaddyCreatesTask(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	logDir := filepath.Join(rootDir, "logs")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"edge-proxy/composia-meta.yaml": "name: edge-proxy\nnode: main\ninfra:\n  caddy:\n    compose_service: caddy\n    config_dir: /etc/caddy\n",
+	})
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
+		t.Fatalf("create log dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create task log dir: %v", err)
+	}
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := syncDeclaredServicesForTests(ctx, db, "edge-proxy"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+	path, handler := controllerv1connect.NewNodeServiceHandler(
+		&nodeServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, taskQueue: newTaskQueueNotifier(), taskResults: newTaskResultNotifier()},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewNodeServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	response, err := client.ReloadNodeCaddy(ctx, connect.NewRequest(&controllerv1.ReloadNodeCaddyRequest{NodeId: "main"}))
+	if err != nil {
+		t.Fatalf("reload node caddy: %v", err)
+	}
+	if response.Msg.GetTaskId() == "" {
+		t.Fatalf("expected task_id in response")
+	}
+	detail, err := db.GetTask(ctx, response.Msg.GetTaskId())
+	if err != nil {
+		t.Fatalf("get created task: %v", err)
+	}
+	if detail.Record.Type != task.TypeCaddyReload {
+		t.Fatalf("expected caddy_reload task type, got %q", detail.Record.Type)
+	}
+	if detail.Record.ServiceName != "edge-proxy" || detail.Record.NodeID != "main" {
+		t.Fatalf("unexpected created task record: %+v", detail.Record)
+	}
+}
+
+func TestNodeServiceSyncNodeCaddyFilesCreatesSyncTask(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	logDir := filepath.Join(rootDir, "logs")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"demo/composia-meta.yaml": "name: demo\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
+		"demo/demo.caddy":         "demo.example.com { reverse_proxy 127.0.0.1:8080 }\n",
+	})
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create task log dir: %v", err)
+	}
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+	path, handler := controllerv1connect.NewNodeServiceHandler(
+		&nodeServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, taskQueue: newTaskQueueNotifier(), taskResults: newTaskResultNotifier()},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewNodeServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	response, err := client.SyncNodeCaddyFiles(ctx, connect.NewRequest(&controllerv1.SyncNodeCaddyFilesRequest{NodeId: "main", ServiceName: "demo"}))
+	if err != nil {
+		t.Fatalf("sync node caddy files: %v", err)
+	}
+	detail, err := db.GetTask(ctx, response.Msg.GetTaskId())
+	if err != nil {
+		t.Fatalf("get created task: %v", err)
+	}
+	if detail.Record.Type != task.TypeCaddySync {
+		t.Fatalf("expected caddy_sync task type, got %q", detail.Record.Type)
+	}
+	params := taskParams(detail.Record.ParamsJSON)
+	if len(params.ServiceDirs) != 1 || params.ServiceDirs[0] != "demo" || params.FullRebuild {
+		t.Fatalf("unexpected caddy sync params: %+v", params)
 	}
 }
 

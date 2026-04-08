@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -149,7 +150,7 @@ func Run(ctx context.Context, configPath string) error {
 
 func registerAgentHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, execManager *execTunnelManager) {
 	agentPath, agentHandler := agentv1connect.NewAgentReportServiceHandler(
-		&agentReportServer{db: db, logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: taskQueue, taskResults: taskResults, execManager: execManager},
+		&agentReportServer{db: db, cfg: cfg, availableNodeIDs: configuredNodeIDs(cfg), logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: taskQueue, taskResults: taskResults, execManager: execManager},
 		connect.WithInterceptors(interceptor),
 	)
 	mux.Handle(agentPath, agentHandler)
@@ -339,11 +340,13 @@ func refreshDeclaredServices(db *store.DB, cfg *config.ControllerConfig, availab
 }
 
 type agentReportServer struct {
-	db          *store.DB
-	logState    *taskLogAckState
-	taskQueue   *taskQueueNotifier
-	taskResults *taskResultNotifier
-	execManager *execTunnelManager
+	db               *store.DB
+	cfg              *config.ControllerConfig
+	availableNodeIDs map[string]struct{}
+	logState         *taskLogAckState
+	taskQueue        *taskQueueNotifier
+	taskResults      *taskResultNotifier
+	execManager      *execTunnelManager
 }
 
 type agentTaskServer struct {
@@ -511,10 +514,50 @@ func (server *agentReportServer) ReportTaskState(ctx context.Context, req *conne
 	if err := server.db.CompleteTask(ctx, req.Msg.GetTaskId(), task.Status(req.Msg.GetStatus()), finishedAt, req.Msg.GetErrorSummary()); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	if err := server.queuePostTaskFollowups(ctx, req.Msg.GetTaskId(), task.Status(req.Msg.GetStatus())); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 	server.resetTaskLogAck(req.Msg.GetTaskId())
 	server.taskResults.Notify(req.Msg.GetTaskId())
 	notifyTaskQueue(server.taskQueue)
 	return connect.NewResponse(&agentv1.ReportTaskStateResponse{}), nil
+}
+
+func (server *agentReportServer) queuePostTaskFollowups(ctx context.Context, taskID string, status task.Status) error {
+	if status != task.StatusSucceeded {
+		return nil
+	}
+	detail, err := server.db.GetTask(ctx, taskID)
+	if err != nil {
+		return err
+	}
+	switch detail.Record.Type {
+	case task.TypeDeploy, task.TypeUpdate, task.TypeStop:
+		return server.queueCaddyReloadForTask(ctx, detail.Record)
+	default:
+		return nil
+	}
+}
+
+func (server *agentReportServer) queueCaddyReloadForTask(ctx context.Context, record task.Record) error {
+	if server.cfg == nil {
+		return nil
+	}
+	params := taskParams(record.ParamsJSON)
+	if params.ServiceDir == "" || record.RepoRevision == "" || record.NodeID == "" {
+		return nil
+	}
+	service, err := repo.FindServiceAtRevision(server.cfg.RepoDir, record.RepoRevision, params.ServiceDir, server.availableNodeIDs)
+	if err != nil {
+		return fmt.Errorf("load service for post-task caddy reload: %w", err)
+	}
+	if !repo.CaddyManaged(service) {
+		return nil
+	}
+	if _, err := createNodeCaddyReloadTask(ctx, server.db, server.cfg, server.availableNodeIDs, record.NodeID, requestTaskSource(nil)); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (server *agentReportServer) ReportTaskStepState(ctx context.Context, req *connect.Request[agentv1.ReportTaskStepStateRequest]) (*connect.Response[agentv1.ReportTaskStepStateResponse], error) {
@@ -837,6 +880,122 @@ func configuredNodeIDs(cfg *config.ControllerConfig) map[string]struct{} {
 	return result
 }
 
+func createNodeCaddyReloadTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, nodeID string, source task.Source) (task.Record, error) {
+	if nodeID == "" {
+		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
+	}
+	if err := validateTaskTargetNode(ctx, db, cfg, nodeID, task.TypeCaddyReload); err != nil {
+		return task.Record{}, err
+	}
+	service, err := repo.FindCaddyInfraService(cfg.RepoDir, availableNodeIDs)
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	active, err := db.HasActiveServiceInstanceTask(ctx, service.Name, nodeID)
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, err)
+	}
+	if active {
+		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service instance %q@%q already has an active task", service.Name, nodeID))
+	}
+	serviceDir, err := filepath.Rel(cfg.RepoDir, service.Directory)
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve caddy service directory: %w", err))
+	}
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir})
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode task params: %w", err))
+	}
+	taskID := uuid.NewString()
+	createdTask, err := db.CreateTask(ctx, task.Record{
+		TaskID:      taskID,
+		Type:        task.TypeCaddyReload,
+		Source:      source,
+		ServiceName: service.Name,
+		NodeID:      nodeID,
+		Status:      task.StatusPending,
+		ParamsJSON:  string(paramsJSON),
+		LogPath:     filepath.Join(cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+	})
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, err)
+	}
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
+	}
+	return createdTask, nil
+}
+
+func createNodeCaddySyncTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, nodeID, serviceName string, fullRebuild bool, source task.Source) (task.Record, error) {
+	if nodeID == "" {
+		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
+	}
+	if err := validateTaskTargetNode(ctx, db, cfg, nodeID, task.TypeCaddySync); err != nil {
+		return task.Record{}, err
+	}
+	var (
+		serviceDirs []string
+		matchedName string
+	)
+	if fullRebuild {
+		services, err := repo.DiscoverServices(cfg.RepoDir, availableNodeIDs)
+		if err != nil {
+			return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		for _, service := range services {
+			if !repo.CaddyManaged(service) {
+				continue
+			}
+			for _, targetNodeID := range service.TargetNodes {
+				if targetNodeID != nodeID {
+					continue
+				}
+				relativeDir, err := filepath.Rel(cfg.RepoDir, service.Directory)
+				if err != nil {
+					return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
+				}
+				serviceDirs = append(serviceDirs, relativeDir)
+				break
+			}
+		}
+		slices.Sort(serviceDirs)
+		matchedName = "caddy"
+	} else {
+		if serviceName == "" {
+			return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required when full_rebuild is false"))
+		}
+		service, err := repo.FindService(cfg.RepoDir, availableNodeIDs, serviceName)
+		if err != nil {
+			return task.Record{}, connect.NewError(connect.CodeNotFound, err)
+		}
+		if !repo.CaddyManaged(service) {
+			return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not declare network.caddy", service.Name))
+		}
+		if _, err := resolveTargetNodeIDs(service, []string{nodeID}); err != nil {
+			return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		relativeDir, err := filepath.Rel(cfg.RepoDir, service.Directory)
+		if err != nil {
+			return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
+		}
+		serviceDirs = []string{relativeDir}
+		matchedName = service.Name
+	}
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDirs: serviceDirs, FullRebuild: fullRebuild})
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode task params: %w", err))
+	}
+	taskID := uuid.NewString()
+	createdTask, err := db.CreateTask(ctx, task.Record{TaskID: taskID, Type: task.TypeCaddySync, Source: source, ServiceName: matchedName, NodeID: nodeID, Status: task.StatusPending, ParamsJSON: string(paramsJSON), LogPath: filepath.Join(cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID))})
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, err)
+	}
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
+	}
+	return createdTask, nil
+}
+
 func (server *agentTaskServer) PullNextTask(ctx context.Context, req *connect.Request[agentv1.PullNextTaskRequest]) (*connect.Response[agentv1.PullNextTaskResponse], error) {
 	if req.Msg.GetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
@@ -925,8 +1084,10 @@ type serviceInstanceServer struct {
 }
 
 type serviceTaskParams struct {
-	ServiceDir string   `json:"service_dir"`
-	DataNames  []string `json:"data_names,omitempty"`
+	ServiceDir  string   `json:"service_dir"`
+	ServiceDirs []string `json:"service_dirs,omitempty"`
+	DataNames   []string `json:"data_names,omitempty"`
+	FullRebuild bool     `json:"full_rebuild,omitempty"`
 }
 
 type nodeServer struct {
@@ -1507,6 +1668,33 @@ func (server *nodeServer) GetNodeDockerStats(ctx context.Context, req *connect.R
 			DockerServerVersion: stats.DockerServerVersion,
 		},
 	}), nil
+}
+
+func (server *nodeServer) ReloadNodeCaddy(ctx context.Context, req *connect.Request[controllerv1.ReloadNodeCaddyRequest]) (*connect.Response[controllerv1.ReloadNodeCaddyResponse], error) {
+	if req.Msg == nil || req.Msg.GetNodeId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
+	}
+	createdTask, err := createNodeCaddyReloadTask(ctx, server.db, server.cfg, configuredNodeIDs(server.cfg), req.Msg.GetNodeId(), requestTaskSource(req.Header()))
+	if err != nil {
+		return nil, err
+	}
+	createdTask.TriggeredBy, _ = rpcutil.BearerSubject(ctx)
+
+	notifyTaskQueue(server.taskQueue)
+
+	return connect.NewResponse(&controllerv1.ReloadNodeCaddyResponse{TaskId: createdTask.TaskID}), nil
+}
+
+func (server *nodeServer) SyncNodeCaddyFiles(ctx context.Context, req *connect.Request[controllerv1.SyncNodeCaddyFilesRequest]) (*connect.Response[controllerv1.SyncNodeCaddyFilesResponse], error) {
+	if req.Msg == nil || req.Msg.GetNodeId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
+	}
+	createdTask, err := createNodeCaddySyncTask(ctx, server.db, server.cfg, configuredNodeIDs(server.cfg), req.Msg.GetNodeId(), req.Msg.GetServiceName(), req.Msg.GetFullRebuild(), requestTaskSource(req.Header()))
+	if err != nil {
+		return nil, err
+	}
+	notifyTaskQueue(server.taskQueue)
+	return connect.NewResponse(&controllerv1.SyncNodeCaddyFilesResponse{TaskId: createdTask.TaskID}), nil
 }
 
 func (server *nodeServer) PruneNodeDocker(ctx context.Context, req *connect.Request[controllerv1.PruneNodeDockerRequest]) (*connect.Response[controllerv1.PruneNodeDockerResponse], error) {

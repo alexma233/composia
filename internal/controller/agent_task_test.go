@@ -13,6 +13,7 @@ import (
 	"connectrpc.com/connect"
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
+	"forgejo.alexma.top/alexma233/composia/internal/config"
 	"forgejo.alexma.top/alexma233/composia/internal/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/store"
 	"forgejo.alexma.top/alexma233/composia/internal/task"
@@ -26,12 +27,25 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
+	repoDir := t.TempDir()
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"demo/composia-meta.yaml": "name: demo\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
+		"edge/composia-meta.yaml": "name: edge\nnode: main\ninfra:\n  caddy:\n    compose_service: caddy\n    config_dir: /etc/caddy\n",
+	})
+	logDir := filepath.Join(t.TempDir(), "logs")
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create task log dir: %v", err)
+	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
 	}
-	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 16, 59, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
+	if err := syncDeclaredServicesForTests(ctx, db, "demo", "edge"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
+	revision := currentRevision(t, repoDir)
 	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: "demo"})
 	if err != nil {
 		t.Fatalf("marshal deploy task params: %v", err)
@@ -45,7 +59,7 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 		NodeID:       "main",
 		CreatedAt:    time.Date(2026, 4, 4, 17, 0, 0, 0, time.UTC),
 		ParamsJSON:   string(paramsJSON),
-		RepoRevision: "deadbeef",
+		RepoRevision: revision,
 		LogPath:      logPath,
 	}); err != nil {
 		t.Fatalf("create task: %v", err)
@@ -59,7 +73,7 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	})
 
 	mux := http.NewServeMux()
-	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(&agentReportServer{db: db, logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}}, connect.WithInterceptors(interceptor))
+	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(&agentReportServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}, logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: newTaskQueueNotifier(), taskResults: newTaskResultNotifier()}, connect.WithInterceptors(interceptor))
 	mux.Handle(reportPath, reportHandler)
 	taskPath, taskHandler := agentv1connect.NewAgentTaskServiceHandler(&agentTaskServer{db: db}, connect.WithInterceptors(interceptor))
 	mux.Handle(taskPath, taskHandler)
@@ -144,6 +158,20 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	}
 	if detail.Record.Status != task.StatusSucceeded {
 		t.Fatalf("expected succeeded task, got %q", detail.Record.Status)
+	}
+	reloadTasks, totalCount, err := db.ListTasks(ctx, string(task.StatusPending), "edge", "main", string(task.TypeCaddyReload), 1, 10)
+	if err != nil {
+		t.Fatalf("list caddy reload tasks: %v", err)
+	}
+	if totalCount != 1 || len(reloadTasks) != 1 {
+		t.Fatalf("expected one queued caddy reload task, got total=%d tasks=%+v", totalCount, reloadTasks)
+	}
+	syncTasks, syncCount, err := db.ListTasks(ctx, string(task.StatusPending), "edge", "main", string(task.TypeCaddySync), 1, 10)
+	if err != nil {
+		t.Fatalf("list caddy sync tasks: %v", err)
+	}
+	if syncCount != 0 || len(syncTasks) != 0 {
+		t.Fatalf("expected no separate caddy sync tasks, got total=%d tasks=%+v", syncCount, syncTasks)
 	}
 	if len(detail.Steps) != 1 || detail.Steps[0].StepName != task.StepRender {
 		t.Fatalf("unexpected task steps: %+v", detail.Steps)
@@ -333,5 +361,130 @@ func TestAgentPullNextTaskLongPollWakesWhenRunningTaskCompletes(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatalf("timed out waiting for pending task after completion")
+	}
+}
+
+func TestAgentReportTaskStateSkipsCaddyReloadWhenServiceDoesNotUseCaddy(t *testing.T) {
+	t.Parallel()
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	repoDir := t.TempDir()
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"demo/composia-meta.yaml": "name: demo\nnode: main\n",
+		"edge/composia-meta.yaml": "name: edge\nnode: main\ninfra:\n  caddy:\n    compose_service: caddy\n    config_dir: /etc/caddy\n",
+	})
+	logDir := filepath.Join(t.TempDir(), "logs")
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create task log dir: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := syncDeclaredServicesForTests(ctx, db, "demo", "edge"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	revision := currentRevision(t, repoDir)
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: "demo"})
+	if err != nil {
+		t.Fatalf("marshal params: %v", err)
+	}
+	logPath := filepath.Join(t.TempDir(), "logs", "task.log")
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-no-caddy", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", ParamsJSON: string(paramsJSON), RepoRevision: revision, LogPath: logPath}); err != nil {
+		t.Fatalf("create task: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", assertError("unexpected token")
+		}
+		return "main", nil
+	})
+	mux := http.NewServeMux()
+	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(&agentReportServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}, logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: newTaskQueueNotifier(), taskResults: newTaskResultNotifier()}, connect.WithInterceptors(interceptor))
+	mux.Handle(reportPath, reportHandler)
+	httpServer := httptest.NewUnstartedServer(mux)
+	httpServer.EnableHTTP2 = true
+	httpServer.StartTLS()
+	defer httpServer.Close()
+
+	reportClient := agentv1connect.NewAgentReportServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	finishedAt := timestamppb.New(time.Date(2026, 4, 4, 18, 2, 0, 0, time.UTC))
+	if _, err := reportClient.ReportTaskState(ctx, connect.NewRequest(&agentv1.ReportTaskStateRequest{TaskId: "task-no-caddy", Status: "succeeded", FinishedAt: finishedAt})); err != nil {
+		t.Fatalf("report task state: %v", err)
+	}
+
+	reloadTasks, totalCount, err := db.ListTasks(ctx, string(task.StatusPending), "edge", "main", string(task.TypeCaddyReload), 1, 10)
+	if err != nil {
+		t.Fatalf("list caddy reload tasks: %v", err)
+	}
+	if totalCount != 0 || len(reloadTasks) != 0 {
+		t.Fatalf("expected no queued caddy reload task, got total=%d tasks=%+v", totalCount, reloadTasks)
+	}
+}
+
+func TestAgentReportTaskStateQueuesCaddyReloadAfterStop(t *testing.T) {
+	t.Parallel()
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	repoDir := t.TempDir()
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"demo/composia-meta.yaml": "name: demo\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
+		"edge/composia-meta.yaml": "name: edge\nnode: main\ninfra:\n  caddy:\n    compose_service: caddy\n    config_dir: /etc/caddy\n",
+	})
+	logDir := filepath.Join(t.TempDir(), "logs")
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create task log dir: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 16, 59, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
+	if err := syncDeclaredServicesForTests(ctx, db, "demo", "edge"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	revision := currentRevision(t, repoDir)
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: "demo"})
+	if err != nil {
+		t.Fatalf("marshal params: %v", err)
+	}
+	logPath := filepath.Join(t.TempDir(), "logs", "task.log")
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-stop-caddy", Type: task.TypeStop, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", ParamsJSON: string(paramsJSON), RepoRevision: revision, LogPath: logPath}); err != nil {
+		t.Fatalf("create task: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", assertError("unexpected token")
+		}
+		return "main", nil
+	})
+	mux := http.NewServeMux()
+	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(&agentReportServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}, logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: newTaskQueueNotifier(), taskResults: newTaskResultNotifier()}, connect.WithInterceptors(interceptor))
+	mux.Handle(reportPath, reportHandler)
+	httpServer := httptest.NewUnstartedServer(mux)
+	httpServer.EnableHTTP2 = true
+	httpServer.StartTLS()
+	defer httpServer.Close()
+
+	reportClient := agentv1connect.NewAgentReportServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	finishedAt := timestamppb.New(time.Date(2026, 4, 4, 18, 2, 0, 0, time.UTC))
+	if _, err := reportClient.ReportTaskState(ctx, connect.NewRequest(&agentv1.ReportTaskStateRequest{TaskId: "task-stop-caddy", Status: "succeeded", FinishedAt: finishedAt})); err != nil {
+		t.Fatalf("report task state: %v", err)
+	}
+
+	reloadTasks, totalCount, err := db.ListTasks(ctx, string(task.StatusPending), "edge", "main", string(task.TypeCaddyReload), 1, 10)
+	if err != nil {
+		t.Fatalf("list caddy reload tasks: %v", err)
+	}
+	if totalCount != 1 || len(reloadTasks) != 1 {
+		t.Fatalf("expected one queued caddy reload task after stop, got total=%d tasks=%+v", totalCount, reloadTasks)
 	}
 }

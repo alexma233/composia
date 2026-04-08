@@ -31,6 +31,7 @@ const (
 	ServiceAction_SERVICE_ACTION_RESTART     ServiceAction = 4
 	ServiceAction_SERVICE_ACTION_BACKUP      ServiceAction = 5
 	ServiceAction_SERVICE_ACTION_DNS_UPDATE  ServiceAction = 6
+	ServiceAction_SERVICE_ACTION_CADDY_SYNC  ServiceAction = 7
 )
 
 // Enum value maps for ServiceAction.
@@ -43,6 +44,7 @@ var (
 		4: "SERVICE_ACTION_RESTART",
 		5: "SERVICE_ACTION_BACKUP",
 		6: "SERVICE_ACTION_DNS_UPDATE",
+		7: "SERVICE_ACTION_CADDY_SYNC",
 	}
 	ServiceAction_value = map[string]int32{
 		"SERVICE_ACTION_UNSPECIFIED": 0,
@@ -52,6 +54,7 @@ var (
 		"SERVICE_ACTION_RESTART":     4,
 		"SERVICE_ACTION_BACKUP":      5,
 		"SERVICE_ACTION_DNS_UPDATE":  6,
+		"SERVICE_ACTION_CADDY_SYNC":  7,
 	}
 )
 
@@ -1396,7 +1399,7 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"\x14ListServicesResponse\x12B\n" +
 	"\bservices\x18\x01 \x03(\v2&.composia.controller.v1.ServiceSummaryR\bservices\x12\x1f\n" +
 	"\vtotal_count\x18\x02 \x01(\rR\n" +
-	"totalCount*\xd4\x01\n" +
+	"totalCount*\xf3\x01\n" +
 	"\rServiceAction\x12\x1e\n" +
 	"\x1aSERVICE_ACTION_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15SERVICE_ACTION_DEPLOY\x10\x01\x12\x19\n" +
@@ -1404,7 +1407,8 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"\x13SERVICE_ACTION_STOP\x10\x03\x12\x1a\n" +
 	"\x16SERVICE_ACTION_RESTART\x10\x04\x12\x19\n" +
 	"\x15SERVICE_ACTION_BACKUP\x10\x05\x12\x1d\n" +
-	"\x19SERVICE_ACTION_DNS_UPDATE\x10\x06*\xcf\x01\n" +
+	"\x19SERVICE_ACTION_DNS_UPDATE\x10\x06\x12\x1d\n" +
+	"\x19SERVICE_ACTION_CADDY_SYNC\x10\a*\xcf\x01\n" +
 	"\x15ServiceInstanceAction\x12'\n" +
 	"#SERVICE_INSTANCE_ACTION_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eSERVICE_INSTANCE_ACTION_DEPLOY\x10\x01\x12\"\n" +

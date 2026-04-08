@@ -6,6 +6,8 @@ import {
   loadTasks,
   loadNodeDockerStats,
   pruneNodeDocker,
+  reloadNodeCaddy,
+  syncNodeCaddyFiles,
 } from "$lib/server/controller";
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -47,6 +49,38 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
+  syncCaddyFiles: async ({ params }) => {
+    const config = controllerConfig();
+    if (!config.ready) {
+      return { success: false, error: config.reason };
+    }
+
+    try {
+      const result = await syncNodeCaddyFiles(params.id, { fullRebuild: true });
+      return { success: true, taskId: result.taskId };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Caddy file sync failed",
+      };
+    }
+  },
+  reloadCaddy: async ({ params }) => {
+    const config = controllerConfig();
+    if (!config.ready) {
+      return { success: false, error: config.reason };
+    }
+
+    try {
+      const result = await reloadNodeCaddy(params.id);
+      return { success: true, taskId: result.taskId };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Caddy reload failed",
+      };
+    }
+  },
   prune: async ({ params, request }) => {
     const config = controllerConfig();
     if (!config.ready) {

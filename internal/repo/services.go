@@ -28,11 +28,21 @@ type ServiceMeta struct {
 	Enabled     *bool              `yaml:"enabled"`
 	Node        string             `yaml:"node"`
 	Nodes       []string           `yaml:"nodes"`
+	Infra       *InfraConfig       `yaml:"infra"`
 	Network     *NetworkConfig     `yaml:"network"`
 	Update      *UpdateConfig      `yaml:"update"`
 	DataProtect *DataProtectConfig `yaml:"data_protect"`
 	Backup      *BackupConfig      `yaml:"backup"`
 	Migrate     *MigrateConfig     `yaml:"migrate"`
+}
+
+type InfraConfig struct {
+	Caddy *InfraCaddyConfig `yaml:"caddy"`
+}
+
+type InfraCaddyConfig struct {
+	ComposeService string `yaml:"compose_service"`
+	ConfigDir      string `yaml:"config_dir"`
 }
 
 type NetworkConfig struct {
@@ -189,6 +199,48 @@ func FindService(repoDir string, availableNodeIDs map[string]struct{}, serviceNa
 	return Service{}, fmt.Errorf("service %q is not declared", serviceName)
 }
 
+func FindCaddyInfraService(repoDir string, availableNodeIDs map[string]struct{}) (Service, error) {
+	var matched *Service
+	err := filepath.WalkDir(repoDir, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() {
+			if entry.Name() == ".git" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if entry.Name() != MetaFileName {
+			return nil
+		}
+
+		meta, err := loadServiceMeta(path)
+		if err != nil {
+			return nil
+		}
+		if meta.Infra == nil || meta.Infra.Caddy == nil {
+			return nil
+		}
+		service, err := strictServiceFromMeta(path, meta, availableNodeIDs)
+		if err != nil {
+			return err
+		}
+		if matched != nil {
+			return fmt.Errorf("caddy infra service is declared more than once: %s and %s", matched.MetaPath, path)
+		}
+		matched = &service
+		return nil
+	})
+	if err != nil {
+		return Service{}, err
+	}
+	if matched != nil {
+		return *matched, nil
+	}
+	return Service{}, fmt.Errorf("caddy infra service is not declared")
+}
+
 func strictServiceFromMetaPath(path string, availableNodeIDs map[string]struct{}) (Service, error) {
 	meta, err := loadServiceMeta(path)
 	if err != nil {
@@ -227,6 +279,10 @@ func loadServiceMeta(path string) (ServiceMeta, error) {
 	return meta, nil
 }
 
+func LoadServiceMeta(path string) (ServiceMeta, error) {
+	return loadServiceMeta(path)
+}
+
 func validateServiceMeta(path string, meta *ServiceMeta, availableNodeIDs map[string]struct{}) error {
 	if meta.Name == "" {
 		return fmt.Errorf("service meta %q: name is required", path)
@@ -253,6 +309,11 @@ func validateServiceMeta(path string, meta *ServiceMeta, availableNodeIDs map[st
 
 	if meta.Network != nil {
 		if err := validateNetwork(path, meta.Network); err != nil {
+			return err
+		}
+	}
+	if meta.Infra != nil {
+		if err := validateInfra(path, meta.Infra); err != nil {
 			return err
 		}
 	}
@@ -331,6 +392,27 @@ func validateNetwork(path string, network *NetworkConfig) error {
 	}
 
 	return nil
+}
+
+func validateInfra(path string, infra *InfraConfig) error {
+	if infra.Caddy != nil && strings.TrimSpace(infra.Caddy.ConfigDir) == "" && infra.Caddy.ConfigDir != "" {
+		return fmt.Errorf("service meta %q: infra.caddy.config_dir must not be empty when set", path)
+	}
+	return nil
+}
+
+func (meta ServiceMeta) CaddyComposeService() string {
+	if meta.Infra != nil && meta.Infra.Caddy != nil && strings.TrimSpace(meta.Infra.Caddy.ComposeService) != "" {
+		return strings.TrimSpace(meta.Infra.Caddy.ComposeService)
+	}
+	return "caddy"
+}
+
+func (meta ServiceMeta) CaddyConfigDir() string {
+	if meta.Infra != nil && meta.Infra.Caddy != nil && strings.TrimSpace(meta.Infra.Caddy.ConfigDir) != "" {
+		return strings.TrimSpace(meta.Infra.Caddy.ConfigDir)
+	}
+	return "/etc/caddy"
 }
 
 func validateUpdate(path string, update *UpdateConfig) error {
@@ -460,4 +542,15 @@ func ValidateRequestedBackupDataNames(service Service, requested []string) ([]st
 	}
 	sort.Strings(validated)
 	return validated, nil
+}
+
+func CaddyManaged(service Service) bool {
+	return service.Meta.Network != nil && service.Meta.Network.Caddy != nil && boolValue(service.Meta.Network.Caddy.Enabled, false)
+}
+
+func CaddySource(service Service) string {
+	if !CaddyManaged(service) {
+		return ""
+	}
+	return strings.TrimSpace(service.Meta.Network.Caddy.Source)
 }

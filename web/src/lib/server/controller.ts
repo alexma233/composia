@@ -618,6 +618,33 @@ export async function pruneNodeDocker(
   return { taskId: response.task_id };
 }
 
+export async function reloadNodeCaddy(
+  nodeId: string,
+): Promise<{ taskId: string }> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{ task_id: string }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.NodeService/ReloadNodeCaddy",
+    { nodeId },
+  );
+  return { taskId: response.task_id };
+}
+
+export async function syncNodeCaddyFiles(
+  nodeId: string,
+  options: { serviceName?: string; fullRebuild?: boolean } = {},
+): Promise<{ taskId: string }> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{ task_id: string }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.NodeService/SyncNodeCaddyFiles",
+    { nodeId, serviceName: options.serviceName ?? "", fullRebuild: options.fullRebuild ?? false },
+  );
+  return { taskId: response.task_id };
+}
+
 export type DockerContainerSummary = {
   id: string;
   name: string;

@@ -43,6 +43,12 @@ const (
 	// NodeServiceGetNodeDockerStatsProcedure is the fully-qualified name of the NodeService's
 	// GetNodeDockerStats RPC.
 	NodeServiceGetNodeDockerStatsProcedure = "/composia.controller.v1.NodeService/GetNodeDockerStats"
+	// NodeServiceSyncNodeCaddyFilesProcedure is the fully-qualified name of the NodeService's
+	// SyncNodeCaddyFiles RPC.
+	NodeServiceSyncNodeCaddyFilesProcedure = "/composia.controller.v1.NodeService/SyncNodeCaddyFiles"
+	// NodeServiceReloadNodeCaddyProcedure is the fully-qualified name of the NodeService's
+	// ReloadNodeCaddy RPC.
+	NodeServiceReloadNodeCaddyProcedure = "/composia.controller.v1.NodeService/ReloadNodeCaddy"
 	// NodeServicePruneNodeDockerProcedure is the fully-qualified name of the NodeService's
 	// PruneNodeDocker RPC.
 	NodeServicePruneNodeDockerProcedure = "/composia.controller.v1.NodeService/PruneNodeDocker"
@@ -78,6 +84,8 @@ type NodeServiceClient interface {
 	GetNode(context.Context, *connect.Request[v1.GetNodeRequest]) (*connect.Response[v1.GetNodeResponse], error)
 	GetNodeTasks(context.Context, *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error)
 	GetNodeDockerStats(context.Context, *connect.Request[v1.GetNodeDockerStatsRequest]) (*connect.Response[v1.GetNodeDockerStatsResponse], error)
+	SyncNodeCaddyFiles(context.Context, *connect.Request[v1.SyncNodeCaddyFilesRequest]) (*connect.Response[v1.SyncNodeCaddyFilesResponse], error)
+	ReloadNodeCaddy(context.Context, *connect.Request[v1.ReloadNodeCaddyRequest]) (*connect.Response[v1.ReloadNodeCaddyResponse], error)
 	PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error)
 	ListNodeContainers(context.Context, *connect.Request[v1.ListNodeContainersRequest]) (*connect.Response[v1.ListNodeContainersResponse], error)
 	InspectNodeContainer(context.Context, *connect.Request[v1.InspectNodeContainerRequest]) (*connect.Response[v1.InspectNodeContainerResponse], error)
@@ -122,6 +130,18 @@ func NewNodeServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			httpClient,
 			baseURL+NodeServiceGetNodeDockerStatsProcedure,
 			connect.WithSchema(nodeServiceMethods.ByName("GetNodeDockerStats")),
+			connect.WithClientOptions(opts...),
+		),
+		syncNodeCaddyFiles: connect.NewClient[v1.SyncNodeCaddyFilesRequest, v1.SyncNodeCaddyFilesResponse](
+			httpClient,
+			baseURL+NodeServiceSyncNodeCaddyFilesProcedure,
+			connect.WithSchema(nodeServiceMethods.ByName("SyncNodeCaddyFiles")),
+			connect.WithClientOptions(opts...),
+		),
+		reloadNodeCaddy: connect.NewClient[v1.ReloadNodeCaddyRequest, v1.ReloadNodeCaddyResponse](
+			httpClient,
+			baseURL+NodeServiceReloadNodeCaddyProcedure,
+			connect.WithSchema(nodeServiceMethods.ByName("ReloadNodeCaddy")),
 			connect.WithClientOptions(opts...),
 		),
 		pruneNodeDocker: connect.NewClient[v1.PruneNodeDockerRequest, v1.PruneNodeDockerResponse](
@@ -187,6 +207,8 @@ type nodeServiceClient struct {
 	getNode              *connect.Client[v1.GetNodeRequest, v1.GetNodeResponse]
 	getNodeTasks         *connect.Client[v1.GetNodeTasksRequest, v1.GetNodeTasksResponse]
 	getNodeDockerStats   *connect.Client[v1.GetNodeDockerStatsRequest, v1.GetNodeDockerStatsResponse]
+	syncNodeCaddyFiles   *connect.Client[v1.SyncNodeCaddyFilesRequest, v1.SyncNodeCaddyFilesResponse]
+	reloadNodeCaddy      *connect.Client[v1.ReloadNodeCaddyRequest, v1.ReloadNodeCaddyResponse]
 	pruneNodeDocker      *connect.Client[v1.PruneNodeDockerRequest, v1.PruneNodeDockerResponse]
 	listNodeContainers   *connect.Client[v1.ListNodeContainersRequest, v1.ListNodeContainersResponse]
 	inspectNodeContainer *connect.Client[v1.InspectNodeContainerRequest, v1.InspectNodeContainerResponse]
@@ -216,6 +238,16 @@ func (c *nodeServiceClient) GetNodeTasks(ctx context.Context, req *connect.Reque
 // GetNodeDockerStats calls composia.controller.v1.NodeService.GetNodeDockerStats.
 func (c *nodeServiceClient) GetNodeDockerStats(ctx context.Context, req *connect.Request[v1.GetNodeDockerStatsRequest]) (*connect.Response[v1.GetNodeDockerStatsResponse], error) {
 	return c.getNodeDockerStats.CallUnary(ctx, req)
+}
+
+// SyncNodeCaddyFiles calls composia.controller.v1.NodeService.SyncNodeCaddyFiles.
+func (c *nodeServiceClient) SyncNodeCaddyFiles(ctx context.Context, req *connect.Request[v1.SyncNodeCaddyFilesRequest]) (*connect.Response[v1.SyncNodeCaddyFilesResponse], error) {
+	return c.syncNodeCaddyFiles.CallUnary(ctx, req)
+}
+
+// ReloadNodeCaddy calls composia.controller.v1.NodeService.ReloadNodeCaddy.
+func (c *nodeServiceClient) ReloadNodeCaddy(ctx context.Context, req *connect.Request[v1.ReloadNodeCaddyRequest]) (*connect.Response[v1.ReloadNodeCaddyResponse], error) {
+	return c.reloadNodeCaddy.CallUnary(ctx, req)
 }
 
 // PruneNodeDocker calls composia.controller.v1.NodeService.PruneNodeDocker.
@@ -269,6 +301,8 @@ type NodeServiceHandler interface {
 	GetNode(context.Context, *connect.Request[v1.GetNodeRequest]) (*connect.Response[v1.GetNodeResponse], error)
 	GetNodeTasks(context.Context, *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error)
 	GetNodeDockerStats(context.Context, *connect.Request[v1.GetNodeDockerStatsRequest]) (*connect.Response[v1.GetNodeDockerStatsResponse], error)
+	SyncNodeCaddyFiles(context.Context, *connect.Request[v1.SyncNodeCaddyFilesRequest]) (*connect.Response[v1.SyncNodeCaddyFilesResponse], error)
+	ReloadNodeCaddy(context.Context, *connect.Request[v1.ReloadNodeCaddyRequest]) (*connect.Response[v1.ReloadNodeCaddyResponse], error)
 	PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error)
 	ListNodeContainers(context.Context, *connect.Request[v1.ListNodeContainersRequest]) (*connect.Response[v1.ListNodeContainersResponse], error)
 	InspectNodeContainer(context.Context, *connect.Request[v1.InspectNodeContainerRequest]) (*connect.Response[v1.InspectNodeContainerResponse], error)
@@ -309,6 +343,18 @@ func NewNodeServiceHandler(svc NodeServiceHandler, opts ...connect.HandlerOption
 		NodeServiceGetNodeDockerStatsProcedure,
 		svc.GetNodeDockerStats,
 		connect.WithSchema(nodeServiceMethods.ByName("GetNodeDockerStats")),
+		connect.WithHandlerOptions(opts...),
+	)
+	nodeServiceSyncNodeCaddyFilesHandler := connect.NewUnaryHandler(
+		NodeServiceSyncNodeCaddyFilesProcedure,
+		svc.SyncNodeCaddyFiles,
+		connect.WithSchema(nodeServiceMethods.ByName("SyncNodeCaddyFiles")),
+		connect.WithHandlerOptions(opts...),
+	)
+	nodeServiceReloadNodeCaddyHandler := connect.NewUnaryHandler(
+		NodeServiceReloadNodeCaddyProcedure,
+		svc.ReloadNodeCaddy,
+		connect.WithSchema(nodeServiceMethods.ByName("ReloadNodeCaddy")),
 		connect.WithHandlerOptions(opts...),
 	)
 	nodeServicePruneNodeDockerHandler := connect.NewUnaryHandler(
@@ -375,6 +421,10 @@ func NewNodeServiceHandler(svc NodeServiceHandler, opts ...connect.HandlerOption
 			nodeServiceGetNodeTasksHandler.ServeHTTP(w, r)
 		case NodeServiceGetNodeDockerStatsProcedure:
 			nodeServiceGetNodeDockerStatsHandler.ServeHTTP(w, r)
+		case NodeServiceSyncNodeCaddyFilesProcedure:
+			nodeServiceSyncNodeCaddyFilesHandler.ServeHTTP(w, r)
+		case NodeServiceReloadNodeCaddyProcedure:
+			nodeServiceReloadNodeCaddyHandler.ServeHTTP(w, r)
 		case NodeServicePruneNodeDockerProcedure:
 			nodeServicePruneNodeDockerHandler.ServeHTTP(w, r)
 		case NodeServiceListNodeContainersProcedure:
@@ -416,6 +466,14 @@ func (UnimplementedNodeServiceHandler) GetNodeTasks(context.Context, *connect.Re
 
 func (UnimplementedNodeServiceHandler) GetNodeDockerStats(context.Context, *connect.Request[v1.GetNodeDockerStatsRequest]) (*connect.Response[v1.GetNodeDockerStatsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.GetNodeDockerStats is not implemented"))
+}
+
+func (UnimplementedNodeServiceHandler) SyncNodeCaddyFiles(context.Context, *connect.Request[v1.SyncNodeCaddyFilesRequest]) (*connect.Response[v1.SyncNodeCaddyFilesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.SyncNodeCaddyFiles is not implemented"))
+}
+
+func (UnimplementedNodeServiceHandler) ReloadNodeCaddy(context.Context, *connect.Request[v1.ReloadNodeCaddyRequest]) (*connect.Response[v1.ReloadNodeCaddyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeService.ReloadNodeCaddy is not implemented"))
 }
 
 func (UnimplementedNodeServiceHandler) PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error) {

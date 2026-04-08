@@ -11,6 +11,8 @@ service NodeService {
   rpc GetNode(GetNodeRequest) returns (GetNodeResponse);
   rpc GetNodeTasks(GetNodeTasksRequest) returns (GetNodeTasksResponse);
   rpc GetNodeDockerStats(GetNodeDockerStatsRequest) returns (GetNodeDockerStatsResponse);
+  rpc SyncNodeCaddyFiles(SyncNodeCaddyFilesRequest) returns (SyncNodeCaddyFilesResponse);
+  rpc ReloadNodeCaddy(ReloadNodeCaddyRequest) returns (ReloadNodeCaddyResponse);
   rpc PruneNodeDocker(PruneNodeDockerRequest) returns (PruneNodeDockerResponse);
   rpc ListNodeContainers(ListNodeContainersRequest) returns (ListNodeContainersResponse);
   rpc InspectNodeContainer(InspectNodeContainerRequest) returns (InspectNodeContainerResponse);
@@ -75,6 +77,24 @@ message DockerStats {
 
 message GetNodeDockerStatsResponse {
   DockerStats stats = 1;
+}
+
+message SyncNodeCaddyFilesRequest {
+  string node_id = 1;
+  string service_name = 2;
+  bool full_rebuild = 3;
+}
+
+message SyncNodeCaddyFilesResponse {
+  string task_id = 1;
+}
+
+message ReloadNodeCaddyRequest {
+  string node_id = 1;
+}
+
+message ReloadNodeCaddyResponse {
+  string task_id = 1;
 }
 
 message PruneNodeDockerRequest {
