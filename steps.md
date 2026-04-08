@@ -1,15 +1,5 @@
 # Composia Implementation Steps
 
-This document turns `plan.md` into a practical execution order for the current repository state.
-
-## Source of Truth
-
-- `plan.md` 是产品和架构的真相源。
-- `steps.md` 只是一个执行排序文档。
-- 如果 `steps.md` 和 `plan.md` 有冲突，以 `plan.md` 为准。
-- 不要把 scaffold、占位符或不完整的 API 当作"已完成"。
-- 在增加新功能之前，先消除当前的架构漂移。
-
 ## 当前重构结论
 
 从本次重构开始，仓库正式采用 multi-node 架构。
@@ -23,7 +13,7 @@ This document turns `plan.md` into a practical execution order for the current r
 
 ## 当前代码库状态
 
-代码库已超越初始 scaffold 阶段，但当前实现仍然存在明显的单节点 service 假设。
+代码库已超越初始 scaffold 阶段，multi-node 主干已完成；当前剩余工作主要集中在迁移、restore、定时备份，以及部分 UI/编辑器增强。
 
 ### 已实现或大部分实现
 
@@ -60,30 +50,30 @@ This document turns `plan.md` into a practical execution order for the current r
 - `deploy`/`update` 成功后自动为对应节点串联 `caddy_reload`（当 service 启用 `network.caddy`）
 - `stop` 成功后自动删除对应 generated Caddy 片段，并为对应节点串联 `caddy_reload`
 
-### 当前的架构漂移
+### 已完成的架构重构
 
-以下内容仍然错误地假设 service 只有一个 node：
+以下单节点假设已全部修复，multi-node 架构现已完整：
 
-1. ~~`composia-meta.yaml` 只支持 `node`~~ - 已支持 `nodes[]`
-2. ~~`repo.Service` 只保留单个 `Node`~~ - 已改为 `TargetNodes []string`
-3. ~~`services` 表把运行时状态直接挂在 service 上~~ - 已改为 `service_instances` 表
-4. ~~agent 上报运行时状态时只传 `service_name`，不传 `node_id`~~ - 已通过 `ReportServiceInstanceStatus` 上报 `service_name + node_id`
-5. ~~`DeployService/UpdateService/StopService/RestartService/BackupService` 一次只创建一条 task~~ - 已通过 `RunServiceAction` + `node_ids[]` 实现 fan-out
-6. ~~`GetService` 只返回单个 `node`~~ - 已返回 `nodes[]` 和 `instances[]`
-7. ~~Web UI 仍然把 service 当作单节点部署对象~~ - 已更新
+1. `composia-meta.yaml` 支持 `nodes[]` 数组（兼容旧 `node` 字段）
+2. `repo.Service` 使用 `TargetNodes []string` 表示多节点目标
+3. `services` 表仅存储逻辑服务定义；运行时状态迁移到 `service_instances` 表
+4. Agent 通过 `ReportServiceInstanceStatus` 上报 `service_name + node_id`
+5. Service 动作通过 `RunServiceAction` + `node_ids[]` 实现 fan-out
+6. `GetService` 返回完整的 `nodes[]` 和 `instances[]`
+7. Web UI 已重切为 `service / service instance / container / node` 四层模型
 
-### 必须新增的一等对象
+### 一等对象实现状态
 
-1. ~~`Service`~~ - 已实现
-2. ~~`ServiceInstance`~~ - 已实现
-3. ~~`Container`~~ - 已实现
-4. ~~`Node`~~ - 已实现
+- `Service` - 已实现
+- `ServiceInstance` - 已实现
+- `Container` - 已实现
+- `Node` - 已实现
 
 ---
 
 ## 执行规则
 
-1. 保持实现与 `plan.md` 一致，即使需要收紧或替换现有占位符行为。
+1. 保持实现与当前文档化的 v1 语义一致，即使需要收紧或替换现有占位符行为。
 2. 优先完成 multi-node 主干，不再向旧的单节点 service 语义继续叠加功能。
 3. 不要把容器操作继续塞进单节点 service API；应改为资源清晰的 instance/container API。
 4. 将迁移、备份、DNS、secrets 和 repo 写入视为架构敏感工作，必须匹配文档化的 v1 语义，而不是快捷变体。
@@ -137,7 +127,7 @@ This document turns `plan.md` into a practical execution order for the current r
 
 ## Phase 4: 添加安全的 desired-state Repo 写入
 
-**状态：进行中**
+**状态：已完成**
 
 目标：让 controller 完全按照文档管理 Git-backed desired state 变更，并与 multi-node repo 语义对齐。
 
@@ -147,12 +137,12 @@ This document turns `plan.md` into a practical execution order for the current r
 3. Repo 写事务内部已整理为清晰边界：写前检查、具体 mutation、Git 收尾（push/sync state）、declared services 刷新分别收口。
 4. Push 失败时保留本地 commit，并继续通过 repo sync state 向 API/UI 报告 `push_failed`。
 5. `ServiceService.UpdateServiceTargetNodes` 已实现，controller 可以通过受控 API 定向改写 `composia-meta.yaml.nodes`，并复用现有 repo 写事务。
+6. Repo lock 处理、验证、服务冲突检查和本地 commit 创建工作正常。
+7. 可选远程同步行为、push 报告和 repo sync 状态工作正常。
 
 待完成：
-1. Repo lock 处理、验证、服务冲突检查和本地 commit 创建继续有效。
-2. `UpdateServiceTargetNodes` 需要与迁移工作流的 `persist_repo` 阶段对齐。
-3. 可选远程同步行为、push 报告和 repo sync 状态继续工作。
-4. `auto_deploy` 选项（auto-deploy after repo changes）后续接到 instance 扇出任务创建。
+1. `UpdateServiceTargetNodes` 需要与迁移工作流的 `persist_repo` 阶段对齐（Phase 9）。
+2. `auto_deploy` 选项（auto-deploy after repo changes）后续接到 instance 扇出任务创建。
 
 ---
 
@@ -172,7 +162,7 @@ This document turns `plan.md` into a practical execution order for the current r
 
 ## Phase 6: 替换占位符备份行为
 
-**状态：进行中**
+**状态：核心功能已完成，扩展功能待实现**
 
 目标：将当前备份 scaffold 转变为第一个真实数据保护工作流，并明确其 instance 语义。
 
@@ -180,20 +170,20 @@ This document turns `plan.md` into a practical execution order for the current r
 - 备份执行使用 rustic provider、files.copy、files.tar_after_stop、database.pgdumpall
 - 备份记录持久化到 SQLite
 - 备份查询 API 稳定
+- service 级 backup 通过 `RunServiceAction` + `node_ids[]` 实现 instance 扇出
 
 待完成：
-1. restore 任务执行 - 未实现
-2. 迁移复用备份数据的工作流 - 不完整
-3. `database.pgimport` restore 策略 - 未实现
-4. `files.untar` restore 策略 - 未实现
-5. 定时备份执行 - 未实现
-6. service 级 backup 需要明确是对全部实例、单实例还是仅支持单实例入口
+1. restore 任务执行
+2. 迁移复用备份数据的工作流
+3. `database.pgimport` restore 策略
+4. `files.untar` restore 策略
+5. 定时备份执行
 
 ---
 
 ## Phase 7: 添加 Multi-Node Read-Write Web UI
 
-**状态：进行中**
+**状态：核心功能已完成，增强功能待实现**
 
 目标：保留现有真实 controller UI，但重切成 `service / service instance / container / node` 四层模型。
 
@@ -206,21 +196,19 @@ This document turns `plan.md` into a practical execution order for the current r
 - Service 详情页显示 instances 列表和聚合状态
 - ServiceInstance 详情页（通过 GetServiceInstance API）
 - Container 详情页增加日志、start/stop/restart、terminal exec（基础实现）
+- 任务 rerun UI 控件
 
 待完成：
-1. `MigrateService` UI 入口。
-2. `ReloadNodeCaddy` UI 入口。
-3. 任务 rerun UI 的完整控件。
-4. Repo sync 手动触发按钮（push）。
-5. CodeMirror 6 编辑器替换基础 textareas。
-6. 备份详情页的 restore 入口（未来）。
-7. **Service 管理页面需要重新设计**：当前页面混合了文件编辑、实例管理、操作入口等多重职责，需要拆分为更清晰的 multi-node 架构视图。
+1. `MigrateService` UI 入口（等待 Phase 9）。
+2. 备份详情页的 restore 入口（等待 restore 任务实现）。
+3. **Service 管理页面重构**：当前页面混合了文件编辑、实例管理、操作入口等多重职责，需要拆分为更清晰的 multi-node 架构视图。
+4. **CodeMirror 编辑器增强**：基础编辑器已接入，但仍缺少 `.env` 检查、`docker compose` YAML 检查、`composia-meta.yaml` 语义检查，以及分屏编辑能力。
 
 ---
 
 ## Phase 8: 添加 DNS、Caddy 和容器操作
 
-**状态：进行中**
+**状态：核心功能已完成，增强功能待实现**
 
 目标：在 repo 写入和基础服务流稳定后，实现文档化的 day-2 操作动作，并将 Caddy 放在 multi-node service model 上。
 
@@ -239,9 +227,10 @@ This document turns `plan.md` into a practical execution order for the current r
 12. Container exec session API - `POST /nodes/{id}/docker/containers/{cid}/exec`
 
 待完成：
-1. `caddy` 作为多节点 service 的实例扇出语义 - 未实现
-2. `migrate` 完成后需要在源节点和目标节点都触发 `caddy_reload` - 未实现
-3. **Docker exec (terminal) 需要进一步开发**：Web 端 terminal 只是简单的文本输入/输出，缺少专业的 terminal UI 组件（xterm.js 或类似），需要实现完整的浏览器端 terminal 交互（支持滚动、复制粘贴、 ANSI 颜色等）。
+1. `caddy` 作为多节点 service 的实例扇出语义
+2. `migrate` 完成后在源节点和目标节点都触发 `caddy_reload`（等待 Phase 9）
+3. **Docker exec (terminal) 增强**：Web 端 terminal 需要升级为专业的 terminal UI 组件（xterm.js 或类似），支持完整的浏览器端 terminal 交互（滚动、复制粘贴、ANSI 颜色等）
+4. `dns_update` 在 `network.dns.value` 为空时仍按单节点自动推导目标；多节点 service 若要统一 DNS，仍需显式提供 `network.dns.value`
 
 ---
 
@@ -276,8 +265,8 @@ This document turns `plan.md` into a practical execution order for the current r
 - [x] `GetServiceBackups`
 - [x] `UpdateServiceTargetNodes` - 定向改写 `composia-meta.yaml.nodes`
 - [x] `RunServiceAction` - 支持 `node_ids[]` 数组进行 fan-out，`data_names[]` 用于 backup
-- [ ] `UpdateServiceDNS` - 通过 `RunServiceAction` + `SERVICE_ACTION_DNS_UPDATE` 实现
-- [ ] `MigrateService(target_node_id)` - 未实现
+- [x] `UpdateServiceDNS` - 通过 `RunServiceAction` + `SERVICE_ACTION_DNS_UPDATE` 实现
+- [ ] `MigrateService(target_node_id)` - 等待 Phase 9
 
 ### ServiceInstanceService
 - [x] `ListServiceInstances` - 返回 `ServiceInstanceSummary[]`
@@ -295,7 +284,7 @@ This document turns `plan.md` into a practical execution order for the current r
 - [x] `GetNodeTasks`
 - [x] `GetNodeDockerStats`
 - [x] `PruneNodeDocker(node_id)`
-- [ ] `ReloadNodeCaddy(node_id)` - 未实现
+- [x] `ReloadNodeCaddy(node_id)`
 
 ---
 
@@ -326,10 +315,12 @@ dns update
 2. ~~完成 `ServiceInstanceService` 和 service fan-out 任务创建~~ - 已完成
 3. ~~完成 agent 的 instance 状态上报改造~~ - 已完成
 4. ~~完成 `ContainerService` 的 logs/start/stop/restart/exec 基础接口~~ - 已完成
-5. 实现 `ReloadNodeCaddy` API 和 UI 入口
-6. 实现 `caddy_reload` 任务行为
-7. 实现 `MigrateService` UI 和后端
+5. ~~实现 `ReloadNodeCaddy` API 和 UI 入口~~ - 已完成
+6. ~~实现 `caddy_reload` 任务行为~~ - 已完成
+7. 实现 `MigrateService` UI 和后端（Phase 9）
 8. 实现 restore 任务执行（Phase 6 待完成项）
+9. 实现定时备份执行（Phase 6 待完成项）
+10. Web UI 增强：CodeMirror 检查与分屏能力、改进的 terminal 组件
 
 ---
 
