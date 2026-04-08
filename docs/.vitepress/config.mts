@@ -161,8 +161,30 @@ export default defineConfig({
               items: [
                 { text: 'Introduction', link: '/guide/' },
                 { text: 'Quick Start', link: '/guide/quick-start' },
-                { text: 'Architecture', link: '/guide/architecture' },
-                { text: 'Development', link: '/guide/development' }
+                { text: 'Architecture', link: '/guide/architecture' }
+              ]
+            },
+            {
+              text: 'Core Concepts',
+              items: [
+                { text: 'Core Concepts', link: '/guide/core-concepts' },
+                { text: 'Configuration', link: '/guide/configuration' },
+                { text: 'Service Definition', link: '/guide/service-definition' }
+              ]
+            },
+            {
+              text: 'User Guide',
+              items: [
+                { text: 'Deployment', link: '/guide/deployment' },
+                { text: 'Networking', link: '/guide/networking' },
+                { text: 'Backup & Migration', link: '/guide/backup-migrate' },
+                { text: 'Operations', link: '/guide/operations' }
+              ]
+            },
+            {
+              text: 'Development',
+              items: [
+                { text: 'Development Guide', link: '/guide/development' }
               ]
             }
           ]
@@ -208,8 +230,30 @@ export default defineConfig({
               items: [
                 { text: '简介', link: '/zh-hans/guide/' },
                 { text: '快速开始', link: '/zh-hans/guide/quick-start' },
-                { text: '架构', link: '/zh-hans/guide/architecture' },
-                { text: '开发', link: '/zh-hans/guide/development' }
+                { text: '架构概览', link: '/zh-hans/guide/architecture' }
+              ]
+            },
+            {
+              text: '核心概念',
+              items: [
+                { text: '核心概念', link: '/zh-hans/guide/core-concepts' },
+                { text: '配置指南', link: '/zh-hans/guide/configuration' },
+                { text: '服务定义', link: '/zh-hans/guide/service-definition' }
+              ]
+            },
+            {
+              text: '功能指南',
+              items: [
+                { text: '部署管理', link: '/zh-hans/guide/deployment' },
+                { text: '网络配置', link: '/zh-hans/guide/networking' },
+                { text: '备份与迁移', link: '/zh-hans/guide/backup-migrate' },
+                { text: '日常运维', link: '/zh-hans/guide/operations' }
+              ]
+            },
+            {
+              text: '开发',
+              items: [
+                { text: '开发指南', link: '/zh-hans/guide/development' }
               ]
             }
           ]

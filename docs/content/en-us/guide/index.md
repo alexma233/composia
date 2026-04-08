@@ -1,15 +1,22 @@
 # Introduction
 
-Composia is a self-hosted service manager built around service definitions, a single control plane, and one or more execution agents.
+Composia is a self-hosted service management platform built around service definitions, a single control plane, and multiple execution agents.
 
 ## What is Composia?
 
 Composia enables you to:
 
-- **Manage Docker Compose services** - Use familiar Docker Compose YAML files to define services
-- **Multi-node deployment** - Deploy services to multiple nodes (agents)
-- **Centralized control** - Manage all services and nodes through a single control plane
-- **Real-time monitoring** - View service status, logs, and resource usage
+- **Manage Docker Compose Services** — Use familiar Docker Compose YAML files to define services
+- **Multi-Node Deployment** — Deploy services to multiple nodes (agents) across your infrastructure
+- **Centralized Control** — Manage all services and nodes through a single control plane
+- **Real-Time Monitoring** — View service status, container logs, and resource usage in real-time
+
+## Use Cases
+
+- Individuals or teams managing multiple Docker services
+- Deploying and coordinating services across multiple servers
+- Managing containerized applications through an intuitive web interface
+- Automating backups, DNS management, and other operational tasks
 
 ## Core Concepts
 
@@ -26,30 +33,45 @@ version: "1.0"
 
 ### Control Plane
 
-The control plane is the brain of Composia, responsible for:
+The control plane is the core of Composia, responsible for:
 
-- **Configuration management**: Loading service definitions from Git repositories
-- **State aggregation**: Collecting status information from all agents
-- **Task scheduling**: Assigning deployment tasks to appropriate agents
-- **API services**: Providing Web UI and external integration interfaces
+- **Service Management**: Loading and maintaining service definitions from Git repositories
+- **State Aggregation**: Collecting status information from all agents
+- **Task Scheduling**: Assigning deployment tasks to appropriate agents
+- **API Services**: Providing Web UI and external integration interfaces
 
 ### Execution Agents
 
 Agents run on actual Docker hosts and are responsible for:
 
-- **Heartbeat communication**: Regularly reporting status to the control plane
-- **Task execution**: Executing deployment, stop, restart, and other operations
-- **Log collection**: Collecting and forwarding container logs
-- **Resource monitoring**: Monitoring host and container resource usage
+- **Heartbeat Communication**: Regularly reporting status to the control plane
+- **Task Execution**: Executing deployment, stop, restart, and other operations
+- **Log Collection**: Collecting and forwarding container logs
+- **Resource Monitoring**: Monitoring host and container resource usage
 
 ## Technology Stack
 
-- **Backend**: Go 1.25+
-- **Frontend**: SvelteKit + Bun
-- **Runtime**: Docker Compose
-- **Database**: SQLite
-- **Communication**: ConnectRPC
+| Component | Technology |
+|-----------|------------|
+| Backend | Go 1.25+ |
+| Frontend | SvelteKit + Bun |
+| Runtime | Docker Compose |
+| Database | SQLite |
+| Communication | ConnectRPC |
+
+## Documentation
+
+- [Quick Start](./quick-start) — Get up and running in minutes
+- [Core Concepts](./core-concepts) — Understand how Composia works
+- [Architecture](./architecture) — System architecture overview
+- [Configuration Guide](./configuration) — Platform and service configuration
+- [Service Definition](./service-definition) — How to define and manage services
+- [Deployment](./deployment) — Deploy, update, stop, and restart services
+- [Networking](./networking) — DNS and reverse proxy configuration
+- [Backup & Migration](./backup-migrate) — Data protection and migration strategies
+- [Operations](./operations) — Task system and resource management
+- [Development](./development) — Set up local development environment
 
 ## License
 
-Composia is released under the AGPL-3.0 open source license.
+Composia is released under the [AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html) open source license.

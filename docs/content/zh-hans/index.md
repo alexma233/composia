@@ -4,8 +4,8 @@ layout: home
 
 hero:
   name: "Composia"
-  text: "Docker Compose 魔法管理"
-  tagline: 围绕服务定义、单一控制平面和多个执行代理构建的自托管服务管理器
+  text: "Docker Compose 服务管理平台"
+  tagline: 基于服务定义、单一控制平面和多代理架构的自托管服务管理器
   image:
     src: /logo.svg
     alt: Composia
@@ -19,7 +19,7 @@ hero:
 
 features:
   - title: 🐳 原生 Docker Compose
-    details: 完全基于 Docker Compose，无需学习新的配置格式，使用熟悉的 YAML 定义服务。
+    details: 完全兼容 Docker Compose，无需学习新的配置格式，使用熟悉的 YAML 定义服务。
   - title: 🎛️ 单一控制平面
     details: 集中式控制平面管理所有服务和节点，提供统一的视图和控制接口。
   - title: 🤖 多代理架构

@@ -1,21 +1,28 @@
 # 简介
 
-Composia 是一个围绕服务定义、单一控制平面和一个或多个执行代理构建的自托管服务管理器。
+Composia 是一个围绕服务定义、单一控制平面和多个执行代理构建的自托管服务管理平台。
 
 ## 什么是 Composia？
 
 Composia 让你能够：
 
-- **管理 Docker Compose 服务** - 使用熟悉的 Docker Compose YAML 文件定义服务
-- **多节点部署** - 将服务部署到多个节点（代理）上
-- **集中控制** - 通过单一控制平面管理所有服务和节点
-- **实时监控** - 查看服务状态、日志和资源使用情况
+- **管理 Docker Compose 服务** —— 使用熟悉的 Docker Compose YAML 文件定义服务
+- **多节点部署** —— 将服务部署到多个节点（代理）上
+- **集中控制** —— 通过单一控制平面管理所有服务和节点
+- **实时监控** —— 查看服务状态、日志和资源使用情况
+
+## 适用场景
+
+- 个人或团队需要管理多个 Docker 服务
+- 需要在多台服务器上部署和协调服务
+- 希望通过 Web 界面直观管理容器化应用
+- 需要自动化备份、DNS 管理等运维能力
 
 ## 核心概念
 
 ### 服务定义（Service Definitions）
 
-Composia 使用 `composia-meta.yaml` 文件来定义服务元数据，结合标准的 `docker-compose.yaml` 文件：
+Composia 使用 `composia-meta.yaml` 文件定义服务元数据，结合标准的 `docker-compose.yaml` 文件：
 
 ```yaml
 # composia-meta.yaml
@@ -26,7 +33,7 @@ version: "1.0"
 
 ### 控制平面（Control Plane）
 
-控制平面是 Composia 的大脑，负责：
+控制平面是 Composia 的核心，负责：
 
 - 管理服务定义和配置
 - 协调代理节点
@@ -44,12 +51,27 @@ version: "1.0"
 
 ## 技术栈
 
-- **后端**: Go 1.25+
-- **前端**: SvelteKit + Bun
-- **运行时**: Docker Compose
-- **数据库**: SQLite
-- **通信**: ConnectRPC
+| 组件 | 技术 |
+|------|------|
+| 后端 | Go 1.25+ |
+| 前端 | SvelteKit + Bun |
+| 运行时 | Docker Compose |
+| 数据库 | SQLite |
+| 通信 | ConnectRPC |
+
+## 文档导航
+
+- [快速开始](./quick-start) —— 几分钟内启动并运行
+- [核心概念](./core-concepts) —— 理解 Composia 的工作原理
+- [架构概览](./architecture) —— 系统架构详解
+- [配置指南](./configuration) —— 平台和服务配置说明
+- [服务定义](./service-definition) —— 如何定义和管理服务
+- [部署管理](./deployment) —— 部署、更新、停止和重启
+- [网络配置](./networking) —— DNS 和反向代理配置
+- [备份与迁移](./backup-migrate) —— 数据保护和迁移策略
+- [日常运维](./operations) —— 任务系统和资源管理
+- [开发指南](./development) —— 本地开发环境搭建
 
 ## 许可证
 
-Composia 采用 AGPL-3.0 开源许可证发布。
+Composia 采用 [AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html) 开源许可证发布。

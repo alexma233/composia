@@ -1,0 +1,337 @@
+# Backup & Migration
+
+This document explains Composia's data backup and migration features.
+
+## Backup Functionality
+
+### Overview
+
+Composia's backup functionality is based on the following components:
+
+- **rustic**: Backup engine supporting incremental backups, encryption, and compression
+- **data_protect**: Defines data items that can be backed up and their strategies
+- **backup**: Defines which data items participate in backups
+
+### 1. Deploy Rustic Infrastructure
+
+Create a rustic infrastructure service:
+
+```yaml
+# infra-backup/composia-meta.yaml
+name: infra-backup
+nodes:
+  - main
+
+infra:
+  rustic:
+    compose_service: rustic
+    profile: default
+```
+
+```yaml
+# infra-backup/docker-compose.yaml
+services:
+  rustic:
+    image: rustic:latest
+    volumes:
+      - ./config:/config
+      - ./repo:/repo
+      - /var/lib/composia:/data:ro  # Mount Composia data
+    command: rustic -c /config/rustic.toml
+```
+
+```toml
+# infra-backup/config/rustic.toml
+[repository]
+repository = "/repo"
+password = "your-backup-password"
+
+[backup]
+exclude-if-present = [".nobackup"]
+```
+
+### 2. Controller Configuration
+
+```yaml
+controller:
+  rustic:
+    main_nodes:
+      - "main"    # Specify which nodes can perform backups
+```
+
+### 3. Business Service Configuration
+
+Configure data protection strategy:
+
+```yaml
+# my-app/composia-meta.yaml
+name: my-app
+nodes:
+  - main
+
+data_protect:
+  data:
+    - name: uploads
+      backup:
+        strategy: files.copy
+        include:
+          - ./data/uploads
+        exclude:
+          - ./data/uploads/temp
+      restore:
+        strategy: files.copy
+        include:
+          - ./data/uploads
+    
+    - name: database
+      backup:
+        strategy: database.pgdumpall
+        service: postgres      # Compose service name
+      restore:
+        strategy: files.copy
+        include:
+          - ./restore/
+
+backup:
+  data:
+    - name: uploads
+      provider: rustic
+    - name: database
+      provider: rustic
+```
+
+### Backup Strategies
+
+| Strategy | Description | Use Case |
+|----------|-------------|----------|
+| `files.copy` | Direct file copy | Static files, upload directories |
+| `files.tar_after_stop` | Archive after stopping service | Data requiring consistency |
+| `database.pgdumpall` | PostgreSQL full export | PostgreSQL databases |
+
+### Execute Backup
+
+**Web UI:**
+1. Navigate to the **Services** page
+2. Find the target service
+3. Click the **Backup** button
+4. Select data items to backup
+
+**API:**
+
+```bash
+curl -X POST http://localhost:7001/api/v1/services/my-app/backup \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data_items": ["uploads", "database"]
+  }'
+```
+
+### View Backups
+
+After backup completes, view in the **Backups** page:
+
+| Field | Description |
+|-------|-------------|
+| Service | Service the backup belongs to |
+| Data Item | Name of the data item |
+| Snapshot ID | Rustic snapshot ID |
+| Size | Backup size |
+| Time | Backup timestamp |
+| Status | Success/Failed |
+
+### Backup Best Practices
+
+1. **Regular Backups**
+   - Daily backups for important data
+   - Database backups during off-peak hours
+
+2. **Backup Verification**
+   - Regularly test restore procedures
+   - Verify backup integrity
+
+3. **Retention Policy**
+   - Configure rustic forget policy
+   - Keep daily snapshots for the last 7 days
+   - Keep monthly and yearly snapshots
+
+4. **Offsite Backup**
+   - Configure rustic rclone backend
+   - Sync to object storage (S3, B2, etc.)
+
+## Migration Functionality
+
+### Overview
+
+Migration allows you to move service instances from one node to another while maintaining data integrity.
+
+### Migration Flow
+
+```
+Source Node                 Target Node
+   │                           │
+   ▼                           │
+Export Data ◄─────────────────┤
+   │                           │
+Stop Instance ◄───────────────┤
+   │                           │
+Unload Config                 │
+   │                           │
+   ├──────────────────────────►│
+   │                          Import Data
+   │                           │
+   ├──────────────────────────►│
+   │                          Start Instance
+   │                           │
+Update DNS ◄──────────────────┤
+   │                           │
+Update nodes config           │
+```
+
+### Migration Configuration
+
+Configure in `composia-meta.yaml`:
+
+```yaml
+name: my-app
+nodes:
+  - main      # Currently deployed node
+
+# Data protection (both backup and restore must be configured)
+data_protect:
+  data:
+    - name: uploads
+      backup:
+        strategy: files.copy
+        include:
+          - ./data/uploads
+      restore:
+        strategy: files.copy
+        include:
+          - ./data/uploads
+
+# Data carried over during migration
+migrate:
+  data:
+    - name: uploads
+```
+
+### Execute Migration
+
+**Web UI:**
+1. Go to service detail page
+2. Find the instance to migrate in the **Instances** tab
+3. Click the **Migrate** button
+4. Select target node
+5. Confirm migration
+
+**API:**
+
+```bash
+curl -X POST http://localhost:7001/api/v1/services/my-app/migrate \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source_node": "main",
+    "target_node": "edge",
+    "data_items": ["uploads"]
+  }'
+```
+
+### Migration Steps Detail
+
+1. **Source Node Data Export**
+   - Execute backup task
+   - Package and transfer data
+
+2. **Source Instance Stop**
+   - Stop Docker Compose service
+   - Unload Caddy configuration
+
+3. **Source Node Caddy Reload**
+   - Remove proxy configuration
+
+4. **Target Node Data Restore**
+   - Extract data to target path
+   - Execute restore strategy
+
+5. **Target Instance Start**
+   - Deploy service to target node
+   - Mount Caddy configuration
+
+6. **Target Node Caddy Reload**
+   - Load new proxy configuration
+
+7. **DNS Update**
+   - Update DNS record to point to new node
+
+8. **Configuration Write-Back**
+   - Update `nodes` in `composia-meta.yaml`
+   - Commit to Git repository
+
+### Migration Considerations
+
+**Prerequisites:**
+- Service must be deployed on source node
+- Target node must be online and available
+- Data items must have both `backup` and `restore` strategies configured
+
+**Downtime:**
+- Migration causes brief service interruption
+- Interruption time depends on data size and network speed
+- Recommended to perform during off-peak hours
+
+**Data Consistency:**
+- Source instance is stopped before migration
+- Ensures no data being written
+- For databases, use export strategies
+
+### Migration Failure Handling
+
+If migration fails:
+1. Check task logs to locate the problem
+2. Source instance attempts recovery (depending on failure stage)
+3. Manual rollback possible:
+   - Redeploy on source node
+   - Stop and clean up on target node
+   - Restore DNS records
+
+## Restore Functionality
+
+### Current Status
+
+- Restore capability is used in migration flow
+- Standalone complete restore workflow is still being improved
+- Data can be restored manually
+
+### Manual Restore
+
+1. Find backup record in Web UI
+2. Get snapshot ID
+3. Execute in rustic container:
+
+```bash
+rustic restore <snapshot-id>:/path/to/backup /path/to/restore
+```
+
+4. Restart service to apply restored data
+
+## Scheduled Backups (In Development)
+
+Currently Composia only supports manual backup triggers. Scheduled backup is under development.
+
+**Temporary Workaround:**
+- Use external cron to call API
+- Use CI/CD scheduled tasks
+
+```bash
+# Cron example (hourly backup)
+0 * * * * curl -X POST http://localhost:7001/api/v1/services/my-app/backup \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Related Documentation
+
+- [Service Definition](./service-definition) — Detailed data protection configuration
+- [Deployment](./deployment) — Service deployment flow
+- [Rustic Documentation](https://rustic.cli.rs/) — Backup engine reference

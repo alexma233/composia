@@ -4,13 +4,21 @@ This guide will help you get Composia up and running in minutes using pre-built 
 
 ## Prerequisites
 
-- Docker Engine + Docker Compose v2
+- Docker Engine 20.10+
+- Docker Compose v2.0+
 
 ## Installation
 
-### 1. Create configuration file
+### 1. Clone the Repository
 
-Create the configuration file for the container stack:
+```bash
+git clone https://forgejo.alexma.top/alexma233/composia.git
+cd composia
+```
+
+### 2. Create Configuration
+
+Create the platform configuration file:
 
 ```bash
 mkdir -p configs
@@ -30,14 +38,6 @@ controller:
       display_name: "Main"
       enabled: true
       token: "main-agent-token"
-  rustic:
-    main_nodes:
-      - "main"
-  secrets:
-    provider: age
-    identity_file: "/app/configs/age-identity.key"
-    recipient_file: "/app/configs/age-recipients.txt"
-    armor: true
 
 agent:
   controller_addr: "http://controller:7001"
@@ -48,47 +48,68 @@ agent:
 EOF
 ```
 
-### 2. Start the stack
+### 3. Start the Stack
 
 ```bash
 docker compose up -d
 ```
 
-By default, `docker-compose.yaml` uses the self-hosted Forgejo registry.
-If you prefer GHCR, replace the image references in `docker-compose.yaml` with:
+This will start the following services:
 
-```yaml
-ghcr.io/alexma233/composia:latest
-ghcr.io/alexma233/composia-web:latest
-```
+| Service | Port | Description |
+|---------|------|-------------|
+| controller | `:7001` | Control Plane API |
+| web | `:3000` | Web Management Interface |
+| agent | - | Execution Agent (connects to local Docker) |
 
-This will pull the pre-built images and start:
-- `controller` on `:7001`
-- `web` on `:3000`
-- `agent` connected to the local Docker socket
+### 4. Access the Interface
 
-### 3. Access the interface
+Open your browser and visit `http://localhost:3000`. Log in with the default token:
 
-Open your browser and visit `http://localhost:3000` to view the web interface.
+- **CLI Token**: `dev-admin-token`
 
-The default development CLI token is `dev-admin-token`.
+### 5. Deploy Your First Service
 
-Published images:
-- Default: `forgejo.alexma.top/alexma233/composia` and `forgejo.alexma.top/alexma233/composia-web`
-- Alternative: `ghcr.io/alexma233/composia` and `ghcr.io/alexma233/composia-web`
+1. Navigate to the **Services** page in the web interface
+2. Click **New Service**
+3. Enter a service name and select the target node
+4. Add your `docker-compose.yaml` content in the editor
+5. Click **Deploy**
 
-### 4. Stop the stack
+### 6. Stop the Stack
 
 ```bash
 docker compose down
 ```
 
+To remove data volumes as well, add the `-v` flag:
+
+```bash
+docker compose down -v
+```
+
+## Image Registry Options
+
+By default, the `docker-compose.yaml` uses the self-hosted Forgejo registry. To use GitHub Container Registry instead, replace the image references:
+
+```yaml
+services:
+  controller:
+    image: ghcr.io/alexma233/composia:latest
+  
+  web:
+    image: ghcr.io/alexma233/composia-web:latest
+  
+  agent:
+    image: ghcr.io/alexma233/composia:latest
+```
+
 ## Next Steps
 
-- Learn about the [Architecture](./architecture)
-- Check the API documentation
-- Deploy your first service
+- [Core Concepts](./core-concepts) — Understand the relationship between Services, Instances, Containers, and Nodes
+- [Configuration Guide](./configuration) — Learn how to configure the controller and agents
+- [Architecture](./architecture) — Understand how the system works
 
-## Development
+## Local Development
 
-For local development with source code, see the [Development Guide](./development).
+For development with source code, see the [Development Guide](./development).
