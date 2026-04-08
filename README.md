@@ -96,6 +96,13 @@ The compose stack starts these services:
 
 Access the web UI at `http://localhost:3000`.
 
+Pre-built images are published to:
+
+- `forgejo.alexma.top/alexma233/composia`
+- `forgejo.alexma.top/alexma233/composia-web`
+- `ghcr.io/alexma233/composia`
+- `ghcr.io/alexma233/composia-web`
+
 To stop the stack:
 
 ```bash
@@ -103,6 +110,13 @@ docker compose down
 ```
 
 Note: The example config uses a development CLI token (`dev-admin-token`). For production, generate your own tokens and update `configs/config.compose.yaml`.
+
+The release workflows publish to both Forgejo Registry and GHCR. Configure these repository secrets for automated pushes:
+
+- `REGISTRY_USERNAME`
+- `REGISTRY_PASSWORD`
+- `GHCR_USERNAME`
+- `GHCR_TOKEN`
 
 ## Development
 
