@@ -158,15 +158,15 @@ dist
 .pnp.*
 
 # Local runtime state
-bin/
-state/
-repo/
-agent-repo/
-state-controller/
-state-agent/
-repo-controller/
-repo-agent/
-repo-agent-node-2/
+/bin/
+/state/
+/repo/
+/agent-repo/
+/state-controller/
+/state-agent/
+/repo-controller/
+/repo-agent/
+/repo-agent-node-2/
 
 # Bun / SvelteKit
 bun.lockb
