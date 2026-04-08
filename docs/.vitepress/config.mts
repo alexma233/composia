@@ -161,7 +161,8 @@ export default defineConfig({
               items: [
                 { text: 'Introduction', link: '/guide/' },
                 { text: 'Quick Start', link: '/guide/quick-start' },
-                { text: 'Architecture', link: '/guide/architecture' }
+                { text: 'Architecture', link: '/guide/architecture' },
+                { text: 'Development', link: '/guide/development' }
               ]
             }
           ]
@@ -207,7 +208,8 @@ export default defineConfig({
               items: [
                 { text: '简介', link: '/zh-hans/guide/' },
                 { text: '快速开始', link: '/zh-hans/guide/quick-start' },
-                { text: '架构', link: '/zh-hans/guide/architecture' }
+                { text: '架构', link: '/zh-hans/guide/architecture' },
+                { text: '开发', link: '/zh-hans/guide/development' }
               ]
             }
           ]
