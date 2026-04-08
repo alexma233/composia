@@ -20,6 +20,12 @@
       <img src="https://img.shields.io/badge/Tangled-View%20Repo-blue?style=flat-square" alt="Tangled" />
     </a>
   </p>
+
+  <p>
+    <a href="https://docs.composia.xyz">
+      <strong>📚 Documentation</strong>
+    </a>
+  </p>
 </div>
 
 Composia is a self-hosted service manager built around service definitions, a single control plane, and one or more execution agents.
