@@ -2706,14 +2706,9 @@ func (server *repoServer) UpdateRepoFile(ctx context.Context, req *connect.Reque
 	if req.Msg.GetBaseRevision() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base_revision is required"))
 	}
-	server.repoLock().Lock()
-	defer server.repoLock().Unlock()
-
-	baseSyncState, err := server.prepareRepoWrite(ctx, req.Msg.GetBaseRevision(), req.Msg.GetPath())
-	if err != nil {
-		return nil, err
-	}
-	result, err := server.updateRepoFileTransaction(ctx, req.Msg.GetPath(), req.Msg.GetContent(), req.Msg.GetCommitMessage(), baseSyncState)
+	result, err := server.runRepoWrite(ctx, req.Msg.GetBaseRevision(), []string{req.Msg.GetPath()}, func(baseSyncState store.RepoSyncState) (repoWriteResult, error) {
+		return server.updateRepoFileTransaction(ctx, req.Msg.GetPath(), req.Msg.GetContent(), req.Msg.GetCommitMessage(), baseSyncState)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -2732,14 +2727,9 @@ func (server *repoServer) CreateRepoDirectory(ctx context.Context, req *connect.
 	if req.Msg.GetBaseRevision() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base_revision is required"))
 	}
-	server.repoLock().Lock()
-	defer server.repoLock().Unlock()
-
-	baseSyncState, err := server.prepareRepoWritePaths(ctx, req.Msg.GetBaseRevision(), []string{req.Msg.GetPath()})
-	if err != nil {
-		return nil, err
-	}
-	result, err := server.createRepoDirectoryTransaction(ctx, req.Msg.GetPath(), req.Msg.GetCommitMessage(), baseSyncState)
+	result, err := server.runRepoWrite(ctx, req.Msg.GetBaseRevision(), []string{req.Msg.GetPath()}, func(baseSyncState store.RepoSyncState) (repoWriteResult, error) {
+		return server.createRepoDirectoryTransaction(ctx, req.Msg.GetPath(), req.Msg.GetCommitMessage(), baseSyncState)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -2758,14 +2748,9 @@ func (server *repoServer) MoveRepoPath(ctx context.Context, req *connect.Request
 	if req.Msg.GetBaseRevision() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base_revision is required"))
 	}
-	server.repoLock().Lock()
-	defer server.repoLock().Unlock()
-
-	baseSyncState, err := server.prepareRepoWritePaths(ctx, req.Msg.GetBaseRevision(), []string{req.Msg.GetSourcePath(), req.Msg.GetDestinationPath()})
-	if err != nil {
-		return nil, err
-	}
-	result, err := server.moveRepoPathTransaction(ctx, req.Msg.GetSourcePath(), req.Msg.GetDestinationPath(), req.Msg.GetCommitMessage(), baseSyncState)
+	result, err := server.runRepoWrite(ctx, req.Msg.GetBaseRevision(), []string{req.Msg.GetSourcePath(), req.Msg.GetDestinationPath()}, func(baseSyncState store.RepoSyncState) (repoWriteResult, error) {
+		return server.moveRepoPathTransaction(ctx, req.Msg.GetSourcePath(), req.Msg.GetDestinationPath(), req.Msg.GetCommitMessage(), baseSyncState)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -2784,14 +2769,9 @@ func (server *repoServer) DeleteRepoPath(ctx context.Context, req *connect.Reque
 	if req.Msg.GetBaseRevision() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base_revision is required"))
 	}
-	server.repoLock().Lock()
-	defer server.repoLock().Unlock()
-
-	baseSyncState, err := server.prepareRepoWritePaths(ctx, req.Msg.GetBaseRevision(), []string{req.Msg.GetPath()})
-	if err != nil {
-		return nil, err
-	}
-	result, err := server.deleteRepoPathTransaction(ctx, req.Msg.GetPath(), req.Msg.GetCommitMessage(), baseSyncState)
+	result, err := server.runRepoWrite(ctx, req.Msg.GetBaseRevision(), []string{req.Msg.GetPath()}, func(baseSyncState store.RepoSyncState) (repoWriteResult, error) {
+		return server.deleteRepoPathTransaction(ctx, req.Msg.GetPath(), req.Msg.GetCommitMessage(), baseSyncState)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -2808,6 +2788,17 @@ func (server *repoServer) repoLock() *sync.Mutex {
 		server.repoMu = &sync.Mutex{}
 	}
 	return server.repoMu
+}
+
+func (server *repoServer) runRepoWrite(ctx context.Context, baseRevision string, relativePaths []string, run func(baseSyncState store.RepoSyncState) (repoWriteResult, error)) (repoWriteResult, error) {
+	server.repoLock().Lock()
+	defer server.repoLock().Unlock()
+
+	baseSyncState, err := server.prepareRepoWritePaths(ctx, baseRevision, relativePaths)
+	if err != nil {
+		return repoWriteResult{}, err
+	}
+	return run(baseSyncState)
 }
 
 func (server *repoServer) hasConfiguredRemote() bool {
@@ -2921,25 +2912,42 @@ func (server *repoServer) prepareRepoWrite(ctx context.Context, baseRevision, re
 }
 
 func (server *repoServer) prepareRepoWritePaths(ctx context.Context, baseRevision string, relativePaths []string) (store.RepoSyncState, error) {
-	if server.hasConfiguredRemote() {
-		if _, err := server.syncRepoLocked(ctx); err != nil {
-			return store.RepoSyncState{}, err
-		}
-	}
-	currentRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
-	if err != nil {
-		return store.RepoSyncState{}, connect.NewError(connect.CodeInternal, err)
-	}
-	if currentRevision != baseRevision {
-		return store.RepoSyncState{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("base_revision %q does not match current HEAD %q", baseRevision, currentRevision))
-	}
-	if err := server.ensureCleanWorktree(); err != nil {
+	if err := server.syncRepoBeforeWrite(ctx); err != nil {
 		return store.RepoSyncState{}, err
 	}
-	if err := server.ensureRepoPathsUnlocked(ctx, relativePaths...); err != nil {
+	if err := server.verifyRepoWriteBaseRevision(baseRevision); err != nil {
+		return store.RepoSyncState{}, err
+	}
+	if err := server.verifyRepoWriteAllowed(ctx, relativePaths...); err != nil {
 		return store.RepoSyncState{}, err
 	}
 	return server.repoSyncState(ctx)
+}
+
+func (server *repoServer) syncRepoBeforeWrite(ctx context.Context) error {
+	if !server.hasConfiguredRemote() {
+		return nil
+	}
+	_, err := server.syncRepoLocked(ctx)
+	return err
+}
+
+func (server *repoServer) verifyRepoWriteBaseRevision(baseRevision string) error {
+	currentRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	if currentRevision != baseRevision {
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("base_revision %q does not match current HEAD %q", baseRevision, currentRevision))
+	}
+	return nil
+}
+
+func (server *repoServer) verifyRepoWriteAllowed(ctx context.Context, relativePaths ...string) error {
+	if err := server.ensureCleanWorktree(); err != nil {
+		return err
+	}
+	return server.ensureRepoPathsUnlocked(ctx, relativePaths...)
 }
 
 func (server *repoServer) refreshDeclaredServices(ctx context.Context) error {
@@ -3164,12 +3172,20 @@ func (server *repoServer) commitRepoPaths(primaryPath string, relativePaths []st
 }
 
 func (server *repoServer) finalizeRepoWrite(ctx context.Context, commitID string, baseSyncState store.RepoSyncState) (repoWriteResult, error) {
+	result, err := server.finalizeRepoGitState(ctx, commitID, baseSyncState)
+	if err != nil {
+		return repoWriteResult{}, err
+	}
+	if err := server.refreshDeclaredServices(ctx); err != nil {
+		return repoWriteResult{}, err
+	}
+	return result, nil
+}
+
+func (server *repoServer) finalizeRepoGitState(ctx context.Context, commitID string, baseSyncState store.RepoSyncState) (repoWriteResult, error) {
 	result := repoWriteResult{CommitID: commitID, SyncStatus: baseSyncState.SyncStatus, LastSuccessfulPullAt: baseSyncState.LastSuccessfulPullAt}
 	if !server.hasConfiguredRemote() {
 		result.SyncStatus = store.RepoSyncStatusLocalOnly
-		if err := server.refreshDeclaredServices(ctx); err != nil {
-			return repoWriteResult{}, err
-		}
 		return result, nil
 	}
 	branch, err := server.configuredRemoteBranch()
@@ -3181,9 +3197,6 @@ func (server *repoServer) finalizeRepoWrite(ctx context.Context, commitID string
 		return repoWriteResult{}, connect.NewError(connect.CodeInternal, err)
 	}
 	if err := repo.PushCurrentBranch(server.cfg.RepoDir, strings.TrimSpace(server.cfg.Git.RemoteURL), branch, authToken); err != nil {
-		if refreshErr := server.refreshDeclaredServices(ctx); refreshErr != nil {
-			return repoWriteResult{}, refreshErr
-		}
 		state := store.RepoSyncState{
 			SyncStatus:           store.RepoSyncStatusPushFailed,
 			LastSyncError:        err.Error(),
@@ -3204,9 +3217,6 @@ func (server *repoServer) finalizeRepoWrite(ctx context.Context, commitID string
 	}
 	if err := server.persistRepoSyncState(ctx, state); err != nil {
 		return repoWriteResult{}, connect.NewError(connect.CodeInternal, err)
-	}
-	if err := server.refreshDeclaredServices(ctx); err != nil {
-		return repoWriteResult{}, err
 	}
 	result.SyncStatus = state.SyncStatus
 	result.LastSuccessfulPullAt = state.LastSuccessfulPullAt
@@ -3278,17 +3288,13 @@ func (server *secretServer) UpdateSecret(ctx context.Context, req *connect.Reque
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	repoSrv := &repoServer{db: server.db, cfg: server.cfg, availableNodeIDs: server.availableNodeIDs, repoMu: server.repoMu}
-	repoSrv.repoLock().Lock()
-	defer repoSrv.repoLock().Unlock()
-	baseSyncState, err := repoSrv.prepareRepoWrite(ctx, req.Msg.GetBaseRevision(), filePath)
-	if err != nil {
-		return nil, err
-	}
 	commitMessage := req.Msg.GetCommitMessage()
 	if commitMessage == "" {
 		commitMessage = fmt.Sprintf("update encrypted file %s for %s", req.Msg.GetFilePath(), service.Name)
 	}
-	result, err := repoSrv.updateRepoFileTransaction(ctx, filePath, string(ciphertext), commitMessage, baseSyncState)
+	result, err := repoSrv.runRepoWrite(ctx, req.Msg.GetBaseRevision(), []string{filePath}, func(baseSyncState store.RepoSyncState) (repoWriteResult, error) {
+		return repoSrv.updateRepoFileTransaction(ctx, filePath, string(ciphertext), commitMessage, baseSyncState)
+	})
 	if err != nil {
 		return nil, err
 	}

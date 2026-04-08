@@ -141,6 +141,12 @@ This document turns `plan.md` into a practical execution order for the current r
 
 目标：让 controller 完全按照文档管理 Git-backed desired state 变更，并与 multi-node repo 语义对齐。
 
+已完成：
+1. Repo 写接口统一使用共享的写事务模板：串行 `repoMu`、写前 remote sync、`base_revision` 校验、dirty worktree 拒绝、active service task 冲突检查。
+2. Repo 文件写入、目录创建、路径移动、路径删除、secret 写入都复用同一套 repo 写前检查和本地 commit 语义。
+3. Repo 写事务内部已整理为清晰边界：写前检查、具体 mutation、Git 收尾（push/sync state）、declared services 刷新分别收口。
+4. Push 失败时保留本地 commit，并继续通过 repo sync state 向 API/UI 报告 `push_failed`。
+
 待完成：
 1. Repo lock 处理、验证、服务冲突检查和本地 commit 创建继续有效。
 2. `composia-meta.yaml.nodes` 的改写逻辑与迁移工作流对齐。
