@@ -10,6 +10,7 @@ const (
 	TypeRestart       Type = "restart"
 	TypeUpdate        Type = "update"
 	TypeBackup        Type = "backup"
+	TypeRestore       Type = "restore"
 	TypeMigrate       Type = "migrate"
 	TypeDNSUpdate     Type = "dns_update"
 	TypeCaddySync     Type = "caddy_sync"
@@ -98,7 +99,7 @@ type StepRecord struct {
 
 func IsControllerOwnedType(taskType Type) bool {
 	switch taskType {
-	case TypeDNSUpdate:
+	case TypeDNSUpdate, TypeMigrate:
 		return true
 	default:
 		return false

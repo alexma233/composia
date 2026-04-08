@@ -83,6 +83,7 @@ func Run(ctx context.Context, configPath string) error {
 	if _, err := db.RecoverRunningTasks(ctx, time.Now().UTC()); err != nil {
 		return err
 	}
+	repoMu := &sync.Mutex{}
 	taskQueue := newTaskQueueNotifier()
 	taskResults := newTaskResultNotifier()
 	execManager := newExecTunnelManager()
@@ -98,7 +99,7 @@ func Run(ctx context.Context, configPath string) error {
 	if err := db.SyncDeclaredServices(ctx, declaredServices); err != nil {
 		return err
 	}
-	go runControllerTasks(ctx, &controllerTaskExecutor{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, dnsProviders: defaultDNSProviderFactory{}})
+	go runControllerTasks(ctx, &controllerTaskExecutor{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, dnsProviders: defaultDNSProviderFactory{}, taskResults: taskResults, repoMu: repoMu})
 
 	mux := http.NewServeMux()
 	agentTokens := cfg.NodeTokenMap()
@@ -119,8 +120,6 @@ func Run(ctx context.Context, configPath string) error {
 		}
 		return name, nil
 	})
-	repoMu := &sync.Mutex{}
-
 	registerAgentHandlers(mux, cfg, db, agentInterceptor, taskQueue, taskResults, execManager)
 	registerCLIHandlers(mux, cfg, db, cliInterceptor, availableNodeIDs, taskQueue, taskResults, execManager, repoMu)
 	mux.HandleFunc("/ws/container-exec/", execManager.handleWebsocket)
@@ -757,6 +756,15 @@ func bundleExtraFiles(cfg *config.ControllerConfig, record task.Record, params s
 			extraFiles[filepath.ToSlash(filepath.Join(params.ServiceDir, ".composia-backup.json"))] = payload
 		}
 	}
+	if record.Type == task.TypeRestore {
+		payload, err := buildRestoreRuntimePayload(cfg, record.ServiceName, record.NodeID, record.RepoRevision, params)
+		if err != nil {
+			return nil, err
+		}
+		if payload != "" {
+			extraFiles[filepath.ToSlash(filepath.Join(params.ServiceDir, ".composia-restore.json"))] = payload
+		}
+	}
 	if len(extraFiles) == 0 {
 		return nil, nil
 	}
@@ -839,6 +847,51 @@ func buildBackupRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeID
 	payload, err := json.Marshal(backupcfg.RuntimeConfig{Rustic: &backupcfg.RusticConfig{ServiceName: rusticService.Name, ServiceDir: rusticServiceDir, ComposeService: rusticService.Meta.RusticComposeService(), Profile: rusticService.Meta.RusticProfile(), NodeID: nodeID}, Items: items})
 	if err != nil {
 		return "", fmt.Errorf("marshal backup runtime config for %s at %s: %w", serviceName, revision, err)
+	}
+	return string(payload), nil
+}
+
+func buildRestoreRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeID, revision string, params serviceTaskParams) (string, error) {
+	service, err := repo.FindService(cfg.RepoDir, configuredNodeIDs(cfg), serviceName)
+	if err != nil {
+		return "", err
+	}
+	rusticService, err := repo.FindRusticInfraService(cfg.RepoDir, configuredNodeIDs(cfg))
+	if err != nil {
+		return "", err
+	}
+	if !slices.Contains(rusticService.TargetNodes, nodeID) {
+		return "", fmt.Errorf("rustic infra service is not declared on node %q", nodeID)
+	}
+	rusticServiceDir, err := filepath.Rel(cfg.RepoDir, rusticService.Directory)
+	if err != nil {
+		return "", fmt.Errorf("resolve rustic service directory: %w", err)
+	}
+	artifactsByName := make(map[string]string, len(params.RestoreItems))
+	for _, item := range params.RestoreItems {
+		if item.DataName == "" || item.ArtifactRef == "" {
+			continue
+		}
+		artifactsByName[item.DataName] = item.ArtifactRef
+	}
+	items := make([]backupcfg.RestoreItem, 0, len(params.RestoreItems))
+	for _, data := range service.Meta.DataProtect.Data {
+		artifactRef, ok := artifactsByName[data.Name]
+		if !ok || data.Restore == nil {
+			continue
+		}
+		items = append(items, backupcfg.RestoreItem{
+			Name:        data.Name,
+			Strategy:    data.Restore.Strategy,
+			Service:     data.Restore.Service,
+			Include:     append([]string(nil), data.Restore.Include...),
+			Provider:    "rustic",
+			ArtifactRef: artifactRef,
+		})
+	}
+	payload, err := json.Marshal(backupcfg.RestoreConfig{Rustic: &backupcfg.RusticConfig{ServiceName: rusticService.Name, ServiceDir: rusticServiceDir, ComposeService: rusticService.Meta.RusticComposeService(), Profile: rusticService.Meta.RusticProfile(), NodeID: nodeID}, Items: items})
+	if err != nil {
+		return "", fmt.Errorf("marshal restore runtime config for %s at %s: %w", serviceName, revision, err)
 	}
 	return string(payload), nil
 }
@@ -1128,10 +1181,19 @@ type serviceInstanceServer struct {
 }
 
 type serviceTaskParams struct {
-	ServiceDir  string   `json:"service_dir"`
-	ServiceDirs []string `json:"service_dirs,omitempty"`
-	DataNames   []string `json:"data_names,omitempty"`
-	FullRebuild bool     `json:"full_rebuild,omitempty"`
+	ServiceDir   string            `json:"service_dir"`
+	ServiceDirs  []string          `json:"service_dirs,omitempty"`
+	DataNames    []string          `json:"data_names,omitempty"`
+	FullRebuild  bool              `json:"full_rebuild,omitempty"`
+	SourceNodeID string            `json:"source_node_id,omitempty"`
+	TargetNodeID string            `json:"target_node_id,omitempty"`
+	RestoreItems []restoreTaskItem `json:"restore_items,omitempty"`
+}
+
+type restoreTaskItem struct {
+	DataName     string `json:"data_name"`
+	ArtifactRef  string `json:"artifact_ref"`
+	SourceTaskID string `json:"source_task_id,omitempty"`
 }
 
 type rusticPruneTaskParams struct {

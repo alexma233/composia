@@ -53,6 +53,9 @@ const (
 	// ServiceServiceRunServiceActionProcedure is the fully-qualified name of the ServiceService's
 	// RunServiceAction RPC.
 	ServiceServiceRunServiceActionProcedure = "/composia.controller.v1.ServiceService/RunServiceAction"
+	// ServiceServiceMigrateServiceProcedure is the fully-qualified name of the ServiceService's
+	// MigrateService RPC.
+	ServiceServiceMigrateServiceProcedure = "/composia.controller.v1.ServiceService/MigrateService"
 	// ServiceInstanceServiceListServiceInstancesProcedure is the fully-qualified name of the
 	// ServiceInstanceService's ListServiceInstances RPC.
 	ServiceInstanceServiceListServiceInstancesProcedure = "/composia.controller.v1.ServiceInstanceService/ListServiceInstances"
@@ -72,6 +75,7 @@ type ServiceServiceClient interface {
 	GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error)
 	UpdateServiceTargetNodes(context.Context, *connect.Request[v1.UpdateServiceTargetNodesRequest]) (*connect.Response[v1.UpdateServiceTargetNodesResponse], error)
 	RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
+	MigrateService(context.Context, *connect.Request[v1.MigrateServiceRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 
 // NewServiceServiceClient constructs a client for the composia.controller.v1.ServiceService
@@ -121,6 +125,12 @@ func NewServiceServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(serviceServiceMethods.ByName("RunServiceAction")),
 			connect.WithClientOptions(opts...),
 		),
+		migrateService: connect.NewClient[v1.MigrateServiceRequest, v1.TaskActionResponse](
+			httpClient,
+			baseURL+ServiceServiceMigrateServiceProcedure,
+			connect.WithSchema(serviceServiceMethods.ByName("MigrateService")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -132,6 +142,7 @@ type serviceServiceClient struct {
 	getServiceBackups        *connect.Client[v1.GetServiceBackupsRequest, v1.GetServiceBackupsResponse]
 	updateServiceTargetNodes *connect.Client[v1.UpdateServiceTargetNodesRequest, v1.UpdateServiceTargetNodesResponse]
 	runServiceAction         *connect.Client[v1.RunServiceActionRequest, v1.TaskActionResponse]
+	migrateService           *connect.Client[v1.MigrateServiceRequest, v1.TaskActionResponse]
 }
 
 // ListServices calls composia.controller.v1.ServiceService.ListServices.
@@ -164,6 +175,11 @@ func (c *serviceServiceClient) RunServiceAction(ctx context.Context, req *connec
 	return c.runServiceAction.CallUnary(ctx, req)
 }
 
+// MigrateService calls composia.controller.v1.ServiceService.MigrateService.
+func (c *serviceServiceClient) MigrateService(ctx context.Context, req *connect.Request[v1.MigrateServiceRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return c.migrateService.CallUnary(ctx, req)
+}
+
 // ServiceServiceHandler is an implementation of the composia.controller.v1.ServiceService service.
 type ServiceServiceHandler interface {
 	ListServices(context.Context, *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error)
@@ -172,6 +188,7 @@ type ServiceServiceHandler interface {
 	GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error)
 	UpdateServiceTargetNodes(context.Context, *connect.Request[v1.UpdateServiceTargetNodesRequest]) (*connect.Response[v1.UpdateServiceTargetNodesResponse], error)
 	RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
+	MigrateService(context.Context, *connect.Request[v1.MigrateServiceRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 
 // NewServiceServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -217,6 +234,12 @@ func NewServiceServiceHandler(svc ServiceServiceHandler, opts ...connect.Handler
 		connect.WithSchema(serviceServiceMethods.ByName("RunServiceAction")),
 		connect.WithHandlerOptions(opts...),
 	)
+	serviceServiceMigrateServiceHandler := connect.NewUnaryHandler(
+		ServiceServiceMigrateServiceProcedure,
+		svc.MigrateService,
+		connect.WithSchema(serviceServiceMethods.ByName("MigrateService")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.controller.v1.ServiceService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ServiceServiceListServicesProcedure:
@@ -231,6 +254,8 @@ func NewServiceServiceHandler(svc ServiceServiceHandler, opts ...connect.Handler
 			serviceServiceUpdateServiceTargetNodesHandler.ServeHTTP(w, r)
 		case ServiceServiceRunServiceActionProcedure:
 			serviceServiceRunServiceActionHandler.ServeHTTP(w, r)
+		case ServiceServiceMigrateServiceProcedure:
+			serviceServiceMigrateServiceHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -262,6 +287,10 @@ func (UnimplementedServiceServiceHandler) UpdateServiceTargetNodes(context.Conte
 
 func (UnimplementedServiceServiceHandler) RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.RunServiceAction is not implemented"))
+}
+
+func (UnimplementedServiceServiceHandler) MigrateService(context.Context, *connect.Request[v1.MigrateServiceRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceService.MigrateService is not implemented"))
 }
 
 // ServiceInstanceServiceClient is a client for the composia.controller.v1.ServiceInstanceService

@@ -178,10 +178,10 @@ func claimNextPendingTaskForNode(ctx context.Context, tx *sql.Tx, nodeID string,
 		       status, COALESCE(params_json, ''), COALESCE(log_path, ''), COALESCE(repo_revision, ''),
 		       COALESCE(result_revision, ''), COALESCE(attempt_of_task_id, ''), created_at
 		FROM tasks
-		WHERE status = ? AND node_id = ? AND type != ?
+		WHERE status = ? AND node_id = ? AND type NOT IN (?, ?)
 		ORDER BY created_at ASC, task_id ASC
 		LIMIT 1
-	`, string(task.StatusPending), nodeID, string(task.TypeDNSUpdate))
+	`, string(task.StatusPending), nodeID, string(task.TypeDNSUpdate), string(task.TypeMigrate))
 }
 
 func claimNextPendingTaskOfType(ctx context.Context, tx *sql.Tx, taskType task.Type, startedAt time.Time) (task.Record, error) {

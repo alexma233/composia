@@ -236,23 +236,32 @@
 
 ## Phase 9: 最后添加迁移
 
-**状态：待开始**
+**状态：核心能力已完成，冲突/确认语义待完善**
 
 目标：仅在整个平台语义稳定后，实现最复杂的 v1 工作流。
 
-待实现：
-1. `MigrateService(target_node_id)` RPC
-2. `migrate` 任务类型，包括：
+已完成：
+1. `MigrateService(source_node_id, target_node_id)` RPC
+2. `migrate` controller 侧编排任务骨架已实现，当前流程为：
    - 源节点数据导出（使用 `migrate.data[]` 引用的 `backup` 定义）
-   - 数据和运行时文件传输到目标节点
+   - 源节点 service instance 停止
+   - 源节点 Caddy reload（当 service 启用 `network.caddy`）
    - 目标节点数据恢复（使用 `restore` 定义）
    - 目标节点 service instance 启动
-   - 刷新目标节点 Caddy 生成目录并触发目标节点 `caddy_reload`
-   - 重建源节点 Caddy 生成目录（移除旧服务片段）并触发源节点 `caddy_reload`
+   - 目标节点 Caddy reload（当 service 启用 `network.caddy`）
    - DNS 更新
    - `persist_repo` 阶段：修改 `composia-meta.yaml.nodes` 并 commit/push
-3. `awaiting_confirmation` 状态用于迁移后人工验证和 repo 对账
-4. 迁移冲突处理：当 `persist_repo` 时 `HEAD` 已变化但变化触及该服务目录
+3. 通用 restore 基础能力已实现，并已被 migrate 复用
+4. restore 当前支持：
+   - `files.copy`
+   - `files.untar`
+   - `database.pgimport`
+5. Web UI 已提供基础 `MigrateService` 入口
+
+待完善：
+1. `awaiting_confirmation` 状态仍未进入真实挂起/恢复工作流；当前 migrate 会直接执行到完成
+2. 迁移冲突处理：当 `persist_repo` 时 `HEAD` 已变化但变化触及该服务目录，仍需实现专门冲突语义
+3. 迁移 UI 仍是基础入口，缺少更强的确认与目标节点选择体验
 
 ---
 
@@ -266,7 +275,7 @@
 - [x] `UpdateServiceTargetNodes` - 定向改写 `composia-meta.yaml.nodes`
 - [x] `RunServiceAction` - 支持 `node_ids[]` 数组进行 fan-out，`data_names[]` 用于 backup
 - [x] `UpdateServiceDNS` - 通过 `RunServiceAction` + `SERVICE_ACTION_DNS_UPDATE` 实现
-- [ ] `MigrateService(target_node_id)` - 等待 Phase 9
+- [x] `MigrateService(source_node_id, target_node_id)` - 迁移基础能力已实现
 
 ### ServiceInstanceService
 - [x] `ListServiceInstances` - 返回 `ServiceInstanceSummary[]`
@@ -317,8 +326,8 @@ dns update
 4. ~~完成 `ContainerService` 的 logs/start/stop/restart/exec 基础接口~~ - 已完成
 5. ~~实现 `ReloadNodeCaddy` API 和 UI 入口~~ - 已完成
 6. ~~实现 `caddy_reload` 任务行为~~ - 已完成
-7. 实现 `MigrateService` UI 和后端（Phase 9）
-8. 实现 restore 任务执行（Phase 6 待完成项）
+7. 完善 migrate 的 `persist_repo` 冲突处理和 `awaiting_confirmation` 语义（Phase 9）
+8. 补全 restore 对外入口（备份详情页 restore、独立 restore 任务/API）
 9. 实现定时备份执行（Phase 6 待完成项）
 10. Web UI 增强：CodeMirror 检查与分屏能力、改进的 terminal 组件
 

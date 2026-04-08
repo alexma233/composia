@@ -131,6 +131,17 @@ export type ServiceAction =
   | "backup"
   | "dns_update";
 
+export async function migrateService(
+  serviceName: string,
+  sourceNodeId: string,
+  targetNodeId: string,
+): Promise<ServiceActionResult> {
+  return callServiceAction(
+    "/composia.controller.v1.ServiceService/MigrateService",
+    { serviceName, sourceNodeId, targetNodeId },
+  );
+}
+
 export type BackupSummary = {
   backupId: string;
   taskId: string;

@@ -17,6 +17,7 @@
   import DialogOverlay from '$lib/components/ui/dialog/dialog-overlay.svelte';
   import { Input } from '$lib/components/ui/input';
   import * as Popover from '$lib/components/ui/popover';
+  import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
   import { toast } from 'svelte-sonner';
   import { formatTimestamp, runtimeStatusTone, taskStatusTone } from '$lib/presenters';
   import type {
@@ -61,8 +62,11 @@
   let showServiceRename = $state(false);
   let renameServiceFolder = $state('');
   let workspace = $state<PageData['workspace']>(null);
+  let serviceDetail = $state<PageData['serviceDetail']>(null);
   let nodeContainers = $state<NonNullable<PageData['nodeContainers']>>([]);
   let refreshTimer = $state<ReturnType<typeof setTimeout> | null>(null);
+  let migrateSourceNode = $state('');
+  let migrateTargetNode = $state('');
 
   $effect(() => {
     fileTree = data.fileTree;
@@ -79,7 +83,10 @@
     errorMessage = data.error ?? '';
     renameServiceFolder = data.workspace?.folder ?? '';
     workspace = data.workspace;
+    serviceDetail = data.serviceDetail;
     nodeContainers = (data.nodeContainers ?? []) as NonNullable<PageData['nodeContainers']>;
+    migrateSourceNode = data.serviceDetail?.nodes?.[0] ?? '';
+    migrateTargetNode = '';
   });
 
   function createTab(file: WorkspaceFile): EditorTab {
@@ -94,6 +101,7 @@
   let canSave = $derived(Boolean(activeTab && activeTab.dirty && !saving));
   let selectedNode = $derived(selectedNodePath ? findNode(fileTree, selectedNodePath) : null);
   let recentTasks = $derived(tasks.filter((task) => isTaskRecent(task.createdAt)).slice(0, 4));
+  let migrateSourceNodes = $derived(serviceDetail?.nodes ?? []);
 
   $effect(() => {
     return () => stopActionRefresh();
@@ -531,6 +539,48 @@
     }
   }
 
+  async function triggerMigrate() {
+    if (!workspace?.isDeclared || !workspace?.serviceName || !migrateSourceNode || !migrateTargetNode.trim()) {
+      errorMessage = 'Select a source node and enter a target node.';
+      return;
+    }
+    actionBusy = 'migrate';
+    errorMessage = '';
+
+    try {
+      const response = await fetch(`/services/${workspace.folder}/workspace`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'migrate_service',
+          sourceNodeId: migrateSourceNode,
+          targetNodeId: migrateTargetNode.trim()
+        })
+      });
+      const payload = (await response.json()) as ServiceActionResult & { error?: string };
+      if (!response.ok || !payload.taskId) {
+        throw new Error(payload.error ?? 'Failed to run migrate.');
+      }
+      const newTask: TaskSummary = {
+        taskId: payload.taskId,
+        type: 'migrate',
+        status: payload.status,
+        serviceName: workspace.serviceName,
+        nodeId: migrateSourceNode,
+        createdAt: new Date().toISOString()
+      };
+      tasks = [newTask, ...tasks].slice(0, 12);
+      selectedTaskId = payload.taskId;
+      logsExpanded = true;
+      toast.success(`migrate queued as ${payload.taskId}`);
+      startActionRefresh(payload.taskId);
+    } catch (actionError) {
+      errorMessage = actionError instanceof Error ? actionError.message : 'Failed to run migrate.';
+    } finally {
+      actionBusy = '';
+    }
+  }
+
   async function renameServiceRoot() {
     if (!renameServiceFolder.trim()) {
       return;
@@ -808,6 +858,23 @@
             <Button type="button" variant="outline" onclick={() => triggerCaddySync()} disabled={!!actionBusy || !workspace?.isDeclared || !workspace?.node}>
               <Copy class="mr-2 size-4" />Sync Caddy file
             </Button>
+            <div class="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+              <div class="text-sm font-medium">Migrate instance</div>
+              <Select type="single" bind:value={migrateSourceNode as any}>
+                <SelectTrigger>
+                  <span>{migrateSourceNode || 'Select source node'}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  {#each migrateSourceNodes as nodeId}
+                    <SelectItem value={nodeId}>{nodeId}</SelectItem>
+                  {/each}
+                </SelectContent>
+              </Select>
+              <Input bind:value={migrateTargetNode} placeholder="target node id" />
+              <Button type="button" variant="outline" onclick={triggerMigrate} disabled={!!actionBusy || !workspace?.isDeclared || !migrateSourceNode || !migrateTargetNode.trim()}>
+                <RefreshCcw class="mr-2 size-4" />Migrate
+              </Button>
+            </div>
             <Button type="button" variant="outline" onclick={() => { showServiceRename = !showServiceRename; renameServiceFolder = workspace?.folder ?? ''; }} disabled={saving}>
               <Pencil class="mr-2 size-4" />Rename folder
             </Button>

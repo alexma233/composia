@@ -143,6 +143,31 @@ func (db *DB) GetBackup(ctx context.Context, backupID string) (BackupDetail, err
 	return detail, nil
 }
 
+func (db *DB) ListBackupsForTask(ctx context.Context, taskID string) ([]BackupDetail, error) {
+	rows, err := db.sql.QueryContext(ctx, `
+		SELECT backup_id, task_id, service_name, data_name, status, started_at, COALESCE(finished_at, ''), COALESCE(artifact_ref, ''), COALESCE(error_summary, '')
+		FROM backups
+		WHERE task_id = ?
+		ORDER BY data_name ASC, backup_id ASC
+	`, taskID)
+	if err != nil {
+		return nil, fmt.Errorf("list backups for task %q: %w", taskID, err)
+	}
+	defer rows.Close()
+	backups := make([]BackupDetail, 0)
+	for rows.Next() {
+		var detail BackupDetail
+		if err := rows.Scan(&detail.BackupID, &detail.TaskID, &detail.ServiceName, &detail.DataName, &detail.Status, &detail.StartedAt, &detail.FinishedAt, &detail.ArtifactRef, &detail.ErrorSummary); err != nil {
+			return nil, fmt.Errorf("scan backup detail for task %q: %w", taskID, err)
+		}
+		backups = append(backups, detail)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate backups for task %q: %w", taskID, err)
+	}
+	return backups, nil
+}
+
 func (db *DB) backupSortTime(ctx context.Context, backupID string) (string, error) {
 	var sortTime string
 	if err := db.sql.QueryRowContext(ctx, `SELECT COALESCE(finished_at, started_at) FROM backups WHERE backup_id = ?`, backupID).Scan(&sortTime); err != nil {

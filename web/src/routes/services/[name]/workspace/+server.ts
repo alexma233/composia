@@ -3,6 +3,7 @@ import type { RequestHandler } from "./$types";
 
 import {
   deleteRepoPath,
+  migrateService,
   moveRepoPath,
   runServiceAction,
   syncNodeCaddyFiles,
@@ -32,6 +33,8 @@ type WorkspacePostPayload = {
   sourcePath?: string;
   destinationPath?: string;
   folder?: string;
+  sourceNodeId?: string;
+  targetNodeId?: string;
 };
 
 type WorkspaceAction =
@@ -40,6 +43,7 @@ type WorkspaceAction =
   | "move"
   | "delete_path"
   | "run_service_action"
+  | "migrate_service"
   | "sync_caddy_files"
   | "rename_service_root"
   | "delete_service_root";
@@ -55,6 +59,7 @@ const workspaceActionHandlers: Record<WorkspaceAction, WorkspaceActionHandler> =
   move: handleWorkspaceFs,
   delete_path: handleWorkspaceFs,
   run_service_action: handleServiceAction,
+  migrate_service: handleMigrateService,
   sync_caddy_files: handleCaddySync,
   rename_service_root: handleServiceRoot,
   delete_service_root: handleServiceRoot,
@@ -190,6 +195,14 @@ async function handleCaddySync(folder: string) {
   return json(
     await syncNodeCaddyFiles(workspace.node, { serviceName: workspace.serviceName }),
   );
+}
+
+async function handleMigrateService(folder: string, payload: WorkspacePostPayload) {
+	const workspace = await requireDeclaredWorkspace(folder);
+	if (!payload.sourceNodeId || !payload.targetNodeId) {
+		return json({ error: "Source and target node IDs are required." }, { status: 400 });
+	}
+	return json(await migrateService(workspace.serviceName, payload.sourceNodeId, payload.targetNodeId));
 }
 
 async function handleServiceRoot(folder: string, payload: WorkspacePostPayload) {

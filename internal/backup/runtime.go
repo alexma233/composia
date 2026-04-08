@@ -5,6 +5,11 @@ type RuntimeConfig struct {
 	Items  []RuntimeItem `json:"items"`
 }
 
+type RestoreConfig struct {
+	Rustic *RusticConfig `json:"rustic,omitempty"`
+	Items  []RestoreItem `json:"items"`
+}
+
 type RusticConfig struct {
 	ServiceName    string `json:"service_name"`
 	ServiceDir     string `json:"service_dir"`
@@ -20,4 +25,13 @@ type RuntimeItem struct {
 	Include  []string `json:"include,omitempty"`
 	Provider string   `json:"provider"`
 	Tags     []string `json:"tags,omitempty"`
+}
+
+type RestoreItem struct {
+	Name        string   `json:"name"`
+	Strategy    string   `json:"strategy"`
+	Service     string   `json:"service,omitempty"`
+	Include     []string `json:"include,omitempty"`
+	Provider    string   `json:"provider"`
+	ArtifactRef string   `json:"artifact_ref"`
 }

@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	cloudflarelibdns "github.com/libdns/cloudflare"
@@ -45,7 +46,9 @@ type controllerTaskExecutor struct {
 	cfg              *config.ControllerConfig
 	availableNodeIDs map[string]struct{}
 	taskQueue        *taskQueueNotifier
+	taskResults      *taskResultNotifier
 	dnsProviders     dnsProviderFactory
+	repoMu           *sync.Mutex
 }
 
 type desiredServiceDNS struct {
@@ -125,16 +128,24 @@ func runControllerTasks(ctx context.Context, executor *controllerTaskExecutor) {
 }
 
 func (executor *controllerTaskExecutor) runNextPendingTask(ctx context.Context) error {
-	record, err := executor.db.ClaimNextPendingTaskOfType(ctx, task.TypeDNSUpdate, time.Now().UTC())
-	if err != nil {
-		return err
+	for _, taskType := range []task.Type{task.TypeDNSUpdate, task.TypeMigrate} {
+		record, err := executor.db.ClaimNextPendingTaskOfType(ctx, taskType, time.Now().UTC())
+		if errors.Is(err, store.ErrNoPendingTask) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		switch record.Type {
+		case task.TypeDNSUpdate:
+			return executor.executeDNSUpdateTask(ctx, record)
+		case task.TypeMigrate:
+			return executor.executeMigrateTask(ctx, record)
+		default:
+			return executor.db.CompleteTask(ctx, record.TaskID, task.StatusFailed, time.Now().UTC(), fmt.Sprintf("controller task type %q is not implemented", record.Type))
+		}
 	}
-	switch record.Type {
-	case task.TypeDNSUpdate:
-		return executor.executeDNSUpdateTask(ctx, record)
-	default:
-		return executor.db.CompleteTask(ctx, record.TaskID, task.StatusFailed, time.Now().UTC(), fmt.Sprintf("controller task type %q is not implemented", record.Type))
-	}
+	return store.ErrNoPendingTask
 }
 
 func (executor *controllerTaskExecutor) executeDNSUpdateTask(ctx context.Context, record task.Record) error {

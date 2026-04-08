@@ -216,6 +216,8 @@ func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return executeUpdateTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypeBackup):
 		return executeBackupTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
+	case string(task.TypeRestore):
+		return executeRestoreTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypeStop):
 		return executeStopTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypeRestart):
@@ -377,6 +379,48 @@ func executeBackupTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := uploadTaskLog(ctx, logUploader, "backup task finished successfully\n"); err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
+}
+
+func executeRestoreTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
+	var bundle *bundleResult
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
+		var err error
+		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId())
+		if err != nil {
+			return err
+		}
+		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
+	}); err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, bundle)
+	if err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	runtimeConfig, err := loadRestoreRuntimeConfig(serviceRoot)
+	if err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting remote restore task for service=%s node=%s\n", pulledTask.GetServiceName(), pulledTask.GetNodeId())); err != nil {
+		return err
+	}
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRestore, func() error {
+		for _, item := range runtimeConfig.Items {
+			if err := restoreRuntimeItem(ctx, cfg, serviceRoot, pulledTask.GetTaskId(), item, runtimeConfig.Rustic, logUploader); err != nil {
+				return err
+			}
+			if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("restore completed for %s\n", item.Name)); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	if err := uploadTaskLog(ctx, logUploader, "restore task finished successfully\n"); err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
@@ -1024,6 +1068,27 @@ func loadBackupRuntimeConfig(serviceRoot string) (*backupcfg.RuntimeConfig, erro
 	return &cfg, nil
 }
 
+func loadRestoreRuntimeConfig(serviceRoot string) (*backupcfg.RestoreConfig, error) {
+	content, err := os.ReadFile(filepath.Join(serviceRoot, ".composia-restore.json"))
+	if err != nil {
+		return nil, fmt.Errorf("read restore runtime config: %w", err)
+	}
+	var cfg backupcfg.RestoreConfig
+	if err := json.Unmarshal(content, &cfg); err != nil {
+		return nil, fmt.Errorf("decode restore runtime config: %w", err)
+	}
+	if cfg.Rustic == nil {
+		return nil, fmt.Errorf("restore runtime config is missing rustic provider")
+	}
+	if cfg.Rustic.ServiceDir == "" {
+		return nil, fmt.Errorf("restore runtime config is missing rustic service_dir")
+	}
+	if len(cfg.Items) == 0 {
+		return nil, fmt.Errorf("restore runtime config did not include any items")
+	}
+	return &cfg, nil
+}
+
 func backupRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot, taskID string, item backupcfg.RuntimeItem, rustic *backupcfg.RusticConfig, logUploader *taskLogUploader) (string, time.Time, time.Time, error) {
 	startedAt := time.Now().UTC()
 	stagingDir, err := os.MkdirTemp(cfg.StateDir, fmt.Sprintf("backup-%s-%s-", taskID, item.Name))
@@ -1040,6 +1105,86 @@ func backupRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot
 		return "", time.Time{}, time.Time{}, err
 	}
 	return artifactRef, startedAt, time.Now().UTC(), nil
+}
+
+func restoreRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot, taskID string, item backupcfg.RestoreItem, rustic *backupcfg.RusticConfig, logUploader *taskLogUploader) error {
+	stagingDir, err := os.MkdirTemp(cfg.StateDir, fmt.Sprintf("restore-%s-%s-", taskID, item.Name))
+	if err != nil {
+		return fmt.Errorf("create restore staging dir: %w", err)
+	}
+	defer os.RemoveAll(stagingDir)
+	rusticRoot := filepath.Join(cfg.RepoDir, rustic.ServiceDir)
+	if err := runRusticRestore(ctx, rusticRoot, rustic, item.ArtifactRef, stagingDir, logUploader); err != nil {
+		return err
+	}
+	return applyRestoreItem(ctx, serviceRoot, stagingDir, item, logUploader)
+}
+
+func applyRestoreItem(ctx context.Context, serviceRoot, stagingDir string, item backupcfg.RestoreItem, logUploader *taskLogUploader) error {
+	switch item.Strategy {
+	case "files.copy":
+		for _, include := range item.Include {
+			if err := restoreInclude(ctx, serviceRoot, stagingDir, include); err != nil {
+				return fmt.Errorf("restore item %s include %s: %w", item.Name, include, err)
+			}
+		}
+		return nil
+	case "files.untar":
+		archivePath := filepath.Join(stagingDir, item.Name+".tar.gz")
+		extractDir := filepath.Join(stagingDir, "__untar")
+		if err := extractTarGz(archivePath, extractDir); err != nil {
+			return err
+		}
+		for _, include := range item.Include {
+			if err := restoreInclude(ctx, serviceRoot, extractDir, include); err != nil {
+				return fmt.Errorf("restore untar item %s include %s: %w", item.Name, include, err)
+			}
+		}
+		return nil
+	case "database.pgimport":
+		projectName, err := loadComposeProjectName(serviceRoot, filepath.Base(serviceRoot))
+		if err != nil {
+			return err
+		}
+		dumpPath := filepath.Join(stagingDir, item.Name+".sql")
+		return runComposePGImport(ctx, serviceRoot, projectName, item.Service, dumpPath, func(output string) error { return uploadTaskLog(ctx, logUploader, output) })
+	default:
+		return fmt.Errorf("restore strategy %q is not implemented yet", item.Strategy)
+	}
+}
+
+func restoreInclude(ctx context.Context, serviceRoot, stagingDir, include string) error {
+	var sourcePath string
+	var targetPath string
+	if strings.HasPrefix(include, "/") || strings.HasPrefix(include, "./") || strings.HasPrefix(include, "../") {
+		sourcePath = filepath.Join(stagingDir, "paths", sanitizeStagePath(include))
+		targetPath = include
+		if !filepath.IsAbs(include) {
+			targetPath = filepath.Join(serviceRoot, include)
+		}
+	} else {
+		sourcePath = filepath.Join(stagingDir, "volumes", include)
+		mountpoint, err := dockerVolumeMountpoint(ctx, include)
+		if err != nil {
+			return fmt.Errorf("resolve docker volume %q: %w", include, err)
+		}
+		targetPath = mountpoint
+	}
+	return replacePath(sourcePath, targetPath)
+}
+
+func replacePath(sourcePath, targetPath string) error {
+	info, err := os.Stat(sourcePath)
+	if err != nil {
+		return fmt.Errorf("stat restore source %q: %w", sourcePath, err)
+	}
+	if err := os.RemoveAll(targetPath); err != nil {
+		return fmt.Errorf("clear restore target %q: %w", targetPath, err)
+	}
+	if info.IsDir() {
+		return copyDir(sourcePath, targetPath)
+	}
+	return copyFile(sourcePath, targetPath, info.Mode())
 }
 
 func stageBackupItem(ctx context.Context, serviceRoot, stagingDir string, item backupcfg.RuntimeItem, logUploader *taskLogUploader) (retErr error) {
@@ -1240,6 +1385,30 @@ func runComposePGDumpAll(ctx context.Context, serviceDir, projectName, serviceNa
 	return nil
 }
 
+func runComposePGImport(ctx context.Context, serviceDir, projectName, serviceName, sourcePath string, uploadLog func(string) error) error {
+	if serviceName == "" {
+		return fmt.Errorf("pgimport restore is missing service name")
+	}
+	sourceFile, err := os.Open(sourcePath)
+	if err != nil {
+		return fmt.Errorf("open pgimport source file: %w", err)
+	}
+	defer sourceFile.Close()
+	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "exec", "-T", serviceName, "psql")
+	command.Dir = serviceDir
+	command.Stdin = sourceFile
+	output, err := command.CombinedOutput()
+	if len(output) > 0 {
+		if logErr := uploadLog(string(output)); logErr != nil {
+			return logErr
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("docker compose exec psql failed: %w", err)
+	}
+	return nil
+}
+
 var rusticSnapshotRegexp = regexp.MustCompile(`snapshot\s+([0-9a-fA-F]+)\s+saved`)
 
 func runRusticBackup(ctx context.Context, rusticDir string, rustic *backupcfg.RusticConfig, sourceDir string, item backupcfg.RuntimeItem, logUploader *taskLogUploader) (string, error) {
@@ -1268,6 +1437,26 @@ func runRusticBackup(ctx context.Context, rusticDir string, rustic *backupcfg.Ru
 		return "", fmt.Errorf("could not parse rustic snapshot id from output")
 	}
 	return matches[1], nil
+}
+
+func runRusticRestore(ctx context.Context, rusticDir string, rustic *backupcfg.RusticConfig, artifactRef, targetDir string, logUploader *taskLogUploader) error {
+	args := []string{"compose", "exec", "-T", rustic.ComposeService, "rustic"}
+	if rustic.Profile != "" {
+		args = append(args, "-P", rustic.Profile)
+	}
+	args = append(args, "restore", artifactRef, targetDir)
+	command := exec.CommandContext(ctx, "docker", args...)
+	command.Dir = rusticDir
+	output, err := command.CombinedOutput()
+	if len(output) > 0 {
+		if logErr := uploadTaskLog(ctx, logUploader, string(output)); logErr != nil {
+			return logErr
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("docker compose exec rustic restore failed: %w", err)
+	}
+	return nil
 }
 func buildRusticTags(explicit []string) []string {
 	if len(explicit) > 0 {
