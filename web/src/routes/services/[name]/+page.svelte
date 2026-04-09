@@ -643,7 +643,7 @@
 </script>
 
 <div class="page-shell flex min-h-[calc(100vh-72px)] flex-col">
-  <div class="page-stack flex min-h-0 flex-1">
+  <div class="page-stack flex min-h-0 flex-1 flex-col">
     <Card>
       <CardHeader>
         <div class="page-header">
@@ -742,7 +742,7 @@
   {/if}
 
     <div class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)_320px]">
-      <Card class="flex min-h-0 flex-col">
+      <Card class="flex min-h-0 min-w-0 flex-col">
         <CardHeader class="section-header border-b">
           <CardTitle class="section-title">{$messages.services.files.title}</CardTitle>
           <div class="flex flex-wrap items-center gap-2">
@@ -817,7 +817,7 @@
       </div>
     </Card>
 
-      <Card class="flex min-h-0 flex-col">
+      <Card class="flex min-h-0 min-w-0 flex-col">
         <CardHeader class="border-b">
           <div class="section-header">
            <CardTitle class="section-title">{$messages.services.files.editor}</CardTitle>
@@ -854,8 +854,8 @@
     </Card>
 
 
-      <section class="flex min-h-0 flex-col gap-4">
-		<Card>
+      <section class="flex min-h-0 min-w-0 flex-col gap-4">
+        <Card>
         <CardHeader class="section-header">
           <CardTitle class="section-title">{$messages.services.operations.title}</CardTitle>
         </CardHeader>
@@ -924,7 +924,7 @@
         </CardContent>
       </Card>
 
-		<Card>
+        <Card>
         <CardHeader class="section-header">
           <div class="section-heading">
             <CardTitle class="section-title">{$messages.services.recentTasks}</CardTitle>
@@ -943,7 +943,7 @@
         </CardContent>
       </Card>
 
-		<Card>
+        <Card>
         <CardHeader>
           <CardTitle class="section-title">{$messages.services.recentBackups}</CardTitle>
         </CardHeader>
