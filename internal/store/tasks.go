@@ -266,7 +266,7 @@ func scanPendingTaskRecord(row *sql.Row) (task.Record, time.Time, error) {
 func markTaskRunning(ctx context.Context, tx *sql.Tx, taskID string, startedAt time.Time) error {
 	updated, err := tx.ExecContext(ctx, `
 		UPDATE tasks
-		SET status = ?, started_at = ?
+		SET status = ?, started_at = COALESCE(started_at, ?)
 		WHERE task_id = ? AND status = ?
 	`, string(task.StatusRunning), startedAt.UTC().Format(time.RFC3339), taskID, string(task.StatusPending))
 	if err != nil {
@@ -278,6 +278,47 @@ func markTaskRunning(ctx context.Context, tx *sql.Tx, taskID string, startedAt t
 	}
 	if affected == 0 {
 		return ErrNoPendingTask
+	}
+	return nil
+}
+
+func (db *DB) TransitionTaskStatus(ctx context.Context, taskID string, fromStatus, toStatus task.Status, errorSummary string) error {
+	if taskID == "" {
+		return fmt.Errorf("task_id is required")
+	}
+	if fromStatus == "" || toStatus == "" {
+		return fmt.Errorf("from_status and to_status are required")
+	}
+
+	result, err := db.sql.ExecContext(ctx, `
+		UPDATE tasks
+		SET status = ?, error_summary = ?, finished_at = NULL
+		WHERE task_id = ? AND status = ?
+	`, string(toStatus), nullableString(errorSummary), taskID, string(fromStatus))
+	if err != nil {
+		return fmt.Errorf("transition task %q from %q to %q: %w", taskID, fromStatus, toStatus, err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read transition rows affected for task %q: %w", taskID, err)
+	}
+	if affected == 0 {
+		return ErrTaskNotFound
+	}
+	return nil
+}
+
+func (db *DB) UpdateTaskParamsJSON(ctx context.Context, taskID, paramsJSON string) error {
+	if taskID == "" {
+		return fmt.Errorf("task_id is required")
+	}
+	_, err := db.sql.ExecContext(ctx, `
+		UPDATE tasks
+		SET params_json = ?
+		WHERE task_id = ?
+	`, nullableString(paramsJSON), taskID)
+	if err != nil {
+		return fmt.Errorf("update params_json for task %q: %w", taskID, err)
 	}
 	return nil
 }

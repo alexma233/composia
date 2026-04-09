@@ -3,7 +3,7 @@ import type { PageServerLoad } from "./$types";
 import { defaultExcludedTaskTypes } from "$lib/tasks";
 import { controllerConfig, loadNodes, loadServices, loadTasks } from "$lib/server/controller";
 
-const taskStatuses = ["pending", "running", "succeeded", "failed", "cancelled"] as const;
+const taskStatuses = ["pending", "running", "awaiting_confirmation", "succeeded", "failed", "cancelled"] as const;
 
 function parseStatuses(values: string[]): string[] {
   return values.filter((value): value is (typeof taskStatuses)[number] =>

@@ -43,14 +43,23 @@ const (
 	// TaskServiceRunTaskAgainProcedure is the fully-qualified name of the TaskService's RunTaskAgain
 	// RPC.
 	TaskServiceRunTaskAgainProcedure = "/composia.controller.v1.TaskService/RunTaskAgain"
+	// TaskServiceResolveTaskConfirmationProcedure is the fully-qualified name of the TaskService's
+	// ResolveTaskConfirmation RPC.
+	TaskServiceResolveTaskConfirmationProcedure = "/composia.controller.v1.TaskService/ResolveTaskConfirmation"
 )
 
 // TaskServiceClient is a client for the composia.controller.v1.TaskService service.
 type TaskServiceClient interface {
+	// ListTasks returns task summaries using include and exclude filters.
 	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
+	// GetTask returns the full detail for one task.
 	GetTask(context.Context, *connect.Request[v1.GetTaskRequest]) (*connect.Response[v1.GetTaskResponse], error)
+	// TailTaskLogs streams incremental log content for one task.
 	TailTaskLogs(context.Context, *connect.Request[v1.TailTaskLogsRequest]) (*connect.ServerStreamForClient[v1.TailTaskLogsResponse], error)
+	// RunTaskAgain starts a new task based on an existing task.
 	RunTaskAgain(context.Context, *connect.Request[v1.RunTaskAgainRequest]) (*connect.Response[v1.TaskActionResponse], error)
+	// ResolveTaskConfirmation resumes or rejects a task waiting for manual confirmation.
+	ResolveTaskConfirmation(context.Context, *connect.Request[v1.ResolveTaskConfirmationRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 
 // NewTaskServiceClient constructs a client for the composia.controller.v1.TaskService service. By
@@ -88,15 +97,22 @@ func NewTaskServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(taskServiceMethods.ByName("RunTaskAgain")),
 			connect.WithClientOptions(opts...),
 		),
+		resolveTaskConfirmation: connect.NewClient[v1.ResolveTaskConfirmationRequest, v1.TaskActionResponse](
+			httpClient,
+			baseURL+TaskServiceResolveTaskConfirmationProcedure,
+			connect.WithSchema(taskServiceMethods.ByName("ResolveTaskConfirmation")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // taskServiceClient implements TaskServiceClient.
 type taskServiceClient struct {
-	listTasks    *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
-	getTask      *connect.Client[v1.GetTaskRequest, v1.GetTaskResponse]
-	tailTaskLogs *connect.Client[v1.TailTaskLogsRequest, v1.TailTaskLogsResponse]
-	runTaskAgain *connect.Client[v1.RunTaskAgainRequest, v1.TaskActionResponse]
+	listTasks               *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
+	getTask                 *connect.Client[v1.GetTaskRequest, v1.GetTaskResponse]
+	tailTaskLogs            *connect.Client[v1.TailTaskLogsRequest, v1.TailTaskLogsResponse]
+	runTaskAgain            *connect.Client[v1.RunTaskAgainRequest, v1.TaskActionResponse]
+	resolveTaskConfirmation *connect.Client[v1.ResolveTaskConfirmationRequest, v1.TaskActionResponse]
 }
 
 // ListTasks calls composia.controller.v1.TaskService.ListTasks.
@@ -119,12 +135,23 @@ func (c *taskServiceClient) RunTaskAgain(ctx context.Context, req *connect.Reque
 	return c.runTaskAgain.CallUnary(ctx, req)
 }
 
+// ResolveTaskConfirmation calls composia.controller.v1.TaskService.ResolveTaskConfirmation.
+func (c *taskServiceClient) ResolveTaskConfirmation(ctx context.Context, req *connect.Request[v1.ResolveTaskConfirmationRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return c.resolveTaskConfirmation.CallUnary(ctx, req)
+}
+
 // TaskServiceHandler is an implementation of the composia.controller.v1.TaskService service.
 type TaskServiceHandler interface {
+	// ListTasks returns task summaries using include and exclude filters.
 	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
+	// GetTask returns the full detail for one task.
 	GetTask(context.Context, *connect.Request[v1.GetTaskRequest]) (*connect.Response[v1.GetTaskResponse], error)
+	// TailTaskLogs streams incremental log content for one task.
 	TailTaskLogs(context.Context, *connect.Request[v1.TailTaskLogsRequest], *connect.ServerStream[v1.TailTaskLogsResponse]) error
+	// RunTaskAgain starts a new task based on an existing task.
 	RunTaskAgain(context.Context, *connect.Request[v1.RunTaskAgainRequest]) (*connect.Response[v1.TaskActionResponse], error)
+	// ResolveTaskConfirmation resumes or rejects a task waiting for manual confirmation.
+	ResolveTaskConfirmation(context.Context, *connect.Request[v1.ResolveTaskConfirmationRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 
 // NewTaskServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -158,6 +185,12 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(taskServiceMethods.ByName("RunTaskAgain")),
 		connect.WithHandlerOptions(opts...),
 	)
+	taskServiceResolveTaskConfirmationHandler := connect.NewUnaryHandler(
+		TaskServiceResolveTaskConfirmationProcedure,
+		svc.ResolveTaskConfirmation,
+		connect.WithSchema(taskServiceMethods.ByName("ResolveTaskConfirmation")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.controller.v1.TaskService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TaskServiceListTasksProcedure:
@@ -168,6 +201,8 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 			taskServiceTailTaskLogsHandler.ServeHTTP(w, r)
 		case TaskServiceRunTaskAgainProcedure:
 			taskServiceRunTaskAgainHandler.ServeHTTP(w, r)
+		case TaskServiceResolveTaskConfirmationProcedure:
+			taskServiceResolveTaskConfirmationHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -191,4 +226,8 @@ func (UnimplementedTaskServiceHandler) TailTaskLogs(context.Context, *connect.Re
 
 func (UnimplementedTaskServiceHandler) RunTaskAgain(context.Context, *connect.Request[v1.RunTaskAgainRequest]) (*connect.Response[v1.TaskActionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.TaskService.RunTaskAgain is not implemented"))
+}
+
+func (UnimplementedTaskServiceHandler) ResolveTaskConfirmation(context.Context, *connect.Request[v1.ResolveTaskConfirmationRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.TaskService.ResolveTaskConfirmation is not implemented"))
 }

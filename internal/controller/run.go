@@ -1336,6 +1336,11 @@ type taskServer struct {
 	taskQueue        *taskQueueNotifier
 }
 
+const (
+	confirmationDecisionApprove = "approve"
+	confirmationDecisionReject  = "reject"
+)
+
 type backupRecordServer struct {
 	db *store.DB
 }
@@ -1792,6 +1797,17 @@ func taskParams(paramsJSON string) serviceTaskParams {
 		return serviceTaskParams{}
 	}
 	return params
+}
+
+func findTaskStepStartedAt(steps []task.StepRecord, stepName task.StepName) *time.Time {
+	for _, step := range steps {
+		if step.StepName != stepName || step.StartedAt == nil {
+			continue
+		}
+		startedAt := step.StartedAt.UTC()
+		return &startedAt
+	}
+	return nil
 }
 
 func (server *nodeQueryServer) ListNodes(ctx context.Context, _ *connect.Request[controllerv1.ListNodesRequest]) (*connect.Response[controllerv1.ListNodesResponse], error) {
@@ -3625,6 +3641,73 @@ func (server *taskServer) RunTaskAgain(ctx context.Context, req *connect.Request
 		return nil, err
 	}
 	return connect.NewResponse(taskActionResponse(createdTask)), nil
+}
+
+func (server *taskServer) ResolveTaskConfirmation(ctx context.Context, req *connect.Request[controllerv1.ResolveTaskConfirmationRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
+	if req.Msg == nil || req.Msg.GetTaskId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
+	}
+	decision := strings.ToLower(strings.TrimSpace(req.Msg.GetDecision()))
+	if decision != confirmationDecisionApprove && decision != confirmationDecisionReject {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("decision must be approve or reject"))
+	}
+
+	detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
+	if err != nil {
+		if errors.Is(err, store.ErrTaskNotFound) {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if detail.Record.Type != task.TypeMigrate {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("task type %q does not support confirmation resolution", detail.Record.Type))
+	}
+	if detail.Record.Status != task.StatusAwaitingConfirmation {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("task %q is not awaiting confirmation", detail.Record.TaskID))
+	}
+
+	comment := strings.TrimSpace(req.Msg.GetComment())
+	resolvedBy, _ := rpcutil.BearerSubject(ctx)
+	resolvedLine := fmt.Sprintf("manual confirmation decision=%s", decision)
+	if resolvedBy != "" {
+		resolvedLine += fmt.Sprintf(" actor=%s", resolvedBy)
+	}
+	if comment != "" {
+		resolvedLine += fmt.Sprintf(" comment=%q", comment)
+	}
+	resolvedLine += "\n"
+	if err := appendTaskLogRaw(detail.Record.LogPath, resolvedLine); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	finishedAt := time.Now().UTC()
+	stepStatus := task.StatusSucceeded
+	errorSummary := ""
+	if decision == confirmationDecisionReject {
+		stepStatus = task.StatusCancelled
+		errorSummary = "manual verification rejected"
+		if comment != "" {
+			errorSummary = fmt.Sprintf("manual verification rejected: %s", comment)
+		}
+	}
+	if err := server.db.UpsertTaskStep(ctx, task.StepRecord{TaskID: detail.Record.TaskID, StepName: task.StepAwaitingConfirmation, Status: stepStatus, StartedAt: findTaskStepStartedAt(detail.Steps, task.StepAwaitingConfirmation), FinishedAt: &finishedAt}); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	if decision == confirmationDecisionApprove {
+		if err := server.db.TransitionTaskStatus(ctx, detail.Record.TaskID, task.StatusAwaitingConfirmation, task.StatusPending, ""); err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		detail.Record.Status = task.StatusPending
+		notifyTaskQueue(server.taskQueue)
+		return connect.NewResponse(taskActionResponse(detail.Record)), nil
+	}
+
+	if err := server.db.CompleteTask(ctx, detail.Record.TaskID, task.StatusCancelled, finishedAt, errorSummary); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	detail.Record.Status = task.StatusCancelled
+	return connect.NewResponse(taskActionResponse(detail.Record)), nil
 }
 
 func (server *serviceInstanceServer) ListServiceInstances(ctx context.Context, req *connect.Request[controllerv1.ListServiceInstancesRequest]) (*connect.Response[controllerv1.ListServiceInstancesResponse], error) {

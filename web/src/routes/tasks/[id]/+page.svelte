@@ -1,7 +1,7 @@
 <script lang="ts">
   import { RotateCcw } from 'lucide-svelte';
   import { toast } from 'svelte-sonner';
-  import { goto } from '$app/navigation';
+  import { goto, invalidateAll } from '$app/navigation';
 
   import type { PageData } from './$types';
   import { messages } from '$lib/i18n';
@@ -10,6 +10,7 @@
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { startPolling } from '$lib/refresh';
   import { formatTimestamp, taskStatusLabel, taskStatusTone } from '$lib/presenters';
 
   interface Props {
@@ -22,9 +23,35 @@
   let logState = $state('idle');
   let logError = $state('');
   let rerunning = $state(false);
+  let resolvingConfirmation = $state(false);
+  let stopTaskRefresh = $state<null | (() => void)>(null);
 
   function isTerminalStatus(status: string): boolean {
     return status === 'succeeded' || status === 'failed' || status === 'cancelled';
+  }
+
+  $effect(() => {
+    stopTaskRefresh?.();
+    stopTaskRefresh = null;
+
+    if (!data.task?.taskId || isTerminalStatus(data.task.status)) {
+      return;
+    }
+
+    stopTaskRefresh = startPolling(() => invalidateAll(), {
+      intervalMs: 2500,
+      errorIntervalMs: 4000,
+      initialDelayMs: 1200,
+    });
+
+    return () => {
+      stopTaskRefresh?.();
+      stopTaskRefresh = null;
+    };
+  });
+
+  function isAwaitingMigrationConfirmation(): boolean {
+    return data.task?.type === 'migrate' && data.task?.status === 'awaiting_confirmation';
   }
 
   async function runAgain() {
@@ -51,6 +78,38 @@
       toast.error(error instanceof Error ? error.message : 'Failed to run task again.');
     } finally {
       rerunning = false;
+    }
+  }
+
+  async function resolveConfirmation(decision: 'approve' | 'reject') {
+    if (!data.task?.taskId || resolvingConfirmation) {
+      return;
+    }
+
+    resolvingConfirmation = true;
+
+    try {
+      const response = await fetch(`/tasks/${data.task.taskId}/confirmation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload.taskId) {
+        throw new Error(payload.error ?? 'Failed to resolve task confirmation.');
+      }
+
+      if (decision === 'approve') {
+        toast.success(`Task resumed: ${payload.taskId.slice(0, 12)}`);
+      } else {
+        toast.success(`Task cancelled: ${payload.taskId.slice(0, 12)}`);
+      }
+      goto(`/tasks/${payload.taskId}`, { invalidateAll: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to resolve task confirmation.');
+    } finally {
+      resolvingConfirmation = false;
     }
   }
 
@@ -117,6 +176,24 @@
                 <Button type="button" variant="outline" size="sm" onclick={runAgain} disabled={rerunning}>
                   <RotateCcw class="mr-2 size-4" />
                   {rerunning ? $messages.tasks.running : $messages.tasks.runAgain}
+                </Button>
+              {:else if isAwaitingMigrationConfirmation()}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onclick={() => resolveConfirmation('reject')}
+                  disabled={resolvingConfirmation}
+                >
+                  {resolvingConfirmation ? $messages.tasks.resolving : $messages.tasks.reject}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onclick={() => resolveConfirmation('approve')}
+                  disabled={resolvingConfirmation}
+                >
+                  {resolvingConfirmation ? $messages.tasks.resolving : $messages.tasks.approve}
                 </Button>
               {/if}
             </div>

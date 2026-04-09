@@ -1,10 +1,10 @@
 <script lang="ts">
   import type { PageData } from './$types';
-  import { goto } from '$app/navigation';
+  import { goto, invalidateAll } from '$app/navigation';
   import { page } from '$app/stores';
   import { buttonVariants } from '$lib/components/ui/button';
   import type { Snippet } from 'svelte';
-  import { tick } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import CheckIcon from '@lucide/svelte/icons/check';
   import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
   import FilterIcon from '@lucide/svelte/icons/filter';
@@ -25,6 +25,8 @@
     PaginationPrevButton,
   } from '$lib/components/ui/pagination';
   import * as Popover from '$lib/components/ui/popover';
+  import { startPolling } from '$lib/refresh';
+  import { taskStatusLabel } from '$lib/presenters';
   import { cn } from '$lib/utils';
   import TaskItem from '$lib/components/app/task-item.svelte';
 
@@ -33,7 +35,7 @@
     children?: Snippet;
   }
 
-  type TaskStatusFilter = 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled';
+  type TaskStatusFilter = 'pending' | 'running' | 'awaiting_confirmation' | 'succeeded' | 'failed' | 'cancelled';
   type TaskTypeFilter =
     | 'deploy'
     | 'update'
@@ -68,7 +70,7 @@
   let { data }: Props = $props();
 
   const pageSize = 20;
-  const statusOptions: TaskStatusFilter[] = ['pending', 'running', 'succeeded', 'failed', 'cancelled'];
+  const statusOptions: TaskStatusFilter[] = ['pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled'];
   const taskTypeOptions: TaskTypeFilter[] = [
     'deploy',
     'update',
@@ -163,8 +165,10 @@
     document.title = `Tasks - Composia`;
   });
 
+  onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
+
   function statusLabel(status: TaskStatusFilter): string {
-    return $messages.status[status];
+    return taskStatusLabel(status, $messages);
   }
 
   function typeLabel(type: TaskTypeFilter | string): string {

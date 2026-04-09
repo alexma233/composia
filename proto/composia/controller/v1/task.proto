@@ -4,7 +4,7 @@ package composia.controller.v1;
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
-// TaskService exposes task queries, log streaming, and retry operations.
+// TaskService exposes task queries, log streaming, retry operations, and confirmation resolution.
 service TaskService {
   // ListTasks returns task summaries using include and exclude filters.
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
@@ -14,6 +14,8 @@ service TaskService {
   rpc TailTaskLogs(TailTaskLogsRequest) returns (stream TailTaskLogsResponse);
   // RunTaskAgain starts a new task based on an existing task.
   rpc RunTaskAgain(RunTaskAgainRequest) returns (TaskActionResponse);
+  // ResolveTaskConfirmation resumes or rejects a task waiting for manual confirmation.
+  rpc ResolveTaskConfirmation(ResolveTaskConfirmationRequest) returns (TaskActionResponse);
 }
 
 // TaskActionResponse reports the async task created by a command RPC.
@@ -129,4 +131,12 @@ message TailTaskLogsResponse {
 // RunTaskAgainRequest identifies the task to retry as a new task.
 message RunTaskAgainRequest {
   string task_id = 1;
+}
+
+// ResolveTaskConfirmationRequest resolves a task in awaiting_confirmation state.
+message ResolveTaskConfirmationRequest {
+  string task_id = 1;
+  // decision accepts "approve" or "reject".
+  string decision = 2;
+  string comment = 3;
 }

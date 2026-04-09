@@ -257,13 +257,13 @@
 
 ## Phase 9: 最后添加迁移
 
-**状态：核心能力已完成，但 restore/migrate 尚未经过实际测试；冲突/确认语义待完善**
+**状态：核心能力已完成，但 restore/migrate 尚未经过实际测试；确认挂起/恢复、冲突处理、回滚语义待完善**
 
 目标：仅在整个平台语义稳定后，实现最复杂的 v1 工作流。
 
 已完成：
 1. `MigrateService(source_node_id, target_node_id)` RPC
-2. `migrate` controller 侧编排任务骨架已实现，当前流程为：
+2. `migrate` controller 侧编排任务骨架已实现，当前代码路径为：
    - 源节点数据导出（使用 `migrate.data[]` 引用的 `backup` 定义）
    - 源节点 service instance 停止
    - 源节点 Caddy reload（当 service 启用 `network.caddy`）
@@ -279,12 +279,29 @@
    - `database.pgimport`
 5. Web UI 已提供基础 `MigrateService` 入口
 
+目标语义（待实现）：
+1. `migrate` 的目标工作流改为：
+   - 源节点 service instance 停止
+   - 源节点数据导出（停机后冷备份，使用 `migrate.data[]` 引用的 `backup` 定义）
+   - 目标节点数据恢复（使用 `restore` 定义）
+   - 目标节点 service instance 启动
+   - 目标节点 Caddy reload（当 service 启用 `network.caddy`）
+   - 进入 `awaiting_confirmation`
+   - 人工验证通过后再执行 DNS 更新
+   - `persist_repo` 阶段：修改 `composia-meta.yaml.nodes` 并 commit/push
+2. `awaiting_confirmation` 必须进入真实挂起/恢复工作流，不允许当前这种直接执行到完成的快捷路径
+3. 人工验证失败时，当前 migrate task 直接结束，不继续执行 DNS 更新和 `persist_repo`
+4. 回滚使用单独 task/type 编排，不复用当前 migrate task；该部分后续实现
+
 待完善：
-1. `awaiting_confirmation` 状态仍未进入真实挂起/恢复工作流；当前 migrate 会直接执行到完成
-2. 迁移冲突处理：当 `persist_repo` 时 `HEAD` 已变化但变化触及该服务目录，仍需实现专门冲突语义
-3. 迁移 UI 仍是基础入口，缺少更强的确认与目标节点选择体验
-4. 整个 migrate 流程需要真实环境端到端测试；当前不能视为已验证
-5. restore 覆盖语义、数据库导入语义、失败后的残留状态处理需要重构并补测试
+1. 新增独立的确认恢复 API，例如 `ResolveTaskConfirmation(task_id, decision, comment)`，用于从 `awaiting_confirmation` 推进已有 task
+2. `decision=approve` 时恢复同一个 migrate task 并继续执行 `dns_update -> persist_repo -> finalize`
+3. `decision=reject` 时结束当前 migrate task；v1 可先记为 `cancelled`，并记录 `manual verification rejected`
+4. 迁移冲突处理：当 `persist_repo` 时 `HEAD` 已变化但变化触及该服务目录，仍需实现专门冲突语义
+5. 迁移 UI 仍是基础入口，缺少更强的确认与目标节点选择体验，以及 `awaiting_confirmation` 下的通过/拒绝入口
+6. 整个 migrate 流程需要真实环境端到端测试；当前不能视为已验证
+7. restore 覆盖语义、数据库导入语义、失败后的残留状态处理需要重构并补测试
+8. 任务查询与筛选需要把 `awaiting_confirmation` 视为一等状态，不应只存在于底层模型
 
 ---
 
@@ -301,6 +318,13 @@
 - [x] `RunServiceAction` - 支持 `node_ids[]` 数组进行 fan-out，`data_names[]` 用于 backup
 - [x] `UpdateServiceDNS` - 通过 `RunServiceAction` + `SERVICE_ACTION_DNS_UPDATE` 实现
 - [x] `MigrateService(source_node_id, target_node_id)` - 迁移基础能力已实现
+
+### TaskService
+- [x] `ListTasks`
+- [x] `GetTask`
+- [x] `TailTaskLogs`
+- [x] `RunTaskAgain`
+- [ ] `ResolveTaskConfirmation(task_id, decision, comment)` - 仅用于推进 `awaiting_confirmation` 中的已有 task，不负责创建新 migrate
 
 ### ServiceInstanceService
 - [x] `ListServiceInstances` - 返回 `ServiceInstanceSummary[]`

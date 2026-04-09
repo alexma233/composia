@@ -383,3 +383,125 @@ func TestTaskServiceRunTaskAgainSupportsBackup(t *testing.T) {
 		t.Fatalf("expected attempt_of_task_id task-backup, got %q", backupDetail.Record.AttemptOfTaskID)
 	}
 }
+
+func TestTaskServiceResolveTaskConfirmationApproveRequeuesMigrateTask(t *testing.T) {
+	t.Parallel()
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	logDir := t.TempDir()
+	logPath := filepath.Join(logDir, "task.log")
+	startedAt := time.Date(2026, 4, 4, 19, 0, 0, 0, time.UTC)
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-migrate", Type: task.TypeMigrate, Source: task.SourceCLI, ServiceName: "alpha", Status: task.StatusAwaitingConfirmation, LogPath: logPath, CreatedAt: startedAt.Add(-time.Minute), StartedAt: &startedAt}); err != nil {
+		t.Fatalf("create migrate task: %v", err)
+	}
+	if err := os.WriteFile(logPath, nil, 0o644); err != nil {
+		t.Fatalf("create log file: %v", err)
+	}
+	if err := db.UpsertTaskStep(ctx, task.StepRecord{TaskID: "task-migrate", StepName: task.StepAwaitingConfirmation, Status: task.StatusAwaitingConfirmation, StartedAt: &startedAt}); err != nil {
+		t.Fatalf("create awaiting step: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+
+	path, handler := controllerv1connect.NewTaskServiceHandler(&taskServer{db: db, taskQueue: newTaskQueueNotifier()}, connect.WithInterceptors(interceptor))
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	response, err := client.ResolveTaskConfirmation(ctx, connect.NewRequest(&controllerv1.ResolveTaskConfirmationRequest{TaskId: "task-migrate", Decision: "approve"}))
+	if err != nil {
+		t.Fatalf("resolve task confirmation: %v", err)
+	}
+	if response.Msg.GetStatus() != string(task.StatusPending) {
+		t.Fatalf("expected pending status, got %q", response.Msg.GetStatus())
+	}
+	detail, err := db.GetTask(ctx, "task-migrate")
+	if err != nil {
+		t.Fatalf("get migrate task: %v", err)
+	}
+	if detail.Record.Status != task.StatusPending {
+		t.Fatalf("expected pending task, got %q", detail.Record.Status)
+	}
+	if !hasTaskStepStatus(detail.Steps, task.StepAwaitingConfirmation, task.StatusSucceeded) {
+		t.Fatalf("expected awaiting_confirmation step to be succeeded, got %+v", detail.Steps)
+	}
+	logContent, err := os.ReadFile(detail.Record.LogPath)
+	if err != nil {
+		t.Fatalf("read task log: %v", err)
+	}
+	if string(logContent) == "" {
+		t.Fatalf("expected confirmation log entry")
+	}
+}
+
+func TestTaskServiceResolveTaskConfirmationRejectCancelsMigrateTask(t *testing.T) {
+	t.Parallel()
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	logDir := t.TempDir()
+	logPath := filepath.Join(logDir, "task.log")
+	startedAt := time.Date(2026, 4, 4, 19, 0, 0, 0, time.UTC)
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-migrate-reject", Type: task.TypeMigrate, Source: task.SourceCLI, ServiceName: "alpha", Status: task.StatusAwaitingConfirmation, LogPath: logPath, CreatedAt: startedAt.Add(-time.Minute), StartedAt: &startedAt}); err != nil {
+		t.Fatalf("create migrate task: %v", err)
+	}
+	if err := os.WriteFile(logPath, nil, 0o644); err != nil {
+		t.Fatalf("create log file: %v", err)
+	}
+	if err := db.UpsertTaskStep(ctx, task.StepRecord{TaskID: "task-migrate-reject", StepName: task.StepAwaitingConfirmation, Status: task.StatusAwaitingConfirmation, StartedAt: &startedAt}); err != nil {
+		t.Fatalf("create awaiting step: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+
+	path, handler := controllerv1connect.NewTaskServiceHandler(&taskServer{db: db, taskQueue: newTaskQueueNotifier()}, connect.WithInterceptors(interceptor))
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	response, err := client.ResolveTaskConfirmation(ctx, connect.NewRequest(&controllerv1.ResolveTaskConfirmationRequest{TaskId: "task-migrate-reject", Decision: "reject"}))
+	if err != nil {
+		t.Fatalf("resolve task confirmation: %v", err)
+	}
+	if response.Msg.GetStatus() != string(task.StatusCancelled) {
+		t.Fatalf("expected cancelled status, got %q", response.Msg.GetStatus())
+	}
+	detail, err := db.GetTask(ctx, "task-migrate-reject")
+	if err != nil {
+		t.Fatalf("get migrate task: %v", err)
+	}
+	if detail.Record.Status != task.StatusCancelled {
+		t.Fatalf("expected cancelled task, got %q", detail.Record.Status)
+	}
+	if detail.Record.ErrorSummary != "manual verification rejected" {
+		t.Fatalf("unexpected error summary %q", detail.Record.ErrorSummary)
+	}
+	if !hasTaskStepStatus(detail.Steps, task.StepAwaitingConfirmation, task.StatusCancelled) {
+		t.Fatalf("expected awaiting_confirmation step to be cancelled, got %+v", detail.Steps)
+	}
+}

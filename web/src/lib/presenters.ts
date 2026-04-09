@@ -14,6 +14,8 @@ export function taskStatusTone(status: string): BadgeVariant {
   switch (status) {
     case "running":
       return "outline";
+    case "awaiting_confirmation":
+      return "outline";
     case "succeeded":
       return "default";
     case "pending":
@@ -33,6 +35,8 @@ export function taskStatusLabel(status: string, messages: Dictionary) {
       return messages.status.succeeded;
     case 'pending':
       return messages.status.pending;
+    case 'awaiting_confirmation':
+      return messages.status.awaitingConfirmation;
     case 'failed':
       return messages.status.failed;
     case 'cancelled':

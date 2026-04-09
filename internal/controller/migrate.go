@@ -119,6 +119,13 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 	if params.ServiceDir == "" || params.SourceNodeID == "" || params.TargetNodeID == "" {
 		return executor.failControllerTask(ctx, record, task.StepFinalize, errors.New("migrate task is missing service_dir or source/target node ids"))
 	}
+	detail, err := executor.db.GetTask(ctx, record.TaskID)
+	if err != nil {
+		return executor.failControllerTask(ctx, record, task.StepFinalize, err)
+	}
+	stepSucceeded := func(stepName task.StepName) bool {
+		return hasTaskStepStatus(detail.Steps, stepName, task.StatusSucceeded)
+	}
 	if err := appendTaskLogRaw(record.LogPath, fmt.Sprintf("starting controller migrate task for service=%s source=%s target=%s repo_revision=%s\n", record.ServiceName, params.SourceNodeID, params.TargetNodeID, record.RepoRevision)); err != nil {
 		return executor.failControllerTask(ctx, record, task.StepFinalize, err)
 	}
@@ -127,8 +134,20 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 		return executor.failControllerTask(ctx, record, task.StepFinalize, err)
 	}
 
-	restoreItems := make([]restoreTaskItem, 0, len(params.DataNames))
-	if len(params.DataNames) > 0 {
+	restoreItems := append([]restoreTaskItem(nil), params.RestoreItems...)
+	if !stepSucceeded(task.StepComposeDown) {
+		if err := executor.runMigrateStep(ctx, record, task.StepComposeDown, func() error {
+			stopTask, err := createServiceTaskWithOptions(ctx, executor.db, executor.cfg, executor.availableNodeIDs, record.ServiceName, []string{params.SourceNodeID}, task.TypeStop, nil, serviceTaskCreateOptions{Source: task.SourceSystem})
+			if err != nil {
+				return err
+			}
+			return executor.waitTask(ctx, stopTask.TaskID, 5*time.Minute)
+		}); err != nil {
+			return executor.failControllerTask(ctx, record, task.StepComposeDown, err)
+		}
+	}
+
+	if len(params.DataNames) > 0 && !stepSucceeded(task.StepBackup) {
 		if err := executor.runMigrateStep(ctx, record, task.StepBackup, func() error {
 			backupTask, err := createServiceTaskWithOptions(ctx, executor.db, executor.cfg, executor.availableNodeIDs, record.ServiceName, []string{params.SourceNodeID}, task.TypeBackup, params.DataNames, serviceTaskCreateOptions{Source: task.SourceSystem})
 			if err != nil {
@@ -154,35 +173,21 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 				}
 				restoreItems = append(restoreItems, restoreTaskItem{DataName: dataName, ArtifactRef: backup.ArtifactRef, SourceTaskID: backup.TaskID})
 			}
+			params.RestoreItems = restoreItems
+			paramsJSON, err := json.Marshal(params)
+			if err != nil {
+				return err
+			}
+			if err := executor.db.UpdateTaskParamsJSON(ctx, record.TaskID, string(paramsJSON)); err != nil {
+				return err
+			}
 			return appendTaskLogRaw(record.LogPath, fmt.Sprintf("backup step captured %d artifact(s)\n", len(restoreItems)))
 		}); err != nil {
 			return executor.failControllerTask(ctx, record, task.StepBackup, err)
 		}
 	}
 
-	if err := executor.runMigrateStep(ctx, record, task.StepComposeDown, func() error {
-		stopTask, err := createServiceTaskWithOptions(ctx, executor.db, executor.cfg, executor.availableNodeIDs, record.ServiceName, []string{params.SourceNodeID}, task.TypeStop, nil, serviceTaskCreateOptions{Source: task.SourceSystem})
-		if err != nil {
-			return err
-		}
-		if err := executor.waitTask(ctx, stopTask.TaskID, 5*time.Minute); err != nil {
-			return err
-		}
-		if repo.CaddyManaged(service) {
-			reloadTask, err := createNodeCaddyReloadTask(ctx, executor.db, executor.cfg, executor.availableNodeIDs, params.SourceNodeID, task.SourceSystem)
-			if err != nil {
-				return err
-			}
-			if err := executor.waitTask(ctx, reloadTask.TaskID, 2*time.Minute); err != nil {
-				return err
-			}
-		}
-		return nil
-	}); err != nil {
-		return executor.failControllerTask(ctx, record, task.StepComposeDown, err)
-	}
-
-	if len(restoreItems) > 0 {
+	if len(restoreItems) > 0 && !stepSucceeded(task.StepRestore) {
 		if err := executor.runMigrateStep(ctx, record, task.StepRestore, func() error {
 			restoreTask, err := createRestoreTask(ctx, executor.db, executor.cfg, executor.availableNodeIDs, record.ServiceName, params.TargetNodeID, record.RepoRevision, serviceTaskParams{ServiceDir: params.ServiceDir, RestoreItems: restoreItems}, task.SourceSystem)
 			if err != nil {
@@ -195,29 +200,38 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 		}
 	}
 
-	if err := executor.runMigrateStep(ctx, record, task.StepComposeUp, func() error {
-		deployTask, err := createServiceTaskWithOptions(ctx, executor.db, executor.cfg, executor.availableNodeIDs, record.ServiceName, []string{params.TargetNodeID}, task.TypeDeploy, nil, serviceTaskCreateOptions{Source: task.SourceSystem})
-		if err != nil {
-			return err
-		}
-		if err := executor.waitTask(ctx, deployTask.TaskID, 5*time.Minute); err != nil {
-			return err
-		}
-		if repo.CaddyManaged(service) {
-			reloadTask, err := createNodeCaddyReloadTask(ctx, executor.db, executor.cfg, executor.availableNodeIDs, params.TargetNodeID, task.SourceSystem)
+	if !stepSucceeded(task.StepComposeUp) {
+		if err := executor.runMigrateStep(ctx, record, task.StepComposeUp, func() error {
+			deployTask, err := createServiceTaskWithOptions(ctx, executor.db, executor.cfg, executor.availableNodeIDs, record.ServiceName, []string{params.TargetNodeID}, task.TypeDeploy, nil, serviceTaskCreateOptions{Source: task.SourceSystem})
 			if err != nil {
 				return err
 			}
-			if err := executor.waitTask(ctx, reloadTask.TaskID, 2*time.Minute); err != nil {
+			if err := executor.waitTask(ctx, deployTask.TaskID, 5*time.Minute); err != nil {
 				return err
 			}
+			if repo.CaddyManaged(service) {
+				reloadTask, err := createNodeCaddyReloadTask(ctx, executor.db, executor.cfg, executor.availableNodeIDs, params.TargetNodeID, task.SourceSystem)
+				if err != nil {
+					return err
+				}
+				if err := executor.waitTask(ctx, reloadTask.TaskID, 2*time.Minute); err != nil {
+					return err
+				}
+			}
+			return nil
+		}); err != nil {
+			return executor.failControllerTask(ctx, record, task.StepComposeUp, err)
 		}
-		return nil
-	}); err != nil {
-		return executor.failControllerTask(ctx, record, task.StepComposeUp, err)
 	}
 
-	if service.Meta.Network != nil && service.Meta.Network.DNS != nil {
+	if !stepSucceeded(task.StepAwaitingConfirmation) {
+		if err := executor.enterMigrateAwaitingConfirmation(ctx, record); err != nil {
+			return executor.failControllerTask(ctx, record, task.StepAwaitingConfirmation, err)
+		}
+		return nil
+	}
+
+	if service.Meta.Network != nil && service.Meta.Network.DNS != nil && !stepSucceeded(task.StepDNSUpdate) {
 		if err := executor.runMigrateStep(ctx, record, task.StepDNSUpdate, func() error {
 			client, err := executor.dnsProviders.Cloudflare(executor.cfg)
 			if err != nil {
@@ -235,10 +249,12 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 		}
 	}
 
-	if err := executor.runMigrateStep(ctx, record, task.StepPersistRepo, func() error {
-		return executor.persistMigratedTargetNodes(ctx, record, service, params.SourceNodeID, params.TargetNodeID)
-	}); err != nil {
-		return executor.failControllerTask(ctx, record, task.StepPersistRepo, err)
+	if !stepSucceeded(task.StepPersistRepo) {
+		if err := executor.runMigrateStep(ctx, record, task.StepPersistRepo, func() error {
+			return executor.persistMigratedTargetNodes(ctx, record, service, params.SourceNodeID, params.TargetNodeID)
+		}); err != nil {
+			return executor.failControllerTask(ctx, record, task.StepPersistRepo, err)
+		}
 	}
 
 	finishedAt := time.Now().UTC()
@@ -249,6 +265,26 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 		return executor.failControllerTask(ctx, record, task.StepFinalize, err)
 	}
 	return executor.db.CompleteTask(ctx, record.TaskID, task.StatusSucceeded, finishedAt, "")
+}
+
+func hasTaskStepStatus(steps []task.StepRecord, stepName task.StepName, status task.Status) bool {
+	for _, step := range steps {
+		if step.StepName == stepName && step.Status == status {
+			return true
+		}
+	}
+	return false
+}
+
+func (executor *controllerTaskExecutor) enterMigrateAwaitingConfirmation(ctx context.Context, record task.Record) error {
+	startedAt := time.Now().UTC()
+	if err := executor.db.UpsertTaskStep(ctx, task.StepRecord{TaskID: record.TaskID, StepName: task.StepAwaitingConfirmation, Status: task.StatusAwaitingConfirmation, StartedAt: &startedAt}); err != nil {
+		return err
+	}
+	if err := appendTaskLogRaw(record.LogPath, "migrate task is awaiting manual confirmation before dns_update\n"); err != nil {
+		return err
+	}
+	return executor.db.TransitionTaskStatus(ctx, record.TaskID, task.StatusRunning, task.StatusAwaitingConfirmation, "")
 }
 
 func createRestoreTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName, nodeID, repoRevision string, params serviceTaskParams, source task.Source) (task.Record, error) {

@@ -21,11 +21,14 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// TaskActionResponse reports the async task created by a command RPC.
 type TaskActionResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	RepoRevision  string                 `protobuf:"bytes,3,opt,name=repo_revision,json=repoRevision,proto3" json:"repo_revision,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	TaskId string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// status is the initial status of the created task.
+	Status string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	// repo_revision is the repo revision associated with the created task.
+	RepoRevision  string `protobuf:"bytes,3,opt,name=repo_revision,json=repoRevision,proto3" json:"repo_revision,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -81,20 +84,31 @@ func (x *TaskActionResponse) GetRepoRevision() string {
 	return ""
 }
 
+// ListTasksRequest filters task results by included and excluded values.
 type ListTasksRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Status             []string               `protobuf:"bytes,1,rep,name=status,proto3" json:"status,omitempty"`
-	ServiceName        []string               `protobuf:"bytes,2,rep,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	PageSize           uint32                 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	Page               uint32                 `protobuf:"varint,4,opt,name=page,proto3" json:"page,omitempty"`
-	NodeId             []string               `protobuf:"bytes,5,rep,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	Type               []string               `protobuf:"bytes,6,rep,name=type,proto3" json:"type,omitempty"`
-	ExcludeStatus      []string               `protobuf:"bytes,7,rep,name=exclude_status,json=excludeStatus,proto3" json:"exclude_status,omitempty"`
-	ExcludeServiceName []string               `protobuf:"bytes,8,rep,name=exclude_service_name,json=excludeServiceName,proto3" json:"exclude_service_name,omitempty"`
-	ExcludeNodeId      []string               `protobuf:"bytes,9,rep,name=exclude_node_id,json=excludeNodeId,proto3" json:"exclude_node_id,omitempty"`
-	ExcludeType        []string               `protobuf:"bytes,10,rep,name=exclude_type,json=excludeType,proto3" json:"exclude_type,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// status includes only tasks matching one of these status strings.
+	Status []string `protobuf:"bytes,1,rep,name=status,proto3" json:"status,omitempty"`
+	// service_name includes only tasks for these services.
+	ServiceName []string `protobuf:"bytes,2,rep,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// page_size is the requested page size.
+	PageSize uint32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// page is the 1-based page number.
+	Page uint32 `protobuf:"varint,4,opt,name=page,proto3" json:"page,omitempty"`
+	// node_id includes only tasks for these nodes.
+	NodeId []string `protobuf:"bytes,5,rep,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// type includes only tasks of these types.
+	Type []string `protobuf:"bytes,6,rep,name=type,proto3" json:"type,omitempty"`
+	// exclude_status removes tasks matching these status strings.
+	ExcludeStatus []string `protobuf:"bytes,7,rep,name=exclude_status,json=excludeStatus,proto3" json:"exclude_status,omitempty"`
+	// exclude_service_name removes tasks for these services.
+	ExcludeServiceName []string `protobuf:"bytes,8,rep,name=exclude_service_name,json=excludeServiceName,proto3" json:"exclude_service_name,omitempty"`
+	// exclude_node_id removes tasks for these nodes.
+	ExcludeNodeId []string `protobuf:"bytes,9,rep,name=exclude_node_id,json=excludeNodeId,proto3" json:"exclude_node_id,omitempty"`
+	// exclude_type removes tasks of these types.
+	ExcludeType   []string `protobuf:"bytes,10,rep,name=exclude_type,json=excludeType,proto3" json:"exclude_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListTasksRequest) Reset() {
@@ -197,14 +211,18 @@ func (x *ListTasksRequest) GetExcludeType() []string {
 	return nil
 }
 
+// TaskSummary describes one task in list results.
 type TaskSummary struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	Type          string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
-	ServiceName   string                 `protobuf:"bytes,4,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	NodeId        string                 `protobuf:"bytes,5,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	CreatedAt     string                 `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	TaskId string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// type is the controller task type string.
+	Type string `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	// status is the latest task status string.
+	Status      string `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	ServiceName string `protobuf:"bytes,4,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	NodeId      string `protobuf:"bytes,5,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// created_at is the task creation timestamp string.
+	CreatedAt     string `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -281,6 +299,7 @@ func (x *TaskSummary) GetCreatedAt() string {
 	return ""
 }
 
+// ListTasksResponse returns one page of task summaries.
 type ListTasksResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Tasks         []*TaskSummary         `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
@@ -333,6 +352,7 @@ func (x *ListTasksResponse) GetTotalCount() uint32 {
 	return 0
 }
 
+// GetTaskRequest identifies one task by ID.
 type GetTaskRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
@@ -377,12 +397,16 @@ func (x *GetTaskRequest) GetTaskId() string {
 	return ""
 }
 
+// TaskStepSummary describes one recorded step within a task.
 type TaskStepSummary struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StepName      string                 `protobuf:"bytes,1,opt,name=step_name,json=stepName,proto3" json:"step_name,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	StartedAt     string                 `protobuf:"bytes,3,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	FinishedAt    string                 `protobuf:"bytes,4,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	StepName string                 `protobuf:"bytes,1,opt,name=step_name,json=stepName,proto3" json:"step_name,omitempty"`
+	// status is the latest step status string.
+	Status string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	// started_at is empty when the step has not started.
+	StartedAt string `protobuf:"bytes,3,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	// finished_at is empty until the step finishes.
+	FinishedAt    string `protobuf:"bytes,4,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -445,24 +469,37 @@ func (x *TaskStepSummary) GetFinishedAt() string {
 	return ""
 }
 
+// GetTaskResponse describes one task, including step state and log metadata.
 type GetTaskResponse struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	TaskId          string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	Type            string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	Source          string                 `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
-	ServiceName     string                 `protobuf:"bytes,4,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	NodeId          string                 `protobuf:"bytes,5,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	Status          string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
-	CreatedAt       string                 `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	StartedAt       string                 `protobuf:"bytes,8,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	FinishedAt      string                 `protobuf:"bytes,9,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
-	RepoRevision    string                 `protobuf:"bytes,10,opt,name=repo_revision,json=repoRevision,proto3" json:"repo_revision,omitempty"`
-	ErrorSummary    string                 `protobuf:"bytes,11,opt,name=error_summary,json=errorSummary,proto3" json:"error_summary,omitempty"`
-	LogPath         string                 `protobuf:"bytes,12,opt,name=log_path,json=logPath,proto3" json:"log_path,omitempty"`
-	Steps           []*TaskStepSummary     `protobuf:"bytes,13,rep,name=steps,proto3" json:"steps,omitempty"`
-	TriggeredBy     string                 `protobuf:"bytes,14,opt,name=triggered_by,json=triggeredBy,proto3" json:"triggered_by,omitempty"`
-	ResultRevision  string                 `protobuf:"bytes,15,opt,name=result_revision,json=resultRevision,proto3" json:"result_revision,omitempty"`
-	AttemptOfTaskId string                 `protobuf:"bytes,16,opt,name=attempt_of_task_id,json=attemptOfTaskId,proto3" json:"attempt_of_task_id,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	TaskId string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// type is the controller task type string.
+	Type string `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	// source identifies what triggered the task.
+	Source      string `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
+	ServiceName string `protobuf:"bytes,4,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	NodeId      string `protobuf:"bytes,5,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// status is the latest task status string.
+	Status string `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
+	// created_at is the task creation timestamp string.
+	CreatedAt string `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// started_at is empty until task execution begins.
+	StartedAt string `protobuf:"bytes,8,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	// finished_at is empty until task execution reaches a terminal state.
+	FinishedAt string `protobuf:"bytes,9,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	// repo_revision is the repo revision used when the task started.
+	RepoRevision string `protobuf:"bytes,10,opt,name=repo_revision,json=repoRevision,proto3" json:"repo_revision,omitempty"`
+	ErrorSummary string `protobuf:"bytes,11,opt,name=error_summary,json=errorSummary,proto3" json:"error_summary,omitempty"`
+	// log_path is the controller-side path to persisted task logs.
+	LogPath string `protobuf:"bytes,12,opt,name=log_path,json=logPath,proto3" json:"log_path,omitempty"`
+	// steps lists recorded step state snapshots in execution order.
+	Steps []*TaskStepSummary `protobuf:"bytes,13,rep,name=steps,proto3" json:"steps,omitempty"`
+	// triggered_by identifies the actor that created the task.
+	TriggeredBy string `protobuf:"bytes,14,opt,name=triggered_by,json=triggeredBy,proto3" json:"triggered_by,omitempty"`
+	// result_revision is the repo revision produced by the task, when applicable.
+	ResultRevision string `protobuf:"bytes,15,opt,name=result_revision,json=resultRevision,proto3" json:"result_revision,omitempty"`
+	// attempt_of_task_id links this task to the prior task it retried.
+	AttemptOfTaskId string `protobuf:"bytes,16,opt,name=attempt_of_task_id,json=attemptOfTaskId,proto3" json:"attempt_of_task_id,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -609,6 +646,7 @@ func (x *GetTaskResponse) GetAttemptOfTaskId() string {
 	return ""
 }
 
+// TailTaskLogsRequest identifies the task log stream to follow.
 type TailTaskLogsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
@@ -653,6 +691,7 @@ func (x *TailTaskLogsRequest) GetTaskId() string {
 	return ""
 }
 
+// TailTaskLogsResponse carries one incremental log chunk.
 type TailTaskLogsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Content       string                 `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
@@ -697,6 +736,7 @@ func (x *TailTaskLogsResponse) GetContent() string {
 	return ""
 }
 
+// RunTaskAgainRequest identifies the task to retry as a new task.
 type RunTaskAgainRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
@@ -737,6 +777,68 @@ func (*RunTaskAgainRequest) Descriptor() ([]byte, []int) {
 func (x *RunTaskAgainRequest) GetTaskId() string {
 	if x != nil {
 		return x.TaskId
+	}
+	return ""
+}
+
+// ResolveTaskConfirmationRequest resolves a task in awaiting_confirmation state.
+type ResolveTaskConfirmationRequest struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	TaskId string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// decision accepts "approve" or "reject".
+	Decision      string `protobuf:"bytes,2,opt,name=decision,proto3" json:"decision,omitempty"`
+	Comment       string `protobuf:"bytes,3,opt,name=comment,proto3" json:"comment,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResolveTaskConfirmationRequest) Reset() {
+	*x = ResolveTaskConfirmationRequest{}
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolveTaskConfirmationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolveTaskConfirmationRequest) ProtoMessage() {}
+
+func (x *ResolveTaskConfirmationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResolveTaskConfirmationRequest.ProtoReflect.Descriptor instead.
+func (*ResolveTaskConfirmationRequest) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ResolveTaskConfirmationRequest) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *ResolveTaskConfirmationRequest) GetDecision() string {
+	if x != nil {
+		return x.Decision
+	}
+	return ""
+}
+
+func (x *ResolveTaskConfirmationRequest) GetComment() string {
+	if x != nil {
+		return x.Comment
 	}
 	return ""
 }
@@ -809,12 +911,17 @@ const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	"\x14TailTaskLogsResponse\x12\x18\n" +
 	"\acontent\x18\x01 \x01(\tR\acontent\".\n" +
 	"\x13RunTaskAgainRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId2\xa1\x03\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\"o\n" +
+	"\x1eResolveTaskConfirmationRequest\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x1a\n" +
+	"\bdecision\x18\x02 \x01(\tR\bdecision\x12\x18\n" +
+	"\acomment\x18\x03 \x01(\tR\acomment2\xa0\x04\n" +
 	"\vTaskService\x12`\n" +
 	"\tListTasks\x12(.composia.controller.v1.ListTasksRequest\x1a).composia.controller.v1.ListTasksResponse\x12Z\n" +
 	"\aGetTask\x12&.composia.controller.v1.GetTaskRequest\x1a'.composia.controller.v1.GetTaskResponse\x12k\n" +
 	"\fTailTaskLogs\x12+.composia.controller.v1.TailTaskLogsRequest\x1a,.composia.controller.v1.TailTaskLogsResponse0\x01\x12g\n" +
-	"\fRunTaskAgain\x12+.composia.controller.v1.RunTaskAgainRequest\x1a*.composia.controller.v1.TaskActionResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
+	"\fRunTaskAgain\x12+.composia.controller.v1.RunTaskAgainRequest\x1a*.composia.controller.v1.TaskActionResponse\x12}\n" +
+	"\x17ResolveTaskConfirmation\x126.composia.controller.v1.ResolveTaskConfirmationRequest\x1a*.composia.controller.v1.TaskActionResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
 
 var (
 	file_proto_composia_controller_v1_task_proto_rawDescOnce sync.Once
@@ -828,35 +935,38 @@ func file_proto_composia_controller_v1_task_proto_rawDescGZIP() []byte {
 	return file_proto_composia_controller_v1_task_proto_rawDescData
 }
 
-var file_proto_composia_controller_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_proto_composia_controller_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_proto_composia_controller_v1_task_proto_goTypes = []any{
-	(*TaskActionResponse)(nil),   // 0: composia.controller.v1.TaskActionResponse
-	(*ListTasksRequest)(nil),     // 1: composia.controller.v1.ListTasksRequest
-	(*TaskSummary)(nil),          // 2: composia.controller.v1.TaskSummary
-	(*ListTasksResponse)(nil),    // 3: composia.controller.v1.ListTasksResponse
-	(*GetTaskRequest)(nil),       // 4: composia.controller.v1.GetTaskRequest
-	(*TaskStepSummary)(nil),      // 5: composia.controller.v1.TaskStepSummary
-	(*GetTaskResponse)(nil),      // 6: composia.controller.v1.GetTaskResponse
-	(*TailTaskLogsRequest)(nil),  // 7: composia.controller.v1.TailTaskLogsRequest
-	(*TailTaskLogsResponse)(nil), // 8: composia.controller.v1.TailTaskLogsResponse
-	(*RunTaskAgainRequest)(nil),  // 9: composia.controller.v1.RunTaskAgainRequest
+	(*TaskActionResponse)(nil),             // 0: composia.controller.v1.TaskActionResponse
+	(*ListTasksRequest)(nil),               // 1: composia.controller.v1.ListTasksRequest
+	(*TaskSummary)(nil),                    // 2: composia.controller.v1.TaskSummary
+	(*ListTasksResponse)(nil),              // 3: composia.controller.v1.ListTasksResponse
+	(*GetTaskRequest)(nil),                 // 4: composia.controller.v1.GetTaskRequest
+	(*TaskStepSummary)(nil),                // 5: composia.controller.v1.TaskStepSummary
+	(*GetTaskResponse)(nil),                // 6: composia.controller.v1.GetTaskResponse
+	(*TailTaskLogsRequest)(nil),            // 7: composia.controller.v1.TailTaskLogsRequest
+	(*TailTaskLogsResponse)(nil),           // 8: composia.controller.v1.TailTaskLogsResponse
+	(*RunTaskAgainRequest)(nil),            // 9: composia.controller.v1.RunTaskAgainRequest
+	(*ResolveTaskConfirmationRequest)(nil), // 10: composia.controller.v1.ResolveTaskConfirmationRequest
 }
 var file_proto_composia_controller_v1_task_proto_depIdxs = []int32{
-	2, // 0: composia.controller.v1.ListTasksResponse.tasks:type_name -> composia.controller.v1.TaskSummary
-	5, // 1: composia.controller.v1.GetTaskResponse.steps:type_name -> composia.controller.v1.TaskStepSummary
-	1, // 2: composia.controller.v1.TaskService.ListTasks:input_type -> composia.controller.v1.ListTasksRequest
-	4, // 3: composia.controller.v1.TaskService.GetTask:input_type -> composia.controller.v1.GetTaskRequest
-	7, // 4: composia.controller.v1.TaskService.TailTaskLogs:input_type -> composia.controller.v1.TailTaskLogsRequest
-	9, // 5: composia.controller.v1.TaskService.RunTaskAgain:input_type -> composia.controller.v1.RunTaskAgainRequest
-	3, // 6: composia.controller.v1.TaskService.ListTasks:output_type -> composia.controller.v1.ListTasksResponse
-	6, // 7: composia.controller.v1.TaskService.GetTask:output_type -> composia.controller.v1.GetTaskResponse
-	8, // 8: composia.controller.v1.TaskService.TailTaskLogs:output_type -> composia.controller.v1.TailTaskLogsResponse
-	0, // 9: composia.controller.v1.TaskService.RunTaskAgain:output_type -> composia.controller.v1.TaskActionResponse
-	6, // [6:10] is the sub-list for method output_type
-	2, // [2:6] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	2,  // 0: composia.controller.v1.ListTasksResponse.tasks:type_name -> composia.controller.v1.TaskSummary
+	5,  // 1: composia.controller.v1.GetTaskResponse.steps:type_name -> composia.controller.v1.TaskStepSummary
+	1,  // 2: composia.controller.v1.TaskService.ListTasks:input_type -> composia.controller.v1.ListTasksRequest
+	4,  // 3: composia.controller.v1.TaskService.GetTask:input_type -> composia.controller.v1.GetTaskRequest
+	7,  // 4: composia.controller.v1.TaskService.TailTaskLogs:input_type -> composia.controller.v1.TailTaskLogsRequest
+	9,  // 5: composia.controller.v1.TaskService.RunTaskAgain:input_type -> composia.controller.v1.RunTaskAgainRequest
+	10, // 6: composia.controller.v1.TaskService.ResolveTaskConfirmation:input_type -> composia.controller.v1.ResolveTaskConfirmationRequest
+	3,  // 7: composia.controller.v1.TaskService.ListTasks:output_type -> composia.controller.v1.ListTasksResponse
+	6,  // 8: composia.controller.v1.TaskService.GetTask:output_type -> composia.controller.v1.GetTaskResponse
+	8,  // 9: composia.controller.v1.TaskService.TailTaskLogs:output_type -> composia.controller.v1.TailTaskLogsResponse
+	0,  // 10: composia.controller.v1.TaskService.RunTaskAgain:output_type -> composia.controller.v1.TaskActionResponse
+	0,  // 11: composia.controller.v1.TaskService.ResolveTaskConfirmation:output_type -> composia.controller.v1.TaskActionResponse
+	7,  // [7:12] is the sub-list for method output_type
+	2,  // [2:7] is the sub-list for method input_type
+	2,  // [2:2] is the sub-list for extension type_name
+	2,  // [2:2] is the sub-list for extension extendee
+	0,  // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_proto_composia_controller_v1_task_proto_init() }
@@ -870,7 +980,7 @@ func file_proto_composia_controller_v1_task_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_controller_v1_task_proto_rawDesc), len(file_proto_composia_controller_v1_task_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

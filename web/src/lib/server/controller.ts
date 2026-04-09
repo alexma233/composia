@@ -1058,6 +1058,18 @@ export async function runTaskAgain(
   });
 }
 
+export async function resolveTaskConfirmation(
+  taskId: string,
+  decision: "approve" | "reject",
+  comment = "",
+): Promise<ServiceActionResult> {
+  return callTaskAction("/composia.controller.v1.TaskService/ResolveTaskConfirmation", {
+    taskId,
+    decision,
+    comment,
+  });
+}
+
 function requireControllerConfig() {
   const config = controllerConfig();
   if (!config.ready) {
