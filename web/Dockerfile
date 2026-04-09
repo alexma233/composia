@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 FROM --platform=$BUILDPLATFORM oven/bun:1.3.8 AS builder
 
 WORKDIR /src
@@ -5,7 +6,8 @@ WORKDIR /src
 COPY package.json bun.lock ./
 COPY web/package.json ./web/package.json
 
-RUN bun install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install --frozen-lockfile
 
 COPY web ./web
 

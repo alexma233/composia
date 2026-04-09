@@ -22,10 +22,61 @@ env:
   FORGEJO_WEB_IMAGE_NAME: forgejo.alexma.top/${{ github.repository_owner }}/composia-web
   GHCR_BACKEND_IMAGE_NAME: ghcr.io/${{ github.repository }}
   GHCR_WEB_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/composia-web
-  PLATFORMS: linux/amd64,linux/arm64
+  PLATFORMS: linux/amd64
 
 jobs:
+  detect-changes:
+    runs-on: docker-amd64-dind
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - name: Checkout
+        uses: https://forgejo.alexma.top/actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed targets
+        id: filter
+        shell: bash
+        run: |
+          set -eu
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "web=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          base_sha="${{ github.event.before }}"
+          head_sha="${{ github.sha }}"
+          zero_sha="0000000000000000000000000000000000000000"
+
+          if [ -z "$base_sha" ] || [ "$base_sha" = "$zero_sha" ]; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "web=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed_files="$(git diff --name-only "$base_sha" "$head_sha")"
+
+          backend=false
+          web=false
+
+          if printf '%s\n' "$changed_files" | grep -Eq '^(.*\.go|go\.mod|go\.sum|Dockerfile|\.dockerignore|proto/.*|gen/go/.*|\.forgejo/workflows/dev-build-docker\.yaml|\.forgejo/workflows/release-build-docker\.yaml)$'; then
+            backend=true
+          fi
+
+          if printf '%s\n' "$changed_files" | grep -Eq '^(package\.json|bun\.lock|web/.*|web/Dockerfile|\.forgejo/workflows/dev-build-docker\.yaml|\.forgejo/workflows/release-build-docker\.yaml)$'; then
+            web=true
+          fi
+
+          echo "backend=$backend" >> "$GITHUB_OUTPUT"
+          echo "web=$web" >> "$GITHUB_OUTPUT"
+
   docker-backend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
     runs-on: docker-amd64-dind
     steps:
       - name: Checkout
@@ -71,8 +122,14 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=registry,ref=${{ env.FORGEJO_BACKEND_IMAGE_NAME }}:buildcache
+          cache-to: |
+            type=registry,ref=${{ env.FORGEJO_BACKEND_IMAGE_NAME }}:buildcache,mode=max
 
   docker-web:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.web == 'true'
     runs-on: docker-amd64-dind
     steps:
       - name: Checkout
@@ -118,3 +175,7 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=registry,ref=${{ env.FORGEJO_WEB_IMAGE_NAME }}:buildcache
+          cache-to: |
+            type=registry,ref=${{ env.FORGEJO_WEB_IMAGE_NAME }}:buildcache,mode=max
