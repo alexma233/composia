@@ -22,15 +22,15 @@
 		<Card>
 			<CardHeader>
         {#if data.node}
-          <div class="flex flex-wrap items-start justify-between gap-4">
-            <div class="space-y-1">
+          <div class="page-header">
+            <div class="page-heading">
               <CardTitle class="page-title">{data.node.displayName}</CardTitle>
               {#if data.node.displayName !== data.node.nodeId}
-                <p class="text-sm text-muted-foreground">
+                <p class="page-meta">
                   {data.node.nodeId} · {$messages.dashboard.lastHeartbeat} {formatTimestamp(data.node.lastHeartbeat)}
                 </p>
               {:else}
-                <p class="text-sm text-muted-foreground">
+                <p class="page-meta">
                   {$messages.dashboard.lastHeartbeat} {formatTimestamp(data.node.lastHeartbeat)}
                 </p>
               {/if}
@@ -57,7 +57,7 @@
       <CardContent>
         {#if data.dockerStats}
           <div class="space-y-4">
-            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div class="summary-grid sm:grid-cols-4 xl:grid-cols-4">
               <a href="/nodes/{data.node?.nodeId}/docker/containers" class="stat-link">
                 <div class="text-2xl font-semibold">{data.dockerStats.containersRunning}/{data.dockerStats.containersTotal}</div>
                 <div class="text-xs text-muted-foreground">{$messages.nodes.docker.containers}</div>

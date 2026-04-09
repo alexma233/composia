@@ -26,7 +26,7 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-  --radius: 0.875rem;
+  --radius: 0.625rem;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -188,6 +188,14 @@
     @apply space-y-6;
   }
 
+  .page-header {
+    @apply flex flex-wrap items-start justify-between gap-4;
+  }
+
+  .page-heading {
+    @apply min-w-0 space-y-1;
+  }
+
   .page-title {
     @apply text-2xl font-semibold tracking-tight sm:text-3xl;
   }
@@ -202,6 +210,18 @@
 
   .section-description {
     @apply text-sm leading-6 text-muted-foreground;
+  }
+
+  .page-meta {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .section-header {
+    @apply flex flex-wrap items-start justify-between gap-3;
+  }
+
+  .section-heading {
+    @apply min-w-0 space-y-1;
   }
 
   .metric-label {
@@ -221,11 +241,11 @@
   }
 
   .metric-card {
-    @apply rounded-lg border bg-muted/20 p-4;
+    @apply rounded-lg border bg-muted/20 px-4 py-3;
   }
 
   .inset-card {
-    @apply rounded-lg border bg-background p-4;
+    @apply rounded-lg border bg-background px-4 py-3;
   }
 
   .list-row {
@@ -252,8 +272,29 @@
     @apply rounded-lg border bg-background p-2;
   }
 
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .summary-grid {
+    @apply grid gap-3 md:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .summary-strip {
+    @apply grid gap-3 sm:grid-cols-2 xl:grid-cols-5;
+  }
+
+  .summary-item {
+    @apply rounded-lg border bg-background px-4 py-3;
+  }
+
   .nav-pill {
-    @apply inline-flex h-8 items-center justify-center rounded-md border px-3 text-xs font-medium transition-colors sm:h-9 sm:text-sm;
+    @apply inline-flex h-8 shrink-0 items-center justify-center rounded-md border px-3 text-xs font-medium transition-colors sm:h-9 sm:text-sm;
   }
 
   .nav-pill-active {

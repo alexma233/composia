@@ -50,8 +50,8 @@
 
     <section class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
 		<Card>
-        <CardHeader class="flex flex-row items-start justify-between gap-4">
-          <div class="space-y-1">
+        <CardHeader class="section-header">
+          <div class="section-heading">
             <CardTitle class="section-title">
               <a class="hover:text-foreground/80 transition-colors" href="/services">{$messages.dashboard.services}</a>
             </CardTitle>
@@ -88,8 +88,8 @@
 
       <div class="grid gap-6">
 			<Card>
-          <CardHeader class="flex flex-row items-start justify-between gap-4">
-            <div class="space-y-1">
+          <CardHeader class="section-header">
+            <div class="section-heading">
               <CardTitle class="section-title">
                 <a class="hover:text-foreground/80 transition-colors" href="/nodes">{$messages.dashboard.nodes}</a>
               </CardTitle>
@@ -126,8 +126,8 @@
         </Card>
 
 			<Card>
-          <CardHeader class="flex flex-row items-start justify-between gap-4">
-            <div class="space-y-1">
+          <CardHeader class="section-header">
+            <div class="section-heading">
               <CardTitle class="section-title">
                 <a class="hover:text-foreground/80 transition-colors" href="/tasks">{$messages.dashboard.tasks}</a>
               </CardTitle>

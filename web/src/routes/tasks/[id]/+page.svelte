@@ -9,7 +9,7 @@
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
-  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { formatTimestamp, taskStatusLabel, taskStatusTone } from '$lib/presenters';
 
   interface Props {
@@ -102,12 +102,12 @@
 		<Card>
 			<CardHeader>
         {#if data.task}
-          <div class="flex flex-wrap items-start justify-between gap-4">
-            <div class="space-y-1">
+          <div class="page-header">
+            <div class="page-heading">
               <CardTitle class="page-title">{data.task.type}</CardTitle>
-              <CardDescription class="page-description">
+              <div class="page-meta">
                 {data.task.taskId} · {data.task.serviceName || `${$messages.tasks.nodeLevel}: ${data.task.nodeId || 'n/a'}`}
-              </CardDescription>
+              </div>
             </div>
             <div class="flex items-center gap-2">
               <Badge variant={taskStatusTone(data.task.status)}>
@@ -133,7 +133,7 @@
 
       {#if data.task}
         <CardContent class="space-y-4">
-          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div class="summary-grid">
             <div class="metric-card">
               <div class="metric-label">{$messages.tasks.taskDetails.source}</div>
               <div class="mt-2 text-sm text-foreground">{data.task.source || $messages.common.na}</div>
@@ -179,13 +179,13 @@
     </Card>
 
 		<Card>
-      <CardHeader class="space-y-1">
+      <CardHeader>
         <CardTitle class="section-title">{$messages.tasks.taskSteps}</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="space-y-3">
           {#each data.task?.steps ?? [] as step}
-            <div class="inset-card px-4 py-4">
+            <div class="inset-card">
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="text-sm font-medium">{step.stepName}</div>
                 <Badge variant={taskStatusTone(step.status)}>{taskStatusLabel(step.status, $messages)}</Badge>
@@ -203,7 +203,7 @@
     </Card>
 
 		<Card>
-      <CardHeader class="flex flex-row items-center justify-between gap-3">
+      <CardHeader class="section-header">
         <CardTitle class="section-title">{$messages.tasks.taskLogs}</CardTitle>
         <div class="metric-label">{logState}</div>
       </CardHeader>

@@ -8,7 +8,7 @@
   import ThemeControls from '$lib/components/app/theme-controls.svelte';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Button } from '$lib/components/ui/button';
-  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 
   interface Props {
     data: PageData;
@@ -91,12 +91,11 @@
 
 <div class="page-shell">
   <div class="page-stack">
-		<Card>
-      <CardHeader class="space-y-2">
-        <CardTitle class="page-title">{$messages.settings.title}</CardTitle>
-        <CardDescription class="page-description">
-          {$messages.settings.description}
-        </CardDescription>
+    <Card>
+      <CardHeader>
+        <div class="page-heading">
+          <CardTitle class="page-title">{$messages.settings.title}</CardTitle>
+        </div>
       </CardHeader>
     </Card>
 
@@ -109,11 +108,8 @@
 
     <section class="grid gap-6 lg:grid-cols-2">
 			<Card>
-        <CardHeader class="space-y-2">
+        <CardHeader>
           <CardTitle class="section-title">{$messages.settings.appearance.title}</CardTitle>
-          <CardDescription class="section-description">
-            {$messages.settings.appearance.description}
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <ThemeControls />
@@ -121,11 +117,8 @@
       </Card>
 
 			<Card>
-        <CardHeader class="space-y-2">
+        <CardHeader>
           <CardTitle class="section-title">{$messages.settings.controller.title}</CardTitle>
-          <CardDescription class="section-description">
-            {$messages.settings.controller.description}
-          </CardDescription>
         </CardHeader>
         <CardContent class="space-y-4">
           {#if data.system}
@@ -158,12 +151,9 @@
       </Card>
 
 		<Card class="lg:col-span-2">
-        <CardHeader class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div class="space-y-2">
+        <CardHeader class="section-header">
+          <div class="section-heading">
             <CardTitle class="section-title">{$messages.settings.repoSync.title}</CardTitle>
-            <CardDescription class="section-description">
-              {$messages.settings.repoSync.description}
-            </CardDescription>
           </div>
           <Button type="button" variant="outline" size="sm" onclick={syncRepo} disabled={syncing}>
             <RefreshCw class="mr-2 size-4" />
@@ -216,12 +206,9 @@
       </Card>
 
 		<Card class="lg:col-span-2">
-        <CardHeader class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div class="space-y-2">
+        <CardHeader class="section-header">
+          <div class="section-heading">
             <CardTitle class="section-title">{$messages.settings.rustic.title}</CardTitle>
-            <CardDescription class="section-description">
-              {$messages.settings.rustic.summary}
-            </CardDescription>
           </div>
           <div class="flex flex-wrap gap-2">
             <Button
@@ -245,10 +232,6 @@
           </div>
         </CardHeader>
         <CardContent class="space-y-4">
-          <div class="text-sm text-muted-foreground">
-            {$messages.settings.rustic.description}
-          </div>
-
           {#if rusticError}
             <Alert variant="destructive">
               <AlertTitle>{$messages.error.taskError}</AlertTitle>

@@ -11,7 +11,7 @@
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
-  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '$lib/components/ui/collapsible';
   import { Dialog, DialogTitle, DialogDescription, DialogFooter, DialogHeader } from '$lib/components/ui/dialog';
   import DialogContent from '$lib/components/ui/dialog/dialog-content.svelte';
@@ -642,45 +642,47 @@
   }
 </script>
 
-<div class="mx-auto flex min-h-[calc(100vh-72px)] max-w-[1600px] flex-col px-4 py-6 sm:px-6 lg:px-8">
-      <Card class="mb-4">
-    <CardHeader class="gap-4 p-4 sm:p-5">
-      <div class="flex flex-wrap items-start justify-between gap-4">
-        <div class="space-y-1">
-          <CardTitle class="page-title">{workspace?.displayName ?? $messages.services.service}</CardTitle>
-          <CardDescription class="page-description">{workspace?.folder ?? 'n/a'}</CardDescription>
+<div class="page-shell flex min-h-[calc(100vh-72px)] flex-col">
+  <div class="page-stack flex min-h-0 flex-1">
+    <Card>
+      <CardHeader>
+        <div class="page-header">
+          <div class="page-heading">
+            <CardTitle class="page-title">{workspace?.displayName ?? $messages.services.service}</CardTitle>
+            <div class="page-meta">{workspace?.folder ?? 'n/a'}</div>
+          </div>
+
+          <Badge variant={runtimeStatusTone(workspace?.runtimeStatus ?? 'unknown')}>
+            {runtimeStatusLabel(workspace?.runtimeStatus ?? '', $messages)}
+          </Badge>
         </div>
-      </div>
 
-      <div class="flex flex-col gap-3">
-        <div class="flex flex-wrap gap-3">
-          <div class="list-row flex min-w-[11rem] flex-1 items-center justify-between gap-3 px-3 py-2">
-            <span class="metric-label">{$messages.nodes.node}</span>
-            <span class="text-sm font-medium text-foreground">{workspace?.node || $messages.common.na}</span>
+        <div class="summary-strip">
+          <div class="summary-item">
+            <div class="metric-label">{$messages.nodes.node}</div>
+            <div class="mt-2 text-sm font-medium text-foreground">{workspace?.node || $messages.common.na}</div>
           </div>
 
-          <div class="list-row flex min-w-[12rem] flex-1 items-center justify-between gap-3 px-3 py-2">
-            <span class="metric-label">{$messages.settings.repoSync.revision}</span>
-            <span class="text-sm font-medium text-foreground">{headRevision ? headRevision.slice(0, 12) : $messages.common.na}</span>
+          <div class="summary-item">
+            <div class="metric-label">{$messages.settings.repoSync.revision}</div>
+            <div class="mt-2 text-sm font-medium text-foreground">{headRevision ? headRevision.slice(0, 12) : $messages.common.na}</div>
           </div>
 
-          <div class="list-row flex min-w-[11rem] flex-1 items-center justify-between gap-3 px-3 py-2">
-            <span class="metric-label">{$messages.common.status}</span>
-            <Badge variant={runtimeStatusTone(workspace?.runtimeStatus ?? 'unknown')}>
+          <div class="summary-item">
+            <div class="metric-label">{$messages.common.status}</div>
+            <div class="mt-2 text-sm font-medium text-foreground">
               {runtimeStatusLabel(workspace?.runtimeStatus ?? '', $messages)}
-            </Badge>
+            </div>
           </div>
 
-          <div class="list-row flex min-w-[11rem] flex-1 items-center justify-between gap-3 px-3 py-2">
-            <span class="metric-label">{$messages.services.syncStatus}</span>
-            <span class="text-sm font-medium text-foreground">{syncStatus || $messages.status.unknown}</span>
+          <div class="summary-item">
+            <div class="metric-label">{$messages.services.syncStatus}</div>
+            <div class="mt-2 text-sm font-medium text-foreground">{syncStatus || $messages.status.unknown}</div>
           </div>
 
-          <div class="list-row flex min-w-[12rem] flex-1 items-center justify-between gap-3 px-3 py-2">
-            <span class="metric-label">{$messages.services.lastPull}</span>
-            <span class="text-right text-sm font-medium text-foreground">
-              {lastSuccessfulPullAt || $messages.common.never}
-            </span>
+          <div class="summary-item">
+            <div class="metric-label">{$messages.services.lastPull}</div>
+            <div class="mt-2 text-sm font-medium text-foreground">{lastSuccessfulPullAt || $messages.common.never}</div>
           </div>
         </div>
 
@@ -690,17 +692,15 @@
             <AlertDescription>{syncError}</AlertDescription>
           </Alert>
         {/if}
-      </div>
-    </CardHeader>
-  </Card>
+      </CardHeader>
+    </Card>
 
   {#if (nodeContainers ?? []).length > 0}
-    <Card class="mb-4">
-      <CardHeader class="p-4">
+    <Card>
+      <CardHeader>
         <CardTitle class="section-title">{$messages.services.instances}</CardTitle>
-        <CardDescription>{$messages.services.containersByNode}</CardDescription>
       </CardHeader>
-      <CardContent class="grid gap-3 p-4 pt-0 md:grid-cols-2 xl:grid-cols-3">
+      <CardContent class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {#each nodeContainers ?? [] as instance}
           <div class="rounded-lg border border-border/60 bg-muted/20 p-3">
             <div class="mb-3 flex items-center justify-between gap-3">
@@ -735,17 +735,17 @@
   {/if}
 
   {#if errorMessage}
-    <Alert variant="destructive" class="mb-4">
+    <Alert variant="destructive">
       <AlertTitle>{$messages.error.workspaceError}</AlertTitle>
       <AlertDescription>{errorMessage}</AlertDescription>
     </Alert>
   {/if}
 
-  <div class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)_320px]">
-    <Card class="flex min-h-0 flex-col">
-      <CardHeader class="border-b px-4 py-3">
-        <CardTitle class="section-title">{$messages.services.files.title}</CardTitle>
-<div class="flex flex-wrap items-center gap-2">
+    <div class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)_320px]">
+      <Card class="flex min-h-0 flex-col">
+        <CardHeader class="section-header border-b">
+          <CardTitle class="section-title">{$messages.services.files.title}</CardTitle>
+          <div class="flex flex-wrap items-center gap-2">
            <Popover.Root bind:open={showNewFile}>
              <Popover.Trigger class="inline-flex">
                {#snippet child({ props: triggerProps })}
@@ -787,11 +787,11 @@
            <Button type="button" variant="outline" size="sm" onclick={() => { showRename = !showRename; renamePath = selectedNodePath; }} disabled={!selectedNodePath || saving}>
              <Pencil class="mr-2 size-4" />{$messages.common.rename}
            </Button>
-           <Button type="button" variant="outline" size="sm" onclick={() => (showDeleteDialog = true)} disabled={!selectedNodePath || saving}>
-             <Trash2 class="mr-2 size-4" />{$messages.common.delete}
-           </Button>
+            <Button type="button" variant="outline" size="sm" onclick={() => (showDeleteDialog = true)} disabled={!selectedNodePath || saving}>
+              <Trash2 class="mr-2 size-4" />{$messages.common.delete}
+            </Button>
           </div>
-      </CardHeader>
+        </CardHeader>
 
       {#if showRename}
         <div class="border-b px-4 py-3 text-sm">
@@ -817,17 +817,17 @@
       </div>
     </Card>
 
-    <Card class="flex min-h-0 flex-col">
-      <CardHeader class="border-b px-3 py-3">
-        <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <CardTitle class="section-title">{$messages.services.files.editor}</CardTitle>
-          <Button type="button" size="sm" onclick={saveCurrentTab} disabled={!canSave}>
-            <Save class="mr-2 size-4" />
-            {$messages.common.save}
-          </Button>
-        </div>
+      <Card class="flex min-h-0 flex-col">
+        <CardHeader class="border-b">
+          <div class="section-header">
+           <CardTitle class="section-title">{$messages.services.files.editor}</CardTitle>
+           <Button type="button" size="sm" onclick={saveCurrentTab} disabled={!canSave}>
+             <Save class="mr-2 size-4" />
+             {$messages.common.save}
+           </Button>
+          </div>
 
-        <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap gap-2">
           {#each openTabs as tab}
             <div class="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-sm" class:bg-secondary={tab.path === activePath}>
               <button type="button" class="max-w-48 truncate" onclick={() => (activePath = tab.path)}>
@@ -837,8 +837,8 @@
               <button type="button" class="text-xs text-muted-foreground hover:text-foreground" onclick={() => closeTab(tab.path)}>x</button>
             </div>
           {/each}
-        </div>
-      </CardHeader>
+          </div>
+        </CardHeader>
 
       {#if activeTab}
         <div class="min-h-0 flex-1">
@@ -853,12 +853,13 @@
       {/if}
     </Card>
 
-    <section class="flex min-h-0 flex-col gap-4">
+
+      <section class="flex min-h-0 flex-col gap-4">
 		<Card>
-        <CardHeader class="flex items-center justify-between gap-3 p-4">
+        <CardHeader class="section-header">
           <CardTitle class="section-title">{$messages.services.operations.title}</CardTitle>
         </CardHeader>
-        <CardContent class="space-y-4 p-4 pt-0">
+        <CardContent class="space-y-4">
           <div class="grid gap-2">
             <Button type="button" onclick={() => triggerAction('deploy')} disabled={!!actionBusy || !workspace?.isDeclared}>
               <Play class="mr-2 size-4" />{$messages.services.operations.deploy}
@@ -924,15 +925,15 @@
       </Card>
 
 		<Card>
-        <CardHeader class="flex items-center justify-between gap-3 p-4">
-          <div class="space-y-1">
+        <CardHeader class="section-header">
+          <div class="section-heading">
             <CardTitle class="section-title">{$messages.services.recentTasks}</CardTitle>
           </div>
           <button type="button" class="muted-action" onclick={() => (logsExpanded = !logsExpanded)}>
             {logsExpanded ? $messages.services.hideLogs : $messages.services.showLogs}
           </button>
         </CardHeader>
-        <CardContent class="space-y-3 p-4 pt-0">
+        <CardContent class="space-y-3">
           {#each recentTasks as task}
             <TaskItem {task} showService={false} />
           {/each}
@@ -943,10 +944,10 @@
       </Card>
 
 		<Card>
-        <CardHeader class="p-4">
+        <CardHeader>
           <CardTitle class="section-title">{$messages.services.recentBackups}</CardTitle>
         </CardHeader>
-        <CardContent class="space-y-2 p-4 pt-0">
+        <CardContent class="space-y-2">
           {#each backups.slice(0, 6) as backup}
             <div class="list-row-compact">
               <div class="flex items-center justify-between gap-3">
@@ -964,36 +965,37 @@
           {/if}
         </CardContent>
       </Card>
-    </section>
+      </section>
+    </div>
+
+    <Collapsible bind:open={logsExpanded}>
+      <Card>
+        <CollapsibleTrigger class="flex w-full items-center justify-between px-4 py-3 text-left">
+          <CardTitle class="section-title">{$messages.common.logs}</CardTitle>
+          <span class="text-xs text-muted-foreground">{logsExpanded ? $messages.services.collapse : $messages.services.expand}</span>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div class="h-80 border-t px-4 py-4">
+            <TaskLogStream taskId={selectedTaskId} />
+          </div>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+
+    <Dialog bind:open={showDeleteDialog}>
+      <DialogOverlay />
+      <DialogContent class="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{$messages.common.delete} {selectedNode?.isDir ? $messages.common.folder : $messages.common.file}?</DialogTitle>
+          <DialogDescription>
+            {selectedNode?.isDir ? $messages.services.deleteFolderConfirm : $messages.services.deleteFileConfirm}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="outline" onclick={() => (showDeleteDialog = false)}>{$messages.common.cancel}</Button>
+          <Button type="button" variant="destructive" onclick={() => { showDeleteDialog = false; deleteNode(); }} disabled={saving}>{$messages.common.delete}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
-
-  <Collapsible bind:open={logsExpanded}>
-    <Card class="mt-4">
-      <CollapsibleTrigger class="flex w-full items-center justify-between px-4 py-3 text-left">
-        <CardTitle class="section-title">{$messages.common.logs}</CardTitle>
-        <span class="text-xs text-muted-foreground">{logsExpanded ? $messages.services.collapse : $messages.services.expand}</span>
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <div class="h-80 border-t px-4 py-4">
-          <TaskLogStream taskId={selectedTaskId} />
-        </div>
-      </CollapsibleContent>
-    </Card>
-  </Collapsible>
-
-<Dialog bind:open={showDeleteDialog}>
-  <DialogOverlay />
-  <DialogContent class="max-w-sm">
-    <DialogHeader>
-      <DialogTitle>{$messages.common.delete} {selectedNode?.isDir ? $messages.common.folder : $messages.common.file}?</DialogTitle>
-      <DialogDescription>
-        {selectedNode?.isDir ? $messages.services.deleteFolderConfirm : $messages.services.deleteFileConfirm}
-      </DialogDescription>
-    </DialogHeader>
-    <DialogFooter>
-      <Button type="button" variant="outline" onclick={() => (showDeleteDialog = false)}>{$messages.common.cancel}</Button>
-      <Button type="button" variant="destructive" onclick={() => { showDeleteDialog = false; deleteNode(); }} disabled={saving}>{$messages.common.delete}</Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
 </div>

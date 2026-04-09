@@ -63,13 +63,29 @@
   <Toaster />
   <TooltipProvider />
   <header class="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-    <div class="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-3 sm:px-6 lg:px-8">
-      <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div class="flex min-w-0 flex-wrap items-center gap-3">
-          <div class="min-w-0">
-            <a href="/" class="text-sm font-semibold text-primary">{$messages.app.name}</a>
-          </div>
+    <div class="mx-auto max-w-[1600px] px-4 py-3 sm:px-6 lg:px-8">
+      <div class="scrollbar-none flex items-center gap-3 overflow-x-auto">
+        <div class="min-w-0 shrink-0 max-md:hidden">
+          <a href="/" class="text-xl font-semibold tracking-tight text-primary sm:text-2xl">{$messages.app.name}</a>
+        </div>
 
+        <nav class="flex shrink-0 gap-2 text-sm whitespace-nowrap">
+          {#each links as link}
+            <a
+              href={link.href}
+              class={cn(
+                'nav-pill',
+                isActive(link.href, $page.url.pathname)
+                  ? 'nav-pill-active'
+                  : 'nav-pill-inactive'
+              )}
+            >
+              {$messages.nav[link.labelKey]}
+            </a>
+          {/each}
+        </nav>
+
+        <div class="ml-auto flex min-w-0 shrink-0 items-center gap-3">
           {#if isServiceWorkspace($page.url.pathname) && data.navServices.length}
             <div class="toolbar-surface flex items-center gap-3 text-sm text-muted-foreground">
               <span class="text-xs font-medium text-muted-foreground">
@@ -89,24 +105,6 @@
               </Select>
             </div>
           {/if}
-        </div>
-
-        <div class="flex flex-col gap-3 lg:items-end">
-          <nav class="flex flex-wrap gap-2 text-sm">
-            {#each links as link}
-              <a
-                href={link.href}
-                class={cn(
-                  'nav-pill',
-                  isActive(link.href, $page.url.pathname)
-                    ? 'nav-pill-active'
-                    : 'nav-pill-inactive'
-                )}
-              >
-                {$messages.nav[link.labelKey]}
-              </a>
-            {/each}
-          </nav>
         </div>
       </div>
     </div>

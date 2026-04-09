@@ -55,10 +55,12 @@
 </script>
 
 <div class="page-shell">
-	<Card>
-		<CardHeader>
-      <div class="flex items-start justify-between gap-4">
-        <CardTitle class="page-title">{$messages.tasks.taskHistory}</CardTitle>
+  <Card>
+    <CardHeader>
+      <div class="page-header">
+        <div class="page-heading">
+          <CardTitle class="page-title">{$messages.tasks.taskHistory}</CardTitle>
+        </div>
         <Badge variant="outline">{data.totalCount}</Badge>
       </div>
 

@@ -14,7 +14,7 @@
 	bind:this={ref}
 	aria-hidden="true"
 	data-slot="pagination-ellipsis"
-	class={cn("size-7 items-center justify-center [&_svg:not([class*='size-'])]:size-3.5 flex items-center justify-center", className)}
+	class={cn("size-8 items-center justify-center [&_svg:not([class*='size-'])]:size-4 flex items-center justify-center", className)}
 	{...restProps}
 >
 	<MoreHorizontalIcon  />
