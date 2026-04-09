@@ -1,0 +1,7 @@
+version: v1
+
+plugins:
+  - plugin: doc
+    out: docs/content/en-us/guide/api
+    opt:
+      - markdown,controller-reference.md

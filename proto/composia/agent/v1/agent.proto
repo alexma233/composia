@@ -6,312 +6,509 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1;agentv1";
 
+// AgentReportService carries agent-to-controller runtime and task reports.
 service AgentReportService {
+  // Heartbeat reports that an agent is alive and includes runtime metadata.
   rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  // ReportTaskState reports the latest state for one task.
   rpc ReportTaskState(ReportTaskStateRequest) returns (ReportTaskStateResponse);
+  // ReportTaskStepState reports the latest state for one task step.
   rpc ReportTaskStepState(ReportTaskStepStateRequest) returns (ReportTaskStepStateResponse);
+  // UploadTaskLogs streams log chunks from the agent to the controller.
   rpc UploadTaskLogs(stream UploadTaskLogsRequest) returns (stream UploadTaskLogsResponse);
+  // ReportBackupResult reports the result of one backup operation.
   rpc ReportBackupResult(ReportBackupResultRequest) returns (ReportBackupResultResponse);
+  // ReportServiceInstanceStatus reports the current status of one service instance.
   rpc ReportServiceInstanceStatus(ReportServiceInstanceStatusRequest) returns (ReportServiceInstanceStatusResponse);
+  // ReportDockerStats reports the latest Docker stats snapshot for one node.
   rpc ReportDockerStats(ReportDockerStatsRequest) returns (ReportDockerStatsResponse);
+  // OpenExecTunnel proxies interactive exec traffic between controller and agent.
   rpc OpenExecTunnel(stream OpenExecTunnelRequest) returns (stream OpenExecTunnelResponse);
 }
 
+// AgentTaskService lets an agent pull work assigned to its node.
 service AgentTaskService {
+  // PullNextTask returns the next available task for the requesting node.
   rpc PullNextTask(PullNextTaskRequest) returns (PullNextTaskResponse);
 }
 
+// BundleService streams service bundles needed to execute a task.
 service BundleService {
+  // GetServiceBundle streams the task bundle as binary chunks.
   rpc GetServiceBundle(GetServiceBundleRequest) returns (stream GetServiceBundleResponse);
 }
 
+// DockerService exposes Docker operations that run on the agent node.
 service DockerService {
+  // ListContainers lists local Docker containers.
   rpc ListContainers(ListContainersRequest) returns (ListContainersResponse);
+  // InspectContainer returns raw Docker inspect JSON for one container.
   rpc InspectContainer(InspectContainerRequest) returns (InspectContainerResponse);
+  // RunContainerAction applies a lifecycle action to one container.
   rpc RunContainerAction(RunContainerActionRequest) returns (RunContainerActionResponse);
+  // GetContainerLogs returns log text for one container.
   rpc GetContainerLogs(GetContainerLogsRequest) returns (GetContainerLogsResponse);
+  // ListNetworks lists local Docker networks.
   rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse);
+  // InspectNetwork returns raw Docker inspect JSON for one network.
   rpc InspectNetwork(InspectNetworkRequest) returns (InspectNetworkResponse);
+  // ListVolumes lists local Docker volumes.
   rpc ListVolumes(ListVolumesRequest) returns (ListVolumesResponse);
+  // InspectVolume returns raw Docker inspect JSON for one volume.
   rpc InspectVolume(InspectVolumeRequest) returns (InspectVolumeResponse);
+  // ListImages lists local Docker images.
   rpc ListImages(ListImagesRequest) returns (ListImagesResponse);
+  // InspectImage returns raw Docker inspect JSON for one image.
   rpc InspectImage(InspectImageRequest) returns (InspectImageResponse);
 }
 
+// HeartbeatRequest is the lightweight keepalive sent by an agent.
 message HeartbeatRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
+  // agent_version is the agent version string.
   string agent_version = 2;
+  // sent_at is the agent time when the heartbeat was sent.
   google.protobuf.Timestamp sent_at = 3;
   NodeRuntimeSummary runtime = 4;
 }
 
+// NodeRuntimeSummary reports basic runtime capacity for a node.
 message NodeRuntimeSummary {
+  // docker_server_version is the local Docker Engine version string.
   string docker_server_version = 1;
+  // disk_total_bytes is the total disk capacity visible to the agent.
   uint64 disk_total_bytes = 2;
+  // disk_free_bytes is the currently free disk capacity visible to the agent.
   uint64 disk_free_bytes = 3;
 }
 
+// HeartbeatResponse acknowledges a heartbeat with the controller receive time.
 message HeartbeatResponse {
   google.protobuf.Timestamp received_at = 1;
 }
 
+// PullNextTaskRequest identifies the node that is requesting work.
 message PullNextTaskRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
 }
 
+// AgentTask describes one executable task assigned to an agent.
 message AgentTask {
+  // task_id is the controller task ID assigned to the agent.
   string task_id = 1;
+  // type is the task type string assigned by the controller.
   string type = 2;
+  // service_name is the logical service name.
   string service_name = 3;
+  // node_id is the target node ID for the task.
   string node_id = 4;
+  // repo_revision is the desired repo revision for this task.
   string repo_revision = 5;
+  // service_dir is the task service directory path within the bundle.
   string service_dir = 6;
+  // data_names lists selected data entries for backup-like tasks.
   repeated string data_names = 7;
+  // params_json stores task-type-specific JSON parameters.
   string params_json = 8;
 }
 
+// PullNextTaskResponse indicates whether a task was assigned.
 message PullNextTaskResponse {
+  // has_task is false when there is currently no task to run.
   bool has_task = 1;
+  // task is populated only when has_task is true.
   AgentTask task = 2;
 }
 
+// ReportTaskStateRequest reports the latest task-level state from an agent.
 message ReportTaskStateRequest {
+  // task_id is the controller task ID being updated.
   string task_id = 1;
+  // status is the latest task status string observed by the agent.
   string status = 2;
+  // error_summary contains the task failure summary when the task fails.
   string error_summary = 3;
+  // finished_at is set when the task reaches a terminal state.
   google.protobuf.Timestamp finished_at = 4;
 }
 
+// ReportTaskStateResponse acknowledges a task state update.
 message ReportTaskStateResponse {}
 
+// ReportTaskStepStateRequest reports the latest task step state from an agent.
 message ReportTaskStepStateRequest {
+  // task_id is the controller task ID being updated.
   string task_id = 1;
+  // step_name identifies the step being updated.
   string step_name = 2;
+  // status is the latest step status string observed by the agent.
   string status = 3;
+  // started_at is set when the step begins.
   google.protobuf.Timestamp started_at = 4;
+  // finished_at is set when the step reaches a terminal state.
   google.protobuf.Timestamp finished_at = 5;
 }
 
+// ReportTaskStepStateResponse acknowledges a task step state update.
 message ReportTaskStepStateResponse {}
 
+// UploadTaskLogsRequest carries one ordered log chunk for a task.
 message UploadTaskLogsRequest {
+  // task_id is the controller task ID receiving the log chunk.
   string task_id = 1;
+  // seq is a monotonically increasing sequence number per task log stream.
   uint64 seq = 2;
+  // sent_at is the agent time when this log chunk was sent.
   google.protobuf.Timestamp sent_at = 3;
+  // content is the incremental log payload.
   string content = 4;
 }
 
+// UploadTaskLogsResponse acknowledges received task log chunks.
 message UploadTaskLogsResponse {
+  // task_id is the controller task ID receiving the acknowledgement.
   string task_id = 1;
+  // last_confirmed_seq is the last sequence the controller accepted.
   uint64 last_confirmed_seq = 2;
 }
 
+// OpenExecTunnelRequest carries one frame for an interactive exec session.
 message OpenExecTunnelRequest {
+  // session_id identifies the interactive exec session.
   string session_id = 1;
+  // kind identifies the frame type carried in this message.
   string kind = 2;
+  // payload holds raw terminal or control bytes for the frame.
   bytes payload = 3;
+  // rows is the terminal row count carried by resize frames.
   uint32 rows = 4;
+  // cols is the terminal column count carried by resize frames.
   uint32 cols = 5;
+  // node_id identifies the node that should execute the command.
   string node_id = 6;
+  // container_id identifies the target container for the exec session.
   string container_id = 7;
+  // command stores the exec command and arguments.
   repeated string command = 8;
 }
 
+// OpenExecTunnelResponse carries one frame back to the controller side.
 message OpenExecTunnelResponse {
+  // session_id identifies the interactive exec session.
   string session_id = 1;
+  // kind identifies the frame type carried in this message.
   string kind = 2;
+  // payload holds raw terminal or control bytes for the frame.
   bytes payload = 3;
+  // rows is the terminal row count carried by resize frames.
   uint32 rows = 4;
+  // cols is the terminal column count carried by resize frames.
   uint32 cols = 5;
+  // error contains the frame-level error message, when present.
   string error = 6;
+  // container_id identifies the target container for the exec session.
   string container_id = 7;
+  // command stores the exec command and arguments.
   repeated string command = 8;
 }
 
+// ReportBackupResultRequest reports the result of one backup execution.
 message ReportBackupResultRequest {
+  // backup_id is the backup record ID being updated.
   string backup_id = 1;
+  // task_id is the controller task ID that triggered the backup.
   string task_id = 2;
+  // service_name is the logical service name.
   string service_name = 3;
+  // data_name is the service data entry that was backed up.
   string data_name = 4;
+  // status is the latest backup status string observed by the agent.
   string status = 5;
+  // started_at is the backup start time.
   google.protobuf.Timestamp started_at = 6;
+  // finished_at is set when the backup reaches a terminal state.
   google.protobuf.Timestamp finished_at = 7;
+  // artifact_ref identifies the produced backup artifact, when present.
   string artifact_ref = 8;
+  // error_summary contains the failure summary when the backup fails.
   string error_summary = 9;
 }
 
+// ReportBackupResultResponse acknowledges a backup result update.
 message ReportBackupResultResponse {}
 
+// ReportServiceInstanceStatusRequest reports one service instance runtime snapshot.
 message ReportServiceInstanceStatusRequest {
+  // service_name is the logical service name.
   string service_name = 1;
+  // node_id is the stable node identifier.
   string node_id = 2;
+  // runtime_status is the latest instance status string observed by the agent.
   string runtime_status = 3;
+  // reported_at is the time when the status snapshot was observed.
   google.protobuf.Timestamp reported_at = 4;
 }
 
+// ReportServiceInstanceStatusResponse acknowledges a service status update.
 message ReportServiceInstanceStatusResponse {}
 
+// GetServiceBundleRequest identifies the task whose bundle should be streamed.
 message GetServiceBundleRequest {
+  // task_id is the controller task ID whose bundle should be streamed.
   string task_id = 1;
 }
 
+// GetServiceBundleResponse carries one binary chunk from a task bundle stream.
 message GetServiceBundleResponse {
+  // service_name is the logical service name.
   string service_name = 1;
+  // repo_revision is the repo revision packaged in the bundle.
   string repo_revision = 2;
+  // relative_root is the relative root path for the streamed bundle contents.
   string relative_root = 3;
+  // data contains one chunk of the bundle payload.
   bytes data = 4;
 }
 
+// DockerStats describes a node-level Docker usage snapshot.
 message DockerStats {
   uint32 containers_total = 1;
+  // containers_running is the number of running containers.
   uint32 containers_running = 2;
+  // containers_stopped is the number of stopped containers.
   uint32 containers_stopped = 3;
+  // containers_paused is the number of paused containers.
   uint32 containers_paused = 4;
+  // images is the number of local Docker images.
   uint32 images = 5;
+  // networks is the number of local Docker networks.
   uint32 networks = 6;
+  // volumes is the number of local Docker volumes.
   uint32 volumes = 7;
+  // volumes_size_bytes is the total reported volume size in bytes.
   uint64 volumes_size_bytes = 8;
+  // disks_usage_bytes is the Docker-reported disk usage in bytes.
   uint64 disks_usage_bytes = 9;
   string docker_server_version = 10;
 }
 
+// ReportDockerStatsRequest reports the latest node Docker stats snapshot.
 message ReportDockerStatsRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
+  // stats is the current Docker usage snapshot for the node.
   DockerStats stats = 2;
 }
 
+// ReportDockerStatsResponse acknowledges a Docker stats update.
 message ReportDockerStatsResponse {}
 
+// ListContainersRequest requests all local Docker containers.
 message ListContainersRequest {}
 
+// ContainerInfo describes one container for list views.
 message ContainerInfo {
   string id = 1;
+  // name is the runtime container name.
   string name = 2;
   string image = 3;
+  // state is the low-level Docker state value.
   string state = 4;
+  // status is the Docker status string intended for display.
   string status = 5;
+  // created is the container creation timestamp string.
   string created = 6;
+  // labels is the container label map.
   map<string, string> labels = 7;
+  // ports contains display-formatted published port mappings.
   repeated string ports = 8;
+  // networks lists connected Docker network names.
   repeated string networks = 9;
+  // image_id is the resolved image ID.
   string image_id = 10;
 }
 
+// ListContainersResponse returns local container summaries.
 message ListContainersResponse {
   repeated ContainerInfo containers = 1;
 }
 
+// InspectContainerRequest identifies one local container.
 message InspectContainerRequest {
+  // container_id is the runtime container ID.
   string container_id = 1;
 }
 
+// InspectContainerResponse returns raw Docker inspect JSON.
 message InspectContainerResponse {
   string raw_json = 1;
 }
 
+// ContainerAction identifies a container lifecycle action.
 enum ContainerAction {
+  // CONTAINER_ACTION_UNSPECIFIED is invalid and should not be used.
   CONTAINER_ACTION_UNSPECIFIED = 0;
+  // CONTAINER_ACTION_START starts the container.
   CONTAINER_ACTION_START = 1;
+  // CONTAINER_ACTION_STOP stops the container.
   CONTAINER_ACTION_STOP = 2;
+  // CONTAINER_ACTION_RESTART restarts the container.
   CONTAINER_ACTION_RESTART = 3;
 }
 
+// RunContainerActionRequest identifies one local container action.
 message RunContainerActionRequest {
   string container_id = 1;
   ContainerAction action = 2;
 }
 
+// RunContainerActionResponse acknowledges a local container action request.
 message RunContainerActionResponse {}
 
+// GetContainerLogsRequest fetches logs for one local container.
 message GetContainerLogsRequest {
+  // container_id is the runtime container ID.
   string container_id = 1;
+  // tail is forwarded to the Docker log tail option.
   string tail = 2;
+  // timestamps includes Docker timestamps in the returned log output.
   bool timestamps = 3;
 }
 
+// GetContainerLogsResponse returns collected log content as text.
 message GetContainerLogsResponse {
   string content = 1;
 }
 
+// ListNetworksRequest requests all local Docker networks.
 message ListNetworksRequest {}
 
+// NetworkInfo describes one Docker network for list views.
 message NetworkInfo {
   string id = 1;
+  // name is the runtime network name.
   string name = 2;
+  // driver is the Docker network driver name.
   string driver = 3;
+  // scope is the Docker network scope.
   string scope = 4;
+  // internal reports whether the network is internal-only.
   bool internal = 5;
+  // attachable reports whether standalone containers may attach to the network.
   bool attachable = 6;
+  // created is the network creation timestamp string.
   string created = 7;
+  // labels is the network label map.
   map<string, string> labels = 8;
+  // subnet is the primary IPv4 subnet, when available.
   string subnet = 9;
+  // gateway is the primary IPv4 gateway, when available.
   string gateway = 10;
+  // containers_count is the number of connected containers.
   uint32 containers_count = 11;
+  // ipv6_enabled reports whether IPv6 is enabled for the network.
   bool ipv6_enabled = 12;
 }
 
+// ListNetworksResponse returns local network summaries.
 message ListNetworksResponse {
   repeated NetworkInfo networks = 1;
 }
 
+// InspectNetworkRequest identifies one local network.
 message InspectNetworkRequest {
+  // network_id is the runtime network ID.
   string network_id = 1;
 }
 
+// InspectNetworkResponse returns raw Docker inspect JSON.
 message InspectNetworkResponse {
   string raw_json = 1;
 }
 
+// ListVolumesRequest requests all local Docker volumes.
 message ListVolumesRequest {}
 
+// VolumeInfo describes one Docker volume for list views.
 message VolumeInfo {
+  // name is the runtime volume name.
   string name = 1;
+  // driver is the Docker volume driver name.
   string driver = 2;
+  // mountpoint is the volume mount path on the node.
   string mountpoint = 3;
+  // scope is the Docker volume scope.
   string scope = 4;
+  // created is the volume creation timestamp string.
   string created = 5;
+  // labels is the volume label map.
   map<string, string> labels = 6;
+  // size_bytes is the reported volume size in bytes.
   int64 size_bytes = 7;
+  // containers_count is the number of attached containers.
   uint32 containers_count = 8;
+  // in_use reports whether any container currently uses the volume.
   bool in_use = 9;
 }
 
+// ListVolumesResponse returns local volume summaries.
 message ListVolumesResponse {
   repeated VolumeInfo volumes = 1;
 }
 
+// InspectVolumeRequest identifies one local volume.
 message InspectVolumeRequest {
+  // volume_name is the runtime volume name.
   string volume_name = 1;
 }
 
+// InspectVolumeResponse returns raw Docker inspect JSON.
 message InspectVolumeResponse {
   string raw_json = 1;
 }
 
+// ListImagesRequest requests all local Docker images.
 message ListImagesRequest {}
 
+// ImageInfo describes one Docker image for list views.
 message ImageInfo {
   string id = 1;
+  // repo_tags lists named tags referencing the image.
   repeated string repo_tags = 2;
+  // size is the image size in bytes.
   int64 size = 3;
+  // virtual_size is the virtual image size in bytes.
   int64 virtual_size = 4;
+  // created is the image creation timestamp string.
   string created = 5;
+  // repo_digests lists immutable digest references for the image.
   repeated string repo_digests = 6;
+  // architecture is the image CPU architecture string.
   string architecture = 7;
+  // os is the image operating system string.
   string os = 8;
+  // author is the image author metadata, when present.
   string author = 9;
+  // containers_count is the number of containers using the image.
   uint32 containers_count = 10;
+  // is_dangling reports whether the image is dangling.
   bool is_dangling = 11;
 }
 
+// ListImagesResponse returns local image summaries.
 message ListImagesResponse {
   repeated ImageInfo images = 1;
 }
 
+// InspectImageRequest identifies one local image.
 message InspectImageRequest {
+  // image_id is the runtime image ID.
   string image_id = 1;
 }
 
+// InspectImageResponse returns raw Docker inspect JSON.
 message InspectImageResponse {
   string raw_json = 1;
 }

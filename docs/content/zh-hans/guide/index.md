@@ -71,6 +71,7 @@ version: "1.0"
 - [备份与迁移](./backup-migrate) —— 数据保护和迁移策略
 - [日常运维](./operations) —— 任务系统和资源管理
 - [开发指南](./development) —— 本地开发环境搭建
+- [API 参考](./api/) —— 基于 protobuf 注释生成的 RPC 参考文档
 
 ## 许可证
 

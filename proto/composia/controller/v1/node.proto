@@ -6,251 +6,393 @@ import "proto/composia/controller/v1/task.proto";
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
+// NodeQueryService exposes read-only node and node-scoped task queries.
 service NodeQueryService {
+  // ListNodes returns all configured nodes with current online state.
   rpc ListNodes(ListNodesRequest) returns (ListNodesResponse);
+  // GetNode returns one node by ID.
   rpc GetNode(GetNodeRequest) returns (GetNodeResponse);
+  // GetNodeTasks returns tasks related to one node.
   rpc GetNodeTasks(GetNodeTasksRequest) returns (GetNodeTasksResponse);
+  // GetNodeDockerStats returns the latest Docker stats snapshot for one node.
   rpc GetNodeDockerStats(GetNodeDockerStatsRequest) returns (GetNodeDockerStatsResponse);
 }
 
+// NodeMaintenanceService triggers async maintenance work on one node.
 service NodeMaintenanceService {
+  // SyncNodeCaddyFiles starts a task to sync Caddy files on one node.
   rpc SyncNodeCaddyFiles(SyncNodeCaddyFilesRequest) returns (SyncNodeCaddyFilesResponse);
+  // ReloadNodeCaddy starts a task to reload Caddy on one node.
   rpc ReloadNodeCaddy(ReloadNodeCaddyRequest) returns (ReloadNodeCaddyResponse);
+  // PruneNodeDocker starts a task to prune Docker resources on one node.
   rpc PruneNodeDocker(PruneNodeDockerRequest) returns (PruneNodeDockerResponse);
+  // ForgetNodeRustic starts a task to forget Rustic snapshots for one node.
   rpc ForgetNodeRustic(ForgetNodeRusticRequest) returns (ForgetNodeRusticResponse);
+  // PruneNodeRustic starts a task to prune Rustic data on one node.
   rpc PruneNodeRustic(PruneNodeRusticRequest) returns (PruneNodeRusticResponse);
 }
 
+// DockerQueryService exposes read-only Docker resource queries for one node.
 service DockerQueryService {
+  // ListNodeContainers lists containers on one node.
   rpc ListNodeContainers(ListNodeContainersRequest) returns (ListNodeContainersResponse);
+  // InspectNodeContainer returns raw Docker inspect JSON for one container.
   rpc InspectNodeContainer(InspectNodeContainerRequest) returns (InspectNodeContainerResponse);
+  // ListNodeNetworks lists networks on one node.
   rpc ListNodeNetworks(ListNodeNetworksRequest) returns (ListNodeNetworksResponse);
+  // InspectNodeNetwork returns raw Docker inspect JSON for one network.
   rpc InspectNodeNetwork(InspectNodeNetworkRequest) returns (InspectNodeNetworkResponse);
+  // ListNodeVolumes lists volumes on one node.
   rpc ListNodeVolumes(ListNodeVolumesRequest) returns (ListNodeVolumesResponse);
+  // InspectNodeVolume returns raw Docker inspect JSON for one volume.
   rpc InspectNodeVolume(InspectNodeVolumeRequest) returns (InspectNodeVolumeResponse);
+  // ListNodeImages lists images on one node.
   rpc ListNodeImages(ListNodeImagesRequest) returns (ListNodeImagesResponse);
+  // InspectNodeImage returns raw Docker inspect JSON for one image.
   rpc InspectNodeImage(InspectNodeImageRequest) returns (InspectNodeImageResponse);
 }
 
+// ListNodesRequest requests all configured nodes.
 message ListNodesRequest {}
 
+// GetNodeRequest identifies one node by ID.
 message GetNodeRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
 }
 
+// NodeSummary describes one configured node.
 message NodeSummary {
+  // node_id is the stable node identifier.
   string node_id = 1;
+  // display_name is the human-readable node label.
   string display_name = 2;
+  // enabled reports whether the node is eligible for controller actions.
   bool enabled = 3;
+  // is_online reports whether the node has a recent heartbeat.
   bool is_online = 4;
+  // last_heartbeat is the last recorded heartbeat timestamp string.
   string last_heartbeat = 5;
 }
 
+// ListNodesResponse returns all configured nodes.
 message ListNodesResponse {
   repeated NodeSummary nodes = 1;
 }
 
+// GetNodeResponse returns one node summary.
 message GetNodeResponse {
+  // node is omitted when the requested node does not exist.
   NodeSummary node = 1;
 }
 
+// GetNodeTasksRequest filters tasks for one node by status and page.
 message GetNodeTasksRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
+  // status narrows results to one task status string when set.
   string status = 2;
+  // page_size is the requested page size.
   uint32 page_size = 3;
+  // page is the 1-based page number.
   uint32 page = 4;
 }
 
+// GetNodeTasksResponse returns one page of node tasks.
 message GetNodeTasksResponse {
   repeated TaskSummary tasks = 1;
+  // total_count is the total number of matches before pagination.
   uint32 total_count = 2;
 }
 
+// GetNodeDockerStatsRequest identifies the node whose Docker stats should be returned.
 message GetNodeDockerStatsRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
 }
 
+// DockerStats describes the latest Docker usage snapshot for one node.
 message DockerStats {
   uint32 containers_total = 1;
+  // containers_running is the number of running containers.
   uint32 containers_running = 2;
+  // containers_stopped is the number of stopped containers.
   uint32 containers_stopped = 3;
+  // containers_paused is the number of paused containers.
   uint32 containers_paused = 4;
+  // images is the number of local Docker images.
   uint32 images = 5;
+  // networks is the number of local Docker networks.
   uint32 networks = 6;
+  // volumes is the number of local Docker volumes.
   uint32 volumes = 7;
+  // volumes_size_bytes is the total reported volume size in bytes.
   uint64 volumes_size_bytes = 8;
+  // disks_usage_bytes is the Docker-reported disk usage in bytes.
   uint64 disks_usage_bytes = 9;
   string docker_server_version = 10;
 }
 
+// GetNodeDockerStatsResponse returns the latest known Docker stats snapshot.
 message GetNodeDockerStatsResponse {
   DockerStats stats = 1;
 }
 
+// SyncNodeCaddyFilesRequest syncs Caddy files for one node.
 message SyncNodeCaddyFilesRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
+  // service_name optionally narrows the sync to one service.
   string service_name = 2;
+  // full_rebuild forces a full Caddy file rebuild instead of an incremental sync.
   bool full_rebuild = 3;
 }
 
+// SyncNodeCaddyFilesResponse returns the created maintenance task ID.
 message SyncNodeCaddyFilesResponse {
   string task_id = 1;
 }
 
+// ReloadNodeCaddyRequest identifies the node whose Caddy instance should be reloaded.
 message ReloadNodeCaddyRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
 }
 
+// ReloadNodeCaddyResponse returns the created maintenance task ID.
 message ReloadNodeCaddyResponse {
   string task_id = 1;
 }
 
+// PruneNodeDockerRequest prunes one Docker resource class on a node.
 message PruneNodeDockerRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
+  // target identifies which Docker resource group to prune.
   string target = 2;
 }
 
+// PruneNodeDockerResponse returns the created maintenance task ID.
 message PruneNodeDockerResponse {
   string task_id = 1;
 }
 
+// ForgetNodeRusticRequest forgets backup snapshots for one node and dataset.
 message ForgetNodeRusticRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
+  // service_name narrows the operation to one service.
   string service_name = 2;
+  // data_name narrows the operation to one service data entry.
   string data_name = 3;
 }
 
+// ForgetNodeRusticResponse returns the created maintenance task ID.
 message ForgetNodeRusticResponse {
   string task_id = 1;
 }
 
+// PruneNodeRusticRequest prunes backup data for one node and dataset.
 message PruneNodeRusticRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
+  // service_name narrows the operation to one service.
   string service_name = 2;
+  // data_name narrows the operation to one service data entry.
   string data_name = 3;
 }
 
+// PruneNodeRusticResponse returns the created maintenance task ID.
 message PruneNodeRusticResponse {
   string task_id = 1;
 }
 
+// ListNodeContainersRequest identifies the node whose containers should be listed.
 message ListNodeContainersRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
 }
 
+// ContainerInfo describes one container for node-scoped list views.
 message ContainerInfo {
   string id = 1;
+  // name is the runtime container name.
   string name = 2;
   string image = 3;
+  // state is the low-level Docker state value.
   string state = 4;
+  // status is the Docker status string intended for display.
   string status = 5;
+  // created is the container creation timestamp string.
   string created = 6;
+  // labels is the container label map.
   map<string, string> labels = 7;
+  // ports contains display-formatted published port mappings.
   repeated string ports = 8;
+  // networks lists connected Docker network names.
   repeated string networks = 9;
+  // image_id is the resolved image ID.
   string image_id = 10;
 }
 
+// ListNodeContainersResponse returns node-scoped container summaries.
 message ListNodeContainersResponse {
   repeated ContainerInfo containers = 1;
 }
 
+// InspectNodeContainerRequest identifies one node-scoped container.
 message InspectNodeContainerRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
+  // container_id is the runtime container ID.
   string container_id = 2;
 }
 
+// InspectNodeContainerResponse returns raw Docker inspect JSON.
 message InspectNodeContainerResponse {
   string raw_json = 1;
 }
 
+// ListNodeNetworksRequest identifies the node whose networks should be listed.
 message ListNodeNetworksRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
 }
 
+// NetworkInfo describes one Docker network for node-scoped list views.
 message NetworkInfo {
   string id = 1;
+  // name is the runtime network name.
   string name = 2;
+  // driver is the Docker network driver name.
   string driver = 3;
+  // scope is the Docker network scope.
   string scope = 4;
+  // internal reports whether the network is internal-only.
   bool internal = 5;
+  // attachable reports whether standalone containers may attach to the network.
   bool attachable = 6;
+  // created is the network creation timestamp string.
   string created = 7;
+  // labels is the network label map.
   map<string, string> labels = 8;
+  // subnet is the primary IPv4 subnet, when available.
   string subnet = 9;
+  // gateway is the primary IPv4 gateway, when available.
   string gateway = 10;
+  // containers_count is the number of connected containers.
   uint32 containers_count = 11;
+  // ipv6_enabled reports whether IPv6 is enabled for the network.
   bool ipv6_enabled = 12;
 }
 
+// ListNodeNetworksResponse returns node-scoped network summaries.
 message ListNodeNetworksResponse {
   repeated NetworkInfo networks = 1;
 }
 
+// InspectNodeNetworkRequest identifies one node-scoped network.
 message InspectNodeNetworkRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
+  // network_id is the runtime network ID.
   string network_id = 2;
 }
 
+// InspectNodeNetworkResponse returns raw Docker inspect JSON.
 message InspectNodeNetworkResponse {
   string raw_json = 1;
 }
 
+// ListNodeVolumesRequest identifies the node whose volumes should be listed.
 message ListNodeVolumesRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
 }
 
+// VolumeInfo describes one Docker volume for node-scoped list views.
 message VolumeInfo {
+  // name is the runtime volume name.
   string name = 1;
+  // driver is the Docker volume driver name.
   string driver = 2;
+  // mountpoint is the volume mount path on the node.
   string mountpoint = 3;
+  // scope is the Docker volume scope.
   string scope = 4;
+  // created is the volume creation timestamp string.
   string created = 5;
+  // labels is the volume label map.
   map<string, string> labels = 6;
+  // size_bytes is the reported volume size in bytes.
   int64 size_bytes = 7;
+  // containers_count is the number of attached containers.
   uint32 containers_count = 8;
+  // in_use reports whether any container currently uses the volume.
   bool in_use = 9;
 }
 
+// ListNodeVolumesResponse returns node-scoped volume summaries.
 message ListNodeVolumesResponse {
   repeated VolumeInfo volumes = 1;
 }
 
+// InspectNodeVolumeRequest identifies one node-scoped volume.
 message InspectNodeVolumeRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
+  // volume_name is the runtime volume name.
   string volume_name = 2;
 }
 
+// InspectNodeVolumeResponse returns raw Docker inspect JSON.
 message InspectNodeVolumeResponse {
   string raw_json = 1;
 }
 
+// ListNodeImagesRequest identifies the node whose images should be listed.
 message ListNodeImagesRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
 }
 
+// ImageInfo describes one Docker image for node-scoped list views.
 message ImageInfo {
   string id = 1;
+  // repo_tags lists named tags referencing the image.
   repeated string repo_tags = 2;
+  // size is the image size in bytes.
   int64 size = 3;
+  // created is the image creation timestamp string.
   string created = 4;
+  // repo_digests lists immutable digest references for the image.
   repeated string repo_digests = 5;
+  // virtual_size is the virtual image size in bytes.
   int64 virtual_size = 6;
+  // architecture is the image CPU architecture string.
   string architecture = 7;
+  // os is the image operating system string.
   string os = 8;
+  // containers_count is the number of containers using the image.
   uint32 containers_count = 9;
+  // is_dangling reports whether the image is dangling.
   bool is_dangling = 10;
 }
 
+// ListNodeImagesResponse returns node-scoped image summaries.
 message ListNodeImagesResponse {
   repeated ImageInfo images = 1;
 }
 
+// InspectNodeImageRequest identifies one node-scoped image.
 message InspectNodeImageRequest {
+  // node_id is the stable node identifier.
   string node_id = 1;
+  // image_id is the runtime image ID.
   string image_id = 2;
 }
 
+// InspectNodeImageResponse returns raw Docker inspect JSON.
 message InspectNodeImageResponse {
   string raw_json = 1;
 }

@@ -4,84 +4,129 @@ package composia.controller.v1;
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
+// TaskService exposes task queries, log streaming, and retry operations.
 service TaskService {
+  // ListTasks returns task summaries using include and exclude filters.
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
+  // GetTask returns the full detail for one task.
   rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
+  // TailTaskLogs streams incremental log content for one task.
   rpc TailTaskLogs(TailTaskLogsRequest) returns (stream TailTaskLogsResponse);
+  // RunTaskAgain starts a new task based on an existing task.
   rpc RunTaskAgain(RunTaskAgainRequest) returns (TaskActionResponse);
 }
 
+// TaskActionResponse reports the async task created by a command RPC.
 message TaskActionResponse {
   string task_id = 1;
+  // status is the initial status of the created task.
   string status = 2;
+  // repo_revision is the repo revision associated with the created task.
   string repo_revision = 3;
 }
 
+// ListTasksRequest filters task results by included and excluded values.
 message ListTasksRequest {
+  // status includes only tasks matching one of these status strings.
   repeated string status = 1;
+  // service_name includes only tasks for these services.
   repeated string service_name = 2;
+  // page_size is the requested page size.
   uint32 page_size = 3;
+  // page is the 1-based page number.
   uint32 page = 4;
+  // node_id includes only tasks for these nodes.
   repeated string node_id = 5;
+  // type includes only tasks of these types.
   repeated string type = 6;
+  // exclude_status removes tasks matching these status strings.
   repeated string exclude_status = 7;
+  // exclude_service_name removes tasks for these services.
   repeated string exclude_service_name = 8;
+  // exclude_node_id removes tasks for these nodes.
   repeated string exclude_node_id = 9;
+  // exclude_type removes tasks of these types.
   repeated string exclude_type = 10;
 }
 
+// TaskSummary describes one task in list results.
 message TaskSummary {
   string task_id = 1;
+  // type is the controller task type string.
   string type = 2;
+  // status is the latest task status string.
   string status = 3;
   string service_name = 4;
   string node_id = 5;
+  // created_at is the task creation timestamp string.
   string created_at = 6;
 }
 
+// ListTasksResponse returns one page of task summaries.
 message ListTasksResponse {
   repeated TaskSummary tasks = 1;
   uint32 total_count = 2;
 }
 
+// GetTaskRequest identifies one task by ID.
 message GetTaskRequest {
   string task_id = 1;
 }
 
+// TaskStepSummary describes one recorded step within a task.
 message TaskStepSummary {
   string step_name = 1;
+  // status is the latest step status string.
   string status = 2;
+  // started_at is empty when the step has not started.
   string started_at = 3;
+  // finished_at is empty until the step finishes.
   string finished_at = 4;
 }
 
+// GetTaskResponse describes one task, including step state and log metadata.
 message GetTaskResponse {
   string task_id = 1;
+  // type is the controller task type string.
   string type = 2;
+  // source identifies what triggered the task.
   string source = 3;
   string service_name = 4;
   string node_id = 5;
+  // status is the latest task status string.
   string status = 6;
+  // created_at is the task creation timestamp string.
   string created_at = 7;
+  // started_at is empty until task execution begins.
   string started_at = 8;
+  // finished_at is empty until task execution reaches a terminal state.
   string finished_at = 9;
+  // repo_revision is the repo revision used when the task started.
   string repo_revision = 10;
   string error_summary = 11;
+  // log_path is the controller-side path to persisted task logs.
   string log_path = 12;
+  // steps lists recorded step state snapshots in execution order.
   repeated TaskStepSummary steps = 13;
+  // triggered_by identifies the actor that created the task.
   string triggered_by = 14;
+  // result_revision is the repo revision produced by the task, when applicable.
   string result_revision = 15;
+  // attempt_of_task_id links this task to the prior task it retried.
   string attempt_of_task_id = 16;
 }
 
+// TailTaskLogsRequest identifies the task log stream to follow.
 message TailTaskLogsRequest {
   string task_id = 1;
 }
 
+// TailTaskLogsResponse carries one incremental log chunk.
 message TailTaskLogsResponse {
   string content = 1;
 }
 
+// RunTaskAgainRequest identifies the task to retry as a new task.
 message RunTaskAgainRequest {
   string task_id = 1;
 }

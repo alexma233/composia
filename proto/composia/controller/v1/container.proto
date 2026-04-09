@@ -6,45 +6,66 @@ import "proto/composia/controller/v1/task.proto";
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
+// ContainerService exposes container-level control and inspection entrypoints.
 service ContainerService {
+  // RunContainerAction starts an async action for one container on one node.
   rpc RunContainerAction(RunContainerActionRequest) returns (TaskActionResponse);
+  // GetContainerLogs returns log text for one container.
   rpc GetContainerLogs(GetContainerLogsRequest) returns (GetContainerLogsResponse);
+  // OpenContainerExec opens an interactive exec session for one container.
   rpc OpenContainerExec(OpenContainerExecRequest) returns (OpenContainerExecResponse);
 }
 
+// ContainerAction identifies a container lifecycle action.
 enum ContainerAction {
+  // CONTAINER_ACTION_UNSPECIFIED is invalid and should not be used.
   CONTAINER_ACTION_UNSPECIFIED = 0;
+  // CONTAINER_ACTION_START starts the container.
   CONTAINER_ACTION_START = 1;
+  // CONTAINER_ACTION_STOP stops the container.
   CONTAINER_ACTION_STOP = 2;
+  // CONTAINER_ACTION_RESTART restarts the container.
   CONTAINER_ACTION_RESTART = 3;
 }
 
+// RunContainerActionRequest identifies one node-scoped container action.
 message RunContainerActionRequest {
   string node_id = 1;
   string container_id = 2;
   ContainerAction action = 3;
 }
 
+// GetContainerLogsRequest fetches logs for one container.
 message GetContainerLogsRequest {
   string node_id = 1;
   string container_id = 2;
+  // tail is forwarded to the Docker log tail option.
   string tail = 3;
+  // timestamps includes Docker timestamps in the returned log output.
   bool timestamps = 4;
 }
 
+// GetContainerLogsResponse returns collected log content as text.
 message GetContainerLogsResponse {
   string content = 1;
 }
 
+// OpenContainerExecRequest starts an interactive exec session.
 message OpenContainerExecRequest {
   string node_id = 1;
   string container_id = 2;
+  // command stores the exec command and arguments.
   repeated string command = 3;
+  // rows is the initial terminal row count.
   uint32 rows = 4;
+  // cols is the initial terminal column count.
   uint32 cols = 5;
 }
 
+// OpenContainerExecResponse returns the session identity and websocket path.
 message OpenContainerExecResponse {
+  // session_id identifies the created interactive exec session.
   string session_id = 1;
+  // websocket_path is the controller websocket path for the interactive tunnel.
   string websocket_path = 2;
 }

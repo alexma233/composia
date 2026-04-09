@@ -7,178 +7,292 @@ import "proto/composia/controller/v1/backup.proto";
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
+// ServiceQueryService exposes read-only service, task, and backup queries.
 service ServiceQueryService {
+  // ListServices returns declared and discovered services with pagination.
   rpc ListServices(ListServicesRequest) returns (ListServicesResponse);
+  // GetService returns the full detail for a single service.
   rpc GetService(GetServiceRequest) returns (GetServiceResponse);
+  // GetServiceTasks returns tasks related to one service.
   rpc GetServiceTasks(GetServiceTasksRequest) returns (GetServiceTasksResponse);
+  // GetServiceBackups returns backups related to one service.
   rpc GetServiceBackups(GetServiceBackupsRequest) returns (GetServiceBackupsResponse);
 }
 
+// ServiceCommandService triggers service-level state changes and async actions.
 service ServiceCommandService {
+  // UpdateServiceTargetNodes updates the declared target nodes for a service.
   rpc UpdateServiceTargetNodes(UpdateServiceTargetNodesRequest) returns (UpdateServiceTargetNodesResponse);
+  // RunServiceAction starts an async action for a service and returns the task.
   rpc RunServiceAction(RunServiceActionRequest) returns (TaskActionResponse);
+  // MigrateService starts an async service migration between two nodes.
   rpc MigrateService(MigrateServiceRequest) returns (TaskActionResponse);
 }
 
+// ServiceInstanceService queries and operates on one concrete service instance.
 service ServiceInstanceService {
+  // ListServiceInstances lists all instances for one service.
   rpc ListServiceInstances(ListServiceInstancesRequest) returns (ListServiceInstancesResponse);
+  // GetServiceInstance returns the detail for one service instance on one node.
   rpc GetServiceInstance(GetServiceInstanceRequest) returns (GetServiceInstanceResponse);
+  // RunServiceInstanceAction starts an async action for one service instance.
   rpc RunServiceInstanceAction(RunServiceInstanceActionRequest) returns (TaskActionResponse);
 }
 
+// ServiceInstanceSummary describes one service instance on one node.
 message ServiceInstanceSummary {
+  // service_name is the logical service name.
   string service_name = 1;
+  // node_id identifies the node hosting this instance.
   string node_id = 2;
+  // runtime_status is the controller's current status string for this instance.
   string runtime_status = 3;
+  // updated_at is the last known status update timestamp string.
   string updated_at = 4;
+  // is_declared reports whether this instance is part of desired state.
   bool is_declared = 5;
 }
 
+// ServiceContainerSummary describes one container belonging to a service instance.
 message ServiceContainerSummary {
+  // container_id is the runtime container ID.
   string container_id = 1;
+  // name is the runtime container name.
   string name = 2;
   string image = 3;
+  // state is the low-level Docker state value.
   string state = 4;
+  // status is the Docker status string intended for display.
   string status = 5;
+  // created is the container creation timestamp string.
   string created = 6;
+  // compose_project is the Compose project label, when present.
   string compose_project = 7;
+  // compose_service is the Compose service label, when present.
   string compose_service = 8;
 }
 
+// ServiceInstanceDetail extends the instance summary with container details.
 message ServiceInstanceDetail {
+  // service_name is the logical service name.
   string service_name = 1;
+  // node_id identifies the node hosting this instance.
   string node_id = 2;
+  // runtime_status is the controller's current status string for this instance.
   string runtime_status = 3;
+  // updated_at is the last known status update timestamp string.
   string updated_at = 4;
+  // is_declared reports whether this instance is part of desired state.
   bool is_declared = 5;
+  // containers lists runtime containers currently associated with the instance.
   repeated ServiceContainerSummary containers = 6;
 }
 
+// GetServiceRequest addresses one service by logical name.
 message GetServiceRequest {
+  // service_name is the logical service name.
   string service_name = 1;
 }
 
+// GetServiceResponse describes one service and all known instances.
 message GetServiceResponse {
   string name = 1;
+  // runtime_status is the controller's aggregated status string.
   string runtime_status = 2;
+  // updated_at is the last known status update timestamp string.
   string updated_at = 3;
+  // nodes lists the declared target nodes for this service.
   repeated string nodes = 4;
+  // enabled reports the desired-state enabled flag for this service.
   bool enabled = 5;
+  // directory is the service directory inside the repo.
   string directory = 6;
+  // instances lists per-node runtime details known to the controller.
   repeated ServiceInstanceDetail instances = 7;
 }
 
+// ListServiceInstancesRequest addresses one service by logical name.
 message ListServiceInstancesRequest {
+  // service_name is the logical service name.
   string service_name = 1;
 }
 
+// ListServiceInstancesResponse returns known instances for one service.
 message ListServiceInstancesResponse {
   repeated ServiceInstanceSummary instances = 1;
 }
 
+// GetServiceInstanceRequest identifies one service instance by service and node.
 message GetServiceInstanceRequest {
+  // service_name is the logical service name.
   string service_name = 1;
+  // node_id identifies the node hosting the requested instance.
   string node_id = 2;
 }
 
+// GetServiceInstanceResponse returns one service instance detail.
 message GetServiceInstanceResponse {
+  // instance is omitted when the requested instance does not exist.
   ServiceInstanceDetail instance = 1;
 }
 
+// GetServiceTasksRequest filters service tasks by status and page.
 message GetServiceTasksRequest {
   string service_name = 1;
+  // status narrows results to one task status string when set.
   string status = 2;
+  // page_size is the requested page size.
   uint32 page_size = 3;
+  // page is the 1-based page number.
   uint32 page = 4;
 }
 
+// GetServiceTasksResponse returns one page of service tasks.
 message GetServiceTasksResponse {
   repeated TaskSummary tasks = 1;
+  // total_count is the total number of matches before pagination.
   uint32 total_count = 2;
 }
 
+// GetServiceBackupsRequest filters service backups by status, data name, and page.
 message GetServiceBackupsRequest {
   string service_name = 1;
+  // status narrows results to one backup status string when set.
   string status = 2;
+  // data_name narrows results to one service data entry when set.
   string data_name = 3;
+  // page_size is the requested page size.
   uint32 page_size = 4;
+  // page is the 1-based page number.
   uint32 page = 5;
 }
 
+// GetServiceBackupsResponse returns one page of service backups.
 message GetServiceBackupsResponse {
   repeated BackupSummary backups = 1;
+  // total_count is the total number of matches before pagination.
   uint32 total_count = 2;
 }
 
+// UpdateServiceTargetNodesRequest changes the full declared target node set.
 message UpdateServiceTargetNodesRequest {
   string service_name = 1;
+  // node_ids replaces the full target node list for the service.
   repeated string node_ids = 2;
+  // base_revision provides optimistic concurrency protection for repo writes.
   string base_revision = 3;
+  // commit_message is used for the generated Git commit.
   string commit_message = 4;
 }
 
+// UpdateServiceTargetNodesResponse reports the resulting repo write and sync state.
 message UpdateServiceTargetNodesResponse {
+  // commit_id is the Git commit created for the desired-state change.
   string commit_id = 1;
+  // sync_status is the repo sync state after the write.
   string sync_status = 2;
+  // push_error contains the last push error when sync_status is failed.
   string push_error = 3;
+  // last_successful_pull_at is the last successful controller pull timestamp string.
   string last_successful_pull_at = 4;
 }
 
+// MigrateServiceRequest moves a service from one node to another.
 message MigrateServiceRequest {
   string service_name = 1;
+  // source_node_id identifies the current source node.
   string source_node_id = 2;
+  // target_node_id identifies the destination node.
   string target_node_id = 3;
 }
 
+// ServiceAction identifies an async action that targets a service.
 enum ServiceAction {
+  // SERVICE_ACTION_UNSPECIFIED is invalid and should not be used.
   SERVICE_ACTION_UNSPECIFIED = 0;
+  // SERVICE_ACTION_DEPLOY creates or reconciles the service on target nodes.
   SERVICE_ACTION_DEPLOY = 1;
+  // SERVICE_ACTION_UPDATE refreshes the running service from desired state.
   SERVICE_ACTION_UPDATE = 2;
+  // SERVICE_ACTION_STOP stops the service.
   SERVICE_ACTION_STOP = 3;
+  // SERVICE_ACTION_RESTART restarts the service.
   SERVICE_ACTION_RESTART = 4;
+  // SERVICE_ACTION_BACKUP triggers a backup task.
   SERVICE_ACTION_BACKUP = 5;
+  // SERVICE_ACTION_DNS_UPDATE refreshes DNS records for the service.
   SERVICE_ACTION_DNS_UPDATE = 6;
+  // SERVICE_ACTION_CADDY_SYNC syncs related Caddy configuration.
   SERVICE_ACTION_CADDY_SYNC = 7;
 }
 
+// RunServiceActionRequest starts an async action for a service.
 message RunServiceActionRequest {
+  // service_name is the logical service name.
   string service_name = 1;
+  // action is the async operation to start.
   ServiceAction action = 2;
+  // node_ids optionally narrows the action to selected nodes.
   repeated string node_ids = 3;
+  // data_names narrows backup-like actions to selected data entries.
   repeated string data_names = 4;
 }
 
+// ServiceInstanceAction identifies an async action that targets one service instance.
 enum ServiceInstanceAction {
+  // SERVICE_INSTANCE_ACTION_UNSPECIFIED is invalid and should not be used.
   SERVICE_INSTANCE_ACTION_UNSPECIFIED = 0;
+  // SERVICE_INSTANCE_ACTION_DEPLOY creates or reconciles the instance.
   SERVICE_INSTANCE_ACTION_DEPLOY = 1;
+  // SERVICE_INSTANCE_ACTION_UPDATE refreshes the running instance.
   SERVICE_INSTANCE_ACTION_UPDATE = 2;
+  // SERVICE_INSTANCE_ACTION_STOP stops the instance.
   SERVICE_INSTANCE_ACTION_STOP = 3;
+  // SERVICE_INSTANCE_ACTION_RESTART restarts the instance.
   SERVICE_INSTANCE_ACTION_RESTART = 4;
 }
 
+// RunServiceInstanceActionRequest starts an async action for one instance.
 message RunServiceInstanceActionRequest {
+  // service_name is the logical service name.
   string service_name = 1;
+  // node_id identifies the node that hosts the target instance.
   string node_id = 2;
+  // action is the async operation to start.
   ServiceInstanceAction action = 3;
 }
 
+// ListServicesRequest filters services by runtime status and page.
 message ListServicesRequest {
+  // runtime_status narrows results to one aggregated status string when set.
   string runtime_status = 1;
+  // page_size is the requested page size.
   uint32 page_size = 2;
+  // page is the 1-based page number.
   uint32 page = 3;
 }
 
+// ServiceSummary describes one service for list views.
 message ServiceSummary {
+  // name is the logical service name.
   string name = 1;
+  // is_declared reports whether the service exists in desired state.
   bool is_declared = 2;
+  // runtime_status is the controller's aggregated status string.
   string runtime_status = 3;
+  // updated_at is the last known status update timestamp string.
   string updated_at = 4;
+  // instance_count is the number of known service instances.
   uint32 instance_count = 5;
+  // running_count is the number of running service instances.
   uint32 running_count = 6;
+  // target_node_count is the number of declared target nodes.
   uint32 target_node_count = 7;
 }
 
+// ListServicesResponse returns one page of service summaries.
 message ListServicesResponse {
   repeated ServiceSummary services = 1;
+  // total_count is the total number of matches before pagination.
   uint32 total_count = 2;
 }

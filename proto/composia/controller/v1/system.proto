@@ -6,70 +6,118 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
+// SystemService exposes read-only controller status and config summary data.
 service SystemService {
+  // GetSystemStatus returns the current controller status and node counts.
   rpc GetSystemStatus(GetSystemStatusRequest) returns (GetSystemStatusResponse);
+  // GetCurrentConfig returns the active controller config as a redacted summary.
   rpc GetCurrentConfig(GetCurrentConfigRequest) returns (GetCurrentConfigResponse);
 }
 
+// GetSystemStatusRequest requests the current controller runtime state.
 message GetSystemStatusRequest {}
 
+// GetSystemStatusResponse describes the current controller runtime state.
 message GetSystemStatusResponse {
+  // version is the controller version string.
   string version = 1;
+  // now is the controller time when the response was generated.
   google.protobuf.Timestamp now = 2;
+  // configured_node_count is the number of nodes present in config.
   uint64 configured_node_count = 3;
+  // online_node_count is the number of nodes with a recent heartbeat.
   uint64 online_node_count = 4;
+  // controller_addr is the configured public controller address.
   string controller_addr = 5;
+  // repo_dir is the controller-side desired state repository path.
   string repo_dir = 6;
+  // state_dir is the controller-side persistent state directory.
   string state_dir = 7;
+  // log_dir is the controller-side task log directory.
   string log_dir = 8;
 }
 
+// GetCurrentConfigRequest requests the active redacted controller config.
 message GetCurrentConfigRequest {}
 
+// GetCurrentConfigResponse contains redacted config summaries only.
 message GetCurrentConfigResponse {
+  // listen_addr is the controller listen address.
   string listen_addr = 1;
+  // controller_addr is the configured public controller address.
   string controller_addr = 2;
+  // git is the configured Git sync summary for the controller repo.
   GitConfigSummary git = 3;
+  // nodes lists configured execution nodes.
   repeated NodeConfigSummary nodes = 4;
+  // cli_tokens lists token metadata without returning secret token values.
   repeated CLITokenSummary cli_tokens = 5;
+  // dns describes optional DNS integration configuration.
   DNSConfigSummary dns = 6;
+  // backup describes optional backup integration configuration.
   BackupConfigSummary backup = 7;
+  // secrets describes the active secrets provider configuration.
   SecretsConfigSummary secrets = 8;
 }
 
+// GitConfigSummary describes controller Git sync settings without credentials.
 message GitConfigSummary {
+  // remote_url is the configured Git remote URL.
   string remote_url = 1;
+  // branch is the tracked Git branch name.
   string branch = 2;
+  // pull_interval stores the configured pull interval duration string.
   string pull_interval = 3;
+  // has_auth reports whether Git auth is configured, not the auth value itself.
   bool has_auth = 4;
+  // author_name is the Git author name for controller-created commits.
   string author_name = 5;
+  // author_email is the Git author email for controller-created commits.
   string author_email = 6;
 }
 
+// NodeConfigSummary describes one configured node entry.
 message NodeConfigSummary {
+  // id is the stable node identifier used across controller and agents.
   string id = 1;
+  // display_name is the human-readable node label.
   string display_name = 2;
+  // enabled reports whether the node is eligible for controller actions.
   bool enabled = 3;
+  // public_ipv4 is empty when no public IPv4 address is configured.
   string public_ipv4 = 4;
+  // public_ipv6 is empty when no public IPv6 address is configured.
   string public_ipv6 = 5;
 }
 
+// CLITokenSummary describes one CLI token without exposing the token string.
 message CLITokenSummary {
+  // name is the operator-facing token name.
   string name = 1;
+  // enabled reports whether this token may be used.
   bool enabled = 2;
+  // comment is the optional operator note attached to the token.
   string comment = 3;
 }
 
+// DNSConfigSummary describes optional DNS integration state.
 message DNSConfigSummary {
+  // has_cloudflare reports whether Cloudflare DNS integration is configured.
   bool has_cloudflare = 1;
 }
 
+// BackupConfigSummary describes optional backup integration state.
 message BackupConfigSummary {
+  // has_rustic reports whether Rustic backup integration is configured.
   bool has_rustic = 1;
 }
 
+// SecretsConfigSummary describes the active secrets provider setup.
 message SecretsConfigSummary {
+  // provider is the configured secrets provider name.
   string provider = 1;
+  // has_identity reports whether an identity source is configured.
   bool has_identity = 2;
+  // has_recipient reports whether a recipient source is configured.
   bool has_recipient = 3;
 }

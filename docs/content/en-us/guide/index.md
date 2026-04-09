@@ -71,6 +71,7 @@ Agents run on actual Docker hosts and are responsible for:
 - [Backup & Migration](./backup-migrate) — Data protection and migration strategies
 - [Operations](./operations) — Task system and resource management
 - [Development](./development) — Set up local development environment
+- [API Reference](./api/) — Generated RPC reference from protobuf comments
 
 ## License
 

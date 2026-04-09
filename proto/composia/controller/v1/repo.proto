@@ -4,147 +4,238 @@ package composia.controller.v1;
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
+// RepoQueryService exposes read-only views of the controller Git repo.
 service RepoQueryService {
+  // GetRepoHead returns current HEAD and sync metadata.
   rpc GetRepoHead(GetRepoHeadRequest) returns (GetRepoHeadResponse);
+  // ListRepoFiles lists direct children for one repo path.
   rpc ListRepoFiles(ListRepoFilesRequest) returns (ListRepoFilesResponse);
+  // GetRepoFile returns the content of one repo file.
   rpc GetRepoFile(GetRepoFileRequest) returns (GetRepoFileResponse);
+  // ListRepoCommits returns commit history using cursor pagination.
   rpc ListRepoCommits(ListRepoCommitsRequest) returns (ListRepoCommitsResponse);
+  // ValidateRepo runs repo validation and returns structured errors.
   rpc ValidateRepo(ValidateRepoRequest) returns (ValidateRepoResponse);
 }
 
+// RepoCommandService applies changes to the controller Git repo.
 service RepoCommandService {
+  // UpdateRepoFile writes one file, creates a commit, and reports sync state.
   rpc UpdateRepoFile(UpdateRepoFileRequest) returns (UpdateRepoFileResponse);
+  // CreateRepoDirectory creates one directory, creates a commit, and reports sync state.
   rpc CreateRepoDirectory(CreateRepoDirectoryRequest) returns (CreateRepoDirectoryResponse);
+  // MoveRepoPath moves or renames one repo path.
   rpc MoveRepoPath(MoveRepoPathRequest) returns (MoveRepoPathResponse);
+  // DeleteRepoPath deletes one repo path.
   rpc DeleteRepoPath(DeleteRepoPathRequest) returns (DeleteRepoPathResponse);
+  // SyncRepo pulls or syncs the repo and returns the resulting state snapshot.
   rpc SyncRepo(SyncRepoRequest) returns (SyncRepoResponse);
 }
 
+// GetRepoHeadRequest requests the current controller repo state.
 message GetRepoHeadRequest {}
 
+// GetRepoHeadResponse describes the current repo state known to the controller.
 message GetRepoHeadResponse {
+  // head_revision is the current HEAD commit ID.
   string head_revision = 1;
   string branch = 2;
   bool has_remote = 3;
+  // clean_worktree reports whether there are uncommitted local changes.
   bool clean_worktree = 4;
+  // sync_status is the controller's repo sync status string.
   string sync_status = 5;
+  // last_sync_error contains the most recent sync failure, when present.
   string last_sync_error = 6;
+  // last_successful_pull_at is the last successful pull timestamp string.
   string last_successful_pull_at = 7;
 }
 
+// RepoFileEntry describes one direct child entry in the repo tree.
 message RepoFileEntry {
+  // path is a repo-relative path.
   string path = 1;
+  // name is the final path segment.
   string name = 2;
+  // is_dir reports whether the entry is a directory.
   bool is_dir = 3;
+  // size is the file size in bytes. Directories may report zero.
   int64 size = 4;
 }
 
+// ListRepoFilesRequest lists direct children under path.
 message ListRepoFilesRequest {
+  // path is repo-relative. An empty path refers to the repo root.
   string path = 1;
 }
 
+// ListRepoFilesResponse returns direct child entries only.
 message ListRepoFilesResponse {
   repeated RepoFileEntry entries = 1;
 }
 
+// GetRepoFileRequest addresses one repo-relative file path.
 message GetRepoFileRequest {
   string path = 1;
 }
 
+// GetRepoFileResponse returns a repo file and its text content.
 message GetRepoFileResponse {
+  // path is the repo-relative path that was read.
   string path = 1;
+  // content is the file content as text.
   string content = 2;
+  // size is the file size in bytes.
   int64 size = 3;
 }
 
+// RepoCommitSummary describes one commit in repo history.
 message RepoCommitSummary {
   string commit_id = 1;
+  // subject is the commit subject line.
   string subject = 2;
+  // committed_at is the commit timestamp string.
   string committed_at = 3;
 }
 
+// ListRepoCommitsRequest pages commit history with an opaque cursor.
 message ListRepoCommitsRequest {
+  // page_size is the requested page size.
   uint32 page_size = 1;
+  // cursor is an opaque pagination cursor from a previous response.
   string cursor = 2;
 }
 
+// ListRepoCommitsResponse returns one page of commits.
 message ListRepoCommitsResponse {
   repeated RepoCommitSummary commits = 1;
+  // next_cursor is empty when there are no more results.
   string next_cursor = 2;
 }
 
+// RepoValidationError identifies one validation problem in repo content.
 message RepoValidationError {
+  // path is the repo-relative path where validation failed.
   string path = 1;
+  // line is the 1-based line number when the error maps to one line.
   uint32 line = 2;
+  // message is a human-readable validation failure description.
   string message = 3;
 }
 
+// ValidateRepoRequest asks the controller to validate repo content.
 message ValidateRepoRequest {}
 
+// ValidateRepoResponse returns all repo validation problems found.
 message ValidateRepoResponse {
   repeated RepoValidationError errors = 1;
 }
 
+// UpdateRepoFileRequest writes one file at a repo-relative path.
 message UpdateRepoFileRequest {
+  // path is the repo-relative path to update.
   string path = 1;
+  // content is the full replacement file content.
   string content = 2;
+  // base_revision protects against writing on top of an unexpected HEAD.
   string base_revision = 3;
+  // commit_message is used for the generated Git commit.
   string commit_message = 4;
 }
 
+// UpdateRepoFileResponse reports the commit and sync result for the write.
 message UpdateRepoFileResponse {
+  // commit_id is the Git commit created for the write.
   string commit_id = 1;
+  // sync_status is the repo sync state after the write.
   string sync_status = 2;
+  // push_error contains the last push error when sync_status is failed.
   string push_error = 3;
+  // last_successful_pull_at is the last successful pull timestamp string.
   string last_successful_pull_at = 4;
 }
 
+// CreateRepoDirectoryRequest creates one repo-relative directory path.
 message CreateRepoDirectoryRequest {
+  // path is the repo-relative directory path to create.
   string path = 1;
+  // base_revision protects against writing on top of an unexpected HEAD.
   string base_revision = 2;
+  // commit_message is used for the generated Git commit.
   string commit_message = 3;
 }
 
+// CreateRepoDirectoryResponse reports the commit and sync result for the create.
 message CreateRepoDirectoryResponse {
+  // commit_id is the Git commit created for the directory creation.
   string commit_id = 1;
+  // sync_status is the repo sync state after the write.
   string sync_status = 2;
+  // push_error contains the last push error when sync_status is failed.
   string push_error = 3;
+  // last_successful_pull_at is the last successful pull timestamp string.
   string last_successful_pull_at = 4;
 }
 
+// MoveRepoPathRequest moves one repo-relative path to another.
 message MoveRepoPathRequest {
+  // source_path is the existing repo-relative path to move.
   string source_path = 1;
+  // destination_path is the new repo-relative path.
   string destination_path = 2;
+  // base_revision protects against writing on top of an unexpected HEAD.
   string base_revision = 3;
+  // commit_message is used for the generated Git commit.
   string commit_message = 4;
 }
 
+// MoveRepoPathResponse reports the commit and sync result for the move.
 message MoveRepoPathResponse {
+  // commit_id is the Git commit created for the move.
   string commit_id = 1;
+  // sync_status is the repo sync state after the write.
   string sync_status = 2;
+  // push_error contains the last push error when sync_status is failed.
   string push_error = 3;
+  // last_successful_pull_at is the last successful pull timestamp string.
   string last_successful_pull_at = 4;
 }
 
+// DeleteRepoPathRequest deletes one repo-relative path.
 message DeleteRepoPathRequest {
+  // path is the repo-relative path to delete.
   string path = 1;
+  // base_revision protects against writing on top of an unexpected HEAD.
   string base_revision = 2;
+  // commit_message is used for the generated Git commit.
   string commit_message = 3;
 }
 
+// DeleteRepoPathResponse reports the commit and sync result for the delete.
 message DeleteRepoPathResponse {
+  // commit_id is the Git commit created for the delete.
   string commit_id = 1;
+  // sync_status is the repo sync state after the write.
   string sync_status = 2;
+  // push_error contains the last push error when sync_status is failed.
   string push_error = 3;
+  // last_successful_pull_at is the last successful pull timestamp string.
   string last_successful_pull_at = 4;
 }
 
+// SyncRepoRequest asks the controller to refresh repo state from its remote.
 message SyncRepoRequest {}
 
+// SyncRepoResponse returns the repo state after a sync attempt.
 message SyncRepoResponse {
+  // head_revision is the current HEAD commit ID after the sync attempt.
   string head_revision = 1;
+  // branch is the currently checked out branch name.
   string branch = 2;
+  // sync_status is the repo sync state after the sync attempt.
   string sync_status = 3;
+  // last_sync_error contains the most recent sync failure, when present.
   string last_sync_error = 4;
+  // last_successful_pull_at is the last successful pull timestamp string.
   string last_successful_pull_at = 5;
 }

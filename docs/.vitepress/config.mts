@@ -184,7 +184,10 @@ export default defineConfig({
             {
               text: 'Development',
               items: [
-                { text: 'Development Guide', link: '/guide/development' }
+                { text: 'Development Guide', link: '/guide/development' },
+                { text: 'API Reference', link: '/guide/api/' },
+                { text: 'Controller API Reference', link: '/guide/api/controller-reference' },
+                { text: 'Agent Internal API Reference', link: '/guide/api/agent-internal-reference' }
               ]
             }
           ]
@@ -253,7 +256,10 @@ export default defineConfig({
             {
               text: '开发',
               items: [
-                { text: '开发指南', link: '/zh-hans/guide/development' }
+                { text: '开发指南', link: '/zh-hans/guide/development' },
+                { text: 'API 参考', link: '/zh-hans/guide/api/' },
+                { text: 'Controller API Reference', link: '/guide/api/controller-reference' },
+                { text: 'Agent Internal API Reference', link: '/guide/api/agent-internal-reference' }
               ]
             }
           ]

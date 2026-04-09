@@ -12,6 +12,7 @@
     "web:check": "bun run --cwd web check",
     "web:format": "bun run --cwd web format",
     "web:format:write": "bun run --cwd web format:write",
+    "docs:api:generate": "sh ./scripts/generate-proto-docs.sh",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"

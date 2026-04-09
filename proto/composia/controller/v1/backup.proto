@@ -4,46 +4,68 @@ package composia.controller.v1;
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
+// BackupRecordService exposes read-only backup record queries.
 service BackupRecordService {
+  // ListBackups returns backup records with filtering and pagination.
   rpc ListBackups(ListBackupsRequest) returns (ListBackupsResponse);
+  // GetBackup returns one backup record by ID.
   rpc GetBackup(GetBackupRequest) returns (GetBackupResponse);
 }
 
+// BackupSummary describes one backup record in list results.
 message BackupSummary {
   string backup_id = 1;
+  // task_id links the backup record to the originating task.
   string task_id = 2;
   string service_name = 3;
   string data_name = 4;
+  // status is the latest backup status string.
   string status = 5;
+  // started_at is the backup start timestamp string.
   string started_at = 6;
+  // finished_at is empty until the backup reaches a terminal state.
   string finished_at = 7;
 }
 
+// ListBackupsRequest filters backup records by service, status, data name, and page.
 message ListBackupsRequest {
   string service_name = 1;
+  // status narrows results to one backup status string when set.
   string status = 2;
+  // data_name narrows results to one service data entry when set.
   string data_name = 3;
+  // page_size is the requested page size.
   uint32 page_size = 4;
+  // page is the 1-based page number.
   uint32 page = 5;
 }
 
+// ListBackupsResponse returns one page of backup records.
 message ListBackupsResponse {
   repeated BackupSummary backups = 1;
   uint32 total_count = 2;
 }
 
+// GetBackupRequest identifies one backup record by ID.
 message GetBackupRequest {
   string backup_id = 1;
 }
 
+// GetBackupResponse describes one backup record in detail.
 message GetBackupResponse {
   string backup_id = 1;
+  // task_id links the backup record to the originating task.
   string task_id = 2;
   string service_name = 3;
   string data_name = 4;
+  // status is the latest backup status string.
   string status = 5;
+  // started_at is the backup start timestamp string.
   string started_at = 6;
+  // finished_at is empty until the backup reaches a terminal state.
   string finished_at = 7;
+  // artifact_ref identifies the produced backup artifact, when present.
   string artifact_ref = 8;
+  // error_summary contains the failure summary when the backup fails.
   string error_summary = 9;
 }
