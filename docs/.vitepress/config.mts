@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 // 说明：文档站的线上根地址（同时用于 sitemap 与 canonical/hreflang）。
 // 注意：不要以 / 结尾，避免出现双斜杠。
-const SITE_URL = 'https://docs.composia.io'
+const SITE_URL = 'https://docs.composia.xyz'
 
 // 说明：从当前配置文件位置推导 docs 根目录，用于检查多语言页面是否存在。
 const DOCS_ROOT_DIR = fileURLToPath(new URL('..', import.meta.url))
