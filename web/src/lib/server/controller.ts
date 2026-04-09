@@ -232,7 +232,7 @@ export async function loadDashboard(): Promise<DashboardData> {
     loadSystemStatus(),
     loadServices(1, 8),
     loadNodes(),
-    loadTasks(1, 6),
+    loadTasks(1, 6, { excludeType: defaultExcludedTaskTypes }),
     import("$lib/server/service-index").then(({ loadServiceWorkspaces }) =>
       loadServiceWorkspaces(),
     ),
@@ -302,11 +302,17 @@ export async function loadNodes(): Promise<NodeSummary[]> {
   return response.nodes ?? [];
 }
 
+import { defaultExcludedTaskTypes } from "$lib/tasks";
+
 export type TaskFilter = {
-  serviceName?: string;
-  nodeId?: string;
-  status?: string;
-  type?: string;
+  serviceName?: string[];
+  nodeId?: string[];
+  status?: string[];
+  type?: string[];
+  excludeServiceName?: string[];
+  excludeNodeId?: string[];
+  excludeStatus?: string[];
+  excludeType?: string[];
 };
 
 export type BackupFilter = {
@@ -331,10 +337,14 @@ export async function loadTasks(
     {
       page,
       pageSize,
-      status: filter?.status ?? "",
-      service_name: filter?.serviceName ?? "",
-      node_id: filter?.nodeId ?? "",
-      type: filter?.type ?? "",
+      status: filter?.status ?? [],
+      service_name: filter?.serviceName ?? [],
+      node_id: filter?.nodeId ?? [],
+      type: filter?.type ?? [],
+      exclude_status: filter?.excludeStatus ?? [],
+      exclude_service_name: filter?.excludeServiceName ?? [],
+      exclude_node_id: filter?.excludeNodeId ?? [],
+      exclude_type: filter?.excludeType ?? [],
     },
   );
   return {

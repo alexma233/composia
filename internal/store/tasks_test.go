@@ -249,7 +249,7 @@ func TestListTasksAppliesFiltersAndCursor(t *testing.T) {
 		t.Fatalf("create task-3: %v", err)
 	}
 
-	tasks, totalCount, err := db.ListTasks(ctx, string(task.StatusFailed), "", "", "", 1, 1)
+	tasks, totalCount, err := db.ListTasks(ctx, []string{string(task.StatusFailed)}, nil, nil, nil, nil, nil, nil, nil, 1, 1)
 	if err != nil {
 		t.Fatalf("list failed tasks: %v", err)
 	}
@@ -260,7 +260,7 @@ func TestListTasksAppliesFiltersAndCursor(t *testing.T) {
 		t.Fatalf("expected total count 2, got %d", totalCount)
 	}
 
-	tasks, _, err = db.ListTasks(ctx, "", "alpha", "", "", 1, 10)
+	tasks, _, err = db.ListTasks(ctx, nil, []string{"alpha"}, nil, nil, nil, nil, nil, nil, 1, 10)
 	if err != nil {
 		t.Fatalf("list alpha tasks: %v", err)
 	}
@@ -292,7 +292,7 @@ func TestListTasksAppliesNodeAndTypeFilters(t *testing.T) {
 		t.Fatalf("create task-3: %v", err)
 	}
 
-	tasks, _, err := db.ListTasks(ctx, "", "", "node-2", string(task.TypeDeploy), 1, 10)
+	tasks, _, err := db.ListTasks(ctx, nil, nil, []string{"node-2"}, []string{string(task.TypeDeploy)}, nil, nil, nil, nil, 1, 10)
 	if err != nil {
 		t.Fatalf("list filtered tasks: %v", err)
 	}

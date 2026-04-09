@@ -5,6 +5,7 @@
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { defaultExcludedTaskTypes } from '$lib/tasks';
   import { formatTimestamp, onlineStatusTone, runtimeStatusLabel, runtimeStatusTone } from '$lib/presenters';
   import { messages } from '$lib/i18n';
   import TaskItem from '$lib/components/app/task-item.svelte';
@@ -23,6 +24,7 @@
   }
 
   let recentTasks = $derived((data.dashboard?.tasks ?? [])
+    .filter((t) => !defaultExcludedTaskTypes.includes(t.type))
     .filter((t) => isTaskRecent(t.createdAt))
     .slice(0, 6));
 
@@ -132,7 +134,10 @@
                 <a class="hover:text-foreground/80 transition-colors" href="/tasks">{$messages.dashboard.tasks}</a>
               </CardTitle>
             </div>
-            <Badge variant="outline">{totalTaskCount()}</Badge>
+            <div class="flex items-center gap-2">
+              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/tasks">{$messages.common.viewAll}</a>
+              <Badge variant="outline">{totalTaskCount()}</Badge>
+            </div>
           </CardHeader>
           <CardContent>
             <div class="space-y-3">

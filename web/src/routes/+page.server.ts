@@ -1,5 +1,6 @@
 import type { PageServerLoad } from "./$types";
 
+import { defaultExcludedTaskTypes } from "$lib/tasks";
 import { controllerConfig, loadDashboard, loadTasks } from "$lib/server/controller";
 
 export const load: PageServerLoad = async () => {
@@ -16,7 +17,7 @@ export const load: PageServerLoad = async () => {
   try {
     const [dashboard, tasksResult] = await Promise.all([
       loadDashboard(),
-      loadTasks(1, 1),
+      loadTasks(1, 1, { excludeType: defaultExcludedTaskTypes }),
     ]);
 
     return {

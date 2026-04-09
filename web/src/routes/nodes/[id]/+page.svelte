@@ -133,7 +133,16 @@
 
 		<Card>
       <CardHeader>
-        <CardTitle class="section-title">{$messages.dashboard.recentTasks}</CardTitle>
+        <div class="section-header">
+          <div class="section-heading">
+            <CardTitle class="section-title">{$messages.dashboard.recentTasks}</CardTitle>
+          </div>
+          {#if data.node}
+            <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href={`/tasks?nodeId=${encodeURIComponent(data.node.nodeId)}`}>
+              {$messages.common.viewAll}
+            </a>
+          {/if}
+        </div>
       </CardHeader>
       <CardContent>
         <div class="space-y-3">

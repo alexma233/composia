@@ -378,7 +378,12 @@ func (db *DB) TaskNodeID(ctx context.Context, taskID string) (string, error) {
 	return nodeID, nil
 }
 
-func (db *DB) ListTasks(ctx context.Context, statusFilter, serviceNameFilter, nodeIDFilter, typeFilter string, page, limit uint32) ([]TaskSummary, uint32, error) {
+func (db *DB) ListTasks(
+	ctx context.Context,
+	statusFilters, serviceNameFilters, nodeIDFilters, typeFilters []string,
+	excludeStatusFilters, excludeServiceNameFilters, excludeNodeIDFilters, excludeTypeFilters []string,
+	page, limit uint32,
+) ([]TaskSummary, uint32, error) {
 	if limit == 0 {
 		limit = 100
 	}
@@ -387,24 +392,16 @@ func (db *DB) ListTasks(ctx context.Context, statusFilter, serviceNameFilter, no
 	}
 
 	whereClause := "WHERE 1 = 1"
-	args := make([]any, 0, 6)
+	args := make([]any, 0, 20)
 
-	if statusFilter != "" {
-		whereClause += ` AND status = ?`
-		args = append(args, statusFilter)
-	}
-	if serviceNameFilter != "" {
-		whereClause += ` AND service_name = ?`
-		args = append(args, serviceNameFilter)
-	}
-	if nodeIDFilter != "" {
-		whereClause += ` AND node_id = ?`
-		args = append(args, nodeIDFilter)
-	}
-	if typeFilter != "" {
-		whereClause += ` AND type = ?`
-		args = append(args, typeFilter)
-	}
+	whereClause, args = appendTaskFilterInClause(whereClause, args, "status", statusFilters)
+	whereClause, args = appendTaskFilterInClause(whereClause, args, "service_name", serviceNameFilters)
+	whereClause, args = appendTaskFilterInClause(whereClause, args, "node_id", nodeIDFilters)
+	whereClause, args = appendTaskFilterInClause(whereClause, args, "type", typeFilters)
+	whereClause, args = appendTaskFilterNotInClause(whereClause, args, "status", excludeStatusFilters)
+	whereClause, args = appendTaskFilterNotInClause(whereClause, args, "service_name", excludeServiceNameFilters)
+	whereClause, args = appendTaskFilterNotInClause(whereClause, args, "node_id", excludeNodeIDFilters)
+	whereClause, args = appendTaskFilterNotInClause(whereClause, args, "type", excludeTypeFilters)
 
 	var totalCount uint32
 	countQuery := `SELECT COUNT(*) FROM tasks ` + whereClause
@@ -436,6 +433,43 @@ func (db *DB) ListTasks(ctx context.Context, statusFilter, serviceNameFilter, no
 	}
 
 	return tasks, totalCount, nil
+}
+
+func appendTaskFilterInClause(whereClause string, args []any, column string, values []string) (string, []any) {
+	return appendTaskFilterClause(whereClause, args, column, values, false)
+}
+
+func appendTaskFilterNotInClause(whereClause string, args []any, column string, values []string) (string, []any) {
+	return appendTaskFilterClause(whereClause, args, column, values, true)
+}
+
+func appendTaskFilterClause(whereClause string, args []any, column string, values []string, exclude bool) (string, []any) {
+	filtered := make([]string, 0, len(values))
+	for _, value := range values {
+		if value == "" {
+			continue
+		}
+		filtered = append(filtered, value)
+	}
+	if len(filtered) == 0 {
+		return whereClause, args
+	}
+
+	whereClause += ` AND ` + column
+	if exclude {
+		whereClause += ` NOT`
+	}
+	whereClause += ` IN (`
+	for i, value := range filtered {
+		if i > 0 {
+			whereClause += ", "
+		}
+		whereClause += "?"
+		args = append(args, value)
+	}
+	whereClause += `)`
+
+	return whereClause, args
 }
 
 func (db *DB) GetTask(ctx context.Context, taskID string) (TaskDetail, error) {

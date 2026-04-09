@@ -159,14 +159,14 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	if detail.Record.Status != task.StatusSucceeded {
 		t.Fatalf("expected succeeded task, got %q", detail.Record.Status)
 	}
-	reloadTasks, totalCount, err := db.ListTasks(ctx, string(task.StatusPending), "edge", "main", string(task.TypeCaddyReload), 1, 10)
+	reloadTasks, totalCount, err := db.ListTasks(ctx, []string{string(task.StatusPending)}, []string{"edge"}, []string{"main"}, []string{string(task.TypeCaddyReload)}, nil, nil, nil, nil, 1, 10)
 	if err != nil {
 		t.Fatalf("list caddy reload tasks: %v", err)
 	}
 	if totalCount != 1 || len(reloadTasks) != 1 {
 		t.Fatalf("expected one queued caddy reload task, got total=%d tasks=%+v", totalCount, reloadTasks)
 	}
-	syncTasks, syncCount, err := db.ListTasks(ctx, string(task.StatusPending), "edge", "main", string(task.TypeCaddySync), 1, 10)
+	syncTasks, syncCount, err := db.ListTasks(ctx, []string{string(task.StatusPending)}, []string{"edge"}, []string{"main"}, []string{string(task.TypeCaddySync)}, nil, nil, nil, nil, 1, 10)
 	if err != nil {
 		t.Fatalf("list caddy sync tasks: %v", err)
 	}
@@ -416,7 +416,7 @@ func TestAgentReportTaskStateSkipsCaddyReloadWhenServiceDoesNotUseCaddy(t *testi
 		t.Fatalf("report task state: %v", err)
 	}
 
-	reloadTasks, totalCount, err := db.ListTasks(ctx, string(task.StatusPending), "edge", "main", string(task.TypeCaddyReload), 1, 10)
+	reloadTasks, totalCount, err := db.ListTasks(ctx, []string{string(task.StatusPending)}, []string{"edge"}, []string{"main"}, []string{string(task.TypeCaddyReload)}, nil, nil, nil, nil, 1, 10)
 	if err != nil {
 		t.Fatalf("list caddy reload tasks: %v", err)
 	}
@@ -480,7 +480,7 @@ func TestAgentReportTaskStateQueuesCaddyReloadAfterStop(t *testing.T) {
 		t.Fatalf("report task state: %v", err)
 	}
 
-	reloadTasks, totalCount, err := db.ListTasks(ctx, string(task.StatusPending), "edge", "main", string(task.TypeCaddyReload), 1, 10)
+	reloadTasks, totalCount, err := db.ListTasks(ctx, []string{string(task.StatusPending)}, []string{"edge"}, []string{"main"}, []string{string(task.TypeCaddyReload)}, nil, nil, nil, nil, 1, 10)
 	if err != nil {
 		t.Fatalf("list caddy reload tasks: %v", err)
 	}

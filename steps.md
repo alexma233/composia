@@ -194,6 +194,9 @@
 已完成：
 - Dashboard、services、nodes、tasks、backups 页面连接到真实 API
 - 任务日志 tailing
+- Task list 页面支持 `status/serviceName/nodeId/type` 四项多选筛选，并同时支持 include/exclude 语义；后端 `ListTasks` API 与 SQLite 查询已同步支持多值 `IN/NOT IN`
+- Web UI 任务视图默认排除低信号 Docker 查询任务：`docker_list`、`docker_inspect`、`docker_logs`
+- Dashboard、node detail、service detail 的 recent tasks 区块已补充跳转到 task list 的入口，并自动带上对应筛选条件
 - Repo 编辑和 sync 状态显示
 - Secret 编辑
 - Docker 浏览（containers、networks、images、volumes）

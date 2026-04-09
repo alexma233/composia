@@ -80,7 +80,7 @@ func TestTaskServiceListTasks(t *testing.T) {
 		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")),
 	)
 
-	response, err := client.ListTasks(ctx, connect.NewRequest(&controllerv1.ListTasksRequest{ServiceName: "alpha", PageSize: 1}))
+	response, err := client.ListTasks(ctx, connect.NewRequest(&controllerv1.ListTasksRequest{ServiceName: []string{"alpha"}, PageSize: 1}))
 	if err != nil {
 		t.Fatalf("list tasks: %v", err)
 	}
@@ -94,7 +94,7 @@ func TestTaskServiceListTasks(t *testing.T) {
 		t.Fatalf("expected total count 2, got %d", response.Msg.GetTotalCount())
 	}
 
-	filtered, err := client.ListTasks(ctx, connect.NewRequest(&controllerv1.ListTasksRequest{NodeId: "main", Type: string(task.TypeDeploy), PageSize: 10}))
+	filtered, err := client.ListTasks(ctx, connect.NewRequest(&controllerv1.ListTasksRequest{NodeId: []string{"main"}, Type: []string{string(task.TypeDeploy)}, PageSize: 10}))
 	if err != nil {
 		t.Fatalf("list filtered tasks: %v", err)
 	}

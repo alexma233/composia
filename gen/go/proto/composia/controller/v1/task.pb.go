@@ -82,15 +82,19 @@ func (x *TaskActionResponse) GetRepoRevision() string {
 }
 
 type ListTasksRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
-	ServiceName   string                 `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	PageSize      uint32                 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	Page          uint32                 `protobuf:"varint,4,opt,name=page,proto3" json:"page,omitempty"`
-	NodeId        string                 `protobuf:"bytes,5,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	Type          string                 `protobuf:"bytes,6,opt,name=type,proto3" json:"type,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Status             []string               `protobuf:"bytes,1,rep,name=status,proto3" json:"status,omitempty"`
+	ServiceName        []string               `protobuf:"bytes,2,rep,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	PageSize           uint32                 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Page               uint32                 `protobuf:"varint,4,opt,name=page,proto3" json:"page,omitempty"`
+	NodeId             []string               `protobuf:"bytes,5,rep,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	Type               []string               `protobuf:"bytes,6,rep,name=type,proto3" json:"type,omitempty"`
+	ExcludeStatus      []string               `protobuf:"bytes,7,rep,name=exclude_status,json=excludeStatus,proto3" json:"exclude_status,omitempty"`
+	ExcludeServiceName []string               `protobuf:"bytes,8,rep,name=exclude_service_name,json=excludeServiceName,proto3" json:"exclude_service_name,omitempty"`
+	ExcludeNodeId      []string               `protobuf:"bytes,9,rep,name=exclude_node_id,json=excludeNodeId,proto3" json:"exclude_node_id,omitempty"`
+	ExcludeType        []string               `protobuf:"bytes,10,rep,name=exclude_type,json=excludeType,proto3" json:"exclude_type,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *ListTasksRequest) Reset() {
@@ -123,18 +127,18 @@ func (*ListTasksRequest) Descriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ListTasksRequest) GetStatus() string {
+func (x *ListTasksRequest) GetStatus() []string {
 	if x != nil {
 		return x.Status
 	}
-	return ""
+	return nil
 }
 
-func (x *ListTasksRequest) GetServiceName() string {
+func (x *ListTasksRequest) GetServiceName() []string {
 	if x != nil {
 		return x.ServiceName
 	}
-	return ""
+	return nil
 }
 
 func (x *ListTasksRequest) GetPageSize() uint32 {
@@ -151,18 +155,46 @@ func (x *ListTasksRequest) GetPage() uint32 {
 	return 0
 }
 
-func (x *ListTasksRequest) GetNodeId() string {
+func (x *ListTasksRequest) GetNodeId() []string {
 	if x != nil {
 		return x.NodeId
 	}
-	return ""
+	return nil
 }
 
-func (x *ListTasksRequest) GetType() string {
+func (x *ListTasksRequest) GetType() []string {
 	if x != nil {
 		return x.Type
 	}
-	return ""
+	return nil
+}
+
+func (x *ListTasksRequest) GetExcludeStatus() []string {
+	if x != nil {
+		return x.ExcludeStatus
+	}
+	return nil
+}
+
+func (x *ListTasksRequest) GetExcludeServiceName() []string {
+	if x != nil {
+		return x.ExcludeServiceName
+	}
+	return nil
+}
+
+func (x *ListTasksRequest) GetExcludeNodeId() []string {
+	if x != nil {
+		return x.ExcludeNodeId
+	}
+	return nil
+}
+
+func (x *ListTasksRequest) GetExcludeType() []string {
+	if x != nil {
+		return x.ExcludeType
+	}
+	return nil
 }
 
 type TaskSummary struct {
@@ -717,14 +749,19 @@ const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	"\x12TaskActionResponse\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12#\n" +
-	"\rrepo_revision\x18\x03 \x01(\tR\frepoRevision\"\xab\x01\n" +
+	"\rrepo_revision\x18\x03 \x01(\tR\frepoRevision\"\xcf\x02\n" +
 	"\x10ListTasksRequest\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status\x12!\n" +
-	"\fservice_name\x18\x02 \x01(\tR\vserviceName\x12\x1b\n" +
+	"\x06status\x18\x01 \x03(\tR\x06status\x12!\n" +
+	"\fservice_name\x18\x02 \x03(\tR\vserviceName\x12\x1b\n" +
 	"\tpage_size\x18\x03 \x01(\rR\bpageSize\x12\x12\n" +
 	"\x04page\x18\x04 \x01(\rR\x04page\x12\x17\n" +
-	"\anode_id\x18\x05 \x01(\tR\x06nodeId\x12\x12\n" +
-	"\x04type\x18\x06 \x01(\tR\x04type\"\xad\x01\n" +
+	"\anode_id\x18\x05 \x03(\tR\x06nodeId\x12\x12\n" +
+	"\x04type\x18\x06 \x03(\tR\x04type\x12%\n" +
+	"\x0eexclude_status\x18\a \x03(\tR\rexcludeStatus\x120\n" +
+	"\x14exclude_service_name\x18\b \x03(\tR\x12excludeServiceName\x12&\n" +
+	"\x0fexclude_node_id\x18\t \x03(\tR\rexcludeNodeId\x12!\n" +
+	"\fexclude_type\x18\n" +
+	" \x03(\tR\vexcludeType\"\xad\x01\n" +
 	"\vTaskSummary\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x16\n" +

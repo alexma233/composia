@@ -1498,7 +1498,11 @@ func (server *serviceQueryServer) GetServiceTasks(ctx context.Context, req *conn
 	if _, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName()); err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
-	tasks, totalCount, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), req.Msg.GetServiceName(), "", "", req.Msg.GetPage(), req.Msg.GetPageSize())
+	statusFilters := []string(nil)
+	if req.Msg.GetStatus() != "" {
+		statusFilters = []string{req.Msg.GetStatus()}
+	}
+	tasks, totalCount, err := server.db.ListTasks(ctx, statusFilters, []string{req.Msg.GetServiceName()}, nil, nil, nil, nil, nil, nil, req.Msg.GetPage(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -1833,7 +1837,11 @@ func (server *nodeQueryServer) GetNodeTasks(ctx context.Context, req *connect.Re
 	if !configured {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("node %q is not configured", req.Msg.GetNodeId()))
 	}
-	tasks, totalCount, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), "", req.Msg.GetNodeId(), "", req.Msg.GetPage(), req.Msg.GetPageSize())
+	statusFilters := []string(nil)
+	if req.Msg.GetStatus() != "" {
+		statusFilters = []string{req.Msg.GetStatus()}
+	}
+	tasks, totalCount, err := server.db.ListTasks(ctx, statusFilters, nil, []string{req.Msg.GetNodeId()}, nil, nil, nil, nil, nil, req.Msg.GetPage(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -2543,7 +2551,7 @@ func (server *taskServer) ListTasks(ctx context.Context, req *connect.Request[co
 		req.Msg = &controllerv1.ListTasksRequest{}
 	}
 
-	tasks, totalCount, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), req.Msg.GetServiceName(), req.Msg.GetNodeId(), req.Msg.GetType(), req.Msg.GetPage(), req.Msg.GetPageSize())
+	tasks, totalCount, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), req.Msg.GetServiceName(), req.Msg.GetNodeId(), req.Msg.GetType(), req.Msg.GetExcludeStatus(), req.Msg.GetExcludeServiceName(), req.Msg.GetExcludeNodeId(), req.Msg.GetExcludeType(), req.Msg.GetPage(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}

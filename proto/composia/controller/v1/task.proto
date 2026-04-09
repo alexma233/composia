@@ -18,12 +18,16 @@ message TaskActionResponse {
 }
 
 message ListTasksRequest {
-  string status = 1;
-  string service_name = 2;
+  repeated string status = 1;
+  repeated string service_name = 2;
   uint32 page_size = 3;
   uint32 page = 4;
-  string node_id = 5;
-  string type = 6;
+  repeated string node_id = 5;
+  repeated string type = 6;
+  repeated string exclude_status = 7;
+  repeated string exclude_service_name = 8;
+  repeated string exclude_node_id = 9;
+  repeated string exclude_type = 10;
 }
 
 message TaskSummary {

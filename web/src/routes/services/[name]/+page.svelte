@@ -971,6 +971,11 @@
           <div class="section-heading">
             <CardTitle class="section-title">{$messages.services.recentTasks}</CardTitle>
           </div>
+          {#if workspace?.serviceName}
+            <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href={`/tasks?serviceName=${encodeURIComponent(workspace.serviceName)}`}>
+              {$messages.common.viewAll}
+            </a>
+          {/if}
         </CardHeader>
         <CardContent class="space-y-3">
           {#each recentTasks as task}
