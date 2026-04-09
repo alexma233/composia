@@ -239,11 +239,14 @@ export const enUS = {
   },
   settings: {
     title: "Settings",
+    description: "Tune controller appearance, inspect runtime paths, and manage repository maintenance.",
     appearance: {
       title: "Appearance",
+      description: "Adjust the Web UI theme and accent palette for this browser.",
     },
     controller: {
       title: "Controller",
+      description: "Inspect the local controller build and filesystem paths used by this workspace.",
       version: "Version",
       controllerAddress: "Controller address",
       repoDir: "Repo dir",
@@ -253,6 +256,7 @@ export const enUS = {
     },
     repoSync: {
       title: "Repo sync",
+      description: "Pull the controller repository state and review the latest sync metadata.",
       branch: "Branch",
       syncStatus: "Sync status",
       worktree: "Worktree",
@@ -266,6 +270,7 @@ export const enUS = {
     },
     rustic: {
       title: "Rustic maintenance",
+      summary: "Launch repository retention and cleanup tasks without leaving the control plane.",
       description: "Run global rustic maintenance on a controller-selected main node.",
       forget: "Forget",
       prune: "Prune",

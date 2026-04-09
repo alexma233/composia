@@ -231,11 +231,14 @@ export const zhHans = {
   },
   settings: {
     title: "设置",
+    description: "调整控制器外观，查看运行时路径，并管理仓库维护任务。",
     appearance: {
       title: "外观",
+      description: "为当前浏览器调整 Web UI 主题与强调色。",
     },
     controller: {
       title: "控制器",
+      description: "查看当前工作区使用的本地控制器版本与文件系统路径。",
       version: "版本",
       controllerAddress: "控制器地址",
       repoDir: "仓库目录",
@@ -245,6 +248,7 @@ export const zhHans = {
     },
     repoSync: {
       title: "仓库同步",
+      description: "拉取控制器仓库状态并查看最新同步元数据。",
       branch: "分支",
       syncStatus: "同步状态",
       worktree: "工作区",
@@ -258,6 +262,7 @@ export const zhHans = {
     },
     rustic: {
       title: "Rustic 维护",
+      summary: "无需离开控制台即可发起仓库保留与清理任务。",
       description: "在控制器选定的主节点上运行全局 Rustic 维护任务。",
       forget: "遗忘",
       prune: "清理",

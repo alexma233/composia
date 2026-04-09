@@ -8,7 +8,7 @@
   import ThemeControls from '$lib/components/app/theme-controls.svelte';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Button } from '$lib/components/ui/button';
-  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
 
   interface Props {
     data: PageData;
@@ -92,8 +92,11 @@
 <div class="page-shell">
   <div class="page-stack">
 		<Card>
-      <CardHeader>
+      <CardHeader class="space-y-2">
         <CardTitle class="page-title">{$messages.settings.title}</CardTitle>
+        <CardDescription class="page-description">
+          {$messages.settings.description}
+        </CardDescription>
       </CardHeader>
     </Card>
 
@@ -106,8 +109,11 @@
 
     <section class="grid gap-6 lg:grid-cols-2">
 			<Card>
-        <CardHeader>
+        <CardHeader class="space-y-2">
           <CardTitle class="section-title">{$messages.settings.appearance.title}</CardTitle>
+          <CardDescription class="section-description">
+            {$messages.settings.appearance.description}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ThemeControls />
@@ -115,31 +121,34 @@
       </Card>
 
 			<Card>
-        <CardHeader>
+        <CardHeader class="space-y-2">
           <CardTitle class="section-title">{$messages.settings.controller.title}</CardTitle>
+          <CardDescription class="section-description">
+            {$messages.settings.controller.description}
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent class="space-y-4">
           {#if data.system}
-            <dl class="kv-grid">
-              <div>
-                <dt>{$messages.settings.controller.version}</dt>
-                <dd>{data.system.version}</dd>
+            <dl class="grid gap-4 sm:grid-cols-2">
+              <div class="metric-card">
+                <dt class="metric-label">{$messages.settings.controller.version}</dt>
+                <dd class="mt-2 text-sm font-medium text-foreground">{data.system.version}</dd>
               </div>
-              <div>
-                <dt>{$messages.settings.controller.controllerAddress}</dt>
-                <dd class="break-all">{data.system.controllerAddr}</dd>
+              <div class="metric-card sm:col-span-2">
+                <dt class="metric-label">{$messages.settings.controller.controllerAddress}</dt>
+                <dd class="mt-2 break-all text-sm font-medium text-foreground">{data.system.controllerAddr}</dd>
               </div>
-              <div>
-                <dt>{$messages.settings.controller.repoDir}</dt>
-                <dd class="break-all">{data.system.repoDir}</dd>
+              <div class="inset-card">
+                <dt class="metric-label">{$messages.settings.controller.repoDir}</dt>
+                <dd class="mt-2 break-all text-sm text-foreground">{data.system.repoDir}</dd>
               </div>
-              <div>
-                <dt>{$messages.settings.controller.stateDir}</dt>
-                <dd class="break-all">{data.system.stateDir}</dd>
+              <div class="inset-card">
+                <dt class="metric-label">{$messages.settings.controller.stateDir}</dt>
+                <dd class="mt-2 break-all text-sm text-foreground">{data.system.stateDir}</dd>
               </div>
-              <div>
-                <dt>{$messages.settings.controller.logDir}</dt>
-                <dd class="break-all">{data.system.logDir}</dd>
+              <div class="inset-card sm:col-span-2">
+                <dt class="metric-label">{$messages.settings.controller.logDir}</dt>
+                <dd class="mt-2 break-all text-sm text-foreground">{data.system.logDir}</dd>
               </div>
             </dl>
           {:else}
@@ -149,8 +158,13 @@
       </Card>
 
 		<Card class="lg:col-span-2">
-        <CardHeader class="flex flex-row items-center justify-between gap-3">
-          <CardTitle class="section-title">{$messages.settings.repoSync.title}</CardTitle>
+        <CardHeader class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div class="space-y-2">
+            <CardTitle class="section-title">{$messages.settings.repoSync.title}</CardTitle>
+            <CardDescription class="section-description">
+              {$messages.settings.repoSync.description}
+            </CardDescription>
+          </div>
           <Button type="button" variant="outline" size="sm" onclick={syncRepo} disabled={syncing}>
             <RefreshCw class="mr-2 size-4" />
             {syncing ? $messages.settings.repoSync.syncing : $messages.settings.repoSync.syncRepo}
@@ -202,8 +216,13 @@
       </Card>
 
 		<Card class="lg:col-span-2">
-        <CardHeader class="flex flex-row items-center justify-between gap-3">
-          <CardTitle class="section-title">{$messages.settings.rustic.title}</CardTitle>
+        <CardHeader class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div class="space-y-2">
+            <CardTitle class="section-title">{$messages.settings.rustic.title}</CardTitle>
+            <CardDescription class="section-description">
+              {$messages.settings.rustic.summary}
+            </CardDescription>
+          </div>
           <div class="flex flex-wrap gap-2">
             <Button
               type="button"

@@ -8,6 +8,9 @@ This file defines repository-wide collaboration rules for human contributors and
 - All code comments must use `en_US`.
 - All documentation must use `en_US`.
 - All user-facing repository text added to this project must use `en_US` unless a file already has an explicitly different requirement.
+- For the Web UI, do not hardcode new user-facing copy in Svelte components when the project already routes UI text through i18n.
+- When adding or changing Web UI user-facing text, update the i18n dictionaries in `web/src/lib/i18n/messages/` at the same time.
+- Keep i18n key structures aligned across locales, especially `en-us.ts` and `zh-hans.ts`.
 - All assistant conversation with the user must use `zh_Hans`.
 
 ## Communication Rules
@@ -28,6 +31,7 @@ This file defines repository-wide collaboration rules for human contributors and
 - Do not preserve old APIs for compatibility unless the user explicitly requires it.
 - Breaking changes are acceptable when they simplify the system and stay aligned with `plan.md`.
 - NEVER bypass GPG signing for commits (e.g., do not use `--no-gpg-sign` or similar flags).
+- Reuse existing i18n namespaces and message patterns before adding new translation keys.
 
 ## Current Delivery Strategy
 

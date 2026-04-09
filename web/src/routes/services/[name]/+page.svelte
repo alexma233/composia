@@ -650,14 +650,46 @@
           <CardTitle class="page-title">{workspace?.displayName ?? $messages.services.service}</CardTitle>
           <CardDescription class="page-description">{workspace?.folder ?? 'n/a'}</CardDescription>
         </div>
+      </div>
 
-        <div class="flex flex-wrap items-center gap-2 text-sm">
-          <Badge variant="outline">{$messages.nodes.node} {workspace?.node || $messages.common.na}</Badge>
-          <Badge variant="outline">{$messages.settings.repoSync.revision} {headRevision ? headRevision.slice(0, 12) : $messages.common.na}</Badge>
-          <Badge variant={runtimeStatusTone(workspace?.runtimeStatus ?? 'unknown')}>
-            {runtimeStatusLabel(workspace?.runtimeStatus ?? '', $messages)}
-          </Badge>
+      <div class="flex flex-col gap-3">
+        <div class="flex flex-wrap gap-3">
+          <div class="list-row flex min-w-[11rem] flex-1 items-center justify-between gap-3 px-3 py-2">
+            <span class="metric-label">{$messages.nodes.node}</span>
+            <span class="text-sm font-medium text-foreground">{workspace?.node || $messages.common.na}</span>
+          </div>
+
+          <div class="list-row flex min-w-[12rem] flex-1 items-center justify-between gap-3 px-3 py-2">
+            <span class="metric-label">{$messages.settings.repoSync.revision}</span>
+            <span class="text-sm font-medium text-foreground">{headRevision ? headRevision.slice(0, 12) : $messages.common.na}</span>
+          </div>
+
+          <div class="list-row flex min-w-[11rem] flex-1 items-center justify-between gap-3 px-3 py-2">
+            <span class="metric-label">{$messages.common.status}</span>
+            <Badge variant={runtimeStatusTone(workspace?.runtimeStatus ?? 'unknown')}>
+              {runtimeStatusLabel(workspace?.runtimeStatus ?? '', $messages)}
+            </Badge>
+          </div>
+
+          <div class="list-row flex min-w-[11rem] flex-1 items-center justify-between gap-3 px-3 py-2">
+            <span class="metric-label">{$messages.services.syncStatus}</span>
+            <span class="text-sm font-medium text-foreground">{syncStatus || $messages.status.unknown}</span>
+          </div>
+
+          <div class="list-row flex min-w-[12rem] flex-1 items-center justify-between gap-3 px-3 py-2">
+            <span class="metric-label">{$messages.services.lastPull}</span>
+            <span class="text-right text-sm font-medium text-foreground">
+              {lastSuccessfulPullAt || $messages.common.never}
+            </span>
+          </div>
         </div>
+
+        {#if syncError}
+          <Alert variant="destructive">
+            <AlertTitle>{$messages.error.syncFailed}</AlertTitle>
+            <AlertDescription>{syncError}</AlertDescription>
+          </Alert>
+        {/if}
       </div>
     </CardHeader>
   </Card>
@@ -887,26 +919,6 @@
             <div class="empty-state px-3 py-4">{$messages.services.addMetaToDeclare}</div>
           {:else if !workspace?.isDeclared}
             <div class="empty-state px-3 py-4">{$messages.services.fixMetaUntilAccepted}</div>
-          {/if}
-
-          <dl class="kv-grid">
-            <div>
-              <dt>{$messages.services.syncStatus}</dt>
-              <dd>{syncStatus || $messages.status.unknown}</dd>
-            </div>
-            {#if lastSuccessfulPullAt}
-              <div>
-                <dt>{$messages.services.lastPull}</dt>
-                <dd>{lastSuccessfulPullAt}</dd>
-              </div>
-            {/if}
-          </dl>
-
-          {#if syncError}
-            <Alert variant="destructive">
-              <AlertTitle>{$messages.error.syncFailed}</AlertTitle>
-              <AlertDescription>{syncError}</AlertDescription>
-            </Alert>
           {/if}
         </CardContent>
       </Card>
