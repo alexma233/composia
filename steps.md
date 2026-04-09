@@ -155,7 +155,7 @@
 7. 可选远程同步行为、push 报告和 repo sync 状态工作正常。
 
 待完成：
-1. `UpdateServiceTargetNodes` 需要与迁移工作流的 `persist_repo` 阶段对齐（Phase 9）。
+1. `UpdateServiceTargetNodes` 已可独立使用；迁移场景下的 `persist_repo` 仍需继续完善冲突语义（Phase 9）。
 2. `auto_deploy` 选项（auto-deploy after repo changes）后续接到 instance 扇出任务创建。
 
 ---
@@ -219,8 +219,8 @@
 - 任务 rerun UI 控件
 
 待完成：
-1. `MigrateService` UI 入口（等待 Phase 9）。
-2. 备份详情页的 restore 入口（等待 restore 任务实现）。
+1. `MigrateService` UI 基础入口已实现；仍需继续增强确认流程和目标节点选择体验（Phase 9）。
+2. 备份详情页和 restore 入口仍未实现；当前只有备份列表页。
 3. **Service 管理页面重构**：当前页面混合了文件编辑、实例管理、操作入口等多重职责，需要拆分为更清晰的 multi-node 架构视图。
 4. **CodeMirror 编辑器增强**：基础编辑器已接入，但仍缺少 `.env` 检查、`docker compose` YAML 检查、`composia-meta.yaml` 语义检查，以及分屏编辑能力。
 
@@ -249,7 +249,7 @@
 待完成：
 1. `caddy` 作为多节点 service 的实例扇出语义
 2. `migrate` 完成后在源节点和目标节点都触发 `caddy_reload`（等待 Phase 9）
-3. **Docker exec (terminal) 增强**：Web 端 terminal 已切换到 `xterm.js`，但目前还需要完整的测试和 review
+3. **Docker exec (terminal) 增强**：Web 端 terminal 与基础 exec 流程已接通，但目前还需要完整的测试和 review
 4. `dns_update` 在 `network.dns.value` 为空时仍按单节点自动推导目标；多节点 service 若要统一 DNS，仍需显式提供 `network.dns.value`
 5. `caddy_sync`、`caddy_reload`、`ForgetNodeRustic`、`PruneNodeRustic` 需要真实环境下的实际测试；当前不能视为已验证
 
@@ -294,14 +294,14 @@
 4. 回滚使用单独 task/type 编排，不复用当前 migrate task；该部分后续实现
 
 待完善：
-1. 新增独立的确认恢复 API，例如 `ResolveTaskConfirmation(task_id, decision, comment)`，用于从 `awaiting_confirmation` 推进已有 task
-2. `decision=approve` 时恢复同一个 migrate task 并继续执行 `dns_update -> persist_repo -> finalize`
-3. `decision=reject` 时结束当前 migrate task；v1 可先记为 `cancelled`，并记录 `manual verification rejected`
+1. `ResolveTaskConfirmation(task_id, decision, comment)` 已实现，用于从 `awaiting_confirmation` 推进已有 task
+2. `decision=approve` 时恢复同一个 migrate task 并继续执行 `dns_update -> persist_repo -> finalize` 已实现
+3. `decision=reject` 时结束当前 migrate task，并记录 `manual verification rejected` 已实现
 4. 迁移冲突处理：当 `persist_repo` 时 `HEAD` 已变化但变化触及该服务目录，仍需实现专门冲突语义
-5. 迁移 UI 仍是基础入口，缺少更强的确认与目标节点选择体验，以及 `awaiting_confirmation` 下的通过/拒绝入口
+5. 迁移 UI 仍是基础入口；任务详情页已提供 `awaiting_confirmation` 下的通过/拒绝入口，但整体确认体验和目标节点选择体验仍需增强
 6. 整个 migrate 流程需要真实环境端到端测试；当前不能视为已验证
 7. restore 覆盖语义、数据库导入语义、失败后的残留状态处理需要重构并补测试
-8. 任务查询与筛选需要把 `awaiting_confirmation` 视为一等状态，不应只存在于底层模型
+8. 任务查询与筛选已把 `awaiting_confirmation` 视为一等状态；仍需继续打磨相关 UI 呈现和操作流
 
 ---
 
@@ -324,7 +324,7 @@
 - [x] `GetTask`
 - [x] `TailTaskLogs`
 - [x] `RunTaskAgain`
-- [ ] `ResolveTaskConfirmation(task_id, decision, comment)` - 仅用于推进 `awaiting_confirmation` 中的已有 task，不负责创建新 migrate
+- [x] `ResolveTaskConfirmation(task_id, decision, comment)` - 仅用于推进 `awaiting_confirmation` 中的已有 task，不负责创建新 migrate
 
 ### ServiceInstanceService
 - [x] `ListServiceInstances` - 返回 `ServiceInstanceSummary[]`
@@ -392,7 +392,7 @@ system status
 dns update
 ```
 
-当前状态：CLI 配置文件格式已定义但 CLI 命令面未实现。
+当前状态：CLI 仍处于极早期阶段；当前仅实现 `composia controller` 和 `composia agent` 两个入口，尚未实现面向用户的 `service`、`instance`、`container`、`task`、`backup`、`node`、`repo`、`secret`、`system` 等命令面。
 
 ---
 
@@ -404,12 +404,23 @@ dns update
 4. ~~完成 `ContainerService` 的 logs/start/stop/restart/exec 基础接口~~ - 已完成
 5. ~~实现 `ReloadNodeCaddy` API 和 UI 入口~~ - 已完成
 6. ~~实现 `caddy_reload` 任务行为~~ - 已完成
-7. 完善 migrate 的 `persist_repo` 冲突处理和 `awaiting_confirmation` 语义（Phase 9）
-8. 为 `caddy`、`rustic`、`backup`、`restore`、`migrate` 补齐真实环境测试，不再只依赖代码路径存在和局部测试
-9. 按 strategy 重构 backup/restore：`files.copy`、`files.tar_after_stop`、`database.pgdumpall`、`files.untar`、`database.pgimport`
-10. 补全 restore 对外入口（备份详情页 restore、独立 restore 任务/API）
-11. 实现定时备份执行（Phase 6 待完成项）
-12. Web UI 增强：CodeMirror 检查与分屏能力、改进的 terminal 组件
+7. 完善 migrate 的 `persist_repo` 冲突处理，以及确认后的异常/回滚语义（Phase 9）
+8. 补全 restore 对外闭环：独立 restore 任务/API、备份详情页、restore 入口
+9. 为 `caddy`、`rustic`、`backup`、`restore`、`migrate` 补齐真实环境测试，不再只依赖代码路径存在和局部测试
+10. 按 strategy 重构 backup/restore：`files.copy`、`files.tar_after_stop`、`database.pgdumpall`、`files.untar`、`database.pgimport`
+11. CLI 命令面实现：`service`、`instance`、`container`、`task`、`backup`、`node`、`repo`、`secret`、`system`
+12. Web UI 增强：CodeMirror 分屏能力、改进的 terminal 组件、备份详情交互
+
+## 基于当前代码的补充结论
+
+以下内容已通过实际代码确认，旧文档中的对应描述已经过时：
+
+- `awaiting_confirmation` 已不是占位状态；controller、task API、测试和 Web UI 操作入口都已接通。
+- 定时任务执行已实现，包含 service backup 调度以及 rustic forget/prune 调度。
+- Web UI 已支持把 `awaiting_confirmation` 作为任务状态筛选项。
+- CodeMirror 基础检查已落地，至少包含 `.env` 与 compose YAML lint。
+- 备份记录查询 API 已支持 `ListBackups` 和 `GetBackup`，但 Web 端仍缺少备份详情页。
+- restore 目前仍主要作为 migrate 内部复用能力存在，尚未形成独立的用户可操作工作流。
 
 ---
 
