@@ -137,57 +137,22 @@ During deployment, you can view progress in real-time on the **Tasks** page:
 
 | Status | Description |
 |--------|-------------|
-| Pending | Waiting for Agent to pull |
-| Running | Currently executing |
-| Success | Execution successful |
-| Failed | Execution failed |
-| Cancelled | Cancelled |
+| `pending` | Waiting to start |
+| `running` | Currently executing |
+| `awaiting_confirmation` | Waiting for an external confirmation step |
+| `succeeded` | Execution successful |
+| `failed` | Execution failed |
+| `cancelled` | Cancelled |
 
 ## Using the API
 
-### Deploy Service
+The current controller exposes ConnectRPC services instead of REST endpoints under `/api/v1/...`.
 
-```bash
-curl -X POST http://localhost:7001/api/v1/services/my-service/deploy \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nodes": ["main", "edge"]
-  }'
-```
+Use these RPC methods for deployment operations:
 
-### Update Service
-
-```bash
-curl -X POST http://localhost:7001/api/v1/services/my-service/update \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nodes": ["main"]
-  }'
-```
-
-### Stop Service
-
-```bash
-curl -X POST http://localhost:7001/api/v1/services/my-service/stop \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nodes": ["main"]
-  }'
-```
-
-### Restart Service
-
-```bash
-curl -X POST http://localhost:7001/api/v1/services/my-service/restart \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nodes": ["main"]
-  }'
-```
+- `composia.controller.v1.ServiceCommandService/RunServiceAction` for deploy, update, stop, restart, backup, DNS update, and Caddy sync
+- `composia.controller.v1.ServiceCommandService/MigrateService` for migration
+- `composia.controller.v1.ServiceInstanceService/RunServiceInstanceAction` for single-instance actions
 
 ## Multi-Node Deployment Strategies
 

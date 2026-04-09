@@ -6,7 +6,7 @@ This document describes the two types of configuration in Composia: platform con
 
 | Configuration Type | File | Scope | Description |
 |-------------------|------|-------|-------------|
-| Platform Config | `config.compose.yaml` | Entire platform | Defines how Controller and Agents start |
+| Platform Config | `configs/config.compose.yaml` | Entire platform | Defines how Controller and Agents start |
 | Service Config | `composia-meta.yaml` | Individual service | Defines service deployment targets and features |
 
 ## Platform Configuration
@@ -282,25 +282,7 @@ controller:
 
 ### Token Management
 
-1. **Use Environment Variables** (recommended for container deployment)
-
-```yaml
-cli_tokens:
-  - name: "admin"
-    token: "${ADMIN_TOKEN}"
-    enabled: true
-```
-
-2. **Use Docker Secrets**
-
-```yaml
-cli_tokens:
-  - name: "admin"
-    token_file: "/run/secrets/admin_token"
-    enabled: true
-```
-
-3. **Use Read-Only Mounts**
+1. **Use read-only mounts for config files**
 
 ```yaml
 # docker-compose.yaml
@@ -324,12 +306,12 @@ cat key.txt | grep "public key" > recipients.txt
 
 ## Verify Configuration
 
-Validate configuration syntax before starting:
+Validate configuration by starting the process with the intended config file:
 
 ```bash
-# Validate Controller configuration
-go run ./cmd/composia controller -config ./configs/config.compose.yaml -validate
+# Start the Controller with the compose config
+go run ./cmd/composia controller -config ./configs/config.compose.yaml
 
-# Validate Agent configuration
-go run ./cmd/composia agent -config ./configs/config.compose.yaml -validate
+# Start an Agent with the compose config
+go run ./cmd/composia agent -config ./configs/config.compose.yaml
 ```

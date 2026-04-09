@@ -49,7 +49,7 @@ Agents run on target Docker hosts:
 
 | Function | Description |
 |----------|-------------|
-| Heartbeat Communication | Regularly reporting status to the control plane (default: 5 seconds) |
+| Heartbeat Communication | Regularly reporting status to the control plane (default: 15 seconds) |
 | Task Execution | Executing deployment, stop, restart, and other operations |
 | Log Collection | Collecting and forwarding container logs |
 | Resource Monitoring | Monitoring host and container resource usage |
@@ -72,7 +72,7 @@ Composia uses ConnectRPC for inter-service communication:
 
 - Bidirectional streaming based on HTTP/2
 - Protobuf serialization
-- Compatible with gRPC and REST clients
+- Compatible with gRPC-style tooling and Connect clients over HTTP
 - Supports browser direct calls
 
 ### Authentication
@@ -81,7 +81,7 @@ Composia uses ConnectRPC for inter-service communication:
 |-----------|----------------------|
 | Web UI → Controller | CLI Token (Bearer) |
 | Agent → Controller | Node Token |
-| Controller → Agent | mTLS (optional) |
+| Controller → Agent | Bearer token when calling controller-exposed RPCs |
 
 ## Data Flow
 
@@ -104,7 +104,7 @@ User Request → Controller Validation → Create Task → Agent Pull → Execut
 Agent Collect → Heartbeat Report → Controller Aggregate → Web UI Display
 ```
 
-- Agents send heartbeats every 5 seconds
+- Agents send heartbeats every 15 seconds
 - Heartbeats include node status, container list, and resource usage
 - Controller aggregates status from all agents into SQLite
 - Web UI displays real-time status updates

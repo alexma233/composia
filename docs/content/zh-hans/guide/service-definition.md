@@ -36,11 +36,9 @@ my-service/
 
 ```yaml
 # 基础信息
-name: my-app                          # 服务唯一名称（必需）
-project_name: my-app-prod            # Compose 项目名称（可选）
-description: "My awesome application" # 描述（可选）
-version: "1.0"                        # 版本（可选）
-enabled: true                         # 是否启用（可选，默认 true）
+name: my-app               # 服务唯一名称（必需）
+project_name: my-app-prod # Compose 项目名称（可选）
+enabled: true              # 是否启用（可选，默认 true）
 
 # 部署目标
 nodes:
@@ -112,9 +110,9 @@ infra:
 |------|------|------|------|
 | `name` | string | 是 | 服务唯一标识符，用于 URL 和内部引用 |
 | `project_name` | string | 否 | 覆盖 Docker Compose 项目名 |
-| `description` | string | 否 | 服务描述 |
-| `version` | string | 否 | 服务版本 |
 | `enabled` | boolean | 否 | 是否启用服务声明，默认 `true` |
+
+Composia 会以严格模式校验 `composia-meta.yaml`。未知字段不会被忽略，而是会直接报错。
 
 #### 部署目标
 

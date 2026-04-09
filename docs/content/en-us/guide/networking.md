@@ -65,12 +65,7 @@ DNS updates are typically triggered automatically in the following cases:
 - Migrating a service to a new node
 - Manually executing `dns_update` task
 
-Manual trigger:
-
-```bash
-curl -X POST http://localhost:7001/api/v1/services/my-app/dns-update \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
+Manual trigger uses the ConnectRPC method `composia.controller.v1.ServiceCommandService/RunServiceAction` with the `SERVICE_ACTION_DNS_UPDATE` action.
 
 ### DNS Configuration Examples
 

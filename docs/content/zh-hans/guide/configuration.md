@@ -6,7 +6,7 @@
 
 | 配置类型 | 文件 | 作用范围 | 说明 |
 |----------|------|----------|------|
-| 平台配置 | `config.compose.yaml` | 整个平台 | 定义 Controller 和 Agent 如何启动 |
+| 平台配置 | `configs/config.compose.yaml` | 整个平台 | 定义 Controller 和 Agent 如何启动 |
 | 服务配置 | `composia-meta.yaml` | 单个服务 | 定义服务部署目标和功能特性 |
 
 ## 平台配置
@@ -282,25 +282,7 @@ controller:
 
 ### Token 管理
 
-1. **使用环境变量**（推荐用于容器部署）
-
-```yaml
-cli_tokens:
-  - name: "admin"
-    token: "${ADMIN_TOKEN}"
-    enabled: true
-```
-
-2. **使用 Docker Secrets**
-
-```yaml
-cli_tokens:
-  - name: "admin"
-    token_file: "/run/secrets/admin_token"
-    enabled: true
-```
-
-3. **使用只读挂载**
+1. **对配置文件使用只读挂载**
 
 ```yaml
 # docker-compose.yaml
@@ -324,12 +306,12 @@ cat key.txt | grep "public key" > recipients.txt
 
 ## 验证配置
 
-启动前检查配置语法：
+通过使用目标配置直接启动进程来验证配置：
 
 ```bash
-# 验证 Controller 配置
-go run ./cmd/composia controller -config ./configs/config.compose.yaml -validate
+# 使用 compose 配置启动 Controller
+go run ./cmd/composia controller -config ./configs/config.compose.yaml
 
-# 验证 Agent 配置
-go run ./cmd/composia agent -config ./configs/config.compose.yaml -validate
+# 使用 compose 配置启动 Agent
+go run ./cmd/composia agent -config ./configs/config.compose.yaml
 ```

@@ -137,57 +137,22 @@ nodes:
 
 | 状态 | 说明 |
 |------|------|
-| Pending | 等待执行 |
-| Running | 正在执行 |
-| Success | 执行成功 |
-| Failed | 执行失败 |
-| Cancelled | 已取消 |
+| `pending` | 等待开始 |
+| `running` | 正在执行 |
+| `awaiting_confirmation` | 等待外部确认步骤完成 |
+| `succeeded` | 执行成功 |
+| `failed` | 执行失败 |
+| `cancelled` | 已取消 |
 
 ## 使用 API 操作
 
-### 部署服务
+当前 Controller 暴露的是 ConnectRPC 服务，而不是 `/api/v1/...` 形式的 REST 接口。
 
-```bash
-curl -X POST http://localhost:7001/api/v1/services/my-service/deploy \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nodes": ["main", "edge"]
-  }'
-```
+部署相关操作请使用以下 RPC 方法：
 
-### 更新服务
-
-```bash
-curl -X POST http://localhost:7001/api/v1/services/my-service/update \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nodes": ["main"]
-  }'
-```
-
-### 停止服务
-
-```bash
-curl -X POST http://localhost:7001/api/v1/services/my-service/stop \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nodes": ["main"]
-  }'
-```
-
-### 重启服务
-
-```bash
-curl -X POST http://localhost:7001/api/v1/services/my-service/restart \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nodes": ["main"]
-  }'
-```
+- `composia.controller.v1.ServiceCommandService/RunServiceAction`：deploy、update、stop、restart、backup、dns_update、caddy_sync
+- `composia.controller.v1.ServiceCommandService/MigrateService`：迁移服务
+- `composia.controller.v1.ServiceInstanceService/RunServiceInstanceAction`：对单个实例执行操作
 
 ## 多节点部署策略
 

@@ -50,6 +50,8 @@ EOF
 
 ### 3. 启动服务栈
 
+下面的命令使用仓库根目录中的 `docker-compose.yaml`。你前面创建的 `configs/config.compose.yaml` 会被这套 Compose 栈作为平台配置文件使用。
+
 ```bash
 docker compose up -d
 ```
@@ -64,24 +66,27 @@ docker compose up -d
 
 ### 4. 访问界面
 
-打开浏览器访问 `http://localhost:3000`，使用以下默认令牌登录：
+打开浏览器访问 `http://localhost:3000`。
 
-- **CLI Token**: `dev-admin-token`
+Web UI 不会提示输入 token。它会使用注入到 Web 服务进程中的 `COMPOSIA_CLI_TOKEN` 环境变量。在仓库提供的 `docker-compose.yaml` 中，这个值被设置为 `dev-admin-token`。
 
 ### 5. 部署第一个服务
 
-1. 在 Web 界面中点击「服务」→「新建服务」
-2. 输入服务名称和选择目标节点
+1. 在 Web 界面中进入「服务」页面并点击「Create service」
+2. 输入服务名称
 3. 在编辑器中添加 `docker-compose.yaml` 内容
-4. 点击「部署」
+4. 在 `composia-meta.yaml` 中定义目标节点
+5. 点击「部署」
 
 ### 6. 停止服务栈
+
+这条命令会停止由仓库根目录 `docker-compose.yaml` 启动的那套容器栈：
 
 ```bash
 docker compose down
 ```
 
-如需删除数据卷，添加 `-v` 参数：
+如需同时删除这套 Compose 使用的卷，添加 `-v` 参数：
 
 ```bash
 docker compose down -v

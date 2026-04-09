@@ -50,6 +50,8 @@ EOF
 
 ### 3. Start the Stack
 
+The following command uses the repository root `docker-compose.yaml`. The file you created above, `configs/config.compose.yaml`, is consumed by that Compose stack as the platform config.
+
 ```bash
 docker compose up -d
 ```
@@ -64,25 +66,28 @@ This will start the following services:
 
 ### 4. Access the Interface
 
-Open your browser and visit `http://localhost:3000`. Log in with the default token:
+Open your browser and visit `http://localhost:3000`.
 
-- **CLI Token**: `dev-admin-token`
+The Web UI does not prompt for a token. It uses the `COMPOSIA_CLI_TOKEN` environment variable injected into the web server process. In the provided `docker-compose.yaml`, that value is set to `dev-admin-token`.
 
 ### 5. Deploy Your First Service
 
 1. Navigate to the **Services** page in the web interface
-2. Click **New Service**
-3. Enter a service name and select the target node
+2. Click **Create service**
+3. Enter a service name
 4. Add your `docker-compose.yaml` content in the editor
-5. Click **Deploy**
+5. Define the target nodes in `composia-meta.yaml`
+6. Click **Deploy**
 
 ### 6. Stop the Stack
+
+This stops the container stack started from the repository root `docker-compose.yaml`:
 
 ```bash
 docker compose down
 ```
 
-To remove data volumes as well, add the `-v` flag:
+To remove the Compose volumes as well, add the `-v` flag:
 
 ```bash
 docker compose down -v

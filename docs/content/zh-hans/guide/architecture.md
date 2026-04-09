@@ -49,7 +49,7 @@ Composia 采用控制平面-代理（Control Plane-Agent）架构，支持分布
 
 | 功能 | 说明 |
 |------|------|
-| 心跳通信 | 定期向控制平面报告状态（默认 5 秒） |
+| 心跳通信 | 定期向控制平面报告状态（默认 15 秒） |
 | 任务执行 | 执行部署、停止、重启等操作 |
 | 日志收集 | 收集和转发容器日志 |
 | 资源监控 | 监控主机和容器资源使用情况 |
@@ -72,7 +72,7 @@ Composia 使用 ConnectRPC 进行服务间通信：
 
 - 基于 HTTP/2 的双向流
 - Protobuf 序列化
-- 兼容 gRPC 和 REST 客户端
+- 兼容 gRPC 风格工具与 Connect 客户端（基于 HTTP）
 - 支持浏览器直接调用
 
 ### 认证方式
@@ -81,7 +81,7 @@ Composia 使用 ConnectRPC 进行服务间通信：
 |------|----------|
 | Web UI → Controller | CLI Token（Bearer） |
 | Agent → Controller | Node Token |
-| Controller → Agent | mTLS（可选） |
+| Controller → Agent | 调用 Controller 暴露的 RPC 时使用 Bearer token |
 
 ## 数据流
 
@@ -104,7 +104,7 @@ Composia 使用 ConnectRPC 进行服务间通信：
 Agent 采集 → 心跳上报 → Controller 聚合 → Web UI 展示
 ```
 
-- Agent 每 5 秒发送一次心跳
+- Agent 每 15 秒发送一次心跳
 - 心跳包含节点状态、容器列表、资源使用
 - Controller 聚合所有代理的状态到 SQLite
 - Web UI 实时展示最新状态

@@ -68,10 +68,10 @@ go run ./cmd/composia agent \
   -config ./configs/config.agent.dev.yaml
 ```
 
-### Option 2: Use Docker Compose (Recommended)
+### Option 2: Use Docker Compose
 
 ```bash
-docker compose -f docker-compose.dev.yaml up -d
+docker compose up -d
 ```
 
 ## Development Configuration Examples
@@ -80,31 +80,33 @@ docker compose -f docker-compose.dev.yaml up -d
 
 ```yaml
 # configs/config.controller.dev.yaml
-listen_addr: ":7001"
-controller_addr: "http://localhost:7001"
-repo_dir: "./repo-controller"
-state_dir: "./state-controller"
-log_dir: "./logs"
-cli_tokens:
-  - name: "dev-admin"
-    token: "dev-token-change-in-production"
-    enabled: true
-nodes:
-  - id: "local"
-    display_name: "Local Development"
-    enabled: true
-    token: "local-agent-token"
+controller:
+  listen_addr: "127.0.0.1:7001"
+  controller_addr: "http://127.0.0.1:7001"
+  repo_dir: "./repo-controller"
+  state_dir: "./state-controller"
+  log_dir: "./logs"
+  cli_tokens:
+    - name: "dev-admin"
+      token: "dev-admin-token"
+      enabled: true
+  nodes:
+    - id: "main"
+      display_name: "Main"
+      enabled: true
+      token: "main-agent-token"
 ```
 
 ### Agent Configuration
 
 ```yaml
 # configs/config.agent.dev.yaml
-controller_addr: "http://localhost:7001"
-node_id: "local"
-token: "local-agent-token"
-repo_dir: "./repo-agent"
-state_dir: "./state-agent"
+agent:
+  controller_addr: "http://127.0.0.1:7001"
+  node_id: "node-2"
+  token: "node-2-token"
+  repo_dir: "./repo-agent-node-2"
+  state_dir: "./state-agent-node-2"
 ```
 
 ## Test Multi-Node Scenarios
@@ -115,14 +117,14 @@ To test multi-node setups, start multiple agents:
 
 ```bash
 go run ./cmd/composia agent \
-  -config ./configs/config.agent1.dev.yaml
+  -config ./configs/config.controller.dev.yaml
 ```
 
 **Agent 2:**
 
 ```bash
 go run ./cmd/composia agent \
-  -config ./configs/config.agent2.dev.yaml
+  -config ./configs/config.agent.dev.yaml
 ```
 
 ## Code Generation
@@ -135,22 +137,13 @@ After modifying `.proto` files, regenerate the Go code:
 buf generate
 ```
 
-### Generate Frontend API Client
-
-```bash
-cd web
-bun run generate:api
-```
-
 ## Project Structure
 
 ```
 composia/
 ├── cmd/
 │   └── composia/           # Main application entry
-│       ├── main.go
-│       ├── controller.go   # Controller command
-│       └── agent.go        # Agent command
+│       └── main.go
 ├── configs/                # Development configuration examples
 ├── docs/                   # Documentation (VitePress)
 │   ├── content/
@@ -160,18 +153,18 @@ composia/
 ├── internal/               # Internal packages
 │   ├── controller/         # Controller implementation
 │   ├── agent/              # Agent implementation
-│   ├── proto/              # Protobuf definitions
+│   ├── repo/               # Service repo parsing and validation
+│   ├── store/              # SQLite-backed state storage
 │   └── ...
 ├── proto/                  # Protobuf source files
 ├── web/                    # SvelteKit frontend
 │   ├── src/
 │   │   ├── lib/
 │   │   │   ├── components/ # UI components
-│   │   │   └── api/        # API client
+│   │   │   └── server/     # Server-side controller access
 │   │   └── routes/         # Page routes
 │   └── package.json
-├── docker-compose.yaml     # Production deployment config
-├── docker-compose.dev.yaml # Development deployment config
+├── docker-compose.yaml     # Compose stack for local/prod-like runs
 └── README.md
 ```
 
@@ -181,10 +174,9 @@ composia/
 |-----------|-------------|
 | `internal/controller/` | Controller business logic |
 | `internal/agent/` | Agent business logic |
-| `internal/proto/` | Protobuf message definitions |
-| `internal/service/` | Shared service layer |
+| `proto/` | Protobuf source definitions |
 | `internal/store/` | Data storage layer |
-| `web/src/lib/api/` | Frontend API calls |
+| `web/src/lib/server/` | Server-side controller access |
 | `web/src/lib/components/` | Reusable UI components |
 
 ## Code Standards
@@ -211,11 +203,10 @@ composia/
 go test ./...
 ```
 
-### Run Frontend Tests
+### Run Frontend Checks
 
 ```bash
-cd web
-bun test
+bun run web:check
 ```
 
 ## Debugging Tips
@@ -223,27 +214,21 @@ bun test
 ### Controller Debugging
 
 ```bash
-# Enable verbose logging
-go run ./cmd/composia controller -config ... -v
-
-# Or set environment variable
-LOG_LEVEL=debug go run ./cmd/composia controller ...
+# Run the controller with an explicit config file
+go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml
 ```
 
 ### Agent Debugging
 
 ```bash
-LOG_LEVEL=debug go run ./cmd/composia agent ...
+go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml
 ```
 
-### View gRPC Communication
+### View RPC Communication
 
-Use [grpcui](https://github.com/fullstorydev/grpcui) or [grpcurl](https://github.com/fullstorydev/grpcurl):
+The controller currently does not register gRPC reflection.
 
-```bash
-# Reflection mode (enable in development)
-grpcui -plaintext localhost:7001
-```
+For RPC inspection, use the generated Connect clients in the Web app or call the registered ConnectRPC methods directly.
 
 ## Submitting Code
 
@@ -269,6 +254,6 @@ A: You need to initialize the Git repository first: `git init repo-controller`
 
 A: Check if the Controller address and Token match
 
-**Q: Frontend API calls failing**
+**Q: Frontend requests failing**
 
-A: Ensure the Controller is running and check the `VITE_API_URL` configuration
+A: Ensure the Controller is running and that `COMPOSIA_CONTROLLER_ADDR` and `COMPOSIA_CLI_TOKEN` are set correctly for the Web process

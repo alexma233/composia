@@ -68,10 +68,10 @@ go run ./cmd/composia agent \
   -config ./configs/config.agent.dev.yaml
 ```
 
-### 方式二：使用 Docker Compose（推荐）
+### 方式二：使用 Docker Compose
 
 ```bash
-docker compose -f docker-compose.dev.yaml up -d
+docker compose up -d
 ```
 
 ## 开发配置示例
@@ -80,31 +80,33 @@ docker compose -f docker-compose.dev.yaml up -d
 
 ```yaml
 # configs/config.controller.dev.yaml
-listen_addr: ":7001"
-controller_addr: "http://localhost:7001"
-repo_dir: "./repo-controller"
-state_dir: "./state-controller"
-log_dir: "./logs"
-cli_tokens:
-  - name: "dev-admin"
-    token: "dev-token-change-in-production"
-    enabled: true
-nodes:
-  - id: "local"
-    display_name: "Local Development"
-    enabled: true
-    token: "local-agent-token"
+controller:
+  listen_addr: "127.0.0.1:7001"
+  controller_addr: "http://127.0.0.1:7001"
+  repo_dir: "./repo-controller"
+  state_dir: "./state-controller"
+  log_dir: "./logs"
+  cli_tokens:
+    - name: "dev-admin"
+      token: "dev-admin-token"
+      enabled: true
+  nodes:
+    - id: "main"
+      display_name: "Main"
+      enabled: true
+      token: "main-agent-token"
 ```
 
 ### Agent 配置
 
 ```yaml
 # configs/config.agent.dev.yaml
-controller_addr: "http://localhost:7001"
-node_id: "local"
-token: "local-agent-token"
-repo_dir: "./repo-agent"
-state_dir: "./state-agent"
+agent:
+  controller_addr: "http://127.0.0.1:7001"
+  node_id: "node-2"
+  token: "node-2-token"
+  repo_dir: "./repo-agent-node-2"
+  state_dir: "./state-agent-node-2"
 ```
 
 ## 测试多节点场景
@@ -115,14 +117,14 @@ state_dir: "./state-agent"
 
 ```bash
 go run ./cmd/composia agent \
-  -config ./configs/config.agent1.dev.yaml
+  -config ./configs/config.controller.dev.yaml
 ```
 
 **Agent 2：**
 
 ```bash
 go run ./cmd/composia agent \
-  -config ./configs/config.agent2.dev.yaml
+  -config ./configs/config.agent.dev.yaml
 ```
 
 ## 代码生成
@@ -135,22 +137,13 @@ go run ./cmd/composia agent \
 buf generate
 ```
 
-### 生成前端 API 客户端
-
-```bash
-cd web
-bun run generate:api
-```
-
 ## 项目结构
 
 ```
 composia/
 ├── cmd/
 │   └── composia/           # 主程序入口
-│       ├── main.go
-│       ├── controller.go   # Controller 命令
-│       └── agent.go        # Agent 命令
+│       └── main.go
 ├── configs/                # 开发配置示例
 ├── docs/                   # 文档（VitePress）
 │   ├── content/
@@ -160,18 +153,18 @@ composia/
 ├── internal/               # 内部包
 │   ├── controller/         # Controller 实现
 │   ├── agent/              # Agent 实现
-│   ├── proto/              # Protobuf 定义
+│   ├── repo/               # 服务仓库解析与校验
+│   ├── store/              # 基于 SQLite 的状态存储
 │   └── ...
 ├── proto/                  # Protobuf 源文件
 ├── web/                    # SvelteKit 前端
 │   ├── src/
 │   │   ├── lib/
 │   │   │   ├── components/ # UI 组件
-│   │   │   └── api/        # API 客户端
+│   │   │   └── server/     # 服务端 Controller 访问层
 │   │   └── routes/         # 页面路由
 │   └── package.json
-├── docker-compose.yaml     # 生产部署配置
-├── docker-compose.dev.yaml # 开发部署配置
+├── docker-compose.yaml     # 本地/接近生产的 Compose 栈
 └── README.md
 ```
 
@@ -181,10 +174,9 @@ composia/
 |------|------|
 | `internal/controller/` | Controller 业务逻辑 |
 | `internal/agent/` | Agent 业务逻辑 |
-| `internal/proto/` | Protobuf 消息定义 |
-| `internal/service/` | 共享服务层 |
+| `proto/` | Protobuf 源定义 |
 | `internal/store/` | 数据存储层 |
-| `web/src/lib/api/` | 前端 API 调用 |
+| `web/src/lib/server/` | 服务端 Controller 访问 |
 | `web/src/lib/components/` | 可复用 UI 组件 |
 
 ## 代码规范
@@ -211,11 +203,10 @@ composia/
 go test ./...
 ```
 
-### 运行前端测试
+### 运行前端检查
 
 ```bash
-cd web
-bun test
+bun run web:check
 ```
 
 ## 调试技巧
@@ -223,27 +214,21 @@ bun test
 ### Controller 调试
 
 ```bash
-# 启用详细日志
-go run ./cmd/composia controller -config ... -v
-
-# 或设置环境变量
-LOG_LEVEL=debug go run ./cmd/composia controller ...
+# 使用明确的配置文件启动 Controller
+go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml
 ```
 
 ### Agent 调试
 
 ```bash
-LOG_LEVEL=debug go run ./cmd/composia agent ...
+go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml
 ```
 
-### 查看 gRPC 通信
+### 查看 RPC 通信
 
-使用 [grpcui](https://github.com/fullstorydev/grpcui) 或 [grpcurl](https://github.com/fullstorydev/grpcurl)：
+当前 Controller 没有注册 gRPC reflection。
 
-```bash
-# 反射模式（开发时启用）
-grpcui -plaintext localhost:7001
-```
+如需排查 RPC，请优先使用 Web 端生成的 Connect 客户端，或直接调用已注册的 ConnectRPC 方法。
 
 ## 提交代码
 
@@ -269,6 +254,6 @@ A: 需要先初始化 Git 仓库：`git init repo-controller`
 
 A: 检查 Controller 地址和 Token 是否匹配
 
-**Q: 前端 API 调用失败**
+**Q: 前端请求失败**
 
-A: 确保 Controller 已启动，并检查 `VITE_API_URL` 配置
+A: 确保 Controller 已启动，并检查 Web 进程的 `COMPOSIA_CONTROLLER_ADDR` 和 `COMPOSIA_CLI_TOKEN` 是否配置正确

@@ -30,11 +30,13 @@ Composia uses a task queue to manage all asynchronous operations:
 ### Task Lifecycle
 
 ```
-Created → Pending → Running → Completed
-                    │
-                    ├─► Failed
-                    │
-                    └─► Cancelled
+Pending → Running → Succeeded
+         │         │
+         │         ├─► Failed
+         │         │
+         │         └─► Cancelled
+         │
+         └─► Awaiting confirmation
 ```
 
 ### Viewing Tasks
@@ -48,11 +50,12 @@ Created → Pending → Running → Completed
 
 | Status | Description |
 |--------|-------------|
-| Pending | Waiting for Agent to pull |
-| Running | Currently executing |
-| Success | Execution successful |
-| Failed | Execution failed |
-| Cancelled | Cancelled |
+| `pending` | Waiting to start |
+| `running` | Currently executing |
+| `awaiting_confirmation` | Waiting for an external confirmation step |
+| `succeeded` | Execution successful |
+| `failed` | Execution failed |
+| `cancelled` | Cancelled |
 
 ### Task Logs
 
@@ -114,12 +117,7 @@ Agents regularly report Docker container information from nodes, and Controller 
 - Displays image tags, size, creation time
 
 **Cleaning Images:**
-```bash
-# Manually clean unused images
-curl -X POST http://localhost:7001/api/v1/nodes/main/prune \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{"type": "images"}'
-```
+Use the Web UI or call the ConnectRPC method `composia.controller.v1.NodeMaintenanceService/PruneNodeDocker`.
 
 ### Network Management
 
@@ -137,7 +135,7 @@ curl -X POST http://localhost:7001/api/v1/nodes/main/prune \
 
 ### Node Status
 
-Agents send heartbeats every 5 seconds containing:
+Agents send heartbeats every 15 seconds containing:
 
 | Information | Description |
 |-------------|-------------|
@@ -183,38 +181,12 @@ Execute `prune` tasks to clean up unused resources:
 
 **API:**
 
-```bash
-# Clean unused containers
-curl -X POST http://localhost:7001/api/v1/nodes/main/prune \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{"type": "containers"}'
-
-# Clean unused images
-curl -X POST http://localhost:7001/api/v1/nodes/main/prune \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{"type": "images"}'
-
-# Clean unused volumes
-curl -X POST http://localhost:7001/api/v1/nodes/main/prune \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{"type": "volumes"}'
-
-# Clean all
-curl -X POST http://localhost:7001/api/v1/nodes/main/prune \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{"type": "all"}'
-```
+The current controller does not expose REST endpoints under `/api/v1/...`.
+Use the ConnectRPC method `composia.controller.v1.NodeMaintenanceService/PruneNodeDocker` instead.
 
 ### Auto-Cleanup Recommendations
 
-Set up scheduled tasks for regular cleanup:
-
-```bash
-# Cron example (daily cleanup at 3 AM)
-0 3 * * * curl -X POST http://localhost:7001/api/v1/nodes/main/prune \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{"type": "images"}'
-```
+Set up external automation to call the ConnectRPC maintenance method regularly if you want recurring cleanup.
 
 ## Log Management
 
@@ -225,11 +197,9 @@ Task logs are stored in Controller's `log_dir`:
 ```
 log_dir/
 ├── tasks/
-│   ├── 2024-01-15/
-│   │   ├── task-001.log
-│   │   └── task-002.log
-│   └── 2024-01-16/
-│       └── task-003.log
+│   ├── <task-id-1>.log
+│   ├── <task-id-2>.log
+│   └── <task-id-3>.log
 ```
 
 ### Container Logs
@@ -286,13 +256,7 @@ services:
 
 **Custom Alerts:**
 
-Use Composia API to query status, combined with external alerting systems:
-
-```bash
-# Check service status
-curl http://localhost:7001/api/v1/services/my-app/status \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
+Use ConnectRPC query methods such as `composia.controller.v1.ServiceQueryService/GetService` together with external alerting systems.
 
 ## Troubleshooting
 
@@ -330,14 +294,14 @@ Check:
 
 ### Debug Mode
 
-Enable debug logging:
+Use the explicit config files below when reproducing operational issues locally:
 
 ```bash
 # Controller
-LOG_LEVEL=debug go run ./cmd/composia controller ...
+go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml
 
 # Agent
-LOG_LEVEL=debug go run ./cmd/composia agent ...
+go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml
 ```
 
 ### Getting Support

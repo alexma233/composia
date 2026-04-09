@@ -65,12 +65,7 @@ DNS 更新通常在以下情况自动触发：
 - 迁移服务到新节点
 - 手动执行 `dns_update` 任务
 
-手动触发：
-
-```bash
-curl -X POST http://localhost:7001/api/v1/services/my-app/dns-update \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
+手动触发时，请调用 ConnectRPC 方法 `composia.controller.v1.ServiceCommandService/RunServiceAction`，并传入 `SERVICE_ACTION_DNS_UPDATE`。
 
 ### DNS 配置示例
 

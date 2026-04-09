@@ -118,14 +118,8 @@ backup:
 
 **API：**
 
-```bash
-curl -X POST http://localhost:7001/api/v1/services/my-app/backup \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "data_items": ["uploads", "database"]
-  }'
-```
+当前 Controller 暴露的是 ConnectRPC 方法，而不是 `/api/v1/...` 形式的 REST 接口。
+备份任务请使用 `composia.controller.v1.ServiceCommandService/RunServiceAction`。
 
 ### 查看备份
 
@@ -227,16 +221,7 @@ migrate:
 
 **API：**
 
-```bash
-curl -X POST http://localhost:7001/api/v1/services/my-app/migrate \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "source_node": "main",
-    "target_node": "edge",
-    "data_items": ["uploads"]
-  }'
-```
+请使用 `composia.controller.v1.ServiceCommandService/MigrateService`。
 
 ### 迁移步骤详解
 
@@ -324,11 +309,7 @@ rustic restore <snapshot-id>:/path/to/backup /path/to/restore
 - 使用外部 cron 调用 API
 - 使用 CI/CD 定时任务
 
-```bash
-# cron 示例（每小时备份）
-0 * * * * curl -X POST http://localhost:7001/api/v1/services/my-app/backup \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
+可在调度系统或自动化任务中调用相应的 ConnectRPC 方法来实现定时触发。
 
 ## 相关文档
 

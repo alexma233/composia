@@ -36,11 +36,9 @@ my-service/
 
 ```yaml
 # Basic information
-name: my-app                          # Service unique name (required)
-project_name: my-app-prod            # Compose project name (optional)
-description: "My awesome application" # Description (optional)
-version: "1.0"                        # Version (optional)
-enabled: true                         # Whether to enable service declaration (optional, default true)
+name: my-app               # Service unique name (required)
+project_name: my-app-prod # Compose project name (optional)
+enabled: true              # Whether to enable service declaration (optional, default true)
 
 # Deployment targets
 nodes:
@@ -112,9 +110,9 @@ infra:
 |-------|------|----------|-------------|
 | `name` | string | Yes | Service unique identifier, used for URLs and internal references |
 | `project_name` | string | No | Override Docker Compose project name |
-| `description` | string | No | Service description |
-| `version` | string | No | Service version |
 | `enabled` | boolean | No | Whether to enable service declaration, default `true` |
+
+Composia validates `composia-meta.yaml` in strict mode. Unknown fields are rejected instead of ignored.
 
 #### Deployment Targets
 

@@ -118,14 +118,8 @@ backup:
 
 **API:**
 
-```bash
-curl -X POST http://localhost:7001/api/v1/services/my-app/backup \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "data_items": ["uploads", "database"]
-  }'
-```
+The current controller exposes ConnectRPC methods instead of REST endpoints under `/api/v1/...`.
+Use `composia.controller.v1.ServiceCommandService/RunServiceAction` for backup tasks.
 
 ### View Backups
 
@@ -227,16 +221,7 @@ migrate:
 
 **API:**
 
-```bash
-curl -X POST http://localhost:7001/api/v1/services/my-app/migrate \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "source_node": "main",
-    "target_node": "edge",
-    "data_items": ["uploads"]
-  }'
-```
+Use `composia.controller.v1.ServiceCommandService/MigrateService`.
 
 ### Migration Steps Detail
 
@@ -324,11 +309,7 @@ Currently Composia only supports manual backup triggers. Scheduled backup is und
 - Use external cron to call API
 - Use CI/CD scheduled tasks
 
-```bash
-# Cron example (hourly backup)
-0 * * * * curl -X POST http://localhost:7001/api/v1/services/my-app/backup \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
+Trigger the corresponding ConnectRPC method from your scheduler or automation runner.
 
 ## Related Documentation
 

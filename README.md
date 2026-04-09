@@ -22,7 +22,7 @@
   </p>
 
   <p>
-    <a href="https://docs.composia.xyz">
+    <a href="https://docs.composia.io">
       <strong>📚 Documentation</strong>
     </a>
   </p>
@@ -36,7 +36,7 @@ Composia is a self-hosted service manager built around service definitions, a si
 - Frontend: SvelteKit with Bun
 - Runtime: Docker Compose
 - State database: SQLite
-- Planned RPC: ConnectRPC
+- RPC: ConnectRPC
 
 ## Prerequisites
 
@@ -82,7 +82,7 @@ agent:
 EOF
 ```
 
-Run the stack with Docker Compose:
+Run the container stack defined in the repository root `docker-compose.yaml`:
 
 ```bash
 docker compose up -d
@@ -111,13 +111,13 @@ Pre-built images are published to:
 - Alternative registry: `ghcr.io/alexma233/composia`
 - Alternative registry: `ghcr.io/alexma233/composia-web`
 
-To stop the stack:
+To stop the container stack started from the repository root `docker-compose.yaml`:
 
 ```bash
 docker compose down
 ```
 
-Note: The example config uses a development CLI token (`dev-admin-token`). For production, generate your own tokens and update `configs/config.compose.yaml`.
+Note: the example stack injects the Web UI token through `COMPOSIA_CLI_TOKEN=dev-admin-token` in `docker-compose.yaml`. For production, generate your own token, update `configs/config.compose.yaml`, and change the Web service environment variable to match.
 
 The release workflows publish to both Forgejo Registry and GHCR. Configure these repository secrets for automated pushes:
 
@@ -141,7 +141,7 @@ Install frontend dependencies:
 bun install
 ```
 
-Start the placeholder web app:
+Start the web app:
 
 ```bash
 bun run dev
@@ -166,7 +166,7 @@ Run a second agent with a different node ID:
 go run ./cmd/composia agent -config ./configs/config.agent.dev.yaml
 ```
 
-Generate protobuf and Connect stubs:
+Generate protobuf and Connect stubs after changing files under `proto/`:
 
 ```bash
 buf generate
@@ -192,7 +192,7 @@ plan.md               # product and architecture notes
 
 ## Current Scope
 
-This repository now contains a working controller, agent foundation, and Web UI for the first full control-plane slice:
+This repository now contains a working controller, agent runtime, and Web UI for the first full control-plane slice:
 
 - Go controller and agent entrypoints
 - Bun workspace and SvelteKit Web UI
@@ -203,7 +203,7 @@ This repository now contains a working controller, agent foundation, and Web UI 
 - Git-backed desired-state repo read/write APIs with sync state tracking
 - Query/command split controller APIs for services, repo, nodes, and Docker inspection
 - Task execution for deploy, update, stop, restart, backup, DNS update, Caddy sync/reload, Docker prune, and service migration orchestration
-- Web UI pages for dashboard, services, service instances, containers, nodes, tasks, backups, repo editing, secrets, and Docker resource browsing
+- Web UI pages for dashboard, services, service instances, containers, nodes, tasks, backups, settings, and Docker resource browsing
 - Example controller and agent config files
 
 ## Attributions
