@@ -110,7 +110,15 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            type=raw,value=ci-{{branch}}-{{sha}},enable=true
+            type=raw,value=canary-{{sha}},enable=true
+            type=raw,value=canary,enable=true
+          labels: |
+            org.opencontainers.image.description=Composia controller runtime image
+            org.opencontainers.image.documentation=https://docs.composia.xyz
+            org.opencontainers.image.vendor=${{ github.repository_owner }}
+            org.opencontainers.image.ref.name=canary
+            org.opencontainers.image.version=canary-{{sha}}
+            io.composia.channel=canary
 
       - name: Build and push
         uses: https://forgejo.alexma.top/actions/docker-build-push-action@v5
@@ -163,7 +171,15 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            type=raw,value=ci-{{branch}}-{{sha}},enable=true
+            type=raw,value=canary-{{sha}},enable=true
+            type=raw,value=canary,enable=true
+          labels: |
+            org.opencontainers.image.description=Composia web interface image
+            org.opencontainers.image.documentation=https://docs.composia.xyz
+            org.opencontainers.image.vendor=${{ github.repository_owner }}
+            org.opencontainers.image.ref.name=canary
+            org.opencontainers.image.version=canary-{{sha}}
+            io.composia.channel=canary
 
       - name: Build and push
         uses: https://forgejo.alexma.top/actions/docker-build-push-action@v5

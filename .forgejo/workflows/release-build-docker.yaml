@@ -51,6 +51,11 @@ jobs:
             type=semver,pattern={{version}},enable=true
             type=semver,pattern={{major}}.{{minor}},enable=true
             type=semver,pattern={{major}},enable=true
+          labels: |
+            org.opencontainers.image.description=Composia controller runtime image
+            org.opencontainers.image.documentation=https://docs.composia.xyz
+            org.opencontainers.image.vendor=${{ github.repository_owner }}
+            org.opencontainers.image.ref.name=${{ github.ref_name }}
 
       - name: Build and push
         uses: https://forgejo.alexma.top/actions/docker-build-push-action@v5
@@ -104,6 +109,11 @@ jobs:
             type=semver,pattern={{version}},enable=true
             type=semver,pattern={{major}}.{{minor}},enable=true
             type=semver,pattern={{major}},enable=true
+          labels: |
+            org.opencontainers.image.description=Composia web interface image
+            org.opencontainers.image.documentation=https://docs.composia.xyz
+            org.opencontainers.image.vendor=${{ github.repository_owner }}
+            org.opencontainers.image.ref.name=${{ github.ref_name }}
 
       - name: Build and push
         uses: https://forgejo.alexma.top/actions/docker-build-push-action@v5
