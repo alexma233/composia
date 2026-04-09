@@ -172,7 +172,11 @@ export const zhHans = {
     files: {
       title: "文件",
       editor: "编辑器",
+      splitView: "分屏",
+      singleView: "单屏",
+      openInSplit: "在右侧打开",
       openFileToEdit: "打开文件开始编辑。",
+      openFileToEditSplit: "在右侧打开另一个文件开始分屏编辑。",
     },
     operations: {
       title: "操作",
@@ -504,7 +508,8 @@ export const zhHans = {
       refCount: "引用计数",
       containersCount: "{count} 个容器",
       containerCount: "{count} 个容器",
-      usageNotAvailable: "此卷的使用统计不可用。当卷未使用或 Docker 版本不支持卷使用报告时可能会发生这种情况。",
+      usageNotAvailable:
+        "此卷的使用统计不可用。当卷未使用或 Docker 版本不支持卷使用报告时可能会发生这种情况。",
       rawJson: "原始 JSON",
       rawJsonDescription: "JSON 格式的完整卷检查数据",
     },

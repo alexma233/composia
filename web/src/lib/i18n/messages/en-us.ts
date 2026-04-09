@@ -148,7 +148,8 @@ export const enUS = {
       volumesSize: "in volumes",
       diskUsage: "disk usage",
       noStats: "No Docker stats available. Stats are reported by the agent.",
-      nodeOffline: "Node is offline. Caddy sync, Caddy reload, and prune operations require an online node.",
+      nodeOffline:
+        "Node is offline. Caddy sync, Caddy reload, and prune operations require an online node.",
       rebuildCaddy: "Rebuild Caddy files",
       reloadCaddy: "Reload Caddy",
       prune: {
@@ -172,7 +173,8 @@ export const enUS = {
     metaExistsNotDeclared: "Meta exists, not declared yet",
     noMetaFile: "No meta file yet",
     addMetaToDeclare: "Add `composia-meta.yaml` to declare this service.",
-    fixMetaUntilAccepted: "Fix `composia-meta.yaml` until the controller accepts it.",
+    fixMetaUntilAccepted:
+      "Fix `composia-meta.yaml` until the controller accepts it.",
     instances: "Instances",
     allNodes: "All nodes",
     containersByNode: "Containers grouped by node for this service.",
@@ -180,7 +182,11 @@ export const enUS = {
     files: {
       title: "Files",
       editor: "Editor",
+      splitView: "Split view",
+      singleView: "Single view",
+      openInSplit: "Open in right pane",
       openFileToEdit: "Open a file to start editing.",
+      openFileToEditSplit: "Open another file in the right pane.",
     },
     operations: {
       title: "Operations",
@@ -208,9 +214,12 @@ export const enUS = {
     expand: "Expand",
     syncStatus: "Sync status",
     lastPull: "Last pull",
-    deleteConfirm: "Are you sure you want to delete this service? This action cannot be undone.",
-    deleteFileConfirm: "Are you sure you want to delete this file? This action cannot be undone.",
-    deleteFolderConfirm: "Are you sure you want to delete this folder? This action cannot be undone.",
+    deleteConfirm:
+      "Are you sure you want to delete this service? This action cannot be undone.",
+    deleteFileConfirm:
+      "Are you sure you want to delete this file? This action cannot be undone.",
+    deleteFolderConfirm:
+      "Are you sure you want to delete this folder? This action cannot be undone.",
   },
   tasks: {
     title: "Tasks",
@@ -419,7 +428,8 @@ export const enUS = {
         connected: "Connected",
         disconnected: "Disconnected",
         connectionFailed: "Connection failed",
-        description: "Open an interactive exec session through the controller tunnel.",
+        description:
+          "Open an interactive exec session through the controller tunnel.",
         connect: "Connect",
         reconnect: "Reconnect",
         disconnect: "Disconnect",
@@ -511,7 +521,8 @@ export const enUS = {
       refCount: "Ref Count",
       containersCount: "{count} containers",
       containerCount: "{count} container",
-      usageNotAvailable: "Usage statistics are not available for this volume. This may occur when the volume is not in use or when the Docker version does not support volume usage reporting.",
+      usageNotAvailable:
+        "Usage statistics are not available for this volume. This may occur when the volume is not in use or when the Docker version does not support volume usage reporting.",
       rawJson: "Raw JSON",
       rawJsonDescription: "Full volume inspection data in JSON format",
     },
