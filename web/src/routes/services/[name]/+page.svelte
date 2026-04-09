@@ -164,6 +164,9 @@
   let focusedTab = $derived(
     openTabs.find((tab) => tab.path === focusedPath) ?? null,
   );
+  let editorRelatedFiles = $derived(
+    Object.fromEntries(openTabs.map((tab) => [tab.path, tab.content])),
+  );
   let canSave = $derived(Boolean(focusedTab && focusedTab.dirty && !saving));
   let selectedNode = $derived(
     selectedNodePath ? findNode(fileTree, selectedNodePath) : null,
@@ -1294,6 +1297,7 @@
                     <CodeEditor
                       path={activeTab.path}
                       value={activeTab.content}
+                      relatedFiles={editorRelatedFiles}
                       onchange={({ value }) => updateTab(activeTab.path, value)}
                       onsave={() => saveTab(activeTab.path)}
                     />
@@ -1324,6 +1328,7 @@
                       <CodeEditor
                         path={secondaryTab.path}
                         value={secondaryTab.content}
+                        relatedFiles={editorRelatedFiles}
                         onchange={({ value }) =>
                           updateTab(secondaryTab.path, value)}
                         onsave={() => saveTab(secondaryTab.path)}

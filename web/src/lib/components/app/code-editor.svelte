@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
 
   import { defaultKeymap, indentWithTab } from '@codemirror/commands';
+  import { lintGutter, linter } from '@codemirror/lint';
   import { githubDark } from '@fsegurai/codemirror-theme-github-dark';
   import { githubLight } from '@fsegurai/codemirror-theme-github-light';
   import { markdown } from '@codemirror/lang-markdown';
@@ -10,15 +11,26 @@
   import { EditorView, keymap, lineNumbers } from '@codemirror/view';
   import { basicSetup } from 'codemirror';
 
+  import { composeLinter, isComposeFilePath } from '$lib/codemirror/compose-lint';
+  import { envLinter, isEnvFilePath } from '$lib/codemirror/env-lint';
+
   interface Props {
     value?: string;
     path?: string;
+    relatedFiles?: Record<string, string>;
     readOnly?: boolean;
     onchange?: (event: { value: string }) => void;
     onsave?: () => void;
   }
 
-  let { value = $bindable(''), path = '', readOnly = false, onchange, onsave }: Props = $props();
+  let {
+    value = $bindable(''),
+    path = '',
+    relatedFiles = {},
+    readOnly = false,
+    onchange,
+    onsave,
+  }: Props = $props();
 
   let host: HTMLDivElement;
   let editorView: EditorView | null = null;
@@ -26,6 +38,7 @@
 
   const languageCompartment = new Compartment();
   const editableCompartment = new Compartment();
+  const lintCompartment = new Compartment();
   const themeCompartment = new Compartment();
 
   const editorChromeTheme = EditorView.theme({
@@ -68,6 +81,7 @@
             }
           ]),
           languageCompartment.of(languageExtension(path)),
+          lintCompartment.of(lintExtension(path)),
           editableCompartment.of(EditorView.editable.of(!readOnly)),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
@@ -109,6 +123,7 @@
       editorView.dispatch({
         effects: [
           languageCompartment.reconfigure(languageExtension(path)),
+          lintCompartment.reconfigure(lintExtension(path)),
           editableCompartment.reconfigure(EditorView.editable.of(!readOnly))
         ]
       });
@@ -136,6 +151,18 @@
     if (filePath.endsWith('.md')) {
       return markdown();
     }
+    return [];
+  }
+
+  function lintExtension(filePath: string) {
+    if (isComposeFilePath(filePath)) {
+      return [lintGutter(), linter(composeLinter(filePath, relatedFiles))];
+    }
+
+    if (isEnvFilePath(filePath)) {
+      return [lintGutter(), linter(envLinter())];
+    }
+
     return [];
   }
 </script>

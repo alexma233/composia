@@ -215,6 +215,18 @@ go run ./cmd/composia agent \
   -config ./configs/config.agent.dev.yaml
 ```
 
+## Web 编辑器校验
+
+Web UI 的 CodeMirror 编辑器会对文件名匹配 `compose*.yml`、`compose*.yaml`、`docker-compose*.yml` 或 `docker-compose*.yaml` 的 Compose 文件执行校验。
+
+编辑器也会校验 `.env` 文件；对于已打开的 Compose 文件，如果其中的 `${VAR}` 或 `${VAR?message}` 引用没有在同目录的已打开 `.env` 文件里定义，会给出提示。
+
+- Compose schema 来源：`https://github.com/compose-spec/compose-spec/blob/main/schema/compose-spec.json`
+- 固化后的 schema 路径：`web/src/lib/schemas/compose-spec.json`
+- 当前实现位置：`web/src/lib/codemirror/compose-lint.ts` 和 `web/src/lib/codemirror/env-lint.ts`
+
+如果后续调整 Compose 校验逻辑，请以上面的 Compose 官方 schema 地址作为来源基准。如果需要刷新固化后的 schema，请从该上游地址重新同步 `web/src/lib/schemas/compose-spec.json`，并在来源发生变化时同步更新本节说明。
+
 ## 代码生成
 
 ### 生成 Protobuf 代码

@@ -215,6 +215,18 @@ go run ./cmd/composia agent \
   -config ./configs/config.agent.dev.yaml
 ```
 
+## Web Editor Validation
+
+The Web UI CodeMirror editor validates Compose files whose names match `compose*.yml`, `compose*.yaml`, `docker-compose*.yml`, or `docker-compose*.yaml`.
+
+The editor also validates `.env` files and, for open Compose files, warns when `${VAR}` or `${VAR?message}` references are not defined by any open `.env` file from the same directory.
+
+- Compose schema source: `https://github.com/compose-spec/compose-spec/blob/main/schema/compose-spec.json`
+- Vendored schema path: `web/src/lib/schemas/compose-spec.json`
+- Current implementation: `web/src/lib/codemirror/compose-lint.ts` and `web/src/lib/codemirror/env-lint.ts`
+
+When you adjust Compose validation behavior, keep the upstream Compose specification schema URL above as the source of truth. If you refresh the vendored schema, replace `web/src/lib/schemas/compose-spec.json` from that upstream source and update this section if the source changes.
+
 ## Code Generation
 
 ### Generate Protobuf Code
