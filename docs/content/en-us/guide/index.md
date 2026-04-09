@@ -6,10 +6,10 @@ Composia is a self-hosted service management platform built around service defin
 
 Composia enables you to:
 
-- **Manage Docker Compose Services** — Use familiar Docker Compose YAML files to define services
+- **Manage Docker Compose Services** — Define services with `docker-compose.yaml` plus a small `composia-meta.yaml`
 - **Multi-Node Deployment** — Deploy services to multiple nodes (agents) across your infrastructure
 - **Centralized Control** — Manage all services and nodes through a single control plane
-- **Real-Time Monitoring** — View service status, container logs, and resource usage in real-time
+- **Operational Visibility** — View service status, task logs, node summaries, and node-scoped Docker details
 
 ## Use Cases
 
@@ -46,8 +46,7 @@ Agents run on actual Docker hosts and are responsible for:
 
 - **Heartbeat Communication**: Regularly reporting status to the control plane
 - **Task Execution**: Executing deployment, stop, restart, and other operations
-- **Log Collection**: Collecting and forwarding container logs
-- **Resource Monitoring**: Monitoring host and container resource usage
+- **Task and Runtime Reporting**: Reporting task results, logs, and Docker inventory back to the Controller
 
 ## Technology Stack
 

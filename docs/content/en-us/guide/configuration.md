@@ -2,6 +2,8 @@
 
 This document describes the two types of configuration in Composia: platform configuration and service configuration.
 
+Configuration loading is strict. Unknown fields are rejected during startup.
+
 ## Configuration Types
 
 | Configuration Type | File | Scope | Description |
@@ -90,6 +92,7 @@ agent:
 | `repo_dir` | string | Yes | Git working tree directory for storing service definitions |
 | `state_dir` | string | Yes | SQLite and runtime state directory |
 | `log_dir` | string | Yes | Task logs persistence directory |
+| `nodes` | array | Yes | Must be present even if empty |
 
 #### Authentication Configuration
 
@@ -105,9 +108,10 @@ cli_tokens:
 
 | Field | Description |
 |-------|-------------|
-| `name` | Token name for identification |
-| `token` | Token value used by Web UI and CLI |
+| `name` | Required token name for identification |
+| `token` | Required token value used by Web UI and CLI |
 | `enabled` | Whether this token is enabled |
+| `comment` | Optional operator-facing note |
 
 **Security Recommendations:**
 - Use strong random strings as tokens
@@ -135,6 +139,8 @@ nodes:
 | `public_ipv4` | No | Node public IPv4 for automatic DNS records |
 | `public_ipv6` | No | Node public IPv6 for automatic DNS records |
 
+`controller.nodes[].id` must be unique.
+
 #### Git Sync Configuration (Optional)
 
 ```yaml
@@ -151,8 +157,8 @@ git:
 | Field | Description |
 |-------|-------------|
 | `remote_url` | Remote Git repository URL |
-| `branch` | Branch to track, default `main` |
-| `pull_interval` | Auto-pull interval, e.g., `30s`, `5m` |
+| `branch` | Branch to track; if omitted, the controller keeps using the current local branch |
+| `pull_interval` | Auto-pull interval, e.g., `30s`, `5m`; required when `remote_url` is set |
 | `author_name` | Git committer name |
 | `author_email` | Git committer email |
 | `auth.token_file` | Path to access token file |
@@ -182,6 +188,8 @@ secrets:
 | `recipient_file` | Path to age public key file |
 | `armor` | Whether to use ASCII Armor format |
 
+If the `secrets` section is present, `provider`, `identity_file`, and `recipient_file` are all required, and `provider` must be `age`.
+
 ### Agent Configuration
 
 | Configuration | Type | Required | Description |
@@ -192,6 +200,12 @@ secrets:
 | `repo_dir` | string | Yes | Local service bundle directory |
 | `state_dir` | string | Yes | Local runtime state directory |
 | `caddy.generated_dir` | string | No | Caddy configuration fragment output directory |
+
+If one file contains both `controller` and `agent`, these additional rules apply:
+
+- `agent.node_id` must be `main`
+- `controller.nodes` must include `main`
+- `controller.repo_dir` and `agent.repo_dir` must be different paths
 
 ## Configuration Recommendations
 
@@ -248,6 +262,8 @@ controller:
 ```
 
 Also need to deploy the rustic infrastructure service. See [Backup & Migration](./backup-migrate).
+
+Each entry in `rustic.main_nodes` must reference a configured `controller.nodes[].id`.
 
 ### Enable DNS
 
@@ -306,12 +322,14 @@ cat key.txt | grep "public key" > recipients.txt
 
 ## Verify Configuration
 
-Validate configuration by starting the process with the intended config file:
+For local source-based development, validate configuration with the development examples:
 
 ```bash
-# Start the Controller with the compose config
-go run ./cmd/composia controller -config ./configs/config.compose.yaml
+# Start the Controller with the dev config
+go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml
 
-# Start an Agent with the compose config
-go run ./cmd/composia agent -config ./configs/config.compose.yaml
+# Start an Agent with the shared dev config
+go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml
 ```
+
+Use `configs/config.compose.yaml` with the repository `docker-compose.yaml` container stack, not as a direct host-side development config.

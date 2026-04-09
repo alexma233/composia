@@ -114,7 +114,7 @@ backup:
 1. Navigate to the **Services** page
 2. Find the target service
 3. Click the **Backup** button
-4. Select data items to backup
+4. Trigger a backup for the data items already configured on that service
 
 **API:**
 
@@ -129,8 +129,7 @@ After backup completes, view in the **Backups** page:
 |-------|-------------|
 | Service | Service the backup belongs to |
 | Data Item | Name of the data item |
-| Snapshot ID | Rustic snapshot ID |
-| Size | Backup size |
+| Task ID | Task that produced the backup record |
 | Time | Backup timestamp |
 | Status | Success/Failed |
 
@@ -214,10 +213,9 @@ migrate:
 
 **Web UI:**
 1. Go to service detail page
-2. Find the instance to migrate in the **Instances** tab
-3. Click the **Migrate** button
-4. Select target node
-5. Confirm migration
+2. Use the migration controls in the service detail page
+3. Select the source node and target node
+4. Click the **Migrate** button
 
 **API:**
 
@@ -275,8 +273,8 @@ Use `composia.controller.v1.ServiceCommandService/MigrateService`.
 
 If migration fails:
 1. Check task logs to locate the problem
-2. Source instance attempts recovery (depending on failure stage)
-3. Manual rollback possible:
+2. Fix the failing step based on the logs
+3. If needed, perform a manual rollback:
    - Redeploy on source node
    - Stop and clean up on target node
    - Restore DNS records
@@ -292,7 +290,7 @@ If migration fails:
 ### Manual Restore
 
 1. Find backup record in Web UI
-2. Get snapshot ID
+2. Use the stored backup metadata from your rustic repository to identify the snapshot to restore
 3. Execute in rustic container:
 
 ```bash

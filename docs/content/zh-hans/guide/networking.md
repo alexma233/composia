@@ -60,10 +60,9 @@ controller:
 
 ### 触发 DNS 更新
 
-DNS 更新通常在以下情况自动触发：
-- 部署新服务实例
+DNS 更新目前适用于以下场景：
 - 迁移服务到新节点
-- 手动执行 `dns_update` 任务
+- 手动执行 `dns_update`
 
 手动触发时，请调用 ConnectRPC 方法 `composia.controller.v1.ServiceCommandService/RunServiceAction`，并传入 `SERVICE_ACTION_DNS_UPDATE`。
 
@@ -393,7 +392,7 @@ app.example.com {
 2. 将 `my-webapp` 目录提交到 Git 仓库
 3. 在 Web UI 中找到 `my-webapp` 服务
 4. 点击「部署」
-5. 自动完成 DNS 配置和 Caddy 配置同步
+5. 如有需要，在部署后手动执行 `dns_update`；Caddy 文件同步会通过对应的节点维护步骤完成
 6. 访问 `https://app.example.com`
 
 ## 故障排查

@@ -60,10 +60,9 @@ controller:
 
 ### Trigger DNS Update
 
-DNS updates are typically triggered automatically in the following cases:
-- Deploying a new service instance
+DNS updates are available in the following cases:
 - Migrating a service to a new node
-- Manually executing `dns_update` task
+- Manually executing `dns_update`
 
 Manual trigger uses the ConnectRPC method `composia.controller.v1.ServiceCommandService/RunServiceAction` with the `SERVICE_ACTION_DNS_UPDATE` action.
 
@@ -393,7 +392,7 @@ app.example.com {
 2. Commit `my-webapp` directory to Git repository
 3. Find `my-webapp` service in Web UI
 4. Click **Deploy**
-5. DNS configuration and Caddy sync complete automatically
+5. If needed, run `dns_update` after deployment; Caddy file sync happens through the corresponding node maintenance steps
 6. Visit `https://app.example.com`
 
 ## Troubleshooting

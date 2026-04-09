@@ -45,7 +45,7 @@ nodes:
 4. 下载服务 bundle（包含 Compose 文件和配置）
 5. 渲染运行目录
 6. 执行 `docker compose up -d`
-7. 如需 Caddy，触发 `caddy_sync` 和 `caddy_reload`
+7. 如需 Caddy，触发与生成配置文件相关的节点维护步骤
 8. 上报执行结果
 
 ## 可用操作
@@ -121,15 +121,8 @@ nodes:
 
 1. 进入「服务」页面
 2. 点击目标服务
-3. 在「实例」标签页找到目标节点
-4. 点击「部署」按钮
-
-### 批量操作
-
-在「服务」列表页，可以对多个服务进行批量操作：
-- 批量部署
-- 批量更新
-- 批量停止
+3. 查看服务详情页中的实例摘要
+4. 在服务详情页使用右侧操作区的按钮执行 deploy、update、stop 或 restart
 
 ### 查看部署状态
 
@@ -150,7 +143,7 @@ nodes:
 
 部署相关操作请使用以下 RPC 方法：
 
-- `composia.controller.v1.ServiceCommandService/RunServiceAction`：deploy、update、stop、restart、backup、dns_update、caddy_sync
+- `composia.controller.v1.ServiceCommandService/RunServiceAction`：deploy、update、stop、restart、backup、dns_update
 - `composia.controller.v1.ServiceCommandService/MigrateService`：迁移服务
 - `composia.controller.v1.ServiceInstanceService/RunServiceInstanceAction`：对单个实例执行操作
 

@@ -19,7 +19,7 @@ hero:
 
 features:
   - title: 🐳 原生 Docker Compose
-    details: 完全兼容 Docker Compose，无需学习新的配置格式，使用熟悉的 YAML 定义服务。
+    details: 以 Docker Compose 为基础，只额外引入一个用于描述元数据的 `composia-meta.yaml`。
   - title: 🎛️ 单一控制平面
     details: 集中式控制平面管理所有服务和节点，提供统一的视图和控制接口。
   - title: 🤖 多代理架构

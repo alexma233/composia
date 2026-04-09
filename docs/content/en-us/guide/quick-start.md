@@ -16,37 +16,13 @@ git clone https://forgejo.alexma.top/alexma233/composia.git
 cd composia
 ```
 
-### 2. Create Configuration
+### 2. Review the Bundled Configuration
 
-Create the platform configuration file:
+The repository already includes `configs/config.compose.yaml`.
 
-```bash
-mkdir -p configs
-cat > configs/config.compose.yaml << 'EOF'
-controller:
-  listen_addr: ":7001"
-  controller_addr: "http://controller:7001"
-  repo_dir: "/data/repo-controller"
-  state_dir: "/data/state-controller"
-  log_dir: "/data/logs"
-  cli_tokens:
-    - name: "compose-admin"
-      token: "dev-admin-token"
-      enabled: true
-  nodes:
-    - id: "main"
-      display_name: "Main"
-      enabled: true
-      token: "main-agent-token"
-
-agent:
-  controller_addr: "http://controller:7001"
-  node_id: "main"
-  token: "main-agent-token"
-  repo_dir: "/data/repo-agent"
-  state_dir: "/data/state-agent"
-EOF
-```
+- Use it as-is for a local quick start.
+- Edit it only if you need different tokens or paths.
+- Keep the bundled `configs/age-identity.key` and `configs/age-recipients.txt` files if you keep the default secrets section.
 
 ### 3. Start the Stack
 
@@ -56,13 +32,15 @@ The following command uses the repository root `docker-compose.yaml`. The file y
 docker compose up -d
 ```
 
-This will start the following services:
+This starts the following long-running services:
 
 | Service | Port | Description |
 |---------|------|-------------|
 | controller | `:7001` | Control Plane API |
 | web | `:3000` | Web Management Interface |
 | agent | - | Execution Agent (connects to local Docker) |
+
+The Compose file also runs a one-shot `init-repo-controller` container first to initialize the controller Git working tree volume.
 
 ### 4. Access the Interface
 

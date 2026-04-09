@@ -16,37 +16,13 @@ git clone https://forgejo.alexma.top/alexma233/composia.git
 cd composia
 ```
 
-### 2. 创建配置文件
+### 2. 检查仓库自带配置
 
-创建平台配置文件：
+仓库已经提供 `configs/config.compose.yaml`。
 
-```bash
-mkdir -p configs
-cat > configs/config.compose.yaml << 'EOF'
-controller:
-  listen_addr: ":7001"
-  controller_addr: "http://controller:7001"
-  repo_dir: "/data/repo-controller"
-  state_dir: "/data/state-controller"
-  log_dir: "/data/logs"
-  cli_tokens:
-    - name: "compose-admin"
-      token: "dev-admin-token"
-      enabled: true
-  nodes:
-    - id: "main"
-      display_name: "Main"
-      enabled: true
-      token: "main-agent-token"
-
-agent:
-  controller_addr: "http://controller:7001"
-  node_id: "main"
-  token: "main-agent-token"
-  repo_dir: "/data/repo-agent"
-  state_dir: "/data/state-agent"
-EOF
-```
+- 直接用于本地快速启动即可。
+- 只有在你需要不同 token 或路径时才修改它。
+- 如果保留默认的 secrets 配置，也要保留仓库附带的 `configs/age-identity.key` 和 `configs/age-recipients.txt`。
 
 ### 3. 启动服务栈
 
@@ -56,13 +32,15 @@ EOF
 docker compose up -d
 ```
 
-启动后，以下服务将运行：
+启动后，以下长期运行的服务会启动：
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
 | controller | `:7001` | 控制平面 API |
 | web | `:3000` | Web 管理界面 |
 | agent | - | 执行代理（连接本地 Docker） |
+
+此外，Compose 还会先运行一次性的 `init-repo-controller` 容器，用于初始化 controller 的 Git 工作树卷。
 
 ### 4. 访问界面
 

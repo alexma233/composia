@@ -21,7 +21,7 @@ Composia uses a task queue to manage all asynchronous operations:
 | `stop` | Stop service | Manual/API |
 | `restart` | Restart service | Manual/API |
 | `backup` | Execute backup | Manual/API |
-| `dns_update` | Update DNS records | Automatic/Manual |
+| `dns_update` | Update DNS records | Migration/Manual |
 | `caddy_sync` | Sync Caddy configuration | Automatic |
 | `caddy_reload` | Reload Caddy | Automatic |
 | `prune` | Clean up resources | Manual/API |
@@ -78,19 +78,17 @@ Real-time logs are output during task execution:
 Agents regularly report Docker container information from nodes, and Controller provides a unified browsing interface.
 
 **Viewing Containers:**
-1. Navigate to **Containers** page
-2. Filter containers by node
-3. View container status, image, ports, etc.
+1. Navigate to a node detail page
+2. Open the node's Docker container view
+3. View container status, image, ports, and labels
 
 **Container Operations:**
 
 | Operation | Description |
 |-----------|-------------|
-| View Logs | View container logs in real-time |
-| Start | Start a stopped container |
-| Stop | Stop a running container |
-| Restart | Restart container |
-| Terminal | Enter container to execute commands |
+| View Logs | Fetch the latest container logs from the node |
+| Inspect | View container metadata and runtime details |
+| Terminal | Open an exec session into the container |
 
 **Viewing Container Logs:**
 
@@ -98,7 +96,7 @@ Agents regularly report Docker container information from nodes, and Controller 
 # In Web UI
 1. Find target container
 2. Click **Logs** button
-3. View real-time or search historical logs
+3. Load the latest log output from that container
 ```
 
 **Container Terminal:**
@@ -113,8 +111,8 @@ Agents regularly report Docker container information from nodes, and Controller 
 ### Image Management
 
 **Viewing Images:**
-- **Images** page shows all images on all nodes
-- Displays image tags, size, creation time
+- Each node has its own Docker images page
+- Displays image tags, size, and creation time
 
 **Cleaning Images:**
 Use the Web UI or call the ConnectRPC method `composia.controller.v1.NodeMaintenanceService/PruneNodeDocker`.
@@ -122,14 +120,14 @@ Use the Web UI or call the ConnectRPC method `composia.controller.v1.NodeMainten
 ### Network Management
 
 **Viewing Networks:**
-- **Networks** page shows Docker networks
-- View network driver, subnet, connected containers
+- Each node has its own Docker networks page
+- View network driver, subnet, and connected containers
 
 ### Volume Management
 
 **Viewing Volumes:**
-- **Volumes** page shows Docker volumes
-- View volume size, mount points
+- Each node has its own Docker volumes page
+- View volume labels and mount metadata exposed by Docker
 
 ## Node Management
 
@@ -142,7 +140,7 @@ Agents send heartbeats every 15 seconds containing:
 | Online Status | Whether connected to Controller |
 | Docker Version | Node Docker version |
 | Container Count | Number of running containers |
-| Resource Usage | CPU, memory, disk usage |
+| Resource Usage | Disk capacity plus Docker inventory counts |
 | Service Instances | List of service instances on this node |
 
 ### Node Views
@@ -150,9 +148,9 @@ Agents send heartbeats every 15 seconds containing:
 **Web UI provides the following views:**
 
 - **Node List**: Overview of all nodes
-- **Node Detail**: Detailed information and resource usage of a single node
-- **Service Instances**: Service deployment status on nodes
-- **Dashboard**: Overall resource usage trends
+- **Node Detail**: Detailed information for a single node
+- **Node Docker Views**: Node-scoped containers, images, networks, and volumes
+- **Dashboard**: Service, node, and recent task summaries
 
 ### Node Operations
 
@@ -226,8 +224,8 @@ services:
 ### Current Monitoring Capabilities
 
 - **Real-time Status**: Web UI displays service, container, and node status in real-time
-- **Resource Usage**: Node CPU, memory, disk usage
-- **Log Viewing**: Real-time container and task logs
+- **Resource Usage**: Node disk capacity and Docker inventory counts
+- **Log Viewing**: Streaming task logs and on-demand container log fetches
 
 ### Recommended Monitoring Solutions
 

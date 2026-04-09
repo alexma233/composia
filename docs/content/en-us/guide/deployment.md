@@ -45,7 +45,7 @@ When a user triggers deployment via Web UI or API:
 4. Downloads service bundle (including Compose files and configuration)
 5. Renders runtime directory
 6. Executes `docker compose up -d`
-7. Triggers Caddy sync if `network.caddy` is configured
+7. Triggers the node maintenance steps needed for generated Caddy files when `network.caddy` is configured
 8. Reports execution result
 
 ## Available Operations
@@ -121,15 +121,8 @@ Restart a service instance.
 
 1. Navigate to the **Services** page
 2. Click on the target service
-3. Find the target node in the **Instances** tab
-4. Click the **Deploy** button
-
-### Batch Operations
-
-On the **Services** list page, you can perform batch operations on multiple services:
-- Batch deploy
-- Batch update
-- Batch stop
+3. Review the instance summary shown on the service detail page
+4. Use the action buttons in the service detail page to deploy, update, stop, or restart
 
 ### View Deployment Status
 
@@ -150,7 +143,7 @@ The current controller exposes ConnectRPC services instead of REST endpoints und
 
 Use these RPC methods for deployment operations:
 
-- `composia.controller.v1.ServiceCommandService/RunServiceAction` for deploy, update, stop, restart, backup, DNS update, and Caddy sync
+- `composia.controller.v1.ServiceCommandService/RunServiceAction` for deploy, update, stop, restart, backup, and DNS update
 - `composia.controller.v1.ServiceCommandService/MigrateService` for migration
 - `composia.controller.v1.ServiceInstanceService/RunServiceInstanceAction` for single-instance actions
 

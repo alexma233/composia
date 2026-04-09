@@ -19,7 +19,7 @@ hero:
 
 features:
   - title: 🐳 Native Docker Compose
-    details: Built entirely on Docker Compose. No new configuration formats to learn—use familiar YAML files.
+    details: Built around Docker Compose, with a small `composia-meta.yaml` file for Composia-specific metadata.
   - title: 🎛️ Single Control Plane
     details: Centralized control plane manages all services and nodes, providing a unified view and control interface.
   - title: 🤖 Multi-Agent Architecture
@@ -31,4 +31,3 @@ features:
   - title: ⚡ Modern Tech Stack
     details: Go backend + SvelteKit frontend for high performance, low resource usage, and rapid response.
 ---
-

@@ -2,6 +2,8 @@
 
 本文档介绍 Composia 的两类配置：平台配置和服务配置。
 
+配置加载是严格模式，启动时会拒绝未知字段。
+
 ## 配置分类
 
 | 配置类型 | 文件 | 作用范围 | 说明 |
@@ -90,6 +92,7 @@ agent:
 | `repo_dir` | string | 是 | Git 工作树目录，保存服务定义 |
 | `state_dir` | string | 是 | SQLite 和运行时状态目录 |
 | `log_dir` | string | 是 | 任务日志持久化目录 |
+| `nodes` | array | 是 | 顶层字段必须出现，即使为空数组也要写出 |
 
 #### 认证配置
 
@@ -105,9 +108,10 @@ cli_tokens:
 
 | 字段 | 说明 |
 |------|------|
-| `name` | Token 名称，用于识别 |
-| `token` | Token 值，Web UI 和 CLI 使用 |
+| `name` | 必填的 Token 名称，用于识别 |
+| `token` | 必填的 Token 值，Web UI 和 CLI 使用 |
 | `enabled` | 是否启用该 Token |
+| `comment` | 可选的运维备注 |
 
 **安全建议：**
 - 使用强随机字符串作为 Token
@@ -135,6 +139,8 @@ nodes:
 | `public_ipv4` | 否 | 节点公网 IPv4，用于自动 DNS 记录 |
 | `public_ipv6` | 否 | 节点公网 IPv6，用于自动 DNS 记录 |
 
+`controller.nodes[].id` 不能重复。
+
 #### Git 同步配置（可选）
 
 ```yaml
@@ -151,8 +157,8 @@ git:
 | 字段 | 说明 |
 |------|------|
 | `remote_url` | 远端 Git 仓库地址 |
-| `branch` | 跟踪的分支，默认 `main` |
-| `pull_interval` | 自动拉取间隔，如 `30s`, `5m` |
+| `branch` | 跟踪的分支；未填写时沿用当前本地分支 |
+| `pull_interval` | 自动拉取间隔，如 `30s`, `5m`；设置 `remote_url` 后必填 |
 | `author_name` | Git 提交者名称 |
 | `author_email` | Git 提交者邮箱 |
 | `auth.token_file` | 访问令牌文件路径 |
@@ -182,6 +188,8 @@ secrets:
 | `recipient_file` | age 公钥文件路径 |
 | `armor` | 是否使用 ASCII Armor 格式 |
 
+如果配置了 `secrets` 段，则 `provider`、`identity_file` 和 `recipient_file` 都是必填项，且 `provider` 必须是 `age`。
+
 ### Agent 配置项
 
 | 配置项 | 类型 | 必填 | 说明 |
@@ -192,6 +200,12 @@ secrets:
 | `repo_dir` | string | 是 | 本地服务 bundle 目录 |
 | `state_dir` | string | 是 | 本地运行状态目录 |
 | `caddy.generated_dir` | string | 否 | Caddy 配置片段输出目录 |
+
+如果同一个文件同时包含 `controller` 和 `agent`，还需要满足以下约束：
+
+- `agent.node_id` 必须是 `main`
+- `controller.nodes` 必须包含 `main`
+- `controller.repo_dir` 和 `agent.repo_dir` 不能相同
 
 ## 配置建议
 
@@ -248,6 +262,8 @@ controller:
 ```
 
 同时需要部署 rustic 基础设施服务，参考 [备份与迁移](./backup-migrate)。
+
+`rustic.main_nodes` 中的每个节点 ID 都必须引用已存在的 `controller.nodes[].id`。
 
 ### 启用 DNS
 
@@ -306,12 +322,14 @@ cat key.txt | grep "public key" > recipients.txt
 
 ## 验证配置
 
-通过使用目标配置直接启动进程来验证配置：
+如果是在本地直接跑源码，建议使用开发配置进行验证：
 
 ```bash
-# 使用 compose 配置启动 Controller
-go run ./cmd/composia controller -config ./configs/config.compose.yaml
+# 使用 dev 配置启动 Controller
+go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml
 
-# 使用 compose 配置启动 Agent
-go run ./cmd/composia agent -config ./configs/config.compose.yaml
+# 使用共享的 dev 配置启动 Agent
+go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml
 ```
+
+`configs/config.compose.yaml` 主要用于仓库自带的 `docker-compose.yaml` 容器栈，不适合作为宿主机本地开发配置直接运行。

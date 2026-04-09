@@ -44,43 +44,9 @@ Composia is a self-hosted service manager built around service definitions, a si
 
 ## Quick Start
 
-Create a config file for the container stack:
+Use the bundled `configs/config.compose.yaml` example.
 
-```bash
-mkdir -p configs
-cat > configs/config.compose.yaml << 'EOF'
-controller:
-  listen_addr: ":7001"
-  controller_addr: "http://controller:7001"
-  repo_dir: "/data/repo-controller"
-  state_dir: "/data/state-controller"
-  log_dir: "/data/logs"
-  cli_tokens:
-    - name: "compose-admin"
-      token: "dev-admin-token"
-      enabled: true
-  nodes:
-    - id: "main"
-      display_name: "Main"
-      enabled: true
-      token: "main-agent-token"
-  rustic:
-    main_nodes:
-      - "main"
-  secrets:
-    provider: age
-    identity_file: "/app/configs/age-identity.key"
-    recipient_file: "/app/configs/age-recipients.txt"
-    armor: true
-
-agent:
-  controller_addr: "http://controller:7001"
-  node_id: "main"
-  token: "main-agent-token"
-  repo_dir: "/data/repo-agent"
-  state_dir: "/data/state-agent"
-EOF
-```
+The repository already includes that file together with the age key files it references. Edit it only if you need different tokens, paths, or optional features.
 
 Run the container stack defined in the repository root `docker-compose.yaml`:
 
@@ -96,11 +62,13 @@ ghcr.io/alexma233/composia:latest
 ghcr.io/alexma233/composia-web:latest
 ```
 
-The compose stack starts these services:
+The compose stack starts these long-running services:
 
 - `controller` on `:7001`
 - `web` on `:3000`
 - `agent` connected to the local Docker socket
+
+It also runs a one-shot `init-repo-controller` container first to initialize the controller Git working tree volume.
 
 Access the web UI at `http://localhost:3000`.
 
@@ -203,7 +171,7 @@ This repository now contains a working controller, agent runtime, and Web UI for
 - Git-backed desired-state repo read/write APIs with sync state tracking
 - Query/command split controller APIs for services, repo, nodes, and Docker inspection
 - Task execution for deploy, update, stop, restart, backup, DNS update, Caddy sync/reload, Docker prune, and service migration orchestration
-- Web UI pages for dashboard, services, service instances, containers, nodes, tasks, backups, settings, and Docker resource browsing
+- Web UI pages for dashboard, services, nodes, tasks, backups, settings, and node-scoped Docker resource browsing
 - Example controller and agent config files
 
 ## Attributions
