@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"sync"
+	"time"
 
 	"connectrpc.com/connect"
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
@@ -14,6 +16,7 @@ import (
 )
 
 type execTunnelClient struct {
+	nodeID string
 	client agentv1connect.AgentReportServiceClient
 }
 
@@ -31,22 +34,39 @@ type runningExecSessions struct {
 }
 
 func startExecTunnelLoop(ctx context.Context, client agentv1connect.AgentReportServiceClient, nodeID string) {
-	_ = nodeID
-	tunnel := &execTunnelClient{client: client}
+	tunnel := &execTunnelClient{nodeID: nodeID, client: client}
 	go tunnel.run(ctx)
 }
 
 func (tunnel *execTunnelClient) run(ctx context.Context) {
+	for {
+		if ctx.Err() != nil {
+			return
+		}
+		if err := tunnel.runStream(ctx); err != nil && ctx.Err() == nil {
+			log.Printf("exec tunnel disconnected for node %s: %v", tunnel.nodeID, err)
+		}
+		if !sleepWithContext(ctx, 1*time.Second) {
+			return
+		}
+	}
+}
+
+func (tunnel *execTunnelClient) runStream(ctx context.Context) error {
 	stream := tunnel.client.OpenExecTunnel(ctx)
 	sessions := &runningExecSessions{sessions: make(map[string]*runningExecSession)}
+	defer sessions.closeAll()
+	if err := sendExecTunnelMessage(stream, &agentv1.OpenExecTunnelRequest{Kind: execKindReady}); err != nil {
+		return err
+	}
 
 	for {
 		message, err := stream.Receive()
 		if err != nil {
-			return
+			return err
 		}
 		if err := tunnel.handleMessage(ctx, stream, sessions, message); err != nil {
-			return
+			return err
 		}
 	}
 }
@@ -130,6 +150,15 @@ func (sessions *runningExecSessions) take(sessionID string) *runningExecSession 
 	session := sessions.sessions[sessionID]
 	delete(sessions.sessions, sessionID)
 	return session
+}
+
+func (sessions *runningExecSessions) closeAll() {
+	sessions.mu.Lock()
+	defer sessions.mu.Unlock()
+	for sessionID, session := range sessions.sessions {
+		closeRunningExecSession(session)
+		delete(sessions.sessions, sessionID)
+	}
 }
 
 func startDockerExecSession(ctx context.Context, message *agentv1.OpenExecTunnelResponse) (*runningExecSession, error) {

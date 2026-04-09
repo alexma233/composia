@@ -8,7 +8,7 @@
   import { Badge, type BadgeVariant } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
-  import Textarea from '$lib/components/ui/textarea/textarea.svelte';
+  import XtermSurface from '$lib/components/app/xterm-surface.svelte';
   import { messages } from '$lib/i18n';
   import { startPolling } from '$lib/refresh';
 
@@ -30,9 +30,10 @@
   let terminalConnecting = $state(false);
   let terminalError = $state('');
   let terminalOutput = $state('');
-  let terminalInput = $state('');
   let terminalSessionId = $state('');
   let terminalSocket = $state<WebSocket | null>(null);
+  let terminalRows = $state(32);
+  let terminalCols = $state(120);
   let stopActionRefreshHandle = $state<null | (() => void)>(null);
 
   $effect(() => {
@@ -188,6 +189,15 @@
     terminalSessionId = '';
   }
 
+  function appendTerminalOutput(value: string) {
+    terminalOutput = `${terminalOutput}${value}`;
+  }
+
+  function appendTerminalNotice(value: string) {
+    const prefix = terminalOutput && !terminalOutput.endsWith('\n') ? '\n' : '';
+    terminalOutput = `${terminalOutput}${prefix}${value}\n`;
+  }
+
   async function connectTerminal() {
     terminalConnecting = true;
     terminalError = '';
@@ -198,7 +208,7 @@
       const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/containers/${encodeURIComponent(data.containerId)}/exec`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command, rows: 32, cols: 120 })
+        body: JSON.stringify({ command, rows: terminalRows, cols: terminalCols })
       });
       const payload = await response.json();
       if (!response.ok) {
@@ -215,15 +225,15 @@
               terminalError = message.message;
             }
             if (message.type === 'closed') {
-               terminalOutput = `${terminalOutput}\n${$messages.docker.containers.terminal.sessionClosed}`.trim();
+              appendTerminalNotice($messages.docker.containers.terminal.sessionClosed);
             }
           } catch {
-            terminalOutput = `${terminalOutput}${event.data}`;
+            appendTerminalOutput(event.data);
           }
           return;
         }
         const text = new TextDecoder().decode(event.data instanceof ArrayBuffer ? event.data : new Uint8Array());
-        terminalOutput = `${terminalOutput}${text}`;
+        appendTerminalOutput(text);
       };
       socket.onerror = () => {
         terminalError = $messages.docker.containers.terminal.connectionFailed;
@@ -239,12 +249,22 @@
     }
   }
 
-  function sendTerminalInput() {
-    if (!terminalSocket || terminalSocket.readyState !== WebSocket.OPEN || !terminalInput) {
+  function sendTerminalData(data: string) {
+    if (!terminalSocket || terminalSocket.readyState !== WebSocket.OPEN) {
       return;
     }
-    terminalSocket.send(terminalInput);
-    terminalInput = '';
+    terminalSocket.send(data);
+  }
+
+  function resizeTerminal(rows: number, cols: number) {
+    terminalRows = rows;
+    terminalCols = cols;
+
+    if (!terminalSocket || terminalSocket.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    terminalSocket.send(JSON.stringify({ type: 'resize', rows, cols }));
   }
 
   onMount(() => {
@@ -458,7 +478,13 @@
                       <AlertDescription>{logsError}</AlertDescription>
                     </Alert>
                   {/if}
-                  <pre class="code-surface min-h-[320px] max-h-[560px] overflow-auto break-all text-xs">{logsLoading ? $messages.common.loadingWithDots : (logs || $messages.docker.containers.logs.noLogs)}</pre>
+
+                  <XtermSurface
+                    active={activeTab === 'logs'}
+                    content={logsLoading ? $messages.common.loadingWithDots : logs}
+                    emptyText={$messages.docker.containers.logs.noLogs}
+                    heightClass="h-[560px]"
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -484,12 +510,15 @@
                     </Alert>
                   {/if}
 
-                  <Textarea readonly value={terminalOutput || (terminalConnecting ? $messages.docker.containers.terminal.connecting : $messages.docker.containers.terminal.description)} class="min-h-[320px] font-mono text-xs" />
-
-                  <div class="flex gap-2">
-                    <Input bind:value={terminalInput} placeholder={$messages.docker.containers.terminal.inputPlaceholder} onkeydown={(event: KeyboardEvent) => { if (event.key === 'Enter') { event.preventDefault(); sendTerminalInput(); } }} />
-                    <Button variant="outline" onclick={sendTerminalInput} disabled={!terminalSocket || !terminalInput}>{$messages.docker.containers.terminal.send}</Button>
-                  </div>
+                  <XtermSurface
+                    active={activeTab === 'terminal'}
+                    content={terminalOutput}
+                    emptyText={terminalConnecting ? $messages.docker.containers.terminal.connecting : (terminalSocket ? '' : $messages.docker.containers.terminal.description)}
+                    heightClass="h-[380px]"
+                    interactive={true}
+                    onData={sendTerminalData}
+                    onResize={resizeTerminal}
+                  />
 
                   {#if terminalSessionId}
                     <div class="text-xs text-muted-foreground">{$messages.docker.containers.session} {terminalSessionId}</div>

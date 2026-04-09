@@ -1,4 +1,5 @@
 import { json } from "@sveltejs/kit";
+import { env } from "$env/dynamic/private";
 import type { RequestHandler } from "./$types";
 
 import { controllerConfig, openContainerExec } from "$lib/server/controller";
@@ -22,8 +23,10 @@ export const POST: RequestHandler = async ({ params, request, url }) => {
       payload.rows ?? 24,
       payload.cols ?? 80,
     );
-    const wsProtocol = url.protocol === "https:" ? "wss:" : "ws:";
-    const websocketUrl = `${wsProtocol}//${url.host}${session.websocketPath}`;
+    const browserControllerBaseUrl = env.COMPOSIA_BROWSER_CONTROLLER_ADDR?.trim() || config.baseUrl;
+    const controllerUrl = new URL(browserControllerBaseUrl);
+    const wsProtocol = controllerUrl.protocol === "https:" ? "wss:" : "ws:";
+    const websocketUrl = `${wsProtocol}//${controllerUrl.host}${session.websocketPath}`;
     return json({ ...session, websocketUrl });
   } catch (error) {
     return json(

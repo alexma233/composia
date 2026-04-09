@@ -249,7 +249,7 @@
 待完成：
 1. `caddy` 作为多节点 service 的实例扇出语义
 2. `migrate` 完成后在源节点和目标节点都触发 `caddy_reload`（等待 Phase 9）
-3. **Docker exec (terminal) 增强**：Web 端 terminal 需要升级为专业的 terminal UI 组件（xterm.js 或类似），支持完整的浏览器端 terminal 交互（滚动、复制粘贴、ANSI 颜色等）
+3. **Docker exec (terminal) 增强**：Web 端 terminal 已切换到 `xterm.js`，但目前还需要完整的测试和 review
 4. `dns_update` 在 `network.dns.value` 为空时仍按单节点自动推导目标；多节点 service 若要统一 DNS，仍需显式提供 `network.dns.value`
 5. `caddy_sync`、`caddy_reload`、`ForgetNodeRustic`、`PruneNodeRustic` 需要真实环境下的实际测试；当前不能视为已验证
 

@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn-svelte/tailwind.css";
 @import "@fontsource-variable/inter";
+@import "@xterm/xterm/css/xterm.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -262,6 +263,18 @@
 
   .code-surface {
     @apply rounded-lg border bg-background p-4 font-mono text-xs leading-6 whitespace-pre-wrap break-words;
+  }
+
+  .terminal-surface {
+    @apply overflow-hidden rounded-lg border bg-background;
+  }
+
+  .terminal-surface .xterm {
+    height: 100%;
+  }
+
+  .terminal-surface .xterm-viewport {
+    overscroll-behavior: contain;
   }
 
   .muted-action {
