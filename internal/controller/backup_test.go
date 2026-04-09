@@ -39,7 +39,7 @@ func TestBackupRecordServiceListAndGetBackup(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -50,7 +50,7 @@ func TestBackupRecordServiceListAndGetBackup(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewBackupRecordServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewBackupRecordServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	listResponse, err := client.ListBackups(ctx, connect.NewRequest(&controllerv1.ListBackupsRequest{ServiceName: "alpha"}))
 	if err != nil {
 		t.Fatalf("list backups: %v", err)

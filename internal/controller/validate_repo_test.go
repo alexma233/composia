@@ -25,7 +25,7 @@ func TestRepoQueryServiceValidateRepoReturnsStructuredErrors(t *testing.T) {
 	})
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -39,7 +39,7 @@ func TestRepoQueryServiceValidateRepoReturnsStructuredErrors(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewRepoQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewRepoQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	response, err := client.ValidateRepo(context.Background(), connect.NewRequest(&controllerv1.ValidateRepoRequest{}))
 	if err != nil {
 		t.Fatalf("validate repo: %v", err)

@@ -57,7 +57,7 @@ func TestSecretServiceGetAndUpdateServiceSecretEnv(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -72,7 +72,7 @@ func TestSecretServiceGetAndUpdateServiceSecretEnv(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewSecretServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewSecretServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	getResp, err := client.GetSecret(ctx, connect.NewRequest(&controllerv1.GetSecretRequest{ServiceName: "alpha", FilePath: ".secret.env.enc"}))
 	if err != nil {
 		t.Fatalf("get secret: %v", err)
@@ -128,7 +128,7 @@ func TestSecretServiceUpdateRejectsActiveServiceTask(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -143,7 +143,7 @@ func TestSecretServiceUpdateRejectsActiveServiceTask(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewSecretServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewSecretServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	_, err = client.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{ServiceName: "alpha", FilePath: ".secret.env.enc", Content: "TOKEN=x\n", BaseRevision: mustCurrentRevision(t, repoDir)}))
 	if err == nil {
 		t.Fatalf("expected active task conflict")

@@ -26,7 +26,7 @@ type ControllerConfig struct {
 	Backup         *ControllerBackupConfig  `yaml:"backup"`
 	Git            *ControllerGitConfig     `yaml:"git"`
 	Nodes          []NodeConfig             `yaml:"nodes"`
-	CLITokens      []CLITokenConfig         `yaml:"cli_tokens"`
+	AccessTokens   []AccessTokenConfig      `yaml:"access_tokens"`
 	DNS            *ControllerDNSConfig     `yaml:"dns"`
 	Rustic         *ControllerRusticConfig  `yaml:"rustic"`
 	Secrets        *ControllerSecretsConfig `yaml:"secrets"`
@@ -58,7 +58,7 @@ type NodeConfig struct {
 	Token       string `yaml:"token"`
 }
 
-type CLITokenConfig struct {
+type AccessTokenConfig struct {
 	Name    string `yaml:"name"`
 	Token   string `yaml:"token"`
 	Enabled *bool  `yaml:"enabled"`
@@ -214,12 +214,12 @@ func validateController(file *File) error {
 		return fmt.Errorf("controller.git.pull_interval is required when controller.git.remote_url is set")
 	}
 
-	for _, token := range controller.CLITokens {
+	for _, token := range controller.AccessTokens {
 		if token.Name == "" {
-			return fmt.Errorf("controller.cli_tokens[].name is required")
+			return fmt.Errorf("controller.access_tokens[].name is required")
 		}
 		if token.Token == "" {
-			return fmt.Errorf("controller.cli_tokens[%q].token is required", token.Name)
+			return fmt.Errorf("controller.access_tokens[%q].token is required", token.Name)
 		}
 	}
 
@@ -308,9 +308,9 @@ func (controller *ControllerConfig) NodeTokenMap() map[string]string {
 	return tokens
 }
 
-func (controller *ControllerConfig) EnabledCLITokenMap() map[string]string {
+func (controller *ControllerConfig) EnabledAccessTokenMap() map[string]string {
 	tokens := make(map[string]string)
-	for _, token := range controller.CLITokens {
+	for _, token := range controller.AccessTokens {
 		if token.Enabled != nil && !*token.Enabled {
 			continue
 		}

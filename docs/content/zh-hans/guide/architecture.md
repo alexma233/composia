@@ -76,7 +76,7 @@ Composia 使用 ConnectRPC 进行服务间通信：
 
 | 组件 | 认证方式 |
 |------|----------|
-| Web UI → Controller | Controller 访问 token（Bearer，来自 `controller.cli_tokens`） |
+| Web UI → Controller | Controller 访问 token（Bearer，来自 `controller.access_tokens`） |
 | Agent → Controller | Node Token |
 | Controller → Agent | 调用 Controller 暴露的 RPC 时使用 Bearer token |
 

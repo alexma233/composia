@@ -17,6 +17,7 @@
     - [GetTaskResponse](#composia-controller-v1-GetTaskResponse)
     - [ListTasksRequest](#composia-controller-v1-ListTasksRequest)
     - [ListTasksResponse](#composia-controller-v1-ListTasksResponse)
+    - [ResolveTaskConfirmationRequest](#composia-controller-v1-ResolveTaskConfirmationRequest)
     - [RunTaskAgainRequest](#composia-controller-v1-RunTaskAgainRequest)
     - [TailTaskLogsRequest](#composia-controller-v1-TailTaskLogsRequest)
     - [TailTaskLogsResponse](#composia-controller-v1-TailTaskLogsResponse)
@@ -153,8 +154,8 @@
     - [ServiceQueryService](#composia-controller-v1-ServiceQueryService)
   
 - [proto/composia/controller/v1/system.proto](#proto_composia_controller_v1_system-proto)
+    - [AccessTokenSummary](#composia-controller-v1-AccessTokenSummary)
     - [BackupConfigSummary](#composia-controller-v1-BackupConfigSummary)
-    - [CLITokenSummary](#composia-controller-v1-CLITokenSummary)
     - [DNSConfigSummary](#composia-controller-v1-DNSConfigSummary)
     - [GetCurrentConfigRequest](#composia-controller-v1-GetCurrentConfigRequest)
     - [GetCurrentConfigResponse](#composia-controller-v1-GetCurrentConfigResponse)
@@ -383,6 +384,23 @@ ListTasksResponse returns one page of task summaries.
 
 
 
+<a name="composia-controller-v1-ResolveTaskConfirmationRequest"></a>
+
+### ResolveTaskConfirmationRequest
+ResolveTaskConfirmationRequest resolves a task in awaiting_confirmation state.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| task_id | [string](#string) |  |  |
+| decision | [string](#string) |  | decision accepts &#34;approve&#34; or &#34;reject&#34;. |
+| comment | [string](#string) |  |  |
+
+
+
+
+
+
 <a name="composia-controller-v1-RunTaskAgainRequest"></a>
 
 ### RunTaskAgainRequest
@@ -492,7 +510,7 @@ TaskSummary describes one task in list results.
 <a name="composia-controller-v1-TaskService"></a>
 
 ### TaskService
-TaskService exposes task queries, log streaming, and retry operations.
+TaskService exposes task queries, log streaming, retry operations, and confirmation resolution.
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
@@ -500,6 +518,7 @@ TaskService exposes task queries, log streaming, and retry operations.
 | GetTask | [GetTaskRequest](#composia-controller-v1-GetTaskRequest) | [GetTaskResponse](#composia-controller-v1-GetTaskResponse) | GetTask returns the full detail for one task. |
 | TailTaskLogs | [TailTaskLogsRequest](#composia-controller-v1-TailTaskLogsRequest) | [TailTaskLogsResponse](#composia-controller-v1-TailTaskLogsResponse) stream | TailTaskLogs streams incremental log content for one task. |
 | RunTaskAgain | [RunTaskAgainRequest](#composia-controller-v1-RunTaskAgainRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | RunTaskAgain starts a new task based on an existing task. |
+| ResolveTaskConfirmation | [ResolveTaskConfirmationRequest](#composia-controller-v1-ResolveTaskConfirmationRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | ResolveTaskConfirmation resumes or rejects a task waiting for manual confirmation. |
 
  
 
@@ -2376,6 +2395,23 @@ ServiceQueryService exposes read-only service, task, and backup queries.
 
 
 
+<a name="composia-controller-v1-AccessTokenSummary"></a>
+
+### AccessTokenSummary
+AccessTokenSummary describes one controller access token without exposing the token string.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  | name is the operator-facing token name. |
+| enabled | [bool](#bool) |  | enabled reports whether this token may be used. |
+| comment | [string](#string) |  | comment is the optional operator note attached to the token. |
+
+
+
+
+
+
 <a name="composia-controller-v1-BackupConfigSummary"></a>
 
 ### BackupConfigSummary
@@ -2385,23 +2421,6 @@ BackupConfigSummary describes optional backup integration state.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | has_rustic | [bool](#bool) |  | has_rustic reports whether Rustic backup integration is configured. |
-
-
-
-
-
-
-<a name="composia-controller-v1-CLITokenSummary"></a>
-
-### CLITokenSummary
-CLITokenSummary describes one CLI token without exposing the token string.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| name | [string](#string) |  | name is the operator-facing token name. |
-| enabled | [bool](#bool) |  | enabled reports whether this token may be used. |
-| comment | [string](#string) |  | comment is the optional operator note attached to the token. |
 
 
 
@@ -2445,7 +2464,7 @@ GetCurrentConfigResponse contains redacted config summaries only.
 | controller_addr | [string](#string) |  | controller_addr is the configured public controller address. |
 | git | [GitConfigSummary](#composia-controller-v1-GitConfigSummary) |  | git is the configured Git sync summary for the controller repo. |
 | nodes | [NodeConfigSummary](#composia-controller-v1-NodeConfigSummary) | repeated | nodes lists configured execution nodes. |
-| cli_tokens | [CLITokenSummary](#composia-controller-v1-CLITokenSummary) | repeated | cli_tokens lists token metadata without returning secret token values. |
+| access_tokens | [AccessTokenSummary](#composia-controller-v1-AccessTokenSummary) | repeated | access_tokens lists token metadata without returning secret token values. |
 | dns | [DNSConfigSummary](#composia-controller-v1-DNSConfigSummary) |  | dns describes optional DNS integration configuration. |
 | backup | [BackupConfigSummary](#composia-controller-v1-BackupConfigSummary) |  | backup describes optional backup integration configuration. |
 | secrets | [SecretsConfigSummary](#composia-controller-v1-SecretsConfigSummary) |  | secrets describes the active secrets provider configuration. |

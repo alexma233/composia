@@ -76,7 +76,7 @@ Composia uses ConnectRPC for inter-service communication:
 
 | Component | Authentication Method |
 |-----------|----------------------|
-| Web UI → Controller | Controller access token (Bearer, from `controller.cli_tokens`) |
+| Web UI → Controller | Controller access token (Bearer, from `controller.access_tokens`) |
 | Agent → Controller | Node Token |
 | Controller → Agent | Bearer token when calling controller-exposed RPCs |
 

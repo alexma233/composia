@@ -50,8 +50,8 @@ message GetCurrentConfigResponse {
   GitConfigSummary git = 3;
   // nodes lists configured execution nodes.
   repeated NodeConfigSummary nodes = 4;
-  // cli_tokens lists token metadata without returning secret token values.
-  repeated CLITokenSummary cli_tokens = 5;
+  // access_tokens lists token metadata without returning secret token values.
+  repeated AccessTokenSummary access_tokens = 5;
   // dns describes optional DNS integration configuration.
   DNSConfigSummary dns = 6;
   // backup describes optional backup integration configuration.
@@ -90,8 +90,8 @@ message NodeConfigSummary {
   string public_ipv6 = 5;
 }
 
-// CLITokenSummary describes one CLI token without exposing the token string.
-message CLITokenSummary {
+// AccessTokenSummary describes one controller access token without exposing the token string.
+message AccessTokenSummary {
   // name is the operator-facing token name.
   string name = 1;
   // enabled reports whether this token may be used.

@@ -4,7 +4,7 @@ controller:
   repo_dir: "/data/repo-controller"
   state_dir: "/data/state-controller"
   log_dir: "/data/logs"
-  cli_tokens:
+  access_tokens:
     - name: "dev-admin"
       token: "dev-admin-token"
       enabled: true

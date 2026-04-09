@@ -36,9 +36,9 @@ If you want to keep the default `secrets` section in `config.compose.yaml`, also
 
 Before startup, review and update at least these values:
 
-- `controller.cli_tokens[].token`: controller access token used by the Web UI
+- `controller.access_tokens[].token`: controller access token used by the Web UI
 - `controller.nodes[].token` and `agent.token`: node authentication token, which must match on both sides
-- `COMPOSIA_CLI_TOKEN` in `docker-compose.yaml`: it must match one enabled token under `controller.cli_tokens`
+- `COMPOSIA_ACCESS_TOKEN` in `docker-compose.yaml`: it must match one enabled token under `controller.access_tokens`
 
 If you do not want to use the bundled age key files, replace the `secrets` configuration in `configs/config.compose.yaml` or remove that section before startup.
 
@@ -64,7 +64,7 @@ The Compose file also runs a one-shot `init-repo-controller` container first to 
 
 Open your browser and visit `http://localhost:3000`.
 
-The Web UI does not prompt for a token. It uses the `COMPOSIA_CLI_TOKEN` environment variable injected into the web server process. That value must match one enabled token under `controller.cli_tokens`.
+The Web UI does not prompt for a token. It uses the `COMPOSIA_ACCESS_TOKEN` environment variable injected into the web server process. That value must match one enabled token under `controller.access_tokens`.
 
 ### 6. Deploy Your First Service
 

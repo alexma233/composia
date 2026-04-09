@@ -28,7 +28,7 @@ func TestRepoQueryServiceGetRepoHeadReturnsMinimalSummary(t *testing.T) {
 	createGitRepoWithService(t, repoDir, "alpha", "main")
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -42,7 +42,7 @@ func TestRepoQueryServiceGetRepoHeadReturnsMinimalSummary(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewRepoQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewRepoQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	response, err := client.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
 	if err != nil {
 		t.Fatalf("get repo head: %v", err)
@@ -72,7 +72,7 @@ func TestRepoQueryServiceListRepoFilesAndGetRepoFile(t *testing.T) {
 	})
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -86,7 +86,7 @@ func TestRepoQueryServiceListRepoFilesAndGetRepoFile(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewRepoQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewRepoQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	listResponse, err := client.ListRepoFiles(context.Background(), connect.NewRequest(&controllerv1.ListRepoFilesRequest{}))
 	if err != nil {
 		t.Fatalf("list repo files: %v", err)
@@ -191,7 +191,7 @@ func TestRepoQueryServiceListRepoCommitsReturnsPagedSummaries(t *testing.T) {
 	runGit(t, repoDir, "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "second")
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -205,7 +205,7 @@ func TestRepoQueryServiceListRepoCommitsReturnsPagedSummaries(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewRepoQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewRepoQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	firstPage, err := client.ListRepoCommits(context.Background(), connect.NewRequest(&controllerv1.ListRepoCommitsRequest{PageSize: 1}))
 	if err != nil {
 		t.Fatalf("list first commit page: %v", err)
@@ -248,7 +248,7 @@ func TestRepoCommandServiceUpdateRepoFileCommitsAndKeepsWorktreeClean(t *testing
 	defer db.Close()
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -263,7 +263,7 @@ func TestRepoCommandServiceUpdateRepoFileCommitsAndKeepsWorktreeClean(t *testing
 	defer httpServer.Close()
 
 	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
-	client := controllerv1connect.NewRepoCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewRepoCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	head, err := queryClient.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
 	if err != nil {
 		t.Fatalf("get repo head: %v", err)
@@ -520,7 +520,7 @@ func TestRepoCommandServiceUpdateRepoFileAllowsInvalidMetaDraft(t *testing.T) {
 	defer db.Close()
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -535,7 +535,7 @@ func TestRepoCommandServiceUpdateRepoFileAllowsInvalidMetaDraft(t *testing.T) {
 	defer httpServer.Close()
 
 	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}, repoMu: &sync.Mutex{}})
-	client := controllerv1connect.NewRepoCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewRepoCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	head, err := queryClient.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
 	if err != nil {
 		t.Fatalf("get repo head: %v", err)
@@ -598,7 +598,7 @@ func TestRepoCommandServiceUpdateRepoFileRejectsServiceWithActiveTask(t *testing
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -613,7 +613,7 @@ func TestRepoCommandServiceUpdateRepoFileRejectsServiceWithActiveTask(t *testing
 	defer httpServer.Close()
 
 	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}, repoMu: &sync.Mutex{}})
-	client := controllerv1connect.NewRepoCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewRepoCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	head, err := queryClient.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
 	if err != nil {
 		t.Fatalf("get repo head: %v", err)
@@ -645,7 +645,7 @@ func TestRepoCommandServiceUpdateRepoFileRejectsServiceWithActiveTask(t *testing
 func newRepoCommandServiceClient(t *testing.T, server *repoCommandServer) controllerv1connect.RepoCommandServiceClient {
 	t.Helper()
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -655,13 +655,13 @@ func newRepoCommandServiceClient(t *testing.T, server *repoCommandServer) contro
 	mux.Handle(path, handler)
 	httpServer := httptest.NewServer(mux)
 	t.Cleanup(httpServer.Close)
-	return controllerv1connect.NewRepoCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	return controllerv1connect.NewRepoCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 }
 
 func newRepoQueryServiceClient(t *testing.T, server *repoQueryServer) controllerv1connect.RepoQueryServiceClient {
 	t.Helper()
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -671,7 +671,7 @@ func newRepoQueryServiceClient(t *testing.T, server *repoQueryServer) controller
 	mux.Handle(path, handler)
 	httpServer := httptest.NewServer(mux)
 	t.Cleanup(httpServer.Close)
-	return controllerv1connect.NewRepoQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	return controllerv1connect.NewRepoQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 }
 
 func createGitRepoWithBareRemote(t *testing.T, rootDir string, files map[string]string) (string, string, string) {

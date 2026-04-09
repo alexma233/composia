@@ -36,9 +36,9 @@ composia/
 
 启动前至少检查并修改这些值：
 
-- `controller.cli_tokens[].token`：Controller 访问 token，Web UI 会使用它访问 Controller
+- `controller.access_tokens[].token`：Controller 访问 token，Web UI 会使用它访问 Controller
 - `controller.nodes[].token` 与 `agent.token`：节点认证 token，二者必须一致
-- `docker-compose.yaml` 里的 `COMPOSIA_CLI_TOKEN`：必须与 `controller.cli_tokens[].token` 保持一致
+- `docker-compose.yaml` 里的 `COMPOSIA_ACCESS_TOKEN`：必须与 `controller.access_tokens[].token` 保持一致
 
 如果你不准备使用仓库附带的 age 密钥文件，请在 `configs/config.compose.yaml` 中替换 `secrets` 配置，或先移除该段配置。
 
@@ -64,7 +64,7 @@ docker compose up -d
 
 打开浏览器访问 `http://localhost:3000`。
 
-Web UI 不会提示输入 token。它会使用注入到 Web 服务进程中的 `COMPOSIA_CLI_TOKEN` 环境变量。这个值必须与 `controller.cli_tokens[].token` 中某个已启用的 token 一致。
+Web UI 不会提示输入 token。它会使用注入到 Web 服务进程中的 `COMPOSIA_ACCESS_TOKEN` 环境变量。这个值必须与 `controller.access_tokens[].token` 中某个已启用的 token 一致。
 
 ### 6. 部署第一个服务
 

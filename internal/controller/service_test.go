@@ -40,7 +40,7 @@ func TestServiceQueryServiceListServices(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -58,7 +58,7 @@ func TestServiceQueryServiceListServices(t *testing.T) {
 	client := controllerv1connect.NewServiceQueryServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
-		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")),
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")),
 	)
 
 	response, err := client.ListServices(context.Background(), connect.NewRequest(&controllerv1.ListServicesRequest{PageSize: 1}))
@@ -111,7 +111,7 @@ func TestServiceQueryServiceGetServiceReturnsMinimalSummary(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -126,7 +126,7 @@ func TestServiceQueryServiceGetServiceReturnsMinimalSummary(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	response, err := client.GetService(ctx, connect.NewRequest(&controllerv1.GetServiceRequest{ServiceName: "alpha"}))
 	if err != nil {
 		t.Fatalf("get service: %v", err)
@@ -180,7 +180,7 @@ func TestServiceQueryServiceGetServiceTasksReturnsFilteredTasks(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -194,7 +194,7 @@ func TestServiceQueryServiceGetServiceTasksReturnsFilteredTasks(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	response, err := client.GetServiceTasks(ctx, connect.NewRequest(&controllerv1.GetServiceTasksRequest{ServiceName: "alpha", PageSize: 10}))
 	if err != nil {
 		t.Fatalf("get service tasks: %v", err)
@@ -239,7 +239,7 @@ func TestServiceQueryServiceGetServiceBackupsReturnsFilteredBackups(t *testing.T
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -253,7 +253,7 @@ func TestServiceQueryServiceGetServiceBackupsReturnsFilteredBackups(t *testing.T
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	response, err := client.GetServiceBackups(ctx, connect.NewRequest(&controllerv1.GetServiceBackupsRequest{ServiceName: "alpha", PageSize: 10}))
 	if err != nil {
 		t.Fatalf("get service backups: %v", err)
@@ -284,7 +284,7 @@ func TestServiceCommandServiceUpdateServiceTargetNodesRewritesMetaAndCommits(t *
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -305,8 +305,8 @@ func TestServiceCommandServiceUpdateServiceTargetNodesRewritesMetaAndCommits(t *
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
-	queryClient := controllerv1connect.NewServiceQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
+	queryClient := controllerv1connect.NewServiceQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	response, err := client.UpdateServiceTargetNodes(ctx, connect.NewRequest(&controllerv1.UpdateServiceTargetNodesRequest{ServiceName: "alpha", NodeIds: []string{"main", "edge"}, BaseRevision: mustCurrentRevision(t, repoDir)}))
 	if err != nil {
 		t.Fatalf("update service target nodes: %v", err)
@@ -361,7 +361,7 @@ func TestServiceCommandServiceUpdateServiceTargetNodesRejectsInvalidNode(t *test
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -375,7 +375,7 @@ func TestServiceCommandServiceUpdateServiceTargetNodesRejectsInvalidNode(t *test
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	_, err := client.UpdateServiceTargetNodes(ctx, connect.NewRequest(&controllerv1.UpdateServiceTargetNodesRequest{ServiceName: "alpha", NodeIds: []string{"missing"}, BaseRevision: mustCurrentRevision(t, repoDir)}))
 	if err == nil {
 		t.Fatalf("expected invalid node error")
@@ -402,7 +402,7 @@ func TestServiceCommandServiceUpdateServiceTargetNodesRejectsActiveServiceTask(t
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -416,7 +416,7 @@ func TestServiceCommandServiceUpdateServiceTargetNodesRejectsActiveServiceTask(t
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	_, err := client.UpdateServiceTargetNodes(ctx, connect.NewRequest(&controllerv1.UpdateServiceTargetNodesRequest{ServiceName: "alpha", NodeIds: []string{"main", "edge"}, BaseRevision: mustCurrentRevision(t, repoDir)}))
 	if err == nil {
 		t.Fatalf("expected active task conflict")
@@ -460,7 +460,7 @@ func TestServiceCommandServiceDeployCreatesPendingTask(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -484,7 +484,7 @@ func TestServiceCommandServiceDeployCreatesPendingTask(t *testing.T) {
 	client := controllerv1connect.NewServiceCommandServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
-		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")),
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")),
 	)
 
 	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_DEPLOY}))
@@ -559,7 +559,7 @@ func TestServiceCommandServiceDeployIgnoresUnrelatedInvalidDraft(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -583,7 +583,7 @@ func TestServiceCommandServiceDeployIgnoresUnrelatedInvalidDraft(t *testing.T) {
 	client := controllerv1connect.NewServiceCommandServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
-		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")),
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")),
 	)
 
 	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_DEPLOY}))
@@ -629,7 +629,7 @@ func TestServiceCommandServiceDeployUsesWebSourceHeader(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -659,7 +659,7 @@ func TestServiceCommandServiceDeployUsesWebSourceHeader(t *testing.T) {
 	client := controllerv1connect.NewServiceCommandServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
-		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token"), requestInterceptor),
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token"), requestInterceptor),
 	)
 
 	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_DEPLOY}))
@@ -710,7 +710,7 @@ func TestServiceCommandServiceDeployUsesOthersSourceHeader(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -740,7 +740,7 @@ func TestServiceCommandServiceDeployUsesOthersSourceHeader(t *testing.T) {
 	client := controllerv1connect.NewServiceCommandServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
-		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token"), requestInterceptor),
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token"), requestInterceptor),
 	)
 
 	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_DEPLOY}))
@@ -794,7 +794,7 @@ func TestServiceCommandServiceCaddySyncCreatesPendingTask(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -842,7 +842,7 @@ func TestServiceCommandServiceDeployRejectsOfflineOrDisabledNode(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -857,7 +857,7 @@ func TestServiceCommandServiceDeployRejectsOfflineOrDisabledNode(t *testing.T) {
 		mux.Handle(path, handler)
 		httpServer := httptest.NewServer(mux)
 		t.Cleanup(httpServer.Close)
-		return controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+		return controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	}
 
 	offlineClient := makeClient([]config.NodeConfig{{ID: "main"}})
@@ -917,7 +917,7 @@ func TestServiceCommandServiceStopAndRestartCreatePendingTasks(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -932,7 +932,7 @@ func TestServiceCommandServiceStopAndRestartCreatePendingTasks(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 
 	stopResponse, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_STOP}))
 	if err != nil {
@@ -988,7 +988,7 @@ func TestServiceCommandServiceUpdateCreatesPendingTask(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -1003,7 +1003,7 @@ func TestServiceCommandServiceUpdateCreatesPendingTask(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_UPDATE}))
 	if err != nil {
 		t.Fatalf("update service: %v", err)
@@ -1049,7 +1049,7 @@ func TestServiceCommandServiceUpdateDNSCreatesPendingTaskWithoutOnlineNode(t *te
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -1081,7 +1081,7 @@ func TestServiceCommandServiceUpdateDNSCreatesPendingTaskWithoutOnlineNode(t *te
 	client := controllerv1connect.NewServiceCommandServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
-		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token"), requestInterceptor),
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token"), requestInterceptor),
 	)
 
 	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_DNS_UPDATE}))
@@ -1138,7 +1138,7 @@ func TestServiceCommandServiceBackupCreatesPendingTaskWithDefaultDataNames(t *te
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -1152,7 +1152,7 @@ func TestServiceCommandServiceBackupCreatesPendingTaskWithDefaultDataNames(t *te
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "alpha", Action: controllerv1.ServiceAction_SERVICE_ACTION_BACKUP}))
 	if err != nil {
 		t.Fatalf("backup service: %v", err)
@@ -1207,7 +1207,7 @@ func TestServiceCommandServiceMigrateCreatesPendingControllerTask(t *testing.T) 
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -1227,7 +1227,7 @@ func TestServiceCommandServiceMigrateCreatesPendingControllerTask(t *testing.T) 
 			return next(ctx, req)
 		}
 	})
-	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token"), requestInterceptor))
+	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token"), requestInterceptor))
 	response, err := client.MigrateService(ctx, connect.NewRequest(&controllerv1.MigrateServiceRequest{ServiceName: "alpha", SourceNodeId: "main", TargetNodeId: "edge"}))
 	if err != nil {
 		t.Fatalf("migrate service: %v", err)

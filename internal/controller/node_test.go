@@ -45,7 +45,7 @@ func TestNodeQueryServiceListNodes(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -72,7 +72,7 @@ func TestNodeQueryServiceListNodes(t *testing.T) {
 	client := controllerv1connect.NewNodeQueryServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
-		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")),
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")),
 	)
 
 	response, err := client.ListNodes(context.Background(), connect.NewRequest(&controllerv1.ListNodesRequest{}))
@@ -125,7 +125,7 @@ func TestNodeQueryServiceGetNodeReturnsMinimalSummary(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -143,7 +143,7 @@ func TestNodeQueryServiceGetNodeReturnsMinimalSummary(t *testing.T) {
 	client := controllerv1connect.NewNodeQueryServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
-		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")),
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")),
 	)
 
 	response, err := client.GetNode(ctx, connect.NewRequest(&controllerv1.GetNodeRequest{NodeId: "main"}))
@@ -186,7 +186,7 @@ func TestNodeQueryServiceGetNodeTasksReturnsFilteredTasks(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -200,7 +200,7 @@ func TestNodeQueryServiceGetNodeTasksReturnsFilteredTasks(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewNodeQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewNodeQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	response, err := client.GetNodeTasks(ctx, connect.NewRequest(&controllerv1.GetNodeTasksRequest{NodeId: "main", PageSize: 10}))
 	if err != nil {
 		t.Fatalf("get node tasks: %v", err)
@@ -240,7 +240,7 @@ func TestNodeMaintenanceServiceReloadNodeCaddyCreatesTask(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -254,7 +254,7 @@ func TestNodeMaintenanceServiceReloadNodeCaddyCreatesTask(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewNodeMaintenanceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewNodeMaintenanceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	response, err := client.ReloadNodeCaddy(ctx, connect.NewRequest(&controllerv1.ReloadNodeCaddyRequest{NodeId: "main"}))
 	if err != nil {
 		t.Fatalf("reload node caddy: %v", err)
@@ -302,7 +302,7 @@ func TestNodeMaintenanceServiceSyncNodeCaddyFilesCreatesSyncTask(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -316,7 +316,7 @@ func TestNodeMaintenanceServiceSyncNodeCaddyFilesCreatesSyncTask(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewNodeMaintenanceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewNodeMaintenanceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	response, err := client.SyncNodeCaddyFiles(ctx, connect.NewRequest(&controllerv1.SyncNodeCaddyFilesRequest{NodeId: "main", ServiceName: "demo"}))
 	if err != nil {
 		t.Fatalf("sync node caddy files: %v", err)
@@ -361,7 +361,7 @@ func TestNodeMaintenanceServicePruneNodeRusticCreatesRusticPruneTask(t *testing.
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -375,7 +375,7 @@ func TestNodeMaintenanceServicePruneNodeRusticCreatesRusticPruneTask(t *testing.
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewNodeMaintenanceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewNodeMaintenanceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	response, err := client.PruneNodeRustic(ctx, connect.NewRequest(&controllerv1.PruneNodeRusticRequest{ServiceName: "demo", DataName: "db"}))
 	if err != nil {
 		t.Fatalf("prune node rustic: %v", err)
@@ -422,7 +422,7 @@ func TestNodeMaintenanceServiceForgetNodeRusticCreatesRusticForgetTask(t *testin
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "cli-token" {
+		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -436,7 +436,7 @@ func TestNodeMaintenanceServiceForgetNodeRusticCreatesRusticForgetTask(t *testin
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewNodeMaintenanceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	client := controllerv1connect.NewNodeMaintenanceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
 	response, err := client.ForgetNodeRustic(ctx, connect.NewRequest(&controllerv1.ForgetNodeRusticRequest{ServiceName: "demo", DataName: "db"}))
 	if err != nil {
 		t.Fatalf("forget node rustic: %v", err)

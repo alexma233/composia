@@ -27,7 +27,7 @@ controller:
   log_dir: "/data/logs"
   
   # 认证配置
-  cli_tokens:
+  access_tokens:
     - name: "compose-admin"
       token: "replace-this-token"
       enabled: true
@@ -94,10 +94,10 @@ agent:
 | `log_dir` | string | 是 | 任务日志持久化目录 |
 | `nodes` | array | 是 | 顶层字段必须出现，即使为空数组也要写出 |
 
-#### Controller 访问 token（`cli_tokens`）
+#### Controller 访问 token（`access_tokens`）
 
 ```yaml
-cli_tokens:
+access_tokens:
   - name: "admin"
     token: "your-secure-token-here"
     enabled: true
@@ -218,7 +218,7 @@ controller:
   repo_dir: "/data/repo-controller"
   state_dir: "/data/state-controller"
   log_dir: "/data/logs"
-  cli_tokens:
+  access_tokens:
     - name: "admin"
       token: "your-token"
       enabled: true

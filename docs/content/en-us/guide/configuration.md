@@ -27,7 +27,7 @@ controller:
   log_dir: "/data/logs"
   
   # Authentication configuration
-  cli_tokens:
+  access_tokens:
     - name: "compose-admin"
       token: "replace-this-token"
       enabled: true
@@ -94,10 +94,10 @@ agent:
 | `log_dir` | string | Yes | Task logs persistence directory |
 | `nodes` | array | Yes | Must be present even if empty |
 
-#### Controller Access Tokens (`cli_tokens`)
+#### Controller Access Tokens (`access_tokens`)
 
 ```yaml
-cli_tokens:
+access_tokens:
   - name: "admin"
     token: "your-secure-token-here"
     enabled: true
@@ -218,7 +218,7 @@ controller:
   repo_dir: "/data/repo-controller"
   state_dir: "/data/state-controller"
   log_dir: "/data/logs"
-  cli_tokens:
+  access_tokens:
     - name: "admin"
       token: "your-token"
       enabled: true

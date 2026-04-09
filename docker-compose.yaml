@@ -51,7 +51,7 @@ services:
         condition: service_started
     environment:
       COMPOSIA_CONTROLLER_ADDR: http://controller:7001
-      COMPOSIA_CLI_TOKEN: dev-admin-token
+      COMPOSIA_ACCESS_TOKEN: dev-admin-token
       HOST: 0.0.0.0
       PORT: "3000"
     ports:

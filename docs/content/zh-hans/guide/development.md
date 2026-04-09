@@ -174,7 +174,7 @@ controller:
   repo_dir: "./dev/repo-controller"
   state_dir: "./dev/state-controller"
   log_dir: "./dev/logs"
-  cli_tokens:
+  access_tokens:
     - name: "dev-admin"
       token: "dev-admin-token"
       enabled: true
@@ -356,4 +356,4 @@ A: 检查 Controller 地址和 Token 是否匹配
 
 **Q: 前端请求失败**
 
-A: 确保 Controller 已启动，并检查 Web 进程的 `COMPOSIA_CONTROLLER_ADDR` 和 `COMPOSIA_CLI_TOKEN` 是否配置正确
+A: 确保 Controller 已启动，并检查 Web 进程的 `COMPOSIA_CONTROLLER_ADDR` 和 `COMPOSIA_ACCESS_TOKEN` 是否配置正确

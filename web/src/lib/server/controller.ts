@@ -205,13 +205,13 @@ export type DashboardData = {
 
 export function controllerConfig() {
   const baseUrl = env.COMPOSIA_CONTROLLER_ADDR?.trim();
-  const token = env.COMPOSIA_CLI_TOKEN?.trim();
+  const token = env.COMPOSIA_ACCESS_TOKEN?.trim();
 
   if (!baseUrl || !token) {
     return {
       ready: false as const,
       reason:
-        "Set COMPOSIA_CONTROLLER_ADDR and COMPOSIA_CLI_TOKEN in the web server environment.",
+        "Set COMPOSIA_CONTROLLER_ADDR and COMPOSIA_ACCESS_TOKEN in the web server environment.",
     };
   }
 

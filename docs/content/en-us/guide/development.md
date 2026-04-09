@@ -174,7 +174,7 @@ controller:
   repo_dir: "./dev/repo-controller"
   state_dir: "./dev/state-controller"
   log_dir: "./dev/logs"
-  cli_tokens:
+  access_tokens:
     - name: "dev-admin"
       token: "dev-admin-token"
       enabled: true
@@ -356,4 +356,4 @@ A: Check if the Controller address and Token match
 
 **Q: Frontend requests failing**
 
-A: Ensure the Controller is running and that `COMPOSIA_CONTROLLER_ADDR` and `COMPOSIA_CLI_TOKEN` are set correctly for the Web process
+A: Ensure the Controller is running and that `COMPOSIA_CONTROLLER_ADDR` and `COMPOSIA_ACCESS_TOKEN` are set correctly for the Web process

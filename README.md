@@ -48,9 +48,9 @@ Download `docker-compose.yaml` and `configs/config.compose.yaml` from this repos
 
 Before running the stack, update these values:
 
-- `controller.cli_tokens[].token`
+- `controller.access_tokens[].token`
 - `controller.nodes[].token` and `agent.token`
-- `COMPOSIA_CLI_TOKEN` in `docker-compose.yaml` so it matches one enabled controller token
+- `COMPOSIA_ACCESS_TOKEN` in `docker-compose.yaml` so it matches one enabled controller token
 
 If you keep the default `secrets` configuration, also keep the referenced age key files.
 
@@ -78,7 +78,7 @@ It also runs a one-shot `init-repo-controller` container first to initialize the
 
 Access the web UI at `http://localhost:3000`.
 
-The Web UI uses the `COMPOSIA_CLI_TOKEN` environment variable injected into the web service. That value must match one enabled token under `controller.cli_tokens`.
+The Web UI uses the `COMPOSIA_ACCESS_TOKEN` environment variable injected into the web service. That value must match one enabled token under `controller.access_tokens`.
 
 Pre-built images are published to:
 
@@ -93,7 +93,7 @@ To stop the Composia stack started from the local `docker-compose.yaml`:
 docker compose down
 ```
 
-Note: the example stack injects the Web UI token through `COMPOSIA_CLI_TOKEN` in `docker-compose.yaml`. For production, generate your own controller access token, update `configs/config.compose.yaml`, and keep the Web service environment variable aligned with it.
+Note: the example stack injects the Web UI token through `COMPOSIA_ACCESS_TOKEN` in `docker-compose.yaml`. For production, generate your own controller access token, update `configs/config.compose.yaml`, and keep the Web service environment variable aligned with it.
 
 The release workflows publish to both Forgejo Registry and GHCR. Configure these repository secrets for automated pushes:
 
@@ -231,7 +231,7 @@ Generate protobuf and Connect stubs after changing files under `proto/`:
 buf generate
 ```
 
-The example controller config also includes a development CLI token:
+The example controller config also includes a development access token:
 
 ```text
 dev-admin-token

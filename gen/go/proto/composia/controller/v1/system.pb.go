@@ -216,8 +216,8 @@ type GetCurrentConfigResponse struct {
 	Git *GitConfigSummary `protobuf:"bytes,3,opt,name=git,proto3" json:"git,omitempty"`
 	// nodes lists configured execution nodes.
 	Nodes []*NodeConfigSummary `protobuf:"bytes,4,rep,name=nodes,proto3" json:"nodes,omitempty"`
-	// cli_tokens lists token metadata without returning secret token values.
-	CliTokens []*CLITokenSummary `protobuf:"bytes,5,rep,name=cli_tokens,json=cliTokens,proto3" json:"cli_tokens,omitempty"`
+	// access_tokens lists token metadata without returning secret token values.
+	AccessTokens []*AccessTokenSummary `protobuf:"bytes,5,rep,name=access_tokens,json=accessTokens,proto3" json:"access_tokens,omitempty"`
 	// dns describes optional DNS integration configuration.
 	Dns *DNSConfigSummary `protobuf:"bytes,6,opt,name=dns,proto3" json:"dns,omitempty"`
 	// backup describes optional backup integration configuration.
@@ -286,9 +286,9 @@ func (x *GetCurrentConfigResponse) GetNodes() []*NodeConfigSummary {
 	return nil
 }
 
-func (x *GetCurrentConfigResponse) GetCliTokens() []*CLITokenSummary {
+func (x *GetCurrentConfigResponse) GetAccessTokens() []*AccessTokenSummary {
 	if x != nil {
-		return x.CliTokens
+		return x.AccessTokens
 	}
 	return nil
 }
@@ -487,8 +487,8 @@ func (x *NodeConfigSummary) GetPublicIpv6() string {
 	return ""
 }
 
-// CLITokenSummary describes one CLI token without exposing the token string.
-type CLITokenSummary struct {
+// AccessTokenSummary describes one controller access token without exposing the token string.
+type AccessTokenSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// name is the operator-facing token name.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -500,20 +500,20 @@ type CLITokenSummary struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CLITokenSummary) Reset() {
-	*x = CLITokenSummary{}
+func (x *AccessTokenSummary) Reset() {
+	*x = AccessTokenSummary{}
 	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CLITokenSummary) String() string {
+func (x *AccessTokenSummary) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CLITokenSummary) ProtoMessage() {}
+func (*AccessTokenSummary) ProtoMessage() {}
 
-func (x *CLITokenSummary) ProtoReflect() protoreflect.Message {
+func (x *AccessTokenSummary) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -525,26 +525,26 @@ func (x *CLITokenSummary) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CLITokenSummary.ProtoReflect.Descriptor instead.
-func (*CLITokenSummary) Descriptor() ([]byte, []int) {
+// Deprecated: Use AccessTokenSummary.ProtoReflect.Descriptor instead.
+func (*AccessTokenSummary) Descriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *CLITokenSummary) GetName() string {
+func (x *AccessTokenSummary) GetName() string {
 	if x != nil {
 		return x.Name
 	}
 	return ""
 }
 
-func (x *CLITokenSummary) GetEnabled() bool {
+func (x *AccessTokenSummary) GetEnabled() bool {
 	if x != nil {
 		return x.Enabled
 	}
 	return false
 }
 
-func (x *CLITokenSummary) GetComment() string {
+func (x *AccessTokenSummary) GetComment() string {
 	if x != nil {
 		return x.Comment
 	}
@@ -722,15 +722,14 @@ const file_proto_composia_controller_v1_system_proto_rawDesc = "" +
 	"\brepo_dir\x18\x06 \x01(\tR\arepoDir\x12\x1b\n" +
 	"\tstate_dir\x18\a \x01(\tR\bstateDir\x12\x17\n" +
 	"\alog_dir\x18\b \x01(\tR\x06logDir\"\x19\n" +
-	"\x17GetCurrentConfigRequest\"\xf2\x03\n" +
+	"\x17GetCurrentConfigRequest\"\xfb\x03\n" +
 	"\x18GetCurrentConfigResponse\x12\x1f\n" +
 	"\vlisten_addr\x18\x01 \x01(\tR\n" +
 	"listenAddr\x12'\n" +
 	"\x0fcontroller_addr\x18\x02 \x01(\tR\x0econtrollerAddr\x12:\n" +
 	"\x03git\x18\x03 \x01(\v2(.composia.controller.v1.GitConfigSummaryR\x03git\x12?\n" +
-	"\x05nodes\x18\x04 \x03(\v2).composia.controller.v1.NodeConfigSummaryR\x05nodes\x12F\n" +
-	"\n" +
-	"cli_tokens\x18\x05 \x03(\v2'.composia.controller.v1.CLITokenSummaryR\tcliTokens\x12:\n" +
+	"\x05nodes\x18\x04 \x03(\v2).composia.controller.v1.NodeConfigSummaryR\x05nodes\x12O\n" +
+	"\raccess_tokens\x18\x05 \x03(\v2*.composia.controller.v1.AccessTokenSummaryR\faccessTokens\x12:\n" +
 	"\x03dns\x18\x06 \x01(\v2(.composia.controller.v1.DNSConfigSummaryR\x03dns\x12C\n" +
 	"\x06backup\x18\a \x01(\v2+.composia.controller.v1.BackupConfigSummaryR\x06backup\x12F\n" +
 	"\asecrets\x18\b \x01(\v2,.composia.controller.v1.SecretsConfigSummaryR\asecrets\"\xcd\x01\n" +
@@ -750,8 +749,8 @@ const file_proto_composia_controller_v1_system_proto_rawDesc = "" +
 	"\vpublic_ipv4\x18\x04 \x01(\tR\n" +
 	"publicIpv4\x12\x1f\n" +
 	"\vpublic_ipv6\x18\x05 \x01(\tR\n" +
-	"publicIpv6\"Y\n" +
-	"\x0fCLITokenSummary\x12\x12\n" +
+	"publicIpv6\"\\\n" +
+	"\x12AccessTokenSummary\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\x12\x18\n" +
 	"\acomment\x18\x03 \x01(\tR\acomment\"9\n" +
@@ -788,7 +787,7 @@ var file_proto_composia_controller_v1_system_proto_goTypes = []any{
 	(*GetCurrentConfigResponse)(nil), // 3: composia.controller.v1.GetCurrentConfigResponse
 	(*GitConfigSummary)(nil),         // 4: composia.controller.v1.GitConfigSummary
 	(*NodeConfigSummary)(nil),        // 5: composia.controller.v1.NodeConfigSummary
-	(*CLITokenSummary)(nil),          // 6: composia.controller.v1.CLITokenSummary
+	(*AccessTokenSummary)(nil),       // 6: composia.controller.v1.AccessTokenSummary
 	(*DNSConfigSummary)(nil),         // 7: composia.controller.v1.DNSConfigSummary
 	(*BackupConfigSummary)(nil),      // 8: composia.controller.v1.BackupConfigSummary
 	(*SecretsConfigSummary)(nil),     // 9: composia.controller.v1.SecretsConfigSummary
@@ -798,7 +797,7 @@ var file_proto_composia_controller_v1_system_proto_depIdxs = []int32{
 	10, // 0: composia.controller.v1.GetSystemStatusResponse.now:type_name -> google.protobuf.Timestamp
 	4,  // 1: composia.controller.v1.GetCurrentConfigResponse.git:type_name -> composia.controller.v1.GitConfigSummary
 	5,  // 2: composia.controller.v1.GetCurrentConfigResponse.nodes:type_name -> composia.controller.v1.NodeConfigSummary
-	6,  // 3: composia.controller.v1.GetCurrentConfigResponse.cli_tokens:type_name -> composia.controller.v1.CLITokenSummary
+	6,  // 3: composia.controller.v1.GetCurrentConfigResponse.access_tokens:type_name -> composia.controller.v1.AccessTokenSummary
 	7,  // 4: composia.controller.v1.GetCurrentConfigResponse.dns:type_name -> composia.controller.v1.DNSConfigSummary
 	8,  // 5: composia.controller.v1.GetCurrentConfigResponse.backup:type_name -> composia.controller.v1.BackupConfigSummary
 	9,  // 6: composia.controller.v1.GetCurrentConfigResponse.secrets:type_name -> composia.controller.v1.SecretsConfigSummary

@@ -103,7 +103,7 @@ func Run(ctx context.Context, configPath string) error {
 
 	mux := http.NewServeMux()
 	agentTokens := cfg.NodeTokenMap()
-	cliTokens := cfg.EnabledCLITokenMap()
+	accessTokens := cfg.EnabledAccessTokenMap()
 
 	agentInterceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
 		nodeID, ok := agentTokens[token]
@@ -113,15 +113,15 @@ func Run(ctx context.Context, configPath string) error {
 		return nodeID, nil
 	})
 
-	cliInterceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		name, ok := cliTokens[token]
+	accessInterceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		name, ok := accessTokens[token]
 		if !ok {
-			return "", errors.New("invalid CLI token")
+			return "", errors.New("invalid access token")
 		}
 		return name, nil
 	})
 	registerAgentHandlers(mux, cfg, db, agentInterceptor, taskQueue, taskResults, execManager)
-	registerCLIHandlers(mux, cfg, db, cliInterceptor, availableNodeIDs, taskQueue, taskResults, execManager, repoMu)
+	registerAccessHandlers(mux, cfg, db, accessInterceptor, availableNodeIDs, taskQueue, taskResults, execManager, repoMu)
 	mux.HandleFunc("/ws/container-exec/", execManager.handleWebsocket)
 
 	server := &http.Server{
@@ -169,7 +169,7 @@ func registerAgentHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db 
 	mux.Handle(bundlePath, bundleHandler)
 }
 
-func registerCLIHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, availableNodeIDs map[string]struct{}, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, execManager *execTunnelManager, repoMu *sync.Mutex) {
+func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, availableNodeIDs map[string]struct{}, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, execManager *execTunnelManager, repoMu *sync.Mutex) {
 	systemPath, systemHandler := controllerv1connect.NewSystemServiceHandler(
 		&systemServer{db: db, cfg: cfg},
 		connect.WithInterceptors(interceptor),
@@ -1396,13 +1396,13 @@ func (server *systemServer) GetCurrentConfig(ctx context.Context, _ *connect.Req
 		})
 	}
 
-	response.CliTokens = make([]*controllerv1.CLITokenSummary, 0, len(server.cfg.CLITokens))
-	for _, token := range server.cfg.CLITokens {
+	response.AccessTokens = make([]*controllerv1.AccessTokenSummary, 0, len(server.cfg.AccessTokens))
+	for _, token := range server.cfg.AccessTokens {
 		enabled := true
 		if token.Enabled != nil {
 			enabled = *token.Enabled
 		}
-		response.CliTokens = append(response.CliTokens, &controllerv1.CLITokenSummary{
+		response.AccessTokens = append(response.AccessTokens, &controllerv1.AccessTokenSummary{
 			Name:    token.Name,
 			Enabled: enabled,
 			Comment: token.Comment,
