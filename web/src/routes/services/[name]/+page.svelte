@@ -7,7 +7,6 @@
   import CodeEditor from '$lib/components/app/code-editor.svelte';
   import ServiceFileTree from '$lib/components/app/service-file-tree.svelte';
   import TaskItem from '$lib/components/app/task-item.svelte';
-  import TaskLogStream from '$lib/components/app/task-log-stream.svelte';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
@@ -48,8 +47,6 @@
   let lastSuccessfulPullAt = $state('');
   let tasks = $state<TaskSummary[]>([]);
   let backups = $state<BackupSummary[]>([]);
-  let selectedTaskId = $state('');
-  let logsExpanded = $state(false);
   let actionBusy = $state('');
   let saving = $state(false);
   let errorMessage = $state('');
@@ -62,12 +59,14 @@
   let showDeleteDialog = $state(false);
   let showServiceRename = $state(false);
   let renameServiceFolder = $state('');
+  let advancedOperationsOpen = $state(false);
   let workspace = $state<PageData['workspace']>(null);
   let serviceDetail = $state<PageData['serviceDetail']>(null);
   let nodeContainers = $state<NonNullable<PageData['nodeContainers']>>([]);
   let refreshTimer = $state<ReturnType<typeof setTimeout> | null>(null);
   let migrateSourceNode = $state('');
   let migrateTargetNode = $state('');
+  let selectedInstanceNode = $state('__all__');
 
   $effect(() => {
     fileTree = data.fileTree;
@@ -80,7 +79,6 @@
     lastSuccessfulPullAt = data.repoHead?.lastSuccessfulPullAt ?? '';
     tasks = data.tasks;
     backups = data.backups;
-    selectedTaskId = data.tasks[0]?.taskId ?? '';
     errorMessage = data.error ?? '';
     renameServiceFolder = data.workspace?.folder ?? '';
     workspace = data.workspace;
@@ -88,6 +86,7 @@
     nodeContainers = (data.nodeContainers ?? []) as NonNullable<PageData['nodeContainers']>;
     migrateSourceNode = data.serviceDetail?.nodes?.[0] ?? '';
     migrateTargetNode = '';
+    selectedInstanceNode = '__all__';
   });
 
   function createTab(file: WorkspaceFile): EditorTab {
@@ -103,6 +102,15 @@
   let selectedNode = $derived(selectedNodePath ? findNode(fileTree, selectedNodePath) : null);
   let recentTasks = $derived(tasks.filter((task) => isTaskRecent(task.createdAt)).slice(0, 4));
   let migrateSourceNodes = $derived(serviceDetail?.nodes ?? []);
+  let hasMultipleInstanceNodes = $derived(nodeContainers.length > 1);
+  let selectedInstanceEntry = $derived(
+    nodeContainers.find((instance) => instance.nodeId === selectedInstanceNode) ?? null
+  );
+  let visibleNodeContainers = $derived(
+    !hasMultipleInstanceNodes || selectedInstanceNode === '__all__'
+      ? nodeContainers
+      : nodeContainers.filter((instance) => instance.nodeId === selectedInstanceNode)
+  );
 
   $effect(() => {
     return () => stopActionRefresh();
@@ -486,8 +494,6 @@
         createdAt: new Date().toISOString()
       };
       tasks = [newTask, ...tasks].slice(0, 12);
-      selectedTaskId = payload.taskId;
-      logsExpanded = true;
       toast.success(`${action} queued as ${payload.taskId}`);
       startActionRefresh(payload.taskId);
     } catch (actionError) {
@@ -522,8 +528,6 @@
         createdAt: new Date().toISOString()
       };
       tasks = [newTask, ...tasks].slice(0, 12);
-      selectedTaskId = payload.taskId;
-      logsExpanded = true;
       toast.success(`caddy_sync queued as ${payload.taskId}`);
       startActionRefresh(payload.taskId);
     } catch (actionError) {
@@ -563,8 +567,6 @@
         createdAt: new Date().toISOString()
       };
       tasks = [newTask, ...tasks].slice(0, 12);
-      selectedTaskId = payload.taskId;
-      logsExpanded = true;
       toast.success(`migrate queued as ${payload.taskId}`);
       startActionRefresh(payload.taskId);
     } catch (actionError) {
@@ -645,11 +647,11 @@
 <div class="page-shell flex min-h-[calc(100vh-72px)] flex-col">
   <div class="page-stack flex min-h-0 flex-1 flex-col">
     <Card>
-      <CardHeader>
-        <div class="page-header">
-          <div class="page-heading">
+      <CardHeader class="gap-3 py-4">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="min-w-0 space-y-1">
             <CardTitle class="page-title">{workspace?.displayName ?? $messages.services.service}</CardTitle>
-            <div class="page-meta">{workspace?.folder ?? 'n/a'}</div>
+            <div class="truncate text-sm text-muted-foreground">{workspace?.folder ?? 'n/a'}</div>
           </div>
 
           <Badge variant={runtimeStatusTone(workspace?.runtimeStatus ?? 'unknown')}>
@@ -657,32 +659,22 @@
           </Badge>
         </div>
 
-        <div class="summary-strip">
-          <div class="summary-item">
-            <div class="metric-label">{$messages.nodes.node}</div>
-            <div class="mt-2 text-sm font-medium text-foreground">{workspace?.node || $messages.common.na}</div>
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+          <div class="flex items-center gap-1.5">
+            <span>{$messages.nodes.node}</span>
+            <span class="font-medium text-foreground">{workspace?.node || $messages.common.na}</span>
           </div>
-
-          <div class="summary-item">
-            <div class="metric-label">{$messages.settings.repoSync.revision}</div>
-            <div class="mt-2 text-sm font-medium text-foreground">{headRevision ? headRevision.slice(0, 12) : $messages.common.na}</div>
+          <div class="flex items-center gap-1.5">
+            <span>{$messages.settings.repoSync.revision}</span>
+            <span class="font-medium text-foreground">{headRevision ? headRevision.slice(0, 12) : $messages.common.na}</span>
           </div>
-
-          <div class="summary-item">
-            <div class="metric-label">{$messages.common.status}</div>
-            <div class="mt-2 text-sm font-medium text-foreground">
-              {runtimeStatusLabel(workspace?.runtimeStatus ?? '', $messages)}
-            </div>
+          <div class="flex items-center gap-1.5">
+            <span>{$messages.services.syncStatus}</span>
+            <span class="font-medium text-foreground">{syncStatus || $messages.status.unknown}</span>
           </div>
-
-          <div class="summary-item">
-            <div class="metric-label">{$messages.services.syncStatus}</div>
-            <div class="mt-2 text-sm font-medium text-foreground">{syncStatus || $messages.status.unknown}</div>
-          </div>
-
-          <div class="summary-item">
-            <div class="metric-label">{$messages.services.lastPull}</div>
-            <div class="mt-2 text-sm font-medium text-foreground">{lastSuccessfulPullAt || $messages.common.never}</div>
+          <div class="flex items-center gap-1.5">
+            <span>{$messages.services.lastPull}</span>
+            <span class="font-medium text-foreground">{lastSuccessfulPullAt || $messages.common.never}</span>
           </div>
         </div>
 
@@ -697,26 +689,62 @@
 
   {#if (nodeContainers ?? []).length > 0}
     <Card>
-      <CardHeader>
-        <CardTitle class="section-title">{$messages.services.instances}</CardTitle>
+      <CardHeader class="gap-3">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle class="section-title">{$messages.services.instances}</CardTitle>
+            <div class="text-sm text-muted-foreground">{$messages.services.containersByNode}</div>
+          </div>
+
+          {#if hasMultipleInstanceNodes}
+            <Select type="single" bind:value={selectedInstanceNode as any}>
+              <SelectTrigger class="w-[240px]">
+                {#if selectedInstanceNode === '__all__'}
+                  <span>{$messages.services.allNodes}</span>
+                {:else}
+                  <span>
+                    {selectedInstanceNode}
+                    {#if selectedInstanceEntry}
+                      · {runtimeStatusLabel(selectedInstanceEntry.runtimeStatus, $messages)}
+                    {/if}
+                  </span>
+                {/if}
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">{$messages.services.allNodes}</SelectItem>
+                {#each nodeContainers ?? [] as instance}
+                  <SelectItem value={instance.nodeId}>
+                    {instance.nodeId} · {runtimeStatusLabel(instance.runtimeStatus, $messages)}
+                  </SelectItem>
+                {/each}
+              </SelectContent>
+            </Select>
+          {/if}
+        </div>
       </CardHeader>
-      <CardContent class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {#each nodeContainers ?? [] as instance}
-          <div class="rounded-lg border border-border/60 bg-muted/20 p-3">
-            <div class="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <div class="font-medium">{instance.nodeId}</div>
-                <div class="text-xs text-muted-foreground">{formatTimestamp(instance.updatedAt)}</div>
+      <CardContent class="space-y-4">
+        {#each visibleNodeContainers as instance, index}
+          <section class="space-y-3">
+            {#if hasMultipleInstanceNodes && selectedInstanceNode === '__all__'}
+              <div class="flex items-center gap-3">
+                {#if index > 0}
+                  <div class="h-px flex-1 bg-border/70"></div>
+                {/if}
+                <div class="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <span>{instance.nodeId}</span>
+                  <Badge variant={runtimeStatusTone(instance.runtimeStatus)}>{runtimeStatusLabel(instance.runtimeStatus, $messages)}</Badge>
+                </div>
+                <div class="h-px flex-1 bg-border/70"></div>
               </div>
-              <Badge variant={runtimeStatusTone(instance.runtimeStatus)}>{runtimeStatusLabel(instance.runtimeStatus, $messages)}</Badge>
-            </div>
+            {/if}
+
             {#if instance.containers.length > 0}
-              <div class="space-y-2">
+              <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {#each instance.containers as container}
                   <a href="/nodes/{instance.nodeId}/docker/containers/{encodeURIComponent(container.containerId)}" class="block rounded-md border border-border/60 bg-background px-3 py-2 transition-colors hover:bg-accent/40">
                     <div class="flex items-center justify-between gap-2">
                       <div class="font-medium">{container.name}</div>
-                       <Badge variant={runtimeStatusTone(container.state)}>{runtimeStatusLabel(container.state, $messages)}</Badge>
+                      <Badge variant={runtimeStatusTone(container.state)}>{runtimeStatusLabel(container.state, $messages)}</Badge>
                     </div>
                     <div class="mt-1 text-xs text-muted-foreground">{container.image}</div>
                     <div class="mt-1 text-[11px] text-muted-foreground/80">
@@ -726,9 +754,11 @@
                 {/each}
               </div>
             {:else}
-              <div class="text-sm text-muted-foreground">{$messages.services.noContainersOnNode}</div>
+              <div class="rounded-lg border border-dashed border-border/70 px-3 py-4 text-sm text-muted-foreground">
+                {$messages.services.noContainersOnNode}
+              </div>
             {/if}
-          </div>
+          </section>
         {/each}
       </CardContent>
     </Card>
@@ -873,39 +903,51 @@
             <Button type="button" variant="outline" onclick={() => triggerAction('stop')} disabled={!!actionBusy || !workspace?.isDeclared}>
               <Square class="mr-2 size-4" />{$messages.services.operations.stop}
             </Button>
-            <Button type="button" variant="outline" onclick={() => triggerAction('backup')} disabled={!!actionBusy || !workspace?.isDeclared}>
-              <Wrench class="mr-2 size-4" />{$messages.services.operations.backup}
-            </Button>
-            <Button type="button" variant="outline" onclick={() => triggerAction('dns_update')} disabled={!!actionBusy || !workspace?.isDeclared}>
-              <Upload class="mr-2 size-4" />{$messages.services.operations.dnsUpdate}
-            </Button>
-            <Button type="button" variant="outline" onclick={() => triggerCaddySync()} disabled={!!actionBusy || !workspace?.isDeclared || !workspace?.node}>
-              <Copy class="mr-2 size-4" />{$messages.services.operations.syncCaddy}
-            </Button>
-            <div class="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
-              <div class="text-sm font-medium">{$messages.services.operations.migrate.title}</div>
-              <Select type="single" bind:value={migrateSourceNode as any}>
-                <SelectTrigger>
-                  <span>{migrateSourceNode || $messages.services.operations.migrate.selectSource}</span>
-                </SelectTrigger>
-                <SelectContent>
-                  {#each migrateSourceNodes as nodeId}
-                    <SelectItem value={nodeId}>{nodeId}</SelectItem>
-                  {/each}
-                </SelectContent>
-              </Select>
-              <Input bind:value={migrateTargetNode} placeholder={$messages.services.operations.migrate.targetNodeId} />
-              <Button type="button" variant="outline" onclick={triggerMigrate} disabled={!!actionBusy || !workspace?.isDeclared || !migrateSourceNode || !migrateTargetNode.trim()}>
-                <RefreshCcw class="mr-2 size-4" />{$messages.services.operations.migrate.migrate}
-              </Button>
-            </div>
-            <Button type="button" variant="outline" onclick={() => { showServiceRename = !showServiceRename; renameServiceFolder = workspace?.folder ?? ''; }} disabled={saving}>
-              <Pencil class="mr-2 size-4" />{$messages.services.operations.renameFolder}
-            </Button>
-            <Button type="button" variant="outline" class="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive" onclick={deleteServiceRoot} disabled={saving}>
-              <Trash2 class="mr-2 size-4" />{$messages.services.operations.deleteService}
-            </Button>
           </div>
+
+          <Collapsible bind:open={advancedOperationsOpen}>
+            <CollapsibleTrigger class="group flex w-full items-center gap-3 py-1 text-xs text-muted-foreground hover:text-foreground">
+              <div class="h-px flex-1 bg-border/70 transition-colors group-hover:bg-border"></div>
+              <span>{advancedOperationsOpen ? $messages.services.collapse : $messages.services.expand}</span>
+              <div class="h-px flex-1 bg-border/70 transition-colors group-hover:bg-border"></div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div class="grid gap-2 pt-3">
+                <Button type="button" variant="outline" onclick={() => triggerAction('backup')} disabled={!!actionBusy || !workspace?.isDeclared}>
+                  <Wrench class="mr-2 size-4" />{$messages.services.operations.backup}
+                </Button>
+                <Button type="button" variant="outline" onclick={() => triggerAction('dns_update')} disabled={!!actionBusy || !workspace?.isDeclared}>
+                  <Upload class="mr-2 size-4" />{$messages.services.operations.dnsUpdate}
+                </Button>
+                <Button type="button" variant="outline" onclick={() => triggerCaddySync()} disabled={!!actionBusy || !workspace?.isDeclared || !workspace?.node}>
+                  <Copy class="mr-2 size-4" />{$messages.services.operations.syncCaddy}
+                </Button>
+                <div class="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+                  <div class="text-sm font-medium">{$messages.services.operations.migrate.title}</div>
+                  <Select type="single" bind:value={migrateSourceNode as any}>
+                    <SelectTrigger>
+                      <span>{migrateSourceNode || $messages.services.operations.migrate.selectSource}</span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {#each migrateSourceNodes as nodeId}
+                        <SelectItem value={nodeId}>{nodeId}</SelectItem>
+                      {/each}
+                    </SelectContent>
+                  </Select>
+                  <Input bind:value={migrateTargetNode} placeholder={$messages.services.operations.migrate.targetNodeId} />
+                  <Button type="button" variant="outline" onclick={triggerMigrate} disabled={!!actionBusy || !workspace?.isDeclared || !migrateSourceNode || !migrateTargetNode.trim()}>
+                    <RefreshCcw class="mr-2 size-4" />{$messages.services.operations.migrate.migrate}
+                  </Button>
+                </div>
+                <Button type="button" variant="outline" onclick={() => { showServiceRename = !showServiceRename; renameServiceFolder = workspace?.folder ?? ''; }} disabled={saving}>
+                  <Pencil class="mr-2 size-4" />{$messages.services.operations.renameFolder}
+                </Button>
+                <Button type="button" variant="outline" class="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive" onclick={deleteServiceRoot} disabled={saving}>
+                  <Trash2 class="mr-2 size-4" />{$messages.services.operations.deleteService}
+                </Button>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           {#if showServiceRename}
             <div class="space-y-3 border-t pt-4">
@@ -929,9 +971,6 @@
           <div class="section-heading">
             <CardTitle class="section-title">{$messages.services.recentTasks}</CardTitle>
           </div>
-          <button type="button" class="muted-action" onclick={() => (logsExpanded = !logsExpanded)}>
-            {logsExpanded ? $messages.services.hideLogs : $messages.services.showLogs}
-          </button>
         </CardHeader>
         <CardContent class="space-y-3">
           {#each recentTasks as task}
@@ -967,20 +1006,6 @@
       </Card>
       </section>
     </div>
-
-    <Collapsible bind:open={logsExpanded}>
-      <Card>
-        <CollapsibleTrigger class="flex w-full items-center justify-between px-4 py-3 text-left">
-          <CardTitle class="section-title">{$messages.common.logs}</CardTitle>
-          <span class="text-xs text-muted-foreground">{logsExpanded ? $messages.services.collapse : $messages.services.expand}</span>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <div class="h-80 border-t px-4 py-4">
-            <TaskLogStream taskId={selectedTaskId} />
-          </div>
-        </CollapsibleContent>
-      </Card>
-    </Collapsible>
 
     <Dialog bind:open={showDeleteDialog}>
       <DialogOverlay />

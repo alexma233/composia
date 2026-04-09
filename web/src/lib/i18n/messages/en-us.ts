@@ -172,6 +172,7 @@ export const enUS = {
     addMetaToDeclare: "Add `composia-meta.yaml` to declare this service.",
     fixMetaUntilAccepted: "Fix `composia-meta.yaml` until the controller accepts it.",
     instances: "Instances",
+    allNodes: "All nodes",
     containersByNode: "Containers grouped by node for this service.",
     noContainersOnNode: "No matching containers reported on this node.",
     files: {

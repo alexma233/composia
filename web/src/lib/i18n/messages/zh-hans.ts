@@ -164,6 +164,7 @@ export const zhHans = {
     addMetaToDeclare: "添加 `composia-meta.yaml` 文件来声明此服务。",
     fixMetaUntilAccepted: "修改 `composia-meta.yaml` 直到控制器接受。",
     instances: "实例",
+    allNodes: "所有节点",
     containersByNode: "此服务在各节点上的容器分组。",
     noContainersOnNode: "此节点上没有匹配的容器。",
     files: {
