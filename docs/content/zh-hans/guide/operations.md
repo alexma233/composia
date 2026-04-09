@@ -80,7 +80,9 @@ deploy task finished successfully
 
 任务来源包括：
 
-- `cli`：由 CLI 或 API 手动触发
+- `web`：由 Web UI 触发，包括从 Web 操作派生出的后续任务
+- `cli`：由 CLI 或 API 手动触发，包括从 CLI 操作派生出的后续任务
+- `others`：由第三方扩展或集成触发，包括从这些操作派生出的后续任务
 - `schedule`：由 controller 内置 scheduler 触发
 - `system`：由 controller 内部工作流触发
 

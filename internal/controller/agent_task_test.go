@@ -54,7 +54,7 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	if _, err := db.CreateTask(ctx, task.Record{
 		TaskID:       "task-remote",
 		Type:         task.TypeDeploy,
-		Source:       task.SourceCLI,
+		Source:       task.SourceWeb,
 		ServiceName:  "demo",
 		NodeID:       "main",
 		CreatedAt:    time.Date(2026, 4, 4, 17, 0, 0, 0, time.UTC),
@@ -165,6 +165,13 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	}
 	if totalCount != 1 || len(reloadTasks) != 1 {
 		t.Fatalf("expected one queued caddy reload task, got total=%d tasks=%+v", totalCount, reloadTasks)
+	}
+	reloadDetail, err := db.GetTask(ctx, reloadTasks[0].TaskID)
+	if err != nil {
+		t.Fatalf("get caddy reload task: %v", err)
+	}
+	if reloadDetail.Record.Source != task.SourceWeb {
+		t.Fatalf("expected caddy reload source web, got %q", reloadDetail.Record.Source)
 	}
 	syncTasks, syncCount, err := db.ListTasks(ctx, []string{string(task.StatusPending)}, []string{"edge"}, []string{"main"}, []string{string(task.TypeCaddySync)}, nil, nil, nil, nil, 1, 10)
 	if err != nil {
@@ -486,5 +493,12 @@ func TestAgentReportTaskStateQueuesCaddyReloadAfterStop(t *testing.T) {
 	}
 	if totalCount != 1 || len(reloadTasks) != 1 {
 		t.Fatalf("expected one queued caddy reload task after stop, got total=%d tasks=%+v", totalCount, reloadTasks)
+	}
+	reloadDetail, err := db.GetTask(ctx, reloadTasks[0].TaskID)
+	if err != nil {
+		t.Fatalf("get caddy reload task: %v", err)
+	}
+	if reloadDetail.Record.Source != task.SourceCLI {
+		t.Fatalf("expected caddy reload source cli, got %q", reloadDetail.Record.Source)
 	}
 }

@@ -572,7 +572,7 @@ func (server *agentReportServer) queueCaddyReloadForTask(ctx context.Context, re
 	if !repo.CaddyManaged(service) {
 		return nil
 	}
-	if _, err := createNodeCaddyReloadTask(ctx, server.db, server.cfg, server.availableNodeIDs, record.NodeID, requestTaskSource(nil)); err != nil {
+	if _, err := createNodeCaddyReloadTask(ctx, server.db, server.cfg, server.availableNodeIDs, record.NodeID, record.Source); err != nil {
 		return err
 	}
 	return nil
@@ -1490,7 +1490,7 @@ func (server *serviceQueryServer) GetService(ctx context.Context, req *connect.R
 		Instances:     make([]*controllerv1.ServiceInstanceDetail, 0, len(instances)),
 	}
 	for _, instance := range instances {
-		detail, err := buildServiceInstanceDetail(ctx, server.db, server.cfg, server.taskQueue, server.taskResults, service, instance)
+		detail, err := buildServiceInstanceDetail(ctx, server.db, server.cfg, server.taskQueue, server.taskResults, service, instance, requestTaskSource(req.Header()))
 		if err != nil {
 			return nil, err
 		}
@@ -2644,9 +2644,9 @@ func serviceInstanceDetailMessage(record store.ServiceInstanceSnapshot, containe
 	}
 }
 
-func buildServiceInstanceDetail(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, service repo.Service, instance store.ServiceInstanceSnapshot) (*controllerv1.ServiceInstanceDetail, error) {
+func buildServiceInstanceDetail(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, service repo.Service, instance store.ServiceInstanceSnapshot, source task.Source) (*controllerv1.ServiceInstanceDetail, error) {
 	dockerQuery := &dockerQueryServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults}
-	containers, err := listServiceInstanceContainers(ctx, dockerQuery, service, instance.NodeID)
+	containers, err := listServiceInstanceContainers(ctx, dockerQuery, service, instance.NodeID, source)
 	if err != nil {
 		var connectErr *connect.Error
 		if errors.As(err, &connectErr) {
@@ -2660,11 +2660,11 @@ func buildServiceInstanceDetail(ctx context.Context, db *store.DB, cfg *config.C
 	return serviceInstanceDetailMessage(instance, containers), nil
 }
 
-func listServiceInstanceContainers(ctx context.Context, dockerQuery *dockerQueryServer, service repo.Service, nodeID string) ([]*controllerv1.ServiceContainerSummary, error) {
+func listServiceInstanceContainers(ctx context.Context, dockerQuery *dockerQueryServer, service repo.Service, nodeID string, source task.Source) ([]*controllerv1.ServiceContainerSummary, error) {
 	if dockerQuery == nil {
 		return nil, nil
 	}
-	result, err := dockerQuery.executeDockerListTask(ctx, make(http.Header), nodeID, "containers")
+	result, err := dockerQuery.executeDockerListTask(ctx, sourceHeader(source), nodeID, "containers")
 	if err != nil {
 		return nil, err
 	}
@@ -3743,7 +3743,7 @@ func (server *serviceInstanceServer) GetServiceInstance(ctx context.Context, req
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	detail, err := buildServiceInstanceDetail(ctx, server.db, server.cfg, server.taskQueue, server.taskResults, service, instance)
+	detail, err := buildServiceInstanceDetail(ctx, server.db, server.cfg, server.taskQueue, server.taskResults, service, instance, requestTaskSource(req.Header()))
 	if err != nil {
 		return nil, err
 	}
@@ -3841,6 +3841,8 @@ func requestTaskSource(header http.Header) task.Source {
 	switch strings.ToLower(strings.TrimSpace(header.Get("X-Composia-Source"))) {
 	case string(task.SourceWeb):
 		return task.SourceWeb
+	case string(task.SourceOthers):
+		return task.SourceOthers
 	case string(task.SourceSchedule):
 		return task.SourceSchedule
 	case string(task.SourceSystem):
@@ -3848,6 +3850,15 @@ func requestTaskSource(header http.Header) task.Source {
 	default:
 		return task.SourceCLI
 	}
+}
+
+func sourceHeader(source task.Source) http.Header {
+	if source == "" {
+		return make(http.Header)
+	}
+	header := make(http.Header)
+	header.Set("X-Composia-Source", string(source))
+	return header
 }
 
 func mustRelativeServiceDir(repoDir, serviceDir string) string {

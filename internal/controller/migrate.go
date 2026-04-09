@@ -137,7 +137,7 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 	restoreItems := append([]restoreTaskItem(nil), params.RestoreItems...)
 	if !stepSucceeded(task.StepComposeDown) {
 		if err := executor.runMigrateStep(ctx, record, task.StepComposeDown, func() error {
-			stopTask, err := createServiceTaskWithOptions(ctx, executor.db, executor.cfg, executor.availableNodeIDs, record.ServiceName, []string{params.SourceNodeID}, task.TypeStop, nil, serviceTaskCreateOptions{Source: task.SourceSystem})
+			stopTask, err := createServiceTaskWithOptions(ctx, executor.db, executor.cfg, executor.availableNodeIDs, record.ServiceName, []string{params.SourceNodeID}, task.TypeStop, nil, serviceTaskCreateOptions{Source: record.Source})
 			if err != nil {
 				return err
 			}
@@ -149,7 +149,7 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 
 	if len(params.DataNames) > 0 && !stepSucceeded(task.StepBackup) {
 		if err := executor.runMigrateStep(ctx, record, task.StepBackup, func() error {
-			backupTask, err := createServiceTaskWithOptions(ctx, executor.db, executor.cfg, executor.availableNodeIDs, record.ServiceName, []string{params.SourceNodeID}, task.TypeBackup, params.DataNames, serviceTaskCreateOptions{Source: task.SourceSystem})
+			backupTask, err := createServiceTaskWithOptions(ctx, executor.db, executor.cfg, executor.availableNodeIDs, record.ServiceName, []string{params.SourceNodeID}, task.TypeBackup, params.DataNames, serviceTaskCreateOptions{Source: record.Source})
 			if err != nil {
 				return err
 			}
@@ -189,7 +189,7 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 
 	if len(restoreItems) > 0 && !stepSucceeded(task.StepRestore) {
 		if err := executor.runMigrateStep(ctx, record, task.StepRestore, func() error {
-			restoreTask, err := createRestoreTask(ctx, executor.db, executor.cfg, executor.availableNodeIDs, record.ServiceName, params.TargetNodeID, record.RepoRevision, serviceTaskParams{ServiceDir: params.ServiceDir, RestoreItems: restoreItems}, task.SourceSystem)
+			restoreTask, err := createRestoreTask(ctx, executor.db, executor.cfg, executor.availableNodeIDs, record.ServiceName, params.TargetNodeID, record.RepoRevision, serviceTaskParams{ServiceDir: params.ServiceDir, RestoreItems: restoreItems}, record.Source)
 			if err != nil {
 				return err
 			}
@@ -202,7 +202,7 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 
 	if !stepSucceeded(task.StepComposeUp) {
 		if err := executor.runMigrateStep(ctx, record, task.StepComposeUp, func() error {
-			deployTask, err := createServiceTaskWithOptions(ctx, executor.db, executor.cfg, executor.availableNodeIDs, record.ServiceName, []string{params.TargetNodeID}, task.TypeDeploy, nil, serviceTaskCreateOptions{Source: task.SourceSystem})
+			deployTask, err := createServiceTaskWithOptions(ctx, executor.db, executor.cfg, executor.availableNodeIDs, record.ServiceName, []string{params.TargetNodeID}, task.TypeDeploy, nil, serviceTaskCreateOptions{Source: record.Source})
 			if err != nil {
 				return err
 			}
@@ -210,7 +210,7 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 				return err
 			}
 			if repo.CaddyManaged(service) {
-				reloadTask, err := createNodeCaddyReloadTask(ctx, executor.db, executor.cfg, executor.availableNodeIDs, params.TargetNodeID, task.SourceSystem)
+				reloadTask, err := createNodeCaddyReloadTask(ctx, executor.db, executor.cfg, executor.availableNodeIDs, params.TargetNodeID, record.Source)
 				if err != nil {
 					return err
 				}

@@ -676,6 +676,87 @@ func TestServiceCommandServiceDeployUsesWebSourceHeader(t *testing.T) {
 	}
 }
 
+func TestServiceCommandServiceDeployUsesOthersSourceHeader(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	logDir := filepath.Join(rootDir, "logs")
+	createGitRepoWithService(t, repoDir, "demo", "main")
+
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create log dir: %v", err)
+	}
+
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 10, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "cli-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+
+	path, handler := controllerv1connect.NewServiceCommandServiceHandler(
+		&serviceCommandServer{
+			db:  db,
+			cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}},
+			availableNodeIDs: map[string]struct{}{
+				"main": {},
+			},
+		},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	requestInterceptor := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
+		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			req.Header().Set("X-Composia-Source", "others")
+			return next(ctx, req)
+		}
+	})
+	client := controllerv1connect.NewServiceCommandServiceClient(
+		httpServer.Client(),
+		httpServer.URL,
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token"), requestInterceptor),
+	)
+
+	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_DEPLOY}))
+	if err != nil {
+		t.Fatalf("deploy service: %v", err)
+	}
+
+	detail, err := db.GetTask(ctx, response.Msg.GetTaskId())
+	if err != nil {
+		t.Fatalf("get created task: %v", err)
+	}
+	if detail.Record.Source != task.SourceOthers {
+		t.Fatalf("expected others task source, got %q", detail.Record.Source)
+	}
+}
+
 func TestServiceCommandServiceCaddySyncCreatesPendingTask(t *testing.T) {
 	t.Parallel()
 
@@ -1140,7 +1221,13 @@ func TestServiceCommandServiceMigrateCreatesPendingControllerTask(t *testing.T) 
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token")))
+	requestInterceptor := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
+		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			req.Header().Set("X-Composia-Source", "web")
+			return next(ctx, req)
+		}
+	})
+	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("cli-token"), requestInterceptor))
 	response, err := client.MigrateService(ctx, connect.NewRequest(&controllerv1.MigrateServiceRequest{ServiceName: "alpha", SourceNodeId: "main", TargetNodeId: "edge"}))
 	if err != nil {
 		t.Fatalf("migrate service: %v", err)
@@ -1154,6 +1241,9 @@ func TestServiceCommandServiceMigrateCreatesPendingControllerTask(t *testing.T) 
 	}
 	if detail.Record.Type != task.TypeMigrate {
 		t.Fatalf("expected migrate task type, got %q", detail.Record.Type)
+	}
+	if detail.Record.Source != task.SourceWeb {
+		t.Fatalf("expected migrate task source web, got %q", detail.Record.Source)
 	}
 	params := taskParams(detail.Record.ParamsJSON)
 	if params.SourceNodeID != "main" || params.TargetNodeID != "edge" {

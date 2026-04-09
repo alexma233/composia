@@ -80,7 +80,9 @@ deploy task finished successfully
 
 Task sources include:
 
-- `cli`: triggered manually by CLI or API
+- `web`: triggered from the Web UI, including follow-up tasks derived from a Web-triggered action
+- `cli`: triggered manually by CLI or API, including follow-up tasks derived from a CLI-triggered action
+- `others`: triggered by third-party extensions or integrations, including follow-up tasks derived from those actions
 - `schedule`: triggered by the controller's built-in scheduler
 - `system`: triggered by internal controller workflows
 
