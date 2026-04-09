@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"forgejo.alexma.top/alexma233/composia/internal/schedule"
 	"gopkg.in/yaml.v3"
 )
 
@@ -466,6 +467,9 @@ func validateServiceMeta(path string, meta *ServiceMeta, availableNodeIDs map[st
 		for _, item := range meta.Backup.Data {
 			if item.Name == "" {
 				return fmt.Errorf("service meta %q: backup.data[].name is required", path)
+			}
+			if err := schedule.Validate(item.Schedule); err != nil {
+				return fmt.Errorf("service meta %q: backup.data[%q].schedule: %w", path, item.Name, err)
 			}
 			protectedData, ok := dataItems[item.Name]
 			if !ok {

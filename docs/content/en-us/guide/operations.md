@@ -20,15 +20,15 @@ Composia uses a task queue to manage all asynchronous operations:
 | `update` | Update service | Manual/API |
 | `stop` | Stop service | Manual/API |
 | `restart` | Restart service | Manual/API |
-| `backup` | Execute backup | Manual/API |
+| `backup` | Execute backup | Manual/API/Scheduled |
 | `restore` | Restore backup data | Manual/API |
 | `dns_update` | Update DNS records | Migration/Manual |
 | `migrate` | Migrate service | Manual/API |
 | `caddy_sync` | Sync Caddy configuration | Automatic |
 | `caddy_reload` | Reload Caddy | Automatic |
 | `prune` | Clean up resources | Manual/API |
-| `rustic_forget` | Clean rustic snapshot references | Manual/API |
-| `rustic_prune` | Run rustic prune | Manual/API |
+| `rustic_forget` | Clean rustic snapshot references | Manual/API/Scheduled |
+| `rustic_prune` | Run rustic prune | Manual/API/Scheduled |
 | `docker_list` | Fetch node-scoped Docker resource lists | Web UI/API |
 | `docker_inspect` | Inspect one Docker resource | Web UI/API |
 | `docker_start` | Start a container | Web UI/API |
@@ -77,6 +77,12 @@ Container my-app-1  Started
 finalize step completed after compose up
 deploy task finished successfully
 ```
+
+Task sources include:
+
+- `cli`: triggered manually by CLI or API
+- `schedule`: triggered by the controller's built-in scheduler
+- `system`: triggered by internal controller workflows
 
 ## Docker Resource Management
 
@@ -192,7 +198,9 @@ Use the ConnectRPC method `composia.controller.v1.NodeMaintenanceService/PruneNo
 
 ### Auto-Cleanup Recommendations
 
-Set up external automation to call the ConnectRPC maintenance method regularly if you want recurring cleanup.
+Docker `prune` is still best handled by external automation when you need recurring cleanup.
+
+For rustic, `forget` and `prune` can be scheduled directly by the controller's built-in scheduler. See [Backup & Migration](./backup-migrate) and [Configuration](./configuration).
 
 ## Log Management
 

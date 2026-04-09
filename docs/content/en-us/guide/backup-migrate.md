@@ -299,15 +299,57 @@ rustic restore <snapshot-id>:/path/to/backup /path/to/restore
 
 4. Restart service to apply restored data
 
-## Scheduled Backups (In Development)
+## Scheduled Backups and Rustic Maintenance
 
-Currently Composia only supports manual backup triggers. Scheduled backup is under development.
+Composia now supports automatic backup and rustic maintenance tasks through the controller's built-in scheduler.
 
-**Temporary Workaround:**
-- Use external cron to call API
-- Use CI/CD scheduled tasks
+### backup Scheduling
 
-Trigger the corresponding ConnectRPC method from your scheduler or automation runner.
+`backup` is a service/data-scoped task:
+
+- controller may provide a default schedule through `controller.backup.default_schedule`
+- each service may override that default in `backup.data[].schedule`
+- `schedule: none` disables automatic backup for that data item
+
+Example:
+
+```yaml
+backup:
+  data:
+    - name: uploads
+      provider: rustic
+      schedule: "0 */6 * * *"
+    - name: cache
+      provider: rustic
+      schedule: none
+```
+
+### rustic forget / prune Scheduling
+
+`rustic_forget` and `rustic_prune` are repository-wide maintenance tasks for the whole rustic repository:
+
+- schedules may only be configured in controller configuration
+- they do not filter by service
+- they do not filter by data
+- actual retention behavior still comes from rustic's own configuration file
+
+Example:
+
+```yaml
+controller:
+  rustic:
+    main_nodes:
+      - "main"
+    maintenance:
+      forget_schedule: "15 3 * * *"
+      prune_schedule: "45 3 * * *"
+```
+
+### Trigger Semantics
+
+- tasks created by the scheduler use `schedule` as their task source
+- `backup` creates tasks from service backup item configuration
+- `rustic_forget` and `rustic_prune` run repository-wide maintenance on one eligible node from `rustic.main_nodes`
 
 ## Related Documentation
 

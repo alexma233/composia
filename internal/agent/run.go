@@ -525,6 +525,7 @@ type pruneTaskParams struct {
 type rusticPruneTaskParams struct {
 	ServiceName string `json:"service_name,omitempty"`
 	DataName    string `json:"data_name,omitempty"`
+	RepoWide    bool   `json:"repo_wide,omitempty"`
 }
 
 func executePruneTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
@@ -562,7 +563,7 @@ func executeRusticPruneTask(ctx context.Context, client agentv1connect.AgentRepo
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
-	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting rustic forget task for service=%s compose_service=%s\n", pulledTask.GetServiceName(), rusticMeta.ComposeService)); err != nil {
+	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting rustic prune task for service=%s compose_service=%s\n", pulledTask.GetServiceName(), rusticMeta.ComposeService)); err != nil {
 		return err
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepPrune, func() error {
@@ -588,7 +589,7 @@ func executeRusticForgetTask(ctx context.Context, client agentv1connect.AgentRep
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
-	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting rustic prune task for service=%s compose_service=%s\n", pulledTask.GetServiceName(), rusticMeta.ComposeService)); err != nil {
+	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting rustic forget task for service=%s compose_service=%s repo_wide=%t\n", pulledTask.GetServiceName(), rusticMeta.ComposeService, params.RepoWide)); err != nil {
 		return err
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepPrune, func() error {
@@ -773,11 +774,14 @@ func runRusticForget(ctx context.Context, serviceDir string, meta rusticPruneMet
 	if meta.Profile != "" {
 		args = append(args, "-P", meta.Profile)
 	}
-	args = append(args, "forget", "--filter-host", nodeID)
-	if params.ServiceName != "" {
+	args = append(args, "forget")
+	if !params.RepoWide && nodeID != "" {
+		args = append(args, "--filter-host", nodeID)
+	}
+	if !params.RepoWide && params.ServiceName != "" {
 		args = append(args, "--filter-tags", "composia-service:"+params.ServiceName)
 	}
-	if params.DataName != "" {
+	if !params.RepoWide && params.DataName != "" {
 		args = append(args, "--filter-tags", "composia-data:"+params.DataName)
 	}
 	command := exec.CommandContext(ctx, "docker", args...)
@@ -1530,7 +1534,11 @@ func downloadServiceBundle(ctx context.Context, client agentv1connect.BundleServ
 	}
 
 	targetRoot := filepath.Join(cfg.RepoDir, relativeRoot)
-	stageDir, err := os.MkdirTemp(cfg.StateDir, "bundle-stage-*")
+	stageParentDir := filepath.Dir(targetRoot)
+	if err := os.MkdirAll(stageParentDir, 0o755); err != nil {
+		return nil, fmt.Errorf("create bundle stage parent dir %q: %w", stageParentDir, err)
+	}
+	stageDir, err := os.MkdirTemp(stageParentDir, ".bundle-stage-*")
 	if err != nil {
 		return nil, fmt.Errorf("create bundle stage dir: %w", err)
 	}

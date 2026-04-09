@@ -367,6 +367,34 @@ func (db *DB) HasActiveServiceInstanceTask(ctx context.Context, serviceName, nod
 	return count > 0, nil
 }
 
+func (db *DB) HasMatchingTaskInWindow(ctx context.Context, source task.Source, taskType task.Type, serviceName, nodeID, paramsJSON string, windowStart time.Time) (bool, error) {
+	windowEnd := windowStart.UTC().Add(time.Minute)
+	var count int
+	err := db.sql.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM tasks
+		WHERE source = ?
+		  AND type = ?
+		  AND COALESCE(service_name, '') = ?
+		  AND COALESCE(node_id, '') = ?
+		  AND COALESCE(params_json, '') = ?
+		  AND created_at >= ?
+		  AND created_at < ?
+	`,
+		string(source),
+		string(taskType),
+		serviceName,
+		nodeID,
+		paramsJSON,
+		windowStart.UTC().Format(time.RFC3339),
+		windowEnd.Format(time.RFC3339),
+	).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("count matching tasks in window: %w", err)
+	}
+	return count > 0, nil
+}
+
 func (db *DB) TaskNodeID(ctx context.Context, taskID string) (string, error) {
 	var nodeID string
 	if err := db.sql.QueryRowContext(ctx, `SELECT COALESCE(node_id, '') FROM tasks WHERE task_id = ?`, taskID).Scan(&nodeID); err != nil {

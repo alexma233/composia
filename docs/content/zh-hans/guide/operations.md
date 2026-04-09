@@ -20,15 +20,15 @@ Composia 使用任务队列管理所有异步操作：
 | `update` | 更新服务 | 手动/API |
 | `stop` | 停止服务 | 手动/API |
 | `restart` | 重启服务 | 手动/API |
-| `backup` | 执行备份 | 手动/API |
+| `backup` | 执行备份 | 手动/API/定时 |
 | `restore` | 恢复备份数据 | 手动/API |
 | `dns_update` | 更新 DNS 记录 | 迁移/手动 |
 | `migrate` | 迁移服务 | 手动/API |
 | `caddy_sync` | 同步 Caddy 配置 | 自动 |
 | `caddy_reload` | 重载 Caddy | 自动 |
 | `prune` | 清理资源 | 手动/API |
-| `rustic_forget` | 清理 rustic 快照索引 | 手动/API |
-| `rustic_prune` | 执行 rustic prune | 手动/API |
+| `rustic_forget` | 清理 rustic 快照索引 | 手动/API/定时 |
+| `rustic_prune` | 执行 rustic prune | 手动/API/定时 |
 | `docker_list` | 拉取节点 Docker 资源列表 | Web UI/API |
 | `docker_inspect` | 查看单个 Docker 资源详情 | Web UI/API |
 | `docker_start` | 启动容器 | Web UI/API |
@@ -77,6 +77,12 @@ Container my-app-1  Started
 finalize step completed after compose up
 deploy task finished successfully
 ```
+
+任务来源包括：
+
+- `cli`：由 CLI 或 API 手动触发
+- `schedule`：由 controller 内置 scheduler 触发
+- `system`：由 controller 内部工作流触发
 
 ## Docker 资源管理
 
@@ -192,7 +198,9 @@ docker compose restart agent
 
 ### 自动清理建议
 
-如需周期性清理，可使用外部调度系统定期调用对应的 ConnectRPC 维护方法。
+Docker `prune` 仍建议由外部调度系统按需触发。
+
+rustic 的 `forget` 与 `prune` 则可通过 controller 内置 scheduler 定时执行，具体配置见 [备份与迁移](./backup-migrate) 与 [配置说明](./configuration)。
 
 ## 日志管理
 

@@ -132,6 +132,7 @@ func Run(ctx context.Context, configPath string) error {
 
 	go sweepOfflineNodes(ctx, db)
 	go autoPullRepo(ctx, cfg, db, availableNodeIDs, repoMu)
+	go runScheduledTasks(ctx, db, cfg, availableNodeIDs, taskQueue, repoMu)
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -1071,7 +1072,7 @@ func chooseRusticMainNode(ctx context.Context, db *store.DB, cfg *config.Control
 	return online[rand.Intn(len(online))], nil
 }
 
-func createNodeRusticMaintenanceTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, nodeID string, taskType task.Type, params rusticPruneTaskParams, source task.Source) (task.Record, error) {
+func createNodeRusticMaintenanceTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, nodeID string, taskType task.Type, params rusticPruneTaskParams, source task.Source, createdAt *time.Time) (task.Record, error) {
 	if err := validateTaskTargetNode(ctx, db, cfg, nodeID, taskType); err != nil {
 		return task.Record{}, err
 	}
@@ -1097,6 +1098,7 @@ func createNodeRusticMaintenanceTask(ctx context.Context, db *store.DB, cfg *con
 		NodeID:      nodeID,
 		Status:      task.StatusPending,
 		ParamsJSON:  string(paramsJSON),
+		CreatedAt:   derefTime(createdAt),
 		LogPath:     filepath.Join(cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
 	})
 	if err != nil {
@@ -1225,6 +1227,7 @@ type restoreTaskItem struct {
 type rusticPruneTaskParams struct {
 	ServiceName string `json:"service_name,omitempty"`
 	DataName    string `json:"data_name,omitempty"`
+	RepoWide    bool   `json:"repo_wide,omitempty"`
 }
 
 type nodeQueryServer struct {
@@ -1634,6 +1637,7 @@ func (server *serviceCommandServer) RunServiceAction(ctx context.Context, req *c
 type serviceTaskCreateOptions struct {
 	AttemptOfTaskID string
 	Source          task.Source
+	CreatedAt       *time.Time
 }
 
 func (server *serviceCommandServer) createServiceTask(ctx context.Context, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string) (task.Record, error) {
@@ -1699,6 +1703,7 @@ func (server *serviceCommandServer) createServiceTaskWithOptions(ctx context.Con
 			ParamsJSON:      string(paramsJSON),
 			RepoRevision:    repoRevision,
 			AttemptOfTaskID: options.AttemptOfTaskID,
+			CreatedAt:       derefTime(options.CreatedAt),
 			LogPath:         filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
 		})
 		if err != nil {
@@ -1719,6 +1724,13 @@ func createServiceTask(ctx context.Context, db *store.DB, cfg *config.Controller
 
 func createServiceTaskWithOptions(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string, options serviceTaskCreateOptions) (task.Record, error) {
 	return (&serviceCommandServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs}).createServiceTaskWithOptions(ctx, serviceName, nodeIDs, taskType, dataNames, options)
+}
+
+func derefTime(value *time.Time) time.Time {
+	if value == nil {
+		return time.Time{}
+	}
+	return value.UTC()
 }
 
 func resolveTargetNodeIDs(service repo.Service, requested []string) ([]string, error) {
@@ -1960,7 +1972,7 @@ func (server *nodeMaintenanceServer) PruneNodeRustic(ctx context.Context, req *c
 			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 		}
 	}
-	createdTask, err := createNodeRusticMaintenanceTask(ctx, server.db, server.cfg, configuredNodeIDs(server.cfg), nodeID, task.TypeRusticPrune, rusticPruneTaskParams{ServiceName: req.Msg.GetServiceName(), DataName: req.Msg.GetDataName()}, requestTaskSource(req.Header()))
+	createdTask, err := createNodeRusticMaintenanceTask(ctx, server.db, server.cfg, configuredNodeIDs(server.cfg), nodeID, task.TypeRusticPrune, rusticPruneTaskParams{ServiceName: req.Msg.GetServiceName(), DataName: req.Msg.GetDataName()}, requestTaskSource(req.Header()), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1980,7 +1992,7 @@ func (server *nodeMaintenanceServer) ForgetNodeRustic(ctx context.Context, req *
 			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 		}
 	}
-	createdTask, err := createNodeRusticMaintenanceTask(ctx, server.db, server.cfg, configuredNodeIDs(server.cfg), nodeID, task.TypeRusticForget, rusticPruneTaskParams{ServiceName: req.Msg.GetServiceName(), DataName: req.Msg.GetDataName()}, requestTaskSource(req.Header()))
+	createdTask, err := createNodeRusticMaintenanceTask(ctx, server.db, server.cfg, configuredNodeIDs(server.cfg), nodeID, task.TypeRusticForget, rusticPruneTaskParams{ServiceName: req.Msg.GetServiceName(), DataName: req.Msg.GetDataName()}, requestTaskSource(req.Header()), nil)
 	if err != nil {
 		return nil, err
 	}

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"forgejo.alexma.top/alexma233/composia/internal/schedule"
 	"gopkg.in/yaml.v3"
 )
 
@@ -22,12 +23,17 @@ type ControllerConfig struct {
 	RepoDir        string                   `yaml:"repo_dir"`
 	StateDir       string                   `yaml:"state_dir"`
 	LogDir         string                   `yaml:"log_dir"`
+	Backup         *ControllerBackupConfig  `yaml:"backup"`
 	Git            *ControllerGitConfig     `yaml:"git"`
 	Nodes          []NodeConfig             `yaml:"nodes"`
 	CLITokens      []CLITokenConfig         `yaml:"cli_tokens"`
 	DNS            *ControllerDNSConfig     `yaml:"dns"`
 	Rustic         *ControllerRusticConfig  `yaml:"rustic"`
 	Secrets        *ControllerSecretsConfig `yaml:"secrets"`
+}
+
+type ControllerBackupConfig struct {
+	DefaultSchedule string `yaml:"default_schedule"`
 }
 
 type ControllerGitConfig struct {
@@ -68,7 +74,13 @@ type CloudflareDNSConfig struct {
 }
 
 type ControllerRusticConfig struct {
-	MainNodes []string `yaml:"main_nodes"`
+	MainNodes   []string                           `yaml:"main_nodes"`
+	Maintenance *ControllerRusticMaintenanceConfig `yaml:"maintenance"`
+}
+
+type ControllerRusticMaintenanceConfig struct {
+	ForgetSchedule string `yaml:"forget_schedule"`
+	PruneSchedule  string `yaml:"prune_schedule"`
 }
 
 type ControllerSecretsConfig struct {
@@ -181,6 +193,20 @@ func validateController(file *File) error {
 			if _, exists := seenNodeIDs[nodeID]; !exists {
 				return fmt.Errorf("controller.rustic.main_nodes[%q] must reference a configured controller.nodes entry", nodeID)
 			}
+		}
+		if controller.Rustic.Maintenance != nil {
+			if err := schedule.Validate(controller.Rustic.Maintenance.ForgetSchedule); err != nil {
+				return fmt.Errorf("controller.rustic.maintenance.forget_schedule: %w", err)
+			}
+			if err := schedule.Validate(controller.Rustic.Maintenance.PruneSchedule); err != nil {
+				return fmt.Errorf("controller.rustic.maintenance.prune_schedule: %w", err)
+			}
+		}
+	}
+
+	if controller.Backup != nil {
+		if err := schedule.Validate(controller.Backup.DefaultSchedule); err != nil {
+			return fmt.Errorf("controller.backup.default_schedule: %w", err)
 		}
 	}
 

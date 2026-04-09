@@ -299,15 +299,57 @@ rustic restore <snapshot-id>:/path/to/backup /path/to/restore
 
 4. 重启服务应用恢复的数据
 
-## 定时备份（开发中）
+## 定时备份与 rustic 维护
 
-目前 Composia 仅支持手动触发备份。定时备份功能正在开发中。
+Composia 现在支持由 controller 内置 scheduler 触发自动备份与 rustic 维护任务。
 
-临时方案：
-- 使用外部 cron 调用 API
-- 使用 CI/CD 定时任务
+### backup 定时
 
-可在调度系统或自动化任务中调用相应的 ConnectRPC 方法来实现定时触发。
+`backup` 是 service/data 级任务：
+
+- controller 可通过 `controller.backup.default_schedule` 提供默认定时
+- service 可在 `backup.data[].schedule` 中覆盖默认值
+- `schedule: none` 表示该数据项永不自动备份
+
+示例：
+
+```yaml
+backup:
+  data:
+    - name: uploads
+      provider: rustic
+      schedule: "0 */6 * * *"
+    - name: cache
+      provider: rustic
+      schedule: none
+```
+
+### rustic forget / prune 定时
+
+`rustic_forget` 和 `rustic_prune` 是整个 rustic 仓库级维护任务：
+
+- 只能在 controller 配置中设置 schedule
+- 不按 service 过滤
+- 不按 data 过滤
+- 实际行为仍由 rustic 自身配置文件决定
+
+示例：
+
+```yaml
+controller:
+  rustic:
+    main_nodes:
+      - "main"
+    maintenance:
+      forget_schedule: "15 3 * * *"
+      prune_schedule: "45 3 * * *"
+```
+
+### 触发语义
+
+- scheduler 创建的任务来源为 `schedule`
+- `backup` 会按 service data 配置生成任务
+- `rustic_forget` 与 `rustic_prune` 会在一个可用的 `rustic.main_nodes` 节点上运行整个 rustic repo 的维护命令
 
 ## 相关文档
 
