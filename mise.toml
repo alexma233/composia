@@ -25,24 +25,24 @@ run = "go run ./cmd/composia agent -config ./configs/config.agent.dev.yaml"
 
 [tasks."dev"]
 description = "Start the fully containerized dev stack"
-run = "docker compose -f dev/docker-compose.dev.yaml up --build"
+run = "UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml up --build"
 
 [tasks."dev:down"]
 description = "Stop the fully containerized dev stack"
-run = "docker compose -f dev/docker-compose.dev.yaml down"
+run = "UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml down"
 
 [tasks."dev:logs"]
 description = "Follow logs from the dev stack"
-run = "docker compose -f dev/docker-compose.dev.yaml logs -f"
+run = "UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml logs -f"
 
 [tasks."dev:selinux"]
 description = "Start the dev stack with SELinux override"
-run = "docker compose -f dev/docker-compose.dev.yaml -f dev/docker-compose.dev.selinux.override.yaml up --build"
+run = "UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml -f dev/docker-compose.dev.selinux.override.yaml up --build"
 
 [tasks."dev:down:selinux"]
 description = "Stop the SELinux dev stack"
-run = "docker compose -f dev/docker-compose.dev.yaml -f dev/docker-compose.dev.selinux.override.yaml down"
+run = "UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml -f dev/docker-compose.dev.selinux.override.yaml down"
 
 [tasks."dev:logs:selinux"]
 description = "Follow logs from the SELinux dev stack"
-run = "docker compose -f dev/docker-compose.dev.yaml -f dev/docker-compose.dev.selinux.override.yaml logs -f"
+run = "UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml -f dev/docker-compose.dev.selinux.override.yaml logs -f"
