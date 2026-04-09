@@ -5,6 +5,7 @@
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
   import { Badge } from '$lib/components/ui/badge';
   import { formatBytes, parseJsonList } from '$lib/presenters';
+  import { messages } from '$lib/i18n';
 
   interface Props {
     data: PageData;
@@ -48,7 +49,7 @@
               {#if imageData}
                 {imageData.RepoTags?.[0]?.split(':')[0] || data.imageId.substring(0, 12)}
               {:else}
-                Image
+                {$messages.docker.images.title}
               {/if}
             </CardTitle>
             <CardDescription class="page-description">
@@ -60,7 +61,7 @@
             </CardDescription>
           </div>
           <a href="/nodes/{data.nodeId}/docker/images" class="text-sm text-muted-foreground hover:underline">
-            Back to images
+            {$messages.docker.images.backToImages}
           </a>
         </div>
       </CardHeader>
@@ -68,36 +69,36 @@
       <CardContent>
         {#if data.error}
           <Alert variant="destructive">
-            <AlertTitle>Load failed</AlertTitle>
+            <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
             <AlertDescription>{data.error}</AlertDescription>
           </Alert>
         {:else if parseError}
           <Alert variant="destructive">
-            <AlertTitle>Parse failed</AlertTitle>
-            <AlertDescription>Failed to parse image data: {parseError}</AlertDescription>
+            <AlertTitle>{$messages.error.parseFailed}</AlertTitle>
+            <AlertDescription>{$messages.error.parseFailed}: {parseError}</AlertDescription>
           </Alert>
         {:else if imageData}
           <Tabs value="info" class="w-full">
             <TabsList class="mb-4">
-              <TabsTrigger value="info">Info</TabsTrigger>
-              <TabsTrigger value="layers">Layers</TabsTrigger>
-              <TabsTrigger value="raw">JSON</TabsTrigger>
+              <TabsTrigger value="info">{$messages.docker.containers.info}</TabsTrigger>
+              <TabsTrigger value="layers">{$messages.docker.images.layers}</TabsTrigger>
+              <TabsTrigger value="raw">{$messages.docker.containers.json}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="info" class="space-y-4">
               <div class="grid gap-4 md:grid-cols-2">
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">Identity</CardTitle>
+                    <CardTitle class="text-base">{$messages.docker.images.identity}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Image ID</span>
+                      <span class="text-muted-foreground">{$messages.docker.images.id}</span>
                       <code class="text-xs bg-muted px-1 py-0.5 rounded">{imageData.Id?.substring(0, 19)}</code>
                     </div>
                     {#if imageData.RepoTags && imageData.RepoTags.length > 0}
                       <div class="flex justify-between">
-                        <span class="text-muted-foreground">Tags</span>
+                        <span class="text-muted-foreground">{$messages.docker.images.tags}</span>
                         <div class="flex flex-wrap gap-1">
                           {#each imageData.RepoTags.slice(0, 5) as tag}
                             <Badge variant="outline" class="text-xs">{tag}</Badge>
@@ -110,7 +111,7 @@
                     {/if}
                     {#if imageData.RepoDigests && imageData.RepoDigests.length > 0}
                       <div class="flex flex-col gap-1">
-                        <span class="text-muted-foreground">Digests</span>
+                        <span class="text-muted-foreground">{$messages.docker.images.digests}</span>
                         <div class="flex flex-wrap gap-1">
                           {#each imageData.RepoDigests.slice(0, 3) as digest}
                             <code class="text-xs bg-muted px-1 py-0.5 rounded truncate max-w-[200px]" title={digest}>
@@ -125,28 +126,28 @@
 
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">Details</CardTitle>
+                    <CardTitle class="text-base">{$messages.docker.images.details}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Size</span>
+                      <span class="text-muted-foreground">{$messages.docker.images.size}</span>
                       <Badge variant="secondary">{formatBytes(imageData.Size || imageData.VirtualSize)}</Badge>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Architecture</span>
+                      <span class="text-muted-foreground">{$messages.docker.images.architecture}</span>
                       <span>{imageData.Architecture || '-'}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">OS</span>
+                      <span class="text-muted-foreground">{$messages.docker.images.os}</span>
                       <span>{imageData.Os || '-'}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Created</span>
+                      <span class="text-muted-foreground">{$messages.common.created}</span>
                       <span>{formatDate(imageData.Created)}</span>
                     </div>
                     {#if imageData.Author}
                       <div class="flex justify-between">
-                        <span class="text-muted-foreground">Author</span>
+                        <span class="text-muted-foreground">{$messages.docker.images.author}</span>
                         <span>{imageData.Author}</span>
                       </div>
                     {/if}
@@ -157,7 +158,7 @@
               {#if imageData.Config?.Env && imageData.Config.Env.length > 0}
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">Environment Variables</CardTitle>
+                    <CardTitle class="text-base">{$messages.docker.images.environmentVariables}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div class="space-y-1">
@@ -179,7 +180,7 @@
               {#if imageData.RootFS?.Layers && imageData.RootFS.Layers.length > 0}
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">Layers ({imageData.RootFS.Layers.length})</CardTitle>
+                    <CardTitle class="text-base">{$messages.docker.images.layers} ({imageData.RootFS.Layers.length})</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div class="space-y-2">
@@ -195,15 +196,15 @@
                   </CardContent>
                 </Card>
               {:else}
-                <div class="text-sm text-muted-foreground">No layer information available</div>
+                <div class="text-sm text-muted-foreground">{$messages.docker.images.noLayerInfo}</div>
               {/if}
             </TabsContent>
 
             <TabsContent value="raw">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base">Raw JSON</CardTitle>
-                  <CardDescription>Full image inspection data in JSON format</CardDescription>
+                  <CardTitle class="text-base">{$messages.docker.images.rawJson}</CardTitle>
+                  <CardDescription>{$messages.docker.images.rawJsonDescription}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <pre class="code-surface max-h-[600px] overflow-auto break-all">{JSON.stringify(imageData, null, 2)}</pre>
@@ -212,7 +213,7 @@
             </TabsContent>
           </Tabs>
         {:else}
-          <div class="text-sm text-muted-foreground">Loading...</div>
+          <div class="text-sm text-muted-foreground">{$messages.common.loading}...</div>
         {/if}
       </CardContent>
     </Card>

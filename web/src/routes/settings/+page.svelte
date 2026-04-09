@@ -3,6 +3,7 @@
   import { toast } from 'svelte-sonner';
 
   import type { PageData } from './$types';
+  import { messages } from '$lib/i18n';
 
   import ThemeControls from '$lib/components/app/theme-controls.svelte';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
@@ -49,7 +50,7 @@
         lastSyncError: payload.lastSyncError,
         lastSuccessfulPullAt: payload.lastSuccessfulPullAt,
       };
-      toast.success('Repo synced successfully');
+      toast.success($messages.settings.repoSync.syncedSuccessfully);
     } catch (error) {
       syncError = error instanceof Error ? error.message : 'Failed to sync repo.';
     } finally {
@@ -83,22 +84,22 @@
   }
 
   let displayHeadRevision = $derived(syncResult?.headRevision ?? data.repoHead?.headRevision ?? '');
-  let displaySyncStatus = $derived(syncResult?.syncStatus ?? data.repoHead?.syncStatus ?? 'unknown');
+  let displaySyncStatus = $derived(syncResult?.syncStatus ?? data.repoHead?.syncStatus ?? $messages.common.unknown);
   let displayLastSyncError = $derived(syncResult?.lastSyncError ?? data.repoHead?.lastSyncError ?? '');
-  let displayLastPull = $derived(syncResult?.lastSuccessfulPullAt ?? data.repoHead?.lastSuccessfulPullAt ?? 'Never');
+  let displayLastPull = $derived(syncResult?.lastSuccessfulPullAt ?? data.repoHead?.lastSuccessfulPullAt ?? $messages.common.never);
 </script>
 
 <div class="page-shell">
   <div class="page-stack">
 		<Card>
       <CardHeader>
-        <CardTitle class="page-title">Settings</CardTitle>
+        <CardTitle class="page-title">{$messages.settings.title}</CardTitle>
       </CardHeader>
     </Card>
 
     {#if data.error}
       <Alert variant="destructive">
-        <AlertTitle>Load failed</AlertTitle>
+        <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
         <AlertDescription>{data.error}</AlertDescription>
       </Alert>
     {/if}
@@ -106,7 +107,7 @@
     <section class="grid gap-6 lg:grid-cols-2">
 			<Card>
         <CardHeader>
-          <CardTitle class="section-title">Appearance</CardTitle>
+          <CardTitle class="section-title">{$messages.settings.appearance.title}</CardTitle>
         </CardHeader>
         <CardContent>
           <ThemeControls />
@@ -115,50 +116,50 @@
 
 			<Card>
         <CardHeader>
-          <CardTitle class="section-title">Controller</CardTitle>
+          <CardTitle class="section-title">{$messages.settings.controller.title}</CardTitle>
         </CardHeader>
         <CardContent>
           {#if data.system}
             <dl class="kv-grid">
               <div>
-                <dt>Version</dt>
+                <dt>{$messages.settings.controller.version}</dt>
                 <dd>{data.system.version}</dd>
               </div>
               <div>
-                <dt>Controller address</dt>
+                <dt>{$messages.settings.controller.controllerAddress}</dt>
                 <dd class="break-all">{data.system.controllerAddr}</dd>
               </div>
               <div>
-                <dt>Repo dir</dt>
+                <dt>{$messages.settings.controller.repoDir}</dt>
                 <dd class="break-all">{data.system.repoDir}</dd>
               </div>
               <div>
-                <dt>State dir</dt>
+                <dt>{$messages.settings.controller.stateDir}</dt>
                 <dd class="break-all">{data.system.stateDir}</dd>
               </div>
               <div>
-                <dt>Log dir</dt>
+                <dt>{$messages.settings.controller.logDir}</dt>
                 <dd class="break-all">{data.system.logDir}</dd>
               </div>
             </dl>
           {:else}
-            <div class="empty-state">No controller data loaded.</div>
+            <div class="empty-state">{$messages.settings.controller.noData}</div>
           {/if}
         </CardContent>
       </Card>
 
 		<Card class="lg:col-span-2">
         <CardHeader class="flex flex-row items-center justify-between gap-3">
-          <CardTitle class="section-title">Repo sync</CardTitle>
+          <CardTitle class="section-title">{$messages.settings.repoSync.title}</CardTitle>
           <Button type="button" variant="outline" size="sm" onclick={syncRepo} disabled={syncing}>
             <RefreshCw class="mr-2 size-4" />
-            {syncing ? 'Syncing...' : 'Sync Repo'}
+            {syncing ? $messages.settings.repoSync.syncing : $messages.settings.repoSync.syncRepo}
           </Button>
         </CardHeader>
         <CardContent class="space-y-4">
           {#if syncError}
             <Alert variant="destructive">
-              <AlertTitle>Sync failed</AlertTitle>
+              <AlertTitle>{$messages.error.syncFailed}</AlertTitle>
               <AlertDescription>{syncError}</AlertDescription>
             </Alert>
           {/if}
@@ -166,43 +167,43 @@
           {#if data.repoHead || syncResult}
             <dl class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div class="metric-card">
-                <dt class="metric-label">Branch</dt>
-                <dd class="mt-2 text-sm font-medium text-foreground">{data.repoHead?.branch || 'HEAD'}</dd>
+                <dt class="metric-label">{$messages.settings.repoSync.branch}</dt>
+                <dd class="mt-2 text-sm font-medium text-foreground">{data.repoHead?.branch || $messages.settings.repoSync.head}</dd>
               </div>
               <div class="metric-card">
-                <dt class="metric-label">Sync status</dt>
+                <dt class="metric-label">{$messages.settings.repoSync.syncStatus}</dt>
                 <dd class="mt-2 text-sm font-medium text-foreground">{displaySyncStatus}</dd>
               </div>
               <div class="metric-card">
-                <dt class="metric-label">Worktree</dt>
-                <dd class="mt-2 text-sm font-medium text-foreground">{data.repoHead?.cleanWorktree ? 'clean' : 'dirty'}</dd>
+                <dt class="metric-label">{$messages.settings.repoSync.worktree}</dt>
+                <dd class="mt-2 text-sm font-medium text-foreground">{data.repoHead?.cleanWorktree ? $messages.status.clean : $messages.status.dirty}</dd>
               </div>
               <div class="metric-card">
-                <dt class="metric-label">Last pull</dt>
+                <dt class="metric-label">{$messages.settings.repoSync.lastPull}</dt>
                 <dd class="mt-2 text-sm font-medium text-foreground">{displayLastPull}</dd>
               </div>
             </dl>
 
             <div class="inset-card">
-              <div class="metric-label">Revision</div>
+              <div class="metric-label">{$messages.settings.repoSync.revision}</div>
               <div class="mt-2 break-all text-sm text-foreground">{displayHeadRevision}</div>
             </div>
 
             {#if displayLastSyncError}
               <Alert variant="destructive">
-                <AlertTitle>Last sync error</AlertTitle>
+                <AlertTitle>{$messages.error.lastSyncError}</AlertTitle>
                 <AlertDescription>{displayLastSyncError}</AlertDescription>
               </Alert>
             {/if}
           {:else}
-            <div class="empty-state">No repo state loaded.</div>
+            <div class="empty-state">{$messages.settings.repoSync.noRepoState}</div>
           {/if}
         </CardContent>
       </Card>
 
 		<Card class="lg:col-span-2">
         <CardHeader class="flex flex-row items-center justify-between gap-3">
-          <CardTitle class="section-title">Rustic maintenance</CardTitle>
+          <CardTitle class="section-title">{$messages.settings.rustic.title}</CardTitle>
           <div class="flex flex-wrap gap-2">
             <Button
               type="button"
@@ -211,7 +212,7 @@
               onclick={() => runRusticAction('forget')}
               disabled={rusticBusy !== ''}
             >
-              {rusticBusy === 'forget' ? 'Starting...' : 'Forget'}
+              {rusticBusy === 'forget' ? $messages.settings.rustic.starting : $messages.settings.rustic.forget}
             </Button>
             <Button
               type="button"
@@ -220,25 +221,25 @@
               onclick={() => runRusticAction('prune')}
               disabled={rusticBusy !== ''}
             >
-              {rusticBusy === 'prune' ? 'Starting...' : 'Prune'}
+              {rusticBusy === 'prune' ? $messages.settings.rustic.starting : $messages.settings.rustic.prune}
             </Button>
           </div>
         </CardHeader>
         <CardContent class="space-y-4">
           <div class="text-sm text-muted-foreground">
-            Run global rustic maintenance on a controller-selected main node.
+            {$messages.settings.rustic.description}
           </div>
 
           {#if rusticError}
             <Alert variant="destructive">
-              <AlertTitle>Rustic maintenance failed</AlertTitle>
+              <AlertTitle>{$messages.error.taskError}</AlertTitle>
               <AlertDescription>{rusticError}</AlertDescription>
             </Alert>
           {/if}
 
           {#if rusticTaskId}
             <div class="inset-card">
-              <div class="metric-label">Last task</div>
+              <div class="metric-label">{$messages.settings.rustic.lastTask}</div>
               <div class="mt-2 break-all text-sm text-foreground">{rusticTaskId}</div>
             </div>
           {/if}

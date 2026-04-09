@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import type { Snippet } from 'svelte';
+  import { messages } from '$lib/i18n';
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
@@ -57,13 +58,13 @@
 	<Card>
 		<CardHeader>
       <div class="flex items-start justify-between gap-4">
-        <CardTitle class="page-title">Task history</CardTitle>
+        <CardTitle class="page-title">{$messages.tasks.taskHistory}</CardTitle>
         <Badge variant="outline">{data.totalCount}</Badge>
       </div>
 
       {#if data.error}
         <Alert variant="destructive">
-          <AlertTitle>Load failed</AlertTitle>
+          <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
           <AlertDescription>{data.error}</AlertDescription>
         </Alert>
       {/if}
@@ -76,7 +77,7 @@
             <TaskItem {task} showNode />
           {/each}
         {:else}
-          <div class="empty-state">No tasks loaded.</div>
+          <div class="empty-state">{$messages.tasks.noTasks}</div>
         {/if}
       </div>
 

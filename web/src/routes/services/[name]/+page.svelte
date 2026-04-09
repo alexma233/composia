@@ -2,6 +2,7 @@
   import { Copy, FilePlus, FolderPlus, Pencil, Play, RefreshCcw, Save, Square, Trash2, Upload, Wrench } from 'lucide-svelte';
 
   import type { PageData } from './$types';
+  import { messages } from '$lib/i18n';
 
   import CodeEditor from '$lib/components/app/code-editor.svelte';
   import ServiceFileTree from '$lib/components/app/service-file-tree.svelte';
@@ -19,7 +20,7 @@
   import * as Popover from '$lib/components/ui/popover';
   import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
   import { toast } from 'svelte-sonner';
-  import { formatTimestamp, runtimeStatusTone, taskStatusTone } from '$lib/presenters';
+  import { formatTimestamp, runtimeStatusLabel, runtimeStatusTone, taskStatusLabel, taskStatusTone } from '$lib/presenters';
   import type {
     BackupSummary,
     RepoWriteResult,
@@ -646,15 +647,15 @@
     <CardHeader class="gap-4 p-4 sm:p-5">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="space-y-1">
-          <CardTitle class="page-title">{workspace?.displayName ?? 'Service'}</CardTitle>
+          <CardTitle class="page-title">{workspace?.displayName ?? $messages.services.service}</CardTitle>
           <CardDescription class="page-description">{workspace?.folder ?? 'n/a'}</CardDescription>
         </div>
 
         <div class="flex flex-wrap items-center gap-2 text-sm">
-          <Badge variant="outline">Node {workspace?.node || 'n/a'}</Badge>
-          <Badge variant="outline">Rev {headRevision ? headRevision.slice(0, 12) : 'n/a'}</Badge>
+          <Badge variant="outline">{$messages.nodes.node} {workspace?.node || $messages.common.na}</Badge>
+          <Badge variant="outline">{$messages.settings.repoSync.revision} {headRevision ? headRevision.slice(0, 12) : $messages.common.na}</Badge>
           <Badge variant={runtimeStatusTone(workspace?.runtimeStatus ?? 'unknown')}>
-            {workspace?.runtimeStatus ?? 'unknown'}
+            {runtimeStatusLabel(workspace?.runtimeStatus ?? '', $messages)}
           </Badge>
         </div>
       </div>
@@ -664,8 +665,8 @@
   {#if (nodeContainers ?? []).length > 0}
     <Card class="mb-4">
       <CardHeader class="p-4">
-        <CardTitle class="section-title">Instances</CardTitle>
-        <CardDescription>Containers grouped by node for this service.</CardDescription>
+        <CardTitle class="section-title">{$messages.services.instances}</CardTitle>
+        <CardDescription>{$messages.services.containersByNode}</CardDescription>
       </CardHeader>
       <CardContent class="grid gap-3 p-4 pt-0 md:grid-cols-2 xl:grid-cols-3">
         {#each nodeContainers ?? [] as instance}
@@ -675,7 +676,7 @@
                 <div class="font-medium">{instance.nodeId}</div>
                 <div class="text-xs text-muted-foreground">{formatTimestamp(instance.updatedAt)}</div>
               </div>
-              <Badge variant={runtimeStatusTone(instance.runtimeStatus)}>{instance.runtimeStatus}</Badge>
+              <Badge variant={runtimeStatusTone(instance.runtimeStatus)}>{runtimeStatusLabel(instance.runtimeStatus, $messages)}</Badge>
             </div>
             {#if instance.containers.length > 0}
               <div class="space-y-2">
@@ -683,7 +684,7 @@
                   <a href="/nodes/{instance.nodeId}/docker/containers/{encodeURIComponent(container.containerId)}" class="block rounded-md border border-border/60 bg-background px-3 py-2 transition-colors hover:bg-accent/40">
                     <div class="flex items-center justify-between gap-2">
                       <div class="font-medium">{container.name}</div>
-                      <Badge variant={runtimeStatusTone(container.state)}>{container.state}</Badge>
+                       <Badge variant={runtimeStatusTone(container.state)}>{runtimeStatusLabel(container.state, $messages)}</Badge>
                     </div>
                     <div class="mt-1 text-xs text-muted-foreground">{container.image}</div>
                     <div class="mt-1 text-[11px] text-muted-foreground/80">
@@ -693,7 +694,7 @@
                 {/each}
               </div>
             {:else}
-              <div class="text-sm text-muted-foreground">No matching containers reported on this node.</div>
+              <div class="text-sm text-muted-foreground">{$messages.services.noContainersOnNode}</div>
             {/if}
           </div>
         {/each}
@@ -703,7 +704,7 @@
 
   {#if errorMessage}
     <Alert variant="destructive" class="mb-4">
-      <AlertTitle>Workspace error</AlertTitle>
+      <AlertTitle>{$messages.error.workspaceError}</AlertTitle>
       <AlertDescription>{errorMessage}</AlertDescription>
     </Alert>
   {/if}
@@ -711,13 +712,13 @@
   <div class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)_320px]">
     <Card class="flex min-h-0 flex-col">
       <CardHeader class="border-b px-4 py-3">
-        <CardTitle class="section-title">Files</CardTitle>
+        <CardTitle class="section-title">{$messages.services.files.title}</CardTitle>
 <div class="flex flex-wrap items-center gap-2">
            <Popover.Root bind:open={showNewFile}>
              <Popover.Trigger class="inline-flex">
                {#snippet child({ props: triggerProps })}
                  <Button type="button" variant="outline" size="sm" {...triggerProps}>
-                   <FilePlus class="mr-2 size-4" />New file
+                   <FilePlus class="mr-2 size-4" />{$messages.common.newFile}
                  </Button>
                {/snippet}
              </Popover.Trigger>
@@ -725,8 +726,8 @@
                <div class="space-y-3">
                  <Input bind:value={newFilePath} placeholder="config/new-file.yaml" />
                  <div class="flex items-center justify-between gap-3">
-                   <p class="text-xs text-muted-foreground">Parents are created automatically.</p>
-                   <Button type="button" size="sm" onclick={createFile} disabled={saving}>Create</Button>
+                   <p class="text-xs text-muted-foreground">{$messages.common.parentsAutoCreated}</p>
+                   <Button type="button" size="sm" onclick={createFile} disabled={saving}>{$messages.common.create}</Button>
                  </div>
                </div>
              </Popover.Content>
@@ -736,7 +737,7 @@
              <Popover.Trigger class="inline-flex">
                {#snippet child({ props: triggerProps })}
                  <Button type="button" variant="outline" size="sm" {...triggerProps}>
-                   <FolderPlus class="mr-2 size-4" />New folder
+                   <FolderPlus class="mr-2 size-4" />{$messages.common.newFolder}
                  </Button>
                {/snippet}
              </Popover.Trigger>
@@ -744,18 +745,18 @@
                <div class="space-y-3">
                  <Input bind:value={newFolderPath} placeholder="config/snippets" />
                  <div class="flex items-center justify-between gap-3">
-                   <p class="text-xs text-muted-foreground">Tracked with `.gitkeep`.</p>
-                   <Button type="button" size="sm" onclick={createDirectory} disabled={saving}>Create</Button>
+                   <p class="text-xs text-muted-foreground">{$messages.common.trackedWithGitkeep}</p>
+                   <Button type="button" size="sm" onclick={createDirectory} disabled={saving}>{$messages.common.create}</Button>
                  </div>
                </div>
              </Popover.Content>
            </Popover.Root>
 
            <Button type="button" variant="outline" size="sm" onclick={() => { showRename = !showRename; renamePath = selectedNodePath; }} disabled={!selectedNodePath || saving}>
-             <Pencil class="mr-2 size-4" />Rename
+             <Pencil class="mr-2 size-4" />{$messages.common.rename}
            </Button>
            <Button type="button" variant="outline" size="sm" onclick={() => (showDeleteDialog = true)} disabled={!selectedNodePath || saving}>
-             <Trash2 class="mr-2 size-4" />Delete
+             <Trash2 class="mr-2 size-4" />{$messages.common.delete}
            </Button>
           </div>
       </CardHeader>
@@ -765,7 +766,7 @@
           <div class="space-y-3">
             <Input bind:value={renamePath} placeholder="new/path.yaml" />
             <div class="flex justify-end">
-              <Button type="button" size="sm" onclick={renameNode} disabled={!selectedNodePath || saving}>Apply</Button>
+              <Button type="button" size="sm" onclick={renameNode} disabled={!selectedNodePath || saving}>{$messages.common.apply}</Button>
             </div>
           </div>
         </div>
@@ -787,10 +788,10 @@
     <Card class="flex min-h-0 flex-col">
       <CardHeader class="border-b px-3 py-3">
         <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <CardTitle class="section-title">Editor</CardTitle>
+          <CardTitle class="section-title">{$messages.services.files.editor}</CardTitle>
           <Button type="button" size="sm" onclick={saveCurrentTab} disabled={!canSave}>
             <Save class="mr-2 size-4" />
-            Save
+            {$messages.common.save}
           </Button>
         </div>
 
@@ -815,7 +816,7 @@
         </div>
       {:else}
         <div class="flex min-h-0 flex-1 items-center justify-center text-sm text-muted-foreground">
-          Open a file to start editing.
+          {$messages.services.files.openFileToEdit}
         </div>
       {/if}
     </Card>
@@ -823,36 +824,36 @@
     <section class="flex min-h-0 flex-col gap-4">
 		<Card>
         <CardHeader class="flex items-center justify-between gap-3 p-4">
-          <CardTitle class="section-title">Operations</CardTitle>
+          <CardTitle class="section-title">{$messages.services.operations.title}</CardTitle>
         </CardHeader>
         <CardContent class="space-y-4 p-4 pt-0">
           <div class="grid gap-2">
             <Button type="button" onclick={() => triggerAction('deploy')} disabled={!!actionBusy || !workspace?.isDeclared}>
-              <Play class="mr-2 size-4" />Deploy (Up)
+              <Play class="mr-2 size-4" />{$messages.services.operations.deploy}
             </Button>
             <Button type="button" variant="outline" onclick={() => triggerAction('update')} disabled={!!actionBusy || !workspace?.isDeclared}>
-              <Upload class="mr-2 size-4" />Update (Pull + Up)
+              <Upload class="mr-2 size-4" />{$messages.services.operations.update}
             </Button>
             <Button type="button" variant="outline" onclick={() => triggerAction('restart')} disabled={!!actionBusy || !workspace?.isDeclared}>
-              <RefreshCcw class="mr-2 size-4" />Restart (Down + Up)
+              <RefreshCcw class="mr-2 size-4" />{$messages.services.operations.restart}
             </Button>
             <Button type="button" variant="outline" onclick={() => triggerAction('stop')} disabled={!!actionBusy || !workspace?.isDeclared}>
-              <Square class="mr-2 size-4" />Stop (Down)
+              <Square class="mr-2 size-4" />{$messages.services.operations.stop}
             </Button>
             <Button type="button" variant="outline" onclick={() => triggerAction('backup')} disabled={!!actionBusy || !workspace?.isDeclared}>
-              <Wrench class="mr-2 size-4" />Backup
+              <Wrench class="mr-2 size-4" />{$messages.services.operations.backup}
             </Button>
             <Button type="button" variant="outline" onclick={() => triggerAction('dns_update')} disabled={!!actionBusy || !workspace?.isDeclared}>
-              <Upload class="mr-2 size-4" />DNS update
+              <Upload class="mr-2 size-4" />{$messages.services.operations.dnsUpdate}
             </Button>
             <Button type="button" variant="outline" onclick={() => triggerCaddySync()} disabled={!!actionBusy || !workspace?.isDeclared || !workspace?.node}>
-              <Copy class="mr-2 size-4" />Sync Caddy file
+              <Copy class="mr-2 size-4" />{$messages.services.operations.syncCaddy}
             </Button>
             <div class="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
-              <div class="text-sm font-medium">Migrate instance</div>
+              <div class="text-sm font-medium">{$messages.services.operations.migrate.title}</div>
               <Select type="single" bind:value={migrateSourceNode as any}>
                 <SelectTrigger>
-                  <span>{migrateSourceNode || 'Select source node'}</span>
+                  <span>{migrateSourceNode || $messages.services.operations.migrate.selectSource}</span>
                 </SelectTrigger>
                 <SelectContent>
                   {#each migrateSourceNodes as nodeId}
@@ -860,16 +861,16 @@
                   {/each}
                 </SelectContent>
               </Select>
-              <Input bind:value={migrateTargetNode} placeholder="target node id" />
+              <Input bind:value={migrateTargetNode} placeholder={$messages.services.operations.migrate.targetNodeId} />
               <Button type="button" variant="outline" onclick={triggerMigrate} disabled={!!actionBusy || !workspace?.isDeclared || !migrateSourceNode || !migrateTargetNode.trim()}>
-                <RefreshCcw class="mr-2 size-4" />Migrate
+                <RefreshCcw class="mr-2 size-4" />{$messages.services.operations.migrate.migrate}
               </Button>
             </div>
             <Button type="button" variant="outline" onclick={() => { showServiceRename = !showServiceRename; renameServiceFolder = workspace?.folder ?? ''; }} disabled={saving}>
-              <Pencil class="mr-2 size-4" />Rename folder
+              <Pencil class="mr-2 size-4" />{$messages.services.operations.renameFolder}
             </Button>
             <Button type="button" variant="outline" class="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive" onclick={deleteServiceRoot} disabled={saving}>
-              <Trash2 class="mr-2 size-4" />Delete service
+              <Trash2 class="mr-2 size-4" />{$messages.services.operations.deleteService}
             </Button>
           </div>
 
@@ -877,25 +878,25 @@
             <div class="space-y-3 border-t pt-4">
               <Input bind:value={renameServiceFolder} placeholder="new-service-folder" />
               <div class="flex justify-end">
-                <Button type="button" size="sm" onclick={renameServiceRoot} disabled={saving}>Apply</Button>
+                <Button type="button" size="sm" onclick={renameServiceRoot} disabled={saving}>{$messages.common.apply}</Button>
               </div>
             </div>
           {/if}
 
           {#if !workspace?.hasMeta}
-            <div class="empty-state px-3 py-4">Add `composia-meta.yaml` to declare this service.</div>
+            <div class="empty-state px-3 py-4">{$messages.services.addMetaToDeclare}</div>
           {:else if !workspace?.isDeclared}
-            <div class="empty-state px-3 py-4">Fix `composia-meta.yaml` until the controller accepts it.</div>
+            <div class="empty-state px-3 py-4">{$messages.services.fixMetaUntilAccepted}</div>
           {/if}
 
           <dl class="kv-grid">
             <div>
-              <dt>Sync status</dt>
-              <dd>{syncStatus || 'unknown'}</dd>
+              <dt>{$messages.services.syncStatus}</dt>
+              <dd>{syncStatus || $messages.status.unknown}</dd>
             </div>
             {#if lastSuccessfulPullAt}
               <div>
-                <dt>Last pull</dt>
+                <dt>{$messages.services.lastPull}</dt>
                 <dd>{lastSuccessfulPullAt}</dd>
               </div>
             {/if}
@@ -903,7 +904,7 @@
 
           {#if syncError}
             <Alert variant="destructive">
-              <AlertTitle>Sync error</AlertTitle>
+              <AlertTitle>{$messages.error.syncFailed}</AlertTitle>
               <AlertDescription>{syncError}</AlertDescription>
             </Alert>
           {/if}
@@ -913,10 +914,10 @@
 		<Card>
         <CardHeader class="flex items-center justify-between gap-3 p-4">
           <div class="space-y-1">
-            <CardTitle class="section-title">Recent tasks</CardTitle>
+            <CardTitle class="section-title">{$messages.services.recentTasks}</CardTitle>
           </div>
           <button type="button" class="muted-action" onclick={() => (logsExpanded = !logsExpanded)}>
-            {logsExpanded ? 'Hide logs' : 'Show logs'}
+            {logsExpanded ? $messages.services.hideLogs : $messages.services.showLogs}
           </button>
         </CardHeader>
         <CardContent class="space-y-3 p-4 pt-0">
@@ -924,14 +925,14 @@
             <TaskItem {task} showService={false} />
           {/each}
           {#if !recentTasks.length}
-            <div class="empty-state px-3 py-6">No recent tasks.</div>
+            <div class="empty-state px-3 py-6">{$messages.tasks.noTasks}</div>
           {/if}
         </CardContent>
       </Card>
 
 		<Card>
         <CardHeader class="p-4">
-          <CardTitle class="section-title">Recent backups</CardTitle>
+          <CardTitle class="section-title">{$messages.services.recentBackups}</CardTitle>
         </CardHeader>
         <CardContent class="space-y-2 p-4 pt-0">
           {#each backups.slice(0, 6) as backup}
@@ -941,13 +942,13 @@
                   <div class="font-medium">{backup.dataName}</div>
                   <div class="text-xs text-muted-foreground">{backup.backupId}</div>
                 </div>
-                <Badge variant={taskStatusTone(backup.status)}>{backup.status}</Badge>
+                 <Badge variant={taskStatusTone(backup.status)}>{taskStatusLabel(backup.status, $messages)}</Badge>
               </div>
               <div class="mt-2 text-xs text-muted-foreground">{formatTimestamp(backup.finishedAt || backup.startedAt)}</div>
             </div>
           {/each}
           {#if !backups.length}
-            <div class="empty-state px-3 py-6">No backups loaded.</div>
+            <div class="empty-state px-3 py-6">{$messages.backups.noBackups}</div>
           {/if}
         </CardContent>
       </Card>
@@ -957,8 +958,8 @@
   <Collapsible bind:open={logsExpanded}>
     <Card class="mt-4">
       <CollapsibleTrigger class="flex w-full items-center justify-between px-4 py-3 text-left">
-        <CardTitle class="section-title">Logs</CardTitle>
-        <span class="text-xs text-muted-foreground">{logsExpanded ? 'Collapse' : 'Expand'}</span>
+        <CardTitle class="section-title">{$messages.common.logs}</CardTitle>
+        <span class="text-xs text-muted-foreground">{logsExpanded ? $messages.services.collapse : $messages.services.expand}</span>
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div class="h-80 border-t px-4 py-4">
@@ -972,14 +973,14 @@
   <DialogOverlay />
   <DialogContent class="max-w-sm">
     <DialogHeader>
-      <DialogTitle>Delete {selectedNode?.isDir ? 'folder' : 'file'}?</DialogTitle>
+      <DialogTitle>{$messages.common.delete} {selectedNode?.isDir ? $messages.common.folder : $messages.common.file}?</DialogTitle>
       <DialogDescription>
-        Are you sure you want to delete <span class="font-mono text-foreground">{selectedNodePath}</span>? This action cannot be undone.
+        {selectedNode?.isDir ? $messages.services.deleteFolderConfirm : $messages.services.deleteFileConfirm}
       </DialogDescription>
     </DialogHeader>
     <DialogFooter>
-      <Button type="button" variant="outline" onclick={() => (showDeleteDialog = false)}>Cancel</Button>
-      <Button type="button" variant="destructive" onclick={() => { showDeleteDialog = false; deleteNode(); }} disabled={saving}>Delete</Button>
+      <Button type="button" variant="outline" onclick={() => (showDeleteDialog = false)}>{$messages.common.cancel}</Button>
+      <Button type="button" variant="destructive" onclick={() => { showDeleteDialog = false; deleteNode(); }} disabled={saving}>{$messages.common.delete}</Button>
     </DialogFooter>
   </DialogContent>
 </Dialog>

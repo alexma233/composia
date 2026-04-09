@@ -5,7 +5,8 @@
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
-  import { formatTimestamp, onlineStatusTone, runtimeStatusTone } from '$lib/presenters';
+  import { formatTimestamp, onlineStatusTone, runtimeStatusLabel, runtimeStatusTone } from '$lib/presenters';
+  import { messages } from '$lib/i18n';
   import TaskItem from '$lib/components/app/task-item.svelte';
 
   interface Props {
@@ -42,7 +43,7 @@
   <div class="page-stack">
     {#if data.error}
       <Alert variant="destructive">
-        <AlertTitle>Controller error</AlertTitle>
+        <AlertTitle>{$messages.error.controllerError}</AlertTitle>
         <AlertDescription>{data.error}</AlertDescription>
       </Alert>
     {/if}
@@ -52,7 +53,7 @@
         <CardHeader class="flex flex-row items-start justify-between gap-4">
           <div class="space-y-1">
             <CardTitle class="section-title">
-              <a class="hover:text-foreground/80 transition-colors" href="/services">Services</a>
+              <a class="hover:text-foreground/80 transition-colors" href="/services">{$messages.dashboard.services}</a>
             </CardTitle>
           </div>
           <Badge variant="outline">{data.dashboard?.services.length ?? 0}</Badge>
@@ -69,17 +70,17 @@
                     <div class="min-w-0 flex-1">
                       <div class="truncate text-sm font-medium">{service.name}</div>
                       <div class="truncate text-xs text-muted-foreground">
-                        Updated {formatTimestamp(service.updatedAt)}
+                        {$messages.dashboard.updated} {formatTimestamp(service.updatedAt)}
                       </div>
                     </div>
                     <Badge variant={runtimeStatusTone(service.runtimeStatus)}>
-                      {service.runtimeStatus}
+                      {runtimeStatusLabel(service.runtimeStatus, $messages)}
                     </Badge>
                   </div>
                 </a>
               {/each}
             {:else}
-              <div class="empty-state">No service data loaded.</div>
+              <div class="empty-state">{$messages.common.noData}</div>
             {/if}
           </div>
         </CardContent>
@@ -90,7 +91,7 @@
           <CardHeader class="flex flex-row items-start justify-between gap-4">
             <div class="space-y-1">
               <CardTitle class="section-title">
-                <a class="hover:text-foreground/80 transition-colors" href="/nodes">Nodes</a>
+                <a class="hover:text-foreground/80 transition-colors" href="/nodes">{$messages.dashboard.nodes}</a>
               </CardTitle>
             </div>
             <Badge variant="outline">{data.dashboard?.nodes.length ?? 0}</Badge>
@@ -109,16 +110,16 @@
                         <div class="truncate text-xs text-muted-foreground">{node.nodeId}</div>
                       </div>
                       <Badge variant={onlineStatusTone(node.isOnline)}>
-                        {node.isOnline ? 'online' : 'offline'}
+                        {node.isOnline ? $messages.status.online : $messages.status.offline}
                       </Badge>
                     </div>
                     <div class="mt-2 text-xs text-muted-foreground">
-                      Last heartbeat {formatTimestamp(node.lastHeartbeat)}
+                      {$messages.dashboard.lastHeartbeat} {formatTimestamp(node.lastHeartbeat)}
                     </div>
                   </a>
                 {/each}
               {:else}
-                <div class="empty-state">No node data loaded.</div>
+                <div class="empty-state">{$messages.common.noData}</div>
               {/if}
             </div>
           </CardContent>
@@ -128,7 +129,7 @@
           <CardHeader class="flex flex-row items-start justify-between gap-4">
             <div class="space-y-1">
               <CardTitle class="section-title">
-                <a class="hover:text-foreground/80 transition-colors" href="/tasks">Tasks</a>
+                <a class="hover:text-foreground/80 transition-colors" href="/tasks">{$messages.dashboard.tasks}</a>
               </CardTitle>
             </div>
             <Badge variant="outline">{totalTaskCount()}</Badge>
@@ -140,7 +141,7 @@
                   <TaskItem {task} showService />
                 {/each}
               {:else}
-                <div class="empty-state">No recent tasks in the last 24 hours.</div>
+                <div class="empty-state">{$messages.dashboard.last24Hours}</div>
               {/if}
             </div>
           </CardContent>

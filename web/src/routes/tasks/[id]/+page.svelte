@@ -4,12 +4,13 @@
   import { goto } from '$app/navigation';
 
   import type { PageData } from './$types';
+  import { messages } from '$lib/i18n';
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
-  import { formatTimestamp, taskStatusTone } from '$lib/presenters';
+  import { formatTimestamp, taskStatusLabel, taskStatusTone } from '$lib/presenters';
 
   interface Props {
     data: PageData;
@@ -105,17 +106,17 @@
             <div class="space-y-1">
               <CardTitle class="page-title">{data.task.type}</CardTitle>
               <CardDescription class="page-description">
-                {data.task.taskId} · {data.task.serviceName || `node: ${data.task.nodeId || 'n/a'}`}
+                {data.task.taskId} · {data.task.serviceName || `${$messages.tasks.nodeLevel}: ${data.task.nodeId || 'n/a'}`}
               </CardDescription>
             </div>
             <div class="flex items-center gap-2">
               <Badge variant={taskStatusTone(data.task.status)}>
-                {data.task.status}
+                {taskStatusLabel(data.task.status, $messages)}
               </Badge>
               {#if isTerminalStatus(data.task.status)}
                 <Button type="button" variant="outline" size="sm" onclick={runAgain} disabled={rerunning}>
                   <RotateCcw class="mr-2 size-4" />
-                  {rerunning ? 'Running...' : 'Run Again'}
+                  {rerunning ? $messages.tasks.running : $messages.tasks.runAgain}
                 </Button>
               {/if}
             </div>
@@ -124,7 +125,7 @@
 
         {#if data.error}
           <Alert variant="destructive">
-            <AlertTitle>Load failed</AlertTitle>
+            <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
             <AlertDescription>{data.error}</AlertDescription>
           </Alert>
         {/if}
@@ -134,42 +135,42 @@
         <CardContent class="space-y-4">
           <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div class="metric-card">
-              <div class="metric-label">Source</div>
-              <div class="mt-2 text-sm text-foreground">{data.task.source || 'N/A'}</div>
+              <div class="metric-label">{$messages.tasks.taskDetails.source}</div>
+              <div class="mt-2 text-sm text-foreground">{data.task.source || $messages.common.na}</div>
             </div>
             <div class="metric-card">
-              <div class="metric-label">Triggered by</div>
-              <div class="mt-2 text-sm text-foreground">{data.task.triggeredBy || 'N/A'}</div>
+              <div class="metric-label">{$messages.tasks.taskDetails.triggeredBy}</div>
+              <div class="mt-2 text-sm text-foreground">{data.task.triggeredBy || $messages.common.na}</div>
             </div>
             <div class="metric-card">
-              <div class="metric-label">Created</div>
+              <div class="metric-label">{$messages.tasks.taskDetails.created}</div>
               <div class="mt-2 text-sm text-foreground">{formatTimestamp(data.task.createdAt)}</div>
             </div>
             <div class="metric-card">
-              <div class="metric-label">Finished</div>
+              <div class="metric-label">{$messages.tasks.taskDetails.finished}</div>
               <div class="mt-2 text-sm text-foreground">{formatTimestamp(data.task.finishedAt)}</div>
             </div>
           </div>
 
           <div class="grid gap-4 xl:grid-cols-2">
             <div class="inset-card">
-              <div class="metric-label">Repo revision</div>
-              <div class="mt-2 break-all text-sm text-foreground">{data.task.repoRevision || 'N/A'}</div>
+              <div class="metric-label">{$messages.tasks.taskDetails.repoRevision}</div>
+              <div class="mt-2 break-all text-sm text-foreground">{data.task.repoRevision || $messages.common.na}</div>
             </div>
             <div class="inset-card">
-              <div class="metric-label">Result revision</div>
-              <div class="mt-2 break-all text-sm text-foreground">{data.task.resultRevision || 'N/A'}</div>
+              <div class="metric-label">{$messages.tasks.taskDetails.resultRevision}</div>
+              <div class="mt-2 break-all text-sm text-foreground">{data.task.resultRevision || $messages.common.na}</div>
             </div>
           </div>
 
           <div class="inset-card">
-            <div class="metric-label">Log path</div>
-            <div class="mt-2 break-all text-sm text-foreground">{data.task.logPath || 'N/A'}</div>
+            <div class="metric-label">{$messages.tasks.taskDetails.logPath}</div>
+            <div class="mt-2 break-all text-sm text-foreground">{data.task.logPath || $messages.common.na}</div>
           </div>
 
           {#if data.task.errorSummary}
             <Alert variant="destructive">
-              <AlertTitle>Task error</AlertTitle>
+              <AlertTitle>{$messages.error.taskError}</AlertTitle>
               <AlertDescription>{data.task.errorSummary}</AlertDescription>
             </Alert>
           {/if}
@@ -179,7 +180,7 @@
 
 		<Card>
       <CardHeader class="space-y-1">
-        <CardTitle class="section-title">Task steps</CardTitle>
+        <CardTitle class="section-title">{$messages.tasks.taskSteps}</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="space-y-3">
@@ -187,7 +188,7 @@
             <div class="inset-card px-4 py-4">
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="text-sm font-medium">{step.stepName}</div>
-                <Badge variant={taskStatusTone(step.status)}>{step.status}</Badge>
+                <Badge variant={taskStatusTone(step.status)}>{taskStatusLabel(step.status, $messages)}</Badge>
               </div>
               <div class="mt-2 text-sm text-muted-foreground">
                 {formatTimestamp(step.startedAt)} to {formatTimestamp(step.finishedAt)}
@@ -195,7 +196,7 @@
             </div>
           {/each}
           {#if !(data.task?.steps?.length ?? 0)}
-            <div class="empty-state">No task steps loaded.</div>
+            <div class="empty-state">{$messages.common.noData}</div>
           {/if}
         </div>
       </CardContent>
@@ -203,21 +204,21 @@
 
 		<Card>
       <CardHeader class="flex flex-row items-center justify-between gap-3">
-        <CardTitle class="section-title">Task logs</CardTitle>
+        <CardTitle class="section-title">{$messages.tasks.taskLogs}</CardTitle>
         <div class="metric-label">{logState}</div>
       </CardHeader>
       <CardContent class="space-y-4">
         {#if logError}
           <Alert variant="destructive">
-            <AlertTitle>Log stream failed</AlertTitle>
+            <AlertTitle>{$messages.error.logStreamFailed}</AlertTitle>
             <AlertDescription>{logError}</AlertDescription>
           </Alert>
         {/if}
 
         {#if data.task?.logPath}
-          <pre class="code-surface max-h-[28rem] overflow-auto">{logContent || 'Waiting for task log output...'}</pre>
+          <pre class="code-surface max-h-[28rem] overflow-auto">{logContent || $messages.tasks.waitingForOutput}</pre>
         {:else}
-          <div class="empty-state">This task does not have a log file.</div>
+          <div class="empty-state">{$messages.tasks.noLogFile}</div>
         {/if}
       </CardContent>
     </Card>

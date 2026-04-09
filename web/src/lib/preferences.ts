@@ -22,13 +22,13 @@ const storageKeys = {
 
 export const accentMetadata: Record<
   AccentColor,
-  { label: string; preview: string }
+  { label: string; labelZhHans: string; preview: string }
 > = {
-  blue: { label: "Blue", preview: "hsl(221 83% 53%)" },
-  emerald: { label: "Emerald", preview: "hsl(160 84% 39%)" },
-  violet: { label: "Violet", preview: "hsl(262 83% 58%)" },
-  rose: { label: "Rose", preview: "hsl(347 77% 50%)" },
-  amber: { label: "Amber", preview: "hsl(38 92% 50%)" },
+  blue: { label: "Blue", labelZhHans: "蓝色", preview: "hsl(221 83% 53%)" },
+  emerald: { label: "Emerald", labelZhHans: "翠绿", preview: "hsl(160 84% 39%)" },
+  violet: { label: "Violet", labelZhHans: "紫罗兰", preview: "hsl(262 83% 58%)" },
+  rose: { label: "Rose", labelZhHans: "玫瑰", preview: "hsl(347 77% 50%)" },
+  amber: { label: "Amber", labelZhHans: "琥珀", preview: "hsl(38 92% 50%)" },
 };
 
 function readStoredValue(key: string) {
@@ -53,7 +53,7 @@ function normalizeAccentColor(value: string | null | undefined): AccentColor {
 }
 
 function normalizeLocale(value: string | null | undefined): Locale {
-  if (value === "en-US") {
+  if (value === "en-US" || value === "zh-Hans") {
     return value;
   }
   return defaultLocale;

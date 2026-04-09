@@ -12,6 +12,7 @@
   import Spinner from '$lib/components/ui/spinner/spinner.svelte';
   import SearchIcon from '@lucide/svelte/icons/search';
   import { Alert, AlertDescription } from '$lib/components/ui/alert';
+  import { messages } from '$lib/i18n';
 
   interface Props {
     data: PageData;
@@ -129,16 +130,16 @@
 			<CardHeader>
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div class="space-y-1">
-            <CardTitle class="page-title">Networks</CardTitle>
+            <CardTitle class="page-title">{$messages.docker.networks.title}</CardTitle>
             <CardDescription class="page-description">
-              Docker networks on {data.nodeId}
+              {$messages.docker.networks.title} on {data.nodeId}
               {#if !loading}
                 <Badge variant="secondary" class="ml-2">{networks.length}</Badge>
               {/if}
             </CardDescription>
           </div>
           <a href="/nodes/{data.nodeId}" class="text-sm text-muted-foreground hover:underline">
-            Back to node
+            {$messages.common.back}
           </a>
         </div>
 
@@ -147,18 +148,18 @@
             <SearchIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search networks..."
+              placeholder={$messages.docker.networks.searchPlaceholder}
               class="pl-9"
               bind:value={searchQuery}
             />
           </div>
           {#if searchQuery}
             <Button variant="ghost" size="sm" onclick={() => (searchQuery = '')}>
-              Clear
+              {$messages.common.cancel}
             </Button>
           {/if}
           <Button variant="outline" size="sm" onclick={() => void refreshNetworks()} disabled={loading || !data.ready}>
-            {#if loading}Loading...{:else}Refresh{/if}
+            {#if loading}{$messages.common.loading}...{:else}{$messages.common.refresh}{/if}
           </Button>
         </div>
       </CardHeader>
@@ -171,19 +172,19 @@
           <div class="flex min-h-[320px] items-center justify-center">
             <div class="flex items-center gap-3 text-sm text-muted-foreground">
               <Spinner />
-              <span>Loading networks...</span>
+              <span>{$messages.common.loading} {$messages.docker.networks.title}...</span>
             </div>
           </div>
         {:else if sortedNetworks.length > 0}
           <Table>
             <TableHeader>
               <TableRow>
-                <SortableTableHead field="name" label="Name" {sortField} {sortDirection} onSort={handleSort} class="w-[30%]" />
-                <SortableTableHead field="driver" label="Driver" {sortField} {sortDirection} onSort={handleSort} class="w-[10%]" />
-                <TableHead class="w-[10%]">Scope</TableHead>
-                <TableHead class="w-[15%]">Subnet</TableHead>
-                <TableHead class="w-[10%]">Containers</TableHead>
-                <SortableTableHead field="created" label="Created" {sortField} {sortDirection} onSort={handleSort} class="w-[20%]" />
+                <SortableTableHead field="name" label={$messages.common.name} {sortField} {sortDirection} onSort={handleSort} class="w-[30%]" />
+                <SortableTableHead field="driver" label={$messages.docker.networks.driver} {sortField} {sortDirection} onSort={handleSort} class="w-[10%]" />
+                <TableHead class="w-[10%]">{$messages.docker.networks.scope}</TableHead>
+                <TableHead class="w-[15%]">{$messages.docker.networks.subnet}</TableHead>
+                <TableHead class="w-[10%]">{$messages.docker.networks.containers}</TableHead>
+                <SortableTableHead field="created" label={$messages.common.created} {sortField} {sortDirection} onSort={handleSort} class="w-[20%]" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -199,14 +200,14 @@
                           {network.name}
                         </a>
                         {#if isSystemNetwork(network.name)}
-                          <Badge variant="secondary" class="text-xs">System</Badge>
+                          <Badge variant="secondary" class="text-xs">{$messages.docker.networks.system}</Badge>
                         {/if}
                       </div>
                       <div class="flex items-center gap-1.5">
                         <code class="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
                           {formatShortId(network.id)}
                         </code>
-                        <CopyButton text={network.id} label="Copy full ID" />
+                        <CopyButton text={network.id} label="{$messages.common.copy} ID" />
                       </div>
                     </div>
                   </TableCell>
@@ -246,10 +247,10 @@
           {/if}
         {:else if searchQuery}
           <div class="empty-state">
-            No networks matching "{searchQuery}".
+            {$messages.common.noData}
           </div>
         {:else}
-          <div class="empty-state">No networks found.</div>
+          <div class="empty-state">{$messages.docker.networks.noNetworks}</div>
         {/if}
       </CardContent>
     </Card>

@@ -1,5 +1,7 @@
 import type { BadgeVariant } from '$lib/components/ui/badge';
 
+import type { Dictionary } from '$lib/i18n';
+
 export function formatTimestamp(value: string) {
   if (!value) {
     return "N/A";
@@ -20,6 +22,47 @@ export function taskStatusTone(status: string): BadgeVariant {
       return "destructive";
     default:
       return "secondary";
+  }
+}
+
+export function taskStatusLabel(status: string, messages: Dictionary) {
+  switch (status) {
+    case 'running':
+      return messages.status.running;
+    case 'succeeded':
+      return messages.status.succeeded;
+    case 'pending':
+      return messages.status.pending;
+    case 'failed':
+      return messages.status.failed;
+    case 'cancelled':
+      return messages.status.cancelled;
+    default:
+      return status || messages.status.unknown;
+  }
+}
+
+export function runtimeStatusLabel(status: string, messages: Dictionary) {
+  switch (status) {
+    case 'running':
+      return messages.status.running;
+    case 'stopped':
+      return messages.status.stopped;
+    case 'pending':
+      return messages.status.pending;
+    case 'failed':
+    case 'error':
+      return messages.status.failed;
+    case 'succeeded':
+      return messages.status.succeeded;
+    case 'cancelled':
+      return messages.status.cancelled;
+    case 'online':
+      return messages.status.online;
+    case 'offline':
+      return messages.status.offline;
+    default:
+      return status || messages.status.unknown;
   }
 }
 

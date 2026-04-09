@@ -9,6 +9,7 @@
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import Textarea from '$lib/components/ui/textarea/textarea.svelte';
+  import { messages } from '$lib/i18n';
 
   interface Props {
     data: PageData;
@@ -44,7 +45,7 @@
       containerData = Array.isArray(parsed) ? parsed[0] : parsed;
       parseError = null;
     } catch (error) {
-      parseError = error instanceof Error ? error.message : 'Failed to parse container data';
+      parseError = error instanceof Error ? error.message : $messages.error.parseFailed;
       containerData = null;
     }
   });
@@ -96,11 +97,11 @@
       const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/containers/${encodeURIComponent(data.containerId)}/logs?tail=${encodeURIComponent(logTail)}`);
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? 'Failed to load logs');
+        throw new Error(payload.error ?? $messages.docker.containers.logs.loadFailed);
       }
       logs = payload.content ?? '';
     } catch (error) {
-      logsError = error instanceof Error ? error.message : 'Failed to load logs';
+      logsError = error instanceof Error ? error.message : $messages.docker.containers.logs.loadFailed;
       logs = '';
     } finally {
       logsLoading = false;
@@ -147,7 +148,7 @@
       });
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? 'Failed to open terminal');
+        throw new Error(payload.error ?? $messages.docker.containers.terminal.connectionFailed);
       }
       terminalSessionId = payload.sessionId ?? '';
       const socket = new WebSocket(payload.websocketUrl);
@@ -160,7 +161,7 @@
               terminalError = message.message;
             }
             if (message.type === 'closed') {
-              terminalOutput = `${terminalOutput}\n[session closed]`.trim();
+               terminalOutput = `${terminalOutput}\n${$messages.docker.containers.terminal.sessionClosed}`.trim();
             }
           } catch {
             terminalOutput = `${terminalOutput}${event.data}`;
@@ -171,14 +172,14 @@
         terminalOutput = `${terminalOutput}${text}`;
       };
       socket.onerror = () => {
-        terminalError = 'Terminal connection error';
+        terminalError = $messages.docker.containers.terminal.connectionFailed;
       };
       socket.onclose = () => {
         terminalSocket = null;
       };
       terminalSocket = socket;
     } catch (error) {
-      terminalError = error instanceof Error ? error.message : 'Failed to open terminal';
+      terminalError = error instanceof Error ? error.message : $messages.docker.containers.terminal.connectionFailed;
     } finally {
       terminalConnecting = false;
     }
@@ -217,7 +218,7 @@
               {#if containerData}
                 {containerData.Name?.replace(/^\//, '') || data.containerId}
               {:else}
-                Container
+                {$messages.docker.containers.container}
               {/if}
             </CardTitle>
             <CardDescription class="page-description">
@@ -231,14 +232,14 @@
           <div class="flex items-center gap-2">
             {#if containerData}
               <Badge variant={getStateVariant(containerData.State?.Status)}>
-                {containerData.State?.Status || 'unknown'}
+                {containerData.State?.Status || $messages.common.unknown}
               </Badge>
             {/if}
-            <Button variant="outline" size="sm" onclick={() => void queueContainerAction('start')} disabled={actionBusy !== '' || containerData?.State?.Status?.toLowerCase() === 'running'}>Start</Button>
-            <Button variant="outline" size="sm" onclick={() => void queueContainerAction('stop')} disabled={actionBusy !== '' || containerData?.State?.Status?.toLowerCase() !== 'running'}>Stop</Button>
-            <Button variant="outline" size="sm" onclick={() => void queueContainerAction('restart')} disabled={actionBusy !== ''}>Restart</Button>
+            <Button variant="outline" size="sm" onclick={() => void queueContainerAction('start')} disabled={actionBusy !== '' || containerData?.State?.Status?.toLowerCase() === 'running'}>{$messages.docker.containers.start}</Button>
+            <Button variant="outline" size="sm" onclick={() => void queueContainerAction('stop')} disabled={actionBusy !== '' || containerData?.State?.Status?.toLowerCase() !== 'running'}>{$messages.docker.containers.stop}</Button>
+            <Button variant="outline" size="sm" onclick={() => void queueContainerAction('restart')} disabled={actionBusy !== ''}>{$messages.docker.containers.restart}</Button>
             <a href="/nodes/{data.nodeId}/docker/containers" class="text-sm text-muted-foreground hover:underline">
-              Back to containers
+              {$messages.docker.containers.backToContainers}
             </a>
           </div>
         </div>
@@ -247,33 +248,33 @@
       <CardContent>
         {#if data.error}
           <Alert variant="destructive">
-            <AlertTitle>Load failed</AlertTitle>
+            <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
             <AlertDescription>{data.error}</AlertDescription>
           </Alert>
         {:else if parseError}
           <Alert variant="destructive">
-            <AlertTitle>Parse failed</AlertTitle>
-            <AlertDescription>Failed to parse container data: {parseError}</AlertDescription>
+            <AlertTitle>{$messages.error.parseFailed}</AlertTitle>
+            <AlertDescription>{$messages.error.parseFailed}: {parseError}</AlertDescription>
           </Alert>
         {:else if containerData}
           <Tabs bind:value={activeTab} class="w-full">
             <TabsList class="mb-4">
-              <TabsTrigger value="info">Info</TabsTrigger>
-              <TabsTrigger value="logs">Logs</TabsTrigger>
-              <TabsTrigger value="terminal">Terminal</TabsTrigger>
-              <TabsTrigger value="config">Config</TabsTrigger>
-              <TabsTrigger value="env">Environment</TabsTrigger>
-              <TabsTrigger value="network">Network</TabsTrigger>
-              <TabsTrigger value="volumes">Volumes</TabsTrigger>
-              <TabsTrigger value="labels">Labels</TabsTrigger>
-              <TabsTrigger value="raw">JSON</TabsTrigger>
+              <TabsTrigger value="info">{$messages.docker.containers.info}</TabsTrigger>
+              <TabsTrigger value="logs">{$messages.docker.containers.logsLabel}</TabsTrigger>
+              <TabsTrigger value="terminal">{$messages.docker.containers.terminalLabel}</TabsTrigger>
+              <TabsTrigger value="config">{$messages.docker.containers.config}</TabsTrigger>
+              <TabsTrigger value="env">{$messages.docker.containers.environment}</TabsTrigger>
+              <TabsTrigger value="network">{$messages.docker.containers.network}</TabsTrigger>
+              <TabsTrigger value="volumes">{$messages.docker.containers.volumes}</TabsTrigger>
+              <TabsTrigger value="labels">{$messages.docker.containers.labels}</TabsTrigger>
+              <TabsTrigger value="raw">{$messages.docker.containers.json}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="info" class="space-y-4">
               <div class="grid gap-4 md:grid-cols-2">
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">General</CardTitle>
+                    <CardTitle class="text-base">{$messages.docker.containers.general}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex justify-between">
@@ -281,25 +282,25 @@
                       <code class="text-xs bg-muted px-1 py-0.5 rounded">{containerData.Id?.substring(0, 12)}</code>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Name</span>
+                      <span class="text-muted-foreground">{$messages.common.name}</span>
                       <span>{containerData.Name?.replace(/^\//, '') || '-'}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Image</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.image}</span>
                       <span class="truncate max-w-[200px]" title={containerData.Config?.Image}>
                         {containerData.Config?.Image || '-'}
                       </span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Platform</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.platform}</span>
                       <span>{containerData.Platform || '-'}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Driver</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.driver}</span>
                       <span>{containerData.Driver || '-'}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Created</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.created}</span>
                       <span>{formatDate(containerData.Created)}</span>
                     </div>
                   </CardContent>
@@ -307,45 +308,45 @@
 
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">Runtime</CardTitle>
+                    <CardTitle class="text-base">{$messages.docker.containers.runtime}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Status</span>
+                      <span class="text-muted-foreground">{$messages.common.status}</span>
                       <Badge variant={getStateVariant(containerData.State?.Status)}>
-                        {containerData.State?.Status || 'unknown'}
+                        {containerData.State?.Status || $messages.common.unknown}
                       </Badge>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Running</span>
-                      <span>{containerData.State?.Running ? 'Yes' : 'No'}</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.running}</span>
+                      <span>{containerData.State?.Running ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
                     {#if containerData.State?.Running}
                       <div class="flex justify-between">
-                        <span class="text-muted-foreground">Uptime</span>
+                        <span class="text-muted-foreground">{$messages.docker.containers.uptime}</span>
                         <span>{formatDuration(containerData.State?.StartedAt)}</span>
                       </div>
                       <div class="flex justify-between">
-                        <span class="text-muted-foreground">Started</span>
+                        <span class="text-muted-foreground">{$messages.docker.containers.started}</span>
                         <span>{formatDate(containerData.State?.StartedAt)}</span>
                       </div>
                     {:else}
                       <div class="flex justify-between">
-                        <span class="text-muted-foreground">Exit Code</span>
+                        <span class="text-muted-foreground">{$messages.docker.containers.exitCode}</span>
                         <span>{containerData.State?.ExitCode ?? '-'}</span>
                       </div>
                       <div class="flex justify-between">
-                        <span class="text-muted-foreground">Finished</span>
+                        <span class="text-muted-foreground">{$messages.docker.containers.finished}</span>
                         <span>{formatDate(containerData.State?.FinishedAt)}</span>
                       </div>
                     {/if}
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Restart Count</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.restartCount}</span>
                       <span>{containerData.RestartCount || 0}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">OOM Killed</span>
-                      <span>{containerData.State?.OOMKilled ? 'Yes' : 'No'}</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.oomKilled}</span>
+                      <span>{containerData.State?.OOMKilled ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -353,24 +354,24 @@
 
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base">Process</CardTitle>
+                  <CardTitle class="text-base">{$messages.docker.containers.process}</CardTitle>
                 </CardHeader>
                 <CardContent class="space-y-2 text-sm">
                   <div class="grid gap-4 md:grid-cols-3">
                     <div>
-                      <span class="text-muted-foreground">Command</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.command}</span>
                       <code class="block mt-1 text-xs bg-muted p-2 rounded break-all">
                         {containerData.Config?.Cmd?.join(' ') || '-'}
                       </code>
                     </div>
                     <div>
-                      <span class="text-muted-foreground">Entrypoint</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.entrypoint}</span>
                       <code class="block mt-1 text-xs bg-muted p-2 rounded break-all">
                         {containerData.Config?.Entrypoint?.join(' ') || '-'}
                       </code>
                     </div>
                     <div>
-                      <span class="text-muted-foreground">Working Directory</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.workingDir}</span>
                       <code class="block mt-1 text-xs bg-muted p-2 rounded break-all">
                         {containerData.Config?.WorkingDir || '/'}
                       </code>
@@ -385,12 +386,12 @@
                 <CardHeader class="pb-3">
                   <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <CardTitle class="text-base">Container Logs</CardTitle>
-                      <CardDescription>Fetch recent stdout and stderr output.</CardDescription>
+                      <CardTitle class="text-base">{$messages.docker.containers.containerLogs}</CardTitle>
+                      <CardDescription>{$messages.docker.containers.logs.description}</CardDescription>
                     </div>
                     <div class="flex items-center gap-2">
                       <Input bind:value={logTail} class="w-24" />
-                      <Button variant="outline" size="sm" onclick={() => void loadLogs()} disabled={logsLoading}>Refresh</Button>
+                      <Button variant="outline" size="sm" onclick={() => void loadLogs()} disabled={logsLoading}>{$messages.docker.containers.logs.refresh}</Button>
                     </div>
                   </div>
                 </CardHeader>
@@ -400,7 +401,7 @@
                       <AlertDescription>{logsError}</AlertDescription>
                     </Alert>
                   {/if}
-                  <pre class="code-surface min-h-[320px] max-h-[560px] overflow-auto break-all text-xs">{logsLoading ? 'Loading logs...' : (logs || 'No logs returned.')}</pre>
+                  <pre class="code-surface min-h-[320px] max-h-[560px] overflow-auto break-all text-xs">{logsLoading ? $messages.common.loadingWithDots : (logs || $messages.docker.containers.logs.noLogs)}</pre>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -408,16 +409,16 @@
             <TabsContent value="terminal" class="space-y-4">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base">Terminal</CardTitle>
-                  <CardDescription>Open an interactive exec session through the controller tunnel.</CardDescription>
+                  <CardTitle class="text-base">{$messages.docker.containers.terminal.title}</CardTitle>
+                  <CardDescription>{$messages.docker.containers.terminal.description}</CardDescription>
                 </CardHeader>
                 <CardContent class="space-y-4">
                   <div class="flex flex-wrap items-center gap-2">
                     <Input bind:value={terminalCommand} placeholder="/bin/sh" class="min-w-[220px] flex-1" />
                     <Button onclick={() => void connectTerminal()} disabled={terminalConnecting}>
-                      {terminalSocket ? 'Reconnect' : 'Connect'}
+                      {terminalSocket ? $messages.docker.containers.terminal.reconnect : $messages.docker.containers.terminal.connect}
                     </Button>
-                    <Button variant="outline" onclick={disconnectTerminal} disabled={!terminalSocket}>Disconnect</Button>
+                    <Button variant="outline" onclick={disconnectTerminal} disabled={!terminalSocket}>{$messages.docker.containers.terminal.disconnect}</Button>
                   </div>
 
                   {#if terminalError}
@@ -426,15 +427,15 @@
                     </Alert>
                   {/if}
 
-                  <Textarea readonly value={terminalOutput || (terminalConnecting ? 'Connecting terminal...' : 'Connect to start a shell session.')} class="min-h-[320px] font-mono text-xs" />
+                  <Textarea readonly value={terminalOutput || (terminalConnecting ? $messages.docker.containers.terminal.connecting : $messages.docker.containers.terminal.description)} class="min-h-[320px] font-mono text-xs" />
 
                   <div class="flex gap-2">
-                    <Input bind:value={terminalInput} placeholder="Type command input and press Send" onkeydown={(event: KeyboardEvent) => { if (event.key === 'Enter') { event.preventDefault(); sendTerminalInput(); } }} />
-                    <Button variant="outline" onclick={sendTerminalInput} disabled={!terminalSocket || !terminalInput}>Send</Button>
+                    <Input bind:value={terminalInput} placeholder={$messages.docker.containers.terminal.inputPlaceholder} onkeydown={(event: KeyboardEvent) => { if (event.key === 'Enter') { event.preventDefault(); sendTerminalInput(); } }} />
+                    <Button variant="outline" onclick={sendTerminalInput} disabled={!terminalSocket || !terminalInput}>{$messages.docker.containers.terminal.send}</Button>
                   </div>
 
                   {#if terminalSessionId}
-                    <div class="text-xs text-muted-foreground">Session {terminalSessionId}</div>
+                    <div class="text-xs text-muted-foreground">{$messages.docker.containers.session} {terminalSessionId}</div>
                   {/if}
                 </CardContent>
               </Card>
@@ -444,44 +445,44 @@
               <div class="grid gap-4 md:grid-cols-2">
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">Configuration</CardTitle>
+                    <CardTitle class="text-base">{$messages.docker.containers.configuration}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Hostname</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.hostname}</span>
                       <span>{containerData.Config?.Hostname || '-'}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Domainname</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.domainname}</span>
                       <span>{containerData.Config?.Domainname || '-'}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">User</span>
-                      <span>{containerData.Config?.User || 'root'}</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.user}</span>
+                      <span>{containerData.Config?.User || $messages.common.root}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Attach Stdin</span>
-                      <span>{containerData.Config?.AttachStdin ? 'Yes' : 'No'}</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.attachStdin}</span>
+                      <span>{containerData.Config?.AttachStdin ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Attach Stdout</span>
-                      <span>{containerData.Config?.AttachStdout ? 'Yes' : 'No'}</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.attachStdout}</span>
+                      <span>{containerData.Config?.AttachStdout ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Attach Stderr</span>
-                      <span>{containerData.Config?.AttachStderr ? 'Yes' : 'No'}</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.attachStderr}</span>
+                      <span>{containerData.Config?.AttachStderr ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">TTY</span>
-                      <span>{containerData.Config?.Tty ? 'Yes' : 'No'}</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.tty}</span>
+                      <span>{containerData.Config?.Tty ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Open Stdin</span>
-                      <span>{containerData.Config?.OpenStdin ? 'Yes' : 'No'}</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.openStdin}</span>
+                      <span>{containerData.Config?.OpenStdin ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Stdin Once</span>
-                      <span>{containerData.Config?.StdinOnce ? 'Yes' : 'No'}</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.stdinOnce}</span>
+                      <span>{containerData.Config?.StdinOnce ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
                   </CardContent>
                 </Card>

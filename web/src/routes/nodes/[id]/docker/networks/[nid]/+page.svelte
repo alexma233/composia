@@ -4,6 +4,7 @@
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
   import { Badge } from '$lib/components/ui/badge';
+  import { messages } from '$lib/i18n';
 
   interface Props {
     data: PageData;
@@ -26,7 +27,7 @@
       networkData = Array.isArray(parsed) ? parsed[0] : parsed;
       parseError = null;
     } catch (error) {
-      parseError = error instanceof Error ? error.message : 'Failed to parse network data';
+      parseError = error instanceof Error ? error.message : $messages.error.parseFailed;
       networkData = null;
     }
   });
@@ -56,7 +57,7 @@
               {#if networkData}
                 {networkData.Name || data.networkId.substring(0, 12)}
               {:else}
-                Network
+                {$messages.docker.networks.title}
               {/if}
             </CardTitle>
             <CardDescription class="page-description">
@@ -74,7 +75,7 @@
               </Badge>
             {/if}
             <a href="/nodes/{data.nodeId}/docker/networks" class="text-sm text-muted-foreground hover:underline">
-              Back to networks
+              {$messages.docker.networks.backToNetworks}
             </a>
           </div>
         </div>
@@ -83,45 +84,45 @@
       <CardContent>
         {#if data.error}
           <Alert variant="destructive">
-            <AlertTitle>Load failed</AlertTitle>
+            <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
             <AlertDescription>{data.error}</AlertDescription>
           </Alert>
         {:else if parseError}
           <Alert variant="destructive">
-            <AlertTitle>Parse failed</AlertTitle>
-            <AlertDescription>Failed to parse network data: {parseError}</AlertDescription>
+            <AlertTitle>{$messages.error.parseFailed}</AlertTitle>
+            <AlertDescription>{$messages.error.parseFailed}: {parseError}</AlertDescription>
           </Alert>
         {:else if networkData}
           <Tabs value="info" class="w-full">
             <TabsList class="mb-4">
-              <TabsTrigger value="info">Info</TabsTrigger>
-              <TabsTrigger value="containers">Containers</TabsTrigger>
-              <TabsTrigger value="raw">JSON</TabsTrigger>
+              <TabsTrigger value="info">{$messages.docker.containers.info}</TabsTrigger>
+              <TabsTrigger value="containers">{$messages.docker.networks.containers}</TabsTrigger>
+              <TabsTrigger value="raw">{$messages.docker.containers.json}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="info" class="space-y-4">
               <div class="grid gap-4 md:grid-cols-3">
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">Configuration</CardTitle>
+                    <CardTitle class="text-base">{$messages.docker.networks.configuration}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Driver</span>
+                      <span class="text-muted-foreground">{$messages.docker.networks.driver}</span>
                       <Badge variant={getDriverColor(networkData.Driver)}>{networkData.Driver}</Badge>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Scope</span>
+                      <span class="text-muted-foreground">{$messages.docker.networks.scope}</span>
                       <span>{networkData.Scope}</span>
                     </div>
                     {#if networkData.Labels && Object.keys(networkData.Labels).length > 0 && networkData.Labels['com.docker.compose.project']}
                       <div class="flex justify-between">
-                        <span class="text-muted-foreground">Compose Project</span>
+                        <span class="text-muted-foreground">{$messages.docker.networks.composeProject}</span>
                         <span>{networkData.Labels['com.docker.compose.project']}</span>
                       </div>
                     {/if}
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Created</span>
+                      <span class="text-muted-foreground">{$messages.common.created}</span>
                       <span>{formatDate(networkData.Created)}</span>
                     </div>
                   </CardContent>
@@ -129,36 +130,36 @@
 
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">Network Settings</CardTitle>
+                    <CardTitle class="text-base">{$messages.docker.networks.networkSettings}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     {#if networkData.IPAM?.Config && networkData.IPAM.Config.length > 0}
                       <div class="flex justify-between">
-                        <span class="text-muted-foreground">Subnet</span>
+                        <span class="text-muted-foreground">{$messages.docker.networks.subnet}</span>
                         <code class="text-xs bg-muted px-1 py-0.5 rounded">{networkData.IPAM.Config[0].Subnet}</code>
                       </div>
                       {#if networkData.IPAM.Config[0].Gateway}
                         <div class="flex justify-between">
-                          <span class="text-muted-foreground">Gateway</span>
+                          <span class="text-muted-foreground">{$messages.docker.networks.gateway}</span>
                           <code class="text-xs bg-muted px-1 py-0.5 rounded">{networkData.IPAM.Config[0].Gateway}</code>
                         </div>
                       {/if}
                     {:else}
                       <div class="flex justify-between">
-                        <span class="text-muted-foreground">Subnet</span>
+                        <span class="text-muted-foreground">{$messages.docker.networks.subnet}</span>
                         <span class="text-muted-foreground">-</span>
                       </div>
                     {/if}
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">IPv4 Enabled</span>
+                      <span class="text-muted-foreground">{$messages.docker.networks.ipv4Enabled}</span>
                       <Badge variant={networkData.EnableIPv4 === false ? 'secondary' : 'default'}>
-                        {networkData.EnableIPv4 !== false ? 'Yes' : 'No'}
+                        {networkData.EnableIPv4 !== false ? $messages.docker.containers.yes : $messages.docker.containers.no}
                       </Badge>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">IPv6 Enabled</span>
+                      <span class="text-muted-foreground">{$messages.docker.networks.ipv6Enabled}</span>
                       <Badge variant={networkData.EnableIPv6 ? 'default' : 'secondary'}>
-                        {networkData.EnableIPv6 ? 'Yes' : 'No'}
+                        {networkData.EnableIPv6 ? $messages.docker.containers.yes : $messages.docker.containers.no}
                       </Badge>
                     </div>
                   </CardContent>
@@ -166,25 +167,25 @@
 
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">Access Control</CardTitle>
+                    <CardTitle class="text-base">{$messages.docker.networks.accessControl}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Internal</span>
+                      <span class="text-muted-foreground">{$messages.docker.networks.internal}</span>
                       <Badge variant={networkData.Internal ? 'outline' : 'secondary'}>
-                        {networkData.Internal ? 'Yes' : 'No'}
+                        {networkData.Internal ? $messages.docker.containers.yes : $messages.docker.containers.no}
                       </Badge>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Attachable</span>
+                      <span class="text-muted-foreground">{$messages.docker.networks.attachable}</span>
                       <Badge variant={networkData.Attachable ? 'default' : 'secondary'}>
-                        {networkData.Attachable ? 'Yes' : 'No'}
+                        {networkData.Attachable ? $messages.docker.containers.yes : $messages.docker.containers.no}
                       </Badge>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Ingress</span>
+                      <span class="text-muted-foreground">{$messages.docker.networks.ingress}</span>
                       <Badge variant={networkData.Ingress ? 'outline' : 'secondary'}>
-                        {networkData.Ingress ? 'Yes' : 'No'}
+                        {networkData.Ingress ? $messages.docker.containers.yes : $messages.docker.containers.no}
                       </Badge>
                     </div>
                   </CardContent>
@@ -194,7 +195,7 @@
               {#if networkData.Labels && Object.keys(networkData.Labels).length > 0}
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">Labels</CardTitle>
+                    <CardTitle class="text-base">{$messages.docker.networks.labels}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div class="space-y-1">
@@ -214,7 +215,7 @@
               {#if networkData.Containers && Object.keys(networkData.Containers).length > 0}
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">Connected Containers ({Object.keys(networkData.Containers).length})</CardTitle>
+                    <CardTitle class="text-base">{$messages.docker.networks.connectedContainers} ({Object.keys(networkData.Containers).length})</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div class="space-y-3">
@@ -228,19 +229,19 @@
                           <div class="grid gap-1 text-sm">
                             {#if typedContainer.IPv4Address}
                               <div class="flex gap-2">
-                                <span class="text-muted-foreground w-12">IPv4:</span>
+                                <span class="text-muted-foreground w-12">{$messages.docker.networks.ipv4}:</span>
                                 <code class="text-xs bg-muted px-1 py-0.5 rounded">{typedContainer.IPv4Address}</code>
                               </div>
                             {/if}
                             {#if typedContainer.IPv6Address}
                               <div class="flex gap-2">
-                                <span class="text-muted-foreground w-12">IPv6:</span>
+                                <span class="text-muted-foreground w-12">{$messages.docker.networks.ipv6}:</span>
                                 <code class="text-xs bg-muted px-1 py-0.5 rounded">{typedContainer.IPv6Address}</code>
                               </div>
                             {/if}
                             {#if typedContainer.MacAddress}
                               <div class="flex gap-2">
-                                <span class="text-muted-foreground w-12">MAC:</span>
+                                <span class="text-muted-foreground w-12">{$messages.docker.networks.mac}:</span>
                                 <code class="text-xs bg-muted px-1 py-0.5 rounded">{typedContainer.MacAddress}</code>
                               </div>
                             {/if}
@@ -251,15 +252,15 @@
                   </CardContent>
                 </Card>
               {:else}
-                <div class="text-sm text-muted-foreground">No containers connected to this network</div>
+                <div class="text-sm text-muted-foreground">{$messages.docker.networks.noContainersConnected}</div>
               {/if}
             </TabsContent>
 
             <TabsContent value="raw">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base">Raw JSON</CardTitle>
-                  <CardDescription>Full network inspection data in JSON format</CardDescription>
+                  <CardTitle class="text-base">{$messages.docker.networks.rawJson}</CardTitle>
+                  <CardDescription>{$messages.docker.networks.rawJsonDescription}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <pre class="code-surface max-h-[600px] overflow-auto break-all">{JSON.stringify(networkData, null, 2)}</pre>
@@ -268,7 +269,7 @@
             </TabsContent>
           </Tabs>
         {:else}
-          <div class="text-sm text-muted-foreground">Loading...</div>
+          <div class="text-sm text-muted-foreground">{$messages.common.loadingWithDots}</div>
         {/if}
       </CardContent>
     </Card>

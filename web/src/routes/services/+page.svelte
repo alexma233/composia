@@ -11,6 +11,7 @@
   import * as Popover from '$lib/components/ui/popover';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { formatTimestamp, runtimeStatusTone } from '$lib/presenters';
+  import { messages } from '$lib/i18n';
 
   interface Props {
     data: PageData;
@@ -33,9 +34,9 @@
   }
 
   function statusText(hasMeta: boolean, runtimeStatus: string) {
-    if (!hasMeta) return 'no meta';
-    if (runtimeStatus === 'needs_validation') return 'meta draft';
-    return runtimeStatus || 'unknown';
+    if (!hasMeta) return $messages.services.noMeta;
+    if (runtimeStatus === 'needs_validation') return $messages.services.metaDraft;
+    return runtimeStatus || $messages.common.unknown;
   }
 </script>
 
@@ -44,7 +45,7 @@
 		<CardHeader>
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="space-y-1">
-          <CardTitle class="page-title">Services</CardTitle>
+          <CardTitle class="page-title">{$messages.services.title}</CardTitle>
         </div>
         <div class="flex items-center gap-3">
           {#if data.repoHead}
@@ -53,27 +54,27 @@
                 {#snippet child({ props: triggerProps })}
                   <Button type="button" {...triggerProps}>
                     <Plus class="mr-2 size-4" />
-                    Create service
+                    {$messages.services.createService}
                   </Button>
                 {/snippet}
               </Popover.Trigger>
               <Popover.Content class="w-80" align="end" sideOffset={8}>
                 <form method="POST" action="?/create">
                   <div class="space-y-4">
-                    <p class="text-sm font-medium">Create service</p>
+                    <p class="text-sm font-medium">{$messages.services.createService}</p>
                     <input type="hidden" name="baseRevision" value={data.repoHead.headRevision} />
                     <div class="grid gap-2">
-                      <label for="folder" class="text-sm font-medium">Folder name</label>
+                      <label for="folder" class="text-sm font-medium">{$messages.services.folderName}</label>
                       <Input id="folder" name="folder" bind:value={newFolder} placeholder="my-service" />
                     </div>
                     {#if form?.error}
                       <Alert variant="destructive">
-                        <AlertTitle>Create failed</AlertTitle>
+                        <AlertTitle>{$messages.error.createFailed}</AlertTitle>
                         <AlertDescription>{form.error}</AlertDescription>
                       </Alert>
                     {/if}
                     <div class="flex justify-end gap-2">
-                      <Button type="submit" size="sm">Create</Button>
+                      <Button type="submit" size="sm">{$messages.common.create}</Button>
                     </div>
                   </div>
                 </form>
@@ -86,7 +87,7 @@
 
       {#if data.error}
         <Alert variant="destructive">
-          <AlertTitle>Load failed</AlertTitle>
+          <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
           <AlertDescription>{data.error}</AlertDescription>
         </Alert>
       {/if}
@@ -97,10 +98,10 @@
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Service</TableHead>
-              <TableHead>Folder</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead class="w-52">Updated</TableHead>
+              <TableHead>{$messages.services.service}</TableHead>
+              <TableHead>{$messages.services.folder}</TableHead>
+              <TableHead>{$messages.common.status}</TableHead>
+              <TableHead class="w-52">{$messages.common.updated}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -119,9 +120,9 @@
                   {#if service.updatedAt}
                     {formatTimestamp(service.updatedAt)}
                   {:else if service.hasMeta}
-                    Meta exists, not declared yet
+                    {$messages.services.metaExistsNotDeclared}
                   {:else}
-                    No meta file yet
+                    {$messages.services.noMetaFile}
                   {/if}
                 </TableCell>
               </TableRow>
@@ -129,7 +130,7 @@
           </TableBody>
         </Table>
       {:else}
-        <div class="empty-state">No services loaded.</div>
+        <div class="empty-state">{$messages.common.noData}</div>
       {/if}
     </CardContent>
   </Card>

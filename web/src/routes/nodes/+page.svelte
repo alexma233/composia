@@ -6,6 +6,7 @@
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { formatTimestamp, onlineStatusTone } from '$lib/presenters';
+  import { messages } from '$lib/i18n';
 
   interface Props {
     data: PageData;
@@ -18,13 +19,13 @@
 	<Card>
 		<CardHeader>
       <div class="flex items-start justify-between gap-4">
-        <CardTitle class="page-title">Nodes</CardTitle>
+        <CardTitle class="page-title">{$messages.nodes.title}</CardTitle>
         <Badge variant="outline">{data.nodes.length}</Badge>
       </div>
 
       {#if data.error}
         <Alert variant="destructive">
-          <AlertTitle>Load failed</AlertTitle>
+          <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
           <AlertDescription>{data.error}</AlertDescription>
         </Alert>
       {/if}
@@ -35,9 +36,9 @@
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Node</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead class="w-56">Last heartbeat</TableHead>
+              <TableHead>{$messages.nodes.node}</TableHead>
+              <TableHead>{$messages.common.status}</TableHead>
+              <TableHead class="w-56">{$messages.nodes.lastHeartbeat}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -49,7 +50,7 @@
                 </TableCell>
                 <TableCell>
                   <Badge variant={onlineStatusTone(node.isOnline)}>
-                    {node.isOnline ? 'online' : 'offline'}
+                    {node.isOnline ? $messages.status.online : $messages.status.offline}
                   </Badge>
                 </TableCell>
                 <TableCell class="text-muted-foreground">{formatTimestamp(node.lastHeartbeat)}</TableCell>
@@ -58,7 +59,7 @@
           </TableBody>
         </Table>
       {:else}
-        <div class="empty-state">No nodes loaded.</div>
+        <div class="empty-state">{$messages.nodes.noNodes}</div>
       {/if}
     </CardContent>
   </Card>

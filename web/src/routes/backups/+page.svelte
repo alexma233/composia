@@ -2,6 +2,7 @@
   import type { PageData } from './$types';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
+  import { messages } from '$lib/i18n';
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
@@ -16,7 +17,7 @@
     PaginationNextButton,
     PaginationPrevButton,
   } from '$lib/components/ui/pagination';
-  import { formatTimestamp, taskStatusTone } from '$lib/presenters';
+  import { formatTimestamp, taskStatusLabel, taskStatusTone } from '$lib/presenters';
 
   interface Props {
     data: PageData;
@@ -56,13 +57,13 @@
 	<Card>
 		<CardHeader>
       <div class="flex items-start justify-between gap-4">
-        <CardTitle class="page-title">Backups</CardTitle>
+        <CardTitle class="page-title">{$messages.backups.title}</CardTitle>
         <Badge variant="outline">{data.totalCount}</Badge>
       </div>
 
       {#if data.error}
         <Alert variant="destructive">
-          <AlertTitle>Load failed</AlertTitle>
+          <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
           <AlertDescription>{data.error}</AlertDescription>
         </Alert>
       {/if}
@@ -73,10 +74,10 @@
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Backup</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Task</TableHead>
-              <TableHead class="w-56">Finished</TableHead>
+              <TableHead>{$messages.backups.backup}</TableHead>
+              <TableHead>{$messages.common.status}</TableHead>
+              <TableHead>{$messages.nav.tasks}</TableHead>
+              <TableHead class="w-56">{$messages.common.finished}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -87,7 +88,7 @@
                   <div class="text-xs text-muted-foreground">{backup.backupId}</div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={taskStatusTone(backup.status)}>{backup.status}</Badge>
+                  <Badge variant={taskStatusTone(backup.status)}>{taskStatusLabel(backup.status, $messages)}</Badge>
                 </TableCell>
                 <TableCell class="text-muted-foreground">{backup.taskId}</TableCell>
                 <TableCell class="text-muted-foreground">{formatTimestamp(backup.finishedAt || backup.startedAt)}</TableCell>
@@ -96,7 +97,7 @@
           </TableBody>
         </Table>
       {:else}
-        <div class="empty-state">No backups loaded.</div>
+        <div class="empty-state">{$messages.backups.noBackups}</div>
       {/if}
 
       {#if totalPages > 1}

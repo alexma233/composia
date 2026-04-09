@@ -12,6 +12,7 @@
   import Spinner from '$lib/components/ui/spinner/spinner.svelte';
   import SearchIcon from '@lucide/svelte/icons/search';
   import { Alert, AlertDescription } from '$lib/components/ui/alert';
+  import { messages } from '$lib/i18n';
 
   interface Props {
     data: PageData;
@@ -118,16 +119,16 @@
 			<CardHeader>
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div class="space-y-1">
-            <CardTitle class="page-title">Images</CardTitle>
+            <CardTitle class="page-title">{$messages.docker.images.title}</CardTitle>
             <CardDescription class="page-description">
-              Docker images on {data.nodeId}
+              {$messages.docker.images.title} on {data.nodeId}
               {#if !loading}
                 <Badge variant="secondary" class="ml-2">{images.length}</Badge>
               {/if}
             </CardDescription>
           </div>
           <a href="/nodes/{data.nodeId}" class="text-sm text-muted-foreground hover:underline">
-            Back to node
+            {$messages.common.back}
           </a>
         </div>
 
@@ -136,18 +137,18 @@
             <SearchIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search images..."
+              placeholder={$messages.docker.images.searchPlaceholder}
               class="pl-9"
               bind:value={searchQuery}
             />
           </div>
           {#if searchQuery}
             <Button variant="ghost" size="sm" onclick={() => (searchQuery = '')}>
-              Clear
+              {$messages.common.cancel}
             </Button>
           {/if}
           <Button variant="outline" size="sm" onclick={() => void refreshImages()} disabled={loading || !data.ready}>
-            {#if loading}Loading...{:else}Refresh{/if}
+            {#if loading}{$messages.common.loading}...{:else}{$messages.common.refresh}{/if}
           </Button>
         </div>
       </CardHeader>
@@ -160,18 +161,18 @@
           <div class="flex min-h-[320px] items-center justify-center">
             <div class="flex items-center gap-3 text-sm text-muted-foreground">
               <Spinner />
-              <span>Loading images...</span>
+              <span>{$messages.common.loading} {$messages.docker.images.title}...</span>
             </div>
           </div>
         {:else if sortedImages.length > 0}
           <Table>
             <TableHeader>
               <TableRow>
-                <SortableTableHead field="name" label="Image" {sortField} {sortDirection} onSort={handleSort} class="w-[40%]" />
-                <SortableTableHead field="size" label="Size" {sortField} {sortDirection} onSort={handleSort} class="w-[15%]" />
-                <TableHead class="w-[20%]">Architecture</TableHead>
-                <TableHead class="w-[15%]">Usage</TableHead>
-                <SortableTableHead field="created" label="Created" {sortField} {sortDirection} onSort={handleSort} class="w-[15%]" />
+                <SortableTableHead field="name" label={$messages.docker.images.repository} {sortField} {sortDirection} onSort={handleSort} class="w-[40%]" />
+                <SortableTableHead field="size" label={$messages.docker.images.size} {sortField} {sortDirection} onSort={handleSort} class="w-[15%]" />
+                <TableHead class="w-[20%]">{$messages.docker.images.architecture}</TableHead>
+                <TableHead class="w-[15%]">{$messages.docker.images.usage}</TableHead>
+                <SortableTableHead field="created" label={$messages.common.created} {sortField} {sortDirection} onSort={handleSort} class="w-[15%]" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -188,14 +189,14 @@
                             {image.repoTags[0]}
                           </a>
                         {#if image.repoTags.length > 1}
-                          <div class="text-xs text-muted-foreground">+{image.repoTags.length - 1} more tags</div>
+                          <div class="text-xs text-muted-foreground">+{image.repoTags.length - 1} {$messages.docker.images.moreTags}</div>
                         {/if}
                       {:else if image.isDangling}
                         <a
                           href="/nodes/{data.nodeId}/docker/images/{encodeURIComponent(image.id)}"
                           class="font-medium text-muted-foreground hover:underline"
-                        >&lt;none&gt;</a>
-                        <Badge variant="secondary" class="text-xs">Dangling</Badge>
+                        >&lt;{$messages.common.none}&gt;</a>
+                        <Badge variant="secondary" class="text-xs">{$messages.docker.images.dangling}</Badge>
                       {:else}
                         <a
                           href="/nodes/{data.nodeId}/docker/images/{encodeURIComponent(image.id)}"
@@ -206,7 +207,7 @@
                         <code class="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
                           {formatShortId(image.id)}
                         </code>
-                        <CopyButton text={image.id} label="Copy full ID" />
+                        <CopyButton text={image.id} label="{$messages.common.copy} ID" />
                       </div>
                     </div>
                   </TableCell>
@@ -224,9 +225,9 @@
                   </TableCell>
                   <TableCell>
                     {#if image.containersCount && image.containersCount > 0}
-                      <Badge variant="default">{image.containersCount} container{image.containersCount > 1 ? 's' : ''}</Badge>
+                      <Badge variant="default">{image.containersCount} {$messages.nodes.docker.containers}</Badge>
                     {:else}
-                      <Badge variant="secondary">Unused</Badge>
+                      <Badge variant="secondary">{$messages.docker.images.unused}</Badge>
                     {/if}
                   </TableCell>
                   <TableCell>
@@ -240,15 +241,15 @@
           </Table>
           {#if filteredImages.length !== images.length}
             <div class="mt-3 text-xs text-muted-foreground text-center">
-              Showing {filteredImages.length} of {images.length} images
+              {filteredImages.length} / {images.length}
             </div>
           {/if}
         {:else if searchQuery}
           <div class="empty-state">
-            No images matching "{searchQuery}".
+            {$messages.common.noData}
           </div>
         {:else}
-          <div class="empty-state">No images found.</div>
+          <div class="empty-state">{$messages.docker.images.noImages}</div>
         {/if}
       </CardContent>
     </Card>

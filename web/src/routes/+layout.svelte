@@ -73,7 +73,7 @@
           {#if isServiceWorkspace($page.url.pathname) && data.navServices.length}
             <div class="toolbar-surface flex items-center gap-3 text-sm text-muted-foreground">
               <span class="text-xs font-medium text-muted-foreground">
-                Service
+                {$messages.nav.services}
               </span>
               <Select type="single" bind:value={selectedService as any} onValueChange={(value: string) => handleServiceSwitch(value)}>
                 <SelectTrigger class="min-w-36 border-0 bg-transparent p-0 text-sm font-medium text-foreground shadow-none outline-none focus:ring-0">

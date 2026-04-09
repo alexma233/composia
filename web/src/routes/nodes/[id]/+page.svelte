@@ -6,7 +6,8 @@
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
-  import { formatBytes, formatTimestamp, onlineStatusTone, taskStatusTone } from '$lib/presenters';
+  import { formatBytes, formatTimestamp, onlineStatusTone, taskStatusLabel, taskStatusTone } from '$lib/presenters';
+  import { messages } from '$lib/i18n';
 
   interface Props {
     data: PageData;
@@ -26,23 +27,23 @@
               <CardTitle class="page-title">{data.node.displayName}</CardTitle>
               {#if data.node.displayName !== data.node.nodeId}
                 <p class="text-sm text-muted-foreground">
-                  {data.node.nodeId} · last heartbeat {formatTimestamp(data.node.lastHeartbeat)}
+                  {data.node.nodeId} · {$messages.dashboard.lastHeartbeat} {formatTimestamp(data.node.lastHeartbeat)}
                 </p>
               {:else}
                 <p class="text-sm text-muted-foreground">
-                  last heartbeat {formatTimestamp(data.node.lastHeartbeat)}
+                  {$messages.dashboard.lastHeartbeat} {formatTimestamp(data.node.lastHeartbeat)}
                 </p>
               {/if}
             </div>
             <Badge variant={onlineStatusTone(data.node.isOnline)}>
-              {data.node.isOnline ? 'online' : 'offline'}
+              {data.node.isOnline ? $messages.status.online : $messages.status.offline}
             </Badge>
           </div>
         {/if}
 
         {#if data.error}
           <Alert variant="destructive">
-            <AlertTitle>Load failed</AlertTitle>
+            <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
             <AlertDescription>{data.error}</AlertDescription>
           </Alert>
         {/if}
@@ -51,7 +52,7 @@
 
 		<Card>
       <CardHeader>
-        <CardTitle class="section-title">Docker</CardTitle>
+        <CardTitle class="section-title">{$messages.nodes.docker.title}</CardTitle>
       </CardHeader>
       <CardContent>
         {#if data.dockerStats}
@@ -59,29 +60,29 @@
             <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <a href="/nodes/{data.node?.nodeId}/docker/containers" class="stat-link">
                 <div class="text-2xl font-semibold">{data.dockerStats.containersRunning}/{data.dockerStats.containersTotal}</div>
-                <div class="text-xs text-muted-foreground">Containers</div>
+                <div class="text-xs text-muted-foreground">{$messages.nodes.docker.containers}</div>
               </a>
               <a href="/nodes/{data.node?.nodeId}/docker/images" class="stat-link">
                 <div class="text-2xl font-semibold">{data.dockerStats.images}</div>
-                <div class="text-xs text-muted-foreground">Images</div>
+                <div class="text-xs text-muted-foreground">{$messages.nodes.docker.images}</div>
               </a>
               <a href="/nodes/{data.node?.nodeId}/docker/networks" class="stat-link">
                 <div class="text-2xl font-semibold">{data.dockerStats.networks}</div>
-                <div class="text-xs text-muted-foreground">Networks</div>
+                <div class="text-xs text-muted-foreground">{$messages.nodes.docker.networks}</div>
               </a>
               <a href="/nodes/{data.node?.nodeId}/docker/volumes" class="stat-link">
                 <div class="text-2xl font-semibold">{data.dockerStats.volumes}</div>
-                <div class="text-xs text-muted-foreground">Volumes</div>
+                <div class="text-xs text-muted-foreground">{$messages.nodes.docker.volumes}</div>
               </a>
             </div>
 
             <div class="text-sm text-muted-foreground">
-              Docker {data.dockerStats.dockerServerVersion || 'unknown version'}
+              {$messages.nodes.docker.version} {data.dockerStats.dockerServerVersion || $messages.common.unknown}
               {#if data.dockerStats.volumesSizeBytes > 0}
-                · {formatBytes(data.dockerStats.volumesSizeBytes)} in volumes
+                · {formatBytes(data.dockerStats.volumesSizeBytes)} {$messages.nodes.docker.volumesSize}
               {/if}
               {#if data.dockerStats.disksUsageBytes > 0}
-                · {formatBytes(data.dockerStats.disksUsageBytes)} disk usage
+                · {formatBytes(data.dockerStats.disksUsageBytes)} {$messages.nodes.docker.diskUsage}
               {/if}
             </div>
 
@@ -94,45 +95,45 @@
             {#if data.node?.isOnline}
               <div class="flex flex-wrap gap-2">
                 <form method="POST" action="?/syncCaddyFiles" use:enhance>
-                  <Button variant="outline" size="sm" type="submit">Rebuild Caddy files</Button>
+                  <Button variant="outline" size="sm" type="submit">{$messages.nodes.docker.rebuildCaddy}</Button>
                 </form>
                 <form method="POST" action="?/reloadCaddy" use:enhance>
-                  <Button variant="outline" size="sm" type="submit">Reload Caddy</Button>
+                  <Button variant="outline" size="sm" type="submit">{$messages.nodes.docker.reloadCaddy}</Button>
                 </form>
                 <form method="POST" action="?/prune" use:enhance>
                   <input type="hidden" name="target" value="all" />
-                  <Button variant="outline" size="sm" type="submit">Prune All</Button>
+                  <Button variant="outline" size="sm" type="submit">{$messages.nodes.docker.prune.all}</Button>
                 </form>
                 <form method="POST" action="?/prune" use:enhance>
                   <input type="hidden" name="target" value="containers" />
-                  <Button variant="outline" size="sm" type="submit">Prune Containers</Button>
+                  <Button variant="outline" size="sm" type="submit">{$messages.nodes.docker.prune.containers}</Button>
                 </form>
                 <form method="POST" action="?/prune" use:enhance>
                   <input type="hidden" name="target" value="images" />
-                  <Button variant="outline" size="sm" type="submit">Prune Images</Button>
+                  <Button variant="outline" size="sm" type="submit">{$messages.nodes.docker.prune.images}</Button>
                 </form>
                 <form method="POST" action="?/prune" use:enhance>
                   <input type="hidden" name="target" value="networks" />
-                  <Button variant="outline" size="sm" type="submit">Prune Networks</Button>
+                  <Button variant="outline" size="sm" type="submit">{$messages.nodes.docker.prune.networks}</Button>
                 </form>
                 <form method="POST" action="?/prune" use:enhance>
                   <input type="hidden" name="target" value="volumes" />
-                  <Button variant="outline" size="sm" type="submit">Prune Volumes</Button>
+                  <Button variant="outline" size="sm" type="submit">{$messages.nodes.docker.prune.volumes}</Button>
                 </form>
               </div>
             {:else}
-              <div class="text-sm text-muted-foreground">Node is offline. Caddy sync, Caddy reload, and prune operations require an online node.</div>
+              <div class="text-sm text-muted-foreground">{$messages.nodes.docker.nodeOffline}</div>
             {/if}
           </div>
         {:else}
-          <div class="text-sm text-muted-foreground">No Docker stats available. Stats are reported by the agent.</div>
+          <div class="text-sm text-muted-foreground">{$messages.nodes.docker.noStats}</div>
         {/if}
       </CardContent>
     </Card>
 
 		<Card>
       <CardHeader>
-        <CardTitle class="section-title">Recent tasks</CardTitle>
+        <CardTitle class="section-title">{$messages.dashboard.recentTasks}</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="space-y-3">
@@ -144,15 +145,15 @@
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="min-w-0 flex-1">
                   <div class="truncate text-sm font-medium">{task.type}</div>
-                  <div class="truncate text-xs text-muted-foreground">{task.serviceName ?? 'node-level'}</div>
+                  <div class="truncate text-xs text-muted-foreground">{task.serviceName ?? $messages.tasks.nodeLevel}</div>
                 </div>
-                <Badge variant={taskStatusTone(task.status)}>{task.status}</Badge>
+                <Badge variant={taskStatusTone(task.status)}>{taskStatusLabel(task.status, $messages)}</Badge>
               </div>
               <div class="mt-2 text-xs text-muted-foreground">{formatTimestamp(task.createdAt)}</div>
             </a>
           {/each}
           {#if !data.tasks.length}
-            <div class="empty-state">No tasks loaded.</div>
+            <div class="empty-state">{$messages.tasks.noTasks}</div>
           {/if}
         </div>
       </CardContent>

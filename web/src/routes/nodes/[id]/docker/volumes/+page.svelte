@@ -12,6 +12,7 @@
   import Spinner from '$lib/components/ui/spinner/spinner.svelte';
   import SearchIcon from '@lucide/svelte/icons/search';
   import { Alert, AlertDescription } from '$lib/components/ui/alert';
+  import { messages } from '$lib/i18n';
 
   interface Props {
     data: PageData;
@@ -113,16 +114,16 @@
 			<CardHeader>
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div class="space-y-1">
-            <CardTitle class="page-title">Volumes</CardTitle>
+            <CardTitle class="page-title">{$messages.docker.volumes.title}</CardTitle>
             <CardDescription class="page-description">
-              Docker volumes on {data.nodeId}
+              {$messages.docker.volumes.title} on {data.nodeId}
               {#if !loading}
                 <Badge variant="secondary" class="ml-2">{volumes.length}</Badge>
               {/if}
             </CardDescription>
           </div>
           <a href="/nodes/{data.nodeId}" class="text-sm text-muted-foreground hover:underline">
-            Back to node
+            {$messages.common.back}
           </a>
         </div>
 
@@ -131,18 +132,18 @@
             <SearchIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search volumes..."
+              placeholder={$messages.docker.volumes.searchPlaceholder}
               class="pl-9"
               bind:value={searchQuery}
             />
           </div>
           {#if searchQuery}
             <Button variant="ghost" size="sm" onclick={() => (searchQuery = '')}>
-              Clear
+              {$messages.common.cancel}
             </Button>
           {/if}
           <Button variant="outline" size="sm" onclick={() => void refreshVolumes()} disabled={loading || !data.ready}>
-            {#if loading}Loading...{:else}Refresh{/if}
+            {#if loading}{$messages.common.loading}...{:else}{$messages.common.refresh}{/if}
           </Button>
         </div>
       </CardHeader>
@@ -162,13 +163,13 @@
           <Table>
             <TableHeader>
               <TableRow>
-                <SortableTableHead field="name" label="Name" {sortField} {sortDirection} onSort={handleSort} class="w-[25%]" />
-                <TableHead class="w-[10%]">Driver</TableHead>
-                <TableHead class="w-[10%]">Size</TableHead>
-                <TableHead class="w-[10%]">Usage</TableHead>
-                <TableHead class="w-[25%]">Mount Point</TableHead>
-                <TableHead class="w-[10%]">Scope</TableHead>
-                <SortableTableHead field="created" label="Created" {sortField} {sortDirection} onSort={handleSort} class="w-[15%]" />
+                <SortableTableHead field="name" label={$messages.common.name} {sortField} {sortDirection} onSort={handleSort} class="w-[25%]" />
+                <TableHead class="w-[10%]">{$messages.docker.volumes.driver}</TableHead>
+                <TableHead class="w-[10%]">{$messages.docker.volumes.size}</TableHead>
+                <TableHead class="w-[10%]">{$messages.docker.volumes.usage}</TableHead>
+                <TableHead class="w-[25%]">{$messages.docker.volumes.mountpoint}</TableHead>
+                <TableHead class="w-[10%]">{$messages.docker.volumes.scope}</TableHead>
+                <SortableTableHead field="created" label={$messages.common.created} {sortField} {sortDirection} onSort={handleSort} class="w-[15%]" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -205,9 +206,9 @@
                   </TableCell>
                   <TableCell>
                     {#if volume.inUse}
-                      <Badge variant="default">{volume.containersCount} container{volume.containersCount > 1 ? 's' : ''}</Badge>
+                      <Badge variant="default">{volume.containersCount} {$messages.docker.containers.title}</Badge>
                     {:else}
-                      <Badge variant="secondary">Unused</Badge>
+                      <Badge variant="secondary">{$messages.docker.volumes.unused}</Badge>
                     {/if}
                   </TableCell>
                   <TableCell>
@@ -215,7 +216,7 @@
                       <code class="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded truncate max-w-[200px]" title={volume.mountpoint}>
                         {volume.mountpoint}
                       </code>
-                      <CopyButton text={volume.mountpoint} label="Copy mount point" />
+                      <CopyButton text={volume.mountpoint} label={$messages.common.copy} />
                     </div>
                   </TableCell>
                   <TableCell>
@@ -237,10 +238,10 @@
           {/if}
         {:else if searchQuery}
           <div class="empty-state">
-            No volumes matching "{searchQuery}".
+            {$messages.common.noData}
           </div>
         {:else}
-          <div class="empty-state">No volumes found.</div>
+          <div class="empty-state">{$messages.docker.volumes.noVolumes}</div>
         {/if}
       </CardContent>
     </Card>

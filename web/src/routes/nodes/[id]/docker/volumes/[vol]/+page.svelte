@@ -4,6 +4,7 @@
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
   import { Badge } from '$lib/components/ui/badge';
+  import { messages } from '$lib/i18n';
 
   interface Props {
     data: PageData;
@@ -26,7 +27,7 @@
       volumeData = Array.isArray(parsed) ? parsed[0] : parsed;
       parseError = null;
     } catch (error) {
-      parseError = error instanceof Error ? error.message : 'Failed to parse volume data';
+      parseError = error instanceof Error ? error.message : $messages.error.parseFailed;
       volumeData = null;
     }
   });
@@ -56,19 +57,19 @@
               {#if volumeData}
                 {volumeData.Name || data.volumeName}
               {:else}
-                Volume
+                {$messages.docker.volumes.title}
               {/if}
             </CardTitle>
             <CardDescription class="page-description">
               {#if volumeData}
-                <Badge variant="outline">{volumeData.Driver || 'local'}</Badge>
+                <Badge variant="outline">{volumeData.Driver || $messages.common.local}</Badge>
               {:else}
                 {data.volumeName}
               {/if}
             </CardDescription>
           </div>
           <a href="/nodes/{data.nodeId}/docker/volumes" class="text-sm text-muted-foreground hover:underline">
-            Back to volumes
+            {$messages.docker.volumes.backToVolumes}
           </a>
         </div>
       </CardHeader>
@@ -76,45 +77,45 @@
       <CardContent>
         {#if data.error}
           <Alert variant="destructive">
-            <AlertTitle>Load failed</AlertTitle>
+            <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
             <AlertDescription>{data.error}</AlertDescription>
           </Alert>
         {:else if parseError}
           <Alert variant="destructive">
-            <AlertTitle>Parse failed</AlertTitle>
-            <AlertDescription>Failed to parse volume data: {parseError}</AlertDescription>
+            <AlertTitle>{$messages.error.parseFailed}</AlertTitle>
+            <AlertDescription>{$messages.error.parseFailed}: {parseError}</AlertDescription>
           </Alert>
         {:else if volumeData}
           <Tabs value="info" class="w-full">
             <TabsList class="mb-4">
-              <TabsTrigger value="info">Info</TabsTrigger>
-              <TabsTrigger value="usage">Usage</TabsTrigger>
-              <TabsTrigger value="raw">JSON</TabsTrigger>
+              <TabsTrigger value="info">{$messages.docker.containers.info}</TabsTrigger>
+              <TabsTrigger value="usage">{$messages.docker.volumes.usage}</TabsTrigger>
+              <TabsTrigger value="raw">{$messages.docker.containers.json}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="info" class="space-y-4">
               <div class="grid gap-4 md:grid-cols-2">
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">Details</CardTitle>
+                    <CardTitle class="text-base">{$messages.docker.volumes.details}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Driver</span>
+                      <span class="text-muted-foreground">{$messages.docker.volumes.driver}</span>
                       <Badge variant="outline">{volumeData.Driver || 'local'}</Badge>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Scope</span>
-                      <span>{volumeData.Scope || 'local'}</span>
+                      <span class="text-muted-foreground">{$messages.docker.volumes.scope}</span>
+                        <span>{volumeData.Scope || $messages.common.local}</span>
                     </div>
                     {#if volumeData.Options && Object.keys(volumeData.Options).length > 0}
                       <div class="flex justify-between">
-                        <span class="text-muted-foreground">Options</span>
-                        <span class="text-xs">{Object.keys(volumeData.Options).length} options</span>
+                        <span class="text-muted-foreground">{$messages.docker.volumes.options}</span>
+                        <span class="text-xs">{Object.keys(volumeData.Options).length} {$messages.docker.volumes.options}</span>
                       </div>
                     {/if}
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Created</span>
+                      <span class="text-muted-foreground">{$messages.docker.volumes.created}</span>
                       <span>{formatDate(volumeData.CreatedAt)}</span>
                     </div>
                   </CardContent>
@@ -122,22 +123,22 @@
 
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">Storage</CardTitle>
+                    <CardTitle class="text-base">{$messages.docker.volumes.storage}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     {#if volumeData.UsageData?.Size}
                       <div class="flex justify-between">
-                        <span class="text-muted-foreground">Size</span>
+                        <span class="text-muted-foreground">{$messages.docker.volumes.size}</span>
                         <Badge variant="secondary">{formatSize(volumeData.UsageData.Size)}</Badge>
                       </div>
                     {:else}
                       <div class="flex justify-between">
-                        <span class="text-muted-foreground">Size</span>
+                        <span class="text-muted-foreground">{$messages.docker.volumes.size}</span>
                         <span class="text-muted-foreground">-</span>
                       </div>
                     {/if}
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Mount Point</span>
+                        <span class="text-muted-foreground">{$messages.docker.volumes.mountpoint}</span>
                       <code class="text-xs bg-muted px-1 py-0.5 rounded truncate max-w-[200px]" title={volumeData.Mountpoint}>
                         {volumeData.Mountpoint}
                       </code>
@@ -149,7 +150,7 @@
               {#if volumeData.Labels && Object.keys(volumeData.Labels).length > 0}
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">Labels</CardTitle>
+                    <CardTitle class="text-base">{$messages.common.labels}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div class="space-y-1">
@@ -167,7 +168,7 @@
               {#if volumeData.Options && Object.keys(volumeData.Options).length > 0}
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">Options</CardTitle>
+                    <CardTitle class="text-base">{$messages.docker.volumes.options}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div class="space-y-1">
@@ -187,24 +188,26 @@
               {#if volumeData.UsageData}
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">Usage Statistics</CardTitle>
+                    <CardTitle class="text-base">{$messages.docker.volumes.usageStatistics}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Size</span>
+                      <span class="text-muted-foreground">{$messages.docker.volumes.size}</span>
                       <Badge variant="secondary">{formatSize(volumeData.UsageData.Size)}</Badge>
                     </div>
                     <div class="flex justify-between">
-                      <span class="text-muted-foreground">Ref Count</span>
+                      <span class="text-muted-foreground">{$messages.docker.volumes.refCount}</span>
                       <Badge variant={volumeData.UsageData.RefCount > 0 ? 'default' : 'secondary'}>
-                        {volumeData.UsageData.RefCount} container{volumeData.UsageData.RefCount !== 1 ? 's' : ''}
+                        {volumeData.UsageData.RefCount === 1
+                          ? $messages.docker.volumes.containerCount.replace('{count}', String(volumeData.UsageData.RefCount))
+                          : $messages.docker.volumes.containersCount.replace('{count}', String(volumeData.UsageData.RefCount))}
                       </Badge>
                     </div>
                   </CardContent>
                 </Card>
               {:else}
                 <div class="text-sm text-muted-foreground">
-                  Usage statistics are not available for this volume. This may occur when the volume is not in use or when the Docker version does not support volume usage reporting.
+                  {$messages.docker.volumes.usageNotAvailable}
                 </div>
               {/if}
             </TabsContent>
@@ -212,8 +215,8 @@
             <TabsContent value="raw">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base">Raw JSON</CardTitle>
-                  <CardDescription>Full volume inspection data in JSON format</CardDescription>
+                  <CardTitle class="text-base">{$messages.docker.volumes.rawJson}</CardTitle>
+                  <CardDescription>{$messages.docker.volumes.rawJsonDescription}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <pre class="code-surface max-h-[600px] overflow-auto break-all">{JSON.stringify(volumeData, null, 2)}</pre>
@@ -222,7 +225,7 @@
             </TabsContent>
           </Tabs>
         {:else}
-          <div class="text-sm text-muted-foreground">Loading...</div>
+          <div class="text-sm text-muted-foreground">{$messages.common.loadingWithDots}</div>
         {/if}
       </CardContent>
     </Card>

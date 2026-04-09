@@ -13,6 +13,7 @@
   import Spinner from '$lib/components/ui/spinner/spinner.svelte';
   import SearchIcon from '@lucide/svelte/icons/search';
   import { Alert, AlertDescription } from '$lib/components/ui/alert';
+  import { messages } from '$lib/i18n';
 
   interface Props {
     data: PageData;
@@ -60,11 +61,11 @@
       const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/containers`);
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error || 'Failed to load containers');
+        throw new Error(payload.error || $messages.docker.containers.failedToLoad);
       }
       containers = payload.containers ?? [];
     } catch (error) {
-      loadError = error instanceof Error ? error.message : 'Failed to load containers';
+      loadError = error instanceof Error ? error.message : $messages.docker.containers.failedToLoad;
       containers = [];
     } finally {
       loading = false;
@@ -82,7 +83,7 @@
       if (!response.ok) {
         throw new Error(payload.error ?? `Failed to ${action} container`);
       }
-      toast.success(`${action} queued: ${payload.taskId?.slice(0, 12) ?? 'task'}`);
+      toast.success(`${action} ${$messages.docker.containers.actions.queued}: ${payload.taskId?.slice(0, 12) ?? 'task'}`);
       await refreshContainers();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : `Failed to ${action} container.`);
@@ -155,16 +156,16 @@
 			<CardHeader>
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div class="space-y-1">
-            <CardTitle class="page-title">Containers</CardTitle>
+            <CardTitle class="page-title">{$messages.docker.containers.title}</CardTitle>
             <CardDescription class="page-description">
-              Docker containers on {data.nodeId}
+              {data.nodeId}
               {#if !loading}
                 <Badge variant="secondary" class="ml-2">{containers.length}</Badge>
               {/if}
             </CardDescription>
           </div>
           <a href="/nodes/{data.nodeId}" class="text-sm text-muted-foreground hover:underline">
-            Back to node
+            {$messages.common.back}
           </a>
         </div>
 
@@ -173,18 +174,18 @@
             <SearchIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search containers..."
+              placeholder="{$messages.common.search}..."
               class="pl-9"
               bind:value={searchQuery}
             />
           </div>
           {#if searchQuery}
             <Button variant="ghost" size="sm" onclick={() => (searchQuery = '')}>
-              Clear
+              {$messages.common.cancel}
             </Button>
           {/if}
           <Button variant="outline" size="sm" onclick={() => void refreshContainers()} disabled={loading || !data.ready}>
-            {#if loading}Loading...{:else}Refresh{/if}
+            {#if loading}{$messages.common.loading}...{:else}{$messages.common.refresh}{/if}
           </Button>
         </div>
       </CardHeader>
@@ -197,20 +198,20 @@
           <div class="flex min-h-[320px] items-center justify-center">
             <div class="flex items-center gap-3 text-sm text-muted-foreground">
               <Spinner />
-              <span>Loading containers...</span>
+              <span>{$messages.common.loading}...</span>
             </div>
           </div>
         {:else if sortedContainers.length > 0}
           <Table>
             <TableHeader>
               <TableRow>
-                <SortableTableHead field="name" label="Name" {sortField} {sortDirection} onSort={handleSort} class="w-[30%]" />
-                <SortableTableHead field="state" label="State" {sortField} {sortDirection} onSort={handleSort} class="w-[10%]" />
-                <SortableTableHead field="image" label="Image" {sortField} {sortDirection} onSort={handleSort} class="w-[20%]" />
-                <TableHead class="w-[15%]">Ports</TableHead>
-                <TableHead class="w-[15%]">Networks</TableHead>
-                <SortableTableHead field="created" label="Created" {sortField} {sortDirection} onSort={handleSort} class="w-[12%]" />
-                <TableHead class="w-[18%]">Actions</TableHead>
+                <SortableTableHead field="name" label={$messages.common.name} {sortField} {sortDirection} onSort={handleSort} class="w-[30%]" />
+                <SortableTableHead field="state" label={$messages.docker.containers.state} {sortField} {sortDirection} onSort={handleSort} class="w-[10%]" />
+                <SortableTableHead field="image" label={$messages.docker.containers.image} {sortField} {sortDirection} onSort={handleSort} class="w-[20%]" />
+                <TableHead class="w-[15%]">{$messages.docker.containers.ports}</TableHead>
+                <TableHead class="w-[15%]">{$messages.docker.containers.networks}</TableHead>
+                <SortableTableHead field="created" label={$messages.common.created} {sortField} {sortDirection} onSort={handleSort} class="w-[12%]" />
+                <TableHead class="w-[18%]">{$messages.common.actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -228,7 +229,7 @@
                         <code class="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
                           {formatShortId(container.id)}
                         </code>
-                        <CopyButton text={container.id} label="Copy full ID" />
+                        <CopyButton text={container.id} label={$messages.common.copy} />
                       </div>
                       {#if container.labels && Object.keys(container.labels).length > 0}
                         <div class="flex flex-wrap gap-1">
@@ -264,7 +265,7 @@
                           <code class="text-xs bg-muted px-1 py-0.5 rounded block truncate">{port}</code>
                         {/each}
                         {#if container.ports.length > 3}
-                          <span class="text-xs text-muted-foreground">+{container.ports.length - 3} more</span>
+                          <span class="text-xs text-muted-foreground">+{container.ports.length - 3}</span>
                         {/if}
                       </div>
                     {:else}
@@ -293,10 +294,10 @@
                   <TableCell>
                     <div class="flex flex-wrap gap-2">
                       <a href="/nodes/{data.nodeId}/docker/containers/{encodeURIComponent(container.id)}?tab=logs">
-                        <Button variant="outline" size="sm">Logs</Button>
+                        <Button variant="outline" size="sm">{$messages.docker.containers.logsLabel}</Button>
                       </a>
                       <a href="/nodes/{data.nodeId}/docker/containers/{encodeURIComponent(container.id)}?tab=terminal">
-                        <Button variant="outline" size="sm">Terminal</Button>
+                        <Button variant="outline" size="sm">{$messages.docker.containers.terminalLabel}</Button>
                       </a>
                       <Button
                         variant="outline"
@@ -304,7 +305,7 @@
                         onclick={() => void queueContainerAction(container.id, 'start')}
                         disabled={isActionBusy(container.id, 'start') || container.state.toLowerCase() === 'running'}
                       >
-                        Start
+                        {$messages.docker.containers.actions.start}
                       </Button>
                       <Button
                         variant="outline"
@@ -312,7 +313,7 @@
                         onclick={() => void queueContainerAction(container.id, 'stop')}
                         disabled={isActionBusy(container.id, 'stop') || container.state.toLowerCase() !== 'running'}
                       >
-                        Stop
+                        {$messages.docker.containers.actions.stop}
                       </Button>
                       <Button
                         variant="outline"
@@ -320,7 +321,7 @@
                         onclick={() => void queueContainerAction(container.id, 'restart')}
                         disabled={isActionBusy(container.id, 'restart')}
                       >
-                        Restart
+                        {$messages.docker.containers.actions.restart}
                       </Button>
                     </div>
                   </TableCell>
@@ -330,15 +331,15 @@
           </Table>
           {#if filteredContainers.length !== containers.length}
             <div class="mt-3 text-xs text-muted-foreground text-center">
-              Showing {filteredContainers.length} of {containers.length} containers
+              {filteredContainers.length} / {containers.length}
             </div>
           {/if}
         {:else if searchQuery}
           <div class="empty-state">
-            No containers matching "{searchQuery}".
+            {$messages.common.noData}
           </div>
         {:else}
-          <div class="empty-state">No containers found.</div>
+          <div class="empty-state">{$messages.docker.containers.noContainers}</div>
         {/if}
       </CardContent>
     </Card>
