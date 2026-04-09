@@ -162,11 +162,12 @@ dist
 /state/
 /repo/
 /agent-repo/
-/state-controller/
-/state-agent/
-/repo-controller/
-/repo-agent/
-/repo-agent-node-2/
+/dev/logs/
+/dev/state-controller/
+/dev/state-agent/
+/dev/repo-controller/
+/dev/repo-agent/
+/dev/repo-agent-node-2/
 
 # Bun / SvelteKit
 bun.lockb

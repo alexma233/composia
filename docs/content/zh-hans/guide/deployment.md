@@ -6,7 +6,7 @@
 
 ### 1. 服务发现
 
-Controller 会定期扫描 `repo_dir`，查找所有包含 `composia-meta.yaml` 的目录：
+Controller 会从当前 `repo_dir` 工作树中发现所有包含 `composia-meta.yaml` 的目录。这个发现过程会在服务查询、仓库同步和相关操作中使用：
 
 ```
 repo/
@@ -19,9 +19,9 @@ repo/
 └── README.md
 ```
 
-### 2. 实例生成
+### 2. 实例展开
 
-每个 Service 根据 `nodes` 配置生成对应的 ServiceInstance：
+每个 Service 会根据 `nodes` 配置展开为对应的 ServiceInstance：
 
 ```yaml
 # service-a/composia-meta.yaml
@@ -83,6 +83,7 @@ nodes:
 - Compose 会自动判断哪些容器需要重建
 - 数据卷会保留
 - 环境变量变更会触发重建
+- 这是会重新下载最新 bundle 的操作
 
 ### 停止 (Stop)
 
@@ -99,7 +100,7 @@ nodes:
 - 触发 Caddy reload
 
 **注意事项：**
-- 数据卷会保留（除非使用 `down -v`）
+- 数据卷会保留
 - 容器会被删除
 - 服务定义会保留在 Git 仓库
 
@@ -113,7 +114,8 @@ nodes:
 
 **行为：**
 - 依次执行停止和启动
-- 不会重新拉取 bundle（如需更新，使用 Update）
+- 使用当前节点上已有的 service bundle 重启容器
+- 不会重新拉取 bundle；如需应用仓库里的最新变更，请使用 Update
 
 ## 使用 Web UI 操作
 
@@ -162,7 +164,7 @@ nodes:
 
 部署后会在三个节点各创建一个实例。
 
-### 按环境分离
+### 按目录组织不同环境
 
 ```yaml
 # my-app-prod/composia-meta.yaml
@@ -177,6 +179,8 @@ name: my-app-staging
 nodes:
   - edge-1
 ```
+
+这里使用的是普通的服务命名和目录组织约定。Composia 当前没有内置的“环境”维度。
 
 ### 滚动更新
 
@@ -229,7 +233,7 @@ services:
           memory: 512M
 ```
 
-### 4. 环境分离
+### 4. 用服务名区分环境
 
 使用不同的服务名称区分环境：
 

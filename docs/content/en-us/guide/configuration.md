@@ -94,7 +94,7 @@ agent:
 | `log_dir` | string | Yes | Task logs persistence directory |
 | `nodes` | array | Yes | Must be present even if empty |
 
-#### Authentication Configuration
+#### Controller Access Tokens (`cli_tokens`)
 
 ```yaml
 cli_tokens:
@@ -109,7 +109,7 @@ cli_tokens:
 | Field | Description |
 |-------|-------------|
 | `name` | Required token name for identification |
-| `token` | Required token value used by Web UI and CLI |
+| `token` | Required token value used by the Web UI, CLI, or custom clients calling the Controller |
 | `enabled` | Whether this token is enabled |
 | `comment` | Optional operator-facing note |
 
@@ -328,7 +328,7 @@ For local source-based development, validate configuration with the development 
 # Start the Controller with the dev config
 go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml
 
-# Start an Agent with the shared dev config
+# Start the main Agent with the shared dev config
 go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml
 ```
 

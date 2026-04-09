@@ -1,0 +1,48 @@
+[tools]
+go = "1.25.0"
+bun = "1.3.8"
+buf = "1.30.0"
+
+[tasks."web"]
+description = "Start the Web dev server"
+run = "bun run web:dev"
+
+[tasks."docs"]
+description = "Start the docs dev server on :5174"
+run = "bun run docs:dev -- --port 5174"
+
+[tasks."controller"]
+description = "Run the controller locally"
+run = "go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml"
+
+[tasks."agent"]
+description = "Run the main agent locally"
+run = "go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml"
+
+[tasks."agent2"]
+description = "Run the second agent locally"
+run = "go run ./cmd/composia agent -config ./configs/config.agent.dev.yaml"
+
+[tasks."dev"]
+description = "Start the fully containerized dev stack"
+run = "docker compose -f dev/docker-compose.dev.yaml up --build"
+
+[tasks."dev:down"]
+description = "Stop the fully containerized dev stack"
+run = "docker compose -f dev/docker-compose.dev.yaml down"
+
+[tasks."dev:logs"]
+description = "Follow logs from the dev stack"
+run = "docker compose -f dev/docker-compose.dev.yaml logs -f"
+
+[tasks."dev:selinux"]
+description = "Start the dev stack with SELinux override"
+run = "docker compose -f dev/docker-compose.dev.yaml -f dev/docker-compose.dev.selinux.override.yaml up --build"
+
+[tasks."dev:down:selinux"]
+description = "Stop the SELinux dev stack"
+run = "docker compose -f dev/docker-compose.dev.yaml -f dev/docker-compose.dev.selinux.override.yaml down"
+
+[tasks."dev:logs:selinux"]
+description = "Follow logs from the SELinux dev stack"
+run = "docker compose -f dev/docker-compose.dev.yaml -f dev/docker-compose.dev.selinux.override.yaml logs -f"

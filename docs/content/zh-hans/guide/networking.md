@@ -410,7 +410,7 @@ app.example.com {
 1. Caddy 基础设施服务是否运行
 2. Agent 配置的 `caddy.generated_dir` 是否正确
 3. Caddy 容器是否正确挂载了生成目录
-4. 查看 Caddy 日志：`docker logs infra-caddy-caddy-1`
+4. 通过你自己的容器运行环境查看 Caddy 容器日志
 
 ### HTTPS 证书问题
 

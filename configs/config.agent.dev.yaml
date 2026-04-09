@@ -2,5 +2,5 @@ agent:
   controller_addr: "http://127.0.0.1:7001"
   node_id: "node-2"
   token: "node-2-token"
-  repo_dir: "./repo-agent-node-2"
-  state_dir: "./state-agent-node-2"
+  repo_dir: "./dev/repo-agent-node-2"
+  state_dir: "./dev/state-agent-node-2"

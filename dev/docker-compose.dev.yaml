@@ -1,0 +1,115 @@
+services:
+  controller-dev:
+    build:
+      context: ..
+      target: dev
+    working_dir: /workspace
+    environment:
+      GIT_CONFIG_COUNT: "2"
+      GIT_CONFIG_KEY_0: safe.directory
+      GIT_CONFIG_VALUE_0: /data/repo-controller
+      GIT_CONFIG_KEY_1: safe.directory
+      GIT_CONFIG_VALUE_1: /workspace
+    command:
+      - sh
+      - -c
+      - |
+        mkdir -p /data/repo-controller /data/state-controller /data/logs
+        if [ ! -d /data/repo-controller/.git ]; then
+          git init /data/repo-controller
+        fi
+        /go/bin/air -c ./dev/air.controller.toml
+    ports:
+      - "7001:7001"
+    volumes:
+      - ..:/workspace
+      - ./repo-controller:/data/repo-controller
+      - ./state-controller:/data/state-controller
+      - ./logs:/data/logs
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    networks:
+      - composia-dev
+
+  agent-dev:
+    build:
+      context: ..
+      target: dev
+    depends_on:
+      controller-dev:
+        condition: service_started
+    working_dir: /workspace
+    environment:
+      GIT_CONFIG_COUNT: "2"
+      GIT_CONFIG_KEY_0: safe.directory
+      GIT_CONFIG_VALUE_0: /data/repo-agent
+      GIT_CONFIG_KEY_1: safe.directory
+      GIT_CONFIG_VALUE_1: /workspace
+    command:
+      - sh
+      - -c
+      - |
+        mkdir -p /data/repo-agent /data/state-agent
+        /go/bin/air -c ./dev/air.agent.toml
+    volumes:
+      - ..:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./repo-agent:/data/repo-agent
+      - ./state-agent:/data/state-agent
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    networks:
+      - composia-dev
+
+  web-dev:
+    image: oven/bun:1.3.8
+    depends_on:
+      controller-dev:
+        condition: service_started
+    working_dir: /workspace
+    command:
+      - sh
+      - -lc
+      - bun install && bun run web:dev -- --host 0.0.0.0 --port 5173
+    environment:
+      COMPOSIA_CONTROLLER_ADDR: http://controller-dev:7001
+      COMPOSIA_CLI_TOKEN: dev-admin-token
+      HOST: 0.0.0.0
+      PORT: "5173"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ..:/workspace
+      - bun_cache:/root/.bun/install/cache
+      - root_node_modules:/workspace/node_modules
+      - web_node_modules:/workspace/web/node_modules
+    networks:
+      - composia-dev
+
+  docs-dev:
+    image: oven/bun:1.3.8
+    working_dir: /workspace
+    command:
+      - sh
+      - -lc
+      - bun install && bun run docs:dev -- --host 0.0.0.0 --port 5174
+    ports:
+      - "5174:5174"
+    volumes:
+      - ..:/workspace
+      - bun_cache:/root/.bun/install/cache
+      - root_node_modules:/workspace/node_modules
+      - web_node_modules:/workspace/web/node_modules
+    networks:
+      - composia-dev
+
+networks:
+  composia-dev:
+    name: composia-dev
+
+volumes:
+  go_mod_cache:
+  go_build_cache:
+  bun_cache:
+  root_node_modules:
+  web_node_modules:

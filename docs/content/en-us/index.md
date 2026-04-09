@@ -4,8 +4,8 @@ layout: home
 
 hero:
   name: "Composia"
-  text: "Docker Compose with Magic"
-  tagline: A self-hosted service manager built around service definitions, a single control plane, and one or more execution agents
+  text: "Docker Compose Control Plane"
+  tagline: A self-hosted service management platform that uses service definitions and execution agents to operate Docker Compose across multiple nodes
   image:
     src: /logo.svg
     alt: Composia
@@ -24,10 +24,10 @@ features:
     details: Centralized control plane manages all services and nodes, providing a unified view and control interface.
   - title: 🤖 Multi-Agent Architecture
     details: Support for one or more execution agents that can scale horizontally to manage large infrastructure.
-  - title: 📊 Built-in Monitoring
-    details: Real-time monitoring of service status, resource usage, and logs to quickly discover and resolve issues.
+  - title: 📋 Runtime Visibility
+    details: Unified visibility into service status, task logs, node summaries, disk capacity, and Docker inventory counts.
   - title: 🔒 Secure & Reliable
     details: Released under AGPL-3.0 open source license with transparent, auditable code and private deployment support.
   - title: ⚡ Modern Tech Stack
-    details: Go backend + SvelteKit frontend for high performance, low resource usage, and rapid response.
+    details: Built with Go, SvelteKit, ConnectRPC, SQLite, and Docker Compose.
 ---

@@ -410,7 +410,7 @@ Check:
 1. Is Caddy infrastructure service running?
 2. Is Agent's `caddy.generated_dir` correct?
 3. Is Caddy container correctly mounting the generated directory?
-4. View Caddy logs: `docker logs infra-caddy-caddy-1`
+4. Inspect the Caddy container logs using your own container runtime tooling
 
 ### HTTPS Certificate Issues
 

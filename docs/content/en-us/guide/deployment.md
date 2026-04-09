@@ -6,7 +6,7 @@ This document explains how to deploy, update, stop, and restart services using C
 
 ### 1. Service Discovery
 
-The Controller periodically scans `repo_dir` for directories containing `composia-meta.yaml`:
+The Controller discovers services from the current `repo_dir` working tree by looking for directories that contain `composia-meta.yaml`. That discovery is used during service queries, repo sync, and related operations:
 
 ```
 repo/
@@ -19,9 +19,9 @@ repo/
 └── README.md
 ```
 
-### 2. Instance Generation
+### 2. Instance Expansion
 
-Each Service generates corresponding ServiceInstances based on the `nodes` configuration:
+Each Service expands into corresponding ServiceInstances based on the `nodes` configuration:
 
 ```yaml
 # service-a/composia-meta.yaml
@@ -83,6 +83,7 @@ Update an already deployed service.
 - Compose automatically determines which containers need rebuilding
 - Data volumes are preserved
 - Environment variable changes trigger rebuild
+- This is the operation that refreshes the bundle from the repo
 
 ### Stop
 
@@ -99,7 +100,7 @@ Stop a service instance.
 - Triggers Caddy reload
 
 **Notes:**
-- Data volumes are preserved (unless using `down -v`)
+- Data volumes are preserved
 - Containers are removed
 - Service definition remains in Git repository
 
@@ -113,7 +114,8 @@ Restart a service instance.
 
 **Behavior:**
 - Stops and starts sequentially
-- Does not re-pull bundle (use Update if needed)
+- Restarts containers from the service bundle already present on the node
+- Does not re-pull bundle; use Update if you need the latest repo content
 
 ## Using the Web UI
 
@@ -162,7 +164,7 @@ nodes:
 
 Creates instances on all three nodes after deployment.
 
-### Environment Separation
+### Organize Environments by Directory
 
 ```yaml
 # my-app-prod/composia-meta.yaml
@@ -177,6 +179,8 @@ name: my-app-staging
 nodes:
   - edge-1
 ```
+
+This is a naming and repository layout convention only. Composia does not currently have a built-in environment model.
 
 ### Rolling Updates
 
@@ -229,7 +233,7 @@ services:
           memory: 512M
 ```
 
-### 4. Environment Separation
+### 4. Distinguish Environments by Service Name
 
 Use different service names to distinguish environments:
 

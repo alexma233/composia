@@ -1,0 +1,24 @@
+root = "."
+tmp_dir = "/tmp/air-controller"
+
+[build]
+cmd = "go build -buildvcs=false -o /tmp/air-controller/composia ./cmd/composia"
+bin = "/tmp/air-controller/composia controller -config ./dev/config.controller.container-dev.yaml"
+include_ext = ["go", "yaml", "yml"]
+exclude_dir = [
+  ".git",
+  "docs",
+  "dev/logs",
+  "node_modules",
+  "dev/repo-agent",
+  "dev/repo-controller",
+  "dev/state-agent",
+  "dev/state-controller",
+  "web",
+  "web/node_modules",
+]
+delay = 500
+stop_on_error = true
+
+[log]
+time = true

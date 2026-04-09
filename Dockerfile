@@ -18,6 +18,17 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} \
     go build -trimpath -ldflags="-s -w" -o /composia ./cmd/composia
 
+FROM golang:1.25-alpine AS dev
+
+WORKDIR /workspace
+
+ENV PATH="/go/bin:${PATH}"
+
+RUN apk add --no-cache ca-certificates docker-cli docker-cli-compose git && \
+    go install github.com/air-verse/air@v1.61.7
+
+CMD ["air", "-v"]
+
 FROM alpine:3.22 AS final
 
 WORKDIR /app

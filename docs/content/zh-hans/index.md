@@ -4,8 +4,8 @@ layout: home
 
 hero:
   name: "Composia"
-  text: "Docker Compose 服务管理平台"
-  tagline: 基于服务定义、单一控制平面和多代理架构的自托管服务管理器
+  text: "Docker Compose 控制平面"
+  tagline: 面向自托管场景的服务管理平台，使用服务定义和执行代理统一管理多节点 Docker Compose 部署
   image:
     src: /logo.svg
     alt: Composia
@@ -24,10 +24,10 @@ features:
     details: 集中式控制平面管理所有服务和节点，提供统一的视图和控制接口。
   - title: 🤖 多代理架构
     details: 支持一个或多个执行代理，可横向扩展以管理大规模基础设施。
-  - title: 📊 内置监控
-    details: 实时监控服务状态、资源使用情况和日志，快速发现和解决问题。
+  - title: 📋 运行态可见性
+    details: 统一查看服务状态、任务日志、节点摘要，以及磁盘容量和 Docker 资源统计。
   - title: 🔒 安全可靠
     details: 采用 AGPL-3.0 开源协议，代码透明可审计，支持私有部署。
   - title: ⚡ 现代技术栈
-    details: Go 后端 + SvelteKit 前端，高性能、低资源占用，响应迅速。
+    details: Go 后端 + SvelteKit 前端，围绕 ConnectRPC、SQLite 和 Docker Compose 构建。
 ---

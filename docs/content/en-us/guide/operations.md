@@ -21,11 +21,20 @@ Composia uses a task queue to manage all asynchronous operations:
 | `stop` | Stop service | Manual/API |
 | `restart` | Restart service | Manual/API |
 | `backup` | Execute backup | Manual/API |
+| `restore` | Restore backup data | Manual/API |
 | `dns_update` | Update DNS records | Migration/Manual |
+| `migrate` | Migrate service | Manual/API |
 | `caddy_sync` | Sync Caddy configuration | Automatic |
 | `caddy_reload` | Reload Caddy | Automatic |
 | `prune` | Clean up resources | Manual/API |
-| `migrate` | Migrate service | Manual/API |
+| `rustic_forget` | Clean rustic snapshot references | Manual/API |
+| `rustic_prune` | Run rustic prune | Manual/API |
+| `docker_list` | Fetch node-scoped Docker resource lists | Web UI/API |
+| `docker_inspect` | Inspect one Docker resource | Web UI/API |
+| `docker_start` | Start a container | Web UI/API |
+| `docker_stop` | Stop a container | Web UI/API |
+| `docker_restart` | Restart a container | Web UI/API |
+| `docker_logs` | Fetch container logs | Web UI/API |
 
 ### Task Lifecycle
 
@@ -59,16 +68,14 @@ Pending → Running → Succeeded
 
 ### Task Logs
 
-Real-time logs are output during task execution:
+Real-time logs are emitted during task execution. Built-in task logs currently come mostly from the agent and Docker commands, so they are primarily in English:
 
 ```
-[2024-01-15 10:30:00] Starting deployment of service my-app to node main
-[2024-01-15 10:30:01] Downloading service bundle...
-[2024-01-15 10:30:05] Rendering runtime directory...
-[2024-01-15 10:30:06] Executing docker compose up -d
-[2024-01-15 10:30:15] Container started successfully
-[2024-01-15 10:30:16] Syncing Caddy configuration...
-[2024-01-15 10:30:18] Deployment completed
+starting remote deploy task for service=my-app node=main repo_revision=4f3c2a1b
+render step completed after bundle download
+Container my-app-1  Started
+finalize step completed after compose up
+deploy task finished successfully
 ```
 
 ## Docker Resource Management
@@ -88,7 +95,7 @@ Agents regularly report Docker container information from nodes, and Controller 
 |-----------|-------------|
 | View Logs | Fetch the latest container logs from the node |
 | Inspect | View container metadata and runtime details |
-| Terminal | Open an exec session into the container |
+| Terminal | Open an exec session into the container (still basic) |
 
 **Viewing Container Logs:**
 
@@ -101,12 +108,13 @@ Agents regularly report Docker container information from nodes, and Controller 
 
 **Container Terminal:**
 
-```bash
-# Web UI provides basic terminal functionality
-1. Click **Terminal** button on container
-2. Select shell (bash/sh)
-3. Execute commands
-```
+The Web UI exposes a container exec entrypoint, but the terminal experience is still basic:
+
+1. Click the **Terminal** button on a container
+2. Select a shell such as `/bin/sh` or `bash`
+3. Establish the WebSocket session and run commands
+
+Availability depends on the node exec tunnel being online and the selected shell existing in the container.
 
 ### Image Management
 
@@ -321,18 +329,6 @@ go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml
 - Ensure smooth Docker socket access
 - Monitor Agent resource usage
 - Regularly clean unused resources
-
-### Database Optimization
-
-SQLite performance optimization:
-
-```sql
--- Regularly execute VACUUM
-VACUUM;
-
--- Check database integrity
-PRAGMA integrity_check;
-```
 
 ## Related Documentation
 

@@ -14,6 +14,16 @@ This guide covers how to set up a local development environment for Composia.
 | Git | 2.30+ | Version control |
 | buf | 1.30+ | Protobuf code generation |
 
+The repository now ships a `mise.toml` for managing `go`, `bun`, and `buf`.
+
+If you use `mise`, install and activate it first, then run:
+
+```bash
+mise install
+```
+
+`docker`, `docker compose`, `git`, and `sqlite3` are still best installed from your system package manager.
+
 ## Environment Setup
 
 ### 1. Clone the Repository
@@ -23,56 +33,134 @@ git clone https://forgejo.alexma.top/alexma233/composia.git
 cd composia
 ```
 
-### 2. Install Frontend Dependencies
-
-```bash
-cd web
-bun install
-cd ..
-```
-
-### 3. Initialize Development Configuration
+### 2. Initialize Development Configuration
 
 ```bash
 # Create required directories
-mkdir -p repo-controller repo-agent
+mkdir -p dev/repo-controller dev/repo-agent
 
 # Initialize Git repository (required for Controller)
-git init repo-controller
+git init dev/repo-controller
 ```
 
 ## Start Development Environment
 
-### Option 1: Start Frontend and Backend Separately
+### Option 1: Fully Containerized Development with Hot Reload (Recommended)
+
+```bash
+mise run dev
+```
+
+This development stack starts:
+
+- `controller-dev` on `http://localhost:7001`
+- `web-dev` on `http://localhost:5173`
+- `docs-dev` on `http://localhost:5174`
+- `agent-dev` connected to the local Docker socket
+
+You do not need to run `bun install` on the host for this path. `web-dev` and `docs-dev` install workspace dependencies inside the containers when they start.
+
+It reuses the existing development state directories under `dev/` by default:
+
+- `./dev/repo-controller`
+- `./dev/state-controller`
+- `./dev/repo-agent`
+- `./dev/state-agent`
+- `./dev/logs`
+
+That means service definitions, the SQLite database, and task logs created by your earlier manually started Controller or Agent processes are carried directly into the containerized dev stack.
+
+Hot reload behavior:
+
+- `web-dev` runs `vite dev`
+- `docs-dev` runs `vitepress dev`
+- `controller-dev` and `agent-dev` use `air` to rebuild and restart on Go source changes
+
+Source code is bind-mounted into the containers, so edits are reflected automatically.
+
+Stop the development stack with:
+
+```bash
+mise run dev:down
+```
+
+Follow the development stack logs with:
+
+```bash
+mise run dev:logs
+```
+
+If your host runs SELinux, use the override-enabled entrypoint instead:
+
+```bash
+mise run dev:selinux
+```
+
+This additionally loads `dev/docker-compose.dev.selinux.override.yaml` and sets `label=disable` for the development containers so bind-mounted source directories remain accessible on SELinux hosts.
+
+Stop that stack with:
+
+```bash
+mise run dev:down:selinux
+```
+
+Follow that stack's logs with:
+
+```bash
+mise run dev:logs:selinux
+```
+
+### Option 2: Local Toolchain Development
+
+Install workspace dependencies on the host first:
+
+```bash
+bun install
+```
 
 **Start the frontend development server:**
 
 ```bash
-cd web
-bun run dev
+mise run web
 ```
 
 The frontend will be available at `http://localhost:5173`.
 
+To start the docs dev server:
+
+```bash
+mise run docs
+```
+
+The docs site runs on `http://localhost:5174`.
+
 **Start the Controller (Terminal 2):**
 
 ```bash
-go run ./cmd/composia controller \
-  -config ./configs/config.controller.dev.yaml
+mise run controller
 ```
 
 **Start the Agent (Terminal 3):**
 
 ```bash
-go run ./cmd/composia agent \
-  -config ./configs/config.agent.dev.yaml
+mise run agent
 ```
 
-### Option 2: Use Docker Compose
+`agent` uses the shared `configs/config.controller.dev.yaml` file and connects as the local `main` node.
+
+To start a second local Agent with `node-2`, run:
+
+```bash
+mise run agent2
+```
+
+### Option 3: Prebuilt Image Stack
 
 ```bash
 docker compose up -d
 ```
+
+This Compose stack uses pre-built images. It is useful for integration checks or prod-like local runs, but it does not provide source hot reload and will not rebuild automatically when you edit code.
 
 ## Development Configuration Examples
 
@@ -83,9 +171,9 @@ docker compose up -d
 controller:
   listen_addr: "127.0.0.1:7001"
   controller_addr: "http://127.0.0.1:7001"
-  repo_dir: "./repo-controller"
-  state_dir: "./state-controller"
-  log_dir: "./logs"
+  repo_dir: "./dev/repo-controller"
+  state_dir: "./dev/state-controller"
+  log_dir: "./dev/logs"
   cli_tokens:
     - name: "dev-admin"
       token: "dev-admin-token"
@@ -105,8 +193,8 @@ agent:
   controller_addr: "http://127.0.0.1:7001"
   node_id: "node-2"
   token: "node-2-token"
-  repo_dir: "./repo-agent-node-2"
-  state_dir: "./state-agent-node-2"
+  repo_dir: "./dev/repo-agent-node-2"
+  state_dir: "./dev/state-agent-node-2"
 ```
 
 ## Test Multi-Node Scenarios
@@ -248,7 +336,7 @@ cd web && bun run format
 
 **Q: Controller startup error "repo not initialized"**
 
-A: You need to initialize the Git repository first: `git init repo-controller`
+A: You need to initialize the Git repository first: `git init dev/repo-controller`
 
 **Q: Agent connection failed**
 

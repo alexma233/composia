@@ -1,6 +1,6 @@
 # Introduction
 
-Composia is a self-hosted service management platform built around service definitions, a single control plane, and multiple execution agents.
+Composia is a self-hosted Docker Compose management platform built around service definitions, a single control plane, and multiple execution agents.
 
 ## What is Composia?
 
@@ -22,13 +22,13 @@ Composia enables you to:
 
 ### Service Definitions
 
-Composia uses `composia-meta.yaml` files to define service metadata, combined with standard `docker-compose.yaml` files:
+Composia uses `composia-meta.yaml` for service metadata together with standard `docker-compose.yaml` files:
 
 ```yaml
 # composia-meta.yaml
 name: my-service
-description: My awesome service
-version: "1.0"
+nodes:
+  - main
 ```
 
 ### Control Plane
@@ -46,7 +46,7 @@ Agents run on actual Docker hosts and are responsible for:
 
 - **Heartbeat Communication**: Regularly reporting status to the control plane
 - **Task Execution**: Executing deployment, stop, restart, and other operations
-- **Task and Runtime Reporting**: Reporting task results, logs, and Docker inventory back to the Controller
+- **Task and Runtime Reporting**: Reporting task results, logs, and Docker inventory summaries back to the Controller
 
 ## Technology Stack
 

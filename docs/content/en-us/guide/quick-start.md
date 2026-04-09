@@ -9,24 +9,42 @@ This guide will help you get Composia up and running in minutes using pre-built 
 
 ## Installation
 
-### 1. Clone the Repository
+### 1. Create a Working Directory
 
-```bash
-git clone https://forgejo.alexma.top/alexma233/composia.git
-cd composia
+Prepare an empty directory with this layout:
+
+```text
+composia/
+├── docker-compose.yaml
+└── configs/
+    └── config.compose.yaml
 ```
 
-### 2. Review the Bundled Configuration
+### 2. Download the Startup Files
 
-The repository already includes `configs/config.compose.yaml`.
+Download these files from the repository and save them using the layout above:
 
-- Use it as-is for a local quick start.
-- Edit it only if you need different tokens or paths.
-- Keep the bundled `configs/age-identity.key` and `configs/age-recipients.txt` files if you keep the default secrets section.
+- [`docker-compose.yaml`](https://forgejo.alexma.top/alexma233/composia/src/branch/main/docker-compose.yaml)
+- [`configs/config.compose.yaml`](https://forgejo.alexma.top/alexma233/composia/src/branch/main/configs/config.compose.yaml)
 
-### 3. Start the Stack
+If you want to keep the default `secrets` section in `config.compose.yaml`, also download:
 
-The following command uses the repository root `docker-compose.yaml`. The file you created above, `configs/config.compose.yaml`, is consumed by that Compose stack as the platform config.
+- [`configs/age-identity.key`](https://forgejo.alexma.top/alexma233/composia/src/branch/main/configs/age-identity.key)
+- [`configs/age-recipients.txt`](https://forgejo.alexma.top/alexma233/composia/src/branch/main/configs/age-recipients.txt)
+
+### 3. Adjust the Platform Configuration
+
+Before startup, review and update at least these values:
+
+- `controller.cli_tokens[].token`: controller access token used by the Web UI
+- `controller.nodes[].token` and `agent.token`: node authentication token, which must match on both sides
+- `COMPOSIA_CLI_TOKEN` in `docker-compose.yaml`: it must match one enabled token under `controller.cli_tokens`
+
+If you do not want to use the bundled age key files, replace the `secrets` configuration in `configs/config.compose.yaml` or remove that section before startup.
+
+### 4. Start Composia
+
+The following command starts Composia with the local `docker-compose.yaml` and `configs/config.compose.yaml` files:
 
 ```bash
 docker compose up -d
@@ -42,13 +60,13 @@ This starts the following long-running services:
 
 The Compose file also runs a one-shot `init-repo-controller` container first to initialize the controller Git working tree volume.
 
-### 4. Access the Interface
+### 5. Access the Interface
 
 Open your browser and visit `http://localhost:3000`.
 
-The Web UI does not prompt for a token. It uses the `COMPOSIA_CLI_TOKEN` environment variable injected into the web server process. In the provided `docker-compose.yaml`, that value is set to `dev-admin-token`.
+The Web UI does not prompt for a token. It uses the `COMPOSIA_CLI_TOKEN` environment variable injected into the web server process. That value must match one enabled token under `controller.cli_tokens`.
 
-### 5. Deploy Your First Service
+### 6. Deploy Your First Service
 
 1. Navigate to the **Services** page in the web interface
 2. Click **Create service**
@@ -57,18 +75,12 @@ The Web UI does not prompt for a token. It uses the `COMPOSIA_CLI_TOKEN` environ
 5. Define the target nodes in `composia-meta.yaml`
 6. Click **Deploy**
 
-### 6. Stop the Stack
+### 7. Stop Composia
 
-This stops the container stack started from the repository root `docker-compose.yaml`:
+This stops the Composia stack started from the local `docker-compose.yaml`:
 
 ```bash
 docker compose down
-```
-
-To remove the Compose volumes as well, add the `-v` flag:
-
-```bash
-docker compose down -v
 ```
 
 ## Image Registry Options

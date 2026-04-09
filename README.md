@@ -44,11 +44,17 @@ Composia is a self-hosted service manager built around service definitions, a si
 
 ## Quick Start
 
-Use the bundled `configs/config.compose.yaml` example.
+Download `docker-compose.yaml` and `configs/config.compose.yaml` from this repository, keep the same relative paths, and review them before startup.
 
-The repository already includes that file together with the age key files it references. Edit it only if you need different tokens, paths, or optional features.
+Before running the stack, update these values:
 
-Run the container stack defined in the repository root `docker-compose.yaml`:
+- `controller.cli_tokens[].token`
+- `controller.nodes[].token` and `agent.token`
+- `COMPOSIA_CLI_TOKEN` in `docker-compose.yaml` so it matches one enabled controller token
+
+If you keep the default `secrets` configuration, also keep the referenced age key files.
+
+Run the container stack defined in your local `docker-compose.yaml`:
 
 ```bash
 docker compose up -d
@@ -72,6 +78,8 @@ It also runs a one-shot `init-repo-controller` container first to initialize the
 
 Access the web UI at `http://localhost:3000`.
 
+The Web UI uses the `COMPOSIA_CLI_TOKEN` environment variable injected into the web service. That value must match one enabled token under `controller.cli_tokens`.
+
 Pre-built images are published to:
 
 - Default registry: `forgejo.alexma.top/alexma233/composia`
@@ -79,13 +87,13 @@ Pre-built images are published to:
 - Alternative registry: `ghcr.io/alexma233/composia`
 - Alternative registry: `ghcr.io/alexma233/composia-web`
 
-To stop the container stack started from the repository root `docker-compose.yaml`:
+To stop the Composia stack started from the local `docker-compose.yaml`:
 
 ```bash
 docker compose down
 ```
 
-Note: the example stack injects the Web UI token through `COMPOSIA_CLI_TOKEN=dev-admin-token` in `docker-compose.yaml`. For production, generate your own token, update `configs/config.compose.yaml`, and change the Web service environment variable to match.
+Note: the example stack injects the Web UI token through `COMPOSIA_CLI_TOKEN` in `docker-compose.yaml`. For production, generate your own controller access token, update `configs/config.compose.yaml`, and keep the Web service environment variable aligned with it.
 
 The release workflows publish to both Forgejo Registry and GHCR. Configure these repository secrets for automated pushes:
 
@@ -100,10 +108,80 @@ Prerequisites for local development:
 
 - Go 1.25+
 - Bun 1.3+
+- buf 1.30+
 - SQLite3
 - Git
 
-Install frontend dependencies:
+This repository ships a `mise.toml` for `go`, `bun`, and `buf`.
+
+If you use `mise`, install and activate it first, then run:
+
+```bash
+mise install
+```
+
+Keep `docker`, `docker compose`, `git`, and `sqlite3` managed by your operating system.
+
+Recommended: start the fully containerized development environment with hot reload:
+
+```bash
+mise run dev
+```
+
+This starts:
+
+- `controller-dev` on `:7001`
+- `web-dev` on `:5173`
+- `docs-dev` on `:5174`
+- `agent-dev` connected to the local Docker socket
+
+You do not need to run `bun install` on the host for this path. `web-dev` and `docs-dev` install workspace dependencies inside the containers when they start.
+
+The containerized dev stack reuses these existing development state directories under `dev/` by default:
+
+- `./dev/repo-controller`
+- `./dev/state-controller`
+- `./dev/repo-agent`
+- `./dev/state-agent`
+- `./dev/logs`
+
+So if you previously ran the Controller or Agent manually, their service definitions, SQLite database, and task logs under `dev/` are brought into the dev containers automatically.
+
+`web-dev` and `docs-dev` run Vite/VitePress dev servers, while `controller-dev` and `agent-dev` use `air` for Go hot reload.
+
+Stop it with:
+
+```bash
+mise run dev:down
+```
+
+Follow the dev stack logs with:
+
+```bash
+mise run dev:logs
+```
+
+If your host uses SELinux, use the SELinux override entrypoint instead:
+
+```bash
+mise run dev:selinux
+```
+
+This loads `dev/docker-compose.dev.selinux.override.yaml` and applies `label=disable` to the development containers so bind-mounted source directories work on SELinux hosts.
+
+Stop it with:
+
+```bash
+mise run dev:down:selinux
+```
+
+Follow that stack's logs with:
+
+```bash
+mise run dev:logs:selinux
+```
+
+If you prefer local toolchain development instead, install workspace dependencies first:
 
 ```bash
 bun install
@@ -112,26 +190,39 @@ bun install
 Start the web app:
 
 ```bash
-bun run dev
+mise run web
+```
+
+Start the docs site locally:
+
+```bash
+mise run docs
 ```
 
 Run the backend in controller mode:
 
 ```bash
-mkdir -p ./repo-controller && git -C ./repo-controller init
-go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml
+mise run controller
 ```
 
 Run the backend in agent mode:
 
 ```bash
-go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml
+mise run agent
 ```
 
-Run a second agent with a different node ID:
+Run a second local agent with a different node ID:
 
 ```bash
-go run ./cmd/composia agent -config ./configs/config.agent.dev.yaml
+mise run agent2
+```
+
+Equivalent raw commands are still available if you do not want to use `mise`:
+
+```bash
+mkdir -p ./dev/repo-controller && git -C ./dev/repo-controller init
+go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml
+go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml
 ```
 
 Generate protobuf and Connect stubs after changing files under `proto/`:

@@ -4,29 +4,26 @@ Composia uses a control plane-agent (Controller-Agent) architecture that support
 
 ## System Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      Control Plane                          │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │   Web UI    │  │  API Server │  │     Task Queue      │  │
-│  │  (SvelteKit)│  │ (ConnectRPC)│  │     (SQLite)        │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │  Git Repo   │  │   Service   │  │    Node Manager     │  │
-│  │  (Config)   │  │   Registry  │  │                     │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-                              │
-              ┌───────────────┼───────────────┐
-              │               │               │
-       ┌──────▼──────┐ ┌──────▼──────┐ ┌──────▼──────┐
-       │   Agent 1   │ │   Agent 2   │ │   Agent N   │
-       │  (Node A)   │ │  (Node B)   │ │  (Node C)   │
-       │ ┌─────────┐ │ │ ┌─────────┐ │ │ ┌─────────┐ │
-       │ │ Docker  │ │ │ │ Docker  │ │ │ │ Docker  │ │
-       │ │ Compose │ │ │ │ Compose │ │ │ │ Compose │ │
-       │ └─────────┘ │ │ └─────────┘ │ │ └─────────┘ │
-       └─────────────┘ └─────────────┘ └─────────────┘
+```mermaid
+flowchart TB
+    subgraph CP[Control Plane]
+        WEB[Web UI\nSvelteKit]
+        API[API Server\nConnectRPC]
+        DB[(Task Queue / State\nSQLite)]
+        REPO[(Git Repo\nService Definitions)]
+    end
+
+    WEB --> API
+    API --> DB
+    API --> REPO
+
+    API --> A1[Agent 1\nNode A]
+    API --> A2[Agent 2\nNode B]
+    API --> AN[Agent N\nNode N]
+
+    A1 --> D1[Docker Compose]
+    A2 --> D2[Docker Compose]
+    AN --> DN[Docker Compose]
 ```
 
 ## Core Components
@@ -52,7 +49,7 @@ Agents run on target Docker hosts:
 | Heartbeat Communication | Regularly reporting status to the control plane (default: 15 seconds) |
 | Task Execution | Executing deployment, stop, restart, and other operations |
 | Log Collection | Collecting and forwarding container logs |
-| Resource Monitoring | Monitoring host and container resource usage |
+| Runtime Summary | Reports disk capacity and Docker inventory statistics |
 | Docker Operations | Directly managing local Docker containers |
 
 ### Web Interface
@@ -79,7 +76,7 @@ Composia uses ConnectRPC for inter-service communication:
 
 | Component | Authentication Method |
 |-----------|----------------------|
-| Web UI → Controller | CLI Token (Bearer) |
+| Web UI → Controller | Controller access token (Bearer, from `controller.cli_tokens`) |
 | Agent → Controller | Node Token |
 | Controller → Agent | Bearer token when calling controller-exposed RPCs |
 
@@ -101,11 +98,12 @@ User Request → Controller Validation → Create Task → Agent Pull → Execut
 ### Status Synchronization
 
 ```
-Agent Collect → Heartbeat Report → Controller Aggregate → Web UI Display
+Agent heartbeat / Docker stats reports → Controller aggregation → Web UI
 ```
 
 - Agents send heartbeats every 15 seconds
-- Heartbeats include node status, container list, and resource usage
+- Heartbeats include node liveness and disk summary
+- Agents also report Docker inventory statistics periodically
 - Controller aggregates status from all agents into SQLite
 - Web UI displays real-time status updates
 

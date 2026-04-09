@@ -1,0 +1,16 @@
+services:
+  controller-dev:
+    security_opt:
+      - label=disable
+
+  agent-dev:
+    security_opt:
+      - label=disable
+
+  web-dev:
+    security_opt:
+      - label=disable
+
+  docs-dev:
+    security_opt:
+      - label=disable

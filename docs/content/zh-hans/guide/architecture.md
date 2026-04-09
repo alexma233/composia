@@ -4,29 +4,26 @@ Composia 采用控制平面-代理（Control Plane-Agent）架构，支持分布
 
 ## 系统架构
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      Control Plane                          │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │   Web UI    │  │  API Server │  │     Task Queue      │  │
-│  │  (SvelteKit)│  │ (ConnectRPC)│  │     (SQLite)        │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │  Git Repo   │  │   Service   │  │    Node Manager     │  │
-│  │  (Config)   │  │   Registry  │  │                     │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-                              │
-              ┌───────────────┼───────────────┐
-              │               │               │
-       ┌──────▼──────┐ ┌──────▼──────┐ ┌──────▼──────┐
-       │   Agent 1   │ │   Agent 2   │ │   Agent N   │
-       │  (Node A)   │ │  (Node B)   │ │  (Node C)   │
-       │ ┌─────────┐ │ │ ┌─────────┐ │ │ ┌─────────┐ │
-       │ │ Docker  │ │ │ │ Docker  │ │ │ │ Docker  │ │
-       │ │ Compose │ │ │ │ Compose │ │ │ │ Compose │ │
-       │ └─────────┘ │ │ └─────────┘ │ │ └─────────┘ │
-       └─────────────┘ └─────────────┘ └─────────────┘
+```mermaid
+flowchart TB
+    subgraph CP[Control Plane]
+        WEB[Web UI\nSvelteKit]
+        API[API Server\nConnectRPC]
+        DB[(Task Queue / State\nSQLite)]
+        REPO[(Git Repo\nService Definitions)]
+    end
+
+    WEB --> API
+    API --> DB
+    API --> REPO
+
+    API --> A1[Agent 1\nNode A]
+    API --> A2[Agent 2\nNode B]
+    API --> AN[Agent N\nNode N]
+
+    A1 --> D1[Docker Compose]
+    A2 --> D2[Docker Compose]
+    AN --> DN[Docker Compose]
 ```
 
 ## 核心组件
@@ -52,7 +49,7 @@ Composia 采用控制平面-代理（Control Plane-Agent）架构，支持分布
 | 心跳通信 | 定期向控制平面报告状态（默认 15 秒） |
 | 任务执行 | 执行部署、停止、重启等操作 |
 | 日志收集 | 收集和转发容器日志 |
-| 资源监控 | 监控主机和容器资源使用情况 |
+| 运行时摘要 | 上报磁盘容量和 Docker 资源统计 |
 | Docker 操作 | 直接管理本地 Docker 容器 |
 
 ### Web 界面
@@ -79,7 +76,7 @@ Composia 使用 ConnectRPC 进行服务间通信：
 
 | 组件 | 认证方式 |
 |------|----------|
-| Web UI → Controller | CLI Token（Bearer） |
+| Web UI → Controller | Controller 访问 token（Bearer，来自 `controller.cli_tokens`） |
 | Agent → Controller | Node Token |
 | Controller → Agent | 调用 Controller 暴露的 RPC 时使用 Bearer token |
 
@@ -101,11 +98,12 @@ Composia 使用 ConnectRPC 进行服务间通信：
 ### 状态同步
 
 ```
-Agent 采集 → 心跳上报 → Controller 聚合 → Web UI 展示
+Agent 心跳 / Docker 统计上报 → Controller 聚合 → Web UI 展示
 ```
 
 - Agent 每 15 秒发送一次心跳
-- 心跳包含节点状态、容器列表、资源使用
+- 心跳包含节点在线状态和磁盘摘要
+- Agent 还会定期上报 Docker 资源统计
 - Controller 聚合所有代理的状态到 SQLite
 - Web UI 实时展示最新状态
 

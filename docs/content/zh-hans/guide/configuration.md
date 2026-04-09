@@ -94,7 +94,7 @@ agent:
 | `log_dir` | string | 是 | 任务日志持久化目录 |
 | `nodes` | array | 是 | 顶层字段必须出现，即使为空数组也要写出 |
 
-#### 认证配置
+#### Controller 访问 token（`cli_tokens`）
 
 ```yaml
 cli_tokens:
@@ -109,7 +109,7 @@ cli_tokens:
 | 字段 | 说明 |
 |------|------|
 | `name` | 必填的 Token 名称，用于识别 |
-| `token` | 必填的 Token 值，Web UI 和 CLI 使用 |
+| `token` | 必填的 Token 值，供 Web UI、CLI 或自定义客户端访问 Controller |
 | `enabled` | 是否启用该 Token |
 | `comment` | 可选的运维备注 |
 
@@ -328,7 +328,7 @@ cat key.txt | grep "public key" > recipients.txt
 # 使用 dev 配置启动 Controller
 go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml
 
-# 使用共享的 dev 配置启动 Agent
+# 使用共享的 dev 配置启动 main Agent
 go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml
 ```
 
