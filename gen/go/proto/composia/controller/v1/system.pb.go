@@ -22,6 +22,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// GetSystemStatusRequest requests the current controller runtime state.
 type GetSystemStatusRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -58,18 +59,27 @@ func (*GetSystemStatusRequest) Descriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{0}
 }
 
+// GetSystemStatusResponse describes the current controller runtime state.
 type GetSystemStatusResponse struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Version             string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
-	Now                 *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=now,proto3" json:"now,omitempty"`
-	ConfiguredNodeCount uint64                 `protobuf:"varint,3,opt,name=configured_node_count,json=configuredNodeCount,proto3" json:"configured_node_count,omitempty"`
-	OnlineNodeCount     uint64                 `protobuf:"varint,4,opt,name=online_node_count,json=onlineNodeCount,proto3" json:"online_node_count,omitempty"`
-	ControllerAddr      string                 `protobuf:"bytes,5,opt,name=controller_addr,json=controllerAddr,proto3" json:"controller_addr,omitempty"`
-	RepoDir             string                 `protobuf:"bytes,6,opt,name=repo_dir,json=repoDir,proto3" json:"repo_dir,omitempty"`
-	StateDir            string                 `protobuf:"bytes,7,opt,name=state_dir,json=stateDir,proto3" json:"state_dir,omitempty"`
-	LogDir              string                 `protobuf:"bytes,8,opt,name=log_dir,json=logDir,proto3" json:"log_dir,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// version is the controller version string.
+	Version string `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
+	// now is the controller time when the response was generated.
+	Now *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=now,proto3" json:"now,omitempty"`
+	// configured_node_count is the number of nodes present in config.
+	ConfiguredNodeCount uint64 `protobuf:"varint,3,opt,name=configured_node_count,json=configuredNodeCount,proto3" json:"configured_node_count,omitempty"`
+	// online_node_count is the number of nodes with a recent heartbeat.
+	OnlineNodeCount uint64 `protobuf:"varint,4,opt,name=online_node_count,json=onlineNodeCount,proto3" json:"online_node_count,omitempty"`
+	// controller_addr is the configured public controller address.
+	ControllerAddr string `protobuf:"bytes,5,opt,name=controller_addr,json=controllerAddr,proto3" json:"controller_addr,omitempty"`
+	// repo_dir is the controller-side desired state repository path.
+	RepoDir string `protobuf:"bytes,6,opt,name=repo_dir,json=repoDir,proto3" json:"repo_dir,omitempty"`
+	// state_dir is the controller-side persistent state directory.
+	StateDir string `protobuf:"bytes,7,opt,name=state_dir,json=stateDir,proto3" json:"state_dir,omitempty"`
+	// log_dir is the controller-side task log directory.
+	LogDir        string `protobuf:"bytes,8,opt,name=log_dir,json=logDir,proto3" json:"log_dir,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetSystemStatusResponse) Reset() {
@@ -158,6 +168,7 @@ func (x *GetSystemStatusResponse) GetLogDir() string {
 	return ""
 }
 
+// GetCurrentConfigRequest requests the active redacted controller config.
 type GetCurrentConfigRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -194,18 +205,27 @@ func (*GetCurrentConfigRequest) Descriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{2}
 }
 
+// GetCurrentConfigResponse contains redacted config summaries only.
 type GetCurrentConfigResponse struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	ListenAddr     string                 `protobuf:"bytes,1,opt,name=listen_addr,json=listenAddr,proto3" json:"listen_addr,omitempty"`
-	ControllerAddr string                 `protobuf:"bytes,2,opt,name=controller_addr,json=controllerAddr,proto3" json:"controller_addr,omitempty"`
-	Git            *GitConfigSummary      `protobuf:"bytes,3,opt,name=git,proto3" json:"git,omitempty"`
-	Nodes          []*NodeConfigSummary   `protobuf:"bytes,4,rep,name=nodes,proto3" json:"nodes,omitempty"`
-	CliTokens      []*CLITokenSummary     `protobuf:"bytes,5,rep,name=cli_tokens,json=cliTokens,proto3" json:"cli_tokens,omitempty"`
-	Dns            *DNSConfigSummary      `protobuf:"bytes,6,opt,name=dns,proto3" json:"dns,omitempty"`
-	Backup         *BackupConfigSummary   `protobuf:"bytes,7,opt,name=backup,proto3" json:"backup,omitempty"`
-	Secrets        *SecretsConfigSummary  `protobuf:"bytes,8,opt,name=secrets,proto3" json:"secrets,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// listen_addr is the controller listen address.
+	ListenAddr string `protobuf:"bytes,1,opt,name=listen_addr,json=listenAddr,proto3" json:"listen_addr,omitempty"`
+	// controller_addr is the configured public controller address.
+	ControllerAddr string `protobuf:"bytes,2,opt,name=controller_addr,json=controllerAddr,proto3" json:"controller_addr,omitempty"`
+	// git is the configured Git sync summary for the controller repo.
+	Git *GitConfigSummary `protobuf:"bytes,3,opt,name=git,proto3" json:"git,omitempty"`
+	// nodes lists configured execution nodes.
+	Nodes []*NodeConfigSummary `protobuf:"bytes,4,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	// cli_tokens lists token metadata without returning secret token values.
+	CliTokens []*CLITokenSummary `protobuf:"bytes,5,rep,name=cli_tokens,json=cliTokens,proto3" json:"cli_tokens,omitempty"`
+	// dns describes optional DNS integration configuration.
+	Dns *DNSConfigSummary `protobuf:"bytes,6,opt,name=dns,proto3" json:"dns,omitempty"`
+	// backup describes optional backup integration configuration.
+	Backup *BackupConfigSummary `protobuf:"bytes,7,opt,name=backup,proto3" json:"backup,omitempty"`
+	// secrets describes the active secrets provider configuration.
+	Secrets       *SecretsConfigSummary `protobuf:"bytes,8,opt,name=secrets,proto3" json:"secrets,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetCurrentConfigResponse) Reset() {
@@ -294,14 +314,21 @@ func (x *GetCurrentConfigResponse) GetSecrets() *SecretsConfigSummary {
 	return nil
 }
 
+// GitConfigSummary describes controller Git sync settings without credentials.
 type GitConfigSummary struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RemoteUrl     string                 `protobuf:"bytes,1,opt,name=remote_url,json=remoteUrl,proto3" json:"remote_url,omitempty"`
-	Branch        string                 `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
-	PullInterval  string                 `protobuf:"bytes,3,opt,name=pull_interval,json=pullInterval,proto3" json:"pull_interval,omitempty"`
-	HasAuth       bool                   `protobuf:"varint,4,opt,name=has_auth,json=hasAuth,proto3" json:"has_auth,omitempty"`
-	AuthorName    string                 `protobuf:"bytes,5,opt,name=author_name,json=authorName,proto3" json:"author_name,omitempty"`
-	AuthorEmail   string                 `protobuf:"bytes,6,opt,name=author_email,json=authorEmail,proto3" json:"author_email,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// remote_url is the configured Git remote URL.
+	RemoteUrl string `protobuf:"bytes,1,opt,name=remote_url,json=remoteUrl,proto3" json:"remote_url,omitempty"`
+	// branch is the tracked Git branch name.
+	Branch string `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
+	// pull_interval stores the configured pull interval duration string.
+	PullInterval string `protobuf:"bytes,3,opt,name=pull_interval,json=pullInterval,proto3" json:"pull_interval,omitempty"`
+	// has_auth reports whether Git auth is configured, not the auth value itself.
+	HasAuth bool `protobuf:"varint,4,opt,name=has_auth,json=hasAuth,proto3" json:"has_auth,omitempty"`
+	// author_name is the Git author name for controller-created commits.
+	AuthorName string `protobuf:"bytes,5,opt,name=author_name,json=authorName,proto3" json:"author_name,omitempty"`
+	// author_email is the Git author email for controller-created commits.
+	AuthorEmail   string `protobuf:"bytes,6,opt,name=author_email,json=authorEmail,proto3" json:"author_email,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -378,13 +405,19 @@ func (x *GitConfigSummary) GetAuthorEmail() string {
 	return ""
 }
 
+// NodeConfigSummary describes one configured node entry.
 type NodeConfigSummary struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	Enabled       bool                   `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	PublicIpv4    string                 `protobuf:"bytes,4,opt,name=public_ipv4,json=publicIpv4,proto3" json:"public_ipv4,omitempty"`
-	PublicIpv6    string                 `protobuf:"bytes,5,opt,name=public_ipv6,json=publicIpv6,proto3" json:"public_ipv6,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// id is the stable node identifier used across controller and agents.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// display_name is the human-readable node label.
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	// enabled reports whether the node is eligible for controller actions.
+	Enabled bool `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// public_ipv4 is empty when no public IPv4 address is configured.
+	PublicIpv4 string `protobuf:"bytes,4,opt,name=public_ipv4,json=publicIpv4,proto3" json:"public_ipv4,omitempty"`
+	// public_ipv6 is empty when no public IPv6 address is configured.
+	PublicIpv6    string `protobuf:"bytes,5,opt,name=public_ipv6,json=publicIpv6,proto3" json:"public_ipv6,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -454,11 +487,15 @@ func (x *NodeConfigSummary) GetPublicIpv6() string {
 	return ""
 }
 
+// CLITokenSummary describes one CLI token without exposing the token string.
 type CLITokenSummary struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Enabled       bool                   `protobuf:"varint,2,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	Comment       string                 `protobuf:"bytes,3,opt,name=comment,proto3" json:"comment,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// name is the operator-facing token name.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// enabled reports whether this token may be used.
+	Enabled bool `protobuf:"varint,2,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// comment is the optional operator note attached to the token.
+	Comment       string `protobuf:"bytes,3,opt,name=comment,proto3" json:"comment,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -514,9 +551,11 @@ func (x *CLITokenSummary) GetComment() string {
 	return ""
 }
 
+// DNSConfigSummary describes optional DNS integration state.
 type DNSConfigSummary struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	HasCloudflare bool                   `protobuf:"varint,1,opt,name=has_cloudflare,json=hasCloudflare,proto3" json:"has_cloudflare,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// has_cloudflare reports whether Cloudflare DNS integration is configured.
+	HasCloudflare bool `protobuf:"varint,1,opt,name=has_cloudflare,json=hasCloudflare,proto3" json:"has_cloudflare,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -558,9 +597,11 @@ func (x *DNSConfigSummary) GetHasCloudflare() bool {
 	return false
 }
 
+// BackupConfigSummary describes optional backup integration state.
 type BackupConfigSummary struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	HasRustic     bool                   `protobuf:"varint,1,opt,name=has_rustic,json=hasRustic,proto3" json:"has_rustic,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// has_rustic reports whether Rustic backup integration is configured.
+	HasRustic     bool `protobuf:"varint,1,opt,name=has_rustic,json=hasRustic,proto3" json:"has_rustic,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -602,11 +643,15 @@ func (x *BackupConfigSummary) GetHasRustic() bool {
 	return false
 }
 
+// SecretsConfigSummary describes the active secrets provider setup.
 type SecretsConfigSummary struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	HasIdentity   bool                   `protobuf:"varint,2,opt,name=has_identity,json=hasIdentity,proto3" json:"has_identity,omitempty"`
-	HasRecipient  bool                   `protobuf:"varint,3,opt,name=has_recipient,json=hasRecipient,proto3" json:"has_recipient,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// provider is the configured secrets provider name.
+	Provider string `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	// has_identity reports whether an identity source is configured.
+	HasIdentity bool `protobuf:"varint,2,opt,name=has_identity,json=hasIdentity,proto3" json:"has_identity,omitempty"`
+	// has_recipient reports whether a recipient source is configured.
+	HasRecipient  bool `protobuf:"varint,3,opt,name=has_recipient,json=hasRecipient,proto3" json:"has_recipient,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

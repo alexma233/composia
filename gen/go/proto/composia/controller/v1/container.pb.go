@@ -21,13 +21,18 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// ContainerAction identifies a container lifecycle action.
 type ContainerAction int32
 
 const (
+	// CONTAINER_ACTION_UNSPECIFIED is invalid and should not be used.
 	ContainerAction_CONTAINER_ACTION_UNSPECIFIED ContainerAction = 0
-	ContainerAction_CONTAINER_ACTION_START       ContainerAction = 1
-	ContainerAction_CONTAINER_ACTION_STOP        ContainerAction = 2
-	ContainerAction_CONTAINER_ACTION_RESTART     ContainerAction = 3
+	// CONTAINER_ACTION_START starts the container.
+	ContainerAction_CONTAINER_ACTION_START ContainerAction = 1
+	// CONTAINER_ACTION_STOP stops the container.
+	ContainerAction_CONTAINER_ACTION_STOP ContainerAction = 2
+	// CONTAINER_ACTION_RESTART restarts the container.
+	ContainerAction_CONTAINER_ACTION_RESTART ContainerAction = 3
 )
 
 // Enum value maps for ContainerAction.
@@ -73,6 +78,7 @@ func (ContainerAction) EnumDescriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{0}
 }
 
+// RunContainerActionRequest identifies one node-scoped container action.
 type RunContainerActionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
@@ -133,12 +139,15 @@ func (x *RunContainerActionRequest) GetAction() ContainerAction {
 	return ContainerAction_CONTAINER_ACTION_UNSPECIFIED
 }
 
+// GetContainerLogsRequest fetches logs for one container.
 type GetContainerLogsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	ContainerId   string                 `protobuf:"bytes,2,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
-	Tail          string                 `protobuf:"bytes,3,opt,name=tail,proto3" json:"tail,omitempty"`
-	Timestamps    bool                   `protobuf:"varint,4,opt,name=timestamps,proto3" json:"timestamps,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	NodeId      string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	ContainerId string                 `protobuf:"bytes,2,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	// tail is forwarded to the Docker log tail option.
+	Tail string `protobuf:"bytes,3,opt,name=tail,proto3" json:"tail,omitempty"`
+	// timestamps includes Docker timestamps in the returned log output.
+	Timestamps    bool `protobuf:"varint,4,opt,name=timestamps,proto3" json:"timestamps,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -201,6 +210,7 @@ func (x *GetContainerLogsRequest) GetTimestamps() bool {
 	return false
 }
 
+// GetContainerLogsResponse returns collected log content as text.
 type GetContainerLogsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Content       string                 `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
@@ -245,13 +255,17 @@ func (x *GetContainerLogsResponse) GetContent() string {
 	return ""
 }
 
+// OpenContainerExecRequest starts an interactive exec session.
 type OpenContainerExecRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	ContainerId   string                 `protobuf:"bytes,2,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
-	Command       []string               `protobuf:"bytes,3,rep,name=command,proto3" json:"command,omitempty"`
-	Rows          uint32                 `protobuf:"varint,4,opt,name=rows,proto3" json:"rows,omitempty"`
-	Cols          uint32                 `protobuf:"varint,5,opt,name=cols,proto3" json:"cols,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	NodeId      string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	ContainerId string                 `protobuf:"bytes,2,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	// command stores the exec command and arguments.
+	Command []string `protobuf:"bytes,3,rep,name=command,proto3" json:"command,omitempty"`
+	// rows is the initial terminal row count.
+	Rows uint32 `protobuf:"varint,4,opt,name=rows,proto3" json:"rows,omitempty"`
+	// cols is the initial terminal column count.
+	Cols          uint32 `protobuf:"varint,5,opt,name=cols,proto3" json:"cols,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -321,10 +335,13 @@ func (x *OpenContainerExecRequest) GetCols() uint32 {
 	return 0
 }
 
+// OpenContainerExecResponse returns the session identity and websocket path.
 type OpenContainerExecResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	WebsocketPath string                 `protobuf:"bytes,2,opt,name=websocket_path,json=websocketPath,proto3" json:"websocket_path,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// session_id identifies the created interactive exec session.
+	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	// websocket_path is the controller websocket path for the interactive tunnel.
+	WebsocketPath string `protobuf:"bytes,2,opt,name=websocket_path,json=websocketPath,proto3" json:"websocket_path,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

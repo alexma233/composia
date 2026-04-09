@@ -71,9 +71,13 @@ const (
 
 // ServiceQueryServiceClient is a client for the composia.controller.v1.ServiceQueryService service.
 type ServiceQueryServiceClient interface {
+	// ListServices returns declared and discovered services with pagination.
 	ListServices(context.Context, *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error)
+	// GetService returns the full detail for a single service.
 	GetService(context.Context, *connect.Request[v1.GetServiceRequest]) (*connect.Response[v1.GetServiceResponse], error)
+	// GetServiceTasks returns tasks related to one service.
 	GetServiceTasks(context.Context, *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error)
+	// GetServiceBackups returns backups related to one service.
 	GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error)
 }
 
@@ -146,9 +150,13 @@ func (c *serviceQueryServiceClient) GetServiceBackups(ctx context.Context, req *
 // ServiceQueryServiceHandler is an implementation of the composia.controller.v1.ServiceQueryService
 // service.
 type ServiceQueryServiceHandler interface {
+	// ListServices returns declared and discovered services with pagination.
 	ListServices(context.Context, *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error)
+	// GetService returns the full detail for a single service.
 	GetService(context.Context, *connect.Request[v1.GetServiceRequest]) (*connect.Response[v1.GetServiceResponse], error)
+	// GetServiceTasks returns tasks related to one service.
 	GetServiceTasks(context.Context, *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error)
+	// GetServiceBackups returns backups related to one service.
 	GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error)
 }
 
@@ -221,8 +229,11 @@ func (UnimplementedServiceQueryServiceHandler) GetServiceBackups(context.Context
 // ServiceCommandServiceClient is a client for the composia.controller.v1.ServiceCommandService
 // service.
 type ServiceCommandServiceClient interface {
+	// UpdateServiceTargetNodes updates the declared target nodes for a service.
 	UpdateServiceTargetNodes(context.Context, *connect.Request[v1.UpdateServiceTargetNodesRequest]) (*connect.Response[v1.UpdateServiceTargetNodesResponse], error)
+	// RunServiceAction starts an async action for a service and returns the task.
 	RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
+	// MigrateService starts an async service migration between two nodes.
 	MigrateService(context.Context, *connect.Request[v1.MigrateServiceRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 
@@ -285,8 +296,11 @@ func (c *serviceCommandServiceClient) MigrateService(ctx context.Context, req *c
 // ServiceCommandServiceHandler is an implementation of the
 // composia.controller.v1.ServiceCommandService service.
 type ServiceCommandServiceHandler interface {
+	// UpdateServiceTargetNodes updates the declared target nodes for a service.
 	UpdateServiceTargetNodes(context.Context, *connect.Request[v1.UpdateServiceTargetNodesRequest]) (*connect.Response[v1.UpdateServiceTargetNodesResponse], error)
+	// RunServiceAction starts an async action for a service and returns the task.
 	RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
+	// MigrateService starts an async service migration between two nodes.
 	MigrateService(context.Context, *connect.Request[v1.MigrateServiceRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 
@@ -347,8 +361,11 @@ func (UnimplementedServiceCommandServiceHandler) MigrateService(context.Context,
 // ServiceInstanceServiceClient is a client for the composia.controller.v1.ServiceInstanceService
 // service.
 type ServiceInstanceServiceClient interface {
+	// ListServiceInstances lists all instances for one service.
 	ListServiceInstances(context.Context, *connect.Request[v1.ListServiceInstancesRequest]) (*connect.Response[v1.ListServiceInstancesResponse], error)
+	// GetServiceInstance returns the detail for one service instance on one node.
 	GetServiceInstance(context.Context, *connect.Request[v1.GetServiceInstanceRequest]) (*connect.Response[v1.GetServiceInstanceResponse], error)
+	// RunServiceInstanceAction starts an async action for one service instance.
 	RunServiceInstanceAction(context.Context, *connect.Request[v1.RunServiceInstanceActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 
@@ -411,8 +428,11 @@ func (c *serviceInstanceServiceClient) RunServiceInstanceAction(ctx context.Cont
 // ServiceInstanceServiceHandler is an implementation of the
 // composia.controller.v1.ServiceInstanceService service.
 type ServiceInstanceServiceHandler interface {
+	// ListServiceInstances lists all instances for one service.
 	ListServiceInstances(context.Context, *connect.Request[v1.ListServiceInstancesRequest]) (*connect.Response[v1.ListServiceInstancesResponse], error)
+	// GetServiceInstance returns the detail for one service instance on one node.
 	GetServiceInstance(context.Context, *connect.Request[v1.GetServiceInstanceRequest]) (*connect.Response[v1.GetServiceInstanceResponse], error)
+	// RunServiceInstanceAction starts an async action for one service instance.
 	RunServiceInstanceAction(context.Context, *connect.Request[v1.RunServiceInstanceActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 

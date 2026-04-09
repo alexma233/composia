@@ -21,6 +21,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// GetSecretRequest identifies one decrypted secret file for a service.
 type GetSecretRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
@@ -73,6 +74,7 @@ func (x *GetSecretRequest) GetFilePath() string {
 	return ""
 }
 
+// GetSecretResponse returns one decrypted secret file.
 type GetSecretResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
@@ -133,13 +135,18 @@ func (x *GetSecretResponse) GetContent() string {
 	return ""
 }
 
+// UpdateSecretRequest writes one decrypted secret file for a service.
 type UpdateSecretRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	FilePath      string                 `protobuf:"bytes,2,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"`
-	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
-	BaseRevision  string                 `protobuf:"bytes,4,opt,name=base_revision,json=baseRevision,proto3" json:"base_revision,omitempty"`
-	CommitMessage string                 `protobuf:"bytes,5,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	ServiceName string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// file_path is the repo-relative secret file path for the service.
+	FilePath string `protobuf:"bytes,2,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"`
+	// content is the full decrypted secret file content to store.
+	Content string `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
+	// base_revision protects against writing on top of an unexpected HEAD.
+	BaseRevision string `protobuf:"bytes,4,opt,name=base_revision,json=baseRevision,proto3" json:"base_revision,omitempty"`
+	// commit_message is used for the generated Git commit.
+	CommitMessage string `protobuf:"bytes,5,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -209,12 +216,17 @@ func (x *UpdateSecretRequest) GetCommitMessage() string {
 	return ""
 }
 
+// UpdateSecretResponse reports the commit and sync result for the secret update.
 type UpdateSecretResponse struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	CommitId             string                 `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
-	SyncStatus           string                 `protobuf:"bytes,2,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
-	PushError            string                 `protobuf:"bytes,3,opt,name=push_error,json=pushError,proto3" json:"push_error,omitempty"`
-	LastSuccessfulPullAt string                 `protobuf:"bytes,4,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// commit_id is the Git commit created for the secret update.
+	CommitId string `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
+	// sync_status is the repo sync state after the write.
+	SyncStatus string `protobuf:"bytes,2,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
+	// push_error contains the last push error when sync_status is failed.
+	PushError string `protobuf:"bytes,3,opt,name=push_error,json=pushError,proto3" json:"push_error,omitempty"`
+	// last_successful_pull_at is the last successful pull timestamp string.
+	LastSuccessfulPullAt string `protobuf:"bytes,4,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }

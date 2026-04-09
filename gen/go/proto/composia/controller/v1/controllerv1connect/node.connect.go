@@ -92,9 +92,13 @@ const (
 
 // NodeQueryServiceClient is a client for the composia.controller.v1.NodeQueryService service.
 type NodeQueryServiceClient interface {
+	// ListNodes returns all configured nodes with current online state.
 	ListNodes(context.Context, *connect.Request[v1.ListNodesRequest]) (*connect.Response[v1.ListNodesResponse], error)
+	// GetNode returns one node by ID.
 	GetNode(context.Context, *connect.Request[v1.GetNodeRequest]) (*connect.Response[v1.GetNodeResponse], error)
+	// GetNodeTasks returns tasks related to one node.
 	GetNodeTasks(context.Context, *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error)
+	// GetNodeDockerStats returns the latest Docker stats snapshot for one node.
 	GetNodeDockerStats(context.Context, *connect.Request[v1.GetNodeDockerStatsRequest]) (*connect.Response[v1.GetNodeDockerStatsResponse], error)
 }
 
@@ -167,9 +171,13 @@ func (c *nodeQueryServiceClient) GetNodeDockerStats(ctx context.Context, req *co
 // NodeQueryServiceHandler is an implementation of the composia.controller.v1.NodeQueryService
 // service.
 type NodeQueryServiceHandler interface {
+	// ListNodes returns all configured nodes with current online state.
 	ListNodes(context.Context, *connect.Request[v1.ListNodesRequest]) (*connect.Response[v1.ListNodesResponse], error)
+	// GetNode returns one node by ID.
 	GetNode(context.Context, *connect.Request[v1.GetNodeRequest]) (*connect.Response[v1.GetNodeResponse], error)
+	// GetNodeTasks returns tasks related to one node.
 	GetNodeTasks(context.Context, *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error)
+	// GetNodeDockerStats returns the latest Docker stats snapshot for one node.
 	GetNodeDockerStats(context.Context, *connect.Request[v1.GetNodeDockerStatsRequest]) (*connect.Response[v1.GetNodeDockerStatsResponse], error)
 }
 
@@ -242,10 +250,15 @@ func (UnimplementedNodeQueryServiceHandler) GetNodeDockerStats(context.Context, 
 // NodeMaintenanceServiceClient is a client for the composia.controller.v1.NodeMaintenanceService
 // service.
 type NodeMaintenanceServiceClient interface {
+	// SyncNodeCaddyFiles starts a task to sync Caddy files on one node.
 	SyncNodeCaddyFiles(context.Context, *connect.Request[v1.SyncNodeCaddyFilesRequest]) (*connect.Response[v1.SyncNodeCaddyFilesResponse], error)
+	// ReloadNodeCaddy starts a task to reload Caddy on one node.
 	ReloadNodeCaddy(context.Context, *connect.Request[v1.ReloadNodeCaddyRequest]) (*connect.Response[v1.ReloadNodeCaddyResponse], error)
+	// PruneNodeDocker starts a task to prune Docker resources on one node.
 	PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error)
+	// ForgetNodeRustic starts a task to forget Rustic snapshots for one node.
 	ForgetNodeRustic(context.Context, *connect.Request[v1.ForgetNodeRusticRequest]) (*connect.Response[v1.ForgetNodeRusticResponse], error)
+	// PruneNodeRustic starts a task to prune Rustic data on one node.
 	PruneNodeRustic(context.Context, *connect.Request[v1.PruneNodeRusticRequest]) (*connect.Response[v1.PruneNodeRusticResponse], error)
 }
 
@@ -331,10 +344,15 @@ func (c *nodeMaintenanceServiceClient) PruneNodeRustic(ctx context.Context, req 
 // NodeMaintenanceServiceHandler is an implementation of the
 // composia.controller.v1.NodeMaintenanceService service.
 type NodeMaintenanceServiceHandler interface {
+	// SyncNodeCaddyFiles starts a task to sync Caddy files on one node.
 	SyncNodeCaddyFiles(context.Context, *connect.Request[v1.SyncNodeCaddyFilesRequest]) (*connect.Response[v1.SyncNodeCaddyFilesResponse], error)
+	// ReloadNodeCaddy starts a task to reload Caddy on one node.
 	ReloadNodeCaddy(context.Context, *connect.Request[v1.ReloadNodeCaddyRequest]) (*connect.Response[v1.ReloadNodeCaddyResponse], error)
+	// PruneNodeDocker starts a task to prune Docker resources on one node.
 	PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error)
+	// ForgetNodeRustic starts a task to forget Rustic snapshots for one node.
 	ForgetNodeRustic(context.Context, *connect.Request[v1.ForgetNodeRusticRequest]) (*connect.Response[v1.ForgetNodeRusticResponse], error)
+	// PruneNodeRustic starts a task to prune Rustic data on one node.
 	PruneNodeRustic(context.Context, *connect.Request[v1.PruneNodeRusticRequest]) (*connect.Response[v1.PruneNodeRusticResponse], error)
 }
 
@@ -418,13 +436,21 @@ func (UnimplementedNodeMaintenanceServiceHandler) PruneNodeRustic(context.Contex
 
 // DockerQueryServiceClient is a client for the composia.controller.v1.DockerQueryService service.
 type DockerQueryServiceClient interface {
+	// ListNodeContainers lists containers on one node.
 	ListNodeContainers(context.Context, *connect.Request[v1.ListNodeContainersRequest]) (*connect.Response[v1.ListNodeContainersResponse], error)
+	// InspectNodeContainer returns raw Docker inspect JSON for one container.
 	InspectNodeContainer(context.Context, *connect.Request[v1.InspectNodeContainerRequest]) (*connect.Response[v1.InspectNodeContainerResponse], error)
+	// ListNodeNetworks lists networks on one node.
 	ListNodeNetworks(context.Context, *connect.Request[v1.ListNodeNetworksRequest]) (*connect.Response[v1.ListNodeNetworksResponse], error)
+	// InspectNodeNetwork returns raw Docker inspect JSON for one network.
 	InspectNodeNetwork(context.Context, *connect.Request[v1.InspectNodeNetworkRequest]) (*connect.Response[v1.InspectNodeNetworkResponse], error)
+	// ListNodeVolumes lists volumes on one node.
 	ListNodeVolumes(context.Context, *connect.Request[v1.ListNodeVolumesRequest]) (*connect.Response[v1.ListNodeVolumesResponse], error)
+	// InspectNodeVolume returns raw Docker inspect JSON for one volume.
 	InspectNodeVolume(context.Context, *connect.Request[v1.InspectNodeVolumeRequest]) (*connect.Response[v1.InspectNodeVolumeResponse], error)
+	// ListNodeImages lists images on one node.
 	ListNodeImages(context.Context, *connect.Request[v1.ListNodeImagesRequest]) (*connect.Response[v1.ListNodeImagesResponse], error)
+	// InspectNodeImage returns raw Docker inspect JSON for one image.
 	InspectNodeImage(context.Context, *connect.Request[v1.InspectNodeImageRequest]) (*connect.Response[v1.InspectNodeImageResponse], error)
 }
 
@@ -545,13 +571,21 @@ func (c *dockerQueryServiceClient) InspectNodeImage(ctx context.Context, req *co
 // DockerQueryServiceHandler is an implementation of the composia.controller.v1.DockerQueryService
 // service.
 type DockerQueryServiceHandler interface {
+	// ListNodeContainers lists containers on one node.
 	ListNodeContainers(context.Context, *connect.Request[v1.ListNodeContainersRequest]) (*connect.Response[v1.ListNodeContainersResponse], error)
+	// InspectNodeContainer returns raw Docker inspect JSON for one container.
 	InspectNodeContainer(context.Context, *connect.Request[v1.InspectNodeContainerRequest]) (*connect.Response[v1.InspectNodeContainerResponse], error)
+	// ListNodeNetworks lists networks on one node.
 	ListNodeNetworks(context.Context, *connect.Request[v1.ListNodeNetworksRequest]) (*connect.Response[v1.ListNodeNetworksResponse], error)
+	// InspectNodeNetwork returns raw Docker inspect JSON for one network.
 	InspectNodeNetwork(context.Context, *connect.Request[v1.InspectNodeNetworkRequest]) (*connect.Response[v1.InspectNodeNetworkResponse], error)
+	// ListNodeVolumes lists volumes on one node.
 	ListNodeVolumes(context.Context, *connect.Request[v1.ListNodeVolumesRequest]) (*connect.Response[v1.ListNodeVolumesResponse], error)
+	// InspectNodeVolume returns raw Docker inspect JSON for one volume.
 	InspectNodeVolume(context.Context, *connect.Request[v1.InspectNodeVolumeRequest]) (*connect.Response[v1.InspectNodeVolumeResponse], error)
+	// ListNodeImages lists images on one node.
 	ListNodeImages(context.Context, *connect.Request[v1.ListNodeImagesRequest]) (*connect.Response[v1.ListNodeImagesResponse], error)
+	// InspectNodeImage returns raw Docker inspect JSON for one image.
 	InspectNodeImage(context.Context, *connect.Request[v1.InspectNodeImageRequest]) (*connect.Response[v1.InspectNodeImageResponse], error)
 }
 

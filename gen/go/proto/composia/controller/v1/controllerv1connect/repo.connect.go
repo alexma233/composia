@@ -69,10 +69,15 @@ const (
 
 // RepoQueryServiceClient is a client for the composia.controller.v1.RepoQueryService service.
 type RepoQueryServiceClient interface {
+	// GetRepoHead returns current HEAD and sync metadata.
 	GetRepoHead(context.Context, *connect.Request[v1.GetRepoHeadRequest]) (*connect.Response[v1.GetRepoHeadResponse], error)
+	// ListRepoFiles lists direct children for one repo path.
 	ListRepoFiles(context.Context, *connect.Request[v1.ListRepoFilesRequest]) (*connect.Response[v1.ListRepoFilesResponse], error)
+	// GetRepoFile returns the content of one repo file.
 	GetRepoFile(context.Context, *connect.Request[v1.GetRepoFileRequest]) (*connect.Response[v1.GetRepoFileResponse], error)
+	// ListRepoCommits returns commit history using cursor pagination.
 	ListRepoCommits(context.Context, *connect.Request[v1.ListRepoCommitsRequest]) (*connect.Response[v1.ListRepoCommitsResponse], error)
+	// ValidateRepo runs repo validation and returns structured errors.
 	ValidateRepo(context.Context, *connect.Request[v1.ValidateRepoRequest]) (*connect.Response[v1.ValidateRepoResponse], error)
 }
 
@@ -157,10 +162,15 @@ func (c *repoQueryServiceClient) ValidateRepo(ctx context.Context, req *connect.
 // RepoQueryServiceHandler is an implementation of the composia.controller.v1.RepoQueryService
 // service.
 type RepoQueryServiceHandler interface {
+	// GetRepoHead returns current HEAD and sync metadata.
 	GetRepoHead(context.Context, *connect.Request[v1.GetRepoHeadRequest]) (*connect.Response[v1.GetRepoHeadResponse], error)
+	// ListRepoFiles lists direct children for one repo path.
 	ListRepoFiles(context.Context, *connect.Request[v1.ListRepoFilesRequest]) (*connect.Response[v1.ListRepoFilesResponse], error)
+	// GetRepoFile returns the content of one repo file.
 	GetRepoFile(context.Context, *connect.Request[v1.GetRepoFileRequest]) (*connect.Response[v1.GetRepoFileResponse], error)
+	// ListRepoCommits returns commit history using cursor pagination.
 	ListRepoCommits(context.Context, *connect.Request[v1.ListRepoCommitsRequest]) (*connect.Response[v1.ListRepoCommitsResponse], error)
+	// ValidateRepo runs repo validation and returns structured errors.
 	ValidateRepo(context.Context, *connect.Request[v1.ValidateRepoRequest]) (*connect.Response[v1.ValidateRepoResponse], error)
 }
 
@@ -244,10 +254,15 @@ func (UnimplementedRepoQueryServiceHandler) ValidateRepo(context.Context, *conne
 
 // RepoCommandServiceClient is a client for the composia.controller.v1.RepoCommandService service.
 type RepoCommandServiceClient interface {
+	// UpdateRepoFile writes one file, creates a commit, and reports sync state.
 	UpdateRepoFile(context.Context, *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.UpdateRepoFileResponse], error)
+	// CreateRepoDirectory creates one directory, creates a commit, and reports sync state.
 	CreateRepoDirectory(context.Context, *connect.Request[v1.CreateRepoDirectoryRequest]) (*connect.Response[v1.CreateRepoDirectoryResponse], error)
+	// MoveRepoPath moves or renames one repo path.
 	MoveRepoPath(context.Context, *connect.Request[v1.MoveRepoPathRequest]) (*connect.Response[v1.MoveRepoPathResponse], error)
+	// DeleteRepoPath deletes one repo path.
 	DeleteRepoPath(context.Context, *connect.Request[v1.DeleteRepoPathRequest]) (*connect.Response[v1.DeleteRepoPathResponse], error)
+	// SyncRepo pulls or syncs the repo and returns the resulting state snapshot.
 	SyncRepo(context.Context, *connect.Request[v1.SyncRepoRequest]) (*connect.Response[v1.SyncRepoResponse], error)
 }
 
@@ -332,10 +347,15 @@ func (c *repoCommandServiceClient) SyncRepo(ctx context.Context, req *connect.Re
 // RepoCommandServiceHandler is an implementation of the composia.controller.v1.RepoCommandService
 // service.
 type RepoCommandServiceHandler interface {
+	// UpdateRepoFile writes one file, creates a commit, and reports sync state.
 	UpdateRepoFile(context.Context, *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.UpdateRepoFileResponse], error)
+	// CreateRepoDirectory creates one directory, creates a commit, and reports sync state.
 	CreateRepoDirectory(context.Context, *connect.Request[v1.CreateRepoDirectoryRequest]) (*connect.Response[v1.CreateRepoDirectoryResponse], error)
+	// MoveRepoPath moves or renames one repo path.
 	MoveRepoPath(context.Context, *connect.Request[v1.MoveRepoPathRequest]) (*connect.Response[v1.MoveRepoPathResponse], error)
+	// DeleteRepoPath deletes one repo path.
 	DeleteRepoPath(context.Context, *connect.Request[v1.DeleteRepoPathRequest]) (*connect.Response[v1.DeleteRepoPathResponse], error)
+	// SyncRepo pulls or syncs the repo and returns the resulting state snapshot.
 	SyncRepo(context.Context, *connect.Request[v1.SyncRepoRequest]) (*connect.Response[v1.SyncRepoResponse], error)
 }
 

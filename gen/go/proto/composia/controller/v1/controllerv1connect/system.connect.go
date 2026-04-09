@@ -43,7 +43,9 @@ const (
 
 // SystemServiceClient is a client for the composia.controller.v1.SystemService service.
 type SystemServiceClient interface {
+	// GetSystemStatus returns the current controller status and node counts.
 	GetSystemStatus(context.Context, *connect.Request[v1.GetSystemStatusRequest]) (*connect.Response[v1.GetSystemStatusResponse], error)
+	// GetCurrentConfig returns the active controller config as a redacted summary.
 	GetCurrentConfig(context.Context, *connect.Request[v1.GetCurrentConfigRequest]) (*connect.Response[v1.GetCurrentConfigResponse], error)
 }
 
@@ -91,7 +93,9 @@ func (c *systemServiceClient) GetCurrentConfig(ctx context.Context, req *connect
 
 // SystemServiceHandler is an implementation of the composia.controller.v1.SystemService service.
 type SystemServiceHandler interface {
+	// GetSystemStatus returns the current controller status and node counts.
 	GetSystemStatus(context.Context, *connect.Request[v1.GetSystemStatusRequest]) (*connect.Response[v1.GetSystemStatusResponse], error)
+	// GetCurrentConfig returns the active controller config as a redacted summary.
 	GetCurrentConfig(context.Context, *connect.Request[v1.GetCurrentConfigRequest]) (*connect.Response[v1.GetCurrentConfigResponse], error)
 }
 

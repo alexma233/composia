@@ -42,7 +42,9 @@ const (
 
 // SecretServiceClient is a client for the composia.controller.v1.SecretService service.
 type SecretServiceClient interface {
+	// GetSecret returns the decrypted content for one service secret file.
 	GetSecret(context.Context, *connect.Request[v1.GetSecretRequest]) (*connect.Response[v1.GetSecretResponse], error)
+	// UpdateSecret writes one secret file and reports the resulting repo sync state.
 	UpdateSecret(context.Context, *connect.Request[v1.UpdateSecretRequest]) (*connect.Response[v1.UpdateSecretResponse], error)
 }
 
@@ -90,7 +92,9 @@ func (c *secretServiceClient) UpdateSecret(ctx context.Context, req *connect.Req
 
 // SecretServiceHandler is an implementation of the composia.controller.v1.SecretService service.
 type SecretServiceHandler interface {
+	// GetSecret returns the decrypted content for one service secret file.
 	GetSecret(context.Context, *connect.Request[v1.GetSecretRequest]) (*connect.Response[v1.GetSecretResponse], error)
+	// UpdateSecret writes one secret file and reports the resulting repo sync state.
 	UpdateSecret(context.Context, *connect.Request[v1.UpdateSecretRequest]) (*connect.Response[v1.UpdateSecretResponse], error)
 }
 

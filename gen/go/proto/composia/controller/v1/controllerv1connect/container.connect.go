@@ -46,8 +46,11 @@ const (
 
 // ContainerServiceClient is a client for the composia.controller.v1.ContainerService service.
 type ContainerServiceClient interface {
+	// RunContainerAction starts an async action for one container on one node.
 	RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
+	// GetContainerLogs returns log text for one container.
 	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error)
+	// OpenContainerExec opens an interactive exec session for one container.
 	OpenContainerExec(context.Context, *connect.Request[v1.OpenContainerExecRequest]) (*connect.Response[v1.OpenContainerExecResponse], error)
 }
 
@@ -108,8 +111,11 @@ func (c *containerServiceClient) OpenContainerExec(ctx context.Context, req *con
 // ContainerServiceHandler is an implementation of the composia.controller.v1.ContainerService
 // service.
 type ContainerServiceHandler interface {
+	// RunContainerAction starts an async action for one container on one node.
 	RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
+	// GetContainerLogs returns log text for one container.
 	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error)
+	// OpenContainerExec opens an interactive exec session for one container.
 	OpenContainerExec(context.Context, *connect.Request[v1.OpenContainerExecRequest]) (*connect.Response[v1.OpenContainerExecResponse], error)
 }
 

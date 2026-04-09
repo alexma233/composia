@@ -43,7 +43,9 @@ const (
 
 // BackupRecordServiceClient is a client for the composia.controller.v1.BackupRecordService service.
 type BackupRecordServiceClient interface {
+	// ListBackups returns backup records with filtering and pagination.
 	ListBackups(context.Context, *connect.Request[v1.ListBackupsRequest]) (*connect.Response[v1.ListBackupsResponse], error)
+	// GetBackup returns one backup record by ID.
 	GetBackup(context.Context, *connect.Request[v1.GetBackupRequest]) (*connect.Response[v1.GetBackupResponse], error)
 }
 
@@ -92,7 +94,9 @@ func (c *backupRecordServiceClient) GetBackup(ctx context.Context, req *connect.
 // BackupRecordServiceHandler is an implementation of the composia.controller.v1.BackupRecordService
 // service.
 type BackupRecordServiceHandler interface {
+	// ListBackups returns backup records with filtering and pagination.
 	ListBackups(context.Context, *connect.Request[v1.ListBackupsRequest]) (*connect.Response[v1.ListBackupsResponse], error)
+	// GetBackup returns one backup record by ID.
 	GetBackup(context.Context, *connect.Request[v1.GetBackupRequest]) (*connect.Response[v1.GetBackupResponse], error)
 }
 

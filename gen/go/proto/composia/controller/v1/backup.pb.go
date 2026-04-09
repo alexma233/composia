@@ -21,15 +21,20 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// BackupSummary describes one backup record in list results.
 type BackupSummary struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	BackupId      string                 `protobuf:"bytes,1,opt,name=backup_id,json=backupId,proto3" json:"backup_id,omitempty"`
-	TaskId        string                 `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	ServiceName   string                 `protobuf:"bytes,3,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	DataName      string                 `protobuf:"bytes,4,opt,name=data_name,json=dataName,proto3" json:"data_name,omitempty"`
-	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
-	StartedAt     string                 `protobuf:"bytes,6,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	FinishedAt    string                 `protobuf:"bytes,7,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	BackupId string                 `protobuf:"bytes,1,opt,name=backup_id,json=backupId,proto3" json:"backup_id,omitempty"`
+	// task_id links the backup record to the originating task.
+	TaskId      string `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	ServiceName string `protobuf:"bytes,3,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	DataName    string `protobuf:"bytes,4,opt,name=data_name,json=dataName,proto3" json:"data_name,omitempty"`
+	// status is the latest backup status string.
+	Status string `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	// started_at is the backup start timestamp string.
+	StartedAt string `protobuf:"bytes,6,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	// finished_at is empty until the backup reaches a terminal state.
+	FinishedAt    string `protobuf:"bytes,7,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -113,13 +118,18 @@ func (x *BackupSummary) GetFinishedAt() string {
 	return ""
 }
 
+// ListBackupsRequest filters backup records by service, status, data name, and page.
 type ListBackupsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	DataName      string                 `protobuf:"bytes,3,opt,name=data_name,json=dataName,proto3" json:"data_name,omitempty"`
-	PageSize      uint32                 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	Page          uint32                 `protobuf:"varint,5,opt,name=page,proto3" json:"page,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	ServiceName string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// status narrows results to one backup status string when set.
+	Status string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	// data_name narrows results to one service data entry when set.
+	DataName string `protobuf:"bytes,3,opt,name=data_name,json=dataName,proto3" json:"data_name,omitempty"`
+	// page_size is the requested page size.
+	PageSize uint32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// page is the 1-based page number.
+	Page          uint32 `protobuf:"varint,5,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -189,6 +199,7 @@ func (x *ListBackupsRequest) GetPage() uint32 {
 	return 0
 }
 
+// ListBackupsResponse returns one page of backup records.
 type ListBackupsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Backups       []*BackupSummary       `protobuf:"bytes,1,rep,name=backups,proto3" json:"backups,omitempty"`
@@ -241,6 +252,7 @@ func (x *ListBackupsResponse) GetTotalCount() uint32 {
 	return 0
 }
 
+// GetBackupRequest identifies one backup record by ID.
 type GetBackupRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BackupId      string                 `protobuf:"bytes,1,opt,name=backup_id,json=backupId,proto3" json:"backup_id,omitempty"`
@@ -285,17 +297,24 @@ func (x *GetBackupRequest) GetBackupId() string {
 	return ""
 }
 
+// GetBackupResponse describes one backup record in detail.
 type GetBackupResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	BackupId      string                 `protobuf:"bytes,1,opt,name=backup_id,json=backupId,proto3" json:"backup_id,omitempty"`
-	TaskId        string                 `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	ServiceName   string                 `protobuf:"bytes,3,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	DataName      string                 `protobuf:"bytes,4,opt,name=data_name,json=dataName,proto3" json:"data_name,omitempty"`
-	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
-	StartedAt     string                 `protobuf:"bytes,6,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	FinishedAt    string                 `protobuf:"bytes,7,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
-	ArtifactRef   string                 `protobuf:"bytes,8,opt,name=artifact_ref,json=artifactRef,proto3" json:"artifact_ref,omitempty"`
-	ErrorSummary  string                 `protobuf:"bytes,9,opt,name=error_summary,json=errorSummary,proto3" json:"error_summary,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	BackupId string                 `protobuf:"bytes,1,opt,name=backup_id,json=backupId,proto3" json:"backup_id,omitempty"`
+	// task_id links the backup record to the originating task.
+	TaskId      string `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	ServiceName string `protobuf:"bytes,3,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	DataName    string `protobuf:"bytes,4,opt,name=data_name,json=dataName,proto3" json:"data_name,omitempty"`
+	// status is the latest backup status string.
+	Status string `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	// started_at is the backup start timestamp string.
+	StartedAt string `protobuf:"bytes,6,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	// finished_at is empty until the backup reaches a terminal state.
+	FinishedAt string `protobuf:"bytes,7,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	// artifact_ref identifies the produced backup artifact, when present.
+	ArtifactRef string `protobuf:"bytes,8,opt,name=artifact_ref,json=artifactRef,proto3" json:"artifact_ref,omitempty"`
+	// error_summary contains the failure summary when the backup fails.
+	ErrorSummary  string `protobuf:"bytes,9,opt,name=error_summary,json=errorSummary,proto3" json:"error_summary,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

@@ -21,17 +21,26 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// ServiceAction identifies an async action that targets a service.
 type ServiceAction int32
 
 const (
+	// SERVICE_ACTION_UNSPECIFIED is invalid and should not be used.
 	ServiceAction_SERVICE_ACTION_UNSPECIFIED ServiceAction = 0
-	ServiceAction_SERVICE_ACTION_DEPLOY      ServiceAction = 1
-	ServiceAction_SERVICE_ACTION_UPDATE      ServiceAction = 2
-	ServiceAction_SERVICE_ACTION_STOP        ServiceAction = 3
-	ServiceAction_SERVICE_ACTION_RESTART     ServiceAction = 4
-	ServiceAction_SERVICE_ACTION_BACKUP      ServiceAction = 5
-	ServiceAction_SERVICE_ACTION_DNS_UPDATE  ServiceAction = 6
-	ServiceAction_SERVICE_ACTION_CADDY_SYNC  ServiceAction = 7
+	// SERVICE_ACTION_DEPLOY creates or reconciles the service on target nodes.
+	ServiceAction_SERVICE_ACTION_DEPLOY ServiceAction = 1
+	// SERVICE_ACTION_UPDATE refreshes the running service from desired state.
+	ServiceAction_SERVICE_ACTION_UPDATE ServiceAction = 2
+	// SERVICE_ACTION_STOP stops the service.
+	ServiceAction_SERVICE_ACTION_STOP ServiceAction = 3
+	// SERVICE_ACTION_RESTART restarts the service.
+	ServiceAction_SERVICE_ACTION_RESTART ServiceAction = 4
+	// SERVICE_ACTION_BACKUP triggers a backup task.
+	ServiceAction_SERVICE_ACTION_BACKUP ServiceAction = 5
+	// SERVICE_ACTION_DNS_UPDATE refreshes DNS records for the service.
+	ServiceAction_SERVICE_ACTION_DNS_UPDATE ServiceAction = 6
+	// SERVICE_ACTION_CADDY_SYNC syncs related Caddy configuration.
+	ServiceAction_SERVICE_ACTION_CADDY_SYNC ServiceAction = 7
 )
 
 // Enum value maps for ServiceAction.
@@ -85,14 +94,20 @@ func (ServiceAction) EnumDescriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{0}
 }
 
+// ServiceInstanceAction identifies an async action that targets one service instance.
 type ServiceInstanceAction int32
 
 const (
+	// SERVICE_INSTANCE_ACTION_UNSPECIFIED is invalid and should not be used.
 	ServiceInstanceAction_SERVICE_INSTANCE_ACTION_UNSPECIFIED ServiceInstanceAction = 0
-	ServiceInstanceAction_SERVICE_INSTANCE_ACTION_DEPLOY      ServiceInstanceAction = 1
-	ServiceInstanceAction_SERVICE_INSTANCE_ACTION_UPDATE      ServiceInstanceAction = 2
-	ServiceInstanceAction_SERVICE_INSTANCE_ACTION_STOP        ServiceInstanceAction = 3
-	ServiceInstanceAction_SERVICE_INSTANCE_ACTION_RESTART     ServiceInstanceAction = 4
+	// SERVICE_INSTANCE_ACTION_DEPLOY creates or reconciles the instance.
+	ServiceInstanceAction_SERVICE_INSTANCE_ACTION_DEPLOY ServiceInstanceAction = 1
+	// SERVICE_INSTANCE_ACTION_UPDATE refreshes the running instance.
+	ServiceInstanceAction_SERVICE_INSTANCE_ACTION_UPDATE ServiceInstanceAction = 2
+	// SERVICE_INSTANCE_ACTION_STOP stops the instance.
+	ServiceInstanceAction_SERVICE_INSTANCE_ACTION_STOP ServiceInstanceAction = 3
+	// SERVICE_INSTANCE_ACTION_RESTART restarts the instance.
+	ServiceInstanceAction_SERVICE_INSTANCE_ACTION_RESTART ServiceInstanceAction = 4
 )
 
 // Enum value maps for ServiceInstanceAction.
@@ -140,13 +155,19 @@ func (ServiceInstanceAction) EnumDescriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{1}
 }
 
+// ServiceInstanceSummary describes one service instance on one node.
 type ServiceInstanceSummary struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	NodeId        string                 `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	RuntimeStatus string                 `protobuf:"bytes,3,opt,name=runtime_status,json=runtimeStatus,proto3" json:"runtime_status,omitempty"`
-	UpdatedAt     string                 `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	IsDeclared    bool                   `protobuf:"varint,5,opt,name=is_declared,json=isDeclared,proto3" json:"is_declared,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// service_name is the logical service name.
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// node_id identifies the node hosting this instance.
+	NodeId string `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// runtime_status is the controller's current status string for this instance.
+	RuntimeStatus string `protobuf:"bytes,3,opt,name=runtime_status,json=runtimeStatus,proto3" json:"runtime_status,omitempty"`
+	// updated_at is the last known status update timestamp string.
+	UpdatedAt string `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// is_declared reports whether this instance is part of desired state.
+	IsDeclared    bool `protobuf:"varint,5,opt,name=is_declared,json=isDeclared,proto3" json:"is_declared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -216,16 +237,24 @@ func (x *ServiceInstanceSummary) GetIsDeclared() bool {
 	return false
 }
 
+// ServiceContainerSummary describes one container belonging to a service instance.
 type ServiceContainerSummary struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	ContainerId    string                 `protobuf:"bytes,1,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
-	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Image          string                 `protobuf:"bytes,3,opt,name=image,proto3" json:"image,omitempty"`
-	State          string                 `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
-	Status         string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
-	Created        string                 `protobuf:"bytes,6,opt,name=created,proto3" json:"created,omitempty"`
-	ComposeProject string                 `protobuf:"bytes,7,opt,name=compose_project,json=composeProject,proto3" json:"compose_project,omitempty"`
-	ComposeService string                 `protobuf:"bytes,8,opt,name=compose_service,json=composeService,proto3" json:"compose_service,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// container_id is the runtime container ID.
+	ContainerId string `protobuf:"bytes,1,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	// name is the runtime container name.
+	Name  string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Image string `protobuf:"bytes,3,opt,name=image,proto3" json:"image,omitempty"`
+	// state is the low-level Docker state value.
+	State string `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
+	// status is the Docker status string intended for display.
+	Status string `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	// created is the container creation timestamp string.
+	Created string `protobuf:"bytes,6,opt,name=created,proto3" json:"created,omitempty"`
+	// compose_project is the Compose project label, when present.
+	ComposeProject string `protobuf:"bytes,7,opt,name=compose_project,json=composeProject,proto3" json:"compose_project,omitempty"`
+	// compose_service is the Compose service label, when present.
+	ComposeService string `protobuf:"bytes,8,opt,name=compose_service,json=composeService,proto3" json:"compose_service,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -316,13 +345,20 @@ func (x *ServiceContainerSummary) GetComposeService() string {
 	return ""
 }
 
+// ServiceInstanceDetail extends the instance summary with container details.
 type ServiceInstanceDetail struct {
-	state         protoimpl.MessageState     `protogen:"open.v1"`
-	ServiceName   string                     `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	NodeId        string                     `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	RuntimeStatus string                     `protobuf:"bytes,3,opt,name=runtime_status,json=runtimeStatus,proto3" json:"runtime_status,omitempty"`
-	UpdatedAt     string                     `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	IsDeclared    bool                       `protobuf:"varint,5,opt,name=is_declared,json=isDeclared,proto3" json:"is_declared,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// service_name is the logical service name.
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// node_id identifies the node hosting this instance.
+	NodeId string `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// runtime_status is the controller's current status string for this instance.
+	RuntimeStatus string `protobuf:"bytes,3,opt,name=runtime_status,json=runtimeStatus,proto3" json:"runtime_status,omitempty"`
+	// updated_at is the last known status update timestamp string.
+	UpdatedAt string `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// is_declared reports whether this instance is part of desired state.
+	IsDeclared bool `protobuf:"varint,5,opt,name=is_declared,json=isDeclared,proto3" json:"is_declared,omitempty"`
+	// containers lists runtime containers currently associated with the instance.
 	Containers    []*ServiceContainerSummary `protobuf:"bytes,6,rep,name=containers,proto3" json:"containers,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -400,9 +436,11 @@ func (x *ServiceInstanceDetail) GetContainers() []*ServiceContainerSummary {
 	return nil
 }
 
+// GetServiceRequest addresses one service by logical name.
 type GetServiceRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// service_name is the logical service name.
+	ServiceName   string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -444,14 +482,21 @@ func (x *GetServiceRequest) GetServiceName() string {
 	return ""
 }
 
+// GetServiceResponse describes one service and all known instances.
 type GetServiceResponse struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Name          string                   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	RuntimeStatus string                   `protobuf:"bytes,2,opt,name=runtime_status,json=runtimeStatus,proto3" json:"runtime_status,omitempty"`
-	UpdatedAt     string                   `protobuf:"bytes,3,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	Nodes         []string                 `protobuf:"bytes,4,rep,name=nodes,proto3" json:"nodes,omitempty"`
-	Enabled       bool                     `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	Directory     string                   `protobuf:"bytes,6,opt,name=directory,proto3" json:"directory,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// runtime_status is the controller's aggregated status string.
+	RuntimeStatus string `protobuf:"bytes,2,opt,name=runtime_status,json=runtimeStatus,proto3" json:"runtime_status,omitempty"`
+	// updated_at is the last known status update timestamp string.
+	UpdatedAt string `protobuf:"bytes,3,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// nodes lists the declared target nodes for this service.
+	Nodes []string `protobuf:"bytes,4,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	// enabled reports the desired-state enabled flag for this service.
+	Enabled bool `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// directory is the service directory inside the repo.
+	Directory string `protobuf:"bytes,6,opt,name=directory,proto3" json:"directory,omitempty"`
+	// instances lists per-node runtime details known to the controller.
 	Instances     []*ServiceInstanceDetail `protobuf:"bytes,7,rep,name=instances,proto3" json:"instances,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -536,9 +581,11 @@ func (x *GetServiceResponse) GetInstances() []*ServiceInstanceDetail {
 	return nil
 }
 
+// ListServiceInstancesRequest addresses one service by logical name.
 type ListServiceInstancesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// service_name is the logical service name.
+	ServiceName   string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -580,6 +627,7 @@ func (x *ListServiceInstancesRequest) GetServiceName() string {
 	return ""
 }
 
+// ListServiceInstancesResponse returns known instances for one service.
 type ListServiceInstancesResponse struct {
 	state         protoimpl.MessageState    `protogen:"open.v1"`
 	Instances     []*ServiceInstanceSummary `protobuf:"bytes,1,rep,name=instances,proto3" json:"instances,omitempty"`
@@ -624,10 +672,13 @@ func (x *ListServiceInstancesResponse) GetInstances() []*ServiceInstanceSummary 
 	return nil
 }
 
+// GetServiceInstanceRequest identifies one service instance by service and node.
 type GetServiceInstanceRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	NodeId        string                 `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// service_name is the logical service name.
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// node_id identifies the node hosting the requested instance.
+	NodeId        string `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -676,8 +727,10 @@ func (x *GetServiceInstanceRequest) GetNodeId() string {
 	return ""
 }
 
+// GetServiceInstanceResponse returns one service instance detail.
 type GetServiceInstanceResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// instance is omitted when the requested instance does not exist.
 	Instance      *ServiceInstanceDetail `protobuf:"bytes,1,opt,name=instance,proto3" json:"instance,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -720,12 +773,16 @@ func (x *GetServiceInstanceResponse) GetInstance() *ServiceInstanceDetail {
 	return nil
 }
 
+// GetServiceTasksRequest filters service tasks by status and page.
 type GetServiceTasksRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	PageSize      uint32                 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	Page          uint32                 `protobuf:"varint,4,opt,name=page,proto3" json:"page,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	ServiceName string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// status narrows results to one task status string when set.
+	Status string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	// page_size is the requested page size.
+	PageSize uint32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// page is the 1-based page number.
+	Page          uint32 `protobuf:"varint,4,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -788,10 +845,12 @@ func (x *GetServiceTasksRequest) GetPage() uint32 {
 	return 0
 }
 
+// GetServiceTasksResponse returns one page of service tasks.
 type GetServiceTasksResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Tasks         []*TaskSummary         `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
-	TotalCount    uint32                 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Tasks []*TaskSummary         `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
+	// total_count is the total number of matches before pagination.
+	TotalCount    uint32 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -840,13 +899,18 @@ func (x *GetServiceTasksResponse) GetTotalCount() uint32 {
 	return 0
 }
 
+// GetServiceBackupsRequest filters service backups by status, data name, and page.
 type GetServiceBackupsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	DataName      string                 `protobuf:"bytes,3,opt,name=data_name,json=dataName,proto3" json:"data_name,omitempty"`
-	PageSize      uint32                 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	Page          uint32                 `protobuf:"varint,5,opt,name=page,proto3" json:"page,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	ServiceName string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// status narrows results to one backup status string when set.
+	Status string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	// data_name narrows results to one service data entry when set.
+	DataName string `protobuf:"bytes,3,opt,name=data_name,json=dataName,proto3" json:"data_name,omitempty"`
+	// page_size is the requested page size.
+	PageSize uint32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// page is the 1-based page number.
+	Page          uint32 `protobuf:"varint,5,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -916,10 +980,12 @@ func (x *GetServiceBackupsRequest) GetPage() uint32 {
 	return 0
 }
 
+// GetServiceBackupsResponse returns one page of service backups.
 type GetServiceBackupsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Backups       []*BackupSummary       `protobuf:"bytes,1,rep,name=backups,proto3" json:"backups,omitempty"`
-	TotalCount    uint32                 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Backups []*BackupSummary       `protobuf:"bytes,1,rep,name=backups,proto3" json:"backups,omitempty"`
+	// total_count is the total number of matches before pagination.
+	TotalCount    uint32 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -968,12 +1034,16 @@ func (x *GetServiceBackupsResponse) GetTotalCount() uint32 {
 	return 0
 }
 
+// UpdateServiceTargetNodesRequest changes the full declared target node set.
 type UpdateServiceTargetNodesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	NodeIds       []string               `protobuf:"bytes,2,rep,name=node_ids,json=nodeIds,proto3" json:"node_ids,omitempty"`
-	BaseRevision  string                 `protobuf:"bytes,3,opt,name=base_revision,json=baseRevision,proto3" json:"base_revision,omitempty"`
-	CommitMessage string                 `protobuf:"bytes,4,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	ServiceName string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// node_ids replaces the full target node list for the service.
+	NodeIds []string `protobuf:"bytes,2,rep,name=node_ids,json=nodeIds,proto3" json:"node_ids,omitempty"`
+	// base_revision provides optimistic concurrency protection for repo writes.
+	BaseRevision string `protobuf:"bytes,3,opt,name=base_revision,json=baseRevision,proto3" json:"base_revision,omitempty"`
+	// commit_message is used for the generated Git commit.
+	CommitMessage string `protobuf:"bytes,4,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1036,12 +1106,17 @@ func (x *UpdateServiceTargetNodesRequest) GetCommitMessage() string {
 	return ""
 }
 
+// UpdateServiceTargetNodesResponse reports the resulting repo write and sync state.
 type UpdateServiceTargetNodesResponse struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	CommitId             string                 `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
-	SyncStatus           string                 `protobuf:"bytes,2,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
-	PushError            string                 `protobuf:"bytes,3,opt,name=push_error,json=pushError,proto3" json:"push_error,omitempty"`
-	LastSuccessfulPullAt string                 `protobuf:"bytes,4,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// commit_id is the Git commit created for the desired-state change.
+	CommitId string `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
+	// sync_status is the repo sync state after the write.
+	SyncStatus string `protobuf:"bytes,2,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
+	// push_error contains the last push error when sync_status is failed.
+	PushError string `protobuf:"bytes,3,opt,name=push_error,json=pushError,proto3" json:"push_error,omitempty"`
+	// last_successful_pull_at is the last successful controller pull timestamp string.
+	LastSuccessfulPullAt string `protobuf:"bytes,4,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -1104,11 +1179,14 @@ func (x *UpdateServiceTargetNodesResponse) GetLastSuccessfulPullAt() string {
 	return ""
 }
 
+// MigrateServiceRequest moves a service from one node to another.
 type MigrateServiceRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	SourceNodeId  string                 `protobuf:"bytes,2,opt,name=source_node_id,json=sourceNodeId,proto3" json:"source_node_id,omitempty"`
-	TargetNodeId  string                 `protobuf:"bytes,3,opt,name=target_node_id,json=targetNodeId,proto3" json:"target_node_id,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	ServiceName string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// source_node_id identifies the current source node.
+	SourceNodeId string `protobuf:"bytes,2,opt,name=source_node_id,json=sourceNodeId,proto3" json:"source_node_id,omitempty"`
+	// target_node_id identifies the destination node.
+	TargetNodeId  string `protobuf:"bytes,3,opt,name=target_node_id,json=targetNodeId,proto3" json:"target_node_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1164,12 +1242,17 @@ func (x *MigrateServiceRequest) GetTargetNodeId() string {
 	return ""
 }
 
+// RunServiceActionRequest starts an async action for a service.
 type RunServiceActionRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	Action        ServiceAction          `protobuf:"varint,2,opt,name=action,proto3,enum=composia.controller.v1.ServiceAction" json:"action,omitempty"`
-	NodeIds       []string               `protobuf:"bytes,3,rep,name=node_ids,json=nodeIds,proto3" json:"node_ids,omitempty"`
-	DataNames     []string               `protobuf:"bytes,4,rep,name=data_names,json=dataNames,proto3" json:"data_names,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// service_name is the logical service name.
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// action is the async operation to start.
+	Action ServiceAction `protobuf:"varint,2,opt,name=action,proto3,enum=composia.controller.v1.ServiceAction" json:"action,omitempty"`
+	// node_ids optionally narrows the action to selected nodes.
+	NodeIds []string `protobuf:"bytes,3,rep,name=node_ids,json=nodeIds,proto3" json:"node_ids,omitempty"`
+	// data_names narrows backup-like actions to selected data entries.
+	DataNames     []string `protobuf:"bytes,4,rep,name=data_names,json=dataNames,proto3" json:"data_names,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1232,11 +1315,15 @@ func (x *RunServiceActionRequest) GetDataNames() []string {
 	return nil
 }
 
+// RunServiceInstanceActionRequest starts an async action for one instance.
 type RunServiceInstanceActionRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	NodeId        string                 `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	Action        ServiceInstanceAction  `protobuf:"varint,3,opt,name=action,proto3,enum=composia.controller.v1.ServiceInstanceAction" json:"action,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// service_name is the logical service name.
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// node_id identifies the node that hosts the target instance.
+	NodeId string `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// action is the async operation to start.
+	Action        ServiceInstanceAction `protobuf:"varint,3,opt,name=action,proto3,enum=composia.controller.v1.ServiceInstanceAction" json:"action,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1292,11 +1379,15 @@ func (x *RunServiceInstanceActionRequest) GetAction() ServiceInstanceAction {
 	return ServiceInstanceAction_SERVICE_INSTANCE_ACTION_UNSPECIFIED
 }
 
+// ListServicesRequest filters services by runtime status and page.
 type ListServicesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RuntimeStatus string                 `protobuf:"bytes,1,opt,name=runtime_status,json=runtimeStatus,proto3" json:"runtime_status,omitempty"`
-	PageSize      uint32                 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	Page          uint32                 `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// runtime_status narrows results to one aggregated status string when set.
+	RuntimeStatus string `protobuf:"bytes,1,opt,name=runtime_status,json=runtimeStatus,proto3" json:"runtime_status,omitempty"`
+	// page_size is the requested page size.
+	PageSize uint32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// page is the 1-based page number.
+	Page          uint32 `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1352,15 +1443,23 @@ func (x *ListServicesRequest) GetPage() uint32 {
 	return 0
 }
 
+// ServiceSummary describes one service for list views.
 type ServiceSummary struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Name            string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	IsDeclared      bool                   `protobuf:"varint,2,opt,name=is_declared,json=isDeclared,proto3" json:"is_declared,omitempty"`
-	RuntimeStatus   string                 `protobuf:"bytes,3,opt,name=runtime_status,json=runtimeStatus,proto3" json:"runtime_status,omitempty"`
-	UpdatedAt       string                 `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	InstanceCount   uint32                 `protobuf:"varint,5,opt,name=instance_count,json=instanceCount,proto3" json:"instance_count,omitempty"`
-	RunningCount    uint32                 `protobuf:"varint,6,opt,name=running_count,json=runningCount,proto3" json:"running_count,omitempty"`
-	TargetNodeCount uint32                 `protobuf:"varint,7,opt,name=target_node_count,json=targetNodeCount,proto3" json:"target_node_count,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// name is the logical service name.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// is_declared reports whether the service exists in desired state.
+	IsDeclared bool `protobuf:"varint,2,opt,name=is_declared,json=isDeclared,proto3" json:"is_declared,omitempty"`
+	// runtime_status is the controller's aggregated status string.
+	RuntimeStatus string `protobuf:"bytes,3,opt,name=runtime_status,json=runtimeStatus,proto3" json:"runtime_status,omitempty"`
+	// updated_at is the last known status update timestamp string.
+	UpdatedAt string `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// instance_count is the number of known service instances.
+	InstanceCount uint32 `protobuf:"varint,5,opt,name=instance_count,json=instanceCount,proto3" json:"instance_count,omitempty"`
+	// running_count is the number of running service instances.
+	RunningCount uint32 `protobuf:"varint,6,opt,name=running_count,json=runningCount,proto3" json:"running_count,omitempty"`
+	// target_node_count is the number of declared target nodes.
+	TargetNodeCount uint32 `protobuf:"varint,7,opt,name=target_node_count,json=targetNodeCount,proto3" json:"target_node_count,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -1444,10 +1543,12 @@ func (x *ServiceSummary) GetTargetNodeCount() uint32 {
 	return 0
 }
 
+// ListServicesResponse returns one page of service summaries.
 type ListServicesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Services      []*ServiceSummary      `protobuf:"bytes,1,rep,name=services,proto3" json:"services,omitempty"`
-	TotalCount    uint32                 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Services []*ServiceSummary      `protobuf:"bytes,1,rep,name=services,proto3" json:"services,omitempty"`
+	// total_count is the total number of matches before pagination.
+	TotalCount    uint32 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

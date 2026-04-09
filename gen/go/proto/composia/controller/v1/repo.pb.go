@@ -21,6 +21,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// GetRepoHeadRequest requests the current controller repo state.
 type GetRepoHeadRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -57,15 +58,21 @@ func (*GetRepoHeadRequest) Descriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_repo_proto_rawDescGZIP(), []int{0}
 }
 
+// GetRepoHeadResponse describes the current repo state known to the controller.
 type GetRepoHeadResponse struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	HeadRevision         string                 `protobuf:"bytes,1,opt,name=head_revision,json=headRevision,proto3" json:"head_revision,omitempty"`
-	Branch               string                 `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
-	HasRemote            bool                   `protobuf:"varint,3,opt,name=has_remote,json=hasRemote,proto3" json:"has_remote,omitempty"`
-	CleanWorktree        bool                   `protobuf:"varint,4,opt,name=clean_worktree,json=cleanWorktree,proto3" json:"clean_worktree,omitempty"`
-	SyncStatus           string                 `protobuf:"bytes,5,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
-	LastSyncError        string                 `protobuf:"bytes,6,opt,name=last_sync_error,json=lastSyncError,proto3" json:"last_sync_error,omitempty"`
-	LastSuccessfulPullAt string                 `protobuf:"bytes,7,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// head_revision is the current HEAD commit ID.
+	HeadRevision string `protobuf:"bytes,1,opt,name=head_revision,json=headRevision,proto3" json:"head_revision,omitempty"`
+	Branch       string `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
+	HasRemote    bool   `protobuf:"varint,3,opt,name=has_remote,json=hasRemote,proto3" json:"has_remote,omitempty"`
+	// clean_worktree reports whether there are uncommitted local changes.
+	CleanWorktree bool `protobuf:"varint,4,opt,name=clean_worktree,json=cleanWorktree,proto3" json:"clean_worktree,omitempty"`
+	// sync_status is the controller's repo sync status string.
+	SyncStatus string `protobuf:"bytes,5,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
+	// last_sync_error contains the most recent sync failure, when present.
+	LastSyncError string `protobuf:"bytes,6,opt,name=last_sync_error,json=lastSyncError,proto3" json:"last_sync_error,omitempty"`
+	// last_successful_pull_at is the last successful pull timestamp string.
+	LastSuccessfulPullAt string `protobuf:"bytes,7,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -149,12 +156,17 @@ func (x *GetRepoHeadResponse) GetLastSuccessfulPullAt() string {
 	return ""
 }
 
+// RepoFileEntry describes one direct child entry in the repo tree.
 type RepoFileEntry struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	IsDir         bool                   `protobuf:"varint,3,opt,name=is_dir,json=isDir,proto3" json:"is_dir,omitempty"`
-	Size          int64                  `protobuf:"varint,4,opt,name=size,proto3" json:"size,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// path is a repo-relative path.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// name is the final path segment.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// is_dir reports whether the entry is a directory.
+	IsDir bool `protobuf:"varint,3,opt,name=is_dir,json=isDir,proto3" json:"is_dir,omitempty"`
+	// size is the file size in bytes. Directories may report zero.
+	Size          int64 `protobuf:"varint,4,opt,name=size,proto3" json:"size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -217,9 +229,11 @@ func (x *RepoFileEntry) GetSize() int64 {
 	return 0
 }
 
+// ListRepoFilesRequest lists direct children under path.
 type ListRepoFilesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// path is repo-relative. An empty path refers to the repo root.
+	Path          string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -261,6 +275,7 @@ func (x *ListRepoFilesRequest) GetPath() string {
 	return ""
 }
 
+// ListRepoFilesResponse returns direct child entries only.
 type ListRepoFilesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Entries       []*RepoFileEntry       `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
@@ -305,6 +320,7 @@ func (x *ListRepoFilesResponse) GetEntries() []*RepoFileEntry {
 	return nil
 }
 
+// GetRepoFileRequest addresses one repo-relative file path.
 type GetRepoFileRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
@@ -349,11 +365,15 @@ func (x *GetRepoFileRequest) GetPath() string {
 	return ""
 }
 
+// GetRepoFileResponse returns a repo file and its text content.
 type GetRepoFileResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
-	Size          int64                  `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// path is the repo-relative path that was read.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// content is the file content as text.
+	Content string `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	// size is the file size in bytes.
+	Size          int64 `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -409,11 +429,14 @@ func (x *GetRepoFileResponse) GetSize() int64 {
 	return 0
 }
 
+// RepoCommitSummary describes one commit in repo history.
 type RepoCommitSummary struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CommitId      string                 `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
-	Subject       string                 `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
-	CommittedAt   string                 `protobuf:"bytes,3,opt,name=committed_at,json=committedAt,proto3" json:"committed_at,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	CommitId string                 `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
+	// subject is the commit subject line.
+	Subject string `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
+	// committed_at is the commit timestamp string.
+	CommittedAt   string `protobuf:"bytes,3,opt,name=committed_at,json=committedAt,proto3" json:"committed_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -469,10 +492,13 @@ func (x *RepoCommitSummary) GetCommittedAt() string {
 	return ""
 }
 
+// ListRepoCommitsRequest pages commit history with an opaque cursor.
 type ListRepoCommitsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	PageSize      uint32                 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	Cursor        string                 `protobuf:"bytes,2,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// page_size is the requested page size.
+	PageSize uint32 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// cursor is an opaque pagination cursor from a previous response.
+	Cursor        string `protobuf:"bytes,2,opt,name=cursor,proto3" json:"cursor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -521,10 +547,12 @@ func (x *ListRepoCommitsRequest) GetCursor() string {
 	return ""
 }
 
+// ListRepoCommitsResponse returns one page of commits.
 type ListRepoCommitsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Commits       []*RepoCommitSummary   `protobuf:"bytes,1,rep,name=commits,proto3" json:"commits,omitempty"`
-	NextCursor    string                 `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Commits []*RepoCommitSummary   `protobuf:"bytes,1,rep,name=commits,proto3" json:"commits,omitempty"`
+	// next_cursor is empty when there are no more results.
+	NextCursor    string `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -573,11 +601,15 @@ func (x *ListRepoCommitsResponse) GetNextCursor() string {
 	return ""
 }
 
+// RepoValidationError identifies one validation problem in repo content.
 type RepoValidationError struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	Line          uint32                 `protobuf:"varint,2,opt,name=line,proto3" json:"line,omitempty"`
-	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// path is the repo-relative path where validation failed.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// line is the 1-based line number when the error maps to one line.
+	Line uint32 `protobuf:"varint,2,opt,name=line,proto3" json:"line,omitempty"`
+	// message is a human-readable validation failure description.
+	Message       string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -633,6 +665,7 @@ func (x *RepoValidationError) GetMessage() string {
 	return ""
 }
 
+// ValidateRepoRequest asks the controller to validate repo content.
 type ValidateRepoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -669,6 +702,7 @@ func (*ValidateRepoRequest) Descriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_repo_proto_rawDescGZIP(), []int{11}
 }
 
+// ValidateRepoResponse returns all repo validation problems found.
 type ValidateRepoResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Errors        []*RepoValidationError `protobuf:"bytes,1,rep,name=errors,proto3" json:"errors,omitempty"`
@@ -713,12 +747,17 @@ func (x *ValidateRepoResponse) GetErrors() []*RepoValidationError {
 	return nil
 }
 
+// UpdateRepoFileRequest writes one file at a repo-relative path.
 type UpdateRepoFileRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
-	BaseRevision  string                 `protobuf:"bytes,3,opt,name=base_revision,json=baseRevision,proto3" json:"base_revision,omitempty"`
-	CommitMessage string                 `protobuf:"bytes,4,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// path is the repo-relative path to update.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// content is the full replacement file content.
+	Content string `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	// base_revision protects against writing on top of an unexpected HEAD.
+	BaseRevision string `protobuf:"bytes,3,opt,name=base_revision,json=baseRevision,proto3" json:"base_revision,omitempty"`
+	// commit_message is used for the generated Git commit.
+	CommitMessage string `protobuf:"bytes,4,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -781,12 +820,17 @@ func (x *UpdateRepoFileRequest) GetCommitMessage() string {
 	return ""
 }
 
+// UpdateRepoFileResponse reports the commit and sync result for the write.
 type UpdateRepoFileResponse struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	CommitId             string                 `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
-	SyncStatus           string                 `protobuf:"bytes,2,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
-	PushError            string                 `protobuf:"bytes,3,opt,name=push_error,json=pushError,proto3" json:"push_error,omitempty"`
-	LastSuccessfulPullAt string                 `protobuf:"bytes,4,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// commit_id is the Git commit created for the write.
+	CommitId string `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
+	// sync_status is the repo sync state after the write.
+	SyncStatus string `protobuf:"bytes,2,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
+	// push_error contains the last push error when sync_status is failed.
+	PushError string `protobuf:"bytes,3,opt,name=push_error,json=pushError,proto3" json:"push_error,omitempty"`
+	// last_successful_pull_at is the last successful pull timestamp string.
+	LastSuccessfulPullAt string `protobuf:"bytes,4,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -849,11 +893,15 @@ func (x *UpdateRepoFileResponse) GetLastSuccessfulPullAt() string {
 	return ""
 }
 
+// CreateRepoDirectoryRequest creates one repo-relative directory path.
 type CreateRepoDirectoryRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	BaseRevision  string                 `protobuf:"bytes,2,opt,name=base_revision,json=baseRevision,proto3" json:"base_revision,omitempty"`
-	CommitMessage string                 `protobuf:"bytes,3,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// path is the repo-relative directory path to create.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// base_revision protects against writing on top of an unexpected HEAD.
+	BaseRevision string `protobuf:"bytes,2,opt,name=base_revision,json=baseRevision,proto3" json:"base_revision,omitempty"`
+	// commit_message is used for the generated Git commit.
+	CommitMessage string `protobuf:"bytes,3,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -909,12 +957,17 @@ func (x *CreateRepoDirectoryRequest) GetCommitMessage() string {
 	return ""
 }
 
+// CreateRepoDirectoryResponse reports the commit and sync result for the create.
 type CreateRepoDirectoryResponse struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	CommitId             string                 `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
-	SyncStatus           string                 `protobuf:"bytes,2,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
-	PushError            string                 `protobuf:"bytes,3,opt,name=push_error,json=pushError,proto3" json:"push_error,omitempty"`
-	LastSuccessfulPullAt string                 `protobuf:"bytes,4,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// commit_id is the Git commit created for the directory creation.
+	CommitId string `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
+	// sync_status is the repo sync state after the write.
+	SyncStatus string `protobuf:"bytes,2,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
+	// push_error contains the last push error when sync_status is failed.
+	PushError string `protobuf:"bytes,3,opt,name=push_error,json=pushError,proto3" json:"push_error,omitempty"`
+	// last_successful_pull_at is the last successful pull timestamp string.
+	LastSuccessfulPullAt string `protobuf:"bytes,4,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -977,14 +1030,19 @@ func (x *CreateRepoDirectoryResponse) GetLastSuccessfulPullAt() string {
 	return ""
 }
 
+// MoveRepoPathRequest moves one repo-relative path to another.
 type MoveRepoPathRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	SourcePath      string                 `protobuf:"bytes,1,opt,name=source_path,json=sourcePath,proto3" json:"source_path,omitempty"`
-	DestinationPath string                 `protobuf:"bytes,2,opt,name=destination_path,json=destinationPath,proto3" json:"destination_path,omitempty"`
-	BaseRevision    string                 `protobuf:"bytes,3,opt,name=base_revision,json=baseRevision,proto3" json:"base_revision,omitempty"`
-	CommitMessage   string                 `protobuf:"bytes,4,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// source_path is the existing repo-relative path to move.
+	SourcePath string `protobuf:"bytes,1,opt,name=source_path,json=sourcePath,proto3" json:"source_path,omitempty"`
+	// destination_path is the new repo-relative path.
+	DestinationPath string `protobuf:"bytes,2,opt,name=destination_path,json=destinationPath,proto3" json:"destination_path,omitempty"`
+	// base_revision protects against writing on top of an unexpected HEAD.
+	BaseRevision string `protobuf:"bytes,3,opt,name=base_revision,json=baseRevision,proto3" json:"base_revision,omitempty"`
+	// commit_message is used for the generated Git commit.
+	CommitMessage string `protobuf:"bytes,4,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *MoveRepoPathRequest) Reset() {
@@ -1045,12 +1103,17 @@ func (x *MoveRepoPathRequest) GetCommitMessage() string {
 	return ""
 }
 
+// MoveRepoPathResponse reports the commit and sync result for the move.
 type MoveRepoPathResponse struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	CommitId             string                 `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
-	SyncStatus           string                 `protobuf:"bytes,2,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
-	PushError            string                 `protobuf:"bytes,3,opt,name=push_error,json=pushError,proto3" json:"push_error,omitempty"`
-	LastSuccessfulPullAt string                 `protobuf:"bytes,4,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// commit_id is the Git commit created for the move.
+	CommitId string `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
+	// sync_status is the repo sync state after the write.
+	SyncStatus string `protobuf:"bytes,2,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
+	// push_error contains the last push error when sync_status is failed.
+	PushError string `protobuf:"bytes,3,opt,name=push_error,json=pushError,proto3" json:"push_error,omitempty"`
+	// last_successful_pull_at is the last successful pull timestamp string.
+	LastSuccessfulPullAt string `protobuf:"bytes,4,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -1113,11 +1176,15 @@ func (x *MoveRepoPathResponse) GetLastSuccessfulPullAt() string {
 	return ""
 }
 
+// DeleteRepoPathRequest deletes one repo-relative path.
 type DeleteRepoPathRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	BaseRevision  string                 `protobuf:"bytes,2,opt,name=base_revision,json=baseRevision,proto3" json:"base_revision,omitempty"`
-	CommitMessage string                 `protobuf:"bytes,3,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// path is the repo-relative path to delete.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// base_revision protects against writing on top of an unexpected HEAD.
+	BaseRevision string `protobuf:"bytes,2,opt,name=base_revision,json=baseRevision,proto3" json:"base_revision,omitempty"`
+	// commit_message is used for the generated Git commit.
+	CommitMessage string `protobuf:"bytes,3,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1173,12 +1240,17 @@ func (x *DeleteRepoPathRequest) GetCommitMessage() string {
 	return ""
 }
 
+// DeleteRepoPathResponse reports the commit and sync result for the delete.
 type DeleteRepoPathResponse struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	CommitId             string                 `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
-	SyncStatus           string                 `protobuf:"bytes,2,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
-	PushError            string                 `protobuf:"bytes,3,opt,name=push_error,json=pushError,proto3" json:"push_error,omitempty"`
-	LastSuccessfulPullAt string                 `protobuf:"bytes,4,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// commit_id is the Git commit created for the delete.
+	CommitId string `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
+	// sync_status is the repo sync state after the write.
+	SyncStatus string `protobuf:"bytes,2,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
+	// push_error contains the last push error when sync_status is failed.
+	PushError string `protobuf:"bytes,3,opt,name=push_error,json=pushError,proto3" json:"push_error,omitempty"`
+	// last_successful_pull_at is the last successful pull timestamp string.
+	LastSuccessfulPullAt string `protobuf:"bytes,4,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -1241,6 +1313,7 @@ func (x *DeleteRepoPathResponse) GetLastSuccessfulPullAt() string {
 	return ""
 }
 
+// SyncRepoRequest asks the controller to refresh repo state from its remote.
 type SyncRepoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -1277,13 +1350,19 @@ func (*SyncRepoRequest) Descriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_repo_proto_rawDescGZIP(), []int{21}
 }
 
+// SyncRepoResponse returns the repo state after a sync attempt.
 type SyncRepoResponse struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	HeadRevision         string                 `protobuf:"bytes,1,opt,name=head_revision,json=headRevision,proto3" json:"head_revision,omitempty"`
-	Branch               string                 `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
-	SyncStatus           string                 `protobuf:"bytes,3,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
-	LastSyncError        string                 `protobuf:"bytes,4,opt,name=last_sync_error,json=lastSyncError,proto3" json:"last_sync_error,omitempty"`
-	LastSuccessfulPullAt string                 `protobuf:"bytes,5,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// head_revision is the current HEAD commit ID after the sync attempt.
+	HeadRevision string `protobuf:"bytes,1,opt,name=head_revision,json=headRevision,proto3" json:"head_revision,omitempty"`
+	// branch is the currently checked out branch name.
+	Branch string `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
+	// sync_status is the repo sync state after the sync attempt.
+	SyncStatus string `protobuf:"bytes,3,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
+	// last_sync_error contains the most recent sync failure, when present.
+	LastSyncError string `protobuf:"bytes,4,opt,name=last_sync_error,json=lastSyncError,proto3" json:"last_sync_error,omitempty"`
+	// last_successful_pull_at is the last successful pull timestamp string.
+	LastSuccessfulPullAt string `protobuf:"bytes,5,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }

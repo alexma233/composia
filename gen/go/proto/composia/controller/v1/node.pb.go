@@ -21,6 +21,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// ListNodesRequest requests all configured nodes.
 type ListNodesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -57,9 +58,11 @@ func (*ListNodesRequest) Descriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_node_proto_rawDescGZIP(), []int{0}
 }
 
+// GetNodeRequest identifies one node by ID.
 type GetNodeRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// node_id is the stable node identifier.
+	NodeId        string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -101,13 +104,19 @@ func (x *GetNodeRequest) GetNodeId() string {
 	return ""
 }
 
+// NodeSummary describes one configured node.
 type NodeSummary struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	Enabled       bool                   `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	IsOnline      bool                   `protobuf:"varint,4,opt,name=is_online,json=isOnline,proto3" json:"is_online,omitempty"`
-	LastHeartbeat string                 `protobuf:"bytes,5,opt,name=last_heartbeat,json=lastHeartbeat,proto3" json:"last_heartbeat,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// node_id is the stable node identifier.
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// display_name is the human-readable node label.
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	// enabled reports whether the node is eligible for controller actions.
+	Enabled bool `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// is_online reports whether the node has a recent heartbeat.
+	IsOnline bool `protobuf:"varint,4,opt,name=is_online,json=isOnline,proto3" json:"is_online,omitempty"`
+	// last_heartbeat is the last recorded heartbeat timestamp string.
+	LastHeartbeat string `protobuf:"bytes,5,opt,name=last_heartbeat,json=lastHeartbeat,proto3" json:"last_heartbeat,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -177,6 +186,7 @@ func (x *NodeSummary) GetLastHeartbeat() string {
 	return ""
 }
 
+// ListNodesResponse returns all configured nodes.
 type ListNodesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Nodes         []*NodeSummary         `protobuf:"bytes,1,rep,name=nodes,proto3" json:"nodes,omitempty"`
@@ -221,9 +231,11 @@ func (x *ListNodesResponse) GetNodes() []*NodeSummary {
 	return nil
 }
 
+// GetNodeResponse returns one node summary.
 type GetNodeResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Node          *NodeSummary           `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// node is omitted when the requested node does not exist.
+	Node          *NodeSummary `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -265,12 +277,17 @@ func (x *GetNodeResponse) GetNode() *NodeSummary {
 	return nil
 }
 
+// GetNodeTasksRequest filters tasks for one node by status and page.
 type GetNodeTasksRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	PageSize      uint32                 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	Page          uint32                 `protobuf:"varint,4,opt,name=page,proto3" json:"page,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// node_id is the stable node identifier.
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// status narrows results to one task status string when set.
+	Status string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	// page_size is the requested page size.
+	PageSize uint32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// page is the 1-based page number.
+	Page          uint32 `protobuf:"varint,4,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -333,10 +350,12 @@ func (x *GetNodeTasksRequest) GetPage() uint32 {
 	return 0
 }
 
+// GetNodeTasksResponse returns one page of node tasks.
 type GetNodeTasksResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Tasks         []*TaskSummary         `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
-	TotalCount    uint32                 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Tasks []*TaskSummary         `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
+	// total_count is the total number of matches before pagination.
+	TotalCount    uint32 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -385,9 +404,11 @@ func (x *GetNodeTasksResponse) GetTotalCount() uint32 {
 	return 0
 }
 
+// GetNodeDockerStatsRequest identifies the node whose Docker stats should be returned.
 type GetNodeDockerStatsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// node_id is the stable node identifier.
+	NodeId        string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -429,18 +450,27 @@ func (x *GetNodeDockerStatsRequest) GetNodeId() string {
 	return ""
 }
 
+// DockerStats describes the latest Docker usage snapshot for one node.
 type DockerStats struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	ContainersTotal     uint32                 `protobuf:"varint,1,opt,name=containers_total,json=containersTotal,proto3" json:"containers_total,omitempty"`
-	ContainersRunning   uint32                 `protobuf:"varint,2,opt,name=containers_running,json=containersRunning,proto3" json:"containers_running,omitempty"`
-	ContainersStopped   uint32                 `protobuf:"varint,3,opt,name=containers_stopped,json=containersStopped,proto3" json:"containers_stopped,omitempty"`
-	ContainersPaused    uint32                 `protobuf:"varint,4,opt,name=containers_paused,json=containersPaused,proto3" json:"containers_paused,omitempty"`
-	Images              uint32                 `protobuf:"varint,5,opt,name=images,proto3" json:"images,omitempty"`
-	Networks            uint32                 `protobuf:"varint,6,opt,name=networks,proto3" json:"networks,omitempty"`
-	Volumes             uint32                 `protobuf:"varint,7,opt,name=volumes,proto3" json:"volumes,omitempty"`
-	VolumesSizeBytes    uint64                 `protobuf:"varint,8,opt,name=volumes_size_bytes,json=volumesSizeBytes,proto3" json:"volumes_size_bytes,omitempty"`
-	DisksUsageBytes     uint64                 `protobuf:"varint,9,opt,name=disks_usage_bytes,json=disksUsageBytes,proto3" json:"disks_usage_bytes,omitempty"`
-	DockerServerVersion string                 `protobuf:"bytes,10,opt,name=docker_server_version,json=dockerServerVersion,proto3" json:"docker_server_version,omitempty"`
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	ContainersTotal uint32                 `protobuf:"varint,1,opt,name=containers_total,json=containersTotal,proto3" json:"containers_total,omitempty"`
+	// containers_running is the number of running containers.
+	ContainersRunning uint32 `protobuf:"varint,2,opt,name=containers_running,json=containersRunning,proto3" json:"containers_running,omitempty"`
+	// containers_stopped is the number of stopped containers.
+	ContainersStopped uint32 `protobuf:"varint,3,opt,name=containers_stopped,json=containersStopped,proto3" json:"containers_stopped,omitempty"`
+	// containers_paused is the number of paused containers.
+	ContainersPaused uint32 `protobuf:"varint,4,opt,name=containers_paused,json=containersPaused,proto3" json:"containers_paused,omitempty"`
+	// images is the number of local Docker images.
+	Images uint32 `protobuf:"varint,5,opt,name=images,proto3" json:"images,omitempty"`
+	// networks is the number of local Docker networks.
+	Networks uint32 `protobuf:"varint,6,opt,name=networks,proto3" json:"networks,omitempty"`
+	// volumes is the number of local Docker volumes.
+	Volumes uint32 `protobuf:"varint,7,opt,name=volumes,proto3" json:"volumes,omitempty"`
+	// volumes_size_bytes is the total reported volume size in bytes.
+	VolumesSizeBytes uint64 `protobuf:"varint,8,opt,name=volumes_size_bytes,json=volumesSizeBytes,proto3" json:"volumes_size_bytes,omitempty"`
+	// disks_usage_bytes is the Docker-reported disk usage in bytes.
+	DisksUsageBytes     uint64 `protobuf:"varint,9,opt,name=disks_usage_bytes,json=disksUsageBytes,proto3" json:"disks_usage_bytes,omitempty"`
+	DockerServerVersion string `protobuf:"bytes,10,opt,name=docker_server_version,json=dockerServerVersion,proto3" json:"docker_server_version,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -545,6 +575,7 @@ func (x *DockerStats) GetDockerServerVersion() string {
 	return ""
 }
 
+// GetNodeDockerStatsResponse returns the latest known Docker stats snapshot.
 type GetNodeDockerStatsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Stats         *DockerStats           `protobuf:"bytes,1,opt,name=stats,proto3" json:"stats,omitempty"`
@@ -589,11 +620,15 @@ func (x *GetNodeDockerStatsResponse) GetStats() *DockerStats {
 	return nil
 }
 
+// SyncNodeCaddyFilesRequest syncs Caddy files for one node.
 type SyncNodeCaddyFilesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	ServiceName   string                 `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	FullRebuild   bool                   `protobuf:"varint,3,opt,name=full_rebuild,json=fullRebuild,proto3" json:"full_rebuild,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// node_id is the stable node identifier.
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// service_name optionally narrows the sync to one service.
+	ServiceName string `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// full_rebuild forces a full Caddy file rebuild instead of an incremental sync.
+	FullRebuild   bool `protobuf:"varint,3,opt,name=full_rebuild,json=fullRebuild,proto3" json:"full_rebuild,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -649,6 +684,7 @@ func (x *SyncNodeCaddyFilesRequest) GetFullRebuild() bool {
 	return false
 }
 
+// SyncNodeCaddyFilesResponse returns the created maintenance task ID.
 type SyncNodeCaddyFilesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
@@ -693,9 +729,11 @@ func (x *SyncNodeCaddyFilesResponse) GetTaskId() string {
 	return ""
 }
 
+// ReloadNodeCaddyRequest identifies the node whose Caddy instance should be reloaded.
 type ReloadNodeCaddyRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// node_id is the stable node identifier.
+	NodeId        string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -737,6 +775,7 @@ func (x *ReloadNodeCaddyRequest) GetNodeId() string {
 	return ""
 }
 
+// ReloadNodeCaddyResponse returns the created maintenance task ID.
 type ReloadNodeCaddyResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
@@ -781,10 +820,13 @@ func (x *ReloadNodeCaddyResponse) GetTaskId() string {
 	return ""
 }
 
+// PruneNodeDockerRequest prunes one Docker resource class on a node.
 type PruneNodeDockerRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	Target        string                 `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// node_id is the stable node identifier.
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// target identifies which Docker resource group to prune.
+	Target        string `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -833,6 +875,7 @@ func (x *PruneNodeDockerRequest) GetTarget() string {
 	return ""
 }
 
+// PruneNodeDockerResponse returns the created maintenance task ID.
 type PruneNodeDockerResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
@@ -877,11 +920,15 @@ func (x *PruneNodeDockerResponse) GetTaskId() string {
 	return ""
 }
 
+// ForgetNodeRusticRequest forgets backup snapshots for one node and dataset.
 type ForgetNodeRusticRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	ServiceName   string                 `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	DataName      string                 `protobuf:"bytes,3,opt,name=data_name,json=dataName,proto3" json:"data_name,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// node_id is the stable node identifier.
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// service_name narrows the operation to one service.
+	ServiceName string `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// data_name narrows the operation to one service data entry.
+	DataName      string `protobuf:"bytes,3,opt,name=data_name,json=dataName,proto3" json:"data_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -937,6 +984,7 @@ func (x *ForgetNodeRusticRequest) GetDataName() string {
 	return ""
 }
 
+// ForgetNodeRusticResponse returns the created maintenance task ID.
 type ForgetNodeRusticResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
@@ -981,11 +1029,15 @@ func (x *ForgetNodeRusticResponse) GetTaskId() string {
 	return ""
 }
 
+// PruneNodeRusticRequest prunes backup data for one node and dataset.
 type PruneNodeRusticRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	ServiceName   string                 `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	DataName      string                 `protobuf:"bytes,3,opt,name=data_name,json=dataName,proto3" json:"data_name,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// node_id is the stable node identifier.
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// service_name narrows the operation to one service.
+	ServiceName string `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// data_name narrows the operation to one service data entry.
+	DataName      string `protobuf:"bytes,3,opt,name=data_name,json=dataName,proto3" json:"data_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1041,6 +1093,7 @@ func (x *PruneNodeRusticRequest) GetDataName() string {
 	return ""
 }
 
+// PruneNodeRusticResponse returns the created maintenance task ID.
 type PruneNodeRusticResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
@@ -1085,9 +1138,11 @@ func (x *PruneNodeRusticResponse) GetTaskId() string {
 	return ""
 }
 
+// ListNodeContainersRequest identifies the node whose containers should be listed.
 type ListNodeContainersRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// node_id is the stable node identifier.
+	NodeId        string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1129,18 +1184,27 @@ func (x *ListNodeContainersRequest) GetNodeId() string {
 	return ""
 }
 
+// ContainerInfo describes one container for node-scoped list views.
 type ContainerInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Image         string                 `protobuf:"bytes,3,opt,name=image,proto3" json:"image,omitempty"`
-	State         string                 `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
-	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
-	Created       string                 `protobuf:"bytes,6,opt,name=created,proto3" json:"created,omitempty"`
-	Labels        map[string]string      `protobuf:"bytes,7,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Ports         []string               `protobuf:"bytes,8,rep,name=ports,proto3" json:"ports,omitempty"`
-	Networks      []string               `protobuf:"bytes,9,rep,name=networks,proto3" json:"networks,omitempty"`
-	ImageId       string                 `protobuf:"bytes,10,opt,name=image_id,json=imageId,proto3" json:"image_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// name is the runtime container name.
+	Name  string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Image string `protobuf:"bytes,3,opt,name=image,proto3" json:"image,omitempty"`
+	// state is the low-level Docker state value.
+	State string `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
+	// status is the Docker status string intended for display.
+	Status string `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	// created is the container creation timestamp string.
+	Created string `protobuf:"bytes,6,opt,name=created,proto3" json:"created,omitempty"`
+	// labels is the container label map.
+	Labels map[string]string `protobuf:"bytes,7,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// ports contains display-formatted published port mappings.
+	Ports []string `protobuf:"bytes,8,rep,name=ports,proto3" json:"ports,omitempty"`
+	// networks lists connected Docker network names.
+	Networks []string `protobuf:"bytes,9,rep,name=networks,proto3" json:"networks,omitempty"`
+	// image_id is the resolved image ID.
+	ImageId       string `protobuf:"bytes,10,opt,name=image_id,json=imageId,proto3" json:"image_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1245,6 +1309,7 @@ func (x *ContainerInfo) GetImageId() string {
 	return ""
 }
 
+// ListNodeContainersResponse returns node-scoped container summaries.
 type ListNodeContainersResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Containers    []*ContainerInfo       `protobuf:"bytes,1,rep,name=containers,proto3" json:"containers,omitempty"`
@@ -1289,10 +1354,13 @@ func (x *ListNodeContainersResponse) GetContainers() []*ContainerInfo {
 	return nil
 }
 
+// InspectNodeContainerRequest identifies one node-scoped container.
 type InspectNodeContainerRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	ContainerId   string                 `protobuf:"bytes,2,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// node_id is the stable node identifier.
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// container_id is the runtime container ID.
+	ContainerId   string `protobuf:"bytes,2,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1341,6 +1409,7 @@ func (x *InspectNodeContainerRequest) GetContainerId() string {
 	return ""
 }
 
+// InspectNodeContainerResponse returns raw Docker inspect JSON.
 type InspectNodeContainerResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RawJson       string                 `protobuf:"bytes,1,opt,name=raw_json,json=rawJson,proto3" json:"raw_json,omitempty"`
@@ -1385,9 +1454,11 @@ func (x *InspectNodeContainerResponse) GetRawJson() string {
 	return ""
 }
 
+// ListNodeNetworksRequest identifies the node whose networks should be listed.
 type ListNodeNetworksRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// node_id is the stable node identifier.
+	NodeId        string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1429,22 +1500,34 @@ func (x *ListNodeNetworksRequest) GetNodeId() string {
 	return ""
 }
 
+// NetworkInfo describes one Docker network for node-scoped list views.
 type NetworkInfo struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name            string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Driver          string                 `protobuf:"bytes,3,opt,name=driver,proto3" json:"driver,omitempty"`
-	Scope           string                 `protobuf:"bytes,4,opt,name=scope,proto3" json:"scope,omitempty"`
-	Internal        bool                   `protobuf:"varint,5,opt,name=internal,proto3" json:"internal,omitempty"`
-	Attachable      bool                   `protobuf:"varint,6,opt,name=attachable,proto3" json:"attachable,omitempty"`
-	Created         string                 `protobuf:"bytes,7,opt,name=created,proto3" json:"created,omitempty"`
-	Labels          map[string]string      `protobuf:"bytes,8,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Subnet          string                 `protobuf:"bytes,9,opt,name=subnet,proto3" json:"subnet,omitempty"`
-	Gateway         string                 `protobuf:"bytes,10,opt,name=gateway,proto3" json:"gateway,omitempty"`
-	ContainersCount uint32                 `protobuf:"varint,11,opt,name=containers_count,json=containersCount,proto3" json:"containers_count,omitempty"`
-	Ipv6Enabled     bool                   `protobuf:"varint,12,opt,name=ipv6_enabled,json=ipv6Enabled,proto3" json:"ipv6_enabled,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// name is the runtime network name.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// driver is the Docker network driver name.
+	Driver string `protobuf:"bytes,3,opt,name=driver,proto3" json:"driver,omitempty"`
+	// scope is the Docker network scope.
+	Scope string `protobuf:"bytes,4,opt,name=scope,proto3" json:"scope,omitempty"`
+	// internal reports whether the network is internal-only.
+	Internal bool `protobuf:"varint,5,opt,name=internal,proto3" json:"internal,omitempty"`
+	// attachable reports whether standalone containers may attach to the network.
+	Attachable bool `protobuf:"varint,6,opt,name=attachable,proto3" json:"attachable,omitempty"`
+	// created is the network creation timestamp string.
+	Created string `protobuf:"bytes,7,opt,name=created,proto3" json:"created,omitempty"`
+	// labels is the network label map.
+	Labels map[string]string `protobuf:"bytes,8,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// subnet is the primary IPv4 subnet, when available.
+	Subnet string `protobuf:"bytes,9,opt,name=subnet,proto3" json:"subnet,omitempty"`
+	// gateway is the primary IPv4 gateway, when available.
+	Gateway string `protobuf:"bytes,10,opt,name=gateway,proto3" json:"gateway,omitempty"`
+	// containers_count is the number of connected containers.
+	ContainersCount uint32 `protobuf:"varint,11,opt,name=containers_count,json=containersCount,proto3" json:"containers_count,omitempty"`
+	// ipv6_enabled reports whether IPv6 is enabled for the network.
+	Ipv6Enabled   bool `protobuf:"varint,12,opt,name=ipv6_enabled,json=ipv6Enabled,proto3" json:"ipv6_enabled,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *NetworkInfo) Reset() {
@@ -1561,6 +1644,7 @@ func (x *NetworkInfo) GetIpv6Enabled() bool {
 	return false
 }
 
+// ListNodeNetworksResponse returns node-scoped network summaries.
 type ListNodeNetworksResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Networks      []*NetworkInfo         `protobuf:"bytes,1,rep,name=networks,proto3" json:"networks,omitempty"`
@@ -1605,10 +1689,13 @@ func (x *ListNodeNetworksResponse) GetNetworks() []*NetworkInfo {
 	return nil
 }
 
+// InspectNodeNetworkRequest identifies one node-scoped network.
 type InspectNodeNetworkRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	NetworkId     string                 `protobuf:"bytes,2,opt,name=network_id,json=networkId,proto3" json:"network_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// node_id is the stable node identifier.
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// network_id is the runtime network ID.
+	NetworkId     string `protobuf:"bytes,2,opt,name=network_id,json=networkId,proto3" json:"network_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1657,6 +1744,7 @@ func (x *InspectNodeNetworkRequest) GetNetworkId() string {
 	return ""
 }
 
+// InspectNodeNetworkResponse returns raw Docker inspect JSON.
 type InspectNodeNetworkResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RawJson       string                 `protobuf:"bytes,1,opt,name=raw_json,json=rawJson,proto3" json:"raw_json,omitempty"`
@@ -1701,9 +1789,11 @@ func (x *InspectNodeNetworkResponse) GetRawJson() string {
 	return ""
 }
 
+// ListNodeVolumesRequest identifies the node whose volumes should be listed.
 type ListNodeVolumesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// node_id is the stable node identifier.
+	NodeId        string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1745,19 +1835,29 @@ func (x *ListNodeVolumesRequest) GetNodeId() string {
 	return ""
 }
 
+// VolumeInfo describes one Docker volume for node-scoped list views.
 type VolumeInfo struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Name            string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Driver          string                 `protobuf:"bytes,2,opt,name=driver,proto3" json:"driver,omitempty"`
-	Mountpoint      string                 `protobuf:"bytes,3,opt,name=mountpoint,proto3" json:"mountpoint,omitempty"`
-	Scope           string                 `protobuf:"bytes,4,opt,name=scope,proto3" json:"scope,omitempty"`
-	Created         string                 `protobuf:"bytes,5,opt,name=created,proto3" json:"created,omitempty"`
-	Labels          map[string]string      `protobuf:"bytes,6,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	SizeBytes       int64                  `protobuf:"varint,7,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
-	ContainersCount uint32                 `protobuf:"varint,8,opt,name=containers_count,json=containersCount,proto3" json:"containers_count,omitempty"`
-	InUse           bool                   `protobuf:"varint,9,opt,name=in_use,json=inUse,proto3" json:"in_use,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// name is the runtime volume name.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// driver is the Docker volume driver name.
+	Driver string `protobuf:"bytes,2,opt,name=driver,proto3" json:"driver,omitempty"`
+	// mountpoint is the volume mount path on the node.
+	Mountpoint string `protobuf:"bytes,3,opt,name=mountpoint,proto3" json:"mountpoint,omitempty"`
+	// scope is the Docker volume scope.
+	Scope string `protobuf:"bytes,4,opt,name=scope,proto3" json:"scope,omitempty"`
+	// created is the volume creation timestamp string.
+	Created string `protobuf:"bytes,5,opt,name=created,proto3" json:"created,omitempty"`
+	// labels is the volume label map.
+	Labels map[string]string `protobuf:"bytes,6,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// size_bytes is the reported volume size in bytes.
+	SizeBytes int64 `protobuf:"varint,7,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	// containers_count is the number of attached containers.
+	ContainersCount uint32 `protobuf:"varint,8,opt,name=containers_count,json=containersCount,proto3" json:"containers_count,omitempty"`
+	// in_use reports whether any container currently uses the volume.
+	InUse         bool `protobuf:"varint,9,opt,name=in_use,json=inUse,proto3" json:"in_use,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *VolumeInfo) Reset() {
@@ -1853,6 +1953,7 @@ func (x *VolumeInfo) GetInUse() bool {
 	return false
 }
 
+// ListNodeVolumesResponse returns node-scoped volume summaries.
 type ListNodeVolumesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Volumes       []*VolumeInfo          `protobuf:"bytes,1,rep,name=volumes,proto3" json:"volumes,omitempty"`
@@ -1897,10 +1998,13 @@ func (x *ListNodeVolumesResponse) GetVolumes() []*VolumeInfo {
 	return nil
 }
 
+// InspectNodeVolumeRequest identifies one node-scoped volume.
 type InspectNodeVolumeRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	VolumeName    string                 `protobuf:"bytes,2,opt,name=volume_name,json=volumeName,proto3" json:"volume_name,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// node_id is the stable node identifier.
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// volume_name is the runtime volume name.
+	VolumeName    string `protobuf:"bytes,2,opt,name=volume_name,json=volumeName,proto3" json:"volume_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1949,6 +2053,7 @@ func (x *InspectNodeVolumeRequest) GetVolumeName() string {
 	return ""
 }
 
+// InspectNodeVolumeResponse returns raw Docker inspect JSON.
 type InspectNodeVolumeResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RawJson       string                 `protobuf:"bytes,1,opt,name=raw_json,json=rawJson,proto3" json:"raw_json,omitempty"`
@@ -1993,9 +2098,11 @@ func (x *InspectNodeVolumeResponse) GetRawJson() string {
 	return ""
 }
 
+// ListNodeImagesRequest identifies the node whose images should be listed.
 type ListNodeImagesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// node_id is the stable node identifier.
+	NodeId        string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2037,20 +2144,30 @@ func (x *ListNodeImagesRequest) GetNodeId() string {
 	return ""
 }
 
+// ImageInfo describes one Docker image for node-scoped list views.
 type ImageInfo struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	RepoTags        []string               `protobuf:"bytes,2,rep,name=repo_tags,json=repoTags,proto3" json:"repo_tags,omitempty"`
-	Size            int64                  `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
-	Created         string                 `protobuf:"bytes,4,opt,name=created,proto3" json:"created,omitempty"`
-	RepoDigests     []string               `protobuf:"bytes,5,rep,name=repo_digests,json=repoDigests,proto3" json:"repo_digests,omitempty"`
-	VirtualSize     int64                  `protobuf:"varint,6,opt,name=virtual_size,json=virtualSize,proto3" json:"virtual_size,omitempty"`
-	Architecture    string                 `protobuf:"bytes,7,opt,name=architecture,proto3" json:"architecture,omitempty"`
-	Os              string                 `protobuf:"bytes,8,opt,name=os,proto3" json:"os,omitempty"`
-	ContainersCount uint32                 `protobuf:"varint,9,opt,name=containers_count,json=containersCount,proto3" json:"containers_count,omitempty"`
-	IsDangling      bool                   `protobuf:"varint,10,opt,name=is_dangling,json=isDangling,proto3" json:"is_dangling,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// repo_tags lists named tags referencing the image.
+	RepoTags []string `protobuf:"bytes,2,rep,name=repo_tags,json=repoTags,proto3" json:"repo_tags,omitempty"`
+	// size is the image size in bytes.
+	Size int64 `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
+	// created is the image creation timestamp string.
+	Created string `protobuf:"bytes,4,opt,name=created,proto3" json:"created,omitempty"`
+	// repo_digests lists immutable digest references for the image.
+	RepoDigests []string `protobuf:"bytes,5,rep,name=repo_digests,json=repoDigests,proto3" json:"repo_digests,omitempty"`
+	// virtual_size is the virtual image size in bytes.
+	VirtualSize int64 `protobuf:"varint,6,opt,name=virtual_size,json=virtualSize,proto3" json:"virtual_size,omitempty"`
+	// architecture is the image CPU architecture string.
+	Architecture string `protobuf:"bytes,7,opt,name=architecture,proto3" json:"architecture,omitempty"`
+	// os is the image operating system string.
+	Os string `protobuf:"bytes,8,opt,name=os,proto3" json:"os,omitempty"`
+	// containers_count is the number of containers using the image.
+	ContainersCount uint32 `protobuf:"varint,9,opt,name=containers_count,json=containersCount,proto3" json:"containers_count,omitempty"`
+	// is_dangling reports whether the image is dangling.
+	IsDangling    bool `protobuf:"varint,10,opt,name=is_dangling,json=isDangling,proto3" json:"is_dangling,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ImageInfo) Reset() {
@@ -2153,6 +2270,7 @@ func (x *ImageInfo) GetIsDangling() bool {
 	return false
 }
 
+// ListNodeImagesResponse returns node-scoped image summaries.
 type ListNodeImagesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Images        []*ImageInfo           `protobuf:"bytes,1,rep,name=images,proto3" json:"images,omitempty"`
@@ -2197,10 +2315,13 @@ func (x *ListNodeImagesResponse) GetImages() []*ImageInfo {
 	return nil
 }
 
+// InspectNodeImageRequest identifies one node-scoped image.
 type InspectNodeImageRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	ImageId       string                 `protobuf:"bytes,2,opt,name=image_id,json=imageId,proto3" json:"image_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// node_id is the stable node identifier.
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// image_id is the runtime image ID.
+	ImageId       string `protobuf:"bytes,2,opt,name=image_id,json=imageId,proto3" json:"image_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2249,6 +2370,7 @@ func (x *InspectNodeImageRequest) GetImageId() string {
 	return ""
 }
 
+// InspectNodeImageResponse returns raw Docker inspect JSON.
 type InspectNodeImageResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RawJson       string                 `protobuf:"bytes,1,opt,name=raw_json,json=rawJson,proto3" json:"raw_json,omitempty"`

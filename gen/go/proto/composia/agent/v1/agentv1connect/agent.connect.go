@@ -103,13 +103,21 @@ const (
 
 // AgentReportServiceClient is a client for the composia.agent.v1.AgentReportService service.
 type AgentReportServiceClient interface {
+	// Heartbeat reports that an agent is alive and includes runtime metadata.
 	Heartbeat(context.Context, *connect.Request[v1.HeartbeatRequest]) (*connect.Response[v1.HeartbeatResponse], error)
+	// ReportTaskState reports the latest state for one task.
 	ReportTaskState(context.Context, *connect.Request[v1.ReportTaskStateRequest]) (*connect.Response[v1.ReportTaskStateResponse], error)
+	// ReportTaskStepState reports the latest state for one task step.
 	ReportTaskStepState(context.Context, *connect.Request[v1.ReportTaskStepStateRequest]) (*connect.Response[v1.ReportTaskStepStateResponse], error)
+	// UploadTaskLogs streams log chunks from the agent to the controller.
 	UploadTaskLogs(context.Context) *connect.BidiStreamForClient[v1.UploadTaskLogsRequest, v1.UploadTaskLogsResponse]
+	// ReportBackupResult reports the result of one backup operation.
 	ReportBackupResult(context.Context, *connect.Request[v1.ReportBackupResultRequest]) (*connect.Response[v1.ReportBackupResultResponse], error)
+	// ReportServiceInstanceStatus reports the current status of one service instance.
 	ReportServiceInstanceStatus(context.Context, *connect.Request[v1.ReportServiceInstanceStatusRequest]) (*connect.Response[v1.ReportServiceInstanceStatusResponse], error)
+	// ReportDockerStats reports the latest Docker stats snapshot for one node.
 	ReportDockerStats(context.Context, *connect.Request[v1.ReportDockerStatsRequest]) (*connect.Response[v1.ReportDockerStatsResponse], error)
+	// OpenExecTunnel proxies interactive exec traffic between controller and agent.
 	OpenExecTunnel(context.Context) *connect.BidiStreamForClient[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse]
 }
 
@@ -231,13 +239,21 @@ func (c *agentReportServiceClient) OpenExecTunnel(ctx context.Context) *connect.
 // AgentReportServiceHandler is an implementation of the composia.agent.v1.AgentReportService
 // service.
 type AgentReportServiceHandler interface {
+	// Heartbeat reports that an agent is alive and includes runtime metadata.
 	Heartbeat(context.Context, *connect.Request[v1.HeartbeatRequest]) (*connect.Response[v1.HeartbeatResponse], error)
+	// ReportTaskState reports the latest state for one task.
 	ReportTaskState(context.Context, *connect.Request[v1.ReportTaskStateRequest]) (*connect.Response[v1.ReportTaskStateResponse], error)
+	// ReportTaskStepState reports the latest state for one task step.
 	ReportTaskStepState(context.Context, *connect.Request[v1.ReportTaskStepStateRequest]) (*connect.Response[v1.ReportTaskStepStateResponse], error)
+	// UploadTaskLogs streams log chunks from the agent to the controller.
 	UploadTaskLogs(context.Context, *connect.BidiStream[v1.UploadTaskLogsRequest, v1.UploadTaskLogsResponse]) error
+	// ReportBackupResult reports the result of one backup operation.
 	ReportBackupResult(context.Context, *connect.Request[v1.ReportBackupResultRequest]) (*connect.Response[v1.ReportBackupResultResponse], error)
+	// ReportServiceInstanceStatus reports the current status of one service instance.
 	ReportServiceInstanceStatus(context.Context, *connect.Request[v1.ReportServiceInstanceStatusRequest]) (*connect.Response[v1.ReportServiceInstanceStatusResponse], error)
+	// ReportDockerStats reports the latest Docker stats snapshot for one node.
 	ReportDockerStats(context.Context, *connect.Request[v1.ReportDockerStatsRequest]) (*connect.Response[v1.ReportDockerStatsResponse], error)
+	// OpenExecTunnel proxies interactive exec traffic between controller and agent.
 	OpenExecTunnel(context.Context, *connect.BidiStream[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse]) error
 }
 
@@ -357,6 +373,7 @@ func (UnimplementedAgentReportServiceHandler) OpenExecTunnel(context.Context, *c
 
 // AgentTaskServiceClient is a client for the composia.agent.v1.AgentTaskService service.
 type AgentTaskServiceClient interface {
+	// PullNextTask returns the next available task for the requesting node.
 	PullNextTask(context.Context, *connect.Request[v1.PullNextTaskRequest]) (*connect.Response[v1.PullNextTaskResponse], error)
 }
 
@@ -392,6 +409,7 @@ func (c *agentTaskServiceClient) PullNextTask(ctx context.Context, req *connect.
 
 // AgentTaskServiceHandler is an implementation of the composia.agent.v1.AgentTaskService service.
 type AgentTaskServiceHandler interface {
+	// PullNextTask returns the next available task for the requesting node.
 	PullNextTask(context.Context, *connect.Request[v1.PullNextTaskRequest]) (*connect.Response[v1.PullNextTaskResponse], error)
 }
 
@@ -427,6 +445,7 @@ func (UnimplementedAgentTaskServiceHandler) PullNextTask(context.Context, *conne
 
 // BundleServiceClient is a client for the composia.agent.v1.BundleService service.
 type BundleServiceClient interface {
+	// GetServiceBundle streams the task bundle as binary chunks.
 	GetServiceBundle(context.Context, *connect.Request[v1.GetServiceBundleRequest]) (*connect.ServerStreamForClient[v1.GetServiceBundleResponse], error)
 }
 
@@ -462,6 +481,7 @@ func (c *bundleServiceClient) GetServiceBundle(ctx context.Context, req *connect
 
 // BundleServiceHandler is an implementation of the composia.agent.v1.BundleService service.
 type BundleServiceHandler interface {
+	// GetServiceBundle streams the task bundle as binary chunks.
 	GetServiceBundle(context.Context, *connect.Request[v1.GetServiceBundleRequest], *connect.ServerStream[v1.GetServiceBundleResponse]) error
 }
 
@@ -497,15 +517,25 @@ func (UnimplementedBundleServiceHandler) GetServiceBundle(context.Context, *conn
 
 // DockerServiceClient is a client for the composia.agent.v1.DockerService service.
 type DockerServiceClient interface {
+	// ListContainers lists local Docker containers.
 	ListContainers(context.Context, *connect.Request[v1.ListContainersRequest]) (*connect.Response[v1.ListContainersResponse], error)
+	// InspectContainer returns raw Docker inspect JSON for one container.
 	InspectContainer(context.Context, *connect.Request[v1.InspectContainerRequest]) (*connect.Response[v1.InspectContainerResponse], error)
+	// RunContainerAction applies a lifecycle action to one container.
 	RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.RunContainerActionResponse], error)
+	// GetContainerLogs returns log text for one container.
 	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error)
+	// ListNetworks lists local Docker networks.
 	ListNetworks(context.Context, *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error)
+	// InspectNetwork returns raw Docker inspect JSON for one network.
 	InspectNetwork(context.Context, *connect.Request[v1.InspectNetworkRequest]) (*connect.Response[v1.InspectNetworkResponse], error)
+	// ListVolumes lists local Docker volumes.
 	ListVolumes(context.Context, *connect.Request[v1.ListVolumesRequest]) (*connect.Response[v1.ListVolumesResponse], error)
+	// InspectVolume returns raw Docker inspect JSON for one volume.
 	InspectVolume(context.Context, *connect.Request[v1.InspectVolumeRequest]) (*connect.Response[v1.InspectVolumeResponse], error)
+	// ListImages lists local Docker images.
 	ListImages(context.Context, *connect.Request[v1.ListImagesRequest]) (*connect.Response[v1.ListImagesResponse], error)
+	// InspectImage returns raw Docker inspect JSON for one image.
 	InspectImage(context.Context, *connect.Request[v1.InspectImageRequest]) (*connect.Response[v1.InspectImageResponse], error)
 }
 
@@ -649,15 +679,25 @@ func (c *dockerServiceClient) InspectImage(ctx context.Context, req *connect.Req
 
 // DockerServiceHandler is an implementation of the composia.agent.v1.DockerService service.
 type DockerServiceHandler interface {
+	// ListContainers lists local Docker containers.
 	ListContainers(context.Context, *connect.Request[v1.ListContainersRequest]) (*connect.Response[v1.ListContainersResponse], error)
+	// InspectContainer returns raw Docker inspect JSON for one container.
 	InspectContainer(context.Context, *connect.Request[v1.InspectContainerRequest]) (*connect.Response[v1.InspectContainerResponse], error)
+	// RunContainerAction applies a lifecycle action to one container.
 	RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.RunContainerActionResponse], error)
+	// GetContainerLogs returns log text for one container.
 	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error)
+	// ListNetworks lists local Docker networks.
 	ListNetworks(context.Context, *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error)
+	// InspectNetwork returns raw Docker inspect JSON for one network.
 	InspectNetwork(context.Context, *connect.Request[v1.InspectNetworkRequest]) (*connect.Response[v1.InspectNetworkResponse], error)
+	// ListVolumes lists local Docker volumes.
 	ListVolumes(context.Context, *connect.Request[v1.ListVolumesRequest]) (*connect.Response[v1.ListVolumesResponse], error)
+	// InspectVolume returns raw Docker inspect JSON for one volume.
 	InspectVolume(context.Context, *connect.Request[v1.InspectVolumeRequest]) (*connect.Response[v1.InspectVolumeResponse], error)
+	// ListImages lists local Docker images.
 	ListImages(context.Context, *connect.Request[v1.ListImagesRequest]) (*connect.Response[v1.ListImagesResponse], error)
+	// InspectImage returns raw Docker inspect JSON for one image.
 	InspectImage(context.Context, *connect.Request[v1.InspectImageRequest]) (*connect.Response[v1.InspectImageResponse], error)
 }
 
