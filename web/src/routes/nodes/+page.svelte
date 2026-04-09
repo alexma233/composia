@@ -1,9 +1,12 @@
 <script lang="ts">
+  import { invalidateAll } from '$app/navigation';
+  import { onMount } from 'svelte';
   import type { PageData } from './$types';
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { startPolling } from '$lib/refresh';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { formatTimestamp, onlineStatusTone } from '$lib/presenters';
   import { messages } from '$lib/i18n';
@@ -13,6 +16,8 @@
   }
 
   let { data }: Props = $props();
+
+  onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
 </script>
 
 <div class="page-shell">

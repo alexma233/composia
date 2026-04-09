@@ -1,11 +1,14 @@
 <script lang="ts">
+  import { invalidateAll } from '$app/navigation';
   import type { PageData, ActionData } from './$types';
   import { enhance } from '$app/forms';
+  import { onMount } from 'svelte';
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { startPolling } from '$lib/refresh';
   import { formatBytes, formatTimestamp, onlineStatusTone, taskStatusLabel, taskStatusTone } from '$lib/presenters';
   import { messages } from '$lib/i18n';
 
@@ -15,6 +18,8 @@
   }
 
   let { data, form }: Props = $props();
+
+  onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
 </script>
 
 <div class="page-shell">

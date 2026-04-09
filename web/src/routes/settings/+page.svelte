@@ -1,10 +1,13 @@
 <script lang="ts">
+  import { invalidateAll } from '$app/navigation';
   import { RefreshCw } from 'lucide-svelte';
+  import { onMount } from 'svelte';
   import { toast } from 'svelte-sonner';
 
   import type { PageData } from './$types';
   import { messages } from '$lib/i18n';
 
+  import { startPolling } from '$lib/refresh';
   import ThemeControls from '$lib/components/app/theme-controls.svelte';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Button } from '$lib/components/ui/button';
@@ -87,6 +90,8 @@
   let displaySyncStatus = $derived(syncResult?.syncStatus ?? data.repoHead?.syncStatus ?? $messages.common.unknown);
   let displayLastSyncError = $derived(syncResult?.lastSyncError ?? data.repoHead?.lastSyncError ?? '');
   let displayLastPull = $derived(syncResult?.lastSuccessfulPullAt ?? data.repoHead?.lastSuccessfulPullAt ?? $messages.common.never);
+
+  onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
 </script>
 
 <div class="page-shell">

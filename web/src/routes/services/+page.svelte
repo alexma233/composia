@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { invalidateAll } from '$app/navigation';
+  import { onMount } from 'svelte';
   import type { ActionData, PageData } from './$types';
 
   import { Plus } from 'lucide-svelte';
@@ -8,6 +10,7 @@
   import { Button } from '$lib/components/ui/button';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Input } from '$lib/components/ui/input';
+  import { startPolling } from '$lib/refresh';
   import * as Popover from '$lib/components/ui/popover';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { formatTimestamp, runtimeStatusTone } from '$lib/presenters';
@@ -38,6 +41,8 @@
     if (runtimeStatus === 'needs_validation') return $messages.services.metaDraft;
     return runtimeStatus || $messages.common.unknown;
   }
+
+  onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
 </script>
 
 <div class="page-shell">

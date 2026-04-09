@@ -1,10 +1,13 @@
 <script lang="ts">
+  import { invalidateAll } from '$app/navigation';
+  import { onMount } from 'svelte';
   import type { PageData } from './$types';
   import type { Snippet } from 'svelte';
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { startPolling } from '$lib/refresh';
   import { defaultExcludedTaskTypes } from '$lib/tasks';
   import { formatTimestamp, onlineStatusTone, runtimeStatusLabel, runtimeStatusTone } from '$lib/presenters';
   import { messages } from '$lib/i18n';
@@ -31,6 +34,8 @@
   function totalTaskCount() {
     return 'totalTaskCount' in data ? data.totalTaskCount : 0;
   }
+
+  onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
 </script>
 
 <svelte:head>

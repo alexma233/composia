@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { PageData } from './$types';
-  import { goto } from '$app/navigation';
+  import { goto, invalidateAll } from '$app/navigation';
   import { page } from '$app/stores';
+  import { onMount } from 'svelte';
   import { messages } from '$lib/i18n';
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
@@ -17,6 +18,7 @@
     PaginationNextButton,
     PaginationPrevButton,
   } from '$lib/components/ui/pagination';
+  import { startPolling } from '$lib/refresh';
   import { formatTimestamp, taskStatusLabel, taskStatusTone } from '$lib/presenters';
 
   interface Props {
@@ -37,6 +39,8 @@
   $effect(() => {
     document.title = `Backups - Composia`;
   });
+
+  onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
 
   function pageUrl(page: number): string {
     const params = new URLSearchParams();

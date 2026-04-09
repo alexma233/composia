@@ -10,6 +10,7 @@
   import { Input } from '$lib/components/ui/input';
   import Textarea from '$lib/components/ui/textarea/textarea.svelte';
   import { messages } from '$lib/i18n';
+  import { startPolling } from '$lib/refresh';
 
   interface Props {
     data: PageData;
@@ -32,23 +33,28 @@
   let terminalInput = $state('');
   let terminalSessionId = $state('');
   let terminalSocket = $state<WebSocket | null>(null);
+  let stopActionRefreshHandle = $state<null | (() => void)>(null);
 
   $effect(() => {
-    if (!data.rawJson) {
+    applyContainerRawJson(data.rawJson);
+  });
+
+  function applyContainerRawJson(rawJson: string | null) {
+    if (!rawJson) {
       containerData = null;
       parseError = null;
       return;
     }
 
     try {
-      const parsed = JSON.parse(data.rawJson);
+      const parsed = JSON.parse(rawJson);
       containerData = Array.isArray(parsed) ? parsed[0] : parsed;
       parseError = null;
     } catch (error) {
       parseError = error instanceof Error ? error.message : $messages.error.parseFailed;
       containerData = null;
     }
-  });
+  }
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
@@ -108,6 +114,50 @@
     }
   }
 
+  async function refreshContainerDetails() {
+    const response = await fetch(
+      `/nodes/${encodeURIComponent(data.nodeId)}/docker/containers/${encodeURIComponent(data.containerId)}`,
+    );
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error ?? 'Failed to inspect container');
+    }
+
+    applyContainerRawJson(payload.rawJson ?? null);
+  }
+
+  function isTerminalTaskStatus(status: string | undefined) {
+    return status === 'succeeded' || status === 'failed' || status === 'cancelled';
+  }
+
+  function stopActionRefresh() {
+    stopActionRefreshHandle?.();
+    stopActionRefreshHandle = null;
+  }
+
+  function startActionRefresh(taskId: string) {
+    stopActionRefresh();
+
+    stopActionRefreshHandle = startPolling(async () => {
+      const response = await fetch(`/tasks/${encodeURIComponent(taskId)}`);
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Failed to load task detail.');
+      }
+
+      if (isTerminalTaskStatus(payload.task?.status)) {
+        await refreshContainerDetails();
+        return false;
+      }
+
+      return true;
+    }, {
+      intervalMs: 2500,
+      errorIntervalMs: 4000,
+      initialDelayMs: 1200,
+    });
+  }
+
   async function queueContainerAction(action: 'start' | 'stop' | 'restart') {
     actionBusy = action;
     try {
@@ -120,7 +170,11 @@
         throw new Error(payload.error ?? `Failed to ${action} container`);
       }
       toast.success(`${action} queued: ${payload.taskId?.slice(0, 12) ?? 'task'}`);
-      window.location.reload();
+      if (payload.taskId) {
+        startActionRefresh(payload.taskId);
+      } else {
+        await refreshContainerDetails();
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : `Failed to ${action} container.`);
     } finally {
@@ -198,7 +252,10 @@
     if (activeTab === 'logs') {
       void loadLogs();
     }
-    return () => disconnectTerminal();
+    return () => {
+      stopActionRefresh();
+      disconnectTerminal();
+    };
   });
 
   $effect(() => {

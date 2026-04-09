@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import {
     Columns2,
     Copy,
@@ -75,6 +76,7 @@
     normalizeServiceRelativePath,
     upsertFileNode,
   } from "$lib/service-workspace";
+  import { startPolling } from '$lib/refresh';
 
   let { data }: { data: PageData } = $props();
 
@@ -113,7 +115,7 @@
   let workspace = $state<PageData["workspace"]>(null);
   let serviceDetail = $state<PageData["serviceDetail"]>(null);
   let nodeContainers = $state<NonNullable<PageData["nodeContainers"]>>([]);
-  let refreshTimer = $state<ReturnType<typeof setTimeout> | null>(null);
+  let stopActionRefreshHandle = $state<null | (() => void)>(null);
   let migrateSourceNode = $state("");
   let migrateTargetNode = $state("");
   let selectedInstanceNode = $state("__all__");
@@ -130,15 +132,14 @@
     syncStatus = data.repoHead?.syncStatus ?? "";
     syncError = data.repoHead?.lastSyncError ?? "";
     lastSuccessfulPullAt = data.repoHead?.lastSuccessfulPullAt ?? "";
-    tasks = data.tasks;
-    backups = data.backups;
     errorMessage = data.error ?? "";
     renameServiceFolder = data.workspace?.folder ?? "";
-    workspace = data.workspace;
-    serviceDetail = data.serviceDetail;
-    nodeContainers = (data.nodeContainers ?? []) as NonNullable<
-      PageData["nodeContainers"]
-    >;
+    applyServiceSummaryState({
+      workspace: data.workspace,
+      tasks: data.tasks,
+      backups: data.backups,
+      serviceDetail: data.serviceDetail,
+    });
     migrateSourceNode = data.serviceDetail?.nodes?.[0] ?? "";
     migrateTargetNode = "";
     selectedInstanceNode = "__all__";
@@ -189,9 +190,28 @@
         ),
   );
 
-  $effect(() => {
-    return () => stopActionRefresh();
-  });
+  function applyServiceSummaryState(payload: {
+    workspace?: PageData["workspace"];
+    tasks?: TaskSummary[];
+    backups?: BackupSummary[];
+    serviceDetail?: PageData["serviceDetail"];
+  }) {
+    workspace = payload.workspace ?? workspace;
+    tasks = payload.tasks ?? tasks;
+    backups = payload.backups ?? backups;
+    serviceDetail = payload.serviceDetail ?? serviceDetail;
+    nodeContainers =
+      (payload.serviceDetail?.instances ?? nodeContainers) as NonNullable<
+        PageData["nodeContainers"]
+      >;
+
+    if (
+      selectedInstanceNode !== "__all__" &&
+      !nodeContainers.some((instance) => instance.nodeId === selectedInstanceNode)
+    ) {
+      selectedInstanceNode = "__all__";
+    }
+  }
 
   async function openFile(path: string) {
     try {
@@ -630,48 +650,56 @@
       throw new Error(payload.error ?? "Failed to refresh service summary.");
     }
 
-    workspace = payload.workspace ?? workspace;
-    tasks = payload.tasks ?? tasks;
-    backups = payload.backups ?? backups;
+    applyServiceSummaryState(payload as {
+      workspace?: PageData["workspace"];
+      tasks?: TaskSummary[];
+      backups?: BackupSummary[];
+      serviceDetail?: PageData["serviceDetail"];
+    });
+
     return payload as {
       workspace?: PageData["workspace"];
       tasks?: TaskSummary[];
       backups?: BackupSummary[];
+      serviceDetail?: PageData["serviceDetail"];
     };
   }
 
   function startActionRefresh(taskId: string) {
     stopActionRefresh();
 
-    const tick = async () => {
-      try {
-        const payload = await refreshServiceSummary();
-        const task = (payload.tasks ?? []).find(
-          (entry) => entry.taskId === taskId,
-        );
-        if (!task) {
-          refreshTimer = setTimeout(tick, 2500);
-          return;
-        }
-        if (isTerminalTaskStatus(task.status)) {
-          stopActionRefresh();
-          return;
-        }
-        refreshTimer = setTimeout(tick, 2500);
-      } catch {
-        refreshTimer = setTimeout(tick, 4000);
+    stopActionRefreshHandle = startPolling(async () => {
+      const payload = await refreshServiceSummary();
+      const task = (payload.tasks ?? []).find((entry) => entry.taskId === taskId);
+      if (!task) {
+        return true;
       }
-    };
 
-    refreshTimer = setTimeout(tick, 1200);
+      return !isTerminalTaskStatus(task.status);
+    }, {
+      intervalMs: 2500,
+      errorIntervalMs: 4000,
+      initialDelayMs: 1200,
+    });
   }
 
   function stopActionRefresh() {
-    if (refreshTimer) {
-      clearTimeout(refreshTimer);
-      refreshTimer = null;
-    }
+    stopActionRefreshHandle?.();
+    stopActionRefreshHandle = null;
   }
+
+  onMount(() => {
+    const stopAutoRefresh = startPolling(async () => {
+      await refreshServiceSummary();
+    }, {
+      intervalMs: 5000,
+    });
+
+    return () => {
+      stopAutoRefresh();
+      stopActionRefresh();
+    };
+  });
 
   function isTaskRecent(createdAt: string) {
     const createdAtMs = Date.parse(createdAt);
