@@ -15,6 +15,16 @@
 
 代码库已超越初始 scaffold 阶段，multi-node 主干已完成；当前剩余工作主要集中在迁移、restore、定时备份，以及部分 UI/编辑器增强。
 
+当前风险说明：
+
+- `caddy`
+- `rustic`
+- `backup`
+- `restore`
+- `migrate`
+
+以上链路目前都只有代码路径和局部单元测试覆盖，**没有经过真实环境下的实际测试验证**。当前实现应视为功能骨架已落地，但不能视为已被生产级验证的稳定能力。
+
 ### 已实现或大部分实现
 
 **核心基础设施：**
@@ -166,7 +176,7 @@
 
 ## Phase 6: 替换占位符备份行为
 
-**状态：核心功能已完成，扩展功能待实现**
+**状态：核心功能已完成，但尚未经过实际测试；需要系统性测试与重构**
 
 目标：将当前备份 scaffold 转变为第一个真实数据保护工作流，并明确其 instance 语义。
 
@@ -177,11 +187,14 @@
 - service 级 backup 通过 `RunServiceAction` + `node_ids[]` 实现 instance 扇出
 
 待完成：
-1. restore 任务执行
-2. 迁移复用备份数据的工作流
-3. `database.pgimport` restore 策略
-4. `files.untar` restore 策略
-5. 定时备份执行
+1. 对整个 backup/restore 链路做真实环境下的实际测试；当前实现不能视为已验证
+2. 对每一个 backup strategy 单独补齐真实测试与失败场景测试：`files.copy`、`files.tar_after_stop`、`database.pgdumpall`
+3. 对每一个 backup strategy 进行重构，明确一致性边界、错误处理、恢复语义和日志语义
+4. restore 任务执行的真实回归测试与端到端校验
+5. 迁移复用备份数据的工作流需要在真实环境下验证
+6. `database.pgimport` restore 策略需要真实测试与重构
+7. `files.untar` restore 策略需要真实测试与重构
+8. 定时备份执行
 
 ---
 
@@ -215,7 +228,7 @@
 
 ## Phase 8: 添加 DNS、Caddy 和容器操作
 
-**状态：核心功能已完成，增强功能待实现**
+**状态：核心功能已完成，但 caddy/rustic 相关链路尚未经过实际测试**
 
 目标：在 repo 写入和基础服务流稳定后，实现文档化的 day-2 操作动作，并将 Caddy 放在 multi-node service model 上。
 
@@ -238,12 +251,13 @@
 2. `migrate` 完成后在源节点和目标节点都触发 `caddy_reload`（等待 Phase 9）
 3. **Docker exec (terminal) 增强**：Web 端 terminal 需要升级为专业的 terminal UI 组件（xterm.js 或类似），支持完整的浏览器端 terminal 交互（滚动、复制粘贴、ANSI 颜色等）
 4. `dns_update` 在 `network.dns.value` 为空时仍按单节点自动推导目标；多节点 service 若要统一 DNS，仍需显式提供 `network.dns.value`
+5. `caddy_sync`、`caddy_reload`、`ForgetNodeRustic`、`PruneNodeRustic` 需要真实环境下的实际测试；当前不能视为已验证
 
 ---
 
 ## Phase 9: 最后添加迁移
 
-**状态：核心能力已完成，冲突/确认语义待完善**
+**状态：核心能力已完成，但 restore/migrate 尚未经过实际测试；冲突/确认语义待完善**
 
 目标：仅在整个平台语义稳定后，实现最复杂的 v1 工作流。
 
@@ -269,6 +283,8 @@
 1. `awaiting_confirmation` 状态仍未进入真实挂起/恢复工作流；当前 migrate 会直接执行到完成
 2. 迁移冲突处理：当 `persist_repo` 时 `HEAD` 已变化但变化触及该服务目录，仍需实现专门冲突语义
 3. 迁移 UI 仍是基础入口，缺少更强的确认与目标节点选择体验
+4. 整个 migrate 流程需要真实环境端到端测试；当前不能视为已验证
+5. restore 覆盖语义、数据库导入语义、失败后的残留状态处理需要重构并补测试
 
 ---
 
@@ -365,9 +381,11 @@ dns update
 5. ~~实现 `ReloadNodeCaddy` API 和 UI 入口~~ - 已完成
 6. ~~实现 `caddy_reload` 任务行为~~ - 已完成
 7. 完善 migrate 的 `persist_repo` 冲突处理和 `awaiting_confirmation` 语义（Phase 9）
-8. 补全 restore 对外入口（备份详情页 restore、独立 restore 任务/API）
-9. 实现定时备份执行（Phase 6 待完成项）
-10. Web UI 增强：CodeMirror 检查与分屏能力、改进的 terminal 组件
+8. 为 `caddy`、`rustic`、`backup`、`restore`、`migrate` 补齐真实环境测试，不再只依赖代码路径存在和局部测试
+9. 按 strategy 重构 backup/restore：`files.copy`、`files.tar_after_stop`、`database.pgdumpall`、`files.untar`、`database.pgimport`
+10. 补全 restore 对外入口（备份详情页 restore、独立 restore 任务/API）
+11. 实现定时备份执行（Phase 6 待完成项）
+12. Web UI 增强：CodeMirror 检查与分屏能力、改进的 terminal 组件
 
 ---
 
