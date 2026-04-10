@@ -37,7 +37,7 @@
   });
 
   $effect(() => {
-    document.title = `Backups - Composia`;
+    document.title = $messages.backups.pageTitle;
   });
 
   onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));

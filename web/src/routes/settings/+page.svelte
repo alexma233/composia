@@ -44,7 +44,7 @@
 
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? 'Failed to sync repo.');
+        throw new Error(payload.error ?? $messages.error.syncFailed);
       }
 
       syncResult = {
@@ -55,7 +55,7 @@
       };
       toast.success($messages.settings.repoSync.syncedSuccessfully);
     } catch (error) {
-      syncError = error instanceof Error ? error.message : 'Failed to sync repo.';
+      syncError = error instanceof Error ? error.message : $messages.error.syncFailed;
     } finally {
       syncing = false;
     }
@@ -74,13 +74,13 @@
 
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? `Failed to start rustic ${action}.`);
+        throw new Error(payload.error ?? $messages.settings.rustic.failedToStart.replace('{action}', action));
       }
 
       rusticTaskId = payload.taskId ?? '';
-      toast.success(`Rustic ${action} started`);
+      toast.success($messages.settings.rustic.started.replace('{action}', action));
     } catch (error) {
-      rusticError = error instanceof Error ? error.message : `Failed to start rustic ${action}.`;
+      rusticError = error instanceof Error ? error.message : $messages.settings.rustic.failedToStart.replace('{action}', action);
     } finally {
       rusticBusy = '';
     }

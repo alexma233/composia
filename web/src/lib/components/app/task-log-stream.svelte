@@ -3,6 +3,7 @@
   import { onDestroy } from 'svelte';
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
+  import { messages } from '$lib/i18n';
 
   interface Props {
     taskId?: string;
@@ -15,6 +16,23 @@
   let errorMsg: string = $state('');
   let streamTaskId: string = $state('');
   let controller: AbortController | null = null;
+
+  function streamStateLabel(state: string): string {
+    switch (state) {
+      case 'idle':
+        return $messages.tasks.logStreamStatus.idle;
+      case 'connecting':
+        return $messages.tasks.logStreamStatus.connecting;
+      case 'streaming':
+        return $messages.tasks.logStreamStatus.streaming;
+      case 'completed':
+        return $messages.tasks.logStreamStatus.completed;
+      case 'failed':
+        return $messages.tasks.logStreamStatus.failed;
+      default:
+        return state;
+    }
+  }
 
   $effect(() => {
     if (browser && taskId && taskId !== streamTaskId) {
@@ -47,7 +65,7 @@
         signal: controller.signal
       });
       if (!response.ok || !response.body) {
-        throw new Error(`Failed to tail task logs: ${response.status}`);
+        throw new Error(`${$messages.error.logStreamFailed}: ${response.status}`);
       }
 
       streamState = 'streaming';
@@ -70,7 +88,7 @@
         return;
       }
       streamState = 'failed';
-      errorMsg = err instanceof Error ? err.message : 'Failed to stream task logs.';
+      errorMsg = err instanceof Error ? err.message : $messages.error.logStreamFailed;
     }
   }
 
@@ -82,16 +100,16 @@
 
 <div class="flex h-full min-h-0 flex-col">
   <div class="mb-3 flex items-center justify-between gap-3 text-xs font-medium text-muted-foreground">
-    <span>{taskId ? `Task ${taskId}` : 'No task selected'}</span>
-    <span>{streamState}</span>
+    <span>{taskId ? $messages.tasks.logStreamTitle.replace('{taskId}', taskId) : $messages.tasks.noTaskSelected}</span>
+    <span>{streamStateLabel(streamState)}</span>
   </div>
 
   {#if errorMsg}
     <Alert variant="destructive" class="mb-3">
-      <AlertTitle>Log stream failed</AlertTitle>
+      <AlertTitle>{$messages.error.logStreamFailed}</AlertTitle>
       <AlertDescription>{errorMsg}</AlertDescription>
     </Alert>
   {/if}
 
-  <pre class="code-surface min-h-0 flex-1 overflow-auto">{content || 'Select a task to tail logs.'}</pre>
+  <pre class="code-surface min-h-0 flex-1 overflow-auto">{content || $messages.tasks.logStreamEmpty}</pre>
 </div>

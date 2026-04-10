@@ -164,7 +164,7 @@
   });
 
   $effect(() => {
-    document.title = `Tasks - Composia`;
+    document.title = $messages.tasks.pageTitle;
   });
 
   onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));

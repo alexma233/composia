@@ -93,12 +93,12 @@
       });
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? `Failed to ${action} container`);
+        throw new Error(payload.error ?? $messages.docker.containers.actionFailed.replace('{action}', action));
       }
-      toast.success(`${action} ${$messages.docker.containers.actions.queued}: ${payload.taskId?.slice(0, 12) ?? 'task'}`);
+      toast.success($messages.docker.containers.actionQueued.replace('{action}', action).replace('{taskId}', payload.taskId?.slice(0, 12) ?? 'task'));
       await refreshContainers();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : `Failed to ${action} container.`);
+      toast.error(error instanceof Error ? error.message : $messages.docker.containers.actionFailed.replace('{action}', action));
     } finally {
       actionBusyId = '';
     }
@@ -251,7 +251,7 @@
             <SearchIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="{$messages.common.search}..."
+              placeholder={$messages.common.search + '...'}
               class="pl-9"
               bind:value={searchQuery}
             />

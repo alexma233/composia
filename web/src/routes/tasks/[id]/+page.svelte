@@ -69,13 +69,13 @@
 
       const payload = await response.json();
       if (!response.ok || !payload.taskId) {
-        throw new Error(payload.error ?? 'Failed to run task again.');
+        throw new Error(payload.error ?? $messages.tasks.rerunFailed);
       }
 
-      toast.success(`Task rerun started: ${payload.taskId.slice(0, 12)}`);
+      toast.success($messages.tasks.rerunStarted.replace('{taskId}', payload.taskId.slice(0, 12)));
       goto(`/tasks/${payload.taskId}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to run task again.');
+      toast.error(error instanceof Error ? error.message : $messages.tasks.rerunFailed);
     } finally {
       rerunning = false;
     }
@@ -97,17 +97,17 @@
 
       const payload = await response.json();
       if (!response.ok || !payload.taskId) {
-        throw new Error(payload.error ?? 'Failed to resolve task confirmation.');
+        throw new Error(payload.error ?? $messages.tasks.resolveConfirmationFailed);
       }
 
       if (decision === 'approve') {
-        toast.success(`Task resumed: ${payload.taskId.slice(0, 12)}`);
+        toast.success($messages.tasks.resumed.replace('{taskId}', payload.taskId.slice(0, 12)));
       } else {
-        toast.success(`Task cancelled: ${payload.taskId.slice(0, 12)}`);
+        toast.success($messages.tasks.cancelledWithTaskId.replace('{taskId}', payload.taskId.slice(0, 12)));
       }
       goto(`/tasks/${payload.taskId}`, { invalidateAll: true });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to resolve task confirmation.');
+      toast.error(error instanceof Error ? error.message : $messages.tasks.resolveConfirmationFailed);
     } finally {
       resolvingConfirmation = false;
     }
@@ -128,7 +128,7 @@
           signal: controller.signal
         });
         if (!response.ok || !response.body) {
-          throw new Error(`Failed to tail task logs: ${response.status}`);
+          throw new Error(`${$messages.error.logStreamFailed}: ${response.status}`);
         }
 
         logState = 'streaming';
@@ -148,7 +148,7 @@
           return;
         }
         logState = 'failed';
-        logError = error instanceof Error ? error.message : 'Failed to tail task logs.';
+        logError = error instanceof Error ? error.message : $messages.error.logStreamFailed;
       }
     })();
 
@@ -165,7 +165,7 @@
             <div class="page-heading">
               <CardTitle class="page-title">{taskTypeLabel(data.task.type, $messages)}</CardTitle>
               <div class="page-meta">
-                {data.task.taskId} · {data.task.serviceName || `${$messages.tasks.nodeLevel}: ${data.task.nodeId || 'n/a'}`}
+                {data.task.taskId} · {data.task.serviceName || `${$messages.tasks.nodeLevel}: ${data.task.nodeId || $messages.common.na}`}
               </div>
             </div>
             <div class="flex items-center gap-2">

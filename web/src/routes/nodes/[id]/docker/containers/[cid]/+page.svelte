@@ -79,6 +79,17 @@
     return `${Math.floor(diff / 86400)}d`;
   }
 
+  function actionLabel(action: 'start' | 'stop' | 'restart'): string {
+    switch (action) {
+      case 'start':
+        return $messages.docker.containers.start;
+      case 'stop':
+        return $messages.docker.containers.stop;
+      case 'restart':
+        return $messages.docker.containers.restart;
+    }
+  }
+
   function getStateVariant(state: string): BadgeVariant {
     const s = (state || '').toLowerCase();
     if (s === 'running') return 'default';
@@ -121,7 +132,7 @@
     );
     const payload = await response.json();
     if (!response.ok) {
-      throw new Error(payload.error ?? 'Failed to inspect container');
+      throw new Error(payload.error ?? $messages.docker.containers.inspectFailed);
     }
 
     applyContainerRawJson(payload.rawJson ?? null);
@@ -143,7 +154,7 @@
       const response = await fetch(`/tasks/${encodeURIComponent(taskId)}`);
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? 'Failed to load task detail.');
+        throw new Error(payload.error ?? $messages.error.loadFailed);
       }
 
       if (isTerminalTaskStatus(payload.task?.status)) {
@@ -168,16 +179,16 @@
       });
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? `Failed to ${action} container`);
+        throw new Error(payload.error ?? $messages.docker.containers.actionFailed.replace('{action}', actionLabel(action)));
       }
-      toast.success(`${action} queued: ${payload.taskId?.slice(0, 12) ?? 'task'}`);
+      toast.success($messages.docker.containers.actionQueued.replace('{action}', actionLabel(action)).replace('{taskId}', payload.taskId?.slice(0, 12) ?? 'task'));
       if (payload.taskId) {
         startActionRefresh(payload.taskId);
       } else {
         await refreshContainerDetails();
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : `Failed to ${action} container.`);
+      toast.error(error instanceof Error ? error.message : $messages.docker.containers.actionFailed.replace('{action}', actionLabel(action)));
     } finally {
       actionBusy = '';
     }
@@ -359,7 +370,7 @@
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span class="text-muted-foreground">ID</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.id}</span>
                       <code class="text-xs bg-muted px-1 py-0.5 rounded">{containerData.Id?.substring(0, 12)}</code>
                     </div>
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -501,7 +512,7 @@
                 </CardHeader>
                 <CardContent class="space-y-4">
                   <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <Input bind:value={terminalCommand} placeholder="/bin/sh" class="w-full sm:min-w-[220px] sm:flex-1" />
+                    <Input bind:value={terminalCommand} placeholder={$messages.docker.containers.terminal.placeholder} class="w-full sm:min-w-[220px] sm:flex-1" />
                     <Button class="w-full sm:w-auto" onclick={() => void connectTerminal()} disabled={terminalConnecting}>
                       {terminalSocket ? $messages.docker.containers.terminal.reconnect : $messages.docker.containers.terminal.connect}
                     </Button>
@@ -579,40 +590,40 @@
 
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">Host Configuration</CardTitle>
+                    <CardTitle class="text-base">{$messages.docker.containers.hostConfig}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span class="text-muted-foreground">Network Mode</span>
-                      <span class="break-all sm:text-right">{containerData.HostConfig?.NetworkMode || 'default'}</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.networkMode}</span>
+                      <span class="break-all sm:text-right">{containerData.HostConfig?.NetworkMode || $messages.common.defaultValue}</span>
                     </div>
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span class="text-muted-foreground">Privileged</span>
-                      <span class="sm:text-right">{containerData.HostConfig?.Privileged ? 'Yes' : 'No'}</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.privileged}</span>
+                      <span class="sm:text-right">{containerData.HostConfig?.Privileged ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span class="text-muted-foreground">Auto Remove</span>
-                      <span class="sm:text-right">{containerData.HostConfig?.AutoRemove ? 'Yes' : 'No'}</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.autoRemove}</span>
+                      <span class="sm:text-right">{containerData.HostConfig?.AutoRemove ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span class="text-muted-foreground">Readonly Rootfs</span>
-                      <span class="sm:text-right">{containerData.HostConfig?.ReadonlyRootfs ? 'Yes' : 'No'}</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.readonlyRootfs}</span>
+                      <span class="sm:text-right">{containerData.HostConfig?.ReadonlyRootfs ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
                     {#if containerData.HostConfig?.Memory}
                       <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                        <span class="text-muted-foreground">Memory Limit</span>
+                        <span class="text-muted-foreground">{$messages.docker.containers.memoryLimit}</span>
                         <span class="sm:text-right">{formatBytes(containerData.HostConfig.Memory)}</span>
                       </div>
                     {/if}
                     {#if containerData.HostConfig?.CpuShares}
                       <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                        <span class="text-muted-foreground">CPU Shares</span>
+                        <span class="text-muted-foreground">{$messages.docker.containers.cpuShares}</span>
                         <span class="sm:text-right">{containerData.HostConfig.CpuShares}</span>
                       </div>
                     {/if}
                     {#if containerData.HostConfig?.RestartPolicy?.Name}
                       <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                        <span class="text-muted-foreground">Restart Policy</span>
+                        <span class="text-muted-foreground">{$messages.docker.containers.restartPolicy}</span>
                         <span class="break-all sm:text-right">
                           {containerData.HostConfig.RestartPolicy.Name}
                           {#if containerData.HostConfig.RestartPolicy.MaximumRetryCount > 0}
@@ -629,7 +640,7 @@
             <TabsContent value="env" class="space-y-4">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base">Environment Variables</CardTitle>
+                  <CardTitle class="text-base">{$messages.docker.containers.environment}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {#if containerData.Config?.Env && containerData.Config.Env.length > 0}
@@ -644,7 +655,7 @@
                       {/each}
                     </div>
                   {:else}
-                    <div class="text-sm text-muted-foreground">No environment variables</div>
+                    <div class="text-sm text-muted-foreground">{$messages.docker.containers.noEnvVars}</div>
                   {/if}
                 </CardContent>
               </Card>
@@ -653,7 +664,7 @@
             <TabsContent value="network" class="space-y-4">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base">Port Bindings</CardTitle>
+                  <CardTitle class="text-base">{$messages.docker.containers.portBindings}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {#if containerData.HostConfig?.PortBindings && Object.keys(containerData.HostConfig.PortBindings).length > 0}
@@ -676,14 +687,14 @@
                       {/each}
                     </div>
                   {:else}
-                    <div class="text-sm text-muted-foreground">No port bindings</div>
+                    <div class="text-sm text-muted-foreground">{$messages.docker.containers.noPortBindings}</div>
                   {/if}
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base">Exposed Ports</CardTitle>
+                  <CardTitle class="text-base">{$messages.docker.containers.exposedPorts}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {#if containerData.Config?.ExposedPorts && Object.keys(containerData.Config.ExposedPorts).length > 0}
@@ -693,26 +704,26 @@
                       {/each}
                     </div>
                   {:else}
-                    <div class="text-sm text-muted-foreground">No exposed ports</div>
+                    <div class="text-sm text-muted-foreground">{$messages.docker.containers.noExposedPorts}</div>
                   {/if}
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base">Network Settings</CardTitle>
+                  <CardTitle class="text-base">{$messages.docker.containers.networkSettings}</CardTitle>
                 </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span class="text-muted-foreground">Gateway</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.gateway}</span>
                       <span class="break-all sm:text-right">{containerData.NetworkSettings?.Gateway || '-'}</span>
                     </div>
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span class="text-muted-foreground">IPAddress</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.ipAddress}</span>
                       <span class="break-all sm:text-right">{containerData.NetworkSettings?.IPAddress || '-'}</span>
                     </div>
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span class="text-muted-foreground">MacAddress</span>
+                      <span class="text-muted-foreground">{$messages.docker.containers.macAddress}</span>
                       <span class="break-all sm:text-right">{containerData.NetworkSettings?.MacAddress || '-'}</span>
                     </div>
                   </CardContent>
@@ -722,7 +733,7 @@
             <TabsContent value="volumes" class="space-y-4">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base">Mounts</CardTitle>
+                  <CardTitle class="text-base">{$messages.docker.containers.mounts}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {#if containerData.Mounts && containerData.Mounts.length > 0}
@@ -735,11 +746,11 @@
                           </div>
                           <div class="grid gap-1 text-sm">
                             <div class="flex flex-col gap-1 sm:flex-row sm:gap-2">
-                              <span class="text-muted-foreground w-16 shrink-0">Source:</span>
+                              <span class="text-muted-foreground w-16 shrink-0">{$messages.common.source}:</span>
                               <code class="text-xs bg-muted px-1 py-0.5 rounded break-all">{mount.Source}</code>
                             </div>
                             <div class="flex flex-col gap-1 sm:flex-row sm:gap-2">
-                              <span class="text-muted-foreground w-16 shrink-0">Target:</span>
+                              <span class="text-muted-foreground w-16 shrink-0">{$messages.common.target}:</span>
                               <code class="text-xs bg-muted px-1 py-0.5 rounded break-all">{mount.Destination}</code>
                             </div>
                           </div>
@@ -747,7 +758,7 @@
                       {/each}
                     </div>
                   {:else}
-                    <div class="text-sm text-muted-foreground">No mounts</div>
+                    <div class="text-sm text-muted-foreground">{$messages.docker.containers.noMounts}</div>
                   {/if}
                 </CardContent>
               </Card>
@@ -756,7 +767,7 @@
             <TabsContent value="labels" class="space-y-4">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base">Container Labels</CardTitle>
+                  <CardTitle class="text-base">{$messages.docker.containers.containerLabels}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {#if containerData.Config?.Labels && Object.keys(containerData.Config.Labels).length > 0}
@@ -769,7 +780,7 @@
                       {/each}
                     </div>
                   {:else}
-                    <div class="text-sm text-muted-foreground">No labels</div>
+                    <div class="text-sm text-muted-foreground">{$messages.docker.containers.noLabels}</div>
                   {/if}
                 </CardContent>
               </Card>
@@ -778,9 +789,9 @@
             <TabsContent value="raw">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base">Raw JSON</CardTitle>
+                  <CardTitle class="text-base">{$messages.docker.containers.rawJson}</CardTitle>
                   <CardDescription>
-                    Full container inspection data in JSON format
+                    {$messages.docker.containers.rawJsonDescription}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -790,7 +801,7 @@
             </TabsContent>
           </Tabs>
         {:else}
-          <div class="text-sm text-muted-foreground">Loading...</div>
+          <div class="text-sm text-muted-foreground">{$messages.common.loadingWithDots}</div>
         {/if}
       </CardContent>
     </Card>

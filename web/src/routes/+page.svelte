@@ -39,10 +39,10 @@
 </script>
 
 <svelte:head>
-  <title>Composia Control Plane</title>
+  <title>{$messages.dashboard.pageTitle}</title>
   <meta
     name="description"
-    content="Composia controller overview with live services, nodes, and task history."
+    content={$messages.dashboard.pageDescription}
   />
 </svelte:head>
 

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Pagination as PaginationPrimitive } from "bits-ui";
+	import { messages } from "$lib/i18n";
 
 	import { cn } from "$lib/utils.js";
 
@@ -18,7 +19,7 @@
 	bind:ref
 	bind:page
 	role="navigation"
-	aria-label="pagination"
+	aria-label={$messages.common.viewAll}
 	data-slot="pagination"
 	{count}
 	{perPage}

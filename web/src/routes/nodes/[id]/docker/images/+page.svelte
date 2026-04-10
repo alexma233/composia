@@ -73,11 +73,11 @@
       const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/images`);
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error || 'Failed to load images');
+        throw new Error(payload.error || $messages.docker.images.failedToLoad);
       }
       images = payload.images ?? [];
     } catch (error) {
-      loadError = error instanceof Error ? error.message : 'Failed to load images';
+      loadError = error instanceof Error ? error.message : $messages.docker.images.failedToLoad;
       images = [];
     } finally {
       loading = false;
@@ -187,7 +187,7 @@
           <div class="space-y-1">
             <CardTitle class="page-title">{$messages.docker.images.title}</CardTitle>
             <CardDescription class="page-description">
-              {$messages.docker.images.title} on {data.nodeId}
+              {$messages.docker.images.titleOnNode.replace('{nodeId}', data.nodeId)}
               {#if !loading}
                 <Badge variant="secondary" class="ml-2">{images.length}</Badge>
               {/if}
@@ -274,7 +274,7 @@
                         <code class="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
                           {formatShortId(image.id)}
                         </code>
-                        <CopyButton text={image.id} label="{$messages.common.copy} ID" />
+                        <CopyButton text={image.id} label={$messages.common.copy + ' ID'} />
                       </div>
                     </div>
                   </TableCell>
@@ -318,7 +318,7 @@
           </Table>
           {#if filteredImages.length !== images.length}
             <div class="mt-3 text-xs text-muted-foreground text-center">
-              {filteredImages.length} / {images.length}
+              {$messages.docker.images.countSummary.replace('{shown}', String(filteredImages.length)).replace('{total}', String(images.length))}
             </div>
           {/if}
         {:else if searchQuery}

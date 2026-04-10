@@ -42,7 +42,7 @@
       });
       const payload = await response.json();
       if (!response.ok || !payload.taskId) {
-        throw new Error(payload.error ?? 'Failed to start restore.');
+        throw new Error(payload.error ?? $messages.backups.restoreFailed);
       }
 
       toast.success($messages.backups.restoreQueued.replace('{taskId}', payload.taskId));

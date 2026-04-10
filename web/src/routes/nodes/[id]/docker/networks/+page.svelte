@@ -74,11 +74,11 @@
       const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/networks`);
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error || 'Failed to load networks');
+        throw new Error(payload.error || $messages.docker.networks.failedToLoad);
       }
       networks = payload.networks ?? [];
     } catch (error) {
-      loadError = error instanceof Error ? error.message : 'Failed to load networks';
+      loadError = error instanceof Error ? error.message : $messages.docker.networks.failedToLoad;
       networks = [];
     } finally {
       loading = false;
@@ -180,7 +180,7 @@
           <div class="space-y-1">
             <CardTitle class="page-title">{$messages.docker.networks.title}</CardTitle>
             <CardDescription class="page-description">
-              {$messages.docker.networks.title} on {data.nodeId}
+              {$messages.docker.networks.titleOnNode.replace('{nodeId}', data.nodeId)}
               {#if !loading}
                 <Badge variant="secondary" class="ml-2">{networks.length}</Badge>
               {/if}
@@ -256,7 +256,7 @@
                         <code class="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
                           {formatShortId(network.id)}
                         </code>
-                        <CopyButton text={network.id} label="{$messages.common.copy} ID" />
+                        <CopyButton text={network.id} label={$messages.common.copy + ' ID'} />
                       </div>
                     </div>
                   </TableCell>
@@ -301,7 +301,7 @@
           </Table>
           {#if filteredNetworks.length !== networks.length}
             <div class="mt-3 text-xs text-muted-foreground text-center">
-              Showing {filteredNetworks.length} of {networks.length} networks
+              {$messages.docker.networks.countSummary.replace('{shown}', String(filteredNetworks.length)).replace('{total}', String(networks.length))}
             </div>
           {/if}
         {:else if searchQuery}

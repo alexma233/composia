@@ -71,11 +71,11 @@
       const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/volumes`);
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error || 'Failed to load volumes');
+        throw new Error(payload.error || $messages.docker.volumes.failedToLoad);
       }
       volumes = payload.volumes ?? [];
     } catch (error) {
-      loadError = error instanceof Error ? error.message : 'Failed to load volumes';
+      loadError = error instanceof Error ? error.message : $messages.docker.volumes.failedToLoad;
       volumes = [];
     } finally {
       loading = false;
@@ -204,7 +204,7 @@
           <div class="flex min-h-[320px] items-center justify-center">
             <div class="flex items-center gap-3 text-sm text-muted-foreground">
               <Spinner />
-              <span>Loading volumes and usage data...</span>
+              <span>{$messages.docker.volumes.loadingWithUsage}</span>
             </div>
           </div>
         {:else if sortedVolumes.length > 0}
@@ -292,7 +292,7 @@
           </Table>
           {#if filteredVolumes.length !== volumes.length}
             <div class="mt-3 text-xs text-muted-foreground text-center">
-              Showing {filteredVolumes.length} of {volumes.length} volumes
+              {$messages.docker.volumes.countSummary.replace('{shown}', String(filteredVolumes.length)).replace('{total}', String(volumes.length))}
             </div>
           {/if}
         {:else if searchQuery}

@@ -4,7 +4,7 @@ import type { Dictionary } from '$lib/i18n';
 
 export function formatTimestamp(value: string) {
   if (!value) {
-    return "N/A";
+    return "-";
   }
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString();

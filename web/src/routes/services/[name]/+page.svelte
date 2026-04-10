@@ -998,7 +998,7 @@
           </Popover.Root>
 
           <div class="truncate text-sm text-muted-foreground">
-            {workspace?.folder ?? "n/a"}
+            {workspace?.folder ?? $messages.common.na}
           </div>
         </div>
 
