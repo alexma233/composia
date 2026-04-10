@@ -41,6 +41,22 @@ Before startup, review and update at least these values:
 - `controller.access_tokens[].token`: controller access token used by the Web UI
 - `controller.nodes[].token` and `agent.token`: node authentication token, which must match on both sides
 - `COMPOSIA_ACCESS_TOKEN` in `docker-compose.yaml`: it must match one enabled token under `controller.access_tokens`
+- `WEB_LOGIN_USERNAME` in `docker-compose.yaml`: local username for the Web login page
+- `WEB_LOGIN_PASSWORD_HASH` in `docker-compose.yaml`: Argon2 password hash for the Web login page
+- `WEB_SESSION_SECRET` in `docker-compose.yaml`: random secret used to sign the Web session cookie
+
+Generate the Argon2 hash before startup:
+
+```bash
+cd web
+bun -e "import { hash } from 'argon2'; console.log(await hash(Bun.argv[2]));" -- "replace-with-your-password"
+```
+
+Generate a session secret with a long random value, for example:
+
+```bash
+openssl rand -hex 32
+```
 
 If you do not want to use `secrets` yet, remove the `secrets` section from `config/config.yaml` before startup.
 
@@ -66,7 +82,12 @@ The Compose file also runs a one-shot `init-repo-controller` container first to 
 
 Open your browser and visit `http://localhost:3000`.
 
-The Web UI does not prompt for a token. It uses the `COMPOSIA_ACCESS_TOKEN` environment variable injected into the web server process. That value must match one enabled token under `controller.access_tokens`.
+The Web UI uses two auth layers:
+
+- The browser signs in with `WEB_LOGIN_USERNAME` and the password represented by `WEB_LOGIN_PASSWORD_HASH`.
+- The web server uses `COMPOSIA_ACCESS_TOKEN` to call the controller.
+
+The browser does not receive `COMPOSIA_ACCESS_TOKEN`. After login it only stores a signed HttpOnly session cookie.
 
 ### 6. Deploy Your First Service
 

@@ -18,6 +18,19 @@ export const enUS = {
     tasks: "Tasks",
     backups: "Backups",
     settings: "Settings",
+    logout: "Log out",
+  },
+  auth: {
+    login: {
+      pageTitle: "Sign in - Composia",
+      title: "Sign in",
+      description: "Use the local web account to open the Composia console.",
+      username: "Username",
+      password: "Password",
+      submit: "Sign in",
+      invalidCredentials: "Invalid username or password.",
+      hashHint: "Store the password as an Argon2 hash in WEB_LOGIN_PASSWORD_HASH.",
+    },
   },
   preferences: {
     theme: "Theme",

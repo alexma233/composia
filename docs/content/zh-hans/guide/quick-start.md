@@ -41,6 +41,22 @@ grep "public key:" config/age-identity.key | awk '{print $4}' > config/age-recip
 - `controller.access_tokens[].token`：Controller 访问 token，Web UI 会使用它访问 Controller
 - `controller.nodes[].token` 与 `agent.token`：节点认证 token，二者必须一致
 - `docker-compose.yaml` 里的 `COMPOSIA_ACCESS_TOKEN`：必须与 `controller.access_tokens[].token` 保持一致
+- `docker-compose.yaml` 里的 `WEB_LOGIN_USERNAME`：Web 登录页使用的本地用户名
+- `docker-compose.yaml` 里的 `WEB_LOGIN_PASSWORD_HASH`：Web 登录页使用的 Argon2 密码哈希
+- `docker-compose.yaml` 里的 `WEB_SESSION_SECRET`：用于签名 Web session cookie 的随机密钥
+
+启动前先生成 Argon2 哈希：
+
+```bash
+cd web
+bun -e "import { hash } from 'argon2'; console.log(await hash(Bun.argv[2]));" -- "替换成你的密码"
+```
+
+再生成一个足够长的 session 密钥，例如：
+
+```bash
+openssl rand -hex 32
+```
 
 如果你暂时不使用 `secrets`，可以先移除 `config/config.yaml` 中的 `secrets` 段。
 
@@ -66,7 +82,12 @@ docker compose up -d
 
 打开浏览器访问 `http://localhost:3000`。
 
-Web UI 不会提示输入 token。它会使用注入到 Web 服务进程中的 `COMPOSIA_ACCESS_TOKEN` 环境变量。这个值必须与 `controller.access_tokens[].token` 中某个已启用的 token 一致。
+Web UI 现在有两层鉴权：
+
+- 浏览器先使用 `WEB_LOGIN_USERNAME` 和 `WEB_LOGIN_PASSWORD_HASH` 对应的密码登录
+- Web 服务进程再使用 `COMPOSIA_ACCESS_TOKEN` 访问 Controller
+
+浏览器不会拿到 `COMPOSIA_ACCESS_TOKEN`。登录成功后只会保存一个签名的 HttpOnly session cookie。
 
 ### 6. 部署第一个服务
 

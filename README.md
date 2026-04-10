@@ -57,6 +57,22 @@ Before running the stack, generate and set these values yourself:
 - `controller.access_tokens[].token`
 - `controller.nodes[].token` and `agent.token`
 - `COMPOSIA_ACCESS_TOKEN` in `docker-compose.yaml` so it matches one enabled controller token
+- `WEB_LOGIN_USERNAME` in `docker-compose.yaml`
+- `WEB_LOGIN_PASSWORD_HASH` in `docker-compose.yaml`
+- `WEB_SESSION_SECRET` in `docker-compose.yaml`
+
+Generate the Web UI password hash with Argon2 before startup:
+
+```bash
+cd web
+bun -e "import { hash } from 'argon2'; console.log(await hash(Bun.argv[2]));" -- "replace-with-your-password"
+```
+
+Use the printed hash as `WEB_LOGIN_PASSWORD_HASH`. Generate `WEB_SESSION_SECRET` with a long random value, for example:
+
+```bash
+openssl rand -hex 32
+```
 
 If you enable `secrets`, generate your own age identity and recipient files and place them under your local `config/` directory so the container mount exposes them at `/app/configs/...`.
 
@@ -84,7 +100,12 @@ It also runs a one-shot `init-repo-controller` container first to initialize the
 
 Access the web UI at `http://localhost:3000`.
 
-The Web UI uses the `COMPOSIA_ACCESS_TOKEN` environment variable injected into the web service. That value must match one enabled token under `controller.access_tokens`.
+The Web UI now has two separate auth layers:
+
+- `COMPOSIA_ACCESS_TOKEN` is a server-side controller token injected into the web service. It must match one enabled token under `controller.access_tokens`.
+- `WEB_LOGIN_USERNAME`, `WEB_LOGIN_PASSWORD_HASH`, and `WEB_SESSION_SECRET` protect the browser-facing login page.
+
+The browser never receives `COMPOSIA_ACCESS_TOKEN`. It only keeps a signed HttpOnly session cookie after login.
 
 Pre-built images are published to:
 
@@ -99,7 +120,7 @@ To stop the Composia stack started from the local `docker-compose.yaml`:
 docker compose down
 ```
 
-The Web UI token in `COMPOSIA_ACCESS_TOKEN` must always match one enabled token under `controller.access_tokens`.
+The Web UI controller token in `COMPOSIA_ACCESS_TOKEN` must always match one enabled token under `controller.access_tokens`.
 
 The release workflows publish to both Forgejo Registry and GHCR. Configure these repository secrets for automated pushes:
 

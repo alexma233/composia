@@ -10,6 +10,19 @@ export const zhHans = {
     tasks: "任务",
     backups: "备份",
     settings: "设置",
+    logout: "退出登录",
+  },
+  auth: {
+    login: {
+      pageTitle: "登录 - Composia",
+      title: "登录",
+      description: "使用本地 Web 账号进入 Composia 控制台。",
+      username: "用户名",
+      password: "密码",
+      submit: "登录",
+      invalidCredentials: "用户名或密码错误。",
+      hashHint: "请将密码的 Argon2 哈希放到 WEB_LOGIN_PASSWORD_HASH 中。",
+    },
   },
   preferences: {
     theme: "主题",

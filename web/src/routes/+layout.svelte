@@ -21,7 +21,14 @@
     children?: Snippet;
   }
 
+  type LayoutUser = {
+    name: string;
+  };
+
   let { data, children }: Props = $props();
+  let pathname = $derived(String($page.url.pathname));
+  let isLoginPage = $derived(pathname === '/login');
+  let currentUser = $derived(((data as LayoutData & { user?: LayoutUser | null }).user ?? null) as LayoutUser | null);
 
   const links: Array<{ href: string; labelKey: NavKey }> = [
     { href: '/', labelKey: 'overview' },
@@ -42,33 +49,42 @@
 <div class="min-h-screen bg-transparent text-foreground">
   <Toaster />
   <TooltipProvider />
-  <header class="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-    <div class="mx-auto max-w-[1600px] px-4 py-3 sm:px-6 lg:px-8">
-      <div class="scrollbar-none flex items-center gap-3 overflow-x-auto">
-        <div class="min-w-0 shrink-0 max-md:hidden">
-          <a href="/" class="text-xl font-semibold tracking-tight text-primary sm:text-2xl">{$messages.app.name}</a>
+  {#if !isLoginPage}
+    <header class="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div class="mx-auto max-w-[1600px] px-4 py-3 sm:px-6 lg:px-8">
+        <div class="scrollbar-none flex items-center gap-3 overflow-x-auto">
+          <div class="min-w-0 shrink-0 max-md:hidden">
+            <a href="/" class="text-xl font-semibold tracking-tight text-primary sm:text-2xl">{$messages.app.name}</a>
+          </div>
+
+          <nav class="flex shrink-0 gap-2 text-sm whitespace-nowrap">
+            {#each links as link}
+              <a
+                href={link.href}
+                class={cn(
+                  'nav-pill',
+                  isActive(link.href, $page.url.pathname)
+                    ? 'nav-pill-active'
+                    : 'nav-pill-inactive'
+                )}
+              >
+                {$messages.nav[link.labelKey]}
+              </a>
+            {/each}
+          </nav>
+
+          <div class="ml-auto flex min-w-0 shrink-0 items-center gap-3">
+            {#if currentUser}
+              <span class="hidden text-sm text-muted-foreground sm:inline">{currentUser.name}</span>
+              <form method="POST" action="/logout">
+                <button type="submit" class="nav-pill nav-pill-inactive">{($messages.nav as Record<string, string>).logout}</button>
+              </form>
+            {/if}
+          </div>
         </div>
-
-        <nav class="flex shrink-0 gap-2 text-sm whitespace-nowrap">
-          {#each links as link}
-            <a
-              href={link.href}
-              class={cn(
-                'nav-pill',
-                isActive(link.href, $page.url.pathname)
-                  ? 'nav-pill-active'
-                  : 'nav-pill-inactive'
-              )}
-            >
-              {$messages.nav[link.labelKey]}
-            </a>
-          {/each}
-        </nav>
-
-        <div class="ml-auto flex min-w-0 shrink-0 items-center gap-3"></div>
       </div>
-    </div>
-  </header>
+    </header>
+  {/if}
 
   {@render children?.()}
 </div>
