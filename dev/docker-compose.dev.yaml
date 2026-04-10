@@ -76,7 +76,7 @@ services:
       COMPOSIA_CONTROLLER_ADDR: http://controller-dev:7001
       COMPOSIA_BROWSER_CONTROLLER_ADDR: http://127.0.0.1:7001
       WEB_LOGIN_USERNAME: admin
-      WEB_LOGIN_PASSWORD_HASH: "$argon2id$v=19$m=65536,t=3,p=4$/wh05hbH5ipiT42CK+GxVA$2unNmHbsRe5ZkFgIkHNekBGk6KH+79sZAPB9qmRrUlQ"
+      WEB_LOGIN_PASSWORD_HASH: $$argon2id$$v=19$$m=65536,t=3,p=4$$/wh05hbH5ipiT42CK+GxVA$2unNmHbsRe5ZkFgIkHNekBGk6KH+79sZAPB9qmRrUlQ
       WEB_SESSION_SECRET: dev-admin-session-secret
       HOST: 0.0.0.0
       PORT: "5173"
