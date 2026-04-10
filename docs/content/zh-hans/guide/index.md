@@ -60,6 +60,7 @@ nodes:
 
 ## 文档导航
 
+- [为什么选择 Composia？](./why-composia) —— 理解项目的核心宗旨，以及它和其他方案的区别
 - [快速开始](./quick-start) —— 几分钟内启动并运行
 - [核心概念](./core-concepts) —— 理解 Composia 的工作原理
 - [架构概览](./architecture) —— 系统架构详解

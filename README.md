@@ -28,7 +28,13 @@
   </p>
 </div>
 
-Composia is a self-hosted service manager built around service definitions, a single control plane, and one or more execution agents.
+Composia is a platform-agnostic Docker Compose control plane for self-hosted infrastructure.
+
+It is built for operators who want multi-node coordination, task execution, and operational visibility without giving up direct ownership of their files, their CLI workflows, or their underlying systems.
+
+Composia keeps desired state in plain files, stays close to standard Docker Compose workflows, and treats the control plane as an enhancement layer rather than the only way to operate services.
+
+If you want the rationale and how Composia differs from Compose managers and self-hosted PaaS platforms, see [Why Composia?](https://docs.composia.io/guide/why-composia).
 
 ## Stack
 

@@ -60,6 +60,7 @@ Agents run on actual Docker hosts and are responsible for:
 
 ## Documentation
 
+- [Why Composia?](./why-composia) — Understand the project's core principle and how it differs from other options
 - [Quick Start](./quick-start) — Get up and running in minutes
 - [Core Concepts](./core-concepts) — Understand how Composia works
 - [Architecture](./architecture) — System architecture overview
