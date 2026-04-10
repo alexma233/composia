@@ -7,7 +7,7 @@
 | 工具 | 版本要求 | 说明 |
 |------|----------|------|
 | Go | 1.25+ | 后端开发语言 |
-| Bun | 1.3+ | 前端包管理器和运行时 |
+| Bun | 1.3+ | WebUI 包管理器和运行时 |
 | Docker | 20.10+ | 容器运行时 |
 | Docker Compose | v2.0+ | 容器编排 |
 | SQLite3 | 3.35+ | 数据库 |
@@ -118,13 +118,13 @@ mise run dev:logs:selinux
 bun install
 ```
 
-**启动前端开发服务器：**
+**启动 WebUI 开发服务器：**
 
 ```bash
 mise run web
 ```
 
-前端将在 `http://localhost:5173` 运行。
+WebUI 将在 `http://localhost:5173` 运行。
 
 如需启动文档开发服务器：
 
@@ -257,7 +257,7 @@ composia/
 │   ├── store/              # 基于 SQLite 的状态存储
 │   └── ...
 ├── proto/                  # Protobuf 源文件
-├── web/                    # SvelteKit 前端
+├── web/                    # SvelteKit WebUI
 │   ├── src/
 │   │   ├── lib/
 │   │   │   ├── components/ # UI 组件
@@ -288,7 +288,7 @@ composia/
 - 使用 `golint` 检查代码风格
 - 重要函数添加注释
 
-### 前端代码
+### WebUI 代码
 
 - 使用 TypeScript 严格模式
 - 遵循 Svelte 5 语法（使用 Runes）
@@ -303,7 +303,7 @@ composia/
 go test ./...
 ```
 
-### 运行前端检查
+### 运行 WebUI 检查
 
 ```bash
 bun run web:check
@@ -340,7 +340,7 @@ go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml
 # 格式化 Go 代码
 gofmt -w .
 
-# 格式化前端代码
+# 格式化 WebUI 代码
 cd web && bun run format
 ```
 
@@ -354,6 +354,6 @@ A: 需要先初始化 Git 仓库：`git init dev/repo-controller`
 
 A: 检查 Controller 地址和 Token 是否匹配
 
-**Q: 前端请求失败**
+**Q: WebUI 请求失败**
 
 A: 确保 Controller 已启动，并检查 Web 进程的 `COMPOSIA_CONTROLLER_ADDR` 和 `COMPOSIA_ACCESS_TOKEN` 是否配置正确

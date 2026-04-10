@@ -53,7 +53,7 @@ nodes:
 | 组件 | 技术 |
 |------|------|
 | 后端 | Go 1.25+ |
-| 前端 | SvelteKit + Bun |
+| WebUI | SvelteKit + Bun |
 | 运行时 | Docker Compose |
 | 数据库 | SQLite |
 | 通信 | ConnectRPC |

@@ -29,5 +29,5 @@ features:
   - title: 🔒 安全可靠
     details: 采用 AGPL-3.0 开源协议，代码透明可审计，支持私有部署。
   - title: ⚡ 现代技术栈
-    details: Go 后端 + SvelteKit 前端，围绕 ConnectRPC、SQLite 和 Docker Compose 构建。
+    details: Go 后端 + SvelteKit WebUI，围绕 ConnectRPC、SQLite 和 Docker Compose 构建。
 ---
