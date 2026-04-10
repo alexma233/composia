@@ -62,6 +62,14 @@ export default defineConfig({
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
     ['meta', { name: 'theme-color', content: '#5f67ee' }],
+    [
+      'script',
+      {
+        defer: '',
+        src: 'https://umi.alexma.top/script.js',
+        'data-website-id': '9c3c0e7d-fff8-4749-acd7-694abb3f7e5e',
+      },
+    ],
   ],
 
   // 说明：页面标题和描述模板
