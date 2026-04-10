@@ -146,6 +146,18 @@ func (s *dockerServer) RunContainerAction(ctx context.Context, req *connect.Requ
 	return connect.NewResponse(&agentv1.RunContainerActionResponse{}), nil
 }
 
+func (s *dockerServer) RemoveContainer(ctx context.Context, req *connect.Request[agentv1.RemoveContainerRequest]) (*connect.Response[agentv1.RemoveContainerResponse], error) {
+	if req.Msg.GetContainerId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("container_id is required"))
+	}
+
+	if err := s.client.ContainerRemove(ctx, req.Msg.GetContainerId(), req.Msg.GetForce(), req.Msg.GetRemoveVolumes()); err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&agentv1.RemoveContainerResponse{}), nil
+}
+
 func (s *dockerServer) GetContainerLogs(ctx context.Context, req *connect.Request[agentv1.GetContainerLogsRequest]) (*connect.Response[agentv1.GetContainerLogsResponse], error) {
 	if req.Msg.GetContainerId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("container_id is required"))
@@ -236,6 +248,18 @@ func (s *dockerServer) InspectNetwork(ctx context.Context, req *connect.Request[
 	}), nil
 }
 
+func (s *dockerServer) RemoveNetwork(ctx context.Context, req *connect.Request[agentv1.RemoveNetworkRequest]) (*connect.Response[agentv1.RemoveNetworkResponse], error) {
+	if req.Msg.GetNetworkId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("network_id is required"))
+	}
+
+	if err := s.client.NetworkRemove(ctx, req.Msg.GetNetworkId()); err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&agentv1.RemoveNetworkResponse{}), nil
+}
+
 func (s *dockerServer) ListVolumes(ctx context.Context, _ *connect.Request[agentv1.ListVolumesRequest]) (*connect.Response[agentv1.ListVolumesResponse], error) {
 	volumes, err := s.client.VolumeList(ctx)
 	if err != nil {
@@ -324,6 +348,18 @@ func (s *dockerServer) InspectVolume(ctx context.Context, req *connect.Request[a
 	}), nil
 }
 
+func (s *dockerServer) RemoveVolume(ctx context.Context, req *connect.Request[agentv1.RemoveVolumeRequest]) (*connect.Response[agentv1.RemoveVolumeResponse], error) {
+	if req.Msg.GetVolumeName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("volume_name is required"))
+	}
+
+	if err := s.client.VolumeRemove(ctx, req.Msg.GetVolumeName()); err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&agentv1.RemoveVolumeResponse{}), nil
+}
+
 func (s *dockerServer) ListImages(ctx context.Context, _ *connect.Request[agentv1.ListImagesRequest]) (*connect.Response[agentv1.ListImagesResponse], error) {
 	images, err := s.client.ImageList(ctx)
 	if err != nil {
@@ -389,6 +425,18 @@ func (s *dockerServer) InspectImage(ctx context.Context, req *connect.Request[ag
 	}), nil
 }
 
+func (s *dockerServer) RemoveImage(ctx context.Context, req *connect.Request[agentv1.RemoveImageRequest]) (*connect.Response[agentv1.RemoveImageResponse], error) {
+	if req.Msg.GetImageId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("image_id is required"))
+	}
+
+	if err := s.client.ImageRemove(ctx, req.Msg.GetImageId(), req.Msg.GetForce()); err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&agentv1.RemoveImageResponse{}), nil
+}
+
 // DockerTaskExecutor handles docker-related task execution (deprecated - kept for compatibility)
 type DockerTaskExecutor struct{}
 
@@ -446,11 +494,13 @@ func executeDockerTask(ctx context.Context, client agentv1connect.AgentReportSer
 }
 
 type dockerListParams struct {
-	Action     string `json:"action"`
-	Resource   string `json:"resource"`
-	ID         string `json:"id,omitempty"`
-	Tail       string `json:"tail,omitempty"`
-	Timestamps bool   `json:"timestamps,omitempty"`
+	Action        string `json:"action"`
+	Resource      string `json:"resource"`
+	ID            string `json:"id,omitempty"`
+	Tail          string `json:"tail,omitempty"`
+	Timestamps    bool   `json:"timestamps,omitempty"`
+	Force         bool   `json:"force,omitempty"`
+	RemoveVolumes bool   `json:"remove_volumes,omitempty"`
 }
 
 func parseDockerListParams(paramsJSON string) dockerListParams {
@@ -591,6 +641,27 @@ func runDockerCommand(ctx context.Context, params dockerListParams, uploadLog fu
 			return err
 		}
 		payload.Content = resp.Msg.GetContent()
+	case "remove":
+		switch params.Resource {
+		case "container":
+			if _, err := server.RemoveContainer(ctx, connect.NewRequest(&agentv1.RemoveContainerRequest{ContainerId: params.ID, Force: params.Force, RemoveVolumes: params.RemoveVolumes})); err != nil {
+				return err
+			}
+		case "network":
+			if _, err := server.RemoveNetwork(ctx, connect.NewRequest(&agentv1.RemoveNetworkRequest{NetworkId: params.ID})); err != nil {
+				return err
+			}
+		case "volume":
+			if _, err := server.RemoveVolume(ctx, connect.NewRequest(&agentv1.RemoveVolumeRequest{VolumeName: params.ID})); err != nil {
+				return err
+			}
+		case "image":
+			if _, err := server.RemoveImage(ctx, connect.NewRequest(&agentv1.RemoveImageRequest{ImageId: params.ID, Force: params.Force})); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unknown docker resource for remove: %s", params.Resource)
+		}
 	default:
 		return fmt.Errorf("unknown docker action: %s", params.Action)
 	}

@@ -1,11 +1,21 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { toast } from 'svelte-sonner';
   import type { PageData } from './$types';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { Badge } from '$lib/components/ui/badge';
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
+  import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogOverlay,
+    DialogTitle,
+  } from '$lib/components/ui/dialog';
   import { formatBytes, formatDockerTimestamp, formatShortId } from '$lib/presenters';
   import CopyButton from '$lib/components/app/copy-button.svelte';
   import SortableTableHead from '$lib/components/app/sortable-table-head.svelte';
@@ -40,6 +50,9 @@
   let loading = $state(false);
   let loadError = $state<string | null>(null);
   let images = $state<DockerImageSummary[]>([]);
+  let removeBusyId = $state('');
+  let removeDialogOpen = $state(false);
+  let removeTarget = $state<DockerImageSummary | null>(null);
 
   $effect(() => {
     loading = !data.ready;
@@ -74,6 +87,59 @@
   onMount(() => {
     void refreshImages();
   });
+
+  function openRemoveDialog(image: DockerImageSummary) {
+    removeTarget = image;
+    removeDialogOpen = true;
+  }
+
+  async function queueImageRemove() {
+    if (!removeTarget) {
+      return;
+    }
+
+    const image = removeTarget;
+    const force = shouldForceRemove(image);
+    removeBusyId = image.id;
+    removeDialogOpen = false;
+
+    try {
+      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/images/${encodeURIComponent(image.id)}/remove`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force })
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? $messages.docker.images.removeFailed);
+      }
+      toast.success($messages.docker.images.removeQueued.replace('{taskId}', payload.taskId?.slice(0, 12) ?? 'task'));
+      await refreshImages();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : $messages.docker.images.removeFailed);
+    } finally {
+      removeBusyId = '';
+      removeTarget = null;
+    }
+  }
+
+  let removeDescription = $derived(
+    removeTarget
+      ? shouldForceRemove(removeTarget)
+        ? $messages.docker.images.forceRemoveConfirm.replace('{name}', removeTarget.repoTags?.[0] || removeTarget.id)
+        : $messages.docker.images.removeConfirm.replace('{name}', removeTarget.repoTags?.[0] || removeTarget.id)
+      : '',
+  );
+
+  let removeActionLabel = $derived(
+    removeTarget && shouldForceRemove(removeTarget)
+      ? $messages.docker.images.forceRemoveAction
+      : $messages.common.delete,
+  );
+
+  function shouldForceRemove(image: DockerImageSummary) {
+    return image.containersCount > 0 || (image.repoTags?.length ?? 0) > 1;
+  }
 
   function handleSort(field: string) {
     if (sortField === field) {
@@ -173,6 +239,7 @@
                 <TableHead class="w-[20%]">{$messages.docker.images.architecture}</TableHead>
                 <TableHead class="w-[15%]">{$messages.docker.images.usage}</TableHead>
                 <SortableTableHead field="created" label={$messages.common.created} {sortField} {sortDirection} onSort={handleSort} class="w-[15%]" />
+                <TableHead class="w-[10%]">{$messages.common.actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -235,6 +302,16 @@
                         {formatDockerTimestamp(image.created)}
                       </div>
                   </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onclick={() => openRemoveDialog(image)}
+                      disabled={removeBusyId === image.id}
+                    >
+                      {$messages.common.delete}
+                    </Button>
+                  </TableCell>
                 </TableRow>
               {/each}
             </TableBody>
@@ -253,5 +330,23 @@
         {/if}
       </CardContent>
     </Card>
+
+    <Dialog bind:open={removeDialogOpen}>
+      <DialogOverlay />
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{$messages.docker.images.removeDialogTitle}</DialogTitle>
+          <DialogDescription>{removeDescription}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="outline" onclick={() => (removeDialogOpen = false)}>
+            {$messages.common.cancel}
+          </Button>
+          <Button type="button" variant="destructive" onclick={() => void queueImageRemove()} disabled={!removeTarget || removeBusyId === removeTarget.id}>
+            {removeActionLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </div>

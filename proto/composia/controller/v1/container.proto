@@ -10,10 +10,18 @@ option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia
 service ContainerService {
   // RunContainerAction starts an async action for one container on one node.
   rpc RunContainerAction(RunContainerActionRequest) returns (TaskActionResponse);
+  // RemoveContainer starts an async deletion for one container on one node.
+  rpc RemoveContainer(RemoveContainerRequest) returns (TaskActionResponse);
   // GetContainerLogs returns log text for one container.
   rpc GetContainerLogs(GetContainerLogsRequest) returns (GetContainerLogsResponse);
   // OpenContainerExec opens an interactive exec session for one container.
   rpc OpenContainerExec(OpenContainerExecRequest) returns (OpenContainerExecResponse);
+  // RemoveNetwork starts an async deletion for one network on one node.
+  rpc RemoveNetwork(RemoveNetworkRequest) returns (TaskActionResponse);
+  // RemoveVolume starts an async deletion for one volume on one node.
+  rpc RemoveVolume(RemoveVolumeRequest) returns (TaskActionResponse);
+  // RemoveImage starts an async deletion for one image on one node.
+  rpc RemoveImage(RemoveImageRequest) returns (TaskActionResponse);
 }
 
 // ContainerAction identifies a container lifecycle action.
@@ -33,6 +41,14 @@ message RunContainerActionRequest {
   string node_id = 1;
   string container_id = 2;
   ContainerAction action = 3;
+}
+
+// RemoveContainerRequest identifies one node-scoped container deletion.
+message RemoveContainerRequest {
+  string node_id = 1;
+  string container_id = 2;
+  bool force = 3;
+  bool remove_volumes = 4;
 }
 
 // GetContainerLogsRequest fetches logs for one container.
@@ -68,4 +84,23 @@ message OpenContainerExecResponse {
   string session_id = 1;
   // websocket_path is the controller websocket path for the interactive tunnel.
   string websocket_path = 2;
+}
+
+// RemoveNetworkRequest identifies one node-scoped network deletion.
+message RemoveNetworkRequest {
+  string node_id = 1;
+  string network_id = 2;
+}
+
+// RemoveVolumeRequest identifies one node-scoped volume deletion.
+message RemoveVolumeRequest {
+  string node_id = 1;
+  string volume_name = 2;
+}
+
+// RemoveImageRequest identifies one node-scoped image deletion.
+message RemoveImageRequest {
+  string node_id = 1;
+  string image_id = 2;
+  bool force = 3;
 }

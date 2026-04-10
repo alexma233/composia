@@ -123,6 +123,11 @@ export type ServiceActionResult = {
   repoRevision: string;
 };
 
+export type ContainerRemoveOptions = {
+  force?: boolean;
+  removeVolumes?: boolean;
+};
+
 export type ServiceAction =
   | "deploy"
   | "update"
@@ -866,6 +871,22 @@ export async function runContainerAction(
   );
 }
 
+export async function removeNodeContainer(
+  nodeId: string,
+  containerId: string,
+  options: ContainerRemoveOptions = {},
+): Promise<ContainerActionResult> {
+  return callTaskAction(
+    "/composia.controller.v1.ContainerService/RemoveContainer",
+    {
+      nodeId,
+      containerId,
+      force: options.force ?? false,
+      removeVolumes: options.removeVolumes ?? false,
+    },
+  );
+}
+
 export async function getContainerLogs(
   nodeId: string,
   containerId: string,
@@ -955,6 +976,16 @@ export async function inspectNodeNetwork(
   return response.rawJson ?? response.raw_json ?? "{}";
 }
 
+export async function removeNodeNetwork(
+  nodeId: string,
+  networkId: string,
+): Promise<ContainerActionResult> {
+  return callTaskAction(
+    "/composia.controller.v1.ContainerService/RemoveNetwork",
+    { nodeId, networkId },
+  );
+}
+
 export async function listNodeVolumes(
   nodeId: string,
 ): Promise<DockerVolumeSummary[]> {
@@ -1005,6 +1036,16 @@ export async function inspectNodeVolume(
     { nodeId, volumeName },
   );
   return response.rawJson ?? response.raw_json ?? "{}";
+}
+
+export async function removeNodeVolume(
+  nodeId: string,
+  volumeName: string,
+): Promise<ContainerActionResult> {
+  return callTaskAction(
+    "/composia.controller.v1.ContainerService/RemoveVolume",
+    { nodeId, volumeName },
+  );
 }
 
 export async function listNodeImages(
@@ -1063,6 +1104,17 @@ export async function inspectNodeImage(
     { nodeId, imageId },
   );
   return response.rawJson ?? response.raw_json ?? "{}";
+}
+
+export async function removeNodeImage(
+  nodeId: string,
+  imageId: string,
+  force = false,
+): Promise<ContainerActionResult> {
+  return callTaskAction(
+    "/composia.controller.v1.ContainerService/RemoveImage",
+    { nodeId, imageId, force },
+  );
 }
 
 export async function loadTaskDetail(taskId: string): Promise<TaskDetail> {

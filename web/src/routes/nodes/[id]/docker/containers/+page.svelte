@@ -7,6 +7,15 @@
   import { Badge, type BadgeVariant } from '$lib/components/ui/badge';
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
+  import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogOverlay,
+    DialogTitle,
+  } from '$lib/components/ui/dialog';
   import { formatDockerTimestamp, formatShortId } from '$lib/presenters';
   import CopyButton from '$lib/components/app/copy-button.svelte';
   import SortableTableHead from '$lib/components/app/sortable-table-head.svelte';
@@ -41,6 +50,9 @@
   let loadError = $state<string | null>(null);
   let containers = $state<DockerContainerSummary[]>([]);
   let actionBusyId = $state('');
+  let removeBusyId = $state('');
+  let removeDialogOpen = $state(false);
+  let removeTarget = $state<DockerContainerSummary | null>(null);
 
   $effect(() => {
     loading = !data.ready;
@@ -95,6 +107,71 @@
   function isActionBusy(containerId: string, action: 'start' | 'stop' | 'restart') {
     return actionBusyId === `${containerId}:${action}`;
   }
+
+  function openRemoveDialog(container: DockerContainerSummary) {
+    removeTarget = container;
+    removeDialogOpen = true;
+  }
+
+  async function queueContainerRemove(removeVolumes: boolean) {
+    if (!removeTarget) {
+      return;
+    }
+
+    const container = removeTarget;
+    const force = shouldForceRemove(container.state);
+
+    removeBusyId = container.id;
+    removeDialogOpen = false;
+    try {
+      const response = await fetch(
+        `/nodes/${encodeURIComponent(data.nodeId)}/docker/containers/${encodeURIComponent(container.id)}/remove`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ force, removeVolumes })
+        },
+      );
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? $messages.docker.containers.removeFailed);
+      }
+      toast.success(
+        $messages.docker.containers.removeQueued.replace('{taskId}', payload.taskId?.slice(0, 12) ?? 'task'),
+      );
+      await refreshContainers();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : $messages.docker.containers.removeFailed);
+    } finally {
+      removeBusyId = '';
+      removeTarget = null;
+    }
+  }
+
+  function shouldForceRemove(state: string) {
+    const normalized = state.toLowerCase();
+    return normalized === 'running' || normalized === 'restarting' || normalized === 'paused' || normalized === 'dead';
+  }
+
+  let removeDescription = $derived(
+    removeTarget
+      ? shouldForceRemove(removeTarget.state)
+        ? $messages.docker.containers.forceRemoveConfirm.replace('{name}', removeTarget.name || removeTarget.id)
+        : $messages.docker.containers.removeConfirm.replace('{name}', removeTarget.name || removeTarget.id)
+      : '',
+  );
+
+  let removeVolumesDescription = $derived(
+    removeTarget
+      ? $messages.docker.containers.removeWithVolumesConfirm.replace('{name}', removeTarget.name || removeTarget.id)
+      : '',
+  );
+
+  let removeActionLabel = $derived(
+    removeTarget && shouldForceRemove(removeTarget.state)
+      ? $messages.docker.containers.forceRemoveAction
+      : $messages.common.delete,
+  );
 
   onMount(() => {
     void refreshContainers();
@@ -323,6 +400,14 @@
                       >
                         {$messages.docker.containers.actions.restart}
                       </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onclick={() => openRemoveDialog(container)}
+                        disabled={removeBusyId === container.id}
+                      >
+                        {$messages.docker.containers.actions.remove}
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -343,5 +428,27 @@
         {/if}
       </CardContent>
     </Card>
+
+    <Dialog bind:open={removeDialogOpen}>
+      <DialogOverlay />
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{$messages.docker.containers.removeDialogTitle}</DialogTitle>
+          <DialogDescription>{removeDescription}</DialogDescription>
+          <DialogDescription>{removeVolumesDescription}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="outline" onclick={() => (removeDialogOpen = false)}>
+            {$messages.common.cancel}
+          </Button>
+          <Button type="button" variant="destructive" onclick={() => void queueContainerRemove(false)} disabled={!removeTarget || removeBusyId === removeTarget.id}>
+            {removeActionLabel}
+          </Button>
+          <Button type="button" variant="destructive" onclick={() => void queueContainerRemove(true)} disabled={!removeTarget || removeBusyId === removeTarget.id}>
+            {$messages.docker.containers.removeVolumesAction}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </div>

@@ -232,7 +232,7 @@ func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return executeCaddySyncTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypeCaddyReload):
 		return executeCaddyReloadTask(ctx, client, cfg, pulledTask, logUploader)
-	case string(task.TypeDockerList), string(task.TypeDockerInspect), string(task.TypeDockerStart), string(task.TypeDockerStop), string(task.TypeDockerRestart), string(task.TypeDockerLogs):
+	case string(task.TypeDockerList), string(task.TypeDockerInspect), string(task.TypeDockerStart), string(task.TypeDockerStop), string(task.TypeDockerRestart), string(task.TypeDockerLogs), string(task.TypeDockerRemove):
 		return executeDockerTask(ctx, client, cfg, pulledTask, logUploader)
 	default:
 		return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, fmt.Sprintf("task type %q is not implemented", pulledTask.GetType()))
@@ -735,8 +735,14 @@ func runDockerPrune(ctx context.Context, target string, uploadLog func(string) e
 		args = []string{"network", "prune", "-f"}
 	case "images":
 		args = []string{"image", "prune", "-f"}
+	case "images_all":
+		args = []string{"image", "prune", "-a", "-f"}
 	case "volumes":
 		args = []string{"volume", "prune", "-f"}
+	case "system_all":
+		args = []string{"system", "prune", "-a", "-f"}
+	case "system_all_volumes":
+		args = []string{"system", "prune", "-a", "--volumes", "-f"}
 	case "builder":
 		args = []string{"builder", "prune", "-f"}
 	default:

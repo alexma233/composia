@@ -24,6 +24,7 @@ const (
 	TypeDockerStop    Type = "docker_stop"
 	TypeDockerRestart Type = "docker_restart"
 	TypeDockerLogs    Type = "docker_logs"
+	TypeDockerRemove  Type = "docker_remove"
 )
 
 type Status string
@@ -89,6 +90,7 @@ const (
 	StepDockerStop           StepName = "docker_stop"
 	StepDockerRestart        StepName = "docker_restart"
 	StepDockerLogs           StepName = "docker_logs"
+	StepDockerRemove         StepName = "docker_remove"
 )
 
 type StepRecord struct {

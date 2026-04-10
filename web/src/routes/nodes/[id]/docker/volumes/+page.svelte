@@ -1,11 +1,21 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { toast } from 'svelte-sonner';
   import type { PageData } from './$types';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { Badge } from '$lib/components/ui/badge';
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
+  import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogOverlay,
+    DialogTitle,
+  } from '$lib/components/ui/dialog';
   import { formatBytes, formatDockerTimestamp } from '$lib/presenters';
   import CopyButton from '$lib/components/app/copy-button.svelte';
   import SortableTableHead from '$lib/components/app/sortable-table-head.svelte';
@@ -38,6 +48,9 @@
   let loading = $state(false);
   let loadError = $state<string | null>(null);
   let volumes = $state<DockerVolumeSummary[]>([]);
+  let removeBusyId = $state('');
+  let removeDialogOpen = $state(false);
+  let removeTarget = $state<DockerVolumeSummary | null>(null);
 
   $effect(() => {
     loading = !data.ready;
@@ -72,6 +85,41 @@
   onMount(() => {
     void refreshVolumes();
   });
+
+  function openRemoveDialog(volume: DockerVolumeSummary) {
+    removeTarget = volume;
+    removeDialogOpen = true;
+  }
+
+  async function queueVolumeRemove() {
+    if (!removeTarget) {
+      return;
+    }
+
+    const volume = removeTarget;
+    removeBusyId = volume.name;
+    removeDialogOpen = false;
+    try {
+      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/volumes/${encodeURIComponent(volume.name)}/remove`, {
+        method: 'POST'
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? $messages.docker.volumes.removeFailed);
+      }
+      toast.success($messages.docker.volumes.removeQueued.replace('{taskId}', payload.taskId?.slice(0, 12) ?? 'task'));
+      await refreshVolumes();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : $messages.docker.volumes.removeFailed);
+    } finally {
+      removeBusyId = '';
+      removeTarget = null;
+    }
+  }
+
+  let removeDescription = $derived(
+    removeTarget ? $messages.docker.volumes.removeConfirm.replace('{name}', removeTarget.name) : '',
+  );
 
   function handleSort(field: string) {
     if (sortField === field) {
@@ -170,6 +218,7 @@
                 <TableHead class="w-[25%]">{$messages.docker.volumes.mountpoint}</TableHead>
                 <TableHead class="w-[10%]">{$messages.docker.volumes.scope}</TableHead>
                 <SortableTableHead field="created" label={$messages.common.created} {sortField} {sortDirection} onSort={handleSort} class="w-[15%]" />
+                <TableHead class="w-[10%]">{$messages.common.actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -227,6 +276,16 @@
                       {formatDockerTimestamp(volume.created)}
                     </div>
                   </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onclick={() => openRemoveDialog(volume)}
+                      disabled={removeBusyId === volume.name}
+                    >
+                      {$messages.common.delete}
+                    </Button>
+                  </TableCell>
                 </TableRow>
               {/each}
             </TableBody>
@@ -245,5 +304,23 @@
         {/if}
       </CardContent>
     </Card>
+
+    <Dialog bind:open={removeDialogOpen}>
+      <DialogOverlay />
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{$messages.docker.volumes.removeDialogTitle}</DialogTitle>
+          <DialogDescription>{removeDescription}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="outline" onclick={() => (removeDialogOpen = false)}>
+            {$messages.common.cancel}
+          </Button>
+          <Button type="button" variant="destructive" onclick={() => void queueVolumeRemove()} disabled={!removeTarget || removeBusyId === removeTarget.name}>
+            {$messages.common.delete}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </div>

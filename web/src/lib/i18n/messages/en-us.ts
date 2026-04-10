@@ -154,11 +154,27 @@ export const enUS = {
       rebuildCaddy: "Rebuild Caddy files",
       reloadCaddy: "Reload Caddy",
       prune: {
-        all: "Prune All",
-        containers: "Prune Containers",
-        images: "Prune Images",
-        networks: "Prune Networks",
-        volumes: "Prune Volumes",
+        all: "docker system prune",
+        containers: "docker container prune",
+        images: "docker image prune",
+        imagesAll: "docker image prune -a",
+        networks: "docker network prune",
+        volumes: "docker volume prune",
+        systemAll: "docker system prune -a",
+        systemAllVolumes: "docker system prune -a --volumes",
+        menuLabel: "Choose prune command",
+        dialogTitle: "Run Docker prune?",
+        confirmAction: "Run prune",
+        containersWarning:
+          "Run `docker container prune -f` on node {nodeId}? This removes all stopped containers.",
+        volumesWarning:
+          "Run `docker volume prune -f` on node {nodeId}? This deletes all unused local volumes and may remove stored data you still need.",
+        systemWarning:
+          "Run `docker system prune -f` on node {nodeId}? This removes stopped containers, unused networks, dangling images, and build cache.",
+        systemAllWarning:
+          "Run `docker system prune -a -f` on node {nodeId}? This also removes unused images, not only dangling images.",
+        systemAllVolumesWarning:
+          "Run `docker system prune -a --volumes -f` on node {nodeId}? This also removes unused volumes and can permanently delete data.",
       },
     },
   },
@@ -425,8 +441,20 @@ export const enUS = {
         start: "Start",
         stop: "Stop",
         restart: "Restart",
+        remove: "Remove",
         queued: "queued",
       },
+      removeConfirm:
+        "Remove container {name}? Running containers require force. This action cannot be undone.",
+      forceRemoveConfirm:
+        "Force remove container {name}? This will stop and delete the running container. This action cannot be undone.",
+      removeWithVolumesConfirm:
+        "Also remove anonymous volumes for container {name}? This may delete data.",
+      removeDialogTitle: "Remove container?",
+      forceRemoveAction: "Force delete",
+      removeVolumesAction: "Delete with volumes",
+      removeQueued: "Remove queued: {taskId}",
+      removeFailed: "Failed to remove container.",
       logs: {
         title: "Logs",
         tail: "Tail",
@@ -480,6 +508,14 @@ export const enUS = {
       noLayerInfo: "No layer information available",
       rawJson: "Raw JSON",
       rawJsonDescription: "Full image inspection data in JSON format",
+      removeConfirm:
+        "Remove image {name}? This action cannot be undone.",
+      forceRemoveConfirm:
+        "Force remove image {name}? The image still has multiple tags or dependent containers. This action cannot be undone.",
+      removeDialogTitle: "Remove image?",
+      forceRemoveAction: "Force delete",
+      removeQueued: "Remove queued: {taskId}",
+      removeFailed: "Failed to remove image.",
     },
     networks: {
       title: "Networks",
@@ -513,6 +549,11 @@ export const enUS = {
       noContainersConnected: "No containers connected to this network",
       rawJson: "Raw JSON",
       rawJsonDescription: "Full network inspection data in JSON format",
+      removeConfirm:
+        "Remove network {name}? This will fail if containers are still attached or if it is a system network.",
+      removeDialogTitle: "Remove network?",
+      removeQueued: "Remove queued: {taskId}",
+      removeFailed: "Failed to remove network.",
     },
     volumes: {
       title: "Volumes",
@@ -540,6 +581,11 @@ export const enUS = {
         "Usage statistics are not available for this volume. This may occur when the volume is not in use or when the Docker version does not support volume usage reporting.",
       rawJson: "Raw JSON",
       rawJsonDescription: "Full volume inspection data in JSON format",
+      removeConfirm:
+        "Remove volume {name}? This permanently deletes the stored data.",
+      removeDialogTitle: "Remove volume?",
+      removeQueued: "Remove queued: {taskId}",
+      removeFailed: "Failed to remove volume.",
     },
   },
 } as const;

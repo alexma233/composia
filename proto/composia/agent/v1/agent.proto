@@ -46,20 +46,28 @@ service DockerService {
   rpc InspectContainer(InspectContainerRequest) returns (InspectContainerResponse);
   // RunContainerAction applies a lifecycle action to one container.
   rpc RunContainerAction(RunContainerActionRequest) returns (RunContainerActionResponse);
+  // RemoveContainer deletes one container.
+  rpc RemoveContainer(RemoveContainerRequest) returns (RemoveContainerResponse);
   // GetContainerLogs returns log text for one container.
   rpc GetContainerLogs(GetContainerLogsRequest) returns (GetContainerLogsResponse);
   // ListNetworks lists local Docker networks.
   rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse);
   // InspectNetwork returns raw Docker inspect JSON for one network.
   rpc InspectNetwork(InspectNetworkRequest) returns (InspectNetworkResponse);
+  // RemoveNetwork deletes one network.
+  rpc RemoveNetwork(RemoveNetworkRequest) returns (RemoveNetworkResponse);
   // ListVolumes lists local Docker volumes.
   rpc ListVolumes(ListVolumesRequest) returns (ListVolumesResponse);
   // InspectVolume returns raw Docker inspect JSON for one volume.
   rpc InspectVolume(InspectVolumeRequest) returns (InspectVolumeResponse);
+  // RemoveVolume deletes one volume.
+  rpc RemoveVolume(RemoveVolumeRequest) returns (RemoveVolumeResponse);
   // ListImages lists local Docker images.
   rpc ListImages(ListImagesRequest) returns (ListImagesResponse);
   // InspectImage returns raw Docker inspect JSON for one image.
   rpc InspectImage(InspectImageRequest) returns (InspectImageResponse);
+  // RemoveImage deletes one image.
+  rpc RemoveImage(RemoveImageRequest) returns (RemoveImageResponse);
 }
 
 // HeartbeatRequest is the lightweight keepalive sent by an agent.
@@ -367,6 +375,19 @@ message RunContainerActionRequest {
 // RunContainerActionResponse acknowledges a local container action request.
 message RunContainerActionResponse {}
 
+// RemoveContainerRequest identifies one local container deletion.
+message RemoveContainerRequest {
+  // container_id is the runtime container ID.
+  string container_id = 1;
+  // force deletes the container even if it is running.
+  bool force = 2;
+  // remove_volumes also removes anonymous volumes attached to the container.
+  bool remove_volumes = 3;
+}
+
+// RemoveContainerResponse acknowledges one local container deletion request.
+message RemoveContainerResponse {}
+
 // GetContainerLogsRequest fetches logs for one local container.
 message GetContainerLogsRequest {
   // container_id is the runtime container ID.
@@ -428,6 +449,15 @@ message InspectNetworkResponse {
   string raw_json = 1;
 }
 
+// RemoveNetworkRequest identifies one local network deletion.
+message RemoveNetworkRequest {
+  // network_id is the runtime network ID.
+  string network_id = 1;
+}
+
+// RemoveNetworkResponse acknowledges one local network deletion request.
+message RemoveNetworkResponse {}
+
 // ListVolumesRequest requests all local Docker volumes.
 message ListVolumesRequest {}
 
@@ -468,6 +498,15 @@ message InspectVolumeRequest {
 message InspectVolumeResponse {
   string raw_json = 1;
 }
+
+// RemoveVolumeRequest identifies one local volume deletion.
+message RemoveVolumeRequest {
+  // volume_name is the runtime volume name.
+  string volume_name = 1;
+}
+
+// RemoveVolumeResponse acknowledges one local volume deletion request.
+message RemoveVolumeResponse {}
 
 // ListImagesRequest requests all local Docker images.
 message ListImagesRequest {}
@@ -512,3 +551,14 @@ message InspectImageRequest {
 message InspectImageResponse {
   string raw_json = 1;
 }
+
+// RemoveImageRequest identifies one local image deletion.
+message RemoveImageRequest {
+  // image_id is the runtime image ID or reference.
+  string image_id = 1;
+  // force deletes the image even if it has multiple tags or dependent stopped containers.
+  bool force = 2;
+}
+
+// RemoveImageResponse acknowledges one local image deletion request.
+message RemoveImageResponse {}

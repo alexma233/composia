@@ -68,6 +68,13 @@ func (d *DockerClient) ContainerRestart(ctx context.Context, containerID string)
 	return nil
 }
 
+func (d *DockerClient) ContainerRemove(ctx context.Context, containerID string, force, removeVolumes bool) error {
+	if _, err := d.cli.ContainerRemove(ctx, containerID, client.ContainerRemoveOptions{Force: force, RemoveVolumes: removeVolumes}); err != nil {
+		return fmt.Errorf("failed to remove container: %w", err)
+	}
+	return nil
+}
+
 func (d *DockerClient) ContainerLogs(ctx context.Context, containerID, tail string, timestamps bool) (io.ReadCloser, error) {
 	logs, err := d.cli.ContainerLogs(ctx, containerID, client.ContainerLogsOptions{
 		ShowStdout: true,
@@ -97,6 +104,13 @@ func (d *DockerClient) ImageInspect(ctx context.Context, imageID string) (client
 	return inspect, nil
 }
 
+func (d *DockerClient) ImageRemove(ctx context.Context, imageID string, force bool) error {
+	if _, err := d.cli.ImageRemove(ctx, imageID, client.ImageRemoveOptions{Force: force}); err != nil {
+		return fmt.Errorf("failed to remove image: %w", err)
+	}
+	return nil
+}
+
 func (d *DockerClient) NetworkList(ctx context.Context) ([]network.Inspect, error) {
 	list, err := d.cli.NetworkList(ctx, client.NetworkListOptions{})
 	if err != nil {
@@ -122,6 +136,13 @@ func (d *DockerClient) NetworkInspect(ctx context.Context, networkID string) (ne
 	return inspect.Network, nil
 }
 
+func (d *DockerClient) NetworkRemove(ctx context.Context, networkID string) error {
+	if _, err := d.cli.NetworkRemove(ctx, networkID, client.NetworkRemoveOptions{}); err != nil {
+		return fmt.Errorf("failed to remove network: %w", err)
+	}
+	return nil
+}
+
 func (d *DockerClient) VolumeList(ctx context.Context) ([]volume.Volume, error) {
 	list, err := d.cli.VolumeList(ctx, client.VolumeListOptions{})
 	if err != nil {
@@ -136,6 +157,13 @@ func (d *DockerClient) VolumeInspect(ctx context.Context, volumeName string) (vo
 		return volume.Volume{}, fmt.Errorf("failed to inspect volume: %w", err)
 	}
 	return result.Volume, nil
+}
+
+func (d *DockerClient) VolumeRemove(ctx context.Context, volumeName string) error {
+	if _, err := d.cli.VolumeRemove(ctx, volumeName, client.VolumeRemoveOptions{}); err != nil {
+		return fmt.Errorf("failed to remove volume: %w", err)
+	}
+	return nil
 }
 
 func (d *DockerClient) DiskUsage(ctx context.Context) (client.DiskUsageResult, error) {

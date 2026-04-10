@@ -78,6 +78,9 @@ const (
 	// DockerServiceRunContainerActionProcedure is the fully-qualified name of the DockerService's
 	// RunContainerAction RPC.
 	DockerServiceRunContainerActionProcedure = "/composia.agent.v1.DockerService/RunContainerAction"
+	// DockerServiceRemoveContainerProcedure is the fully-qualified name of the DockerService's
+	// RemoveContainer RPC.
+	DockerServiceRemoveContainerProcedure = "/composia.agent.v1.DockerService/RemoveContainer"
 	// DockerServiceGetContainerLogsProcedure is the fully-qualified name of the DockerService's
 	// GetContainerLogs RPC.
 	DockerServiceGetContainerLogsProcedure = "/composia.agent.v1.DockerService/GetContainerLogs"
@@ -87,18 +90,27 @@ const (
 	// DockerServiceInspectNetworkProcedure is the fully-qualified name of the DockerService's
 	// InspectNetwork RPC.
 	DockerServiceInspectNetworkProcedure = "/composia.agent.v1.DockerService/InspectNetwork"
+	// DockerServiceRemoveNetworkProcedure is the fully-qualified name of the DockerService's
+	// RemoveNetwork RPC.
+	DockerServiceRemoveNetworkProcedure = "/composia.agent.v1.DockerService/RemoveNetwork"
 	// DockerServiceListVolumesProcedure is the fully-qualified name of the DockerService's ListVolumes
 	// RPC.
 	DockerServiceListVolumesProcedure = "/composia.agent.v1.DockerService/ListVolumes"
 	// DockerServiceInspectVolumeProcedure is the fully-qualified name of the DockerService's
 	// InspectVolume RPC.
 	DockerServiceInspectVolumeProcedure = "/composia.agent.v1.DockerService/InspectVolume"
+	// DockerServiceRemoveVolumeProcedure is the fully-qualified name of the DockerService's
+	// RemoveVolume RPC.
+	DockerServiceRemoveVolumeProcedure = "/composia.agent.v1.DockerService/RemoveVolume"
 	// DockerServiceListImagesProcedure is the fully-qualified name of the DockerService's ListImages
 	// RPC.
 	DockerServiceListImagesProcedure = "/composia.agent.v1.DockerService/ListImages"
 	// DockerServiceInspectImageProcedure is the fully-qualified name of the DockerService's
 	// InspectImage RPC.
 	DockerServiceInspectImageProcedure = "/composia.agent.v1.DockerService/InspectImage"
+	// DockerServiceRemoveImageProcedure is the fully-qualified name of the DockerService's RemoveImage
+	// RPC.
+	DockerServiceRemoveImageProcedure = "/composia.agent.v1.DockerService/RemoveImage"
 )
 
 // AgentReportServiceClient is a client for the composia.agent.v1.AgentReportService service.
@@ -523,20 +535,28 @@ type DockerServiceClient interface {
 	InspectContainer(context.Context, *connect.Request[v1.InspectContainerRequest]) (*connect.Response[v1.InspectContainerResponse], error)
 	// RunContainerAction applies a lifecycle action to one container.
 	RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.RunContainerActionResponse], error)
+	// RemoveContainer deletes one container.
+	RemoveContainer(context.Context, *connect.Request[v1.RemoveContainerRequest]) (*connect.Response[v1.RemoveContainerResponse], error)
 	// GetContainerLogs returns log text for one container.
 	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error)
 	// ListNetworks lists local Docker networks.
 	ListNetworks(context.Context, *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error)
 	// InspectNetwork returns raw Docker inspect JSON for one network.
 	InspectNetwork(context.Context, *connect.Request[v1.InspectNetworkRequest]) (*connect.Response[v1.InspectNetworkResponse], error)
+	// RemoveNetwork deletes one network.
+	RemoveNetwork(context.Context, *connect.Request[v1.RemoveNetworkRequest]) (*connect.Response[v1.RemoveNetworkResponse], error)
 	// ListVolumes lists local Docker volumes.
 	ListVolumes(context.Context, *connect.Request[v1.ListVolumesRequest]) (*connect.Response[v1.ListVolumesResponse], error)
 	// InspectVolume returns raw Docker inspect JSON for one volume.
 	InspectVolume(context.Context, *connect.Request[v1.InspectVolumeRequest]) (*connect.Response[v1.InspectVolumeResponse], error)
+	// RemoveVolume deletes one volume.
+	RemoveVolume(context.Context, *connect.Request[v1.RemoveVolumeRequest]) (*connect.Response[v1.RemoveVolumeResponse], error)
 	// ListImages lists local Docker images.
 	ListImages(context.Context, *connect.Request[v1.ListImagesRequest]) (*connect.Response[v1.ListImagesResponse], error)
 	// InspectImage returns raw Docker inspect JSON for one image.
 	InspectImage(context.Context, *connect.Request[v1.InspectImageRequest]) (*connect.Response[v1.InspectImageResponse], error)
+	// RemoveImage deletes one image.
+	RemoveImage(context.Context, *connect.Request[v1.RemoveImageRequest]) (*connect.Response[v1.RemoveImageResponse], error)
 }
 
 // NewDockerServiceClient constructs a client for the composia.agent.v1.DockerService service. By
@@ -568,6 +588,12 @@ func NewDockerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(dockerServiceMethods.ByName("RunContainerAction")),
 			connect.WithClientOptions(opts...),
 		),
+		removeContainer: connect.NewClient[v1.RemoveContainerRequest, v1.RemoveContainerResponse](
+			httpClient,
+			baseURL+DockerServiceRemoveContainerProcedure,
+			connect.WithSchema(dockerServiceMethods.ByName("RemoveContainer")),
+			connect.WithClientOptions(opts...),
+		),
 		getContainerLogs: connect.NewClient[v1.GetContainerLogsRequest, v1.GetContainerLogsResponse](
 			httpClient,
 			baseURL+DockerServiceGetContainerLogsProcedure,
@@ -586,6 +612,12 @@ func NewDockerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(dockerServiceMethods.ByName("InspectNetwork")),
 			connect.WithClientOptions(opts...),
 		),
+		removeNetwork: connect.NewClient[v1.RemoveNetworkRequest, v1.RemoveNetworkResponse](
+			httpClient,
+			baseURL+DockerServiceRemoveNetworkProcedure,
+			connect.WithSchema(dockerServiceMethods.ByName("RemoveNetwork")),
+			connect.WithClientOptions(opts...),
+		),
 		listVolumes: connect.NewClient[v1.ListVolumesRequest, v1.ListVolumesResponse](
 			httpClient,
 			baseURL+DockerServiceListVolumesProcedure,
@@ -596,6 +628,12 @@ func NewDockerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			httpClient,
 			baseURL+DockerServiceInspectVolumeProcedure,
 			connect.WithSchema(dockerServiceMethods.ByName("InspectVolume")),
+			connect.WithClientOptions(opts...),
+		),
+		removeVolume: connect.NewClient[v1.RemoveVolumeRequest, v1.RemoveVolumeResponse](
+			httpClient,
+			baseURL+DockerServiceRemoveVolumeProcedure,
+			connect.WithSchema(dockerServiceMethods.ByName("RemoveVolume")),
 			connect.WithClientOptions(opts...),
 		),
 		listImages: connect.NewClient[v1.ListImagesRequest, v1.ListImagesResponse](
@@ -610,6 +648,12 @@ func NewDockerServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(dockerServiceMethods.ByName("InspectImage")),
 			connect.WithClientOptions(opts...),
 		),
+		removeImage: connect.NewClient[v1.RemoveImageRequest, v1.RemoveImageResponse](
+			httpClient,
+			baseURL+DockerServiceRemoveImageProcedure,
+			connect.WithSchema(dockerServiceMethods.ByName("RemoveImage")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -618,13 +662,17 @@ type dockerServiceClient struct {
 	listContainers     *connect.Client[v1.ListContainersRequest, v1.ListContainersResponse]
 	inspectContainer   *connect.Client[v1.InspectContainerRequest, v1.InspectContainerResponse]
 	runContainerAction *connect.Client[v1.RunContainerActionRequest, v1.RunContainerActionResponse]
+	removeContainer    *connect.Client[v1.RemoveContainerRequest, v1.RemoveContainerResponse]
 	getContainerLogs   *connect.Client[v1.GetContainerLogsRequest, v1.GetContainerLogsResponse]
 	listNetworks       *connect.Client[v1.ListNetworksRequest, v1.ListNetworksResponse]
 	inspectNetwork     *connect.Client[v1.InspectNetworkRequest, v1.InspectNetworkResponse]
+	removeNetwork      *connect.Client[v1.RemoveNetworkRequest, v1.RemoveNetworkResponse]
 	listVolumes        *connect.Client[v1.ListVolumesRequest, v1.ListVolumesResponse]
 	inspectVolume      *connect.Client[v1.InspectVolumeRequest, v1.InspectVolumeResponse]
+	removeVolume       *connect.Client[v1.RemoveVolumeRequest, v1.RemoveVolumeResponse]
 	listImages         *connect.Client[v1.ListImagesRequest, v1.ListImagesResponse]
 	inspectImage       *connect.Client[v1.InspectImageRequest, v1.InspectImageResponse]
+	removeImage        *connect.Client[v1.RemoveImageRequest, v1.RemoveImageResponse]
 }
 
 // ListContainers calls composia.agent.v1.DockerService.ListContainers.
@@ -642,6 +690,11 @@ func (c *dockerServiceClient) RunContainerAction(ctx context.Context, req *conne
 	return c.runContainerAction.CallUnary(ctx, req)
 }
 
+// RemoveContainer calls composia.agent.v1.DockerService.RemoveContainer.
+func (c *dockerServiceClient) RemoveContainer(ctx context.Context, req *connect.Request[v1.RemoveContainerRequest]) (*connect.Response[v1.RemoveContainerResponse], error) {
+	return c.removeContainer.CallUnary(ctx, req)
+}
+
 // GetContainerLogs calls composia.agent.v1.DockerService.GetContainerLogs.
 func (c *dockerServiceClient) GetContainerLogs(ctx context.Context, req *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error) {
 	return c.getContainerLogs.CallUnary(ctx, req)
@@ -657,6 +710,11 @@ func (c *dockerServiceClient) InspectNetwork(ctx context.Context, req *connect.R
 	return c.inspectNetwork.CallUnary(ctx, req)
 }
 
+// RemoveNetwork calls composia.agent.v1.DockerService.RemoveNetwork.
+func (c *dockerServiceClient) RemoveNetwork(ctx context.Context, req *connect.Request[v1.RemoveNetworkRequest]) (*connect.Response[v1.RemoveNetworkResponse], error) {
+	return c.removeNetwork.CallUnary(ctx, req)
+}
+
 // ListVolumes calls composia.agent.v1.DockerService.ListVolumes.
 func (c *dockerServiceClient) ListVolumes(ctx context.Context, req *connect.Request[v1.ListVolumesRequest]) (*connect.Response[v1.ListVolumesResponse], error) {
 	return c.listVolumes.CallUnary(ctx, req)
@@ -665,6 +723,11 @@ func (c *dockerServiceClient) ListVolumes(ctx context.Context, req *connect.Requ
 // InspectVolume calls composia.agent.v1.DockerService.InspectVolume.
 func (c *dockerServiceClient) InspectVolume(ctx context.Context, req *connect.Request[v1.InspectVolumeRequest]) (*connect.Response[v1.InspectVolumeResponse], error) {
 	return c.inspectVolume.CallUnary(ctx, req)
+}
+
+// RemoveVolume calls composia.agent.v1.DockerService.RemoveVolume.
+func (c *dockerServiceClient) RemoveVolume(ctx context.Context, req *connect.Request[v1.RemoveVolumeRequest]) (*connect.Response[v1.RemoveVolumeResponse], error) {
+	return c.removeVolume.CallUnary(ctx, req)
 }
 
 // ListImages calls composia.agent.v1.DockerService.ListImages.
@@ -677,6 +740,11 @@ func (c *dockerServiceClient) InspectImage(ctx context.Context, req *connect.Req
 	return c.inspectImage.CallUnary(ctx, req)
 }
 
+// RemoveImage calls composia.agent.v1.DockerService.RemoveImage.
+func (c *dockerServiceClient) RemoveImage(ctx context.Context, req *connect.Request[v1.RemoveImageRequest]) (*connect.Response[v1.RemoveImageResponse], error) {
+	return c.removeImage.CallUnary(ctx, req)
+}
+
 // DockerServiceHandler is an implementation of the composia.agent.v1.DockerService service.
 type DockerServiceHandler interface {
 	// ListContainers lists local Docker containers.
@@ -685,20 +753,28 @@ type DockerServiceHandler interface {
 	InspectContainer(context.Context, *connect.Request[v1.InspectContainerRequest]) (*connect.Response[v1.InspectContainerResponse], error)
 	// RunContainerAction applies a lifecycle action to one container.
 	RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.RunContainerActionResponse], error)
+	// RemoveContainer deletes one container.
+	RemoveContainer(context.Context, *connect.Request[v1.RemoveContainerRequest]) (*connect.Response[v1.RemoveContainerResponse], error)
 	// GetContainerLogs returns log text for one container.
 	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error)
 	// ListNetworks lists local Docker networks.
 	ListNetworks(context.Context, *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error)
 	// InspectNetwork returns raw Docker inspect JSON for one network.
 	InspectNetwork(context.Context, *connect.Request[v1.InspectNetworkRequest]) (*connect.Response[v1.InspectNetworkResponse], error)
+	// RemoveNetwork deletes one network.
+	RemoveNetwork(context.Context, *connect.Request[v1.RemoveNetworkRequest]) (*connect.Response[v1.RemoveNetworkResponse], error)
 	// ListVolumes lists local Docker volumes.
 	ListVolumes(context.Context, *connect.Request[v1.ListVolumesRequest]) (*connect.Response[v1.ListVolumesResponse], error)
 	// InspectVolume returns raw Docker inspect JSON for one volume.
 	InspectVolume(context.Context, *connect.Request[v1.InspectVolumeRequest]) (*connect.Response[v1.InspectVolumeResponse], error)
+	// RemoveVolume deletes one volume.
+	RemoveVolume(context.Context, *connect.Request[v1.RemoveVolumeRequest]) (*connect.Response[v1.RemoveVolumeResponse], error)
 	// ListImages lists local Docker images.
 	ListImages(context.Context, *connect.Request[v1.ListImagesRequest]) (*connect.Response[v1.ListImagesResponse], error)
 	// InspectImage returns raw Docker inspect JSON for one image.
 	InspectImage(context.Context, *connect.Request[v1.InspectImageRequest]) (*connect.Response[v1.InspectImageResponse], error)
+	// RemoveImage deletes one image.
+	RemoveImage(context.Context, *connect.Request[v1.RemoveImageRequest]) (*connect.Response[v1.RemoveImageResponse], error)
 }
 
 // NewDockerServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -726,6 +802,12 @@ func NewDockerServiceHandler(svc DockerServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(dockerServiceMethods.ByName("RunContainerAction")),
 		connect.WithHandlerOptions(opts...),
 	)
+	dockerServiceRemoveContainerHandler := connect.NewUnaryHandler(
+		DockerServiceRemoveContainerProcedure,
+		svc.RemoveContainer,
+		connect.WithSchema(dockerServiceMethods.ByName("RemoveContainer")),
+		connect.WithHandlerOptions(opts...),
+	)
 	dockerServiceGetContainerLogsHandler := connect.NewUnaryHandler(
 		DockerServiceGetContainerLogsProcedure,
 		svc.GetContainerLogs,
@@ -744,6 +826,12 @@ func NewDockerServiceHandler(svc DockerServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(dockerServiceMethods.ByName("InspectNetwork")),
 		connect.WithHandlerOptions(opts...),
 	)
+	dockerServiceRemoveNetworkHandler := connect.NewUnaryHandler(
+		DockerServiceRemoveNetworkProcedure,
+		svc.RemoveNetwork,
+		connect.WithSchema(dockerServiceMethods.ByName("RemoveNetwork")),
+		connect.WithHandlerOptions(opts...),
+	)
 	dockerServiceListVolumesHandler := connect.NewUnaryHandler(
 		DockerServiceListVolumesProcedure,
 		svc.ListVolumes,
@@ -754,6 +842,12 @@ func NewDockerServiceHandler(svc DockerServiceHandler, opts ...connect.HandlerOp
 		DockerServiceInspectVolumeProcedure,
 		svc.InspectVolume,
 		connect.WithSchema(dockerServiceMethods.ByName("InspectVolume")),
+		connect.WithHandlerOptions(opts...),
+	)
+	dockerServiceRemoveVolumeHandler := connect.NewUnaryHandler(
+		DockerServiceRemoveVolumeProcedure,
+		svc.RemoveVolume,
+		connect.WithSchema(dockerServiceMethods.ByName("RemoveVolume")),
 		connect.WithHandlerOptions(opts...),
 	)
 	dockerServiceListImagesHandler := connect.NewUnaryHandler(
@@ -768,6 +862,12 @@ func NewDockerServiceHandler(svc DockerServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(dockerServiceMethods.ByName("InspectImage")),
 		connect.WithHandlerOptions(opts...),
 	)
+	dockerServiceRemoveImageHandler := connect.NewUnaryHandler(
+		DockerServiceRemoveImageProcedure,
+		svc.RemoveImage,
+		connect.WithSchema(dockerServiceMethods.ByName("RemoveImage")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.agent.v1.DockerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case DockerServiceListContainersProcedure:
@@ -776,20 +876,28 @@ func NewDockerServiceHandler(svc DockerServiceHandler, opts ...connect.HandlerOp
 			dockerServiceInspectContainerHandler.ServeHTTP(w, r)
 		case DockerServiceRunContainerActionProcedure:
 			dockerServiceRunContainerActionHandler.ServeHTTP(w, r)
+		case DockerServiceRemoveContainerProcedure:
+			dockerServiceRemoveContainerHandler.ServeHTTP(w, r)
 		case DockerServiceGetContainerLogsProcedure:
 			dockerServiceGetContainerLogsHandler.ServeHTTP(w, r)
 		case DockerServiceListNetworksProcedure:
 			dockerServiceListNetworksHandler.ServeHTTP(w, r)
 		case DockerServiceInspectNetworkProcedure:
 			dockerServiceInspectNetworkHandler.ServeHTTP(w, r)
+		case DockerServiceRemoveNetworkProcedure:
+			dockerServiceRemoveNetworkHandler.ServeHTTP(w, r)
 		case DockerServiceListVolumesProcedure:
 			dockerServiceListVolumesHandler.ServeHTTP(w, r)
 		case DockerServiceInspectVolumeProcedure:
 			dockerServiceInspectVolumeHandler.ServeHTTP(w, r)
+		case DockerServiceRemoveVolumeProcedure:
+			dockerServiceRemoveVolumeHandler.ServeHTTP(w, r)
 		case DockerServiceListImagesProcedure:
 			dockerServiceListImagesHandler.ServeHTTP(w, r)
 		case DockerServiceInspectImageProcedure:
 			dockerServiceInspectImageHandler.ServeHTTP(w, r)
+		case DockerServiceRemoveImageProcedure:
+			dockerServiceRemoveImageHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -811,6 +919,10 @@ func (UnimplementedDockerServiceHandler) RunContainerAction(context.Context, *co
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.RunContainerAction is not implemented"))
 }
 
+func (UnimplementedDockerServiceHandler) RemoveContainer(context.Context, *connect.Request[v1.RemoveContainerRequest]) (*connect.Response[v1.RemoveContainerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.RemoveContainer is not implemented"))
+}
+
 func (UnimplementedDockerServiceHandler) GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.GetContainerLogs is not implemented"))
 }
@@ -823,6 +935,10 @@ func (UnimplementedDockerServiceHandler) InspectNetwork(context.Context, *connec
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.InspectNetwork is not implemented"))
 }
 
+func (UnimplementedDockerServiceHandler) RemoveNetwork(context.Context, *connect.Request[v1.RemoveNetworkRequest]) (*connect.Response[v1.RemoveNetworkResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.RemoveNetwork is not implemented"))
+}
+
 func (UnimplementedDockerServiceHandler) ListVolumes(context.Context, *connect.Request[v1.ListVolumesRequest]) (*connect.Response[v1.ListVolumesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.ListVolumes is not implemented"))
 }
@@ -831,10 +947,18 @@ func (UnimplementedDockerServiceHandler) InspectVolume(context.Context, *connect
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.InspectVolume is not implemented"))
 }
 
+func (UnimplementedDockerServiceHandler) RemoveVolume(context.Context, *connect.Request[v1.RemoveVolumeRequest]) (*connect.Response[v1.RemoveVolumeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.RemoveVolume is not implemented"))
+}
+
 func (UnimplementedDockerServiceHandler) ListImages(context.Context, *connect.Request[v1.ListImagesRequest]) (*connect.Response[v1.ListImagesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.ListImages is not implemented"))
 }
 
 func (UnimplementedDockerServiceHandler) InspectImage(context.Context, *connect.Request[v1.InspectImageRequest]) (*connect.Response[v1.InspectImageResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.InspectImage is not implemented"))
+}
+
+func (UnimplementedDockerServiceHandler) RemoveImage(context.Context, *connect.Request[v1.RemoveImageRequest]) (*connect.Response[v1.RemoveImageResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.RemoveImage is not implemented"))
 }

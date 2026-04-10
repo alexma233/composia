@@ -1,11 +1,21 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { toast } from 'svelte-sonner';
   import type { PageData } from './$types';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { Badge, type BadgeVariant } from '$lib/components/ui/badge';
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
+  import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogOverlay,
+    DialogTitle,
+  } from '$lib/components/ui/dialog';
   import { formatDockerTimestamp, formatShortId } from '$lib/presenters';
   import CopyButton from '$lib/components/app/copy-button.svelte';
   import SortableTableHead from '$lib/components/app/sortable-table-head.svelte';
@@ -41,6 +51,9 @@
   let loading = $state(false);
   let loadError = $state<string | null>(null);
   let networks = $state<DockerNetworkSummary[]>([]);
+  let removeBusyId = $state('');
+  let removeDialogOpen = $state(false);
+  let removeTarget = $state<DockerNetworkSummary | null>(null);
 
   $effect(() => {
     loading = !data.ready;
@@ -75,6 +88,41 @@
   onMount(() => {
     void refreshNetworks();
   });
+
+  function openRemoveDialog(network: DockerNetworkSummary) {
+    removeTarget = network;
+    removeDialogOpen = true;
+  }
+
+  async function queueNetworkRemove() {
+    if (!removeTarget) {
+      return;
+    }
+
+    const network = removeTarget;
+    removeBusyId = network.id;
+    removeDialogOpen = false;
+    try {
+      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/networks/${encodeURIComponent(network.id)}/remove`, {
+        method: 'POST'
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? $messages.docker.networks.removeFailed);
+      }
+      toast.success($messages.docker.networks.removeQueued.replace('{taskId}', payload.taskId?.slice(0, 12) ?? 'task'));
+      await refreshNetworks();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : $messages.docker.networks.removeFailed);
+    } finally {
+      removeBusyId = '';
+      removeTarget = null;
+    }
+  }
+
+  let removeDescription = $derived(
+    removeTarget ? $messages.docker.networks.removeConfirm.replace('{name}', removeTarget.name) : '',
+  );
 
   function isSystemNetwork(name: string): boolean {
     return name === 'bridge' || name === 'host' || name === 'none';
@@ -185,6 +233,7 @@
                 <TableHead class="w-[15%]">{$messages.docker.networks.subnet}</TableHead>
                 <TableHead class="w-[10%]">{$messages.docker.networks.containers}</TableHead>
                 <SortableTableHead field="created" label={$messages.common.created} {sortField} {sortDirection} onSort={handleSort} class="w-[20%]" />
+                <TableHead class="w-[10%]">{$messages.common.actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -236,6 +285,16 @@
                       {formatDockerTimestamp(network.created)}
                     </div>
                   </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onclick={() => openRemoveDialog(network)}
+                      disabled={removeBusyId === network.id || isSystemNetwork(network.name)}
+                    >
+                      {$messages.common.delete}
+                    </Button>
+                  </TableCell>
                 </TableRow>
               {/each}
             </TableBody>
@@ -254,5 +313,23 @@
         {/if}
       </CardContent>
     </Card>
+
+    <Dialog bind:open={removeDialogOpen}>
+      <DialogOverlay />
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{$messages.docker.networks.removeDialogTitle}</DialogTitle>
+          <DialogDescription>{removeDescription}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="outline" onclick={() => (removeDialogOpen = false)}>
+            {$messages.common.cancel}
+          </Button>
+          <Button type="button" variant="destructive" onclick={() => void queueNetworkRemove()} disabled={!removeTarget || removeBusyId === removeTarget.id}>
+            {$messages.common.delete}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </div>

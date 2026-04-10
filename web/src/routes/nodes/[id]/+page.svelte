@@ -8,6 +8,24 @@
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogOverlay,
+    DialogTitle,
+  } from '$lib/components/ui/dialog';
+  import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+  } from '$lib/components/ui/dropdown-menu';
+  import {
+    ChevronDown,
+  } from 'lucide-svelte';
   import { startPolling } from '$lib/refresh';
   import { formatBytes, formatTimestamp, onlineStatusTone, taskStatusLabel, taskStatusTone } from '$lib/presenters';
   import { messages } from '$lib/i18n';
@@ -17,9 +35,87 @@
     form: ActionData;
   }
 
+  type PruneTarget = 'containers' | 'images' | 'images_all' | 'networks' | 'volumes' | 'all' | 'system_all' | 'system_all_volumes';
+
   let { data, form }: Props = $props();
+  let imagePruneTarget = $state<'images_all' | 'images'>('images_all');
+  let systemPruneTarget = $state<'system_all_volumes' | 'system_all' | 'all'>('system_all_volumes');
+  let pruneForm = $state<HTMLFormElement | null>(null);
+  let pruneTargetInput = $state<PruneTarget>('images_all');
+  let pruneDialogOpen = $state(false);
+  let pendingPruneTarget = $state<PruneTarget | null>(null);
 
   onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
+
+  function pruneLabel(target: PruneTarget) {
+    switch (target) {
+      case 'containers':
+        return $messages.nodes.docker.prune.containers;
+      case 'images':
+        return $messages.nodes.docker.prune.images;
+      case 'images_all':
+        return $messages.nodes.docker.prune.imagesAll;
+      case 'networks':
+        return $messages.nodes.docker.prune.networks;
+      case 'volumes':
+        return $messages.nodes.docker.prune.volumes;
+      case 'system_all':
+        return $messages.nodes.docker.prune.systemAll;
+      case 'system_all_volumes':
+        return $messages.nodes.docker.prune.systemAllVolumes;
+      case 'all':
+      default:
+        return $messages.nodes.docker.prune.all;
+    }
+  }
+
+  function requiresPruneWarning(target: PruneTarget) {
+    return target === 'containers' || target === 'volumes' || target === 'all' || target === 'system_all' || target === 'system_all_volumes';
+  }
+
+  function submitPrune(target: PruneTarget) {
+    pruneTargetInput = target;
+    pruneForm?.requestSubmit();
+  }
+
+  function requestPrune(target: PruneTarget) {
+    if (requiresPruneWarning(target)) {
+      pendingPruneTarget = target;
+      pruneDialogOpen = true;
+      return;
+    }
+    submitPrune(target);
+  }
+
+  function confirmPrune() {
+    if (!pendingPruneTarget) {
+      return;
+    }
+    pruneDialogOpen = false;
+    submitPrune(pendingPruneTarget);
+    pendingPruneTarget = null;
+  }
+
+  let pruneWarningDescription = $derived.by(() => {
+    const target = pendingPruneTarget;
+    const nodeId = data.node?.nodeId ?? data.node?.displayName ?? '';
+    if (!target) {
+      return '';
+    }
+    switch (target) {
+      case 'containers':
+        return $messages.nodes.docker.prune.containersWarning.replace('{nodeId}', nodeId);
+      case 'volumes':
+        return $messages.nodes.docker.prune.volumesWarning.replace('{nodeId}', nodeId);
+      case 'system_all':
+        return $messages.nodes.docker.prune.systemAllWarning.replace('{nodeId}', nodeId);
+      case 'system_all_volumes':
+        return $messages.nodes.docker.prune.systemAllVolumesWarning.replace('{nodeId}', nodeId);
+      case 'all':
+      default:
+        return $messages.nodes.docker.prune.systemWarning.replace('{nodeId}', nodeId);
+    }
+  });
 </script>
 
 <div class="page-shell">
@@ -97,6 +193,10 @@
               </Alert>
             {/if}
 
+            <form bind:this={pruneForm} method="POST" action="?/prune" use:enhance class="hidden">
+              <input type="hidden" name="target" bind:value={pruneTargetInput} />
+            </form>
+
             {#if data.node?.isOnline}
               <div class="flex flex-wrap gap-2">
                 <form method="POST" action="?/syncCaddyFiles" use:enhance>
@@ -105,26 +205,64 @@
                 <form method="POST" action="?/reloadCaddy" use:enhance>
                   <Button variant="outline" size="sm" type="submit">{$messages.nodes.docker.reloadCaddy}</Button>
                 </form>
-                <form method="POST" action="?/prune" use:enhance>
-                  <input type="hidden" name="target" value="all" />
-                  <Button variant="outline" size="sm" type="submit">{$messages.nodes.docker.prune.all}</Button>
-                </form>
-                <form method="POST" action="?/prune" use:enhance>
-                  <input type="hidden" name="target" value="containers" />
-                  <Button variant="outline" size="sm" type="submit">{$messages.nodes.docker.prune.containers}</Button>
-                </form>
-                <form method="POST" action="?/prune" use:enhance>
-                  <input type="hidden" name="target" value="images" />
-                  <Button variant="outline" size="sm" type="submit">{$messages.nodes.docker.prune.images}</Button>
-                </form>
-                <form method="POST" action="?/prune" use:enhance>
-                  <input type="hidden" name="target" value="networks" />
-                  <Button variant="outline" size="sm" type="submit">{$messages.nodes.docker.prune.networks}</Button>
-                </form>
-                <form method="POST" action="?/prune" use:enhance>
-                  <input type="hidden" name="target" value="volumes" />
-                  <Button variant="outline" size="sm" type="submit">{$messages.nodes.docker.prune.volumes}</Button>
-                </form>
+                <Button variant="outline" size="sm" type="button" onclick={() => requestPrune('containers')}>
+                  {$messages.nodes.docker.prune.containers}
+                </Button>
+                <div class="flex items-center">
+                  <Button variant="outline" size="sm" type="button" class="rounded-r-none border-r-0" onclick={() => requestPrune(imagePruneTarget)}>
+                    {imagePruneTarget === 'images_all'
+                      ? $messages.nodes.docker.prune.imagesAll
+                      : $messages.nodes.docker.prune.images}
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger>
+                      <Button variant="outline" size="sm" type="button" class="rounded-l-none px-2">
+                        <ChevronDown class="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onclick={() => (imagePruneTarget = 'images_all')}>
+                        {$messages.nodes.docker.prune.imagesAll}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onclick={() => (imagePruneTarget = 'images')}>
+                        {$messages.nodes.docker.prune.images}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <Button variant="outline" size="sm" type="button" onclick={() => requestPrune('networks')}>
+                  {$messages.nodes.docker.prune.networks}
+                </Button>
+                <Button variant="outline" size="sm" type="button" onclick={() => requestPrune('volumes')}>
+                  {$messages.nodes.docker.prune.volumes}
+                </Button>
+                <div class="flex items-center">
+                  <Button variant="outline" size="sm" type="button" class="rounded-r-none border-r-0" onclick={() => requestPrune(systemPruneTarget)}>
+                    {systemPruneTarget === 'system_all_volumes'
+                      ? $messages.nodes.docker.prune.systemAllVolumes
+                      : systemPruneTarget === 'system_all'
+                        ? $messages.nodes.docker.prune.systemAll
+                        : $messages.nodes.docker.prune.all}
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger>
+                      <Button variant="outline" size="sm" type="button" class="rounded-l-none px-2">
+                        <ChevronDown class="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onclick={() => (systemPruneTarget = 'system_all_volumes')}>
+                        {$messages.nodes.docker.prune.systemAllVolumes}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onclick={() => (systemPruneTarget = 'system_all')}>
+                        {$messages.nodes.docker.prune.systemAll}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onclick={() => (systemPruneTarget = 'all')}>
+                        {$messages.nodes.docker.prune.all}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             {:else}
               <div class="text-sm text-muted-foreground">{$messages.nodes.docker.nodeOffline}</div>
@@ -135,6 +273,27 @@
         {/if}
       </CardContent>
     </Card>
+
+    <Dialog bind:open={pruneDialogOpen}>
+      <DialogOverlay />
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{$messages.nodes.docker.prune.dialogTitle}</DialogTitle>
+          <DialogDescription>{pruneWarningDescription}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="outline" onclick={() => {
+            pruneDialogOpen = false;
+            pendingPruneTarget = null;
+          }}>
+            {$messages.common.cancel}
+          </Button>
+          <Button type="button" variant="destructive" onclick={() => confirmPrune()} disabled={!pendingPruneTarget}>
+            {$messages.nodes.docker.prune.confirmAction}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
 		<Card>
       <CardHeader>
