@@ -50,15 +50,15 @@ If you want the rationale and how Composia differs from Compose managers and sel
 
 ## Quick Start
 
-Download `docker-compose.yaml` and `configs/config.compose.yaml` from this repository, keep the same relative paths, and review them before startup.
+Create your own `docker-compose.yaml` and `config/config.yaml` locally. Do not reuse repository tokens or key files.
 
-Before running the stack, update these values:
+Before running the stack, generate and set these values yourself:
 
 - `controller.access_tokens[].token`
 - `controller.nodes[].token` and `agent.token`
 - `COMPOSIA_ACCESS_TOKEN` in `docker-compose.yaml` so it matches one enabled controller token
 
-If you keep the default `secrets` configuration, also keep the referenced age key files.
+If you enable `secrets`, generate your own age identity and recipient files and place them under your local `config/` directory so the container mount exposes them at `/app/configs/...`.
 
 Run the container stack defined in your local `docker-compose.yaml`:
 
@@ -99,7 +99,7 @@ To stop the Composia stack started from the local `docker-compose.yaml`:
 docker compose down
 ```
 
-Note: the example stack injects the Web UI token through `COMPOSIA_ACCESS_TOKEN` in `docker-compose.yaml`. For production, generate your own controller access token, update `configs/config.compose.yaml`, and keep the Web service environment variable aligned with it.
+The Web UI token in `COMPOSIA_ACCESS_TOKEN` must always match one enabled token under `controller.access_tokens`.
 
 The release workflows publish to both Forgejo Registry and GHCR. Configure these repository secrets for automated pushes:
 
@@ -227,8 +227,8 @@ Equivalent raw commands are still available if you do not want to use `mise`:
 
 ```bash
 mkdir -p ./dev/repo-controller && git -C ./dev/repo-controller init
-go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml
-go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml
+go run ./cmd/composia controller -config ./dev/config.controller.yaml
+go run ./cmd/composia agent -config ./dev/config.controller.yaml
 ```
 
 Generate protobuf and Connect stubs after changing files under `proto/`:
@@ -237,17 +237,11 @@ Generate protobuf and Connect stubs after changing files under `proto/`:
 buf generate
 ```
 
-The example controller config also includes a development access token:
-
-```text
-dev-admin-token
-```
-
 ## Repository Layout
 
 ```text
 cmd/composia/         # composia entrypoint
-configs/              # local development config examples
+dev/                  # local development state and local-only config
 gen/go/               # generated protobuf and Connect code
 internal/             # backend packages
 proto/                # protobuf definitions
@@ -269,7 +263,7 @@ This repository now contains a working controller, agent runtime, and Web UI for
 - Query/command split controller APIs for services, repo, nodes, and Docker inspection
 - Task execution for deploy, update, stop, restart, backup, DNS update, Caddy sync/reload, Docker prune, and service migration orchestration
 - Web UI pages for dashboard, services, nodes, tasks, backups, settings, and node-scoped Docker resource browsing
-- Example controller and agent config files
+- Example development config templates under `dev/*.example`
 
 ## Attributions
 

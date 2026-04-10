@@ -13,15 +13,15 @@ run = "bun run docs:dev -- --port 5174"
 
 [tasks."controller"]
 description = "Run the controller locally"
-run = "go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml"
+run = "go run ./cmd/composia controller -config ./dev/config.controller.yaml"
 
 [tasks."agent"]
 description = "Run the main agent locally"
-run = "go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml"
+run = "go run ./cmd/composia agent -config ./dev/config.controller.yaml"
 
 [tasks."agent2"]
 description = "Run the second agent locally"
-run = "go run ./cmd/composia agent -config ./configs/config.agent.dev.yaml"
+run = "go run ./cmd/composia agent -config ./dev/config.agent.yaml"
 
 [tasks."dev"]
 description = "Start the fully containerized dev stack"

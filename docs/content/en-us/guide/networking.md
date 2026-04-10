@@ -18,7 +18,7 @@ controller:
 Create the API Token file:
 
 ```bash
-echo "your-cloudflare-api-token" > configs/cloudflare-token.txt
+echo "your-cloudflare-api-token" > ./cloudflare-token.txt
 ```
 
 **Cloudflare Token Permissions Required:**

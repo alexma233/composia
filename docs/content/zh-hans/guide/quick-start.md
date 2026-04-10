@@ -11,26 +11,28 @@
 
 ### 1. 创建工作目录
 
-先准备一个空目录，并保留下面这套相对路径：
+先准备一个空目录，并自行创建启动文件：
 
 ```text
 composia/
 ├── docker-compose.yaml
-└── configs/
-    └── config.compose.yaml
+└── config/
+    ├── config.yaml
+    ├── age-identity.key
+    └── age-recipients.txt
 ```
 
 ### 2. 下载启动文件
 
-从仓库下载以下文件，并按上面的目录结构保存：
+根据 [配置指南](./configuration) 自行编写 `docker-compose.yaml` 和 `config/config.yaml`。
 
-- [`docker-compose.yaml`](https://forgejo.alexma.top/alexma233/composia/src/branch/main/docker-compose.yaml)
-- [`configs/config.compose.yaml`](https://forgejo.alexma.top/alexma233/composia/src/branch/main/configs/config.compose.yaml)
+如果你启用 `secrets`，请自行生成 age 密钥：
 
-如果你打算保留 `config.compose.yaml` 里的默认 `secrets` 配置，还需要同时下载：
-
-- [`configs/age-identity.key`](https://forgejo.alexma.top/alexma233/composia/src/branch/main/configs/age-identity.key)
-- [`configs/age-recipients.txt`](https://forgejo.alexma.top/alexma233/composia/src/branch/main/configs/age-recipients.txt)
+```bash
+mkdir -p config
+age-keygen -o config/age-identity.key
+grep "public key:" config/age-identity.key | awk '{print $4}' > config/age-recipients.txt
+```
 
 ### 3. 修改平台配置
 
@@ -40,11 +42,11 @@ composia/
 - `controller.nodes[].token` 与 `agent.token`：节点认证 token，二者必须一致
 - `docker-compose.yaml` 里的 `COMPOSIA_ACCESS_TOKEN`：必须与 `controller.access_tokens[].token` 保持一致
 
-如果你不准备使用仓库附带的 age 密钥文件，请在 `configs/config.compose.yaml` 中替换 `secrets` 配置，或先移除该段配置。
+如果你暂时不使用 `secrets`，可以先移除 `config/config.yaml` 中的 `secrets` 段。
 
 ### 4. 启动 Composia
 
-下面的命令会使用当前目录中的 `docker-compose.yaml` 和 `configs/config.compose.yaml` 启动 Composia：
+下面的命令会使用当前目录中的 `docker-compose.yaml` 和 `config/config.yaml` 启动 Composia：
 
 ```bash
 docker compose up -d

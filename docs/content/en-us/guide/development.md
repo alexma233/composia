@@ -146,7 +146,7 @@ mise run controller
 mise run agent
 ```
 
-`agent` uses the shared `configs/config.controller.dev.yaml` file and connects as the local `main` node.
+`agent` uses the shared `dev/config.controller.yaml` file and connects as the local `main` node.
 
 To start a second local Agent with `node-2`, run:
 
@@ -167,7 +167,7 @@ This Compose stack uses pre-built images. It is useful for integration checks or
 ### Controller Configuration
 
 ```yaml
-# configs/config.controller.dev.yaml
+# dev/config.controller.yaml
 controller:
   listen_addr: "127.0.0.1:7001"
   controller_addr: "http://127.0.0.1:7001"
@@ -176,7 +176,7 @@ controller:
   log_dir: "./dev/logs"
   access_tokens:
     - name: "dev-admin"
-      token: "dev-admin-token"
+      token: "<your-dev-controller-token>"
       enabled: true
   nodes:
     - id: "main"
@@ -188,7 +188,7 @@ controller:
 ### Agent Configuration
 
 ```yaml
-# configs/config.agent.dev.yaml
+# dev/config.agent.yaml
 agent:
   controller_addr: "http://127.0.0.1:7001"
   node_id: "node-2"
@@ -205,14 +205,14 @@ To test multi-node setups, start multiple agents:
 
 ```bash
 go run ./cmd/composia agent \
-  -config ./configs/config.controller.dev.yaml
+  -config ./dev/config.controller.yaml
 ```
 
 **Agent 2:**
 
 ```bash
 go run ./cmd/composia agent \
-  -config ./configs/config.agent.dev.yaml
+  -config ./dev/config.agent.yaml
 ```
 
 ## Web Editor Validation
@@ -244,7 +244,7 @@ composia/
 ├── cmd/
 │   └── composia/           # Main application entry
 │       └── main.go
-├── configs/                # Development configuration examples
+├── dev/                    # Development state and local config
 ├── docs/                   # Documentation (VitePress)
 │   ├── content/
 │   └── .vitepress/
@@ -315,13 +315,13 @@ bun run web:check
 
 ```bash
 # Run the controller with an explicit config file
-go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml
+go run ./cmd/composia controller -config ./dev/config.controller.yaml
 ```
 
 ### Agent Debugging
 
 ```bash
-go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml
+go run ./cmd/composia agent -config ./dev/config.controller.yaml
 ```
 
 ### View RPC Communication

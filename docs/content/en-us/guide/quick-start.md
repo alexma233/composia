@@ -11,26 +11,28 @@ This guide will help you get Composia up and running in minutes using pre-built 
 
 ### 1. Create a Working Directory
 
-Prepare an empty directory with this layout:
+Prepare an empty directory and create the startup files yourself:
 
 ```text
 composia/
 ├── docker-compose.yaml
-└── configs/
-    └── config.compose.yaml
+└── config/
+    ├── config.yaml
+    ├── age-identity.key
+    └── age-recipients.txt
 ```
 
 ### 2. Download the Startup Files
 
-Download these files from the repository and save them using the layout above:
+Write `docker-compose.yaml` and `config/config.yaml` yourself using the [Configuration Guide](./configuration).
 
-- [`docker-compose.yaml`](https://forgejo.alexma.top/alexma233/composia/src/branch/main/docker-compose.yaml)
-- [`configs/config.compose.yaml`](https://forgejo.alexma.top/alexma233/composia/src/branch/main/configs/config.compose.yaml)
+If you enable `secrets`, generate your own age key pair:
 
-If you want to keep the default `secrets` section in `config.compose.yaml`, also download:
-
-- [`configs/age-identity.key`](https://forgejo.alexma.top/alexma233/composia/src/branch/main/configs/age-identity.key)
-- [`configs/age-recipients.txt`](https://forgejo.alexma.top/alexma233/composia/src/branch/main/configs/age-recipients.txt)
+```bash
+mkdir -p config
+age-keygen -o config/age-identity.key
+grep "public key:" config/age-identity.key | awk '{print $4}' > config/age-recipients.txt
+```
 
 ### 3. Adjust the Platform Configuration
 
@@ -40,11 +42,11 @@ Before startup, review and update at least these values:
 - `controller.nodes[].token` and `agent.token`: node authentication token, which must match on both sides
 - `COMPOSIA_ACCESS_TOKEN` in `docker-compose.yaml`: it must match one enabled token under `controller.access_tokens`
 
-If you do not want to use the bundled age key files, replace the `secrets` configuration in `configs/config.compose.yaml` or remove that section before startup.
+If you do not want to use `secrets` yet, remove the `secrets` section from `config/config.yaml` before startup.
 
 ### 4. Start Composia
 
-The following command starts Composia with the local `docker-compose.yaml` and `configs/config.compose.yaml` files:
+The following command starts Composia with the local `docker-compose.yaml` and `config/config.yaml` files:
 
 ```bash
 docker compose up -d

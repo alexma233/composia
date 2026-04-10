@@ -314,10 +314,10 @@ services:
 
 ```bash
 # Controller
-go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml
+go run ./cmd/composia controller -config ./dev/config.controller.yaml
 
 # Agent
-go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml
+go run ./cmd/composia agent -config ./dev/config.controller.yaml
 ```
 
 ### 获取支持

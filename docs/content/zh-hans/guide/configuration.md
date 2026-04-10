@@ -8,7 +8,7 @@
 
 | 配置类型 | 文件 | 作用范围 | 说明 |
 |----------|------|----------|------|
-| 平台配置 | `configs/config.compose.yaml` | 整个平台 | 定义 Controller 和 Agent 如何启动 |
+| 平台配置 | `config/config.yaml` | 整个平台 | 定义 Controller 和 Agent 如何启动 |
 | 服务配置 | `composia-meta.yaml` | 单个服务 | 定义服务部署目标和功能特性 |
 
 ## 平台配置
@@ -331,7 +331,7 @@ controller:
 ```yaml
 # docker-compose.yaml
 volumes:
-  - ./configs:/app/configs:ro
+  - ./config:/app/configs:ro
 ```
 
 ### age 密钥管理
@@ -354,10 +354,10 @@ cat key.txt | grep "public key" > recipients.txt
 
 ```bash
 # 使用 dev 配置启动 Controller
-go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml
+go run ./cmd/composia controller -config ./dev/config.controller.yaml
 
 # 使用共享的 dev 配置启动 main Agent
-go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml
+go run ./cmd/composia agent -config ./dev/config.controller.yaml
 ```
 
-`configs/config.compose.yaml` 主要用于仓库自带的 `docker-compose.yaml` 容器栈，不适合作为宿主机本地开发配置直接运行。
+本地开发配置建议放在 `./dev/` 下，并且不要提交本地 token 或密钥文件。

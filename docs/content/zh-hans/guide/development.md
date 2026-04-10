@@ -146,7 +146,7 @@ mise run controller
 mise run agent
 ```
 
-这里的 `agent` 会使用共享的 `configs/config.controller.dev.yaml`，以 `main` 节点身份接入本地 Controller。
+这里的 `agent` 会使用共享的 `dev/config.controller.yaml`，以 `main` 节点身份接入本地 Controller。
 
 如果你要额外启动一个 `node-2` 本地 Agent，可以执行：
 
@@ -167,7 +167,7 @@ docker compose up -d
 ### Controller 配置
 
 ```yaml
-# configs/config.controller.dev.yaml
+# dev/config.controller.yaml
 controller:
   listen_addr: "127.0.0.1:7001"
   controller_addr: "http://127.0.0.1:7001"
@@ -176,7 +176,7 @@ controller:
   log_dir: "./dev/logs"
   access_tokens:
     - name: "dev-admin"
-      token: "dev-admin-token"
+      token: "<your-dev-controller-token>"
       enabled: true
   nodes:
     - id: "main"
@@ -188,7 +188,7 @@ controller:
 ### Agent 配置
 
 ```yaml
-# configs/config.agent.dev.yaml
+# dev/config.agent.yaml
 agent:
   controller_addr: "http://127.0.0.1:7001"
   node_id: "node-2"
@@ -205,14 +205,14 @@ agent:
 
 ```bash
 go run ./cmd/composia agent \
-  -config ./configs/config.controller.dev.yaml
+  -config ./dev/config.controller.yaml
 ```
 
 **Agent 2：**
 
 ```bash
 go run ./cmd/composia agent \
-  -config ./configs/config.agent.dev.yaml
+  -config ./dev/config.agent.yaml
 ```
 
 ## Web 编辑器校验
@@ -244,7 +244,7 @@ composia/
 ├── cmd/
 │   └── composia/           # 主程序入口
 │       └── main.go
-├── configs/                # 开发配置示例
+├── dev/                    # 开发状态与本地配置
 ├── docs/                   # 文档（VitePress）
 │   ├── content/
 │   └── .vitepress/
@@ -315,13 +315,13 @@ bun run web:check
 
 ```bash
 # 使用明确的配置文件启动 Controller
-go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml
+go run ./cmd/composia controller -config ./dev/config.controller.yaml
 ```
 
 ### Agent 调试
 
 ```bash
-go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml
+go run ./cmd/composia agent -config ./dev/config.controller.yaml
 ```
 
 ### 查看 RPC 通信

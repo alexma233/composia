@@ -314,10 +314,10 @@ Use the explicit config files below when reproducing operational issues locally:
 
 ```bash
 # Controller
-go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml
+go run ./cmd/composia controller -config ./dev/config.controller.yaml
 
 # Agent
-go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml
+go run ./cmd/composia agent -config ./dev/config.controller.yaml
 ```
 
 ### Getting Support

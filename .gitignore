@@ -168,6 +168,12 @@ dist
 /dev/repo-controller/
 /dev/repo-agent/
 /dev/repo-agent-node-2/
+/dev/config.controller.yaml
+/dev/config.agent.yaml
+/dev/config.controller.container.yaml
+/dev/age-identity.key
+/dev/age-recipients.txt
+/dev/.env
 
 # Bun / SvelteKit
 bun.lockb

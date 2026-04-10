@@ -6,25 +6,25 @@ controller:
   log_dir: "./dev/logs"
   access_tokens:
     - name: "dev-admin"
-      token: "dev-admin-token"
+      token: "replace-with-dev-controller-token"
       enabled: true
   nodes:
     - id: "main"
       display_name: "Main"
       enabled: true
-      token: "main-agent-token"
+      token: "replace-with-dev-main-agent-token"
   rustic:
     main_nodes:
       - "main"
   secrets:
     provider: age
-    identity_file: "./configs/age-identity.key"
-    recipient_file: "./configs/age-recipients.txt"
+    identity_file: "./dev/age-identity.key"
+    recipient_file: "./dev/age-recipients.txt"
     armor: true
 
 agent:
   controller_addr: "http://127.0.0.1:7001"
   node_id: "main"
-  token: "main-agent-token"
+  token: "replace-with-dev-main-agent-token"
   repo_dir: "./dev/repo-agent"
   state_dir: "./dev/state-agent"

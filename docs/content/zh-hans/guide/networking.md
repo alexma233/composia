@@ -18,7 +18,7 @@ controller:
 创建 API Token 文件：
 
 ```bash
-echo "your-cloudflare-api-token" > configs/cloudflare-token.txt
+echo "your-cloudflare-api-token" > ./cloudflare-token.txt
 ```
 
 **Cloudflare Token 权限要求：**

@@ -17,11 +17,11 @@ services:
     depends_on:
       init-repo-controller:
         condition: service_completed_successfully
-    command: ["controller", "-config", "/app/configs/config.compose.yaml"]
+    command: ["controller", "-config", "/app/configs/config.yaml"]
     ports:
       - "7001:7001"
     volumes:
-      - ./configs:/app/configs:ro
+      - ./config:/app/configs:ro
       - controller_repo:/data/repo-controller
       - controller_state:/data/state-controller
       - controller_logs:/data/logs
@@ -34,9 +34,9 @@ services:
     depends_on:
       controller:
         condition: service_started
-    command: ["agent", "-config", "/app/configs/config.compose.yaml"]
+    command: ["agent", "-config", "/app/configs/config.yaml"]
     volumes:
-      - ./configs:/app/configs:ro
+      - ./config:/app/configs:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - agent_repo:/data/repo-agent
       - agent_state:/data/state-agent
@@ -51,7 +51,7 @@ services:
         condition: service_started
     environment:
       COMPOSIA_CONTROLLER_ADDR: http://controller:7001
-      COMPOSIA_ACCESS_TOKEN: dev-admin-token
+      COMPOSIA_ACCESS_TOKEN: REPLACE_WITH_CONTROLLER_ACCESS_TOKEN
       HOST: 0.0.0.0
       PORT: "3000"
     ports:

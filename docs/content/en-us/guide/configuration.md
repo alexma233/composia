@@ -8,7 +8,7 @@ Configuration loading is strict. Unknown fields are rejected during startup.
 
 | Configuration Type | File | Scope | Description |
 |-------------------|------|-------|-------------|
-| Platform Config | `configs/config.compose.yaml` | Entire platform | Defines how Controller and Agents start |
+| Platform Config | `config/config.yaml` | Entire platform | Defines how Controller and Agents start |
 | Service Config | `composia-meta.yaml` | Individual service | Defines service deployment targets and features |
 
 ## Platform Configuration
@@ -331,7 +331,7 @@ controller:
 ```yaml
 # docker-compose.yaml
 volumes:
-  - ./configs:/app/configs:ro
+  - ./config:/app/configs:ro
 ```
 
 ### Age Key Management
@@ -354,10 +354,10 @@ For local source-based development, validate configuration with the development 
 
 ```bash
 # Start the Controller with the dev config
-go run ./cmd/composia controller -config ./configs/config.controller.dev.yaml
+go run ./cmd/composia controller -config ./dev/config.controller.yaml
 
 # Start the main Agent with the shared dev config
-go run ./cmd/composia agent -config ./configs/config.controller.dev.yaml
+go run ./cmd/composia agent -config ./dev/config.controller.yaml
 ```
 
-Use `configs/config.compose.yaml` with the repository `docker-compose.yaml` container stack, not as a direct host-side development config.
+Keep local development config under `./dev/` and do not commit local tokens or key files.
