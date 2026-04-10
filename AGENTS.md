@@ -11,7 +11,8 @@ This file defines repository-wide collaboration rules for human contributors and
 - For the Web UI, do not hardcode new user-facing copy in Svelte components when the project already routes UI text through i18n.
 - When adding or changing Web UI user-facing text, update the i18n dictionaries in `web/src/lib/i18n/messages/` at the same time.
 - Keep i18n key structures aligned across locales, especially `en-us.ts` and `zh-hans.ts`.
-- All assistant conversation with the user must use `zh_Hans`.
+- All assistant conversation with the user use `zh_Hans` by default, feel free to use `en_US` if necessary. Never use uncommon/mechanical translation.
+- Use concise language.
 
 ## Communication Rules
 
