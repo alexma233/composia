@@ -13,10 +13,6 @@
   import { messages } from '$lib/i18n';
   import { initializePreferences } from '$lib/preferences';
   import { cn } from '$lib/utils';
-  import { Select } from '$lib/components/ui/select';
-  import SelectContent from '$lib/components/ui/select/select-content.svelte';
-  import SelectItem from '$lib/components/ui/select/select-item.svelte';
-  import SelectTrigger from '$lib/components/ui/select/select-trigger.svelte';
 
   type NavKey = keyof Dictionary['nav'];
 
@@ -40,22 +36,6 @@
 
   function isActive(href: string, pathname: string) {
     return href === '/' ? pathname === '/' : pathname.startsWith(href);
-  }
-
-  function isServiceWorkspace(pathname: string) {
-    return pathname.startsWith('/services/') && pathname !== '/services';
-  }
-
-  function currentServiceName(pathname: string) {
-    return isServiceWorkspace(pathname) ? pathname.split('/')[2] ?? '' : '';
-  }
-
-  let selectedService = $state(currentServiceName($page.url.pathname));
-
-  function handleServiceSwitch(value: string) {
-    if (value) {
-      window.location.href = `/services/${value}`;
-    }
   }
 </script>
 
@@ -85,27 +65,7 @@
           {/each}
         </nav>
 
-        <div class="ml-auto flex min-w-0 shrink-0 items-center gap-3">
-          {#if isServiceWorkspace($page.url.pathname) && data.navServices.length}
-            <div class="toolbar-surface flex items-center gap-3 text-sm text-muted-foreground">
-              <span class="text-xs font-medium text-muted-foreground">
-                {$messages.nav.services}
-              </span>
-              <Select type="single" bind:value={selectedService as any} onValueChange={(value: string) => handleServiceSwitch(value)}>
-                <SelectTrigger class="min-w-36 border-0 bg-transparent p-0 text-sm font-medium text-foreground shadow-none outline-none focus:ring-0">
-                  <span class="truncate">
-                    {data.navServices.find(s => s.folder === selectedService)?.displayName ?? 'Select...'}
-                  </span>
-                </SelectTrigger>
-                <SelectContent>
-                  {#each data.navServices as service}
-                    <SelectItem value={service.folder}>{service.displayName}</SelectItem>
-                  {/each}
-                </SelectContent>
-              </Select>
-            </div>
-          {/if}
-        </div>
+        <div class="ml-auto flex min-w-0 shrink-0 items-center gap-3"></div>
       </div>
     </div>
   </header>

@@ -4,6 +4,7 @@ import {
   controllerConfig,
   loadRepoHead,
 } from "$lib/server/controller";
+import { loadServiceWorkspaces } from "$lib/server/service-index";
 import {
   defaultServiceFilePath,
   normalizeServiceRelativePath,
@@ -21,6 +22,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
       tasks: [],
       backups: [],
       serviceDetail: null,
+      services: [],
       nodeContainers: [],
       repoHead: null,
       fileTree: [],
@@ -29,9 +31,10 @@ export const load: PageServerLoad = async ({ params, url }) => {
   }
 
   try {
-    const [summary, repoHead] = await Promise.all([
+    const [summary, repoHead, services] = await Promise.all([
       loadServiceWorkspaceSummary(params.name),
       loadRepoHead(),
+      loadServiceWorkspaces(),
     ]);
     const { workspace, tasks, backups, serviceDetail, fileTree } = summary;
     const nodeContainers = serviceDetail?.instances ?? [];
@@ -50,6 +53,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
       tasks,
       backups,
       serviceDetail,
+      services,
       nodeContainers,
       repoHead,
       fileTree,
@@ -69,6 +73,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
       tasks: [],
       backups: [],
       serviceDetail: null,
+      services: [],
       nodeContainers: [],
       repoHead: null,
       fileTree: [],

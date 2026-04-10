@@ -1,4 +1,7 @@
 <script lang="ts">
+  import CheckIcon from '@lucide/svelte/icons/check';
+  import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
+  import { goto, invalidateAll } from '$app/navigation';
   import { onMount } from 'svelte';
   import {
     Columns2,
@@ -46,6 +49,7 @@
     DialogFooter,
     DialogHeader,
   } from "$lib/components/ui/dialog";
+  import * as Command from '$lib/components/ui/command';
   import DialogContent from "$lib/components/ui/dialog/dialog-content.svelte";
   import DialogOverlay from "$lib/components/ui/dialog/dialog-overlay.svelte";
   import { Input } from "$lib/components/ui/input";
@@ -77,6 +81,7 @@
     upsertFileNode,
   } from "$lib/service-workspace";
   import { startPolling } from '$lib/refresh';
+  import { cn } from '$lib/utils';
 
   let { data }: { data: PageData } = $props();
 
@@ -119,6 +124,7 @@
   let migrateSourceNode = $state("");
   let migrateTargetNode = $state("");
   let selectedInstanceNode = $state("__all__");
+  let serviceSwitchOpen = $state(false);
 
   $effect(() => {
     fileTree = data.fileTree;
@@ -188,6 +194,13 @@
       : nodeContainers.filter(
           (instance) => instance.nodeId === selectedInstanceNode,
         ),
+  );
+  let serviceOptions = $derived(
+    data.services.map((service) => ({
+      value: service.folder,
+      label: service.displayName,
+      secondary: service.folder,
+    })),
   );
 
   function applyServiceSummaryState(payload: {
@@ -927,6 +940,15 @@
     }
     collapsedPaths = next;
   }
+
+  async function selectService(folder: string) {
+    serviceSwitchOpen = false;
+    if (!folder || folder === workspace?.folder) {
+      return;
+    }
+    await goto(`/services/${encodeURIComponent(folder)}`);
+    await invalidateAll();
+  }
 </script>
 
 <div class="page-shell flex min-h-[calc(100vh-72px)] flex-col">
@@ -934,20 +956,50 @@
     <Card>
       <CardHeader class="gap-3 py-4">
         <div class="flex flex-wrap items-start justify-between gap-3">
-          <div class="min-w-0 space-y-1">
-            <CardTitle class="page-title"
-              >{workspace?.displayName ?? $messages.services.service}</CardTitle
-            >
-            <div class="truncate text-sm text-muted-foreground">
-              {workspace?.folder ?? "n/a"}
-            </div>
-          </div>
-
           <Badge
             variant={runtimeStatusTone(workspace?.runtimeStatus ?? "unknown")}
           >
             {runtimeStatusLabel(workspace?.runtimeStatus ?? "", $messages)}
           </Badge>
+        </div>
+
+        <div class="max-w-xl space-y-1">
+          <Popover.Root bind:open={serviceSwitchOpen}>
+            <Popover.Trigger class="inline-flex w-full">
+              <button
+                type="button"
+                class="flex w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-left text-sm shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                <span class="min-w-0 flex-1 truncate font-semibold text-foreground">
+                  {workspace?.displayName ?? $messages.services.selectService}
+                </span>
+                <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+              </button>
+            </Popover.Trigger>
+            <Popover.Content class="w-[min(92vw,28rem)] p-0" align="start" sideOffset={8}>
+              <Command.Root>
+                <Command.Input placeholder={$messages.services.searchServicePlaceholder} />
+                <Command.List>
+                  <Command.Empty>{$messages.services.noServicesFound}</Command.Empty>
+                  <Command.Group>
+                    {#each serviceOptions as service (service.value)}
+                      <Command.Item value={`${service.label} ${service.secondary}`} onSelect={() => { void selectService(service.value); }}>
+                        <div class="min-w-0">
+                          <div class="truncate">{service.label}</div>
+                          <div class="truncate text-xs text-muted-foreground">{service.secondary}</div>
+                        </div>
+                        <CheckIcon class={cn('ml-auto size-4', service.value !== workspace?.folder && 'text-transparent')} />
+                      </Command.Item>
+                    {/each}
+                  </Command.Group>
+                </Command.List>
+              </Command.Root>
+            </Popover.Content>
+          </Popover.Root>
+
+          <div class="truncate text-sm text-muted-foreground">
+            {workspace?.folder ?? "n/a"}
+          </div>
         </div>
 
         <div
