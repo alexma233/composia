@@ -289,7 +289,7 @@
   <div class="page-stack">
 		<Card>
 			<CardHeader>
-        <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div class="space-y-1">
             <CardTitle class="page-title">
               {#if containerData}
@@ -306,16 +306,18 @@
               {/if}
             </CardDescription>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
             {#if containerData}
-              <Badge variant={getStateVariant(containerData.State?.Status)}>
+              <Badge variant={getStateVariant(containerData.State?.Status)} class="w-fit">
                 {containerData.State?.Status || $messages.common.unknown}
               </Badge>
             {/if}
-            <Button variant="outline" size="sm" onclick={() => void queueContainerAction('start')} disabled={actionBusy !== '' || containerData?.State?.Status?.toLowerCase() === 'running'}>{$messages.docker.containers.start}</Button>
-            <Button variant="outline" size="sm" onclick={() => void queueContainerAction('stop')} disabled={actionBusy !== '' || containerData?.State?.Status?.toLowerCase() !== 'running'}>{$messages.docker.containers.stop}</Button>
-            <Button variant="outline" size="sm" onclick={() => void queueContainerAction('restart')} disabled={actionBusy !== ''}>{$messages.docker.containers.restart}</Button>
-            <a href="/nodes/{data.nodeId}/docker/containers" class="text-sm text-muted-foreground hover:underline">
+            <div class="flex flex-wrap gap-2 sm:justify-end">
+              <Button class="flex-1 sm:flex-none" variant="outline" size="sm" onclick={() => void queueContainerAction('start')} disabled={actionBusy !== '' || containerData?.State?.Status?.toLowerCase() === 'running'}>{$messages.docker.containers.start}</Button>
+              <Button class="flex-1 sm:flex-none" variant="outline" size="sm" onclick={() => void queueContainerAction('stop')} disabled={actionBusy !== '' || containerData?.State?.Status?.toLowerCase() !== 'running'}>{$messages.docker.containers.stop}</Button>
+              <Button class="flex-1 sm:flex-none" variant="outline" size="sm" onclick={() => void queueContainerAction('restart')} disabled={actionBusy !== ''}>{$messages.docker.containers.restart}</Button>
+            </div>
+            <a href="/nodes/{data.nodeId}/docker/containers" class="text-sm text-muted-foreground hover:underline sm:text-right">
               {$messages.docker.containers.backToContainers}
             </a>
           </div>
@@ -335,17 +337,19 @@
           </Alert>
         {:else if containerData}
           <Tabs bind:value={activeTab} class="w-full">
-            <TabsList class="mb-4">
-              <TabsTrigger value="info">{$messages.docker.containers.info}</TabsTrigger>
-              <TabsTrigger value="logs">{$messages.docker.containers.logsLabel}</TabsTrigger>
-              <TabsTrigger value="terminal">{$messages.docker.containers.terminalLabel}</TabsTrigger>
-              <TabsTrigger value="config">{$messages.docker.containers.config}</TabsTrigger>
-              <TabsTrigger value="env">{$messages.docker.containers.environment}</TabsTrigger>
-              <TabsTrigger value="network">{$messages.docker.containers.network}</TabsTrigger>
-              <TabsTrigger value="volumes">{$messages.docker.containers.volumes}</TabsTrigger>
-              <TabsTrigger value="labels">{$messages.docker.containers.labels}</TabsTrigger>
-              <TabsTrigger value="raw">{$messages.docker.containers.json}</TabsTrigger>
-            </TabsList>
+            <div class="mb-4 overflow-x-auto pb-1 scrollbar-none">
+              <TabsList class="min-w-max">
+                <TabsTrigger value="info">{$messages.docker.containers.info}</TabsTrigger>
+                <TabsTrigger value="logs">{$messages.docker.containers.logsLabel}</TabsTrigger>
+                <TabsTrigger value="terminal">{$messages.docker.containers.terminalLabel}</TabsTrigger>
+                <TabsTrigger value="config">{$messages.docker.containers.config}</TabsTrigger>
+                <TabsTrigger value="env">{$messages.docker.containers.environment}</TabsTrigger>
+                <TabsTrigger value="network">{$messages.docker.containers.network}</TabsTrigger>
+                <TabsTrigger value="volumes">{$messages.docker.containers.volumes}</TabsTrigger>
+                <TabsTrigger value="labels">{$messages.docker.containers.labels}</TabsTrigger>
+                <TabsTrigger value="raw">{$messages.docker.containers.json}</TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="info" class="space-y-4">
               <div class="grid gap-4 md:grid-cols-2">
@@ -354,31 +358,31 @@
                     <CardTitle class="text-base">{$messages.docker.containers.general}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">ID</span>
                       <code class="text-xs bg-muted px-1 py-0.5 rounded">{containerData.Id?.substring(0, 12)}</code>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.common.name}</span>
-                      <span>{containerData.Name?.replace(/^\//, '') || '-'}</span>
+                      <span class="break-all sm:text-right">{containerData.Name?.replace(/^\//, '') || '-'}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.containers.image}</span>
-                      <span class="truncate max-w-[200px]" title={containerData.Config?.Image}>
+                      <span class="break-all sm:max-w-[20rem] sm:text-right" title={containerData.Config?.Image}>
                         {containerData.Config?.Image || '-'}
                       </span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.containers.platform}</span>
-                      <span>{containerData.Platform || '-'}</span>
+                      <span class="break-all sm:text-right">{containerData.Platform || '-'}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.containers.driver}</span>
-                      <span>{containerData.Driver || '-'}</span>
+                      <span class="break-all sm:text-right">{containerData.Driver || '-'}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.containers.created}</span>
-                      <span>{formatDate(containerData.Created)}</span>
+                      <span class="sm:text-right">{formatDate(containerData.Created)}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -388,42 +392,42 @@
                     <CardTitle class="text-base">{$messages.docker.containers.runtime}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.common.status}</span>
                       <Badge variant={getStateVariant(containerData.State?.Status)}>
                         {containerData.State?.Status || $messages.common.unknown}
                       </Badge>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.containers.running}</span>
-                      <span>{containerData.State?.Running ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
+                      <span class="sm:text-right">{containerData.State?.Running ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
                     {#if containerData.State?.Running}
-                      <div class="flex justify-between">
+                      <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                         <span class="text-muted-foreground">{$messages.docker.containers.uptime}</span>
-                        <span>{formatDuration(containerData.State?.StartedAt)}</span>
+                        <span class="sm:text-right">{formatDuration(containerData.State?.StartedAt)}</span>
                       </div>
-                      <div class="flex justify-between">
+                      <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                         <span class="text-muted-foreground">{$messages.docker.containers.started}</span>
-                        <span>{formatDate(containerData.State?.StartedAt)}</span>
+                        <span class="sm:text-right">{formatDate(containerData.State?.StartedAt)}</span>
                       </div>
                     {:else}
-                      <div class="flex justify-between">
+                      <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                         <span class="text-muted-foreground">{$messages.docker.containers.exitCode}</span>
-                        <span>{containerData.State?.ExitCode ?? '-'}</span>
+                        <span class="sm:text-right">{containerData.State?.ExitCode ?? '-'}</span>
                       </div>
-                      <div class="flex justify-between">
+                      <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                         <span class="text-muted-foreground">{$messages.docker.containers.finished}</span>
-                        <span>{formatDate(containerData.State?.FinishedAt)}</span>
+                        <span class="sm:text-right">{formatDate(containerData.State?.FinishedAt)}</span>
                       </div>
                     {/if}
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.containers.restartCount}</span>
-                      <span>{containerData.RestartCount || 0}</span>
+                      <span class="sm:text-right">{containerData.RestartCount || 0}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.containers.oomKilled}</span>
-                      <span>{containerData.State?.OOMKilled ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
+                      <span class="sm:text-right">{containerData.State?.OOMKilled ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -461,13 +465,13 @@
             <TabsContent value="logs" class="space-y-4">
               <Card>
                 <CardHeader class="pb-3">
-                  <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <CardTitle class="text-base">{$messages.docker.containers.containerLogs}</CardTitle>
                       <CardDescription>{$messages.docker.containers.logs.description}</CardDescription>
                     </div>
-                    <div class="flex items-center gap-2">
-                      <Input bind:value={logTail} class="w-24" />
+                    <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                      <Input bind:value={logTail} class="w-full sm:w-24" />
                       <Button variant="outline" size="sm" onclick={() => void loadLogs()} disabled={logsLoading}>{$messages.docker.containers.logs.refresh}</Button>
                     </div>
                   </div>
@@ -483,7 +487,7 @@
                     active={activeTab === 'logs'}
                     content={logsLoading ? $messages.common.loadingWithDots : logs}
                     emptyText={$messages.docker.containers.logs.noLogs}
-                    heightClass="h-[560px]"
+                    heightClass="h-[360px] sm:h-[560px]"
                   />
                 </CardContent>
               </Card>
@@ -496,12 +500,12 @@
                   <CardDescription>{$messages.docker.containers.terminal.description}</CardDescription>
                 </CardHeader>
                 <CardContent class="space-y-4">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <Input bind:value={terminalCommand} placeholder="/bin/sh" class="min-w-[220px] flex-1" />
-                    <Button onclick={() => void connectTerminal()} disabled={terminalConnecting}>
+                  <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Input bind:value={terminalCommand} placeholder="/bin/sh" class="w-full sm:min-w-[220px] sm:flex-1" />
+                    <Button class="w-full sm:w-auto" onclick={() => void connectTerminal()} disabled={terminalConnecting}>
                       {terminalSocket ? $messages.docker.containers.terminal.reconnect : $messages.docker.containers.terminal.connect}
                     </Button>
-                    <Button variant="outline" onclick={disconnectTerminal} disabled={!terminalSocket}>{$messages.docker.containers.terminal.disconnect}</Button>
+                    <Button class="w-full sm:w-auto" variant="outline" onclick={disconnectTerminal} disabled={!terminalSocket}>{$messages.docker.containers.terminal.disconnect}</Button>
                   </div>
 
                   {#if terminalError}
@@ -514,7 +518,7 @@
                     active={activeTab === 'terminal'}
                     content={terminalOutput}
                     emptyText={terminalConnecting ? $messages.docker.containers.terminal.connecting : (terminalSocket ? '' : $messages.docker.containers.terminal.description)}
-                    heightClass="h-[380px]"
+                    heightClass="h-[300px] sm:h-[380px]"
                     interactive={true}
                     onData={sendTerminalData}
                     onResize={resizeTerminal}
@@ -534,41 +538,41 @@
                     <CardTitle class="text-base">{$messages.docker.containers.configuration}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.containers.hostname}</span>
-                      <span>{containerData.Config?.Hostname || '-'}</span>
+                      <span class="break-all sm:text-right">{containerData.Config?.Hostname || '-'}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.containers.domainname}</span>
-                      <span>{containerData.Config?.Domainname || '-'}</span>
+                      <span class="break-all sm:text-right">{containerData.Config?.Domainname || '-'}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.containers.user}</span>
-                      <span>{containerData.Config?.User || $messages.common.root}</span>
+                      <span class="break-all sm:text-right">{containerData.Config?.User || $messages.common.root}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.containers.attachStdin}</span>
-                      <span>{containerData.Config?.AttachStdin ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
+                      <span class="sm:text-right">{containerData.Config?.AttachStdin ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.containers.attachStdout}</span>
-                      <span>{containerData.Config?.AttachStdout ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
+                      <span class="sm:text-right">{containerData.Config?.AttachStdout ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.containers.attachStderr}</span>
-                      <span>{containerData.Config?.AttachStderr ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
+                      <span class="sm:text-right">{containerData.Config?.AttachStderr ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.containers.tty}</span>
-                      <span>{containerData.Config?.Tty ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
+                      <span class="sm:text-right">{containerData.Config?.Tty ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.containers.openStdin}</span>
-                      <span>{containerData.Config?.OpenStdin ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
+                      <span class="sm:text-right">{containerData.Config?.OpenStdin ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.containers.stdinOnce}</span>
-                      <span>{containerData.Config?.StdinOnce ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
+                      <span class="sm:text-right">{containerData.Config?.StdinOnce ? $messages.docker.containers.yes : $messages.docker.containers.no}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -578,38 +582,38 @@
                     <CardTitle class="text-base">Host Configuration</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">Network Mode</span>
-                      <span>{containerData.HostConfig?.NetworkMode || 'default'}</span>
+                      <span class="break-all sm:text-right">{containerData.HostConfig?.NetworkMode || 'default'}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">Privileged</span>
-                      <span>{containerData.HostConfig?.Privileged ? 'Yes' : 'No'}</span>
+                      <span class="sm:text-right">{containerData.HostConfig?.Privileged ? 'Yes' : 'No'}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">Auto Remove</span>
-                      <span>{containerData.HostConfig?.AutoRemove ? 'Yes' : 'No'}</span>
+                      <span class="sm:text-right">{containerData.HostConfig?.AutoRemove ? 'Yes' : 'No'}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">Readonly Rootfs</span>
-                      <span>{containerData.HostConfig?.ReadonlyRootfs ? 'Yes' : 'No'}</span>
+                      <span class="sm:text-right">{containerData.HostConfig?.ReadonlyRootfs ? 'Yes' : 'No'}</span>
                     </div>
                     {#if containerData.HostConfig?.Memory}
-                      <div class="flex justify-between">
+                      <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                         <span class="text-muted-foreground">Memory Limit</span>
-                        <span>{formatBytes(containerData.HostConfig.Memory)}</span>
+                        <span class="sm:text-right">{formatBytes(containerData.HostConfig.Memory)}</span>
                       </div>
                     {/if}
                     {#if containerData.HostConfig?.CpuShares}
-                      <div class="flex justify-between">
+                      <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                         <span class="text-muted-foreground">CPU Shares</span>
-                        <span>{containerData.HostConfig.CpuShares}</span>
+                        <span class="sm:text-right">{containerData.HostConfig.CpuShares}</span>
                       </div>
                     {/if}
                     {#if containerData.HostConfig?.RestartPolicy?.Name}
-                      <div class="flex justify-between">
+                      <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                         <span class="text-muted-foreground">Restart Policy</span>
-                        <span>
+                        <span class="break-all sm:text-right">
                           {containerData.HostConfig.RestartPolicy.Name}
                           {#if containerData.HostConfig.RestartPolicy.MaximumRetryCount > 0}
                             (max {containerData.HostConfig.RestartPolicy.MaximumRetryCount})
@@ -633,7 +637,7 @@
                       {#each containerData.Config.Env as env}
                         {@const [key, ...valueParts] = env.split('=')}
                         {@const value = valueParts.join('=')}
-                        <div class="flex gap-2 text-sm font-mono text-xs border-b border-border/50 last:border-0 py-1.5">
+                        <div class="flex flex-col gap-1 border-b border-border/50 py-1.5 font-mono text-xs last:border-0 sm:flex-row sm:gap-2">
                           <span class="text-foreground font-medium shrink-0">{key}=</span>
                           <span class="text-muted-foreground break-all">{value}</span>
                         </div>
@@ -656,9 +660,11 @@
                     <div class="space-y-2">
                       {#each Object.entries(containerData.HostConfig.PortBindings) as [containerPort, bindings]}
                         {@const typedBindings = (bindings || []) as Array<{HostIp?: string; HostPort?: string}>}
-                        <div class="flex items-center gap-3 text-sm border-b border-border/50 last:border-0 py-2">
-                          <Badge variant="secondary">{containerPort}</Badge>
-                          <span class="text-muted-foreground">→</span>
+                        <div class="flex flex-col gap-2 border-b border-border/50 py-2 text-sm last:border-0 sm:flex-row sm:items-center sm:gap-3">
+                          <div class="flex items-center gap-3">
+                            <Badge variant="secondary">{containerPort}</Badge>
+                            <span class="text-muted-foreground">→</span>
+                          </div>
                           <div class="flex flex-wrap gap-2">
                             {#each typedBindings as binding}
                               <span class="font-mono text-xs">
@@ -696,21 +702,21 @@
                 <CardHeader class="pb-3">
                   <CardTitle class="text-base">Network Settings</CardTitle>
                 </CardHeader>
-                <CardContent class="space-y-2 text-sm">
-                  <div class="flex justify-between">
-                    <span class="text-muted-foreground">Gateway</span>
-                    <span>{containerData.NetworkSettings?.Gateway || '-'}</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-muted-foreground">IPAddress</span>
-                    <span>{containerData.NetworkSettings?.IPAddress || '-'}</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-muted-foreground">MacAddress</span>
-                    <span>{containerData.NetworkSettings?.MacAddress || '-'}</span>
-                  </div>
-                </CardContent>
-              </Card>
+                  <CardContent class="space-y-2 text-sm">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <span class="text-muted-foreground">Gateway</span>
+                      <span class="break-all sm:text-right">{containerData.NetworkSettings?.Gateway || '-'}</span>
+                    </div>
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <span class="text-muted-foreground">IPAddress</span>
+                      <span class="break-all sm:text-right">{containerData.NetworkSettings?.IPAddress || '-'}</span>
+                    </div>
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <span class="text-muted-foreground">MacAddress</span>
+                      <span class="break-all sm:text-right">{containerData.NetworkSettings?.MacAddress || '-'}</span>
+                    </div>
+                  </CardContent>
+                </Card>
             </TabsContent>
 
             <TabsContent value="volumes" class="space-y-4">
@@ -723,16 +729,16 @@
                     <div class="space-y-3">
                       {#each containerData.Mounts as mount}
                         <div class="border-b border-border/50 last:border-0 pb-3 last:pb-0">
-                          <div class="flex items-center gap-2 mb-1">
+                          <div class="mb-1 flex flex-wrap items-center gap-2">
                             <Badge variant="outline">{mount.Type}</Badge>
                             <Badge variant="secondary">{mount.Mode || 'rw'}</Badge>
                           </div>
                           <div class="grid gap-1 text-sm">
-                            <div class="flex gap-2">
+                            <div class="flex flex-col gap-1 sm:flex-row sm:gap-2">
                               <span class="text-muted-foreground w-16 shrink-0">Source:</span>
                               <code class="text-xs bg-muted px-1 py-0.5 rounded break-all">{mount.Source}</code>
                             </div>
-                            <div class="flex gap-2">
+                            <div class="flex flex-col gap-1 sm:flex-row sm:gap-2">
                               <span class="text-muted-foreground w-16 shrink-0">Target:</span>
                               <code class="text-xs bg-muted px-1 py-0.5 rounded break-all">{mount.Destination}</code>
                             </div>
@@ -756,7 +762,7 @@
                   {#if containerData.Config?.Labels && Object.keys(containerData.Config.Labels).length > 0}
                     <div class="space-y-1">
                       {#each Object.entries(containerData.Config.Labels) as [key, value]}
-                        <div class="flex gap-2 text-sm border-b border-border/50 last:border-0 py-1.5">
+                        <div class="flex flex-col gap-1 border-b border-border/50 py-1.5 text-sm last:border-0 sm:flex-row sm:gap-2">
                           <code class="text-xs bg-muted px-1 py-0.5 rounded shrink-0">{key}</code>
                           <span class="text-muted-foreground break-all">{value}</span>
                         </div>
@@ -778,7 +784,7 @@
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <pre class="code-surface max-h-[600px] overflow-auto break-all">{JSON.stringify(containerData, null, 2)}</pre>
+                  <pre class="code-surface max-h-[360px] overflow-auto break-all sm:max-h-[600px]">{JSON.stringify(containerData, null, 2)}</pre>
                 </CardContent>
               </Card>
             </TabsContent>

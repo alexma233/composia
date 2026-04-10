@@ -51,7 +51,7 @@
   <div class="page-stack">
 		<Card>
 			<CardHeader>
-        <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div class="space-y-1">
             <CardTitle class="page-title">
               {#if volumeData}
@@ -68,7 +68,7 @@
               {/if}
             </CardDescription>
           </div>
-          <a href="/nodes/{data.nodeId}/docker/volumes" class="text-sm text-muted-foreground hover:underline">
+          <a href="/nodes/{data.nodeId}/docker/volumes" class="text-sm text-muted-foreground hover:underline sm:text-right">
             {$messages.docker.volumes.backToVolumes}
           </a>
         </div>
@@ -87,11 +87,13 @@
           </Alert>
         {:else if volumeData}
           <Tabs value="info" class="w-full">
-            <TabsList class="mb-4">
-              <TabsTrigger value="info">{$messages.docker.containers.info}</TabsTrigger>
-              <TabsTrigger value="usage">{$messages.docker.volumes.usage}</TabsTrigger>
-              <TabsTrigger value="raw">{$messages.docker.containers.json}</TabsTrigger>
-            </TabsList>
+            <div class="mb-4 overflow-x-auto pb-1 scrollbar-none">
+              <TabsList class="min-w-max">
+                <TabsTrigger value="info">{$messages.docker.containers.info}</TabsTrigger>
+                <TabsTrigger value="usage">{$messages.docker.volumes.usage}</TabsTrigger>
+                <TabsTrigger value="raw">{$messages.docker.containers.json}</TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="info" class="space-y-4">
               <div class="grid gap-4 md:grid-cols-2">
@@ -100,23 +102,23 @@
                     <CardTitle class="text-base">{$messages.docker.volumes.details}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.volumes.driver}</span>
                       <Badge variant="outline">{volumeData.Driver || 'local'}</Badge>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.volumes.scope}</span>
-                        <span>{volumeData.Scope || $messages.common.local}</span>
+                        <span class="break-all sm:text-right">{volumeData.Scope || $messages.common.local}</span>
                     </div>
                     {#if volumeData.Options && Object.keys(volumeData.Options).length > 0}
-                      <div class="flex justify-between">
+                      <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                         <span class="text-muted-foreground">{$messages.docker.volumes.options}</span>
-                        <span class="text-xs">{Object.keys(volumeData.Options).length} {$messages.docker.volumes.options}</span>
+                        <span class="text-xs sm:text-right">{Object.keys(volumeData.Options).length} {$messages.docker.volumes.options}</span>
                       </div>
                     {/if}
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.volumes.created}</span>
-                      <span>{formatDate(volumeData.CreatedAt)}</span>
+                      <span class="sm:text-right">{formatDate(volumeData.CreatedAt)}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -127,19 +129,19 @@
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     {#if volumeData.UsageData?.Size}
-                      <div class="flex justify-between">
+                      <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                         <span class="text-muted-foreground">{$messages.docker.volumes.size}</span>
                         <Badge variant="secondary">{formatSize(volumeData.UsageData.Size)}</Badge>
                       </div>
                     {:else}
-                      <div class="flex justify-between">
+                      <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                         <span class="text-muted-foreground">{$messages.docker.volumes.size}</span>
                         <span class="text-muted-foreground">-</span>
                       </div>
                     {/if}
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                         <span class="text-muted-foreground">{$messages.docker.volumes.mountpoint}</span>
-                      <code class="text-xs bg-muted px-1 py-0.5 rounded truncate max-w-[200px]" title={volumeData.Mountpoint}>
+                      <code class="max-w-full break-all rounded bg-muted px-1 py-0.5 text-xs sm:max-w-[20rem] sm:text-right" title={volumeData.Mountpoint}>
                         {volumeData.Mountpoint}
                       </code>
                     </div>
@@ -155,7 +157,7 @@
                   <CardContent>
                     <div class="space-y-1">
                       {#each Object.entries(volumeData.Labels) as [key, value]}
-                        <div class="flex gap-2 text-sm border-b border-border/50 last:border-0 py-1.5">
+                        <div class="flex flex-col gap-1 border-b border-border/50 py-1.5 text-sm last:border-0 sm:flex-row sm:gap-2">
                           <code class="text-xs bg-muted px-1 py-0.5 rounded shrink-0">{key}</code>
                           <span class="text-muted-foreground break-all">{value}</span>
                         </div>
@@ -173,7 +175,7 @@
                   <CardContent>
                     <div class="space-y-1">
                       {#each Object.entries(volumeData.Options) as [key, value]}
-                        <div class="flex gap-2 text-sm border-b border-border/50 last:border-0 py-1.5">
+                        <div class="flex flex-col gap-1 border-b border-border/50 py-1.5 text-sm last:border-0 sm:flex-row sm:gap-2">
                           <code class="text-xs bg-muted px-1 py-0.5 rounded shrink-0">{key}</code>
                           <span class="text-muted-foreground break-all">{value}</span>
                         </div>
@@ -191,11 +193,11 @@
                     <CardTitle class="text-base">{$messages.docker.volumes.usageStatistics}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.volumes.size}</span>
                       <Badge variant="secondary">{formatSize(volumeData.UsageData.Size)}</Badge>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.volumes.refCount}</span>
                       <Badge variant={volumeData.UsageData.RefCount > 0 ? 'default' : 'secondary'}>
                         {volumeData.UsageData.RefCount === 1
@@ -219,7 +221,7 @@
                   <CardDescription>{$messages.docker.volumes.rawJsonDescription}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <pre class="code-surface max-h-[600px] overflow-auto break-all">{JSON.stringify(volumeData, null, 2)}</pre>
+                  <pre class="code-surface max-h-[360px] overflow-auto break-all sm:max-h-[600px]">{JSON.stringify(volumeData, null, 2)}</pre>
                 </CardContent>
               </Card>
             </TabsContent>

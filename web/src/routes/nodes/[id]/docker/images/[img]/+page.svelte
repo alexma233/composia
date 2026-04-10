@@ -43,7 +43,7 @@
   <div class="page-stack">
 		<Card>
 			<CardHeader>
-        <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div class="space-y-1">
             <CardTitle class="page-title">
               {#if imageData}
@@ -60,7 +60,7 @@
               {/if}
             </CardDescription>
           </div>
-          <a href="/nodes/{data.nodeId}/docker/images" class="text-sm text-muted-foreground hover:underline">
+          <a href="/nodes/{data.nodeId}/docker/images" class="text-sm text-muted-foreground hover:underline sm:text-right">
             {$messages.docker.images.backToImages}
           </a>
         </div>
@@ -79,11 +79,13 @@
           </Alert>
         {:else if imageData}
           <Tabs value="info" class="w-full">
-            <TabsList class="mb-4">
-              <TabsTrigger value="info">{$messages.docker.containers.info}</TabsTrigger>
-              <TabsTrigger value="layers">{$messages.docker.images.layers}</TabsTrigger>
-              <TabsTrigger value="raw">{$messages.docker.containers.json}</TabsTrigger>
-            </TabsList>
+            <div class="mb-4 overflow-x-auto pb-1 scrollbar-none">
+              <TabsList class="min-w-max">
+                <TabsTrigger value="info">{$messages.docker.containers.info}</TabsTrigger>
+                <TabsTrigger value="layers">{$messages.docker.images.layers}</TabsTrigger>
+                <TabsTrigger value="raw">{$messages.docker.containers.json}</TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="info" class="space-y-4">
               <div class="grid gap-4 md:grid-cols-2">
@@ -92,14 +94,14 @@
                     <CardTitle class="text-base">{$messages.docker.images.identity}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.images.id}</span>
                       <code class="text-xs bg-muted px-1 py-0.5 rounded">{imageData.Id?.substring(0, 19)}</code>
                     </div>
                     {#if imageData.RepoTags && imageData.RepoTags.length > 0}
-                      <div class="flex justify-between">
+                      <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                         <span class="text-muted-foreground">{$messages.docker.images.tags}</span>
-                        <div class="flex flex-wrap gap-1">
+                        <div class="flex flex-wrap gap-1 sm:max-w-[20rem] sm:justify-end">
                           {#each imageData.RepoTags.slice(0, 5) as tag}
                             <Badge variant="outline" class="text-xs">{tag}</Badge>
                           {/each}
@@ -114,8 +116,8 @@
                         <span class="text-muted-foreground">{$messages.docker.images.digests}</span>
                         <div class="flex flex-wrap gap-1">
                           {#each imageData.RepoDigests.slice(0, 3) as digest}
-                            <code class="text-xs bg-muted px-1 py-0.5 rounded truncate max-w-[200px]" title={digest}>
-                              {digest.substring(0, 30)}...
+                            <code class="max-w-full break-all rounded bg-muted px-1 py-0.5 text-xs sm:max-w-[200px] sm:truncate" title={digest}>
+                              {digest}
                             </code>
                           {/each}
                         </div>
@@ -129,26 +131,26 @@
                     <CardTitle class="text-base">{$messages.docker.images.details}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.images.size}</span>
                       <Badge variant="secondary">{formatBytes(imageData.Size || imageData.VirtualSize)}</Badge>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.images.architecture}</span>
-                      <span>{imageData.Architecture || '-'}</span>
+                      <span class="break-all sm:text-right">{imageData.Architecture || '-'}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.images.os}</span>
-                      <span>{imageData.Os || '-'}</span>
+                      <span class="break-all sm:text-right">{imageData.Os || '-'}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.common.created}</span>
-                      <span>{formatDate(imageData.Created)}</span>
+                      <span class="sm:text-right">{formatDate(imageData.Created)}</span>
                     </div>
                     {#if imageData.Author}
-                      <div class="flex justify-between">
+                      <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                         <span class="text-muted-foreground">{$messages.docker.images.author}</span>
-                        <span>{imageData.Author}</span>
+                        <span class="break-all sm:text-right">{imageData.Author}</span>
                       </div>
                     {/if}
                   </CardContent>
@@ -165,7 +167,7 @@
                       {#each imageData.Config.Env as env}
                         {@const [key, ...valueParts] = env.split('=')}
                         {@const value = valueParts.join('=')}
-                        <div class="flex gap-2 text-sm font-mono text-xs border-b border-border/50 last:border-0 py-1.5">
+                        <div class="flex flex-col gap-1 border-b border-border/50 py-1.5 font-mono text-xs last:border-0 sm:flex-row sm:gap-2">
                           <span class="text-foreground font-medium shrink-0">{key}=</span>
                           <span class="text-muted-foreground break-all">{value}</span>
                         </div>
@@ -185,10 +187,10 @@
                   <CardContent>
                     <div class="space-y-2">
                       {#each imageData.RootFS.Layers as layer, i}
-                        <div class="flex items-center gap-3 py-2 border-b border-border/50 last:border-0">
+                        <div class="flex flex-col gap-2 border-b border-border/50 py-2 last:border-0 sm:flex-row sm:items-center sm:gap-3">
                           <span class="text-xs text-muted-foreground w-6">{i + 1}</span>
-                          <code class="text-xs bg-muted px-1 py-0.5 rounded flex-1 truncate" title={layer}>
-                            {layer.substring(0, 19)}
+                          <code class="flex-1 break-all rounded bg-muted px-1 py-0.5 text-xs sm:truncate" title={layer}>
+                            {layer}
                           </code>
                         </div>
                       {/each}
@@ -207,7 +209,7 @@
                   <CardDescription>{$messages.docker.images.rawJsonDescription}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <pre class="code-surface max-h-[600px] overflow-auto break-all">{JSON.stringify(imageData, null, 2)}</pre>
+                  <pre class="code-surface max-h-[360px] overflow-auto break-all sm:max-h-[600px]">{JSON.stringify(imageData, null, 2)}</pre>
                 </CardContent>
               </Card>
             </TabsContent>
