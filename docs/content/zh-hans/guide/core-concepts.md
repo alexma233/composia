@@ -207,5 +207,5 @@ ServiceInstances:
 ## 相关文档
 
 - [服务定义](./service-definition) —— 如何定义 Service
-- [配置指南](./configuration) —— 如何配置 Node
+- [Controller 配置](./configuration/controller) —— 如何配置 Node
 - [部署管理](./deployment) —— 管理 ServiceInstance 生命周期

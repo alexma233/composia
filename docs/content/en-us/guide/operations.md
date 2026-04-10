@@ -202,7 +202,7 @@ Use the ConnectRPC method `composia.controller.v1.NodeMaintenanceService/PruneNo
 
 Docker `prune` is still best handled by external automation when you need recurring cleanup.
 
-For rustic, `forget` and `prune` can be scheduled directly by the controller's built-in scheduler. See [Backup & Migration](./backup-migrate) and [Configuration](./configuration).
+For rustic, `forget` and `prune` can be scheduled directly by the controller's built-in scheduler. See [Backup & Migration](./backup-migrate) and [Backup Configuration](./configuration/backup).
 
 ## Log Management
 

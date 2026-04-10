@@ -207,5 +207,5 @@ ServiceInstances:
 ## Related Documentation
 
 - [Service Definition](./service-definition) — How to define Services
-- [Configuration Guide](./configuration) — How to configure Nodes
+- [Controller Configuration](./configuration/controller) — How to configure Nodes
 - [Deployment](./deployment) — Managing ServiceInstance lifecycle

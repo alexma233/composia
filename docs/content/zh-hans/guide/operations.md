@@ -202,7 +202,7 @@ docker compose restart agent
 
 Docker `prune` 仍建议由外部调度系统按需触发。
 
-rustic 的 `forget` 与 `prune` 则可通过 controller 内置 scheduler 定时执行，具体配置见 [备份与迁移](./backup-migrate) 与 [配置说明](./configuration)。
+rustic 的 `forget` 与 `prune` 则可通过 controller 内置 scheduler 定时执行，具体配置见 [备份与迁移](./backup-migrate) 与 [备份配置](./configuration/backup)。
 
 ## 日志管理
 

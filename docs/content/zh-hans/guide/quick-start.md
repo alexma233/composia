@@ -24,9 +24,9 @@ composia/
 
 ### 2. 下载启动文件
 
-根据 [配置指南](./configuration) 自行编写 `docker-compose.yaml` 和 `config/config.yaml`。
+根据 [配置指南](./configuration)、[Controller 配置](./configuration/controller) 和 [Agent 配置](./configuration/agent) 自行编写 `docker-compose.yaml` 和 `config/config.yaml`。
 
-如果你启用 `secrets`，请自行生成 age 密钥：
+如果你启用 `secrets`，请参考 [Secrets 配置](./configuration/secrets) 自行生成 age 密钥：
 
 ```bash
 mkdir -p config
@@ -126,7 +126,9 @@ services:
 ## 下一步
 
 - [了解核心概念](./core-concepts) —— 理解 Service、Instance、Container、Node 的关系
-- [阅读配置指南](./configuration) —— 学习如何配置 controller 和 agent
+- [阅读配置指南](./configuration) —— 查看平台配置总览
+- [阅读 Controller 配置](./configuration/controller) —— 学习基础字段、token 和节点配置
+- [阅读 Agent 配置](./configuration/agent) —— 学习 agent 必填字段和 Caddy 输出目录
 - [查看架构概览](./architecture) —— 理解系统工作原理
 
 ## 本地开发

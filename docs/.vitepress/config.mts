@@ -177,6 +177,12 @@ export default defineConfig({
               items: [
                 { text: 'Core Concepts', link: '/guide/core-concepts' },
                 { text: 'Configuration', link: '/guide/configuration' },
+                { text: 'Controller Configuration', link: '/guide/configuration/controller' },
+                { text: 'Agent Configuration', link: '/guide/configuration/agent' },
+                { text: 'Git Remote Sync', link: '/guide/configuration/git-sync' },
+                { text: 'DNS Configuration', link: '/guide/configuration/dns' },
+                { text: 'Backup Configuration', link: '/guide/configuration/backup' },
+                { text: 'Secrets Configuration', link: '/guide/configuration/secrets' },
                 { text: 'Service Definition', link: '/guide/service-definition' }
               ]
             },
@@ -249,6 +255,12 @@ export default defineConfig({
               items: [
                 { text: '核心概念', link: '/zh-hans/guide/core-concepts' },
                 { text: '配置指南', link: '/zh-hans/guide/configuration' },
+                { text: 'Controller 配置', link: '/zh-hans/guide/configuration/controller' },
+                { text: 'Agent 配置', link: '/zh-hans/guide/configuration/agent' },
+                { text: 'Git 远端同步', link: '/zh-hans/guide/configuration/git-sync' },
+                { text: 'DNS 配置', link: '/zh-hans/guide/configuration/dns' },
+                { text: '备份配置', link: '/zh-hans/guide/configuration/backup' },
+                { text: 'Secrets 配置', link: '/zh-hans/guide/configuration/secrets' },
                 { text: '服务定义', link: '/zh-hans/guide/service-definition' }
               ]
             },

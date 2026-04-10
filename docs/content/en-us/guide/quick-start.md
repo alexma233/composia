@@ -24,9 +24,9 @@ composia/
 
 ### 2. Download the Startup Files
 
-Write `docker-compose.yaml` and `config/config.yaml` yourself using the [Configuration Guide](./configuration).
+Write `docker-compose.yaml` and `config/config.yaml` yourself using the [Configuration Guide](./configuration), [Controller Configuration](./configuration/controller), and [Agent Configuration](./configuration/agent).
 
-If you enable `secrets`, generate your own age key pair:
+If you enable `secrets`, follow [Secrets Configuration](./configuration/secrets) and generate your own age key pair:
 
 ```bash
 mkdir -p config
@@ -125,7 +125,9 @@ services:
 ## Next Steps
 
 - [Core Concepts](./core-concepts) — Understand the relationship between Services, Instances, Containers, and Nodes
-- [Configuration Guide](./configuration) — Learn how to configure the controller and agents
+- [Configuration Guide](./configuration) — View the platform configuration overview
+- [Controller Configuration](./configuration/controller) — Learn the base fields, tokens, and node configuration
+- [Agent Configuration](./configuration/agent) — Learn the agent requirements and Caddy output directory
 - [Architecture](./architecture) — Understand how the system works
 
 ## Local Development
