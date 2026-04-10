@@ -11,7 +11,7 @@
   import { Button } from '$lib/components/ui/button';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { startPolling } from '$lib/refresh';
-  import { formatTimestamp, taskStatusLabel, taskStatusTone } from '$lib/presenters';
+  import { formatTimestamp, taskStatusLabel, taskStatusTone, taskTypeLabel } from '$lib/presenters';
 
   interface Props {
     data: PageData;
@@ -163,7 +163,7 @@
         {#if data.task}
           <div class="page-header">
             <div class="page-heading">
-              <CardTitle class="page-title">{data.task.type}</CardTitle>
+              <CardTitle class="page-title">{taskTypeLabel(data.task.type, $messages)}</CardTitle>
               <div class="page-meta">
                 {data.task.taskId} · {data.task.serviceName || `${$messages.tasks.nodeLevel}: ${data.task.nodeId || 'n/a'}`}
               </div>

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Badge } from '$lib/components/ui/badge';
   import { messages } from '$lib/i18n';
-  import { formatTimestamp, taskStatusLabel, taskStatusTone } from '$lib/presenters';
+  import { formatTimestamp, taskStatusLabel, taskStatusTone, taskTypeLabel } from '$lib/presenters';
 
   interface TaskItem {
     taskId: string;
@@ -28,7 +28,7 @@
   <div class="flex flex-wrap items-center justify-between gap-3">
     <div class="min-w-0 flex-1">
       <div class="truncate text-sm font-medium">
-        {task.type}
+        {taskTypeLabel(task.type, $messages)}
         {#if showService && task.serviceName}
           <span class="text-muted-foreground">{$messages.common.for} {task.serviceName}</span>
         {:else if showNode && task.nodeId}

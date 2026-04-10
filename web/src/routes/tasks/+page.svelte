@@ -26,7 +26,7 @@
   } from '$lib/components/ui/pagination';
   import * as Popover from '$lib/components/ui/popover';
   import { startPolling } from '$lib/refresh';
-  import { taskStatusLabel } from '$lib/presenters';
+  import { taskStatusLabel, taskTypeLabel } from '$lib/presenters';
   import { cn } from '$lib/utils';
   import TaskItem from '$lib/components/app/task-item.svelte';
 
@@ -55,7 +55,8 @@
     | 'docker_start'
     | 'docker_stop'
     | 'docker_restart'
-    | 'docker_logs';
+    | 'docker_logs'
+    | 'docker_remove';
 
   type FilterOption = {
     value: string;
@@ -91,6 +92,7 @@
     'docker_stop',
     'docker_restart',
     'docker_logs',
+    'docker_remove',
   ];
 
   let totalPages = $derived(data.totalCount > 0 ? Math.ceil(data.totalCount / pageSize) : 0);
@@ -172,19 +174,7 @@
   }
 
   function typeLabel(type: TaskTypeFilter | string): string {
-    if (type === 'rustic_forget') return $messages.tasks.filters.types.rusticForget;
-    if (type === 'rustic_prune') return $messages.tasks.filters.types.rusticPrune;
-    if (type === 'prune') return $messages.tasks.filters.types.prune;
-    if (type === 'dns_update') return $messages.tasks.filters.types.dnsUpdate;
-    if (type === 'caddy_sync') return $messages.tasks.filters.types.caddySync;
-    if (type === 'caddy_reload') return $messages.tasks.filters.types.caddyReload;
-    if (type === 'docker_list') return $messages.tasks.filters.types.dockerList;
-    if (type === 'docker_inspect') return $messages.tasks.filters.types.dockerInspect;
-    if (type === 'docker_start') return $messages.tasks.filters.types.dockerStart;
-    if (type === 'docker_stop') return $messages.tasks.filters.types.dockerStop;
-    if (type === 'docker_restart') return $messages.tasks.filters.types.dockerRestart;
-    if (type === 'docker_logs') return $messages.tasks.filters.types.dockerLogs;
-    return type;
+    return taskTypeLabel(type, $messages);
   }
 
   function selectionSummary(includeValues: string[], excludeValues: string[], options: FilterOption[], emptyLabel = $messages.tasks.filters.allStatuses): string {

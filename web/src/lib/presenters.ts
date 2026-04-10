@@ -46,6 +46,53 @@ export function taskStatusLabel(status: string, messages: Dictionary) {
   }
 }
 
+export function taskTypeLabel(type: string, messages: Dictionary) {
+  switch (type) {
+    case 'deploy':
+      return messages.tasks.types.deploy;
+    case 'update':
+      return messages.tasks.types.update;
+    case 'restart':
+      return messages.tasks.types.restart;
+    case 'stop':
+      return messages.tasks.types.stop;
+    case 'backup':
+      return messages.tasks.types.backup;
+    case 'restore':
+      return messages.tasks.types.restore;
+    case 'migrate':
+      return messages.tasks.types.migrate;
+    case 'dns_update':
+      return messages.tasks.types.dnsUpdate;
+    case 'caddy_sync':
+      return messages.tasks.types.caddySync;
+    case 'caddy_reload':
+      return messages.tasks.types.caddyReload;
+    case 'prune':
+      return messages.tasks.types.prune;
+    case 'rustic_forget':
+      return messages.tasks.types.rusticForget;
+    case 'rustic_prune':
+      return messages.tasks.types.rusticPrune;
+    case 'docker_list':
+      return messages.tasks.types.dockerList;
+    case 'docker_inspect':
+      return messages.tasks.types.dockerInspect;
+    case 'docker_start':
+      return messages.tasks.types.dockerStart;
+    case 'docker_stop':
+      return messages.tasks.types.dockerStop;
+    case 'docker_restart':
+      return messages.tasks.types.dockerRestart;
+    case 'docker_logs':
+      return messages.tasks.types.dockerLogs;
+    case 'docker_remove':
+      return messages.tasks.types.dockerRemove;
+    default:
+      return type || messages.status.unknown;
+  }
+}
+
 export function runtimeStatusLabel(status: string, messages: Dictionary) {
   switch (status) {
     case 'running':
