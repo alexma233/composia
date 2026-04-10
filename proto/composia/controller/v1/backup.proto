@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package composia.controller.v1;
 
+import "proto/composia/controller/v1/task.proto";
+
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
 // BackupRecordService exposes read-only backup record queries.
@@ -10,6 +12,8 @@ service BackupRecordService {
   rpc ListBackups(ListBackupsRequest) returns (ListBackupsResponse);
   // GetBackup returns one backup record by ID.
   rpc GetBackup(GetBackupRequest) returns (GetBackupResponse);
+  // RestoreBackup starts an async restore task from one backup record.
+  rpc RestoreBackup(RestoreBackupRequest) returns (TaskActionResponse);
 }
 
 // BackupSummary describes one backup record in list results.
@@ -68,4 +72,11 @@ message GetBackupResponse {
   string artifact_ref = 8;
   // error_summary contains the failure summary when the backup fails.
   string error_summary = 9;
+}
+
+// RestoreBackupRequest identifies the backup record and target node for one restore task.
+message RestoreBackupRequest {
+  string backup_id = 1;
+  // node_id identifies the destination node for the restore task.
+  string node_id = 2;
 }

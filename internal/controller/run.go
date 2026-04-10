@@ -195,7 +195,7 @@ func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db
 	mux.Handle(secretPath, secretHandler)
 
 	backupPath, backupHandler := controllerv1connect.NewBackupRecordServiceHandler(
-		&backupRecordServer{db: db},
+		&backupRecordServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue},
 		connect.WithInterceptors(interceptor),
 	)
 	mux.Handle(backupPath, backupHandler)
@@ -1342,7 +1342,10 @@ const (
 )
 
 type backupRecordServer struct {
-	db *store.DB
+	db               *store.DB
+	cfg              *config.ControllerConfig
+	availableNodeIDs map[string]struct{}
+	taskQueue        *taskQueueNotifier
 }
 
 func (server *systemServer) GetSystemStatus(ctx context.Context, _ *connect.Request[controllerv1.GetSystemStatusRequest]) (*connect.Response[controllerv1.GetSystemStatusResponse], error) {
@@ -2724,6 +2727,67 @@ func (server *backupRecordServer) GetBackup(ctx context.Context, req *connect.Re
 		ErrorSummary: backup.ErrorSummary,
 	}
 	return connect.NewResponse(response), nil
+}
+
+func (server *backupRecordServer) RestoreBackup(ctx context.Context, req *connect.Request[controllerv1.RestoreBackupRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
+	if req.Msg == nil || req.Msg.GetBackupId() == "" || req.Msg.GetNodeId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("backup_id and node_id are required"))
+	}
+	if server.cfg == nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("controller config is required"))
+	}
+	backup, err := server.db.GetBackup(ctx, req.Msg.GetBackupId())
+	if err != nil {
+		if errors.Is(err, store.ErrBackupNotFound) {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if backup.Status != string(task.StatusSucceeded) {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("backup %q is not in succeeded state", backup.BackupID))
+	}
+	if backup.ArtifactRef == "" {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("backup %q does not have an artifact_ref", backup.BackupID))
+	}
+	if err := validateTaskTargetNode(ctx, server.db, server.cfg, req.Msg.GetNodeId(), task.TypeRestore); err != nil {
+		return nil, err
+	}
+	active, err := server.db.HasActiveServiceInstanceTask(ctx, backup.ServiceName, req.Msg.GetNodeId())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if active {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service instance %q@%q already has an active task", backup.ServiceName, req.Msg.GetNodeId()))
+	}
+	service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, backup.ServiceName)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	var restoreDefinition *repo.DataActionConfig
+	for _, item := range service.Meta.DataProtect.Data {
+		if item.Name != backup.DataName {
+			continue
+		}
+		restoreDefinition = item.Restore
+		break
+	}
+	if restoreDefinition == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q data %q does not declare restore", service.Name, backup.DataName))
+	}
+	repoRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	serviceDir, err := filepath.Rel(server.cfg.RepoDir, service.Directory)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
+	}
+	createdTask, err := createRestoreTask(ctx, server.db, server.cfg, server.availableNodeIDs, backup.ServiceName, req.Msg.GetNodeId(), repoRevision, serviceTaskParams{ServiceDir: serviceDir, RestoreItems: []restoreTaskItem{{DataName: backup.DataName, ArtifactRef: backup.ArtifactRef, SourceTaskID: backup.TaskID}}}, requestTaskSource(req.Header()))
+	if err != nil {
+		return nil, err
+	}
+	notifyTaskQueue(server.taskQueue)
+	return connect.NewResponse(taskActionResponse(createdTask)), nil
 }
 
 func backupSummaryMessage(backup store.BackupSummary) *controllerv1.BackupSummary {

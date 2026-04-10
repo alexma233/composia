@@ -90,7 +90,7 @@
             {#each data.backups as backup}
               <TableRow>
                 <TableCell>
-                  <div class="font-medium">{backup.serviceName} / {backup.dataName}</div>
+                  <a href={`/backups/${backup.backupId}`} class="font-medium hover:text-primary">{backup.serviceName} / {backup.dataName}</a>
                   <div class="text-xs text-muted-foreground">{backup.backupId}</div>
                 </TableCell>
                 <TableCell>

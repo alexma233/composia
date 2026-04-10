@@ -152,6 +152,11 @@ export type BackupSummary = {
   finishedAt: string;
 };
 
+export type BackupDetail = BackupSummary & {
+  artifactRef: string;
+  errorSummary: string;
+};
+
 export type RepoFileEntry = {
   path: string;
   name: string;
@@ -378,6 +383,26 @@ export async function loadBackups(
     items: response.backups ?? [],
     totalCount: response.totalCount ?? 0,
   };
+}
+
+export async function loadBackupDetail(backupId: string): Promise<BackupDetail> {
+  const config = requireControllerConfig();
+  return rpcCall<BackupDetail>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.BackupRecordService/GetBackup",
+    { backupId },
+  );
+}
+
+export async function restoreBackup(
+  backupId: string,
+  nodeId: string,
+): Promise<ServiceActionResult> {
+  return callTaskAction("/composia.controller.v1.BackupRecordService/RestoreBackup", {
+    backupId,
+    nodeId,
+  });
 }
 
 export async function loadRepoHead(): Promise<RepoHead> {

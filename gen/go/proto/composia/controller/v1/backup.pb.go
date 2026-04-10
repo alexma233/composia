@@ -412,11 +412,65 @@ func (x *GetBackupResponse) GetErrorSummary() string {
 	return ""
 }
 
+// RestoreBackupRequest identifies the backup record and target node for one restore task.
+type RestoreBackupRequest struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	BackupId string                 `protobuf:"bytes,1,opt,name=backup_id,json=backupId,proto3" json:"backup_id,omitempty"`
+	// node_id identifies the destination node for the restore task.
+	NodeId        string `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestoreBackupRequest) Reset() {
+	*x = RestoreBackupRequest{}
+	mi := &file_proto_composia_controller_v1_backup_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestoreBackupRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestoreBackupRequest) ProtoMessage() {}
+
+func (x *RestoreBackupRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_backup_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestoreBackupRequest.ProtoReflect.Descriptor instead.
+func (*RestoreBackupRequest) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_backup_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *RestoreBackupRequest) GetBackupId() string {
+	if x != nil {
+		return x.BackupId
+	}
+	return ""
+}
+
+func (x *RestoreBackupRequest) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
 var File_proto_composia_controller_v1_backup_proto protoreflect.FileDescriptor
 
 const file_proto_composia_controller_v1_backup_proto_rawDesc = "" +
 	"\n" +
-	")proto/composia/controller/v1/backup.proto\x12\x16composia.controller.v1\"\xdd\x01\n" +
+	")proto/composia/controller/v1/backup.proto\x12\x16composia.controller.v1\x1a'proto/composia/controller/v1/task.proto\"\xdd\x01\n" +
 	"\rBackupSummary\x12\x1b\n" +
 	"\tbackup_id\x18\x01 \x01(\tR\bbackupId\x12\x17\n" +
 	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12!\n" +
@@ -450,10 +504,14 @@ const file_proto_composia_controller_v1_backup_proto_rawDesc = "" +
 	"\vfinished_at\x18\a \x01(\tR\n" +
 	"finishedAt\x12!\n" +
 	"\fartifact_ref\x18\b \x01(\tR\vartifactRef\x12#\n" +
-	"\rerror_summary\x18\t \x01(\tR\ferrorSummary2\xdf\x01\n" +
+	"\rerror_summary\x18\t \x01(\tR\ferrorSummary\"L\n" +
+	"\x14RestoreBackupRequest\x12\x1b\n" +
+	"\tbackup_id\x18\x01 \x01(\tR\bbackupId\x12\x17\n" +
+	"\anode_id\x18\x02 \x01(\tR\x06nodeId2\xca\x02\n" +
 	"\x13BackupRecordService\x12f\n" +
 	"\vListBackups\x12*.composia.controller.v1.ListBackupsRequest\x1a+.composia.controller.v1.ListBackupsResponse\x12`\n" +
-	"\tGetBackup\x12(.composia.controller.v1.GetBackupRequest\x1a).composia.controller.v1.GetBackupResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
+	"\tGetBackup\x12(.composia.controller.v1.GetBackupRequest\x1a).composia.controller.v1.GetBackupResponse\x12i\n" +
+	"\rRestoreBackup\x12,.composia.controller.v1.RestoreBackupRequest\x1a*.composia.controller.v1.TaskActionResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
 
 var (
 	file_proto_composia_controller_v1_backup_proto_rawDescOnce sync.Once
@@ -467,22 +525,26 @@ func file_proto_composia_controller_v1_backup_proto_rawDescGZIP() []byte {
 	return file_proto_composia_controller_v1_backup_proto_rawDescData
 }
 
-var file_proto_composia_controller_v1_backup_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_proto_composia_controller_v1_backup_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_proto_composia_controller_v1_backup_proto_goTypes = []any{
-	(*BackupSummary)(nil),       // 0: composia.controller.v1.BackupSummary
-	(*ListBackupsRequest)(nil),  // 1: composia.controller.v1.ListBackupsRequest
-	(*ListBackupsResponse)(nil), // 2: composia.controller.v1.ListBackupsResponse
-	(*GetBackupRequest)(nil),    // 3: composia.controller.v1.GetBackupRequest
-	(*GetBackupResponse)(nil),   // 4: composia.controller.v1.GetBackupResponse
+	(*BackupSummary)(nil),        // 0: composia.controller.v1.BackupSummary
+	(*ListBackupsRequest)(nil),   // 1: composia.controller.v1.ListBackupsRequest
+	(*ListBackupsResponse)(nil),  // 2: composia.controller.v1.ListBackupsResponse
+	(*GetBackupRequest)(nil),     // 3: composia.controller.v1.GetBackupRequest
+	(*GetBackupResponse)(nil),    // 4: composia.controller.v1.GetBackupResponse
+	(*RestoreBackupRequest)(nil), // 5: composia.controller.v1.RestoreBackupRequest
+	(*TaskActionResponse)(nil),   // 6: composia.controller.v1.TaskActionResponse
 }
 var file_proto_composia_controller_v1_backup_proto_depIdxs = []int32{
 	0, // 0: composia.controller.v1.ListBackupsResponse.backups:type_name -> composia.controller.v1.BackupSummary
 	1, // 1: composia.controller.v1.BackupRecordService.ListBackups:input_type -> composia.controller.v1.ListBackupsRequest
 	3, // 2: composia.controller.v1.BackupRecordService.GetBackup:input_type -> composia.controller.v1.GetBackupRequest
-	2, // 3: composia.controller.v1.BackupRecordService.ListBackups:output_type -> composia.controller.v1.ListBackupsResponse
-	4, // 4: composia.controller.v1.BackupRecordService.GetBackup:output_type -> composia.controller.v1.GetBackupResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
+	5, // 3: composia.controller.v1.BackupRecordService.RestoreBackup:input_type -> composia.controller.v1.RestoreBackupRequest
+	2, // 4: composia.controller.v1.BackupRecordService.ListBackups:output_type -> composia.controller.v1.ListBackupsResponse
+	4, // 5: composia.controller.v1.BackupRecordService.GetBackup:output_type -> composia.controller.v1.GetBackupResponse
+	6, // 6: composia.controller.v1.BackupRecordService.RestoreBackup:output_type -> composia.controller.v1.TaskActionResponse
+	4, // [4:7] is the sub-list for method output_type
+	1, // [1:4] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -493,13 +555,14 @@ func file_proto_composia_controller_v1_backup_proto_init() {
 	if File_proto_composia_controller_v1_backup_proto != nil {
 		return
 	}
+	file_proto_composia_controller_v1_task_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_controller_v1_backup_proto_rawDesc), len(file_proto_composia_controller_v1_backup_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
