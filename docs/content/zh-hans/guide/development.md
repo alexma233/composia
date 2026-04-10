@@ -58,6 +58,11 @@ mise run dev
 - `docs-dev`：`http://localhost:5174`
 - `agent-dev`：连接本地 Docker socket
 
+默认的 `web-dev` 登录信息是：
+
+- 用户名：`admin`
+- 密码：`admin`
+
 走这条路径时，你不需要先在宿主机执行 `bun install`。`web-dev` 和 `docs-dev` 会在容器启动时自行安装工作区依赖。
 
 它默认直接复用 `dev/` 下现有的开发状态目录：
@@ -125,6 +130,8 @@ mise run web
 ```
 
 WebUI 将在 `http://localhost:5173` 运行。
+
+如果你使用仓库自带的 dev Compose 配置，默认登录信息仍然是 `admin / admin`。
 
 如需启动文档开发服务器：
 

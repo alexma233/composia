@@ -58,6 +58,11 @@ This development stack starts:
 - `docs-dev` on `http://localhost:5174`
 - `agent-dev` connected to the local Docker socket
 
+The default `web-dev` login is:
+
+- username: `admin`
+- password: `admin`
+
 You do not need to run `bun install` on the host for this path. `web-dev` and `docs-dev` install workspace dependencies inside the containers when they start.
 
 It reuses the existing development state directories under `dev/` by default:
@@ -125,6 +130,8 @@ mise run web
 ```
 
 The frontend will be available at `http://localhost:5173`.
+
+If you use the checked-in dev Compose config, the default login is still `admin` / `admin`.
 
 To start the docs dev server:
 
