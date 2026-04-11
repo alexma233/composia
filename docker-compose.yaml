@@ -2,13 +2,10 @@ services:
   init-repo-controller:
     image: alpine/git:2.49.1
     working_dir: /data/repo-controller
-    command:
+    entrypoint:
       - sh
-      - -c
-      - |
-        if [ ! -d .git ]; then
-          git init
-        fi
+      - -ec
+      - if [ ! -d .git ]; then git init; fi
     volumes:
       - controller_repo:/data/repo-controller
 
