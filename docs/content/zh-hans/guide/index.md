@@ -67,7 +67,8 @@ nodes:
 - [配置指南](./configuration) —— 平台和服务配置说明
 - [服务定义](./service-definition) —— 如何定义和管理服务
 - [部署管理](./deployment) —— 部署、更新、停止和重启
-- [网络配置](./networking) —— DNS 和反向代理配置
+- [DNS 配置](./dns) —— 服务侧 DNS 配置
+- [Caddy 配置](./caddy) —— Caddy 反向代理配置
 - [备份与迁移](./backup-migrate) —— 数据保护和迁移策略
 - [日常运维](./operations) —— 任务系统和资源管理
 - [开发指南](./development) —— 本地开发环境搭建

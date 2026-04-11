@@ -97,6 +97,7 @@ agent:
 ## 相关文档
 
 - [服务定义](./service-definition) —— 服务侧 `composia-meta.yaml` 配置
-- [网络配置](./networking) —— 服务侧 DNS 和 Caddy 配置
+- [DNS 配置](./dns) —— 服务侧 DNS 规则、自动推导和记录更新
+- [Caddy 配置](./caddy) —— Caddy 基础设施、配置片段和自动同步
 - [备份与迁移](./backup-migrate) —— rustic 基础设施与数据保护流程
 - [快速开始](./quick-start) —— 容器方式快速启动

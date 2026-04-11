@@ -344,4 +344,5 @@ go run ./cmd/composia agent -config ./dev/config.controller.yaml
 
 - [Deployment](./deployment) — Service deployment operations
 - [Backup & Migration](./backup-migrate) — Data protection operations
-- [Networking](./networking) — DNS and proxy configuration
+- [DNS Configuration](./dns) — DNS configuration and updates
+- [Caddy Configuration](./caddy) — Proxy configuration and automated sync

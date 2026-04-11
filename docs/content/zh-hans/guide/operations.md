@@ -344,4 +344,5 @@ go run ./cmd/composia agent -config ./dev/config.controller.yaml
 
 - [部署管理](./deployment) —— 服务部署操作
 - [备份与迁移](./backup-migrate) —— 数据保护操作
-- [网络配置](./networking) —— DNS 和代理配置
+- [DNS 配置](./dns) —— DNS 配置与更新
+- [Caddy 配置](./caddy) —— 代理配置与自动同步

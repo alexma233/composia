@@ -423,5 +423,6 @@ secrets:
 
 - [Configuration Guide](./configuration) — Platform configuration reference
 - [Deployment](./deployment) — How to deploy services
-- [Networking](./networking) — DNS and Caddy detailed configuration
+- [DNS Configuration](./dns) — Detailed DNS configuration
+- [Caddy Configuration](./caddy) — Detailed Caddy configuration
 - [Backup & Migration](./backup-migrate) — Data protection configuration

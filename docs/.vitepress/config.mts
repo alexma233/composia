@@ -190,7 +190,8 @@ export default defineConfig({
               text: 'User Guide',
               items: [
                 { text: 'Deployment', link: '/guide/deployment' },
-                { text: 'Networking', link: '/guide/networking' },
+                { text: 'DNS Configuration', link: '/guide/dns' },
+                { text: 'Caddy Configuration', link: '/guide/caddy' },
                 { text: 'Backup & Migration', link: '/guide/backup-migrate' },
                 { text: 'Operations', link: '/guide/operations' }
               ]
@@ -268,7 +269,8 @@ export default defineConfig({
               text: '功能指南',
               items: [
                 { text: '部署管理', link: '/zh-hans/guide/deployment' },
-                { text: '网络配置', link: '/zh-hans/guide/networking' },
+                { text: 'DNS 配置', link: '/zh-hans/guide/dns' },
+                { text: 'Caddy 配置', link: '/zh-hans/guide/caddy' },
                 { text: '备份与迁移', link: '/zh-hans/guide/backup-migrate' },
                 { text: '日常运维', link: '/zh-hans/guide/operations' }
               ]

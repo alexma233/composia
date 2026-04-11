@@ -290,4 +290,4 @@ services:
 
 - [服务定义](./service-definition) —— 如何定义服务
 - [任务系统](./operations#任务系统) —— 了解任务执行机制
-- [网络配置](./networking) —— 配置反向代理
+- [Caddy 配置](./caddy) —— 配置反向代理

@@ -47,4 +47,4 @@ agent:
     generated_dir: "/srv/caddy/generated"
 ```
 
-You also need to deploy the Caddy infrastructure service. See [Networking](../networking).
+You also need to deploy the Caddy infrastructure service. See [Caddy Configuration](../caddy).

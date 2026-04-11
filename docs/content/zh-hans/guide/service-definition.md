@@ -423,5 +423,6 @@ secrets:
 
 - [配置指南](./configuration) —— 平台配置说明
 - [部署管理](./deployment) —— 如何部署服务
-- [网络配置](./networking) —— DNS 和 Caddy 详细配置
+- [DNS 配置](./dns) —— DNS 详细配置
+- [Caddy 配置](./caddy) —— Caddy 详细配置
 - [备份与迁移](./backup-migrate) —— 数据保护配置

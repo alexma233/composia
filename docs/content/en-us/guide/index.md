@@ -67,7 +67,8 @@ Agents run on actual Docker hosts and are responsible for:
 - [Configuration Guide](./configuration) — Platform and service configuration
 - [Service Definition](./service-definition) — How to define and manage services
 - [Deployment](./deployment) — Deploy, update, stop, and restart services
-- [Networking](./networking) — DNS and reverse proxy configuration
+- [DNS Configuration](./dns) — Service-side DNS configuration
+- [Caddy Configuration](./caddy) — Caddy reverse proxy configuration
 - [Backup & Migration](./backup-migrate) — Data protection and migration strategies
 - [Operations](./operations) — Task system and resource management
 - [Development](./development) — Set up local development environment

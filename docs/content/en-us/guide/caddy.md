@@ -1,114 +1,8 @@
-# Networking
+# Caddy Configuration
 
-This document explains how to configure DNS and Caddy reverse proxy in Composia.
+This page explains how to configure the Caddy reverse proxy in Composia.
 
-## DNS Configuration
-
-Composia supports automatic DNS record management. Currently only Cloudflare is supported.
-
-### Controller Configuration
-
-```yaml
-controller:
-  dns:
-    cloudflare:
-      api_token_file: "/app/configs/cloudflare-token.txt"
-```
-
-Create the API Token file:
-
-```bash
-echo "your-cloudflare-api-token" > ./cloudflare-token.txt
-```
-
-**Cloudflare Token Permissions Required:**
-- Zone:Read
-- DNS:Edit
-
-### Service DNS Configuration
-
-Configure in the service's `composia-meta.yaml`:
-
-```yaml
-name: my-app
-nodes:
-  - main
-
-network:
-  dns:
-    provider: cloudflare
-    hostname: app.example.com
-    record_type: A        # A, AAAA, or CNAME
-    proxied: true         # Enable Cloudflare proxy
-    ttl: 120              # TTL in seconds
-    # value: "1.2.3.4"    # Optional, manually specify record value
-```
-
-### Automatic IP Derivation
-
-If `value` is not specified, Composia attempts to automatically derive it from node configuration:
-
-```yaml
-controller:
-  nodes:
-    - id: "main"
-      public_ipv4: "203.0.113.10"    # Used for A records
-      public_ipv6: "2001:db8::1"      # Used for AAAA records
-```
-
-**Note:** Automatic derivation is only suitable for single-node services. For multi-node services, explicitly provide `value`.
-
-### Trigger DNS Update
-
-DNS updates are available in the following cases:
-- Migrating a service to a new node
-- Manually executing `dns_update`
-
-Manual trigger uses the ConnectRPC method `composia.controller.v1.ServiceCommandService/RunServiceAction` with the `SERVICE_ACTION_DNS_UPDATE` action.
-
-### DNS Configuration Examples
-
-**Basic A Record:**
-
-```yaml
-network:
-  dns:
-    provider: cloudflare
-    hostname: api.example.com
-    record_type: A
-```
-
-**Enable Cloudflare Proxy:**
-
-```yaml
-network:
-  dns:
-    provider: cloudflare
-    hostname: app.example.com
-    record_type: A
-    proxied: true
-    ttl: 1    # TTL automatically managed in automatic mode
-```
-
-**IPv6 Support:**
-
-```yaml
-network:
-  dns:
-    provider: cloudflare
-    hostname: app.example.com
-    record_type: AAAA
-```
-
-**Multiple Domains:**
-
-Configure separate services for each domain or use wildcards.
-
-## Caddy Reverse Proxy
-
-Composia supports automatic generation and synchronization of Caddy configuration fragments.
-
-### Architecture
+## Architecture
 
 ```
 Service (composia-meta.yaml)
@@ -123,7 +17,7 @@ Agent (distributes to nodes)
 Caddy (loads config and reloads)
 ```
 
-### 1. Deploy Caddy Infrastructure Service
+## 1. Deploy Caddy Infrastructure Service
 
 Create a Caddy infrastructure service:
 
@@ -171,7 +65,7 @@ import /etc/caddy/conf.d/*.conf
 }
 ```
 
-### 2. Configure Agent
+## 2. Configure Agent
 
 ```yaml
 agent:
@@ -182,7 +76,9 @@ agent:
     generated_dir: "/srv/caddy/generated"  # Must match Caddy container mount path
 ```
 
-### 3. Configure Business Service
+For Agent-side field details, see [Agent Configuration in the configuration guide](./configuration/agent).
+
+## 3. Configure Business Service
 
 Add configuration to services that need Caddy proxy:
 
@@ -204,7 +100,7 @@ Create the Caddy configuration fragment:
 # my-app/Caddyfile.fragment
 app.example.com {
     reverse_proxy localhost:8080
-    
+
     # Security headers
     header {
         X-Frame-Options "SAMEORIGIN"
@@ -212,16 +108,16 @@ app.example.com {
         X-XSS-Protection "1; mode=block"
         Referrer-Policy "strict-origin-when-cross-origin"
     }
-    
+
     # Gzip compression
     encode gzip
-    
+
     # Logging
     log {
         output file /var/log/caddy/app.log
         format json
     }
-    
+
     # TLS (automatic Let's Encrypt)
     tls {
         protocols tls1.2 tls1.3
@@ -229,7 +125,7 @@ app.example.com {
 }
 ```
 
-### 4. Automated Behavior
+## 4. Automated Behavior
 
 Caddy configuration is automatically synchronized in the following cases:
 
@@ -240,7 +136,7 @@ Caddy configuration is automatically synchronized in the following cases:
 | `stop` | Removes generated fragment and triggers `caddy_reload` |
 | `migrate` | Removes config from source node, adds to target node |
 
-### Caddy Configuration Fragment Templates
+## Caddy Configuration Fragment Templates
 
 **Basic Reverse Proxy:**
 
@@ -372,14 +268,14 @@ services:
 ```caddy
 app.example.com {
     reverse_proxy localhost:8080
-    
+
     header {
         X-Frame-Options "SAMEORIGIN"
         X-Content-Type-Options "nosniff"
     }
-    
+
     encode gzip
-    
+
     log {
         output file /var/log/caddy/my-webapp.log
     }
@@ -396,13 +292,6 @@ app.example.com {
 6. Visit `https://app.example.com`
 
 ## Troubleshooting
-
-### DNS Not Updated
-
-Check:
-1. Is Controller configured with `dns.cloudflare`?
-2. Is Cloudflare API Token valid?
-3. Is domain Zone correct?
 
 ### Caddy Configuration Not Applied
 
@@ -422,4 +311,5 @@ Check:
 
 - [Service Definition](./service-definition) — Complete service configuration reference
 - [Deployment](./deployment) — Service deployment flow
+- [DNS Configuration](./dns) — Service-side DNS configuration
 - [Caddy Official Documentation](https://caddyserver.com/docs/) — Caddy configuration reference

@@ -13,4 +13,4 @@ controller:
 
 This page covers only the platform-side configuration.
 
-For service-side DNS rules, auto-derived values, and record management behavior, see [Networking](../networking).
+For service-side DNS rules, auto-derived values, and record management behavior, see [DNS Configuration](../dns).

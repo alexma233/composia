@@ -290,4 +290,4 @@ Check:
 
 - [Service Definition](./service-definition) — How to define services
 - [Operations](./operations#task-system) — Understanding task execution
-- [Networking](./networking) — Configure reverse proxy
+- [Caddy Configuration](./caddy) — Configure reverse proxy

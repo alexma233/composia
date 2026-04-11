@@ -47,4 +47,4 @@ agent:
     generated_dir: "/srv/caddy/generated"
 ```
 
-同时需要部署 Caddy 基础设施服务，参考 [网络配置](../networking)。
+同时需要部署 Caddy 基础设施服务，参考 [Caddy 配置](../caddy)。

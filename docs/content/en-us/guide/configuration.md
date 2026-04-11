@@ -97,6 +97,7 @@ agent:
 ## Related Documentation
 
 - [Service Definition](./service-definition) — service-side `composia-meta.yaml` configuration
-- [Networking](./networking) — service-side DNS and Caddy configuration
+- [DNS Configuration](./dns) — service-side DNS rules, auto-derived values, and record updates
+- [Caddy Configuration](./caddy) — Caddy infrastructure, configuration fragments, and automated sync
 - [Backup & Migration](./backup-migrate) — rustic infrastructure and data protection workflow
 - [Quick Start](./quick-start) — fast setup with containers
