@@ -33,6 +33,7 @@ controller:
     - name: "compose-admin"
       token: "replace-this-token"
       enabled: true
+      comment: "主管理员 token"
 
   # 节点配置
   nodes:
@@ -41,6 +42,7 @@ controller:
       enabled: true
       token: "main-agent-token"
       public_ipv4: "203.0.113.10"
+      public_ipv6: "2001:db8::10"
     - id: "edge"
       display_name: "Edge"
       enabled: true
@@ -62,9 +64,15 @@ controller:
       api_token_file: "/app/configs/cloudflare-token.txt"
 
   # 备份配置（可选）
+  backup:
+    default_schedule: "0 2 * * *"
+
   rustic:
     main_nodes:
       - "main"
+    maintenance:
+      forget_schedule: "15 3 * * *"
+      prune_schedule: "45 3 * * *"
 
   # Secrets 配置（可选）
   secrets:
