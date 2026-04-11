@@ -16,6 +16,25 @@ function decodeEnvelopeLength(header: Uint8Array): number {
   ) >>> 0;
 }
 
+function encodeEnvelope(message: string): Uint8Array {
+  const payload = new TextEncoder().encode(message);
+  const envelope = new Uint8Array(connectEnvelopeHeaderSize + payload.length);
+  envelope[0] = 0;
+  envelope[1] = (payload.length >>> 24) & 0xff;
+  envelope[2] = (payload.length >>> 16) & 0xff;
+  envelope[3] = (payload.length >>> 8) & 0xff;
+  envelope[4] = payload.length & 0xff;
+  envelope.set(payload, connectEnvelopeHeaderSize);
+  return envelope;
+}
+
+function envelopeBody(message: string): ArrayBuffer {
+  const envelope = encodeEnvelope(message);
+  const body = new Uint8Array(envelope.byteLength);
+  body.set(envelope);
+  return body.buffer;
+}
+
 export const GET: RequestHandler = async ({ params }) => {
   const config = controllerConfig();
   if (!config.ready) {
@@ -29,11 +48,11 @@ export const GET: RequestHandler = async ({ params }) => {
       headers: {
         Authorization: `Bearer ${config.token}`,
         "Connect-Protocol-Version": "1",
-        "Content-Type": "application/json",
+        "Content-Type": "application/connect+json",
         Accept: "application/connect+json",
         "X-Composia-Source": "web",
       },
-      body: JSON.stringify({ taskId: params.id }),
+      body: envelopeBody(JSON.stringify({ taskId: params.id })),
     },
   );
 
@@ -50,13 +69,11 @@ export const GET: RequestHandler = async ({ params }) => {
   }
 
   const upstream = response.body.getReader();
-  const encoder = new TextEncoder();
   const decoder = new TextDecoder();
+  let buffer = new Uint8Array(0);
 
   const stream = new ReadableStream<Uint8Array>({
     async pull(controller) {
-      let buffer = new Uint8Array(0);
-
       try {
         while (true) {
           const { done, value } = await upstream.read();
@@ -99,7 +116,7 @@ export const GET: RequestHandler = async ({ params }) => {
 
             const parsed = JSON.parse(chunk) as { content?: string };
             if (parsed.content) {
-              controller.enqueue(encoder.encode(parsed.content));
+              controller.enqueue(payload);
               return;
             }
           }
