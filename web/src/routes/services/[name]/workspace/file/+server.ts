@@ -14,12 +14,6 @@ export const PUT: RequestHandler = async ({ params, request }) => {
     };
 
     const workspace = await requireWorkspace(params.name);
-    if (!workspace.serviceName) {
-      return json(
-        { error: "Service is not declared. Add composia-meta.yaml before editing files." },
-        { status: 400 },
-      );
-    }
     if (!payload.path || !payload.baseRevision) {
       return json({ error: "Path and base revision are required." }, { status: 400 });
     }

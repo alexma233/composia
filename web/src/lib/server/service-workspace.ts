@@ -45,7 +45,7 @@ export async function loadServiceWorkspaceFile(
 }
 
 export async function saveServiceWorkspaceFile(
-  serviceName: string,
+  serviceName: string | null,
   serviceDir: string,
   relativePath: string,
   content: string,
@@ -54,6 +54,9 @@ export async function saveServiceWorkspaceFile(
   const normalized = normalizeServiceRelativePath(relativePath);
   let write: RepoWriteResult;
   if (normalized.endsWith(".enc")) {
+    if (!serviceName) {
+      throw new Error("Cannot save encrypted file for undeclared service");
+    }
     write = await updateSecret(
       serviceName,
       normalized,
