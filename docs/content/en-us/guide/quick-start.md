@@ -53,6 +53,7 @@ Before startup, review and update at least these values:
 - `WEB_LOGIN_USERNAME` in `.env`: local username for the Web login page
 - `WEB_LOGIN_PASSWORD_HASH` in `.env`: Argon2 password hash for the Web login page
 - `WEB_SESSION_SECRET` in `.env`: random secret used to sign the Web session cookie
+- `ORIGIN` in `.env`: set this to the exact address you use to open the Web UI, such as `http://localhost:3000`, `http://127.0.0.1:3000`, or your production domain. Do not mix hosts, or form login may fail with `Cross-site POST form submissions are forbidden`
 
 Generate the Argon2 hash before startup. You can generate it directly in this page:
 
@@ -94,7 +95,15 @@ The Compose file also runs a one-shot `init-repo-controller` container first to 
 
 ### 5. Access the Interface
 
-Open your browser and visit `http://localhost:3000`.
+Make sure `.env` uses an `ORIGIN` value that exactly matches the address you will open in the browser, then visit it, for example `http://localhost:3000`.
+
+If you access the Web UI through an SSH tunnel, local port forwarding, or a reverse proxy, update `ORIGIN` to match that address. For example:
+
+- If you open `http://localhost:3000`, set `ORIGIN=http://localhost:3000`
+- If you open `http://127.0.0.1:3000`, set `ORIGIN=http://127.0.0.1:3000`
+- If you open `https://composia.example.com`, set `ORIGIN=https://composia.example.com`
+
+`localhost` and `127.0.0.1` are different origins and are not interchangeable.
 
 The Web UI uses two auth layers:
 

@@ -53,6 +53,7 @@ grep "public key:" config/age-identity.key | awk '{print $4}' > config/age-recip
 - `.env` 里的 `WEB_LOGIN_USERNAME`：Web 登录页使用的本地用户名
 - `.env` 里的 `WEB_LOGIN_PASSWORD_HASH`：Web 登录页使用的 Argon2 密码哈希
 - `.env` 里的 `WEB_SESSION_SECRET`：用于签名 Web session cookie 的随机密钥
+- `.env` 里的 `ORIGIN`：必须改成你实际访问 Web UI 的地址，例如 `http://localhost:3000`、`http://127.0.0.1:3000` 或正式域名。不要混用不同 host，否则表单登录会触发 `Cross-site POST form submissions are forbidden`
 
 启动前先生成 Argon2 哈希。你可以直接在这个页面里生成：
 
@@ -94,7 +95,15 @@ docker compose up -d
 
 ### 5. 访问界面
 
-打开浏览器访问 `http://localhost:3000`。
+先确认 `.env` 里的 `ORIGIN` 与你准备打开的地址完全一致，然后再访问，例如 `http://localhost:3000`。
+
+如果你通过 SSH tunnel、本地端口映射或反向代理访问 Web UI，必须同步修改 `ORIGIN`。例如：
+
+- 访问 `http://localhost:3000` 时，设置 `ORIGIN=http://localhost:3000`
+- 访问 `http://127.0.0.1:3000` 时，设置 `ORIGIN=http://127.0.0.1:3000`
+- 访问 `https://composia.example.com` 时，设置 `ORIGIN=https://composia.example.com`
+
+`localhost` 和 `127.0.0.1` 不是同一个 origin，不能混用。
 
 Web UI 现在有两层鉴权：
 
