@@ -76,6 +76,15 @@ DOCKER_SOCK_GID=131
 
 If this value is wrong, the `agent` will fail with `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock`.
 
+The default `docker-compose.yaml` bind-mounts the agent working directories directly from the host at `/data/repo-agent` and `/data/state-agent`. Create them on the host before startup:
+
+```bash
+sudo mkdir -p /data/repo-agent /data/state-agent
+sudo chown 65532:65532 /data/repo-agent /data/state-agent
+```
+
+Do not change the host paths to a different location while still mounting them as `/data/...` inside the container. `agent.repo_dir`, the host-side mount paths, and the container-side mount paths must match exactly, or bind mounts in managed service Compose files may resolve to the wrong host location and file mounts can fail.
+
 Generate the Argon2 hash before startup. You can generate it directly in this page:
 
 <ClientOnly>

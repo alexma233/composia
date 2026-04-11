@@ -32,6 +32,43 @@ agent:
   state_dir: "/data/state-agent"
 ```
 
+## 重要路径约束
+
+如果 `agent` 通过 `/var/run/docker.sock` 调用宿主机 Docker，那么 `agent.repo_dir` 和 `agent.state_dir` 不能只存在于 agent 容器自己的 volume 里。
+
+以下三个位置必须使用同一个绝对路径：
+
+- `config.yaml` 里的 `agent.repo_dir` / `agent.state_dir`
+- `docker-compose.yaml` 中 agent 服务的宿主机挂载源路径
+- `docker-compose.yaml` 中 agent 服务的容器内挂载目标路径
+
+例如默认部署应保持为：
+
+```yaml
+agent:
+  repo_dir: "/data/repo-agent"
+  state_dir: "/data/state-agent"
+```
+
+```yaml
+services:
+  agent:
+    volumes:
+      - /data/repo-agent:/data/repo-agent
+      - /data/state-agent:/data/state-agent
+```
+
+不要把宿主机路径改成别的值再映射到容器内的 `/data/...`，例如：
+
+```yaml
+services:
+  agent:
+    volumes:
+      - /srv/composia/repo-agent:/data/repo-agent
+```
+
+这种写法会让 agent 容器内看到 `/data/repo-agent`，但宿主机 Docker daemon 实际只能看到 `/srv/composia/repo-agent`。当服务 Compose 使用 `/data/repo-agent/...` 这样的 bind mount 时，宿主机 Docker 会去访问宿主机的 `/data/repo-agent/...`，最终导致文件挂载失败，或者把不存在的文件路径错误创建成目录。
+
 ## 启用 Caddy
 
 在 Agent 配置中添加：

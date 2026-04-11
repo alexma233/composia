@@ -76,6 +76,15 @@ DOCKER_SOCK_GID=131
 
 如果这个值不正确，`agent` 会报错 `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock`。
 
+默认 `docker-compose.yaml` 会把 agent 的工作目录直接绑定到宿主机的 `/data/repo-agent` 和 `/data/state-agent`。启动前请先在宿主机创建它们：
+
+```bash
+sudo mkdir -p /data/repo-agent /data/state-agent
+sudo chown 65532:65532 /data/repo-agent /data/state-agent
+```
+
+这里不要把宿主机路径换成别的目录再映射到容器内的 `/data/...`。`agent.repo_dir`、agent 服务的宿主机挂载路径、agent 服务的容器内挂载路径必须完全一致，否则被管理服务里的 bind mount 会被宿主机 Docker 解析到错误位置，文件挂载可能直接失败。
+
 启动前先生成 Argon2 哈希。你可以直接在这个页面里生成：
 
 <ClientOnly>

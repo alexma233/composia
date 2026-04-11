@@ -69,8 +69,8 @@ services:
         mkdir -p /data/repo-agent/caddy/generated /data/state-agent
         chown -R 65532:65532 /data/repo-agent /data/state-agent
     volumes:
-      - agent_repo:/data/repo-agent
-      - agent_state:/data/state-agent
+      - /data/repo-agent:/data/repo-agent
+      - /data/state-agent:/data/state-agent
 
   agent:
     image: forgejo.alexma.top/alexma233/composia:latest
@@ -87,8 +87,8 @@ services:
     volumes:
       - ./config:/app/configs:ro
       - /var/run/docker.sock:/var/run/docker.sock
-      - agent_repo:/data/repo-agent
-      - agent_state:/data/state-agent
+      - /data/repo-agent:/data/repo-agent
+      - /data/state-agent:/data/state-agent
     networks:
       - composia
     restart: unless-stopped
@@ -114,5 +114,3 @@ volumes:
   controller_repo:
   controller_state:
   controller_logs:
-  agent_repo:
-  agent_state:
