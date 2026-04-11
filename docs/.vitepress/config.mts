@@ -322,7 +322,6 @@ export default defineConfig({
 
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
-    logo: '/logo.svg',
     socialLinks: [
       { icon: 'forgejo', link: 'https://forgejo.alexma.top/alexma233/composia' }
     ],

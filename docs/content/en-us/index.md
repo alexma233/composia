@@ -1,14 +1,12 @@
 ---
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
+title: Composia
 
 hero:
   name: "Composia"
   text: "Docker Compose Control Plane"
   tagline: A platform-agnostic Docker Compose control plane for multi-node self-hosted infrastructure that keeps file-based and CLI workflows intact
-  image:
-    src: /logo.svg
-    alt: Composia
   actions:
     - theme: brand
       text: Quick Start

@@ -1,14 +1,12 @@
 ---
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
+title: Composia
 
 hero:
   name: "Composia"
   text: "Docker Compose 控制平面"
   tagline: 一个平台无关的 Docker Compose 控制平面，在不牺牲纯文件和 CLI 工作流的前提下统一管理多节点自托管基础设施
-  image:
-    src: /logo.svg
-    alt: Composia
   actions:
     - theme: brand
       text: 快速开始
