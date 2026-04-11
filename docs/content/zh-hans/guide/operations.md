@@ -66,6 +66,18 @@ Pending → Running → Succeeded
 | `failed` | 执行失败 |
 | `cancelled` | 已取消 |
 
+当任务停在 `awaiting_confirmation` 时，表示 Controller 正在等待人工确认后再继续后续步骤。当前这个状态主要用于迁移流程中的手动验证阶段。
+
+可通过以下方式继续处理：
+
+- 在 Web UI 中批准或拒绝该任务
+- 通过 ConnectRPC 调用 `composia.controller.v1.TaskService/ResolveTaskConfirmation`
+
+处理语义：
+
+- `approve`：恢复同一个任务，继续执行后续步骤
+- `reject`：结束当前任务，不再继续后续步骤
+
 ### 任务日志
 
 任务执行过程中会实时输出日志。当前内置日志主要来自 agent 与 Docker 命令输出，默认以英文为主：

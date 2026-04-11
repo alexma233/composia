@@ -167,7 +167,7 @@ mise run agent2
 docker compose up -d
 ```
 
-This Compose stack uses pre-built images. It is useful for integration checks or prod-like local runs, but it does not provide source hot reload and will not rebuild automatically when you edit code.
+This uses the production Compose file at the repository root, `./docker-compose.yaml`. The stack uses pre-built images, which is useful for integration checks or prod-like local runs, but it does not provide source hot reload and will not rebuild automatically when you edit code.
 
 ## Development Configuration Examples
 

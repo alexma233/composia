@@ -38,3 +38,17 @@ cat key.txt | grep "public key" > recipients.txt
 
 - `key.txt` 作为 `identity_file`（私钥）
 - `recipients.txt` 作为 `recipient_file`（公钥）
+
+## 运行时语义
+
+启用 `controller.secrets` 后，Composia 的 secret 写入与下发遵循以下规则：
+
+- Controller 使用配置的 age 身份解密和重新加密 secret 文件
+- Git 仓库中保存的是加密后的 secret，而不是明文
+- 明文 secret 不会持久化写入 `controller.repo_dir` 工作树
+- Agent 仅在任务 bundle 中拿到运行时所需的解密结果
+
+这意味着：
+
+- secret 的仓库写入会复用普通 repo 写事务的并发与同步检查
+- 运行时明文只存在于 agent 侧的任务执行上下文，不应当作为长期文件依赖

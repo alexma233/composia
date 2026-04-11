@@ -50,16 +50,18 @@ If you want the rationale and how Composia differs from Compose managers and sel
 
 ## Quick Start
 
-Create your own `docker-compose.yaml` and `config/config.yaml` locally. Do not reuse repository tokens or key files.
+Use the production Compose file checked in at the repository root: `./docker-compose.yaml`.
+
+Create your own `config/config.yaml` locally. Do not reuse repository tokens or key files.
 
 Before running the stack, generate and set these values yourself:
 
 - `controller.access_tokens[].token`
 - `controller.nodes[].token` and `agent.token`
-- `COMPOSIA_ACCESS_TOKEN` in `docker-compose.yaml` so it matches one enabled controller token
-- `WEB_LOGIN_USERNAME` in `docker-compose.yaml`
-- `WEB_LOGIN_PASSWORD_HASH` in `docker-compose.yaml`
-- `WEB_SESSION_SECRET` in `docker-compose.yaml`
+- `COMPOSIA_ACCESS_TOKEN` in `./docker-compose.yaml` so it matches one enabled controller token
+- `WEB_LOGIN_USERNAME` in `./docker-compose.yaml`
+- `WEB_LOGIN_PASSWORD_HASH` in `./docker-compose.yaml`
+- `WEB_SESSION_SECRET` in `./docker-compose.yaml`
 
 Generate the Web UI password hash with Argon2 before startup:
 
@@ -76,14 +78,14 @@ openssl rand -hex 32
 
 If you enable `secrets`, generate your own age identity and recipient files and place them under your local `config/` directory so the container mount exposes them at `/app/configs/...`.
 
-Run the container stack defined in your local `docker-compose.yaml`:
+Review and update the placeholder environment values in `./docker-compose.yaml`, then run the production container stack from the repository root:
 
 ```bash
 docker compose up -d
 ```
 
-By default, `docker-compose.yaml` pulls images from the self-hosted Forgejo registry.
-If you prefer GHCR, replace the image references in `docker-compose.yaml` with:
+By default, `./docker-compose.yaml` pulls images from the self-hosted Forgejo registry.
+If you prefer GHCR, replace the image references in `./docker-compose.yaml` with:
 
 ```yaml
 ghcr.io/alexma233/composia:latest
@@ -114,7 +116,7 @@ Pre-built images are published to:
 - Alternative registry: `ghcr.io/alexma233/composia`
 - Alternative registry: `ghcr.io/alexma233/composia-web`
 
-To stop the Composia stack started from the local `docker-compose.yaml`:
+To stop the Composia stack started from the repository root `./docker-compose.yaml`:
 
 ```bash
 docker compose down

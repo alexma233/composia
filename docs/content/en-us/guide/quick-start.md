@@ -11,7 +11,15 @@ This guide will help you get Composia up and running in minutes using pre-built 
 
 ### 1. Create a Working Directory
 
-Prepare an empty directory and create the startup files yourself:
+Clone the repository first. For production, you can use the checked-in startup file at the repository root directly:
+
+```bash
+git clone https://forgejo.alexma.top/alexma233/composia.git
+cd composia
+mkdir -p config
+```
+
+The directory layout looks like this:
 
 ```text
 composia/
@@ -24,7 +32,7 @@ composia/
 
 ### 2. Download the Startup Files
 
-Write `docker-compose.yaml` and `config/config.yaml` yourself using the [Configuration Guide](./configuration), [Controller Configuration](./configuration/controller), and [Agent Configuration](./configuration/agent).
+The repository root already includes a production-ready `docker-compose.yaml`. Use the [Configuration Guide](./configuration), [Controller Configuration](./configuration/controller), and [Agent Configuration](./configuration/agent) to write `config/config.yaml`, then update the placeholder values in the root `docker-compose.yaml` as needed.
 
 If you enable `secrets`, follow [Secrets Configuration](./configuration/secrets) and generate your own age key pair:
 
@@ -40,10 +48,10 @@ Before startup, review and update at least these values:
 
 - `controller.access_tokens[].token`: controller access token used by the Web UI
 - `controller.nodes[].token` and `agent.token`: node authentication token, which must match on both sides
-- `COMPOSIA_ACCESS_TOKEN` in `docker-compose.yaml`: it must match one enabled token under `controller.access_tokens`
-- `WEB_LOGIN_USERNAME` in `docker-compose.yaml`: local username for the Web login page
-- `WEB_LOGIN_PASSWORD_HASH` in `docker-compose.yaml`: Argon2 password hash for the Web login page
-- `WEB_SESSION_SECRET` in `docker-compose.yaml`: random secret used to sign the Web session cookie
+- `COMPOSIA_ACCESS_TOKEN` in the root `docker-compose.yaml`: it must match one enabled token under `controller.access_tokens`
+- `WEB_LOGIN_USERNAME` in the root `docker-compose.yaml`: local username for the Web login page
+- `WEB_LOGIN_PASSWORD_HASH` in the root `docker-compose.yaml`: Argon2 password hash for the Web login page
+- `WEB_SESSION_SECRET` in the root `docker-compose.yaml`: random secret used to sign the Web session cookie
 
 Generate the Argon2 hash before startup:
 
@@ -62,7 +70,7 @@ If you do not want to use `secrets` yet, remove the `secrets` section from `conf
 
 ### 4. Start Composia
 
-The following command starts Composia with the local `docker-compose.yaml` and `config/config.yaml` files:
+After updating the placeholder values in the root `docker-compose.yaml`, run this command from the repository root to start Composia with `docker-compose.yaml` and `config/config.yaml`:
 
 ```bash
 docker compose up -d
@@ -100,7 +108,7 @@ The browser does not receive `COMPOSIA_ACCESS_TOKEN`. After login it only stores
 
 ### 7. Stop Composia
 
-This stops the Composia stack started from the local `docker-compose.yaml`:
+This stops the Composia stack started from the repository root `docker-compose.yaml`:
 
 ```bash
 docker compose down
@@ -108,7 +116,7 @@ docker compose down
 
 ## Image Registry Options
 
-By default, the `docker-compose.yaml` uses the self-hosted Forgejo registry. To use GitHub Container Registry instead, replace the image references:
+By default, the repository root `docker-compose.yaml` uses the self-hosted Forgejo registry. To use GitHub Container Registry instead, replace the image references:
 
 ```yaml
 services:

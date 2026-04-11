@@ -167,7 +167,7 @@ mise run agent2
 docker compose up -d
 ```
 
-这套 Compose 栈使用的是预构建镜像，适合做集成联调或接近生产的本地验证，不提供源码热更新，也不会在你修改代码后自动重新 build。
+这里使用的是仓库根目录的生产 Compose 文件 `./docker-compose.yaml`。这套 Compose 栈使用的是预构建镜像，适合做集成联调或接近生产的本地验证，不提供源码热更新，也不会在你修改代码后自动重新 build。
 
 ## 开发配置示例
 

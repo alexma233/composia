@@ -221,6 +221,11 @@ migrate:
 
 请使用 `composia.controller.v1.ServiceCommandService/MigrateService`。
 
+如果迁移任务进入 `awaiting_confirmation`，请在确认目标节点服务可用后，再调用 `composia.controller.v1.TaskService/ResolveTaskConfirmation`：
+
+- `decision=approve`：继续执行后续的 DNS 更新与 `persist_repo`
+- `decision=reject`：终止当前迁移任务，不继续修改 DNS，也不会回写仓库
+
 ### 迁移步骤详解
 
 1. **源节点数据导出**
@@ -245,12 +250,16 @@ migrate:
 6. **目标节点 Caddy reload**
    - 加载新代理配置
 
-7. **DNS 更新**
-   - 更新 DNS 记录指向新节点
+7. **人工确认**
+    - 任务进入 `awaiting_confirmation`
+    - 人工验证目标节点服务、入口连通性和数据完整性
 
-8. **回写配置**
-   - 更新 `composia-meta.yaml` 中的 `nodes`
-   - 提交到 Git 仓库
+8. **DNS 更新**
+    - 确认通过后，更新 DNS 记录指向新节点
+
+9. **回写配置**
+    - 更新 `composia-meta.yaml` 中的 `nodes`
+    - 提交到 Git 仓库
 
 ### 迁移注意事项
 
@@ -268,6 +277,11 @@ migrate:
 - 迁移前会停止源实例
 - 确保没有正在写入的数据
 - 对于数据库，建议使用导出策略
+
+**人工确认：**
+- 当前迁移支持真实的 `awaiting_confirmation` 挂起状态
+- 建议确认目标节点容器健康、反向代理可达、应用核心读写正常后再批准
+- 如果确认失败，应拒绝任务并手动决定是否回滚
 
 ### 迁移失败处理
 
