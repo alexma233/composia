@@ -49,14 +49,8 @@ services:
     depends_on:
       controller:
         condition: service_started
-    environment:
-      COMPOSIA_CONTROLLER_ADDR: http://controller:7001
-      COMPOSIA_ACCESS_TOKEN: REPLACE_WITH_CONTROLLER_ACCESS_TOKEN
-      WEB_LOGIN_USERNAME: admin
-      WEB_LOGIN_PASSWORD_HASH: REPLACE_WITH_ARGON2_HASH
-      WEB_SESSION_SECRET: REPLACE_WITH_RANDOM_SESSION_SECRET
-      HOST: 0.0.0.0
-      PORT: "3000"
+    env_file:
+      - ./.env
     ports:
       - "3000:3000"
     networks:

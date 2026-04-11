@@ -16,6 +16,7 @@ Create a local working directory and download the production Compose file direct
 ```bash
 mkdir -p composia/config
 curl -L https://forgejo.alexma.top/alexma233/composia/raw/branch/main/docker-compose.yaml -o composia/docker-compose.yaml
+curl -L https://forgejo.alexma.top/alexma233/composia/raw/branch/main/.env.example -o composia/.env
 cd composia
 ```
 
@@ -32,7 +33,7 @@ composia/
 
 ### 2. Download the Startup Files
 
-The published `docker-compose.yaml` is production-ready. Use the [Configuration Guide](./configuration), [Controller Configuration](./configuration/controller), and [Agent Configuration](./configuration/agent) to write `config/config.yaml`, then update the placeholder values in `docker-compose.yaml` as needed.
+The published `docker-compose.yaml` is production-ready. Use the [Configuration Guide](./configuration), [Controller Configuration](./configuration/controller), and [Agent Configuration](./configuration/agent) to write `config/config.yaml`, then update the placeholder values in `.env` as needed.
 
 If you enable `secrets`, follow [Secrets Configuration](./configuration/secrets) and generate your own age key pair:
 
@@ -48,10 +49,10 @@ Before startup, review and update at least these values:
 
 - `controller.access_tokens[].token`: controller access token used by the Web UI
 - `controller.nodes[].token` and `agent.token`: node authentication token, which must match on both sides
-- `COMPOSIA_ACCESS_TOKEN` in `docker-compose.yaml`: it must match one enabled token under `controller.access_tokens`
-- `WEB_LOGIN_USERNAME` in `docker-compose.yaml`: local username for the Web login page
-- `WEB_LOGIN_PASSWORD_HASH` in `docker-compose.yaml`: Argon2 password hash for the Web login page
-- `WEB_SESSION_SECRET` in `docker-compose.yaml`: random secret used to sign the Web session cookie
+- `COMPOSIA_ACCESS_TOKEN` in `.env`: it must match one enabled token under `controller.access_tokens`
+- `WEB_LOGIN_USERNAME` in `.env`: local username for the Web login page
+- `WEB_LOGIN_PASSWORD_HASH` in `.env`: Argon2 password hash for the Web login page
+- `WEB_SESSION_SECRET` in `.env`: random secret used to sign the Web session cookie
 
 Generate the Argon2 hash before startup. You can generate it directly in this page:
 
@@ -75,7 +76,7 @@ If you do not want to use `secrets` yet, remove the `secrets` section from `conf
 
 ### 4. Start Composia
 
-After updating the placeholder values in `docker-compose.yaml`, run this command from the working directory to start Composia with `docker-compose.yaml` and `config/config.yaml`:
+After updating the placeholder values in `.env`, run this command from the working directory to start Composia with `docker-compose.yaml`, `.env`, and `config/config.yaml`:
 
 ```bash
 docker compose up -d

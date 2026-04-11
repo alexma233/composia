@@ -16,6 +16,7 @@
 ```bash
 mkdir -p composia/config
 curl -L https://forgejo.alexma.top/alexma233/composia/raw/branch/main/docker-compose.yaml -o composia/docker-compose.yaml
+curl -L https://forgejo.alexma.top/alexma233/composia/raw/branch/main/.env.example -o composia/.env
 cd composia
 ```
 
@@ -32,7 +33,7 @@ composia/
 
 ### 2. 下载启动文件
 
-发布的 `docker-compose.yaml` 已可直接用于生产启动。根据 [配置指南](./configuration)、[Controller 配置](./configuration/controller) 和 [Agent 配置](./configuration/agent) 编写 `config/config.yaml`，并按需修改 `docker-compose.yaml` 里的占位值。
+发布的 `docker-compose.yaml` 已可直接用于生产启动。根据 [配置指南](./configuration)、[Controller 配置](./configuration/controller) 和 [Agent 配置](./configuration/agent) 编写 `config/config.yaml`，并按需修改 `.env` 里的占位值。
 
 如果你启用 `secrets`，请参考 [Secrets 配置](./configuration/secrets) 自行生成 age 密钥：
 
@@ -48,10 +49,10 @@ grep "public key:" config/age-identity.key | awk '{print $4}' > config/age-recip
 
 - `controller.access_tokens[].token`：Controller 访问 token，Web UI 会使用它访问 Controller
 - `controller.nodes[].token` 与 `agent.token`：节点认证 token，二者必须一致
-- `docker-compose.yaml` 里的 `COMPOSIA_ACCESS_TOKEN`：必须与 `controller.access_tokens[].token` 保持一致
-- `docker-compose.yaml` 里的 `WEB_LOGIN_USERNAME`：Web 登录页使用的本地用户名
-- `docker-compose.yaml` 里的 `WEB_LOGIN_PASSWORD_HASH`：Web 登录页使用的 Argon2 密码哈希
-- `docker-compose.yaml` 里的 `WEB_SESSION_SECRET`：用于签名 Web session cookie 的随机密钥
+- `.env` 里的 `COMPOSIA_ACCESS_TOKEN`：必须与 `controller.access_tokens[].token` 保持一致
+- `.env` 里的 `WEB_LOGIN_USERNAME`：Web 登录页使用的本地用户名
+- `.env` 里的 `WEB_LOGIN_PASSWORD_HASH`：Web 登录页使用的 Argon2 密码哈希
+- `.env` 里的 `WEB_SESSION_SECRET`：用于签名 Web session cookie 的随机密钥
 
 启动前先生成 Argon2 哈希。你可以直接在这个页面里生成：
 
@@ -75,7 +76,7 @@ openssl rand -hex 32
 
 ### 4. 启动 Composia
 
-确认已经修改 `docker-compose.yaml` 中的占位值后，下面的命令会使用当前工作目录里的 `docker-compose.yaml` 和 `config/config.yaml` 启动 Composia：
+确认已经修改 `.env` 中的占位值后，下面的命令会使用当前工作目录里的 `docker-compose.yaml`、`.env` 和 `config/config.yaml` 启动 Composia：
 
 ```bash
 docker compose up -d

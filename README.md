@@ -55,6 +55,7 @@ Create a local working directory and download the production Compose file direct
 ```bash
 mkdir -p composia/config
 curl -L https://forgejo.alexma.top/alexma233/composia/raw/branch/main/docker-compose.yaml -o composia/docker-compose.yaml
+curl -L https://forgejo.alexma.top/alexma233/composia/raw/branch/main/.env.example -o composia/.env
 cd composia
 ```
 
@@ -64,10 +65,10 @@ Before running the stack, generate and set these values yourself:
 
 - `controller.access_tokens[].token`
 - `controller.nodes[].token` and `agent.token`
-- `COMPOSIA_ACCESS_TOKEN` in `./docker-compose.yaml` so it matches one enabled controller token
-- `WEB_LOGIN_USERNAME` in `./docker-compose.yaml`
-- `WEB_LOGIN_PASSWORD_HASH` in `./docker-compose.yaml`
-- `WEB_SESSION_SECRET` in `./docker-compose.yaml`
+- `COMPOSIA_ACCESS_TOKEN` in `./.env` so it matches one enabled controller token
+- `WEB_LOGIN_USERNAME` in `./.env`
+- `WEB_LOGIN_PASSWORD_HASH` in `./.env`
+- `WEB_SESSION_SECRET` in `./.env`
 
 Generate the Web UI password hash with Argon2 before startup. One simple option is the Authelia container CLI:
 
@@ -83,7 +84,7 @@ openssl rand -hex 32
 
 If you enable `secrets`, generate your own age identity and recipient files and place them under your local `config/` directory so the container mount exposes them at `/app/configs/...`.
 
-Review and update the placeholder environment values in `./docker-compose.yaml`, then run the production container stack from your working directory:
+Review and update the placeholder environment values in `./.env`, then run the production container stack from your working directory:
 
 ```bash
 docker compose up -d
