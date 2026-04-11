@@ -22,12 +22,31 @@ services:
       - controller_state:/data/state-controller
       - controller_logs:/data/logs
 
+  init-config-perms:
+    image: alpine:3.22
+    entrypoint:
+      - sh
+      - -ec
+      - |
+        if [ -f /app/configs/age-identity.key ]; then
+          chown 65532:65532 /app/configs/age-identity.key
+          chmod 600 /app/configs/age-identity.key
+        fi
+        if [ -f /app/configs/age-recipients.txt ]; then
+          chown 65532:65532 /app/configs/age-recipients.txt
+          chmod 644 /app/configs/age-recipients.txt
+        fi
+    volumes:
+      - ./config:/app/configs
+
   controller:
     image: forgejo.alexma.top/alexma233/composia:latest
     depends_on:
       init-repo-controller:
         condition: service_completed_successfully
       init-perms-controller:
+        condition: service_completed_successfully
+      init-config-perms:
         condition: service_completed_successfully
     command: ["controller", "-config", "/app/configs/config.yaml"]
     ports:
@@ -59,6 +78,8 @@ services:
       controller:
         condition: service_started
       init-perms-agent:
+        condition: service_completed_successfully
+      init-config-perms:
         condition: service_completed_successfully
     command: ["agent", "-config", "/app/configs/config.yaml"]
     volumes:

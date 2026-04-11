@@ -41,7 +41,7 @@ func Decrypt(content []byte, cfg *config.ControllerSecretsConfig) (string, error
 }
 
 func Encrypt(content string, cfg *config.ControllerSecretsConfig) ([]byte, error) {
-	recipients, err := loadRecipients(cfg.RecipientFile)
+	recipients, err := loadEncryptionRecipients(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -78,6 +78,29 @@ func Encrypt(content string, cfg *config.ControllerSecretsConfig) ([]byte, error
 		}
 	}
 	return buffer.Bytes(), nil
+}
+
+func loadEncryptionRecipients(cfg *config.ControllerSecretsConfig) ([]age.Recipient, error) {
+	if strings.TrimSpace(cfg.RecipientFile) != "" {
+		return loadRecipients(cfg.RecipientFile)
+	}
+
+	identities, err := loadIdentities(cfg.IdentityFile)
+	if err != nil {
+		return nil, err
+	}
+	recipients := make([]age.Recipient, 0, len(identities))
+	for _, identity := range identities {
+		x25519Identity, ok := identity.(*age.X25519Identity)
+		if !ok {
+			return nil, fmt.Errorf("derive age recipient from %q: unsupported identity type %T", cfg.IdentityFile, identity)
+		}
+		recipients = append(recipients, x25519Identity.Recipient())
+	}
+	if len(recipients) == 0 {
+		return nil, fmt.Errorf("age identity file %q did not contain any identities", cfg.IdentityFile)
+	}
+	return recipients, nil
 }
 
 func openAgeReader(content []byte) (io.Reader, error) {

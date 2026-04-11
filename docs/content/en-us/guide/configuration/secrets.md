@@ -19,10 +19,10 @@ controller:
 |-------|-------------|
 | `provider` | Encryption provider; currently only `age` is supported |
 | `identity_file` | Path to the age private key file |
-| `recipient_file` | Path to the age public key file |
+| `recipient_file` | Optional path to the age public key file; when omitted it is derived from `identity_file` |
 | `armor` | Whether to use ASCII Armor format |
 
-If the `secrets` section is present, `provider`, `identity_file`, and `recipient_file` are all required, and `provider` must be `age`.
+If the `secrets` section is present, `provider` and `identity_file` are required, `recipient_file` is optional, and `provider` must be `age`.
 
 ## Generate age Keys
 
@@ -37,4 +37,4 @@ cat key.txt | grep "public key" > recipients.txt
 When mounting into containers:
 
 - `key.txt` is the `identity_file` (private key)
-- `recipients.txt` is the `recipient_file` (public key)
+- `recipients.txt` can be used as the `recipient_file` (public key)

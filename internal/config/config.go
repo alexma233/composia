@@ -231,9 +231,6 @@ func validateController(file *File) error {
 		if controller.Secrets.IdentityFile == "" {
 			return fmt.Errorf("controller.secrets.identity_file is required")
 		}
-		if controller.Secrets.RecipientFile == "" {
-			return fmt.Errorf("controller.secrets.recipient_file is required")
-		}
 	}
 
 	if file.Agent != nil {
