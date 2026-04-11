@@ -9,10 +9,25 @@ services:
     volumes:
       - controller_repo:/data/repo-controller
 
+  init-perms-controller:
+    image: alpine:3.22
+    entrypoint:
+      - sh
+      - -ec
+      - |
+        mkdir -p /data/repo-controller /data/state-controller /data/logs/tasks
+        chown -R 65532:65532 /data/repo-controller /data/state-controller /data/logs
+    volumes:
+      - controller_repo:/data/repo-controller
+      - controller_state:/data/state-controller
+      - controller_logs:/data/logs
+
   controller:
     image: forgejo.alexma.top/alexma233/composia:latest
     depends_on:
       init-repo-controller:
+        condition: service_completed_successfully
+      init-perms-controller:
         condition: service_completed_successfully
     command: ["controller", "-config", "/app/configs/config.yaml"]
     ports:
@@ -26,11 +41,25 @@ services:
       - composia
     restart: unless-stopped
 
+  init-perms-agent:
+    image: alpine:3.22
+    entrypoint:
+      - sh
+      - -ec
+      - |
+        mkdir -p /data/repo-agent/caddy/generated /data/state-agent
+        chown -R 65532:65532 /data/repo-agent /data/state-agent
+    volumes:
+      - agent_repo:/data/repo-agent
+      - agent_state:/data/state-agent
+
   agent:
     image: forgejo.alexma.top/alexma233/composia:latest
     depends_on:
       controller:
         condition: service_started
+      init-perms-agent:
+        condition: service_completed_successfully
     command: ["agent", "-config", "/app/configs/config.yaml"]
     volumes:
       - ./config:/app/configs:ro
