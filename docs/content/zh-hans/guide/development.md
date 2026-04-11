@@ -141,6 +141,8 @@ mise run docs
 
 文档站默认运行在 `http://localhost:5174`。
 
+文档中的图统一使用 Mermaid，通过 `vitepress-plugin-mermaid` 渲染。新增图表时请使用 `mermaid` 或 `mmd` 代码块；如果需要脑图，也使用 Mermaid 的 mindmap 语法。
+
 **启动 Controller（终端 2）：**
 
 ```bash

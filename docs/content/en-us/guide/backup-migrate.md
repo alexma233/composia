@@ -160,25 +160,18 @@ Migration allows you to move service instances from one node to another while ma
 
 ### Migration Flow
 
-```
-Source Node                 Target Node
-   │                           │
-   ▼                           │
-Export Data ◄─────────────────┤
-   │                           │
-Stop Instance ◄───────────────┤
-   │                           │
-Unload Config                 │
-   │                           │
-   ├──────────────────────────►│
-   │                          Import Data
-   │                           │
-   ├──────────────────────────►│
-   │                          Start Instance
-   │                           │
-Update DNS ◄──────────────────┤
-   │                           │
-Update nodes config           │
+```mermaid
+sequenceDiagram
+    participant Source as Source Node
+    participant Target as Target Node
+
+    Target->>Source: Export Data
+    Target->>Source: Stop Instance
+    Note over Source: Unload Config
+    Source->>Target: Import Data
+    Source->>Target: Start Instance
+    Target->>Source: Update DNS
+    Note over Source: Update nodes config
 ```
 
 ### Migration Configuration

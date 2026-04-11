@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -49,7 +50,7 @@ function hasLocalePage(sourceDir: string, docRelPath: string) {
 }
 
 // https://vitepress.dev/reference/site-config
-export default defineConfig({
+export default withMermaid(defineConfig({
   srcDir: 'content',
 
   // 说明：为文档站生成 sitemap.xml（用于搜索引擎收录）。
@@ -322,6 +323,7 @@ export default defineConfig({
 
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
+    logo: '/logo.svg',
     socialLinks: [
       { icon: 'forgejo', link: 'https://forgejo.alexma.top/alexma233/composia' }
     ],
@@ -351,5 +353,10 @@ export default defineConfig({
         }
       }
     }
+  },
+
+  mermaid: {},
+  mermaidPlugin: {
+    class: 'mermaid'
   }
-})
+}))

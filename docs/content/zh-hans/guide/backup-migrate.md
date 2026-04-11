@@ -160,25 +160,18 @@ backup:
 
 ### 迁移流程
 
-```
-源节点                      目标节点
-   │                           │
-   ▼                           │
-导出数据 ◄─────────────────────┤
-   │                           │
-停止实例 ◄─────────────────────┤
-   │                           │
-卸载配置                      │
-   │                           │
-   ├──────────────────────────►│
-   │                          导入数据
-   │                           │
-   ├──────────────────────────►│
-   │                          启动实例
-   │                           │
-更新 DNS ◄─────────────────────┤
-   │                           │
-更新 nodes 配置               │
+```mermaid
+sequenceDiagram
+    participant Source as 源节点
+    participant Target as 目标节点
+
+    Target->>Source: 导出数据
+    Target->>Source: 停止实例
+    Note over Source: 卸载配置
+    Source->>Target: 导入数据
+    Source->>Target: 启动实例
+    Target->>Source: 更新 DNS
+    Note over Source: 更新 nodes 配置
 ```
 
 ### 配置迁移

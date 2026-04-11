@@ -84,8 +84,13 @@ Composia uses ConnectRPC for inter-service communication:
 
 ### Deployment Flow
 
-```
-User Request → Controller Validation → Create Task → Agent Pull → Execute Deploy → Report Result
+```mermaid
+flowchart LR
+    A[User Request] --> B[Controller Validation]
+    B --> C[Create Task]
+    C --> D[Agent Pull]
+    D --> E[Execute Deploy]
+    E --> F[Report Result]
 ```
 
 1. User initiates a deployment request via Web UI or API
@@ -97,8 +102,10 @@ User Request → Controller Validation → Create Task → Agent Pull → Execut
 
 ### Status Synchronization
 
-```
-Agent heartbeat / Docker stats reports → Controller aggregation → Web UI
+```mermaid
+flowchart LR
+    A[Agent heartbeat / Docker stats reports] --> B[Controller aggregation]
+    B --> C[Web UI]
 ```
 
 - Agents send heartbeats every 15 seconds
@@ -109,12 +116,18 @@ Agent heartbeat / Docker stats reports → Controller aggregation → Web UI
 
 ## Core Object Model
 
-```
-Service (Service Definition)
-    │
-    ├── ServiceInstance (Node Instance) ── Container (Docker Container)
-    │
-    └── ServiceInstance (Node Instance) ── Container (Docker Container)
+```mermaid
+flowchart TB
+    S[Service<br/>Service Definition]
+    SI1[ServiceInstance<br/>Node Instance A]
+    SI2[ServiceInstance<br/>Node Instance B]
+    C1[Container<br/>Docker Container]
+    C2[Container<br/>Docker Container]
+
+    S --> SI1
+    S --> SI2
+    SI1 --> C1
+    SI2 --> C2
 ```
 
 | Object | Description | Storage |
@@ -143,34 +156,38 @@ Service (Service Definition)
 
 ### Single-Node Mode
 
-```
-┌─────────────────────────────────────┐
-│           Single Server             │
-│  ┌──────────┐    ┌───────────────┐  │
-│  │Controller│◄──►│     Agent     │  │
-│  └──────────┘    └───────┬───────┘  │
-│                          │          │
-│                   ┌──────▼──────┐   │
-│                   │   Docker    │   │
-│                   └─────────────┘   │
-└─────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph SERVER[Single Server]
+        C[Controller]
+        A[Agent]
+        D[Docker]
+    end
+
+    C <--> A
+    A --> D
 ```
 
 ### Multi-Node Mode
 
-```
-┌─────────────────┐
-│    Controller   │
-└────────┬────────┘
-         │
-    ┌────┴────┬────────┬────────┐
-    ▼         ▼        ▼        ▼
-┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐
-│Agent 1│ │Agent 2│ │Agent 3│ │Agent N│
-└───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘
-    │         │         │         │
-┌───▼───┐ ┌───▼───┐ ┌───▼───┐ ┌───▼───┐
-│Docker │ │Docker │ │Docker │ │Docker │
-│Node 1 │ │Node 2 │ │Node 3 │ │Node N │
-└───────┘ └───────┘ └───────┘ └───────┘
+```mermaid
+flowchart TB
+    C[Controller]
+    A1[Agent 1]
+    A2[Agent 2]
+    A3[Agent 3]
+    AN[Agent N]
+    D1[Docker Node 1]
+    D2[Docker Node 2]
+    D3[Docker Node 3]
+    DN[Docker Node N]
+
+    C --> A1
+    C --> A2
+    C --> A3
+    C --> AN
+    A1 --> D1
+    A2 --> D2
+    A3 --> D3
+    AN --> DN
 ```

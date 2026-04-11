@@ -38,14 +38,15 @@ Composia 使用任务队列管理所有异步操作：
 
 ### 任务生命周期
 
-```
-Pending → Running → Succeeded
-         │         │
-         │         ├─► Failed
-         │         │
-         │         └─► Cancelled
-         │
-         └─► Awaiting confirmation
+```mermaid
+stateDiagram-v2
+    [*] --> Pending
+    Pending --> Running
+    Running --> Succeeded
+    Running --> Failed
+    Running --> Cancelled
+    Running --> Awaiting_confirmation
+    Awaiting_confirmation --> Running
 ```
 
 ### 查看任务

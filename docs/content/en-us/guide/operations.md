@@ -38,14 +38,15 @@ Composia uses a task queue to manage all asynchronous operations:
 
 ### Task Lifecycle
 
-```
-Pending → Running → Succeeded
-         │         │
-         │         ├─► Failed
-         │         │
-         │         └─► Cancelled
-         │
-         └─► Awaiting confirmation
+```mermaid
+stateDiagram-v2
+    [*] --> Pending
+    Pending --> Running
+    Running --> Succeeded
+    Running --> Failed
+    Running --> Cancelled
+    Running --> Awaiting_confirmation
+    Awaiting_confirmation --> Running
 ```
 
 ### Viewing Tasks

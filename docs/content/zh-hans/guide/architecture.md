@@ -84,8 +84,13 @@ Composia 使用 ConnectRPC 进行服务间通信：
 
 ### 部署流程
 
-```
-用户请求 → Controller 验证 → 创建任务 → Agent 拉取 → 执行部署 → 上报结果
+```mermaid
+flowchart LR
+    A[用户请求] --> B[Controller 验证]
+    B --> C[创建任务]
+    C --> D[Agent 拉取]
+    D --> E[执行部署]
+    E --> F[上报结果]
 ```
 
 1. 用户通过 Web UI 或 API 发起部署请求
@@ -97,8 +102,10 @@ Composia 使用 ConnectRPC 进行服务间通信：
 
 ### 状态同步
 
-```
-Agent 心跳 / Docker 统计上报 → Controller 聚合 → Web UI 展示
+```mermaid
+flowchart LR
+    A[Agent 心跳 / Docker 统计上报] --> B[Controller 聚合]
+    B --> C[Web UI 展示]
 ```
 
 - Agent 每 15 秒发送一次心跳
@@ -109,12 +116,18 @@ Agent 心跳 / Docker 统计上报 → Controller 聚合 → Web UI 展示
 
 ## 核心对象模型
 
-```
-Service (服务定义)
-    │
-    ├── ServiceInstance (节点实例) ── Container (Docker 容器)
-    │
-    └── ServiceInstance (节点实例) ── Container (Docker 容器)
+```mermaid
+flowchart TB
+    S[Service<br/>服务定义]
+    SI1[ServiceInstance<br/>节点实例 A]
+    SI2[ServiceInstance<br/>节点实例 B]
+    C1[Container<br/>Docker 容器]
+    C2[Container<br/>Docker 容器]
+
+    S --> SI1
+    S --> SI2
+    SI1 --> C1
+    SI2 --> C2
 ```
 
 | 对象 | 说明 | 存储位置 |
@@ -143,34 +156,38 @@ Service (服务定义)
 
 ### 单节点模式
 
-```
-┌─────────────────────────────────────┐
-│           单台服务器                │
-│  ┌──────────┐    ┌───────────────┐  │
-│  │Controller│◄──►│     Agent     │  │
-│  └──────────┘    └───────┬───────┘  │
-│                          │          │
-│                   ┌──────▼──────┐   │
-│                   │   Docker    │   │
-│                   └─────────────┘   │
-└─────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph SERVER[单台服务器]
+        C[Controller]
+        A[Agent]
+        D[Docker]
+    end
+
+    C <--> A
+    A --> D
 ```
 
 ### 多节点模式
 
-```
-┌─────────────────┐
-│    Controller   │
-└────────┬────────┘
-         │
-    ┌────┴────┬────────┬────────┐
-    ▼         ▼        ▼        ▼
-┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐
-│Agent 1│ │Agent 2│ │Agent 3│ │Agent N│
-└───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘
-    │         │         │         │
-┌───▼───┐ ┌───▼───┐ ┌───▼───┐ ┌───▼───┐
-│Docker │ │Docker │ │Docker │ │Docker │
-│Node 1 │ │Node 2 │ │Node 3 │ │Node N │
-└───────┘ └───────┘ └───────┘ └───────┘
+```mermaid
+flowchart TB
+    C[Controller]
+    A1[Agent 1]
+    A2[Agent 2]
+    A3[Agent 3]
+    AN[Agent N]
+    D1[Docker Node 1]
+    D2[Docker Node 2]
+    D3[Docker Node 3]
+    DN[Docker Node N]
+
+    C --> A1
+    C --> A2
+    C --> A3
+    C --> AN
+    A1 --> D1
+    A2 --> D2
+    A3 --> D3
+    AN --> DN
 ```

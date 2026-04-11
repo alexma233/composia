@@ -141,6 +141,8 @@ mise run docs
 
 The docs site runs on `http://localhost:5174`.
 
+Documentation diagrams use Mermaid through `vitepress-plugin-mermaid`. Use fenced `mermaid` or `mmd` blocks for new diagrams, including Mermaid mindmap syntax when needed.
+
 **Start the Controller (Terminal 2):**
 
 ```bash
