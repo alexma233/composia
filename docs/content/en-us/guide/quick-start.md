@@ -50,10 +50,31 @@ Before startup, review and update at least these values:
 - `controller.access_tokens[].token`: controller access token used by the Web UI
 - `controller.nodes[].token` and `agent.token`: node authentication token, which must match on both sides
 - `COMPOSIA_ACCESS_TOKEN` in `.env`: it must match one enabled token under `controller.access_tokens`
+- `DOCKER_SOCK_GID` in `.env`: the GID of the host's `/var/run/docker.sock`; the agent must join this group to access the local Docker daemon
 - `WEB_LOGIN_USERNAME` in `.env`: local username for the Web login page
 - `WEB_LOGIN_PASSWORD_HASH` in `.env`: Argon2 password hash for the Web login page
 - `WEB_SESSION_SECRET` in `.env`: random secret used to sign the Web session cookie
 - `ORIGIN` in `.env`: set this to the exact address you use to open the Web UI, such as `http://localhost:3000`, `http://127.0.0.1:3000`, or your production domain. Do not mix hosts, or form login may fail with `Cross-site POST form submissions are forbidden`
+
+First, look up the Docker socket GID on the host and write it into `.env`:
+
+```bash
+ls -ln /var/run/docker.sock
+```
+
+For example, if the output is:
+
+```text
+srw-rw---- 1 0 131 0 Mar  5 01:52 /var/run/docker.sock
+```
+
+set this in `.env`:
+
+```env
+DOCKER_SOCK_GID=131
+```
+
+If this value is wrong, the `agent` will fail with `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock`.
 
 Generate the Argon2 hash before startup. You can generate it directly in this page:
 

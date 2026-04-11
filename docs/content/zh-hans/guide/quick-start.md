@@ -50,10 +50,31 @@ grep "public key:" config/age-identity.key | awk '{print $4}' > config/age-recip
 - `controller.access_tokens[].token`：Controller 访问 token，Web UI 会使用它访问 Controller
 - `controller.nodes[].token` 与 `agent.token`：节点认证 token，二者必须一致
 - `.env` 里的 `COMPOSIA_ACCESS_TOKEN`：必须与 `controller.access_tokens[].token` 保持一致
+- `.env` 里的 `DOCKER_SOCK_GID`：宿主机 `/var/run/docker.sock` 的 GID，agent 需要加入这个组才能访问本机 Docker
 - `.env` 里的 `WEB_LOGIN_USERNAME`：Web 登录页使用的本地用户名
 - `.env` 里的 `WEB_LOGIN_PASSWORD_HASH`：Web 登录页使用的 Argon2 密码哈希
 - `.env` 里的 `WEB_SESSION_SECRET`：用于签名 Web session cookie 的随机密钥
 - `.env` 里的 `ORIGIN`：必须改成你实际访问 Web UI 的地址，例如 `http://localhost:3000`、`http://127.0.0.1:3000` 或正式域名。不要混用不同 host，否则表单登录会触发 `Cross-site POST form submissions are forbidden`
+
+先在宿主机查询 Docker socket 的 GID，并写入 `.env`：
+
+```bash
+ls -ln /var/run/docker.sock
+```
+
+例如输出是：
+
+```text
+srw-rw---- 1 0 131 0 Mar  5 01:52 /var/run/docker.sock
+```
+
+那么 `.env` 里应设置：
+
+```env
+DOCKER_SOCK_GID=131
+```
+
+如果这个值不正确，`agent` 会报错 `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock`。
 
 启动前先生成 Argon2 哈希。你可以直接在这个页面里生成：
 
