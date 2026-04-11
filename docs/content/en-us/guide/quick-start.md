@@ -11,12 +11,12 @@ This guide will help you get Composia up and running in minutes using pre-built 
 
 ### 1. Create a Working Directory
 
-Clone the repository first. For production, you can use the checked-in startup file at the repository root directly:
+Create a local working directory and download the production Compose file directly instead of cloning the full repository:
 
 ```bash
-git clone https://forgejo.alexma.top/alexma233/composia.git
+mkdir -p composia/config
+curl -L https://forgejo.alexma.top/alexma233/composia/raw/branch/main/docker-compose.yaml -o composia/docker-compose.yaml
 cd composia
-mkdir -p config
 ```
 
 The directory layout looks like this:
@@ -32,7 +32,7 @@ composia/
 
 ### 2. Download the Startup Files
 
-The repository root already includes a production-ready `docker-compose.yaml`. Use the [Configuration Guide](./configuration), [Controller Configuration](./configuration/controller), and [Agent Configuration](./configuration/agent) to write `config/config.yaml`, then update the placeholder values in the root `docker-compose.yaml` as needed.
+The published `docker-compose.yaml` is production-ready. Use the [Configuration Guide](./configuration), [Controller Configuration](./configuration/controller), and [Agent Configuration](./configuration/agent) to write `config/config.yaml`, then update the placeholder values in `docker-compose.yaml` as needed.
 
 If you enable `secrets`, follow [Secrets Configuration](./configuration/secrets) and generate your own age key pair:
 
@@ -48,16 +48,21 @@ Before startup, review and update at least these values:
 
 - `controller.access_tokens[].token`: controller access token used by the Web UI
 - `controller.nodes[].token` and `agent.token`: node authentication token, which must match on both sides
-- `COMPOSIA_ACCESS_TOKEN` in the root `docker-compose.yaml`: it must match one enabled token under `controller.access_tokens`
-- `WEB_LOGIN_USERNAME` in the root `docker-compose.yaml`: local username for the Web login page
-- `WEB_LOGIN_PASSWORD_HASH` in the root `docker-compose.yaml`: Argon2 password hash for the Web login page
-- `WEB_SESSION_SECRET` in the root `docker-compose.yaml`: random secret used to sign the Web session cookie
+- `COMPOSIA_ACCESS_TOKEN` in `docker-compose.yaml`: it must match one enabled token under `controller.access_tokens`
+- `WEB_LOGIN_USERNAME` in `docker-compose.yaml`: local username for the Web login page
+- `WEB_LOGIN_PASSWORD_HASH` in `docker-compose.yaml`: Argon2 password hash for the Web login page
+- `WEB_SESSION_SECRET` in `docker-compose.yaml`: random secret used to sign the Web session cookie
 
-Generate the Argon2 hash before startup:
+Generate the Argon2 hash before startup. You can generate it directly in this page:
+
+<ClientOnly>
+  <Argon2Generator />
+</ClientOnly>
+
+If you prefer the CLI instead:
 
 ```bash
-cd web
-bun -e "import { hash } from 'argon2'; console.log(await hash(Bun.argv[2]));" -- "replace-with-your-password"
+docker run --rm authelia/authelia:latest authelia crypto hash generate argon2 --password 'replace-with-your-password'
 ```
 
 Generate a session secret with a long random value, for example:
@@ -70,7 +75,7 @@ If you do not want to use `secrets` yet, remove the `secrets` section from `conf
 
 ### 4. Start Composia
 
-After updating the placeholder values in the root `docker-compose.yaml`, run this command from the repository root to start Composia with `docker-compose.yaml` and `config/config.yaml`:
+After updating the placeholder values in `docker-compose.yaml`, run this command from the working directory to start Composia with `docker-compose.yaml` and `config/config.yaml`:
 
 ```bash
 docker compose up -d
@@ -108,7 +113,7 @@ The browser does not receive `COMPOSIA_ACCESS_TOKEN`. After login it only stores
 
 ### 7. Stop Composia
 
-This stops the Composia stack started from the repository root `docker-compose.yaml`:
+This stops the Composia stack started from `docker-compose.yaml` in your working directory:
 
 ```bash
 docker compose down
@@ -116,7 +121,7 @@ docker compose down
 
 ## Image Registry Options
 
-By default, the repository root `docker-compose.yaml` uses the self-hosted Forgejo registry. To use GitHub Container Registry instead, replace the image references:
+By default, `docker-compose.yaml` uses the self-hosted Forgejo registry. To use GitHub Container Registry instead, replace the image references:
 
 ```yaml
 services:

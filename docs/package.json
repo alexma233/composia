@@ -1,7 +1,9 @@
 {
   "name": "composia-docs",
   "description": "Composia documentation site",
-  "dependencies": {},
+  "dependencies": {
+    "hash-wasm": "^4.12.0"
+  },
   "devDependencies": {
     "@braintree/sanitize-url": "^7.1.1",
     "@mermaid-js/mermaid-mindmap": "^9.3.0",

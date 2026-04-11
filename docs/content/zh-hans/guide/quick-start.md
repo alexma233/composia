@@ -11,12 +11,12 @@
 
 ### 1. 创建工作目录
 
-先克隆仓库。生产环境可直接使用仓库根目录已提供的启动文件：
+先创建本地工作目录，并直接下载生产用的 Compose 文件，不需要克隆整个仓库：
 
 ```bash
-git clone https://forgejo.alexma.top/alexma233/composia.git
+mkdir -p composia/config
+curl -L https://forgejo.alexma.top/alexma233/composia/raw/branch/main/docker-compose.yaml -o composia/docker-compose.yaml
 cd composia
-mkdir -p config
 ```
 
 目录结构如下：
@@ -32,7 +32,7 @@ composia/
 
 ### 2. 下载启动文件
 
-仓库根目录已经提供了适用于生产环境的 `docker-compose.yaml`。根据 [配置指南](./configuration)、[Controller 配置](./configuration/controller) 和 [Agent 配置](./configuration/agent) 编写 `config/config.yaml`，并按需修改根目录 `docker-compose.yaml` 里的占位值。
+发布的 `docker-compose.yaml` 已可直接用于生产启动。根据 [配置指南](./configuration)、[Controller 配置](./configuration/controller) 和 [Agent 配置](./configuration/agent) 编写 `config/config.yaml`，并按需修改 `docker-compose.yaml` 里的占位值。
 
 如果你启用 `secrets`，请参考 [Secrets 配置](./configuration/secrets) 自行生成 age 密钥：
 
@@ -48,16 +48,21 @@ grep "public key:" config/age-identity.key | awk '{print $4}' > config/age-recip
 
 - `controller.access_tokens[].token`：Controller 访问 token，Web UI 会使用它访问 Controller
 - `controller.nodes[].token` 与 `agent.token`：节点认证 token，二者必须一致
-- 根目录 `docker-compose.yaml` 里的 `COMPOSIA_ACCESS_TOKEN`：必须与 `controller.access_tokens[].token` 保持一致
-- 根目录 `docker-compose.yaml` 里的 `WEB_LOGIN_USERNAME`：Web 登录页使用的本地用户名
-- 根目录 `docker-compose.yaml` 里的 `WEB_LOGIN_PASSWORD_HASH`：Web 登录页使用的 Argon2 密码哈希
-- 根目录 `docker-compose.yaml` 里的 `WEB_SESSION_SECRET`：用于签名 Web session cookie 的随机密钥
+- `docker-compose.yaml` 里的 `COMPOSIA_ACCESS_TOKEN`：必须与 `controller.access_tokens[].token` 保持一致
+- `docker-compose.yaml` 里的 `WEB_LOGIN_USERNAME`：Web 登录页使用的本地用户名
+- `docker-compose.yaml` 里的 `WEB_LOGIN_PASSWORD_HASH`：Web 登录页使用的 Argon2 密码哈希
+- `docker-compose.yaml` 里的 `WEB_SESSION_SECRET`：用于签名 Web session cookie 的随机密钥
 
-启动前先生成 Argon2 哈希：
+启动前先生成 Argon2 哈希。你可以直接在这个页面里生成：
+
+<ClientOnly>
+  <Argon2Generator />
+</ClientOnly>
+
+如果你更想用 CLI，也可以执行：
 
 ```bash
-cd web
-bun -e "import { hash } from 'argon2'; console.log(await hash(Bun.argv[2]));" -- "替换成你的密码"
+docker run --rm authelia/authelia:latest authelia crypto hash generate argon2 --password '替换成你的密码'
 ```
 
 再生成一个足够长的 session 密钥，例如：
@@ -70,7 +75,7 @@ openssl rand -hex 32
 
 ### 4. 启动 Composia
 
-确认已经修改根目录 `docker-compose.yaml` 中的占位值后，下面的命令会使用仓库根目录的 `docker-compose.yaml` 和 `config/config.yaml` 启动 Composia：
+确认已经修改 `docker-compose.yaml` 中的占位值后，下面的命令会使用当前工作目录里的 `docker-compose.yaml` 和 `config/config.yaml` 启动 Composia：
 
 ```bash
 docker compose up -d
@@ -107,7 +112,7 @@ Web UI 现在有两层鉴权：
 
 ### 7. 停止 Composia
 
-这条命令会停止仓库根目录 `docker-compose.yaml` 启动的 Composia 容器栈：
+这条命令会停止当前工作目录里 `docker-compose.yaml` 启动的 Composia 容器栈：
 
 ```bash
 docker compose down
@@ -117,7 +122,7 @@ docker compose down
 
 默认使用自建 Forgejo Registry。如需使用 GitHub Container Registry：
 
-编辑仓库根目录 `docker-compose.yaml`，将镜像地址替换为：
+编辑当前目录里的 `docker-compose.yaml`，将镜像地址替换为：
 
 ```yaml
 services:

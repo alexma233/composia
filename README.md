@@ -50,7 +50,13 @@ If you want the rationale and how Composia differs from Compose managers and sel
 
 ## Quick Start
 
-Use the production Compose file checked in at the repository root: `./docker-compose.yaml`.
+Create a local working directory and download the production Compose file directly instead of cloning the full repository:
+
+```bash
+mkdir -p composia/config
+curl -L https://forgejo.alexma.top/alexma233/composia/raw/branch/main/docker-compose.yaml -o composia/docker-compose.yaml
+cd composia
+```
 
 Create your own `config/config.yaml` locally. Do not reuse repository tokens or key files.
 
@@ -63,11 +69,10 @@ Before running the stack, generate and set these values yourself:
 - `WEB_LOGIN_PASSWORD_HASH` in `./docker-compose.yaml`
 - `WEB_SESSION_SECRET` in `./docker-compose.yaml`
 
-Generate the Web UI password hash with Argon2 before startup:
+Generate the Web UI password hash with Argon2 before startup. One simple option is the Authelia container CLI:
 
 ```bash
-cd web
-bun -e "import { hash } from 'argon2'; console.log(await hash(Bun.argv[2]));" -- "replace-with-your-password"
+docker run --rm authelia/authelia:latest authelia crypto hash generate argon2 --password 'replace-with-your-password'
 ```
 
 Use the printed hash as `WEB_LOGIN_PASSWORD_HASH`. Generate `WEB_SESSION_SECRET` with a long random value, for example:
@@ -78,7 +83,7 @@ openssl rand -hex 32
 
 If you enable `secrets`, generate your own age identity and recipient files and place them under your local `config/` directory so the container mount exposes them at `/app/configs/...`.
 
-Review and update the placeholder environment values in `./docker-compose.yaml`, then run the production container stack from the repository root:
+Review and update the placeholder environment values in `./docker-compose.yaml`, then run the production container stack from your working directory:
 
 ```bash
 docker compose up -d
@@ -116,7 +121,7 @@ Pre-built images are published to:
 - Alternative registry: `ghcr.io/alexma233/composia`
 - Alternative registry: `ghcr.io/alexma233/composia-web`
 
-To stop the Composia stack started from the repository root `./docker-compose.yaml`:
+To stop the Composia stack started from your working directory `./docker-compose.yaml`:
 
 ```bash
 docker compose down
