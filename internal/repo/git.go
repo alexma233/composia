@@ -211,7 +211,7 @@ func FetchAndFastForward(repoDir, remoteURL, branch, authUsername, authToken str
 	if branch == "" {
 		return fmt.Errorf("remote branch is required")
 	}
-	if _, err := gitOutputWithOptions(repoDir, gitRemoteConfig(remoteURL, authUsername, authToken), nil, "fetch", remoteURL, branch); err != nil {
+	if _, err := gitOutputWithOptions(repoDir, nil, gitRemoteConfig(remoteURL, authUsername, authToken), "fetch", remoteURL, branch); err != nil {
 		return fmt.Errorf("fetch remote branch %q: %w", branch, err)
 	}
 	if err := gitCommand(repoDir, nil, "merge", "--ff-only", "FETCH_HEAD"); err != nil {

@@ -166,6 +166,62 @@ func TestGitRemoteConfigUsesBasicAuthWhenUsernameConfigured(t *testing.T) {
 	}
 }
 
+func TestFetchAndFastForwardUsesGitConfigForAuthHeaders(t *testing.T) {
+	repoDir := t.TempDir()
+	remoteDir := t.TempDir()
+	gitRun(t, remoteDir, "init", "--bare")
+	gitRun(t, repoDir, "init")
+	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("hello\n"), 0o644); err != nil {
+		t.Fatalf("write README: %v", err)
+	}
+	gitRun(t, repoDir, "add", ".")
+	gitRun(t, repoDir, "-c", "user.name=Test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "-m", "initial")
+	gitRun(t, repoDir, "remote", "add", "origin", remoteDir)
+	gitRun(t, repoDir, "push", "origin", "HEAD:refs/heads/main")
+
+	spyDir := t.TempDir()
+	logPath := filepath.Join(spyDir, "git-invocations.log")
+	spyPath := filepath.Join(spyDir, "git")
+	spyScript := "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"" + logPath + "\"\nfor arg in \"$@\"; do\n  if [ \"$arg\" = \"fetch\" ]; then\n    echo 'forced fetch failure' >&2\n    exit 1\n  fi\ndone\nexec /usr/bin/git \"$@\"\n"
+	if err := os.WriteFile(spyPath, []byte(spyScript), 0o755); err != nil {
+		t.Fatalf("write git spy: %v", err)
+	}
+
+	originalPath := os.Getenv("PATH")
+	t.Setenv("PATH", spyDir+string(os.PathListSeparator)+originalPath)
+
+	cloneDir := t.TempDir()
+	gitRun(t, cloneDir, "clone", remoteDir, ".")
+
+	logBefore, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("read initial spy log: %v", err)
+	}
+	beforeEntries := len(strings.Split(strings.TrimSpace(string(logBefore)), "\n"))
+
+	err = FetchAndFastForward(cloneDir, "https://example.com/repo.git", "main", "octocat", "secret-token")
+	if err == nil || !strings.Contains(err.Error(), "forced fetch failure") {
+		t.Fatalf("expected forced fetch failure, got %v", err)
+	}
+
+	logAfter, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("read final spy log: %v", err)
+	}
+	entries := strings.Split(strings.TrimSpace(string(logAfter)), "\n")
+	if len(entries) <= beforeEntries {
+		t.Fatalf("expected new git invocation, got log %q", string(logAfter))
+	}
+	fetchCommand := entries[len(entries)-1]
+	expectedHeader := "-c http.extraHeader=Authorization: Basic " + base64.StdEncoding.EncodeToString([]byte("octocat:secret-token"))
+	if !strings.Contains(fetchCommand, expectedHeader) {
+		t.Fatalf("expected fetch command %q to contain %q", fetchCommand, expectedHeader)
+	}
+	if !strings.Contains(fetchCommand, "fetch https://example.com/repo.git main") {
+		t.Fatalf("expected fetch command, got %q", fetchCommand)
+	}
+}
+
 func gitRun(t *testing.T, repoDir string, args ...string) {
 	t.Helper()
 	commandArgs := append([]string{"-C", repoDir}, args...)
