@@ -1,0 +1,80 @@
+name: Dev Web Docker Build
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "package.json"
+      - "bun.lock"
+      - "web/**"
+      - ".forgejo/workflows/dev-build-web.yaml"
+      - ".forgejo/workflows/release-build-docker.yaml"
+  workflow_dispatch:
+
+env:
+  REGISTRY_HOST: forgejo.alexma.top
+  FORGEJO_WEB_IMAGE_NAME: forgejo.alexma.top/${{ github.repository_owner }}/composia-web
+  GHCR_WEB_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/composia-web
+  PLATFORMS: linux/amd64
+
+jobs:
+  docker-web:
+    runs-on: docker-amd64-dind
+    steps:
+      - name: Checkout
+        uses: https://forgejo.alexma.top/actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: https://forgejo.alexma.top/actions/docker-setup-buildx-action@v3
+
+      - name: Login to Forgejo Registry
+        uses: https://forgejo.alexma.top/actions/docker-login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_HOST }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Login to GHCR
+        uses: https://forgejo.alexma.top/actions/docker-login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.GHCR_USERNAME }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: https://forgejo.alexma.top/actions/docker-metadata-action@v5
+        with:
+          images: |
+            ${{ env.FORGEJO_WEB_IMAGE_NAME }}
+            ${{ env.GHCR_WEB_IMAGE_NAME }}
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=canary-{{sha}},enable=true
+            type=raw,value=canary,enable=true
+          labels: |
+            org.opencontainers.image.description=Composia web interface image
+            org.opencontainers.image.documentation=https://docs.composia.xyz
+            org.opencontainers.image.vendor=${{ github.repository_owner }}
+            org.opencontainers.image.ref.name=canary
+            org.opencontainers.image.version=canary-{{sha}}
+            io.composia.channel=canary
+
+      - name: Build and push
+        uses: https://forgejo.alexma.top/actions/docker-build-push-action@v5
+        with:
+          context: .
+          file: ./web/Dockerfile
+          push: true
+          platforms: ${{ env.PLATFORMS }}
+          builder: ${{ steps.buildx.outputs.name }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=registry,ref=${{ env.FORGEJO_WEB_IMAGE_NAME }}:buildcache
+          cache-to: |
+            type=registry,ref=${{ env.FORGEJO_WEB_IMAGE_NAME }}:buildcache,mode=max
