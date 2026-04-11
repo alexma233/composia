@@ -317,7 +317,11 @@ func autoPullFetchAndFastForward(ctx context.Context, cfg *config.ControllerConf
 			return store.RepoSyncState{SyncStatus: store.RepoSyncStatusUnknown}, fmt.Errorf("get current branch: %w", err)
 		}
 	}
+	authUsername := ""
 	authToken := ""
+	if cfg.Git.Auth != nil {
+		authUsername = strings.TrimSpace(cfg.Git.Auth.Username)
+	}
 	if cfg.Git.Auth != nil && strings.TrimSpace(cfg.Git.Auth.TokenFile) != "" {
 		tokenContent, err := os.ReadFile(strings.TrimSpace(cfg.Git.Auth.TokenFile))
 		if err != nil {
@@ -330,7 +334,7 @@ func autoPullFetchAndFastForward(ctx context.Context, cfg *config.ControllerConf
 		previousState = store.RepoSyncState{}
 	}
 	pulledAt := time.Now().UTC().Format(time.RFC3339)
-	if err := repo.FetchAndFastForward(cfg.RepoDir, strings.TrimSpace(cfg.Git.RemoteURL), branch, authToken); err != nil {
+	if err := repo.FetchAndFastForward(cfg.RepoDir, strings.TrimSpace(cfg.Git.RemoteURL), branch, authUsername, authToken); err != nil {
 		state := store.RepoSyncState{
 			SyncStatus:           store.RepoSyncStatusPullFailed,
 			LastSyncError:        err.Error(),
@@ -3210,6 +3214,13 @@ func (server *repoCommandServer) configuredGitAuthToken() (string, error) {
 	return strings.TrimSpace(string(content)), nil
 }
 
+func (server *repoCommandServer) configuredGitAuthUsername() string {
+	if server.cfg == nil || server.cfg.Git == nil || server.cfg.Git.Auth == nil {
+		return ""
+	}
+	return strings.TrimSpace(server.cfg.Git.Auth.Username)
+}
+
 func (server *repoCommandServer) persistRepoSyncState(ctx context.Context, state store.RepoSyncState) error {
 	if server.db == nil {
 		return nil
@@ -3248,7 +3259,7 @@ func (server *repoCommandServer) syncRepoLocked(ctx context.Context) (store.Repo
 		return store.RepoSyncState{}, connect.NewError(connect.CodeInternal, err)
 	}
 	pulledAt := time.Now().UTC().Format(time.RFC3339)
-	if err := repo.FetchAndFastForward(server.cfg.RepoDir, strings.TrimSpace(server.cfg.Git.RemoteURL), branch, authToken); err != nil {
+	if err := repo.FetchAndFastForward(server.cfg.RepoDir, strings.TrimSpace(server.cfg.Git.RemoteURL), branch, server.configuredGitAuthUsername(), authToken); err != nil {
 		state := store.RepoSyncState{
 			SyncStatus:           store.RepoSyncStatusPullFailed,
 			LastSyncError:        err.Error(),
@@ -3559,7 +3570,7 @@ func (server *repoCommandServer) finalizeRepoGitState(ctx context.Context, commi
 	if err != nil {
 		return repoWriteResult{}, connect.NewError(connect.CodeInternal, err)
 	}
-	if err := repo.PushCurrentBranch(server.cfg.RepoDir, strings.TrimSpace(server.cfg.Git.RemoteURL), branch, authToken); err != nil {
+	if err := repo.PushCurrentBranch(server.cfg.RepoDir, strings.TrimSpace(server.cfg.Git.RemoteURL), branch, server.configuredGitAuthUsername(), authToken); err != nil {
 		state := store.RepoSyncState{
 			SyncStatus:           store.RepoSyncStatusPushFailed,
 			LastSyncError:        err.Error(),

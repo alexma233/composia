@@ -46,6 +46,7 @@ type ControllerGitConfig struct {
 }
 
 type ControllerGitAuthConfig struct {
+	Username  string `yaml:"username"`
 	TokenFile string `yaml:"token_file"`
 }
 

@@ -2,6 +2,7 @@ package repo
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/url"
@@ -203,14 +204,14 @@ func ListFilesAtRevision(repoDir, revision, relativePath string) ([]string, erro
 	return lines, nil
 }
 
-func FetchAndFastForward(repoDir, remoteURL, branch, authToken string) error {
+func FetchAndFastForward(repoDir, remoteURL, branch, authUsername, authToken string) error {
 	if remoteURL == "" {
 		return fmt.Errorf("remote URL is required")
 	}
 	if branch == "" {
 		return fmt.Errorf("remote branch is required")
 	}
-	if _, err := gitOutputWithOptions(repoDir, gitRemoteConfig(remoteURL, authToken), nil, "fetch", remoteURL, branch); err != nil {
+	if _, err := gitOutputWithOptions(repoDir, gitRemoteConfig(remoteURL, authUsername, authToken), nil, "fetch", remoteURL, branch); err != nil {
 		return fmt.Errorf("fetch remote branch %q: %w", branch, err)
 	}
 	if err := gitCommand(repoDir, nil, "merge", "--ff-only", "FETCH_HEAD"); err != nil {
@@ -219,14 +220,14 @@ func FetchAndFastForward(repoDir, remoteURL, branch, authToken string) error {
 	return nil
 }
 
-func PushCurrentBranch(repoDir, remoteURL, branch, authToken string) error {
+func PushCurrentBranch(repoDir, remoteURL, branch, authUsername, authToken string) error {
 	if remoteURL == "" {
 		return fmt.Errorf("remote URL is required")
 	}
 	if branch == "" {
 		return fmt.Errorf("remote branch is required")
 	}
-	if err := gitCommandWithOptions(repoDir, nil, gitRemoteConfig(remoteURL, authToken), "push", remoteURL, "HEAD:refs/heads/"+branch); err != nil {
+	if err := gitCommandWithOptions(repoDir, nil, gitRemoteConfig(remoteURL, authUsername, authToken), "push", remoteURL, "HEAD:refs/heads/"+branch); err != nil {
 		return fmt.Errorf("push HEAD to remote branch %q: %w", branch, err)
 	}
 	return nil
@@ -298,13 +299,17 @@ func gitOutputWithOptions(repoDir string, extraEnv, gitConfig []string, args ...
 	return string(output), nil
 }
 
-func gitRemoteConfig(remoteURL, authToken string) []string {
+func gitRemoteConfig(remoteURL, authUsername, authToken string) []string {
 	if authToken == "" {
 		return nil
 	}
 	parsed, err := url.Parse(remoteURL)
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
 		return nil
+	}
+	if strings.TrimSpace(authUsername) != "" {
+		credentials := base64.StdEncoding.EncodeToString([]byte(strings.TrimSpace(authUsername) + ":" + authToken))
+		return []string{"http.extraHeader=Authorization: Basic " + credentials}
 	}
 	return []string{"http.extraHeader=Authorization: Bearer " + authToken}
 }

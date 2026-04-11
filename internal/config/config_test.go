@@ -137,3 +137,41 @@ controller:
 		t.Fatalf("expected schedule validation error, got %v", err)
 	}
 }
+
+func TestLoadControllerAcceptsGitAuthUsername(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.yaml")
+	content := strings.TrimSpace(`
+controller:
+  listen_addr: ":8080"
+  controller_addr: "http://127.0.0.1:8080"
+  repo_dir: "/srv/composia/repo"
+  state_dir: "/srv/composia/state-controller"
+  log_dir: "/srv/composia/logs"
+  nodes:
+    - id: "main"
+      token: "main-token"
+  git:
+    remote_url: "https://example.com/repo.git"
+    pull_interval: "30s"
+    auth:
+      username: "octocat"
+      token_file: "/run/secrets/git-token"
+`) + "\n"
+
+	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	controller, err := LoadController(configPath)
+	if err != nil {
+		t.Fatalf("load controller: %v", err)
+	}
+	if controller.Git == nil || controller.Git.Auth == nil {
+		t.Fatalf("expected git auth config to be present")
+	}
+	if controller.Git.Auth.Username != "octocat" {
+		t.Fatalf("expected git auth username %q, got %q", "octocat", controller.Git.Auth.Username)
+	}
+}

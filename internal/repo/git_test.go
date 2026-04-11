@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"encoding/base64"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -137,6 +138,31 @@ func TestListCommitsSupportsCursorPaging(t *testing.T) {
 	}
 	if nextCursor != "" {
 		t.Fatalf("expected empty next cursor, got %q", nextCursor)
+	}
+}
+
+func TestGitRemoteConfigUsesBearerTokenWithoutUsername(t *testing.T) {
+	t.Parallel()
+
+	config := gitRemoteConfig("https://example.com/repo.git", "", "secret-token")
+	if len(config) != 1 {
+		t.Fatalf("expected one config entry, got %v", config)
+	}
+	if config[0] != "http.extraHeader=Authorization: Bearer secret-token" {
+		t.Fatalf("unexpected bearer config: %q", config[0])
+	}
+}
+
+func TestGitRemoteConfigUsesBasicAuthWhenUsernameConfigured(t *testing.T) {
+	t.Parallel()
+
+	config := gitRemoteConfig("https://example.com/repo.git", "octocat", "secret-token")
+	if len(config) != 1 {
+		t.Fatalf("expected one config entry, got %v", config)
+	}
+	want := "http.extraHeader=Authorization: Basic " + base64.StdEncoding.EncodeToString([]byte("octocat:secret-token"))
+	if config[0] != want {
+		t.Fatalf("unexpected basic auth config: %q", config[0])
 	}
 }
 

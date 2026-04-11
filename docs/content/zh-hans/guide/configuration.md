@@ -56,6 +56,7 @@ controller:
     author_name: "Composia"
     author_email: "composia@example.com"
     auth:
+      username: "git"
       token_file: "/app/configs/git-token.txt"
 
   # DNS 配置（可选）

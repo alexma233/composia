@@ -13,6 +13,7 @@ controller:
     author_name: "Composia"
     author_email: "composia@example.com"
     auth:
+      username: "git"
       token_file: "/app/configs/git-token.txt"
 ```
 
@@ -25,7 +26,13 @@ controller:
 | `pull_interval` | 自动拉取间隔，如 `30s`、`5m`；设置 `remote_url` 后必填 |
 | `author_name` | Git 提交者名称 |
 | `author_email` | Git 提交者邮箱 |
+| `auth.username` | 可选。配置后使用 Basic Auth，作为认证用户名 |
 | `auth.token_file` | 访问令牌文件路径 |
+
+## 认证行为
+
+- 未配置 `auth.username` 时，Composia 会在 `git fetch` / `git push` 请求里发送 `Authorization: Bearer <token>`
+- 配置 `auth.username` 后，Composia 会改为 Basic Auth，使用 `username:token` 作为凭据
 
 ## 适用场景
 

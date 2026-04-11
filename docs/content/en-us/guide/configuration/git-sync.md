@@ -13,6 +13,7 @@ controller:
     author_name: "Composia"
     author_email: "composia@example.com"
     auth:
+      username: "git"
       token_file: "/app/configs/git-token.txt"
 ```
 
@@ -25,7 +26,13 @@ controller:
 | `pull_interval` | Auto-pull interval such as `30s` or `5m`; required when `remote_url` is set |
 | `author_name` | Git committer name |
 | `author_email` | Git committer email |
+| `auth.username` | Optional. When set, Composia uses Basic Auth with this username |
 | `auth.token_file` | Path to the access token file |
+
+## Authentication Behavior
+
+- Without `auth.username`, Composia sends `Authorization: Bearer <token>` for `git fetch` and `git push`
+- With `auth.username`, Composia switches to Basic Auth and uses `username:token` as the credential pair
 
 ## Behavior
 

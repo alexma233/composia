@@ -192,6 +192,15 @@ controller:
       display_name: "Main"
       enabled: true
       token: "main-agent-token"
+  git:
+    remote_url: "https://git.example.com/infra/composia.git"
+    branch: "main"
+    pull_interval: "30s"
+    author_name: "Composia"
+    author_email: "composia@example.com"
+    auth:
+      username: "git"
+      token_file: "./dev/git-token.txt"
 ```
 
 ### Agent 配置
