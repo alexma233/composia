@@ -388,6 +388,85 @@ func TestBundleServiceInjectsBackupRuntimeConfig(t *testing.T) {
 	}
 }
 
+func TestBundleServiceInjectsBackupRuntimeConfigFromTaskRevision(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"demo/composia-meta.yaml":   "name: demo\nnode: main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config-v1\nbackup:\n  data:\n    - name: config\n      provider: rustic\n",
+		"backup/composia-meta.yaml": "name: backup\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic-v1\n    profile: prod-v1\n    data_protect_dir: /data-protect-v1\n",
+	})
+	revision, err := repo.CurrentRevision(repoDir)
+	if err != nil {
+		t.Fatalf("read current revision: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(repoDir, "demo", "composia-meta.yaml"), []byte("name: demo\nnode: main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config-v2\nbackup:\n  data:\n    - name: config\n      provider: rustic\n"), 0o644); err != nil {
+		t.Fatalf("update demo meta: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic-v2\n    profile: prod-v2\n    data_protect_dir: /data-protect-v2\n"), 0o644); err != nil {
+		t.Fatalf("update backup meta: %v", err)
+	}
+	runGit(t, repoDir, "add", ".")
+	runGit(t, repoDir, "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "update runtime config")
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := syncDeclaredServicesForTests(ctx, db, "demo", "backup"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: "demo", DataNames: []string{"config"}})
+	if err != nil {
+		t.Fatalf("marshal backup task params: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-backup-revision-bundle", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", RepoRevision: revision, ParamsJSON: string(paramsJSON), CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("create backup task: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", assertError("unexpected token")
+		}
+		return "main", nil
+	})
+	mux := http.NewServeMux()
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(&bundleServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}}}, connect.WithInterceptors(interceptor))
+	mux.Handle(bundlePath, bundleHandler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := agentv1connect.NewBundleServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	stream, err := client.GetServiceBundle(ctx, connect.NewRequest(&agentv1.GetServiceBundleRequest{TaskId: "task-backup-revision-bundle"}))
+	if err != nil {
+		t.Fatalf("get backup bundle: %v", err)
+	}
+	defer stream.Close()
+
+	archive := bytes.Buffer{}
+	for stream.Receive() {
+		archive.Write(stream.Msg().GetData())
+	}
+	if err := stream.Err(); err != nil {
+		t.Fatalf("receive backup bundle: %v", err)
+	}
+	entries := untarGzContents(t, archive.Bytes())
+	payload := entries["demo/.composia-backup.json"]
+	if payload == "" {
+		t.Fatalf("expected backup runtime config in bundle")
+	}
+	if !strings.Contains(payload, `"compose_service":"rustic-v1"`) || !strings.Contains(payload, `"profile":"prod-v1"`) || !strings.Contains(payload, `"data_protect_dir":"/data-protect-v1"`) || !strings.Contains(payload, `"include":["./config-v1"]`) {
+		t.Fatalf("expected task revision runtime payload, got %q", payload)
+	}
+	if strings.Contains(payload, `rustic-v2`) || strings.Contains(payload, `prod-v2`) || strings.Contains(payload, `config-v2`) {
+		t.Fatalf("runtime payload leaked live HEAD state: %q", payload)
+	}
+}
+
 func untarGzEntries(t *testing.T, content []byte) map[string]bool {
 	t.Helper()
 	entries := map[string]bool{}

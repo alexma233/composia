@@ -840,11 +840,14 @@ func isMissingRevisionPathError(err error) bool {
 }
 
 func buildBackupRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeID, revision string, params serviceTaskParams) (string, error) {
-	service, err := repo.FindService(cfg.RepoDir, configuredNodeIDs(cfg), serviceName)
+	if params.ServiceDir == "" {
+		return "", fmt.Errorf("backup runtime payload requires service_dir")
+	}
+	service, err := repo.FindServiceAtRevision(cfg.RepoDir, revision, params.ServiceDir, configuredNodeIDs(cfg))
 	if err != nil {
 		return "", err
 	}
-	rusticService, err := repo.FindRusticInfraService(cfg.RepoDir, configuredNodeIDs(cfg))
+	rusticService, err := repo.FindRusticInfraServiceAtRevision(cfg.RepoDir, revision, configuredNodeIDs(cfg))
 	if err != nil {
 		return "", err
 	}
@@ -883,11 +886,14 @@ func buildBackupRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeID
 }
 
 func buildRestoreRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeID, revision string, params serviceTaskParams) (string, error) {
-	service, err := repo.FindService(cfg.RepoDir, configuredNodeIDs(cfg), serviceName)
+	if params.ServiceDir == "" {
+		return "", fmt.Errorf("restore runtime payload requires service_dir")
+	}
+	service, err := repo.FindServiceAtRevision(cfg.RepoDir, revision, params.ServiceDir, configuredNodeIDs(cfg))
 	if err != nil {
 		return "", err
 	}
-	rusticService, err := repo.FindRusticInfraService(cfg.RepoDir, configuredNodeIDs(cfg))
+	rusticService, err := repo.FindRusticInfraServiceAtRevision(cfg.RepoDir, revision, configuredNodeIDs(cfg))
 	if err != nil {
 		return "", err
 	}
