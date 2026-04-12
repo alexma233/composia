@@ -328,7 +328,7 @@ func TestBundleServiceInjectsBackupRuntimeConfig(t *testing.T) {
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithContent(t, repoDir, map[string]string{
 		"demo/composia-meta.yaml":   "name: demo\nnode: main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\nbackup:\n  data:\n    - name: config\n      provider: rustic\n",
-		"backup/composia-meta.yaml": "name: backup\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n",
+		"backup/composia-meta.yaml": "name: backup\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n    data_protect_dir: /data-protect\n",
 	})
 	revision, err := repo.CurrentRevision(repoDir)
 	if err != nil {
@@ -383,7 +383,7 @@ func TestBundleServiceInjectsBackupRuntimeConfig(t *testing.T) {
 	if payload == "" {
 		t.Fatalf("expected backup runtime config in bundle")
 	}
-	if !strings.Contains(payload, `"service_name":"backup"`) || !strings.Contains(payload, `"compose_service":"rustic"`) || !strings.Contains(payload, `"profile":"prod"`) || !strings.Contains(payload, `"node_id":"main"`) || !strings.Contains(payload, `"strategy":"files.copy"`) || !strings.Contains(payload, `"composia-service:demo"`) {
+	if !strings.Contains(payload, `"service_name":"backup"`) || !strings.Contains(payload, `"compose_service":"rustic"`) || !strings.Contains(payload, `"profile":"prod"`) || !strings.Contains(payload, `"data_protect_dir":"/data-protect"`) || !strings.Contains(payload, `"node_id":"main"`) || !strings.Contains(payload, `"strategy":"files.copy"`) || !strings.Contains(payload, `"composia-service:demo"`) {
 		t.Fatalf("unexpected backup runtime payload %q", payload)
 	}
 }

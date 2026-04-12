@@ -100,6 +100,7 @@ infra:
   rustic:
     compose_service: rustic
     profile: default
+    data_protect_dir: /data-protect
 ```
 
 ### 字段说明
@@ -227,6 +228,7 @@ infra:
   rustic:
     compose_service: rustic     # Compose 服务名
     profile: default            # rustic profile
+    data_protect_dir: /data-protect  # rustic 容器内可读取的数据保护目录
 ```
 
 ## docker-compose.yaml

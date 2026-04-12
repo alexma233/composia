@@ -100,6 +100,7 @@ infra:
   rustic:
     compose_service: rustic
     profile: default
+    data_protect_dir: /data-protect
 ```
 
 ### Field Reference
@@ -227,6 +228,7 @@ infra:
   rustic:
     compose_service: rustic     # Compose service name
     profile: default            # rustic profile
+    data_protect_dir: /data-protect  # Data protection directory inside the rustic container
 ```
 
 ## docker-compose.yaml

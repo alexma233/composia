@@ -15,6 +15,7 @@ import (
 	"connectrpc.com/connect"
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
+	backupcfg "forgejo.alexma.top/alexma233/composia/internal/backup"
 	"forgejo.alexma.top/alexma233/composia/internal/config"
 	"forgejo.alexma.top/alexma233/composia/internal/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/store"
@@ -167,8 +168,8 @@ func TestExecuteBackupTaskRunsRusticAndReportsSnapshot(t *testing.T) {
 	bundle := buildBundleArchive(t, map[string]string{
 		"demo/composia-meta.yaml":    "name: demo\n",
 		"demo/config/app.env":        "HELLO=world\n",
-		"backup/composia-meta.yaml":  "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n",
-		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","profile":"prod","node_id":"main"},"items":[{"name":"config","strategy":"files.copy","include":["./config"],"provider":"rustic","tags":["composia-service:demo","composia-data:config","composia-node:main"]}]}`,
+		"backup/composia-meta.yaml":  "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n    data_protect_dir: /data-protect\n",
+		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","profile":"prod","data_protect_dir":"/data-protect","node_id":"main"},"items":[{"name":"config","strategy":"files.copy","include":["./config"],"provider":"rustic","tags":["composia-service:demo","composia-data:config","composia-node:main"]}]}`,
 	})
 	reportServer := &agentExecutionTestReportServer{}
 	bundleMux := http.NewServeMux()
@@ -212,6 +213,12 @@ func TestExecuteBackupTaskRunsRusticAndReportsSnapshot(t *testing.T) {
 	argsLog := string(argsContent)
 	if !strings.Contains(argsLog, "compose exec -T rustic rustic -P prod backup --host main") {
 		t.Fatalf("unexpected rustic args %q", string(argsContent))
+	}
+	if !strings.Contains(argsLog, "/data-protect/") {
+		t.Fatalf("expected rustic to receive mapped data-protect path, got %q", argsLog)
+	}
+	if strings.Contains(argsLog, cfg.StateDir+"/") {
+		t.Fatalf("expected rustic args to avoid raw state_dir path, got %q", argsLog)
 	}
 	if !strings.Contains(argsLog, "--tag composia-service:demo --tag composia-data:config --tag composia-node:main") {
 		t.Fatalf("expected backup tags in docker args, got %q", argsLog)
@@ -370,8 +377,8 @@ func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	bundle := buildBundleArchive(t, map[string]string{
 		"demo/composia-meta.yaml":    "name: demo\n",
 		"demo/config/app.env":        "HELLO=world\n",
-		"backup/composia-meta.yaml":  "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n",
-		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","node_id":"main"},"items":[{"name":"config","strategy":"files.tar_after_stop","include":["./config"],"provider":"rustic"}]}`,
+		"backup/composia-meta.yaml":  "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    data_protect_dir: /data-protect\n",
+		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","data_protect_dir":"/data-protect","node_id":"main"},"items":[{"name":"config","strategy":"files.tar_after_stop","include":["./config"],"provider":"rustic"}]}`,
 	})
 	reportServer := &agentExecutionTestReportServer{}
 	bundleMux := http.NewServeMux()
@@ -412,6 +419,9 @@ func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	if !strings.Contains(string(dockerLog), "compose --project-name demo down") || !strings.Contains(string(dockerLog), "compose --project-name demo up -d") || !strings.Contains(string(dockerLog), "compose exec -T rustic rustic backup --host main") {
 		t.Fatalf("expected compose down and up around backup, got %q", string(dockerLog))
 	}
+	if !strings.Contains(string(dockerLog), "/data-protect/") {
+		t.Fatalf("expected mapped data-protect path in rustic backup command, got %q", string(dockerLog))
+	}
 	reportServer.mu.Lock()
 	defer reportServer.mu.Unlock()
 	if reportServer.backupArtifactRef != "aaa999" {
@@ -449,8 +459,8 @@ func TestExecuteBackupTaskRunsPGDumpAll(t *testing.T) {
 	}
 	bundle := buildBundleArchive(t, map[string]string{
 		"demo/composia-meta.yaml":    "name: demo\n",
-		"backup/composia-meta.yaml":  "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n",
-		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","node_id":"main"},"items":[{"name":"db","strategy":"database.pgdumpall","service":"postgres","provider":"rustic"}]}`,
+		"backup/composia-meta.yaml":  "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    data_protect_dir: /data-protect\n",
+		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","data_protect_dir":"/data-protect","node_id":"main"},"items":[{"name":"db","strategy":"database.pgdumpall","service":"postgres","provider":"rustic"}]}`,
 	})
 	reportServer := &agentExecutionTestReportServer{}
 	bundleMux := http.NewServeMux()
@@ -491,6 +501,9 @@ func TestExecuteBackupTaskRunsPGDumpAll(t *testing.T) {
 	if !strings.Contains(string(dockerLog), "compose --project-name demo exec -T postgres pg_dumpall") {
 		t.Fatalf("expected pg_dumpall compose exec, got %q", string(dockerLog))
 	}
+	if !strings.Contains(string(dockerLog), "/data-protect/") {
+		t.Fatalf("expected mapped data-protect path in rustic backup command, got %q", string(dockerLog))
+	}
 	reportServer.mu.Lock()
 	defer reportServer.mu.Unlock()
 	if reportServer.backupArtifactRef != "abc888" {
@@ -521,8 +534,8 @@ func TestExecuteBackupTaskReportsFailedBackupItem(t *testing.T) {
 	bundle := buildBundleArchive(t, map[string]string{
 		"demo/composia-meta.yaml":    "name: demo\n",
 		"demo/config/app.env":        "HELLO=world\n",
-		"backup/composia-meta.yaml":  "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n",
-		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","node_id":"main"},"items":[{"name":"config","strategy":"files.copy","include":["./config"],"provider":"rustic"}]}`,
+		"backup/composia-meta.yaml":  "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    data_protect_dir: /data-protect\n",
+		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","data_protect_dir":"/data-protect","node_id":"main"},"items":[{"name":"config","strategy":"files.copy","include":["./config"],"provider":"rustic"}]}`,
 	})
 	reportServer := &agentExecutionTestReportServer{}
 	bundleMux := http.NewServeMux()
@@ -566,6 +579,34 @@ func TestExecuteBackupTaskReportsFailedBackupItem(t *testing.T) {
 	}
 	if reportServer.backupErrorSummary == "" {
 		t.Fatalf("expected backup error summary to be recorded")
+	}
+}
+
+func TestRusticDataProtectPathMapsConfiguredContainerDir(t *testing.T) {
+	t.Parallel()
+
+	cfg := &config.AgentConfig{StateDir: "/srv/composia/state-agent"}
+	rustic := &backupcfg.RusticConfig{DataProtectDir: "/data-protect"}
+	localPath := "/srv/composia/state-agent/data-protect/backup-task-config-123"
+
+	mappedPath, err := rusticDataProtectPath(localPath, cfg, rustic)
+	if err != nil {
+		t.Fatalf("map rustic data-protect path: %v", err)
+	}
+	if mappedPath != "/data-protect/backup-task-config-123" {
+		t.Fatalf("expected mapped path %q, got %q", "/data-protect/backup-task-config-123", mappedPath)
+	}
+}
+
+func TestRusticDataProtectPathRejectsPathsOutsideStageRoot(t *testing.T) {
+	t.Parallel()
+
+	cfg := &config.AgentConfig{StateDir: "/srv/composia/state-agent"}
+	rustic := &backupcfg.RusticConfig{DataProtectDir: "/data-protect"}
+
+	_, err := rusticDataProtectPath("/srv/composia/state-agent/other/file", cfg, rustic)
+	if err == nil || !strings.Contains(err.Error(), "outside agent data-protect stage root") {
+		t.Fatalf("expected outside stage root error, got %v", err)
 	}
 }
 

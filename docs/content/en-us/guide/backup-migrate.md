@@ -26,6 +26,7 @@ infra:
   rustic:
     compose_service: rustic
     profile: default
+    data_protect_dir: /data-protect
 ```
 
 ```yaml
@@ -36,9 +37,16 @@ services:
     volumes:
       - ./config:/config
       - ./repo:/repo
-      - /var/lib/composia:/data:ro  # Mount Composia data
+      - /opt/composia/data/agent-state/data-protect:/data-protect:ro
     command: rustic -c /config/rustic.toml
 ```
+
+Notes:
+
+- The agent creates backup and restore staging directories under `agent.state_dir/data-protect`
+- `infra.rustic.data_protect_dir` must point to the same directory inside the rustic container
+- The controller includes that container path in the runtime payload, and the agent uses it for `rustic backup` and `rustic restore`
+- If `infra.rustic.data_protect_dir` is not configured, the current implementation keeps passing the agent-local staging path directly to rustic, which requires the same path to exist inside the rustic container
 
 ```toml
 # infra-backup/config/rustic.toml

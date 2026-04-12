@@ -117,3 +117,24 @@ func TestValidateRepoReportsDuplicateRusticInfraServices(t *testing.T) {
 		t.Fatalf("unexpected rustic infra errors: %+v", validationErrors)
 	}
 }
+
+func TestValidateRepoRejectsBlankRusticDataProtectDir(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repoDir, "backup"), 0o755); err != nil {
+		t.Fatalf("create backup dir: %v", err)
+	}
+	meta := "name: backup\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    data_protect_dir: \"   \"\n"
+	if err := os.WriteFile(filepath.Join(repoDir, "backup", MetaFileName), []byte(meta), 0o644); err != nil {
+		t.Fatalf("write backup meta: %v", err)
+	}
+
+	validationErrors := ValidateRepo(repoDir, map[string]struct{}{"main": {}})
+	if len(validationErrors) != 1 {
+		t.Fatalf("expected 1 validation error, got %d: %+v", len(validationErrors), validationErrors)
+	}
+	if !strings.Contains(validationErrors[0].Message, "infra.rustic.data_protect_dir") {
+		t.Fatalf("unexpected validation error: %+v", validationErrors[0])
+	}
+}

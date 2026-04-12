@@ -1098,6 +1098,37 @@ func loadBackupRuntimeConfig(serviceRoot string) (*backupcfg.RuntimeConfig, erro
 	return &cfg, nil
 }
 
+func dataProtectStageRoot(stateDir string) string {
+	return filepath.Join(stateDir, "data-protect")
+}
+
+func dataProtectStageDir(stateDir, prefix string) (string, error) {
+	stageRoot := dataProtectStageRoot(stateDir)
+	if err := os.MkdirAll(stageRoot, 0o755); err != nil {
+		return "", fmt.Errorf("create data-protect stage root %q: %w", stageRoot, err)
+	}
+	stageDir, err := os.MkdirTemp(stageRoot, prefix)
+	if err != nil {
+		return "", fmt.Errorf("create data-protect stage dir: %w", err)
+	}
+	return stageDir, nil
+}
+
+func rusticDataProtectPath(localPath string, cfg *config.AgentConfig, rustic *backupcfg.RusticConfig) (string, error) {
+	if rustic == nil || strings.TrimSpace(rustic.DataProtectDir) == "" {
+		return localPath, nil
+	}
+	stageRoot := dataProtectStageRoot(cfg.StateDir)
+	relativePath, err := filepath.Rel(stageRoot, localPath)
+	if err != nil {
+		return "", fmt.Errorf("resolve relative data-protect path for %q: %w", localPath, err)
+	}
+	if relativePath == ".." || strings.HasPrefix(relativePath, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("path %q is outside agent data-protect stage root %q", localPath, stageRoot)
+	}
+	return filepath.Join(rustic.DataProtectDir, relativePath), nil
+}
+
 func loadRestoreRuntimeConfig(serviceRoot string) (*backupcfg.RestoreConfig, error) {
 	content, err := os.ReadFile(filepath.Join(serviceRoot, ".composia-restore.json"))
 	if err != nil {
@@ -1121,16 +1152,20 @@ func loadRestoreRuntimeConfig(serviceRoot string) (*backupcfg.RestoreConfig, err
 
 func backupRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot, taskID string, item backupcfg.RuntimeItem, rustic *backupcfg.RusticConfig, logUploader *taskLogUploader) (string, time.Time, time.Time, error) {
 	startedAt := time.Now().UTC()
-	stagingDir, err := os.MkdirTemp(cfg.StateDir, fmt.Sprintf("backup-%s-%s-", taskID, item.Name))
+	stagingDir, err := dataProtectStageDir(cfg.StateDir, fmt.Sprintf("backup-%s-%s-", taskID, item.Name))
 	if err != nil {
-		return "", time.Time{}, time.Time{}, fmt.Errorf("create backup staging dir: %w", err)
+		return "", time.Time{}, time.Time{}, err
 	}
 	defer os.RemoveAll(stagingDir)
 	if err := stageBackupItem(ctx, serviceRoot, stagingDir, item, logUploader); err != nil {
 		return "", time.Time{}, time.Time{}, err
 	}
 	rusticRoot := filepath.Join(cfg.RepoDir, rustic.ServiceDir)
-	artifactRef, err := runRusticBackup(ctx, rusticRoot, rustic, stagingDir, item, logUploader)
+	rusticSourceDir, err := rusticDataProtectPath(stagingDir, cfg, rustic)
+	if err != nil {
+		return "", time.Time{}, time.Time{}, err
+	}
+	artifactRef, err := runRusticBackup(ctx, rusticRoot, rustic, rusticSourceDir, item, logUploader)
 	if err != nil {
 		return "", time.Time{}, time.Time{}, err
 	}
@@ -1138,13 +1173,17 @@ func backupRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot
 }
 
 func restoreRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot, taskID string, item backupcfg.RestoreItem, rustic *backupcfg.RusticConfig, logUploader *taskLogUploader) error {
-	stagingDir, err := os.MkdirTemp(cfg.StateDir, fmt.Sprintf("restore-%s-%s-", taskID, item.Name))
+	stagingDir, err := dataProtectStageDir(cfg.StateDir, fmt.Sprintf("restore-%s-%s-", taskID, item.Name))
 	if err != nil {
-		return fmt.Errorf("create restore staging dir: %w", err)
+		return err
 	}
 	defer os.RemoveAll(stagingDir)
 	rusticRoot := filepath.Join(cfg.RepoDir, rustic.ServiceDir)
-	if err := runRusticRestore(ctx, rusticRoot, rustic, item.ArtifactRef, stagingDir, logUploader); err != nil {
+	rusticTargetDir, err := rusticDataProtectPath(stagingDir, cfg, rustic)
+	if err != nil {
+		return err
+	}
+	if err := runRusticRestore(ctx, rusticRoot, rustic, item.ArtifactRef, rusticTargetDir, logUploader); err != nil {
 		return err
 	}
 	return applyRestoreItem(ctx, serviceRoot, stagingDir, item, logUploader)

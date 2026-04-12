@@ -869,7 +869,7 @@ func buildBackupRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeID
 		}
 		items = append(items, backupcfg.RuntimeItem{Name: data.Name, Strategy: data.Backup.Strategy, Service: data.Backup.Service, Include: append([]string(nil), data.Backup.Include...), Provider: provider, Tags: []string{"composia-service:" + serviceName, "composia-data:" + data.Name}})
 	}
-	payload, err := json.Marshal(backupcfg.RuntimeConfig{Rustic: &backupcfg.RusticConfig{ServiceName: rusticService.Name, ServiceDir: rusticServiceDir, ComposeService: rusticService.Meta.RusticComposeService(), Profile: rusticService.Meta.RusticProfile(), NodeID: nodeID}, Items: items})
+	payload, err := json.Marshal(backupcfg.RuntimeConfig{Rustic: &backupcfg.RusticConfig{ServiceName: rusticService.Name, ServiceDir: rusticServiceDir, ComposeService: rusticService.Meta.RusticComposeService(), Profile: rusticService.Meta.RusticProfile(), DataProtectDir: rusticService.Meta.RusticDataProtectDir(), NodeID: nodeID}, Items: items})
 	if err != nil {
 		return "", fmt.Errorf("marshal backup runtime config for %s at %s: %w", serviceName, revision, err)
 	}
@@ -914,7 +914,7 @@ func buildRestoreRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeI
 			ArtifactRef: artifactRef,
 		})
 	}
-	payload, err := json.Marshal(backupcfg.RestoreConfig{Rustic: &backupcfg.RusticConfig{ServiceName: rusticService.Name, ServiceDir: rusticServiceDir, ComposeService: rusticService.Meta.RusticComposeService(), Profile: rusticService.Meta.RusticProfile(), NodeID: nodeID}, Items: items})
+	payload, err := json.Marshal(backupcfg.RestoreConfig{Rustic: &backupcfg.RusticConfig{ServiceName: rusticService.Name, ServiceDir: rusticServiceDir, ComposeService: rusticService.Meta.RusticComposeService(), Profile: rusticService.Meta.RusticProfile(), DataProtectDir: rusticService.Meta.RusticDataProtectDir(), NodeID: nodeID}, Items: items})
 	if err != nil {
 		return "", fmt.Errorf("marshal restore runtime config for %s at %s: %w", serviceName, revision, err)
 	}

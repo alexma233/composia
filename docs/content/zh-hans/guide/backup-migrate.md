@@ -26,6 +26,7 @@ infra:
   rustic:
     compose_service: rustic
     profile: default
+    data_protect_dir: /data-protect
 ```
 
 ```yaml
@@ -36,9 +37,16 @@ services:
     volumes:
       - ./config:/config
       - ./repo:/repo
-      - /var/lib/composia:/data:ro  # 挂载 Composia 数据
+      - /opt/composia/data/agent-state/data-protect:/data-protect:ro
     command: rustic -c /config/rustic.toml
 ```
+
+说明：
+
+- Agent 会把 backup/restore staging 固定创建在 `agent.state_dir/data-protect` 下
+- `infra.rustic.data_protect_dir` 必须指向 rustic 容器内挂载的同一目录
+- Controller 会把这个容器内路径下发给 Agent，Agent 调用 `rustic backup` / `rustic restore` 时会使用这个路径
+- 如果没有配置 `infra.rustic.data_protect_dir`，当前实现会继续把 Agent 本地 staging 路径直接传给 rustic，要求容器内路径与 Agent 本地路径一致
 
 ```toml
 # infra-backup/config/rustic.toml

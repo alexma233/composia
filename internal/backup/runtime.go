@@ -15,6 +15,7 @@ type RusticConfig struct {
 	ServiceDir     string `json:"service_dir"`
 	ComposeService string `json:"compose_service"`
 	Profile        string `json:"profile,omitempty"`
+	DataProtectDir string `json:"data_protect_dir,omitempty"`
 	NodeID         string `json:"node_id"`
 }
 

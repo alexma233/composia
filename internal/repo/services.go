@@ -50,6 +50,7 @@ type InfraCaddyConfig struct {
 type InfraRusticConfig struct {
 	ComposeService string `yaml:"compose_service"`
 	Profile        string `yaml:"profile"`
+	DataProtectDir string `yaml:"data_protect_dir"`
 }
 
 type NetworkConfig struct {
@@ -528,6 +529,9 @@ func validateInfra(path string, infra *InfraConfig) error {
 	if infra.Rustic != nil && strings.TrimSpace(infra.Rustic.ComposeService) == "" && infra.Rustic.ComposeService != "" {
 		return fmt.Errorf("service meta %q: infra.rustic.compose_service must not be empty when set", path)
 	}
+	if infra.Rustic != nil && strings.TrimSpace(infra.Rustic.DataProtectDir) == "" && infra.Rustic.DataProtectDir != "" {
+		return fmt.Errorf("service meta %q: infra.rustic.data_protect_dir must not be empty when set", path)
+	}
 	return nil
 }
 
@@ -555,6 +559,13 @@ func (meta ServiceMeta) RusticComposeService() string {
 func (meta ServiceMeta) RusticProfile() string {
 	if meta.Infra != nil && meta.Infra.Rustic != nil && strings.TrimSpace(meta.Infra.Rustic.Profile) != "" {
 		return strings.TrimSpace(meta.Infra.Rustic.Profile)
+	}
+	return ""
+}
+
+func (meta ServiceMeta) RusticDataProtectDir() string {
+	if meta.Infra != nil && meta.Infra.Rustic != nil && strings.TrimSpace(meta.Infra.Rustic.DataProtectDir) != "" {
+		return strings.TrimSpace(meta.Infra.Rustic.DataProtectDir)
 	}
 	return ""
 }

@@ -78,7 +78,7 @@ func TestBackupRecordServiceRestoreBackupCreatesPendingRestoreTask(t *testing.T)
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithContent(t, repoDir, map[string]string{
 		"alpha/composia-meta.yaml":  "name: alpha\nnode: main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\n      restore:\n        strategy: files.copy\n        include:\n          - ./config\nbackup:\n  data:\n    - name: config\n",
-		"backup/composia-meta.yaml": "name: backup\nnodes:\n  - main\nrustic:\n  compose_service: rustic\n",
+		"backup/composia-meta.yaml": "name: backup\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    data_protect_dir: /data-protect\n",
 	})
 	logDir := filepath.Join(rootDir, "logs")
 	stateDir := filepath.Join(rootDir, "state")
