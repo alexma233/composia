@@ -349,6 +349,7 @@ Operators may incorrectly assume the link is already protected, even when bearer
 - Source: Subagent 1
 - Severity: Low
 - Confidence: High
+- Status: Fixed in docs
 - Locations:
   - `docs/content/en-us/guide/configuration/controller.md:18-25`
   - `internal/config/config.go:309-317`
