@@ -58,6 +58,8 @@ This development stack starts:
 - `docs-dev` on `http://localhost:5174`
 - `agent-dev` connected to the local Docker socket
 
+By default, the dev Compose stack bind-mounts the controller and agent repo directories from absolute paths inside the workspace, such as `/home/alexma/Projects/composia/dev/repo-controller` and `/home/alexma/Projects/composia/dev/repo-agent`. If your checkout lives elsewhere, update `dev/.env` to match.
+
 The default `web-dev` login is:
 
 - username: `admin`
@@ -65,11 +67,11 @@ The default `web-dev` login is:
 
 You do not need to run `bun install` on the host for this path. `web-dev` and `docs-dev` install workspace dependencies inside the containers when they start.
 
-It reuses the existing development state directories under `dev/` by default:
+It reuses these development state directories by default:
 
-- `./dev/repo-controller`
+- `/home/alexma/Projects/composia/dev/repo-controller`
 - `./dev/state-controller`
-- `./dev/repo-agent`
+- `/home/alexma/Projects/composia/dev/repo-agent`
 - `./dev/state-agent`
 - `./dev/logs`
 
@@ -180,7 +182,7 @@ This uses the production Compose file at the repository root, `./docker-compose.
 controller:
   listen_addr: "127.0.0.1:7001"
   controller_addr: "http://127.0.0.1:7001"
-  repo_dir: "./dev/repo-controller"
+  repo_dir: "/home/alexma/Projects/composia/dev/repo-controller"
   state_dir: "./dev/state-controller"
   log_dir: "./dev/logs"
   access_tokens:

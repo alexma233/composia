@@ -7,27 +7,27 @@ services:
     environment:
       GIT_CONFIG_COUNT: "2"
       GIT_CONFIG_KEY_0: safe.directory
-      GIT_CONFIG_VALUE_0: /data/repo-controller
+      GIT_CONFIG_VALUE_0: ${DEV_CONTROLLER_REPO_DIR}
       GIT_CONFIG_KEY_1: safe.directory
       GIT_CONFIG_VALUE_1: /workspace
     command:
       - sh
       - -c
       - |
-        mkdir -p /data/repo-controller /data/state-controller /data/logs
-        if [ ! -d /data/repo-controller/.git ]; then
-          git init /data/repo-controller
+        mkdir -p ${DEV_CONTROLLER_REPO_DIR} /data/state-controller /data/logs
+        if [ ! -d ${DEV_CONTROLLER_REPO_DIR}/.git ]; then
+          git init ${DEV_CONTROLLER_REPO_DIR}
         fi
         /go/bin/air -c ./dev/air.controller.toml
     ports:
       - "7001:7001"
     volumes:
-      - ..:/workspace
-      - ./repo-controller:/data/repo-controller
-      - ./state-controller:/data/state-controller
-      - ./logs:/data/logs
-      - go_mod_cache:/go/pkg/mod
-      - go_build_cache:/root/.cache/go-build
+      - ${DEV_WORKSPACE_DIR}:/workspace
+      - ${DEV_CONTROLLER_REPO_DIR}:${DEV_CONTROLLER_REPO_DIR}
+      - ${DEV_CONTROLLER_STATE_DIR}:/data/state-controller
+      - ${DEV_LOG_DIR}:/data/logs
+      - ${DEV_GO_MOD_CACHE_DIR}:/go/pkg/mod
+      - ${DEV_GO_BUILD_CACHE_DIR}:/root/.cache/go-build
     networks:
       - composia-dev
 
@@ -42,22 +42,22 @@ services:
     environment:
       GIT_CONFIG_COUNT: "2"
       GIT_CONFIG_KEY_0: safe.directory
-      GIT_CONFIG_VALUE_0: /data/repo-agent
+      GIT_CONFIG_VALUE_0: ${DEV_AGENT_REPO_DIR}
       GIT_CONFIG_KEY_1: safe.directory
       GIT_CONFIG_VALUE_1: /workspace
     command:
       - sh
       - -c
       - |
-        mkdir -p /data/repo-agent /data/state-agent
+        mkdir -p ${DEV_AGENT_REPO_DIR} /data/state-agent
         /go/bin/air -c ./dev/air.agent.toml
     volumes:
-      - ..:/workspace
+      - ${DEV_WORKSPACE_DIR}:/workspace
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./repo-agent:/data/repo-agent
-      - ./state-agent:/data/state-agent
-      - go_mod_cache:/go/pkg/mod
-      - go_build_cache:/root/.cache/go-build
+      - ${DEV_AGENT_REPO_DIR}:${DEV_AGENT_REPO_DIR}
+      - ${DEV_AGENT_STATE_DIR}:/data/state-agent
+      - ${DEV_GO_MOD_CACHE_DIR}:/go/pkg/mod
+      - ${DEV_GO_BUILD_CACHE_DIR}:/root/.cache/go-build
     networks:
       - composia-dev
 
@@ -77,10 +77,10 @@ services:
     ports:
       - "5173:5173"
     volumes:
-      - ..:/workspace
-      - bun_cache:/root/.bun/install/cache
-      - root_node_modules:/workspace/node_modules
-      - web_node_modules:/workspace/web/node_modules
+      - ${DEV_WORKSPACE_DIR}:/workspace
+      - ${DEV_BUN_CACHE_DIR}:/root/.bun/install/cache
+      - ${DEV_ROOT_NODE_MODULES_DIR}:/workspace/node_modules
+      - ${DEV_WEB_NODE_MODULES_DIR}:/workspace/web/node_modules
     networks:
       - composia-dev
 
@@ -95,20 +95,13 @@ services:
     ports:
       - "5174:5174"
     volumes:
-      - ..:/workspace
-      - bun_cache:/root/.bun/install/cache
-      - root_node_modules:/workspace/node_modules
-      - web_node_modules:/workspace/web/node_modules
+      - ${DEV_WORKSPACE_DIR}:/workspace
+      - ${DEV_BUN_CACHE_DIR}:/root/.bun/install/cache
+      - ${DEV_ROOT_NODE_MODULES_DIR}:/workspace/node_modules
+      - ${DEV_WEB_NODE_MODULES_DIR}:/workspace/web/node_modules
     networks:
       - composia-dev
 
 networks:
   composia-dev:
     name: composia-dev
-
-volumes:
-  go_mod_cache:
-  go_build_cache:
-  bun_cache:
-  root_node_modules:
-  web_node_modules:

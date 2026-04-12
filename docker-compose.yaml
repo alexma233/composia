@@ -1,13 +1,13 @@
 services:
   init-repo-controller:
     image: alpine/git:2.49.1
-    working_dir: /data/repo-controller
+    working_dir: ${COMPOSIA_CONTROLLER_REPO_DIR}
     entrypoint:
       - sh
       - -ec
       - if [ ! -d .git ]; then git init; fi
     volumes:
-      - controller_repo:/data/repo-controller
+      - ${COMPOSIA_CONTROLLER_REPO_DIR}:${COMPOSIA_CONTROLLER_REPO_DIR}
 
   init-perms-controller:
     image: alpine:3.22
@@ -15,12 +15,12 @@ services:
       - sh
       - -ec
       - |
-        mkdir -p /data/repo-controller /data/state-controller /data/logs/tasks
-        chown -R 65532:65532 /data/repo-controller /data/state-controller /data/logs
+        mkdir -p ${COMPOSIA_CONTROLLER_REPO_DIR} /data/state-controller /data/logs/tasks
+        chown -R 65532:65532 ${COMPOSIA_CONTROLLER_REPO_DIR} /data/state-controller /data/logs
     volumes:
-      - controller_repo:/data/repo-controller
-      - controller_state:/data/state-controller
-      - controller_logs:/data/logs
+      - ${COMPOSIA_CONTROLLER_REPO_DIR}:${COMPOSIA_CONTROLLER_REPO_DIR}
+      - ${COMPOSIA_CONTROLLER_STATE_DIR}:/data/state-controller
+      - ${COMPOSIA_CONTROLLER_LOG_DIR}:/data/logs
 
   init-config-perms:
     image: alpine:3.22
@@ -37,7 +37,7 @@ services:
           chmod 644 /app/configs/age-recipients.txt
         fi
     volumes:
-      - ./config:/app/configs
+      - ${COMPOSIA_CONFIG_DIR}:/app/configs
 
   controller:
     image: forgejo.alexma.top/alexma233/composia:latest
@@ -52,10 +52,10 @@ services:
     ports:
       - "7001:7001"
     volumes:
-      - ./config:/app/configs:ro
-      - controller_repo:/data/repo-controller
-      - controller_state:/data/state-controller
-      - controller_logs:/data/logs
+      - ${COMPOSIA_CONFIG_DIR}:/app/configs:ro
+      - ${COMPOSIA_CONTROLLER_REPO_DIR}:${COMPOSIA_CONTROLLER_REPO_DIR}
+      - ${COMPOSIA_CONTROLLER_STATE_DIR}:/data/state-controller
+      - ${COMPOSIA_CONTROLLER_LOG_DIR}:/data/logs
     networks:
       - composia
     restart: unless-stopped
@@ -69,8 +69,8 @@ services:
         mkdir -p /data/repo-agent/caddy/generated /data/state-agent
         chown -R 65532:65532 /data/repo-agent /data/state-agent
     volumes:
-      - /data/repo-agent:/data/repo-agent
-      - /data/state-agent:/data/state-agent
+      - ${COMPOSIA_AGENT_REPO_DIR}:/data/repo-agent
+      - ${COMPOSIA_AGENT_STATE_DIR}:/data/state-agent
 
   agent:
     image: forgejo.alexma.top/alexma233/composia:latest
@@ -85,10 +85,10 @@ services:
     group_add:
       - "${DOCKER_SOCK_GID}"
     volumes:
-      - ./config:/app/configs:ro
+      - ${COMPOSIA_CONFIG_DIR}:/app/configs:ro
       - /var/run/docker.sock:/var/run/docker.sock
-      - /data/repo-agent:/data/repo-agent
-      - /data/state-agent:/data/state-agent
+      - ${COMPOSIA_AGENT_REPO_DIR}:/data/repo-agent
+      - ${COMPOSIA_AGENT_STATE_DIR}:/data/state-agent
     networks:
       - composia
     restart: unless-stopped
@@ -109,8 +109,3 @@ services:
 networks:
   composia:
     name: composia
-
-volumes:
-  controller_repo:
-  controller_state:
-  controller_logs:

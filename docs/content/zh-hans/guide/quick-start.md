@@ -50,6 +50,7 @@ grep "public key:" config/age-identity.key | awk '{print $4}' > config/age-recip
 - `controller.access_tokens[].token`：Controller 访问 token，Web UI 会使用它访问 Controller
 - `controller.nodes[].token` 与 `agent.token`：节点认证 token，二者必须一致
 - `.env` 里的 `COMPOSIA_ACCESS_TOKEN`：必须与 `controller.access_tokens[].token` 保持一致
+- `.env` 里的 `COMPOSIA_CONFIG_DIR`、`COMPOSIA_CONTROLLER_REPO_DIR`、`COMPOSIA_CONTROLLER_STATE_DIR`、`COMPOSIA_CONTROLLER_LOG_DIR`、`COMPOSIA_AGENT_REPO_DIR`、`COMPOSIA_AGENT_STATE_DIR`：Compose 使用的宿主机路径映射
 - `.env` 里的 `DOCKER_SOCK_GID`：宿主机 `/var/run/docker.sock` 的 GID，agent 需要加入这个组才能访问本机 Docker
 - `.env` 里的 `WEB_LOGIN_USERNAME`：Web 登录页使用的本地用户名
 - `.env` 里的 `WEB_LOGIN_PASSWORD_HASH`：Web 登录页使用的 Argon2 密码哈希
@@ -76,14 +77,14 @@ DOCKER_SOCK_GID=131
 
 如果这个值不正确，`agent` 会报错 `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock`。
 
-默认 `docker-compose.yaml` 会把 agent 的工作目录直接绑定到宿主机的 `/data/repo-agent` 和 `/data/state-agent`。启动前请先在宿主机创建它们：
+默认 `docker-compose.yaml` 会从 `.env` 读取路径映射。按默认值时，agent 的工作目录会绑定到宿主机的 `/data/repo-agent` 和 `/data/state-agent`。启动前请先在宿主机创建它们：
 
 ```bash
 sudo mkdir -p /data/repo-agent /data/state-agent
 sudo chown 65532:65532 /data/repo-agent /data/state-agent
 ```
 
-这里不要把宿主机路径换成别的目录再映射到容器内的 `/data/...`。`agent.repo_dir`、agent 服务的宿主机挂载路径、agent 服务的容器内挂载路径必须完全一致，否则被管理服务里的 bind mount 会被宿主机 Docker 解析到错误位置，文件挂载可能直接失败。
+如果你要改路径，请同时修改 `.env` 和 `config/config.yaml`。`agent.repo_dir`、agent 服务的宿主机挂载路径、agent 服务的容器内挂载路径必须完全一致，否则被管理服务里的 bind mount 会被宿主机 Docker 解析到错误位置，文件挂载可能直接失败。
 
 启动前先生成 Argon2 哈希。你可以直接在这个页面里生成：
 

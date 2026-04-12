@@ -58,6 +58,8 @@ mise run dev
 - `docs-dev`：`http://localhost:5174`
 - `agent-dev`：连接本地 Docker socket
 
+默认情况下，开发 Compose 会把 controller 和 agent 的 repo 目录直接绑定到仓库工作区里的绝对路径，例如 `/home/alexma/Projects/composia/dev/repo-controller` 和 `/home/alexma/Projects/composia/dev/repo-agent`。如果你把仓库放在别的位置，请同步修改 `dev/.env`。
+
 默认的 `web-dev` 登录信息是：
 
 - 用户名：`admin`
@@ -65,11 +67,11 @@ mise run dev
 
 走这条路径时，你不需要先在宿主机执行 `bun install`。`web-dev` 和 `docs-dev` 会在容器启动时自行安装工作区依赖。
 
-它默认直接复用 `dev/` 下现有的开发状态目录：
+它默认复用这些开发状态目录：
 
-- `./dev/repo-controller`
+- `/home/alexma/Projects/composia/dev/repo-controller`
 - `./dev/state-controller`
-- `./dev/repo-agent`
+- `/home/alexma/Projects/composia/dev/repo-agent`
 - `./dev/state-agent`
 - `./dev/logs`
 
@@ -180,7 +182,7 @@ docker compose up -d
 controller:
   listen_addr: "127.0.0.1:7001"
   controller_addr: "http://127.0.0.1:7001"
-  repo_dir: "./dev/repo-controller"
+  repo_dir: "/home/alexma/Projects/composia/dev/repo-controller"
   state_dir: "./dev/state-controller"
   log_dir: "./dev/logs"
   access_tokens:

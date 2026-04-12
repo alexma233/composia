@@ -50,6 +50,7 @@ Before startup, review and update at least these values:
 - `controller.access_tokens[].token`: controller access token used by the Web UI
 - `controller.nodes[].token` and `agent.token`: node authentication token, which must match on both sides
 - `COMPOSIA_ACCESS_TOKEN` in `.env`: it must match one enabled token under `controller.access_tokens`
+- `COMPOSIA_CONFIG_DIR`, `COMPOSIA_CONTROLLER_REPO_DIR`, `COMPOSIA_CONTROLLER_STATE_DIR`, `COMPOSIA_CONTROLLER_LOG_DIR`, `COMPOSIA_AGENT_REPO_DIR`, and `COMPOSIA_AGENT_STATE_DIR` in `.env`: host-side bind mount paths used by Compose
 - `DOCKER_SOCK_GID` in `.env`: the GID of the host's `/var/run/docker.sock`; the agent must join this group to access the local Docker daemon
 - `WEB_LOGIN_USERNAME` in `.env`: local username for the Web login page
 - `WEB_LOGIN_PASSWORD_HASH` in `.env`: Argon2 password hash for the Web login page
@@ -76,14 +77,14 @@ DOCKER_SOCK_GID=131
 
 If this value is wrong, the `agent` will fail with `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock`.
 
-The default `docker-compose.yaml` bind-mounts the agent working directories directly from the host at `/data/repo-agent` and `/data/state-agent`. Create them on the host before startup:
+The default `docker-compose.yaml` reads its bind mount paths from `.env`. With the default values, the agent working directories are mounted from the host at `/data/repo-agent` and `/data/state-agent`. Create them on the host before startup:
 
 ```bash
 sudo mkdir -p /data/repo-agent /data/state-agent
 sudo chown 65532:65532 /data/repo-agent /data/state-agent
 ```
 
-Do not change the host paths to a different location while still mounting them as `/data/...` inside the container. `agent.repo_dir`, the host-side mount paths, and the container-side mount paths must match exactly, or bind mounts in managed service Compose files may resolve to the wrong host location and file mounts can fail.
+If you change these paths, update both `.env` and `config/config.yaml`. `agent.repo_dir`, the host-side mount paths, and the container-side mount paths must match exactly, or bind mounts in managed service Compose files may resolve to the wrong host location and file mounts can fail.
 
 Generate the Argon2 hash before startup. You can generate it directly in this page:
 
