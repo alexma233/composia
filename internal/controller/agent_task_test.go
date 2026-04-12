@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -196,6 +197,58 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	}
 	if snapshot.RuntimeStatus != store.ServiceRuntimeRunning {
 		t.Fatalf("expected runtime status running, got %q", snapshot.RuntimeStatus)
+	}
+}
+
+func TestReportServiceInstanceStatusRejectsMismatchedNode(t *testing.T) {
+	t.Parallel()
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main", "other"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", assertError("unexpected token")
+		}
+		return "main", nil
+	})
+
+	mux := http.NewServeMux()
+	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(&agentReportServer{db: db}, connect.WithInterceptors(interceptor))
+	mux.Handle(reportPath, reportHandler)
+	httpServer := httptest.NewUnstartedServer(mux)
+	httpServer.EnableHTTP2 = true
+	httpServer.StartTLS()
+	defer httpServer.Close()
+
+	reportClient := agentv1connect.NewAgentReportServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+
+	_, err := reportClient.ReportServiceInstanceStatus(ctx, connect.NewRequest(&agentv1.ReportServiceInstanceStatusRequest{
+		ServiceName:   "demo",
+		NodeId:        "other",
+		RuntimeStatus: store.ServiceRuntimeRunning,
+		ReportedAt:    timestamppb.New(time.Date(2026, 4, 4, 17, 2, 0, 0, time.UTC)),
+	}))
+	if err == nil {
+		t.Fatal("expected unauthenticated error")
+	}
+	var connectErr *connect.Error
+	if !errors.As(err, &connectErr) {
+		t.Fatalf("expected connect error, got %T", err)
+	}
+	if connectErr.Code() != connect.CodeUnauthenticated {
+		t.Fatalf("expected unauthenticated, got %v", connectErr.Code())
+	}
+	if got := connectErr.Message(); got != "node_id does not match bearer token" {
+		t.Fatalf("unexpected error message %q", got)
 	}
 }
 

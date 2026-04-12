@@ -659,6 +659,12 @@ func (server *agentReportServer) ReportServiceInstanceStatus(ctx context.Context
 	if !store.IsValidServiceRuntimeStatus(req.Msg.GetRuntimeStatus()) {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid runtime_status %q", req.Msg.GetRuntimeStatus()))
 	}
+
+	authenticatedNodeID, ok := rpcutil.BearerSubject(ctx)
+	if !ok || authenticatedNodeID != req.Msg.GetNodeId() {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("node_id does not match bearer token"))
+	}
+
 	reportedAt := time.Now().UTC()
 	if req.Msg.GetReportedAt() != nil {
 		reportedAt = req.Msg.GetReportedAt().AsTime().UTC()
