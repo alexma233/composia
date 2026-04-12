@@ -20,8 +20,8 @@ access_tokens:
   - name: "admin"
     token: "your-secure-token-here"
     enabled: true
-  - name: "readonly"
-    token: "readonly-token"
+  - name: "automation"
+    token: "automation-token"
     enabled: true
 ```
 
@@ -31,6 +31,10 @@ access_tokens:
 | `token` | Required token value used by the Web UI, CLI, or custom clients calling the Controller |
 | `enabled` | Whether this token is enabled |
 | `comment` | Optional operator-facing note |
+
+Composia currently has no RBAC. All enabled access tokens grant full controller access regardless of the token name.
+
+Token values must be globally unique across both `controller.access_tokens[].token` and `controller.nodes[].token`. The config loader rejects duplicate values and collisions between these two lists.
 
 Security recommendations:
 
@@ -60,6 +64,8 @@ nodes:
 | `public_ipv6` | No | Node public IPv6 for automatic DNS records |
 
 `controller.nodes[].id` must be unique.
+
+`controller.nodes[].token` must also be unique, and it must not reuse a value from `controller.access_tokens[].token`.
 
 ## Minimal Configuration (Single Node)
 

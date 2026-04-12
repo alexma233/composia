@@ -374,6 +374,7 @@ This is not an implementation bug, but it can mislead operators into thinking th
 - Source: Subagent 3
 - Severity: Low
 - Confidence: High
+- Status: Fixed in working tree
 - Locations:
   - `internal/config/config.go:174-185`
   - `internal/config/config.go:218-225`
@@ -382,6 +383,10 @@ This is not an implementation bug, but it can mislead operators into thinking th
 **Issue**
 
 Config validation enforces unique node IDs, but not unique token values. `NodeTokenMap()` and `EnabledAccessTokenMap()` simply assign into a map, so later duplicates overwrite earlier ones.
+
+**Fix status**
+
+The config loader now rejects duplicate node tokens, duplicate access tokens, and node-token/access-token collisions during controller config validation. Regression tests cover all three cases.
 
 **Why it matters**
 

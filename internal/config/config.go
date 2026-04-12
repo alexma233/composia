@@ -172,6 +172,7 @@ func validateController(file *File) error {
 	}
 
 	seenNodeIDs := make(map[string]struct{}, len(controller.Nodes))
+	seenNodeTokens := make(map[string]string, len(controller.Nodes))
 	for _, node := range controller.Nodes {
 		if node.ID == "" {
 			return fmt.Errorf("controller.nodes[].id is required")
@@ -182,7 +183,11 @@ func validateController(file *File) error {
 		if _, exists := seenNodeIDs[node.ID]; exists {
 			return fmt.Errorf("controller.nodes[%q] is duplicated", node.ID)
 		}
+		if previousNodeID, exists := seenNodeTokens[node.Token]; exists {
+			return fmt.Errorf("controller.nodes[%q].token duplicates controller.nodes[%q].token", node.ID, previousNodeID)
+		}
 		seenNodeIDs[node.ID] = struct{}{}
+		seenNodeTokens[node.Token] = node.ID
 	}
 
 	if controller.Rustic != nil {
@@ -215,6 +220,7 @@ func validateController(file *File) error {
 		return fmt.Errorf("controller.git.pull_interval is required when controller.git.remote_url is set")
 	}
 
+	seenAccessTokens := make(map[string]string, len(controller.AccessTokens))
 	for _, token := range controller.AccessTokens {
 		if token.Name == "" {
 			return fmt.Errorf("controller.access_tokens[].name is required")
@@ -222,6 +228,13 @@ func validateController(file *File) error {
 		if token.Token == "" {
 			return fmt.Errorf("controller.access_tokens[%q].token is required", token.Name)
 		}
+		if nodeID, exists := seenNodeTokens[token.Token]; exists {
+			return fmt.Errorf("controller.access_tokens[%q].token duplicates controller.nodes[%q].token", token.Name, nodeID)
+		}
+		if previousName, exists := seenAccessTokens[token.Token]; exists {
+			return fmt.Errorf("controller.access_tokens[%q].token duplicates controller.access_tokens[%q].token", token.Name, previousName)
+		}
+		seenAccessTokens[token.Token] = token.Name
 	}
 
 	if controller.Secrets != nil {

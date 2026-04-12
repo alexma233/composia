@@ -20,8 +20,8 @@ access_tokens:
   - name: "admin"
     token: "your-secure-token-here"
     enabled: true
-  - name: "readonly"
-    token: "readonly-token"
+  - name: "automation"
+    token: "automation-token"
     enabled: true
 ```
 
@@ -31,6 +31,10 @@ access_tokens:
 | `token` | 必填的 Token 值，供 Web UI、CLI 或自定义客户端访问 Controller |
 | `enabled` | 是否启用该 Token |
 | `comment` | 可选的运维备注 |
+
+Composia 当前没有 RBAC。所有已启用的访问 Token 都拥有完整的 Controller 访问权限，Token 名称不会影响权限。
+
+Token 值必须在 `controller.access_tokens[].token` 和 `controller.nodes[].token` 两处全局唯一。配置加载器会拒绝重复值，以及这两类 Token 之间的冲突。
 
 安全建议：
 
@@ -60,6 +64,8 @@ nodes:
 | `public_ipv6` | 否 | 节点公网 IPv6，用于自动 DNS 记录 |
 
 `controller.nodes[].id` 不能重复。
+
+`controller.nodes[].token` 也不能重复，并且不能复用 `controller.access_tokens[].token` 中的值。
 
 ## 最小配置（单机部署）
 

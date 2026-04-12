@@ -175,3 +175,91 @@ controller:
 		t.Fatalf("expected git auth username %q, got %q", "octocat", controller.Git.Auth.Username)
 	}
 }
+
+func TestLoadControllerRejectsDuplicateNodeTokens(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.yaml")
+	content := strings.TrimSpace(`
+controller:
+  listen_addr: ":8080"
+  controller_addr: "http://127.0.0.1:8080"
+  repo_dir: "/srv/composia/repo"
+  state_dir: "/srv/composia/state-controller"
+  log_dir: "/srv/composia/logs"
+  nodes:
+    - id: "main"
+      token: "shared-token"
+    - id: "worker"
+      token: "shared-token"
+`) + "\n"
+
+	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	_, err := LoadController(configPath)
+	if err == nil || !strings.Contains(err.Error(), `controller.nodes["worker"].token duplicates controller.nodes["main"].token`) {
+		t.Fatalf("expected duplicate node token validation error, got %v", err)
+	}
+}
+
+func TestLoadControllerRejectsDuplicateAccessTokens(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.yaml")
+	content := strings.TrimSpace(`
+controller:
+  listen_addr: ":8080"
+  controller_addr: "http://127.0.0.1:8080"
+  repo_dir: "/srv/composia/repo"
+  state_dir: "/srv/composia/state-controller"
+  log_dir: "/srv/composia/logs"
+  nodes:
+    - id: "main"
+      token: "main-token"
+  access_tokens:
+    - name: "web-ui"
+      token: "shared-token"
+    - name: "automation"
+      token: "shared-token"
+`) + "\n"
+
+	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	_, err := LoadController(configPath)
+	if err == nil || !strings.Contains(err.Error(), `controller.access_tokens["automation"].token duplicates controller.access_tokens["web-ui"].token`) {
+		t.Fatalf("expected duplicate access token validation error, got %v", err)
+	}
+}
+
+func TestLoadControllerRejectsNodeAndAccessTokenCollision(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.yaml")
+	content := strings.TrimSpace(`
+controller:
+  listen_addr: ":8080"
+  controller_addr: "http://127.0.0.1:8080"
+  repo_dir: "/srv/composia/repo"
+  state_dir: "/srv/composia/state-controller"
+  log_dir: "/srv/composia/logs"
+  nodes:
+    - id: "main"
+      token: "shared-token"
+  access_tokens:
+    - name: "web-ui"
+      token: "shared-token"
+`) + "\n"
+
+	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	_, err := LoadController(configPath)
+	if err == nil || !strings.Contains(err.Error(), `controller.access_tokens["web-ui"].token duplicates controller.nodes["main"].token`) {
+		t.Fatalf("expected node/access token collision validation error, got %v", err)
+	}
+}
