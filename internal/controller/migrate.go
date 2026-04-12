@@ -38,27 +38,11 @@ func (server *serviceCommandServer) MigrateService(ctx context.Context, req *con
 	if slices.Contains(service.TargetNodes, req.Msg.GetTargetNodeId()) {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q is already declared on target node %q", service.Name, req.Msg.GetTargetNodeId()))
 	}
-	activeServiceTask, err := server.db.HasActiveServiceTask(ctx, service.Name)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	if activeServiceTask {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q already has an active task", service.Name))
-	}
 	if err := validateTaskTargetNode(ctx, server.db, server.cfg, req.Msg.GetSourceNodeId(), task.TypeBackup); err != nil {
 		return nil, err
 	}
 	if err := validateTaskTargetNode(ctx, server.db, server.cfg, req.Msg.GetTargetNodeId(), task.TypeRestore); err != nil {
 		return nil, err
-	}
-	for _, nodeID := range []string{req.Msg.GetSourceNodeId(), req.Msg.GetTargetNodeId()} {
-		active, err := server.db.HasActiveServiceInstanceTask(ctx, service.Name, nodeID)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
-		}
-		if active {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service instance %q@%q already has an active task", service.Name, nodeID))
-		}
 	}
 	repoRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
 	if err != nil {
@@ -79,7 +63,7 @@ func (server *serviceCommandServer) MigrateService(ctx context.Context, req *con
 	}
 	triggeredBy, _ := rpcutil.BearerSubject(ctx)
 	taskID := uuid.NewString()
-	createdTask, err := server.db.CreateTask(ctx, task.Record{
+	createdTask, err := server.db.CreateTaskWithConstraints(ctx, task.Record{
 		TaskID:       taskID,
 		Type:         task.TypeMigrate,
 		Source:       requestTaskSource(req.Header()),
@@ -89,9 +73,15 @@ func (server *serviceCommandServer) MigrateService(ctx context.Context, req *con
 		ParamsJSON:   string(paramsJSON),
 		RepoRevision: repoRevision,
 		LogPath:      filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+	}, store.TaskAdmissionConstraints{
+		RequireInactiveService: true,
+		RequireInactiveServiceInstances: []store.ServiceInstanceTarget{
+			{ServiceName: service.Name, NodeID: req.Msg.GetSourceNodeId()},
+			{ServiceName: service.Name, NodeID: req.Msg.GetTargetNodeId()},
+		},
 	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connectTaskAdmissionError(err)
 	}
 	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
@@ -291,21 +281,14 @@ func createRestoreTask(ctx context.Context, db *store.DB, cfg *config.Controller
 	if err := validateTaskTargetNode(ctx, db, cfg, nodeID, task.TypeRestore); err != nil {
 		return task.Record{}, err
 	}
-	active, err := db.HasActiveServiceInstanceTask(ctx, serviceName, nodeID)
-	if err != nil {
-		return task.Record{}, connect.NewError(connect.CodeInternal, err)
-	}
-	if active {
-		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service instance %q@%q already has an active task", serviceName, nodeID))
-	}
 	paramsJSON, err := json.Marshal(params)
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode restore task params: %w", err))
 	}
 	taskID := uuid.NewString()
-	createdTask, err := db.CreateTask(ctx, task.Record{TaskID: taskID, Type: task.TypeRestore, Source: source, ServiceName: serviceName, NodeID: nodeID, Status: task.StatusPending, ParamsJSON: string(paramsJSON), RepoRevision: repoRevision, LogPath: filepath.Join(cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID))})
+	createdTask, err := db.CreateTaskIfNoActiveServiceInstanceTask(ctx, task.Record{TaskID: taskID, Type: task.TypeRestore, Source: source, ServiceName: serviceName, NodeID: nodeID, Status: task.StatusPending, ParamsJSON: string(paramsJSON), RepoRevision: repoRevision, LogPath: filepath.Join(cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID))})
 	if err != nil {
-		return task.Record{}, connect.NewError(connect.CodeInternal, err)
+		return task.Record{}, connectTaskAdmissionError(err)
 	}
 	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))

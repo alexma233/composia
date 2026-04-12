@@ -14,6 +14,33 @@ import (
 var ErrNoPendingTask = errors.New("no pending task")
 var ErrTaskNotFound = errors.New("task not found")
 
+type ActiveServiceTaskError struct {
+	ServiceName string
+}
+
+func (err ActiveServiceTaskError) Error() string {
+	return fmt.Sprintf("service %q already has an active task", err.ServiceName)
+}
+
+type ActiveServiceInstanceTaskError struct {
+	ServiceName string
+	NodeID      string
+}
+
+func (err ActiveServiceInstanceTaskError) Error() string {
+	return fmt.Sprintf("service instance %q@%q already has an active task", err.ServiceName, err.NodeID)
+}
+
+type TaskAdmissionConstraints struct {
+	RequireInactiveService          bool
+	RequireInactiveServiceInstances []ServiceInstanceTarget
+}
+
+type ServiceInstanceTarget struct {
+	ServiceName string
+	NodeID      string
+}
+
 type TaskSummary struct {
 	TaskID      string
 	Type        string
@@ -28,7 +55,151 @@ type TaskDetail struct {
 	Steps  []task.StepRecord
 }
 
+type sqlTaskExecer interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+}
+
 func (db *DB) CreateTask(ctx context.Context, record task.Record) (task.Record, error) {
+	preparedRecord, err := prepareTaskRecord(record)
+	if err != nil {
+		return task.Record{}, err
+	}
+	if err := insertTaskRecord(ctx, db.sql, preparedRecord); err != nil {
+		return task.Record{}, err
+	}
+	return preparedRecord, nil
+}
+
+func (db *DB) CreateTaskIfNoActiveServiceTask(ctx context.Context, record task.Record) (task.Record, error) {
+	return db.CreateTaskWithConstraints(ctx, record, TaskAdmissionConstraints{RequireInactiveService: true})
+}
+
+func (db *DB) CreateTaskWithConstraints(ctx context.Context, record task.Record, constraints TaskAdmissionConstraints) (task.Record, error) {
+	preparedRecord, err := prepareTaskRecord(record)
+	if err != nil {
+		return task.Record{}, err
+	}
+	if constraints.RequireInactiveService {
+		if preparedRecord.ServiceName == "" {
+			return task.Record{}, fmt.Errorf("service_name is required")
+		}
+	}
+	instanceTargets := constraints.RequireInactiveServiceInstances
+	if len(instanceTargets) > 0 {
+		instanceTargets = append([]ServiceInstanceTarget(nil), instanceTargets...)
+	}
+
+	tx, err := db.sql.BeginTx(ctx, nil)
+	if err != nil {
+		return task.Record{}, fmt.Errorf("begin create task transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if constraints.RequireInactiveService {
+		active, err := hasActiveServiceTaskTx(ctx, tx, preparedRecord.ServiceName)
+		if err != nil {
+			return task.Record{}, err
+		}
+		if active {
+			return task.Record{}, ActiveServiceTaskError{ServiceName: preparedRecord.ServiceName}
+		}
+	}
+
+	for _, target := range instanceTargets {
+		if target.ServiceName == "" {
+			return task.Record{}, fmt.Errorf("service_name is required")
+		}
+		if target.NodeID == "" {
+			return task.Record{}, fmt.Errorf("node_id is required")
+		}
+		active, err := hasActiveServiceInstanceTaskTx(ctx, tx, target.ServiceName, target.NodeID)
+		if err != nil {
+			return task.Record{}, err
+		}
+		if active {
+			return task.Record{}, ActiveServiceInstanceTaskError{ServiceName: target.ServiceName, NodeID: target.NodeID}
+		}
+	}
+
+	if err := insertTaskRecord(ctx, tx, preparedRecord); err != nil {
+		return task.Record{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return task.Record{}, fmt.Errorf("commit create task transaction: %w", err)
+	}
+	return preparedRecord, nil
+}
+
+func (db *DB) CreateTaskIfNoActiveServiceInstanceTask(ctx context.Context, record task.Record) (task.Record, error) {
+	records, err := db.CreateTasksIfNoActiveServiceInstanceTasks(ctx, []task.Record{record})
+	if err != nil {
+		return task.Record{}, err
+	}
+	return records[0], nil
+}
+
+func (db *DB) CreateTasksIfNoActiveServiceInstanceTasks(ctx context.Context, records []task.Record) ([]task.Record, error) {
+	if len(records) == 0 {
+		return nil, fmt.Errorf("at least one task record is required")
+	}
+
+	preparedRecords := make([]task.Record, 0, len(records))
+	instanceKeys := make([]serviceInstanceKey, 0, len(records))
+	seenKeys := make(map[serviceInstanceKey]struct{}, len(records))
+	for _, record := range records {
+		if record.ServiceName == "" {
+			return nil, fmt.Errorf("service_name is required")
+		}
+		if record.NodeID == "" {
+			return nil, fmt.Errorf("node_id is required")
+		}
+		preparedRecord, err := prepareTaskRecord(record)
+		if err != nil {
+			return nil, err
+		}
+		preparedRecords = append(preparedRecords, preparedRecord)
+
+		key := serviceInstanceKey{ServiceName: preparedRecord.ServiceName, NodeID: preparedRecord.NodeID}
+		if _, exists := seenKeys[key]; exists {
+			return nil, fmt.Errorf("duplicate service instance task for %q@%q", key.ServiceName, key.NodeID)
+		}
+		seenKeys[key] = struct{}{}
+		instanceKeys = append(instanceKeys, key)
+	}
+
+	tx, err := db.sql.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin create task transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	for _, key := range instanceKeys {
+		active, err := hasActiveServiceInstanceTaskTx(ctx, tx, key.ServiceName, key.NodeID)
+		if err != nil {
+			return nil, err
+		}
+		if active {
+			return nil, ActiveServiceInstanceTaskError{ServiceName: key.ServiceName, NodeID: key.NodeID}
+		}
+	}
+
+	for _, preparedRecord := range preparedRecords {
+		if err := insertTaskRecord(ctx, tx, preparedRecord); err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit create task transaction: %w", err)
+	}
+	return preparedRecords, nil
+}
+
+type serviceInstanceKey struct {
+	ServiceName string
+	NodeID      string
+}
+
+func prepareTaskRecord(record task.Record) (task.Record, error) {
 	if record.Type == "" {
 		return task.Record{}, fmt.Errorf("task type is required")
 	}
@@ -44,8 +215,11 @@ func (db *DB) CreateTask(ctx context.Context, record task.Record) (task.Record, 
 	if record.CreatedAt.IsZero() {
 		record.CreatedAt = time.Now().UTC()
 	}
+	return record, nil
+}
 
-	_, err := db.sql.ExecContext(ctx, `
+func insertTaskRecord(ctx context.Context, execer sqlTaskExecer, record task.Record) error {
+	_, err := execer.ExecContext(ctx, `
 		INSERT INTO tasks (
 			task_id,
 			type,
@@ -84,9 +258,9 @@ func (db *DB) CreateTask(ctx context.Context, record task.Record) (task.Record, 
 		nullableString(record.ErrorSummary),
 	)
 	if err != nil {
-		return task.Record{}, fmt.Errorf("create task %q: %w", record.TaskID, err)
+		return fmt.Errorf("create task %q: %w", record.TaskID, err)
 	}
-	return record, nil
+	return nil
 }
 
 func (db *DB) ClaimNextPendingTask(ctx context.Context, startedAt time.Time) (task.Record, error) {
@@ -372,8 +546,18 @@ func (db *DB) RecoverRunningTasks(ctx context.Context, finishedAt time.Time) (in
 }
 
 func (db *DB) HasActiveServiceTask(ctx context.Context, serviceName string) (bool, error) {
+	return hasActiveServiceTask(ctx, db.sql, serviceName)
+}
+
+func hasActiveServiceTaskTx(ctx context.Context, tx *sql.Tx, serviceName string) (bool, error) {
+	return hasActiveServiceTask(ctx, tx, serviceName)
+}
+
+func hasActiveServiceTask(ctx context.Context, queryer interface {
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}, serviceName string) (bool, error) {
 	var count int
-	err := db.sql.QueryRowContext(ctx, `
+	err := queryer.QueryRowContext(ctx, `
 		SELECT COUNT(*)
 		FROM tasks
 		WHERE service_name = ? AND status IN (?, ?, ?)
@@ -390,8 +574,18 @@ func (db *DB) HasActiveServiceTask(ctx context.Context, serviceName string) (boo
 }
 
 func (db *DB) HasActiveServiceInstanceTask(ctx context.Context, serviceName, nodeID string) (bool, error) {
+	return hasActiveServiceInstanceTask(ctx, db.sql, serviceName, nodeID)
+}
+
+func hasActiveServiceInstanceTaskTx(ctx context.Context, tx *sql.Tx, serviceName, nodeID string) (bool, error) {
+	return hasActiveServiceInstanceTask(ctx, tx, serviceName, nodeID)
+}
+
+func hasActiveServiceInstanceTask(ctx context.Context, queryer interface {
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}, serviceName, nodeID string) (bool, error) {
 	var count int
-	err := db.sql.QueryRowContext(ctx, `
+	err := queryer.QueryRowContext(ctx, `
 		SELECT COUNT(*)
 		FROM tasks
 		WHERE service_name = ? AND node_id = ? AND status IN (?, ?, ?)

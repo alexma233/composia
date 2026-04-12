@@ -229,6 +229,174 @@ func TestRecoverRunningTasksLeavesAwaitingConfirmationUntouched(t *testing.T) {
 	}
 }
 
+func TestCreateTaskIfNoActiveServiceInstanceTaskIsAtomic(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+
+	type createResult struct {
+		taskID string
+		err    error
+	}
+	results := make(chan createResult, 2)
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	for _, taskID := range []string{"task-a", "task-b"} {
+		wg.Add(1)
+		go func(taskID string) {
+			defer wg.Done()
+			<-start
+			record, err := db.CreateTaskIfNoActiveServiceInstanceTask(ctx, task.Record{TaskID: taskID, Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "alpha", NodeID: "main"})
+			results <- createResult{taskID: record.TaskID, err: err}
+		}(taskID)
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+
+	successCount := 0
+	conflictCount := 0
+	for result := range results {
+		switch err := result.err.(type) {
+		case nil:
+			successCount++
+		default:
+			var activeErr ActiveServiceInstanceTaskError
+			if !errors.As(err, &activeErr) {
+				t.Fatalf("unexpected create error: %v", err)
+			}
+			conflictCount++
+		}
+	}
+	if successCount != 1 || conflictCount != 1 {
+		t.Fatalf("expected one success and one conflict, got success=%d conflict=%d", successCount, conflictCount)
+	}
+
+	active, err := db.HasActiveServiceInstanceTask(ctx, "alpha", "main")
+	if err != nil {
+		t.Fatalf("check active service instance task: %v", err)
+	}
+	if !active {
+		t.Fatalf("expected an active service instance task")
+	}
+
+	var count int
+	if err := db.sql.QueryRowContext(ctx, `SELECT COUNT(*) FROM tasks WHERE service_name = ? AND node_id = ?`, "alpha", "main").Scan(&count); err != nil {
+		t.Fatalf("count tasks: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected exactly one queued task, got %d", count)
+	}
+}
+
+func TestCreateTasksIfNoActiveServiceInstanceTasksIsAllOrNothing(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"alpha": {"main", "edge"}}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main", "edge"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-existing", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "alpha", NodeID: "edge"}); err != nil {
+		t.Fatalf("create existing task: %v", err)
+	}
+
+	_, err := db.CreateTasksIfNoActiveServiceInstanceTasks(ctx, []task.Record{
+		{TaskID: "task-main", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "alpha", NodeID: "main"},
+		{TaskID: "task-edge", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "alpha", NodeID: "edge"},
+	})
+	if err == nil {
+		t.Fatalf("expected active service instance conflict")
+	}
+	var activeErr ActiveServiceInstanceTaskError
+	if !errors.As(err, &activeErr) {
+		t.Fatalf("expected active service instance error, got %v", err)
+	}
+	if activeErr.ServiceName != "alpha" || activeErr.NodeID != "edge" {
+		t.Fatalf("unexpected active service instance conflict: %+v", activeErr)
+	}
+
+	var count int
+	if err := db.sql.QueryRowContext(ctx, `SELECT COUNT(*) FROM tasks WHERE task_id IN ('task-main', 'task-edge')`).Scan(&count); err != nil {
+		t.Fatalf("count inserted tasks: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("expected no partially inserted tasks, got %d", count)
+	}
+}
+
+func TestCreateTaskIfNoActiveServiceTaskIsAtomic(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+
+	type createResult struct {
+		taskID string
+		err    error
+	}
+	results := make(chan createResult, 2)
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	for _, taskID := range []string{"task-a", "task-b"} {
+		wg.Add(1)
+		go func(taskID string) {
+			defer wg.Done()
+			<-start
+			record, err := db.CreateTaskIfNoActiveServiceTask(ctx, task.Record{TaskID: taskID, Type: task.TypeMigrate, Source: task.SourceCLI, ServiceName: "alpha"})
+			results <- createResult{taskID: record.TaskID, err: err}
+		}(taskID)
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+
+	successCount := 0
+	conflictCount := 0
+	for result := range results {
+		switch err := result.err.(type) {
+		case nil:
+			successCount++
+		default:
+			var activeErr ActiveServiceTaskError
+			if !errors.As(err, &activeErr) {
+				t.Fatalf("unexpected create error: %v", err)
+			}
+			conflictCount++
+		}
+	}
+	if successCount != 1 || conflictCount != 1 {
+		t.Fatalf("expected one success and one conflict, got success=%d conflict=%d", successCount, conflictCount)
+	}
+
+	var count int
+	if err := db.sql.QueryRowContext(ctx, `SELECT COUNT(*) FROM tasks WHERE service_name = ?`, "alpha").Scan(&count); err != nil {
+		t.Fatalf("count tasks: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected exactly one queued task, got %d", count)
+	}
+}
+
 func TestListTasksAppliesFiltersAndCursor(t *testing.T) {
 	t.Parallel()
 

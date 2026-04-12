@@ -12,7 +12,7 @@ This final version incorporates the explicit product and deployment assumptions 
 After applying those assumptions, the remaining actionable findings are:
 
 - **2 High**
-- **4 Medium**
+- **3 Medium**
 - **4 Low**
 
 Most important remaining issues:
@@ -21,7 +21,7 @@ Most important remaining issues:
 - Backup and restore metadata can drive arbitrary host path reads and destructive writes on agents.
 - `ReportServiceInstanceStatus` does not bind `node_id` to the authenticated agent token.
 - Backup and restore runtime payloads are built from live HEAD instead of the queued task revision.
-- Task serialization is weaker than intended in one place and broader than necessary in another.
+- Task serialization remains broader than necessary in one place.
 
 ## Methodology
 
@@ -248,6 +248,7 @@ This is especially dangerous combined with unrestricted include paths.
 - Source: Subagent 7
 - Severity: Medium
 - Confidence: High
+- Status: Fixed in working tree
 - Locations:
   - `internal/controller/run.go:1668-1739`
   - `internal/controller/migrate.go:290-313`
@@ -257,6 +258,15 @@ This is especially dangerous combined with unrestricted include paths.
 **Issue**
 
 The code checks `HasActiveServiceInstanceTask(...)` and then inserts a task with `CreateTask(...)`, but there is no transaction or uniqueness constraint enforcing exclusivity.
+
+**Fix status**
+
+Destructive task admission now goes through store-level transactional create helpers that:
+
+- check service or service-instance activity inside the same database transaction used to insert the task
+- keep multi-node service actions all-or-nothing instead of partially enqueuing per-node tasks
+- preserve migrate-time service and source/target instance exclusivity in one atomic admission path
+- add concurrency regression tests that race task creation and verify only one task is admitted
 
 **Why it matters**
 
@@ -436,9 +446,8 @@ This is primarily a reproducibility and supply-chain hygiene issue rather than a
 
 ### Priority 2
 
-1. Make destructive task admission atomic.
-2. Reduce task serialization scope, either by removing the global running gate or replacing it with scoped lock keys.
-3. Add clear operator warnings for `http://` controller links.
+1. Reduce task serialization scope, either by removing the global running gate or replacing it with scoped lock keys.
+2. Add clear operator warnings for `http://` controller links.
 
 ### Priority 3
 
@@ -475,6 +484,6 @@ After aligning the report with the current product boundary, the most important 
 2. **Arbitrary host path backup and restore behavior**
 3. **Missing node binding in `ReportServiceInstanceStatus`**
 4. **Backup and restore runtime payload revision drift**
-5. **Non-atomic task admission and overly broad task serialization**
+5. **Overly broad task serialization**
 
 The rest of the removed findings are best understood as product assumptions or documentation and operational clarity issues, not core code vulnerabilities under the current single-admin model.

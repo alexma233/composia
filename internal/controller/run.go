@@ -952,13 +952,6 @@ func createNodeCaddyReloadTask(ctx context.Context, db *store.DB, cfg *config.Co
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
-	active, err := db.HasActiveServiceInstanceTask(ctx, service.Name, nodeID)
-	if err != nil {
-		return task.Record{}, connect.NewError(connect.CodeInternal, err)
-	}
-	if active {
-		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service instance %q@%q already has an active task", service.Name, nodeID))
-	}
 	serviceDir, err := filepath.Rel(cfg.RepoDir, service.Directory)
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve caddy service directory: %w", err))
@@ -968,7 +961,7 @@ func createNodeCaddyReloadTask(ctx context.Context, db *store.DB, cfg *config.Co
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode task params: %w", err))
 	}
 	taskID := uuid.NewString()
-	createdTask, err := db.CreateTask(ctx, task.Record{
+	createdTask, err := db.CreateTaskIfNoActiveServiceInstanceTask(ctx, task.Record{
 		TaskID:      taskID,
 		Type:        task.TypeCaddyReload,
 		Source:      source,
@@ -979,7 +972,7 @@ func createNodeCaddyReloadTask(ctx context.Context, db *store.DB, cfg *config.Co
 		LogPath:     filepath.Join(cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
 	})
 	if err != nil {
-		return task.Record{}, connect.NewError(connect.CodeInternal, err)
+		return task.Record{}, connectTaskAdmissionError(err)
 	}
 	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
@@ -1697,13 +1690,6 @@ func (server *serviceCommandServer) createServiceTaskWithOptions(ctx context.Con
 		if err := validateTaskTargetNode(ctx, server.db, server.cfg, nodeID, taskType); err != nil {
 			return task.Record{}, err
 		}
-		active, err := server.db.HasActiveServiceInstanceTask(ctx, serviceName, nodeID)
-		if err != nil {
-			return task.Record{}, connect.NewError(connect.CodeInternal, err)
-		}
-		if active {
-			return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service instance %q@%q already has an active task", serviceName, nodeID))
-		}
 	}
 	repoRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
 	if err != nil {
@@ -1723,10 +1709,10 @@ func (server *serviceCommandServer) createServiceTaskWithOptions(ctx context.Con
 	if taskSource == "" {
 		taskSource = task.SourceCLI
 	}
-	createdTasks := make([]task.Record, 0, len(targetNodeIDs))
+	pendingTasks := make([]task.Record, 0, len(targetNodeIDs))
 	for _, nodeID := range targetNodeIDs {
 		taskID := uuid.NewString()
-		createdTask, err := server.db.CreateTask(ctx, task.Record{
+		pendingTasks = append(pendingTasks, task.Record{
 			TaskID:          taskID,
 			Type:            taskType,
 			Source:          taskSource,
@@ -1739,16 +1725,30 @@ func (server *serviceCommandServer) createServiceTaskWithOptions(ctx context.Con
 			CreatedAt:       derefTime(options.CreatedAt),
 			LogPath:         filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
 		})
-		if err != nil {
-			return task.Record{}, connect.NewError(connect.CodeInternal, err)
-		}
+	}
+	createdTasks, err := server.db.CreateTasksIfNoActiveServiceInstanceTasks(ctx, pendingTasks)
+	if err != nil {
+		return task.Record{}, connectTaskAdmissionError(err)
+	}
+	for _, createdTask := range createdTasks {
 		if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
 			return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
 		}
-		createdTasks = append(createdTasks, createdTask)
 	}
 	notifyTaskQueue(server.taskQueue)
 	return createdTasks[0], nil
+}
+
+func connectTaskAdmissionError(err error) error {
+	var activeServiceErr store.ActiveServiceTaskError
+	if errors.As(err, &activeServiceErr) {
+		return connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	var activeServiceInstanceErr store.ActiveServiceInstanceTaskError
+	if errors.As(err, &activeServiceInstanceErr) {
+		return connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	return connect.NewError(connect.CodeInternal, err)
 }
 
 func createServiceTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string) (task.Record, error) {
