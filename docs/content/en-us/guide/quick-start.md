@@ -77,11 +77,12 @@ DOCKER_SOCK_GID=131
 
 If this value is wrong, the `agent` will fail with `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock`.
 
-The default `docker-compose.yaml` reads its bind mount paths from `.env`. With the default values, the agent working directories are mounted from the host at `/data/repo-agent` and `/data/state-agent`. Create them on the host before startup:
+The default `docker-compose.yaml` reads its bind mount paths from `.env`. With the default values, the controller repo, state, and log directories live under `./data/`, the agent state directory lives at `./data/state-agent`, and only the agent repo uses the fixed host absolute path `/data/repo-agent`. Create these directories before startup:
 
 ```bash
-sudo mkdir -p /data/repo-agent /data/state-agent
-sudo chown 65532:65532 /data/repo-agent /data/state-agent
+mkdir -p ./data/repo-controller ./data/state-controller ./data/logs ./data/state-agent
+sudo mkdir -p /data/repo-agent
+sudo chown 65532:65532 /data/repo-agent
 ```
 
 If you change these paths, update both `.env` and `config/config.yaml`. `agent.repo_dir`, the host-side mount paths, and the container-side mount paths must match exactly, or bind mounts in managed service Compose files may resolve to the wrong host location and file mounts can fail.

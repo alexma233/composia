@@ -77,11 +77,12 @@ DOCKER_SOCK_GID=131
 
 如果这个值不正确，`agent` 会报错 `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock`。
 
-默认 `docker-compose.yaml` 会从 `.env` 读取路径映射。按默认值时，agent 的工作目录会绑定到宿主机的 `/data/repo-agent` 和 `/data/state-agent`。启动前请先在宿主机创建它们：
+默认 `docker-compose.yaml` 会从 `.env` 读取路径映射。按默认值时，controller 的 repo、state 和 log 会落在当前目录下的 `./data/`，agent 的 state 会落在 `./data/state-agent`，只有 agent 的 repo 固定使用宿主机绝对路径 `/data/repo-agent`。启动前请先创建这些目录：
 
 ```bash
-sudo mkdir -p /data/repo-agent /data/state-agent
-sudo chown 65532:65532 /data/repo-agent /data/state-agent
+mkdir -p ./data/repo-controller ./data/state-controller ./data/logs ./data/state-agent
+sudo mkdir -p /data/repo-agent
+sudo chown 65532:65532 /data/repo-agent
 ```
 
 如果你要改路径，请同时修改 `.env` 和 `config/config.yaml`。`agent.repo_dir`、agent 服务的宿主机挂载路径、agent 服务的容器内挂载路径必须完全一致，否则被管理服务里的 bind mount 会被宿主机 Docker 解析到错误位置，文件挂载可能直接失败。

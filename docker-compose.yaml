@@ -1,13 +1,13 @@
 services:
   init-repo-controller:
     image: alpine/git:2.49.1
-    working_dir: ${COMPOSIA_CONTROLLER_REPO_DIR}
+    working_dir: /data/repo-controller
     entrypoint:
       - sh
       - -ec
       - if [ ! -d .git ]; then git init; fi
     volumes:
-      - ${COMPOSIA_CONTROLLER_REPO_DIR}:${COMPOSIA_CONTROLLER_REPO_DIR}
+      - ${COMPOSIA_CONTROLLER_REPO_DIR}:/data/repo-controller
 
   init-perms-controller:
     image: alpine:3.22
@@ -15,10 +15,10 @@ services:
       - sh
       - -ec
       - |
-        mkdir -p ${COMPOSIA_CONTROLLER_REPO_DIR} /data/state-controller /data/logs/tasks
-        chown -R 65532:65532 ${COMPOSIA_CONTROLLER_REPO_DIR} /data/state-controller /data/logs
+        mkdir -p /data/repo-controller /data/state-controller /data/logs/tasks
+        chown -R 65532:65532 /data/repo-controller /data/state-controller /data/logs
     volumes:
-      - ${COMPOSIA_CONTROLLER_REPO_DIR}:${COMPOSIA_CONTROLLER_REPO_DIR}
+      - ${COMPOSIA_CONTROLLER_REPO_DIR}:/data/repo-controller
       - ${COMPOSIA_CONTROLLER_STATE_DIR}:/data/state-controller
       - ${COMPOSIA_CONTROLLER_LOG_DIR}:/data/logs
 
@@ -53,7 +53,7 @@ services:
       - "7001:7001"
     volumes:
       - ${COMPOSIA_CONFIG_DIR}:/app/configs:ro
-      - ${COMPOSIA_CONTROLLER_REPO_DIR}:${COMPOSIA_CONTROLLER_REPO_DIR}
+      - ${COMPOSIA_CONTROLLER_REPO_DIR}:/data/repo-controller
       - ${COMPOSIA_CONTROLLER_STATE_DIR}:/data/state-controller
       - ${COMPOSIA_CONTROLLER_LOG_DIR}:/data/logs
     networks:
@@ -66,10 +66,10 @@ services:
       - sh
       - -ec
       - |
-        mkdir -p /data/repo-agent/caddy/generated /data/state-agent
-        chown -R 65532:65532 /data/repo-agent /data/state-agent
+        mkdir -p ${COMPOSIA_AGENT_REPO_DIR}/caddy/generated /data/state-agent
+        chown -R 65532:65532 ${COMPOSIA_AGENT_REPO_DIR} /data/state-agent
     volumes:
-      - ${COMPOSIA_AGENT_REPO_DIR}:/data/repo-agent
+      - ${COMPOSIA_AGENT_REPO_DIR}:${COMPOSIA_AGENT_REPO_DIR}
       - ${COMPOSIA_AGENT_STATE_DIR}:/data/state-agent
 
   agent:
@@ -87,7 +87,7 @@ services:
     volumes:
       - ${COMPOSIA_CONFIG_DIR}:/app/configs:ro
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${COMPOSIA_AGENT_REPO_DIR}:/data/repo-agent
+      - ${COMPOSIA_AGENT_REPO_DIR}:${COMPOSIA_AGENT_REPO_DIR}
       - ${COMPOSIA_AGENT_STATE_DIR}:/data/state-agent
     networks:
       - composia
