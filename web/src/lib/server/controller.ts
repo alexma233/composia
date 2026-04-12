@@ -660,13 +660,13 @@ export async function pruneNodeDocker(
   target = "all",
 ): Promise<{ taskId: string }> {
   const config = requireControllerConfig();
-  const response = await rpcCall<{ task_id: string }>(
+  const response = await rpcCall<{ taskId?: string; task_id?: string }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.NodeMaintenanceService/PruneNodeDocker",
     { nodeId, target },
   );
-  return { taskId: response.task_id };
+  return { taskId: response.taskId ?? response.task_id ?? "" };
 }
 
 export async function forgetNodeRustic(options: {
@@ -675,7 +675,7 @@ export async function forgetNodeRustic(options: {
   dataName?: string;
 } = {}): Promise<{ taskId: string }> {
   const config = requireControllerConfig();
-  const response = await rpcCall<{ task_id: string }>(
+  const response = await rpcCall<{ taskId?: string; task_id?: string }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.NodeMaintenanceService/ForgetNodeRustic",
@@ -685,7 +685,7 @@ export async function forgetNodeRustic(options: {
       dataName: options.dataName ?? "",
     },
   );
-  return { taskId: response.task_id };
+  return { taskId: response.taskId ?? response.task_id ?? "" };
 }
 
 export async function pruneNodeRustic(options: {
@@ -694,7 +694,7 @@ export async function pruneNodeRustic(options: {
   dataName?: string;
 } = {}): Promise<{ taskId: string }> {
   const config = requireControllerConfig();
-  const response = await rpcCall<{ task_id: string }>(
+  const response = await rpcCall<{ taskId?: string; task_id?: string }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.NodeMaintenanceService/PruneNodeRustic",
@@ -704,20 +704,20 @@ export async function pruneNodeRustic(options: {
       dataName: options.dataName ?? "",
     },
   );
-  return { taskId: response.task_id };
+  return { taskId: response.taskId ?? response.task_id ?? "" };
 }
 
 export async function reloadNodeCaddy(
   nodeId: string,
 ): Promise<{ taskId: string }> {
   const config = requireControllerConfig();
-  const response = await rpcCall<{ task_id: string }>(
+  const response = await rpcCall<{ taskId?: string; task_id?: string }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.NodeMaintenanceService/ReloadNodeCaddy",
     { nodeId },
   );
-  return { taskId: response.task_id };
+  return { taskId: response.taskId ?? response.task_id ?? "" };
 }
 
 export async function syncNodeCaddyFiles(
@@ -725,13 +725,13 @@ export async function syncNodeCaddyFiles(
   options: { serviceName?: string; fullRebuild?: boolean } = {},
 ): Promise<{ taskId: string }> {
   const config = requireControllerConfig();
-  const response = await rpcCall<{ task_id: string }>(
+  const response = await rpcCall<{ taskId?: string; task_id?: string }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.NodeMaintenanceService/SyncNodeCaddyFiles",
     { nodeId, serviceName: options.serviceName ?? "", fullRebuild: options.fullRebuild ?? false },
   );
-  return { taskId: response.task_id };
+  return { taskId: response.taskId ?? response.task_id ?? "" };
 }
 
 export type DockerContainerSummary = {

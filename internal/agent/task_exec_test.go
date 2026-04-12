@@ -301,6 +301,44 @@ func TestExecuteCaddySyncTaskCopiesServiceCaddyFile(t *testing.T) {
 	}
 }
 
+func TestExecuteCaddyTasksUseServiceDirForGeneratedFileName(t *testing.T) {
+	rootDir := t.TempDir()
+	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
+	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+		t.Fatalf("create repo dir: %v", err)
+	}
+	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "element-web"), 0o755); err != nil {
+		t.Fatalf("create service dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "element-web", "composia-meta.yaml"), []byte("name: element\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./site-config.caddy\n"), 0o644); err != nil {
+		t.Fatalf("write service meta: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "element-web", "site-config.caddy"), []byte("element.alexma.top { reverse_proxy 127.0.0.1:8080 }\n"), 0o644); err != nil {
+		t.Fatalf("write caddy source: %v", err)
+	}
+	if err := os.MkdirAll(cfg.CaddyGeneratedDir(), 0o755); err != nil {
+		t.Fatalf("create caddy generated dir: %v", err)
+	}
+	if err := syncServiceCaddyFile(context.Background(), cfg, "element-web", filepath.Join(cfg.RepoDir, "element-web"), func(string) error { return nil }); err != nil {
+		t.Fatalf("sync generated caddy file by service dir: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(cfg.CaddyGeneratedDir(), "element-web.caddy")); err != nil {
+		t.Fatalf("expected element-web.caddy: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(cfg.CaddyGeneratedDir(), "element.caddy")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected element.caddy absent, got stat err=%v", err)
+	}
+	if err := removeServiceCaddyFile(context.Background(), cfg, "element-web", func(string) error { return nil }); err != nil {
+		t.Fatalf("remove generated caddy file by service dir: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(cfg.CaddyGeneratedDir(), "element-web.caddy")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected element-web.caddy removed, got stat err=%v", err)
+	}
+}
+
 func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	rootDir := t.TempDir()
 	binDir := filepath.Join(rootDir, "bin")

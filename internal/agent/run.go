@@ -457,7 +457,7 @@ func executeStopTask(ctx context.Context, bundleClient agentv1connect.BundleServ
 		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepCaddySync, func() error {
-		return removeServiceCaddyFile(ctx, cfg, pulledTask.GetServiceName(), func(output string) error {
+		return removeServiceCaddyFile(ctx, cfg, pulledTask.GetServiceDir(), func(output string) error {
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
@@ -842,7 +842,7 @@ func runCaddyReload(ctx context.Context, serviceDir, projectName, composeService
 
 func executeCaddySyncStep(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader, serviceRoot string) error {
 	return executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepCaddySync, func() error {
-		return syncServiceCaddyFile(ctx, cfg, pulledTask.GetServiceName(), serviceRoot, func(output string) error {
+		return syncServiceCaddyFile(ctx, cfg, pulledTask.GetServiceDir(), serviceRoot, func(output string) error {
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	})
@@ -883,7 +883,7 @@ func syncCaddyFilesForTask(ctx context.Context, bundleClient agentv1connect.Bund
 		if err != nil {
 			return err
 		}
-		if err := syncServiceCaddyFile(ctx, cfg, bundleTask.GetServiceName(), serviceRoot, func(output string) error {
+		if err := syncServiceCaddyFile(ctx, cfg, bundleTask.GetServiceDir(), serviceRoot, func(output string) error {
 			return uploadTaskLog(ctx, logUploader, output)
 		}); err != nil {
 			return err
@@ -908,13 +908,17 @@ type controllerTaskParams struct {
 	FullRebuild bool     `json:"full_rebuild,omitempty"`
 }
 
-func syncServiceCaddyFile(ctx context.Context, cfg *config.AgentConfig, serviceName, serviceRoot string, uploadLog func(string) error) error {
+func syncServiceCaddyFile(ctx context.Context, cfg *config.AgentConfig, serviceDir, serviceRoot string, uploadLog func(string) error) error {
+	targetName, err := caddyGeneratedFileName(serviceDir)
+	if err != nil {
+		return err
+	}
 	meta, err := loadServiceCaddyMeta(serviceRoot)
 	if err != nil {
 		return err
 	}
 	if meta.Source == "" {
-		if err := uploadLog(fmt.Sprintf("service=%s does not enable network.caddy, skipping caddy sync\n", serviceName)); err != nil {
+		if err := uploadLog(fmt.Sprintf("service_dir=%s does not enable network.caddy, skipping caddy sync\n", serviceDir)); err != nil {
 			return err
 		}
 		return nil
@@ -923,7 +927,7 @@ func syncServiceCaddyFile(ctx context.Context, cfg *config.AgentConfig, serviceN
 	if err != nil {
 		return err
 	}
-	targetPath := filepath.Join(cfg.CaddyGeneratedDir(), serviceName+".caddy")
+	targetPath := filepath.Join(cfg.CaddyGeneratedDir(), targetName)
 	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
 		return fmt.Errorf("create generated caddy directory for %q: %w", targetPath, err)
 	}
@@ -940,8 +944,12 @@ func syncServiceCaddyFile(ctx context.Context, cfg *config.AgentConfig, serviceN
 	return nil
 }
 
-func removeServiceCaddyFile(ctx context.Context, cfg *config.AgentConfig, serviceName string, uploadLog func(string) error) error {
-	targetPath := filepath.Join(cfg.CaddyGeneratedDir(), serviceName+".caddy")
+func removeServiceCaddyFile(ctx context.Context, cfg *config.AgentConfig, serviceDir string, uploadLog func(string) error) error {
+	targetName, err := caddyGeneratedFileName(serviceDir)
+	if err != nil {
+		return err
+	}
+	targetPath := filepath.Join(cfg.CaddyGeneratedDir(), targetName)
 	if err := os.Remove(targetPath); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			if err := uploadLog(fmt.Sprintf("generated caddy file %s does not exist, skipping removal\n", targetPath)); err != nil {
@@ -955,6 +963,18 @@ func removeServiceCaddyFile(ctx context.Context, cfg *config.AgentConfig, servic
 		return err
 	}
 	return nil
+}
+
+func caddyGeneratedFileName(serviceDir string) (string, error) {
+	cleanDir := filepath.Clean(strings.TrimSpace(serviceDir))
+	if cleanDir == "" || cleanDir == "." {
+		return "", fmt.Errorf("service_dir is required for caddy generated file")
+	}
+	base := filepath.Base(cleanDir)
+	if base == "." || base == string(filepath.Separator) || base == "" {
+		return "", fmt.Errorf("resolve caddy generated file name from service_dir %q", serviceDir)
+	}
+	return base + ".caddy", nil
 }
 
 func resolveServiceCaddySourcePath(serviceRoot, source string) (string, error) {
