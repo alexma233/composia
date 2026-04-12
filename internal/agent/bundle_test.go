@@ -43,7 +43,7 @@ func TestDownloadServiceBundleExtractsIntoRepoDir(t *testing.T) {
 	defer httpServer.Close()
 
 	client := agentv1connect.NewBundleServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
-	result, err := downloadServiceBundle(context.Background(), client, cfg, "task-1")
+	result, err := downloadServiceBundle(context.Background(), client, cfg, "task-1", "")
 	if err != nil {
 		t.Fatalf("download service bundle: %v", err)
 	}
@@ -88,7 +88,7 @@ func TestDownloadServiceBundleReplacesExistingDirectoryAtomically(t *testing.T) 
 	defer httpServer.Close()
 
 	client := agentv1connect.NewBundleServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
-	if _, err := downloadServiceBundle(context.Background(), client, cfg, "task-1"); err != nil {
+	if _, err := downloadServiceBundle(context.Background(), client, cfg, "task-1", ""); err != nil {
 		t.Fatalf("download service bundle: %v", err)
 	}
 	content, err := os.ReadFile(filepath.Join(cfg.RepoDir, "demo", "composia-meta.yaml"))
@@ -128,7 +128,7 @@ func TestDownloadServiceBundlePreservesExistingDirectoryOnInvalidArchive(t *test
 	defer httpServer.Close()
 
 	client := agentv1connect.NewBundleServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
-	if _, err := downloadServiceBundle(context.Background(), client, cfg, "task-1"); err == nil {
+	if _, err := downloadServiceBundle(context.Background(), client, cfg, "task-1", ""); err == nil {
 		t.Fatalf("expected invalid bundle download to fail")
 	}
 	content, err := os.ReadFile(filepath.Join(cfg.RepoDir, "demo", "composia-meta.yaml"))
@@ -165,7 +165,7 @@ func TestDownloadServiceBundleIgnoresPAXHeaders(t *testing.T) {
 	defer httpServer.Close()
 
 	client := agentv1connect.NewBundleServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
-	result, err := downloadServiceBundle(context.Background(), client, cfg, "task-1")
+	result, err := downloadServiceBundle(context.Background(), client, cfg, "task-1", "")
 	if err != nil {
 		t.Fatalf("download service bundle with PAX header: %v", err)
 	}
@@ -174,9 +174,46 @@ func TestDownloadServiceBundleIgnoresPAXHeaders(t *testing.T) {
 	}
 }
 
+func TestDownloadServiceBundleSendsServiceDirOverride(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
+	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+		t.Fatalf("create repo dir: %v", err)
+	}
+	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+
+	bundle := buildBundleArchive(t, map[string]string{"bravo/composia-meta.yaml": "name: bravo\n"})
+	mux := http.NewServeMux()
+	path, handler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle, expectedServiceDir: "bravo", responseServiceName: "bravo", responseRelativeRoot: "bravo"}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := agentv1connect.NewBundleServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	result, err := downloadServiceBundle(context.Background(), client, cfg, "task-1", "bravo")
+	if err != nil {
+		t.Fatalf("download overridden service bundle: %v", err)
+	}
+	if result.RelativeRoot != "bravo" || result.RootPath != filepath.Join(cfg.RepoDir, "bravo") {
+		t.Fatalf("unexpected overridden bundle result: %+v", result)
+	}
+}
+
 type bundleTestServer struct {
-	bundle         []byte
-	expectedTaskID string
+	bundle               []byte
+	expectedTaskID       string
+	expectedServiceDir   string
+	responseServiceName  string
+	responseRelativeRoot string
 }
 
 func (server bundleTestServer) GetServiceBundle(_ context.Context, req *connect.Request[agentv1.GetServiceBundleRequest], stream *connect.ServerStream[agentv1.GetServiceBundleResponse]) error {
@@ -187,7 +224,18 @@ func (server bundleTestServer) GetServiceBundle(_ context.Context, req *connect.
 	if req.Msg.GetTaskId() != expectedTaskID {
 		return errString("unexpected task id")
 	}
-	firstChunk := &agentv1.GetServiceBundleResponse{ServiceName: "demo", RepoRevision: "deadbeef", RelativeRoot: "demo", Data: server.bundle[:len(server.bundle)/2]}
+	if server.expectedServiceDir != "" && req.Msg.GetServiceDir() != server.expectedServiceDir {
+		return errString("unexpected service dir")
+	}
+	serviceName := server.responseServiceName
+	if serviceName == "" {
+		serviceName = "demo"
+	}
+	relativeRoot := server.responseRelativeRoot
+	if relativeRoot == "" {
+		relativeRoot = "demo"
+	}
+	firstChunk := &agentv1.GetServiceBundleResponse{ServiceName: serviceName, RepoRevision: "deadbeef", RelativeRoot: relativeRoot, Data: server.bundle[:len(server.bundle)/2]}
 	secondChunk := &agentv1.GetServiceBundleResponse{Data: server.bundle[len(server.bundle)/2:]}
 	if err := stream.Send(firstChunk); err != nil {
 		return err

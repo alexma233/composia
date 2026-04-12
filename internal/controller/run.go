@@ -710,6 +710,9 @@ func (server *bundleServer) GetServiceBundle(ctx context.Context, req *connect.R
 	if err := json.Unmarshal([]byte(detail.Record.ParamsJSON), &params); err != nil {
 		return connect.NewError(connect.CodeInternal, fmt.Errorf("decode deploy task params: %w", err))
 	}
+	if req.Msg.GetServiceDir() != "" {
+		params.ServiceDir = req.Msg.GetServiceDir()
+	}
 	if params.ServiceDir == "" {
 		return connect.NewError(connect.CodeFailedPrecondition, errors.New("deploy task is missing service_dir"))
 	}
@@ -979,9 +982,14 @@ func createNodeCaddySyncTask(ctx context.Context, db *store.DB, cfg *config.Cont
 	if err := validateTaskTargetNode(ctx, db, cfg, nodeID, task.TypeCaddySync); err != nil {
 		return task.Record{}, err
 	}
+	repoRevision, err := repo.CurrentRevision(cfg.RepoDir)
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("resolve repo revision: %w", err))
+	}
 	var (
 		serviceDirs []string
 		matchedName string
+		serviceDir  string
 	)
 	if fullRebuild {
 		services, err := repo.DiscoverServices(cfg.RepoDir, availableNodeIDs)
@@ -1005,7 +1013,7 @@ func createNodeCaddySyncTask(ctx context.Context, db *store.DB, cfg *config.Cont
 			}
 		}
 		slices.Sort(serviceDirs)
-		matchedName = "caddy"
+		matchedName = ""
 	} else {
 		if serviceName == "" {
 			return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required when full_rebuild is false"))
@@ -1025,14 +1033,15 @@ func createNodeCaddySyncTask(ctx context.Context, db *store.DB, cfg *config.Cont
 			return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
 		}
 		serviceDirs = []string{relativeDir}
+		serviceDir = relativeDir
 		matchedName = service.Name
 	}
-	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDirs: serviceDirs, FullRebuild: fullRebuild})
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir, ServiceDirs: serviceDirs, FullRebuild: fullRebuild})
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode task params: %w", err))
 	}
 	taskID := uuid.NewString()
-	createdTask, err := db.CreateTask(ctx, task.Record{TaskID: taskID, Type: task.TypeCaddySync, Source: source, ServiceName: matchedName, NodeID: nodeID, Status: task.StatusPending, ParamsJSON: string(paramsJSON), LogPath: filepath.Join(cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID))})
+	createdTask, err := db.CreateTask(ctx, task.Record{TaskID: taskID, Type: task.TypeCaddySync, Source: source, ServiceName: matchedName, NodeID: nodeID, Status: task.StatusPending, ParamsJSON: string(paramsJSON), RepoRevision: repoRevision, LogPath: filepath.Join(cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID))})
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, err)
 	}

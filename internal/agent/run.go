@@ -246,7 +246,7 @@ func executeDeployTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 	var bundle *bundleResult
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
 		var err error
-		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId())
+		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
 		if err != nil {
 			return err
 		}
@@ -289,7 +289,7 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 	var bundle *bundleResult
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
 		var err error
-		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId())
+		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
 		if err != nil {
 			return err
 		}
@@ -344,7 +344,7 @@ func executeBackupTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 	var bundle *bundleResult
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
 		var err error
-		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId())
+		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
 		if err != nil {
 			return err
 		}
@@ -388,7 +388,7 @@ func executeRestoreTask(ctx context.Context, bundleClient agentv1connect.BundleS
 	var bundle *bundleResult
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
 		var err error
-		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId())
+		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
 		if err != nil {
 			return err
 		}
@@ -430,7 +430,7 @@ func executeStopTask(ctx context.Context, bundleClient agentv1connect.BundleServ
 	var bundle *bundleResult
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
 		var err error
-		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId())
+		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
 		if err != nil {
 			return err
 		}
@@ -476,7 +476,7 @@ func executeRestartTask(ctx context.Context, bundleClient agentv1connect.BundleS
 	var bundle *bundleResult
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
 		var err error
-		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId())
+		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
 		if err != nil {
 			return err
 		}
@@ -875,7 +875,7 @@ func syncCaddyFilesForTask(ctx context.Context, bundleClient agentv1connect.Bund
 		bundleTask := proto.Clone(pulledTask).(*agentv1.AgentTask)
 		bundleTask.ServiceDir = serviceDir
 		bundleTask.ServiceName = filepath.Base(serviceDir)
-		bundle, err := downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId())
+		bundle, err := downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), serviceDir)
 		if err != nil {
 			return err
 		}
@@ -1499,8 +1499,8 @@ type bundleResult struct {
 	RootPath     string
 }
 
-func downloadServiceBundle(ctx context.Context, client agentv1connect.BundleServiceClient, cfg *config.AgentConfig, taskID string) (*bundleResult, error) {
-	stream, err := client.GetServiceBundle(ctx, connect.NewRequest(&agentv1.GetServiceBundleRequest{TaskId: taskID}))
+func downloadServiceBundle(ctx context.Context, client agentv1connect.BundleServiceClient, cfg *config.AgentConfig, taskID, serviceDir string) (*bundleResult, error) {
+	stream, err := client.GetServiceBundle(ctx, connect.NewRequest(&agentv1.GetServiceBundleRequest{TaskId: taskID, ServiceDir: serviceDir}))
 	if err != nil {
 		return nil, fmt.Errorf("get service bundle: %w", err)
 	}

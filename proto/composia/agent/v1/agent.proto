@@ -266,6 +266,8 @@ message ReportServiceInstanceStatusResponse {}
 message GetServiceBundleRequest {
   // task_id is the controller task ID whose bundle should be streamed.
   string task_id = 1;
+  // service_dir overrides the task service directory for multi-service bundle consumers.
+  string service_dir = 2;
 }
 
 // GetServiceBundleResponse carries one binary chunk from a task bundle stream.

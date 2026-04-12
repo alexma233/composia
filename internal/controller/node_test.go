@@ -14,6 +14,7 @@ import (
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1/controllerv1connect"
 	"forgejo.alexma.top/alexma233/composia/internal/config"
+	"forgejo.alexma.top/alexma233/composia/internal/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/store"
 	"forgejo.alexma.top/alexma233/composia/internal/task"
@@ -329,8 +330,81 @@ func TestNodeMaintenanceServiceSyncNodeCaddyFilesCreatesSyncTask(t *testing.T) {
 		t.Fatalf("expected caddy_sync task type, got %q", detail.Record.Type)
 	}
 	params := taskParams(detail.Record.ParamsJSON)
-	if len(params.ServiceDirs) != 1 || params.ServiceDirs[0] != "demo" || params.FullRebuild {
+	if params.ServiceDir != "demo" || len(params.ServiceDirs) != 1 || params.ServiceDirs[0] != "demo" || params.FullRebuild {
 		t.Fatalf("unexpected caddy sync params: %+v", params)
+	}
+	revision, err := repo.CurrentRevision(repoDir)
+	if err != nil {
+		t.Fatalf("read current revision: %v", err)
+	}
+	if detail.Record.RepoRevision != revision {
+		t.Fatalf("unexpected caddy sync repo revision %q", detail.Record.RepoRevision)
+	}
+}
+
+func TestNodeMaintenanceServiceSyncNodeCaddyFilesFullRebuildCreatesMultiServiceTask(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	logDir := filepath.Join(rootDir, "logs")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"alpha/composia-meta.yaml":   "name: alpha\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./alpha.caddy\n",
+		"alpha/alpha.caddy":          "alpha.example.com { reverse_proxy 127.0.0.1:8080 }\n",
+		"bravo/composia-meta.yaml":   "name: bravo\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./bravo.caddy\n",
+		"bravo/bravo.caddy":          "bravo.example.com { reverse_proxy 127.0.0.1:9090 }\n",
+		"charlie/composia-meta.yaml": "name: charlie\nnode: main\n",
+	})
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create task log dir: %v", err)
+	}
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo", "charlie"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "access-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+	path, handler := controllerv1connect.NewNodeMaintenanceServiceHandler(
+		&nodeMaintenanceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, taskQueue: newTaskQueueNotifier(), taskResults: newTaskResultNotifier()},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewNodeMaintenanceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
+	response, err := client.SyncNodeCaddyFiles(ctx, connect.NewRequest(&controllerv1.SyncNodeCaddyFilesRequest{NodeId: "main", FullRebuild: true}))
+	if err != nil {
+		t.Fatalf("sync node caddy files full rebuild: %v", err)
+	}
+	detail, err := db.GetTask(ctx, response.Msg.GetTaskId())
+	if err != nil {
+		t.Fatalf("get created task: %v", err)
+	}
+	if detail.Record.Type != task.TypeCaddySync {
+		t.Fatalf("expected caddy_sync task type, got %q", detail.Record.Type)
+	}
+	params := taskParams(detail.Record.ParamsJSON)
+	if params.ServiceDir != "" || !params.FullRebuild || len(params.ServiceDirs) != 2 || params.ServiceDirs[0] != "alpha" || params.ServiceDirs[1] != "bravo" {
+		t.Fatalf("unexpected full rebuild caddy sync params: %+v", params)
+	}
+	if detail.Record.ServiceName != "" {
+		t.Fatalf("unexpected caddy sync service name %q", detail.Record.ServiceName)
 	}
 }
 

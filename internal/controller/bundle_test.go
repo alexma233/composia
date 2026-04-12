@@ -100,6 +100,154 @@ func TestBundleServiceStreamsTaskBundle(t *testing.T) {
 	}
 }
 
+func TestBundleServiceStreamsCaddySyncBundleWithSingleServiceDir(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"demo/composia-meta.yaml": "name: demo\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
+		"demo/demo.caddy":         "demo.example.com { reverse_proxy 127.0.0.1:8080 }\n",
+	})
+	revision, err := repo.CurrentRevision(repoDir)
+	if err != nil {
+		t.Fatalf("read current revision: %v", err)
+	}
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: "demo", ServiceDirs: []string{"demo"}})
+	if err != nil {
+		t.Fatalf("marshal caddy sync task params: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-caddy-bundle", Type: task.TypeCaddySync, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", RepoRevision: revision, ParamsJSON: string(paramsJSON), CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("create caddy sync task: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", assertError("unexpected token")
+		}
+		return "main", nil
+	})
+	mux := http.NewServeMux()
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(&bundleServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}}, connect.WithInterceptors(interceptor))
+	mux.Handle(bundlePath, bundleHandler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := agentv1connect.NewBundleServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	stream, err := client.GetServiceBundle(ctx, connect.NewRequest(&agentv1.GetServiceBundleRequest{TaskId: "task-caddy-bundle"}))
+	if err != nil {
+		t.Fatalf("get caddy sync bundle: %v", err)
+	}
+	defer stream.Close()
+
+	archive := bytes.Buffer{}
+	var relativeRoot string
+	for stream.Receive() {
+		message := stream.Msg()
+		if relativeRoot == "" {
+			relativeRoot = message.GetRelativeRoot()
+		}
+		archive.Write(message.GetData())
+	}
+	if err := stream.Err(); err != nil {
+		t.Fatalf("receive caddy sync bundle: %v", err)
+	}
+	if relativeRoot != "demo" {
+		t.Fatalf("expected relative root demo, got %q", relativeRoot)
+	}
+
+	entries := untarGzContents(t, archive.Bytes())
+	if entries["demo/demo.caddy"] == "" {
+		t.Fatalf("expected caddy source file in bundle, got %+v", entries)
+	}
+}
+
+func TestBundleServiceStreamsRequestedServiceDirOverride(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"alpha/composia-meta.yaml": "name: alpha\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./alpha.caddy\n",
+		"alpha/alpha.caddy":        "alpha.example.com { reverse_proxy 127.0.0.1:8080 }\n",
+		"bravo/composia-meta.yaml": "name: bravo\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./bravo.caddy\n",
+		"bravo/bravo.caddy":        "bravo.example.com { reverse_proxy 127.0.0.1:9090 }\n",
+	})
+	revision, err := repo.CurrentRevision(repoDir)
+	if err != nil {
+		t.Fatalf("read current revision: %v", err)
+	}
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDirs: []string{"alpha", "bravo"}, FullRebuild: true})
+	if err != nil {
+		t.Fatalf("marshal caddy sync task params: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-caddy-full-bundle", Type: task.TypeCaddySync, Source: task.SourceCLI, ServiceName: "", NodeID: "main", RepoRevision: revision, ParamsJSON: string(paramsJSON), CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("create caddy sync task: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", assertError("unexpected token")
+		}
+		return "main", nil
+	})
+	mux := http.NewServeMux()
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(&bundleServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}}, connect.WithInterceptors(interceptor))
+	mux.Handle(bundlePath, bundleHandler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := agentv1connect.NewBundleServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	stream, err := client.GetServiceBundle(ctx, connect.NewRequest(&agentv1.GetServiceBundleRequest{TaskId: "task-caddy-full-bundle", ServiceDir: "bravo"}))
+	if err != nil {
+		t.Fatalf("get overridden caddy sync bundle: %v", err)
+	}
+	defer stream.Close()
+
+	archive := bytes.Buffer{}
+	var relativeRoot string
+	for stream.Receive() {
+		message := stream.Msg()
+		if relativeRoot == "" {
+			relativeRoot = message.GetRelativeRoot()
+		}
+		archive.Write(message.GetData())
+	}
+	if err := stream.Err(); err != nil {
+		t.Fatalf("receive overridden caddy sync bundle: %v", err)
+	}
+	if relativeRoot != "bravo" {
+		t.Fatalf("expected relative root bravo, got %q", relativeRoot)
+	}
+
+	entries := untarGzContents(t, archive.Bytes())
+	if entries["bravo/bravo.caddy"] == "" || entries["alpha/alpha.caddy"] != "" {
+		t.Fatalf("unexpected overridden bundle entries: %+v", entries)
+	}
+}
+
 func TestBundleServiceInjectsDecryptedSecretEnv(t *testing.T) {
 	t.Parallel()
 

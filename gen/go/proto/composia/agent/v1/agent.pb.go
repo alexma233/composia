@@ -1314,7 +1314,9 @@ func (*ReportServiceInstanceStatusResponse) Descriptor() ([]byte, []int) {
 type GetServiceBundleRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// task_id is the controller task ID whose bundle should be streamed.
-	TaskId        string `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	TaskId string `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// service_dir overrides the task service directory for multi-service bundle consumers.
+	ServiceDir    string `protobuf:"bytes,2,opt,name=service_dir,json=serviceDir,proto3" json:"service_dir,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1352,6 +1354,13 @@ func (*GetServiceBundleRequest) Descriptor() ([]byte, []int) {
 func (x *GetServiceBundleRequest) GetTaskId() string {
 	if x != nil {
 		return x.TaskId
+	}
+	return ""
+}
+
+func (x *GetServiceBundleRequest) GetServiceDir() string {
+	if x != nil {
+		return x.ServiceDir
 	}
 	return ""
 }
@@ -3515,9 +3524,11 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\x0eruntime_status\x18\x03 \x01(\tR\rruntimeStatus\x12;\n" +
 	"\vreported_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"reportedAt\"%\n" +
-	"#ReportServiceInstanceStatusResponse\"2\n" +
+	"#ReportServiceInstanceStatusResponse\"S\n" +
 	"\x17GetServiceBundleRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\x9b\x01\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x1f\n" +
+	"\vservice_dir\x18\x02 \x01(\tR\n" +
+	"serviceDir\"\x9b\x01\n" +
 	"\x18GetServiceBundleResponse\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12#\n" +
 	"\rrepo_revision\x18\x02 \x01(\tR\frepoRevision\x12#\n" +
