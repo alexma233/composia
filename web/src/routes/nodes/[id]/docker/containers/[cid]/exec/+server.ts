@@ -22,6 +22,7 @@ export const POST: RequestHandler = async ({ params, request, url }) => {
       payload.command ?? [],
       payload.rows ?? 24,
       payload.cols ?? 80,
+      url.origin,
     );
     const browserControllerBaseUrl = env.COMPOSIA_BROWSER_CONTROLLER_ADDR?.trim() || config.baseUrl;
     const controllerUrl = new URL(browserControllerBaseUrl);

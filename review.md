@@ -11,13 +11,12 @@ This final version incorporates the explicit product and deployment assumptions 
 
 After applying those assumptions, the remaining actionable findings are:
 
-- **2 High**
+- **1 High**
 - **3 Medium**
 - **4 Low**
 
 Most important remaining issues:
 
-- The container exec WebSocket is effectively protected only by a leaked `session_id`, with no handshake authentication and no origin check.
 - Backup and restore metadata can drive arbitrary host path reads and destructive writes on agents.
 - `ReportServiceInstanceStatus` does not bind `node_id` to the authenticated agent token.
 - Backup and restore runtime payloads are built from live HEAD instead of the queued task revision.
@@ -85,11 +84,12 @@ The following are treated as current design choices rather than security defects
 
 ## High
 
-### 1. Container exec WebSocket attach is unauthenticated and origin-blind
+### 1. Container exec WebSocket attach is unauthenticated and origin-blind [Resolved 2026-04-12]
 
 - Source: Subagents 1, 3, 4
 - Severity: High
 - Confidence: High
+- Status: Fixed in the current working tree
 - Locations:
   - `internal/controller/run.go:124-125`
   - `internal/controller/exec_tunnel.go:77-84`
@@ -126,6 +126,12 @@ Even in a single-admin system, an interactive container shell is one of the high
 - Replace bare `session_id` URLs with a short-lived, signed, one-time attach token.
 - Restrict allowed origins.
 - Add idle timeout and expiry semantics.
+
+**Resolution**
+
+- `OpenContainerExec` now returns a one-time attach token in `websocket_path` instead of exposing the raw `session_id`.
+- The controller binds each exec session to the authenticated creator and the browser `Origin` captured during session creation.
+- The WebSocket handshake now rejects wrong origins, reused attach tokens, and expired attach tokens.
 
 ## 2. Backup/restore path handling allows arbitrary host filesystem reads and destructive writes
 
@@ -439,10 +445,9 @@ This is primarily a reproducibility and supply-chain hygiene issue rather than a
 
 ### Priority 1
 
-1. Redesign exec WebSocket attach authentication and origin validation.
-2. Constrain backup and restore includes to safe roots.
-3. Bind `ReportServiceInstanceStatus` to the authenticated node.
-4. Build backup and restore runtime payloads strictly from the queued task revision.
+1. Constrain backup and restore includes to safe roots.
+2. Bind `ReportServiceInstanceStatus` to the authenticated node.
+3. Build backup and restore runtime payloads strictly from the queued task revision.
 
 ### Priority 2
 
@@ -461,7 +466,6 @@ This is primarily a reproducibility and supply-chain hygiene issue rather than a
 
 Within the stated single-admin trust model, most of the earlier "sensitive data exposure" findings are accepted design choices rather than defects. The remaining risk is concentrated in:
 
-- cross-boundary trust for container exec
 - overly powerful backup and restore path handling
 - agent identity binding
 - task revision integrity
@@ -480,10 +484,9 @@ The repository still shows several positive engineering properties:
 
 After aligning the report with the current product boundary, the most important issues to address first are:
 
-1. **Unauthenticated exec WebSocket attachment**
-2. **Arbitrary host path backup and restore behavior**
-3. **Missing node binding in `ReportServiceInstanceStatus`**
-4. **Backup and restore runtime payload revision drift**
-5. **Overly broad task serialization**
+1. **Arbitrary host path backup and restore behavior**
+2. **Missing node binding in `ReportServiceInstanceStatus`**
+3. **Backup and restore runtime payload revision drift**
+4. **Overly broad task serialization**
 
 The rest of the removed findings are best understood as product assumptions or documentation and operational clarity issues, not core code vulnerabilities under the current single-admin model.

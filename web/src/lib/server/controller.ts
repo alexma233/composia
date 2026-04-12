@@ -909,6 +909,7 @@ export async function openContainerExec(
   command: string[] = [],
   rows = 24,
   cols = 80,
+  browserOrigin: string,
 ): Promise<ContainerExecSession> {
   const config = requireControllerConfig();
   return rpcCall<ContainerExecSession>(
@@ -916,6 +917,7 @@ export async function openContainerExec(
     config.token,
     "/composia.controller.v1.ContainerService/OpenContainerExec",
     { nodeId, containerId, command, rows, cols },
+    { "X-Composia-Web-Origin": browserOrigin },
   );
 }
 
@@ -1220,6 +1222,7 @@ async function rpcCall<T>(
   token: string,
   procedure: string,
   body: RpcRequest,
+  extraHeaders: Record<string, string> = {},
 ): Promise<T> {
   const response = await fetch(`${baseUrl}${procedure}`, {
     method: "POST",
@@ -1228,6 +1231,7 @@ async function rpcCall<T>(
       "Connect-Protocol-Version": "1",
       "Content-Type": "application/json",
       "X-Composia-Source": "web",
+      ...extraHeaders,
     },
     body: JSON.stringify(body),
   });
