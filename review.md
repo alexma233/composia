@@ -12,7 +12,7 @@ This final version incorporates the explicit product and deployment assumptions 
 After applying those assumptions, the remaining actionable findings are:
 
 - **0 High**
-- **1 Medium**
+- **0 Medium**
 - **2 Low**
 
 Since the previous revision of this report, fixes landed on the current branch for:
@@ -27,7 +27,6 @@ Since the previous revision of this report, fixes landed on the current branch f
 
 Most important remaining issues:
 
-- Task serialization remains broader than necessary in one place.
 - Cleartext controller URLs should surface a stronger operator warning.
 - Supply-chain pinning can be tightened.
 
@@ -315,11 +314,12 @@ Concurrent requests can race and both enqueue destructive tasks for the same ser
 - Use a transaction or a lock table keyed by `(service_name, node_id)`.
 - Add concurrency tests that intentionally race task creation.
 
-### 6. Global single-running-task serialization is broader than necessary
+### 6. Global single-running-task serialization is broader than necessary [Resolved 2026-04-13]
 
 - Source: Subagents 3, 7
 - Severity: Medium
 - Confidence: High
+- Status: Fixed on the current branch
 - Locations:
   - `internal/store/tasks.go:113-150`
   - `internal/store/tasks.go:199-207`
@@ -355,6 +355,12 @@ If you want to reduce the lock scope without losing safety, two practical option
    - `node:<node>:docker`
 
 The second approach is cleaner long-term, but the first is a valid small step.
+
+**Resolution**
+
+- `ClaimNextPendingTaskForNode()` and `ClaimNextPendingTaskOfType()` no longer block on unrelated running tasks.
+- Claiming remains serialized inside the process by `claimMu`, while task exclusivity still relies on the existing service and service-instance admission checks.
+- Regression tests now verify that different nodes can claim work concurrently and that controller-owned tasks can still be claimed while a node task is already running.
 
 ## Low
 
