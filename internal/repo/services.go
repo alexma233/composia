@@ -615,6 +615,11 @@ func validateDataAction(path, dataName, actionName string, action *DataActionCon
 		if len(action.Include) == 0 {
 			return fmt.Errorf("service meta %q: data_protect.data[%q].%s.include is required for %s", path, dataName, actionName, action.Strategy)
 		}
+		for _, include := range action.Include {
+			if _, _, err := ClassifyDataInclude(include); err != nil {
+				return fmt.Errorf("service meta %q: data_protect.data[%q].%s.include %q is invalid: %w", path, dataName, actionName, include, err)
+			}
+		}
 		switch action.Strategy {
 		case "files.tar_after_stop", "files.untar", "files.copy":
 			return nil

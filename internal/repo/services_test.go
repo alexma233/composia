@@ -172,6 +172,32 @@ backup:
 	}
 }
 
+func TestDiscoverServicesSkipsServiceWithUnsafeDataInclude(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	metaPath := filepath.Join(repoDir, "vaultwarden", MetaFileName)
+	writeFile(t, metaPath, strings.TrimSpace(`
+name: vaultwarden
+node: main
+data_protect:
+  data:
+    - name: config
+      backup:
+        strategy: files.copy
+        include:
+          - ../config
+`)+"\n")
+
+	services, err := DiscoverServices(repoDir, map[string]struct{}{"main": {}})
+	if err != nil {
+		t.Fatalf("discover services: %v", err)
+	}
+	if len(services) != 0 {
+		t.Fatalf("expected unsafe include service to be skipped, got %+v", services)
+	}
+}
+
 func writeFile(t *testing.T, path, content string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

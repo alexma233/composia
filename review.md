@@ -11,16 +11,25 @@ This final version incorporates the explicit product and deployment assumptions 
 
 After applying those assumptions, the remaining actionable findings are:
 
-- **1 High**
-- **3 Medium**
-- **4 Low**
+- **0 High**
+- **1 Medium**
+- **2 Low**
+
+Since the previous revision of this report, fixes landed on the current branch for:
+
+- container exec WebSocket attach authentication and origin binding
+- backup and restore include path confinement
+- `ReportServiceInstanceStatus` node/token binding
+- backup and restore runtime payload revision integrity
+- destructive service-task admission atomicity
+- duplicate controller token validation
+- the misleading `readonly` access token example
 
 Most important remaining issues:
 
-- Backup and restore metadata can drive arbitrary host path reads and destructive writes on agents.
-- `ReportServiceInstanceStatus` does not bind `node_id` to the authenticated agent token.
-- Backup and restore runtime payloads are built from live HEAD instead of the queued task revision.
 - Task serialization remains broader than necessary in one place.
+- Cleartext controller URLs should surface a stronger operator warning.
+- Supply-chain pinning can be tightened.
 
 ## Methodology
 
@@ -89,7 +98,7 @@ The following are treated as current design choices rather than security defects
 - Source: Subagents 1, 3, 4
 - Severity: High
 - Confidence: High
-- Status: Fixed in the current working tree
+- Status: Fixed on the current branch
 - Locations:
   - `internal/controller/run.go:124-125`
   - `internal/controller/exec_tunnel.go:77-84`
@@ -133,11 +142,12 @@ Even in a single-admin system, an interactive container shell is one of the high
 - The controller binds each exec session to the authenticated creator and the browser `Origin` captured during session creation.
 - The WebSocket handshake now rejects wrong origins, reused attach tokens, and expired attach tokens.
 
-## 2. Backup/restore path handling allows arbitrary host filesystem reads and destructive writes
+## 2. Backup/restore path handling allowed arbitrary host filesystem reads and destructive writes [Resolved 2026-04-13]
 
 - Source: Subagents 2, 7
 - Severity: High
 - Confidence: High
+- Status: Fixed on the current branch
 - Locations:
   - `internal/repo/services.go:597-626`
   - `internal/agent/run.go:1225-1257`
@@ -145,9 +155,9 @@ Even in a single-admin system, an interactive container shell is one of the high
 
 **Issue**
 
-`data_protect.data[].backup.include` and `.restore.include` are validated only for presence and strategy type. At execution time, absolute paths and `../`-style paths are accepted.
+`data_protect.data[].backup.include` and `.restore.include` were validated only for presence and strategy type. At execution time, absolute paths and `../`-style paths were accepted.
 
-Key behavior:
+Key behavior before the fix:
 
 - `stageInclude()` accepts absolute paths, `./...`, and `../...`
 - `restoreInclude()` resolves the same forms back to host paths
@@ -176,6 +186,13 @@ Repository metadata becomes a host filesystem capability. A malicious repo chang
   - at agent runtime before copy and remove operations
 - Never call `RemoveAll` on paths outside approved roots.
 
+**Resolution**
+
+- Repository validation now rejects absolute includes, parent-directory traversal, and service-root includes in `data_protect` file actions.
+- The agent now reuses the same include classifier at runtime and resolves service-path includes relative to `serviceRoot`, rejecting anything that escapes that root before staging or restore.
+- Docker volume identifiers remain supported, but file-path restores can no longer target arbitrary host paths outside the service workspace.
+- Regression tests cover both repo validation and agent runtime enforcement.
+
 ## Medium
 
 ### 3. `ReportServiceInstanceStatus` did not bind `node_id` to the authenticated agent token
@@ -183,7 +200,7 @@ Repository metadata becomes a host filesystem capability. A malicious repo chang
 - Source: Subagent 1
 - Severity: Medium
 - Confidence: High
-- Status: Fixed in working tree
+- Status: Fixed on the current branch
 - Locations:
   - `internal/controller/run.go:652-672`
   - comparison references:
@@ -213,11 +230,12 @@ Any valid agent token can report runtime status on behalf of another node.
 - Apply the same bearer-subject and node-ID equality check used in heartbeat and Docker stats reporting.
 - Audit all agent-facing report methods for consistent identity binding.
 
-### 4. Backup and restore runtime payloads are built from live HEAD, not the queued task revision
+### 4. Backup and restore runtime payloads were built from live HEAD, not the queued task revision [Resolved 2026-04-13]
 
 - Source: Subagent 7
 - Severity: Medium
 - Confidence: High
+- Status: Fixed on the current branch
 - Locations:
   - `internal/controller/run.go:836-876`
   - `internal/controller/run.go:879-921`
@@ -227,7 +245,7 @@ Any valid agent token can report runtime status on behalf of another node.
 
 **Issue**
 
-`buildBackupRuntimePayload()` and `buildRestoreRuntimePayload()` accept a `revision` parameter but load service definitions from live repo state via `repo.FindService(...)`, not the pinned task revision.
+`buildBackupRuntimePayload()` and `buildRestoreRuntimePayload()` accepted a `revision` parameter but loaded service definitions from live repo state via `repo.FindService(...)`, not the pinned task revision.
 
 **Why it matters**
 
@@ -249,12 +267,18 @@ This is especially dangerous combined with unrestricted include paths.
 - Build the runtime payload from the task's saved `service_dir` and `repo_revision`, not from live HEAD.
 - Add a regression test that queues a task, mutates HEAD, and verifies the task still uses the original revision.
 
+**Resolution**
+
+- `buildBackupRuntimePayload()` and `buildRestoreRuntimePayload()` now resolve both the target service and the rustic infra service from the task's recorded `repo_revision`.
+- The controller now uses `FindRusticInfraServiceAtRevision(...)` alongside `FindServiceAtRevision(...)` so the runtime payload matches the queued revision instead of live HEAD.
+- Regression coverage now mutates HEAD after task creation and verifies the emitted runtime payload still reflects the original revision.
+
 ### 5. Destructive service-task admission checks are non-atomic
 
 - Source: Subagent 7
 - Severity: Medium
 - Confidence: High
-- Status: Fixed in working tree
+- Status: Fixed on the current branch
 - Locations:
   - `internal/controller/run.go:1668-1739`
   - `internal/controller/migrate.go:290-313`
@@ -365,7 +389,7 @@ Operators may incorrectly assume the link is already protected, even when bearer
 - Source: Subagent 1
 - Severity: Low
 - Confidence: High
-- Status: Fixed in docs
+- Status: Fixed on the current branch
 - Locations:
   - `docs/content/en-us/guide/configuration/controller.md:18-25`
   - `internal/config/config.go:309-317`
@@ -391,7 +415,7 @@ This is not an implementation bug, but it can mislead operators into thinking th
 - Source: Subagent 3
 - Severity: Low
 - Confidence: High
-- Status: Fixed in working tree
+- Status: Fixed on the current branch
 - Locations:
   - `internal/config/config.go:174-185`
   - `internal/config/config.go:218-225`
@@ -445,31 +469,22 @@ This is primarily a reproducibility and supply-chain hygiene issue rather than a
 
 ### Priority 1
 
-1. Constrain backup and restore includes to safe roots.
-2. Bind `ReportServiceInstanceStatus` to the authenticated node.
-3. Build backup and restore runtime payloads strictly from the queued task revision.
-
-### Priority 2
-
 1. Reduce task serialization scope, either by removing the global running gate or replacing it with scoped lock keys.
 2. Add clear operator warnings for `http://` controller links.
 
-### Priority 3
+### Priority 2
 
-1. Fix the misleading `readonly` token example in the docs.
-2. Reject duplicate token values at config load.
-3. Tighten dependency, workflow, and generator pinning.
+1. Tighten dependency, workflow, and generator pinning.
 
 ## Overall Risk Assessment & Best Practices
 
-**Overall risk: Medium**
+**Overall risk: Low**
 
-Within the stated single-admin trust model, most of the earlier "sensitive data exposure" findings are accepted design choices rather than defects. The remaining risk is concentrated in:
+Within the stated single-admin trust model, the previously highest-impact findings around exec attach, host-path backup and restore behavior, agent identity binding, task revision integrity, and destructive task admission are now fixed on the current branch. The remaining risk is concentrated in:
 
-- overly powerful backup and restore path handling
-- agent identity binding
-- task revision integrity
-- task orchestration correctness
+- task orchestration correctness for claim-time global serialization
+- operator clarity around cleartext controller URLs
+- supply-chain and reproducibility hygiene
 
 The repository still shows several positive engineering properties:
 
@@ -482,11 +497,10 @@ The repository still shows several positive engineering properties:
 
 ## Conclusion
 
-After aligning the report with the current product boundary, the most important issues to address first are:
+After aligning the report with the current product boundary and applying the fixes already present on this branch, the remaining issues to address first are:
 
-1. **Arbitrary host path backup and restore behavior**
-2. **Missing node binding in `ReportServiceInstanceStatus`**
-3. **Backup and restore runtime payload revision drift**
-4. **Overly broad task serialization**
+1. **Overly broad task serialization**
+2. **Incomplete operator warning coverage for cleartext controller URLs**
+3. **Supply-chain pinning and reproducibility hardening**
 
-The rest of the removed findings are best understood as product assumptions or documentation and operational clarity issues, not core code vulnerabilities under the current single-admin model.
+The previously highest-severity findings in this report are now resolved on the current branch. The rest are best understood as orchestration hardening, operational clarity, and supply-chain hygiene rather than core code vulnerabilities under the current single-admin model.

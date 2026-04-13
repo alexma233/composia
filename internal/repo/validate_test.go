@@ -138,3 +138,34 @@ func TestValidateRepoRejectsBlankRusticDataProtectDir(t *testing.T) {
 		t.Fatalf("unexpected validation error: %+v", validationErrors[0])
 	}
 }
+
+func TestValidateRepoRejectsUnsafeDataProtectInclude(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repoDir, "alpha"), 0o755); err != nil {
+		t.Fatalf("create alpha dir: %v", err)
+	}
+	meta := strings.TrimSpace(`
+name: alpha
+node: main
+data_protect:
+  data:
+    - name: config
+      backup:
+        strategy: files.copy
+        include:
+          - /etc
+`) + "\n"
+	if err := os.WriteFile(filepath.Join(repoDir, "alpha", MetaFileName), []byte(meta), 0o644); err != nil {
+		t.Fatalf("write alpha meta: %v", err)
+	}
+
+	validationErrors := ValidateRepo(repoDir, map[string]struct{}{"main": {}})
+	if len(validationErrors) != 1 {
+		t.Fatalf("expected 1 validation error, got %d: %+v", len(validationErrors), validationErrors)
+	}
+	if !strings.Contains(validationErrors[0].Message, "include") || !strings.Contains(validationErrors[0].Message, "absolute path") {
+		t.Fatalf("unexpected validation error: %+v", validationErrors[0])
+	}
+}

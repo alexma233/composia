@@ -346,6 +346,29 @@ func TestExecuteCaddyTasksUseServiceDirForGeneratedFileName(t *testing.T) {
 	}
 }
 
+func TestStageIncludeRejectsPathOutsideServiceRoot(t *testing.T) {
+	t.Parallel()
+
+	serviceRoot := t.TempDir()
+	stagingDir := t.TempDir()
+	if err := stageInclude(context.Background(), serviceRoot, stagingDir, "../secrets"); err == nil || !strings.Contains(err.Error(), "must stay within the service root") {
+		t.Fatalf("expected service root validation error, got %v", err)
+	}
+}
+
+func TestRestoreIncludeRejectsPathOutsideServiceRoot(t *testing.T) {
+	t.Parallel()
+
+	serviceRoot := t.TempDir()
+	stagingDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(stagingDir, "paths", sanitizeStagePath("../secrets")), 0o755); err != nil {
+		t.Fatalf("create staged restore source: %v", err)
+	}
+	if err := restoreInclude(context.Background(), serviceRoot, stagingDir, "../secrets"); err == nil || !strings.Contains(err.Error(), "must stay within the service root") {
+		t.Fatalf("expected service root validation error, got %v", err)
+	}
+}
+
 func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	rootDir := t.TempDir()
 	binDir := filepath.Join(rootDir, "bin")

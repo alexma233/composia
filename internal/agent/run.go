@@ -1223,19 +1223,23 @@ func applyRestoreItem(ctx context.Context, serviceRoot, stagingDir string, item 
 }
 
 func restoreInclude(ctx context.Context, serviceRoot, stagingDir, include string) error {
+	kind, normalized, err := repo.ClassifyDataInclude(include)
+	if err != nil {
+		return err
+	}
 	var sourcePath string
 	var targetPath string
-	if strings.HasPrefix(include, "/") || strings.HasPrefix(include, "./") || strings.HasPrefix(include, "../") {
+	if kind == repo.DataIncludeKindServicePath {
 		sourcePath = filepath.Join(stagingDir, "paths", sanitizeStagePath(include))
-		targetPath = include
-		if !filepath.IsAbs(include) {
-			targetPath = filepath.Join(serviceRoot, include)
+		targetPath, err = resolveIncludeServicePath(serviceRoot, normalized)
+		if err != nil {
+			return err
 		}
 	} else {
-		sourcePath = filepath.Join(stagingDir, "volumes", include)
-		mountpoint, err := dockerVolumeMountpoint(ctx, include)
+		sourcePath = filepath.Join(stagingDir, "volumes", normalized)
+		mountpoint, err := dockerVolumeMountpoint(ctx, normalized)
 		if err != nil {
-			return fmt.Errorf("resolve docker volume %q: %w", include, err)
+			return fmt.Errorf("resolve docker volume %q: %w", normalized, err)
 		}
 		targetPath = mountpoint
 	}
@@ -1309,18 +1313,35 @@ func stageTarBackupItem(ctx context.Context, serviceRoot, stagingDir string, ite
 }
 
 func stageInclude(ctx context.Context, serviceRoot, stagingDir, include string) error {
-	if strings.HasPrefix(include, "/") || strings.HasPrefix(include, "./") || strings.HasPrefix(include, "../") {
-		sourcePath := include
-		if !filepath.IsAbs(include) {
-			sourcePath = filepath.Join(serviceRoot, include)
+	kind, normalized, err := repo.ClassifyDataInclude(include)
+	if err != nil {
+		return err
+	}
+	if kind == repo.DataIncludeKindServicePath {
+		sourcePath, err := resolveIncludeServicePath(serviceRoot, normalized)
+		if err != nil {
+			return err
 		}
 		return copyIntoStage(sourcePath, filepath.Join(stagingDir, "paths", sanitizeStagePath(include)))
 	}
-	mountpoint, err := dockerVolumeMountpoint(ctx, include)
+	mountpoint, err := dockerVolumeMountpoint(ctx, normalized)
 	if err != nil {
-		return fmt.Errorf("resolve docker volume %q: %w", include, err)
+		return fmt.Errorf("resolve docker volume %q: %w", normalized, err)
 	}
-	return copyIntoStage(mountpoint, filepath.Join(stagingDir, "volumes", include))
+	return copyIntoStage(mountpoint, filepath.Join(stagingDir, "volumes", normalized))
+}
+
+func resolveIncludeServicePath(serviceRoot, includePath string) (string, error) {
+	serviceRoot = filepath.Clean(serviceRoot)
+	targetPath := filepath.Join(serviceRoot, includePath)
+	relPath, err := filepath.Rel(serviceRoot, targetPath)
+	if err != nil {
+		return "", fmt.Errorf("resolve include path %q: %w", includePath, err)
+	}
+	if relPath == ".." || strings.HasPrefix(relPath, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("include %q must stay within the service root", includePath)
+	}
+	return targetPath, nil
 }
 
 func copyIntoStage(sourcePath, targetPath string) error {
