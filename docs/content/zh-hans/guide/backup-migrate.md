@@ -48,11 +48,14 @@ services:
 说明：
 
 - Agent 会把 backup/restore staging 固定创建在 `agent.state_dir/data-protect` 下
+- `files.copy` 对服务内路径仍是本地复制；对 Docker volume 会改成“临时容器挂载 volume + tar stream + Agent staging”
+- Agent 不再直接读取 `/var/lib/docker/volumes/...`，也不要求能看到 volume 的 host mountpoint
 - `infra.rustic.data_protect_dir` 必须指向 rustic 容器内挂载的同一目录
 - `infra.rustic.init_args` 会在 Settings 触发 `init` 时原样追加到 `rustic init` 后面
 - Composia 会对 `init`、`backup`、`restore`、`forget`、`prune` 统一执行 `docker compose run --rm <compose_service> ...`
 - Controller 会把这个容器内路径下发给 Agent，Agent 调用 `rustic backup` / `rustic restore` 时会使用这个路径
 - `data-protect` 挂载必须可写，`rustic restore` 需要先把恢复内容写入 staging 目录
+- Docker volume restore 会先清空目标 volume，再把 staging 目录通过 tar stream 导回 volume
 - 如果没有配置 `infra.rustic.data_protect_dir`，当前实现会继续把 Agent 本地 staging 路径直接传给 rustic，要求容器内路径与 Agent 本地路径一致
 
 ```toml
@@ -119,7 +122,7 @@ backup:
 
 | 策略 | 说明 | 使用场景 |
 |------|------|----------|
-| `files.copy` | 直接复制文件 | 静态文件、上传目录 |
+| `files.copy` | 服务路径直接复制；Docker volume 通过临时容器 tar stream 中转 | 静态文件、上传目录、Docker volume |
 | `files.tar_after_stop` | 停止服务后打包 | 需要一致性的数据 |
 | `database.pgdumpall` | PostgreSQL 全量导出 | PostgreSQL 数据库 |
 

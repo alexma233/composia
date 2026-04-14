@@ -42,6 +42,8 @@ const (
 	heartbeatTimeout       = 10 * time.Second
 	pullNextTaskTimeout    = 30 * time.Second
 	taskRetryAfterPollFail = 1 * time.Second
+	dockerVolumeTarImage   = "alpine:3.20"
+	dockerVolumeImportCmd  = "rm -rf /target/..?* /target/.[!.]* /target/* && tar -C /target -xf -"
 )
 
 func Run(ctx context.Context, configPath string) error {
@@ -1334,23 +1336,15 @@ func restoreInclude(ctx context.Context, serviceRoot, stagingDir, include string
 	if err != nil {
 		return err
 	}
-	var sourcePath string
-	var targetPath string
 	if kind == repo.DataIncludeKindServicePath {
-		sourcePath = filepath.Join(stagingDir, "paths", sanitizeStagePath(include))
-		targetPath, err = resolveIncludeServicePath(serviceRoot, normalized)
+		sourcePath := filepath.Join(stagingDir, "paths", sanitizeStagePath(include))
+		targetPath, err := resolveIncludeServicePath(serviceRoot, normalized)
 		if err != nil {
 			return err
 		}
-	} else {
-		sourcePath = filepath.Join(stagingDir, "volumes", normalized)
-		mountpoint, err := dockerVolumeMountpoint(ctx, normalized)
-		if err != nil {
-			return fmt.Errorf("resolve docker volume %q: %w", normalized, err)
-		}
-		targetPath = mountpoint
+		return replacePath(sourcePath, targetPath)
 	}
-	return replacePath(sourcePath, targetPath)
+	return restoreDirToVolume(ctx, filepath.Join(stagingDir, "volumes", sanitizeStagePath(normalized)), normalized)
 }
 
 func replacePath(sourcePath, targetPath string) error {
@@ -1431,11 +1425,28 @@ func stageInclude(ctx context.Context, serviceRoot, stagingDir, include string) 
 		}
 		return copyIntoStage(sourcePath, filepath.Join(stagingDir, "paths", sanitizeStagePath(include)))
 	}
-	mountpoint, err := dockerVolumeMountpoint(ctx, normalized)
-	if err != nil {
-		return fmt.Errorf("resolve docker volume %q: %w", normalized, err)
+	return stageVolumeToDir(ctx, filepath.Join(stagingDir, "volumes", sanitizeStagePath(normalized)), normalized)
+}
+
+func stageVolumeToDir(ctx context.Context, targetDir, volumeName string) error {
+	if err := os.RemoveAll(targetDir); err != nil {
+		return fmt.Errorf("clear staged volume dir %q: %w", targetDir, err)
 	}
-	return copyIntoStage(mountpoint, filepath.Join(stagingDir, "volumes", normalized))
+	if err := os.MkdirAll(targetDir, 0o755); err != nil {
+		return fmt.Errorf("create staged volume dir %q: %w", targetDir, err)
+	}
+	return runDockerVolumeTarExport(ctx, volumeName, targetDir)
+}
+
+func restoreDirToVolume(ctx context.Context, sourceDir, volumeName string) error {
+	info, err := os.Stat(sourceDir)
+	if err != nil {
+		return fmt.Errorf("stat restore volume source %q: %w", sourceDir, err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("restore volume source %q must be a directory", sourceDir)
+	}
+	return runDockerVolumeTarImport(ctx, sourceDir, volumeName)
 }
 
 func resolveIncludeServicePath(serviceRoot, includePath string) (string, error) {
@@ -1510,9 +1521,23 @@ func createTarGzArchive(sourceDir, archivePath string) error {
 	}
 	defer archiveFile.Close()
 	gzipWriter := gzip.NewWriter(archiveFile)
-	defer gzipWriter.Close()
 	tarWriter := tar.NewWriter(gzipWriter)
-	defer tarWriter.Close()
+	if err := writeTarStream(sourceDir, tarWriter); err != nil {
+		_ = tarWriter.Close()
+		_ = gzipWriter.Close()
+		return err
+	}
+	if err := tarWriter.Close(); err != nil {
+		_ = gzipWriter.Close()
+		return fmt.Errorf("close tar archive %q: %w", archivePath, err)
+	}
+	if err := gzipWriter.Close(); err != nil {
+		return fmt.Errorf("close gzip archive %q: %w", archivePath, err)
+	}
+	return nil
+}
+
+func writeTarStream(sourceDir string, tarWriter *tar.Writer) error {
 	return filepath.Walk(sourceDir, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
@@ -1524,7 +1549,14 @@ func createTarGzArchive(sourceDir, archivePath string) error {
 		if relPath == "." {
 			return nil
 		}
-		header, err := tar.FileInfoHeader(info, "")
+		linkTarget := ""
+		if info.Mode()&os.ModeSymlink != 0 {
+			linkTarget, err = os.Readlink(path)
+			if err != nil {
+				return fmt.Errorf("read symlink %q: %w", path, err)
+			}
+		}
+		header, err := tar.FileInfoHeader(info, linkTarget)
 		if err != nil {
 			return err
 		}
@@ -1532,7 +1564,7 @@ func createTarGzArchive(sourceDir, archivePath string) error {
 		if err := tarWriter.WriteHeader(header); err != nil {
 			return err
 		}
-		if info.IsDir() {
+		if info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 			return nil
 		}
 		file, err := os.Open(path)
@@ -1545,12 +1577,84 @@ func createTarGzArchive(sourceDir, archivePath string) error {
 	})
 }
 
-func dockerVolumeMountpoint(ctx context.Context, volumeName string) (string, error) {
-	output, err := exec.CommandContext(ctx, "docker", "volume", "inspect", "-f", "{{ .Mountpoint }}", volumeName).CombinedOutput()
+func runDockerVolumeTarExport(ctx context.Context, volumeName, targetDir string) error {
+	command := exec.CommandContext(ctx, "docker", "run", "--rm", "-v", volumeName+":/source:ro", dockerVolumeTarImage, "tar", "-C", "/source", "-cf", "-", ".")
+	stdout, err := command.StdoutPipe()
 	if err != nil {
-		return "", fmt.Errorf("docker volume inspect failed: %w %s", err, strings.TrimSpace(string(output)))
+		return fmt.Errorf("prepare docker volume export stdout for %q: %w", volumeName, err)
 	}
-	return strings.TrimSpace(string(output)), nil
+	var stderr bytes.Buffer
+	command.Stderr = &stderr
+	if err := command.Start(); err != nil {
+		return fmt.Errorf("start docker volume export for %q: %w", volumeName, err)
+	}
+	extractErr := extractTarStream(stdout, targetDir)
+	if extractErr != nil {
+		_ = stdout.Close()
+	}
+	waitErr := command.Wait()
+	if extractErr != nil {
+		if waitErr != nil {
+			return fmt.Errorf("extract docker volume %q tar stream: %w (docker wait error: %v)", volumeName, extractErr, formatDockerRunError("docker run volume export failed", waitErr, stderr.String()))
+		}
+		return fmt.Errorf("extract docker volume %q tar stream: %w", volumeName, extractErr)
+	}
+	if waitErr != nil {
+		return formatDockerRunError("docker run volume export failed", waitErr, stderr.String())
+	}
+	return nil
+}
+
+func runDockerVolumeTarImport(ctx context.Context, sourceDir, volumeName string) error {
+	command := exec.CommandContext(ctx, "docker", "run", "-i", "--rm", "-v", volumeName+":/target", dockerVolumeTarImage, "sh", "-c", dockerVolumeImportCmd)
+	stdin, err := command.StdinPipe()
+	if err != nil {
+		return fmt.Errorf("prepare docker volume import stdin for %q: %w", volumeName, err)
+	}
+	var stderr bytes.Buffer
+	command.Stderr = &stderr
+	if err := command.Start(); err != nil {
+		return fmt.Errorf("start docker volume import for %q: %w", volumeName, err)
+	}
+	streamErr := writeTarToWriter(sourceDir, stdin)
+	closeErr := stdin.Close()
+	waitErr := command.Wait()
+	if streamErr != nil {
+		if waitErr != nil {
+			return fmt.Errorf("write restore tar stream for docker volume %q: %w (docker wait error: %v)", volumeName, streamErr, formatDockerRunError("docker run volume import failed", waitErr, stderr.String()))
+		}
+		return fmt.Errorf("write restore tar stream for docker volume %q: %w", volumeName, streamErr)
+	}
+	if closeErr != nil {
+		if waitErr != nil {
+			return fmt.Errorf("close docker volume import stdin for %q: %w (docker wait error: %v)", volumeName, closeErr, formatDockerRunError("docker run volume import failed", waitErr, stderr.String()))
+		}
+		return fmt.Errorf("close docker volume import stdin for %q: %w", volumeName, closeErr)
+	}
+	if waitErr != nil {
+		return formatDockerRunError("docker run volume import failed", waitErr, stderr.String())
+	}
+	return nil
+}
+
+func writeTarToWriter(sourceDir string, writer io.Writer) error {
+	tarWriter := tar.NewWriter(writer)
+	if err := writeTarStream(sourceDir, tarWriter); err != nil {
+		_ = tarWriter.Close()
+		return err
+	}
+	if err := tarWriter.Close(); err != nil {
+		return fmt.Errorf("close tar stream: %w", err)
+	}
+	return nil
+}
+
+func formatDockerRunError(prefix string, err error, stderr string) error {
+	trimmed := strings.TrimSpace(stderr)
+	if trimmed == "" {
+		return fmt.Errorf("%s: %w", prefix, err)
+	}
+	return fmt.Errorf("%s: %w: %s", prefix, err, trimmed)
 }
 
 func runComposePGDumpAll(ctx context.Context, serviceDir, projectName, serviceName, targetPath string, uploadLog func(string) error) error {
@@ -1789,51 +1893,103 @@ func extractTarGz(archivePath, destinationDir string) error {
 		return fmt.Errorf("open gzip archive %q: %w", archivePath, err)
 	}
 	defer gzipReader.Close()
+	if err := extractTarStream(gzipReader, destinationDir); err != nil {
+		return fmt.Errorf("extract tar archive %q: %w", archivePath, err)
+	}
+	return nil
+}
 
-	tarReader := tar.NewReader(gzipReader)
+func extractTarStream(reader io.Reader, destinationDir string) error {
+	if err := os.MkdirAll(destinationDir, 0o755); err != nil {
+		return fmt.Errorf("create tar destination %q: %w", destinationDir, err)
+	}
+	tarReader := tar.NewReader(reader)
 	for {
 		header, err := tarReader.Next()
 		if err != nil {
 			if err == io.EOF {
 				return nil
 			}
-			return fmt.Errorf("read tar archive %q: %w", archivePath, err)
+			return fmt.Errorf("read tar stream: %w", err)
 		}
 
-		targetPath := filepath.Join(destinationDir, header.Name)
-		cleanTargetPath := filepath.Clean(targetPath)
-		cleanDestinationDir := filepath.Clean(destinationDir) + string(os.PathSeparator)
-		if !strings.HasPrefix(cleanTargetPath, cleanDestinationDir) && cleanTargetPath != filepath.Clean(destinationDir) {
-			return fmt.Errorf("bundle entry %q escapes destination root", header.Name)
+		cleanTargetPath, err := tarEntryTargetPath(destinationDir, header.Name)
+		if err != nil {
+			return fmt.Errorf("tar entry %q escapes destination root: %w", header.Name, err)
 		}
 
 		switch header.Typeflag {
 		case tar.TypeDir:
 			if err := os.MkdirAll(cleanTargetPath, 0o755); err != nil {
-				return fmt.Errorf("create bundle directory %q: %w", cleanTargetPath, err)
+				return fmt.Errorf("create tar directory %q: %w", cleanTargetPath, err)
 			}
-		case tar.TypeReg:
+			if err := os.Chmod(cleanTargetPath, os.FileMode(header.Mode)); err != nil {
+				return fmt.Errorf("chmod tar directory %q: %w", cleanTargetPath, err)
+			}
+		case tar.TypeReg, tar.TypeRegA:
 			if err := os.MkdirAll(filepath.Dir(cleanTargetPath), 0o755); err != nil {
 				return fmt.Errorf("create parent directory for %q: %w", cleanTargetPath, err)
 			}
 			outFile, err := os.OpenFile(cleanTargetPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(header.Mode))
 			if err != nil {
-				return fmt.Errorf("create bundle file %q: %w", cleanTargetPath, err)
+				return fmt.Errorf("create tar file %q: %w", cleanTargetPath, err)
 			}
 			if _, err := io.Copy(outFile, tarReader); err != nil {
 				outFile.Close()
-				return fmt.Errorf("write bundle file %q: %w", cleanTargetPath, err)
+				return fmt.Errorf("write tar file %q: %w", cleanTargetPath, err)
 			}
 			if err := outFile.Close(); err != nil {
-				return fmt.Errorf("close bundle file %q: %w", cleanTargetPath, err)
+				return fmt.Errorf("close tar file %q: %w", cleanTargetPath, err)
+			}
+		case tar.TypeSymlink:
+			if err := os.MkdirAll(filepath.Dir(cleanTargetPath), 0o755); err != nil {
+				return fmt.Errorf("create parent directory for symlink %q: %w", cleanTargetPath, err)
+			}
+			if err := os.RemoveAll(cleanTargetPath); err != nil {
+				return fmt.Errorf("clear tar symlink target %q: %w", cleanTargetPath, err)
+			}
+			if err := os.Symlink(header.Linkname, cleanTargetPath); err != nil {
+				return fmt.Errorf("create tar symlink %q: %w", cleanTargetPath, err)
+			}
+		case tar.TypeLink:
+			linkTargetPath, err := tarEntryTargetPath(destinationDir, header.Linkname)
+			if err != nil {
+				return fmt.Errorf("tar hardlink %q escapes destination root: %w", header.Linkname, err)
+			}
+			if err := os.MkdirAll(filepath.Dir(cleanTargetPath), 0o755); err != nil {
+				return fmt.Errorf("create parent directory for hardlink %q: %w", cleanTargetPath, err)
+			}
+			if err := os.RemoveAll(cleanTargetPath); err != nil {
+				return fmt.Errorf("clear tar hardlink target %q: %w", cleanTargetPath, err)
+			}
+			if err := os.Link(linkTargetPath, cleanTargetPath); err != nil {
+				return fmt.Errorf("create tar hardlink %q: %w", cleanTargetPath, err)
 			}
 		case tar.TypeXHeader, tar.TypeXGlobalHeader, tar.TypeGNULongName, tar.TypeGNULongLink:
-			// These entries carry tar metadata only and should not block bundle extraction.
 			continue
 		default:
 			return fmt.Errorf("unsupported tar entry type %d for %q", header.Typeflag, header.Name)
 		}
 	}
+}
+
+func tarEntryTargetPath(destinationDir, entryName string) (string, error) {
+	cleanEntryName := filepath.Clean(filepath.FromSlash(entryName))
+	if filepath.IsAbs(cleanEntryName) {
+		return "", fmt.Errorf("absolute paths are not allowed")
+	}
+	if cleanEntryName == "." {
+		return filepath.Clean(destinationDir), nil
+	}
+	if cleanEntryName == ".." || strings.HasPrefix(cleanEntryName, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("parent traversal is not allowed")
+	}
+	cleanDestinationDir := filepath.Clean(destinationDir)
+	cleanTargetPath := filepath.Join(cleanDestinationDir, cleanEntryName)
+	if !strings.HasPrefix(cleanTargetPath, cleanDestinationDir+string(os.PathSeparator)) && cleanTargetPath != cleanDestinationDir {
+		return "", fmt.Errorf("target path escapes destination root")
+	}
+	return cleanTargetPath, nil
 }
 
 func loadComposeProjectName(serviceDir, fallback string) (string, error) {

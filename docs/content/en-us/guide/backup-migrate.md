@@ -48,11 +48,14 @@ services:
 Notes:
 
 - The agent creates backup and restore staging directories under `agent.state_dir/data-protect`
+- `files.copy` still copies service-local paths directly, but Docker volumes now go through a temporary container, a tar stream, and agent staging
+- The agent no longer reads `/var/lib/docker/volumes/...` and does not need access to Docker volume host mountpoints
 - `infra.rustic.data_protect_dir` must point to the same directory inside the rustic container
 - `infra.rustic.init_args` is appended verbatim after `rustic init` when Settings triggers initialization
 - Composia runs `init`, `backup`, `restore`, `forget`, and `prune` with `docker compose run --rm <compose_service> ...`
 - The controller includes that container path in the runtime payload, and the agent uses it for `rustic backup` and `rustic restore`
 - The `data-protect` mount must be writable because `rustic restore` writes restored contents into the staging directory first
+- Docker volume restore clears the target volume before it imports the staged directory through a tar stream
 - If `infra.rustic.data_protect_dir` is not configured, the current implementation keeps passing the agent-local staging path directly to rustic, which requires the same path to exist inside the rustic container
 
 ```toml
@@ -119,7 +122,7 @@ backup:
 
 | Strategy | Description | Use Case |
 |----------|-------------|----------|
-| `files.copy` | Direct file copy | Static files, upload directories |
+| `files.copy` | Direct copy for service paths; Docker volumes go through a temporary-container tar stream | Static files, upload directories, Docker volumes |
 | `files.tar_after_stop` | Archive after stopping service | Data requiring consistency |
 | `database.pgdumpall` | PostgreSQL full export | PostgreSQL databases |
 
