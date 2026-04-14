@@ -464,6 +464,9 @@ func TestNodeMaintenanceServicePruneNodeRusticCreatesRusticPruneTask(t *testing.
 	if detail.Record.ServiceName != "backup" || detail.Record.NodeID != "main" {
 		t.Fatalf("unexpected created task record: %+v", detail.Record)
 	}
+	if detail.Record.RepoRevision == "" {
+		t.Fatalf("expected repo revision on rustic prune task, got %+v", detail.Record)
+	}
 	if !strings.Contains(detail.Record.ParamsJSON, `"service_dir":"backup"`) || !strings.Contains(detail.Record.ParamsJSON, `"service_name":"demo"`) || !strings.Contains(detail.Record.ParamsJSON, `"data_name":"db"`) {
 		t.Fatalf("unexpected rustic prune params %q", detail.Record.ParamsJSON)
 	}
@@ -525,6 +528,9 @@ func TestNodeMaintenanceServiceInitNodeRusticCreatesRusticInitTask(t *testing.T)
 	if detail.Record.ServiceName != "backup" || detail.Record.NodeID != "main" {
 		t.Fatalf("unexpected created task record: %+v", detail.Record)
 	}
+	if detail.Record.RepoRevision == "" {
+		t.Fatalf("expected repo revision on rustic init task, got %+v", detail.Record)
+	}
 	if !strings.Contains(detail.Record.ParamsJSON, `"service_dir":"backup"`) {
 		t.Fatalf("unexpected rustic init params %q", detail.Record.ParamsJSON)
 	}
@@ -585,6 +591,9 @@ func TestNodeMaintenanceServiceForgetNodeRusticCreatesRusticForgetTask(t *testin
 	}
 	if detail.Record.ServiceName != "backup" || detail.Record.NodeID != "main" {
 		t.Fatalf("unexpected created task record: %+v", detail.Record)
+	}
+	if detail.Record.RepoRevision == "" {
+		t.Fatalf("expected repo revision on rustic forget task, got %+v", detail.Record)
 	}
 	if !strings.Contains(detail.Record.ParamsJSON, `"service_dir":"backup"`) || !strings.Contains(detail.Record.ParamsJSON, `"service_name":"demo"`) || !strings.Contains(detail.Record.ParamsJSON, `"data_name":"db"`) {
 		t.Fatalf("unexpected rustic forget params %q", detail.Record.ParamsJSON)

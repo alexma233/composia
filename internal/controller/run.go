@@ -1111,19 +1111,24 @@ func createNodeRusticMaintenanceTask(ctx context.Context, db *store.DB, cfg *con
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode rustic maintenance task params: %w", err))
 	}
+	repoRevision, err := repo.CurrentRevision(cfg.RepoDir)
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
 	triggeredBy, _ := rpcutil.BearerSubject(ctx)
 	taskID := uuid.NewString()
 	createdTask, err := db.CreateTask(ctx, task.Record{
-		TaskID:      taskID,
-		Type:        taskType,
-		Source:      source,
-		TriggeredBy: triggeredBy,
-		ServiceName: rusticService.Name,
-		NodeID:      nodeID,
-		Status:      task.StatusPending,
-		ParamsJSON:  string(paramsJSON),
-		CreatedAt:   derefTime(createdAt),
-		LogPath:     filepath.Join(cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+		TaskID:       taskID,
+		Type:         taskType,
+		Source:       source,
+		TriggeredBy:  triggeredBy,
+		ServiceName:  rusticService.Name,
+		NodeID:       nodeID,
+		Status:       task.StatusPending,
+		ParamsJSON:   string(paramsJSON),
+		RepoRevision: repoRevision,
+		CreatedAt:    derefTime(createdAt),
+		LogPath:      filepath.Join(cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
 	})
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, err)
