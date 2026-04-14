@@ -22,7 +22,7 @@
   </p>
 
   <p>
-    <a href="https://docs.composia.io">
+    <a href="https://docs.composia.xyz">
       <strong>📚 Documentation</strong>
     </a>
   </p>
@@ -34,7 +34,7 @@ It is built for operators who want multi-node coordination, task execution, and 
 
 Composia keeps desired state in plain files, stays close to standard Docker Compose workflows, and treats the control plane as an enhancement layer rather than the only way to operate services.
 
-If you want the rationale and how Composia differs from Compose managers and self-hosted PaaS platforms, see [Why Composia?](https://docs.composia.io/guide/why-composia).
+If you want the rationale and how Composia differs from Compose managers and self-hosted PaaS platforms, see [Why Composia?](https://docs.composia.xyz/guide/why-composia).
 
 ## Stack
 
@@ -48,16 +48,16 @@ If you want the rationale and how Composia differs from Compose managers and sel
 
 See the documentation site for installation, configuration, deployment, and operations:
 
-- [Quick Start](https://docs.composia.io/guide/quick-start)
-- [Configuration Guide](https://docs.composia.io/guide/configuration)
-- [Development Guide](https://docs.composia.io/guide/development)
-- [Why Composia?](https://docs.composia.io/guide/why-composia)
+- [Quick Start](https://docs.composia.xyz/guide/quick-start)
+- [Configuration Guide](https://docs.composia.xyz/guide/configuration)
+- [Development Guide](https://docs.composia.xyz/guide/development)
+- [Why Composia?](https://docs.composia.xyz/guide/why-composia)
 
 ## Development
 
 This repository includes `mise.toml` for local tool versions.
 
-For full setup and workflow details, see the [Development Guide](https://docs.composia.io/guide/development).
+For full setup and workflow details, see the [Development Guide](https://docs.composia.xyz/guide/development).
 
 Common local commands:
 
