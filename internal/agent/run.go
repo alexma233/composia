@@ -50,14 +50,8 @@ func Run(ctx context.Context, configPath string) error {
 		return err
 	}
 
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
-		return fmt.Errorf("create agent state_dir %q: %w", cfg.StateDir, err)
-	}
-	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
-		return fmt.Errorf("create agent repo_dir %q: %w", cfg.RepoDir, err)
-	}
-	if err := os.MkdirAll(cfg.CaddyGeneratedDir(), 0o755); err != nil {
-		return fmt.Errorf("create agent caddy.generated_dir %q: %w", cfg.CaddyGeneratedDir(), err)
+	if err := ensureAgentDirs(cfg); err != nil {
+		return err
 	}
 
 	httpClient := controllerHTTPClient(cfg.ControllerAddr)
@@ -110,6 +104,22 @@ func Run(ctx context.Context, configPath string) error {
 			return nil
 		}
 	}
+}
+
+func ensureAgentDirs(cfg *config.AgentConfig) error {
+	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+		return fmt.Errorf("create agent state_dir %q: %w", cfg.StateDir, err)
+	}
+	if err := os.MkdirAll(dataProtectStageRoot(cfg.StateDir), 0o755); err != nil {
+		return fmt.Errorf("create agent data-protect dir %q: %w", dataProtectStageRoot(cfg.StateDir), err)
+	}
+	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+		return fmt.Errorf("create agent repo_dir %q: %w", cfg.RepoDir, err)
+	}
+	if err := os.MkdirAll(cfg.CaddyGeneratedDir(), 0o755); err != nil {
+		return fmt.Errorf("create agent caddy.generated_dir %q: %w", cfg.CaddyGeneratedDir(), err)
+	}
+	return nil
 }
 
 func sendHeartbeat(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig) error {
