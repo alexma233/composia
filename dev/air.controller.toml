@@ -8,6 +8,11 @@ include_ext = ["go", "yaml", "yml"]
 exclude_dir = [
   ".git",
   "docs",
+  "dev/.bun-cache-user",
+  "dev/.go-build-cache",
+  "dev/.go-mod-cache",
+  "dev/.node_modules-user",
+  "dev/.web-node_modules-user",
   "dev/bun-cache",
   "dev/bun-cache-user",
   "dev/go-build-cache",
