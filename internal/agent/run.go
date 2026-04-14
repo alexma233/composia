@@ -224,10 +224,12 @@ func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return executeRestartTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypePrune):
 		return executePruneTask(ctx, client, cfg, pulledTask, logUploader)
+	case string(task.TypeRusticInit):
+		return executeRusticInitTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypeRusticForget):
-		return executeRusticForgetTask(ctx, client, cfg, pulledTask, logUploader)
+		return executeRusticForgetTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypeRusticPrune):
-		return executeRusticPruneTask(ctx, client, cfg, pulledTask, logUploader)
+		return executeRusticPruneTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypeCaddySync):
 		return executeCaddySyncTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypeCaddyReload):
@@ -342,18 +344,28 @@ func executeBackupTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	var bundle *bundleResult
+	var rusticBundle *bundleResult
+	var runtimeConfig *backupcfg.RuntimeConfig
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
 		var err error
 		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
 		if err != nil {
 			return err
 		}
+		runtimeConfig, err = loadBackupRuntimeConfig(bundle.RootPath)
+		if err != nil {
+			return err
+		}
+		if runtimeConfig.Rustic.ServiceDir == bundle.RelativeRoot {
+			rusticBundle = bundle
+		} else {
+			rusticBundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), runtimeConfig.Rustic.ServiceDir)
+			if err != nil {
+				return err
+			}
+		}
 		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
 	}); err != nil {
-		return failTask(ctx, client, pulledTask.GetTaskId(), err)
-	}
-	runtimeConfig, err := loadBackupRuntimeConfig(bundle.RootPath)
-	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting remote backup task for service=%s data_names=%s\n", pulledTask.GetServiceName(), strings.Join(pulledTask.GetDataNames(), ","))); err != nil {
@@ -362,7 +374,7 @@ func executeBackupTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepBackup, func() error {
 		for _, item := range runtimeConfig.Items {
 			startedAt := time.Now().UTC()
-			artifactRef, startedAt, finishedAt, err := backupRuntimeItem(ctx, cfg, bundle.RootPath, pulledTask.GetTaskId(), item, runtimeConfig.Rustic, logUploader)
+			artifactRef, startedAt, finishedAt, err := backupRuntimeItem(ctx, cfg, bundle.RootPath, rusticBundle.RootPath, pulledTask.GetTaskId(), item, runtimeConfig.Rustic, logUploader)
 			if err != nil {
 				_ = reportBackupResult(ctx, client, pulledTask.GetTaskId(), pulledTask.GetServiceName(), item.Name, "", task.StatusFailed, startedAt, time.Now().UTC(), err.Error())
 				return err
@@ -386,11 +398,25 @@ func executeBackupTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 
 func executeRestoreTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
 	var bundle *bundleResult
+	var rusticBundle *bundleResult
+	var runtimeConfig *backupcfg.RestoreConfig
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
 		var err error
 		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
 		if err != nil {
 			return err
+		}
+		runtimeConfig, err = loadRestoreRuntimeConfig(bundle.RootPath)
+		if err != nil {
+			return err
+		}
+		if runtimeConfig.Rustic.ServiceDir == bundle.RelativeRoot {
+			rusticBundle = bundle
+		} else {
+			rusticBundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), runtimeConfig.Rustic.ServiceDir)
+			if err != nil {
+				return err
+			}
 		}
 		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
 	}); err != nil {
@@ -400,16 +426,12 @@ func executeRestoreTask(ctx context.Context, bundleClient agentv1connect.BundleS
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
-	runtimeConfig, err := loadRestoreRuntimeConfig(serviceRoot)
-	if err != nil {
-		return failTask(ctx, client, pulledTask.GetTaskId(), err)
-	}
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting remote restore task for service=%s node=%s\n", pulledTask.GetServiceName(), pulledTask.GetNodeId())); err != nil {
 		return err
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRestore, func() error {
 		for _, item := range runtimeConfig.Items {
-			if err := restoreRuntimeItem(ctx, cfg, serviceRoot, pulledTask.GetTaskId(), item, runtimeConfig.Rustic, logUploader); err != nil {
+			if err := restoreRuntimeItem(ctx, cfg, serviceRoot, rusticBundle.RootPath, pulledTask.GetTaskId(), item, runtimeConfig.Rustic, logUploader); err != nil {
 				return err
 			}
 			if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("restore completed for %s\n", item.Name)); err != nil {
@@ -522,7 +544,8 @@ type pruneTaskParams struct {
 	Target string `json:"target"`
 }
 
-type rusticPruneTaskParams struct {
+type rusticMaintenanceTaskParams struct {
+	ServiceDir  string `json:"service_dir,omitempty"`
 	ServiceName string `json:"service_name,omitempty"`
 	DataName    string `json:"data_name,omitempty"`
 	RepoWide    bool   `json:"repo_wide,omitempty"`
@@ -554,12 +577,23 @@ func executePruneTask(ctx context.Context, client agentv1connect.AgentReportServ
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
 }
 
-func executeRusticPruneTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
-	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, nil)
+func executeRusticPruneTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
+	var bundle *bundleResult
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
+		var err error
+		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
+		if err != nil {
+			return err
+		}
+		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
+	}); err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, bundle)
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
-	rusticMeta, err := loadRusticPruneMeta(serviceRoot)
+	rusticMeta, err := loadRusticTaskMeta(serviceRoot)
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
@@ -579,13 +613,60 @@ func executeRusticPruneTask(ctx context.Context, client agentv1connect.AgentRepo
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
 }
 
-func executeRusticForgetTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
-	params := parseRusticPruneParams(pulledTask)
-	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, nil)
+func executeRusticInitTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
+	var bundle *bundleResult
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
+		var err error
+		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
+		if err != nil {
+			return err
+		}
+		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
+	}); err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, bundle)
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
-	rusticMeta, err := loadRusticPruneMeta(serviceRoot)
+	rusticMeta, err := loadRusticTaskMeta(serviceRoot)
+	if err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting rustic init task for service=%s compose_service=%s\n", pulledTask.GetServiceName(), rusticMeta.ComposeService)); err != nil {
+		return err
+	}
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepInit, func() error {
+		return runRusticInit(ctx, serviceRoot, rusticMeta, func(output string) error {
+			return uploadTaskLog(ctx, logUploader, output)
+		})
+	}); err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	if err := uploadTaskLog(ctx, logUploader, "rustic init task finished successfully\n"); err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
+}
+
+func executeRusticForgetTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
+	params := parseRusticMaintenanceParams(pulledTask)
+	var bundle *bundleResult
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
+		var err error
+		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
+		if err != nil {
+			return err
+		}
+		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
+	}); err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, bundle)
+	if err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	rusticMeta, err := loadRusticTaskMeta(serviceRoot)
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
@@ -664,9 +745,10 @@ type caddyServiceMeta struct {
 	Source string
 }
 
-type rusticPruneMeta struct {
+type rusticTaskMeta struct {
 	ComposeService string
 	Profile        string
+	InitArgs       []string
 }
 
 func loadCaddyInfraMeta(serviceDir string) (caddyInfraMeta, error) {
@@ -688,12 +770,12 @@ func loadServiceCaddyMeta(serviceDir string) (caddyServiceMeta, error) {
 	return caddyServiceMeta{Source: repo.CaddySource(repo.Service{Meta: meta})}, nil
 }
 
-func loadRusticPruneMeta(serviceDir string) (rusticPruneMeta, error) {
+func loadRusticTaskMeta(serviceDir string) (rusticTaskMeta, error) {
 	meta, err := repo.LoadServiceMeta(filepath.Join(serviceDir, "composia-meta.yaml"))
 	if err != nil {
-		return rusticPruneMeta{}, err
+		return rusticTaskMeta{}, err
 	}
-	return rusticPruneMeta{ComposeService: meta.RusticComposeService(), Profile: meta.RusticProfile()}, nil
+	return rusticTaskMeta{ComposeService: meta.RusticComposeService(), Profile: meta.RusticProfile(), InitArgs: meta.RusticInitArgs()}, nil
 }
 
 func parsePruneParams(pulledTask *agentv1.AgentTask) pruneTaskParams {
@@ -711,14 +793,14 @@ func parsePruneParams(pulledTask *agentv1.AgentTask) pruneTaskParams {
 	return params
 }
 
-func parseRusticPruneParams(pulledTask *agentv1.AgentTask) rusticPruneTaskParams {
+func parseRusticMaintenanceParams(pulledTask *agentv1.AgentTask) rusticMaintenanceTaskParams {
 	paramsJSON := pulledTask.GetParamsJson()
 	if paramsJSON == "" {
-		return rusticPruneTaskParams{}
+		return rusticMaintenanceTaskParams{}
 	}
-	var params rusticPruneTaskParams
+	var params rusticMaintenanceTaskParams
 	if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
-		return rusticPruneTaskParams{}
+		return rusticMaintenanceTaskParams{}
 	}
 	return params
 }
@@ -775,12 +857,33 @@ func runDockerPruneAll(ctx context.Context, uploadLog func(string) error) error 
 	return nil
 }
 
-func runRusticForget(ctx context.Context, serviceDir string, meta rusticPruneMeta, params rusticPruneTaskParams, nodeID string, uploadLog func(string) error) error {
-	args := []string{"compose", "exec", "-T", meta.ComposeService, "rustic"}
-	if meta.Profile != "" {
-		args = append(args, "-P", meta.Profile)
+func buildRusticComposeRunArgs(composeService, profile string, commandArgs ...string) []string {
+	args := []string{"compose", "run", "--rm", composeService}
+	if profile != "" {
+		args = append(args, "-P", profile)
 	}
-	args = append(args, "forget")
+	args = append(args, commandArgs...)
+	return args
+}
+
+func runRusticInit(ctx context.Context, serviceDir string, meta rusticTaskMeta, uploadLog func(string) error) error {
+	args := buildRusticComposeRunArgs(meta.ComposeService, meta.Profile, append([]string{"init"}, meta.InitArgs...)...)
+	command := exec.CommandContext(ctx, "docker", args...)
+	command.Dir = serviceDir
+	output, err := command.CombinedOutput()
+	if len(output) > 0 {
+		if logErr := uploadLog(string(output)); logErr != nil {
+			return logErr
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("docker compose run rustic init failed: %w", err)
+	}
+	return nil
+}
+
+func runRusticForget(ctx context.Context, serviceDir string, meta rusticTaskMeta, params rusticMaintenanceTaskParams, nodeID string, uploadLog func(string) error) error {
+	args := buildRusticComposeRunArgs(meta.ComposeService, meta.Profile, "forget")
 	if !params.RepoWide && nodeID != "" {
 		args = append(args, "--filter-host", nodeID)
 	}
@@ -799,17 +902,13 @@ func runRusticForget(ctx context.Context, serviceDir string, meta rusticPruneMet
 		}
 	}
 	if err != nil {
-		return fmt.Errorf("docker compose exec rustic forget failed: %w", err)
+		return fmt.Errorf("docker compose run rustic forget failed: %w", err)
 	}
 	return nil
 }
 
-func runRusticPrune(ctx context.Context, serviceDir string, meta rusticPruneMeta, uploadLog func(string) error) error {
-	args := []string{"compose", "exec", "-T", meta.ComposeService, "rustic"}
-	if meta.Profile != "" {
-		args = append(args, "-P", meta.Profile)
-	}
-	args = append(args, "prune")
+func runRusticPrune(ctx context.Context, serviceDir string, meta rusticTaskMeta, uploadLog func(string) error) error {
+	args := buildRusticComposeRunArgs(meta.ComposeService, meta.Profile, "prune")
 	command := exec.CommandContext(ctx, "docker", args...)
 	command.Dir = serviceDir
 	output, err := command.CombinedOutput()
@@ -819,7 +918,7 @@ func runRusticPrune(ctx context.Context, serviceDir string, meta rusticPruneMeta
 		}
 	}
 	if err != nil {
-		return fmt.Errorf("docker compose exec rustic prune failed: %w", err)
+		return fmt.Errorf("docker compose run rustic prune failed: %w", err)
 	}
 	return nil
 }
@@ -1150,7 +1249,7 @@ func loadRestoreRuntimeConfig(serviceRoot string) (*backupcfg.RestoreConfig, err
 	return &cfg, nil
 }
 
-func backupRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot, taskID string, item backupcfg.RuntimeItem, rustic *backupcfg.RusticConfig, logUploader *taskLogUploader) (string, time.Time, time.Time, error) {
+func backupRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot, rusticRoot, taskID string, item backupcfg.RuntimeItem, rustic *backupcfg.RusticConfig, logUploader *taskLogUploader) (string, time.Time, time.Time, error) {
 	startedAt := time.Now().UTC()
 	stagingDir, err := dataProtectStageDir(cfg.StateDir, fmt.Sprintf("backup-%s-%s-", taskID, item.Name))
 	if err != nil {
@@ -1160,7 +1259,6 @@ func backupRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot
 	if err := stageBackupItem(ctx, serviceRoot, stagingDir, item, logUploader); err != nil {
 		return "", time.Time{}, time.Time{}, err
 	}
-	rusticRoot := filepath.Join(cfg.RepoDir, rustic.ServiceDir)
 	rusticSourceDir, err := rusticDataProtectPath(stagingDir, cfg, rustic)
 	if err != nil {
 		return "", time.Time{}, time.Time{}, err
@@ -1172,13 +1270,12 @@ func backupRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot
 	return artifactRef, startedAt, time.Now().UTC(), nil
 }
 
-func restoreRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot, taskID string, item backupcfg.RestoreItem, rustic *backupcfg.RusticConfig, logUploader *taskLogUploader) error {
+func restoreRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot, rusticRoot, taskID string, item backupcfg.RestoreItem, rustic *backupcfg.RusticConfig, logUploader *taskLogUploader) error {
 	stagingDir, err := dataProtectStageDir(cfg.StateDir, fmt.Sprintf("restore-%s-%s-", taskID, item.Name))
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(stagingDir)
-	rusticRoot := filepath.Join(cfg.RepoDir, rustic.ServiceDir)
 	rusticTargetDir, err := rusticDataProtectPath(stagingDir, cfg, rustic)
 	if err != nil {
 		return err
@@ -1502,11 +1599,7 @@ func runComposePGImport(ctx context.Context, serviceDir, projectName, serviceNam
 var rusticSnapshotRegexp = regexp.MustCompile(`snapshot\s+([0-9a-fA-F]+)\s+saved`)
 
 func runRusticBackup(ctx context.Context, rusticDir string, rustic *backupcfg.RusticConfig, sourceDir string, item backupcfg.RuntimeItem, logUploader *taskLogUploader) (string, error) {
-	args := []string{"compose", "exec", "-T", rustic.ComposeService, "rustic"}
-	if rustic.Profile != "" {
-		args = append(args, "-P", rustic.Profile)
-	}
-	args = append(args, "backup", "--host", rustic.NodeID)
+	args := buildRusticComposeRunArgs(rustic.ComposeService, rustic.Profile, "backup", "--host", rustic.NodeID)
 	for _, tag := range buildRusticTags(item.Tags) {
 		args = append(args, "--tag", tag)
 	}
@@ -1520,7 +1613,7 @@ func runRusticBackup(ctx context.Context, rusticDir string, rustic *backupcfg.Ru
 		}
 	}
 	if err != nil {
-		return "", fmt.Errorf("docker compose exec rustic backup failed: %w", err)
+		return "", fmt.Errorf("docker compose run rustic backup failed: %w", err)
 	}
 	matches := rusticSnapshotRegexp.FindStringSubmatch(string(output))
 	if len(matches) != 2 {
@@ -1530,11 +1623,7 @@ func runRusticBackup(ctx context.Context, rusticDir string, rustic *backupcfg.Ru
 }
 
 func runRusticRestore(ctx context.Context, rusticDir string, rustic *backupcfg.RusticConfig, artifactRef, targetDir string, logUploader *taskLogUploader) error {
-	args := []string{"compose", "exec", "-T", rustic.ComposeService, "rustic"}
-	if rustic.Profile != "" {
-		args = append(args, "-P", rustic.Profile)
-	}
-	args = append(args, "restore", artifactRef, targetDir)
+	args := buildRusticComposeRunArgs(rustic.ComposeService, rustic.Profile, "restore", artifactRef, targetDir)
 	command := exec.CommandContext(ctx, "docker", args...)
 	command.Dir = rusticDir
 	output, err := command.CombinedOutput()
@@ -1544,7 +1633,7 @@ func runRusticRestore(ctx context.Context, rusticDir string, rustic *backupcfg.R
 		}
 	}
 	if err != nil {
-		return fmt.Errorf("docker compose exec rustic restore failed: %w", err)
+		return fmt.Errorf("docker compose run rustic restore failed: %w", err)
 	}
 	return nil
 }

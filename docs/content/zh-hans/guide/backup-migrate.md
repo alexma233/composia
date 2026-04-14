@@ -27,6 +27,11 @@ infra:
     compose_service: rustic
     profile: default
     data_protect_dir: /data-protect
+    init_args:
+      - --set-chunker
+      - rabin
+      - --set-chunk-size
+      - 1MiB
 ```
 
 ```yaml
@@ -35,17 +40,19 @@ services:
   rustic:
     image: rustic:latest
     volumes:
-      - ./config:/config
+      - ./config:/etc/rustic
       - ./repo:/repo
-      - /opt/composia/data/agent-state/data-protect:/data-protect:ro
-    command: rustic -c /config/rustic.toml
+      - /opt/composia/data/agent-state/data-protect:/data-protect
 ```
 
 说明：
 
 - Agent 会把 backup/restore staging 固定创建在 `agent.state_dir/data-protect` 下
 - `infra.rustic.data_protect_dir` 必须指向 rustic 容器内挂载的同一目录
+- `infra.rustic.init_args` 会在 Settings 触发 `init` 时原样追加到 `rustic init` 后面
+- Composia 会对 `init`、`backup`、`restore`、`forget`、`prune` 统一执行 `docker compose run --rm <compose_service> ...`
 - Controller 会把这个容器内路径下发给 Agent，Agent 调用 `rustic backup` / `rustic restore` 时会使用这个路径
+- `data-protect` 挂载必须可写，`rustic restore` 需要先把恢复内容写入 staging 目录
 - 如果没有配置 `infra.rustic.data_protect_dir`，当前实现会继续把 Agent 本地 staging 路径直接传给 rustic，要求容器内路径与 Agent 本地路径一致
 
 ```toml

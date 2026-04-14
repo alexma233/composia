@@ -26,6 +26,8 @@ service NodeMaintenanceService {
   rpc ReloadNodeCaddy(ReloadNodeCaddyRequest) returns (ReloadNodeCaddyResponse);
   // PruneNodeDocker starts a task to prune Docker resources on one node.
   rpc PruneNodeDocker(PruneNodeDockerRequest) returns (PruneNodeDockerResponse);
+  // InitNodeRustic starts a task to initialize the Rustic repository on one node.
+  rpc InitNodeRustic(InitNodeRusticRequest) returns (InitNodeRusticResponse);
   // ForgetNodeRustic starts a task to forget Rustic snapshots for one node.
   rpc ForgetNodeRustic(ForgetNodeRusticRequest) returns (ForgetNodeRusticResponse);
   // PruneNodeRustic starts a task to prune Rustic data on one node.
@@ -174,6 +176,17 @@ message PruneNodeDockerRequest {
 
 // PruneNodeDockerResponse returns the created maintenance task ID.
 message PruneNodeDockerResponse {
+  string task_id = 1;
+}
+
+// InitNodeRusticRequest initializes the Rustic repository on one node.
+message InitNodeRusticRequest {
+  // node_id is the stable node identifier.
+  string node_id = 1;
+}
+
+// InitNodeRusticResponse returns the created maintenance task ID.
+message InitNodeRusticResponse {
   string task_id = 1;
 }
 

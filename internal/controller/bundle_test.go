@@ -388,6 +388,86 @@ func TestBundleServiceInjectsBackupRuntimeConfig(t *testing.T) {
 	}
 }
 
+func TestBundleServiceServiceOverrideSkipsBackupRuntimePayload(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithService(t, repoDir, "demo", "main")
+	createGitRepoWithService(t, repoDir, "backup", "main")
+	secretsCfg := writeAgeTestConfig(t, rootDir)
+	ciphertext, err := secretutil.Encrypt("RUSTIC_PASSWORD=secret\n", secretsCfg)
+	if err != nil {
+		t.Fatalf("encrypt rustic secret: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "backup", ".secret.env.enc"), ciphertext, 0o644); err != nil {
+		t.Fatalf("write encrypted rustic secret: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "demo", "composia-meta.yaml"), []byte("name: demo\nnode: main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\nbackup:\n  data:\n    - name: config\n      provider: rustic\n"), 0o644); err != nil {
+		t.Fatalf("write demo meta: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
+		t.Fatalf("write backup meta: %v", err)
+	}
+	runGit(t, repoDir, "add", ".")
+	runGit(t, repoDir, "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "add rustic secret")
+	revision, err := repo.CurrentRevision(repoDir)
+	if err != nil {
+		t.Fatalf("read current revision: %v", err)
+	}
+
+	db := openControllerTestDB(t)
+	defer db.Close()
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := syncDeclaredServicesForTests(ctx, db, "demo", "backup"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: "demo", DataNames: []string{"config"}})
+	if err != nil {
+		t.Fatalf("marshal backup task params: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-backup-override", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", RepoRevision: revision, ParamsJSON: string(paramsJSON), CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("create backup task: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", assertError("unexpected token")
+		}
+		return "main", nil
+	})
+	mux := http.NewServeMux()
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(&bundleServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Secrets: secretsCfg}}, connect.WithInterceptors(interceptor))
+	mux.Handle(bundlePath, bundleHandler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := agentv1connect.NewBundleServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	stream, err := client.GetServiceBundle(ctx, connect.NewRequest(&agentv1.GetServiceBundleRequest{TaskId: "task-backup-override", ServiceDir: "backup"}))
+	if err != nil {
+		t.Fatalf("get overridden backup bundle: %v", err)
+	}
+	defer stream.Close()
+
+	archive := bytes.Buffer{}
+	for stream.Receive() {
+		archive.Write(stream.Msg().GetData())
+	}
+	if err := stream.Err(); err != nil {
+		t.Fatalf("receive overridden backup bundle: %v", err)
+	}
+	entries := untarGzContents(t, archive.Bytes())
+	if entries["backup/.secret.env"] != "RUSTIC_PASSWORD=secret\n" {
+		t.Fatalf("expected decrypted rustic secret in bundle, got %q", entries["backup/.secret.env"])
+	}
+	if _, ok := entries["backup/.composia-backup.json"]; ok {
+		t.Fatalf("did not expect backup runtime payload in override bundle: %+v", entries)
+	}
+}
+
 func TestBundleServiceInjectsBackupRuntimeConfigFromTaskRevision(t *testing.T) {
 	t.Parallel()
 

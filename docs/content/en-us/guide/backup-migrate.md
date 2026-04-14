@@ -27,6 +27,11 @@ infra:
     compose_service: rustic
     profile: default
     data_protect_dir: /data-protect
+    init_args:
+      - --set-chunker
+      - rabin
+      - --set-chunk-size
+      - 1MiB
 ```
 
 ```yaml
@@ -35,17 +40,19 @@ services:
   rustic:
     image: rustic:latest
     volumes:
-      - ./config:/config
+      - ./config:/etc/rustic
       - ./repo:/repo
-      - /opt/composia/data/agent-state/data-protect:/data-protect:ro
-    command: rustic -c /config/rustic.toml
+      - /opt/composia/data/agent-state/data-protect:/data-protect
 ```
 
 Notes:
 
 - The agent creates backup and restore staging directories under `agent.state_dir/data-protect`
 - `infra.rustic.data_protect_dir` must point to the same directory inside the rustic container
+- `infra.rustic.init_args` is appended verbatim after `rustic init` when Settings triggers initialization
+- Composia runs `init`, `backup`, `restore`, `forget`, and `prune` with `docker compose run --rm <compose_service> ...`
 - The controller includes that container path in the runtime payload, and the agent uses it for `rustic backup` and `rustic restore`
+- The `data-protect` mount must be writable because `rustic restore` writes restored contents into the staging directory first
 - If `infra.rustic.data_protect_dir` is not configured, the current implementation keeps passing the agent-local staging path directly to rustic, which requires the same path to exist inside the rustic container
 
 ```toml

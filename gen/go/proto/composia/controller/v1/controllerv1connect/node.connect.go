@@ -58,6 +58,9 @@ const (
 	// NodeMaintenanceServicePruneNodeDockerProcedure is the fully-qualified name of the
 	// NodeMaintenanceService's PruneNodeDocker RPC.
 	NodeMaintenanceServicePruneNodeDockerProcedure = "/composia.controller.v1.NodeMaintenanceService/PruneNodeDocker"
+	// NodeMaintenanceServiceInitNodeRusticProcedure is the fully-qualified name of the
+	// NodeMaintenanceService's InitNodeRustic RPC.
+	NodeMaintenanceServiceInitNodeRusticProcedure = "/composia.controller.v1.NodeMaintenanceService/InitNodeRustic"
 	// NodeMaintenanceServiceForgetNodeRusticProcedure is the fully-qualified name of the
 	// NodeMaintenanceService's ForgetNodeRustic RPC.
 	NodeMaintenanceServiceForgetNodeRusticProcedure = "/composia.controller.v1.NodeMaintenanceService/ForgetNodeRustic"
@@ -256,6 +259,8 @@ type NodeMaintenanceServiceClient interface {
 	ReloadNodeCaddy(context.Context, *connect.Request[v1.ReloadNodeCaddyRequest]) (*connect.Response[v1.ReloadNodeCaddyResponse], error)
 	// PruneNodeDocker starts a task to prune Docker resources on one node.
 	PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error)
+	// InitNodeRustic starts a task to initialize the Rustic repository on one node.
+	InitNodeRustic(context.Context, *connect.Request[v1.InitNodeRusticRequest]) (*connect.Response[v1.InitNodeRusticResponse], error)
 	// ForgetNodeRustic starts a task to forget Rustic snapshots for one node.
 	ForgetNodeRustic(context.Context, *connect.Request[v1.ForgetNodeRusticRequest]) (*connect.Response[v1.ForgetNodeRusticResponse], error)
 	// PruneNodeRustic starts a task to prune Rustic data on one node.
@@ -292,6 +297,12 @@ func NewNodeMaintenanceServiceClient(httpClient connect.HTTPClient, baseURL stri
 			connect.WithSchema(nodeMaintenanceServiceMethods.ByName("PruneNodeDocker")),
 			connect.WithClientOptions(opts...),
 		),
+		initNodeRustic: connect.NewClient[v1.InitNodeRusticRequest, v1.InitNodeRusticResponse](
+			httpClient,
+			baseURL+NodeMaintenanceServiceInitNodeRusticProcedure,
+			connect.WithSchema(nodeMaintenanceServiceMethods.ByName("InitNodeRustic")),
+			connect.WithClientOptions(opts...),
+		),
 		forgetNodeRustic: connect.NewClient[v1.ForgetNodeRusticRequest, v1.ForgetNodeRusticResponse](
 			httpClient,
 			baseURL+NodeMaintenanceServiceForgetNodeRusticProcedure,
@@ -312,6 +323,7 @@ type nodeMaintenanceServiceClient struct {
 	syncNodeCaddyFiles *connect.Client[v1.SyncNodeCaddyFilesRequest, v1.SyncNodeCaddyFilesResponse]
 	reloadNodeCaddy    *connect.Client[v1.ReloadNodeCaddyRequest, v1.ReloadNodeCaddyResponse]
 	pruneNodeDocker    *connect.Client[v1.PruneNodeDockerRequest, v1.PruneNodeDockerResponse]
+	initNodeRustic     *connect.Client[v1.InitNodeRusticRequest, v1.InitNodeRusticResponse]
 	forgetNodeRustic   *connect.Client[v1.ForgetNodeRusticRequest, v1.ForgetNodeRusticResponse]
 	pruneNodeRustic    *connect.Client[v1.PruneNodeRusticRequest, v1.PruneNodeRusticResponse]
 }
@@ -329,6 +341,11 @@ func (c *nodeMaintenanceServiceClient) ReloadNodeCaddy(ctx context.Context, req 
 // PruneNodeDocker calls composia.controller.v1.NodeMaintenanceService.PruneNodeDocker.
 func (c *nodeMaintenanceServiceClient) PruneNodeDocker(ctx context.Context, req *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error) {
 	return c.pruneNodeDocker.CallUnary(ctx, req)
+}
+
+// InitNodeRustic calls composia.controller.v1.NodeMaintenanceService.InitNodeRustic.
+func (c *nodeMaintenanceServiceClient) InitNodeRustic(ctx context.Context, req *connect.Request[v1.InitNodeRusticRequest]) (*connect.Response[v1.InitNodeRusticResponse], error) {
+	return c.initNodeRustic.CallUnary(ctx, req)
 }
 
 // ForgetNodeRustic calls composia.controller.v1.NodeMaintenanceService.ForgetNodeRustic.
@@ -350,6 +367,8 @@ type NodeMaintenanceServiceHandler interface {
 	ReloadNodeCaddy(context.Context, *connect.Request[v1.ReloadNodeCaddyRequest]) (*connect.Response[v1.ReloadNodeCaddyResponse], error)
 	// PruneNodeDocker starts a task to prune Docker resources on one node.
 	PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error)
+	// InitNodeRustic starts a task to initialize the Rustic repository on one node.
+	InitNodeRustic(context.Context, *connect.Request[v1.InitNodeRusticRequest]) (*connect.Response[v1.InitNodeRusticResponse], error)
 	// ForgetNodeRustic starts a task to forget Rustic snapshots for one node.
 	ForgetNodeRustic(context.Context, *connect.Request[v1.ForgetNodeRusticRequest]) (*connect.Response[v1.ForgetNodeRusticResponse], error)
 	// PruneNodeRustic starts a task to prune Rustic data on one node.
@@ -381,6 +400,12 @@ func NewNodeMaintenanceServiceHandler(svc NodeMaintenanceServiceHandler, opts ..
 		connect.WithSchema(nodeMaintenanceServiceMethods.ByName("PruneNodeDocker")),
 		connect.WithHandlerOptions(opts...),
 	)
+	nodeMaintenanceServiceInitNodeRusticHandler := connect.NewUnaryHandler(
+		NodeMaintenanceServiceInitNodeRusticProcedure,
+		svc.InitNodeRustic,
+		connect.WithSchema(nodeMaintenanceServiceMethods.ByName("InitNodeRustic")),
+		connect.WithHandlerOptions(opts...),
+	)
 	nodeMaintenanceServiceForgetNodeRusticHandler := connect.NewUnaryHandler(
 		NodeMaintenanceServiceForgetNodeRusticProcedure,
 		svc.ForgetNodeRustic,
@@ -401,6 +426,8 @@ func NewNodeMaintenanceServiceHandler(svc NodeMaintenanceServiceHandler, opts ..
 			nodeMaintenanceServiceReloadNodeCaddyHandler.ServeHTTP(w, r)
 		case NodeMaintenanceServicePruneNodeDockerProcedure:
 			nodeMaintenanceServicePruneNodeDockerHandler.ServeHTTP(w, r)
+		case NodeMaintenanceServiceInitNodeRusticProcedure:
+			nodeMaintenanceServiceInitNodeRusticHandler.ServeHTTP(w, r)
 		case NodeMaintenanceServiceForgetNodeRusticProcedure:
 			nodeMaintenanceServiceForgetNodeRusticHandler.ServeHTTP(w, r)
 		case NodeMaintenanceServicePruneNodeRusticProcedure:
@@ -424,6 +451,10 @@ func (UnimplementedNodeMaintenanceServiceHandler) ReloadNodeCaddy(context.Contex
 
 func (UnimplementedNodeMaintenanceServiceHandler) PruneNodeDocker(context.Context, *connect.Request[v1.PruneNodeDockerRequest]) (*connect.Response[v1.PruneNodeDockerResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeMaintenanceService.PruneNodeDocker is not implemented"))
+}
+
+func (UnimplementedNodeMaintenanceServiceHandler) InitNodeRustic(context.Context, *connect.Request[v1.InitNodeRusticRequest]) (*connect.Response[v1.InitNodeRusticResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeMaintenanceService.InitNodeRustic is not implemented"))
 }
 
 func (UnimplementedNodeMaintenanceServiceHandler) ForgetNodeRustic(context.Context, *connect.Request[v1.ForgetNodeRusticRequest]) (*connect.Response[v1.ForgetNodeRusticResponse], error) {

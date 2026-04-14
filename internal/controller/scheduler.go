@@ -162,11 +162,15 @@ func scheduleRusticMaintenanceTask(ctx context.Context, db *store.DB, cfg *confi
 	if err != nil {
 		return err
 	}
+	serviceDir, err := filepath.Rel(cfg.RepoDir, rusticService.Directory)
+	if err != nil {
+		return err
+	}
 	nodeID, err := chooseScheduledRusticMainNode(ctx, db, cfg, rusticService, taskType)
 	if err != nil {
 		return err
 	}
-	paramsJSONBytes, err := json.Marshal(rusticPruneTaskParams{RepoWide: true})
+	paramsJSONBytes, err := json.Marshal(rusticMaintenanceTaskParams{ServiceDir: serviceDir, RepoWide: true})
 	if err != nil {
 		return err
 	}
@@ -179,7 +183,7 @@ func scheduleRusticMaintenanceTask(ctx context.Context, db *store.DB, cfg *confi
 		return nil
 	}
 	createdAt := now
-	if _, err := createNodeRusticMaintenanceTask(ctx, db, cfg, availableNodeIDs, nodeID, taskType, rusticPruneTaskParams{RepoWide: true}, task.SourceSchedule, &createdAt); err != nil {
+	if _, err := createNodeRusticMaintenanceTask(ctx, db, cfg, availableNodeIDs, nodeID, taskType, rusticMaintenanceTaskParams{ServiceDir: serviceDir, RepoWide: true}, task.SourceSchedule, &createdAt); err != nil {
 		return err
 	}
 	notifyTaskQueue(taskQueue)

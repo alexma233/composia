@@ -139,6 +139,27 @@ func TestValidateRepoRejectsBlankRusticDataProtectDir(t *testing.T) {
 	}
 }
 
+func TestValidateRepoRejectsBlankRusticInitArgs(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repoDir, "backup"), 0o755); err != nil {
+		t.Fatalf("create backup dir: %v", err)
+	}
+	meta := "name: backup\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    init_args:\n      - --set-chunker\n      - \"   \"\n"
+	if err := os.WriteFile(filepath.Join(repoDir, "backup", MetaFileName), []byte(meta), 0o644); err != nil {
+		t.Fatalf("write backup meta: %v", err)
+	}
+
+	validationErrors := ValidateRepo(repoDir, map[string]struct{}{"main": {}})
+	if len(validationErrors) != 1 {
+		t.Fatalf("expected 1 validation error, got %d: %+v", len(validationErrors), validationErrors)
+	}
+	if !strings.Contains(validationErrors[0].Message, "infra.rustic.init_args") {
+		t.Fatalf("unexpected validation error: %+v", validationErrors[0])
+	}
+}
+
 func TestValidateRepoRejectsUnsafeDataProtectInclude(t *testing.T) {
 	t.Parallel()
 

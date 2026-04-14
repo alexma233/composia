@@ -144,7 +144,7 @@ func TestRunScheduledTasksPassCreatesRepoWideRusticMaintenanceTasks(t *testing.T
 		if detail.Record.NodeID != "main" {
 			t.Fatalf("expected maintenance on main, got %+v", detail.Record)
 		}
-		if detail.Record.ParamsJSON != `{"repo_wide":true}` {
+		if detail.Record.ParamsJSON != `{"service_dir":"rustic","repo_wide":true}` {
 			t.Fatalf("expected repo-wide params, got %q", detail.Record.ParamsJSON)
 		}
 	}

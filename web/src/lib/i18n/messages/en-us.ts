@@ -394,6 +394,7 @@ export const enUS = {
     },
     rustic: {
       title: "Rustic maintenance",
+      init: "Init",
       forget: "Forget",
       prune: "Prune",
       starting: "Starting...",

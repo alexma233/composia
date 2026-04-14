@@ -101,6 +101,9 @@ infra:
     compose_service: rustic
     profile: default
     data_protect_dir: /data-protect
+    init_args:
+      - --set-chunker
+      - rabin
 ```
 
 ### 字段说明
@@ -229,6 +232,9 @@ infra:
     compose_service: rustic     # Compose 服务名
     profile: default            # rustic profile
     data_protect_dir: /data-protect  # rustic 容器内可读取的数据保护目录
+    init_args:                  # Settings 中执行 rustic init 时追加的参数
+      - --set-chunker
+      - rabin
 ```
 
 ## docker-compose.yaml

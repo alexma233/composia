@@ -101,6 +101,9 @@ infra:
     compose_service: rustic
     profile: default
     data_protect_dir: /data-protect
+    init_args:
+      - --set-chunker
+      - rabin
 ```
 
 ### Field Reference
@@ -229,6 +232,9 @@ infra:
     compose_service: rustic     # Compose service name
     profile: default            # rustic profile
     data_protect_dir: /data-protect  # Data protection directory inside the rustic container
+    init_args:                  # Extra arguments appended when Settings runs rustic init
+      - --set-chunker
+      - rabin
 ```
 
 ## docker-compose.yaml

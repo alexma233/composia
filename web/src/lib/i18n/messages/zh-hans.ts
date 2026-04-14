@@ -381,6 +381,7 @@ export const zhHans = {
     },
     rustic: {
       title: "Rustic 维护",
+      init: "init",
       forget: "forget",
       prune: "prune",
       starting: "启动中...",

@@ -688,6 +688,21 @@ export async function forgetNodeRustic(options: {
   return { taskId: response.taskId ?? response.task_id ?? "" };
 }
 
+export async function initNodeRustic(options: {
+  nodeId?: string;
+} = {}): Promise<{ taskId: string }> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{ taskId?: string; task_id?: string }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.NodeMaintenanceService/InitNodeRustic",
+    {
+      nodeId: options.nodeId ?? "",
+    },
+  );
+  return { taskId: response.taskId ?? response.task_id ?? "" };
+}
+
 export async function pruneNodeRustic(options: {
   nodeId?: string;
   serviceName?: string;

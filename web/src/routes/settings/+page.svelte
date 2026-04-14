@@ -21,7 +21,7 @@
 
   let syncing = $state(false);
   let syncError = $state('');
-  let rusticBusy = $state<'forget' | 'prune' | ''>('');
+  let rusticBusy = $state<'init' | 'forget' | 'prune' | ''>('');
   let rusticError = $state('');
   let rusticTaskId = $state('');
   let syncResult = $state<{
@@ -61,7 +61,7 @@
     }
   }
 
-  async function runRusticAction(action: 'forget' | 'prune') {
+  async function runRusticAction(action: 'init' | 'forget' | 'prune') {
     rusticBusy = action;
     rusticError = '';
     rusticTaskId = '';
@@ -216,6 +216,15 @@
             <CardTitle class="section-title">{$messages.settings.rustic.title}</CardTitle>
           </div>
           <div class="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onclick={() => runRusticAction('init')}
+              disabled={rusticBusy !== ''}
+            >
+              {rusticBusy === 'init' ? $messages.settings.rustic.starting : $messages.settings.rustic.init}
+            </Button>
             <Button
               type="button"
               variant="outline"

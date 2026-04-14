@@ -210,10 +210,17 @@ func TestDownloadServiceBundleSendsServiceDirOverride(t *testing.T) {
 
 type bundleTestServer struct {
 	bundle               []byte
+	bundlesByServiceDir  map[string]bundleTestResponse
 	expectedTaskID       string
 	expectedServiceDir   string
 	responseServiceName  string
 	responseRelativeRoot string
+}
+
+type bundleTestResponse struct {
+	bundle       []byte
+	serviceName  string
+	relativeRoot string
 }
 
 func (server bundleTestServer) GetServiceBundle(_ context.Context, req *connect.Request[agentv1.GetServiceBundleRequest], stream *connect.ServerStream[agentv1.GetServiceBundleResponse]) error {
@@ -227,16 +234,26 @@ func (server bundleTestServer) GetServiceBundle(_ context.Context, req *connect.
 	if server.expectedServiceDir != "" && req.Msg.GetServiceDir() != server.expectedServiceDir {
 		return errString("unexpected service dir")
 	}
+	bundle := server.bundle
 	serviceName := server.responseServiceName
+	relativeRoot := server.responseRelativeRoot
+	if len(server.bundlesByServiceDir) > 0 {
+		response, ok := server.bundlesByServiceDir[req.Msg.GetServiceDir()]
+		if !ok {
+			return errString("unexpected service dir")
+		}
+		bundle = response.bundle
+		serviceName = response.serviceName
+		relativeRoot = response.relativeRoot
+	}
 	if serviceName == "" {
 		serviceName = "demo"
 	}
-	relativeRoot := server.responseRelativeRoot
 	if relativeRoot == "" {
 		relativeRoot = "demo"
 	}
-	firstChunk := &agentv1.GetServiceBundleResponse{ServiceName: serviceName, RepoRevision: "deadbeef", RelativeRoot: relativeRoot, Data: server.bundle[:len(server.bundle)/2]}
-	secondChunk := &agentv1.GetServiceBundleResponse{Data: server.bundle[len(server.bundle)/2:]}
+	firstChunk := &agentv1.GetServiceBundleResponse{ServiceName: serviceName, RepoRevision: "deadbeef", RelativeRoot: relativeRoot, Data: bundle[:len(bundle)/2]}
+	secondChunk := &agentv1.GetServiceBundleResponse{Data: bundle[len(bundle)/2:]}
 	if err := stream.Send(firstChunk); err != nil {
 		return err
 	}

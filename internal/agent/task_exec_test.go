@@ -165,15 +165,17 @@ func TestExecuteBackupTaskRunsRusticAndReportsSnapshot(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
-	bundle := buildBundleArchive(t, map[string]string{
+	serviceBundle := buildBundleArchive(t, map[string]string{
 		"demo/composia-meta.yaml":    "name: demo\n",
 		"demo/config/app.env":        "HELLO=world\n",
-		"backup/composia-meta.yaml":  "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n    data_protect_dir: /data-protect\n",
 		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","profile":"prod","data_protect_dir":"/data-protect","node_id":"main"},"items":[{"name":"config","strategy":"files.copy","include":["./config"],"provider":"rustic","tags":["composia-service:demo","composia-data:config","composia-node:main"]}]}`,
+	})
+	rusticBundle := buildBundleArchive(t, map[string]string{
+		"backup/composia-meta.yaml": "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n    data_protect_dir: /data-protect\n",
 	})
 	reportServer := &agentExecutionTestReportServer{}
 	bundleMux := http.NewServeMux()
-	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle, expectedTaskID: "task-backup"}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{expectedTaskID: "task-backup", bundlesByServiceDir: map[string]bundleTestResponse{"": {bundle: serviceBundle, serviceName: "demo", relativeRoot: "demo"}, "backup": {bundle: rusticBundle, serviceName: "backup", relativeRoot: "backup"}}}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
 		if token != "main-token" {
 			return "", errString("unexpected token")
 		}
@@ -211,7 +213,7 @@ func TestExecuteBackupTaskRunsRusticAndReportsSnapshot(t *testing.T) {
 		t.Fatalf("read docker args file: %v", err)
 	}
 	argsLog := string(argsContent)
-	if !strings.Contains(argsLog, "compose exec -T rustic rustic -P prod backup --host main") {
+	if !strings.Contains(argsLog, "compose run --rm rustic -P prod backup --host main") {
 		t.Fatalf("unexpected rustic args %q", string(argsContent))
 	}
 	if !strings.Contains(argsLog, "/data-protect/") {
@@ -397,15 +399,17 @@ func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
-	bundle := buildBundleArchive(t, map[string]string{
+	serviceBundle := buildBundleArchive(t, map[string]string{
 		"demo/composia-meta.yaml":    "name: demo\n",
 		"demo/config/app.env":        "HELLO=world\n",
-		"backup/composia-meta.yaml":  "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    data_protect_dir: /data-protect\n",
 		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","data_protect_dir":"/data-protect","node_id":"main"},"items":[{"name":"config","strategy":"files.tar_after_stop","include":["./config"],"provider":"rustic"}]}`,
+	})
+	rusticBundle := buildBundleArchive(t, map[string]string{
+		"backup/composia-meta.yaml": "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    data_protect_dir: /data-protect\n",
 	})
 	reportServer := &agentExecutionTestReportServer{}
 	bundleMux := http.NewServeMux()
-	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle, expectedTaskID: "task-tar"}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{expectedTaskID: "task-tar", bundlesByServiceDir: map[string]bundleTestResponse{"": {bundle: serviceBundle, serviceName: "demo", relativeRoot: "demo"}, "backup": {bundle: rusticBundle, serviceName: "backup", relativeRoot: "backup"}}}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
 		if token != "main-token" {
 			return "", errString("unexpected token")
 		}
@@ -439,7 +443,7 @@ func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read docker log: %v", err)
 	}
-	if !strings.Contains(string(dockerLog), "compose --project-name demo down") || !strings.Contains(string(dockerLog), "compose --project-name demo up -d") || !strings.Contains(string(dockerLog), "compose exec -T rustic rustic backup --host main") {
+	if !strings.Contains(string(dockerLog), "compose --project-name demo down") || !strings.Contains(string(dockerLog), "compose --project-name demo up -d") || !strings.Contains(string(dockerLog), "compose run --rm rustic backup --host main") {
 		t.Fatalf("expected compose down and up around backup, got %q", string(dockerLog))
 	}
 	if !strings.Contains(string(dockerLog), "/data-protect/") {
@@ -480,14 +484,16 @@ func TestExecuteBackupTaskRunsPGDumpAll(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
-	bundle := buildBundleArchive(t, map[string]string{
+	serviceBundle := buildBundleArchive(t, map[string]string{
 		"demo/composia-meta.yaml":    "name: demo\n",
-		"backup/composia-meta.yaml":  "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    data_protect_dir: /data-protect\n",
 		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","data_protect_dir":"/data-protect","node_id":"main"},"items":[{"name":"db","strategy":"database.pgdumpall","service":"postgres","provider":"rustic"}]}`,
+	})
+	rusticBundle := buildBundleArchive(t, map[string]string{
+		"backup/composia-meta.yaml": "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    data_protect_dir: /data-protect\n",
 	})
 	reportServer := &agentExecutionTestReportServer{}
 	bundleMux := http.NewServeMux()
-	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle, expectedTaskID: "task-pg"}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{expectedTaskID: "task-pg", bundlesByServiceDir: map[string]bundleTestResponse{"": {bundle: serviceBundle, serviceName: "demo", relativeRoot: "demo"}, "backup": {bundle: rusticBundle, serviceName: "backup", relativeRoot: "backup"}}}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
 		if token != "main-token" {
 			return "", errString("unexpected token")
 		}
@@ -554,15 +560,17 @@ func TestExecuteBackupTaskReportsFailedBackupItem(t *testing.T) {
 	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	bundle := buildBundleArchive(t, map[string]string{
+	serviceBundle := buildBundleArchive(t, map[string]string{
 		"demo/composia-meta.yaml":    "name: demo\n",
 		"demo/config/app.env":        "HELLO=world\n",
-		"backup/composia-meta.yaml":  "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    data_protect_dir: /data-protect\n",
 		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","data_protect_dir":"/data-protect","node_id":"main"},"items":[{"name":"config","strategy":"files.copy","include":["./config"],"provider":"rustic"}]}`,
+	})
+	rusticBundle := buildBundleArchive(t, map[string]string{
+		"backup/composia-meta.yaml": "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    data_protect_dir: /data-protect\n",
 	})
 	reportServer := &agentExecutionTestReportServer{}
 	bundleMux := http.NewServeMux()
-	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle, expectedTaskID: "task-backup-fail"}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{expectedTaskID: "task-backup-fail", bundlesByServiceDir: map[string]bundleTestResponse{"": {bundle: serviceBundle, serviceName: "demo", relativeRoot: "demo"}, "backup": {bundle: rusticBundle, serviceName: "backup", relativeRoot: "backup"}}}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
 		if token != "main-token" {
 			return "", errString("unexpected token")
 		}
@@ -709,7 +717,7 @@ func TestExecuteCaddyReloadTaskRunsComposeExec(t *testing.T) {
 	}
 }
 
-func TestExecuteRusticForgetTaskRunsComposeExec(t *testing.T) {
+func TestExecuteRusticForgetTaskRunsComposeRun(t *testing.T) {
 	rootDir := t.TempDir()
 	binDir := filepath.Join(rootDir, "bin")
 	argsFile := filepath.Join(rootDir, "args.txt")
@@ -736,6 +744,19 @@ func TestExecuteRusticForgetTaskRunsComposeExec(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n"), 0o644); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
+	bundle := buildBundleArchive(t, map[string]string{
+		"backup/composia-meta.yaml": "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n",
+	})
+	bundleMux := http.NewServeMux()
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle, expectedTaskID: "task-rustic-forget", responseServiceName: "backup", responseRelativeRoot: "backup"}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	bundleMux.Handle(bundlePath, bundleHandler)
+	bundleHTTPServer := httptest.NewServer(bundleMux)
+	defer bundleHTTPServer.Close()
 
 	reportServer := &agentExecutionTestReportServer{}
 	reportMux := http.NewServeMux()
@@ -751,12 +772,13 @@ func TestExecuteRusticForgetTaskRunsComposeExec(t *testing.T) {
 	reportHTTPServer.StartTLS()
 	defer reportHTTPServer.Close()
 
+	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	logUploader := newTaskLogUploader(reportClient, "task-rustic-forget")
 	defer logUploader.Close()
 
-	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-forget", Type: string(task.TypeRusticForget), ServiceName: "backup", NodeId: "main", ServiceDir: "backup", ParamsJson: `{"service_name":"demo","data_name":"db"}`}
-	if err := executeRusticForgetTask(context.Background(), reportClient, cfg, pulledTask, logUploader); err != nil {
+	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-forget", Type: string(task.TypeRusticForget), ServiceName: "backup", NodeId: "main", ParamsJson: `{"service_name":"demo","data_name":"db","service_dir":"backup"}`}
+	if err := executeRusticForgetTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute rustic forget task: %v", err)
 	}
 
@@ -764,7 +786,7 @@ func TestExecuteRusticForgetTaskRunsComposeExec(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
-	if got := string(argsContent); got != "compose exec -T rustic rustic -P prod forget --filter-host main --filter-tags composia-service:demo --filter-tags composia-data:db " {
+	if got := string(argsContent); got != "compose run --rm rustic -P prod forget --filter-host main --filter-tags composia-service:demo --filter-tags composia-data:db " {
 		t.Fatalf("unexpected docker args %q", got)
 	}
 	pwdContent, err := os.ReadFile(pwdFile)
@@ -784,7 +806,7 @@ func TestExecuteRusticForgetTaskRunsComposeExec(t *testing.T) {
 	}
 }
 
-func TestExecuteRusticPruneTaskRunsComposeExec(t *testing.T) {
+func TestExecuteRusticPruneTaskRunsComposeRun(t *testing.T) {
 	rootDir := t.TempDir()
 	binDir := filepath.Join(rootDir, "bin")
 	argsFile := filepath.Join(rootDir, "args.txt")
@@ -811,6 +833,19 @@ func TestExecuteRusticPruneTaskRunsComposeExec(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n"), 0o644); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
+	bundle := buildBundleArchive(t, map[string]string{
+		"backup/composia-meta.yaml": "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n",
+	})
+	bundleMux := http.NewServeMux()
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle, expectedTaskID: "task-rustic-prune", responseServiceName: "backup", responseRelativeRoot: "backup"}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	bundleMux.Handle(bundlePath, bundleHandler)
+	bundleHTTPServer := httptest.NewServer(bundleMux)
+	defer bundleHTTPServer.Close()
 
 	reportServer := &agentExecutionTestReportServer{}
 	reportMux := http.NewServeMux()
@@ -826,12 +861,13 @@ func TestExecuteRusticPruneTaskRunsComposeExec(t *testing.T) {
 	reportHTTPServer.StartTLS()
 	defer reportHTTPServer.Close()
 
+	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	logUploader := newTaskLogUploader(reportClient, "task-rustic-prune")
 	defer logUploader.Close()
 
-	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-prune", Type: string(task.TypeRusticPrune), ServiceName: "backup", NodeId: "main", ServiceDir: "backup"}
-	if err := executeRusticPruneTask(context.Background(), reportClient, cfg, pulledTask, logUploader); err != nil {
+	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-prune", Type: string(task.TypeRusticPrune), ServiceName: "backup", NodeId: "main", ParamsJson: `{"service_dir":"backup"}`}
+	if err := executeRusticPruneTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute rustic prune task: %v", err)
 	}
 
@@ -839,7 +875,7 @@ func TestExecuteRusticPruneTaskRunsComposeExec(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
-	if got := string(argsContent); got != "compose exec -T rustic rustic -P prod prune " {
+	if got := string(argsContent); got != "compose run --rm rustic -P prod prune " {
 		t.Fatalf("unexpected docker args %q", got)
 	}
 	pwdContent, err := os.ReadFile(pwdFile)
@@ -856,6 +892,92 @@ func TestExecuteRusticPruneTaskRunsComposeExec(t *testing.T) {
 	}
 	if reportServer.stepStatuses[task.StepPrune] != string(task.StatusSucceeded) {
 		t.Fatalf("expected prune step succeeded, got %+v", reportServer.stepStatuses)
+	}
+}
+
+func TestExecuteRusticInitTaskRunsComposeRun(t *testing.T) {
+	rootDir := t.TempDir()
+	binDir := filepath.Join(rootDir, "bin")
+	argsFile := filepath.Join(rootDir, "args.txt")
+	pwdFile := filepath.Join(rootDir, "pwd.txt")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatalf("create bin dir: %v", err)
+	}
+	dockerPath := filepath.Join(binDir, "docker")
+	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n"
+	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake docker script: %v", err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("TEST_ARGS_FILE", argsFile)
+	t.Setenv("TEST_PWD_FILE", pwdFile)
+
+	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o755); err != nil {
+		t.Fatalf("create backup repo dir: %v", err)
+	}
+	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	bundle := buildBundleArchive(t, map[string]string{
+		"backup/composia-meta.yaml": "name: backup\nproject_name: infra-rustic\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n    init_args:\n      - --set-chunker\n      - rabin\n      - --set-chunk-size\n      - 1MiB\n",
+	})
+	bundleMux := http.NewServeMux()
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle, expectedTaskID: "task-rustic-init", responseServiceName: "backup", responseRelativeRoot: "backup"}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	bundleMux.Handle(bundlePath, bundleHandler)
+	bundleHTTPServer := httptest.NewServer(bundleMux)
+	defer bundleHTTPServer.Close()
+
+	reportServer := &agentExecutionTestReportServer{}
+	reportMux := http.NewServeMux()
+	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(reportServer, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	reportMux.Handle(reportPath, reportHandler)
+	reportHTTPServer := httptest.NewUnstartedServer(reportMux)
+	reportHTTPServer.EnableHTTP2 = true
+	reportHTTPServer.StartTLS()
+	defer reportHTTPServer.Close()
+
+	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	logUploader := newTaskLogUploader(reportClient, "task-rustic-init")
+	defer logUploader.Close()
+
+	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-init", Type: string(task.TypeRusticInit), ServiceName: "backup", NodeId: "main", ParamsJson: `{"service_dir":"backup"}`}
+	if err := executeRusticInitTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
+		t.Fatalf("execute rustic init task: %v", err)
+	}
+
+	argsContent, err := os.ReadFile(argsFile)
+	if err != nil {
+		t.Fatalf("read args file: %v", err)
+	}
+	if got := string(argsContent); got != "compose run --rm rustic -P prod init --set-chunker rabin --set-chunk-size 1MiB " {
+		t.Fatalf("unexpected docker args %q", got)
+	}
+	pwdContent, err := os.ReadFile(pwdFile)
+	if err != nil {
+		t.Fatalf("read pwd file: %v", err)
+	}
+	if string(bytesTrimSpace(pwdContent)) != filepath.Join(cfg.RepoDir, "backup") {
+		t.Fatalf("expected docker cwd %q, got %q", filepath.Join(cfg.RepoDir, "backup"), string(bytesTrimSpace(pwdContent)))
+	}
+	reportServer.mu.Lock()
+	defer reportServer.mu.Unlock()
+	if reportServer.taskStatus != string(task.StatusSucceeded) {
+		t.Fatalf("expected succeeded task status, got %q", reportServer.taskStatus)
+	}
+	if reportServer.stepStatuses[task.StepInit] != string(task.StatusSucceeded) {
+		t.Fatalf("expected init step succeeded, got %+v", reportServer.stepStatuses)
 	}
 }
 

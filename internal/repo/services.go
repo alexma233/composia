@@ -48,9 +48,10 @@ type InfraCaddyConfig struct {
 }
 
 type InfraRusticConfig struct {
-	ComposeService string `yaml:"compose_service"`
-	Profile        string `yaml:"profile"`
-	DataProtectDir string `yaml:"data_protect_dir"`
+	ComposeService string   `yaml:"compose_service"`
+	Profile        string   `yaml:"profile"`
+	DataProtectDir string   `yaml:"data_protect_dir"`
+	InitArgs       []string `yaml:"init_args"`
 }
 
 type NetworkConfig struct {
@@ -532,6 +533,13 @@ func validateInfra(path string, infra *InfraConfig) error {
 	if infra.Rustic != nil && strings.TrimSpace(infra.Rustic.DataProtectDir) == "" && infra.Rustic.DataProtectDir != "" {
 		return fmt.Errorf("service meta %q: infra.rustic.data_protect_dir must not be empty when set", path)
 	}
+	if infra.Rustic != nil {
+		for index, arg := range infra.Rustic.InitArgs {
+			if strings.TrimSpace(arg) == "" {
+				return fmt.Errorf("service meta %q: infra.rustic.init_args[%d] must not be empty", path, index)
+			}
+		}
+	}
 	return nil
 }
 
@@ -568,6 +576,24 @@ func (meta ServiceMeta) RusticDataProtectDir() string {
 		return strings.TrimSpace(meta.Infra.Rustic.DataProtectDir)
 	}
 	return ""
+}
+
+func (meta ServiceMeta) RusticInitArgs() []string {
+	if meta.Infra == nil || meta.Infra.Rustic == nil || len(meta.Infra.Rustic.InitArgs) == 0 {
+		return nil
+	}
+	args := make([]string, 0, len(meta.Infra.Rustic.InitArgs))
+	for _, arg := range meta.Infra.Rustic.InitArgs {
+		trimmed := strings.TrimSpace(arg)
+		if trimmed == "" {
+			continue
+		}
+		args = append(args, trimmed)
+	}
+	if len(args) == 0 {
+		return nil
+	}
+	return args
 }
 
 func validateUpdate(path string, update *UpdateConfig) error {
