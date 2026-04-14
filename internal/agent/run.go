@@ -1710,7 +1710,7 @@ func runComposePGImport(ctx context.Context, serviceDir, projectName, serviceNam
 	return nil
 }
 
-var rusticSnapshotRegexp = regexp.MustCompile(`snapshot\s+([0-9a-fA-F]+)\s+saved`)
+var rusticSnapshotRegexp = regexp.MustCompile(`(?m)snapshot\s+([0-9a-fA-F]+)\b[^\n]*\bsaved\.?`)
 
 func runRusticBackup(ctx context.Context, rusticDir string, rustic *backupcfg.RusticConfig, sourceDir string, item backupcfg.RuntimeItem, logUploader *taskLogUploader) (string, error) {
 	args := buildRusticComposeRunArgs(rustic.ComposeService, rustic.Profile, "backup", "--host", rustic.NodeID)

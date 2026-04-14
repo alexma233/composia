@@ -145,7 +145,7 @@ func TestExecuteBackupTaskRunsRusticAndReportsSnapshot(t *testing.T) {
 	if err := os.MkdirAll(binDir, 0o755); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
-	dockerScript := "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_ARGS_FILE\"\nprintf 'snapshot abc12345 saved\\n'\n"
+	dockerScript := "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_ARGS_FILE\"\nprintf '[INFO] snapshot abc12345 successfully saved.\\n'\n"
 	if err := os.WriteFile(dockerPath, []byte(dockerScript), 0o755); err != nil {
 		t.Fatalf("write fake docker script: %v", err)
 	}
