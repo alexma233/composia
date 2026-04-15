@@ -1,0 +1,86 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "labels": [
+    "dependencies"
+  ],
+  "dependencyDashboard": true,
+  "separateMajorMinor": true,
+  "rangeStrategy": "pin",
+  "lockFileMaintenance": {
+    "enabled": true
+  },
+  "packageRules": [
+    {
+      "matchManagers": [
+        "npm"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "minor",
+        "patch",
+        "pin"
+      ],
+      "groupName": "web non-major dependencies"
+    },
+    {
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "minor",
+        "patch"
+      ],
+      "groupName": "go non-major dependencies"
+    },
+    {
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "pinDigests": true
+    },
+    {
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchDatasources": [
+        "git-refs"
+      ],
+      "groupName": "forgejo action digest updates"
+    },
+    {
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchPackageNames": [
+        "github.com/pseudomuto/protoc-gen-doc"
+      ],
+      "groupName": "docs tool updates"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^scripts\\/docs\\/generate-proto-docs\\.sh$/"
+      ],
+      "matchStrings": [
+        "github\\.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@(?<currentValue>v?[0-9][^\\s\"']*)"
+      ],
+      "depNameTemplate": "github.com/pseudomuto/protoc-gen-doc",
+      "datasourceTemplate": "go"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)\\.forgejo\\/workflows\\/.+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "\\s*# renovate: datasource=(?<datasource>git-refs) depName=(?<depName>[^\\s]+) packageName=(?<packageName>[^\\s]+) currentValue=(?<currentValue>[^\\s]+)\\n\\s*uses:\\s+https://forgejo\\.alexma\\.top/[^@\\s]+@(?<currentDigest>[a-f0-9]{40})"
+      ]
+    }
+  ]
+}

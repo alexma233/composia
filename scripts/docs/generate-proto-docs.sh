@@ -15,7 +15,7 @@ PATH="$DOC_PLUGIN_DIR:$PATH"
 
 if ! command -v protoc-gen-doc >/dev/null 2>&1; then
   printf '%s\n' 'Installing protoc-gen-doc to generate API docs...' >&2
-  GOBIN="$DOC_PLUGIN_DIR" go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@latest
+  GOBIN="$DOC_PLUGIN_DIR" go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.5.1
 fi
 
 mkdir -p \

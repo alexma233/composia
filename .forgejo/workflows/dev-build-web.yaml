@@ -22,23 +22,27 @@ jobs:
     runs-on: docker-amd64-dind
     steps:
       - name: Checkout
-        uses: https://forgejo.alexma.top/actions/checkout@v4
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v4
+        uses: https://forgejo.alexma.top/actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           fetch-depth: 0
 
       - name: Set up Docker Buildx
         id: buildx
-        uses: https://forgejo.alexma.top/actions/docker-setup-buildx-action@v3
+        # renovate: datasource=git-refs depName=actions/docker-setup-buildx-action packageName=https://forgejo.alexma.top/actions/docker-setup-buildx-action currentValue=v3
+        uses: https://forgejo.alexma.top/actions/docker-setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
 
       - name: Login to Forgejo Registry
-        uses: https://forgejo.alexma.top/actions/docker-login-action@v3
+        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v3
+        uses: https://forgejo.alexma.top/actions/docker-login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
         with:
           registry: ${{ env.REGISTRY_HOST }}
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
       - name: Login to GHCR
-        uses: https://forgejo.alexma.top/actions/docker-login-action@v3
+        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v3
+        uses: https://forgejo.alexma.top/actions/docker-login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
         with:
           registry: ghcr.io
           username: ${{ secrets.GHCR_USERNAME }}
@@ -46,7 +50,8 @@ jobs:
 
       - name: Docker meta
         id: meta
-        uses: https://forgejo.alexma.top/actions/docker-metadata-action@v5
+        # renovate: datasource=git-refs depName=actions/docker-metadata-action packageName=https://forgejo.alexma.top/actions/docker-metadata-action currentValue=v5
+        uses: https://forgejo.alexma.top/actions/docker-metadata-action@c299e40c65443455700f0fdfc63efafe5b349051
         with:
           images: |
             ${{ env.FORGEJO_WEB_IMAGE_NAME }}
@@ -65,7 +70,8 @@ jobs:
             io.composia.channel=canary
 
       - name: Build and push
-        uses: https://forgejo.alexma.top/actions/docker-build-push-action@v5
+        # renovate: datasource=git-refs depName=actions/docker-build-push-action packageName=https://forgejo.alexma.top/actions/docker-build-push-action currentValue=v5
+        uses: https://forgejo.alexma.top/actions/docker-build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25
         with:
           context: .
           file: ./web/Dockerfile
