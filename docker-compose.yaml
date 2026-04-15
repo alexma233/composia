@@ -1,6 +1,6 @@
 services:
   init-repo-controller:
-    image: alpine/git:2.49.1
+    image: alpine/git:v2.52.0
     working_dir: /data/repo-controller
     entrypoint:
       - sh
