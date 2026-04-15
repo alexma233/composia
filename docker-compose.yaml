@@ -10,7 +10,7 @@ services:
       - ${COMPOSIA_CONTROLLER_REPO_DIR}:/data/repo-controller
 
   init-perms-controller:
-    image: alpine:3.22
+    image: alpine:3.23
     entrypoint:
       - sh
       - -ec
@@ -23,7 +23,7 @@ services:
       - ${COMPOSIA_CONTROLLER_LOG_DIR}:/data/logs
 
   init-config-perms:
-    image: alpine:3.22
+    image: alpine:3.23
     entrypoint:
       - sh
       - -ec
@@ -61,7 +61,7 @@ services:
     restart: unless-stopped
 
   init-perms-agent:
-    image: alpine:3.22
+    image: alpine:3.23
     entrypoint:
       - sh
       - -ec
