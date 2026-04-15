@@ -13,6 +13,8 @@
 | `log_dir` | string | 是 | 任务日志持久化目录 |
 | `nodes` | array | 是 | 顶层字段必须出现，即使为空数组也要写出 |
 
+如果 `controller.controller_addr` 以 `http://` 开头，只应在受信任的反向代理负责 TLS 终止，或 Controller 仅暴露在受信任的本地网络内时使用。不要在不受信任的明文网络上传输 bearer token。
+
 ## Controller 访问 token（`access_tokens`）
 
 ```yaml

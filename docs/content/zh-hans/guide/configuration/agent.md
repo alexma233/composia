@@ -13,6 +13,8 @@
 | `state_dir` | string | 是 | 本地运行状态目录 |
 | `caddy.generated_dir` | string | 否 | Caddy 配置片段输出目录 |
 
+如果 `agent.controller_addr` 以 `http://` 开头，只应在受信任的反向代理负责 TLS 终止，或 Controller 仅暴露在受信任的本地网络内时使用。不要在不受信任的明文网络上传输 agent token。
+
 ## 与 Controller 同文件时的约束
 
 如果同一个文件同时包含 `controller` 和 `agent`，还需要满足以下约束：

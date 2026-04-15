@@ -13,6 +13,8 @@ This page documents the `controller` section in `config/config.yaml`.
 | `log_dir` | string | Yes | Task logs persistence directory |
 | `nodes` | array | Yes | Must be present even if empty |
 
+If `controller.controller_addr` starts with `http://`, use it only when TLS is terminated by a trusted reverse proxy or when the controller is reachable only on a trusted local network. Do not expose bearer tokens over an untrusted cleartext network.
+
 ## Controller Access Tokens (`access_tokens`)
 
 ```yaml

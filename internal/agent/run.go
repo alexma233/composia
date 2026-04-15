@@ -55,6 +55,9 @@ func Run(ctx context.Context, configPath string) error {
 	if err := ensureAgentDirs(cfg); err != nil {
 		return err
 	}
+	if strings.HasPrefix(strings.ToLower(cfg.ControllerAddr), "http://") {
+		log.Printf("warning: agent.controller_addr uses plain HTTP (%s); only use this behind a trusted reverse proxy or on a trusted local network", cfg.ControllerAddr)
+	}
 
 	httpClient := controllerHTTPClient(cfg.ControllerAddr)
 	reportClient := agentv1connect.NewAgentReportServiceClient(

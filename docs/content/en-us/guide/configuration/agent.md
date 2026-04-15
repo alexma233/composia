@@ -13,6 +13,8 @@ This page documents the `agent` section in `config/config.yaml`.
 | `state_dir` | string | Yes | Local runtime state directory |
 | `caddy.generated_dir` | string | No | Caddy configuration fragment output directory |
 
+If `agent.controller_addr` starts with `http://`, use it only when TLS is terminated by a trusted reverse proxy or when the controller is reachable only on a trusted local network. Do not send agent tokens over an untrusted cleartext network.
+
 ## Same-File Constraints
 
 If one file contains both `controller` and `agent`, these additional rules apply:

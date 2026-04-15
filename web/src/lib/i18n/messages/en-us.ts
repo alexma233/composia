@@ -29,7 +29,8 @@ export const enUS = {
       password: "Password",
       submit: "Sign in",
       invalidCredentials: "Invalid username or password.",
-      hashHint: "Store the password as an Argon2 hash in WEB_LOGIN_PASSWORD_HASH.",
+      hashHint:
+        "Store the password as an Argon2 hash in WEB_LOGIN_PASSWORD_HASH.",
     },
   },
   preferences: {
@@ -139,7 +140,8 @@ export const enUS = {
   dashboard: {
     title: "Dashboard",
     pageTitle: "Dashboard - Composia",
-    pageDescription: "Composia controller overview with live services, nodes, and task history.",
+    pageDescription:
+      "Composia controller overview with live services, nodes, and task history.",
     services: "Services",
     nodes: "Nodes",
     tasks: "Tasks",
@@ -374,6 +376,9 @@ export const enUS = {
       title: "Controller",
       version: "Version",
       controllerAddress: "Controller address",
+      plainHttpTitle: "Plain HTTP controller address",
+      plainHttpDescription:
+        "This controller address uses plain HTTP. Only use it behind a trusted reverse proxy or on a trusted local network.",
       repoDir: "Repo dir",
       stateDir: "State dir",
       logDir: "Log dir",
@@ -559,8 +564,7 @@ export const enUS = {
       noLayerInfo: "No layer information available",
       rawJson: "Raw JSON",
       rawJsonDescription: "Full image inspection data in JSON format",
-      removeConfirm:
-        "Remove image {name}? This action cannot be undone.",
+      removeConfirm: "Remove image {name}? This action cannot be undone.",
       forceRemoveConfirm:
         "Force remove image {name}? The image still has multiple tags or dependent containers. This action cannot be undone.",
       removeDialogTitle: "Remove image?",

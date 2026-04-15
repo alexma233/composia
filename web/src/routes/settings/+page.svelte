@@ -90,6 +90,7 @@
   let displaySyncStatus = $derived(syncResult?.syncStatus ?? data.repoHead?.syncStatus ?? $messages.common.unknown);
   let displayLastSyncError = $derived(syncResult?.lastSyncError ?? data.repoHead?.lastSyncError ?? '');
   let displayLastPull = $derived(syncResult?.lastSuccessfulPullAt ?? data.repoHead?.lastSuccessfulPullAt ?? $messages.common.never);
+  let insecureControllerAddr = $derived((data.system?.controllerAddr ?? '').toLowerCase().startsWith('http://'));
 
   onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
 </script>
@@ -136,6 +137,14 @@
                 <dt class="metric-label">{$messages.settings.controller.controllerAddress}</dt>
                 <dd class="mt-2 break-all text-sm font-medium text-foreground">{data.system.controllerAddr}</dd>
               </div>
+              {#if insecureControllerAddr}
+                <div class="sm:col-span-2">
+                  <Alert>
+                    <AlertTitle>{$messages.settings.controller.plainHttpTitle}</AlertTitle>
+                    <AlertDescription>{$messages.settings.controller.plainHttpDescription}</AlertDescription>
+                  </Alert>
+                </div>
+              {/if}
               <div class="inset-card">
                 <dt class="metric-label">{$messages.settings.controller.repoDir}</dt>
                 <dd class="mt-2 break-all text-sm text-foreground">{data.system.repoDir}</dd>

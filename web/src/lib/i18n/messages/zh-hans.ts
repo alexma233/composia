@@ -156,7 +156,8 @@ export const zhHans = {
       volumesSize: "卷占用",
       diskUsage: "磁盘占用",
       noStats: "暂无 Docker 统计数据。数据由 Agent 上报。",
-      nodeOffline: "节点离线。Caddy 同步、Caddy 重载和 prune 操作需要节点在线。",
+      nodeOffline:
+        "节点离线。Caddy 同步、Caddy 重载和 prune 操作需要节点在线。",
       rebuildCaddy: "重建 Caddy 配置",
       reloadCaddy: "重载 Caddy",
       prune: {
@@ -361,6 +362,9 @@ export const zhHans = {
       title: "控制器",
       version: "版本",
       controllerAddress: "控制器地址",
+      plainHttpTitle: "控制器地址正在使用明文 HTTP",
+      plainHttpDescription:
+        "当前控制器地址使用明文 HTTP。只应在受信任的反向代理之后，或受信任的本地网络内使用。",
       repoDir: "仓库目录",
       stateDir: "状态目录",
       logDir: "日志目录",
@@ -426,9 +430,12 @@ export const zhHans = {
         remove: "删除",
         queued: "已加入队列",
       },
-      removeConfirm: "删除容器 {name}？运行中的容器需要强制删除。此操作无法撤销。",
-      forceRemoveConfirm: "强制删除容器 {name}？这会停止并删除正在运行的容器。此操作无法撤销。",
-      removeWithVolumesConfirm: "是否同时删除容器 {name} 的匿名卷？这可能会删除数据。",
+      removeConfirm:
+        "删除容器 {name}？运行中的容器需要强制删除。此操作无法撤销。",
+      forceRemoveConfirm:
+        "强制删除容器 {name}？这会停止并删除正在运行的容器。此操作无法撤销。",
+      removeWithVolumesConfirm:
+        "是否同时删除容器 {name} 的匿名卷？这可能会删除数据。",
       removeDialogTitle: "删除容器？",
       forceRemoveAction: "强制删除",
       removeVolumesAction: "删除并移除卷",
@@ -543,7 +550,8 @@ export const zhHans = {
       rawJson: "原始 JSON",
       rawJsonDescription: "JSON 格式的完整镜像检查数据",
       removeConfirm: "删除镜像 {name}？此操作无法撤销。",
-      forceRemoveConfirm: "强制删除镜像 {name}？该镜像仍有多个标签或被容器依赖。此操作无法撤销。",
+      forceRemoveConfirm:
+        "强制删除镜像 {name}？该镜像仍有多个标签或被容器依赖。此操作无法撤销。",
       removeDialogTitle: "删除镜像？",
       forceRemoveAction: "强制删除",
       removeQueued: "删除任务已加入队列：{taskId}",
@@ -583,7 +591,8 @@ export const zhHans = {
       noContainersConnected: "没有容器连接到此网络",
       rawJson: "原始 JSON",
       rawJsonDescription: "JSON 格式的完整网络检查数据",
-      removeConfirm: "删除网络 {name}？如果仍有容器连接，或这是系统网络，删除会失败。",
+      removeConfirm:
+        "删除网络 {name}？如果仍有容器连接，或这是系统网络，删除会失败。",
       removeDialogTitle: "删除网络？",
       removeQueued: "删除任务已加入队列：{taskId}",
       removeFailed: "删除网络失败。",
