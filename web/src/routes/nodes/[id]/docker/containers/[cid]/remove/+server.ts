@@ -19,7 +19,10 @@ export const POST: RequestHandler = async ({ params, request }) => {
     );
   } catch (error) {
     return json(
-      { error: error instanceof Error ? error.message : "Failed to remove container" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to remove container",
+      },
       { status: 500 },
     );
   }

@@ -27,7 +27,9 @@ export const load: PageServerLoad = async ({ params }) => {
     return {
       ready: true,
       error:
-        error instanceof Error ? error.message : "Failed to load backup detail.",
+        error instanceof Error
+          ? error.message
+          : "Failed to load backup detail.",
       backup: null,
       nodes: [],
     };

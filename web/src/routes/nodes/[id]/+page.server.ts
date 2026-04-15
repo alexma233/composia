@@ -23,12 +23,15 @@ export const load: PageServerLoad = async ({ params }) => {
     };
   }
 
-	try {
-		const [node, tasksResult, dockerStats] = await Promise.all([
-			loadNodeDetail(params.id),
-			loadTasks(1, 20, { nodeId: [params.id], excludeType: defaultExcludedTaskTypes }),
-			loadNodeDockerStats(params.id),
-		]);
+  try {
+    const [node, tasksResult, dockerStats] = await Promise.all([
+      loadNodeDetail(params.id),
+      loadTasks(1, 20, {
+        nodeId: [params.id],
+        excludeType: defaultExcludedTaskTypes,
+      }),
+      loadNodeDockerStats(params.id),
+    ]);
 
     return {
       ready: true,
@@ -62,7 +65,8 @@ export const actions: Actions = {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Caddy file sync failed",
+        error:
+          error instanceof Error ? error.message : "Caddy file sync failed",
       };
     }
   },

@@ -20,7 +20,8 @@ export const POST: RequestHandler = async ({ params, request }) => {
   } catch (error) {
     return json(
       {
-        error: error instanceof Error ? error.message : "Failed to start restore.",
+        error:
+          error instanceof Error ? error.message : "Failed to start restore.",
       },
       { status: 500 },
     );

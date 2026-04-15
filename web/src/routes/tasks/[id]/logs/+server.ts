@@ -9,11 +9,12 @@ const connectEnvelopeHeaderSize = 5;
 
 function decodeEnvelopeLength(header: Uint8Array): number {
   return (
-    ((header[1] ?? 0) << 24) |
-    ((header[2] ?? 0) << 16) |
-    ((header[3] ?? 0) << 8) |
-    (header[4] ?? 0)
-  ) >>> 0;
+    (((header[1] ?? 0) << 24) |
+      ((header[2] ?? 0) << 16) |
+      ((header[3] ?? 0) << 8) |
+      (header[4] ?? 0)) >>>
+    0
+  );
 }
 
 function encodeEnvelope(message: string): Uint8Array {
@@ -97,7 +98,10 @@ export const GET: RequestHandler = async ({ params }) => {
               break;
             }
 
-            const payload = buffer.slice(connectEnvelopeHeaderSize, envelopeLength);
+            const payload = buffer.slice(
+              connectEnvelopeHeaderSize,
+              envelopeLength,
+            );
             buffer = buffer.slice(envelopeLength);
 
             if ((flags & connectFlagCompressed) !== 0) {

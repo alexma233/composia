@@ -15,7 +15,9 @@ export const GET: RequestHandler = async ({ params }) => {
     return json(
       {
         error:
-          error instanceof Error ? error.message : "Failed to load task detail.",
+          error instanceof Error
+            ? error.message
+            : "Failed to load task detail.",
         task: null,
       },
       { status: 500 },

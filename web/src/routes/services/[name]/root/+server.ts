@@ -15,11 +15,20 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
     }
 
     const nextFolder = normalizeServiceRootFolder(payload.folder ?? "");
-    const write = await moveRepoPath(params.name, nextFolder, payload.baseRevision);
+    const write = await moveRepoPath(
+      params.name,
+      nextFolder,
+      payload.baseRevision,
+    );
     return json({ write, redirectTo: `/services/${nextFolder}` });
   } catch (error) {
     return json(
-      { error: error instanceof Error ? error.message : "Failed to rename service folder." },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to rename service folder.",
+      },
       { status: 400 },
     );
   }
@@ -36,7 +45,12 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
     return json({ write, redirectTo: "/services" });
   } catch (error) {
     return json(
-      { error: error instanceof Error ? error.message : "Failed to delete service folder." },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to delete service folder.",
+      },
       { status: 400 },
     );
   }

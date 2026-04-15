@@ -16,9 +16,16 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
       baseRevision?: string;
     };
 
-    if (!payload.sourcePath || !payload.destinationPath || !payload.baseRevision) {
+    if (
+      !payload.sourcePath ||
+      !payload.destinationPath ||
+      !payload.baseRevision
+    ) {
       return json(
-        { error: "Source path, destination path, and base revision are required." },
+        {
+          error:
+            "Source path, destination path, and base revision are required.",
+        },
         { status: 400 },
       );
     }
@@ -29,11 +36,15 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
       normalizeServiceRelativePath(payload.destinationPath),
       payload.baseRevision,
     );
-    const { workspace, fileTree } = await loadServiceWorkspaceSummary(params.name);
+    const { workspace, fileTree } = await loadServiceWorkspaceSummary(
+      params.name,
+    );
     return json({ write, workspace, fileTree });
   } catch (error) {
     return json(
-      { error: error instanceof Error ? error.message : "Failed to move path." },
+      {
+        error: error instanceof Error ? error.message : "Failed to move path.",
+      },
       { status: 400 },
     );
   }
@@ -47,7 +58,10 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
     };
 
     if (!payload.path || !payload.baseRevision) {
-      return json({ error: "Path and base revision are required." }, { status: 400 });
+      return json(
+        { error: "Path and base revision are required." },
+        { status: 400 },
+      );
     }
 
     const write = await deleteServiceWorkspacePath(
@@ -55,11 +69,16 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
       normalizeServiceRelativePath(payload.path),
       payload.baseRevision,
     );
-    const { workspace, fileTree } = await loadServiceWorkspaceSummary(params.name);
+    const { workspace, fileTree } = await loadServiceWorkspaceSummary(
+      params.name,
+    );
     return json({ write, workspace, fileTree });
   } catch (error) {
     return json(
-      { error: error instanceof Error ? error.message : "Failed to delete path." },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to delete path.",
+      },
       { status: 400 },
     );
   }

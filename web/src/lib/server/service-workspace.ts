@@ -57,12 +57,7 @@ export async function saveServiceWorkspaceFile(
     if (!serviceName) {
       throw new Error("Cannot save encrypted file for undeclared service");
     }
-    write = await updateSecret(
-      serviceName,
-      normalized,
-      content,
-      baseRevision,
-    );
+    write = await updateSecret(serviceName, normalized, content, baseRevision);
   } else {
     write = await updateRepoFile(
       repoPathForServicePath(serviceDir, normalized),

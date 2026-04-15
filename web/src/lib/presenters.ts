@@ -1,6 +1,6 @@
-import type { BadgeVariant } from '$lib/components/ui/badge';
+import type { BadgeVariant } from "$lib/components/ui/badge";
 
-import type { Dictionary } from '$lib/i18n';
+import type { Dictionary } from "$lib/i18n";
 
 export function formatTimestamp(value: string) {
   if (!value) {
@@ -29,17 +29,17 @@ export function taskStatusTone(status: string): BadgeVariant {
 
 export function taskStatusLabel(status: string, messages: Dictionary) {
   switch (status) {
-    case 'running':
+    case "running":
       return messages.status.running;
-    case 'succeeded':
+    case "succeeded":
       return messages.status.succeeded;
-    case 'pending':
+    case "pending":
       return messages.status.pending;
-    case 'awaiting_confirmation':
+    case "awaiting_confirmation":
       return messages.status.awaitingConfirmation;
-    case 'failed':
+    case "failed":
       return messages.status.failed;
-    case 'cancelled':
+    case "cancelled":
       return messages.status.cancelled;
     default:
       return status || messages.status.unknown;
@@ -48,45 +48,45 @@ export function taskStatusLabel(status: string, messages: Dictionary) {
 
 export function taskTypeLabel(type: string, messages: Dictionary) {
   switch (type) {
-    case 'deploy':
+    case "deploy":
       return messages.tasks.types.deploy;
-    case 'update':
+    case "update":
       return messages.tasks.types.update;
-    case 'restart':
+    case "restart":
       return messages.tasks.types.restart;
-    case 'stop':
+    case "stop":
       return messages.tasks.types.stop;
-    case 'backup':
+    case "backup":
       return messages.tasks.types.backup;
-    case 'restore':
+    case "restore":
       return messages.tasks.types.restore;
-    case 'migrate':
+    case "migrate":
       return messages.tasks.types.migrate;
-    case 'dns_update':
+    case "dns_update":
       return messages.tasks.types.dnsUpdate;
-    case 'caddy_sync':
+    case "caddy_sync":
       return messages.tasks.types.caddySync;
-    case 'caddy_reload':
+    case "caddy_reload":
       return messages.tasks.types.caddyReload;
-    case 'prune':
+    case "prune":
       return messages.tasks.types.prune;
-    case 'rustic_forget':
+    case "rustic_forget":
       return messages.tasks.types.rusticForget;
-    case 'rustic_prune':
+    case "rustic_prune":
       return messages.tasks.types.rusticPrune;
-    case 'docker_list':
+    case "docker_list":
       return messages.tasks.types.dockerList;
-    case 'docker_inspect':
+    case "docker_inspect":
       return messages.tasks.types.dockerInspect;
-    case 'docker_start':
+    case "docker_start":
       return messages.tasks.types.dockerStart;
-    case 'docker_stop':
+    case "docker_stop":
       return messages.tasks.types.dockerStop;
-    case 'docker_restart':
+    case "docker_restart":
       return messages.tasks.types.dockerRestart;
-    case 'docker_logs':
+    case "docker_logs":
       return messages.tasks.types.dockerLogs;
-    case 'docker_remove':
+    case "docker_remove":
       return messages.tasks.types.dockerRemove;
     default:
       return type || messages.status.unknown;
@@ -95,22 +95,22 @@ export function taskTypeLabel(type: string, messages: Dictionary) {
 
 export function runtimeStatusLabel(status: string, messages: Dictionary) {
   switch (status) {
-    case 'running':
+    case "running":
       return messages.status.running;
-    case 'stopped':
+    case "stopped":
       return messages.status.stopped;
-    case 'pending':
+    case "pending":
       return messages.status.pending;
-    case 'failed':
-    case 'error':
+    case "failed":
+    case "error":
       return messages.status.failed;
-    case 'succeeded':
+    case "succeeded":
       return messages.status.succeeded;
-    case 'cancelled':
+    case "cancelled":
       return messages.status.cancelled;
-    case 'online':
+    case "online":
       return messages.status.online;
-    case 'offline':
+    case "offline":
       return messages.status.offline;
     default:
       return status || messages.status.unknown;
@@ -165,12 +165,15 @@ export function parseJsonList(rawJson: string) {
 
 export function formatDockerTimestamp(timestamp: string) {
   if (!timestamp) {
-    return '-';
+    return "-";
   }
 
-  const cleaned = timestamp.replace(/\s+[+-]\d{4}\s+\w+$/, '');
-  const parts = cleaned.split(' ');
-  const parsed = parts.length === 2 ? new Date(`${parts[0]}T${parts[1]}`) : new Date(cleaned);
+  const cleaned = timestamp.replace(/\s+[+-]\d{4}\s+\w+$/, "");
+  const parts = cleaned.split(" ");
+  const parsed =
+    parts.length === 2
+      ? new Date(`${parts[0]}T${parts[1]}`)
+      : new Date(cleaned);
 
   if (Number.isNaN(parsed.getTime())) {
     return timestamp;
@@ -178,7 +181,7 @@ export function formatDockerTimestamp(timestamp: string) {
 
   const diff = Math.floor((Date.now() - parsed.getTime()) / 1000);
 
-  if (diff < 0) return 'just now';
+  if (diff < 0) return "just now";
   if (diff < 60) return `${diff}s ago`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;

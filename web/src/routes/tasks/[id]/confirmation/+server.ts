@@ -8,7 +8,10 @@ export const POST: RequestHandler = async ({ params, request }) => {
     const body = await request.json();
     const decision = body?.decision;
     if (decision !== "approve" && decision !== "reject") {
-      return json({ error: "decision must be approve or reject" }, { status: 400 });
+      return json(
+        { error: "decision must be approve or reject" },
+        { status: 400 },
+      );
     }
 
     const result = await resolveTaskConfirmation(params.id, decision);

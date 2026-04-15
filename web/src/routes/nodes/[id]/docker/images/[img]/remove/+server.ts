@@ -11,10 +11,19 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
   try {
     const payload = await request.json().catch(() => ({}));
-    return json(await removeNodeImage(params.id, decodeURIComponent(params.img), payload.force === true));
+    return json(
+      await removeNodeImage(
+        params.id,
+        decodeURIComponent(params.img),
+        payload.force === true,
+      ),
+    );
   } catch (error) {
     return json(
-      { error: error instanceof Error ? error.message : "Failed to remove image" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to remove image",
+      },
       { status: 500 },
     );
   }

@@ -15,7 +15,10 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 
     const workspace = await requireWorkspace(params.name);
     if (!payload.path || !payload.baseRevision) {
-      return json({ error: "Path and base revision are required." }, { status: 400 });
+      return json(
+        { error: "Path and base revision are required." },
+        { status: 400 },
+      );
     }
 
     const result = await saveServiceWorkspaceFile(
@@ -29,7 +32,9 @@ export const PUT: RequestHandler = async ({ params, request }) => {
     return json({ file: result.file, write: result.write });
   } catch (error) {
     return json(
-      { error: error instanceof Error ? error.message : "Failed to save file." },
+      {
+        error: error instanceof Error ? error.message : "Failed to save file.",
+      },
       { status: 400 },
     );
   }

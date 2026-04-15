@@ -1,4 +1,4 @@
-import type { Diagnostic } from '@codemirror/lint';
+import type { Diagnostic } from "@codemirror/lint";
 
 const envFilePattern = /^\.env(?:\.[^.]+)*$/i;
 const envKeyPattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -19,7 +19,7 @@ type EnvParseResult = {
 };
 
 export function isEnvFilePath(filePath: string): boolean {
-  const name = filePath.split('/').pop() ?? filePath;
+  const name = filePath.split("/").pop() ?? filePath;
   return envFilePattern.test(name);
 }
 
@@ -35,21 +35,21 @@ export function collectEnvDefinitions(source: string): EnvParseResult {
   const seenKeys = new Map<string, Range>();
 
   let offset = 0;
-  for (const line of source.split('\n')) {
+  for (const line of source.split("\n")) {
     const lineRange = { from: offset, to: offset + line.length };
     const trimmed = line.trim();
 
-    if (trimmed === '' || trimmed.startsWith('#')) {
+    if (trimmed === "" || trimmed.startsWith("#")) {
       offset += line.length + 1;
       continue;
     }
 
-    const equalsIndex = line.indexOf('=');
+    const equalsIndex = line.indexOf("=");
     if (equalsIndex < 0) {
       diagnostics.push({
         ...nonEmptyRange(lineRange),
-        severity: 'error',
-        message: 'Environment variables must use KEY=VALUE syntax.',
+        severity: "error",
+        message: "Environment variables must use KEY=VALUE syntax.",
       });
       offset += line.length + 1;
       continue;
@@ -63,11 +63,11 @@ export function collectEnvDefinitions(source: string): EnvParseResult {
       to: keyStart + Math.max(rawKey.length, 1),
     };
 
-    if (rawKey === '') {
+    if (rawKey === "") {
       diagnostics.push({
         ...keyRange,
-        severity: 'error',
-        message: 'Environment variable name cannot be empty.',
+        severity: "error",
+        message: "Environment variable name cannot be empty.",
       });
       offset += line.length + 1;
       continue;
@@ -76,7 +76,7 @@ export function collectEnvDefinitions(source: string): EnvParseResult {
     if (!envKeyPattern.test(rawKey)) {
       diagnostics.push({
         ...keyRange,
-        severity: 'error',
+        severity: "error",
         message: `Invalid environment variable name \`${rawKey}\`.`,
       });
       offset += line.length + 1;
@@ -86,7 +86,7 @@ export function collectEnvDefinitions(source: string): EnvParseResult {
     if (seenKeys.has(rawKey)) {
       diagnostics.push({
         ...keyRange,
-        severity: 'warning',
+        severity: "warning",
         message: `Duplicate environment variable \`${rawKey}\`.`,
       });
     } else {
@@ -116,7 +116,7 @@ function quoteDiagnostic(value: string, offset: number): Diagnostic | null {
   const trimmedStart = value.trimStart();
   const leadingWhitespace = value.length - trimmedStart.length;
 
-  if (trimmedStart === '') {
+  if (trimmedStart === "") {
     return null;
   }
 
@@ -127,7 +127,10 @@ function quoteDiagnostic(value: string, offset: number): Diagnostic | null {
 
   for (let index = 1; index < trimmedStart.length; index += 1) {
     const character = trimmedStart[index];
-    if (character === quote && (quote !== '"' || trimmedStart[index - 1] !== '\\')) {
+    if (
+      character === quote &&
+      (quote !== '"' || trimmedStart[index - 1] !== "\\")
+    ) {
       return null;
     }
   }
@@ -135,19 +138,22 @@ function quoteDiagnostic(value: string, offset: number): Diagnostic | null {
   return {
     from: offset + leadingWhitespace,
     to: offset + value.length,
-    severity: 'error',
-    message: 'Quoted environment value is missing a closing quote.',
+    severity: "error",
+    message: "Quoted environment value is missing a closing quote.",
   };
 }
 
-function inlineCommentDiagnostic(value: string, offset: number): Diagnostic | null {
+function inlineCommentDiagnostic(
+  value: string,
+  offset: number,
+): Diagnostic | null {
   let quote: '"' | "'" | null = null;
 
   for (let index = 0; index < value.length; index += 1) {
     const character = value[index];
 
     if (quote) {
-      if (character === quote && (quote !== '"' || value[index - 1] !== '\\')) {
+      if (character === quote && (quote !== '"' || value[index - 1] !== "\\")) {
         quote = null;
       }
       continue;
@@ -158,12 +164,13 @@ function inlineCommentDiagnostic(value: string, offset: number): Diagnostic | nu
       continue;
     }
 
-    if (character === '#' && index > 0 && value[index - 1] !== ' ') {
+    if (character === "#" && index > 0 && value[index - 1] !== " ") {
       return {
         from: offset + index,
         to: offset + index + 1,
-        severity: 'warning',
-        message: 'Unquoted values that contain # should add a space before the comment or wrap the value in quotes.',
+        severity: "warning",
+        message:
+          "Unquoted values that contain # should add a space before the comment or wrap the value in quotes.",
       };
     }
   }

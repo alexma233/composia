@@ -24,14 +24,18 @@ export const POST: RequestHandler = async ({ params, request, url }) => {
       payload.cols ?? 80,
       url.origin,
     );
-    const browserControllerBaseUrl = env.COMPOSIA_BROWSER_CONTROLLER_ADDR?.trim() || config.baseUrl;
+    const browserControllerBaseUrl =
+      env.COMPOSIA_BROWSER_CONTROLLER_ADDR?.trim() || config.baseUrl;
     const controllerUrl = new URL(browserControllerBaseUrl);
     const wsProtocol = controllerUrl.protocol === "https:" ? "wss:" : "ws:";
     const websocketUrl = `${wsProtocol}//${controllerUrl.host}${session.websocketPath}`;
     return json({ ...session, websocketUrl });
   } catch (error) {
     return json(
-      { error: error instanceof Error ? error.message : "Failed to open terminal" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to open terminal",
+      },
       { status: 500 },
     );
   }

@@ -14,7 +14,9 @@ export const POST: RequestHandler = async ({ params }) => {
 
     if (params.action === "caddy-sync") {
       return json(
-        await syncNodeCaddyFiles(workspace.node, { serviceName: workspace.serviceName }),
+        await syncNodeCaddyFiles(workspace.node, {
+          serviceName: workspace.serviceName,
+        }),
       );
     }
 
@@ -25,7 +27,9 @@ export const POST: RequestHandler = async ({ params }) => {
     return json(await runServiceAction(workspace.serviceName, params.action));
   } catch (error) {
     return json(
-      { error: error instanceof Error ? error.message : "Failed to run action." },
+      {
+        error: error instanceof Error ? error.message : "Failed to run action.",
+      },
       { status: 400 },
     );
   }

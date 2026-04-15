@@ -11,16 +11,26 @@ export const POST: RequestHandler = async ({ params, request }) => {
       targetNodeId?: string;
     };
     if (!payload.sourceNodeId || !payload.targetNodeId) {
-      return json({ error: "Source and target node IDs are required." }, { status: 400 });
+      return json(
+        { error: "Source and target node IDs are required." },
+        { status: 400 },
+      );
     }
 
     const workspace = await requireDeclaredWorkspace(params.name);
     return json(
-      await migrateService(workspace.serviceName, payload.sourceNodeId, payload.targetNodeId),
+      await migrateService(
+        workspace.serviceName,
+        payload.sourceNodeId,
+        payload.targetNodeId,
+      ),
     );
   } catch (error) {
     return json(
-      { error: error instanceof Error ? error.message : "Failed to migrate service." },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to migrate service.",
+      },
       { status: 400 },
     );
   }

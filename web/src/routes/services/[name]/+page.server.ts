@@ -1,9 +1,6 @@
 import type { PageServerLoad } from "./$types";
 
-import {
-  controllerConfig,
-  loadRepoHead,
-} from "$lib/server/controller";
+import { controllerConfig, loadRepoHead } from "$lib/server/controller";
 import { loadServiceWorkspaces } from "$lib/server/service-index";
 import {
   defaultServiceFilePath,
@@ -43,7 +40,11 @@ export const load: PageServerLoad = async ({ params, url }) => {
       ? normalizeServiceRelativePath(requestedFile)
       : defaultServiceFilePath(fileTree);
     const initialFile = activeFilePath
-      ? await loadServiceWorkspaceFile(workspace.serviceName ?? null, workspace.folder, activeFilePath)
+      ? await loadServiceWorkspaceFile(
+          workspace.serviceName ?? null,
+          workspace.folder,
+          activeFilePath,
+        )
       : null;
 
     return {

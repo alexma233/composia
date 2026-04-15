@@ -13,7 +13,10 @@ export const POST: RequestHandler = async ({ params, request }) => {
     };
 
     if (!payload.path || !payload.baseRevision) {
-      return json({ error: "Path and base revision are required." }, { status: 400 });
+      return json(
+        { error: "Path and base revision are required." },
+        { status: 400 },
+      );
     }
 
     const write = await createServiceWorkspaceDirectory(
@@ -21,11 +24,18 @@ export const POST: RequestHandler = async ({ params, request }) => {
       normalizeServiceRelativePath(payload.path),
       payload.baseRevision,
     );
-    const { workspace, fileTree } = await loadServiceWorkspaceSummary(params.name);
+    const { workspace, fileTree } = await loadServiceWorkspaceSummary(
+      params.name,
+    );
     return json({ write, workspace, fileTree });
   } catch (error) {
     return json(
-      { error: error instanceof Error ? error.message : "Failed to create directory." },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to create directory.",
+      },
       { status: 400 },
     );
   }

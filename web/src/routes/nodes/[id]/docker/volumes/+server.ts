@@ -15,7 +15,8 @@ export const GET: RequestHandler = async ({ params }) => {
   } catch (error) {
     return json(
       {
-        error: error instanceof Error ? error.message : "Failed to load volumes",
+        error:
+          error instanceof Error ? error.message : "Failed to load volumes",
         volumes: [],
       },
       { status: 500 },

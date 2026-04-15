@@ -238,15 +238,16 @@ export async function loadDashboard(): Promise<DashboardData> {
     throw new Error(config.reason);
   }
 
-  const [system, servicesResult, nodes, tasksResult, allWorkspaces] = await Promise.all([
-    loadSystemStatus(),
-    loadServices(1, 8),
-    loadNodes(),
-    loadTasks(1, 6, { excludeType: defaultExcludedTaskTypes }),
-    import("$lib/server/service-index").then(({ loadServiceWorkspaces }) =>
-      loadServiceWorkspaces(),
-    ),
-  ]);
+  const [system, servicesResult, nodes, tasksResult, allWorkspaces] =
+    await Promise.all([
+      loadSystemStatus(),
+      loadServices(1, 8),
+      loadNodes(),
+      loadTasks(1, 6, { excludeType: defaultExcludedTaskTypes }),
+      import("$lib/server/service-index").then(({ loadServiceWorkspaces }) =>
+        loadServiceWorkspaces(),
+      ),
+    ]);
 
   const foldersByServiceName = new Map(
     allWorkspaces
@@ -258,7 +259,10 @@ export async function loadDashboard(): Promise<DashboardData> {
     system,
     services: servicesResult.items.map((service) => ({
       ...service,
-      folder: foldersByServiceName.get(service.name) ?? service.folder ?? service.name,
+      folder:
+        foldersByServiceName.get(service.name) ??
+        service.folder ??
+        service.name,
     })),
     nodes,
     tasks: tasksResult.items,
@@ -275,14 +279,19 @@ export async function loadSystemStatus(): Promise<SystemStatus> {
   );
 }
 
-export async function loadServices(page = 1, pageSize = 50): Promise<PaginatedResult<ServiceSummary>> {
+export async function loadServices(
+  page = 1,
+  pageSize = 50,
+): Promise<PaginatedResult<ServiceSummary>> {
   const config = requireControllerConfig();
   const response = await rpcCall<{
-    services?: Array<ServiceSummary & {
-      instance_count?: number;
-      running_count?: number;
-      target_node_count?: number;
-    }>;
+    services?: Array<
+      ServiceSummary & {
+        instance_count?: number;
+        running_count?: number;
+        target_node_count?: number;
+      }
+    >;
     totalCount?: number;
   }>(
     config.baseUrl,
@@ -295,7 +304,8 @@ export async function loadServices(page = 1, pageSize = 50): Promise<PaginatedRe
       ...service,
       instanceCount: service.instanceCount ?? service.instance_count ?? 0,
       runningCount: service.runningCount ?? service.running_count ?? 0,
-      targetNodeCount: service.targetNodeCount ?? service.target_node_count ?? 0,
+      targetNodeCount:
+        service.targetNodeCount ?? service.target_node_count ?? 0,
     })),
     totalCount: response.totalCount ?? 0,
   };
@@ -390,7 +400,9 @@ export async function loadBackups(
   };
 }
 
-export async function loadBackupDetail(backupId: string): Promise<BackupDetail> {
+export async function loadBackupDetail(
+  backupId: string,
+): Promise<BackupDetail> {
   const config = requireControllerConfig();
   return rpcCall<BackupDetail>(
     config.baseUrl,
@@ -404,10 +416,13 @@ export async function restoreBackup(
   backupId: string,
   nodeId: string,
 ): Promise<ServiceActionResult> {
-  return callTaskAction("/composia.controller.v1.BackupRecordService/RestoreBackup", {
-    backupId,
-    nodeId,
-  });
+  return callTaskAction(
+    "/composia.controller.v1.BackupRecordService/RestoreBackup",
+    {
+      backupId,
+      nodeId,
+    },
+  );
 }
 
 export async function loadRepoHead(): Promise<RepoHead> {
@@ -584,7 +599,8 @@ export async function loadServiceDetail(
   );
   return {
     name: response.name,
-    runtimeStatus: response.runtimeStatus ?? response.runtime_status ?? "unknown",
+    runtimeStatus:
+      response.runtimeStatus ?? response.runtime_status ?? "unknown",
     updatedAt: response.updatedAt ?? response.updated_at ?? "",
     nodes: response.nodes ?? [],
     enabled: response.enabled,
@@ -603,8 +619,10 @@ export async function loadServiceDetail(
         state: container.state ?? "unknown",
         status: container.status ?? "",
         created: container.created ?? "",
-        composeProject: container.composeProject ?? container.compose_project ?? "",
-        composeService: container.composeService ?? container.compose_service ?? "",
+        composeProject:
+          container.composeProject ?? container.compose_project ?? "",
+        composeService:
+          container.composeService ?? container.compose_service ?? "",
       })),
     })),
   };
@@ -669,11 +687,13 @@ export async function pruneNodeDocker(
   return { taskId: response.taskId ?? response.task_id ?? "" };
 }
 
-export async function forgetNodeRustic(options: {
-  nodeId?: string;
-  serviceName?: string;
-  dataName?: string;
-} = {}): Promise<{ taskId: string }> {
+export async function forgetNodeRustic(
+  options: {
+    nodeId?: string;
+    serviceName?: string;
+    dataName?: string;
+  } = {},
+): Promise<{ taskId: string }> {
   const config = requireControllerConfig();
   const response = await rpcCall<{ taskId?: string; task_id?: string }>(
     config.baseUrl,
@@ -688,9 +708,11 @@ export async function forgetNodeRustic(options: {
   return { taskId: response.taskId ?? response.task_id ?? "" };
 }
 
-export async function initNodeRustic(options: {
-  nodeId?: string;
-} = {}): Promise<{ taskId: string }> {
+export async function initNodeRustic(
+  options: {
+    nodeId?: string;
+  } = {},
+): Promise<{ taskId: string }> {
   const config = requireControllerConfig();
   const response = await rpcCall<{ taskId?: string; task_id?: string }>(
     config.baseUrl,
@@ -703,11 +725,13 @@ export async function initNodeRustic(options: {
   return { taskId: response.taskId ?? response.task_id ?? "" };
 }
 
-export async function pruneNodeRustic(options: {
-  nodeId?: string;
-  serviceName?: string;
-  dataName?: string;
-} = {}): Promise<{ taskId: string }> {
+export async function pruneNodeRustic(
+  options: {
+    nodeId?: string;
+    serviceName?: string;
+    dataName?: string;
+  } = {},
+): Promise<{ taskId: string }> {
   const config = requireControllerConfig();
   const response = await rpcCall<{ taskId?: string; task_id?: string }>(
     config.baseUrl,
@@ -744,7 +768,11 @@ export async function syncNodeCaddyFiles(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.NodeMaintenanceService/SyncNodeCaddyFiles",
-    { nodeId, serviceName: options.serviceName ?? "", fullRebuild: options.fullRebuild ?? false },
+    {
+      nodeId,
+      serviceName: options.serviceName ?? "",
+      fullRebuild: options.fullRebuild ?? false,
+    },
   );
   return { taskId: response.taskId ?? response.task_id ?? "" };
 }
@@ -1157,11 +1185,14 @@ export async function resolveTaskConfirmation(
   decision: "approve" | "reject",
   comment = "",
 ): Promise<ServiceActionResult> {
-  return callTaskAction("/composia.controller.v1.TaskService/ResolveTaskConfirmation", {
-    taskId,
-    decision,
-    comment,
-  });
+  return callTaskAction(
+    "/composia.controller.v1.TaskService/ResolveTaskConfirmation",
+    {
+      taskId,
+      decision,
+      comment,
+    },
+  );
 }
 
 function requireControllerConfig() {
@@ -1190,12 +1221,7 @@ async function callTaskAction(
     status?: string;
     repoRevision?: string;
     repo_revision?: string;
-  }>(
-    config.baseUrl,
-    config.token,
-    procedure,
-    body,
-  );
+  }>(config.baseUrl, config.token, procedure, body);
 
   return {
     taskId: response.taskId ?? response.task_id ?? "",

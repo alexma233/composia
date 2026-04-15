@@ -10,13 +10,18 @@ export const GET: RequestHandler = async ({ params }) => {
   }
 
   try {
-    const rawJson = await inspectNodeContainer(params.id, decodeURIComponent(params.cid));
+    const rawJson = await inspectNodeContainer(
+      params.id,
+      decodeURIComponent(params.cid),
+    );
     return json({ rawJson });
   } catch (error) {
     return json(
       {
         error:
-          error instanceof Error ? error.message : "Failed to inspect container",
+          error instanceof Error
+            ? error.message
+            : "Failed to inspect container",
         rawJson: null,
       },
       { status: 500 },

@@ -10,7 +10,10 @@ export const POST: RequestHandler = async () => {
   } catch (error) {
     return json(
       {
-        error: error instanceof Error ? error.message : "Failed to start rustic init.",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to start rustic init.",
       },
       { status: 500 },
     );

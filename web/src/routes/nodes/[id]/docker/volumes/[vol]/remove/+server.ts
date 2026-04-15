@@ -10,10 +10,15 @@ export const POST: RequestHandler = async ({ params }) => {
   }
 
   try {
-    return json(await removeNodeVolume(params.id, decodeURIComponent(params.vol)));
+    return json(
+      await removeNodeVolume(params.id, decodeURIComponent(params.vol)),
+    );
   } catch (error) {
     return json(
-      { error: error instanceof Error ? error.message : "Failed to remove volume" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to remove volume",
+      },
       { status: 500 },
     );
   }

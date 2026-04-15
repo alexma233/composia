@@ -28,7 +28,9 @@ export const actions: Actions = {
     const formData = await request.formData();
     const username = String(formData.get("username") ?? "");
     const password = String(formData.get("password") ?? "");
-    const next = sanitizeNext(String(formData.get("next") ?? url.searchParams.get("next") ?? "/"));
+    const next = sanitizeNext(
+      String(formData.get("next") ?? url.searchParams.get("next") ?? "/"),
+    );
 
     const user = await authenticate(username, password);
     if (!user) {

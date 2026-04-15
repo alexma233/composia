@@ -15,13 +15,27 @@ export const POST: RequestHandler = async ({ params }) => {
 
   try {
     if (!isContainerAction(params.action)) {
-      return json({ error: `Unsupported action: ${params.action}` }, { status: 400 });
+      return json(
+        { error: `Unsupported action: ${params.action}` },
+        { status: 400 },
+      );
     }
 
-    return json(await runContainerAction(params.id, decodeURIComponent(params.cid), params.action));
+    return json(
+      await runContainerAction(
+        params.id,
+        decodeURIComponent(params.cid),
+        params.action,
+      ),
+    );
   } catch (error) {
     return json(
-      { error: error instanceof Error ? error.message : "Failed to run container action" },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to run container action",
+      },
       { status: 500 },
     );
   }

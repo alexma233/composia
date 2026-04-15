@@ -10,10 +10,15 @@ export const POST: RequestHandler = async ({ params }) => {
   }
 
   try {
-    return json(await removeNodeNetwork(params.id, decodeURIComponent(params.nid)));
+    return json(
+      await removeNodeNetwork(params.id, decodeURIComponent(params.nid)),
+    );
   } catch (error) {
     return json(
-      { error: error instanceof Error ? error.message : "Failed to remove network" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to remove network",
+      },
       { status: 500 },
     );
   }

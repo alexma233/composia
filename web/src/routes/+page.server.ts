@@ -1,7 +1,11 @@
 import type { PageServerLoad } from "./$types";
 
 import { defaultExcludedTaskTypes } from "$lib/tasks";
-import { controllerConfig, loadDashboard, loadTasks } from "$lib/server/controller";
+import {
+  controllerConfig,
+  loadDashboard,
+  loadTasks,
+} from "$lib/server/controller";
 
 export const load: PageServerLoad = async () => {
   const config = controllerConfig();

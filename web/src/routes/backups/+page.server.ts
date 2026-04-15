@@ -5,7 +5,13 @@ import { controllerConfig, loadBackups } from "$lib/server/controller";
 export const load: PageServerLoad = async ({ url }) => {
   const config = controllerConfig();
   if (!config.ready) {
-    return { ready: false, error: config.reason, backups: [], totalCount: 0, page: 1 };
+    return {
+      ready: false,
+      error: config.reason,
+      backups: [],
+      totalCount: 0,
+      page: 1,
+    };
   }
 
   const page = parseInt(url.searchParams.get("page") || "1", 10) || 1;

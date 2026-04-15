@@ -25,8 +25,16 @@ export const accentMetadata: Record<
   { label: string; labelZhHans: string; preview: string }
 > = {
   blue: { label: "Blue", labelZhHans: "蓝色", preview: "hsl(221 83% 53%)" },
-  emerald: { label: "Emerald", labelZhHans: "翠绿", preview: "hsl(160 84% 39%)" },
-  violet: { label: "Violet", labelZhHans: "紫罗兰", preview: "hsl(262 83% 58%)" },
+  emerald: {
+    label: "Emerald",
+    labelZhHans: "翠绿",
+    preview: "hsl(160 84% 39%)",
+  },
+  violet: {
+    label: "Violet",
+    labelZhHans: "紫罗兰",
+    preview: "hsl(262 83% 58%)",
+  },
   rose: { label: "Rose", labelZhHans: "玫瑰", preview: "hsl(347 77% 50%)" },
   amber: { label: "Amber", labelZhHans: "琥珀", preview: "hsl(38 92% 50%)" },
 };

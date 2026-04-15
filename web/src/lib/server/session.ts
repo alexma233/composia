@@ -40,7 +40,10 @@ export function sessionCookie() {
   return sessionCookieName;
 }
 
-export async function authenticate(username: string, password: string): Promise<SessionUser | null> {
+export async function authenticate(
+  username: string,
+  password: string,
+): Promise<SessionUser | null> {
   const config = authConfig();
   if (!config.ready) {
     throw new Error(config.reason);
@@ -69,7 +72,9 @@ export function createSessionToken(user: SessionUser) {
   return `${encodedPayload}.${signature}`;
 }
 
-export function readSessionToken(token: string | undefined): SessionUser | null {
+export function readSessionToken(
+  token: string | undefined,
+): SessionUser | null {
   if (!token) {
     return null;
   }
@@ -92,7 +97,11 @@ export function readSessionToken(token: string | undefined): SessionUser | null 
   }
 
   const payload = decodePayload(encodedPayload);
-  if (!payload || payload.expiresAt <= Date.now() || !secureEqual(payload.name, config.username)) {
+  if (
+    !payload ||
+    payload.expiresAt <= Date.now() ||
+    !secureEqual(payload.name, config.username)
+  ) {
     return null;
   }
 
@@ -113,8 +122,13 @@ function encodePayload(payload: SessionPayload) {
 
 function decodePayload(value: string): SessionPayload | null {
   try {
-    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Partial<SessionPayload>;
-    if (typeof parsed.name !== "string" || typeof parsed.expiresAt !== "number") {
+    const parsed = JSON.parse(
+      Buffer.from(value, "base64url").toString("utf8"),
+    ) as Partial<SessionPayload>;
+    if (
+      typeof parsed.name !== "string" ||
+      typeof parsed.expiresAt !== "number"
+    ) {
       return null;
     }
     return {

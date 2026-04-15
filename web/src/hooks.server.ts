@@ -14,7 +14,10 @@ export const handle: Handle = async ({ event, resolve }) => {
   const isPublicRoute = isPublicPath(pathname);
   if (!user && !isPublicRoute) {
     if (isDocumentRequest(event)) {
-      throw redirect(303, `/login?next=${encodeURIComponent(pathname + event.url.search)}`);
+      throw redirect(
+        303,
+        `/login?next=${encodeURIComponent(pathname + event.url.search)}`,
+      );
     }
     return json({ error: "Authentication required." }, { status: 401 });
   }
