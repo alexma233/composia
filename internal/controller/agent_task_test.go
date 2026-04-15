@@ -30,8 +30,8 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	ctx := context.Background()
 	repoDir := t.TempDir()
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"demo/composia-meta.yaml": "name: demo\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
-		"edge/composia-meta.yaml": "name: edge\nnode: main\ninfra:\n  caddy:\n    compose_service: caddy\n    config_dir: /etc/caddy\n",
+		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
+		"edge/composia-meta.yaml": "name: edge\nnodes:\n  - main\ninfra:\n  caddy:\n    compose_service: caddy\n    config_dir: /etc/caddy\n",
 	})
 	logDir := filepath.Join(t.TempDir(), "logs")
 	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
@@ -433,8 +433,8 @@ func TestAgentReportTaskStateSkipsCaddyReloadWhenServiceDoesNotUseCaddy(t *testi
 	ctx := context.Background()
 	repoDir := t.TempDir()
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"demo/composia-meta.yaml": "name: demo\nnode: main\n",
-		"edge/composia-meta.yaml": "name: edge\nnode: main\ninfra:\n  caddy:\n    compose_service: caddy\n    config_dir: /etc/caddy\n",
+		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\n",
+		"edge/composia-meta.yaml": "name: edge\nnodes:\n  - main\ninfra:\n  caddy:\n    compose_service: caddy\n    config_dir: /etc/caddy\n",
 	})
 	logDir := filepath.Join(t.TempDir(), "logs")
 	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
@@ -494,8 +494,8 @@ func TestAgentReportTaskStateQueuesCaddyReloadAfterStop(t *testing.T) {
 	ctx := context.Background()
 	repoDir := t.TempDir()
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"demo/composia-meta.yaml": "name: demo\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
-		"edge/composia-meta.yaml": "name: edge\nnode: main\ninfra:\n  caddy:\n    compose_service: caddy\n    config_dir: /etc/caddy\n",
+		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
+		"edge/composia-meta.yaml": "name: edge\nnodes:\n  - main\ninfra:\n  caddy:\n    compose_service: caddy\n    config_dir: /etc/caddy\n",
 	})
 	logDir := filepath.Join(t.TempDir(), "logs")
 	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {

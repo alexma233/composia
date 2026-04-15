@@ -106,7 +106,7 @@ func TestBundleServiceStreamsCaddySyncBundleWithSingleServiceDir(t *testing.T) {
 	rootDir := t.TempDir()
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"demo/composia-meta.yaml": "name: demo\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
+		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
 		"demo/demo.caddy":         "demo.example.com { reverse_proxy 127.0.0.1:8080 }\n",
 	})
 	revision, err := repo.CurrentRevision(repoDir)
@@ -179,9 +179,9 @@ func TestBundleServiceStreamsRequestedServiceDirOverride(t *testing.T) {
 	rootDir := t.TempDir()
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"alpha/composia-meta.yaml": "name: alpha\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./alpha.caddy\n",
+		"alpha/composia-meta.yaml": "name: alpha\nnodes:\n  - main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./alpha.caddy\n",
 		"alpha/alpha.caddy":        "alpha.example.com { reverse_proxy 127.0.0.1:8080 }\n",
-		"bravo/composia-meta.yaml": "name: bravo\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./bravo.caddy\n",
+		"bravo/composia-meta.yaml": "name: bravo\nnodes:\n  - main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./bravo.caddy\n",
 		"bravo/bravo.caddy":        "bravo.example.com { reverse_proxy 127.0.0.1:9090 }\n",
 	})
 	revision, err := repo.CurrentRevision(repoDir)
@@ -327,8 +327,8 @@ func TestBundleServiceInjectsBackupRuntimeConfig(t *testing.T) {
 	rootDir := t.TempDir()
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"demo/composia-meta.yaml":   "name: demo\nnode: main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\nbackup:\n  data:\n    - name: config\n      provider: rustic\n",
-		"backup/composia-meta.yaml": "name: backup\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n    data_protect_dir: /data-protect\n",
+		"demo/composia-meta.yaml":   "name: demo\nnodes:\n  - main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\nbackup:\n  data:\n    - name: config\n      provider: rustic\n",
+		"backup/composia-meta.yaml": "name: backup\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n    data_protect_dir: /data-protect\n",
 	})
 	revision, err := repo.CurrentRevision(repoDir)
 	if err != nil {
@@ -403,10 +403,10 @@ func TestBundleServiceServiceOverrideSkipsBackupRuntimePayload(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(repoDir, "backup", ".secret.env.enc"), ciphertext, 0o644); err != nil {
 		t.Fatalf("write encrypted rustic secret: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "demo", "composia-meta.yaml"), []byte("name: demo\nnode: main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\nbackup:\n  data:\n    - name: config\n      provider: rustic\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "demo", "composia-meta.yaml"), []byte("name: demo\nnodes:\n  - main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\nbackup:\n  data:\n    - name: config\n      provider: rustic\n"), 0o644); err != nil {
 		t.Fatalf("write demo meta: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
 	runGit(t, repoDir, "add", ".")
@@ -474,18 +474,18 @@ func TestBundleServiceInjectsBackupRuntimeConfigFromTaskRevision(t *testing.T) {
 	rootDir := t.TempDir()
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"demo/composia-meta.yaml":   "name: demo\nnode: main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config-v1\nbackup:\n  data:\n    - name: config\n      provider: rustic\n",
-		"backup/composia-meta.yaml": "name: backup\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic-v1\n    profile: prod-v1\n    data_protect_dir: /data-protect-v1\n",
+		"demo/composia-meta.yaml":   "name: demo\nnodes:\n  - main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config-v1\nbackup:\n  data:\n    - name: config\n      provider: rustic\n",
+		"backup/composia-meta.yaml": "name: backup\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic-v1\n    profile: prod-v1\n    data_protect_dir: /data-protect-v1\n",
 	})
 	revision, err := repo.CurrentRevision(repoDir)
 	if err != nil {
 		t.Fatalf("read current revision: %v", err)
 	}
 
-	if err := os.WriteFile(filepath.Join(repoDir, "demo", "composia-meta.yaml"), []byte("name: demo\nnode: main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config-v2\nbackup:\n  data:\n    - name: config\n      provider: rustic\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "demo", "composia-meta.yaml"), []byte("name: demo\nnodes:\n  - main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config-v2\nbackup:\n  data:\n    - name: config\n      provider: rustic\n"), 0o644); err != nil {
 		t.Fatalf("update demo meta: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic-v2\n    profile: prod-v2\n    data_protect_dir: /data-protect-v2\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic-v2\n    profile: prod-v2\n    data_protect_dir: /data-protect-v2\n"), 0o644); err != nil {
 		t.Fatalf("update backup meta: %v", err)
 	}
 	runGit(t, repoDir, "add", ".")

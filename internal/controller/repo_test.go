@@ -542,7 +542,7 @@ func TestRepoCommandServiceUpdateRepoFileAllowsInvalidMetaDraft(t *testing.T) {
 	}
 	updated, err := client.UpdateRepoFile(context.Background(), connect.NewRequest(&controllerv1.UpdateRepoFileRequest{
 		Path:         "alpha/composia-meta.yaml",
-		Content:      "name: alpha\nnode: missing\n",
+		Content:      "name: alpha\nnodes:\n  - missing\n",
 		BaseRevision: head.Msg.GetHeadRevision(),
 	}))
 	if err != nil {
@@ -555,7 +555,7 @@ func TestRepoCommandServiceUpdateRepoFileAllowsInvalidMetaDraft(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read updated file: %v", err)
 	}
-	if string(content) != "name: alpha\nnode: missing\n" {
+	if string(content) != "name: alpha\nnodes:\n  - missing\n" {
 		t.Fatalf("expected invalid draft content to be saved, got %q", string(content))
 	}
 	clean, err := repo.IsCleanWorkingTree(repoDir)
@@ -577,7 +577,7 @@ func TestRepoCommandServiceUpdateRepoFileRejectsServiceWithActiveTask(t *testing
 	rootDir := t.TempDir()
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"alpha/composia-meta.yaml": "name: alpha\nnode: main\n",
+		"alpha/composia-meta.yaml": "name: alpha\nnodes:\n  - main\n",
 		"README.md":                "hello\n",
 	})
 	stateDir := filepath.Join(rootDir, "state")
@@ -620,7 +620,7 @@ func TestRepoCommandServiceUpdateRepoFileRejectsServiceWithActiveTask(t *testing
 	}
 	_, err = client.UpdateRepoFile(context.Background(), connect.NewRequest(&controllerv1.UpdateRepoFileRequest{
 		Path:         "alpha/composia-meta.yaml",
-		Content:      "name: alpha\nnode: main\nenabled: true\n",
+		Content:      "name: alpha\nnodes:\n  - main\nenabled: true\n",
 		BaseRevision: head.Msg.GetHeadRevision(),
 	}))
 	if err == nil {

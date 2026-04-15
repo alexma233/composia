@@ -17,10 +17,10 @@ func TestValidateRepoCollectsErrorsAcrossFiles(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(repoDir, "beta"), 0o755); err != nil {
 		t.Fatalf("create beta dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "alpha", MetaFileName), []byte("name: shared\nnode: main\nunknown_field: true\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "alpha", MetaFileName), []byte("name: shared\nnodes:\n  - main\nunknown_field: true\n"), 0o644); err != nil {
 		t.Fatalf("write alpha meta: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "beta", MetaFileName), []byte("name: shared\nnode: missing-node\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "beta", MetaFileName), []byte("name: shared\nnodes:\n  - missing-node\n"), 0o644); err != nil {
 		t.Fatalf("write beta meta: %v", err)
 	}
 
@@ -46,10 +46,10 @@ func TestValidateRepoReportsDuplicateServiceNames(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(repoDir, "beta"), 0o755); err != nil {
 		t.Fatalf("create beta dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "alpha", MetaFileName), []byte("name: shared\nnode: main\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "alpha", MetaFileName), []byte("name: shared\nnodes:\n  - main\n"), 0o644); err != nil {
 		t.Fatalf("write alpha meta: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "beta", MetaFileName), []byte("name: shared\nnode: main\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "beta", MetaFileName), []byte("name: shared\nnodes:\n  - main\n"), 0o644); err != nil {
 		t.Fatalf("write beta meta: %v", err)
 	}
 
@@ -72,8 +72,8 @@ func TestValidateRepoReportsDuplicateCaddyInfraServices(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(repoDir, "beta"), 0o755); err != nil {
 		t.Fatalf("create beta dir: %v", err)
 	}
-	alpha := "name: alpha\nnode: main\ninfra:\n  caddy: {}\n"
-	beta := "name: beta\nnode: main\ninfra:\n  caddy: {}\n"
+	alpha := "name: alpha\nnodes:\n  - main\ninfra:\n  caddy: {}\n"
+	beta := "name: beta\nnodes:\n  - main\ninfra:\n  caddy: {}\n"
 	if err := os.WriteFile(filepath.Join(repoDir, "alpha", MetaFileName), []byte(alpha), 0o644); err != nil {
 		t.Fatalf("write alpha meta: %v", err)
 	}
@@ -100,8 +100,8 @@ func TestValidateRepoReportsDuplicateRusticInfraServices(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(repoDir, "beta"), 0o755); err != nil {
 		t.Fatalf("create beta dir: %v", err)
 	}
-	alpha := "name: alpha\nnode: main\ninfra:\n  rustic: {}\n"
-	beta := "name: beta\nnode: main\ninfra:\n  rustic: {}\n"
+	alpha := "name: alpha\nnodes:\n  - main\ninfra:\n  rustic: {}\n"
+	beta := "name: beta\nnodes:\n  - main\ninfra:\n  rustic: {}\n"
 	if err := os.WriteFile(filepath.Join(repoDir, "alpha", MetaFileName), []byte(alpha), 0o644); err != nil {
 		t.Fatalf("write alpha meta: %v", err)
 	}
@@ -125,7 +125,7 @@ func TestValidateRepoRejectsBlankRusticDataProtectDir(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(repoDir, "backup"), 0o755); err != nil {
 		t.Fatalf("create backup dir: %v", err)
 	}
-	meta := "name: backup\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    data_protect_dir: \"   \"\n"
+	meta := "name: backup\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    data_protect_dir: \"   \"\n"
 	if err := os.WriteFile(filepath.Join(repoDir, "backup", MetaFileName), []byte(meta), 0o644); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
@@ -146,7 +146,7 @@ func TestValidateRepoRejectsBlankRusticInitArgs(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(repoDir, "backup"), 0o755); err != nil {
 		t.Fatalf("create backup dir: %v", err)
 	}
-	meta := "name: backup\nnode: main\ninfra:\n  rustic:\n    compose_service: rustic\n    init_args:\n      - --set-chunker\n      - \"   \"\n"
+	meta := "name: backup\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    init_args:\n      - --set-chunker\n      - \"   \"\n"
 	if err := os.WriteFile(filepath.Join(repoDir, "backup", MetaFileName), []byte(meta), 0o644); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
@@ -169,7 +169,8 @@ func TestValidateRepoRejectsUnsafeDataProtectInclude(t *testing.T) {
 	}
 	meta := strings.TrimSpace(`
 name: alpha
-node: main
+nodes:
+  - main
 data_protect:
   data:
     - name: config

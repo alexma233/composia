@@ -529,7 +529,7 @@ func TestServiceCommandServiceDeployIgnoresUnrelatedInvalidDraft(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(repoDir, "draft"), 0o755); err != nil {
 		t.Fatalf("create draft dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "draft", "composia-meta.yaml"), []byte("name: draft\nnode: missing\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "draft", "composia-meta.yaml"), []byte("name: draft\nnodes:\n  - missing\n"), 0o644); err != nil {
 		t.Fatalf("write invalid draft meta: %v", err)
 	}
 
@@ -764,7 +764,7 @@ func TestServiceCommandServiceCaddySyncCreatesPendingTask(t *testing.T) {
 	repoDir := filepath.Join(rootDir, "repo")
 	logDir := filepath.Join(rootDir, "logs")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"demo/composia-meta.yaml": "name: demo\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
+		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
 		"demo/demo.caddy":         "demo.example.com { reverse_proxy 127.0.0.1:8080 }\n",
 	})
 
@@ -1019,7 +1019,7 @@ func TestServiceCommandServiceUpdateDNSCreatesPendingTaskWithoutOnlineNode(t *te
 	rootDir := t.TempDir()
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"demo/composia-meta.yaml": "name: demo\nnode: main\nnetwork:\n  dns:\n    provider: cloudflare\n    hostname: demo.example.com\n",
+		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\nnetwork:\n  dns:\n    provider: cloudflare\n    hostname: demo.example.com\n",
 	})
 	logDir := filepath.Join(rootDir, "logs")
 	stateDir := filepath.Join(rootDir, "state")
@@ -1109,7 +1109,7 @@ func TestServiceCommandServiceBackupCreatesPendingTaskWithDefaultDataNames(t *te
 	rootDir := t.TempDir()
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"alpha/composia-meta.yaml": "name: alpha\nnode: main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\n    - name: db\n      backup:\n        strategy: files.copy\n        include:\n          - ./db\nbackup:\n  data:\n    - name: config\n    - name: db\n      enabled: false\n",
+		"alpha/composia-meta.yaml": "name: alpha\nnodes:\n  - main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\n    - name: db\n      backup:\n        strategy: files.copy\n        include:\n          - ./db\nbackup:\n  data:\n    - name: config\n    - name: db\n      enabled: false\n",
 	})
 	logDir := filepath.Join(rootDir, "logs")
 	stateDir := filepath.Join(rootDir, "state")
@@ -1176,7 +1176,7 @@ func TestServiceCommandServiceMigrateCreatesPendingControllerTask(t *testing.T) 
 	rootDir := t.TempDir()
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"alpha/composia-meta.yaml": "name: alpha\nnode: main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\n      restore:\n        strategy: files.copy\n        include:\n          - ./config\nbackup:\n  data:\n    - name: config\nmigrate:\n  data:\n    - name: config\n",
+		"alpha/composia-meta.yaml": "name: alpha\nnodes:\n  - main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\n      restore:\n        strategy: files.copy\n        include:\n          - ./config\nbackup:\n  data:\n    - name: config\nmigrate:\n  data:\n    - name: config\n",
 	})
 	logDir := filepath.Join(rootDir, "logs")
 	stateDir := filepath.Join(rootDir, "state")
@@ -1260,7 +1260,7 @@ func createGitRepoWithService(t *testing.T, repoDir, serviceName, nodeID string)
 		t.Fatalf("create repo directory: %v", err)
 	}
 	metaPath := filepath.Join(repoDir, serviceName, "composia-meta.yaml")
-	content := "name: " + serviceName + "\nnode: " + nodeID + "\n"
+	content := "name: " + serviceName + "\nnodes:\n  - " + nodeID + "\n"
 	if err := os.WriteFile(metaPath, []byte(content), 0o644); err != nil {
 		t.Fatalf("write service meta: %v", err)
 	}

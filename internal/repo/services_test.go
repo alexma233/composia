@@ -14,7 +14,8 @@ func TestDiscoverServicesParsesValidService(t *testing.T) {
 	metaPath := filepath.Join(repoDir, "vaultwarden", MetaFileName)
 	writeFile(t, metaPath, strings.TrimSpace(`
 name: vaultwarden
-node: node-2
+nodes:
+  - node-2
 infra:
   caddy:
     compose_service: edge
@@ -65,7 +66,7 @@ migrate:
 	}
 }
 
-func TestDiscoverServicesSkipsInvalidDefaultNodeDraft(t *testing.T) {
+func TestDiscoverServicesSkipsServiceWithoutTargetNodes(t *testing.T) {
 	t.Parallel()
 
 	repoDir := t.TempDir()
@@ -85,8 +86,8 @@ func TestDiscoverServicesSkipsDuplicateServiceNames(t *testing.T) {
 	t.Parallel()
 
 	repoDir := t.TempDir()
-	writeFile(t, filepath.Join(repoDir, "service-a", MetaFileName), "name: shared\nnode: node-1\n")
-	writeFile(t, filepath.Join(repoDir, "service-b", MetaFileName), "name: shared\nnode: node-1\n")
+	writeFile(t, filepath.Join(repoDir, "service-a", MetaFileName), "name: shared\nnodes:\n  - node-1\n")
+	writeFile(t, filepath.Join(repoDir, "service-b", MetaFileName), "name: shared\nnodes:\n  - node-1\n")
 
 	services, err := DiscoverServices(repoDir, map[string]struct{}{"node-1": {}})
 	if err != nil {
@@ -104,7 +105,7 @@ func TestFindServiceRejectsInvalidTargetService(t *testing.T) {
 	writeFile(t, filepath.Join(repoDir, "draft", MetaFileName), "name: draft\n")
 
 	_, err := FindService(repoDir, map[string]struct{}{"node-2": {}}, "draft")
-	if err == nil || !strings.Contains(err.Error(), `node "main" is not configured`) {
+	if err == nil || !strings.Contains(err.Error(), "at least one target node is required") {
 		t.Fatalf("expected strict target validation error, got %v", err)
 	}
 }
@@ -113,7 +114,7 @@ func TestFindServiceIgnoresUnrelatedInvalidDraft(t *testing.T) {
 	t.Parallel()
 
 	repoDir := t.TempDir()
-	writeFile(t, filepath.Join(repoDir, "alpha", MetaFileName), "name: alpha\nnode: node-1\n")
+	writeFile(t, filepath.Join(repoDir, "alpha", MetaFileName), "name: alpha\nnodes:\n  - node-1\n")
 	writeFile(t, filepath.Join(repoDir, "draft", MetaFileName), "name: draft\n")
 
 	service, err := FindService(repoDir, map[string]struct{}{"node-1": {}}, "alpha")
@@ -130,13 +131,13 @@ func TestRewriteServiceTargetNodesUpdatesOnlyTargetNodes(t *testing.T) {
 
 	repoDir := t.TempDir()
 	metaPath := filepath.Join(repoDir, "alpha", MetaFileName)
-	writeFile(t, metaPath, "name: alpha\nnode: node-1\nnetwork:\n  caddy:\n    enabled: true\n    source: ./Caddyfile\n")
+	writeFile(t, metaPath, "name: alpha\nnodes:\n  - node-1\nnetwork:\n  caddy:\n    enabled: true\n    source: ./Caddyfile\n")
 
 	updated, err := RewriteServiceTargetNodes(metaPath, []string{"node-1", "node-2"}, map[string]struct{}{"node-1": {}, "node-2": {}})
 	if err != nil {
 		t.Fatalf("rewrite target nodes: %v", err)
 	}
-	expected := "name: alpha\nnetwork:\n  caddy:\n    enabled: true\n    source: ./Caddyfile\nnodes:\n  - node-1\n  - node-2\n"
+	expected := "name: alpha\nnodes:\n  - node-1\n  - node-2\nnetwork:\n  caddy:\n    enabled: true\n    source: ./Caddyfile\n"
 	if updated != expected {
 		t.Fatalf("unexpected rewritten meta:\n%s", updated)
 	}
@@ -149,7 +150,8 @@ func TestDiscoverServicesRejectsInvalidBackupSchedule(t *testing.T) {
 	metaPath := filepath.Join(repoDir, "vaultwarden", MetaFileName)
 	writeFile(t, metaPath, strings.TrimSpace(`
 name: vaultwarden
-node: main
+nodes:
+  - main
 data_protect:
   data:
     - name: config
@@ -179,7 +181,8 @@ func TestDiscoverServicesSkipsServiceWithUnsafeDataInclude(t *testing.T) {
 	metaPath := filepath.Join(repoDir, "vaultwarden", MetaFileName)
 	writeFile(t, metaPath, strings.TrimSpace(`
 name: vaultwarden
-node: main
+nodes:
+  - main
 data_protect:
   data:
     - name: config
@@ -195,6 +198,30 @@ data_protect:
 	}
 	if len(services) != 0 {
 		t.Fatalf("expected unsafe include service to be skipped, got %+v", services)
+	}
+}
+
+func TestComposeProjectNameUsesConfiguredValue(t *testing.T) {
+	t.Parallel()
+
+	if got := ComposeProjectName(" infra-caddy ", "Renovate"); got != "infra-caddy" {
+		t.Fatalf("expected configured project name, got %q", got)
+	}
+}
+
+func TestComposeProjectNameNormalizesFallbackServiceName(t *testing.T) {
+	t.Parallel()
+
+	if got := ComposeProjectName("", "Renovate App"); got != "renovate-app" {
+		t.Fatalf("expected normalized project name, got %q", got)
+	}
+}
+
+func TestComposeProjectNameFallsBackToDefaultWhenFallbackHasNoValidCharacters(t *testing.T) {
+	t.Parallel()
+
+	if got := ComposeProjectName("", "___"); got != "service" {
+		t.Fatalf("expected default project name, got %q", got)
 	}
 }
 

@@ -20,8 +20,8 @@ func TestRepoQueryServiceValidateRepoReturnsStructuredErrors(t *testing.T) {
 	rootDir := t.TempDir()
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"alpha/composia-meta.yaml": "name: alpha\nnode: main\nunknown_field: true\n",
-		"beta/composia-meta.yaml":  "name: beta\nnode: missing\n",
+		"alpha/composia-meta.yaml": "name: alpha\nnodes:\n  - main\nunknown_field: true\n",
+		"beta/composia-meta.yaml":  "name: beta\nnodes:\n  - missing\n",
 	})
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {

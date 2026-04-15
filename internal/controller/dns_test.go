@@ -69,7 +69,7 @@ func TestExecuteDNSUpdateTaskSyncsDualStackRecords(t *testing.T) {
 	rootDir := t.TempDir()
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"demo/composia-meta.yaml": "name: demo\nnode: main\nnetwork:\n  dns:\n    provider: cloudflare\n    hostname: demo.example.com\n    proxied: true\n",
+		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\nnetwork:\n  dns:\n    provider: cloudflare\n    hostname: demo.example.com\n    proxied: true\n",
 	})
 	logDir := filepath.Join(rootDir, "logs")
 	stateDir := filepath.Join(rootDir, "state")

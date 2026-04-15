@@ -218,7 +218,7 @@ func TestNodeMaintenanceServiceReloadNodeCaddyCreatesTask(t *testing.T) {
 	repoDir := filepath.Join(rootDir, "repo")
 	logDir := filepath.Join(rootDir, "logs")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"edge-proxy/composia-meta.yaml": "name: edge-proxy\nnode: main\ninfra:\n  caddy:\n    compose_service: caddy\n    config_dir: /etc/caddy\n",
+		"edge-proxy/composia-meta.yaml": "name: edge-proxy\nnodes:\n  - main\ninfra:\n  caddy:\n    compose_service: caddy\n    config_dir: /etc/caddy\n",
 	})
 	if err := os.MkdirAll(logDir, 0o755); err != nil {
 		t.Fatalf("create log dir: %v", err)
@@ -282,7 +282,7 @@ func TestNodeMaintenanceServiceSyncNodeCaddyFilesCreatesSyncTask(t *testing.T) {
 	repoDir := filepath.Join(rootDir, "repo")
 	logDir := filepath.Join(rootDir, "logs")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"demo/composia-meta.yaml": "name: demo\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
+		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
 		"demo/demo.caddy":         "demo.example.com { reverse_proxy 127.0.0.1:8080 }\n",
 	})
 	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
@@ -349,11 +349,11 @@ func TestNodeMaintenanceServiceSyncNodeCaddyFilesFullRebuildCreatesMultiServiceT
 	repoDir := filepath.Join(rootDir, "repo")
 	logDir := filepath.Join(rootDir, "logs")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"alpha/composia-meta.yaml":   "name: alpha\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./alpha.caddy\n",
+		"alpha/composia-meta.yaml":   "name: alpha\nnodes:\n  - main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./alpha.caddy\n",
 		"alpha/alpha.caddy":          "alpha.example.com { reverse_proxy 127.0.0.1:8080 }\n",
-		"bravo/composia-meta.yaml":   "name: bravo\nnode: main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./bravo.caddy\n",
+		"bravo/composia-meta.yaml":   "name: bravo\nnodes:\n  - main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./bravo.caddy\n",
 		"bravo/bravo.caddy":          "bravo.example.com { reverse_proxy 127.0.0.1:9090 }\n",
-		"charlie/composia-meta.yaml": "name: charlie\nnode: main\n",
+		"charlie/composia-meta.yaml": "name: charlie\nnodes:\n  - main\n",
 	})
 	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
 		t.Fatalf("create task log dir: %v", err)

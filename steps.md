@@ -68,7 +68,7 @@
 
 以下单节点假设已全部修复，multi-node 架构现已完整：
 
-1. `composia-meta.yaml` 支持 `nodes[]` 数组（兼容旧 `node` 字段）
+1. `composia-meta.yaml` 使用 `nodes[]` 数组表示部署目标
 2. `repo.Service` 使用 `TargetNodes []string` 表示多节点目标
 3. `services` 表仅存储逻辑服务定义；运行时状态迁移到 `service_instances` 表
 4. Agent 通过 `ReportServiceInstanceStatus` 上报 `service_name + node_id`
@@ -101,7 +101,7 @@
 目标：在扩展 Caddy 和容器操作之前，把当前后端从"单 service 对应单 node"切换到"service 定义 + service instance"契约。
 
 已完成：
-1. `composia-meta.yaml` 支持 `nodes[]` 数组（仍兼容旧 `node` 字段）。
+1. `composia-meta.yaml` 使用 `nodes[]` 数组表示部署目标。
 2. `repo.Service` 持有 `TargetNodes []string`。
 3. repo 验证、扫描、查找逻辑全部切换为 multi-node。
 4. `services` 表仅表示逻辑服务；`service_instances` 表表示实例（主键 `service_name, node_id`）。

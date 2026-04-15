@@ -27,7 +27,6 @@ type ServiceMeta struct {
 	Name        string             `yaml:"name"`
 	ProjectName string             `yaml:"project_name"`
 	Enabled     *bool              `yaml:"enabled"`
-	Node        string             `yaml:"node"`
 	Nodes       []string           `yaml:"nodes"`
 	Infra       *InfraConfig       `yaml:"infra"`
 	Network     *NetworkConfig     `yaml:"network"`
@@ -339,7 +338,6 @@ func RewriteServiceTargetNodes(path string, nodeIDs []string, availableNodeIDs m
 		return "", err
 	}
 	normalizedNodes := normalizeNodeIDs(nodeIDs)
-	meta.Node = ""
 	meta.Nodes = append([]string(nil), normalizedNodes...)
 	if err := validateServiceMeta(path, &meta, availableNodeIDs); err != nil {
 		return "", err
@@ -412,10 +410,6 @@ func setMappingSequence(mapping *yaml.Node, key string, values []string) {
 func validateServiceMeta(path string, meta *ServiceMeta, availableNodeIDs map[string]struct{}) error {
 	if meta.Name == "" {
 		return fmt.Errorf("service meta %q: name is required", path)
-	}
-
-	if meta.Node != "" && len(meta.Nodes) > 0 {
-		return fmt.Errorf("service meta %q: node and nodes cannot both be set", path)
 	}
 
 	targetNodes := normalizedTargetNodes(*meta)
@@ -550,6 +544,50 @@ func (meta ServiceMeta) CaddyComposeService() string {
 	return "caddy"
 }
 
+func ComposeProjectName(projectName, fallback string) string {
+	trimmedProjectName := strings.TrimSpace(projectName)
+	if trimmedProjectName != "" {
+		return trimmedProjectName
+	}
+
+	normalized := normalizeComposeProjectName(fallback)
+	if normalized == "" {
+		return "service"
+	}
+	return normalized
+}
+
+func normalizeComposeProjectName(name string) string {
+	var builder strings.Builder
+	pendingHyphen := false
+	lastWasSeparator := false
+
+	for _, char := range strings.ToLower(strings.TrimSpace(name)) {
+		switch {
+		case char >= 'a' && char <= 'z', char >= '0' && char <= '9':
+			if pendingHyphen && builder.Len() > 0 && !lastWasSeparator {
+				builder.WriteByte('-')
+			}
+			builder.WriteRune(char)
+			pendingHyphen = false
+			lastWasSeparator = false
+		case char == '-', char == '_':
+			pendingHyphen = false
+			if builder.Len() == 0 || lastWasSeparator {
+				continue
+			}
+			builder.WriteRune(char)
+			lastWasSeparator = true
+		default:
+			if builder.Len() > 0 {
+				pendingHyphen = true
+			}
+		}
+	}
+
+	return strings.TrimRight(builder.String(), "-_")
+}
+
 func (meta ServiceMeta) CaddyConfigDir() string {
 	if meta.Infra != nil && meta.Infra.Caddy != nil && strings.TrimSpace(meta.Infra.Caddy.ConfigDir) != "" {
 		return strings.TrimSpace(meta.Infra.Caddy.ConfigDir)
@@ -665,14 +703,7 @@ func boolValue(value *bool, fallback bool) bool {
 }
 
 func normalizedTargetNodes(meta ServiceMeta) []string {
-	if len(meta.Nodes) > 0 {
-		return normalizeNodeIDs(meta.Nodes)
-	}
-	targetNode := strings.TrimSpace(meta.Node)
-	if targetNode == "" {
-		targetNode = "main"
-	}
-	return []string{targetNode}
+	return normalizeNodeIDs(meta.Nodes)
 }
 
 func normalizeNodeIDs(nodeIDs []string) []string {

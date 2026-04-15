@@ -123,7 +123,6 @@ Composia validates `composia-meta.yaml` in strict mode. Unknown fields are rejec
 | Field | Type | Description |
 |-------|------|-------------|
 | `nodes` | array | List of target nodes, each element is a node ID |
-| `node` | string | Legacy field for single node configuration, deprecated |
 
 **Example:**
 
