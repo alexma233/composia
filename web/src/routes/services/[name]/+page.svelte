@@ -72,6 +72,7 @@
     BackupSummary,
     RepoWriteResult,
     ServiceActionResult,
+    ServiceInstanceDetail,
     TaskSummary,
   } from "$lib/server/controller";
   import type { ServiceFileNode, WorkspaceFile } from "$lib/service-workspace";
@@ -120,6 +121,8 @@
   let workspace = $state<PageData["workspace"]>(null);
   let serviceDetail = $state<PageData["serviceDetail"]>(null);
   let nodeContainers = $state<NonNullable<PageData["nodeContainers"]>>([]);
+  let instanceLoadState = $state<Record<string, "idle" | "loading" | "loaded" | "error">>({});
+  let instanceLoadError = $state<Record<string, string>>({});
   let stopActionRefreshHandle = $state<null | (() => void)>(null);
   let migrateSourceNode = $state("");
   let migrateTargetNode = $state("");
@@ -127,6 +130,9 @@
   let serviceSwitchOpen = $state(false);
 
   $effect(() => {
+    nodeContainers = [];
+    instanceLoadState = {};
+    instanceLoadError = {};
     fileTree = data.fileTree;
     openTabs = data.initialFile ? [createTab(data.initialFile)] : [];
     selectedNodePath = data.initialFile?.path ?? "";
@@ -213,10 +219,47 @@
     tasks = payload.tasks ?? tasks;
     backups = payload.backups ?? backups;
     serviceDetail = payload.serviceDetail ?? serviceDetail;
-    nodeContainers =
-      (payload.serviceDetail?.instances ?? nodeContainers) as NonNullable<
-        PageData["nodeContainers"]
-      >;
+
+    if (payload.serviceDetail?.instances) {
+      const existingByNode = new Map(
+        nodeContainers.map((instance) => [instance.nodeId, instance] as const),
+      );
+      const nextLoadState: Record<
+        string,
+        "idle" | "loading" | "loaded" | "error"
+      > = {};
+      const nextLoadError: Record<string, string> = {};
+
+      nodeContainers = payload.serviceDetail.instances.map((instance) => {
+        const existing = existingByNode.get(instance.nodeId);
+        const hasFreshContainers = instance.containers.length > 0;
+        const changed =
+          existing &&
+          (existing.runtimeStatus !== instance.runtimeStatus ||
+            existing.updatedAt !== instance.updatedAt ||
+            existing.isDeclared !== instance.isDeclared);
+
+        if (!existing || changed || hasFreshContainers) {
+          nextLoadState[instance.nodeId] = hasFreshContainers ? "loaded" : "idle";
+          return instance;
+        }
+
+        nextLoadState[instance.nodeId] =
+          instanceLoadState[instance.nodeId] ?? "idle";
+        if (nextLoadState[instance.nodeId] === "error") {
+          nextLoadError[instance.nodeId] =
+            instanceLoadError[instance.nodeId] ?? "";
+        }
+
+        return {
+          ...instance,
+          containers: existing.containers,
+        };
+      }) as NonNullable<PageData["nodeContainers"]>;
+
+      instanceLoadState = nextLoadState;
+      instanceLoadError = nextLoadError;
+    }
 
     if (
       selectedInstanceNode !== "__all__" &&
@@ -225,6 +268,63 @@
       selectedInstanceNode = "__all__";
     }
   }
+
+  async function loadInstanceContainers(nodeId: string, force = false) {
+    if (!workspace?.folder || !workspace.serviceName) {
+      return;
+    }
+    const currentState = instanceLoadState[nodeId] ?? "idle";
+    if (!force && (currentState === "loading" || currentState === "loaded")) {
+      return;
+    }
+
+    instanceLoadState = { ...instanceLoadState, [nodeId]: "loading" };
+    instanceLoadError = { ...instanceLoadError, [nodeId]: "" };
+
+    try {
+      const response = await fetch(
+        `/services/${workspace.folder}/instances/${encodeURIComponent(nodeId)}`,
+      );
+      const payload = (await response.json()) as {
+        instance?: ServiceInstanceDetail;
+        error?: string;
+      };
+      if (!response.ok || !payload.instance) {
+        throw new Error(payload.error ?? "Failed to load service instance.");
+      }
+
+      nodeContainers = nodeContainers.map((instance) =>
+        instance.nodeId === nodeId ? payload.instance! : instance,
+      ) as NonNullable<PageData["nodeContainers"]>;
+      instanceLoadState = { ...instanceLoadState, [nodeId]: "loaded" };
+      instanceLoadError = { ...instanceLoadError, [nodeId]: "" };
+      errorMessage = "";
+    } catch (loadError) {
+      const message =
+        loadError instanceof Error
+          ? loadError.message
+          : "Failed to load service instance.";
+      instanceLoadState = { ...instanceLoadState, [nodeId]: "error" };
+      instanceLoadError = { ...instanceLoadError, [nodeId]: message };
+      errorMessage = message;
+    }
+  }
+
+  $effect(() => {
+    const nodesToLoad = visibleNodeContainers
+      .filter(
+        (instance) => (instanceLoadState[instance.nodeId] ?? "idle") === "idle",
+      )
+      .map((instance) => instance.nodeId);
+
+    if (nodesToLoad.length === 0) {
+      return;
+    }
+
+    for (const nodeId of nodesToLoad) {
+      void loadInstanceContainers(nodeId);
+    }
+  });
 
   async function openFile(path: string) {
     try {
@@ -1112,7 +1212,26 @@
                 </div>
               {/if}
 
-              {#if instance.containers.length > 0}
+              {#if instanceLoadState[instance.nodeId] === "loading"}
+                <div
+                  class="rounded-lg border border-dashed border-border/70 px-3 py-4 text-sm text-muted-foreground"
+                >
+                  {$messages.common.loadingWithDots}
+                </div>
+              {:else if instanceLoadState[instance.nodeId] === "error"}
+                <div class="rounded-lg border border-dashed border-border/70 px-3 py-4 text-sm text-muted-foreground">
+                  <div>{instanceLoadError[instance.nodeId] || $messages.error.loadFailed}</div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    class="mt-3"
+                    onclick={() => loadInstanceContainers(instance.nodeId, true)}
+                  >
+                    <RefreshCcw class="mr-2 size-4" />{$messages.common.refresh}
+                  </Button>
+                </div>
+              {:else if instance.containers.length > 0}
                 <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {#each instance.containers as container}
                     <a

@@ -2,10 +2,11 @@ import { json } from "@sveltejs/kit";
 
 import {
   loadBackups,
-  loadServiceDetail,
+  loadServiceInstances,
   loadTasks,
   type BackupSummary,
   type ServiceDetail,
+  type ServiceInstanceDetail,
   type TaskSummary,
 } from "$lib/server/controller";
 import {
@@ -20,6 +21,11 @@ export type ServiceWorkspaceSummaryData = {
   tasks: TaskSummary[];
   backups: BackupSummary[];
   serviceDetail: ServiceDetail | null;
+  fileTree: ServiceFileNode[];
+};
+
+export type ServiceWorkspaceFilesData = {
+  workspace: ServiceWorkspaceSummary;
   fileTree: ServiceFileNode[];
 };
 
@@ -47,20 +53,22 @@ export async function requireDeclaredWorkspace(folder: string) {
 export async function loadServiceWorkspaceSummary(
   folder: string,
 ): Promise<ServiceWorkspaceSummaryData> {
-  const workspace = await requireWorkspace(folder);
-  const [tasksResult, backupsResult, serviceDetail, fileTree] =
-    await Promise.all([
-      workspace.isDeclared && workspace.serviceName
-        ? loadTasks(1, 20, { serviceName: [workspace.serviceName] })
-        : Promise.resolve({ items: [], totalCount: 0 }),
-      workspace.isDeclared && workspace.serviceName
-        ? loadBackups(1, 20, { serviceName: workspace.serviceName })
-        : Promise.resolve({ items: [], totalCount: 0 }),
-      workspace.isDeclared && workspace.serviceName
-        ? loadServiceDetail(workspace.serviceName)
-        : Promise.resolve(null),
-      loadServiceFileTree(folder),
-    ]);
+  const { workspace, fileTree } = await loadServiceWorkspaceFiles(folder);
+  const [tasksResult, backupsResult, serviceInstances] = await Promise.all([
+    workspace.isDeclared && workspace.serviceName
+      ? loadTasks(1, 20, { serviceName: [workspace.serviceName] })
+      : Promise.resolve({ items: [], totalCount: 0 }),
+    workspace.isDeclared && workspace.serviceName
+      ? loadBackups(1, 20, { serviceName: workspace.serviceName })
+      : Promise.resolve({ items: [], totalCount: 0 }),
+    workspace.isDeclared && workspace.serviceName
+      ? loadServiceInstances(workspace.serviceName)
+      : Promise.resolve([]),
+  ]);
+  const serviceDetail =
+    workspace.isDeclared && workspace.serviceName
+      ? buildServiceDetail(workspace, serviceInstances)
+      : null;
 
   return {
     workspace,
@@ -68,6 +76,29 @@ export async function loadServiceWorkspaceSummary(
     backups: backupsResult.items,
     serviceDetail,
     fileTree,
+  };
+}
+
+export async function loadServiceWorkspaceFiles(
+  folder: string,
+): Promise<ServiceWorkspaceFilesData> {
+  const workspace = await requireWorkspace(folder);
+  const fileTree = await loadServiceFileTree(folder);
+  return { workspace, fileTree };
+}
+
+function buildServiceDetail(
+  workspace: ServiceWorkspaceSummary,
+  instances: ServiceInstanceDetail[],
+): ServiceDetail {
+  return {
+    name: workspace.serviceName,
+    runtimeStatus: workspace.runtimeStatus,
+    updatedAt: workspace.updatedAt,
+    nodes: [...workspace.nodes],
+    enabled: workspace.enabled,
+    directory: workspace.folder,
+    instances,
   };
 }
 

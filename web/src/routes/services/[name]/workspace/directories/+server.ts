@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
-import { loadServiceWorkspaceSummary } from "$lib/server/service-workspace-route";
+import { loadServiceWorkspaceFiles } from "$lib/server/service-workspace-route";
 import { createServiceWorkspaceDirectory } from "$lib/server/service-workspace";
 import { normalizeServiceRelativePath } from "$lib/service-workspace";
 
@@ -24,7 +24,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
       normalizeServiceRelativePath(payload.path),
       payload.baseRevision,
     );
-    const { workspace, fileTree } = await loadServiceWorkspaceSummary(
+    const { workspace, fileTree } = await loadServiceWorkspaceFiles(
       params.name,
     );
     return json({ write, workspace, fileTree });

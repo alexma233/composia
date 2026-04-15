@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
-import { loadServiceWorkspaceSummary } from "$lib/server/service-workspace-route";
+import { loadServiceWorkspaceFiles } from "$lib/server/service-workspace-route";
 import {
   deleteServiceWorkspacePath,
   moveServiceWorkspacePath,
@@ -36,7 +36,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
       normalizeServiceRelativePath(payload.destinationPath),
       payload.baseRevision,
     );
-    const { workspace, fileTree } = await loadServiceWorkspaceSummary(
+    const { workspace, fileTree } = await loadServiceWorkspaceFiles(
       params.name,
     );
     return json({ write, workspace, fileTree });
@@ -69,7 +69,7 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
       normalizeServiceRelativePath(payload.path),
       payload.baseRevision,
     );
-    const { workspace, fileTree } = await loadServiceWorkspaceSummary(
+    const { workspace, fileTree } = await loadServiceWorkspaceFiles(
       params.name,
     );
     return json({ write, workspace, fileTree });

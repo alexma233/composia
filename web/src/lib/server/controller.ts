@@ -628,6 +628,103 @@ export async function loadServiceDetail(
   };
 }
 
+export async function loadServiceInstances(
+  serviceName: string,
+): Promise<ServiceInstanceDetail[]> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{
+    instances?: Array<{
+      serviceName?: string;
+      service_name?: string;
+      nodeId?: string;
+      node_id?: string;
+      runtimeStatus?: string;
+      runtime_status?: string;
+      updatedAt?: string;
+      updated_at?: string;
+      isDeclared?: boolean;
+      is_declared?: boolean;
+    }>;
+  }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.ServiceInstanceService/ListServiceInstances",
+    { serviceName },
+  );
+  return (response.instances ?? []).map((instance) => ({
+    serviceName: instance.serviceName ?? instance.service_name ?? serviceName,
+    nodeId: instance.nodeId ?? instance.node_id ?? "",
+    runtimeStatus:
+      instance.runtimeStatus ?? instance.runtime_status ?? "unknown",
+    updatedAt: instance.updatedAt ?? instance.updated_at ?? "",
+    isDeclared: instance.isDeclared ?? instance.is_declared ?? false,
+    containers: [],
+  }));
+}
+
+export async function loadServiceInstance(
+  serviceName: string,
+  nodeId: string,
+): Promise<ServiceInstanceDetail | null> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{
+    instance?: {
+      serviceName?: string;
+      service_name?: string;
+      nodeId?: string;
+      node_id?: string;
+      runtimeStatus?: string;
+      runtime_status?: string;
+      updatedAt?: string;
+      updated_at?: string;
+      isDeclared?: boolean;
+      is_declared?: boolean;
+      containers?: Array<{
+        containerId?: string;
+        container_id?: string;
+        name?: string;
+        image?: string;
+        state?: string;
+        status?: string;
+        created?: string;
+        composeProject?: string;
+        compose_project?: string;
+        composeService?: string;
+        compose_service?: string;
+      }>;
+    };
+  }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.ServiceInstanceService/GetServiceInstance",
+    { serviceName, nodeId },
+  );
+  const instance = response.instance;
+  if (!instance) {
+    return null;
+  }
+  return {
+    serviceName: instance.serviceName ?? instance.service_name ?? serviceName,
+    nodeId: instance.nodeId ?? instance.node_id ?? nodeId,
+    runtimeStatus:
+      instance.runtimeStatus ?? instance.runtime_status ?? "unknown",
+    updatedAt: instance.updatedAt ?? instance.updated_at ?? "",
+    isDeclared: instance.isDeclared ?? instance.is_declared ?? false,
+    containers: (instance.containers ?? []).map((container) => ({
+      containerId: container.containerId ?? container.container_id ?? "",
+      name: container.name ?? "",
+      image: container.image ?? "",
+      state: container.state ?? "unknown",
+      status: container.status ?? "",
+      created: container.created ?? "",
+      composeProject:
+        container.composeProject ?? container.compose_project ?? "",
+      composeService:
+        container.composeService ?? container.compose_service ?? "",
+    })),
+  };
+}
+
 export async function runServiceAction(
   serviceName: string,
   action: ServiceAction,

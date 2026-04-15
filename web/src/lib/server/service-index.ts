@@ -1,10 +1,9 @@
 import { parse } from "yaml";
 
-import type { ServiceDetail, ServiceSummary } from "$lib/server/controller";
+import type { ServiceSummary } from "$lib/server/controller";
 import {
   loadRepoEntries,
   loadRepoFile,
-  loadServiceDetail,
   loadServices,
 } from "$lib/server/controller";
 
@@ -16,12 +15,15 @@ export type ServiceWorkspaceSummary = {
   isDeclared: boolean;
   runtimeStatus: string;
   updatedAt: string;
+  nodes: string[];
   node: string;
   enabled: boolean;
 };
 
 type ParsedMeta = {
   name?: string;
+  enabled?: boolean;
+  nodes?: string[];
 };
 
 type MetaInfo = {
@@ -38,52 +40,38 @@ export async function loadServiceWorkspaces(): Promise<
   ]);
   const summaries = summariesResult.items;
   const directories = rootEntries.filter((entry) => entry.isDir);
-  const details = await Promise.all(
-    summaries.map((summary) => loadDetail(summary)),
+  const metas = await Promise.all(
+    directories.map(async (entry) => ({
+      entry,
+      meta: await loadMeta(entry.path),
+    })),
   );
-  const detailsByDirectory = new Map<
-    string,
-    { summary: ServiceSummary; detail: ServiceDetail }
-  >();
+  const summariesByServiceName = new Map(
+    summaries.map((summary) => [summary.name, summary] as const),
+  );
 
-  for (const item of details) {
-    if (!item) {
-      continue;
+  const workspaces = metas.map(({ entry, meta }) => {
+    const serviceName = meta.parsed?.name?.trim() || "";
+    const declared = serviceName
+      ? summariesByServiceName.get(serviceName)
+      : undefined;
+    if (declared) {
+      return serviceSummaryWorkspace(entry.path, declared, serviceName, meta);
     }
-    detailsByDirectory.set(item.detail.directory, item);
-  }
 
-  const workspaces = await Promise.all(
-    directories.map(async (entry) => {
-      const declared = detailsByDirectory.get(entry.path);
-      if (declared) {
-        return {
-          folder: entry.path,
-          displayName: declared.detail.name,
-          serviceName: declared.detail.name,
-          hasMeta: true,
-          isDeclared: true,
-          runtimeStatus: declared.detail.runtimeStatus,
-          updatedAt: declared.detail.updatedAt,
-          node: declared.detail.nodes.join(", "),
-          enabled: declared.detail.enabled,
-        } satisfies ServiceWorkspaceSummary;
-      }
-
-      const meta = await loadMeta(entry.path);
-      return {
-        folder: entry.path,
-        displayName: meta.parsed?.name?.trim() || entry.name,
-        serviceName: meta.parsed?.name?.trim() || "",
-        hasMeta: meta.exists,
-        isDeclared: false,
-        runtimeStatus: meta.exists ? "needs_validation" : "uninitialized",
-        updatedAt: "",
-        node: "",
-        enabled: Boolean(meta.parsed?.name),
-      } satisfies ServiceWorkspaceSummary;
-    }),
-  );
+    return {
+      folder: entry.path,
+      displayName: serviceName || entry.name,
+      serviceName,
+      hasMeta: meta.exists,
+      isDeclared: false,
+      runtimeStatus: meta.exists ? "needs_validation" : "uninitialized",
+      updatedAt: "",
+      nodes: normalizeNodes(meta.parsed?.nodes),
+      node: normalizeNodes(meta.parsed?.nodes).join(", "),
+      enabled: meta.parsed?.enabled ?? Boolean(serviceName),
+    } satisfies ServiceWorkspaceSummary;
+  });
 
   workspaces.sort((left, right) => left.folder.localeCompare(right.folder));
   return workspaces;
@@ -99,19 +87,29 @@ export async function loadServiceWorkspace(
   );
 }
 
-async function loadDetail(summary: ServiceSummary) {
-  try {
-    return {
-      summary,
-      detail: await loadServiceDetail(summary.name),
-    };
-  } catch (error) {
-    console.error(
-      `Failed to load service detail for ${summary.name}:`,
-      error instanceof Error ? error.message : error,
-    );
-    return null;
-  }
+function serviceSummaryWorkspace(
+  folder: string,
+  summary: ServiceSummary,
+  serviceName: string,
+  meta: MetaInfo,
+): ServiceWorkspaceSummary {
+  const nodes = normalizeNodes(meta.parsed?.nodes);
+  return {
+    folder,
+    displayName: serviceName,
+    serviceName,
+    hasMeta: true,
+    isDeclared: true,
+    runtimeStatus: summary.runtimeStatus,
+    updatedAt: summary.updatedAt,
+    nodes,
+    node: nodes.join(", "),
+    enabled: meta.parsed?.enabled ?? true,
+  };
+}
+
+function normalizeNodes(nodes: string[] | undefined): string[] {
+  return (nodes ?? []).map((node) => node.trim()).filter(Boolean);
 }
 
 async function loadMeta(folder: string): Promise<MetaInfo> {
