@@ -2831,10 +2831,7 @@ func listServiceInstanceContainers(ctx context.Context, dockerQuery *dockerQuery
 	if err != nil {
 		return nil, err
 	}
-	projectName := service.Meta.ProjectName
-	if projectName == "" {
-		projectName = service.Name
-	}
+	projectName := repo.ComposeProjectName(service.Meta.ProjectName, service.Name)
 	items := make([]*controllerv1.ServiceContainerSummary, 0, len(result.Containers))
 	for _, container := range result.Containers {
 		labels := container.GetLabels()

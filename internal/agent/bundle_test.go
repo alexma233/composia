@@ -435,6 +435,25 @@ func TestRunComposePullUsesProjectNameAndServiceDir(t *testing.T) {
 	}
 }
 
+func TestLoadComposeProjectNameNormalizesFallbackServiceName(t *testing.T) {
+	rootDir := t.TempDir()
+	serviceDir := filepath.Join(rootDir, "service")
+	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+		t.Fatalf("create service dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(serviceDir, "composia-meta.yaml"), []byte("name: Renovate\nnodes:\n  - main\n"), 0o644); err != nil {
+		t.Fatalf("write service meta: %v", err)
+	}
+
+	projectName, err := loadComposeProjectName(serviceDir, "Renovate")
+	if err != nil {
+		t.Fatalf("load compose project name: %v", err)
+	}
+	if projectName != "renovate" {
+		t.Fatalf("expected normalized project name, got %q", projectName)
+	}
+}
+
 type errString string
 
 func (value errString) Error() string {

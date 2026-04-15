@@ -2007,10 +2007,7 @@ func loadComposeProjectName(serviceDir, fallback string) (string, error) {
 	if err := yaml.Unmarshal(content, &meta); err != nil {
 		return "", fmt.Errorf("decode service meta %q: %w", metaPath, err)
 	}
-	if meta.ProjectName != "" {
-		return meta.ProjectName, nil
-	}
-	return fallback, nil
+	return repo.ComposeProjectName(meta.ProjectName, fallback), nil
 }
 
 func runComposeUp(ctx context.Context, serviceDir, projectName string, uploadLog func(string) error) error {
