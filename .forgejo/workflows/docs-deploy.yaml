@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout
-        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v5
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v5.0.1
         uses: https://forgejo.alexma.top/actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
 
       - name: Install docs dependencies
@@ -29,8 +29,8 @@ jobs:
 
       - name: Deploy to Cloudflare Pages
         id: deploy
-        # renovate: datasource=git-refs depName=actions/cloudflare-wrangler-action packageName=https://forgejo.alexma.top/actions/cloudflare-wrangler-action currentValue=v3
-        uses: https://forgejo.alexma.top/actions/cloudflare-wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65
+        # renovate: datasource=git-refs depName=actions/cloudflare-wrangler-action packageName=https://forgejo.alexma.top/actions/cloudflare-wrangler-action currentValue=v3.15.0
+        uses: https://forgejo.alexma.top/actions/cloudflare-wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
