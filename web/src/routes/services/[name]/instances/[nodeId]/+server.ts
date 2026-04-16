@@ -3,11 +3,17 @@ import type { RequestHandler } from "./$types";
 
 import { loadServiceInstance } from "$lib/server/controller";
 import { jsonControllerError } from "$lib/server/controller-route";
+import { requireWorkspace } from "$lib/server/service-workspace-route";
 
 export const GET: RequestHandler = async ({ params }) => {
   try {
+    const workspace = await requireWorkspace(params.name);
+    if (!workspace.isDeclared || !workspace.serviceName) {
+      return json({ error: "Service is not declared." }, { status: 404 });
+    }
+
     const instance = await loadServiceInstance(
-      params.name,
+      workspace.serviceName,
       params.nodeId,
       true,
     );
@@ -16,6 +22,9 @@ export const GET: RequestHandler = async ({ params }) => {
     }
     return json({ instance });
   } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
     return jsonControllerError(error, "Failed to load service instance.");
   }
 };
