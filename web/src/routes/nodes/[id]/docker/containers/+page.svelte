@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { goto, invalidateAll } from '$app/navigation';
+  import { page } from '$app/stores';
   import { toast } from 'svelte-sonner';
   import type { PageData } from './$types';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
@@ -16,6 +17,19 @@
     DialogOverlay,
     DialogTitle,
   } from '$lib/components/ui/dialog';
+  import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNextButton,
+    PaginationPrevButton,
+  } from '$lib/components/ui/pagination';
+  import {
+    buildDockerListPageUrl,
+    type DockerListSortDirection,
+  } from '$lib/docker-list-query';
   import { formatDockerTimestamp, formatShortId } from '$lib/presenters';
   import CopyButton from '$lib/components/app/copy-button.svelte';
   import SortableTableHead from '$lib/components/app/sortable-table-head.svelte';
@@ -43,44 +57,89 @@
     imageId: string;
   };
 
+  type DockerContainerSortField = 'name' | 'state' | 'image' | 'created';
+
+  const defaultSortField: DockerContainerSortField = 'name';
+
   let searchQuery = $state('');
-  let sortField = $state<'name' | 'state' | 'image' | 'created'>('name');
-  let sortDirection = $state<'asc' | 'desc'>('asc');
-  let loading = $state(false);
-  let loadError = $state<string | null>(null);
-  let containers = $state<DockerContainerSummary[]>([]);
+  let sortField = $state<DockerContainerSortField>(defaultSortField);
+  let sortDirection = $state<DockerListSortDirection>('asc');
+  let currentPage = $state(1);
+  let refreshing = $state(false);
   let actionBusyId = $state('');
   let removeBusyId = $state('');
   let removeDialogOpen = $state(false);
   let removeTarget = $state<DockerContainerSummary | null>(null);
 
+  let loading = $derived(!data.ready || refreshing);
+  let loadError = $derived(data.error ?? null);
+  let containers = $derived((data.containers ?? []) as DockerContainerSummary[]);
+  let totalPages = $derived(
+    data.totalCount > 0 ? Math.ceil(data.totalCount / data.pageSize) : 0,
+  );
+  let currentPath = $derived($page.url.pathname);
+
   $effect(() => {
-    loading = !data.ready;
-    loadError = data.error ?? null;
-    containers = data.containers || [];
+    refreshing = false;
+    currentPage = data.page;
+    searchQuery = data.search;
+    sortField = data.sortBy as DockerContainerSortField;
+    sortDirection = data.sortDirection as DockerListSortDirection;
   });
 
-  async function refreshContainers() {
+  $effect(() => {
     if (!data.ready) {
-      loading = false;
       return;
     }
 
-    loading = true;
-    loadError = null;
+    if (
+      currentPage === data.page &&
+      searchQuery === data.search &&
+      sortField === data.sortBy &&
+      sortDirection === data.sortDirection
+    ) {
+      return;
+    }
 
+    refreshing = true;
+    void goto(pageUrl(currentPage, searchQuery, sortField, sortDirection), {
+      keepFocus: true,
+      noScroll: true,
+      replaceState:
+        searchQuery !== data.search ||
+        sortField !== data.sortBy ||
+        sortDirection !== data.sortDirection,
+    });
+  });
+
+  function pageUrl(
+    pageNumber: number,
+    search: string,
+    nextSortField: DockerContainerSortField,
+    nextSortDirection: DockerListSortDirection,
+  ) {
+    return buildDockerListPageUrl(
+      currentPath,
+      {
+        page: pageNumber,
+        search,
+        sortBy: nextSortField,
+        sortDirection: nextSortDirection,
+      },
+      defaultSortField,
+    );
+  }
+
+  async function refreshContainers() {
+    if (!data.ready) {
+      return;
+    }
+
+    refreshing = true;
     try {
-      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/containers`);
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error || $messages.docker.containers.failedToLoad);
-      }
-      containers = payload.containers ?? [];
-    } catch (error) {
-      loadError = error instanceof Error ? error.message : $messages.docker.containers.failedToLoad;
-      containers = [];
+      await invalidateAll();
     } finally {
-      loading = false;
+      refreshing = false;
     }
   }
 
@@ -173,10 +232,6 @@
       : $messages.common.delete,
   );
 
-  onMount(() => {
-    void refreshContainers();
-  });
-
   function getStateVariant(state: string): BadgeVariant {
     const s = (state || '').toLowerCase();
     if (s === 'running') return 'default';
@@ -191,40 +246,20 @@
     if (sortField === field) {
       sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
-      sortField = field as typeof sortField;
+      sortField = field as DockerContainerSortField;
       sortDirection = 'asc';
     }
+    currentPage = 1;
   }
 
-  let filteredContainers = $derived(containers.filter((c) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      c.name.toLowerCase().includes(query) ||
-      c.image.toLowerCase().includes(query) ||
-      c.state.toLowerCase().includes(query) ||
-      c.id.toLowerCase().includes(query) ||
-      (c.networks || []).some((n) => n.toLowerCase().includes(query))
-    );
-  }));
+  function handleSearchInput() {
+    currentPage = 1;
+  }
 
-  let sortedContainers = $derived([...filteredContainers].sort((a, b) => {
-    let comparison = 0;
-    switch (sortField) {
-      case 'name':
-        comparison = a.name.localeCompare(b.name);
-        break;
-      case 'state':
-        comparison = a.state.localeCompare(b.state);
-        break;
-      case 'image':
-        comparison = a.image.localeCompare(b.image);
-        break;
-      case 'created':
-        comparison = new Date(a.created || 0).getTime() - new Date(b.created || 0).getTime();
-        break;
-    }
-    return sortDirection === 'asc' ? comparison : -comparison;
-  }));
+  function clearSearch() {
+    searchQuery = '';
+    currentPage = 1;
+  }
 </script>
 
 <div class="page-shell">
@@ -237,7 +272,7 @@
             <CardDescription class="page-description">
               {data.nodeId}
               {#if !loading}
-                <Badge variant="secondary" class="ml-2">{containers.length}</Badge>
+                <Badge variant="secondary" class="ml-2">{data.totalCount}</Badge>
               {/if}
             </CardDescription>
           </div>
@@ -254,10 +289,11 @@
               placeholder={$messages.common.search + '...'}
               class="pl-9"
               bind:value={searchQuery}
+              oninput={handleSearchInput}
             />
           </div>
           {#if searchQuery}
-            <Button variant="ghost" size="sm" onclick={() => (searchQuery = '')}>
+            <Button variant="ghost" size="sm" onclick={clearSearch}>
               {$messages.common.cancel}
             </Button>
           {/if}
@@ -278,7 +314,7 @@
               <span>{$messages.common.loading}...</span>
             </div>
           </div>
-        {:else if sortedContainers.length > 0}
+        {:else if containers.length > 0}
           <Table>
             <TableHeader>
               <TableRow>
@@ -292,7 +328,7 @@
               </TableRow>
             </TableHeader>
             <TableBody>
-              {#each sortedContainers as container}
+              {#each containers as container}
                 <TableRow class="hover:bg-accent/50">
                   <TableCell>
                     <div class="space-y-0.5">
@@ -414,9 +450,34 @@
               {/each}
             </TableBody>
           </Table>
-          {#if filteredContainers.length !== containers.length}
-            <div class="mt-3 text-xs text-muted-foreground text-center">
-              {filteredContainers.length} / {containers.length}
+
+          {#if totalPages > 1}
+            <div class="mt-6">
+              <Pagination count={data.totalCount} perPage={data.pageSize} bind:page={currentPage}>
+                {#snippet children({ pages, currentPage })}
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevButton />
+                    </PaginationItem>
+
+                    {#each pages as page (page.key)}
+                      {#if page.type === 'ellipsis'}
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      {:else}
+                        <PaginationItem>
+                          <PaginationLink {page} isActive={currentPage === page.value} />
+                        </PaginationItem>
+                      {/if}
+                    {/each}
+
+                    <PaginationItem>
+                      <PaginationNextButton />
+                    </PaginationItem>
+                  </PaginationContent>
+                {/snippet}
+              </Pagination>
             </div>
           {/if}
         {:else if searchQuery}

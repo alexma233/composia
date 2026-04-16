@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { goto, invalidateAll } from '$app/navigation';
+  import { page } from '$app/stores';
   import { toast } from 'svelte-sonner';
   import type { PageData } from './$types';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
@@ -16,6 +17,19 @@
     DialogOverlay,
     DialogTitle,
   } from '$lib/components/ui/dialog';
+  import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNextButton,
+    PaginationPrevButton,
+  } from '$lib/components/ui/pagination';
+  import {
+    buildDockerListPageUrl,
+    type DockerListSortDirection,
+  } from '$lib/docker-list-query';
   import { formatBytes, formatDockerTimestamp, formatShortId } from '$lib/presenters';
   import CopyButton from '$lib/components/app/copy-button.svelte';
   import SortableTableHead from '$lib/components/app/sortable-table-head.svelte';
@@ -44,49 +58,90 @@
     isDangling: boolean;
   };
 
+  type DockerImageSortField = 'name' | 'size' | 'created';
+
+  const defaultSortField: DockerImageSortField = 'name';
+
   let searchQuery = $state('');
-  let sortField = $state<'name' | 'size' | 'created'>('name');
-  let sortDirection = $state<'asc' | 'desc'>('asc');
-  let loading = $state(false);
-  let loadError = $state<string | null>(null);
-  let images = $state<DockerImageSummary[]>([]);
+  let sortField = $state<DockerImageSortField>(defaultSortField);
+  let sortDirection = $state<DockerListSortDirection>('asc');
+  let currentPage = $state(1);
+  let refreshing = $state(false);
   let removeBusyId = $state('');
   let removeDialogOpen = $state(false);
   let removeTarget = $state<DockerImageSummary | null>(null);
 
+  let loading = $derived(!data.ready || refreshing);
+  let loadError = $derived(data.error ?? null);
+  let images = $derived((data.images ?? []) as DockerImageSummary[]);
+  let totalPages = $derived(
+    data.totalCount > 0 ? Math.ceil(data.totalCount / data.pageSize) : 0,
+  );
+  let currentPath = $derived($page.url.pathname);
+
   $effect(() => {
-    loading = !data.ready;
-    loadError = data.error ?? null;
-    images = data.images || [];
+    refreshing = false;
+    currentPage = data.page;
+    searchQuery = data.search;
+    sortField = data.sortBy as DockerImageSortField;
+    sortDirection = data.sortDirection as DockerListSortDirection;
   });
 
-  async function refreshImages() {
+  $effect(() => {
     if (!data.ready) {
-      loading = false;
       return;
     }
 
-    loading = true;
-    loadError = null;
-
-    try {
-      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/images`);
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error || $messages.docker.images.failedToLoad);
-      }
-      images = payload.images ?? [];
-    } catch (error) {
-      loadError = error instanceof Error ? error.message : $messages.docker.images.failedToLoad;
-      images = [];
-    } finally {
-      loading = false;
+    if (
+      currentPage === data.page &&
+      searchQuery === data.search &&
+      sortField === data.sortBy &&
+      sortDirection === data.sortDirection
+    ) {
+      return;
     }
+
+    refreshing = true;
+    void goto(pageUrl(currentPage, searchQuery, sortField, sortDirection), {
+      keepFocus: true,
+      noScroll: true,
+      replaceState:
+        searchQuery !== data.search ||
+        sortField !== data.sortBy ||
+        sortDirection !== data.sortDirection,
+    });
+  });
+
+  function pageUrl(
+    pageNumber: number,
+    search: string,
+    nextSortField: DockerImageSortField,
+    nextSortDirection: DockerListSortDirection,
+  ) {
+    return buildDockerListPageUrl(
+      currentPath,
+      {
+        page: pageNumber,
+        search,
+        sortBy: nextSortField,
+        sortDirection: nextSortDirection,
+      },
+      defaultSortField,
+    );
   }
 
-  onMount(() => {
-    void refreshImages();
-  });
+  async function refreshImages() {
+    if (!data.ready) {
+      return;
+    }
+
+    refreshing = true;
+    try {
+      await invalidateAll();
+    } finally {
+      refreshing = false;
+    }
+  }
 
   function openRemoveDialog(image: DockerImageSummary) {
     removeTarget = image;
@@ -145,38 +200,20 @@
     if (sortField === field) {
       sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
-      sortField = field as typeof sortField;
+      sortField = field as DockerImageSortField;
       sortDirection = 'asc';
     }
+    currentPage = 1;
   }
 
-  let filteredImages = $derived(images.filter((i) => {
-    const query = searchQuery.toLowerCase();
-    const tags = i.repoTags || [];
-    return (
-      tags.some((t) => t.toLowerCase().includes(query)) ||
-      i.id.toLowerCase().includes(query) ||
-      (i.architecture || '').toLowerCase().includes(query)
-    );
-  }));
+  function handleSearchInput() {
+    currentPage = 1;
+  }
 
-  let sortedImages = $derived([...filteredImages].sort((a, b) => {
-    let comparison = 0;
-    const aTags = a.repoTags || [];
-    const bTags = b.repoTags || [];
-    switch (sortField) {
-      case 'name':
-        comparison = (aTags[0] || a.id).localeCompare(bTags[0] || b.id);
-        break;
-      case 'size':
-        comparison = (a.size || 0) - (b.size || 0);
-        break;
-      case 'created':
-        comparison = new Date(a.created || 0).getTime() - new Date(b.created || 0).getTime();
-        break;
-    }
-    return sortDirection === 'asc' ? comparison : -comparison;
-  }));
+  function clearSearch() {
+    searchQuery = '';
+    currentPage = 1;
+  }
 </script>
 
 <div class="page-shell">
@@ -189,7 +226,7 @@
             <CardDescription class="page-description">
               {$messages.docker.images.titleOnNode.replace('{nodeId}', data.nodeId)}
               {#if !loading}
-                <Badge variant="secondary" class="ml-2">{images.length}</Badge>
+                <Badge variant="secondary" class="ml-2">{data.totalCount}</Badge>
               {/if}
             </CardDescription>
           </div>
@@ -206,10 +243,11 @@
               placeholder={$messages.docker.images.searchPlaceholder}
               class="pl-9"
               bind:value={searchQuery}
+              oninput={handleSearchInput}
             />
           </div>
           {#if searchQuery}
-            <Button variant="ghost" size="sm" onclick={() => (searchQuery = '')}>
+            <Button variant="ghost" size="sm" onclick={clearSearch}>
               {$messages.common.cancel}
             </Button>
           {/if}
@@ -230,7 +268,7 @@
               <span>{$messages.common.loading} {$messages.docker.images.title}...</span>
             </div>
           </div>
-        {:else if sortedImages.length > 0}
+        {:else if images.length > 0}
           <Table>
             <TableHeader>
               <TableRow>
@@ -243,7 +281,7 @@
               </TableRow>
             </TableHeader>
             <TableBody>
-              {#each sortedImages as image}
+              {#each images as image}
                 <TableRow class="hover:bg-accent/50">
                   <TableCell>
                     <div class="space-y-0.5">
@@ -316,9 +354,39 @@
               {/each}
             </TableBody>
           </Table>
-          {#if filteredImages.length !== images.length}
+          {#if data.totalCount > images.length}
             <div class="mt-3 text-xs text-muted-foreground text-center">
-              {$messages.docker.images.countSummary.replace('{shown}', String(filteredImages.length)).replace('{total}', String(images.length))}
+              {$messages.docker.images.countSummary.replace('{shown}', String(images.length)).replace('{total}', String(data.totalCount))}
+            </div>
+          {/if}
+
+          {#if totalPages > 1}
+            <div class="mt-6">
+              <Pagination count={data.totalCount} perPage={data.pageSize} bind:page={currentPage}>
+                {#snippet children({ pages, currentPage })}
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevButton />
+                    </PaginationItem>
+
+                    {#each pages as page (page.key)}
+                      {#if page.type === 'ellipsis'}
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      {:else}
+                        <PaginationItem>
+                          <PaginationLink {page} isActive={currentPage === page.value} />
+                        </PaginationItem>
+                      {/if}
+                    {/each}
+
+                    <PaginationItem>
+                      <PaginationNextButton />
+                    </PaginationItem>
+                  </PaginationContent>
+                {/snippet}
+              </Pagination>
             </div>
           {/if}
         {:else if searchQuery}

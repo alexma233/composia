@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { goto, invalidateAll } from '$app/navigation';
+  import { page } from '$app/stores';
   import { toast } from 'svelte-sonner';
   import type { PageData } from './$types';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
@@ -16,6 +17,19 @@
     DialogOverlay,
     DialogTitle,
   } from '$lib/components/ui/dialog';
+  import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNextButton,
+    PaginationPrevButton,
+  } from '$lib/components/ui/pagination';
+  import {
+    buildDockerListPageUrl,
+    type DockerListSortDirection,
+  } from '$lib/docker-list-query';
   import { formatBytes, formatDockerTimestamp } from '$lib/presenters';
   import CopyButton from '$lib/components/app/copy-button.svelte';
   import SortableTableHead from '$lib/components/app/sortable-table-head.svelte';
@@ -42,49 +56,90 @@
     inUse: boolean;
   };
 
+  type DockerVolumeSortField = 'name' | 'driver' | 'created';
+
+  const defaultSortField: DockerVolumeSortField = 'name';
+
   let searchQuery = $state('');
-  let sortField = $state<'name' | 'driver' | 'created'>('name');
-  let sortDirection = $state<'asc' | 'desc'>('asc');
-  let loading = $state(false);
-  let loadError = $state<string | null>(null);
-  let volumes = $state<DockerVolumeSummary[]>([]);
+  let sortField = $state<DockerVolumeSortField>(defaultSortField);
+  let sortDirection = $state<DockerListSortDirection>('asc');
+  let currentPage = $state(1);
+  let refreshing = $state(false);
   let removeBusyId = $state('');
   let removeDialogOpen = $state(false);
   let removeTarget = $state<DockerVolumeSummary | null>(null);
 
+  let loading = $derived(!data.ready || refreshing);
+  let loadError = $derived(data.error ?? null);
+  let volumes = $derived((data.volumes ?? []) as DockerVolumeSummary[]);
+  let totalPages = $derived(
+    data.totalCount > 0 ? Math.ceil(data.totalCount / data.pageSize) : 0,
+  );
+  let currentPath = $derived($page.url.pathname);
+
   $effect(() => {
-    loading = !data.ready;
-    loadError = data.error ?? null;
-    volumes = data.volumes || [];
+    refreshing = false;
+    currentPage = data.page;
+    searchQuery = data.search;
+    sortField = data.sortBy as DockerVolumeSortField;
+    sortDirection = data.sortDirection as DockerListSortDirection;
   });
 
-  async function refreshVolumes() {
+  $effect(() => {
     if (!data.ready) {
-      loading = false;
       return;
     }
 
-    loading = true;
-    loadError = null;
-
-    try {
-      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/volumes`);
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error || $messages.docker.volumes.failedToLoad);
-      }
-      volumes = payload.volumes ?? [];
-    } catch (error) {
-      loadError = error instanceof Error ? error.message : $messages.docker.volumes.failedToLoad;
-      volumes = [];
-    } finally {
-      loading = false;
+    if (
+      currentPage === data.page &&
+      searchQuery === data.search &&
+      sortField === data.sortBy &&
+      sortDirection === data.sortDirection
+    ) {
+      return;
     }
+
+    refreshing = true;
+    void goto(pageUrl(currentPage, searchQuery, sortField, sortDirection), {
+      keepFocus: true,
+      noScroll: true,
+      replaceState:
+        searchQuery !== data.search ||
+        sortField !== data.sortBy ||
+        sortDirection !== data.sortDirection,
+    });
+  });
+
+  function pageUrl(
+    pageNumber: number,
+    search: string,
+    nextSortField: DockerVolumeSortField,
+    nextSortDirection: DockerListSortDirection,
+  ) {
+    return buildDockerListPageUrl(
+      currentPath,
+      {
+        page: pageNumber,
+        search,
+        sortBy: nextSortField,
+        sortDirection: nextSortDirection,
+      },
+      defaultSortField,
+    );
   }
 
-  onMount(() => {
-    void refreshVolumes();
-  });
+  async function refreshVolumes() {
+    if (!data.ready) {
+      return;
+    }
+
+    refreshing = true;
+    try {
+      await invalidateAll();
+    } finally {
+      refreshing = false;
+    }
+  }
 
   function openRemoveDialog(volume: DockerVolumeSummary) {
     removeTarget = volume;
@@ -125,35 +180,20 @@
     if (sortField === field) {
       sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
-      sortField = field as typeof sortField;
+      sortField = field as DockerVolumeSortField;
       sortDirection = 'asc';
     }
+    currentPage = 1;
   }
 
-  let filteredVolumes = $derived(volumes.filter((v) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      v.name.toLowerCase().includes(query) ||
-      v.driver.toLowerCase().includes(query) ||
-      v.mountpoint.toLowerCase().includes(query)
-    );
-  }));
+  function handleSearchInput() {
+    currentPage = 1;
+  }
 
-  let sortedVolumes = $derived([...filteredVolumes].sort((a, b) => {
-    let comparison = 0;
-    switch (sortField) {
-      case 'name':
-        comparison = a.name.localeCompare(b.name);
-        break;
-      case 'driver':
-        comparison = a.driver.localeCompare(b.driver);
-        break;
-      case 'created':
-        comparison = new Date(a.created || 0).getTime() - new Date(b.created || 0).getTime();
-        break;
-    }
-    return sortDirection === 'asc' ? comparison : -comparison;
-  }));
+  function clearSearch() {
+    searchQuery = '';
+    currentPage = 1;
+  }
 </script>
 
 <div class="page-shell">
@@ -166,7 +206,7 @@
             <CardDescription class="page-description">
               {$messages.docker.volumes.title} on {data.nodeId}
               {#if !loading}
-                <Badge variant="secondary" class="ml-2">{volumes.length}</Badge>
+                <Badge variant="secondary" class="ml-2">{data.totalCount}</Badge>
               {/if}
             </CardDescription>
           </div>
@@ -183,10 +223,11 @@
               placeholder={$messages.docker.volumes.searchPlaceholder}
               class="pl-9"
               bind:value={searchQuery}
+              oninput={handleSearchInput}
             />
           </div>
           {#if searchQuery}
-            <Button variant="ghost" size="sm" onclick={() => (searchQuery = '')}>
+            <Button variant="ghost" size="sm" onclick={clearSearch}>
               {$messages.common.cancel}
             </Button>
           {/if}
@@ -207,7 +248,7 @@
               <span>{$messages.docker.volumes.loadingWithUsage}</span>
             </div>
           </div>
-        {:else if sortedVolumes.length > 0}
+        {:else if volumes.length > 0}
           <Table>
             <TableHeader>
               <TableRow>
@@ -222,7 +263,7 @@
               </TableRow>
             </TableHeader>
             <TableBody>
-              {#each sortedVolumes as volume}
+              {#each volumes as volume}
                 <TableRow class="hover:bg-accent/50">
                   <TableCell>
                     <div class="space-y-0.5">
@@ -290,9 +331,39 @@
               {/each}
             </TableBody>
           </Table>
-          {#if filteredVolumes.length !== volumes.length}
+          {#if data.totalCount > volumes.length}
             <div class="mt-3 text-xs text-muted-foreground text-center">
-              {$messages.docker.volumes.countSummary.replace('{shown}', String(filteredVolumes.length)).replace('{total}', String(volumes.length))}
+              {$messages.docker.volumes.countSummary.replace('{shown}', String(volumes.length)).replace('{total}', String(data.totalCount))}
+            </div>
+          {/if}
+
+          {#if totalPages > 1}
+            <div class="mt-6">
+              <Pagination count={data.totalCount} perPage={data.pageSize} bind:page={currentPage}>
+                {#snippet children({ pages, currentPage })}
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevButton />
+                    </PaginationItem>
+
+                    {#each pages as page (page.key)}
+                      {#if page.type === 'ellipsis'}
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      {:else}
+                        <PaginationItem>
+                          <PaginationLink {page} isActive={currentPage === page.value} />
+                        </PaginationItem>
+                      {/if}
+                    {/each}
+
+                    <PaginationItem>
+                      <PaginationNextButton />
+                    </PaginationItem>
+                  </PaginationContent>
+                {/snippet}
+              </Pagination>
             </div>
           {/if}
         {:else if searchQuery}

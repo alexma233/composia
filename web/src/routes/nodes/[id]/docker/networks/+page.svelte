@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { goto, invalidateAll } from '$app/navigation';
+  import { page } from '$app/stores';
   import { toast } from 'svelte-sonner';
   import type { PageData } from './$types';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
@@ -16,6 +17,19 @@
     DialogOverlay,
     DialogTitle,
   } from '$lib/components/ui/dialog';
+  import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNextButton,
+    PaginationPrevButton,
+  } from '$lib/components/ui/pagination';
+  import {
+    buildDockerListPageUrl,
+    type DockerListSortDirection,
+  } from '$lib/docker-list-query';
   import { formatDockerTimestamp, formatShortId } from '$lib/presenters';
   import CopyButton from '$lib/components/app/copy-button.svelte';
   import SortableTableHead from '$lib/components/app/sortable-table-head.svelte';
@@ -45,49 +59,90 @@
     ipv6Enabled: boolean;
   };
 
+  type DockerNetworkSortField = 'name' | 'driver' | 'created';
+
+  const defaultSortField: DockerNetworkSortField = 'name';
+
   let searchQuery = $state('');
-  let sortField = $state<'name' | 'driver' | 'created'>('name');
-  let sortDirection = $state<'asc' | 'desc'>('asc');
-  let loading = $state(false);
-  let loadError = $state<string | null>(null);
-  let networks = $state<DockerNetworkSummary[]>([]);
+  let sortField = $state<DockerNetworkSortField>(defaultSortField);
+  let sortDirection = $state<DockerListSortDirection>('asc');
+  let currentPage = $state(1);
+  let refreshing = $state(false);
   let removeBusyId = $state('');
   let removeDialogOpen = $state(false);
   let removeTarget = $state<DockerNetworkSummary | null>(null);
 
+  let loading = $derived(!data.ready || refreshing);
+  let loadError = $derived(data.error ?? null);
+  let networks = $derived((data.networks ?? []) as DockerNetworkSummary[]);
+  let totalPages = $derived(
+    data.totalCount > 0 ? Math.ceil(data.totalCount / data.pageSize) : 0,
+  );
+  let currentPath = $derived($page.url.pathname);
+
   $effect(() => {
-    loading = !data.ready;
-    loadError = data.error ?? null;
-    networks = data.networks || [];
+    refreshing = false;
+    currentPage = data.page;
+    searchQuery = data.search;
+    sortField = data.sortBy as DockerNetworkSortField;
+    sortDirection = data.sortDirection as DockerListSortDirection;
   });
 
-  async function refreshNetworks() {
+  $effect(() => {
     if (!data.ready) {
-      loading = false;
       return;
     }
 
-    loading = true;
-    loadError = null;
-
-    try {
-      const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/networks`);
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error || $messages.docker.networks.failedToLoad);
-      }
-      networks = payload.networks ?? [];
-    } catch (error) {
-      loadError = error instanceof Error ? error.message : $messages.docker.networks.failedToLoad;
-      networks = [];
-    } finally {
-      loading = false;
+    if (
+      currentPage === data.page &&
+      searchQuery === data.search &&
+      sortField === data.sortBy &&
+      sortDirection === data.sortDirection
+    ) {
+      return;
     }
+
+    refreshing = true;
+    void goto(pageUrl(currentPage, searchQuery, sortField, sortDirection), {
+      keepFocus: true,
+      noScroll: true,
+      replaceState:
+        searchQuery !== data.search ||
+        sortField !== data.sortBy ||
+        sortDirection !== data.sortDirection,
+    });
+  });
+
+  function pageUrl(
+    pageNumber: number,
+    search: string,
+    nextSortField: DockerNetworkSortField,
+    nextSortDirection: DockerListSortDirection,
+  ) {
+    return buildDockerListPageUrl(
+      currentPath,
+      {
+        page: pageNumber,
+        search,
+        sortBy: nextSortField,
+        sortDirection: nextSortDirection,
+      },
+      defaultSortField,
+    );
   }
 
-  onMount(() => {
-    void refreshNetworks();
-  });
+  async function refreshNetworks() {
+    if (!data.ready) {
+      return;
+    }
+
+    refreshing = true;
+    try {
+      await invalidateAll();
+    } finally {
+      refreshing = false;
+    }
+  }
 
   function openRemoveDialog(network: DockerNetworkSummary) {
     removeTarget = network;
@@ -140,36 +195,20 @@
     if (sortField === field) {
       sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
-      sortField = field as typeof sortField;
+      sortField = field as DockerNetworkSortField;
       sortDirection = 'asc';
     }
+    currentPage = 1;
   }
 
-  let filteredNetworks = $derived(networks.filter((n) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      n.name.toLowerCase().includes(query) ||
-      n.driver.toLowerCase().includes(query) ||
-      n.id.toLowerCase().includes(query) ||
-      n.scope.toLowerCase().includes(query)
-    );
-  }));
+  function handleSearchInput() {
+    currentPage = 1;
+  }
 
-  let sortedNetworks = $derived([...filteredNetworks].sort((a, b) => {
-    let comparison = 0;
-    switch (sortField) {
-      case 'name':
-        comparison = a.name.localeCompare(b.name);
-        break;
-      case 'driver':
-        comparison = a.driver.localeCompare(b.driver);
-        break;
-      case 'created':
-        comparison = new Date(a.created || 0).getTime() - new Date(b.created || 0).getTime();
-        break;
-    }
-    return sortDirection === 'asc' ? comparison : -comparison;
-  }));
+  function clearSearch() {
+    searchQuery = '';
+    currentPage = 1;
+  }
 </script>
 
 <div class="page-shell">
@@ -182,7 +221,7 @@
             <CardDescription class="page-description">
               {$messages.docker.networks.titleOnNode.replace('{nodeId}', data.nodeId)}
               {#if !loading}
-                <Badge variant="secondary" class="ml-2">{networks.length}</Badge>
+                <Badge variant="secondary" class="ml-2">{data.totalCount}</Badge>
               {/if}
             </CardDescription>
           </div>
@@ -199,10 +238,11 @@
               placeholder={$messages.docker.networks.searchPlaceholder}
               class="pl-9"
               bind:value={searchQuery}
+              oninput={handleSearchInput}
             />
           </div>
           {#if searchQuery}
-            <Button variant="ghost" size="sm" onclick={() => (searchQuery = '')}>
+            <Button variant="ghost" size="sm" onclick={clearSearch}>
               {$messages.common.cancel}
             </Button>
           {/if}
@@ -223,7 +263,7 @@
               <span>{$messages.common.loading} {$messages.docker.networks.title}...</span>
             </div>
           </div>
-        {:else if sortedNetworks.length > 0}
+        {:else if networks.length > 0}
           <Table>
             <TableHeader>
               <TableRow>
@@ -237,7 +277,7 @@
               </TableRow>
             </TableHeader>
             <TableBody>
-              {#each sortedNetworks as network}
+              {#each networks as network}
                 <TableRow class="hover:bg-accent/50">
                   <TableCell>
                     <div class="space-y-0.5">
@@ -299,9 +339,39 @@
               {/each}
             </TableBody>
           </Table>
-          {#if filteredNetworks.length !== networks.length}
+          {#if data.totalCount > networks.length}
             <div class="mt-3 text-xs text-muted-foreground text-center">
-              {$messages.docker.networks.countSummary.replace('{shown}', String(filteredNetworks.length)).replace('{total}', String(networks.length))}
+              {$messages.docker.networks.countSummary.replace('{shown}', String(networks.length)).replace('{total}', String(data.totalCount))}
+            </div>
+          {/if}
+
+          {#if totalPages > 1}
+            <div class="mt-6">
+              <Pagination count={data.totalCount} perPage={data.pageSize} bind:page={currentPage}>
+                {#snippet children({ pages, currentPage })}
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevButton />
+                    </PaginationItem>
+
+                    {#each pages as page (page.key)}
+                      {#if page.type === 'ellipsis'}
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      {:else}
+                        <PaginationItem>
+                          <PaginationLink {page} isActive={currentPage === page.value} />
+                        </PaginationItem>
+                      {/if}
+                    {/each}
+
+                    <PaginationItem>
+                      <PaginationNextButton />
+                    </PaginationItem>
+                  </PaginationContent>
+                {/snippet}
+              </Pagination>
             </div>
           {/if}
         {:else if searchQuery}
