@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-FROM --platform=$BUILDPLATFORM golang:1.25@sha256:3760478c76cfe25533e06176e983e7808293895d48d15d0981c0cbb9623834e7 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26@sha256:5f3787b7f902c07c7ec4f3aa91a301a3eda8133aa32661a3b3a3a86ab3a68a36 AS builder
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} \
     go build -trimpath -ldflags="-s -w" -o /composia ./cmd/composia
 
-FROM golang:1.25-alpine@sha256:7a00384194cf2cb68924bbb918d675f1517357433c8541bac0ab2f929b9d5447 AS dev
+FROM golang:1.26-alpine@sha256:27f829349da645e287cb195a9921c106fc224eeebbdc33aeb0f4fca2382befa6 AS dev
 
 WORKDIR /workspace
 
