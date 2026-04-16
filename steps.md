@@ -13,17 +13,21 @@
 
 ## 当前代码库状态
 
-代码库已超越初始 scaffold 阶段，multi-node 主干已完成；当前剩余工作主要集中在迁移、restore、定时备份，以及部分 UI/编辑器增强。
+代码库已超越初始 scaffold 阶段，multi-node 主干已完成；当前剩余工作主要集中在 migration、restore、rustic forget/prune 的真实环境验证，以及部分 UI/编辑器增强。
 
 当前风险说明：
 
-- `caddy`
-- `rustic`
-- `backup`
 - `restore`
 - `migrate`
+- `ForgetNodeRustic` / `PruneNodeRustic`
 
-以上链路目前都只有代码路径和局部单元测试覆盖，**没有经过真实环境下的实际测试验证**。当前实现应视为功能骨架已落地，但不能视为已被生产级验证的稳定能力。
+近期补充验证：
+
+- 已在接近生产环境上持续使用，暂未发现巨大问题
+- `rustic init` 已跑通
+- Caddy 相关功能已确认正常
+
+当前未完成的真实环境验证重点，已收敛到 `restore`、`migrate`、`ForgetNodeRustic`、`PruneNodeRustic`。
 
 ### 已实现或大部分实现
 
@@ -176,7 +180,7 @@
 
 ## Phase 6: 替换占位符备份行为
 
-**状态：核心功能已完成，但尚未经过实际测试；需要系统性测试与重构**
+**状态：核心功能已完成；近生产环境验证已开始，但 restore 仍需系统性测试与重构**
 
 目标：将当前备份 scaffold 转变为第一个真实数据保护工作流，并明确其 instance 语义。
 
@@ -187,14 +191,14 @@
 - service 级 backup 通过 `RunServiceAction` + `node_ids[]` 实现 instance 扇出
 
 待完成：
-1. 对整个 backup/restore 链路做真实环境下的实际测试；当前实现不能视为已验证
+1. 对 restore 链路做真实环境下的实际测试，并补齐 backup/restore 组合回归
 2. 对每一个 backup strategy 单独补齐真实测试与失败场景测试：`files.copy`、`files.tar_after_stop`、`database.pgdumpall`
 3. 对每一个 backup strategy 进行重构，明确一致性边界、错误处理、恢复语义和日志语义
 4. restore 任务执行的真实回归测试与端到端校验
 5. 迁移复用备份数据的工作流需要在真实环境下验证
 6. `database.pgimport` restore 策略需要真实测试与重构
 7. `files.untar` restore 策略需要真实测试与重构
-8. 定时备份执行
+8. 定时备份执行的真实环境回归
 
 ---
 
@@ -220,15 +224,15 @@
 
 待完成：
 1. `MigrateService` UI 基础入口已实现；仍需继续增强确认流程和目标节点选择体验（Phase 9）。
-2. 备份详情页和 restore 入口仍未实现；当前只有备份列表页。
+2. 备份详情页和 restore 入口已实现；仍需继续打磨 restore 交互与真实环境反馈。
 3. **Service 管理页面重构**：当前页面混合了文件编辑、实例管理、操作入口等多重职责，需要拆分为更清晰的 multi-node 架构视图。
-4. **CodeMirror 编辑器增强**：基础编辑器已接入，但仍缺少 `.env` 检查、`docker compose` YAML 检查、`composia-meta.yaml` 语义检查，以及分屏编辑能力。
+4. **CodeMirror 编辑器增强**：基础编辑器、`.env` 检查、`docker compose` YAML 检查和分屏编辑能力已接入；仍缺少 `composia-meta.yaml` 语义检查等进一步增强。
 
 ---
 
 ## Phase 8: 添加 DNS、Caddy 和容器操作
 
-**状态：核心功能已完成，但 caddy/rustic 相关链路尚未经过实际测试**
+**状态：核心功能已完成；Caddy 相关链路已在接近生产环境验证，`rustic init` 已跑通，`ForgetNodeRustic` / `PruneNodeRustic` 仍待实际测试**
 
 目标：在 repo 写入和基础服务流稳定后，实现文档化的 day-2 操作动作，并将 Caddy 放在 multi-node service model 上。
 
@@ -251,13 +255,13 @@
 2. `migrate` 完成后在源节点和目标节点都触发 `caddy_reload`（等待 Phase 9）
 3. **Docker exec (terminal) 增强**：Web 端 terminal 与基础 exec 流程已接通，但目前还需要完整的测试和 review
 4. `dns_update` 在 `network.dns.value` 为空时仍按单节点自动推导目标；多节点 service 若要统一 DNS，仍需显式提供 `network.dns.value`
-5. `caddy_sync`、`caddy_reload`、`ForgetNodeRustic`、`PruneNodeRustic` 需要真实环境下的实际测试；当前不能视为已验证
+5. `ForgetNodeRustic`、`PruneNodeRustic` 需要真实环境下的实际测试；当前不能视为已验证
 
 ---
 
 ## Phase 9: 最后添加迁移
 
-**状态：核心能力已完成，但 restore/migrate 尚未经过实际测试；确认挂起/恢复、冲突处理、回滚语义待完善**
+**状态：核心能力已完成；确认挂起/恢复已接通，但 restore/migrate 仍待近生产环境端到端验证，冲突处理、回滚语义待完善**
 
 目标：仅在整个平台语义稳定后，实现最复杂的 v1 工作流。
 
@@ -299,7 +303,7 @@
 3. `decision=reject` 时结束当前 migrate task，并记录 `manual verification rejected` 已实现
 4. 迁移冲突处理：当 `persist_repo` 时 `HEAD` 已变化但变化触及该服务目录，仍需实现专门冲突语义
 5. 迁移 UI 仍是基础入口；任务详情页已提供 `awaiting_confirmation` 下的通过/拒绝入口，但整体确认体验和目标节点选择体验仍需增强
-6. 整个 migrate 流程需要真实环境端到端测试；当前不能视为已验证
+6. 整个 migrate 流程需要近生产环境端到端测试；当前重点验证源节点 stop/backup、目标节点 restore/start、确认后 dns/persist_repo
 7. restore 覆盖语义、数据库导入语义、失败后的残留状态处理需要重构并补测试
 8. 任务查询与筛选已把 `awaiting_confirmation` 视为一等状态；仍需继续打磨相关 UI 呈现和操作流
 
@@ -405,11 +409,11 @@ dns update
 5. ~~实现 `ReloadNodeCaddy` API 和 UI 入口~~ - 已完成
 6. ~~实现 `caddy_reload` 任务行为~~ - 已完成
 7. 完善 migrate 的 `persist_repo` 冲突处理，以及确认后的异常/回滚语义（Phase 9）
-8. 补全 restore 对外闭环：独立 restore 任务/API、备份详情页、restore 入口
-9. 为 `caddy`、`rustic`、`backup`、`restore`、`migrate` 补齐真实环境测试，不再只依赖代码路径存在和局部测试
+8. 把 restore 从“已有 API/UI 入口”推进到“真实环境验证完成”：按 strategy 跑通回归并收口错误语义
+9. 优先补齐真实环境测试：`migrate`、`ForgetNodeRustic`、`PruneNodeRustic`、`restore`
 10. 按 strategy 重构 backup/restore：`files.copy`、`files.tar_after_stop`、`database.pgdumpall`、`files.untar`、`database.pgimport`
 11. CLI 命令面实现：`service`、`instance`、`container`、`task`、`backup`、`node`、`repo`、`secret`、`system`
-12. Web UI 增强：CodeMirror 分屏能力、改进的 terminal 组件、备份详情交互
+12. Web UI 增强：改进的 terminal 组件、迁移确认体验、restore 交互细节
 
 ## 基于当前代码的补充结论
 
@@ -419,8 +423,9 @@ dns update
 - 定时任务执行已实现，包含 service backup 调度以及 rustic forget/prune 调度。
 - Web UI 已支持把 `awaiting_confirmation` 作为任务状态筛选项。
 - CodeMirror 基础检查已落地，至少包含 `.env` 与 compose YAML lint。
-- 备份记录查询 API 已支持 `ListBackups` 和 `GetBackup`，但 Web 端仍缺少备份详情页。
-- restore 目前仍主要作为 migrate 内部复用能力存在，尚未形成独立的用户可操作工作流。
+- 备份记录查询 API 已支持 `ListBackups` 和 `GetBackup`，Web 端已有备份详情页。
+- restore 已有独立 API 和 Web 入口，但真实环境验证和失败语义仍需补强。
+- 近生产环境反馈已确认 `rustic init` 跑通、Caddy 功能正常；验证重点收敛到 `restore`、`migrate`、`ForgetNodeRustic`、`PruneNodeRustic`。
 
 ---
 
