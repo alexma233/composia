@@ -1069,7 +1069,7 @@
   }
 </script>
 
-<div class="page-shell flex min-h-[calc(100vh-72px)] flex-col">
+<div class="page-shell-workbench flex min-h-[calc(100vh-72px)] flex-col">
   <div class="page-stack flex min-h-0 flex-1 flex-col">
     <Card>
       <CardHeader class="gap-3 py-4">
@@ -1081,7 +1081,7 @@
           </Badge>
         </div>
 
-        <div class="max-w-xl space-y-1">
+        <div class="max-w-2xl space-y-1">
           <Popover.Root bind:open={serviceSwitchOpen}>
             <Popover.Trigger class="inline-flex w-full">
               <button
@@ -1297,7 +1297,7 @@
     {/if}
 
     <div
-      class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)_320px]"
+      class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)_280px]"
     >
       <Card class="flex min-h-0 min-w-0 flex-col">
         <CardHeader class="section-header border-b">
@@ -1571,8 +1571,10 @@
         {/if}
       </Card>
 
-      <section class="flex min-h-0 min-w-0 flex-col gap-4">
-        <Card>
+      <section
+        class="grid min-h-0 min-w-0 gap-4 xl:col-span-2 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] 2xl:col-span-1 2xl:grid-cols-1"
+      >
+        <Card class="xl:col-span-2 2xl:col-span-1">
           <CardHeader class="section-header">
             <CardTitle class="section-title"
               >{$messages.services.operations.title}</CardTitle
