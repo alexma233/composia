@@ -11,12 +11,14 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -2270,32 +2272,52 @@ func dockerVolumeStats(ctx context.Context) (uint32, uint64, error) {
 
 func parseSize(s string) (uint64, bool) {
 	s = strings.TrimSpace(s)
-	s = strings.ToUpper(s)
-
-	mult := uint64(1)
-	if strings.HasSuffix(s, "GIB") || strings.HasSuffix(s, "GB") {
-		mult = 1024 * 1024 * 1024
-		s = strings.TrimSuffix(strings.TrimSuffix(s, "GIB"), "GB")
-	} else if strings.HasSuffix(s, "MIB") || strings.HasSuffix(s, "MB") {
-		mult = 1024 * 1024
-		s = strings.TrimSuffix(strings.TrimSuffix(s, "MIB"), "MB")
-	} else if strings.HasSuffix(s, "KIB") || strings.HasSuffix(s, "KB") {
-		mult = 1024
-		s = strings.TrimSuffix(strings.TrimSuffix(s, "KIB"), "KB")
-	} else if strings.HasSuffix(s, "B") {
-		s = strings.TrimSuffix(s, "B")
+	if s == "" {
+		return 0, false
 	}
 
-	s = strings.TrimSpace(s)
-	var size uint64
-	for _, c := range s {
-		if c >= '0' && c <= '9' {
-			size = size*10 + uint64(c-'0')
-		} else if c != '.' && c != ',' {
-			return 0, false
+	if strings.Contains(s, ",") {
+		if strings.Contains(s, ".") {
+			s = strings.ReplaceAll(s, ",", "")
+		} else {
+			s = strings.ReplaceAll(s, ",", ".")
 		}
 	}
-	return size * mult, true
+
+	s = strings.ToUpper(s)
+
+	unitMultipliers := []struct {
+		suffix string
+		bytes  float64
+	}{
+		{suffix: "PIB", bytes: 1024 * 1024 * 1024 * 1024 * 1024},
+		{suffix: "PB", bytes: 1000 * 1000 * 1000 * 1000 * 1000},
+		{suffix: "TIB", bytes: 1024 * 1024 * 1024 * 1024},
+		{suffix: "TB", bytes: 1000 * 1000 * 1000 * 1000},
+		{suffix: "GIB", bytes: 1024 * 1024 * 1024},
+		{suffix: "GB", bytes: 1000 * 1000 * 1000},
+		{suffix: "MIB", bytes: 1024 * 1024},
+		{suffix: "MB", bytes: 1000 * 1000},
+		{suffix: "KIB", bytes: 1024},
+		{suffix: "KB", bytes: 1000},
+		{suffix: "B", bytes: 1},
+	}
+
+	mult := float64(1)
+	for _, unit := range unitMultipliers {
+		if strings.HasSuffix(s, unit.suffix) {
+			mult = unit.bytes
+			s = strings.TrimSpace(strings.TrimSuffix(s, unit.suffix))
+			break
+		}
+	}
+
+	value, err := strconv.ParseFloat(strings.TrimSpace(s), 64)
+	if err != nil || value < 0 {
+		return 0, false
+	}
+
+	return uint64(math.Round(value * mult)), true
 }
 
 func dockerDiskUsage(ctx context.Context) (uint64, error) {
