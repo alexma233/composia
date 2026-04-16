@@ -60,12 +60,18 @@ const (
 	// AgentReportServiceReportDockerStatsProcedure is the fully-qualified name of the
 	// AgentReportService's ReportDockerStats RPC.
 	AgentReportServiceReportDockerStatsProcedure = "/composia.agent.v1.AgentReportService/ReportDockerStats"
+	// AgentReportServiceReportDockerQueryResultProcedure is the fully-qualified name of the
+	// AgentReportService's ReportDockerQueryResult RPC.
+	AgentReportServiceReportDockerQueryResultProcedure = "/composia.agent.v1.AgentReportService/ReportDockerQueryResult"
 	// AgentReportServiceOpenExecTunnelProcedure is the fully-qualified name of the AgentReportService's
 	// OpenExecTunnel RPC.
 	AgentReportServiceOpenExecTunnelProcedure = "/composia.agent.v1.AgentReportService/OpenExecTunnel"
 	// AgentTaskServicePullNextTaskProcedure is the fully-qualified name of the AgentTaskService's
 	// PullNextTask RPC.
 	AgentTaskServicePullNextTaskProcedure = "/composia.agent.v1.AgentTaskService/PullNextTask"
+	// AgentTaskServicePullNextDockerQueryProcedure is the fully-qualified name of the
+	// AgentTaskService's PullNextDockerQuery RPC.
+	AgentTaskServicePullNextDockerQueryProcedure = "/composia.agent.v1.AgentTaskService/PullNextDockerQuery"
 	// BundleServiceGetServiceBundleProcedure is the fully-qualified name of the BundleService's
 	// GetServiceBundle RPC.
 	BundleServiceGetServiceBundleProcedure = "/composia.agent.v1.BundleService/GetServiceBundle"
@@ -129,6 +135,8 @@ type AgentReportServiceClient interface {
 	ReportServiceInstanceStatus(context.Context, *connect.Request[v1.ReportServiceInstanceStatusRequest]) (*connect.Response[v1.ReportServiceInstanceStatusResponse], error)
 	// ReportDockerStats reports the latest Docker stats snapshot for one node.
 	ReportDockerStats(context.Context, *connect.Request[v1.ReportDockerStatsRequest]) (*connect.Response[v1.ReportDockerStatsResponse], error)
+	// ReportDockerQueryResult reports the result of one direct Docker query.
+	ReportDockerQueryResult(context.Context, *connect.Request[v1.ReportDockerQueryResultRequest]) (*connect.Response[v1.ReportDockerQueryResultResponse], error)
 	// OpenExecTunnel proxies interactive exec traffic between controller and agent.
 	OpenExecTunnel(context.Context) *connect.BidiStreamForClient[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse]
 }
@@ -186,6 +194,12 @@ func NewAgentReportServiceClient(httpClient connect.HTTPClient, baseURL string, 
 			connect.WithSchema(agentReportServiceMethods.ByName("ReportDockerStats")),
 			connect.WithClientOptions(opts...),
 		),
+		reportDockerQueryResult: connect.NewClient[v1.ReportDockerQueryResultRequest, v1.ReportDockerQueryResultResponse](
+			httpClient,
+			baseURL+AgentReportServiceReportDockerQueryResultProcedure,
+			connect.WithSchema(agentReportServiceMethods.ByName("ReportDockerQueryResult")),
+			connect.WithClientOptions(opts...),
+		),
 		openExecTunnel: connect.NewClient[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse](
 			httpClient,
 			baseURL+AgentReportServiceOpenExecTunnelProcedure,
@@ -204,6 +218,7 @@ type agentReportServiceClient struct {
 	reportBackupResult          *connect.Client[v1.ReportBackupResultRequest, v1.ReportBackupResultResponse]
 	reportServiceInstanceStatus *connect.Client[v1.ReportServiceInstanceStatusRequest, v1.ReportServiceInstanceStatusResponse]
 	reportDockerStats           *connect.Client[v1.ReportDockerStatsRequest, v1.ReportDockerStatsResponse]
+	reportDockerQueryResult     *connect.Client[v1.ReportDockerQueryResultRequest, v1.ReportDockerQueryResultResponse]
 	openExecTunnel              *connect.Client[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse]
 }
 
@@ -243,6 +258,11 @@ func (c *agentReportServiceClient) ReportDockerStats(ctx context.Context, req *c
 	return c.reportDockerStats.CallUnary(ctx, req)
 }
 
+// ReportDockerQueryResult calls composia.agent.v1.AgentReportService.ReportDockerQueryResult.
+func (c *agentReportServiceClient) ReportDockerQueryResult(ctx context.Context, req *connect.Request[v1.ReportDockerQueryResultRequest]) (*connect.Response[v1.ReportDockerQueryResultResponse], error) {
+	return c.reportDockerQueryResult.CallUnary(ctx, req)
+}
+
 // OpenExecTunnel calls composia.agent.v1.AgentReportService.OpenExecTunnel.
 func (c *agentReportServiceClient) OpenExecTunnel(ctx context.Context) *connect.BidiStreamForClient[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse] {
 	return c.openExecTunnel.CallBidiStream(ctx)
@@ -265,6 +285,8 @@ type AgentReportServiceHandler interface {
 	ReportServiceInstanceStatus(context.Context, *connect.Request[v1.ReportServiceInstanceStatusRequest]) (*connect.Response[v1.ReportServiceInstanceStatusResponse], error)
 	// ReportDockerStats reports the latest Docker stats snapshot for one node.
 	ReportDockerStats(context.Context, *connect.Request[v1.ReportDockerStatsRequest]) (*connect.Response[v1.ReportDockerStatsResponse], error)
+	// ReportDockerQueryResult reports the result of one direct Docker query.
+	ReportDockerQueryResult(context.Context, *connect.Request[v1.ReportDockerQueryResultRequest]) (*connect.Response[v1.ReportDockerQueryResultResponse], error)
 	// OpenExecTunnel proxies interactive exec traffic between controller and agent.
 	OpenExecTunnel(context.Context, *connect.BidiStream[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse]) error
 }
@@ -318,6 +340,12 @@ func NewAgentReportServiceHandler(svc AgentReportServiceHandler, opts ...connect
 		connect.WithSchema(agentReportServiceMethods.ByName("ReportDockerStats")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentReportServiceReportDockerQueryResultHandler := connect.NewUnaryHandler(
+		AgentReportServiceReportDockerQueryResultProcedure,
+		svc.ReportDockerQueryResult,
+		connect.WithSchema(agentReportServiceMethods.ByName("ReportDockerQueryResult")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agentReportServiceOpenExecTunnelHandler := connect.NewBidiStreamHandler(
 		AgentReportServiceOpenExecTunnelProcedure,
 		svc.OpenExecTunnel,
@@ -340,6 +368,8 @@ func NewAgentReportServiceHandler(svc AgentReportServiceHandler, opts ...connect
 			agentReportServiceReportServiceInstanceStatusHandler.ServeHTTP(w, r)
 		case AgentReportServiceReportDockerStatsProcedure:
 			agentReportServiceReportDockerStatsHandler.ServeHTTP(w, r)
+		case AgentReportServiceReportDockerQueryResultProcedure:
+			agentReportServiceReportDockerQueryResultHandler.ServeHTTP(w, r)
 		case AgentReportServiceOpenExecTunnelProcedure:
 			agentReportServiceOpenExecTunnelHandler.ServeHTTP(w, r)
 		default:
@@ -379,6 +409,10 @@ func (UnimplementedAgentReportServiceHandler) ReportDockerStats(context.Context,
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentReportService.ReportDockerStats is not implemented"))
 }
 
+func (UnimplementedAgentReportServiceHandler) ReportDockerQueryResult(context.Context, *connect.Request[v1.ReportDockerQueryResultRequest]) (*connect.Response[v1.ReportDockerQueryResultResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentReportService.ReportDockerQueryResult is not implemented"))
+}
+
 func (UnimplementedAgentReportServiceHandler) OpenExecTunnel(context.Context, *connect.BidiStream[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentReportService.OpenExecTunnel is not implemented"))
 }
@@ -387,6 +421,8 @@ func (UnimplementedAgentReportServiceHandler) OpenExecTunnel(context.Context, *c
 type AgentTaskServiceClient interface {
 	// PullNextTask returns the next available task for the requesting node.
 	PullNextTask(context.Context, *connect.Request[v1.PullNextTaskRequest]) (*connect.Response[v1.PullNextTaskResponse], error)
+	// PullNextDockerQuery returns the next in-memory Docker query for the requesting node.
+	PullNextDockerQuery(context.Context, *connect.Request[v1.PullNextDockerQueryRequest]) (*connect.Response[v1.PullNextDockerQueryResponse], error)
 }
 
 // NewAgentTaskServiceClient constructs a client for the composia.agent.v1.AgentTaskService service.
@@ -406,12 +442,19 @@ func NewAgentTaskServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(agentTaskServiceMethods.ByName("PullNextTask")),
 			connect.WithClientOptions(opts...),
 		),
+		pullNextDockerQuery: connect.NewClient[v1.PullNextDockerQueryRequest, v1.PullNextDockerQueryResponse](
+			httpClient,
+			baseURL+AgentTaskServicePullNextDockerQueryProcedure,
+			connect.WithSchema(agentTaskServiceMethods.ByName("PullNextDockerQuery")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // agentTaskServiceClient implements AgentTaskServiceClient.
 type agentTaskServiceClient struct {
-	pullNextTask *connect.Client[v1.PullNextTaskRequest, v1.PullNextTaskResponse]
+	pullNextTask        *connect.Client[v1.PullNextTaskRequest, v1.PullNextTaskResponse]
+	pullNextDockerQuery *connect.Client[v1.PullNextDockerQueryRequest, v1.PullNextDockerQueryResponse]
 }
 
 // PullNextTask calls composia.agent.v1.AgentTaskService.PullNextTask.
@@ -419,10 +462,17 @@ func (c *agentTaskServiceClient) PullNextTask(ctx context.Context, req *connect.
 	return c.pullNextTask.CallUnary(ctx, req)
 }
 
+// PullNextDockerQuery calls composia.agent.v1.AgentTaskService.PullNextDockerQuery.
+func (c *agentTaskServiceClient) PullNextDockerQuery(ctx context.Context, req *connect.Request[v1.PullNextDockerQueryRequest]) (*connect.Response[v1.PullNextDockerQueryResponse], error) {
+	return c.pullNextDockerQuery.CallUnary(ctx, req)
+}
+
 // AgentTaskServiceHandler is an implementation of the composia.agent.v1.AgentTaskService service.
 type AgentTaskServiceHandler interface {
 	// PullNextTask returns the next available task for the requesting node.
 	PullNextTask(context.Context, *connect.Request[v1.PullNextTaskRequest]) (*connect.Response[v1.PullNextTaskResponse], error)
+	// PullNextDockerQuery returns the next in-memory Docker query for the requesting node.
+	PullNextDockerQuery(context.Context, *connect.Request[v1.PullNextDockerQueryRequest]) (*connect.Response[v1.PullNextDockerQueryResponse], error)
 }
 
 // NewAgentTaskServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -438,10 +488,18 @@ func NewAgentTaskServiceHandler(svc AgentTaskServiceHandler, opts ...connect.Han
 		connect.WithSchema(agentTaskServiceMethods.ByName("PullNextTask")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentTaskServicePullNextDockerQueryHandler := connect.NewUnaryHandler(
+		AgentTaskServicePullNextDockerQueryProcedure,
+		svc.PullNextDockerQuery,
+		connect.WithSchema(agentTaskServiceMethods.ByName("PullNextDockerQuery")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.agent.v1.AgentTaskService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentTaskServicePullNextTaskProcedure:
 			agentTaskServicePullNextTaskHandler.ServeHTTP(w, r)
+		case AgentTaskServicePullNextDockerQueryProcedure:
+			agentTaskServicePullNextDockerQueryHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -453,6 +511,10 @@ type UnimplementedAgentTaskServiceHandler struct{}
 
 func (UnimplementedAgentTaskServiceHandler) PullNextTask(context.Context, *connect.Request[v1.PullNextTaskRequest]) (*connect.Response[v1.PullNextTaskResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentTaskService.PullNextTask is not implemented"))
+}
+
+func (UnimplementedAgentTaskServiceHandler) PullNextDockerQuery(context.Context, *connect.Request[v1.PullNextDockerQueryRequest]) (*connect.Response[v1.PullNextDockerQueryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentTaskService.PullNextDockerQuery is not implemented"))
 }
 
 // BundleServiceClient is a client for the composia.agent.v1.BundleService service.

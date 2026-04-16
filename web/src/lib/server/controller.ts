@@ -555,6 +555,7 @@ export async function updateSecret(
 
 export async function loadServiceDetail(
   serviceName: string,
+  includeContainers = false,
 ): Promise<ServiceDetail> {
   const config = requireControllerConfig();
   const response = await rpcCall<{
@@ -595,7 +596,7 @@ export async function loadServiceDetail(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.ServiceQueryService/GetService",
-    { serviceName },
+    { serviceName, includeContainers },
   );
   return {
     name: response.name,
@@ -665,6 +666,7 @@ export async function loadServiceInstances(
 export async function loadServiceInstance(
   serviceName: string,
   nodeId: string,
+  includeContainers = false,
 ): Promise<ServiceInstanceDetail | null> {
   const config = requireControllerConfig();
   const response = await rpcCall<{
@@ -697,7 +699,7 @@ export async function loadServiceInstance(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.ServiceInstanceService/GetServiceInstance",
-    { serviceName, nodeId },
+    { serviceName, nodeId, includeContainers },
   );
   const instance = response.instance;
   if (!instance) {
@@ -937,6 +939,60 @@ export type DockerImageSummary = {
   isDangling: boolean;
 };
 
+export type DockerListQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortBy?: string;
+  sortDesc?: boolean;
+};
+
+export class ControllerRpcError extends Error {
+  readonly status: number;
+  readonly code: string | null;
+  readonly procedure: string;
+
+  constructor(options: {
+    message: string;
+    status: number;
+    code?: string | null;
+    procedure: string;
+  }) {
+    super(options.message);
+    this.name = "ControllerRpcError";
+    this.status = options.status;
+    this.code = options.code ?? null;
+    this.procedure = options.procedure;
+  }
+}
+
+export function controllerErrorStatus(error: unknown, fallback = 500): number {
+  if (error instanceof ControllerRpcError) {
+    return error.status;
+  }
+  return fallback;
+}
+
+export function controllerErrorCode(error: unknown): string | null {
+  if (error instanceof ControllerRpcError) {
+    return error.code;
+  }
+  return null;
+}
+
+export function controllerErrorMessage(
+  error: unknown,
+  fallback: string,
+): string {
+  if (error instanceof ControllerRpcError) {
+    return error.message;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return fallback;
+}
+
 function toNumber(value: unknown): number {
   if (typeof value === "number") {
     return value;
@@ -950,7 +1006,8 @@ function toNumber(value: unknown): number {
 
 export async function listNodeContainers(
   nodeId: string,
-): Promise<DockerContainerSummary[]> {
+  query: DockerListQuery = {},
+): Promise<PaginatedResult<DockerContainerSummary>> {
   const config = requireControllerConfig();
   const response = await rpcCall<{
     containers?: Array<{
@@ -966,24 +1023,36 @@ export async function listNodeContainers(
       imageId?: string;
       image_id?: string;
     }>;
+    totalCount?: number;
+    total_count?: number;
   }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.DockerQueryService/ListNodeContainers",
-    { nodeId },
+    {
+      nodeId,
+      page: query.page ?? 0,
+      pageSize: query.pageSize ?? 0,
+      search: query.search ?? "",
+      sortBy: query.sortBy ?? "",
+      sortDesc: query.sortDesc ?? false,
+    },
   );
-  return (response.containers ?? []).map((c) => ({
-    id: c.id,
-    name: c.name,
-    image: c.image,
-    state: c.state,
-    status: c.status,
-    created: c.created,
-    labels: c.labels,
-    ports: c.ports ?? [],
-    networks: c.networks ?? [],
-    imageId: c.imageId ?? c.image_id ?? "",
-  }));
+  return {
+    items: (response.containers ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      image: c.image,
+      state: c.state,
+      status: c.status,
+      created: c.created,
+      labels: c.labels,
+      ports: c.ports ?? [],
+      networks: c.networks ?? [],
+      imageId: c.imageId ?? c.image_id ?? "",
+    })),
+    totalCount: response.totalCount ?? response.total_count ?? 0,
+  };
 }
 
 export async function inspectNodeContainer(
@@ -1063,7 +1132,8 @@ export async function openContainerExec(
 
 export async function listNodeNetworks(
   nodeId: string,
-): Promise<DockerNetworkSummary[]> {
+  query: DockerListQuery = {},
+): Promise<PaginatedResult<DockerNetworkSummary>> {
   const config = requireControllerConfig();
   const response = await rpcCall<{
     networks?: Array<{
@@ -1082,26 +1152,38 @@ export async function listNodeNetworks(
       ipv6Enabled?: boolean;
       ipv6_enabled?: boolean;
     }>;
+    totalCount?: number;
+    total_count?: number;
   }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.DockerQueryService/ListNodeNetworks",
-    { nodeId },
+    {
+      nodeId,
+      page: query.page ?? 0,
+      pageSize: query.pageSize ?? 0,
+      search: query.search ?? "",
+      sortBy: query.sortBy ?? "",
+      sortDesc: query.sortDesc ?? false,
+    },
   );
-  return (response.networks ?? []).map((n) => ({
-    id: n.id,
-    name: n.name,
-    driver: n.driver,
-    scope: n.scope,
-    internal: n.internal,
-    attachable: n.attachable,
-    created: n.created,
-    labels: n.labels,
-    subnet: n.subnet,
-    gateway: n.gateway,
-    containersCount: n.containersCount ?? n.containers_count ?? 0,
-    ipv6Enabled: n.ipv6Enabled ?? n.ipv6_enabled ?? false,
-  }));
+  return {
+    items: (response.networks ?? []).map((n) => ({
+      id: n.id,
+      name: n.name,
+      driver: n.driver,
+      scope: n.scope,
+      internal: n.internal,
+      attachable: n.attachable,
+      created: n.created,
+      labels: n.labels,
+      subnet: n.subnet,
+      gateway: n.gateway,
+      containersCount: n.containersCount ?? n.containers_count ?? 0,
+      ipv6Enabled: n.ipv6Enabled ?? n.ipv6_enabled ?? false,
+    })),
+    totalCount: response.totalCount ?? response.total_count ?? 0,
+  };
 }
 
 export async function inspectNodeNetwork(
@@ -1130,7 +1212,8 @@ export async function removeNodeNetwork(
 
 export async function listNodeVolumes(
   nodeId: string,
-): Promise<DockerVolumeSummary[]> {
+  query: DockerListQuery = {},
+): Promise<PaginatedResult<DockerVolumeSummary>> {
   const config = requireControllerConfig();
   const response = await rpcCall<{
     volumes?: Array<{
@@ -1147,23 +1230,35 @@ export async function listNodeVolumes(
       inUse?: boolean;
       in_use?: boolean;
     }>;
+    totalCount?: number;
+    total_count?: number;
   }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.DockerQueryService/ListNodeVolumes",
-    { nodeId },
+    {
+      nodeId,
+      page: query.page ?? 0,
+      pageSize: query.pageSize ?? 0,
+      search: query.search ?? "",
+      sortBy: query.sortBy ?? "",
+      sortDesc: query.sortDesc ?? false,
+    },
   );
-  return (response.volumes ?? []).map((v) => ({
-    name: v.name,
-    driver: v.driver,
-    mountpoint: v.mountpoint,
-    scope: v.scope,
-    created: v.created,
-    labels: v.labels,
-    sizeBytes: toNumber(v.sizeBytes ?? v.size_bytes),
-    containersCount: v.containersCount ?? v.containers_count ?? 0,
-    inUse: v.inUse ?? v.in_use ?? false,
-  }));
+  return {
+    items: (response.volumes ?? []).map((v) => ({
+      name: v.name,
+      driver: v.driver,
+      mountpoint: v.mountpoint,
+      scope: v.scope,
+      created: v.created,
+      labels: v.labels,
+      sizeBytes: toNumber(v.sizeBytes ?? v.size_bytes),
+      containersCount: v.containersCount ?? v.containers_count ?? 0,
+      inUse: v.inUse ?? v.in_use ?? false,
+    })),
+    totalCount: response.totalCount ?? response.total_count ?? 0,
+  };
 }
 
 export async function inspectNodeVolume(
@@ -1192,7 +1287,8 @@ export async function removeNodeVolume(
 
 export async function listNodeImages(
   nodeId: string,
-): Promise<DockerImageSummary[]> {
+  query: DockerListQuery = {},
+): Promise<PaginatedResult<DockerImageSummary>> {
   const config = requireControllerConfig();
   const response = await rpcCall<{
     images?: Array<{
@@ -1213,25 +1309,37 @@ export async function listNodeImages(
       isDangling?: boolean;
       is_dangling?: boolean;
     }>;
+    totalCount?: number;
+    total_count?: number;
   }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.DockerQueryService/ListNodeImages",
-    { nodeId },
+    {
+      nodeId,
+      page: query.page ?? 0,
+      pageSize: query.pageSize ?? 0,
+      search: query.search ?? "",
+      sortBy: query.sortBy ?? "",
+      sortDesc: query.sortDesc ?? false,
+    },
   );
-  return (response.images ?? []).map((i) => ({
-    id: i.id,
-    repoTags: i.repoTags ?? i.repo_tags ?? [],
-    size: toNumber(i.size),
-    created: i.created,
-    repoDigests: i.repoDigests ?? i.repo_digests ?? [],
-    virtualSize: toNumber(i.virtualSize ?? i.virtual_size),
-    architecture: i.architecture,
-    os: i.os,
-    author: i.author,
-    containersCount: i.containersCount ?? i.containers_count ?? 0,
-    isDangling: i.isDangling ?? i.is_dangling ?? false,
-  }));
+  return {
+    items: (response.images ?? []).map((i) => ({
+      id: i.id,
+      repoTags: i.repoTags ?? i.repo_tags ?? [],
+      size: toNumber(i.size),
+      created: i.created,
+      repoDigests: i.repoDigests ?? i.repo_digests ?? [],
+      virtualSize: toNumber(i.virtualSize ?? i.virtual_size),
+      architecture: i.architecture,
+      os: i.os,
+      author: i.author,
+      containersCount: i.containersCount ?? i.containers_count ?? 0,
+      isDangling: i.isDangling ?? i.is_dangling ?? false,
+    })),
+    totalCount: response.totalCount ?? response.total_count ?? 0,
+  };
 }
 
 export async function inspectNodeImage(
@@ -1375,11 +1483,47 @@ async function rpcCall<T>(
   });
 
   if (!response.ok) {
-    const text = await response.text();
-    throw new Error(
-      `Controller RPC ${procedure} failed: ${response.status} ${text}`,
-    );
+    throw await controllerRpcErrorFromResponse(response, procedure);
   }
 
   return (await response.json()) as T;
+}
+
+async function controllerRpcErrorFromResponse(
+  response: Response,
+  procedure: string,
+): Promise<ControllerRpcError> {
+  const text = await response.text();
+  const fallbackMessage = `Controller RPC ${procedure} failed.`;
+  let message = fallbackMessage;
+  let code: string | null = null;
+
+  if (text) {
+    try {
+      const parsed = JSON.parse(text) as {
+        code?: unknown;
+        message?: unknown;
+        error?: unknown;
+      };
+      if (typeof parsed.code === "string") {
+        code = parsed.code;
+      }
+      if (typeof parsed.message === "string" && parsed.message.trim()) {
+        message = parsed.message;
+      } else if (typeof parsed.error === "string" && parsed.error.trim()) {
+        message = parsed.error;
+      } else {
+        message = text;
+      }
+    } catch {
+      message = text;
+    }
+  }
+
+  return new ControllerRpcError({
+    message,
+    status: response.status,
+    code,
+    procedure,
+  });
 }

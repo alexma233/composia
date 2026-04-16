@@ -89,6 +89,7 @@ func Run(ctx context.Context, configPath string) error {
 	repoMu := &sync.Mutex{}
 	taskQueue := newTaskQueueNotifier()
 	taskResults := newTaskResultNotifier()
+	dockerQueries := newDockerQueryBroker()
 	execManager := newExecTunnelManager()
 
 	services, err := repo.DiscoverServices(cfg.RepoDir, availableNodeIDs)
@@ -123,8 +124,8 @@ func Run(ctx context.Context, configPath string) error {
 		}
 		return name, nil
 	})
-	registerAgentHandlers(mux, cfg, db, agentInterceptor, taskQueue, taskResults, execManager)
-	registerAccessHandlers(mux, cfg, db, accessInterceptor, availableNodeIDs, taskQueue, taskResults, execManager, repoMu)
+	registerAgentHandlers(mux, cfg, db, agentInterceptor, taskQueue, taskResults, dockerQueries, execManager)
+	registerAccessHandlers(mux, cfg, db, accessInterceptor, availableNodeIDs, taskQueue, taskResults, dockerQueries, execManager, repoMu)
 	mux.HandleFunc("/ws/container-exec/", execManager.handleWebsocket)
 
 	server := &http.Server{
@@ -152,15 +153,15 @@ func Run(ctx context.Context, configPath string) error {
 	return nil
 }
 
-func registerAgentHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, execManager *execTunnelManager) {
+func registerAgentHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, dockerQueries *dockerQueryBroker, execManager *execTunnelManager) {
 	agentPath, agentHandler := agentv1connect.NewAgentReportServiceHandler(
-		&agentReportServer{db: db, cfg: cfg, availableNodeIDs: configuredNodeIDs(cfg), logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: taskQueue, taskResults: taskResults, execManager: execManager},
+		&agentReportServer{db: db, cfg: cfg, availableNodeIDs: configuredNodeIDs(cfg), logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: taskQueue, taskResults: taskResults, dockerQueries: dockerQueries, execManager: execManager},
 		connect.WithInterceptors(interceptor),
 	)
 	mux.Handle(agentPath, agentHandler)
 
 	agentTaskPath, agentTaskHandler := agentv1connect.NewAgentTaskServiceHandler(
-		&agentTaskServer{db: db, taskQueue: taskQueue},
+		&agentTaskServer{db: db, taskQueue: taskQueue, dockerQueries: dockerQueries},
 		connect.WithInterceptors(interceptor),
 	)
 	mux.Handle(agentTaskPath, agentTaskHandler)
@@ -172,7 +173,7 @@ func registerAgentHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db 
 	mux.Handle(bundlePath, bundleHandler)
 }
 
-func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, availableNodeIDs map[string]struct{}, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, execManager *execTunnelManager, repoMu *sync.Mutex) {
+func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, availableNodeIDs map[string]struct{}, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, dockerQueries *dockerQueryBroker, execManager *execTunnelManager, repoMu *sync.Mutex) {
 	systemPath, systemHandler := controllerv1connect.NewSystemServiceHandler(
 		&systemServer{db: db, cfg: cfg},
 		connect.WithInterceptors(interceptor),
@@ -204,7 +205,7 @@ func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db
 	mux.Handle(backupPath, backupHandler)
 
 	serviceQueryPath, serviceQueryHandler := controllerv1connect.NewServiceQueryServiceHandler(
-		&serviceQueryServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults, repoMu: repoMu},
+		&serviceQueryServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults, dockerQueries: dockerQueries, repoMu: repoMu},
 		connect.WithInterceptors(interceptor),
 	)
 	mux.Handle(serviceQueryPath, serviceQueryHandler)
@@ -216,7 +217,7 @@ func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db
 	mux.Handle(serviceCommandPath, serviceCommandHandler)
 
 	serviceInstancePath, serviceInstanceHandler := controllerv1connect.NewServiceInstanceServiceHandler(
-		&serviceInstanceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults},
+		&serviceInstanceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults, dockerQueries: dockerQueries},
 		connect.WithInterceptors(interceptor),
 	)
 	mux.Handle(serviceInstancePath, serviceInstanceHandler)
@@ -234,13 +235,13 @@ func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db
 	mux.Handle(nodeMaintenancePath, nodeMaintenanceHandler)
 
 	dockerQueryPath, dockerQueryHandler := controllerv1connect.NewDockerQueryServiceHandler(
-		&dockerQueryServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults},
+		&dockerQueryServer{db: db, cfg: cfg, dockerQueries: dockerQueries},
 		connect.WithInterceptors(interceptor),
 	)
 	mux.Handle(dockerQueryPath, dockerQueryHandler)
 
 	containerPath, containerHandler := controllerv1connect.NewContainerServiceHandler(
-		&containerServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults, execManager: execManager},
+		&containerServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults, dockerQueries: dockerQueries, execManager: execManager},
 		connect.WithInterceptors(interceptor),
 	)
 	mux.Handle(containerPath, containerHandler)
@@ -378,12 +379,14 @@ type agentReportServer struct {
 	logState         *taskLogAckState
 	taskQueue        *taskQueueNotifier
 	taskResults      *taskResultNotifier
+	dockerQueries    *dockerQueryBroker
 	execManager      *execTunnelManager
 }
 
 type agentTaskServer struct {
 	db            *store.DB
 	taskQueue     *taskQueueNotifier
+	dockerQueries *dockerQueryBroker
 	maxWait       time.Duration
 	retryInterval time.Duration
 }
@@ -1220,6 +1223,7 @@ type serviceQueryServer struct {
 	availableNodeIDs map[string]struct{}
 	taskQueue        *taskQueueNotifier
 	taskResults      *taskResultNotifier
+	dockerQueries    *dockerQueryBroker
 	repoMu           *sync.Mutex
 }
 
@@ -1238,6 +1242,7 @@ type serviceInstanceServer struct {
 	availableNodeIDs map[string]struct{}
 	taskQueue        *taskQueueNotifier
 	taskResults      *taskResultNotifier
+	dockerQueries    *dockerQueryBroker
 }
 
 type serviceTaskParams struct {
@@ -1278,10 +1283,9 @@ type nodeMaintenanceServer struct {
 }
 
 type dockerQueryServer struct {
-	db          *store.DB
-	cfg         *config.ControllerConfig
-	taskQueue   *taskQueueNotifier
-	taskResults *taskResultNotifier
+	db            *store.DB
+	cfg           *config.ControllerConfig
+	dockerQueries *dockerQueryBroker
 }
 
 type repoQueryServer struct {
@@ -1299,11 +1303,12 @@ type repoCommandServer struct {
 }
 
 type containerServer struct {
-	db          *store.DB
-	cfg         *config.ControllerConfig
-	taskQueue   *taskQueueNotifier
-	taskResults *taskResultNotifier
-	execManager *execTunnelManager
+	db            *store.DB
+	cfg           *config.ControllerConfig
+	taskQueue     *taskQueueNotifier
+	taskResults   *taskResultNotifier
+	dockerQueries *dockerQueryBroker
+	execManager   *execTunnelManager
 }
 
 type taskResultNotifier struct {
@@ -1526,7 +1531,11 @@ func (server *serviceQueryServer) GetService(ctx context.Context, req *connect.R
 		Instances:     make([]*controllerv1.ServiceInstanceDetail, 0, len(instances)),
 	}
 	for _, instance := range instances {
-		detail, err := buildServiceInstanceDetail(ctx, server.db, server.cfg, server.taskQueue, server.taskResults, service, instance, requestTaskSource(req.Header()))
+		if !req.Msg.GetIncludeContainers() {
+			response.Instances = append(response.Instances, serviceInstanceDetailMessage(instance, nil))
+			continue
+		}
+		detail, err := buildServiceInstanceDetail(ctx, server.db, server.cfg, server.dockerQueries, service, instance, requestTaskSource(req.Header()))
 		if err != nil {
 			return nil, err
 		}
@@ -2084,13 +2093,13 @@ func (server *dockerQueryServer) ListNodeContainers(ctx context.Context, req *co
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
 
-	result, err := server.executeDockerListTask(ctx, req.Header(), req.Msg.GetNodeId(), "containers")
+	result, err := server.executeDockerListQuery(ctx, req.Header(), req.Msg.GetNodeId(), "containers", req.Msg.GetPage(), req.Msg.GetPageSize(), req.Msg.GetSearch(), req.Msg.GetSortBy(), req.Msg.GetSortDesc())
 	if err != nil {
 		return nil, err
 	}
-
 	return connect.NewResponse(&controllerv1.ListNodeContainersResponse{
 		Containers: result.Containers,
+		TotalCount: result.TotalCount,
 	}), nil
 }
 
@@ -2099,7 +2108,7 @@ func (server *dockerQueryServer) InspectNodeContainer(ctx context.Context, req *
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and container_id are required"))
 	}
 
-	result, err := server.executeDockerInspectTask(ctx, req.Header(), req.Msg.GetNodeId(), "container", req.Msg.GetContainerId())
+	result, err := server.executeDockerInspectQuery(ctx, req.Header(), req.Msg.GetNodeId(), "container", req.Msg.GetContainerId())
 	if err != nil {
 		return nil, err
 	}
@@ -2114,13 +2123,13 @@ func (server *dockerQueryServer) ListNodeNetworks(ctx context.Context, req *conn
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
 
-	result, err := server.executeDockerListTask(ctx, req.Header(), req.Msg.GetNodeId(), "networks")
+	result, err := server.executeDockerListQuery(ctx, req.Header(), req.Msg.GetNodeId(), "networks", req.Msg.GetPage(), req.Msg.GetPageSize(), req.Msg.GetSearch(), req.Msg.GetSortBy(), req.Msg.GetSortDesc())
 	if err != nil {
 		return nil, err
 	}
-
 	return connect.NewResponse(&controllerv1.ListNodeNetworksResponse{
-		Networks: result.Networks,
+		Networks:   result.Networks,
+		TotalCount: result.TotalCount,
 	}), nil
 }
 
@@ -2129,7 +2138,7 @@ func (server *dockerQueryServer) InspectNodeNetwork(ctx context.Context, req *co
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and network_id are required"))
 	}
 
-	result, err := server.executeDockerInspectTask(ctx, req.Header(), req.Msg.GetNodeId(), "network", req.Msg.GetNetworkId())
+	result, err := server.executeDockerInspectQuery(ctx, req.Header(), req.Msg.GetNodeId(), "network", req.Msg.GetNetworkId())
 	if err != nil {
 		return nil, err
 	}
@@ -2144,13 +2153,13 @@ func (server *dockerQueryServer) ListNodeVolumes(ctx context.Context, req *conne
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
 
-	result, err := server.executeDockerListTask(ctx, req.Header(), req.Msg.GetNodeId(), "volumes")
+	result, err := server.executeDockerListQuery(ctx, req.Header(), req.Msg.GetNodeId(), "volumes", req.Msg.GetPage(), req.Msg.GetPageSize(), req.Msg.GetSearch(), req.Msg.GetSortBy(), req.Msg.GetSortDesc())
 	if err != nil {
 		return nil, err
 	}
-
 	return connect.NewResponse(&controllerv1.ListNodeVolumesResponse{
-		Volumes: result.Volumes,
+		Volumes:    result.Volumes,
+		TotalCount: result.TotalCount,
 	}), nil
 }
 
@@ -2159,7 +2168,7 @@ func (server *dockerQueryServer) InspectNodeVolume(ctx context.Context, req *con
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and volume_name are required"))
 	}
 
-	result, err := server.executeDockerInspectTask(ctx, req.Header(), req.Msg.GetNodeId(), "volume", req.Msg.GetVolumeName())
+	result, err := server.executeDockerInspectQuery(ctx, req.Header(), req.Msg.GetNodeId(), "volume", req.Msg.GetVolumeName())
 	if err != nil {
 		return nil, err
 	}
@@ -2174,13 +2183,13 @@ func (server *dockerQueryServer) ListNodeImages(ctx context.Context, req *connec
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
 
-	result, err := server.executeDockerListTask(ctx, req.Header(), req.Msg.GetNodeId(), "images")
+	result, err := server.executeDockerListQuery(ctx, req.Header(), req.Msg.GetNodeId(), "images", req.Msg.GetPage(), req.Msg.GetPageSize(), req.Msg.GetSearch(), req.Msg.GetSortBy(), req.Msg.GetSortDesc())
 	if err != nil {
 		return nil, err
 	}
-
 	return connect.NewResponse(&controllerv1.ListNodeImagesResponse{
-		Images: result.Images,
+		Images:     result.Images,
+		TotalCount: result.TotalCount,
 	}), nil
 }
 
@@ -2189,7 +2198,7 @@ func (server *dockerQueryServer) InspectNodeImage(ctx context.Context, req *conn
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and image_id are required"))
 	}
 
-	result, err := server.executeDockerInspectTask(ctx, req.Header(), req.Msg.GetNodeId(), "image", req.Msg.GetImageId())
+	result, err := server.executeDockerInspectQuery(ctx, req.Header(), req.Msg.GetNodeId(), "image", req.Msg.GetImageId())
 	if err != nil {
 		return nil, err
 	}
@@ -2206,103 +2215,13 @@ type dockerListResult struct {
 	Images     []*controllerv1.ImageInfo     `json:"images,omitempty"`
 	RawJSON    string                        `json:"raw_json,omitempty"`
 	Content    string                        `json:"content,omitempty"`
+	TotalCount uint32                        `json:"total_count,omitempty"`
 }
 
 const (
 	dockerTaskResultBegin = "COMPOSIA_DOCKER_RESULT_BEGIN"
 	dockerTaskResultEnd   = "COMPOSIA_DOCKER_RESULT_END"
 )
-
-func (server *dockerQueryServer) executeDockerListTask(ctx context.Context, header http.Header, nodeID, resource string) (*dockerListResult, error) {
-	snapshot, err := server.db.GetNodeSnapshot(ctx, nodeID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	if !snapshot.IsOnline {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("node %q is offline", nodeID))
-	}
-
-	taskID := uuid.NewString()
-	paramsJSON := fmt.Sprintf(`{"action":"list","resource":%q}`, resource)
-
-	createdTask, err := server.db.CreateTask(ctx, task.Record{
-		TaskID:      taskID,
-		Type:        task.TypeDockerList,
-		Source:      requestTaskSource(header),
-		TriggeredBy: "controller",
-		NodeID:      nodeID,
-		Status:      task.StatusPending,
-		ParamsJSON:  paramsJSON,
-		LogPath:     filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
-	})
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
-	}
-
-	notifyTaskQueue(server.taskQueue)
-
-	detail, err := server.waitForTaskCompletion(ctx, taskID, 30*time.Second)
-	if err != nil {
-		return nil, err
-	}
-	result, err := readTaskLog(detail)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	return server.parseDockerListResult(resource, result)
-}
-
-func (server *dockerQueryServer) executeDockerInspectTask(ctx context.Context, header http.Header, nodeID, resource, id string) (*dockerListResult, error) {
-	snapshot, err := server.db.GetNodeSnapshot(ctx, nodeID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	if !snapshot.IsOnline {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("node %q is offline", nodeID))
-	}
-
-	taskID := uuid.NewString()
-	paramsJSON := fmt.Sprintf(`{"action":"inspect","resource":%q,"id":%q}`, resource, id)
-
-	createdTask, err := server.db.CreateTask(ctx, task.Record{
-		TaskID:      taskID,
-		Type:        task.TypeDockerInspect,
-		Source:      requestTaskSource(header),
-		TriggeredBy: "controller",
-		NodeID:      nodeID,
-		Status:      task.StatusPending,
-		ParamsJSON:  paramsJSON,
-		LogPath:     filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
-	})
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
-	}
-
-	notifyTaskQueue(server.taskQueue)
-
-	detail, err := server.waitForTaskCompletion(ctx, taskID, 30*time.Second)
-	if err != nil {
-		return nil, err
-	}
-	result, err := readTaskLog(detail)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	payload, err := extractDockerTaskResult(result)
-	if err != nil {
-		return nil, err
-	}
-
-	return payload, nil
-}
 
 func (server *containerServer) RunContainerAction(ctx context.Context, req *connect.Request[controllerv1.RunContainerActionRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
 	if req.Msg == nil {
@@ -2403,7 +2322,7 @@ func (server *containerServer) GetContainerLogs(ctx context.Context, req *connec
 	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetContainerId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and container_id are required"))
 	}
-	detail, err := server.executeContainerLogsTask(ctx, req.Header(), req.Msg.GetNodeId(), req.Msg.GetContainerId(), req.Msg.GetTail(), req.Msg.GetTimestamps())
+	detail, err := server.executeContainerLogsQuery(ctx, req.Msg.GetNodeId(), req.Msg.GetContainerId(), req.Msg.GetTail(), req.Msg.GetTimestamps())
 	if err != nil {
 		return nil, err
 	}
@@ -2474,104 +2393,6 @@ func (server *containerServer) createNodeDockerTask(ctx context.Context, header 
 	}
 	notifyTaskQueue(server.taskQueue)
 	return createdTask, nil
-}
-
-func (server *containerServer) executeContainerLogsTask(ctx context.Context, header http.Header, nodeID, containerID, tail string, timestamps bool) (*dockerListResult, error) {
-	createdTask, err := server.createContainerTask(ctx, header, nodeID, containerID, task.TypeDockerLogs, map[string]any{
-		"action":     "logs",
-		"resource":   "container",
-		"id":         containerID,
-		"tail":       tail,
-		"timestamps": timestamps,
-	})
-	if err != nil {
-		return nil, err
-	}
-	detail, err := server.waitForTaskCompletion(ctx, createdTask.TaskID, 30*time.Second)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeDeadlineExceeded, err)
-	}
-	result, err := readTaskLog(detail)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	payload, err := extractDockerTaskResult(result)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	return payload, nil
-}
-
-func (server *containerServer) waitForTaskCompletion(ctx context.Context, taskID string, timeout time.Duration) (store.TaskDetail, error) {
-	deadline := time.Now().Add(timeout)
-	waitCh := server.taskResults.Subscribe(taskID)
-	defer server.taskResults.Unsubscribe(taskID, waitCh)
-
-	for {
-		detail, err := server.db.GetTask(ctx, taskID)
-		if err == nil {
-			if detail.Record.Status == task.StatusSucceeded {
-				return detail, nil
-			}
-			if detail.Record.Status == task.StatusFailed {
-				return store.TaskDetail{}, fmt.Errorf("task failed: %s", detail.Record.ErrorSummary)
-			}
-		}
-		remaining := time.Until(deadline)
-		if remaining <= 0 {
-			return store.TaskDetail{}, fmt.Errorf("timeout waiting for task result")
-		}
-		timer := time.NewTimer(remaining)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return store.TaskDetail{}, ctx.Err()
-		case <-waitCh:
-			timer.Stop()
-		case <-timer.C:
-			return store.TaskDetail{}, fmt.Errorf("timeout waiting for task result")
-		}
-	}
-}
-
-func (server *dockerQueryServer) waitForTaskCompletion(ctx context.Context, taskID string, timeout time.Duration) (store.TaskDetail, error) {
-	deadline := time.Now().Add(timeout)
-	waitCh := server.taskResults.Subscribe(taskID)
-	defer server.taskResults.Unsubscribe(taskID, waitCh)
-
-	for {
-		detail, err := server.db.GetTask(ctx, taskID)
-		if err == nil {
-			if detail.Record.Status == task.StatusSucceeded {
-				return detail, nil
-			}
-			if detail.Record.Status == task.StatusFailed {
-				return store.TaskDetail{}, fmt.Errorf("task failed: %s", detail.Record.ErrorSummary)
-			}
-		}
-		remaining := time.Until(deadline)
-		if remaining <= 0 {
-			return store.TaskDetail{}, fmt.Errorf("timeout waiting for task result")
-		}
-		timer := time.NewTimer(remaining)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return store.TaskDetail{}, ctx.Err()
-		case <-waitCh:
-			timer.Stop()
-		case <-timer.C:
-			return store.TaskDetail{}, fmt.Errorf("timeout waiting for task result")
-		}
-	}
-}
-
-func readTaskLog(detail store.TaskDetail) (string, error) {
-	logContent, err := os.ReadFile(detail.Record.LogPath)
-	if err != nil {
-		return "", fmt.Errorf("read task log: %w", err)
-	}
-	return string(logContent), nil
 }
 
 func (server *dockerQueryServer) parseDockerListResult(resource, logContent string) (*dockerListResult, error) {
@@ -2807,8 +2628,8 @@ func serviceInstanceDetailMessage(record store.ServiceInstanceSnapshot, containe
 	}
 }
 
-func buildServiceInstanceDetail(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, service repo.Service, instance store.ServiceInstanceSnapshot, source task.Source) (*controllerv1.ServiceInstanceDetail, error) {
-	dockerQuery := &dockerQueryServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults}
+func buildServiceInstanceDetail(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, dockerQueries *dockerQueryBroker, service repo.Service, instance store.ServiceInstanceSnapshot, source task.Source) (*controllerv1.ServiceInstanceDetail, error) {
+	dockerQuery := &dockerQueryServer{db: db, cfg: cfg, dockerQueries: dockerQueries}
 	containers, err := listServiceInstanceContainers(ctx, dockerQuery, service, instance.NodeID, source)
 	if err != nil {
 		var connectErr *connect.Error
@@ -2827,7 +2648,7 @@ func listServiceInstanceContainers(ctx context.Context, dockerQuery *dockerQuery
 	if dockerQuery == nil {
 		return nil, nil
 	}
-	result, err := dockerQuery.executeDockerListTask(ctx, sourceHeader(source), nodeID, "containers")
+	result, err := dockerQuery.executeDockerListQuery(ctx, sourceHeader(source), nodeID, "containers", 0, 0, "", "", false)
 	if err != nil {
 		return nil, err
 	}
@@ -3827,6 +3648,17 @@ func (server *taskServer) TailTaskLogs(ctx context.Context, req *connect.Request
 				return err
 			}
 		}
+		refreshedDetail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
+		if err != nil {
+			if errors.Is(err, store.ErrTaskNotFound) {
+				return connect.NewError(connect.CodeNotFound, err)
+			}
+			return connect.NewError(connect.CodeInternal, err)
+		}
+		detail = refreshedDetail
+		if content == "" && isTerminalTaskStatus(detail.Record.Status) {
+			return nil
+		}
 
 		select {
 		case <-ctx.Done():
@@ -3971,7 +3803,10 @@ func (server *serviceInstanceServer) GetServiceInstance(ctx context.Context, req
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	detail, err := buildServiceInstanceDetail(ctx, server.db, server.cfg, server.taskQueue, server.taskResults, service, instance, requestTaskSource(req.Header()))
+	if !req.Msg.GetIncludeContainers() {
+		return connect.NewResponse(&controllerv1.GetServiceInstanceResponse{Instance: serviceInstanceDetailMessage(instance, nil)}), nil
+	}
+	detail, err := buildServiceInstanceDetail(ctx, server.db, server.cfg, server.dockerQueries, service, instance, requestTaskSource(req.Header()))
 	if err != nil {
 		return nil, err
 	}
@@ -4048,6 +3883,15 @@ func readNewLogContent(logPath string, offset int64) (string, int64, error) {
 		return "", offset, fmt.Errorf("read task log %q: %w", logPath, err)
 	}
 	return string(content), stat.Size(), nil
+}
+
+func isTerminalTaskStatus(status task.Status) bool {
+	switch status {
+	case task.StatusSucceeded, task.StatusFailed, task.StatusCancelled:
+		return true
+	default:
+		return false
+	}
 }
 
 func protoTime(value *timestamppb.Timestamp) *time.Time {

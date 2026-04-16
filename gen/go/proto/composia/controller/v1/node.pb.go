@@ -1233,7 +1233,17 @@ func (x *PruneNodeRusticResponse) GetTaskId() string {
 type ListNodeContainersRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// node_id is the stable node identifier.
-	NodeId        string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// page_size is the requested page size.
+	PageSize uint32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// page is the 1-based page number.
+	Page uint32 `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
+	// search is a case-insensitive substring match across key fields.
+	Search string `protobuf:"bytes,4,opt,name=search,proto3" json:"search,omitempty"`
+	// sort_by identifies the field used to sort results.
+	SortBy string `protobuf:"bytes,5,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
+	// sort_desc reverses the sort order when true.
+	SortDesc      bool `protobuf:"varint,6,opt,name=sort_desc,json=sortDesc,proto3" json:"sort_desc,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1273,6 +1283,41 @@ func (x *ListNodeContainersRequest) GetNodeId() string {
 		return x.NodeId
 	}
 	return ""
+}
+
+func (x *ListNodeContainersRequest) GetPageSize() uint32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListNodeContainersRequest) GetPage() uint32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListNodeContainersRequest) GetSearch() string {
+	if x != nil {
+		return x.Search
+	}
+	return ""
+}
+
+func (x *ListNodeContainersRequest) GetSortBy() string {
+	if x != nil {
+		return x.SortBy
+	}
+	return ""
+}
+
+func (x *ListNodeContainersRequest) GetSortDesc() bool {
+	if x != nil {
+		return x.SortDesc
+	}
+	return false
 }
 
 // ContainerInfo describes one container for node-scoped list views.
@@ -1404,6 +1449,7 @@ func (x *ContainerInfo) GetImageId() string {
 type ListNodeContainersResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Containers    []*ContainerInfo       `protobuf:"bytes,1,rep,name=containers,proto3" json:"containers,omitempty"`
+	TotalCount    uint32                 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1443,6 +1489,13 @@ func (x *ListNodeContainersResponse) GetContainers() []*ContainerInfo {
 		return x.Containers
 	}
 	return nil
+}
+
+func (x *ListNodeContainersResponse) GetTotalCount() uint32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
 }
 
 // InspectNodeContainerRequest identifies one node-scoped container.
@@ -1549,7 +1602,17 @@ func (x *InspectNodeContainerResponse) GetRawJson() string {
 type ListNodeNetworksRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// node_id is the stable node identifier.
-	NodeId        string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// page_size is the requested page size.
+	PageSize uint32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// page is the 1-based page number.
+	Page uint32 `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
+	// search is a case-insensitive substring match across key fields.
+	Search string `protobuf:"bytes,4,opt,name=search,proto3" json:"search,omitempty"`
+	// sort_by identifies the field used to sort results.
+	SortBy string `protobuf:"bytes,5,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
+	// sort_desc reverses the sort order when true.
+	SortDesc      bool `protobuf:"varint,6,opt,name=sort_desc,json=sortDesc,proto3" json:"sort_desc,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1589,6 +1652,41 @@ func (x *ListNodeNetworksRequest) GetNodeId() string {
 		return x.NodeId
 	}
 	return ""
+}
+
+func (x *ListNodeNetworksRequest) GetPageSize() uint32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListNodeNetworksRequest) GetPage() uint32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListNodeNetworksRequest) GetSearch() string {
+	if x != nil {
+		return x.Search
+	}
+	return ""
+}
+
+func (x *ListNodeNetworksRequest) GetSortBy() string {
+	if x != nil {
+		return x.SortBy
+	}
+	return ""
+}
+
+func (x *ListNodeNetworksRequest) GetSortDesc() bool {
+	if x != nil {
+		return x.SortDesc
+	}
+	return false
 }
 
 // NetworkInfo describes one Docker network for node-scoped list views.
@@ -1739,6 +1837,7 @@ func (x *NetworkInfo) GetIpv6Enabled() bool {
 type ListNodeNetworksResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Networks      []*NetworkInfo         `protobuf:"bytes,1,rep,name=networks,proto3" json:"networks,omitempty"`
+	TotalCount    uint32                 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1778,6 +1877,13 @@ func (x *ListNodeNetworksResponse) GetNetworks() []*NetworkInfo {
 		return x.Networks
 	}
 	return nil
+}
+
+func (x *ListNodeNetworksResponse) GetTotalCount() uint32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
 }
 
 // InspectNodeNetworkRequest identifies one node-scoped network.
@@ -1884,7 +1990,17 @@ func (x *InspectNodeNetworkResponse) GetRawJson() string {
 type ListNodeVolumesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// node_id is the stable node identifier.
-	NodeId        string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// page_size is the requested page size.
+	PageSize uint32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// page is the 1-based page number.
+	Page uint32 `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
+	// search is a case-insensitive substring match across key fields.
+	Search string `protobuf:"bytes,4,opt,name=search,proto3" json:"search,omitempty"`
+	// sort_by identifies the field used to sort results.
+	SortBy string `protobuf:"bytes,5,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
+	// sort_desc reverses the sort order when true.
+	SortDesc      bool `protobuf:"varint,6,opt,name=sort_desc,json=sortDesc,proto3" json:"sort_desc,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1924,6 +2040,41 @@ func (x *ListNodeVolumesRequest) GetNodeId() string {
 		return x.NodeId
 	}
 	return ""
+}
+
+func (x *ListNodeVolumesRequest) GetPageSize() uint32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListNodeVolumesRequest) GetPage() uint32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListNodeVolumesRequest) GetSearch() string {
+	if x != nil {
+		return x.Search
+	}
+	return ""
+}
+
+func (x *ListNodeVolumesRequest) GetSortBy() string {
+	if x != nil {
+		return x.SortBy
+	}
+	return ""
+}
+
+func (x *ListNodeVolumesRequest) GetSortDesc() bool {
+	if x != nil {
+		return x.SortDesc
+	}
+	return false
 }
 
 // VolumeInfo describes one Docker volume for node-scoped list views.
@@ -2048,6 +2199,7 @@ func (x *VolumeInfo) GetInUse() bool {
 type ListNodeVolumesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Volumes       []*VolumeInfo          `protobuf:"bytes,1,rep,name=volumes,proto3" json:"volumes,omitempty"`
+	TotalCount    uint32                 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2087,6 +2239,13 @@ func (x *ListNodeVolumesResponse) GetVolumes() []*VolumeInfo {
 		return x.Volumes
 	}
 	return nil
+}
+
+func (x *ListNodeVolumesResponse) GetTotalCount() uint32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
 }
 
 // InspectNodeVolumeRequest identifies one node-scoped volume.
@@ -2193,7 +2352,17 @@ func (x *InspectNodeVolumeResponse) GetRawJson() string {
 type ListNodeImagesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// node_id is the stable node identifier.
-	NodeId        string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// page_size is the requested page size.
+	PageSize uint32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// page is the 1-based page number.
+	Page uint32 `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
+	// search is a case-insensitive substring match across key fields.
+	Search string `protobuf:"bytes,4,opt,name=search,proto3" json:"search,omitempty"`
+	// sort_by identifies the field used to sort results.
+	SortBy string `protobuf:"bytes,5,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
+	// sort_desc reverses the sort order when true.
+	SortDesc      bool `protobuf:"varint,6,opt,name=sort_desc,json=sortDesc,proto3" json:"sort_desc,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2233,6 +2402,41 @@ func (x *ListNodeImagesRequest) GetNodeId() string {
 		return x.NodeId
 	}
 	return ""
+}
+
+func (x *ListNodeImagesRequest) GetPageSize() uint32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListNodeImagesRequest) GetPage() uint32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListNodeImagesRequest) GetSearch() string {
+	if x != nil {
+		return x.Search
+	}
+	return ""
+}
+
+func (x *ListNodeImagesRequest) GetSortBy() string {
+	if x != nil {
+		return x.SortBy
+	}
+	return ""
+}
+
+func (x *ListNodeImagesRequest) GetSortDesc() bool {
+	if x != nil {
+		return x.SortDesc
+	}
+	return false
 }
 
 // ImageInfo describes one Docker image for node-scoped list views.
@@ -2365,6 +2569,7 @@ func (x *ImageInfo) GetIsDangling() bool {
 type ListNodeImagesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Images        []*ImageInfo           `protobuf:"bytes,1,rep,name=images,proto3" json:"images,omitempty"`
+	TotalCount    uint32                 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2404,6 +2609,13 @@ func (x *ListNodeImagesResponse) GetImages() []*ImageInfo {
 		return x.Images
 	}
 	return nil
+}
+
+func (x *ListNodeImagesResponse) GetTotalCount() uint32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
 }
 
 // InspectNodeImageRequest identifies one node-scoped image.
@@ -2579,9 +2791,14 @@ const file_proto_composia_controller_v1_node_proto_rawDesc = "" +
 	"\fservice_name\x18\x02 \x01(\tR\vserviceName\x12\x1b\n" +
 	"\tdata_name\x18\x03 \x01(\tR\bdataName\"2\n" +
 	"\x17PruneNodeRusticResponse\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\"4\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\xb3\x01\n" +
 	"\x19ListNodeContainersRequest\x12\x17\n" +
-	"\anode_id\x18\x01 \x01(\tR\x06nodeId\"\xe4\x02\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\rR\bpageSize\x12\x12\n" +
+	"\x04page\x18\x03 \x01(\rR\x04page\x12\x16\n" +
+	"\x06search\x18\x04 \x01(\tR\x06search\x12\x17\n" +
+	"\asort_by\x18\x05 \x01(\tR\x06sortBy\x12\x1b\n" +
+	"\tsort_desc\x18\x06 \x01(\bR\bsortDesc\"\xe4\x02\n" +
 	"\rContainerInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -2596,18 +2813,25 @@ const file_proto_composia_controller_v1_node_proto_rawDesc = "" +
 	" \x01(\tR\aimageId\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"c\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x84\x01\n" +
 	"\x1aListNodeContainersResponse\x12E\n" +
 	"\n" +
 	"containers\x18\x01 \x03(\v2%.composia.controller.v1.ContainerInfoR\n" +
-	"containers\"Y\n" +
+	"containers\x12\x1f\n" +
+	"\vtotal_count\x18\x02 \x01(\rR\n" +
+	"totalCount\"Y\n" +
 	"\x1bInspectNodeContainerRequest\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12!\n" +
 	"\fcontainer_id\x18\x02 \x01(\tR\vcontainerId\"9\n" +
 	"\x1cInspectNodeContainerResponse\x12\x19\n" +
-	"\braw_json\x18\x01 \x01(\tR\arawJson\"2\n" +
+	"\braw_json\x18\x01 \x01(\tR\arawJson\"\xb1\x01\n" +
 	"\x17ListNodeNetworksRequest\x12\x17\n" +
-	"\anode_id\x18\x01 \x01(\tR\x06nodeId\"\xb9\x03\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\rR\bpageSize\x12\x12\n" +
+	"\x04page\x18\x03 \x01(\rR\x04page\x12\x16\n" +
+	"\x06search\x18\x04 \x01(\tR\x06search\x12\x17\n" +
+	"\asort_by\x18\x05 \x01(\tR\x06sortBy\x12\x1b\n" +
+	"\tsort_desc\x18\x06 \x01(\bR\bsortDesc\"\xb9\x03\n" +
 	"\vNetworkInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
@@ -2626,17 +2850,24 @@ const file_proto_composia_controller_v1_node_proto_rawDesc = "" +
 	"\fipv6_enabled\x18\f \x01(\bR\vipv6Enabled\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"[\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"|\n" +
 	"\x18ListNodeNetworksResponse\x12?\n" +
-	"\bnetworks\x18\x01 \x03(\v2#.composia.controller.v1.NetworkInfoR\bnetworks\"S\n" +
+	"\bnetworks\x18\x01 \x03(\v2#.composia.controller.v1.NetworkInfoR\bnetworks\x12\x1f\n" +
+	"\vtotal_count\x18\x02 \x01(\rR\n" +
+	"totalCount\"S\n" +
 	"\x19InspectNodeNetworkRequest\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x1d\n" +
 	"\n" +
 	"network_id\x18\x02 \x01(\tR\tnetworkId\"7\n" +
 	"\x1aInspectNodeNetworkResponse\x12\x19\n" +
-	"\braw_json\x18\x01 \x01(\tR\arawJson\"1\n" +
+	"\braw_json\x18\x01 \x01(\tR\arawJson\"\xb0\x01\n" +
 	"\x16ListNodeVolumesRequest\x12\x17\n" +
-	"\anode_id\x18\x01 \x01(\tR\x06nodeId\"\xec\x02\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\rR\bpageSize\x12\x12\n" +
+	"\x04page\x18\x03 \x01(\rR\x04page\x12\x16\n" +
+	"\x06search\x18\x04 \x01(\tR\x06search\x12\x17\n" +
+	"\asort_by\x18\x05 \x01(\tR\x06sortBy\x12\x1b\n" +
+	"\tsort_desc\x18\x06 \x01(\bR\bsortDesc\"\xec\x02\n" +
 	"\n" +
 	"VolumeInfo\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
@@ -2653,17 +2884,24 @@ const file_proto_composia_controller_v1_node_proto_rawDesc = "" +
 	"\x06in_use\x18\t \x01(\bR\x05inUse\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"W\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"x\n" +
 	"\x17ListNodeVolumesResponse\x12<\n" +
-	"\avolumes\x18\x01 \x03(\v2\".composia.controller.v1.VolumeInfoR\avolumes\"T\n" +
+	"\avolumes\x18\x01 \x03(\v2\".composia.controller.v1.VolumeInfoR\avolumes\x12\x1f\n" +
+	"\vtotal_count\x18\x02 \x01(\rR\n" +
+	"totalCount\"T\n" +
 	"\x18InspectNodeVolumeRequest\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x1f\n" +
 	"\vvolume_name\x18\x02 \x01(\tR\n" +
 	"volumeName\"6\n" +
 	"\x19InspectNodeVolumeResponse\x12\x19\n" +
-	"\braw_json\x18\x01 \x01(\tR\arawJson\"0\n" +
+	"\braw_json\x18\x01 \x01(\tR\arawJson\"\xaf\x01\n" +
 	"\x15ListNodeImagesRequest\x12\x17\n" +
-	"\anode_id\x18\x01 \x01(\tR\x06nodeId\"\xac\x02\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\rR\bpageSize\x12\x12\n" +
+	"\x04page\x18\x03 \x01(\rR\x04page\x12\x16\n" +
+	"\x06search\x18\x04 \x01(\tR\x06search\x12\x17\n" +
+	"\asort_by\x18\x05 \x01(\tR\x06sortBy\x12\x1b\n" +
+	"\tsort_desc\x18\x06 \x01(\bR\bsortDesc\"\xac\x02\n" +
 	"\tImageInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\trepo_tags\x18\x02 \x03(\tR\brepoTags\x12\x12\n" +
@@ -2676,9 +2914,11 @@ const file_proto_composia_controller_v1_node_proto_rawDesc = "" +
 	"\x10containers_count\x18\t \x01(\rR\x0fcontainersCount\x12\x1f\n" +
 	"\vis_dangling\x18\n" +
 	" \x01(\bR\n" +
-	"isDangling\"S\n" +
+	"isDangling\"t\n" +
 	"\x16ListNodeImagesResponse\x129\n" +
-	"\x06images\x18\x01 \x03(\v2!.composia.controller.v1.ImageInfoR\x06images\"M\n" +
+	"\x06images\x18\x01 \x03(\v2!.composia.controller.v1.ImageInfoR\x06images\x12\x1f\n" +
+	"\vtotal_count\x18\x02 \x01(\rR\n" +
+	"totalCount\"M\n" +
 	"\x17InspectNodeImageRequest\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x19\n" +
 	"\bimage_id\x18\x02 \x01(\tR\aimageId\"5\n" +

@@ -2,6 +2,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
 import { deleteRepoPath, moveRepoPath } from "$lib/server/controller";
+import { jsonControllerError } from "$lib/server/controller-route";
 import { normalizeServiceRelativePath } from "$lib/service-workspace";
 
 export const PATCH: RequestHandler = async ({ params, request }) => {
@@ -22,14 +23,11 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
     );
     return json({ write, redirectTo: `/services/${nextFolder}` });
   } catch (error) {
-    return json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to rename service folder.",
-      },
-      { status: 400 },
+    return jsonControllerError(
+      error,
+      "Failed to rename service folder.",
+      {},
+      400,
     );
   }
 };
@@ -44,14 +42,11 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
     const write = await deleteRepoPath(params.name, payload.baseRevision);
     return json({ write, redirectTo: "/services" });
   } catch (error) {
-    return json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to delete service folder.",
-      },
-      { status: 400 },
+    return jsonControllerError(
+      error,
+      "Failed to delete service folder.",
+      {},
+      400,
     );
   }
 };

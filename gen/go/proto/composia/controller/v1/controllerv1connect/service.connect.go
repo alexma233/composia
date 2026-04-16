@@ -71,7 +71,7 @@ const (
 
 // ServiceQueryServiceClient is a client for the composia.controller.v1.ServiceQueryService service.
 type ServiceQueryServiceClient interface {
-	// ListServices returns declared and discovered services with pagination.
+	// ListServices returns declared services with pagination.
 	ListServices(context.Context, *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error)
 	// GetService returns the full detail for a single service.
 	GetService(context.Context, *connect.Request[v1.GetServiceRequest]) (*connect.Response[v1.GetServiceResponse], error)
@@ -150,7 +150,7 @@ func (c *serviceQueryServiceClient) GetServiceBackups(ctx context.Context, req *
 // ServiceQueryServiceHandler is an implementation of the composia.controller.v1.ServiceQueryService
 // service.
 type ServiceQueryServiceHandler interface {
-	// ListServices returns declared and discovered services with pagination.
+	// ListServices returns declared services with pagination.
 	ListServices(context.Context, *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error)
 	// GetService returns the full detail for a single service.
 	GetService(context.Context, *connect.Request[v1.GetServiceRequest]) (*connect.Response[v1.GetServiceResponse], error)

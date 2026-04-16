@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"sort"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -29,6 +32,7 @@ type dockerTaskResult struct {
 	Images     []*agentv1.ImageInfo     `json:"images,omitempty"`
 	RawJSON    string                   `json:"raw_json,omitempty"`
 	Content    string                   `json:"content,omitempty"`
+	TotalCount uint32                   `json:"total_count,omitempty"`
 }
 
 type dockerServer struct {
@@ -43,7 +47,110 @@ func newDockerServer() (*dockerServer, error) {
 	return &dockerServer{client: cli}, nil
 }
 
-func (s *dockerServer) ListContainers(ctx context.Context, _ *connect.Request[agentv1.ListContainersRequest]) (*connect.Response[agentv1.ListContainersResponse], error) {
+func normalizeDockerListPage(page uint32) uint32 {
+	if page == 0 {
+		return 1
+	}
+	return page
+}
+
+func paginateDockerList[T any](items []T, page, pageSize uint32) ([]T, uint32) {
+	totalCount := uint32(len(items))
+	if totalCount == 0 {
+		return items, 0
+	}
+	if pageSize == 0 || pageSize >= totalCount {
+		return items, totalCount
+	}
+	page = normalizeDockerListPage(page)
+	start := (page - 1) * pageSize
+	if start >= totalCount {
+		return []T{}, totalCount
+	}
+	end := start + pageSize
+	if end > totalCount {
+		end = totalCount
+	}
+	return items[start:end], totalCount
+}
+
+func dockerSearchMatches(search string, values ...string) bool {
+	search = strings.TrimSpace(strings.ToLower(search))
+	if search == "" {
+		return true
+	}
+	for _, value := range values {
+		if strings.Contains(strings.ToLower(value), search) {
+			return true
+		}
+	}
+	return false
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func joinStrings(values []string) string {
+	if len(values) == 0 {
+		return ""
+	}
+	return strings.Join(values, " ")
+}
+
+func boolCompare(left, right bool) int {
+	if left == right {
+		return 0
+	}
+	if left {
+		return 1
+	}
+	return -1
+}
+
+func int64Compare(left, right int64) int {
+	if left < right {
+		return -1
+	}
+	if left > right {
+		return 1
+	}
+	return 0
+}
+
+func uint32Compare(left, right uint32) int {
+	if left < right {
+		return -1
+	}
+	if left > right {
+		return 1
+	}
+	return 0
+}
+
+func stringCompare(left, right string) int {
+	return strings.Compare(strings.ToLower(left), strings.ToLower(right))
+}
+
+func dockerSortResult(compare int, desc bool) bool {
+	if compare == 0 {
+		return false
+	}
+	if desc {
+		return compare > 0
+	}
+	return compare < 0
+}
+
+func (s *dockerServer) ListContainers(ctx context.Context, req *connect.Request[agentv1.ListContainersRequest]) (*connect.Response[agentv1.ListContainersResponse], error) {
+	if req.Msg == nil {
+		req.Msg = &agentv1.ListContainersRequest{}
+	}
 	containers, err := s.client.ContainerList(ctx)
 	if err != nil {
 		return nil, err
@@ -80,8 +187,9 @@ func (s *dockerServer) ListContainers(ctx context.Context, _ *connect.Request[ag
 		for n := range c.NetworkSettings.Networks {
 			networks = append(networks, n)
 		}
+		sort.Strings(networks)
 
-		result = append(result, &agentv1.ContainerInfo{
+		info := &agentv1.ContainerInfo{
 			Id:       c.ID,
 			Name:     name,
 			Image:    c.Image,
@@ -92,11 +200,38 @@ func (s *dockerServer) ListContainers(ctx context.Context, _ *connect.Request[ag
 			Ports:    ports,
 			Networks: networks,
 			ImageId:  c.ImageID,
-		})
+		}
+		if !dockerSearchMatches(req.Msg.GetSearch(), info.GetId(), info.GetName(), info.GetImage(), info.GetState(), info.GetStatus(), joinStrings(info.GetNetworks())) {
+			continue
+		}
+		result = append(result, info)
 	}
 
+	sort.SliceStable(result, func(i, j int) bool {
+		left := result[i]
+		right := result[j]
+		var compare int
+		switch req.Msg.GetSortBy() {
+		case "state":
+			compare = stringCompare(left.GetState(), right.GetState())
+		case "image":
+			compare = stringCompare(left.GetImage(), right.GetImage())
+		case "created":
+			compare = stringCompare(left.GetCreated(), right.GetCreated())
+		default:
+			compare = stringCompare(firstNonEmpty(left.GetName(), left.GetId()), firstNonEmpty(right.GetName(), right.GetId()))
+		}
+		if compare == 0 {
+			compare = stringCompare(left.GetId(), right.GetId())
+		}
+		return dockerSortResult(compare, req.Msg.GetSortDesc())
+	})
+
+	pageItems, totalCount := paginateDockerList(result, req.Msg.GetPage(), req.Msg.GetPageSize())
+
 	return connect.NewResponse(&agentv1.ListContainersResponse{
-		Containers: result,
+		Containers: pageItems,
+		TotalCount: totalCount,
 	}), nil
 }
 
@@ -191,7 +326,10 @@ func (s *dockerServer) GetContainerLogs(ctx context.Context, req *connect.Reques
 	return connect.NewResponse(&agentv1.GetContainerLogsResponse{Content: content}), nil
 }
 
-func (s *dockerServer) ListNetworks(ctx context.Context, _ *connect.Request[agentv1.ListNetworksRequest]) (*connect.Response[agentv1.ListNetworksResponse], error) {
+func (s *dockerServer) ListNetworks(ctx context.Context, req *connect.Request[agentv1.ListNetworksRequest]) (*connect.Response[agentv1.ListNetworksResponse], error) {
+	if req.Msg == nil {
+		req.Msg = &agentv1.ListNetworksRequest{}
+	}
 	networks, err := s.client.NetworkList(ctx)
 	if err != nil {
 		return nil, err
@@ -206,7 +344,7 @@ func (s *dockerServer) ListNetworks(ctx context.Context, _ *connect.Request[agen
 			gateway = n.IPAM.Config[0].Gateway.String()
 		}
 
-		result = append(result, &agentv1.NetworkInfo{
+		info := &agentv1.NetworkInfo{
 			Id:              n.ID,
 			Name:            n.Name,
 			Driver:          n.Driver,
@@ -219,11 +357,40 @@ func (s *dockerServer) ListNetworks(ctx context.Context, _ *connect.Request[agen
 			Gateway:         gateway,
 			ContainersCount: uint32(len(n.Containers)),
 			Ipv6Enabled:     n.EnableIPv6,
-		})
+		}
+		if !dockerSearchMatches(req.Msg.GetSearch(), info.GetId(), info.GetName(), info.GetDriver(), info.GetScope(), info.GetSubnet(), info.GetGateway()) {
+			continue
+		}
+		result = append(result, info)
 	}
 
+	sort.SliceStable(result, func(i, j int) bool {
+		left := result[i]
+		right := result[j]
+		var compare int
+		switch req.Msg.GetSortBy() {
+		case "driver":
+			compare = stringCompare(left.GetDriver(), right.GetDriver())
+		case "scope":
+			compare = stringCompare(left.GetScope(), right.GetScope())
+		case "created":
+			compare = stringCompare(left.GetCreated(), right.GetCreated())
+		case "containers_count":
+			compare = uint32Compare(left.GetContainersCount(), right.GetContainersCount())
+		default:
+			compare = stringCompare(firstNonEmpty(left.GetName(), left.GetId()), firstNonEmpty(right.GetName(), right.GetId()))
+		}
+		if compare == 0 {
+			compare = stringCompare(left.GetId(), right.GetId())
+		}
+		return dockerSortResult(compare, req.Msg.GetSortDesc())
+	})
+
+	pageItems, totalCount := paginateDockerList(result, req.Msg.GetPage(), req.Msg.GetPageSize())
+
 	return connect.NewResponse(&agentv1.ListNetworksResponse{
-		Networks: result,
+		Networks:   pageItems,
+		TotalCount: totalCount,
 	}), nil
 }
 
@@ -260,7 +427,10 @@ func (s *dockerServer) RemoveNetwork(ctx context.Context, req *connect.Request[a
 	return connect.NewResponse(&agentv1.RemoveNetworkResponse{}), nil
 }
 
-func (s *dockerServer) ListVolumes(ctx context.Context, _ *connect.Request[agentv1.ListVolumesRequest]) (*connect.Response[agentv1.ListVolumesResponse], error) {
+func (s *dockerServer) ListVolumes(ctx context.Context, req *connect.Request[agentv1.ListVolumesRequest]) (*connect.Response[agentv1.ListVolumesResponse], error) {
+	if req.Msg == nil {
+		req.Msg = &agentv1.ListVolumesRequest{}
+	}
 	volumes, err := s.client.VolumeList(ctx)
 	if err != nil {
 		return nil, err
@@ -299,7 +469,7 @@ func (s *dockerServer) ListVolumes(ctx context.Context, _ *connect.Request[agent
 		size := volumeMap[v.Name]
 		count := containersUsingVolumes[v.Name]
 
-		result = append(result, &agentv1.VolumeInfo{
+		info := &agentv1.VolumeInfo{
 			Name:            v.Name,
 			Driver:          v.Driver,
 			Mountpoint:      v.Mountpoint,
@@ -309,11 +479,44 @@ func (s *dockerServer) ListVolumes(ctx context.Context, _ *connect.Request[agent
 			SizeBytes:       size,
 			ContainersCount: count,
 			InUse:           count > 0,
-		})
+		}
+		if !dockerSearchMatches(req.Msg.GetSearch(), info.GetName(), info.GetDriver(), info.GetMountpoint(), info.GetScope()) {
+			continue
+		}
+		result = append(result, info)
 	}
 
+	sort.SliceStable(result, func(i, j int) bool {
+		left := result[i]
+		right := result[j]
+		var compare int
+		switch req.Msg.GetSortBy() {
+		case "driver":
+			compare = stringCompare(left.GetDriver(), right.GetDriver())
+		case "scope":
+			compare = stringCompare(left.GetScope(), right.GetScope())
+		case "created":
+			compare = stringCompare(left.GetCreated(), right.GetCreated())
+		case "size_bytes":
+			compare = int64Compare(left.GetSizeBytes(), right.GetSizeBytes())
+		case "containers_count":
+			compare = uint32Compare(left.GetContainersCount(), right.GetContainersCount())
+		case "in_use":
+			compare = boolCompare(left.GetInUse(), right.GetInUse())
+		default:
+			compare = stringCompare(left.GetName(), right.GetName())
+		}
+		if compare == 0 {
+			compare = stringCompare(left.GetName(), right.GetName())
+		}
+		return dockerSortResult(compare, req.Msg.GetSortDesc())
+	})
+
+	pageItems, totalCount := paginateDockerList(result, req.Msg.GetPage(), req.Msg.GetPageSize())
+
 	return connect.NewResponse(&agentv1.ListVolumesResponse{
-		Volumes: result,
+		Volumes:    pageItems,
+		TotalCount: totalCount,
 	}), nil
 }
 
@@ -360,7 +563,10 @@ func (s *dockerServer) RemoveVolume(ctx context.Context, req *connect.Request[ag
 	return connect.NewResponse(&agentv1.RemoveVolumeResponse{}), nil
 }
 
-func (s *dockerServer) ListImages(ctx context.Context, _ *connect.Request[agentv1.ListImagesRequest]) (*connect.Response[agentv1.ListImagesResponse], error) {
+func (s *dockerServer) ListImages(ctx context.Context, req *connect.Request[agentv1.ListImagesRequest]) (*connect.Response[agentv1.ListImagesResponse], error) {
+	if req.Msg == nil {
+		req.Msg = &agentv1.ListImagesRequest{}
+	}
 	images, err := s.client.ImageList(ctx)
 	if err != nil {
 		return nil, err
@@ -384,7 +590,7 @@ func (s *dockerServer) ListImages(ctx context.Context, _ *connect.Request[agentv
 			os = img.Labels["org.opencontainers.image.os"]
 		}
 
-		result = append(result, &agentv1.ImageInfo{
+		info := &agentv1.ImageInfo{
 			Id:              img.ID,
 			RepoTags:        img.RepoTags,
 			Size:            img.Size,
@@ -396,11 +602,42 @@ func (s *dockerServer) ListImages(ctx context.Context, _ *connect.Request[agentv
 			Author:          author,
 			ContainersCount: containersCount,
 			IsDangling:      isDangling,
-		})
+		}
+		if !dockerSearchMatches(req.Msg.GetSearch(), info.GetId(), joinStrings(info.GetRepoTags()), joinStrings(info.GetRepoDigests()), info.GetArchitecture(), info.GetOs(), info.GetAuthor()) {
+			continue
+		}
+		result = append(result, info)
 	}
 
+	sort.SliceStable(result, func(i, j int) bool {
+		left := result[i]
+		right := result[j]
+		var compare int
+		switch req.Msg.GetSortBy() {
+		case "size":
+			compare = int64Compare(left.GetSize(), right.GetSize())
+		case "virtual_size":
+			compare = int64Compare(left.GetVirtualSize(), right.GetVirtualSize())
+		case "created":
+			compare = stringCompare(left.GetCreated(), right.GetCreated())
+		case "containers_count":
+			compare = uint32Compare(left.GetContainersCount(), right.GetContainersCount())
+		case "dangling":
+			compare = boolCompare(left.GetIsDangling(), right.GetIsDangling())
+		default:
+			compare = stringCompare(firstNonEmpty(joinStrings(left.GetRepoTags()), left.GetId()), firstNonEmpty(joinStrings(right.GetRepoTags()), right.GetId()))
+		}
+		if compare == 0 {
+			compare = stringCompare(left.GetId(), right.GetId())
+		}
+		return dockerSortResult(compare, req.Msg.GetSortDesc())
+	})
+
+	pageItems, totalCount := paginateDockerList(result, req.Msg.GetPage(), req.Msg.GetPageSize())
+
 	return connect.NewResponse(&agentv1.ListImagesResponse{
-		Images: result,
+		Images:     pageItems,
+		TotalCount: totalCount,
 	}), nil
 }
 
@@ -435,6 +672,142 @@ func (s *dockerServer) RemoveImage(ctx context.Context, req *connect.Request[age
 	}
 
 	return connect.NewResponse(&agentv1.RemoveImageResponse{}), nil
+}
+
+func executeDockerQuery(ctx context.Context, query *agentv1.DockerQueryTask) (dockerTaskResult, error) {
+	if query == nil {
+		return dockerTaskResult{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("query is required"))
+	}
+	server, err := newDockerServer()
+	if err != nil {
+		return dockerTaskResult{}, err
+	}
+	defer func() {
+		_ = server.client.Close()
+	}()
+
+	switch query.GetAction() {
+	case "list":
+		switch query.GetResource() {
+		case "containers":
+			resp, err := server.ListContainers(ctx, connect.NewRequest(&agentv1.ListContainersRequest{
+				PageSize: query.GetPageSize(),
+				Page:     query.GetPage(),
+				Search:   query.GetSearch(),
+				SortBy:   query.GetSortBy(),
+				SortDesc: query.GetSortDesc(),
+			}))
+			if err != nil {
+				return dockerTaskResult{}, err
+			}
+			return dockerTaskResult{Containers: resp.Msg.GetContainers(), TotalCount: resp.Msg.GetTotalCount()}, nil
+		case "networks":
+			resp, err := server.ListNetworks(ctx, connect.NewRequest(&agentv1.ListNetworksRequest{
+				PageSize: query.GetPageSize(),
+				Page:     query.GetPage(),
+				Search:   query.GetSearch(),
+				SortBy:   query.GetSortBy(),
+				SortDesc: query.GetSortDesc(),
+			}))
+			if err != nil {
+				return dockerTaskResult{}, err
+			}
+			return dockerTaskResult{Networks: resp.Msg.GetNetworks(), TotalCount: resp.Msg.GetTotalCount()}, nil
+		case "volumes":
+			resp, err := server.ListVolumes(ctx, connect.NewRequest(&agentv1.ListVolumesRequest{
+				PageSize: query.GetPageSize(),
+				Page:     query.GetPage(),
+				Search:   query.GetSearch(),
+				SortBy:   query.GetSortBy(),
+				SortDesc: query.GetSortDesc(),
+			}))
+			if err != nil {
+				return dockerTaskResult{}, err
+			}
+			return dockerTaskResult{Volumes: resp.Msg.GetVolumes(), TotalCount: resp.Msg.GetTotalCount()}, nil
+		case "images":
+			resp, err := server.ListImages(ctx, connect.NewRequest(&agentv1.ListImagesRequest{
+				PageSize: query.GetPageSize(),
+				Page:     query.GetPage(),
+				Search:   query.GetSearch(),
+				SortBy:   query.GetSortBy(),
+				SortDesc: query.GetSortDesc(),
+			}))
+			if err != nil {
+				return dockerTaskResult{}, err
+			}
+			return dockerTaskResult{Images: resp.Msg.GetImages(), TotalCount: resp.Msg.GetTotalCount()}, nil
+		default:
+			return dockerTaskResult{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unsupported list resource %q", query.GetResource()))
+		}
+	case "inspect":
+		switch query.GetResource() {
+		case "container":
+			resp, err := server.InspectContainer(ctx, connect.NewRequest(&agentv1.InspectContainerRequest{ContainerId: query.GetId()}))
+			if err != nil {
+				return dockerTaskResult{}, err
+			}
+			return dockerTaskResult{RawJSON: resp.Msg.GetRawJson()}, nil
+		case "network":
+			resp, err := server.InspectNetwork(ctx, connect.NewRequest(&agentv1.InspectNetworkRequest{NetworkId: query.GetId()}))
+			if err != nil {
+				return dockerTaskResult{}, err
+			}
+			return dockerTaskResult{RawJSON: resp.Msg.GetRawJson()}, nil
+		case "volume":
+			resp, err := server.InspectVolume(ctx, connect.NewRequest(&agentv1.InspectVolumeRequest{VolumeName: query.GetId()}))
+			if err != nil {
+				return dockerTaskResult{}, err
+			}
+			return dockerTaskResult{RawJSON: resp.Msg.GetRawJson()}, nil
+		case "image":
+			resp, err := server.InspectImage(ctx, connect.NewRequest(&agentv1.InspectImageRequest{ImageId: query.GetId()}))
+			if err != nil {
+				return dockerTaskResult{}, err
+			}
+			return dockerTaskResult{RawJSON: resp.Msg.GetRawJson()}, nil
+		default:
+			return dockerTaskResult{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unsupported inspect resource %q", query.GetResource()))
+		}
+	case "logs":
+		if query.GetResource() != "container" {
+			return dockerTaskResult{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unsupported logs resource %q", query.GetResource()))
+		}
+		resp, err := server.GetContainerLogs(ctx, connect.NewRequest(&agentv1.GetContainerLogsRequest{
+			ContainerId: query.GetId(),
+			Tail:        query.GetTail(),
+			Timestamps:  query.GetTimestamps(),
+		}))
+		if err != nil {
+			return dockerTaskResult{}, err
+		}
+		return dockerTaskResult{Content: resp.Msg.GetContent()}, nil
+	default:
+		return dockerTaskResult{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unsupported docker query action %q", query.GetAction()))
+	}
+}
+
+func dockerQueryErrorCode(err error) string {
+	var connectErr *connect.Error
+	if errors.As(err, &connectErr) {
+		switch connectErr.Code() {
+		case connect.CodeInvalidArgument:
+			return "invalid_argument"
+		case connect.CodeNotFound:
+			return "not_found"
+		case connect.CodeFailedPrecondition:
+			return "failed_precondition"
+		case connect.CodePermissionDenied:
+			return "permission_denied"
+		case connect.CodeDeadlineExceeded:
+			return "deadline_exceeded"
+		case connect.CodeUnavailable:
+			return "unavailable"
+		default:
+			return "internal"
+		}
+	}
+	return "internal"
 }
 
 // DockerTaskExecutor handles docker-related task execution (deprecated - kept for compatibility)

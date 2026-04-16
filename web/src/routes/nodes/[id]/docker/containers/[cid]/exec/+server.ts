@@ -3,6 +3,7 @@ import { env } from "$env/dynamic/private";
 import type { RequestHandler } from "./$types";
 
 import { controllerConfig, openContainerExec } from "$lib/server/controller";
+import { jsonControllerError } from "$lib/server/controller-route";
 
 export const POST: RequestHandler = async ({ params, request, url }) => {
   const config = controllerConfig();
@@ -31,12 +32,6 @@ export const POST: RequestHandler = async ({ params, request, url }) => {
     const websocketUrl = `${wsProtocol}//${controllerUrl.host}${session.websocketPath}`;
     return json({ ...session, websocketUrl });
   } catch (error) {
-    return json(
-      {
-        error:
-          error instanceof Error ? error.message : "Failed to open terminal",
-      },
-      { status: 500 },
-    );
+    return jsonControllerError(error, "Failed to open terminal");
   }
 };

@@ -6,6 +6,7 @@ import {
   runContainerAction,
   type ContainerAction,
 } from "$lib/server/controller";
+import { jsonControllerError } from "$lib/server/controller-route";
 
 export const POST: RequestHandler = async ({ params }) => {
   const config = controllerConfig();
@@ -29,15 +30,7 @@ export const POST: RequestHandler = async ({ params }) => {
       ),
     );
   } catch (error) {
-    return json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to run container action",
-      },
-      { status: 500 },
-    );
+    return jsonControllerError(error, "Failed to run container action");
   }
 };
 

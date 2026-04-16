@@ -3,38 +3,9 @@ import type { RequestHandler } from "./$types";
 
 import { controllerConfig } from "$lib/server/controller";
 
-const connectFlagCompressed = 0x01;
-const connectFlagEndStream = 0x02;
-const connectEnvelopeHeaderSize = 5;
-
-function decodeEnvelopeLength(header: Uint8Array): number {
-  return (
-    (((header[1] ?? 0) << 24) |
-      ((header[2] ?? 0) << 16) |
-      ((header[3] ?? 0) << 8) |
-      (header[4] ?? 0)) >>>
-    0
-  );
-}
-
-function encodeEnvelope(message: string): Uint8Array {
-  const payload = new TextEncoder().encode(message);
-  const envelope = new Uint8Array(connectEnvelopeHeaderSize + payload.length);
-  envelope[0] = 0;
-  envelope[1] = (payload.length >>> 24) & 0xff;
-  envelope[2] = (payload.length >>> 16) & 0xff;
-  envelope[3] = (payload.length >>> 8) & 0xff;
-  envelope[4] = payload.length & 0xff;
-  envelope.set(payload, connectEnvelopeHeaderSize);
-  return envelope;
-}
-
-function envelopeBody(message: string): ArrayBuffer {
-  const envelope = encodeEnvelope(message);
-  const body = new Uint8Array(envelope.byteLength);
-  body.set(envelope);
-  return body.buffer;
-}
+const connectProtocolVersion = "1";
+const connectStreamFlagCompressed = 0x01;
+const connectStreamFlagEnd = 0x02;
 
 export const GET: RequestHandler = async ({ params }) => {
   const config = controllerConfig();
@@ -42,103 +13,127 @@ export const GET: RequestHandler = async ({ params }) => {
     return json({ error: config.reason }, { status: 503 });
   }
 
-  const response = await fetch(
+  const upstream = await fetch(
     `${config.baseUrl}/composia.controller.v1.TaskService/TailTaskLogs`,
     {
       method: "POST",
       headers: {
         Authorization: `Bearer ${config.token}`,
-        "Connect-Protocol-Version": "1",
+        "Connect-Protocol-Version": connectProtocolVersion,
         "Content-Type": "application/connect+json",
-        Accept: "application/connect+json",
         "X-Composia-Source": "web",
       },
-      body: envelopeBody(JSON.stringify({ taskId: params.id })),
+      body: encodeConnectStreamMessage({ taskId: params.id }),
     },
   );
 
-  if (!response.ok || !response.body) {
-    const text = await response.text();
+  if (!upstream.ok || !upstream.body) {
+    const text = await upstream.text();
     return json(
-      {
-        error:
-          text ||
-          `Controller task log stream failed with status ${response.status}`,
-      },
-      { status: response.status || 500 },
+      { error: text || "Failed to stream task logs." },
+      { status: upstream.status || 500 },
     );
   }
 
-  const upstream = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = new Uint8Array(0);
-
   const stream = new ReadableStream<Uint8Array>({
-    async pull(controller) {
+    async start(controller) {
+      const reader = upstream.body!.getReader();
+      const textEncoder = new TextEncoder();
+      let buffer = new Uint8Array(0);
+
       try {
         while (true) {
-          const { done, value } = await upstream.read();
+          const { done, value } = await reader.read();
           if (done) {
-            controller.close();
-            return;
+            break;
           }
-
-          if (value && value.length > 0) {
-            const merged = new Uint8Array(buffer.length + value.length);
-            merged.set(buffer);
-            merged.set(value, buffer.length);
-            buffer = merged;
+          if (!value) {
+            continue;
           }
+          buffer = concatUint8Arrays(buffer, value);
 
-          while (buffer.length >= connectEnvelopeHeaderSize) {
+          while (buffer.length >= 5) {
             const flags = buffer[0] ?? 0;
-            const messageLength = decodeEnvelopeLength(buffer);
-            const envelopeLength = connectEnvelopeHeaderSize + messageLength;
-            if (buffer.length < envelopeLength) {
+            const length =
+              ((buffer[1] ?? 0) << 24) |
+              ((buffer[2] ?? 0) << 16) |
+              ((buffer[3] ?? 0) << 8) |
+              (buffer[4] ?? 0);
+            if (buffer.length < 5 + length) {
               break;
             }
 
-            const payload = buffer.slice(
-              connectEnvelopeHeaderSize,
-              envelopeLength,
-            );
-            buffer = buffer.slice(envelopeLength);
+            const payload = buffer.slice(5, 5 + length);
+            buffer = buffer.slice(5 + length);
 
-            if ((flags & connectFlagCompressed) !== 0) {
+            if ((flags & connectStreamFlagCompressed) !== 0) {
               throw new Error("Compressed Connect streams are not supported.");
             }
 
-            if ((flags & connectFlagEndStream) !== 0) {
-              controller.close();
-              return;
-            }
+            const jsonPayload = JSON.parse(
+              new TextDecoder().decode(payload),
+            ) as
+              | { content?: string }
+              | {
+                  error?: { message?: string };
+                };
 
-            const chunk = decoder.decode(payload);
-            if (!chunk) {
+            if ((flags & connectStreamFlagEnd) !== 0) {
+              if (
+                "error" in jsonPayload &&
+                jsonPayload.error?.message &&
+                jsonPayload.error.message.trim()
+              ) {
+                throw new Error(jsonPayload.error.message);
+              }
               continue;
             }
 
-            const parsed = JSON.parse(chunk) as { content?: string };
-            if (parsed.content) {
-              controller.enqueue(payload);
-              return;
+            if ("content" in jsonPayload && jsonPayload.content) {
+              controller.enqueue(textEncoder.encode(jsonPayload.content));
             }
           }
         }
+
+        controller.close();
       } catch (error) {
-        controller.error(error);
+        controller.error(
+          error instanceof Error
+            ? error
+            : new Error("Failed to stream task logs."),
+        );
+      } finally {
+        reader.releaseLock();
       }
     },
-
     async cancel() {
-      await upstream.cancel();
+      await upstream.body?.cancel();
     },
   });
 
   return new Response(stream, {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "no-cache",
+      "Cache-Control": "no-store",
     },
   });
 };
+
+function encodeConnectStreamMessage(payload: Record<string, unknown>) {
+  const messageBytes = new TextEncoder().encode(JSON.stringify(payload));
+  const frame = new Uint8Array(5 + messageBytes.length);
+  frame[0] = 0;
+  frame[1] = (messageBytes.length >>> 24) & 0xff;
+  frame[2] = (messageBytes.length >>> 16) & 0xff;
+  frame[3] = (messageBytes.length >>> 8) & 0xff;
+  frame[4] = messageBytes.length & 0xff;
+  frame.set(messageBytes, 5);
+  return frame;
+}
+
+function concatUint8Arrays(left: Uint8Array, right: Uint8Array) {
+  const merged = new Uint8Array(left.length + right.length);
+  merged.set(left, 0);
+  merged.set(right, left.length);
+  return merged;
+}

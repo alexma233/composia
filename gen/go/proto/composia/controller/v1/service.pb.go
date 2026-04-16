@@ -440,9 +440,11 @@ func (x *ServiceInstanceDetail) GetContainers() []*ServiceContainerSummary {
 type GetServiceRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// service_name is the logical service name.
-	ServiceName   string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// include_containers includes per-instance container details when true.
+	IncludeContainers bool `protobuf:"varint,2,opt,name=include_containers,json=includeContainers,proto3" json:"include_containers,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *GetServiceRequest) Reset() {
@@ -480,6 +482,13 @@ func (x *GetServiceRequest) GetServiceName() string {
 		return x.ServiceName
 	}
 	return ""
+}
+
+func (x *GetServiceRequest) GetIncludeContainers() bool {
+	if x != nil {
+		return x.IncludeContainers
+	}
+	return false
 }
 
 // GetServiceResponse describes one service and all known instances.
@@ -678,9 +687,11 @@ type GetServiceInstanceRequest struct {
 	// service_name is the logical service name.
 	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	// node_id identifies the node hosting the requested instance.
-	NodeId        string `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	NodeId string `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// include_containers includes instance container details when true.
+	IncludeContainers bool `protobuf:"varint,3,opt,name=include_containers,json=includeContainers,proto3" json:"include_containers,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *GetServiceInstanceRequest) Reset() {
@@ -725,6 +736,13 @@ func (x *GetServiceInstanceRequest) GetNodeId() string {
 		return x.NodeId
 	}
 	return ""
+}
+
+func (x *GetServiceInstanceRequest) GetIncludeContainers() bool {
+	if x != nil {
+		return x.IncludeContainers
+	}
+	return false
 }
 
 // GetServiceInstanceResponse returns one service instance detail.
@@ -1629,9 +1647,10 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"isDeclared\x12O\n" +
 	"\n" +
 	"containers\x18\x06 \x03(\v2/.composia.controller.v1.ServiceContainerSummaryR\n" +
-	"containers\"6\n" +
+	"containers\"e\n" +
 	"\x11GetServiceRequest\x12!\n" +
-	"\fservice_name\x18\x01 \x01(\tR\vserviceName\"\x89\x02\n" +
+	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12-\n" +
+	"\x12include_containers\x18\x02 \x01(\bR\x11includeContainers\"\x89\x02\n" +
 	"\x12GetServiceResponse\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12%\n" +
 	"\x0eruntime_status\x18\x02 \x01(\tR\rruntimeStatus\x12\x1d\n" +
@@ -1644,10 +1663,11 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"\x1bListServiceInstancesRequest\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\"l\n" +
 	"\x1cListServiceInstancesResponse\x12L\n" +
-	"\tinstances\x18\x01 \x03(\v2..composia.controller.v1.ServiceInstanceSummaryR\tinstances\"W\n" +
+	"\tinstances\x18\x01 \x03(\v2..composia.controller.v1.ServiceInstanceSummaryR\tinstances\"\x86\x01\n" +
 	"\x19GetServiceInstanceRequest\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x17\n" +
-	"\anode_id\x18\x02 \x01(\tR\x06nodeId\"g\n" +
+	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12-\n" +
+	"\x12include_containers\x18\x03 \x01(\bR\x11includeContainers\"g\n" +
 	"\x1aGetServiceInstanceResponse\x12I\n" +
 	"\binstance\x18\x01 \x01(\v2-.composia.controller.v1.ServiceInstanceDetailR\binstance\"\x84\x01\n" +
 	"\x16GetServiceTasksRequest\x12!\n" +

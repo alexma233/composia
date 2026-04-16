@@ -2,6 +2,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
 import { migrateService } from "$lib/server/controller";
+import { jsonControllerError } from "$lib/server/controller-route";
 import { requireDeclaredWorkspace } from "$lib/server/service-workspace-route";
 
 export const POST: RequestHandler = async ({ params, request }) => {
@@ -26,12 +27,6 @@ export const POST: RequestHandler = async ({ params, request }) => {
       ),
     );
   } catch (error) {
-    return json(
-      {
-        error:
-          error instanceof Error ? error.message : "Failed to migrate service.",
-      },
-      { status: 400 },
-    );
+    return jsonControllerError(error, "Failed to migrate service.", {}, 400);
   }
 };

@@ -2,6 +2,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
 import { controllerConfig, removeNodeNetwork } from "$lib/server/controller";
+import { jsonControllerError } from "$lib/server/controller-route";
 
 export const POST: RequestHandler = async ({ params }) => {
   const config = controllerConfig();
@@ -14,12 +15,6 @@ export const POST: RequestHandler = async ({ params }) => {
       await removeNodeNetwork(params.id, decodeURIComponent(params.nid)),
     );
   } catch (error) {
-    return json(
-      {
-        error:
-          error instanceof Error ? error.message : "Failed to remove network",
-      },
-      { status: 500 },
-    );
+    return jsonControllerError(error, "Failed to remove network");
   }
 };

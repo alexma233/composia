@@ -2,6 +2,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
 import { controllerConfig, removeNodeImage } from "$lib/server/controller";
+import { jsonControllerError } from "$lib/server/controller-route";
 
 export const POST: RequestHandler = async ({ params, request }) => {
   const config = controllerConfig();
@@ -19,12 +20,6 @@ export const POST: RequestHandler = async ({ params, request }) => {
       ),
     );
   } catch (error) {
-    return json(
-      {
-        error:
-          error instanceof Error ? error.message : "Failed to remove image",
-      },
-      { status: 500 },
-    );
+    return jsonControllerError(error, "Failed to remove image");
   }
 };

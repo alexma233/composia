@@ -6,6 +6,7 @@ import {
   syncNodeCaddyFiles,
   type ServiceAction,
 } from "$lib/server/controller";
+import { jsonControllerError } from "$lib/server/controller-route";
 import { requireDeclaredWorkspace } from "$lib/server/service-workspace-route";
 
 export const POST: RequestHandler = async ({ params }) => {
@@ -26,12 +27,7 @@ export const POST: RequestHandler = async ({ params }) => {
 
     return json(await runServiceAction(workspace.serviceName, params.action));
   } catch (error) {
-    return json(
-      {
-        error: error instanceof Error ? error.message : "Failed to run action.",
-      },
-      { status: 400 },
-    );
+    return jsonControllerError(error, "Failed to run action.", {}, 400);
   }
 };
 

@@ -103,6 +103,23 @@ func Run(ctx context.Context, configPath string) error {
 		}
 	}()
 
+	go func() {
+		for {
+			if ctx.Err() != nil {
+				return
+			}
+			if err := pollAndRunDockerQuery(ctx, taskClient, reportClient, cfg); err != nil {
+				if ctx.Err() != nil {
+					return
+				}
+				log.Printf("docker query poll failed: %v", err)
+				if !sleepWithContext(ctx, taskRetryAfterPollFail) {
+					return
+				}
+			}
+		}
+	}()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -206,6 +223,48 @@ func pollAndRunTask(ctx context.Context, taskClient agentv1connect.AgentTaskServ
 	}
 
 	return executePulledTask(ctx, bundleClient, reportClient, cfg, response.Msg.GetTask())
+}
+
+func pollAndRunDockerQuery(ctx context.Context, taskClient agentv1connect.AgentTaskServiceClient, reportClient agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig) error {
+	callCtx, cancel := context.WithTimeout(ctx, pullNextTaskTimeout)
+	defer cancel()
+
+	response, err := taskClient.PullNextDockerQuery(callCtx, connect.NewRequest(&agentv1.PullNextDockerQueryRequest{NodeId: cfg.NodeID}))
+	if err != nil {
+		return fmt.Errorf("pull next docker query: %w", err)
+	}
+	if !response.Msg.GetHasQuery() || response.Msg.GetQuery() == nil {
+		return nil
+	}
+
+	query := response.Msg.GetQuery()
+	queryCtx, queryCancel := context.WithTimeout(ctx, pullNextTaskTimeout)
+	defer queryCancel()
+
+	result, queryErr := executeDockerQuery(queryCtx, query)
+	reportRequest := &agentv1.ReportDockerQueryResultRequest{
+		QueryId: query.GetQueryId(),
+		NodeId:  cfg.NodeID,
+	}
+	if queryErr != nil {
+		reportRequest.ErrorMessage = queryErr.Error()
+		reportRequest.ErrorCode = dockerQueryErrorCode(queryErr)
+	} else {
+		payloadJSON, err := json.Marshal(result)
+		if err != nil {
+			reportRequest.ErrorMessage = fmt.Sprintf("marshal docker query result: %v", err)
+			reportRequest.ErrorCode = "internal"
+		} else {
+			reportRequest.PayloadJson = string(payloadJSON)
+		}
+	}
+
+	reportCtx, reportCancel := context.WithTimeout(ctx, heartbeatTimeout)
+	defer reportCancel()
+	if _, err := reportClient.ReportDockerQueryResult(reportCtx, connect.NewRequest(reportRequest)); err != nil {
+		return fmt.Errorf("report docker query result: %w", err)
+	}
+	return nil
 }
 
 func sleepWithContext(ctx context.Context, duration time.Duration) bool {

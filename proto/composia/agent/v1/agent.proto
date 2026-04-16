@@ -22,6 +22,8 @@ service AgentReportService {
   rpc ReportServiceInstanceStatus(ReportServiceInstanceStatusRequest) returns (ReportServiceInstanceStatusResponse);
   // ReportDockerStats reports the latest Docker stats snapshot for one node.
   rpc ReportDockerStats(ReportDockerStatsRequest) returns (ReportDockerStatsResponse);
+  // ReportDockerQueryResult reports the result of one direct Docker query.
+  rpc ReportDockerQueryResult(ReportDockerQueryResultRequest) returns (ReportDockerQueryResultResponse);
   // OpenExecTunnel proxies interactive exec traffic between controller and agent.
   rpc OpenExecTunnel(stream OpenExecTunnelRequest) returns (stream OpenExecTunnelResponse);
 }
@@ -30,6 +32,8 @@ service AgentReportService {
 service AgentTaskService {
   // PullNextTask returns the next available task for the requesting node.
   rpc PullNextTask(PullNextTaskRequest) returns (PullNextTaskResponse);
+  // PullNextDockerQuery returns the next in-memory Docker query for the requesting node.
+  rpc PullNextDockerQuery(PullNextDockerQueryRequest) returns (PullNextDockerQueryResponse);
 }
 
 // BundleService streams service bundles needed to execute a task.
@@ -128,6 +132,48 @@ message PullNextTaskResponse {
   bool has_task = 1;
   // task is populated only when has_task is true.
   AgentTask task = 2;
+}
+
+// DockerQueryTask describes one synchronous Docker query assigned to an agent.
+message DockerQueryTask {
+  // query_id is the controller-generated query ID.
+  string query_id = 1;
+  // node_id is the target node ID for the query.
+  string node_id = 2;
+  // action is one of list, inspect, or logs.
+  string action = 3;
+  // resource is one of container, containers, network, networks, volume, volumes, image, or images.
+  string resource = 4;
+  // id identifies the target Docker resource for inspect-like operations.
+  string id = 5;
+  // tail is forwarded to the Docker log tail option for log queries.
+  string tail = 6;
+  // timestamps includes Docker timestamps in container log results.
+  bool timestamps = 7;
+  // page_size is the requested page size for list queries.
+  uint32 page_size = 8;
+  // page is the 1-based page number for list queries.
+  uint32 page = 9;
+  // search is the case-insensitive search term for list queries.
+  string search = 10;
+  // sort_by identifies the list sort field.
+  string sort_by = 11;
+  // sort_desc reverses the list sort order when true.
+  bool sort_desc = 12;
+}
+
+// PullNextDockerQueryRequest identifies the node that is requesting a Docker query.
+message PullNextDockerQueryRequest {
+  // node_id is the stable node identifier.
+  string node_id = 1;
+}
+
+// PullNextDockerQueryResponse indicates whether a Docker query was assigned.
+message PullNextDockerQueryResponse {
+  // has_query is false when there is currently no Docker query to run.
+  bool has_query = 1;
+  // query is populated only when has_query is true.
+  DockerQueryTask query = 2;
 }
 
 // ReportTaskStateRequest reports the latest task-level state from an agent.
@@ -315,8 +361,36 @@ message ReportDockerStatsRequest {
 // ReportDockerStatsResponse acknowledges a Docker stats update.
 message ReportDockerStatsResponse {}
 
+// ReportDockerQueryResultRequest reports the result of one direct Docker query.
+message ReportDockerQueryResultRequest {
+  // query_id is the controller-generated query ID.
+  string query_id = 1;
+  // node_id is the stable node identifier that executed the query.
+  string node_id = 2;
+  // payload_json carries the JSON-encoded query payload on success.
+  string payload_json = 3;
+  // error_message contains the human-readable failure summary when the query fails.
+  string error_message = 4;
+  // error_code carries a Connect-style lowercase code string such as not_found.
+  string error_code = 5;
+}
+
+// ReportDockerQueryResultResponse acknowledges a Docker query result.
+message ReportDockerQueryResultResponse {}
+
 // ListContainersRequest requests all local Docker containers.
-message ListContainersRequest {}
+message ListContainersRequest {
+  // page_size is the requested page size.
+  uint32 page_size = 1;
+  // page is the 1-based page number.
+  uint32 page = 2;
+  // search is a case-insensitive substring match across key fields.
+  string search = 3;
+  // sort_by identifies the field used to sort results.
+  string sort_by = 4;
+  // sort_desc reverses the sort order when true.
+  bool sort_desc = 5;
+}
 
 // ContainerInfo describes one container for list views.
 message ContainerInfo {
@@ -343,6 +417,7 @@ message ContainerInfo {
 // ListContainersResponse returns local container summaries.
 message ListContainersResponse {
   repeated ContainerInfo containers = 1;
+  uint32 total_count = 2;
 }
 
 // InspectContainerRequest identifies one local container.
@@ -406,7 +481,18 @@ message GetContainerLogsResponse {
 }
 
 // ListNetworksRequest requests all local Docker networks.
-message ListNetworksRequest {}
+message ListNetworksRequest {
+  // page_size is the requested page size.
+  uint32 page_size = 1;
+  // page is the 1-based page number.
+  uint32 page = 2;
+  // search is a case-insensitive substring match across key fields.
+  string search = 3;
+  // sort_by identifies the field used to sort results.
+  string sort_by = 4;
+  // sort_desc reverses the sort order when true.
+  bool sort_desc = 5;
+}
 
 // NetworkInfo describes one Docker network for list views.
 message NetworkInfo {
@@ -438,6 +524,7 @@ message NetworkInfo {
 // ListNetworksResponse returns local network summaries.
 message ListNetworksResponse {
   repeated NetworkInfo networks = 1;
+  uint32 total_count = 2;
 }
 
 // InspectNetworkRequest identifies one local network.
@@ -461,7 +548,18 @@ message RemoveNetworkRequest {
 message RemoveNetworkResponse {}
 
 // ListVolumesRequest requests all local Docker volumes.
-message ListVolumesRequest {}
+message ListVolumesRequest {
+  // page_size is the requested page size.
+  uint32 page_size = 1;
+  // page is the 1-based page number.
+  uint32 page = 2;
+  // search is a case-insensitive substring match across key fields.
+  string search = 3;
+  // sort_by identifies the field used to sort results.
+  string sort_by = 4;
+  // sort_desc reverses the sort order when true.
+  bool sort_desc = 5;
+}
 
 // VolumeInfo describes one Docker volume for list views.
 message VolumeInfo {
@@ -488,6 +586,7 @@ message VolumeInfo {
 // ListVolumesResponse returns local volume summaries.
 message ListVolumesResponse {
   repeated VolumeInfo volumes = 1;
+  uint32 total_count = 2;
 }
 
 // InspectVolumeRequest identifies one local volume.
@@ -511,7 +610,18 @@ message RemoveVolumeRequest {
 message RemoveVolumeResponse {}
 
 // ListImagesRequest requests all local Docker images.
-message ListImagesRequest {}
+message ListImagesRequest {
+  // page_size is the requested page size.
+  uint32 page_size = 1;
+  // page is the 1-based page number.
+  uint32 page = 2;
+  // search is a case-insensitive substring match across key fields.
+  string search = 3;
+  // sort_by identifies the field used to sort results.
+  string sort_by = 4;
+  // sort_desc reverses the sort order when true.
+  bool sort_desc = 5;
+}
 
 // ImageInfo describes one Docker image for list views.
 message ImageInfo {
@@ -541,6 +651,7 @@ message ImageInfo {
 // ListImagesResponse returns local image summaries.
 message ListImagesResponse {
   repeated ImageInfo images = 1;
+  uint32 total_count = 2;
 }
 
 // InspectImageRequest identifies one local image.

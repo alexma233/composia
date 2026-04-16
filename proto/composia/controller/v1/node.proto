@@ -224,6 +224,16 @@ message PruneNodeRusticResponse {
 message ListNodeContainersRequest {
   // node_id is the stable node identifier.
   string node_id = 1;
+  // page_size is the requested page size.
+  uint32 page_size = 2;
+  // page is the 1-based page number.
+  uint32 page = 3;
+  // search is a case-insensitive substring match across key fields.
+  string search = 4;
+  // sort_by identifies the field used to sort results.
+  string sort_by = 5;
+  // sort_desc reverses the sort order when true.
+  bool sort_desc = 6;
 }
 
 // ContainerInfo describes one container for node-scoped list views.
@@ -251,6 +261,7 @@ message ContainerInfo {
 // ListNodeContainersResponse returns node-scoped container summaries.
 message ListNodeContainersResponse {
   repeated ContainerInfo containers = 1;
+  uint32 total_count = 2;
 }
 
 // InspectNodeContainerRequest identifies one node-scoped container.
@@ -270,6 +281,16 @@ message InspectNodeContainerResponse {
 message ListNodeNetworksRequest {
   // node_id is the stable node identifier.
   string node_id = 1;
+  // page_size is the requested page size.
+  uint32 page_size = 2;
+  // page is the 1-based page number.
+  uint32 page = 3;
+  // search is a case-insensitive substring match across key fields.
+  string search = 4;
+  // sort_by identifies the field used to sort results.
+  string sort_by = 5;
+  // sort_desc reverses the sort order when true.
+  bool sort_desc = 6;
 }
 
 // NetworkInfo describes one Docker network for node-scoped list views.
@@ -302,6 +323,7 @@ message NetworkInfo {
 // ListNodeNetworksResponse returns node-scoped network summaries.
 message ListNodeNetworksResponse {
   repeated NetworkInfo networks = 1;
+  uint32 total_count = 2;
 }
 
 // InspectNodeNetworkRequest identifies one node-scoped network.
@@ -321,6 +343,16 @@ message InspectNodeNetworkResponse {
 message ListNodeVolumesRequest {
   // node_id is the stable node identifier.
   string node_id = 1;
+  // page_size is the requested page size.
+  uint32 page_size = 2;
+  // page is the 1-based page number.
+  uint32 page = 3;
+  // search is a case-insensitive substring match across key fields.
+  string search = 4;
+  // sort_by identifies the field used to sort results.
+  string sort_by = 5;
+  // sort_desc reverses the sort order when true.
+  bool sort_desc = 6;
 }
 
 // VolumeInfo describes one Docker volume for node-scoped list views.
@@ -348,6 +380,7 @@ message VolumeInfo {
 // ListNodeVolumesResponse returns node-scoped volume summaries.
 message ListNodeVolumesResponse {
   repeated VolumeInfo volumes = 1;
+  uint32 total_count = 2;
 }
 
 // InspectNodeVolumeRequest identifies one node-scoped volume.
@@ -367,6 +400,16 @@ message InspectNodeVolumeResponse {
 message ListNodeImagesRequest {
   // node_id is the stable node identifier.
   string node_id = 1;
+  // page_size is the requested page size.
+  uint32 page_size = 2;
+  // page is the 1-based page number.
+  uint32 page = 3;
+  // search is a case-insensitive substring match across key fields.
+  string search = 4;
+  // sort_by identifies the field used to sort results.
+  string sort_by = 5;
+  // sort_desc reverses the sort order when true.
+  bool sort_desc = 6;
 }
 
 // ImageInfo describes one Docker image for node-scoped list views.
@@ -395,6 +438,7 @@ message ImageInfo {
 // ListNodeImagesResponse returns node-scoped image summaries.
 message ListNodeImagesResponse {
   repeated ImageInfo images = 1;
+  uint32 total_count = 2;
 }
 
 // InspectNodeImageRequest identifies one node-scoped image.
