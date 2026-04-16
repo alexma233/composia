@@ -1,6 +1,5 @@
 import type { PageServerLoad, Actions } from "./$types";
 
-import { defaultExcludedTaskTypes } from "$lib/tasks";
 import {
   controllerConfig,
   loadNodeDetail,
@@ -26,10 +25,7 @@ export const load: PageServerLoad = async ({ params }) => {
   try {
     const [node, tasksResult, dockerStats] = await Promise.all([
       loadNodeDetail(params.id),
-      loadTasks(1, 20, {
-        nodeId: [params.id],
-        excludeType: defaultExcludedTaskTypes,
-      }),
+      loadTasks(1, 20, { nodeId: [params.id] }),
       loadNodeDockerStats(params.id),
     ]);
 

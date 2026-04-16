@@ -5,11 +5,10 @@
   import type { Snippet } from 'svelte';
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
-  import { Badge } from '$lib/components/ui/badge';
-  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
-  import { startPolling } from '$lib/refresh';
-  import { defaultExcludedTaskTypes } from '$lib/tasks';
-  import { formatTimestamp, onlineStatusTone, runtimeStatusLabel, runtimeStatusTone } from '$lib/presenters';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import { startPolling } from '$lib/refresh';
+	import { formatTimestamp, onlineStatusTone, runtimeStatusLabel, runtimeStatusTone } from '$lib/presenters';
   import { messages } from '$lib/i18n';
   import TaskItem from '$lib/components/app/task-item.svelte';
 
@@ -18,7 +17,7 @@
     children?: Snippet;
   }
 
-  let { data }: Props = $props();
+	let { data }: Props = $props();
 
   function isTaskRecent(createdAt: string) {
     const createdAtMs = Date.parse(createdAt);
@@ -26,10 +25,9 @@
     return Date.now() - createdAtMs <= 24 * 60 * 60 * 1000;
   }
 
-  let recentTasks = $derived((data.dashboard?.tasks ?? [])
-    .filter((t) => !defaultExcludedTaskTypes.includes(t.type))
-    .filter((t) => isTaskRecent(t.createdAt))
-    .slice(0, 6));
+	let recentTasks = $derived((data.dashboard?.tasks ?? [])
+		.filter((t) => isTaskRecent(t.createdAt))
+		.slice(0, 6));
 
   function totalTaskCount() {
     return 'totalTaskCount' in data ? data.totalTaskCount : 0;

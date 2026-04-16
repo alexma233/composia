@@ -278,12 +278,9 @@ export const enUS = {
       prune: "Docker prune",
       rusticForget: "Rustic forget",
       rusticPrune: "Rustic prune",
-      dockerList: "List containers",
-      dockerInspect: "Inspect container",
       dockerStart: "Start container",
       dockerStop: "Stop container",
       dockerRestart: "Restart container",
-      dockerLogs: "View container logs",
       dockerRemove: "Remove container",
     },
     filters: {

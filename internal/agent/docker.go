@@ -20,11 +20,6 @@ import (
 	"github.com/moby/moby/api/types/mount"
 )
 
-const (
-	dockerTaskResultBegin = "COMPOSIA_DOCKER_RESULT_BEGIN"
-	dockerTaskResultEnd   = "COMPOSIA_DOCKER_RESULT_END"
-)
-
 type dockerTaskResult struct {
 	Containers []*agentv1.ContainerInfo `json:"containers,omitempty"`
 	Networks   []*agentv1.NetworkInfo   `json:"networks,omitempty"`
@@ -810,55 +805,30 @@ func dockerQueryErrorCode(err error) string {
 	return "internal"
 }
 
-// DockerTaskExecutor handles docker-related task execution (deprecated - kept for compatibility)
-type DockerTaskExecutor struct{}
-
-func (e *DockerTaskExecutor) ExecuteTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask) error {
-	// Docker tasks are handled differently - they're for CLI execution
-	// This is deprecated as we now use Docker SDK directly
-	return nil
+type dockerTaskParams struct {
+	Action        string `json:"action"`
+	Resource      string `json:"resource"`
+	ID            string `json:"id,omitempty"`
+	Force         bool   `json:"force,omitempty"`
+	RemoveVolumes bool   `json:"remove_volumes,omitempty"`
 }
 
-// executeDockerTask handles docker-related tasks from the controller
-// This is called via the task queue system
 func executeDockerTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
-	params := parseDockerListParams(pulledTask.GetParamsJson())
-
-	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting docker task: action=%s resource=%s id=%s\n", params.Action, params.Resource, params.ID)); err != nil {
-		return err
-	}
-
-	var stepName string
-	var execute func() error
-
-	if params.Action == "list" {
-		stepName = "docker_list"
-		execute = func() error {
-			return runDockerList(ctx, params.Resource, func(output string) error {
-				return uploadTaskLog(ctx, logUploader, output)
-			})
-		}
-	} else if params.Action == "inspect" {
-		stepName = "docker_inspect"
-		execute = func() error {
-			return runDockerInspect(ctx, params.Resource, params.ID, func(output string) error {
-				return uploadTaskLog(ctx, logUploader, output)
-			})
-		}
-	} else {
-		stepName = fmt.Sprintf("docker_%s", params.Action)
-		execute = func() error {
-			return runDockerCommand(ctx, params, func(output string) error {
-				return uploadTaskLog(ctx, logUploader, output)
-			})
-		}
-	}
-
-	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepName(stepName), execute); err != nil {
+	_ = cfg
+	params, err := parseDockerTaskParams(pulledTask.GetParamsJson())
+	if err != nil {
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
 	}
-
+	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting docker task: action=%s resource=%s id=%s\n", params.Action, params.Resource, params.ID)); err != nil {
+		return err
+	}
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), dockerTaskStepName(params.Action), func() error {
+		return runDockerMutation(ctx, params)
+	}); err != nil {
+		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
+		return err
+	}
 	if err := uploadTaskLog(ctx, logUploader, "docker task finished successfully\n"); err != nil {
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
@@ -866,80 +836,34 @@ func executeDockerTask(ctx context.Context, client agentv1connect.AgentReportSer
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
 }
 
-type dockerListParams struct {
-	Action        string `json:"action"`
-	Resource      string `json:"resource"`
-	ID            string `json:"id,omitempty"`
-	Tail          string `json:"tail,omitempty"`
-	Timestamps    bool   `json:"timestamps,omitempty"`
-	Force         bool   `json:"force,omitempty"`
-	RemoveVolumes bool   `json:"remove_volumes,omitempty"`
-}
-
-func parseDockerListParams(paramsJSON string) dockerListParams {
+func parseDockerTaskParams(paramsJSON string) (dockerTaskParams, error) {
+	var params dockerTaskParams
 	if paramsJSON == "" {
-		return dockerListParams{Action: "list", Resource: "containers"}
+		return params, fmt.Errorf("docker task params are required")
 	}
-	var params dockerListParams
 	if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
-		return dockerListParams{Action: "list", Resource: "containers"}
+		return params, fmt.Errorf("decode docker task params: %w", err)
 	}
-	if params.Action == "" {
-		params.Action = "list"
+	if params.Action == "" || params.ID == "" {
+		return params, fmt.Errorf("docker task action and id are required")
 	}
-	if params.Resource == "" {
-		params.Resource = "containers"
-	}
-	return params
+	return params, nil
 }
 
-func runDockerList(ctx context.Context, resource string, uploadLog func(string) error) error {
-	server, err := newDockerServer()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = server.client.Close()
-	}()
-
-	var payload dockerTaskResult
-	switch resource {
-	case "containers":
-		resp, err := server.ListContainers(ctx, connect.NewRequest(&agentv1.ListContainersRequest{}))
-		if err != nil {
-			return err
-		}
-		payload.Containers = resp.Msg.Containers
-	case "networks":
-		resp, err := server.ListNetworks(ctx, connect.NewRequest(&agentv1.ListNetworksRequest{}))
-		if err != nil {
-			return err
-		}
-		payload.Networks = resp.Msg.Networks
-	case "volumes":
-		resp, err := server.ListVolumes(ctx, connect.NewRequest(&agentv1.ListVolumesRequest{}))
-		if err != nil {
-			return err
-		}
-		payload.Volumes = resp.Msg.Volumes
-	case "images":
-		resp, err := server.ListImages(ctx, connect.NewRequest(&agentv1.ListImagesRequest{}))
-		if err != nil {
-			return err
-		}
-		payload.Images = resp.Msg.Images
+func dockerTaskStepName(action string) task.StepName {
+	switch action {
+	case "start":
+		return task.StepDockerStart
+	case "stop":
+		return task.StepDockerStop
+	case "restart":
+		return task.StepDockerRestart
 	default:
-		return fmt.Errorf("unknown resource type: %s", resource)
+		return task.StepDockerRemove
 	}
-
-	return uploadDockerTaskResult(uploadLog, payload)
 }
 
-func runDockerInspect(ctx context.Context, resource, id string, uploadLog func(string) error) error {
-	if id == "" {
-		return fmt.Errorf("inspect requires an id")
-	}
-
+func runDockerMutation(ctx context.Context, params dockerTaskParams) error {
 	server, err := newDockerServer()
 	if err != nil {
 		return err
@@ -948,113 +872,28 @@ func runDockerInspect(ctx context.Context, resource, id string, uploadLog func(s
 		_ = server.client.Close()
 	}()
 
-	var payload dockerTaskResult
-	switch resource {
-	case "container":
-		resp, err := server.InspectContainer(ctx, connect.NewRequest(&agentv1.InspectContainerRequest{ContainerId: id}))
-		if err != nil {
-			return err
-		}
-		payload.RawJSON = resp.Msg.GetRawJson()
-	case "network":
-		resp, err := server.InspectNetwork(ctx, connect.NewRequest(&agentv1.InspectNetworkRequest{NetworkId: id}))
-		if err != nil {
-			return err
-		}
-		payload.RawJSON = resp.Msg.GetRawJson()
-	case "volume":
-		resp, err := server.InspectVolume(ctx, connect.NewRequest(&agentv1.InspectVolumeRequest{VolumeName: id}))
-		if err != nil {
-			return err
-		}
-		payload.RawJSON = resp.Msg.GetRawJson()
-	case "image":
-		resp, err := server.InspectImage(ctx, connect.NewRequest(&agentv1.InspectImageRequest{ImageId: id}))
-		if err != nil {
-			return err
-		}
-		payload.RawJSON = resp.Msg.GetRawJson()
-	default:
-		return fmt.Errorf("unknown resource type: %s", resource)
-	}
-
-	return uploadDockerTaskResult(uploadLog, payload)
-}
-
-func runDockerCommand(ctx context.Context, params dockerListParams, uploadLog func(string) error) error {
-	server, err := newDockerServer()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = server.client.Close()
-	}()
-
-	var payload dockerTaskResult
 	switch params.Action {
 	case "start":
-		if _, err := server.RunContainerAction(ctx, connect.NewRequest(&agentv1.RunContainerActionRequest{ContainerId: params.ID, Action: agentv1.ContainerAction_CONTAINER_ACTION_START})); err != nil {
-			return err
-		}
+		_, err = server.RunContainerAction(ctx, connect.NewRequest(&agentv1.RunContainerActionRequest{ContainerId: params.ID, Action: agentv1.ContainerAction_CONTAINER_ACTION_START}))
 	case "stop":
-		if _, err := server.RunContainerAction(ctx, connect.NewRequest(&agentv1.RunContainerActionRequest{ContainerId: params.ID, Action: agentv1.ContainerAction_CONTAINER_ACTION_STOP})); err != nil {
-			return err
-		}
+		_, err = server.RunContainerAction(ctx, connect.NewRequest(&agentv1.RunContainerActionRequest{ContainerId: params.ID, Action: agentv1.ContainerAction_CONTAINER_ACTION_STOP}))
 	case "restart":
-		if _, err := server.RunContainerAction(ctx, connect.NewRequest(&agentv1.RunContainerActionRequest{ContainerId: params.ID, Action: agentv1.ContainerAction_CONTAINER_ACTION_RESTART})); err != nil {
-			return err
-		}
-	case "logs":
-		resp, err := server.GetContainerLogs(ctx, connect.NewRequest(&agentv1.GetContainerLogsRequest{
-			ContainerId: params.ID,
-			Tail:        params.Tail,
-			Timestamps:  params.Timestamps,
-		}))
-		if err != nil {
-			return err
-		}
-		payload.Content = resp.Msg.GetContent()
+		_, err = server.RunContainerAction(ctx, connect.NewRequest(&agentv1.RunContainerActionRequest{ContainerId: params.ID, Action: agentv1.ContainerAction_CONTAINER_ACTION_RESTART}))
 	case "remove":
 		switch params.Resource {
 		case "container":
-			if _, err := server.RemoveContainer(ctx, connect.NewRequest(&agentv1.RemoveContainerRequest{ContainerId: params.ID, Force: params.Force, RemoveVolumes: params.RemoveVolumes})); err != nil {
-				return err
-			}
+			_, err = server.RemoveContainer(ctx, connect.NewRequest(&agentv1.RemoveContainerRequest{ContainerId: params.ID, Force: params.Force, RemoveVolumes: params.RemoveVolumes}))
 		case "network":
-			if _, err := server.RemoveNetwork(ctx, connect.NewRequest(&agentv1.RemoveNetworkRequest{NetworkId: params.ID})); err != nil {
-				return err
-			}
+			_, err = server.RemoveNetwork(ctx, connect.NewRequest(&agentv1.RemoveNetworkRequest{NetworkId: params.ID}))
 		case "volume":
-			if _, err := server.RemoveVolume(ctx, connect.NewRequest(&agentv1.RemoveVolumeRequest{VolumeName: params.ID})); err != nil {
-				return err
-			}
+			_, err = server.RemoveVolume(ctx, connect.NewRequest(&agentv1.RemoveVolumeRequest{VolumeName: params.ID}))
 		case "image":
-			if _, err := server.RemoveImage(ctx, connect.NewRequest(&agentv1.RemoveImageRequest{ImageId: params.ID, Force: params.Force})); err != nil {
-				return err
-			}
+			_, err = server.RemoveImage(ctx, connect.NewRequest(&agentv1.RemoveImageRequest{ImageId: params.ID, Force: params.Force}))
 		default:
 			return fmt.Errorf("unknown docker resource for remove: %s", params.Resource)
 		}
 	default:
 		return fmt.Errorf("unknown docker action: %s", params.Action)
 	}
-
-	return uploadDockerTaskResult(uploadLog, payload)
-}
-
-func uploadDockerTaskResult(uploadLog func(string) error, payload dockerTaskResult) error {
-	encoded, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("marshal docker task result: %w", err)
-	}
-	if err := uploadLog(dockerTaskResultBegin + "\n"); err != nil {
-		return err
-	}
-	if err := uploadLog(string(encoded) + "\n"); err != nil {
-		return err
-	}
-	if err := uploadLog(dockerTaskResultEnd + "\n"); err != nil {
-		return err
-	}
-	return nil
+	return err
 }

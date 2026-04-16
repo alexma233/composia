@@ -243,7 +243,7 @@ export async function loadDashboard(): Promise<DashboardData> {
       loadSystemStatus(),
       loadServices(1, 8),
       loadNodes(),
-      loadTasks(1, 6, { excludeType: defaultExcludedTaskTypes }),
+      loadTasks(1, 6),
       import("$lib/server/service-index").then(({ loadServiceWorkspaces }) =>
         loadServiceWorkspaces(),
       ),
@@ -321,8 +321,6 @@ export async function loadNodes(): Promise<NodeSummary[]> {
   );
   return response.nodes ?? [];
 }
-
-import { defaultExcludedTaskTypes } from "$lib/tasks";
 
 export type TaskFilter = {
   serviceName?: string[];

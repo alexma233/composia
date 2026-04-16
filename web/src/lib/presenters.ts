@@ -74,18 +74,12 @@ export function taskTypeLabel(type: string, messages: Dictionary) {
       return messages.tasks.types.rusticForget;
     case "rustic_prune":
       return messages.tasks.types.rusticPrune;
-    case "docker_list":
-      return messages.tasks.types.dockerList;
-    case "docker_inspect":
-      return messages.tasks.types.dockerInspect;
     case "docker_start":
       return messages.tasks.types.dockerStart;
     case "docker_stop":
       return messages.tasks.types.dockerStop;
     case "docker_restart":
       return messages.tasks.types.dockerRestart;
-    case "docker_logs":
-      return messages.tasks.types.dockerLogs;
     case "docker_remove":
       return messages.tasks.types.dockerRemove;
     default:

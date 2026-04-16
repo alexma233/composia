@@ -50,12 +50,9 @@
     | 'prune'
     | 'rustic_forget'
     | 'rustic_prune'
-    | 'docker_list'
-    | 'docker_inspect'
     | 'docker_start'
     | 'docker_stop'
     | 'docker_restart'
-    | 'docker_logs'
     | 'docker_remove';
 
   type FilterOption = {
@@ -66,7 +63,7 @@
 
   type FilterMode = 'include' | 'exclude';
 
-  const defaultExcludedTypes: TaskTypeFilter[] = ['docker_list', 'docker_inspect'];
+  const defaultExcludedTypes: TaskTypeFilter[] = [];
 
   let { data }: Props = $props();
 
@@ -86,12 +83,9 @@
     'prune',
     'rustic_forget',
     'rustic_prune',
-    'docker_list',
-    'docker_inspect',
     'docker_start',
     'docker_stop',
     'docker_restart',
-    'docker_logs',
     'docker_remove',
   ];
 

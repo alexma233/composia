@@ -264,12 +264,9 @@ export const zhHans = {
       prune: "Docker 清理",
       rusticForget: "Rustic forget",
       rusticPrune: "Rustic prune",
-      dockerList: "列出容器",
-      dockerInspect: "查看容器详情",
       dockerStart: "启动容器",
       dockerStop: "停止容器",
       dockerRestart: "重启容器",
-      dockerLogs: "查看容器日志",
       dockerRemove: "删除容器",
     },
     filters: {

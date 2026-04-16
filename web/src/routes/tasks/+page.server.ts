@@ -1,6 +1,5 @@
 import type { PageServerLoad } from "./$types";
 
-import { defaultExcludedTaskTypes } from "$lib/tasks";
 import {
   controllerConfig,
   loadNodes,
@@ -64,8 +63,7 @@ export const load: PageServerLoad = async ({ url }) => {
   const rawExcludeType = parseTextFilters(
     url.searchParams.getAll("excludeType"),
   );
-  const excludeType =
-    rawExcludeType.length > 0 ? rawExcludeType : defaultExcludedTaskTypes;
+  const excludeType = rawExcludeType;
 
   try {
     const [servicesResult, nodes, result] = await Promise.all([

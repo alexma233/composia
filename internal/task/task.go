@@ -19,12 +19,9 @@ const (
 	TypeRusticInit    Type = "rustic_init"
 	TypeRusticForget  Type = "rustic_forget"
 	TypeRusticPrune   Type = "rustic_prune"
-	TypeDockerList    Type = "docker_list"
-	TypeDockerInspect Type = "docker_inspect"
 	TypeDockerStart   Type = "docker_start"
 	TypeDockerStop    Type = "docker_stop"
 	TypeDockerRestart Type = "docker_restart"
-	TypeDockerLogs    Type = "docker_logs"
 	TypeDockerRemove  Type = "docker_remove"
 )
 
@@ -86,12 +83,9 @@ const (
 	StepAwaitingConfirmation StepName = "awaiting_confirmation"
 	StepPersistRepo          StepName = "persist_repo"
 	StepFinalize             StepName = "finalize"
-	StepDockerList           StepName = "docker_list"
-	StepDockerInspect        StepName = "docker_inspect"
 	StepDockerStart          StepName = "docker_start"
 	StepDockerStop           StepName = "docker_stop"
 	StepDockerRestart        StepName = "docker_restart"
-	StepDockerLogs           StepName = "docker_logs"
 	StepDockerRemove         StepName = "docker_remove"
 )
 

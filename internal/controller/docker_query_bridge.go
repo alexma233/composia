@@ -349,11 +349,11 @@ func (server *agentReportServer) ReportDockerQueryResult(ctx context.Context, re
 	return connect.NewResponse(&agentv1.ReportDockerQueryResultResponse{}), nil
 }
 
-func executeDockerAgentQuery(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, broker *dockerQueryBroker, nodeID string, taskType task.Type, query dockerAgentQuery) (dockerAgentQueryResult, error) {
+func executeDockerAgentQuery(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, broker *dockerQueryBroker, nodeID string, query dockerAgentQuery) (dockerAgentQueryResult, error) {
 	if broker == nil {
 		return dockerAgentQueryResult{}, connect.NewError(connect.CodeInternal, errors.New("docker query broker is not configured"))
 	}
-	if err := validateTaskTargetNode(ctx, db, cfg, nodeID, taskType); err != nil {
+	if err := validateNodeForDockerQuery(ctx, db, cfg, nodeID); err != nil {
 		return dockerAgentQueryResult{}, err
 	}
 	query.NodeID = nodeID
@@ -377,7 +377,7 @@ func executeDockerAgentQuery(ctx context.Context, db *store.DB, cfg *config.Cont
 
 func (server *dockerQueryServer) executeDockerListQuery(ctx context.Context, header http.Header, nodeID, resource string, page, pageSize uint32, search, sortBy string, sortDesc bool) (*dockerListResult, error) {
 	_ = header
-	result, err := executeDockerAgentQuery(ctx, server.db, server.cfg, server.dockerQueries, nodeID, task.TypeDockerList, dockerAgentQuery{
+	result, err := executeDockerAgentQuery(ctx, server.db, server.cfg, server.dockerQueries, nodeID, dockerAgentQuery{
 		Action:   "list",
 		Resource: resource,
 		Page:     page,
@@ -398,7 +398,7 @@ func (server *dockerQueryServer) executeDockerListQuery(ctx context.Context, hea
 
 func (server *dockerQueryServer) executeDockerInspectQuery(ctx context.Context, header http.Header, nodeID, resource, id string) (*dockerListResult, error) {
 	_ = header
-	result, err := executeDockerAgentQuery(ctx, server.db, server.cfg, server.dockerQueries, nodeID, task.TypeDockerInspect, dockerAgentQuery{
+	result, err := executeDockerAgentQuery(ctx, server.db, server.cfg, server.dockerQueries, nodeID, dockerAgentQuery{
 		Action:   "inspect",
 		Resource: resource,
 		ID:       id,
@@ -414,7 +414,7 @@ func (server *dockerQueryServer) executeDockerInspectQuery(ctx context.Context, 
 }
 
 func (server *containerServer) executeContainerLogsQuery(ctx context.Context, nodeID, containerID, tail string, timestamps bool) (*dockerListResult, error) {
-	result, err := executeDockerAgentQuery(ctx, server.db, server.cfg, server.dockerQueries, nodeID, task.TypeDockerLogs, dockerAgentQuery{
+	result, err := executeDockerAgentQuery(ctx, server.db, server.cfg, server.dockerQueries, nodeID, dockerAgentQuery{
 		Action:     "logs",
 		Resource:   "container",
 		ID:         containerID,
@@ -429,6 +429,10 @@ func (server *containerServer) executeContainerLogsQuery(ctx context.Context, no
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode docker logs result: %w", err))
 	}
 	return &payload, nil
+}
+
+func validateNodeForDockerQuery(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, nodeID string) error {
+	return validateTaskTargetNode(ctx, db, cfg, nodeID, task.TypeDockerStart)
 }
 
 func dockerQueryConnectCode(value string) connect.Code {
