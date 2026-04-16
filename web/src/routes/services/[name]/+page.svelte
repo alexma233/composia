@@ -129,10 +129,14 @@
   let selectedInstanceNode = $state("__all__");
   let serviceSwitchOpen = $state(false);
 
+  type ServiceSummaryStatePayload = {
+    workspace?: PageData["workspace"];
+    tasks?: TaskSummary[];
+    backups?: BackupSummary[];
+    serviceDetail?: PageData["serviceDetail"];
+  };
+
   $effect(() => {
-    nodeContainers = [];
-    instanceLoadState = {};
-    instanceLoadError = {};
     fileTree = data.fileTree;
     openTabs = data.initialFile ? [createTab(data.initialFile)] : [];
     selectedNodePath = data.initialFile?.path ?? "";
@@ -146,7 +150,7 @@
     lastSuccessfulPullAt = data.repoHead?.lastSuccessfulPullAt ?? "";
     errorMessage = data.error ?? "";
     renameServiceFolder = data.workspace?.folder ?? "";
-    applyServiceSummaryState({
+    resetServiceSummaryState({
       workspace: data.workspace,
       tasks: data.tasks,
       backups: data.backups,
@@ -156,6 +160,25 @@
     migrateTargetNode = "";
     selectedInstanceNode = "__all__";
   });
+
+  function resetServiceSummaryState(payload: ServiceSummaryStatePayload) {
+    const instances = (payload.serviceDetail?.instances ?? []) as NonNullable<
+      PageData["nodeContainers"]
+    >;
+
+    workspace = payload.workspace ?? null;
+    tasks = payload.tasks ?? [];
+    backups = payload.backups ?? [];
+    serviceDetail = payload.serviceDetail ?? null;
+    nodeContainers = instances;
+    instanceLoadState = Object.fromEntries(
+      instances.map((instance) => [
+        instance.nodeId,
+        instance.containers.length > 0 ? "loaded" : "idle",
+      ]),
+    ) as Record<string, "idle" | "loading" | "loaded" | "error">;
+    instanceLoadError = {};
+  }
 
   function createTab(file: WorkspaceFile): EditorTab {
     return {
@@ -209,12 +232,7 @@
     })),
   );
 
-  function applyServiceSummaryState(payload: {
-    workspace?: PageData["workspace"];
-    tasks?: TaskSummary[];
-    backups?: BackupSummary[];
-    serviceDetail?: PageData["serviceDetail"];
-  }) {
+  function applyServiceSummaryState(payload: ServiceSummaryStatePayload) {
     workspace = payload.workspace ?? workspace;
     tasks = payload.tasks ?? tasks;
     backups = payload.backups ?? backups;
