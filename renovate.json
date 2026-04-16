@@ -59,6 +59,16 @@
         "github.com/pseudomuto/protoc-gen-doc"
       ],
       "groupName": "docs tool updates"
+    },
+    {
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchPackageNames": [
+        "forgejo.alexma.top/alexma233/ci-images",
+        "github.com/air-verse/air"
+      ],
+      "groupName": "tooling updates"
     }
   ],
   "customManagers": [
@@ -81,6 +91,26 @@
       "matchStrings": [
         "\\s*# renovate: datasource=(?<datasource>git-refs) depName=(?<depName>[^\\s]+) packageName=(?<packageName>[^\\s]+) currentValue=(?<currentValue>[^\\s]+)\\n\\s*uses:\\s+https://forgejo\\.alexma\\.top/[^@\\s]+@(?<currentDigest>[a-f0-9]{40})"
       ]
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)\\.forgejo\\/workflows\\/.+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "\\s*container:\\s*\\n\\s*image:\\s+(?<depName>forgejo\\.alexma\\.top\\/alexma233\\/ci-images):(?<currentValue>[^\\s]+)"
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)Dockerfile$/"
+      ],
+      "matchStrings": [
+        "go install\\s+(?<depName>github\\.com\\/air-verse\\/air)@(?<currentValue>v?[^\\s\"']+)"
+      ],
+      "datasourceTemplate": "go"
     }
   ]
 }
