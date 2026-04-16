@@ -63,13 +63,15 @@ message RepoFileEntry {
   int64 size = 4;
 }
 
-// ListRepoFilesRequest lists direct children under path.
+// ListRepoFilesRequest lists repo entries under path.
 message ListRepoFilesRequest {
   // path is repo-relative. An empty path refers to the repo root.
   string path = 1;
+  // recursive includes all descendants under path when true.
+  bool recursive = 2;
 }
 
-// ListRepoFilesResponse returns direct child entries only.
+// ListRepoFilesResponse returns repo entries for the requested path.
 message ListRepoFilesResponse {
   repeated RepoFileEntry entries = 1;
 }

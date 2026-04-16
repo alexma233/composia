@@ -101,6 +101,17 @@ func TestRepoQueryServiceListRepoFilesAndGetRepoFile(t *testing.T) {
 		t.Fatalf("unexpected second repo entry: %+v", listResponse.Msg.GetEntries()[1])
 	}
 
+	recursiveResponse, err := client.ListRepoFiles(context.Background(), connect.NewRequest(&controllerv1.ListRepoFilesRequest{Path: "alpha", Recursive: true}))
+	if err != nil {
+		t.Fatalf("list recursive repo files: %v", err)
+	}
+	if len(recursiveResponse.Msg.GetEntries()) != 1 {
+		t.Fatalf("expected 1 recursive alpha entry, got %d", len(recursiveResponse.Msg.GetEntries()))
+	}
+	if recursiveResponse.Msg.GetEntries()[0].GetPath() != "alpha/composia-meta.yaml" {
+		t.Fatalf("unexpected recursive repo entry: %+v", recursiveResponse.Msg.GetEntries()[0])
+	}
+
 	fileResponse, err := client.GetRepoFile(context.Background(), connect.NewRequest(&controllerv1.GetRepoFileRequest{Path: "README.md"}))
 	if err != nil {
 		t.Fatalf("get repo file: %v", err)

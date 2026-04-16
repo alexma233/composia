@@ -15,7 +15,10 @@ import { normalizeServiceRelativePath } from "$lib/service-workspace";
 export async function loadServiceFileTree(
   serviceDir: string,
 ): Promise<ServiceFileNode[]> {
-  return loadDirectoryTree(serviceDir, "");
+  const entries = await loadRepoEntries(repoPathForServicePath(serviceDir, ""), {
+    recursive: true,
+  });
+  return buildServiceFileTree(serviceDir, entries);
 }
 
 export async function loadServiceWorkspaceFile(
@@ -114,30 +117,65 @@ export async function deleteServiceWorkspacePath(
   );
 }
 
-async function loadDirectoryTree(
+function buildServiceFileTree(
   serviceDir: string,
-  relativeDir: string,
-): Promise<ServiceFileNode[]> {
-  const entries = await loadRepoEntries(
-    repoPathForServicePath(serviceDir, relativeDir),
-  );
-  const visibleEntries = entries.filter((entry) => entry.name !== ".gitkeep");
-  return Promise.all(visibleEntries.map((entry) => toNode(serviceDir, entry)));
+  entries: RepoFileEntry[],
+): ServiceFileNode[] {
+  const root: ServiceFileNode[] = [];
+  const directories = new Map<string, ServiceFileNode>();
+
+  for (const entry of entries) {
+    if (entry.name === ".gitkeep") {
+      continue;
+    }
+
+    const relativePath = serviceRelativePath(serviceDir, entry.path);
+    if (!relativePath) {
+      continue;
+    }
+
+    const node: ServiceFileNode = {
+      name: entry.name,
+      path: relativePath,
+      isDir: entry.isDir,
+      children: [],
+    };
+
+    if (entry.isDir) {
+      directories.set(relativePath, node);
+    }
+
+    const parentPath = parentServiceRelativePath(relativePath);
+    if (!parentPath) {
+      root.push(node);
+      continue;
+    }
+
+    const parent = directories.get(parentPath);
+    if (!parent) {
+      throw new Error(
+        `Repo path ${entry.path} is missing parent ${parentPath}.`,
+      );
+    }
+    parent.children.push(node);
+  }
+
+  sortServiceFileNodes(root);
+  return root;
 }
 
-async function toNode(
-  serviceDir: string,
-  entry: RepoFileEntry,
-): Promise<ServiceFileNode> {
-  const relativePath = serviceRelativePath(serviceDir, entry.path);
-  return {
-    name: entry.name,
-    path: relativePath,
-    isDir: entry.isDir,
-    children: entry.isDir
-      ? await loadDirectoryTree(serviceDir, relativePath)
-      : [],
-  };
+function sortServiceFileNodes(nodes: ServiceFileNode[]) {
+  nodes.sort((left, right) => {
+    if (left.isDir !== right.isDir) {
+      return left.isDir ? -1 : 1;
+    }
+    return left.name.localeCompare(right.name);
+  });
+  for (const node of nodes) {
+    if (node.children.length > 0) {
+      sortServiceFileNodes(node.children);
+    }
+  }
 }
 
 export function repoPathForServicePath(
@@ -170,4 +208,12 @@ function serviceRelativePath(serviceDir: string, repoPath: string) {
     throw new Error(`Repo path ${repoPath} is outside service ${serviceDir}.`);
   }
   return normalizedRepoPath.slice(normalizedDir.length + 1);
+}
+
+function parentServiceRelativePath(path: string) {
+  const normalized = normalizeServiceRelativePath(path);
+  if (!normalized || !normalized.includes("/")) {
+    return "";
+  }
+  return normalized.slice(0, normalized.lastIndexOf("/"));
 }

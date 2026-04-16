@@ -808,7 +808,25 @@ func TestServiceCommandServiceCaddySyncCreatesPendingTask(t *testing.T) {
 	mux.Handle(path, handler)
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
-
+	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
+	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_CADDY_SYNC}))
+	if err != nil {
+		t.Fatalf("caddy sync service: %v", err)
+	}
+	if response.Msg.GetStatus() != "pending" {
+		t.Fatalf("expected pending caddy sync task, got %q", response.Msg.GetStatus())
+	}
+	detail, err := db.GetTask(ctx, response.Msg.GetTaskId())
+	if err != nil {
+		t.Fatalf("get caddy sync task: %v", err)
+	}
+	if detail.Record.Type != task.TypeCaddySync {
+		t.Fatalf("expected caddy_sync task type, got %q", detail.Record.Type)
+	}
+	params := taskParams(detail.Record.ParamsJSON)
+	if params.ServiceDir != "demo" || len(params.ServiceDirs) != 0 || params.FullRebuild {
+		t.Fatalf("unexpected caddy sync params: %+v", params)
+	}
 }
 
 func TestServiceCommandServiceDeployRejectsOfflineOrDisabledNode(t *testing.T) {

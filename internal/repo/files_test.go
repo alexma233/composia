@@ -20,7 +20,7 @@ func TestListFilesReturnsOneLevelEntries(t *testing.T) {
 		t.Fatalf("write README: %v", err)
 	}
 
-	entries, err := ListFiles(repoDir, "")
+	entries, err := ListFiles(repoDir, "", false)
 	if err != nil {
 		t.Fatalf("list root files: %v", err)
 	}
@@ -34,7 +34,7 @@ func TestListFilesReturnsOneLevelEntries(t *testing.T) {
 		t.Fatalf("unexpected second entry: %+v", entries[1])
 	}
 
-	entries, err = ListFiles(repoDir, "alpha")
+	entries, err = ListFiles(repoDir, "alpha", false)
 	if err != nil {
 		t.Fatalf("list alpha files: %v", err)
 	}
@@ -46,6 +46,38 @@ func TestListFilesReturnsOneLevelEntries(t *testing.T) {
 	}
 	if entries[1].Path != "alpha/composia-meta.yaml" || entries[1].IsDir {
 		t.Fatalf("unexpected file entry: %+v", entries[1])
+	}
+}
+
+func TestListFilesRecursiveReturnsNestedEntries(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repoDir, "alpha", "nested"), 0o755); err != nil {
+		t.Fatalf("create nested dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "alpha", "composia-meta.yaml"), []byte("name: alpha\n"), 0o644); err != nil {
+		t.Fatalf("write meta file: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "alpha", "nested", "app.yaml"), []byte("demo: true\n"), 0o644); err != nil {
+		t.Fatalf("write nested file: %v", err)
+	}
+
+	entries, err := ListFiles(repoDir, "alpha", true)
+	if err != nil {
+		t.Fatalf("list recursive alpha files: %v", err)
+	}
+	if len(entries) != 3 {
+		t.Fatalf("expected 3 recursive entries, got %d", len(entries))
+	}
+	if entries[0].Path != "alpha/nested" || !entries[0].IsDir {
+		t.Fatalf("unexpected first recursive entry: %+v", entries[0])
+	}
+	if entries[1].Path != "alpha/composia-meta.yaml" || entries[1].IsDir {
+		t.Fatalf("unexpected second recursive entry: %+v", entries[1])
+	}
+	if entries[2].Path != "alpha/nested/app.yaml" || entries[2].IsDir {
+		t.Fatalf("unexpected third recursive entry: %+v", entries[2])
 	}
 }
 

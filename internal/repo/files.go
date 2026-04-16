@@ -35,21 +35,32 @@ type PathSnapshot struct {
 	TempDir      string
 }
 
-func ListFiles(repoDir, relativePath string) ([]FileEntry, error) {
+func ListFiles(repoDir, relativePath string, recursive bool) ([]FileEntry, error) {
 	absPath, normalizedPath, err := resolveRepoPath(repoDir, relativePath)
 	if err != nil {
 		return nil, err
 	}
-
-	entries, err := os.ReadDir(absPath)
+	info, err := os.Stat(absPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, ErrRepoPathNotFound
 		}
-		var pathErr *os.PathError
-		if errors.As(err, &pathErr) && strings.Contains(pathErr.Err.Error(), "not a directory") {
-			return nil, ErrRepoPathNotDirectory
-		}
+		return nil, fmt.Errorf("stat repo path %q: %w", normalizedPath, err)
+	}
+	if !info.IsDir() {
+		return nil, ErrRepoPathNotDirectory
+	}
+	if recursive {
+		return listFilesRecursive(absPath, normalizedPath)
+	}
+	return listFilesOneLevel(absPath, normalizedPath)
+
+}
+
+func listFilesOneLevel(absPath, normalizedPath string) ([]FileEntry, error) {
+
+	entries, err := os.ReadDir(absPath)
+	if err != nil {
 		return nil, fmt.Errorf("read repo directory %q: %w", normalizedPath, err)
 	}
 
@@ -81,6 +92,72 @@ func ListFiles(repoDir, relativePath string) ([]FileEntry, error) {
 		return items[left].Name < items[right].Name
 	})
 	return items, nil
+}
+
+func listFilesRecursive(absPath, normalizedPath string) ([]FileEntry, error) {
+	items := make([]FileEntry, 0)
+	err := filepath.WalkDir(absPath, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if path == absPath {
+			return nil
+		}
+		if entry.Name() == ".git" {
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		relPath, err := filepath.Rel(absPath, path)
+		if err != nil {
+			return fmt.Errorf("resolve repo path under %q: %w", normalizedPath, err)
+		}
+		entryPath := filepath.ToSlash(relPath)
+		if normalizedPath != "" {
+			entryPath = filepath.ToSlash(filepath.Join(normalizedPath, relPath))
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return fmt.Errorf("read repo entry info for %q: %w", entryPath, err)
+		}
+		items = append(items, FileEntry{
+			Path:  entryPath,
+			Name:  entry.Name(),
+			IsDir: entry.IsDir(),
+			Size:  info.Size(),
+		})
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("walk repo directory %q: %w", normalizedPath, err)
+	}
+
+	sort.Slice(items, func(left, right int) bool {
+		leftDepth := pathDepth(items[left].Path)
+		rightDepth := pathDepth(items[right].Path)
+		if leftDepth != rightDepth {
+			return leftDepth < rightDepth
+		}
+		leftParent := filepath.ToSlash(filepath.Dir(items[left].Path))
+		rightParent := filepath.ToSlash(filepath.Dir(items[right].Path))
+		if leftParent != rightParent {
+			return leftParent < rightParent
+		}
+		if items[left].IsDir != items[right].IsDir {
+			return items[left].IsDir
+		}
+		return items[left].Name < items[right].Name
+	})
+	return items, nil
+}
+
+func pathDepth(path string) int {
+	if path == "" {
+		return 0
+	}
+	return strings.Count(path, "/") + 1
 }
 
 func ReadFile(repoDir, relativePath string) (FileContent, error) {

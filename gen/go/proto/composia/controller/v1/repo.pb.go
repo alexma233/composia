@@ -229,11 +229,13 @@ func (x *RepoFileEntry) GetSize() int64 {
 	return 0
 }
 
-// ListRepoFilesRequest lists direct children under path.
+// ListRepoFilesRequest lists repo entries under path.
 type ListRepoFilesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// path is repo-relative. An empty path refers to the repo root.
-	Path          string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// recursive includes all descendants under path when true.
+	Recursive     bool `protobuf:"varint,2,opt,name=recursive,proto3" json:"recursive,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -275,7 +277,14 @@ func (x *ListRepoFilesRequest) GetPath() string {
 	return ""
 }
 
-// ListRepoFilesResponse returns direct child entries only.
+func (x *ListRepoFilesRequest) GetRecursive() bool {
+	if x != nil {
+		return x.Recursive
+	}
+	return false
+}
+
+// ListRepoFilesResponse returns repo entries for the requested path.
 type ListRepoFilesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Entries       []*RepoFileEntry       `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
@@ -1452,9 +1461,10 @@ const file_proto_composia_controller_v1_repo_proto_rawDesc = "" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x15\n" +
 	"\x06is_dir\x18\x03 \x01(\bR\x05isDir\x12\x12\n" +
-	"\x04size\x18\x04 \x01(\x03R\x04size\"*\n" +
+	"\x04size\x18\x04 \x01(\x03R\x04size\"H\n" +
 	"\x14ListRepoFilesRequest\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path\"X\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x1c\n" +
+	"\trecursive\x18\x02 \x01(\bR\trecursive\"X\n" +
 	"\x15ListRepoFilesResponse\x12?\n" +
 	"\aentries\x18\x01 \x03(\v2%.composia.controller.v1.RepoFileEntryR\aentries\"(\n" +
 	"\x12GetRepoFileRequest\x12\x12\n" +

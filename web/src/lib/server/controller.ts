@@ -134,7 +134,8 @@ export type ServiceAction =
   | "stop"
   | "restart"
   | "backup"
-  | "dns_update";
+  | "dns_update"
+  | "caddy_sync";
 
 export async function migrateService(
   serviceName: string,
@@ -433,13 +434,16 @@ export async function loadRepoHead(): Promise<RepoHead> {
   );
 }
 
-export async function loadRepoEntries(path = ""): Promise<RepoFileEntry[]> {
+export async function loadRepoEntries(
+  path = "",
+  options: { recursive?: boolean } = {},
+): Promise<RepoFileEntry[]> {
   const config = requireControllerConfig();
   const response = await rpcCall<{ entries?: RepoFileEntry[] }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.RepoQueryService/ListRepoFiles",
-    { path },
+    { path, recursive: options.recursive ?? false },
   );
   return response.entries ?? [];
 }
@@ -1447,6 +1451,8 @@ function toServiceActionEnum(action: ServiceAction): number {
       return 5;
     case "dns_update":
       return 6;
+    case "caddy_sync":
+      return 7;
   }
 }
 

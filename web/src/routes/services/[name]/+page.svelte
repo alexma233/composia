@@ -847,7 +847,7 @@
   }
 
   async function triggerAction(
-    action: "deploy" | "update" | "stop" | "restart" | "backup" | "dns_update",
+    action: "deploy" | "update" | "stop" | "restart" | "backup" | "dns_update" | "caddy_sync",
   ) {
     actionBusy = action;
     errorMessage = "";
@@ -883,49 +883,6 @@
         actionError instanceof Error
           ? actionError.message
           : `Failed to run ${action}.`;
-    } finally {
-      actionBusy = "";
-    }
-  }
-
-  async function triggerCaddySync() {
-    if (!workspace?.isDeclared || !workspace?.node || !workspace?.serviceName) {
-      return;
-    }
-    actionBusy = "caddy_sync";
-    errorMessage = "";
-
-    try {
-      const response = await fetch(
-        `/services/${workspace.folder}/actions/caddy-sync`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-      const payload = (await response.json()) as {
-        taskId?: string;
-        error?: string;
-      };
-      if (!response.ok || !payload.taskId) {
-        throw new Error(payload.error ?? "Failed to sync Caddy file.");
-      }
-      const newTask: TaskSummary = {
-        taskId: payload.taskId,
-        type: "caddy_sync",
-        status: "pending",
-        serviceName: workspace.serviceName,
-        nodeId: workspace.node,
-        createdAt: new Date().toISOString(),
-      };
-      tasks = [newTask, ...tasks].slice(0, 12);
-      toast.success(`caddy_sync queued as ${payload.taskId}`);
-      startActionRefresh(payload.taskId);
-    } catch (actionError) {
-      errorMessage =
-        actionError instanceof Error
-          ? actionError.message
-          : "Failed to sync Caddy file.";
     } finally {
       actionBusy = "";
     }
@@ -1658,7 +1615,7 @@
                   <Button
                     type="button"
                     variant="outline"
-                    onclick={() => triggerCaddySync()}
+                    onclick={() => triggerAction("caddy_sync")}
                     disabled={!!actionBusy ||
                       !workspace?.isDeclared ||
                       !workspace?.node}

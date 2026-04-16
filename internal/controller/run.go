@@ -1672,6 +1672,12 @@ func (server *serviceCommandServer) RunServiceAction(ctx context.Context, req *c
 		if server.cfg.DNS == nil || server.cfg.DNS.Cloudflare == nil {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("controller dns.cloudflare is not configured"))
 		}
+	case controllerv1.ServiceAction_SERVICE_ACTION_CADDY_SYNC:
+		taskType = task.TypeCaddySync
+		nodeIDs = req.Msg.GetNodeIds()
+		if !repo.CaddyManaged(service) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not declare network.caddy", service.Name))
+		}
 	default:
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("action is required"))
 	}
@@ -2813,7 +2819,7 @@ func (server *repoQueryServer) ListRepoFiles(_ context.Context, req *connect.Req
 	if req.Msg == nil {
 		req.Msg = &controllerv1.ListRepoFilesRequest{}
 	}
-	entries, err := repo.ListFiles(server.cfg.RepoDir, req.Msg.GetPath())
+	entries, err := repo.ListFiles(server.cfg.RepoDir, req.Msg.GetPath(), req.Msg.GetRecursive())
 	if err != nil {
 		switch {
 		case errors.Is(err, repo.ErrRepoPathInvalid):
