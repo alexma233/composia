@@ -22,27 +22,27 @@ jobs:
     runs-on: docker-amd64-dind
     steps:
       - name: Checkout
-        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v4.3.1
-        uses: https://forgejo.alexma.top/actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
+        uses: https://forgejo.alexma.top/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           fetch-depth: 0
 
       - name: Set up Docker Buildx
         id: buildx
-        # renovate: datasource=git-refs depName=actions/docker-setup-buildx-action packageName=https://forgejo.alexma.top/actions/docker-setup-buildx-action currentValue=v3.12.0
-        uses: https://forgejo.alexma.top/actions/docker-setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+        # renovate: datasource=git-refs depName=actions/docker-setup-buildx-action packageName=https://forgejo.alexma.top/actions/docker-setup-buildx-action currentValue=v4.0.0
+        uses: https://forgejo.alexma.top/actions/docker-setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
 
       - name: Login to Forgejo Registry
-        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v3.7.0
-        uses: https://forgejo.alexma.top/actions/docker-login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.1.0
+        uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
         with:
           registry: ${{ env.REGISTRY_HOST }}
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
       - name: Login to GHCR
-        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v3.7.0
-        uses: https://forgejo.alexma.top/actions/docker-login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.1.0
+        uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
         with:
           registry: ghcr.io
           username: ${{ secrets.GHCR_USERNAME }}
@@ -50,8 +50,8 @@ jobs:
 
       - name: Docker meta
         id: meta
-        # renovate: datasource=git-refs depName=actions/docker-metadata-action packageName=https://forgejo.alexma.top/actions/docker-metadata-action currentValue=v5.10.0
-        uses: https://forgejo.alexma.top/actions/docker-metadata-action@c299e40c65443455700f0fdfc63efafe5b349051
+        # renovate: datasource=git-refs depName=actions/docker-metadata-action packageName=https://forgejo.alexma.top/actions/docker-metadata-action currentValue=v6.0.0
+        uses: https://forgejo.alexma.top/actions/docker-metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf
         with:
           images: |
             ${{ env.FORGEJO_WEB_IMAGE_NAME }}
@@ -70,8 +70,8 @@ jobs:
             io.composia.channel=canary
 
       - name: Build and push
-        # renovate: datasource=git-refs depName=actions/docker-build-push-action packageName=https://forgejo.alexma.top/actions/docker-build-push-action currentValue=v5.4.0
-        uses: https://forgejo.alexma.top/actions/docker-build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25
+        # renovate: datasource=git-refs depName=actions/docker-build-push-action packageName=https://forgejo.alexma.top/actions/docker-build-push-action currentValue=v7.1.0
+        uses: https://forgejo.alexma.top/actions/docker-build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f
         with:
           context: .
           file: ./web/Dockerfile
