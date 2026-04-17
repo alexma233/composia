@@ -12,8 +12,8 @@ service ContainerService {
   rpc RunContainerAction(RunContainerActionRequest) returns (TaskActionResponse);
   // RemoveContainer starts an async deletion for one container on one node.
   rpc RemoveContainer(RemoveContainerRequest) returns (TaskActionResponse);
-  // GetContainerLogs returns log text for one container.
-  rpc GetContainerLogs(GetContainerLogsRequest) returns (GetContainerLogsResponse);
+  // GetContainerLogs streams log text for one container.
+  rpc GetContainerLogs(GetContainerLogsRequest) returns (stream GetContainerLogsResponse);
   // OpenContainerExec opens an interactive exec session for one container.
   rpc OpenContainerExec(OpenContainerExecRequest) returns (OpenContainerExecResponse);
   // RemoveNetwork starts an async deletion for one network on one node.
@@ -61,7 +61,7 @@ message GetContainerLogsRequest {
   bool timestamps = 4;
 }
 
-// GetContainerLogsResponse returns collected log content as text.
+// GetContainerLogsResponse returns one streamed log chunk.
 message GetContainerLogsResponse {
   string content = 1;
 }

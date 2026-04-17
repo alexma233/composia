@@ -599,8 +599,8 @@ type DockerServiceClient interface {
 	RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.RunContainerActionResponse], error)
 	// RemoveContainer deletes one container.
 	RemoveContainer(context.Context, *connect.Request[v1.RemoveContainerRequest]) (*connect.Response[v1.RemoveContainerResponse], error)
-	// GetContainerLogs returns log text for one container.
-	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error)
+	// GetContainerLogs streams log text for one container.
+	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.ServerStreamForClient[v1.GetContainerLogsResponse], error)
 	// ListNetworks lists local Docker networks.
 	ListNetworks(context.Context, *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error)
 	// InspectNetwork returns raw Docker inspect JSON for one network.
@@ -758,8 +758,8 @@ func (c *dockerServiceClient) RemoveContainer(ctx context.Context, req *connect.
 }
 
 // GetContainerLogs calls composia.agent.v1.DockerService.GetContainerLogs.
-func (c *dockerServiceClient) GetContainerLogs(ctx context.Context, req *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error) {
-	return c.getContainerLogs.CallUnary(ctx, req)
+func (c *dockerServiceClient) GetContainerLogs(ctx context.Context, req *connect.Request[v1.GetContainerLogsRequest]) (*connect.ServerStreamForClient[v1.GetContainerLogsResponse], error) {
+	return c.getContainerLogs.CallServerStream(ctx, req)
 }
 
 // ListNetworks calls composia.agent.v1.DockerService.ListNetworks.
@@ -817,8 +817,8 @@ type DockerServiceHandler interface {
 	RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.RunContainerActionResponse], error)
 	// RemoveContainer deletes one container.
 	RemoveContainer(context.Context, *connect.Request[v1.RemoveContainerRequest]) (*connect.Response[v1.RemoveContainerResponse], error)
-	// GetContainerLogs returns log text for one container.
-	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error)
+	// GetContainerLogs streams log text for one container.
+	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest], *connect.ServerStream[v1.GetContainerLogsResponse]) error
 	// ListNetworks lists local Docker networks.
 	ListNetworks(context.Context, *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error)
 	// InspectNetwork returns raw Docker inspect JSON for one network.
@@ -870,7 +870,7 @@ func NewDockerServiceHandler(svc DockerServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(dockerServiceMethods.ByName("RemoveContainer")),
 		connect.WithHandlerOptions(opts...),
 	)
-	dockerServiceGetContainerLogsHandler := connect.NewUnaryHandler(
+	dockerServiceGetContainerLogsHandler := connect.NewServerStreamHandler(
 		DockerServiceGetContainerLogsProcedure,
 		svc.GetContainerLogs,
 		connect.WithSchema(dockerServiceMethods.ByName("GetContainerLogs")),
@@ -985,8 +985,8 @@ func (UnimplementedDockerServiceHandler) RemoveContainer(context.Context, *conne
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.RemoveContainer is not implemented"))
 }
 
-func (UnimplementedDockerServiceHandler) GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.GetContainerLogs is not implemented"))
+func (UnimplementedDockerServiceHandler) GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest], *connect.ServerStream[v1.GetContainerLogsResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.DockerService.GetContainerLogs is not implemented"))
 }
 
 func (UnimplementedDockerServiceHandler) ListNetworks(context.Context, *connect.Request[v1.ListNetworksRequest]) (*connect.Response[v1.ListNetworksResponse], error) {

@@ -279,7 +279,7 @@ func (x *GetContainerLogsRequest) GetTimestamps() bool {
 	return false
 }
 
-// GetContainerLogsResponse returns collected log content as text.
+// GetContainerLogsResponse returns one streamed log chunk.
 type GetContainerLogsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Content       string                 `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
@@ -675,11 +675,11 @@ const file_proto_composia_controller_v1_container_proto_rawDesc = "" +
 	"\x1cCONTAINER_ACTION_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16CONTAINER_ACTION_START\x10\x01\x12\x19\n" +
 	"\x15CONTAINER_ACTION_STOP\x10\x02\x12\x1c\n" +
-	"\x18CONTAINER_ACTION_RESTART\x10\x032\xa2\x06\n" +
+	"\x18CONTAINER_ACTION_RESTART\x10\x032\xa4\x06\n" +
 	"\x10ContainerService\x12s\n" +
 	"\x12RunContainerAction\x121.composia.controller.v1.RunContainerActionRequest\x1a*.composia.controller.v1.TaskActionResponse\x12m\n" +
-	"\x0fRemoveContainer\x12..composia.controller.v1.RemoveContainerRequest\x1a*.composia.controller.v1.TaskActionResponse\x12u\n" +
-	"\x10GetContainerLogs\x12/.composia.controller.v1.GetContainerLogsRequest\x1a0.composia.controller.v1.GetContainerLogsResponse\x12x\n" +
+	"\x0fRemoveContainer\x12..composia.controller.v1.RemoveContainerRequest\x1a*.composia.controller.v1.TaskActionResponse\x12w\n" +
+	"\x10GetContainerLogs\x12/.composia.controller.v1.GetContainerLogsRequest\x1a0.composia.controller.v1.GetContainerLogsResponse0\x01\x12x\n" +
 	"\x11OpenContainerExec\x120.composia.controller.v1.OpenContainerExecRequest\x1a1.composia.controller.v1.OpenContainerExecResponse\x12i\n" +
 	"\rRemoveNetwork\x12,.composia.controller.v1.RemoveNetworkRequest\x1a*.composia.controller.v1.TaskActionResponse\x12g\n" +
 	"\fRemoveVolume\x12+.composia.controller.v1.RemoveVolumeRequest\x1a*.composia.controller.v1.TaskActionResponse\x12e\n" +

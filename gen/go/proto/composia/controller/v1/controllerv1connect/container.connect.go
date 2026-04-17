@@ -62,8 +62,8 @@ type ContainerServiceClient interface {
 	RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
 	// RemoveContainer starts an async deletion for one container on one node.
 	RemoveContainer(context.Context, *connect.Request[v1.RemoveContainerRequest]) (*connect.Response[v1.TaskActionResponse], error)
-	// GetContainerLogs returns log text for one container.
-	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error)
+	// GetContainerLogs streams log text for one container.
+	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.ServerStreamForClient[v1.GetContainerLogsResponse], error)
 	// OpenContainerExec opens an interactive exec session for one container.
 	OpenContainerExec(context.Context, *connect.Request[v1.OpenContainerExecRequest]) (*connect.Response[v1.OpenContainerExecResponse], error)
 	// RemoveNetwork starts an async deletion for one network on one node.
@@ -152,8 +152,8 @@ func (c *containerServiceClient) RemoveContainer(ctx context.Context, req *conne
 }
 
 // GetContainerLogs calls composia.controller.v1.ContainerService.GetContainerLogs.
-func (c *containerServiceClient) GetContainerLogs(ctx context.Context, req *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error) {
-	return c.getContainerLogs.CallUnary(ctx, req)
+func (c *containerServiceClient) GetContainerLogs(ctx context.Context, req *connect.Request[v1.GetContainerLogsRequest]) (*connect.ServerStreamForClient[v1.GetContainerLogsResponse], error) {
+	return c.getContainerLogs.CallServerStream(ctx, req)
 }
 
 // OpenContainerExec calls composia.controller.v1.ContainerService.OpenContainerExec.
@@ -183,8 +183,8 @@ type ContainerServiceHandler interface {
 	RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
 	// RemoveContainer starts an async deletion for one container on one node.
 	RemoveContainer(context.Context, *connect.Request[v1.RemoveContainerRequest]) (*connect.Response[v1.TaskActionResponse], error)
-	// GetContainerLogs returns log text for one container.
-	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error)
+	// GetContainerLogs streams log text for one container.
+	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest], *connect.ServerStream[v1.GetContainerLogsResponse]) error
 	// OpenContainerExec opens an interactive exec session for one container.
 	OpenContainerExec(context.Context, *connect.Request[v1.OpenContainerExecRequest]) (*connect.Response[v1.OpenContainerExecResponse], error)
 	// RemoveNetwork starts an async deletion for one network on one node.
@@ -214,7 +214,7 @@ func NewContainerServiceHandler(svc ContainerServiceHandler, opts ...connect.Han
 		connect.WithSchema(containerServiceMethods.ByName("RemoveContainer")),
 		connect.WithHandlerOptions(opts...),
 	)
-	containerServiceGetContainerLogsHandler := connect.NewUnaryHandler(
+	containerServiceGetContainerLogsHandler := connect.NewServerStreamHandler(
 		ContainerServiceGetContainerLogsProcedure,
 		svc.GetContainerLogs,
 		connect.WithSchema(containerServiceMethods.ByName("GetContainerLogs")),
@@ -277,8 +277,8 @@ func (UnimplementedContainerServiceHandler) RemoveContainer(context.Context, *co
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ContainerService.RemoveContainer is not implemented"))
 }
 
-func (UnimplementedContainerServiceHandler) GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.Response[v1.GetContainerLogsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ContainerService.GetContainerLogs is not implemented"))
+func (UnimplementedContainerServiceHandler) GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest], *connect.ServerStream[v1.GetContainerLogsResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ContainerService.GetContainerLogs is not implemented"))
 }
 
 func (UnimplementedContainerServiceHandler) OpenContainerExec(context.Context, *connect.Request[v1.OpenContainerExecRequest]) (*connect.Response[v1.OpenContainerExecResponse], error) {

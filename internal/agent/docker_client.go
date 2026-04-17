@@ -75,12 +75,14 @@ func (d *DockerClient) ContainerRemove(ctx context.Context, containerID string, 
 	return nil
 }
 
-func (d *DockerClient) ContainerLogs(ctx context.Context, containerID, tail string, timestamps bool) (io.ReadCloser, error) {
+func (d *DockerClient) ContainerLogs(ctx context.Context, containerID, tail, since string, timestamps, follow bool) (io.ReadCloser, error) {
 	logs, err := d.cli.ContainerLogs(ctx, containerID, client.ContainerLogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 		Tail:       tail,
+		Since:      since,
 		Timestamps: timestamps,
+		Follow:     follow,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container logs: %w", err)

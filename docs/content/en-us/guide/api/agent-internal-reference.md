@@ -7,6 +7,7 @@
     - [AgentTask](#composia-agent-v1-AgentTask)
     - [ContainerInfo](#composia-agent-v1-ContainerInfo)
     - [ContainerInfo.LabelsEntry](#composia-agent-v1-ContainerInfo-LabelsEntry)
+    - [DockerQueryTask](#composia-agent-v1-DockerQueryTask)
     - [DockerStats](#composia-agent-v1-DockerStats)
     - [GetContainerLogsRequest](#composia-agent-v1-GetContainerLogsRequest)
     - [GetContainerLogsResponse](#composia-agent-v1-GetContainerLogsResponse)
@@ -36,10 +37,22 @@
     - [NodeRuntimeSummary](#composia-agent-v1-NodeRuntimeSummary)
     - [OpenExecTunnelRequest](#composia-agent-v1-OpenExecTunnelRequest)
     - [OpenExecTunnelResponse](#composia-agent-v1-OpenExecTunnelResponse)
+    - [PullNextDockerQueryRequest](#composia-agent-v1-PullNextDockerQueryRequest)
+    - [PullNextDockerQueryResponse](#composia-agent-v1-PullNextDockerQueryResponse)
     - [PullNextTaskRequest](#composia-agent-v1-PullNextTaskRequest)
     - [PullNextTaskResponse](#composia-agent-v1-PullNextTaskResponse)
+    - [RemoveContainerRequest](#composia-agent-v1-RemoveContainerRequest)
+    - [RemoveContainerResponse](#composia-agent-v1-RemoveContainerResponse)
+    - [RemoveImageRequest](#composia-agent-v1-RemoveImageRequest)
+    - [RemoveImageResponse](#composia-agent-v1-RemoveImageResponse)
+    - [RemoveNetworkRequest](#composia-agent-v1-RemoveNetworkRequest)
+    - [RemoveNetworkResponse](#composia-agent-v1-RemoveNetworkResponse)
+    - [RemoveVolumeRequest](#composia-agent-v1-RemoveVolumeRequest)
+    - [RemoveVolumeResponse](#composia-agent-v1-RemoveVolumeResponse)
     - [ReportBackupResultRequest](#composia-agent-v1-ReportBackupResultRequest)
     - [ReportBackupResultResponse](#composia-agent-v1-ReportBackupResultResponse)
+    - [ReportDockerQueryResultRequest](#composia-agent-v1-ReportDockerQueryResultRequest)
+    - [ReportDockerQueryResultResponse](#composia-agent-v1-ReportDockerQueryResultResponse)
     - [ReportDockerStatsRequest](#composia-agent-v1-ReportDockerStatsRequest)
     - [ReportDockerStatsResponse](#composia-agent-v1-ReportDockerStatsResponse)
     - [ReportServiceInstanceStatusRequest](#composia-agent-v1-ReportServiceInstanceStatusRequest)
@@ -135,6 +148,33 @@ ContainerInfo describes one container for list views.
 
 
 
+<a name="composia-agent-v1-DockerQueryTask"></a>
+
+### DockerQueryTask
+DockerQueryTask describes one synchronous Docker query assigned to an agent.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| query_id | [string](#string) |  | query_id is the controller-generated query ID. |
+| node_id | [string](#string) |  | node_id is the target node ID for the query. |
+| action | [string](#string) |  | action is one of list, inspect, or logs. |
+| resource | [string](#string) |  | resource is one of container, containers, network, networks, volume, volumes, image, or images. |
+| id | [string](#string) |  | id identifies the target Docker resource for inspect-like operations. |
+| tail | [string](#string) |  | tail is forwarded to the Docker log tail option for log queries. |
+| timestamps | [bool](#bool) |  | timestamps includes Docker timestamps in container log results. |
+| since | [string](#string) |  | since is forwarded to the Docker log since option for incremental log queries. |
+| page_size | [uint32](#uint32) |  | page_size is the requested page size for list queries. |
+| page | [uint32](#uint32) |  | page is the 1-based page number for list queries. |
+| search | [string](#string) |  | search is the case-insensitive search term for list queries. |
+| sort_by | [string](#string) |  | sort_by identifies the list sort field. |
+| sort_desc | [bool](#bool) |  | sort_desc reverses the list sort order when true. |
+
+
+
+
+
+
 <a name="composia-agent-v1-DockerStats"></a>
 
 ### DockerStats
@@ -179,7 +219,7 @@ GetContainerLogsRequest fetches logs for one local container.
 <a name="composia-agent-v1-GetContainerLogsResponse"></a>
 
 ### GetContainerLogsResponse
-GetContainerLogsResponse returns collected log content as text.
+GetContainerLogsResponse returns one streamed log chunk.
 
 
 | Field | Type | Label | Description |
@@ -200,6 +240,7 @@ GetServiceBundleRequest identifies the task whose bundle should be streamed.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | task_id | [string](#string) |  | task_id is the controller task ID whose bundle should be streamed. |
+| service_dir | [string](#string) |  | service_dir overrides the task service directory for multi-service bundle consumers. |
 
 
 
@@ -408,6 +449,15 @@ InspectVolumeResponse returns raw Docker inspect JSON.
 ListContainersRequest requests all local Docker containers.
 
 
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| page_size | [uint32](#uint32) |  | page_size is the requested page size. |
+| page | [uint32](#uint32) |  | page is the 1-based page number. |
+| search | [string](#string) |  | search is a case-insensitive substring match across key fields. |
+| sort_by | [string](#string) |  | sort_by identifies the field used to sort results. |
+| sort_desc | [bool](#bool) |  | sort_desc reverses the sort order when true. |
+
+
 
 
 
@@ -421,6 +471,7 @@ ListContainersResponse returns local container summaries.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | containers | [ContainerInfo](#composia-agent-v1-ContainerInfo) | repeated |  |
+| total_count | [uint32](#uint32) |  |  |
 
 
 
@@ -431,6 +482,15 @@ ListContainersResponse returns local container summaries.
 
 ### ListImagesRequest
 ListImagesRequest requests all local Docker images.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| page_size | [uint32](#uint32) |  | page_size is the requested page size. |
+| page | [uint32](#uint32) |  | page is the 1-based page number. |
+| search | [string](#string) |  | search is a case-insensitive substring match across key fields. |
+| sort_by | [string](#string) |  | sort_by identifies the field used to sort results. |
+| sort_desc | [bool](#bool) |  | sort_desc reverses the sort order when true. |
 
 
 
@@ -446,6 +506,7 @@ ListImagesResponse returns local image summaries.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | images | [ImageInfo](#composia-agent-v1-ImageInfo) | repeated |  |
+| total_count | [uint32](#uint32) |  |  |
 
 
 
@@ -456,6 +517,15 @@ ListImagesResponse returns local image summaries.
 
 ### ListNetworksRequest
 ListNetworksRequest requests all local Docker networks.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| page_size | [uint32](#uint32) |  | page_size is the requested page size. |
+| page | [uint32](#uint32) |  | page is the 1-based page number. |
+| search | [string](#string) |  | search is a case-insensitive substring match across key fields. |
+| sort_by | [string](#string) |  | sort_by identifies the field used to sort results. |
+| sort_desc | [bool](#bool) |  | sort_desc reverses the sort order when true. |
 
 
 
@@ -471,6 +541,7 @@ ListNetworksResponse returns local network summaries.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | networks | [NetworkInfo](#composia-agent-v1-NetworkInfo) | repeated |  |
+| total_count | [uint32](#uint32) |  |  |
 
 
 
@@ -481,6 +552,15 @@ ListNetworksResponse returns local network summaries.
 
 ### ListVolumesRequest
 ListVolumesRequest requests all local Docker volumes.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| page_size | [uint32](#uint32) |  | page_size is the requested page size. |
+| page | [uint32](#uint32) |  | page is the 1-based page number. |
+| search | [string](#string) |  | search is a case-insensitive substring match across key fields. |
+| sort_by | [string](#string) |  | sort_by identifies the field used to sort results. |
+| sort_desc | [bool](#bool) |  | sort_desc reverses the sort order when true. |
 
 
 
@@ -496,6 +576,7 @@ ListVolumesResponse returns local volume summaries.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | volumes | [VolumeInfo](#composia-agent-v1-VolumeInfo) | repeated |  |
+| total_count | [uint32](#uint32) |  |  |
 
 
 
@@ -605,6 +686,37 @@ OpenExecTunnelResponse carries one frame back to the controller side.
 
 
 
+<a name="composia-agent-v1-PullNextDockerQueryRequest"></a>
+
+### PullNextDockerQueryRequest
+PullNextDockerQueryRequest identifies the node that is requesting a Docker query.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| node_id | [string](#string) |  | node_id is the stable node identifier. |
+
+
+
+
+
+
+<a name="composia-agent-v1-PullNextDockerQueryResponse"></a>
+
+### PullNextDockerQueryResponse
+PullNextDockerQueryResponse indicates whether a Docker query was assigned.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| has_query | [bool](#bool) |  | has_query is false when there is currently no Docker query to run. |
+| query | [DockerQueryTask](#composia-agent-v1-DockerQueryTask) |  | query is populated only when has_query is true. |
+
+
+
+
+
+
 <a name="composia-agent-v1-PullNextTaskRequest"></a>
 
 ### PullNextTaskRequest
@@ -630,6 +742,109 @@ PullNextTaskResponse indicates whether a task was assigned.
 | ----- | ---- | ----- | ----------- |
 | has_task | [bool](#bool) |  | has_task is false when there is currently no task to run. |
 | task | [AgentTask](#composia-agent-v1-AgentTask) |  | task is populated only when has_task is true. |
+
+
+
+
+
+
+<a name="composia-agent-v1-RemoveContainerRequest"></a>
+
+### RemoveContainerRequest
+RemoveContainerRequest identifies one local container deletion.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| container_id | [string](#string) |  | container_id is the runtime container ID. |
+| force | [bool](#bool) |  | force deletes the container even if it is running. |
+| remove_volumes | [bool](#bool) |  | remove_volumes also removes anonymous volumes attached to the container. |
+
+
+
+
+
+
+<a name="composia-agent-v1-RemoveContainerResponse"></a>
+
+### RemoveContainerResponse
+RemoveContainerResponse acknowledges one local container deletion request.
+
+
+
+
+
+
+<a name="composia-agent-v1-RemoveImageRequest"></a>
+
+### RemoveImageRequest
+RemoveImageRequest identifies one local image deletion.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| image_id | [string](#string) |  | image_id is the runtime image ID or reference. |
+| force | [bool](#bool) |  | force deletes the image even if it has multiple tags or dependent stopped containers. |
+
+
+
+
+
+
+<a name="composia-agent-v1-RemoveImageResponse"></a>
+
+### RemoveImageResponse
+RemoveImageResponse acknowledges one local image deletion request.
+
+
+
+
+
+
+<a name="composia-agent-v1-RemoveNetworkRequest"></a>
+
+### RemoveNetworkRequest
+RemoveNetworkRequest identifies one local network deletion.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| network_id | [string](#string) |  | network_id is the runtime network ID. |
+
+
+
+
+
+
+<a name="composia-agent-v1-RemoveNetworkResponse"></a>
+
+### RemoveNetworkResponse
+RemoveNetworkResponse acknowledges one local network deletion request.
+
+
+
+
+
+
+<a name="composia-agent-v1-RemoveVolumeRequest"></a>
+
+### RemoveVolumeRequest
+RemoveVolumeRequest identifies one local volume deletion.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| volume_name | [string](#string) |  | volume_name is the runtime volume name. |
+
+
+
+
+
+
+<a name="composia-agent-v1-RemoveVolumeResponse"></a>
+
+### RemoveVolumeResponse
+RemoveVolumeResponse acknowledges one local volume deletion request.
 
 
 
@@ -663,6 +878,35 @@ ReportBackupResultRequest reports the result of one backup execution.
 
 ### ReportBackupResultResponse
 ReportBackupResultResponse acknowledges a backup result update.
+
+
+
+
+
+
+<a name="composia-agent-v1-ReportDockerQueryResultRequest"></a>
+
+### ReportDockerQueryResultRequest
+ReportDockerQueryResultRequest reports the result of one direct Docker query.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| query_id | [string](#string) |  | query_id is the controller-generated query ID. |
+| node_id | [string](#string) |  | node_id is the stable node identifier that executed the query. |
+| payload_json | [string](#string) |  | payload_json carries the JSON-encoded query payload on success. |
+| error_message | [string](#string) |  | error_message contains the human-readable failure summary when the query fails. |
+| error_code | [string](#string) |  | error_code carries a Connect-style lowercase code string such as not_found. |
+
+
+
+
+
+
+<a name="composia-agent-v1-ReportDockerQueryResultResponse"></a>
+
+### ReportDockerQueryResultResponse
+ReportDockerQueryResultResponse acknowledges a Docker query result.
 
 
 
@@ -913,6 +1157,7 @@ AgentReportService carries agent-to-controller runtime and task reports.
 | ReportBackupResult | [ReportBackupResultRequest](#composia-agent-v1-ReportBackupResultRequest) | [ReportBackupResultResponse](#composia-agent-v1-ReportBackupResultResponse) | ReportBackupResult reports the result of one backup operation. |
 | ReportServiceInstanceStatus | [ReportServiceInstanceStatusRequest](#composia-agent-v1-ReportServiceInstanceStatusRequest) | [ReportServiceInstanceStatusResponse](#composia-agent-v1-ReportServiceInstanceStatusResponse) | ReportServiceInstanceStatus reports the current status of one service instance. |
 | ReportDockerStats | [ReportDockerStatsRequest](#composia-agent-v1-ReportDockerStatsRequest) | [ReportDockerStatsResponse](#composia-agent-v1-ReportDockerStatsResponse) | ReportDockerStats reports the latest Docker stats snapshot for one node. |
+| ReportDockerQueryResult | [ReportDockerQueryResultRequest](#composia-agent-v1-ReportDockerQueryResultRequest) | [ReportDockerQueryResultResponse](#composia-agent-v1-ReportDockerQueryResultResponse) | ReportDockerQueryResult reports the result of one direct Docker query. |
 | OpenExecTunnel | [OpenExecTunnelRequest](#composia-agent-v1-OpenExecTunnelRequest) stream | [OpenExecTunnelResponse](#composia-agent-v1-OpenExecTunnelResponse) stream | OpenExecTunnel proxies interactive exec traffic between controller and agent. |
 
 
@@ -924,6 +1169,7 @@ AgentTaskService lets an agent pull work assigned to its node.
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
 | PullNextTask | [PullNextTaskRequest](#composia-agent-v1-PullNextTaskRequest) | [PullNextTaskResponse](#composia-agent-v1-PullNextTaskResponse) | PullNextTask returns the next available task for the requesting node. |
+| PullNextDockerQuery | [PullNextDockerQueryRequest](#composia-agent-v1-PullNextDockerQueryRequest) | [PullNextDockerQueryResponse](#composia-agent-v1-PullNextDockerQueryResponse) | PullNextDockerQuery returns the next in-memory Docker query for the requesting node. |
 
 
 <a name="composia-agent-v1-BundleService"></a>
@@ -946,13 +1192,17 @@ DockerService exposes Docker operations that run on the agent node.
 | ListContainers | [ListContainersRequest](#composia-agent-v1-ListContainersRequest) | [ListContainersResponse](#composia-agent-v1-ListContainersResponse) | ListContainers lists local Docker containers. |
 | InspectContainer | [InspectContainerRequest](#composia-agent-v1-InspectContainerRequest) | [InspectContainerResponse](#composia-agent-v1-InspectContainerResponse) | InspectContainer returns raw Docker inspect JSON for one container. |
 | RunContainerAction | [RunContainerActionRequest](#composia-agent-v1-RunContainerActionRequest) | [RunContainerActionResponse](#composia-agent-v1-RunContainerActionResponse) | RunContainerAction applies a lifecycle action to one container. |
-| GetContainerLogs | [GetContainerLogsRequest](#composia-agent-v1-GetContainerLogsRequest) | [GetContainerLogsResponse](#composia-agent-v1-GetContainerLogsResponse) | GetContainerLogs returns log text for one container. |
+| RemoveContainer | [RemoveContainerRequest](#composia-agent-v1-RemoveContainerRequest) | [RemoveContainerResponse](#composia-agent-v1-RemoveContainerResponse) | RemoveContainer deletes one container. |
+| GetContainerLogs | [GetContainerLogsRequest](#composia-agent-v1-GetContainerLogsRequest) | [GetContainerLogsResponse](#composia-agent-v1-GetContainerLogsResponse) stream | GetContainerLogs streams log text for one container. |
 | ListNetworks | [ListNetworksRequest](#composia-agent-v1-ListNetworksRequest) | [ListNetworksResponse](#composia-agent-v1-ListNetworksResponse) | ListNetworks lists local Docker networks. |
 | InspectNetwork | [InspectNetworkRequest](#composia-agent-v1-InspectNetworkRequest) | [InspectNetworkResponse](#composia-agent-v1-InspectNetworkResponse) | InspectNetwork returns raw Docker inspect JSON for one network. |
+| RemoveNetwork | [RemoveNetworkRequest](#composia-agent-v1-RemoveNetworkRequest) | [RemoveNetworkResponse](#composia-agent-v1-RemoveNetworkResponse) | RemoveNetwork deletes one network. |
 | ListVolumes | [ListVolumesRequest](#composia-agent-v1-ListVolumesRequest) | [ListVolumesResponse](#composia-agent-v1-ListVolumesResponse) | ListVolumes lists local Docker volumes. |
 | InspectVolume | [InspectVolumeRequest](#composia-agent-v1-InspectVolumeRequest) | [InspectVolumeResponse](#composia-agent-v1-InspectVolumeResponse) | InspectVolume returns raw Docker inspect JSON for one volume. |
+| RemoveVolume | [RemoveVolumeRequest](#composia-agent-v1-RemoveVolumeRequest) | [RemoveVolumeResponse](#composia-agent-v1-RemoveVolumeResponse) | RemoveVolume deletes one volume. |
 | ListImages | [ListImagesRequest](#composia-agent-v1-ListImagesRequest) | [ListImagesResponse](#composia-agent-v1-ListImagesResponse) | ListImages lists local Docker images. |
 | InspectImage | [InspectImageRequest](#composia-agent-v1-InspectImageRequest) | [InspectImageResponse](#composia-agent-v1-InspectImageResponse) | InspectImage returns raw Docker inspect JSON for one image. |
+| RemoveImage | [RemoveImageRequest](#composia-agent-v1-RemoveImageRequest) | [RemoveImageResponse](#composia-agent-v1-RemoveImageResponse) | RemoveImage deletes one image. |
 
  
 

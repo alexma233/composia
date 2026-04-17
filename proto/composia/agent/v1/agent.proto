@@ -52,8 +52,8 @@ service DockerService {
   rpc RunContainerAction(RunContainerActionRequest) returns (RunContainerActionResponse);
   // RemoveContainer deletes one container.
   rpc RemoveContainer(RemoveContainerRequest) returns (RemoveContainerResponse);
-  // GetContainerLogs returns log text for one container.
-  rpc GetContainerLogs(GetContainerLogsRequest) returns (GetContainerLogsResponse);
+  // GetContainerLogs streams log text for one container.
+  rpc GetContainerLogs(GetContainerLogsRequest) returns (stream GetContainerLogsResponse);
   // ListNetworks lists local Docker networks.
   rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse);
   // InspectNetwork returns raw Docker inspect JSON for one network.
@@ -150,6 +150,8 @@ message DockerQueryTask {
   string tail = 6;
   // timestamps includes Docker timestamps in container log results.
   bool timestamps = 7;
+  // since is forwarded to the Docker log since option for incremental log queries.
+  string since = 13;
   // page_size is the requested page size for list queries.
   uint32 page_size = 8;
   // page is the 1-based page number for list queries.
@@ -475,7 +477,7 @@ message GetContainerLogsRequest {
   bool timestamps = 3;
 }
 
-// GetContainerLogsResponse returns collected log content as text.
+// GetContainerLogsResponse returns one streamed log chunk.
 message GetContainerLogsResponse {
   string content = 1;
 }

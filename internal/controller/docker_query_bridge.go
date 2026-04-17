@@ -30,6 +30,7 @@ type dockerAgentQuery struct {
 	ID         string
 	Tail       string
 	Timestamps bool
+	Since      string
 	PageSize   uint32
 	Page       uint32
 	Search     string
@@ -300,6 +301,7 @@ func (server *agentTaskServer) PullNextDockerQuery(ctx context.Context, req *con
 					Id:         query.ID,
 					Tail:       query.Tail,
 					Timestamps: query.Timestamps,
+					Since:      query.Since,
 					PageSize:   query.PageSize,
 					Page:       query.Page,
 					Search:     query.Search,
@@ -413,13 +415,14 @@ func (server *dockerQueryServer) executeDockerInspectQuery(ctx context.Context, 
 	return &payload, nil
 }
 
-func (server *containerServer) executeContainerLogsQuery(ctx context.Context, nodeID, containerID, tail string, timestamps bool) (*dockerListResult, error) {
+func (server *containerServer) executeContainerLogsQuery(ctx context.Context, nodeID, containerID, tail string, timestamps bool, since string) (*dockerListResult, error) {
 	result, err := executeDockerAgentQuery(ctx, server.db, server.cfg, server.dockerQueries, nodeID, dockerAgentQuery{
 		Action:     "logs",
 		Resource:   "container",
 		ID:         containerID,
 		Tail:       tail,
 		Timestamps: timestamps,
+		Since:      since,
 	})
 	if err != nil {
 		return nil, err

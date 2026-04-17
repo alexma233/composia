@@ -3,15 +3,6 @@
 
 ## Table of Contents
 
-- [proto/composia/controller/v1/backup.proto](#proto_composia_controller_v1_backup-proto)
-    - [BackupSummary](#composia-controller-v1-BackupSummary)
-    - [GetBackupRequest](#composia-controller-v1-GetBackupRequest)
-    - [GetBackupResponse](#composia-controller-v1-GetBackupResponse)
-    - [ListBackupsRequest](#composia-controller-v1-ListBackupsRequest)
-    - [ListBackupsResponse](#composia-controller-v1-ListBackupsResponse)
-  
-    - [BackupRecordService](#composia-controller-v1-BackupRecordService)
-  
 - [proto/composia/controller/v1/task.proto](#proto_composia_controller_v1_task-proto)
     - [GetTaskRequest](#composia-controller-v1-GetTaskRequest)
     - [GetTaskResponse](#composia-controller-v1-GetTaskResponse)
@@ -27,11 +18,25 @@
   
     - [TaskService](#composia-controller-v1-TaskService)
   
+- [proto/composia/controller/v1/backup.proto](#proto_composia_controller_v1_backup-proto)
+    - [BackupSummary](#composia-controller-v1-BackupSummary)
+    - [GetBackupRequest](#composia-controller-v1-GetBackupRequest)
+    - [GetBackupResponse](#composia-controller-v1-GetBackupResponse)
+    - [ListBackupsRequest](#composia-controller-v1-ListBackupsRequest)
+    - [ListBackupsResponse](#composia-controller-v1-ListBackupsResponse)
+    - [RestoreBackupRequest](#composia-controller-v1-RestoreBackupRequest)
+  
+    - [BackupRecordService](#composia-controller-v1-BackupRecordService)
+  
 - [proto/composia/controller/v1/container.proto](#proto_composia_controller_v1_container-proto)
     - [GetContainerLogsRequest](#composia-controller-v1-GetContainerLogsRequest)
     - [GetContainerLogsResponse](#composia-controller-v1-GetContainerLogsResponse)
     - [OpenContainerExecRequest](#composia-controller-v1-OpenContainerExecRequest)
     - [OpenContainerExecResponse](#composia-controller-v1-OpenContainerExecResponse)
+    - [RemoveContainerRequest](#composia-controller-v1-RemoveContainerRequest)
+    - [RemoveImageRequest](#composia-controller-v1-RemoveImageRequest)
+    - [RemoveNetworkRequest](#composia-controller-v1-RemoveNetworkRequest)
+    - [RemoveVolumeRequest](#composia-controller-v1-RemoveVolumeRequest)
     - [RunContainerActionRequest](#composia-controller-v1-RunContainerActionRequest)
   
     - [ContainerAction](#composia-controller-v1-ContainerAction)
@@ -51,6 +56,8 @@
     - [GetNodeTasksRequest](#composia-controller-v1-GetNodeTasksRequest)
     - [GetNodeTasksResponse](#composia-controller-v1-GetNodeTasksResponse)
     - [ImageInfo](#composia-controller-v1-ImageInfo)
+    - [InitNodeRusticRequest](#composia-controller-v1-InitNodeRusticRequest)
+    - [InitNodeRusticResponse](#composia-controller-v1-InitNodeRusticResponse)
     - [InspectNodeContainerRequest](#composia-controller-v1-InspectNodeContainerRequest)
     - [InspectNodeContainerResponse](#composia-controller-v1-InspectNodeContainerResponse)
     - [InspectNodeImageRequest](#composia-controller-v1-InspectNodeImageRequest)
@@ -132,8 +139,12 @@
     - [GetServiceResponse](#composia-controller-v1-GetServiceResponse)
     - [GetServiceTasksRequest](#composia-controller-v1-GetServiceTasksRequest)
     - [GetServiceTasksResponse](#composia-controller-v1-GetServiceTasksResponse)
+    - [GetServiceWorkspaceRequest](#composia-controller-v1-GetServiceWorkspaceRequest)
+    - [GetServiceWorkspaceResponse](#composia-controller-v1-GetServiceWorkspaceResponse)
     - [ListServiceInstancesRequest](#composia-controller-v1-ListServiceInstancesRequest)
     - [ListServiceInstancesResponse](#composia-controller-v1-ListServiceInstancesResponse)
+    - [ListServiceWorkspacesRequest](#composia-controller-v1-ListServiceWorkspacesRequest)
+    - [ListServiceWorkspacesResponse](#composia-controller-v1-ListServiceWorkspacesResponse)
     - [ListServicesRequest](#composia-controller-v1-ListServicesRequest)
     - [ListServicesResponse](#composia-controller-v1-ListServicesResponse)
     - [MigrateServiceRequest](#composia-controller-v1-MigrateServiceRequest)
@@ -143,6 +154,7 @@
     - [ServiceInstanceDetail](#composia-controller-v1-ServiceInstanceDetail)
     - [ServiceInstanceSummary](#composia-controller-v1-ServiceInstanceSummary)
     - [ServiceSummary](#composia-controller-v1-ServiceSummary)
+    - [ServiceWorkspaceSummary](#composia-controller-v1-ServiceWorkspaceSummary)
     - [UpdateServiceTargetNodesRequest](#composia-controller-v1-UpdateServiceTargetNodesRequest)
     - [UpdateServiceTargetNodesResponse](#composia-controller-v1-UpdateServiceTargetNodesResponse)
   
@@ -168,127 +180,6 @@
     - [SystemService](#composia-controller-v1-SystemService)
   
 - [Scalar Value Types](#scalar-value-types)
-
-
-
-<a name="proto_composia_controller_v1_backup-proto"></a>
-<p align="right"><a href="#top">Top</a></p>
-
-## proto/composia/controller/v1/backup.proto
-
-
-
-<a name="composia-controller-v1-BackupSummary"></a>
-
-### BackupSummary
-BackupSummary describes one backup record in list results.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| backup_id | [string](#string) |  |  |
-| task_id | [string](#string) |  | task_id links the backup record to the originating task. |
-| service_name | [string](#string) |  |  |
-| data_name | [string](#string) |  |  |
-| status | [string](#string) |  | status is the latest backup status string. |
-| started_at | [string](#string) |  | started_at is the backup start timestamp string. |
-| finished_at | [string](#string) |  | finished_at is empty until the backup reaches a terminal state. |
-
-
-
-
-
-
-<a name="composia-controller-v1-GetBackupRequest"></a>
-
-### GetBackupRequest
-GetBackupRequest identifies one backup record by ID.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| backup_id | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="composia-controller-v1-GetBackupResponse"></a>
-
-### GetBackupResponse
-GetBackupResponse describes one backup record in detail.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| backup_id | [string](#string) |  |  |
-| task_id | [string](#string) |  | task_id links the backup record to the originating task. |
-| service_name | [string](#string) |  |  |
-| data_name | [string](#string) |  |  |
-| status | [string](#string) |  | status is the latest backup status string. |
-| started_at | [string](#string) |  | started_at is the backup start timestamp string. |
-| finished_at | [string](#string) |  | finished_at is empty until the backup reaches a terminal state. |
-| artifact_ref | [string](#string) |  | artifact_ref identifies the produced backup artifact, when present. |
-| error_summary | [string](#string) |  | error_summary contains the failure summary when the backup fails. |
-
-
-
-
-
-
-<a name="composia-controller-v1-ListBackupsRequest"></a>
-
-### ListBackupsRequest
-ListBackupsRequest filters backup records by service, status, data name, and page.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| service_name | [string](#string) |  |  |
-| status | [string](#string) |  | status narrows results to one backup status string when set. |
-| data_name | [string](#string) |  | data_name narrows results to one service data entry when set. |
-| page_size | [uint32](#uint32) |  | page_size is the requested page size. |
-| page | [uint32](#uint32) |  | page is the 1-based page number. |
-
-
-
-
-
-
-<a name="composia-controller-v1-ListBackupsResponse"></a>
-
-### ListBackupsResponse
-ListBackupsResponse returns one page of backup records.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| backups | [BackupSummary](#composia-controller-v1-BackupSummary) | repeated |  |
-| total_count | [uint32](#uint32) |  |  |
-
-
-
-
-
- 
-
- 
-
- 
-
-
-<a name="composia-controller-v1-BackupRecordService"></a>
-
-### BackupRecordService
-BackupRecordService exposes read-only backup record queries.
-
-| Method Name | Request Type | Response Type | Description |
-| ----------- | ------------ | ------------- | ------------|
-| ListBackups | [ListBackupsRequest](#composia-controller-v1-ListBackupsRequest) | [ListBackupsResponse](#composia-controller-v1-ListBackupsResponse) | ListBackups returns backup records with filtering and pagination. |
-| GetBackup | [GetBackupRequest](#composia-controller-v1-GetBackupRequest) | [GetBackupResponse](#composia-controller-v1-GetBackupResponse) | GetBackup returns one backup record by ID. |
-
- 
 
 
 
@@ -524,6 +415,144 @@ TaskService exposes task queries, log streaming, retry operations, and confirmat
 
 
 
+<a name="proto_composia_controller_v1_backup-proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## proto/composia/controller/v1/backup.proto
+
+
+
+<a name="composia-controller-v1-BackupSummary"></a>
+
+### BackupSummary
+BackupSummary describes one backup record in list results.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| backup_id | [string](#string) |  |  |
+| task_id | [string](#string) |  | task_id links the backup record to the originating task. |
+| service_name | [string](#string) |  |  |
+| data_name | [string](#string) |  |  |
+| status | [string](#string) |  | status is the latest backup status string. |
+| started_at | [string](#string) |  | started_at is the backup start timestamp string. |
+| finished_at | [string](#string) |  | finished_at is empty until the backup reaches a terminal state. |
+
+
+
+
+
+
+<a name="composia-controller-v1-GetBackupRequest"></a>
+
+### GetBackupRequest
+GetBackupRequest identifies one backup record by ID.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| backup_id | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="composia-controller-v1-GetBackupResponse"></a>
+
+### GetBackupResponse
+GetBackupResponse describes one backup record in detail.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| backup_id | [string](#string) |  |  |
+| task_id | [string](#string) |  | task_id links the backup record to the originating task. |
+| service_name | [string](#string) |  |  |
+| data_name | [string](#string) |  |  |
+| status | [string](#string) |  | status is the latest backup status string. |
+| started_at | [string](#string) |  | started_at is the backup start timestamp string. |
+| finished_at | [string](#string) |  | finished_at is empty until the backup reaches a terminal state. |
+| artifact_ref | [string](#string) |  | artifact_ref identifies the produced backup artifact, when present. |
+| error_summary | [string](#string) |  | error_summary contains the failure summary when the backup fails. |
+
+
+
+
+
+
+<a name="composia-controller-v1-ListBackupsRequest"></a>
+
+### ListBackupsRequest
+ListBackupsRequest filters backup records by service, status, data name, and page.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| service_name | [string](#string) |  |  |
+| status | [string](#string) |  | status narrows results to one backup status string when set. |
+| data_name | [string](#string) |  | data_name narrows results to one service data entry when set. |
+| page_size | [uint32](#uint32) |  | page_size is the requested page size. |
+| page | [uint32](#uint32) |  | page is the 1-based page number. |
+
+
+
+
+
+
+<a name="composia-controller-v1-ListBackupsResponse"></a>
+
+### ListBackupsResponse
+ListBackupsResponse returns one page of backup records.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| backups | [BackupSummary](#composia-controller-v1-BackupSummary) | repeated |  |
+| total_count | [uint32](#uint32) |  |  |
+
+
+
+
+
+
+<a name="composia-controller-v1-RestoreBackupRequest"></a>
+
+### RestoreBackupRequest
+RestoreBackupRequest identifies the backup record and target node for one restore task.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| backup_id | [string](#string) |  |  |
+| node_id | [string](#string) |  | node_id identifies the destination node for the restore task. |
+
+
+
+
+
+ 
+
+ 
+
+ 
+
+
+<a name="composia-controller-v1-BackupRecordService"></a>
+
+### BackupRecordService
+BackupRecordService exposes read-only backup record queries.
+
+| Method Name | Request Type | Response Type | Description |
+| ----------- | ------------ | ------------- | ------------|
+| ListBackups | [ListBackupsRequest](#composia-controller-v1-ListBackupsRequest) | [ListBackupsResponse](#composia-controller-v1-ListBackupsResponse) | ListBackups returns backup records with filtering and pagination. |
+| GetBackup | [GetBackupRequest](#composia-controller-v1-GetBackupRequest) | [GetBackupResponse](#composia-controller-v1-GetBackupResponse) | GetBackup returns one backup record by ID. |
+| RestoreBackup | [RestoreBackupRequest](#composia-controller-v1-RestoreBackupRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | RestoreBackup starts an async restore task from one backup record. |
+
+ 
+
+
+
 <a name="proto_composia_controller_v1_container-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
@@ -552,7 +581,7 @@ GetContainerLogsRequest fetches logs for one container.
 <a name="composia-controller-v1-GetContainerLogsResponse"></a>
 
 ### GetContainerLogsResponse
-GetContainerLogsResponse returns collected log content as text.
+GetContainerLogsResponse returns one streamed log chunk.
 
 
 | Field | Type | Label | Description |
@@ -593,6 +622,73 @@ OpenContainerExecResponse returns the session identity and websocket path.
 | ----- | ---- | ----- | ----------- |
 | session_id | [string](#string) |  | session_id identifies the created interactive exec session. |
 | websocket_path | [string](#string) |  | websocket_path is the controller websocket path for the interactive tunnel. |
+
+
+
+
+
+
+<a name="composia-controller-v1-RemoveContainerRequest"></a>
+
+### RemoveContainerRequest
+RemoveContainerRequest identifies one node-scoped container deletion.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| node_id | [string](#string) |  |  |
+| container_id | [string](#string) |  |  |
+| force | [bool](#bool) |  |  |
+| remove_volumes | [bool](#bool) |  |  |
+
+
+
+
+
+
+<a name="composia-controller-v1-RemoveImageRequest"></a>
+
+### RemoveImageRequest
+RemoveImageRequest identifies one node-scoped image deletion.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| node_id | [string](#string) |  |  |
+| image_id | [string](#string) |  |  |
+| force | [bool](#bool) |  |  |
+
+
+
+
+
+
+<a name="composia-controller-v1-RemoveNetworkRequest"></a>
+
+### RemoveNetworkRequest
+RemoveNetworkRequest identifies one node-scoped network deletion.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| node_id | [string](#string) |  |  |
+| network_id | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="composia-controller-v1-RemoveVolumeRequest"></a>
+
+### RemoveVolumeRequest
+RemoveVolumeRequest identifies one node-scoped volume deletion.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| node_id | [string](#string) |  |  |
+| volume_name | [string](#string) |  |  |
 
 
 
@@ -644,8 +740,12 @@ ContainerService exposes container-level control and inspection entrypoints.
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
 | RunContainerAction | [RunContainerActionRequest](#composia-controller-v1-RunContainerActionRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | RunContainerAction starts an async action for one container on one node. |
-| GetContainerLogs | [GetContainerLogsRequest](#composia-controller-v1-GetContainerLogsRequest) | [GetContainerLogsResponse](#composia-controller-v1-GetContainerLogsResponse) | GetContainerLogs returns log text for one container. |
+| RemoveContainer | [RemoveContainerRequest](#composia-controller-v1-RemoveContainerRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | RemoveContainer starts an async deletion for one container on one node. |
+| GetContainerLogs | [GetContainerLogsRequest](#composia-controller-v1-GetContainerLogsRequest) | [GetContainerLogsResponse](#composia-controller-v1-GetContainerLogsResponse) stream | GetContainerLogs streams log text for one container. |
 | OpenContainerExec | [OpenContainerExecRequest](#composia-controller-v1-OpenContainerExecRequest) | [OpenContainerExecResponse](#composia-controller-v1-OpenContainerExecResponse) | OpenContainerExec opens an interactive exec session for one container. |
+| RemoveNetwork | [RemoveNetworkRequest](#composia-controller-v1-RemoveNetworkRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | RemoveNetwork starts an async deletion for one network on one node. |
+| RemoveVolume | [RemoveVolumeRequest](#composia-controller-v1-RemoveVolumeRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | RemoveVolume starts an async deletion for one volume on one node. |
+| RemoveImage | [RemoveImageRequest](#composia-controller-v1-RemoveImageRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | RemoveImage starts an async deletion for one image on one node. |
 
  
 
@@ -872,6 +972,36 @@ ImageInfo describes one Docker image for node-scoped list views.
 
 
 
+<a name="composia-controller-v1-InitNodeRusticRequest"></a>
+
+### InitNodeRusticRequest
+InitNodeRusticRequest initializes the Rustic repository on one node.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| node_id | [string](#string) |  | node_id is the stable node identifier. |
+
+
+
+
+
+
+<a name="composia-controller-v1-InitNodeRusticResponse"></a>
+
+### InitNodeRusticResponse
+InitNodeRusticResponse returns the created maintenance task ID.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| task_id | [string](#string) |  |  |
+
+
+
+
+
+
 <a name="composia-controller-v1-InspectNodeContainerRequest"></a>
 
 ### InspectNodeContainerRequest
@@ -1005,6 +1135,11 @@ ListNodeContainersRequest identifies the node whose containers should be listed.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | node_id | [string](#string) |  | node_id is the stable node identifier. |
+| page_size | [uint32](#uint32) |  | page_size is the requested page size. |
+| page | [uint32](#uint32) |  | page is the 1-based page number. |
+| search | [string](#string) |  | search is a case-insensitive substring match across key fields. |
+| sort_by | [string](#string) |  | sort_by identifies the field used to sort results. |
+| sort_desc | [bool](#bool) |  | sort_desc reverses the sort order when true. |
 
 
 
@@ -1020,6 +1155,7 @@ ListNodeContainersResponse returns node-scoped container summaries.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | containers | [ContainerInfo](#composia-controller-v1-ContainerInfo) | repeated |  |
+| total_count | [uint32](#uint32) |  |  |
 
 
 
@@ -1035,6 +1171,11 @@ ListNodeImagesRequest identifies the node whose images should be listed.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | node_id | [string](#string) |  | node_id is the stable node identifier. |
+| page_size | [uint32](#uint32) |  | page_size is the requested page size. |
+| page | [uint32](#uint32) |  | page is the 1-based page number. |
+| search | [string](#string) |  | search is a case-insensitive substring match across key fields. |
+| sort_by | [string](#string) |  | sort_by identifies the field used to sort results. |
+| sort_desc | [bool](#bool) |  | sort_desc reverses the sort order when true. |
 
 
 
@@ -1050,6 +1191,7 @@ ListNodeImagesResponse returns node-scoped image summaries.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | images | [ImageInfo](#composia-controller-v1-ImageInfo) | repeated |  |
+| total_count | [uint32](#uint32) |  |  |
 
 
 
@@ -1065,6 +1207,11 @@ ListNodeNetworksRequest identifies the node whose networks should be listed.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | node_id | [string](#string) |  | node_id is the stable node identifier. |
+| page_size | [uint32](#uint32) |  | page_size is the requested page size. |
+| page | [uint32](#uint32) |  | page is the 1-based page number. |
+| search | [string](#string) |  | search is a case-insensitive substring match across key fields. |
+| sort_by | [string](#string) |  | sort_by identifies the field used to sort results. |
+| sort_desc | [bool](#bool) |  | sort_desc reverses the sort order when true. |
 
 
 
@@ -1080,6 +1227,7 @@ ListNodeNetworksResponse returns node-scoped network summaries.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | networks | [NetworkInfo](#composia-controller-v1-NetworkInfo) | repeated |  |
+| total_count | [uint32](#uint32) |  |  |
 
 
 
@@ -1095,6 +1243,11 @@ ListNodeVolumesRequest identifies the node whose volumes should be listed.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | node_id | [string](#string) |  | node_id is the stable node identifier. |
+| page_size | [uint32](#uint32) |  | page_size is the requested page size. |
+| page | [uint32](#uint32) |  | page is the 1-based page number. |
+| search | [string](#string) |  | search is a case-insensitive substring match across key fields. |
+| sort_by | [string](#string) |  | sort_by identifies the field used to sort results. |
+| sort_desc | [bool](#bool) |  | sort_desc reverses the sort order when true. |
 
 
 
@@ -1110,6 +1263,7 @@ ListNodeVolumesResponse returns node-scoped volume summaries.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | volumes | [VolumeInfo](#composia-controller-v1-VolumeInfo) | repeated |  |
+| total_count | [uint32](#uint32) |  |  |
 
 
 
@@ -1399,6 +1553,7 @@ NodeMaintenanceService triggers async maintenance work on one node.
 | SyncNodeCaddyFiles | [SyncNodeCaddyFilesRequest](#composia-controller-v1-SyncNodeCaddyFilesRequest) | [SyncNodeCaddyFilesResponse](#composia-controller-v1-SyncNodeCaddyFilesResponse) | SyncNodeCaddyFiles starts a task to sync Caddy files on one node. |
 | ReloadNodeCaddy | [ReloadNodeCaddyRequest](#composia-controller-v1-ReloadNodeCaddyRequest) | [ReloadNodeCaddyResponse](#composia-controller-v1-ReloadNodeCaddyResponse) | ReloadNodeCaddy starts a task to reload Caddy on one node. |
 | PruneNodeDocker | [PruneNodeDockerRequest](#composia-controller-v1-PruneNodeDockerRequest) | [PruneNodeDockerResponse](#composia-controller-v1-PruneNodeDockerResponse) | PruneNodeDocker starts a task to prune Docker resources on one node. |
+| InitNodeRustic | [InitNodeRusticRequest](#composia-controller-v1-InitNodeRusticRequest) | [InitNodeRusticResponse](#composia-controller-v1-InitNodeRusticResponse) | InitNodeRustic starts a task to initialize the Rustic repository on one node. |
 | ForgetNodeRustic | [ForgetNodeRusticRequest](#composia-controller-v1-ForgetNodeRusticRequest) | [ForgetNodeRusticResponse](#composia-controller-v1-ForgetNodeRusticResponse) | ForgetNodeRustic starts a task to forget Rustic snapshots for one node. |
 | PruneNodeRustic | [PruneNodeRusticRequest](#composia-controller-v1-PruneNodeRusticRequest) | [PruneNodeRusticResponse](#composia-controller-v1-PruneNodeRusticResponse) | PruneNodeRustic starts a task to prune Rustic data on one node. |
 
@@ -1594,12 +1749,13 @@ ListRepoCommitsResponse returns one page of commits.
 <a name="composia-controller-v1-ListRepoFilesRequest"></a>
 
 ### ListRepoFilesRequest
-ListRepoFilesRequest lists direct children under path.
+ListRepoFilesRequest lists repo entries under path.
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | path | [string](#string) |  | path is repo-relative. An empty path refers to the repo root. |
+| recursive | [bool](#bool) |  | recursive includes all descendants under path when true. |
 
 
 
@@ -1609,7 +1765,7 @@ ListRepoFilesRequest lists direct children under path.
 <a name="composia-controller-v1-ListRepoFilesResponse"></a>
 
 ### ListRepoFilesResponse
-ListRepoFilesResponse returns direct child entries only.
+ListRepoFilesResponse returns repo entries for the requested path.
 
 
 | Field | Type | Label | Description |
@@ -1985,6 +2141,7 @@ GetServiceInstanceRequest identifies one service instance by service and node.
 | ----- | ---- | ----- | ----------- |
 | service_name | [string](#string) |  | service_name is the logical service name. |
 | node_id | [string](#string) |  | node_id identifies the node hosting the requested instance. |
+| include_containers | [bool](#bool) |  | include_containers includes instance container details when true. |
 
 
 
@@ -2015,6 +2172,7 @@ GetServiceRequest addresses one service by logical name.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | service_name | [string](#string) |  | service_name is the logical service name. |
+| include_containers | [bool](#bool) |  | include_containers includes per-instance container details when true. |
 
 
 
@@ -2076,6 +2234,36 @@ GetServiceTasksResponse returns one page of service tasks.
 
 
 
+<a name="composia-controller-v1-GetServiceWorkspaceRequest"></a>
+
+### GetServiceWorkspaceRequest
+GetServiceWorkspaceRequest identifies one top-level service workspace folder.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| folder | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="composia-controller-v1-GetServiceWorkspaceResponse"></a>
+
+### GetServiceWorkspaceResponse
+GetServiceWorkspaceResponse returns one top-level repo service workspace.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| workspace | [ServiceWorkspaceSummary](#composia-controller-v1-ServiceWorkspaceSummary) |  |  |
+
+
+
+
+
+
 <a name="composia-controller-v1-ListServiceInstancesRequest"></a>
 
 ### ListServiceInstancesRequest
@@ -2100,6 +2288,31 @@ ListServiceInstancesResponse returns known instances for one service.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | instances | [ServiceInstanceSummary](#composia-controller-v1-ServiceInstanceSummary) | repeated |  |
+
+
+
+
+
+
+<a name="composia-controller-v1-ListServiceWorkspacesRequest"></a>
+
+### ListServiceWorkspacesRequest
+ListServiceWorkspacesRequest requests all top-level service workspaces.
+
+
+
+
+
+
+<a name="composia-controller-v1-ListServiceWorkspacesResponse"></a>
+
+### ListServiceWorkspacesResponse
+ListServiceWorkspacesResponse returns top-level repo service workspaces.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| workspaces | [ServiceWorkspaceSummary](#composia-controller-v1-ServiceWorkspaceSummary) | repeated |  |
 
 
 
@@ -2273,6 +2486,29 @@ ServiceSummary describes one service for list views.
 
 
 
+<a name="composia-controller-v1-ServiceWorkspaceSummary"></a>
+
+### ServiceWorkspaceSummary
+ServiceWorkspaceSummary describes one top-level repo workspace and any merged service state.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| folder | [string](#string) |  | folder is the repo-relative top-level folder name for this workspace. |
+| display_name | [string](#string) |  | display_name is the preferred workspace label for operator-facing lists. |
+| service_name | [string](#string) |  | service_name is empty until the workspace has a parseable service name. |
+| has_meta | [bool](#bool) |  | has_meta reports whether composia-meta.yaml exists in the workspace. |
+| is_declared | [bool](#bool) |  | is_declared reports whether this workspace currently maps to a declared controller service. |
+| runtime_status | [string](#string) |  | runtime_status is the merged controller status or a workspace-local placeholder. |
+| updated_at | [string](#string) |  | updated_at is the last known controller update timestamp string. |
+| nodes | [string](#string) | repeated | nodes lists declared target nodes when the workspace meta is parseable. |
+| enabled | [bool](#bool) |  | enabled reports the desired-state enabled flag when the workspace meta is parseable. |
+
+
+
+
+
+
 <a name="composia-controller-v1-UpdateServiceTargetNodesRequest"></a>
 
 ### UpdateServiceTargetNodesRequest
@@ -2375,12 +2611,14 @@ ServiceInstanceService queries and operates on one concrete service instance.
 <a name="composia-controller-v1-ServiceQueryService"></a>
 
 ### ServiceQueryService
-ServiceQueryService exposes read-only service, task, and backup queries.
+ServiceQueryService exposes read-only service workspace, declared service, task, and backup queries.
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| ListServices | [ListServicesRequest](#composia-controller-v1-ListServicesRequest) | [ListServicesResponse](#composia-controller-v1-ListServicesResponse) | ListServices returns declared and discovered services with pagination. |
+| ListServices | [ListServicesRequest](#composia-controller-v1-ListServicesRequest) | [ListServicesResponse](#composia-controller-v1-ListServicesResponse) | ListServices returns declared services with pagination. |
+| ListServiceWorkspaces | [ListServiceWorkspacesRequest](#composia-controller-v1-ListServiceWorkspacesRequest) | [ListServiceWorkspacesResponse](#composia-controller-v1-ListServiceWorkspacesResponse) | ListServiceWorkspaces returns top-level repo service workspaces with merged controller state. |
 | GetService | [GetServiceRequest](#composia-controller-v1-GetServiceRequest) | [GetServiceResponse](#composia-controller-v1-GetServiceResponse) | GetService returns the full detail for a single service. |
+| GetServiceWorkspace | [GetServiceWorkspaceRequest](#composia-controller-v1-GetServiceWorkspaceRequest) | [GetServiceWorkspaceResponse](#composia-controller-v1-GetServiceWorkspaceResponse) | GetServiceWorkspace returns one top-level repo service workspace. |
 | GetServiceTasks | [GetServiceTasksRequest](#composia-controller-v1-GetServiceTasksRequest) | [GetServiceTasksResponse](#composia-controller-v1-GetServiceTasksResponse) | GetServiceTasks returns tasks related to one service. |
 | GetServiceBackups | [GetServiceBackupsRequest](#composia-controller-v1-GetServiceBackupsRequest) | [GetServiceBackupsResponse](#composia-controller-v1-GetServiceBackupsResponse) | GetServiceBackups returns backups related to one service. |
 

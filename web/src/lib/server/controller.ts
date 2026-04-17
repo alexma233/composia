@@ -322,7 +322,9 @@ export async function loadServices(
   };
 }
 
-export async function loadServiceWorkspaces(): Promise<ServiceWorkspaceSummary[]> {
+export async function loadServiceWorkspaces(): Promise<
+  ServiceWorkspaceSummary[]
+> {
   const config = requireControllerConfig();
   const response = await rpcCall<{
     workspaces?: Array<{
@@ -350,7 +352,8 @@ export async function loadServiceWorkspaces(): Promise<ServiceWorkspaceSummary[]
   );
   return (response.workspaces ?? []).map((workspace) => ({
     folder: workspace.folder,
-    displayName: workspace.displayName ?? workspace.display_name ?? workspace.folder,
+    displayName:
+      workspace.displayName ?? workspace.display_name ?? workspace.folder,
     serviceName: workspace.serviceName ?? workspace.service_name ?? "",
     hasMeta: workspace.hasMeta ?? workspace.has_meta ?? false,
     isDeclared: workspace.isDeclared ?? workspace.is_declared ?? false,
@@ -396,11 +399,13 @@ export async function loadServiceWorkspace(
   const workspace = response.workspace;
   return {
     folder: workspace.folder,
-    displayName: workspace.displayName ?? workspace.display_name ?? workspace.folder,
+    displayName:
+      workspace.displayName ?? workspace.display_name ?? workspace.folder,
     serviceName: workspace.serviceName ?? workspace.service_name ?? "",
     hasMeta: workspace.hasMeta ?? workspace.has_meta ?? false,
     isDeclared: workspace.isDeclared ?? workspace.is_declared ?? false,
-    runtimeStatus: workspace.runtimeStatus ?? workspace.runtime_status ?? "unknown",
+    runtimeStatus:
+      workspace.runtimeStatus ?? workspace.runtime_status ?? "unknown",
     updatedAt: workspace.updatedAt ?? workspace.updated_at ?? "",
     nodes: workspace.nodes ?? [],
     enabled: workspace.enabled ?? false,
@@ -1191,22 +1196,6 @@ export async function removeNodeContainer(
       removeVolumes: options.removeVolumes ?? false,
     },
   );
-}
-
-export async function getContainerLogs(
-  nodeId: string,
-  containerId: string,
-  tail = "200",
-  timestamps = false,
-): Promise<string> {
-  const config = requireControllerConfig();
-  const response = await rpcCall<{ content?: string }>(
-    config.baseUrl,
-    config.token,
-    "/composia.controller.v1.ContainerService/GetContainerLogs",
-    { nodeId, containerId, tail, timestamps },
-  );
-  return response.content ?? "";
 }
 
 export async function openContainerExec(

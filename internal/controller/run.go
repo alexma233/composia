@@ -41,6 +41,7 @@ const (
 	offlineSweepInterval  = 15 * time.Second
 	pullNextTaskMaxWait   = 25 * time.Second
 	pullNextTaskRetryWait = 500 * time.Millisecond
+	containerLogPollWait  = 1 * time.Second
 )
 
 func Run(ctx context.Context, configPath string) error {
@@ -2437,15 +2438,88 @@ func (server *containerServer) RemoveImage(ctx context.Context, req *connect.Req
 	return connect.NewResponse(taskActionResponse(record)), nil
 }
 
-func (server *containerServer) GetContainerLogs(ctx context.Context, req *connect.Request[controllerv1.GetContainerLogsRequest]) (*connect.Response[controllerv1.GetContainerLogsResponse], error) {
+func (server *containerServer) GetContainerLogs(ctx context.Context, req *connect.Request[controllerv1.GetContainerLogsRequest], stream *connect.ServerStream[controllerv1.GetContainerLogsResponse]) error {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetContainerId() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and container_id are required"))
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and container_id are required"))
 	}
-	detail, err := server.executeContainerLogsQuery(ctx, req.Msg.GetNodeId(), req.Msg.GetContainerId(), req.Msg.GetTail(), req.Msg.GetTimestamps())
+	tail := req.Msg.GetTail()
+	since := ""
+
+	for {
+		queryStartedAt := time.Now().UTC()
+		detail, err := server.executeContainerLogsQuery(ctx, req.Msg.GetNodeId(), req.Msg.GetContainerId(), tail, true, since)
+		if err != nil {
+			return err
+		}
+		tail = ""
+
+		content, lastTimestamp, hasTimestamp := normalizeStreamedContainerLogChunk(detail.Content, req.Msg.GetTimestamps())
+		if hasTimestamp {
+			since = lastTimestamp.Add(time.Nanosecond).Format(time.RFC3339Nano)
+		} else if since == "" {
+			since = queryStartedAt.Format(time.RFC3339Nano)
+		}
+		if content != "" {
+			if err := stream.Send(&controllerv1.GetContainerLogsResponse{Content: content}); err != nil {
+				return err
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(containerLogPollWait):
+		}
+	}
+}
+
+func normalizeStreamedContainerLogChunk(content string, includeTimestamps bool) (string, time.Time, bool) {
+	if content == "" {
+		return "", time.Time{}, false
+	}
+
+	var builder strings.Builder
+	remaining := content
+	lastTimestamp := time.Time{}
+	hasTimestamp := false
+
+	for len(remaining) > 0 {
+		line := remaining
+		if newline := strings.IndexByte(remaining, '\n'); newline >= 0 {
+			line = remaining[:newline+1]
+			remaining = remaining[newline+1:]
+		} else {
+			remaining = ""
+		}
+
+		timestamp, body, ok := splitDockerLogTimestampLine(line)
+		if ok {
+			lastTimestamp = timestamp
+			hasTimestamp = true
+			if includeTimestamps {
+				builder.WriteString(line)
+			} else {
+				builder.WriteString(body)
+			}
+			continue
+		}
+
+		builder.WriteString(line)
+	}
+
+	return builder.String(), lastTimestamp, hasTimestamp
+}
+
+func splitDockerLogTimestampLine(line string) (time.Time, string, bool) {
+	timestampText, body, ok := strings.Cut(line, " ")
+	if !ok {
+		return time.Time{}, "", false
+	}
+	timestamp, err := time.Parse(time.RFC3339Nano, timestampText)
 	if err != nil {
-		return nil, err
+		return time.Time{}, "", false
 	}
-	return connect.NewResponse(&controllerv1.GetContainerLogsResponse{Content: detail.Content}), nil
+	return timestamp, body, true
 }
 
 func (server *containerServer) createContainerTask(ctx context.Context, header http.Header, nodeID, containerID string, taskType task.Type, params map[string]any) (task.Record, error) {

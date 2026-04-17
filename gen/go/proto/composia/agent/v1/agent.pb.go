@@ -487,6 +487,8 @@ type DockerQueryTask struct {
 	Tail string `protobuf:"bytes,6,opt,name=tail,proto3" json:"tail,omitempty"`
 	// timestamps includes Docker timestamps in container log results.
 	Timestamps bool `protobuf:"varint,7,opt,name=timestamps,proto3" json:"timestamps,omitempty"`
+	// since is forwarded to the Docker log since option for incremental log queries.
+	Since string `protobuf:"bytes,13,opt,name=since,proto3" json:"since,omitempty"`
 	// page_size is the requested page size for list queries.
 	PageSize uint32 `protobuf:"varint,8,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// page is the 1-based page number for list queries.
@@ -578,6 +580,13 @@ func (x *DockerQueryTask) GetTimestamps() bool {
 		return x.Timestamps
 	}
 	return false
+}
+
+func (x *DockerQueryTask) GetSince() string {
+	if x != nil {
+		return x.Since
+	}
+	return ""
 }
 
 func (x *DockerQueryTask) GetPageSize() uint32 {
@@ -2626,7 +2635,7 @@ func (x *GetContainerLogsRequest) GetTimestamps() bool {
 	return false
 }
 
-// GetContainerLogsResponse returns collected log content as text.
+// GetContainerLogsResponse returns one streamed log chunk.
 type GetContainerLogsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Content       string                 `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
@@ -4037,7 +4046,7 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"paramsJson\"c\n" +
 	"\x14PullNextTaskResponse\x12\x19\n" +
 	"\bhas_task\x18\x01 \x01(\bR\ahasTask\x120\n" +
-	"\x04task\x18\x02 \x01(\v2\x1c.composia.agent.v1.AgentTaskR\x04task\"\xbc\x02\n" +
+	"\x04task\x18\x02 \x01(\v2\x1c.composia.agent.v1.AgentTaskR\x04task\"\xd2\x02\n" +
 	"\x0fDockerQueryTask\x12\x19\n" +
 	"\bquery_id\x18\x01 \x01(\tR\aqueryId\x12\x17\n" +
 	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12\x16\n" +
@@ -4047,7 +4056,8 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\x04tail\x18\x06 \x01(\tR\x04tail\x12\x1e\n" +
 	"\n" +
 	"timestamps\x18\a \x01(\bR\n" +
-	"timestamps\x12\x1b\n" +
+	"timestamps\x12\x14\n" +
+	"\x05since\x18\r \x01(\tR\x05since\x12\x1b\n" +
 	"\tpage_size\x18\b \x01(\rR\bpageSize\x12\x12\n" +
 	"\x04page\x18\t \x01(\rR\x04page\x12\x16\n" +
 	"\x06search\x18\n" +
@@ -4329,13 +4339,13 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\fPullNextTask\x12&.composia.agent.v1.PullNextTaskRequest\x1a'.composia.agent.v1.PullNextTaskResponse\x12t\n" +
 	"\x13PullNextDockerQuery\x12-.composia.agent.v1.PullNextDockerQueryRequest\x1a..composia.agent.v1.PullNextDockerQueryResponse2~\n" +
 	"\rBundleService\x12m\n" +
-	"\x10GetServiceBundle\x12*.composia.agent.v1.GetServiceBundleRequest\x1a+.composia.agent.v1.GetServiceBundleResponse0\x012\x96\v\n" +
+	"\x10GetServiceBundle\x12*.composia.agent.v1.GetServiceBundleRequest\x1a+.composia.agent.v1.GetServiceBundleResponse0\x012\x98\v\n" +
 	"\rDockerService\x12e\n" +
 	"\x0eListContainers\x12(.composia.agent.v1.ListContainersRequest\x1a).composia.agent.v1.ListContainersResponse\x12k\n" +
 	"\x10InspectContainer\x12*.composia.agent.v1.InspectContainerRequest\x1a+.composia.agent.v1.InspectContainerResponse\x12q\n" +
 	"\x12RunContainerAction\x12,.composia.agent.v1.RunContainerActionRequest\x1a-.composia.agent.v1.RunContainerActionResponse\x12h\n" +
-	"\x0fRemoveContainer\x12).composia.agent.v1.RemoveContainerRequest\x1a*.composia.agent.v1.RemoveContainerResponse\x12k\n" +
-	"\x10GetContainerLogs\x12*.composia.agent.v1.GetContainerLogsRequest\x1a+.composia.agent.v1.GetContainerLogsResponse\x12_\n" +
+	"\x0fRemoveContainer\x12).composia.agent.v1.RemoveContainerRequest\x1a*.composia.agent.v1.RemoveContainerResponse\x12m\n" +
+	"\x10GetContainerLogs\x12*.composia.agent.v1.GetContainerLogsRequest\x1a+.composia.agent.v1.GetContainerLogsResponse0\x01\x12_\n" +
 	"\fListNetworks\x12&.composia.agent.v1.ListNetworksRequest\x1a'.composia.agent.v1.ListNetworksResponse\x12e\n" +
 	"\x0eInspectNetwork\x12(.composia.agent.v1.InspectNetworkRequest\x1a).composia.agent.v1.InspectNetworkResponse\x12b\n" +
 	"\rRemoveNetwork\x12'.composia.agent.v1.RemoveNetworkRequest\x1a(.composia.agent.v1.RemoveNetworkResponse\x12\\\n" +
