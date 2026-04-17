@@ -28,7 +28,8 @@
   let logStreamController = $state<AbortController | null>(null);
   let rerunning = $state(false);
   let resolvingConfirmation = $state(false);
-  let stopTaskRefresh = $state<null | (() => void)>(null);
+  let stopTaskRefreshHandle: null | (() => void) = null;
+  let taskRefreshTaskId = '';
 
   function isTerminalStatus(status: string): boolean {
     return status === 'succeeded' || status === 'failed' || status === 'cancelled';
@@ -52,24 +53,35 @@
   }
 
   $effect(() => {
-    stopTaskRefresh?.();
-    stopTaskRefresh = null;
-
-    if (!data.task?.taskId || isTerminalStatus(data.task.status)) {
+    const taskId = data.task?.taskId ?? '';
+    const taskStatus = data.task?.status ?? '';
+    if (!taskId || isTerminalStatus(taskStatus)) {
+      stopTaskRefresh();
       return;
     }
 
-    stopTaskRefresh = startPolling(() => invalidateAll(), {
+    if (taskRefreshTaskId === taskId && stopTaskRefreshHandle) {
+      return;
+    }
+
+    startTaskRefresh(taskId);
+  });
+
+  function startTaskRefresh(taskId: string) {
+    stopTaskRefresh();
+    taskRefreshTaskId = taskId;
+    stopTaskRefreshHandle = startPolling(() => invalidateAll(), {
       intervalMs: 2500,
       errorIntervalMs: 4000,
       initialDelayMs: 1200,
     });
+  }
 
-    return () => {
-      stopTaskRefresh?.();
-      stopTaskRefresh = null;
-    };
-  });
+  function stopTaskRefresh() {
+    stopTaskRefreshHandle?.();
+    stopTaskRefreshHandle = null;
+    taskRefreshTaskId = '';
+  }
 
   function isAwaitingMigrationConfirmation(): boolean {
     return data.task?.type === 'migrate' && data.task?.status === 'awaiting_confirmation';
@@ -153,7 +165,10 @@
     logState = 'idle';
   });
 
-  onDestroy(stopLogStream);
+  onDestroy(() => {
+    stopTaskRefresh();
+    stopLogStream();
+  });
 
   async function startLogStream(taskId: string) {
     stopLogStream();
