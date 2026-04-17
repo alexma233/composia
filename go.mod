@@ -15,7 +15,7 @@ require (
 	golang.org/x/net v0.53.0
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/yaml.v3 v3.0.1
-	modernc.org/sqlite v1.49.0
+	modernc.org/sqlite v1.49.1
 )
 
 require (
