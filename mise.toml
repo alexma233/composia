@@ -1,7 +1,7 @@
 [tools]
 go = "1.26.2"
 bun = "1.3.12"
-buf = "1.68.1"
+buf = "1.68.2"
 
 [tasks."web"]
 description = "Start the Web dev server"
