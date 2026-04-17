@@ -401,6 +401,7 @@ func TestRunComposePullUsesProjectNameAndServiceDir(t *testing.T) {
 	binDir := filepath.Join(rootDir, "bin")
 	serviceDir := filepath.Join(rootDir, "service")
 	argsFile := filepath.Join(rootDir, "args.txt")
+	envFile := filepath.Join(rootDir, "env.txt")
 	pwdFile := filepath.Join(rootDir, "pwd.txt")
 	if err := os.MkdirAll(binDir, 0o755); err != nil {
 		t.Fatalf("create bin dir: %v", err)
@@ -409,12 +410,13 @@ func TestRunComposePullUsesProjectNameAndServiceDir(t *testing.T) {
 		t.Fatalf("create service dir: %v", err)
 	}
 	dockerPath := filepath.Join(binDir, "docker")
-	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n"
+	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\nprintf 'TERM=%s\\nCLICOLOR_FORCE=%s\\nFORCE_COLOR=%s\\nCOMPOSE_ANSI=%s\\nCOMPOSE_STATUS_STDOUT=%s\\nCOMPOSE_PROGRESS=%s\\n' \"$TERM\" \"$CLICOLOR_FORCE\" \"$FORCE_COLOR\" \"$COMPOSE_ANSI\" \"$COMPOSE_STATUS_STDOUT\" \"$COMPOSE_PROGRESS\" > \"$TEST_ENV_FILE\"\n"
 	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("TEST_ARGS_FILE", argsFile)
+	t.Setenv("TEST_ENV_FILE", envFile)
 	t.Setenv("TEST_PWD_FILE", pwdFile)
 
 	if err := runComposePull(context.Background(), serviceDir, "demo-project", func(string) error { return nil }); err != nil {
@@ -434,6 +436,22 @@ func TestRunComposePullUsesProjectNameAndServiceDir(t *testing.T) {
 	}
 	if string(bytes.TrimSpace(pwdContent)) != serviceDir {
 		t.Fatalf("expected docker cwd %q, got %q", serviceDir, string(bytes.TrimSpace(pwdContent)))
+	}
+	envContent, err := os.ReadFile(envFile)
+	if err != nil {
+		t.Fatalf("read env file: %v", err)
+	}
+	for _, expected := range []string{
+		"TERM=xterm-256color",
+		"CLICOLOR_FORCE=1",
+		"FORCE_COLOR=1",
+		"COMPOSE_ANSI=always",
+		"COMPOSE_STATUS_STDOUT=1",
+		"COMPOSE_PROGRESS=tty",
+	} {
+		if !strings.Contains(string(envContent), expected) {
+			t.Fatalf("expected %q in env, got %q", expected, string(envContent))
+		}
 	}
 }
 

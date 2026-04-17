@@ -975,8 +975,35 @@ func (writer *commandLogWriter) String() string {
 	return writer.output.String()
 }
 
+func prepareCommandForTerminalLog(command *exec.Cmd) {
+	if command == nil {
+		return
+	}
+
+	env := command.Environ()
+	env = setCommandEnv(env, "TERM", "xterm-256color")
+	env = setCommandEnv(env, "CLICOLOR_FORCE", "1")
+	env = setCommandEnv(env, "FORCE_COLOR", "1")
+	env = setCommandEnv(env, "COMPOSE_ANSI", "always")
+	env = setCommandEnv(env, "COMPOSE_STATUS_STDOUT", "1")
+	env = setCommandEnv(env, "COMPOSE_PROGRESS", "tty")
+	command.Env = env
+}
+
+func setCommandEnv(env []string, key, value string) []string {
+	prefix := key + "="
+	for index, entry := range env {
+		if strings.HasPrefix(entry, prefix) {
+			env[index] = prefix + value
+			return env
+		}
+	}
+	return append(env, prefix+value)
+}
+
 func runCommandWithLiveLogs(command *exec.Cmd, uploadLog func(string) error) error {
 	writer := newCommandLogWriter(uploadLog, false)
+	prepareCommandForTerminalLog(command)
 	command.Stdout = writer
 	command.Stderr = writer
 	return command.Run()
@@ -984,6 +1011,7 @@ func runCommandWithLiveLogs(command *exec.Cmd, uploadLog func(string) error) err
 
 func runCommandWithLiveLogsAndCapture(command *exec.Cmd, uploadLog func(string) error) (string, error) {
 	writer := newCommandLogWriter(uploadLog, true)
+	prepareCommandForTerminalLog(command)
 	command.Stdout = writer
 	command.Stderr = writer
 	err := command.Run()
