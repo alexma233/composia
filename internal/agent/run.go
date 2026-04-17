@@ -20,6 +20,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -908,13 +909,7 @@ func runDockerPrune(ctx context.Context, target string, uploadLog func(string) e
 	}
 
 	cmd := exec.CommandContext(ctx, "docker", args...)
-	output, err := cmd.CombinedOutput()
-	if outStr := string(output); outStr != "" {
-		if logErr := uploadLog(outStr); logErr != nil {
-			return logErr
-		}
-	}
-	if err != nil {
+	if err := runCommandWithLiveLogs(cmd, uploadLog); err != nil {
 		return fmt.Errorf("docker %s prune failed: %w", target, err)
 	}
 	return nil
@@ -942,17 +937,64 @@ func buildRusticComposeRunArgs(composeService, profile string, commandArgs ...st
 	return args
 }
 
+type commandLogWriter struct {
+	mu         sync.Mutex
+	uploadLog  func(string) error
+	output     bytes.Buffer
+	captureOut bool
+}
+
+func newCommandLogWriter(uploadLog func(string) error, captureOut bool) *commandLogWriter {
+	return &commandLogWriter{uploadLog: uploadLog, captureOut: captureOut}
+}
+
+func (writer *commandLogWriter) Write(p []byte) (int, error) {
+	if len(p) == 0 {
+		return 0, nil
+	}
+
+	writer.mu.Lock()
+	defer writer.mu.Unlock()
+
+	if writer.captureOut {
+		if _, err := writer.output.Write(p); err != nil {
+			return 0, err
+		}
+	}
+	if writer.uploadLog != nil {
+		if err := writer.uploadLog(string(p)); err != nil {
+			return 0, err
+		}
+	}
+	return len(p), nil
+}
+
+func (writer *commandLogWriter) String() string {
+	writer.mu.Lock()
+	defer writer.mu.Unlock()
+	return writer.output.String()
+}
+
+func runCommandWithLiveLogs(command *exec.Cmd, uploadLog func(string) error) error {
+	writer := newCommandLogWriter(uploadLog, false)
+	command.Stdout = writer
+	command.Stderr = writer
+	return command.Run()
+}
+
+func runCommandWithLiveLogsAndCapture(command *exec.Cmd, uploadLog func(string) error) (string, error) {
+	writer := newCommandLogWriter(uploadLog, true)
+	command.Stdout = writer
+	command.Stderr = writer
+	err := command.Run()
+	return writer.String(), err
+}
+
 func runRusticInit(ctx context.Context, serviceDir string, meta rusticTaskMeta, uploadLog func(string) error) error {
 	args := buildRusticComposeRunArgs(meta.ComposeService, meta.Profile, append([]string{"init"}, meta.InitArgs...)...)
 	command := exec.CommandContext(ctx, "docker", args...)
 	command.Dir = serviceDir
-	output, err := command.CombinedOutput()
-	if len(output) > 0 {
-		if logErr := uploadLog(string(output)); logErr != nil {
-			return logErr
-		}
-	}
-	if err != nil {
+	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose run rustic init failed: %w", err)
 	}
 	return nil
@@ -971,13 +1013,7 @@ func runRusticForget(ctx context.Context, serviceDir string, meta rusticTaskMeta
 	}
 	command := exec.CommandContext(ctx, "docker", args...)
 	command.Dir = serviceDir
-	output, err := command.CombinedOutput()
-	if len(output) > 0 {
-		if logErr := uploadLog(string(output)); logErr != nil {
-			return logErr
-		}
-	}
-	if err != nil {
+	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose run rustic forget failed: %w", err)
 	}
 	return nil
@@ -987,13 +1023,7 @@ func runRusticPrune(ctx context.Context, serviceDir string, meta rusticTaskMeta,
 	args := buildRusticComposeRunArgs(meta.ComposeService, meta.Profile, "prune")
 	command := exec.CommandContext(ctx, "docker", args...)
 	command.Dir = serviceDir
-	output, err := command.CombinedOutput()
-	if len(output) > 0 {
-		if logErr := uploadLog(string(output)); logErr != nil {
-			return logErr
-		}
-	}
-	if err != nil {
+	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose run rustic prune failed: %w", err)
 	}
 	return nil
@@ -1003,13 +1033,7 @@ func runCaddyReload(ctx context.Context, serviceDir, projectName, composeService
 	configPath := filepath.Join(configDir, "Caddyfile")
 	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "exec", "-T", composeService, "caddy", "reload", "--config", configPath, "--adapter", "caddyfile")
 	command.Dir = serviceDir
-	output, err := command.CombinedOutput()
-	if len(output) > 0 {
-		if logErr := uploadLog(string(output)); logErr != nil {
-			return logErr
-		}
-	}
-	if err != nil {
+	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose exec caddy reload failed: %w", err)
 	}
 	return nil
@@ -1736,14 +1760,8 @@ func runComposePGDumpAll(ctx context.Context, serviceDir, projectName, serviceNa
 	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "exec", "-T", serviceName, "pg_dumpall")
 	command.Dir = serviceDir
 	command.Stdout = targetFile
-	var stderr bytes.Buffer
-	command.Stderr = &stderr
+	command.Stderr = newCommandLogWriter(uploadLog, false)
 	err = command.Run()
-	if stderr.Len() > 0 {
-		if logErr := uploadLog(stderr.String()); logErr != nil {
-			return logErr
-		}
-	}
 	if err != nil {
 		return fmt.Errorf("docker compose exec pg_dumpall failed: %w", err)
 	}
@@ -1762,13 +1780,7 @@ func runComposePGImport(ctx context.Context, serviceDir, projectName, serviceNam
 	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "exec", "-T", serviceName, "psql")
 	command.Dir = serviceDir
 	command.Stdin = sourceFile
-	output, err := command.CombinedOutput()
-	if len(output) > 0 {
-		if logErr := uploadLog(string(output)); logErr != nil {
-			return logErr
-		}
-	}
-	if err != nil {
+	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose exec psql failed: %w", err)
 	}
 	return nil
@@ -1784,16 +1796,13 @@ func runRusticBackup(ctx context.Context, rusticDir string, rustic *backupcfg.Ru
 	args = append(args, sourceDir, "--as-path", item.Name)
 	command := exec.CommandContext(ctx, "docker", args...)
 	command.Dir = rusticDir
-	output, err := command.CombinedOutput()
-	if len(output) > 0 {
-		if logErr := uploadTaskLog(ctx, logUploader, string(output)); logErr != nil {
-			return "", logErr
-		}
-	}
+	output, err := runCommandWithLiveLogsAndCapture(command, func(output string) error {
+		return uploadTaskLog(ctx, logUploader, output)
+	})
 	if err != nil {
 		return "", fmt.Errorf("docker compose run rustic backup failed: %w", err)
 	}
-	matches := rusticSnapshotRegexp.FindStringSubmatch(string(output))
+	matches := rusticSnapshotRegexp.FindStringSubmatch(output)
 	if len(matches) != 2 {
 		return "", fmt.Errorf("could not parse rustic snapshot id from output")
 	}
@@ -1804,13 +1813,9 @@ func runRusticRestore(ctx context.Context, rusticDir string, rustic *backupcfg.R
 	args := buildRusticComposeRunArgs(rustic.ComposeService, rustic.Profile, "restore", artifactRef, targetDir)
 	command := exec.CommandContext(ctx, "docker", args...)
 	command.Dir = rusticDir
-	output, err := command.CombinedOutput()
-	if len(output) > 0 {
-		if logErr := uploadTaskLog(ctx, logUploader, string(output)); logErr != nil {
-			return logErr
-		}
-	}
-	if err != nil {
+	if err := runCommandWithLiveLogs(command, func(output string) error {
+		return uploadTaskLog(ctx, logUploader, output)
+	}); err != nil {
 		return fmt.Errorf("docker compose run rustic restore failed: %w", err)
 	}
 	return nil
@@ -2074,13 +2079,7 @@ func loadComposeProjectName(serviceDir, fallback string) (string, error) {
 func runComposeUp(ctx context.Context, serviceDir, projectName string, uploadLog func(string) error) error {
 	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "up", "-d")
 	command.Dir = serviceDir
-	output, err := command.CombinedOutput()
-	if len(output) > 0 {
-		if logErr := uploadLog(string(output)); logErr != nil {
-			return logErr
-		}
-	}
-	if err != nil {
+	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose up failed: %w", err)
 	}
 	return nil
@@ -2089,13 +2088,7 @@ func runComposeUp(ctx context.Context, serviceDir, projectName string, uploadLog
 func runComposeDown(ctx context.Context, serviceDir, projectName string, uploadLog func(string) error) error {
 	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "down")
 	command.Dir = serviceDir
-	output, err := command.CombinedOutput()
-	if len(output) > 0 {
-		if logErr := uploadLog(string(output)); logErr != nil {
-			return logErr
-		}
-	}
-	if err != nil {
+	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose down failed: %w", err)
 	}
 	return nil
@@ -2104,13 +2097,7 @@ func runComposeDown(ctx context.Context, serviceDir, projectName string, uploadL
 func runComposePull(ctx context.Context, serviceDir, projectName string, uploadLog func(string) error) error {
 	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "pull")
 	command.Dir = serviceDir
-	output, err := command.CombinedOutput()
-	if len(output) > 0 {
-		if logErr := uploadLog(string(output)); logErr != nil {
-			return logErr
-		}
-	}
-	if err != nil {
+	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose pull failed: %w", err)
 	}
 	return nil

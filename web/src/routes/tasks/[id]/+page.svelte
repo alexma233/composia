@@ -6,6 +6,7 @@
   import type { PageData } from './$types';
   import { messages } from '$lib/i18n';
 
+  import XtermSurface from '$lib/components/app/xterm-surface.svelte';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
@@ -28,6 +29,23 @@
 
   function isTerminalStatus(status: string): boolean {
     return status === 'succeeded' || status === 'failed' || status === 'cancelled';
+  }
+
+  function logStateLabel(state: string): string {
+    switch (state) {
+      case 'idle':
+        return $messages.tasks.logStreamStatus.idle;
+      case 'connecting':
+        return $messages.tasks.logStreamStatus.connecting;
+      case 'streaming':
+        return $messages.tasks.logStreamStatus.streaming;
+      case 'completed':
+        return $messages.tasks.logStreamStatus.completed;
+      case 'failed':
+        return $messages.tasks.logStreamStatus.failed;
+      default:
+        return state;
+    }
   }
 
   $effect(() => {
@@ -115,11 +133,16 @@
 
   $effect(() => {
     if (!data.task?.taskId || !data.task.logPath) {
+      logContent = '';
+      logError = '';
+      logState = 'idle';
       return;
     }
 
     const controller = new AbortController();
     const decoder = new TextDecoder();
+    logContent = '';
+    logError = '';
     logState = 'connecting';
 
     void (async () => {
@@ -143,6 +166,11 @@
             logContent += decoder.decode(value, { stream: true });
           }
         }
+        const trailing = decoder.decode();
+        if (trailing) {
+          logContent += trailing;
+        }
+        logState = 'completed';
       } catch (error) {
         if (controller.signal.aborted) {
           return;
@@ -282,7 +310,7 @@
 		<Card>
       <CardHeader class="section-header">
         <CardTitle class="section-title">{$messages.tasks.taskLogs}</CardTitle>
-        <div class="metric-label">{logState}</div>
+        <div class="metric-label">{logStateLabel(logState)}</div>
       </CardHeader>
       <CardContent class="space-y-4">
         {#if logError}
@@ -293,7 +321,12 @@
         {/if}
 
         {#if data.task?.logPath}
-          <pre class="code-surface max-h-[28rem] overflow-auto">{logContent || $messages.tasks.waitingForOutput}</pre>
+          <XtermSurface
+            active={true}
+            content={logContent}
+            emptyText={$messages.tasks.waitingForOutput}
+            heightClass="h-[360px] sm:h-[560px]"
+          />
         {:else}
           <div class="empty-state">{$messages.tasks.noLogFile}</div>
         {/if}

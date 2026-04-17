@@ -9,7 +9,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
@@ -432,6 +434,47 @@ func TestRunComposePullUsesProjectNameAndServiceDir(t *testing.T) {
 	}
 	if string(bytes.TrimSpace(pwdContent)) != serviceDir {
 		t.Fatalf("expected docker cwd %q, got %q", serviceDir, string(bytes.TrimSpace(pwdContent)))
+	}
+}
+
+func TestRunComposeUpStreamsLogsBeforeCommandExit(t *testing.T) {
+	rootDir := t.TempDir()
+	binDir := filepath.Join(rootDir, "bin")
+	serviceDir := filepath.Join(rootDir, "service")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatalf("create bin dir: %v", err)
+	}
+	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+		t.Fatalf("create service dir: %v", err)
+	}
+
+	dockerPath := filepath.Join(binDir, "docker")
+	script := "#!/bin/sh\nprintf 'starting compose up\\n'\nsleep 0.3\nprintf 'compose up finished\\n' >&2\n"
+	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake docker script: %v", err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	logsCh := make(chan string, 8)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- runComposeUp(context.Background(), serviceDir, "demo-project", func(output string) error {
+			logsCh <- output
+			return nil
+		})
+	}()
+
+	select {
+	case output := <-logsCh:
+		if !strings.Contains(output, "starting compose up") {
+			t.Fatalf("expected first streamed chunk, got %q", output)
+		}
+	case <-time.After(150 * time.Millisecond):
+		t.Fatal("expected task logs before command exit")
+	}
+
+	if err := <-errCh; err != nil {
+		t.Fatalf("run compose up: %v", err)
 	}
 }
 
