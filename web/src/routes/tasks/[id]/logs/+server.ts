@@ -12,36 +12,40 @@ export const GET: RequestHandler = async ({ params }) => {
   if (!config.ready) {
     return json({ error: config.reason }, { status: 503 });
   }
-
-  const upstream = await fetch(
-    `${config.baseUrl}/composia.controller.v1.TaskService/TailTaskLogs`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.token}`,
-        "Connect-Protocol-Version": connectProtocolVersion,
-        "Content-Type": "application/connect+json",
-        "X-Composia-Source": "web",
-      },
-      body: encodeConnectStreamMessage({ taskId: params.id }),
-    },
-  );
-
-  if (!upstream.ok || !upstream.body) {
-    const text = await upstream.text();
-    return json(
-      { error: text || "Failed to stream task logs." },
-      { status: upstream.status || 500 },
-    );
-  }
+  const upstreamController = new AbortController();
+  let upstreamBody: ReadableStream<Uint8Array> | null = null;
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const reader = upstream.body!.getReader();
       const textEncoder = new TextEncoder();
+      const textDecoder = new TextDecoder();
       let buffer = new Uint8Array(0);
+      let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
 
       try {
+        const upstream = await fetch(
+          `${config.baseUrl}/composia.controller.v1.TaskService/TailTaskLogs`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${config.token}`,
+              "Connect-Protocol-Version": connectProtocolVersion,
+              "Content-Type": "application/connect+json",
+              "X-Composia-Source": "web",
+            },
+            body: encodeConnectStreamMessage({ taskId: params.id }),
+            signal: upstreamController.signal,
+          },
+        );
+
+        if (!upstream.ok || !upstream.body) {
+          const text = await upstream.text();
+          throw new Error(text || "Failed to stream task logs.");
+        }
+
+        upstreamBody = upstream.body;
+        reader = upstream.body.getReader();
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) {
@@ -71,7 +75,7 @@ export const GET: RequestHandler = async ({ params }) => {
             }
 
             const jsonPayload = JSON.parse(
-              new TextDecoder().decode(payload),
+              textDecoder.decode(payload),
             ) as
               | { content?: string }
               | {
@@ -103,11 +107,12 @@ export const GET: RequestHandler = async ({ params }) => {
             : new Error("Failed to stream task logs."),
         );
       } finally {
-        reader.releaseLock();
+        reader?.releaseLock();
       }
     },
     async cancel() {
-      await upstream.body?.cancel();
+      upstreamController.abort();
+      await upstreamBody?.cancel();
     },
   });
 

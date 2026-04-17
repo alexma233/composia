@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import { RotateCcw } from 'lucide-svelte';
   import { toast } from 'svelte-sonner';
   import { goto, invalidateAll } from '$app/navigation';
@@ -23,6 +24,8 @@
   let logContent = $state('');
   let logState = $state('idle');
   let logError = $state('');
+  let logStreamTaskId = $state('');
+  let logStreamController = $state<AbortController | null>(null);
   let rerunning = $state(false);
   let resolvingConfirmation = $state(false);
   let stopTaskRefresh = $state<null | (() => void)>(null);
@@ -132,56 +135,78 @@
   }
 
   $effect(() => {
-    if (!data.task?.taskId || !data.task.logPath) {
-      logContent = '';
-      logError = '';
-      logState = 'idle';
+    const nextTaskId = data.task?.taskId ?? '';
+    const hasLogPath = Boolean(data.task?.logPath);
+    if (nextTaskId && hasLogPath && nextTaskId !== logStreamTaskId) {
+      void startLogStream(nextTaskId);
+    }
+  });
+
+  $effect(() => {
+    if ((data.task?.taskId && data.task.logPath) || !logStreamTaskId) {
       return;
     }
+    stopLogStream();
+    logStreamTaskId = '';
+    logContent = '';
+    logError = '';
+    logState = 'idle';
+  });
 
+  onDestroy(stopLogStream);
+
+  async function startLogStream(taskId: string) {
+    stopLogStream();
     const controller = new AbortController();
     const decoder = new TextDecoder();
+    logStreamController = controller;
+    logStreamTaskId = taskId;
     logContent = '';
     logError = '';
     logState = 'connecting';
 
-    void (async () => {
-      try {
-        const response = await fetch(`/tasks/${data.task?.taskId}/logs`, {
-          signal: controller.signal
-        });
-        if (!response.ok || !response.body) {
-          throw new Error(`${$messages.error.logStreamFailed}: ${response.status}`);
-        }
-
-        logState = 'streaming';
-        const reader = response.body.getReader();
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            break;
-          }
-          if (value) {
-            logContent += decoder.decode(value, { stream: true });
-          }
-        }
-        const trailing = decoder.decode();
-        if (trailing) {
-          logContent += trailing;
-        }
-        logState = 'completed';
-      } catch (error) {
-        if (controller.signal.aborted) {
-          return;
-        }
-        logState = 'failed';
-        logError = error instanceof Error ? error.message : $messages.error.logStreamFailed;
+    try {
+      const response = await fetch(`/tasks/${taskId}/logs`, {
+        signal: controller.signal
+      });
+      if (!response.ok || !response.body) {
+        throw new Error(`${$messages.error.logStreamFailed}: ${response.status}`);
       }
-    })();
 
-    return () => controller.abort();
-  });
+      logState = 'streaming';
+      const reader = response.body.getReader();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+        if (value) {
+          logContent += decoder.decode(value, { stream: true });
+        }
+      }
+      const trailing = decoder.decode();
+      if (trailing) {
+        logContent += trailing;
+      }
+      logState = 'completed';
+    } catch (error) {
+      if (controller.signal.aborted) {
+        return;
+      }
+      logState = 'failed';
+      logError = error instanceof Error ? error.message : $messages.error.logStreamFailed;
+    } finally {
+      if (logStreamController === controller) {
+        logStreamController = null;
+      }
+    }
+  }
+
+  function stopLogStream() {
+    logStreamController?.abort();
+    logStreamController = null;
+  }
 </script>
 
 <div class="page-shell">
