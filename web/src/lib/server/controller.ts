@@ -28,6 +28,18 @@ export type ServiceSummary = {
   targetNodeCount: number;
 };
 
+export type ServiceWorkspaceSummary = {
+  folder: string;
+  displayName: string;
+  serviceName: string;
+  hasMeta: boolean;
+  isDeclared: boolean;
+  runtimeStatus: string;
+  updatedAt: string;
+  nodes: string[];
+  enabled: boolean;
+};
+
 export type ServiceInstanceSummary = {
   serviceName: string;
   nodeId: string;
@@ -245,9 +257,7 @@ export async function loadDashboard(): Promise<DashboardData> {
       loadServices(1, 8),
       loadNodes(),
       loadTasks(1, 6),
-      import("$lib/server/service-index").then(({ loadServiceWorkspaces }) =>
-        loadServiceWorkspaces(),
-      ),
+      loadServiceWorkspaces(),
     ]);
 
   const foldersByServiceName = new Map(
@@ -309,6 +319,91 @@ export async function loadServices(
         service.targetNodeCount ?? service.target_node_count ?? 0,
     })),
     totalCount: response.totalCount ?? 0,
+  };
+}
+
+export async function loadServiceWorkspaces(): Promise<ServiceWorkspaceSummary[]> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{
+    workspaces?: Array<{
+      folder: string;
+      displayName?: string;
+      display_name?: string;
+      serviceName?: string;
+      service_name?: string;
+      hasMeta?: boolean;
+      has_meta?: boolean;
+      isDeclared?: boolean;
+      is_declared?: boolean;
+      runtimeStatus?: string;
+      runtime_status?: string;
+      updatedAt?: string;
+      updated_at?: string;
+      nodes?: string[];
+      enabled?: boolean;
+    }>;
+  }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.ServiceQueryService/ListServiceWorkspaces",
+    {},
+  );
+  return (response.workspaces ?? []).map((workspace) => ({
+    folder: workspace.folder,
+    displayName: workspace.displayName ?? workspace.display_name ?? workspace.folder,
+    serviceName: workspace.serviceName ?? workspace.service_name ?? "",
+    hasMeta: workspace.hasMeta ?? workspace.has_meta ?? false,
+    isDeclared: workspace.isDeclared ?? workspace.is_declared ?? false,
+    runtimeStatus:
+      workspace.runtimeStatus ?? workspace.runtime_status ?? "unknown",
+    updatedAt: workspace.updatedAt ?? workspace.updated_at ?? "",
+    nodes: workspace.nodes ?? [],
+    enabled: workspace.enabled ?? false,
+  }));
+}
+
+export async function loadServiceWorkspace(
+  folder: string,
+): Promise<ServiceWorkspaceSummary | null> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{
+    workspace?: {
+      folder: string;
+      displayName?: string;
+      display_name?: string;
+      serviceName?: string;
+      service_name?: string;
+      hasMeta?: boolean;
+      has_meta?: boolean;
+      isDeclared?: boolean;
+      is_declared?: boolean;
+      runtimeStatus?: string;
+      runtime_status?: string;
+      updatedAt?: string;
+      updated_at?: string;
+      nodes?: string[];
+      enabled?: boolean;
+    };
+  }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.ServiceQueryService/GetServiceWorkspace",
+    { folder },
+  );
+  if (!response.workspace) {
+    return null;
+  }
+  const workspace = response.workspace;
+  return {
+    folder: workspace.folder,
+    displayName: workspace.displayName ?? workspace.display_name ?? workspace.folder,
+    serviceName: workspace.serviceName ?? workspace.service_name ?? "",
+    hasMeta: workspace.hasMeta ?? workspace.has_meta ?? false,
+    isDeclared: workspace.isDeclared ?? workspace.is_declared ?? false,
+    runtimeStatus: workspace.runtimeStatus ?? workspace.runtime_status ?? "unknown",
+    updatedAt: workspace.updatedAt ?? workspace.updated_at ?? "",
+    nodes: workspace.nodes ?? [],
+    enabled: workspace.enabled ?? false,
   };
 }
 

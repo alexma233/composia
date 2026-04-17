@@ -210,6 +210,9 @@
   let recentTasks = $derived(
     tasks.filter((task) => isTaskRecent(task.createdAt)).slice(0, 4),
   );
+  let workspaceNodesLabel = $derived(
+    workspace?.nodes?.length ? workspace.nodes.join(", ") : "",
+  );
   let migrateSourceNodes = $derived(serviceDetail?.nodes ?? []);
   let hasMultipleInstanceNodes = $derived(nodeContainers.length > 1);
   let selectedInstanceEntry = $derived(
@@ -872,7 +875,7 @@
         type: action,
         status: payload.status,
         serviceName: workspace?.serviceName ?? "",
-        nodeId: workspace?.node ?? "",
+        nodeId: "",
         createdAt: new Date().toISOString(),
       };
       tasks = [newTask, ...tasks].slice(0, 12);
@@ -1083,7 +1086,7 @@
           <div class="flex items-center gap-1.5">
             <span>{$messages.nodes.node}</span>
             <span class="font-medium text-foreground"
-              >{workspace?.node || $messages.common.na}</span
+              >{workspaceNodesLabel || $messages.common.na}</span
             >
           </div>
           <div class="flex items-center gap-1.5">
@@ -1618,7 +1621,7 @@
                     onclick={() => triggerAction("caddy_sync")}
                     disabled={!!actionBusy ||
                       !workspace?.isDeclared ||
-                      !workspace?.node}
+                      !(workspace?.nodes?.length ?? 0)}
                   >
                     <Copy class="mr-2 size-4" />{$messages.services.operations
                       .syncCaddy}

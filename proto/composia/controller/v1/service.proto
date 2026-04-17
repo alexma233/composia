@@ -7,12 +7,16 @@ import "proto/composia/controller/v1/backup.proto";
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
-// ServiceQueryService exposes read-only declared service, task, and backup queries.
+// ServiceQueryService exposes read-only service workspace, declared service, task, and backup queries.
 service ServiceQueryService {
   // ListServices returns declared services with pagination.
   rpc ListServices(ListServicesRequest) returns (ListServicesResponse);
+  // ListServiceWorkspaces returns top-level repo service workspaces with merged controller state.
+  rpc ListServiceWorkspaces(ListServiceWorkspacesRequest) returns (ListServiceWorkspacesResponse);
   // GetService returns the full detail for a single service.
   rpc GetService(GetServiceRequest) returns (GetServiceResponse);
+  // GetServiceWorkspace returns one top-level repo service workspace.
+  rpc GetServiceWorkspace(GetServiceWorkspaceRequest) returns (GetServiceWorkspaceResponse);
   // GetServiceTasks returns tasks related to one service.
   rpc GetServiceTasks(GetServiceTasksRequest) returns (GetServiceTasksResponse);
   // GetServiceBackups returns backups related to one service.
@@ -111,6 +115,46 @@ message GetServiceResponse {
   string directory = 6;
   // instances lists per-node runtime details known to the controller.
   repeated ServiceInstanceDetail instances = 7;
+}
+
+// ServiceWorkspaceSummary describes one top-level repo workspace and any merged service state.
+message ServiceWorkspaceSummary {
+  // folder is the repo-relative top-level folder name for this workspace.
+  string folder = 1;
+  // display_name is the preferred workspace label for operator-facing lists.
+  string display_name = 2;
+  // service_name is empty until the workspace has a parseable service name.
+  string service_name = 3;
+  // has_meta reports whether composia-meta.yaml exists in the workspace.
+  bool has_meta = 4;
+  // is_declared reports whether this workspace currently maps to a declared controller service.
+  bool is_declared = 5;
+  // runtime_status is the merged controller status or a workspace-local placeholder.
+  string runtime_status = 6;
+  // updated_at is the last known controller update timestamp string.
+  string updated_at = 7;
+  // nodes lists declared target nodes when the workspace meta is parseable.
+  repeated string nodes = 8;
+  // enabled reports the desired-state enabled flag when the workspace meta is parseable.
+  bool enabled = 9;
+}
+
+// ListServiceWorkspacesRequest requests all top-level service workspaces.
+message ListServiceWorkspacesRequest {}
+
+// ListServiceWorkspacesResponse returns top-level repo service workspaces.
+message ListServiceWorkspacesResponse {
+  repeated ServiceWorkspaceSummary workspaces = 1;
+}
+
+// GetServiceWorkspaceRequest identifies one top-level service workspace folder.
+message GetServiceWorkspaceRequest {
+  string folder = 1;
+}
+
+// GetServiceWorkspaceResponse returns one top-level repo service workspace.
+message GetServiceWorkspaceResponse {
+  ServiceWorkspaceSummary workspace = 1;
 }
 
 // ListServiceInstancesRequest addresses one service by logical name.

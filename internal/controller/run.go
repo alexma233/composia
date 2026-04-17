@@ -1502,6 +1502,14 @@ func (server *serviceQueryServer) ListServices(ctx context.Context, req *connect
 	return connect.NewResponse(response), nil
 }
 
+func (server *serviceQueryServer) ListServiceWorkspaces(ctx context.Context, _ *connect.Request[controllerv1.ListServiceWorkspacesRequest]) (*connect.Response[controllerv1.ListServiceWorkspacesResponse], error) {
+	workspaces, err := server.listServiceWorkspaceSummaries(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&controllerv1.ListServiceWorkspacesResponse{Workspaces: workspaces}), nil
+}
+
 func (server *serviceQueryServer) GetService(ctx context.Context, req *connect.Request[controllerv1.GetServiceRequest]) (*connect.Response[controllerv1.GetServiceResponse], error) {
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
@@ -1542,6 +1550,23 @@ func (server *serviceQueryServer) GetService(ctx context.Context, req *connect.R
 		response.Instances = append(response.Instances, detail)
 	}
 	return connect.NewResponse(response), nil
+}
+
+func (server *serviceQueryServer) GetServiceWorkspace(ctx context.Context, req *connect.Request[controllerv1.GetServiceWorkspaceRequest]) (*connect.Response[controllerv1.GetServiceWorkspaceResponse], error) {
+	if req.Msg == nil || strings.TrimSpace(req.Msg.GetFolder()) == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("folder is required"))
+	}
+	workspaces, err := server.listServiceWorkspaceSummaries(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	folder := filepath.ToSlash(strings.TrimSpace(req.Msg.GetFolder()))
+	for _, workspace := range workspaces {
+		if workspace.GetFolder() == folder {
+			return connect.NewResponse(&controllerv1.GetServiceWorkspaceResponse{Workspace: workspace}), nil
+		}
+	}
+	return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("service folder %q not found", folder))
 }
 
 func (server *serviceQueryServer) GetServiceTasks(ctx context.Context, req *connect.Request[controllerv1.GetServiceTasksRequest]) (*connect.Response[controllerv1.GetServiceTasksResponse], error) {
@@ -1588,6 +1613,94 @@ func (server *serviceQueryServer) GetServiceBackups(ctx context.Context, req *co
 		response.Backups = append(response.Backups, backupSummaryMessage(backup))
 	}
 	return connect.NewResponse(response), nil
+}
+
+func (server *serviceQueryServer) listServiceWorkspaceSummaries(ctx context.Context) ([]*controllerv1.ServiceWorkspaceSummary, error) {
+	if server.cfg == nil || strings.TrimSpace(server.cfg.RepoDir) == "" {
+		return nil, errors.New("controller repo_dir is not configured")
+	}
+	entries, err := repo.ListFiles(server.cfg.RepoDir, "", false)
+	if err != nil {
+		return nil, err
+	}
+	declaredServices, _, err := server.db.ListDeclaredServices(ctx, "", 1, 10000)
+	if err != nil {
+		return nil, err
+	}
+	declaredByName := make(map[string]store.ServiceSummary, len(declaredServices))
+	for _, service := range declaredServices {
+		declaredByName[service.Name] = service
+	}
+	workspaces := make([]*controllerv1.ServiceWorkspaceSummary, 0, len(entries))
+	for _, entry := range entries {
+		if !entry.IsDir {
+			continue
+		}
+		workspace, err := server.buildServiceWorkspaceSummary(entry.Path, entry.Name, declaredByName)
+		if err != nil {
+			return nil, err
+		}
+		workspaces = append(workspaces, workspace)
+	}
+	return workspaces, nil
+}
+
+func (server *serviceQueryServer) buildServiceWorkspaceSummary(folder, defaultName string, declaredByName map[string]store.ServiceSummary) (*controllerv1.ServiceWorkspaceSummary, error) {
+	workspace := &controllerv1.ServiceWorkspaceSummary{
+		Folder:        folder,
+		DisplayName:   defaultName,
+		RuntimeStatus: "uninitialized",
+		Nodes:         []string{},
+	}
+	metaPath := filepath.Join(server.cfg.RepoDir, filepath.FromSlash(folder), repo.MetaFileName)
+	metaInfo, err := os.Stat(metaPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return workspace, nil
+		}
+		return nil, fmt.Errorf("stat service meta %q: %w", metaPath, err)
+	}
+	if metaInfo.IsDir() {
+		return nil, fmt.Errorf("service meta %q must be a file", metaPath)
+	}
+	workspace.HasMeta = true
+	meta, err := repo.LoadServiceMeta(metaPath)
+	if err != nil {
+		workspace.RuntimeStatus = "needs_validation"
+		return workspace, nil
+	}
+	serviceName := strings.TrimSpace(meta.Name)
+	if serviceName != "" {
+		workspace.DisplayName = serviceName
+		workspace.ServiceName = serviceName
+	}
+	workspace.Nodes = normalizeWorkspaceNodeIDs(meta.Nodes)
+	workspace.Enabled = meta.Enabled == nil || *meta.Enabled
+	if _, err := repo.LoadServiceFromMetaPath(metaPath, server.availableNodeIDs); err != nil {
+		workspace.RuntimeStatus = "needs_validation"
+		return workspace, nil
+	}
+	declared, ok := declaredByName[workspace.ServiceName]
+	if !ok {
+		workspace.RuntimeStatus = "needs_validation"
+		return workspace, nil
+	}
+	workspace.IsDeclared = true
+	workspace.RuntimeStatus = declared.RuntimeStatus
+	workspace.UpdatedAt = declared.UpdatedAt
+	return workspace, nil
+}
+
+func normalizeWorkspaceNodeIDs(nodeIDs []string) []string {
+	normalized := make([]string, 0, len(nodeIDs))
+	for _, nodeID := range nodeIDs {
+		nodeID = strings.TrimSpace(nodeID)
+		if nodeID == "" {
+			continue
+		}
+		normalized = append(normalized, nodeID)
+	}
+	return normalized
 }
 
 func (server *serviceCommandServer) UpdateServiceTargetNodes(ctx context.Context, req *connect.Request[controllerv1.UpdateServiceTargetNodesRequest]) (*connect.Response[controllerv1.UpdateServiceTargetNodesResponse], error) {

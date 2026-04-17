@@ -79,6 +79,120 @@ func TestServiceQueryServiceListServices(t *testing.T) {
 	}
 }
 
+func TestServiceQueryServiceListServiceWorkspaces(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"alpha/composia-meta.yaml": "name: alpha\nnodes:\n  - main\n",
+		"draft/composia-meta.yaml": "name: draft\n",
+		"scratch/README.md":        "hello\n",
+	})
+
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "access-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+
+	path, handler := controllerv1connect.NewServiceQueryServiceHandler(
+		&serviceQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, availableNodeIDs: map[string]struct{}{"main": {}}},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewServiceQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
+	response, err := client.ListServiceWorkspaces(ctx, connect.NewRequest(&controllerv1.ListServiceWorkspacesRequest{}))
+	if err != nil {
+		t.Fatalf("list service workspaces: %v", err)
+	}
+	if len(response.Msg.GetWorkspaces()) != 3 {
+		t.Fatalf("expected 3 workspaces, got %d", len(response.Msg.GetWorkspaces()))
+	}
+	alpha := response.Msg.GetWorkspaces()[0]
+	if alpha.GetFolder() != "alpha" || !alpha.GetHasMeta() || !alpha.GetIsDeclared() || alpha.GetServiceName() != "alpha" {
+		t.Fatalf("unexpected alpha workspace: %+v", alpha)
+	}
+	draft := response.Msg.GetWorkspaces()[1]
+	if draft.GetFolder() != "draft" || !draft.GetHasMeta() || draft.GetIsDeclared() || draft.GetRuntimeStatus() != "needs_validation" {
+		t.Fatalf("unexpected draft workspace: %+v", draft)
+	}
+	scratch := response.Msg.GetWorkspaces()[2]
+	if scratch.GetFolder() != "scratch" || scratch.GetHasMeta() || scratch.GetRuntimeStatus() != "uninitialized" {
+		t.Fatalf("unexpected scratch workspace: %+v", scratch)
+	}
+}
+
+func TestServiceQueryServiceGetServiceWorkspaceReturnsOneWorkspace(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"alpha/composia-meta.yaml": "name: alpha\nnodes:\n  - main\n",
+	})
+
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "access-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+
+	path, handler := controllerv1connect.NewServiceQueryServiceHandler(
+		&serviceQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, availableNodeIDs: map[string]struct{}{"main": {}}},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewServiceQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
+	response, err := client.GetServiceWorkspace(ctx, connect.NewRequest(&controllerv1.GetServiceWorkspaceRequest{Folder: "alpha"}))
+	if err != nil {
+		t.Fatalf("get service workspace: %v", err)
+	}
+	if response.Msg.GetWorkspace().GetFolder() != "alpha" || response.Msg.GetWorkspace().GetServiceName() != "alpha" {
+		t.Fatalf("unexpected service workspace: %+v", response.Msg.GetWorkspace())
+	}
+}
+
 func TestServiceQueryServiceGetServiceReturnsMinimalSummary(t *testing.T) {
 	t.Parallel()
 

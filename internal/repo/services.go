@@ -332,6 +332,10 @@ func LoadServiceMeta(path string) (ServiceMeta, error) {
 	return loadServiceMeta(path)
 }
 
+func LoadServiceFromMetaPath(path string, availableNodeIDs map[string]struct{}) (Service, error) {
+	return strictServiceFromMetaPath(path, availableNodeIDs)
+}
+
 func RewriteServiceTargetNodes(path string, nodeIDs []string, availableNodeIDs map[string]struct{}) (string, error) {
 	meta, err := loadServiceMeta(path)
 	if err != nil {

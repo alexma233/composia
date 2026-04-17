@@ -40,9 +40,15 @@ const (
 	// ServiceQueryServiceListServicesProcedure is the fully-qualified name of the ServiceQueryService's
 	// ListServices RPC.
 	ServiceQueryServiceListServicesProcedure = "/composia.controller.v1.ServiceQueryService/ListServices"
+	// ServiceQueryServiceListServiceWorkspacesProcedure is the fully-qualified name of the
+	// ServiceQueryService's ListServiceWorkspaces RPC.
+	ServiceQueryServiceListServiceWorkspacesProcedure = "/composia.controller.v1.ServiceQueryService/ListServiceWorkspaces"
 	// ServiceQueryServiceGetServiceProcedure is the fully-qualified name of the ServiceQueryService's
 	// GetService RPC.
 	ServiceQueryServiceGetServiceProcedure = "/composia.controller.v1.ServiceQueryService/GetService"
+	// ServiceQueryServiceGetServiceWorkspaceProcedure is the fully-qualified name of the
+	// ServiceQueryService's GetServiceWorkspace RPC.
+	ServiceQueryServiceGetServiceWorkspaceProcedure = "/composia.controller.v1.ServiceQueryService/GetServiceWorkspace"
 	// ServiceQueryServiceGetServiceTasksProcedure is the fully-qualified name of the
 	// ServiceQueryService's GetServiceTasks RPC.
 	ServiceQueryServiceGetServiceTasksProcedure = "/composia.controller.v1.ServiceQueryService/GetServiceTasks"
@@ -73,8 +79,12 @@ const (
 type ServiceQueryServiceClient interface {
 	// ListServices returns declared services with pagination.
 	ListServices(context.Context, *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error)
+	// ListServiceWorkspaces returns top-level repo service workspaces with merged controller state.
+	ListServiceWorkspaces(context.Context, *connect.Request[v1.ListServiceWorkspacesRequest]) (*connect.Response[v1.ListServiceWorkspacesResponse], error)
 	// GetService returns the full detail for a single service.
 	GetService(context.Context, *connect.Request[v1.GetServiceRequest]) (*connect.Response[v1.GetServiceResponse], error)
+	// GetServiceWorkspace returns one top-level repo service workspace.
+	GetServiceWorkspace(context.Context, *connect.Request[v1.GetServiceWorkspaceRequest]) (*connect.Response[v1.GetServiceWorkspaceResponse], error)
 	// GetServiceTasks returns tasks related to one service.
 	GetServiceTasks(context.Context, *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error)
 	// GetServiceBackups returns backups related to one service.
@@ -98,10 +108,22 @@ func NewServiceQueryServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(serviceQueryServiceMethods.ByName("ListServices")),
 			connect.WithClientOptions(opts...),
 		),
+		listServiceWorkspaces: connect.NewClient[v1.ListServiceWorkspacesRequest, v1.ListServiceWorkspacesResponse](
+			httpClient,
+			baseURL+ServiceQueryServiceListServiceWorkspacesProcedure,
+			connect.WithSchema(serviceQueryServiceMethods.ByName("ListServiceWorkspaces")),
+			connect.WithClientOptions(opts...),
+		),
 		getService: connect.NewClient[v1.GetServiceRequest, v1.GetServiceResponse](
 			httpClient,
 			baseURL+ServiceQueryServiceGetServiceProcedure,
 			connect.WithSchema(serviceQueryServiceMethods.ByName("GetService")),
+			connect.WithClientOptions(opts...),
+		),
+		getServiceWorkspace: connect.NewClient[v1.GetServiceWorkspaceRequest, v1.GetServiceWorkspaceResponse](
+			httpClient,
+			baseURL+ServiceQueryServiceGetServiceWorkspaceProcedure,
+			connect.WithSchema(serviceQueryServiceMethods.ByName("GetServiceWorkspace")),
 			connect.WithClientOptions(opts...),
 		),
 		getServiceTasks: connect.NewClient[v1.GetServiceTasksRequest, v1.GetServiceTasksResponse](
@@ -121,10 +143,12 @@ func NewServiceQueryServiceClient(httpClient connect.HTTPClient, baseURL string,
 
 // serviceQueryServiceClient implements ServiceQueryServiceClient.
 type serviceQueryServiceClient struct {
-	listServices      *connect.Client[v1.ListServicesRequest, v1.ListServicesResponse]
-	getService        *connect.Client[v1.GetServiceRequest, v1.GetServiceResponse]
-	getServiceTasks   *connect.Client[v1.GetServiceTasksRequest, v1.GetServiceTasksResponse]
-	getServiceBackups *connect.Client[v1.GetServiceBackupsRequest, v1.GetServiceBackupsResponse]
+	listServices          *connect.Client[v1.ListServicesRequest, v1.ListServicesResponse]
+	listServiceWorkspaces *connect.Client[v1.ListServiceWorkspacesRequest, v1.ListServiceWorkspacesResponse]
+	getService            *connect.Client[v1.GetServiceRequest, v1.GetServiceResponse]
+	getServiceWorkspace   *connect.Client[v1.GetServiceWorkspaceRequest, v1.GetServiceWorkspaceResponse]
+	getServiceTasks       *connect.Client[v1.GetServiceTasksRequest, v1.GetServiceTasksResponse]
+	getServiceBackups     *connect.Client[v1.GetServiceBackupsRequest, v1.GetServiceBackupsResponse]
 }
 
 // ListServices calls composia.controller.v1.ServiceQueryService.ListServices.
@@ -132,9 +156,19 @@ func (c *serviceQueryServiceClient) ListServices(ctx context.Context, req *conne
 	return c.listServices.CallUnary(ctx, req)
 }
 
+// ListServiceWorkspaces calls composia.controller.v1.ServiceQueryService.ListServiceWorkspaces.
+func (c *serviceQueryServiceClient) ListServiceWorkspaces(ctx context.Context, req *connect.Request[v1.ListServiceWorkspacesRequest]) (*connect.Response[v1.ListServiceWorkspacesResponse], error) {
+	return c.listServiceWorkspaces.CallUnary(ctx, req)
+}
+
 // GetService calls composia.controller.v1.ServiceQueryService.GetService.
 func (c *serviceQueryServiceClient) GetService(ctx context.Context, req *connect.Request[v1.GetServiceRequest]) (*connect.Response[v1.GetServiceResponse], error) {
 	return c.getService.CallUnary(ctx, req)
+}
+
+// GetServiceWorkspace calls composia.controller.v1.ServiceQueryService.GetServiceWorkspace.
+func (c *serviceQueryServiceClient) GetServiceWorkspace(ctx context.Context, req *connect.Request[v1.GetServiceWorkspaceRequest]) (*connect.Response[v1.GetServiceWorkspaceResponse], error) {
+	return c.getServiceWorkspace.CallUnary(ctx, req)
 }
 
 // GetServiceTasks calls composia.controller.v1.ServiceQueryService.GetServiceTasks.
@@ -152,8 +186,12 @@ func (c *serviceQueryServiceClient) GetServiceBackups(ctx context.Context, req *
 type ServiceQueryServiceHandler interface {
 	// ListServices returns declared services with pagination.
 	ListServices(context.Context, *connect.Request[v1.ListServicesRequest]) (*connect.Response[v1.ListServicesResponse], error)
+	// ListServiceWorkspaces returns top-level repo service workspaces with merged controller state.
+	ListServiceWorkspaces(context.Context, *connect.Request[v1.ListServiceWorkspacesRequest]) (*connect.Response[v1.ListServiceWorkspacesResponse], error)
 	// GetService returns the full detail for a single service.
 	GetService(context.Context, *connect.Request[v1.GetServiceRequest]) (*connect.Response[v1.GetServiceResponse], error)
+	// GetServiceWorkspace returns one top-level repo service workspace.
+	GetServiceWorkspace(context.Context, *connect.Request[v1.GetServiceWorkspaceRequest]) (*connect.Response[v1.GetServiceWorkspaceResponse], error)
 	// GetServiceTasks returns tasks related to one service.
 	GetServiceTasks(context.Context, *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error)
 	// GetServiceBackups returns backups related to one service.
@@ -173,10 +211,22 @@ func NewServiceQueryServiceHandler(svc ServiceQueryServiceHandler, opts ...conne
 		connect.WithSchema(serviceQueryServiceMethods.ByName("ListServices")),
 		connect.WithHandlerOptions(opts...),
 	)
+	serviceQueryServiceListServiceWorkspacesHandler := connect.NewUnaryHandler(
+		ServiceQueryServiceListServiceWorkspacesProcedure,
+		svc.ListServiceWorkspaces,
+		connect.WithSchema(serviceQueryServiceMethods.ByName("ListServiceWorkspaces")),
+		connect.WithHandlerOptions(opts...),
+	)
 	serviceQueryServiceGetServiceHandler := connect.NewUnaryHandler(
 		ServiceQueryServiceGetServiceProcedure,
 		svc.GetService,
 		connect.WithSchema(serviceQueryServiceMethods.ByName("GetService")),
+		connect.WithHandlerOptions(opts...),
+	)
+	serviceQueryServiceGetServiceWorkspaceHandler := connect.NewUnaryHandler(
+		ServiceQueryServiceGetServiceWorkspaceProcedure,
+		svc.GetServiceWorkspace,
+		connect.WithSchema(serviceQueryServiceMethods.ByName("GetServiceWorkspace")),
 		connect.WithHandlerOptions(opts...),
 	)
 	serviceQueryServiceGetServiceTasksHandler := connect.NewUnaryHandler(
@@ -195,8 +245,12 @@ func NewServiceQueryServiceHandler(svc ServiceQueryServiceHandler, opts ...conne
 		switch r.URL.Path {
 		case ServiceQueryServiceListServicesProcedure:
 			serviceQueryServiceListServicesHandler.ServeHTTP(w, r)
+		case ServiceQueryServiceListServiceWorkspacesProcedure:
+			serviceQueryServiceListServiceWorkspacesHandler.ServeHTTP(w, r)
 		case ServiceQueryServiceGetServiceProcedure:
 			serviceQueryServiceGetServiceHandler.ServeHTTP(w, r)
+		case ServiceQueryServiceGetServiceWorkspaceProcedure:
+			serviceQueryServiceGetServiceWorkspaceHandler.ServeHTTP(w, r)
 		case ServiceQueryServiceGetServiceTasksProcedure:
 			serviceQueryServiceGetServiceTasksHandler.ServeHTTP(w, r)
 		case ServiceQueryServiceGetServiceBackupsProcedure:
@@ -214,8 +268,16 @@ func (UnimplementedServiceQueryServiceHandler) ListServices(context.Context, *co
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceQueryService.ListServices is not implemented"))
 }
 
+func (UnimplementedServiceQueryServiceHandler) ListServiceWorkspaces(context.Context, *connect.Request[v1.ListServiceWorkspacesRequest]) (*connect.Response[v1.ListServiceWorkspacesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceQueryService.ListServiceWorkspaces is not implemented"))
+}
+
 func (UnimplementedServiceQueryServiceHandler) GetService(context.Context, *connect.Request[v1.GetServiceRequest]) (*connect.Response[v1.GetServiceResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceQueryService.GetService is not implemented"))
+}
+
+func (UnimplementedServiceQueryServiceHandler) GetServiceWorkspace(context.Context, *connect.Request[v1.GetServiceWorkspaceRequest]) (*connect.Response[v1.GetServiceWorkspaceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceQueryService.GetServiceWorkspace is not implemented"))
 }
 
 func (UnimplementedServiceQueryServiceHandler) GetServiceTasks(context.Context, *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error) {
