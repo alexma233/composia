@@ -26,6 +26,8 @@ service AgentReportService {
   rpc ReportDockerQueryResult(ReportDockerQueryResultRequest) returns (ReportDockerQueryResultResponse);
   // OpenExecTunnel proxies interactive exec traffic between controller and agent.
   rpc OpenExecTunnel(stream OpenExecTunnelRequest) returns (stream OpenExecTunnelResponse);
+  // OpenContainerLogTunnel proxies live container log traffic between controller and agent.
+  rpc OpenContainerLogTunnel(stream OpenContainerLogTunnelRequest) returns (stream OpenContainerLogTunnelResponse);
 }
 
 // AgentTaskService lets an agent pull work assigned to its node.
@@ -150,8 +152,6 @@ message DockerQueryTask {
   string tail = 6;
   // timestamps includes Docker timestamps in container log results.
   bool timestamps = 7;
-  // since is forwarded to the Docker log since option for incremental log queries.
-  string since = 13;
   // page_size is the requested page size for list queries.
   uint32 page_size = 8;
   // page is the 1-based page number for list queries.
@@ -268,6 +268,34 @@ message OpenExecTunnelResponse {
   string container_id = 7;
   // command stores the exec command and arguments.
   repeated string command = 8;
+}
+
+// OpenContainerLogTunnelRequest carries one container log tunnel frame to the controller.
+message OpenContainerLogTunnelRequest {
+  // session_id identifies the container log session.
+  string session_id = 1;
+  // kind identifies the frame type carried in this message.
+  string kind = 2;
+  // content carries one log chunk for chunk frames.
+  string content = 3;
+  // error_message contains the frame-level failure summary, when present.
+  string error_message = 4;
+  // error_code carries a Connect-style lowercase code string such as not_found.
+  string error_code = 5;
+}
+
+// OpenContainerLogTunnelResponse carries one container log tunnel frame to the agent.
+message OpenContainerLogTunnelResponse {
+  // session_id identifies the container log session.
+  string session_id = 1;
+  // kind identifies the frame type carried in this message.
+  string kind = 2;
+  // container_id identifies the target container for the log session.
+  string container_id = 3;
+  // tail is forwarded to the Docker log tail option for the session.
+  string tail = 4;
+  // timestamps includes Docker timestamps in streamed log chunks.
+  bool timestamps = 5;
 }
 
 // ReportBackupResultRequest reports the result of one backup execution.

@@ -41,7 +41,6 @@ const (
 	offlineSweepInterval  = 15 * time.Second
 	pullNextTaskMaxWait   = 25 * time.Second
 	pullNextTaskRetryWait = 500 * time.Millisecond
-	containerLogPollWait  = 1 * time.Second
 )
 
 func Run(ctx context.Context, configPath string) error {
@@ -92,6 +91,7 @@ func Run(ctx context.Context, configPath string) error {
 	taskResults := newTaskResultNotifier()
 	dockerQueries := newDockerQueryBroker()
 	execManager := newExecTunnelManager()
+	logManager := newContainerLogTunnelManager()
 
 	services, err := repo.DiscoverServices(cfg.RepoDir, availableNodeIDs)
 	if err != nil {
@@ -125,8 +125,8 @@ func Run(ctx context.Context, configPath string) error {
 		}
 		return name, nil
 	})
-	registerAgentHandlers(mux, cfg, db, agentInterceptor, taskQueue, taskResults, dockerQueries, execManager)
-	registerAccessHandlers(mux, cfg, db, accessInterceptor, availableNodeIDs, taskQueue, taskResults, dockerQueries, execManager, repoMu)
+	registerAgentHandlers(mux, cfg, db, agentInterceptor, taskQueue, taskResults, dockerQueries, execManager, logManager)
+	registerAccessHandlers(mux, cfg, db, accessInterceptor, availableNodeIDs, taskQueue, taskResults, dockerQueries, execManager, logManager, repoMu)
 	mux.HandleFunc("/ws/container-exec/", execManager.handleWebsocket)
 
 	server := &http.Server{
@@ -154,9 +154,9 @@ func Run(ctx context.Context, configPath string) error {
 	return nil
 }
 
-func registerAgentHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, dockerQueries *dockerQueryBroker, execManager *execTunnelManager) {
+func registerAgentHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, dockerQueries *dockerQueryBroker, execManager *execTunnelManager, logManager *containerLogTunnelManager) {
 	agentPath, agentHandler := agentv1connect.NewAgentReportServiceHandler(
-		&agentReportServer{db: db, cfg: cfg, availableNodeIDs: configuredNodeIDs(cfg), logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: taskQueue, taskResults: taskResults, dockerQueries: dockerQueries, execManager: execManager},
+		&agentReportServer{db: db, cfg: cfg, availableNodeIDs: configuredNodeIDs(cfg), logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: taskQueue, taskResults: taskResults, dockerQueries: dockerQueries, execManager: execManager, logManager: logManager},
 		connect.WithInterceptors(interceptor),
 	)
 	mux.Handle(agentPath, agentHandler)
@@ -174,7 +174,7 @@ func registerAgentHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db 
 	mux.Handle(bundlePath, bundleHandler)
 }
 
-func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, availableNodeIDs map[string]struct{}, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, dockerQueries *dockerQueryBroker, execManager *execTunnelManager, repoMu *sync.Mutex) {
+func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, availableNodeIDs map[string]struct{}, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, dockerQueries *dockerQueryBroker, execManager *execTunnelManager, logManager *containerLogTunnelManager, repoMu *sync.Mutex) {
 	systemPath, systemHandler := controllerv1connect.NewSystemServiceHandler(
 		&systemServer{db: db, cfg: cfg},
 		connect.WithInterceptors(interceptor),
@@ -242,7 +242,7 @@ func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db
 	mux.Handle(dockerQueryPath, dockerQueryHandler)
 
 	containerPath, containerHandler := controllerv1connect.NewContainerServiceHandler(
-		&containerServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults, dockerQueries: dockerQueries, execManager: execManager},
+		&containerServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults, dockerQueries: dockerQueries, execManager: execManager, logManager: logManager},
 		connect.WithInterceptors(interceptor),
 	)
 	mux.Handle(containerPath, containerHandler)
@@ -382,6 +382,7 @@ type agentReportServer struct {
 	taskResults      *taskResultNotifier
 	dockerQueries    *dockerQueryBroker
 	execManager      *execTunnelManager
+	logManager       *containerLogTunnelManager
 }
 
 type agentTaskServer struct {
@@ -1310,6 +1311,7 @@ type containerServer struct {
 	taskResults   *taskResultNotifier
 	dockerQueries *dockerQueryBroker
 	execManager   *execTunnelManager
+	logManager    *containerLogTunnelManager
 }
 
 type taskResultNotifier struct {
@@ -2442,84 +2444,38 @@ func (server *containerServer) GetContainerLogs(ctx context.Context, req *connec
 	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetContainerId() == "" {
 		return connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and container_id are required"))
 	}
-	tail := req.Msg.GetTail()
-	since := ""
+	if err := validateNodeForDockerQuery(ctx, server.db, server.cfg, req.Msg.GetNodeId()); err != nil {
+		return err
+	}
+	session, err := server.openContainerLogSession(req.Msg.GetNodeId(), req.Msg.GetContainerId(), req.Msg.GetTail(), req.Msg.GetTimestamps())
+	if err != nil {
+		return err
+	}
+	defer server.logManager.closeSession(session.id)
 
 	for {
-		queryStartedAt := time.Now().UTC()
-		detail, err := server.executeContainerLogsQuery(ctx, req.Msg.GetNodeId(), req.Msg.GetContainerId(), tail, true, since)
-		if err != nil {
-			return err
-		}
-		tail = ""
-
-		content, lastTimestamp, hasTimestamp := normalizeStreamedContainerLogChunk(detail.Content, req.Msg.GetTimestamps())
-		if hasTimestamp {
-			since = lastTimestamp.Add(time.Nanosecond).Format(time.RFC3339Nano)
-		} else if since == "" {
-			since = queryStartedAt.Format(time.RFC3339Nano)
-		}
-		if content != "" {
-			if err := stream.Send(&controllerv1.GetContainerLogsResponse{Content: content}); err != nil {
-				return err
-			}
-		}
-
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-time.After(containerLogPollWait):
-		}
-	}
-}
-
-func normalizeStreamedContainerLogChunk(content string, includeTimestamps bool) (string, time.Time, bool) {
-	if content == "" {
-		return "", time.Time{}, false
-	}
-
-	var builder strings.Builder
-	remaining := content
-	lastTimestamp := time.Time{}
-	hasTimestamp := false
-
-	for len(remaining) > 0 {
-		line := remaining
-		if newline := strings.IndexByte(remaining, '\n'); newline >= 0 {
-			line = remaining[:newline+1]
-			remaining = remaining[newline+1:]
-		} else {
-			remaining = ""
-		}
-
-		timestamp, body, ok := splitDockerLogTimestampLine(line)
-		if ok {
-			lastTimestamp = timestamp
-			hasTimestamp = true
-			if includeTimestamps {
-				builder.WriteString(line)
-			} else {
-				builder.WriteString(body)
+		case message, ok := <-session.incoming:
+			if !ok {
+				return nil
 			}
-			continue
+			switch message.GetKind() {
+			case containerLogKindChunk:
+				if message.GetContent() == "" {
+					continue
+				}
+				if err := stream.Send(&controllerv1.GetContainerLogsResponse{Content: message.GetContent()}); err != nil {
+					return err
+				}
+			case containerLogKindError:
+				return containerLogStreamError(message)
+			case containerLogKindClosed:
+				return nil
+			}
 		}
-
-		builder.WriteString(line)
 	}
-
-	return builder.String(), lastTimestamp, hasTimestamp
-}
-
-func splitDockerLogTimestampLine(line string) (time.Time, string, bool) {
-	timestampText, body, ok := strings.Cut(line, " ")
-	if !ok {
-		return time.Time{}, "", false
-	}
-	timestamp, err := time.Parse(time.RFC3339Nano, timestampText)
-	if err != nil {
-		return time.Time{}, "", false
-	}
-	return timestamp, body, true
 }
 
 func (server *containerServer) createContainerTask(ctx context.Context, header http.Header, nodeID, containerID string, taskType task.Type, params map[string]any) (task.Record, error) {

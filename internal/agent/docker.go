@@ -305,14 +305,14 @@ func (s *dockerServer) GetContainerLogs(ctx context.Context, req *connect.Reques
 	if req.Msg.GetContainerId() == "" {
 		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("container_id is required"))
 	}
-	return s.streamContainerLogs(ctx, req.Msg.GetContainerId(), req.Msg.GetTail(), "", req.Msg.GetTimestamps(), true, func(content string) error {
+	return s.streamContainerLogs(ctx, req.Msg.GetContainerId(), req.Msg.GetTail(), req.Msg.GetTimestamps(), true, func(content string) error {
 		return stream.Send(&agentv1.GetContainerLogsResponse{Content: content})
 	})
 }
 
-func (s *dockerServer) collectContainerLogs(ctx context.Context, containerID, tail, since string, timestamps bool) (string, error) {
+func (s *dockerServer) collectContainerLogs(ctx context.Context, containerID, tail string, timestamps bool) (string, error) {
 	var builder strings.Builder
-	if err := s.streamContainerLogs(ctx, containerID, tail, since, timestamps, false, func(content string) error {
+	if err := s.streamContainerLogs(ctx, containerID, tail, timestamps, false, func(content string) error {
 		builder.WriteString(content)
 		return nil
 	}); err != nil {
@@ -321,12 +321,12 @@ func (s *dockerServer) collectContainerLogs(ctx context.Context, containerID, ta
 	return builder.String(), nil
 }
 
-func (s *dockerServer) streamContainerLogs(ctx context.Context, containerID, tail, since string, timestamps, follow bool, write func(string) error) error {
+func (s *dockerServer) streamContainerLogs(ctx context.Context, containerID, tail string, timestamps, follow bool, write func(string) error) error {
 	inspect, err := s.client.ContainerInspect(ctx, containerID)
 	if err != nil {
 		return err
 	}
-	reader, err := s.client.ContainerLogs(ctx, containerID, tail, since, timestamps, follow)
+	reader, err := s.client.ContainerLogs(ctx, containerID, tail, timestamps, follow)
 	if err != nil {
 		return err
 	}
@@ -798,7 +798,7 @@ func executeDockerQuery(ctx context.Context, query *agentv1.DockerQueryTask) (do
 		if query.GetResource() != "container" {
 			return dockerTaskResult{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unsupported logs resource %q", query.GetResource()))
 		}
-		content, err := server.collectContainerLogs(ctx, query.GetId(), query.GetTail(), query.GetSince(), query.GetTimestamps())
+		content, err := server.collectContainerLogs(ctx, query.GetId(), query.GetTail(), query.GetTimestamps())
 		if err != nil {
 			return dockerTaskResult{}, err
 		}

@@ -66,6 +66,9 @@ const (
 	// AgentReportServiceOpenExecTunnelProcedure is the fully-qualified name of the AgentReportService's
 	// OpenExecTunnel RPC.
 	AgentReportServiceOpenExecTunnelProcedure = "/composia.agent.v1.AgentReportService/OpenExecTunnel"
+	// AgentReportServiceOpenContainerLogTunnelProcedure is the fully-qualified name of the
+	// AgentReportService's OpenContainerLogTunnel RPC.
+	AgentReportServiceOpenContainerLogTunnelProcedure = "/composia.agent.v1.AgentReportService/OpenContainerLogTunnel"
 	// AgentTaskServicePullNextTaskProcedure is the fully-qualified name of the AgentTaskService's
 	// PullNextTask RPC.
 	AgentTaskServicePullNextTaskProcedure = "/composia.agent.v1.AgentTaskService/PullNextTask"
@@ -139,6 +142,8 @@ type AgentReportServiceClient interface {
 	ReportDockerQueryResult(context.Context, *connect.Request[v1.ReportDockerQueryResultRequest]) (*connect.Response[v1.ReportDockerQueryResultResponse], error)
 	// OpenExecTunnel proxies interactive exec traffic between controller and agent.
 	OpenExecTunnel(context.Context) *connect.BidiStreamForClient[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse]
+	// OpenContainerLogTunnel proxies live container log traffic between controller and agent.
+	OpenContainerLogTunnel(context.Context) *connect.BidiStreamForClient[v1.OpenContainerLogTunnelRequest, v1.OpenContainerLogTunnelResponse]
 }
 
 // NewAgentReportServiceClient constructs a client for the composia.agent.v1.AgentReportService
@@ -206,6 +211,12 @@ func NewAgentReportServiceClient(httpClient connect.HTTPClient, baseURL string, 
 			connect.WithSchema(agentReportServiceMethods.ByName("OpenExecTunnel")),
 			connect.WithClientOptions(opts...),
 		),
+		openContainerLogTunnel: connect.NewClient[v1.OpenContainerLogTunnelRequest, v1.OpenContainerLogTunnelResponse](
+			httpClient,
+			baseURL+AgentReportServiceOpenContainerLogTunnelProcedure,
+			connect.WithSchema(agentReportServiceMethods.ByName("OpenContainerLogTunnel")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -220,6 +231,7 @@ type agentReportServiceClient struct {
 	reportDockerStats           *connect.Client[v1.ReportDockerStatsRequest, v1.ReportDockerStatsResponse]
 	reportDockerQueryResult     *connect.Client[v1.ReportDockerQueryResultRequest, v1.ReportDockerQueryResultResponse]
 	openExecTunnel              *connect.Client[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse]
+	openContainerLogTunnel      *connect.Client[v1.OpenContainerLogTunnelRequest, v1.OpenContainerLogTunnelResponse]
 }
 
 // Heartbeat calls composia.agent.v1.AgentReportService.Heartbeat.
@@ -268,6 +280,11 @@ func (c *agentReportServiceClient) OpenExecTunnel(ctx context.Context) *connect.
 	return c.openExecTunnel.CallBidiStream(ctx)
 }
 
+// OpenContainerLogTunnel calls composia.agent.v1.AgentReportService.OpenContainerLogTunnel.
+func (c *agentReportServiceClient) OpenContainerLogTunnel(ctx context.Context) *connect.BidiStreamForClient[v1.OpenContainerLogTunnelRequest, v1.OpenContainerLogTunnelResponse] {
+	return c.openContainerLogTunnel.CallBidiStream(ctx)
+}
+
 // AgentReportServiceHandler is an implementation of the composia.agent.v1.AgentReportService
 // service.
 type AgentReportServiceHandler interface {
@@ -289,6 +306,8 @@ type AgentReportServiceHandler interface {
 	ReportDockerQueryResult(context.Context, *connect.Request[v1.ReportDockerQueryResultRequest]) (*connect.Response[v1.ReportDockerQueryResultResponse], error)
 	// OpenExecTunnel proxies interactive exec traffic between controller and agent.
 	OpenExecTunnel(context.Context, *connect.BidiStream[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse]) error
+	// OpenContainerLogTunnel proxies live container log traffic between controller and agent.
+	OpenContainerLogTunnel(context.Context, *connect.BidiStream[v1.OpenContainerLogTunnelRequest, v1.OpenContainerLogTunnelResponse]) error
 }
 
 // NewAgentReportServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -352,6 +371,12 @@ func NewAgentReportServiceHandler(svc AgentReportServiceHandler, opts ...connect
 		connect.WithSchema(agentReportServiceMethods.ByName("OpenExecTunnel")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentReportServiceOpenContainerLogTunnelHandler := connect.NewBidiStreamHandler(
+		AgentReportServiceOpenContainerLogTunnelProcedure,
+		svc.OpenContainerLogTunnel,
+		connect.WithSchema(agentReportServiceMethods.ByName("OpenContainerLogTunnel")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.agent.v1.AgentReportService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentReportServiceHeartbeatProcedure:
@@ -372,6 +397,8 @@ func NewAgentReportServiceHandler(svc AgentReportServiceHandler, opts ...connect
 			agentReportServiceReportDockerQueryResultHandler.ServeHTTP(w, r)
 		case AgentReportServiceOpenExecTunnelProcedure:
 			agentReportServiceOpenExecTunnelHandler.ServeHTTP(w, r)
+		case AgentReportServiceOpenContainerLogTunnelProcedure:
+			agentReportServiceOpenContainerLogTunnelHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -415,6 +442,10 @@ func (UnimplementedAgentReportServiceHandler) ReportDockerQueryResult(context.Co
 
 func (UnimplementedAgentReportServiceHandler) OpenExecTunnel(context.Context, *connect.BidiStream[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentReportService.OpenExecTunnel is not implemented"))
+}
+
+func (UnimplementedAgentReportServiceHandler) OpenContainerLogTunnel(context.Context, *connect.BidiStream[v1.OpenContainerLogTunnelRequest, v1.OpenContainerLogTunnelResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentReportService.OpenContainerLogTunnel is not implemented"))
 }
 
 // AgentTaskServiceClient is a client for the composia.agent.v1.AgentTaskService service.

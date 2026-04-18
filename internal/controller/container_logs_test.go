@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1/controllerv1connect"
 	"forgejo.alexma.top/alexma233/composia/internal/config"
@@ -17,30 +17,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/store"
 )
 
-func TestNormalizeStreamedContainerLogChunkStripsTimestamps(t *testing.T) {
-	t.Parallel()
-
-	content, lastTimestamp, ok := normalizeStreamedContainerLogChunk("2026-04-18T10:00:00Z hello\n2026-04-18T10:00:01Z world\n", false)
-	if !ok {
-		t.Fatal("expected timestamped log chunk to report a timestamp")
-	}
-	if content != "hello\nworld\n" {
-		t.Fatalf("unexpected stripped content %q", content)
-	}
-	if want := time.Date(2026, 4, 18, 10, 0, 1, 0, time.UTC); !lastTimestamp.Equal(want) {
-		t.Fatalf("expected last timestamp %s, got %s", want.Format(time.RFC3339Nano), lastTimestamp.Format(time.RFC3339Nano))
-	}
-
-	preserved, _, ok := normalizeStreamedContainerLogChunk("2026-04-18T10:00:00Z hello\n", true)
-	if !ok {
-		t.Fatal("expected preserved chunk to report a timestamp")
-	}
-	if preserved != "2026-04-18T10:00:00Z hello\n" {
-		t.Fatalf("unexpected preserved content %q", preserved)
-	}
-}
-
-func TestContainerServiceGetContainerLogsStreamsIncrementalContent(t *testing.T) {
+func TestContainerServiceGetContainerLogsStreamsThroughAgentTunnel(t *testing.T) {
 	t.Parallel()
 
 	db := openControllerTestDB(t)
@@ -54,19 +31,22 @@ func TestContainerServiceGetContainerLogsStreamsIncrementalContent(t *testing.T)
 		t.Fatalf("record heartbeat: %v", err)
 	}
 
-	broker := newDockerQueryBroker()
+	logManager := newContainerLogTunnelManager()
+	tunnel := logManager.registerTunnel("main")
+	defer logManager.unregisterTunnel("main", tunnel)
+
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
 		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
-		return "test-client", nil
+		return "web-admin", nil
 	})
 
 	path, handler := controllerv1connect.NewContainerServiceHandler(
 		&containerServer{
-			db:            db,
-			cfg:           &config.ControllerConfig{Nodes: []config.NodeConfig{{ID: "main"}}},
-			dockerQueries: broker,
+			db:         db,
+			cfg:        &config.ControllerConfig{Nodes: []config.NodeConfig{{ID: "main"}}},
+			logManager: logManager,
 		},
 		connect.WithInterceptors(interceptor),
 	)
@@ -83,60 +63,35 @@ func TestContainerServiceGetContainerLogsStreamsIncrementalContent(t *testing.T)
 
 	agentErrCh := make(chan error, 1)
 	go func() {
-		query, err := waitForDockerQueryForTest(broker, "main", 2*time.Second)
-		if err != nil {
-			agentErrCh <- err
+		message, ok := <-tunnel.sendCh
+		if !ok {
+			agentErrCh <- fmt.Errorf("container log tunnel closed before start")
 			return
 		}
-		if query.Tail != "2" {
-			agentErrCh <- fmt.Errorf("expected initial tail 2, got %q", query.Tail)
+		if message.GetKind() != containerLogKindStart {
+			agentErrCh <- fmt.Errorf("expected start message, got %q", message.GetKind())
 			return
 		}
-		if !query.Timestamps {
-			agentErrCh <- fmt.Errorf("expected controller to request timestamped logs")
+		if message.GetContainerId() != "ctr" {
+			agentErrCh <- fmt.Errorf("expected container id ctr, got %q", message.GetContainerId())
 			return
 		}
-		if query.Since != "" {
-			agentErrCh <- fmt.Errorf("expected initial since to be empty, got %q", query.Since)
+		if message.GetTail() != "2" {
+			agentErrCh <- fmt.Errorf("expected tail 2, got %q", message.GetTail())
 			return
 		}
-		if err := broker.StoreResult(dockerAgentQueryResult{
-			QueryID:     query.QueryID,
-			NodeID:      "main",
-			PayloadJSON: mustMarshalDockerListResultForTest(dockerListResult{Content: "2026-04-18T10:00:00Z hello\n"}),
-		}); err != nil {
-			agentErrCh <- fmt.Errorf("store first docker query result: %w", err)
+		if message.GetTimestamps() {
+			agentErrCh <- fmt.Errorf("expected timestamps to be disabled")
 			return
 		}
 
-		query, err = waitForDockerQueryForTest(broker, "main", 3*time.Second)
-		if err != nil {
-			agentErrCh <- err
-			return
-		}
-		if query.Tail != "" {
-			agentErrCh <- fmt.Errorf("expected follow-up tail to be empty, got %q", query.Tail)
-			return
-		}
-		wantSince := time.Date(2026, 4, 18, 10, 0, 0, 0, time.UTC).Add(time.Nanosecond).Format(time.RFC3339Nano)
-		if query.Since != wantSince {
-			agentErrCh <- fmt.Errorf("expected follow-up since %q, got %q", wantSince, query.Since)
-			return
-		}
-		if err := broker.StoreResult(dockerAgentQueryResult{
-			QueryID:     query.QueryID,
-			NodeID:      "main",
-			PayloadJSON: mustMarshalDockerListResultForTest(dockerListResult{Content: "2026-04-18T10:00:01Z world\n"}),
-		}); err != nil {
-			agentErrCh <- fmt.Errorf("store second docker query result: %w", err)
-			return
-		}
+		logManager.deliverFromAgent(&agentv1.OpenContainerLogTunnelRequest{SessionId: message.GetSessionId(), Kind: containerLogKindChunk, Content: "hello\n"})
+		logManager.deliverFromAgent(&agentv1.OpenContainerLogTunnelRequest{SessionId: message.GetSessionId(), Kind: containerLogKindChunk, Content: "world\n"})
+		logManager.deliverFromAgent(&agentv1.OpenContainerLogTunnelRequest{SessionId: message.GetSessionId(), Kind: containerLogKindClosed})
 		agentErrCh <- nil
 	}()
 
-	streamCtx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	stream, err := client.GetContainerLogs(streamCtx, connect.NewRequest(&controllerv1.GetContainerLogsRequest{NodeId: "main", ContainerId: "ctr", Tail: "2"}))
+	stream, err := client.GetContainerLogs(context.Background(), connect.NewRequest(&controllerv1.GetContainerLogsRequest{NodeId: "main", ContainerId: "ctr", Tail: "2"}))
 	if err != nil {
 		t.Fatalf("get container logs: %v", err)
 	}
@@ -156,27 +111,14 @@ func TestContainerServiceGetContainerLogsStreamsIncrementalContent(t *testing.T)
 		t.Fatalf("unexpected second log chunk %q", stream.Msg().GetContent())
 	}
 
-	cancel()
+	if stream.Receive() {
+		t.Fatal("expected stream to close after agent closed the session")
+	}
+	if err := stream.Err(); err != nil {
+		t.Fatalf("expected container log stream to close cleanly, got %v", err)
+	}
+
 	if err := <-agentErrCh; err != nil {
 		t.Fatal(err)
 	}
-}
-
-func waitForDockerQueryForTest(broker *dockerQueryBroker, nodeID string, timeout time.Duration) (dockerAgentQuery, error) {
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		if query, ok := broker.Pull(nodeID); ok {
-			return query, nil
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-	return dockerAgentQuery{}, fmt.Errorf("timed out waiting for docker query on node %q", nodeID)
-}
-
-func mustMarshalDockerListResultForTest(result dockerListResult) string {
-	payload, err := json.Marshal(result)
-	if err != nil {
-		panic(err)
-	}
-	return string(payload)
 }

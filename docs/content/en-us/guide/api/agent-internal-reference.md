@@ -35,6 +35,8 @@
     - [NetworkInfo](#composia-agent-v1-NetworkInfo)
     - [NetworkInfo.LabelsEntry](#composia-agent-v1-NetworkInfo-LabelsEntry)
     - [NodeRuntimeSummary](#composia-agent-v1-NodeRuntimeSummary)
+    - [OpenContainerLogTunnelRequest](#composia-agent-v1-OpenContainerLogTunnelRequest)
+    - [OpenContainerLogTunnelResponse](#composia-agent-v1-OpenContainerLogTunnelResponse)
     - [OpenExecTunnelRequest](#composia-agent-v1-OpenExecTunnelRequest)
     - [OpenExecTunnelResponse](#composia-agent-v1-OpenExecTunnelResponse)
     - [PullNextDockerQueryRequest](#composia-agent-v1-PullNextDockerQueryRequest)
@@ -163,7 +165,6 @@ DockerQueryTask describes one synchronous Docker query assigned to an agent.
 | id | [string](#string) |  | id identifies the target Docker resource for inspect-like operations. |
 | tail | [string](#string) |  | tail is forwarded to the Docker log tail option for log queries. |
 | timestamps | [bool](#bool) |  | timestamps includes Docker timestamps in container log results. |
-| since | [string](#string) |  | since is forwarded to the Docker log since option for incremental log queries. |
 | page_size | [uint32](#uint32) |  | page_size is the requested page size for list queries. |
 | page | [uint32](#uint32) |  | page is the 1-based page number for list queries. |
 | search | [string](#string) |  | search is the case-insensitive search term for list queries. |
@@ -636,6 +637,44 @@ NodeRuntimeSummary reports basic runtime capacity for a node.
 | docker_server_version | [string](#string) |  | docker_server_version is the local Docker Engine version string. |
 | disk_total_bytes | [uint64](#uint64) |  | disk_total_bytes is the total disk capacity visible to the agent. |
 | disk_free_bytes | [uint64](#uint64) |  | disk_free_bytes is the currently free disk capacity visible to the agent. |
+
+
+
+
+
+
+<a name="composia-agent-v1-OpenContainerLogTunnelRequest"></a>
+
+### OpenContainerLogTunnelRequest
+OpenContainerLogTunnelRequest carries one container log tunnel frame to the controller.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| session_id | [string](#string) |  | session_id identifies the container log session. |
+| kind | [string](#string) |  | kind identifies the frame type carried in this message. |
+| content | [string](#string) |  | content carries one log chunk for chunk frames. |
+| error_message | [string](#string) |  | error_message contains the frame-level failure summary, when present. |
+| error_code | [string](#string) |  | error_code carries a Connect-style lowercase code string such as not_found. |
+
+
+
+
+
+
+<a name="composia-agent-v1-OpenContainerLogTunnelResponse"></a>
+
+### OpenContainerLogTunnelResponse
+OpenContainerLogTunnelResponse carries one container log tunnel frame to the agent.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| session_id | [string](#string) |  | session_id identifies the container log session. |
+| kind | [string](#string) |  | kind identifies the frame type carried in this message. |
+| container_id | [string](#string) |  | container_id identifies the target container for the log session. |
+| tail | [string](#string) |  | tail is forwarded to the Docker log tail option for the session. |
+| timestamps | [bool](#bool) |  | timestamps includes Docker timestamps in streamed log chunks. |
 
 
 
@@ -1159,6 +1198,7 @@ AgentReportService carries agent-to-controller runtime and task reports.
 | ReportDockerStats | [ReportDockerStatsRequest](#composia-agent-v1-ReportDockerStatsRequest) | [ReportDockerStatsResponse](#composia-agent-v1-ReportDockerStatsResponse) | ReportDockerStats reports the latest Docker stats snapshot for one node. |
 | ReportDockerQueryResult | [ReportDockerQueryResultRequest](#composia-agent-v1-ReportDockerQueryResultRequest) | [ReportDockerQueryResultResponse](#composia-agent-v1-ReportDockerQueryResultResponse) | ReportDockerQueryResult reports the result of one direct Docker query. |
 | OpenExecTunnel | [OpenExecTunnelRequest](#composia-agent-v1-OpenExecTunnelRequest) stream | [OpenExecTunnelResponse](#composia-agent-v1-OpenExecTunnelResponse) stream | OpenExecTunnel proxies interactive exec traffic between controller and agent. |
+| OpenContainerLogTunnel | [OpenContainerLogTunnelRequest](#composia-agent-v1-OpenContainerLogTunnelRequest) stream | [OpenContainerLogTunnelResponse](#composia-agent-v1-OpenContainerLogTunnelResponse) stream | OpenContainerLogTunnel proxies live container log traffic between controller and agent. |
 
 
 <a name="composia-agent-v1-AgentTaskService"></a>

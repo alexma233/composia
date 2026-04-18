@@ -88,6 +88,7 @@ func Run(ctx context.Context, configPath string) error {
 	})
 
 	startExecTunnelLoop(ctx, reportClient, cfg.NodeID)
+	startContainerLogTunnelLoop(ctx, reportClient, cfg.NodeID)
 
 	go func() {
 		for {
