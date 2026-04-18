@@ -7,6 +7,40 @@ export type PaginatedResult<T> = {
   totalCount: number;
 };
 
+export type Capability = {
+  enabled: boolean;
+  reasonCode: string;
+};
+
+export type GlobalCapabilities = {
+  backup: Capability;
+  dns: Capability;
+  secrets: Capability;
+  rusticMaintenance: Capability;
+};
+
+export type SystemCapabilities = {
+  global: GlobalCapabilities;
+};
+
+export type ServiceActionCapabilities = {
+  backup: Capability;
+  restore: Capability;
+  migrate: Capability;
+  dnsUpdate: Capability;
+  caddySync: Capability;
+};
+
+export type NodeActionCapabilities = {
+  caddySync: Capability;
+  caddyReload: Capability;
+  rusticMaintenance: Capability;
+};
+
+export type BackupActionCapabilities = {
+  restore: Capability;
+};
+
 export type SystemStatus = {
   version: string;
   configuredNodeCount: number;
@@ -38,6 +72,7 @@ export type ServiceWorkspaceSummary = {
   updatedAt: string;
   nodes: string[];
   enabled: boolean;
+  actions: ServiceActionCapabilities;
 };
 
 export type ServiceInstanceSummary = {
@@ -69,6 +104,7 @@ export type NodeSummary = {
   enabled: boolean;
   isOnline: boolean;
   lastHeartbeat: string;
+  actions: NodeActionCapabilities;
 };
 
 export type TaskSummary = {
@@ -127,6 +163,7 @@ export type ServiceDetail = {
   enabled: boolean;
   directory: string;
   instances: ServiceInstanceDetail[];
+  actions: ServiceActionCapabilities;
 };
 
 export type ServiceActionResult = {
@@ -173,6 +210,7 @@ export type BackupSummary = {
 export type BackupDetail = BackupSummary & {
   artifactRef: string;
   errorSummary: string;
+  actions: BackupActionCapabilities;
 };
 
 export type RepoFileEntry = {
@@ -245,6 +283,154 @@ export function controllerConfig() {
   };
 }
 
+function parseCapability(
+  capability?: {
+    enabled?: unknown;
+    reasonCode?: unknown;
+    reason_code?: unknown;
+  } | null,
+): Capability {
+  return {
+    enabled: capability?.enabled === true,
+    reasonCode:
+      (typeof capability?.reasonCode === "string" && capability.reasonCode) ||
+      (typeof capability?.reason_code === "string" && capability.reason_code) ||
+      "",
+  };
+}
+
+function parseServiceActionCapabilities(
+  actions?: {
+    backup?: { enabled?: unknown; reasonCode?: unknown; reason_code?: unknown };
+    restore?: {
+      enabled?: unknown;
+      reasonCode?: unknown;
+      reason_code?: unknown;
+    };
+    migrate?: {
+      enabled?: unknown;
+      reasonCode?: unknown;
+      reason_code?: unknown;
+    };
+    dnsUpdate?: {
+      enabled?: unknown;
+      reasonCode?: unknown;
+      reason_code?: unknown;
+    };
+    dns_update?: {
+      enabled?: unknown;
+      reasonCode?: unknown;
+      reason_code?: unknown;
+    };
+    caddySync?: {
+      enabled?: unknown;
+      reasonCode?: unknown;
+      reason_code?: unknown;
+    };
+    caddy_sync?: {
+      enabled?: unknown;
+      reasonCode?: unknown;
+      reason_code?: unknown;
+    };
+  } | null,
+): ServiceActionCapabilities {
+  return {
+    backup: parseCapability(actions?.backup),
+    restore: parseCapability(actions?.restore),
+    migrate: parseCapability(actions?.migrate),
+    dnsUpdate: parseCapability(actions?.dnsUpdate ?? actions?.dns_update),
+    caddySync: parseCapability(actions?.caddySync ?? actions?.caddy_sync),
+  };
+}
+
+function parseNodeActionCapabilities(
+  actions?: {
+    caddySync?: {
+      enabled?: unknown;
+      reasonCode?: unknown;
+      reason_code?: unknown;
+    };
+    caddy_sync?: {
+      enabled?: unknown;
+      reasonCode?: unknown;
+      reason_code?: unknown;
+    };
+    caddyReload?: {
+      enabled?: unknown;
+      reasonCode?: unknown;
+      reason_code?: unknown;
+    };
+    caddy_reload?: {
+      enabled?: unknown;
+      reasonCode?: unknown;
+      reason_code?: unknown;
+    };
+    rusticMaintenance?: {
+      enabled?: unknown;
+      reasonCode?: unknown;
+      reason_code?: unknown;
+    };
+    rustic_maintenance?: {
+      enabled?: unknown;
+      reasonCode?: unknown;
+      reason_code?: unknown;
+    };
+  } | null,
+): NodeActionCapabilities {
+  return {
+    caddySync: parseCapability(actions?.caddySync ?? actions?.caddy_sync),
+    caddyReload: parseCapability(actions?.caddyReload ?? actions?.caddy_reload),
+    rusticMaintenance: parseCapability(
+      actions?.rusticMaintenance ?? actions?.rustic_maintenance,
+    ),
+  };
+}
+
+function parseBackupActionCapabilities(
+  actions?: {
+    restore?: {
+      enabled?: unknown;
+      reasonCode?: unknown;
+      reason_code?: unknown;
+    };
+  } | null,
+): BackupActionCapabilities {
+  return {
+    restore: parseCapability(actions?.restore),
+  };
+}
+
+function parseGlobalCapabilities(
+  global?: {
+    backup?: { enabled?: unknown; reasonCode?: unknown; reason_code?: unknown };
+    dns?: { enabled?: unknown; reasonCode?: unknown; reason_code?: unknown };
+    secrets?: {
+      enabled?: unknown;
+      reasonCode?: unknown;
+      reason_code?: unknown;
+    };
+    rusticMaintenance?: {
+      enabled?: unknown;
+      reasonCode?: unknown;
+      reason_code?: unknown;
+    };
+    rustic_maintenance?: {
+      enabled?: unknown;
+      reasonCode?: unknown;
+      reason_code?: unknown;
+    };
+  } | null,
+): GlobalCapabilities {
+  return {
+    backup: parseCapability(global?.backup),
+    dns: parseCapability(global?.dns),
+    secrets: parseCapability(global?.secrets),
+    rusticMaintenance: parseCapability(
+      global?.rusticMaintenance ?? global?.rustic_maintenance,
+    ),
+  };
+}
+
 export async function loadDashboard(): Promise<DashboardData> {
   const config = controllerConfig();
   if (!config.ready) {
@@ -288,6 +474,43 @@ export async function loadSystemStatus(): Promise<SystemStatus> {
     "/composia.controller.v1.SystemService/GetSystemStatus",
     {},
   );
+}
+
+export async function loadSystemCapabilities(): Promise<SystemCapabilities> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{
+    global?: {
+      backup?: {
+        enabled?: unknown;
+        reasonCode?: unknown;
+        reason_code?: unknown;
+      };
+      dns?: { enabled?: unknown; reasonCode?: unknown; reason_code?: unknown };
+      secrets?: {
+        enabled?: unknown;
+        reasonCode?: unknown;
+        reason_code?: unknown;
+      };
+      rusticMaintenance?: {
+        enabled?: unknown;
+        reasonCode?: unknown;
+        reason_code?: unknown;
+      };
+      rustic_maintenance?: {
+        enabled?: unknown;
+        reasonCode?: unknown;
+        reason_code?: unknown;
+      };
+    };
+  }>(
+    config.baseUrl,
+    config.token,
+    "/composia.controller.v1.SystemService/GetCapabilities",
+    {},
+  );
+  return {
+    global: parseGlobalCapabilities(response.global),
+  };
 }
 
 export async function loadServices(
@@ -343,6 +566,43 @@ export async function loadServiceWorkspaces(): Promise<
       updated_at?: string;
       nodes?: string[];
       enabled?: boolean;
+      actions?: {
+        backup?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        restore?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        migrate?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        dnsUpdate?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        dns_update?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        caddySync?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        caddy_sync?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+      };
     }>;
   }>(
     config.baseUrl,
@@ -362,6 +622,7 @@ export async function loadServiceWorkspaces(): Promise<
     updatedAt: workspace.updatedAt ?? workspace.updated_at ?? "",
     nodes: workspace.nodes ?? [],
     enabled: workspace.enabled ?? false,
+    actions: parseServiceActionCapabilities(workspace.actions),
   }));
 }
 
@@ -386,6 +647,43 @@ export async function loadServiceWorkspace(
       updated_at?: string;
       nodes?: string[];
       enabled?: boolean;
+      actions?: {
+        backup?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        restore?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        migrate?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        dnsUpdate?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        dns_update?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        caddySync?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        caddy_sync?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+      };
     };
   }>(
     config.baseUrl,
@@ -409,18 +707,75 @@ export async function loadServiceWorkspace(
     updatedAt: workspace.updatedAt ?? workspace.updated_at ?? "",
     nodes: workspace.nodes ?? [],
     enabled: workspace.enabled ?? false,
+    actions: parseServiceActionCapabilities(workspace.actions),
   };
 }
 
 export async function loadNodes(): Promise<NodeSummary[]> {
   const config = requireControllerConfig();
-  const response = await rpcCall<{ nodes?: NodeSummary[] }>(
+  const response = await rpcCall<{
+    nodes?: Array<{
+      nodeId?: string;
+      node_id?: string;
+      displayName?: string;
+      display_name?: string;
+      enabled?: boolean;
+      isOnline?: boolean;
+      is_online?: boolean;
+      lastHeartbeat?: string;
+      last_heartbeat?: string;
+      actions?: {
+        caddySync?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        caddy_sync?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        caddyReload?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        caddy_reload?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        rusticMaintenance?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        rustic_maintenance?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+      };
+    }>;
+  }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.NodeQueryService/ListNodes",
     {},
   );
-  return response.nodes ?? [];
+  return (response.nodes ?? []).map((node) => ({
+    nodeId: node.nodeId ?? node.node_id ?? "",
+    displayName:
+      node.displayName ??
+      node.display_name ??
+      node.nodeId ??
+      node.node_id ??
+      "",
+    enabled: node.enabled ?? false,
+    isOnline: node.isOnline ?? node.is_online ?? false,
+    lastHeartbeat: node.lastHeartbeat ?? node.last_heartbeat ?? "",
+    actions: parseNodeActionCapabilities(node.actions),
+  }));
 }
 
 export type TaskFilter = {
@@ -503,12 +858,49 @@ export async function loadBackupDetail(
   backupId: string,
 ): Promise<BackupDetail> {
   const config = requireControllerConfig();
-  return rpcCall<BackupDetail>(
+  const response = await rpcCall<{
+    backupId?: string;
+    backup_id?: string;
+    taskId?: string;
+    task_id?: string;
+    serviceName?: string;
+    service_name?: string;
+    dataName?: string;
+    data_name?: string;
+    status?: string;
+    startedAt?: string;
+    started_at?: string;
+    finishedAt?: string;
+    finished_at?: string;
+    artifactRef?: string;
+    artifact_ref?: string;
+    errorSummary?: string;
+    error_summary?: string;
+    actions?: {
+      restore?: {
+        enabled?: unknown;
+        reasonCode?: unknown;
+        reason_code?: unknown;
+      };
+    };
+  }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.BackupRecordService/GetBackup",
     { backupId },
   );
+  return {
+    backupId: response.backupId ?? response.backup_id ?? backupId,
+    taskId: response.taskId ?? response.task_id ?? "",
+    serviceName: response.serviceName ?? response.service_name ?? "",
+    dataName: response.dataName ?? response.data_name ?? "",
+    status: response.status ?? "",
+    startedAt: response.startedAt ?? response.started_at ?? "",
+    finishedAt: response.finishedAt ?? response.finished_at ?? "",
+    artifactRef: response.artifactRef ?? response.artifact_ref ?? "",
+    errorSummary: response.errorSummary ?? response.error_summary ?? "",
+    actions: parseBackupActionCapabilities(response.actions),
+  };
 }
 
 export async function restoreBackup(
@@ -669,6 +1061,43 @@ export async function loadServiceDetail(
     nodes?: string[];
     enabled: boolean;
     directory: string;
+    actions?: {
+      backup?: {
+        enabled?: unknown;
+        reasonCode?: unknown;
+        reason_code?: unknown;
+      };
+      restore?: {
+        enabled?: unknown;
+        reasonCode?: unknown;
+        reason_code?: unknown;
+      };
+      migrate?: {
+        enabled?: unknown;
+        reasonCode?: unknown;
+        reason_code?: unknown;
+      };
+      dnsUpdate?: {
+        enabled?: unknown;
+        reasonCode?: unknown;
+        reason_code?: unknown;
+      };
+      dns_update?: {
+        enabled?: unknown;
+        reasonCode?: unknown;
+        reason_code?: unknown;
+      };
+      caddySync?: {
+        enabled?: unknown;
+        reasonCode?: unknown;
+        reason_code?: unknown;
+      };
+      caddy_sync?: {
+        enabled?: unknown;
+        reasonCode?: unknown;
+        reason_code?: unknown;
+      };
+    };
     instances?: Array<{
       serviceName?: string;
       service_name?: string;
@@ -708,6 +1137,7 @@ export async function loadServiceDetail(
     nodes: response.nodes ?? [],
     enabled: response.enabled,
     directory: response.directory,
+    actions: parseServiceActionCapabilities(response.actions),
     instances: (response.instances ?? []).map((instance) => ({
       serviceName: instance.serviceName ?? instance.service_name ?? serviceName,
       nodeId: instance.nodeId ?? instance.node_id ?? "",
@@ -852,13 +1282,73 @@ export async function loadNodeDetail(
   nodeId: string,
 ): Promise<NodeSummary | null> {
   const config = requireControllerConfig();
-  const response = await rpcCall<{ node?: NodeSummary }>(
+  const response = await rpcCall<{
+    node?: {
+      nodeId?: string;
+      node_id?: string;
+      displayName?: string;
+      display_name?: string;
+      enabled?: boolean;
+      isOnline?: boolean;
+      is_online?: boolean;
+      lastHeartbeat?: string;
+      last_heartbeat?: string;
+      actions?: {
+        caddySync?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        caddy_sync?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        caddyReload?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        caddy_reload?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        rusticMaintenance?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+        rustic_maintenance?: {
+          enabled?: unknown;
+          reasonCode?: unknown;
+          reason_code?: unknown;
+        };
+      };
+    };
+  }>(
     config.baseUrl,
     config.token,
     "/composia.controller.v1.NodeQueryService/GetNode",
     { nodeId },
   );
-  return response.node ?? null;
+  if (!response.node) {
+    return null;
+  }
+  return {
+    nodeId: response.node.nodeId ?? response.node.node_id ?? nodeId,
+    displayName:
+      response.node.displayName ??
+      response.node.display_name ??
+      response.node.nodeId ??
+      response.node.node_id ??
+      nodeId,
+    enabled: response.node.enabled ?? false,
+    isOnline: response.node.isOnline ?? response.node.is_online ?? false,
+    lastHeartbeat:
+      response.node.lastHeartbeat ?? response.node.last_heartbeat ?? "",
+    actions: parseNodeActionCapabilities(response.node.actions),
+  };
 }
 
 export async function loadNodeDockerStats(

@@ -2,7 +2,10 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
 import { migrateService } from "$lib/server/controller";
-import { jsonControllerError } from "$lib/server/controller-route";
+import {
+  jsonCapabilityError,
+  jsonControllerError,
+} from "$lib/server/controller-route";
 import { requireDeclaredWorkspace } from "$lib/server/service-workspace-route";
 
 export const POST: RequestHandler = async ({ params, request }) => {
@@ -19,6 +22,12 @@ export const POST: RequestHandler = async ({ params, request }) => {
     }
 
     const workspace = await requireDeclaredWorkspace(params.name);
+    if (!workspace.actions.migrate.enabled) {
+      return jsonCapabilityError(
+        workspace.actions.migrate.reasonCode,
+        "Migrate is unavailable.",
+      );
+    }
     return json(
       await migrateService(
         workspace.serviceName,

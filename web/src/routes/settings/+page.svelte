@@ -1,17 +1,31 @@
 <script lang="ts">
-  import { invalidateAll } from '$app/navigation';
-  import { RefreshCw } from 'lucide-svelte';
-  import { onMount } from 'svelte';
-  import { toast } from 'svelte-sonner';
+  import { invalidateAll } from "$app/navigation";
+  import { RefreshCw } from "lucide-svelte";
+  import { onMount } from "svelte";
+  import { toast } from "svelte-sonner";
 
-  import type { PageData } from './$types';
-  import { messages } from '$lib/i18n';
+  import type { PageData } from "./$types";
+  import {
+    actionErrorMessage,
+    capabilityReasonMessage,
+    globalCapability,
+  } from "$lib/capabilities";
+  import { messages } from "$lib/i18n";
 
-  import { startPolling } from '$lib/refresh';
-  import ThemeControls from '$lib/components/app/theme-controls.svelte';
-  import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
-  import { Button } from '$lib/components/ui/button';
-  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { startPolling } from "$lib/refresh";
+  import ThemeControls from "$lib/components/app/theme-controls.svelte";
+  import {
+    Alert,
+    AlertDescription,
+    AlertTitle,
+  } from "$lib/components/ui/alert";
+  import { Button } from "$lib/components/ui/button";
+  import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+  } from "$lib/components/ui/card";
 
   interface Props {
     data: PageData;
@@ -20,10 +34,10 @@
   let { data }: Props = $props();
 
   let syncing = $state(false);
-  let syncError = $state('');
-  let rusticBusy = $state<'init' | 'forget' | 'prune' | ''>('');
-  let rusticError = $state('');
-  let rusticTaskId = $state('');
+  let syncError = $state("");
+  let rusticBusy = $state<"init" | "forget" | "prune" | "">("");
+  let rusticError = $state("");
+  let rusticTaskId = $state("");
   let syncResult = $state<{
     headRevision?: string;
     syncStatus?: string;
@@ -33,13 +47,13 @@
 
   async function syncRepo() {
     syncing = true;
-    syncError = '';
+    syncError = "";
     syncResult = null;
 
     try {
-      const response = await fetch('/settings/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/settings/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
 
       const payload = await response.json();
@@ -55,42 +69,91 @@
       };
       toast.success($messages.settings.repoSync.syncedSuccessfully);
     } catch (error) {
-      syncError = error instanceof Error ? error.message : $messages.error.syncFailed;
+      syncError =
+        error instanceof Error ? error.message : $messages.error.syncFailed;
     } finally {
       syncing = false;
     }
   }
 
-  async function runRusticAction(action: 'init' | 'forget' | 'prune') {
+  async function runRusticAction(action: "init" | "forget" | "prune") {
+    if (!rusticMaintenanceCapability.enabled) {
+      rusticError = capabilityReasonMessage(
+        rusticMaintenanceCapability.reasonCode,
+        $messages,
+      );
+      return;
+    }
+
     rusticBusy = action;
-    rusticError = '';
-    rusticTaskId = '';
+    rusticError = "";
+    rusticTaskId = "";
 
     try {
       const response = await fetch(`/settings/${action}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
 
-      const payload = await response.json();
+      const payload = (await response.json()) as {
+        taskId?: string;
+        error?: string;
+        reasonCode?: string;
+      };
       if (!response.ok) {
-        throw new Error(payload.error ?? $messages.settings.rustic.failedToStart.replace('{action}', action));
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.settings.rustic.failedToStart.replace("{action}", action),
+          ),
+        );
       }
 
-      rusticTaskId = payload.taskId ?? '';
-      toast.success($messages.settings.rustic.started.replace('{action}', action));
+      rusticTaskId = payload.taskId ?? "";
+      toast.success(
+        $messages.settings.rustic.started.replace("{action}", action),
+      );
     } catch (error) {
-      rusticError = error instanceof Error ? error.message : $messages.settings.rustic.failedToStart.replace('{action}', action);
+      rusticError =
+        error instanceof Error
+          ? error.message
+          : $messages.settings.rustic.failedToStart.replace("{action}", action);
     } finally {
-      rusticBusy = '';
+      rusticBusy = "";
     }
   }
 
-  let displayHeadRevision = $derived(syncResult?.headRevision ?? data.repoHead?.headRevision ?? '');
-  let displaySyncStatus = $derived(syncResult?.syncStatus ?? data.repoHead?.syncStatus ?? $messages.common.unknown);
-  let displayLastSyncError = $derived(syncResult?.lastSyncError ?? data.repoHead?.lastSyncError ?? '');
-  let displayLastPull = $derived(syncResult?.lastSuccessfulPullAt ?? data.repoHead?.lastSuccessfulPullAt ?? $messages.common.never);
-  let insecureControllerAddr = $derived((data.system?.controllerAddr ?? '').toLowerCase().startsWith('http://'));
+  let displayHeadRevision = $derived(
+    syncResult?.headRevision ?? data.repoHead?.headRevision ?? "",
+  );
+  let displaySyncStatus = $derived(
+    syncResult?.syncStatus ??
+      data.repoHead?.syncStatus ??
+      $messages.common.unknown,
+  );
+  let displayLastSyncError = $derived(
+    syncResult?.lastSyncError ?? data.repoHead?.lastSyncError ?? "",
+  );
+  let displayLastPull = $derived(
+    syncResult?.lastSuccessfulPullAt ??
+      data.repoHead?.lastSuccessfulPullAt ??
+      $messages.common.never,
+  );
+  let insecureControllerAddr = $derived(
+    (data.system?.controllerAddr ?? "").toLowerCase().startsWith("http://"),
+  );
+  let rusticMaintenanceCapability = $derived(
+    globalCapability(data.capabilities?.global, "rusticMaintenance"),
+  );
+  let rusticMaintenanceReason = $derived(
+    rusticMaintenanceCapability.enabled
+      ? ""
+      : capabilityReasonMessage(
+          rusticMaintenanceCapability.reasonCode,
+          $messages,
+        ),
+  );
 
   onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
 </script>
@@ -113,65 +176,107 @@
     {/if}
 
     <section class="grid gap-6 lg:grid-cols-2">
-			<Card>
+      <Card>
         <CardHeader>
-          <CardTitle class="section-title">{$messages.settings.appearance.title}</CardTitle>
+          <CardTitle class="section-title"
+            >{$messages.settings.appearance.title}</CardTitle
+          >
         </CardHeader>
         <CardContent>
           <ThemeControls />
         </CardContent>
       </Card>
 
-			<Card>
+      <Card>
         <CardHeader>
-          <CardTitle class="section-title">{$messages.settings.controller.title}</CardTitle>
+          <CardTitle class="section-title"
+            >{$messages.settings.controller.title}</CardTitle
+          >
         </CardHeader>
         <CardContent class="space-y-4">
           {#if data.system}
             <dl class="grid gap-4 sm:grid-cols-2">
               <div class="metric-card">
-                <dt class="metric-label">{$messages.settings.controller.version}</dt>
-                <dd class="mt-2 text-sm font-medium text-foreground">{data.system.version}</dd>
+                <dt class="metric-label">
+                  {$messages.settings.controller.version}
+                </dt>
+                <dd class="mt-2 text-sm font-medium text-foreground">
+                  {data.system.version}
+                </dd>
               </div>
               <div class="metric-card sm:col-span-2">
-                <dt class="metric-label">{$messages.settings.controller.controllerAddress}</dt>
-                <dd class="mt-2 break-all text-sm font-medium text-foreground">{data.system.controllerAddr}</dd>
+                <dt class="metric-label">
+                  {$messages.settings.controller.controllerAddress}
+                </dt>
+                <dd class="mt-2 break-all text-sm font-medium text-foreground">
+                  {data.system.controllerAddr}
+                </dd>
               </div>
               {#if insecureControllerAddr}
                 <div class="sm:col-span-2">
                   <Alert>
-                    <AlertTitle>{$messages.settings.controller.plainHttpTitle}</AlertTitle>
-                    <AlertDescription>{$messages.settings.controller.plainHttpDescription}</AlertDescription>
+                    <AlertTitle
+                      >{$messages.settings.controller
+                        .plainHttpTitle}</AlertTitle
+                    >
+                    <AlertDescription
+                      >{$messages.settings.controller
+                        .plainHttpDescription}</AlertDescription
+                    >
                   </Alert>
                 </div>
               {/if}
               <div class="inset-card">
-                <dt class="metric-label">{$messages.settings.controller.repoDir}</dt>
-                <dd class="mt-2 break-all text-sm text-foreground">{data.system.repoDir}</dd>
+                <dt class="metric-label">
+                  {$messages.settings.controller.repoDir}
+                </dt>
+                <dd class="mt-2 break-all text-sm text-foreground">
+                  {data.system.repoDir}
+                </dd>
               </div>
               <div class="inset-card">
-                <dt class="metric-label">{$messages.settings.controller.stateDir}</dt>
-                <dd class="mt-2 break-all text-sm text-foreground">{data.system.stateDir}</dd>
+                <dt class="metric-label">
+                  {$messages.settings.controller.stateDir}
+                </dt>
+                <dd class="mt-2 break-all text-sm text-foreground">
+                  {data.system.stateDir}
+                </dd>
               </div>
               <div class="inset-card sm:col-span-2">
-                <dt class="metric-label">{$messages.settings.controller.logDir}</dt>
-                <dd class="mt-2 break-all text-sm text-foreground">{data.system.logDir}</dd>
+                <dt class="metric-label">
+                  {$messages.settings.controller.logDir}
+                </dt>
+                <dd class="mt-2 break-all text-sm text-foreground">
+                  {data.system.logDir}
+                </dd>
               </div>
             </dl>
           {:else}
-            <div class="empty-state">{$messages.settings.controller.noData}</div>
+            <div class="empty-state">
+              {$messages.settings.controller.noData}
+            </div>
           {/if}
         </CardContent>
       </Card>
 
-		<Card class="lg:col-span-2">
+      <Card class="lg:col-span-2">
         <CardHeader class="section-header">
           <div class="section-heading">
-            <CardTitle class="section-title">{$messages.settings.repoSync.title}</CardTitle>
+            <CardTitle class="section-title"
+              >{$messages.settings.repoSync.title}</CardTitle
+            >
           </div>
-          <Button type="button" variant="outline" size="sm" onclick={syncRepo} disabled={syncing}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onclick={syncRepo}
+            disabled={syncing}
+          >
             <RefreshCw class="mr-2 size-4" />
-            {syncing ? $messages.settings.repoSync.syncing : $messages.settings.repoSync.syncRepo}
+            {syncing
+              ? $messages.settings.repoSync.syncing
+              : $messages.settings.repoSync.syncRepo}
           </Button>
         </CardHeader>
         <CardContent class="space-y-4">
@@ -185,26 +290,48 @@
           {#if data.repoHead || syncResult}
             <dl class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div class="metric-card">
-                <dt class="metric-label">{$messages.settings.repoSync.branch}</dt>
-                <dd class="mt-2 text-sm font-medium text-foreground">{data.repoHead?.branch || $messages.settings.repoSync.head}</dd>
+                <dt class="metric-label">
+                  {$messages.settings.repoSync.branch}
+                </dt>
+                <dd class="mt-2 text-sm font-medium text-foreground">
+                  {data.repoHead?.branch || $messages.settings.repoSync.head}
+                </dd>
               </div>
               <div class="metric-card">
-                <dt class="metric-label">{$messages.settings.repoSync.syncStatus}</dt>
-                <dd class="mt-2 text-sm font-medium text-foreground">{displaySyncStatus}</dd>
+                <dt class="metric-label">
+                  {$messages.settings.repoSync.syncStatus}
+                </dt>
+                <dd class="mt-2 text-sm font-medium text-foreground">
+                  {displaySyncStatus}
+                </dd>
               </div>
               <div class="metric-card">
-                <dt class="metric-label">{$messages.settings.repoSync.worktree}</dt>
-                <dd class="mt-2 text-sm font-medium text-foreground">{data.repoHead?.cleanWorktree ? $messages.status.clean : $messages.status.dirty}</dd>
+                <dt class="metric-label">
+                  {$messages.settings.repoSync.worktree}
+                </dt>
+                <dd class="mt-2 text-sm font-medium text-foreground">
+                  {data.repoHead?.cleanWorktree
+                    ? $messages.status.clean
+                    : $messages.status.dirty}
+                </dd>
               </div>
               <div class="metric-card">
-                <dt class="metric-label">{$messages.settings.repoSync.lastPull}</dt>
-                <dd class="mt-2 text-sm font-medium text-foreground">{displayLastPull}</dd>
+                <dt class="metric-label">
+                  {$messages.settings.repoSync.lastPull}
+                </dt>
+                <dd class="mt-2 text-sm font-medium text-foreground">
+                  {displayLastPull}
+                </dd>
               </div>
             </dl>
 
             <div class="inset-card">
-              <div class="metric-label">{$messages.settings.repoSync.revision}</div>
-              <div class="mt-2 break-all text-sm text-foreground">{displayHeadRevision}</div>
+              <div class="metric-label">
+                {$messages.settings.repoSync.revision}
+              </div>
+              <div class="mt-2 break-all text-sm text-foreground">
+                {displayHeadRevision}
+              </div>
             </div>
 
             {#if displayLastSyncError}
@@ -214,47 +341,67 @@
               </Alert>
             {/if}
           {:else}
-            <div class="empty-state">{$messages.settings.repoSync.noRepoState}</div>
+            <div class="empty-state">
+              {$messages.settings.repoSync.noRepoState}
+            </div>
           {/if}
         </CardContent>
       </Card>
 
-		<Card class="lg:col-span-2">
+      <Card class="lg:col-span-2">
         <CardHeader class="section-header">
           <div class="section-heading">
-            <CardTitle class="section-title">{$messages.settings.rustic.title}</CardTitle>
+            <CardTitle class="section-title"
+              >{$messages.settings.rustic.title}</CardTitle
+            >
           </div>
           <div class="flex flex-wrap gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onclick={() => runRusticAction('init')}
-              disabled={rusticBusy !== ''}
+              onclick={() => runRusticAction("init")}
+              disabled={rusticBusy !== "" ||
+                !rusticMaintenanceCapability.enabled}
             >
-              {rusticBusy === 'init' ? $messages.settings.rustic.starting : $messages.settings.rustic.init}
+              {rusticBusy === "init"
+                ? $messages.settings.rustic.starting
+                : $messages.settings.rustic.init}
             </Button>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onclick={() => runRusticAction('forget')}
-              disabled={rusticBusy !== ''}
+              onclick={() => runRusticAction("forget")}
+              disabled={rusticBusy !== "" ||
+                !rusticMaintenanceCapability.enabled}
             >
-              {rusticBusy === 'forget' ? $messages.settings.rustic.starting : $messages.settings.rustic.forget}
+              {rusticBusy === "forget"
+                ? $messages.settings.rustic.starting
+                : $messages.settings.rustic.forget}
             </Button>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onclick={() => runRusticAction('prune')}
-              disabled={rusticBusy !== ''}
+              onclick={() => runRusticAction("prune")}
+              disabled={rusticBusy !== "" ||
+                !rusticMaintenanceCapability.enabled}
             >
-              {rusticBusy === 'prune' ? $messages.settings.rustic.starting : $messages.settings.rustic.prune}
+              {rusticBusy === "prune"
+                ? $messages.settings.rustic.starting
+                : $messages.settings.rustic.prune}
             </Button>
           </div>
         </CardHeader>
         <CardContent class="space-y-4">
+          {#if data.capabilities && rusticMaintenanceReason}
+            <Alert>
+              <AlertTitle>{$messages.capabilities.unavailableTitle}</AlertTitle>
+              <AlertDescription>{rusticMaintenanceReason}</AlertDescription>
+            </Alert>
+          {/if}
+
           {#if rusticError}
             <Alert variant="destructive">
               <AlertTitle>{$messages.error.taskError}</AlertTitle>
@@ -264,8 +411,12 @@
 
           {#if rusticTaskId}
             <div class="inset-card">
-              <div class="metric-label">{$messages.settings.rustic.lastTask}</div>
-              <div class="mt-2 break-all text-sm text-foreground">{rusticTaskId}</div>
+              <div class="metric-label">
+                {$messages.settings.rustic.lastTask}
+              </div>
+              <div class="mt-2 break-all text-sm text-foreground">
+                {rusticTaskId}
+              </div>
             </div>
           {/if}
         </CardContent>

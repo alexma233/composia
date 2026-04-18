@@ -3,6 +3,7 @@ syntax = "proto3";
 package composia.controller.v1;
 
 import "proto/composia/controller/v1/task.proto";
+import "proto/composia/controller/v1/system.proto";
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
@@ -72,6 +73,13 @@ message GetBackupResponse {
   string artifact_ref = 8;
   // error_summary contains the failure summary when the backup fails.
   string error_summary = 9;
+  // actions describes whether backup-scoped actions may currently run.
+  BackupActionCapabilities actions = 10;
+}
+
+// BackupActionCapabilities describes whether backup-scoped actions may run.
+message BackupActionCapabilities {
+  Capability restore = 1;
 }
 
 // RestoreBackupRequest identifies the backup record and target node for one restore task.

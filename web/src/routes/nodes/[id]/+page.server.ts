@@ -56,6 +56,13 @@ export const actions: Actions = {
     }
 
     try {
+      const node = await loadNodeDetail(params.id);
+      if (!node?.actions.caddySync.enabled) {
+        return {
+          success: false,
+          errorCode: node?.actions.caddySync.reasonCode ?? "",
+        };
+      }
       const result = await syncNodeCaddyFiles(params.id, { fullRebuild: true });
       return { success: true, taskId: result.taskId };
     } catch (error) {
@@ -73,6 +80,13 @@ export const actions: Actions = {
     }
 
     try {
+      const node = await loadNodeDetail(params.id);
+      if (!node?.actions.caddyReload.enabled) {
+        return {
+          success: false,
+          errorCode: node?.actions.caddyReload.reasonCode ?? "",
+        };
+      }
       const result = await reloadNodeCaddy(params.id);
       return { success: true, taskId: result.taskId };
     } catch (error) {

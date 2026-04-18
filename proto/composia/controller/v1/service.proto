@@ -4,6 +4,7 @@ package composia.controller.v1;
 
 import "proto/composia/controller/v1/task.proto";
 import "proto/composia/controller/v1/backup.proto";
+import "proto/composia/controller/v1/system.proto";
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
@@ -92,6 +93,15 @@ message ServiceInstanceDetail {
   repeated ServiceContainerSummary containers = 6;
 }
 
+// ServiceActionCapabilities describes whether service-scoped actions may run.
+message ServiceActionCapabilities {
+  Capability backup = 1;
+  Capability restore = 2;
+  Capability migrate = 3;
+  Capability dns_update = 4;
+  Capability caddy_sync = 5;
+}
+
 // GetServiceRequest addresses one service by logical name.
 message GetServiceRequest {
   // service_name is the logical service name.
@@ -115,6 +125,8 @@ message GetServiceResponse {
   string directory = 6;
   // instances lists per-node runtime details known to the controller.
   repeated ServiceInstanceDetail instances = 7;
+  // actions describes whether service-scoped actions may currently run.
+  ServiceActionCapabilities actions = 8;
 }
 
 // ServiceWorkspaceSummary describes one top-level repo workspace and any merged service state.
@@ -137,6 +149,8 @@ message ServiceWorkspaceSummary {
   repeated string nodes = 8;
   // enabled reports the desired-state enabled flag when the workspace meta is parseable.
   bool enabled = 9;
+  // actions describes whether service-scoped actions may currently run.
+  ServiceActionCapabilities actions = 10;
 }
 
 // ListServiceWorkspacesRequest requests all top-level service workspaces.

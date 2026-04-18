@@ -108,6 +108,35 @@ export const enUS = {
     on: "on",
     na: "N/A",
   },
+  capabilities: {
+    unavailableTitle: "Unavailable actions",
+    reasons: {
+      unavailable: "This action is currently unavailable.",
+      missingBackupIntegration: "Backup integration is not configured.",
+      missingBackupDefinition: "This service does not declare any backup data.",
+      missingRestoreDefinition:
+        "Restore is not declared for this service or backup data.",
+      missingMigrateDefinition:
+        "This service does not declare any migratable data.",
+      missingDnsIntegration: "DNS integration is not configured.",
+      missingSecretsConfig: "Secrets configuration is incomplete.",
+      missingCaddyInfra: "Caddy infrastructure service is not declared.",
+      missingServiceMeta:
+        "Add `composia-meta.yaml` before running this action.",
+      serviceNotDeclared: "This service is not declared yet.",
+      serviceDnsNotDeclared: "This service does not declare DNS management.",
+      serviceNotCaddyManaged: "This service does not enable Caddy management.",
+      nodeDisabled: "The target node is disabled.",
+      nodeOffline: "The target node is offline.",
+      nodeNotEligible: "No eligible target node is available.",
+      nodeNotRusticManaged: "Rustic is not declared on the selected node.",
+      missingEligibleRusticNode: "No Rustic main node is configured.",
+      missingOnlineRusticNode: "No online Rustic main node is available.",
+      backupNotSucceeded: "Only succeeded backups can be restored.",
+      backupArtifactMissing: "This backup does not have a recorded artifact.",
+      missingRestoreTargetNode: "No eligible restore target node is available.",
+    },
+  },
   status: {
     online: "Online",
     offline: "Offline",

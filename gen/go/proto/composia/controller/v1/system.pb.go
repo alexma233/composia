@@ -314,6 +314,211 @@ func (x *GetCurrentConfigResponse) GetSecrets() *SecretsConfigSummary {
 	return nil
 }
 
+// GetCapabilitiesRequest requests global controller-backed feature availability.
+type GetCapabilitiesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCapabilitiesRequest) Reset() {
+	*x = GetCapabilitiesRequest{}
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCapabilitiesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCapabilitiesRequest) ProtoMessage() {}
+
+func (x *GetCapabilitiesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCapabilitiesRequest.ProtoReflect.Descriptor instead.
+func (*GetCapabilitiesRequest) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{4}
+}
+
+// GetCapabilitiesResponse returns global feature availability for the web UI.
+type GetCapabilitiesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Global        *GlobalCapabilities    `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCapabilitiesResponse) Reset() {
+	*x = GetCapabilitiesResponse{}
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCapabilitiesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCapabilitiesResponse) ProtoMessage() {}
+
+func (x *GetCapabilitiesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCapabilitiesResponse.ProtoReflect.Descriptor instead.
+func (*GetCapabilitiesResponse) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetCapabilitiesResponse) GetGlobal() *GlobalCapabilities {
+	if x != nil {
+		return x.Global
+	}
+	return nil
+}
+
+// Capability describes whether a feature or action may currently be used.
+type Capability struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Enabled bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// reason_code explains why the capability is disabled when enabled is false.
+	ReasonCode    string `protobuf:"bytes,2,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Capability) Reset() {
+	*x = Capability{}
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Capability) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Capability) ProtoMessage() {}
+
+func (x *Capability) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Capability.ProtoReflect.Descriptor instead.
+func (*Capability) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *Capability) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *Capability) GetReasonCode() string {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ""
+}
+
+// GlobalCapabilities describes controller-wide feature availability.
+type GlobalCapabilities struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Backup            *Capability            `protobuf:"bytes,1,opt,name=backup,proto3" json:"backup,omitempty"`
+	Dns               *Capability            `protobuf:"bytes,2,opt,name=dns,proto3" json:"dns,omitempty"`
+	Secrets           *Capability            `protobuf:"bytes,3,opt,name=secrets,proto3" json:"secrets,omitempty"`
+	RusticMaintenance *Capability            `protobuf:"bytes,4,opt,name=rustic_maintenance,json=rusticMaintenance,proto3" json:"rustic_maintenance,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *GlobalCapabilities) Reset() {
+	*x = GlobalCapabilities{}
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GlobalCapabilities) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GlobalCapabilities) ProtoMessage() {}
+
+func (x *GlobalCapabilities) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GlobalCapabilities.ProtoReflect.Descriptor instead.
+func (*GlobalCapabilities) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GlobalCapabilities) GetBackup() *Capability {
+	if x != nil {
+		return x.Backup
+	}
+	return nil
+}
+
+func (x *GlobalCapabilities) GetDns() *Capability {
+	if x != nil {
+		return x.Dns
+	}
+	return nil
+}
+
+func (x *GlobalCapabilities) GetSecrets() *Capability {
+	if x != nil {
+		return x.Secrets
+	}
+	return nil
+}
+
+func (x *GlobalCapabilities) GetRusticMaintenance() *Capability {
+	if x != nil {
+		return x.RusticMaintenance
+	}
+	return nil
+}
+
 // GitConfigSummary describes controller Git sync settings without credentials.
 type GitConfigSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -335,7 +540,7 @@ type GitConfigSummary struct {
 
 func (x *GitConfigSummary) Reset() {
 	*x = GitConfigSummary{}
-	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[4]
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -347,7 +552,7 @@ func (x *GitConfigSummary) String() string {
 func (*GitConfigSummary) ProtoMessage() {}
 
 func (x *GitConfigSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[4]
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -360,7 +565,7 @@ func (x *GitConfigSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitConfigSummary.ProtoReflect.Descriptor instead.
 func (*GitConfigSummary) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{4}
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GitConfigSummary) GetRemoteUrl() string {
@@ -424,7 +629,7 @@ type NodeConfigSummary struct {
 
 func (x *NodeConfigSummary) Reset() {
 	*x = NodeConfigSummary{}
-	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[5]
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -436,7 +641,7 @@ func (x *NodeConfigSummary) String() string {
 func (*NodeConfigSummary) ProtoMessage() {}
 
 func (x *NodeConfigSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[5]
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -449,7 +654,7 @@ func (x *NodeConfigSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeConfigSummary.ProtoReflect.Descriptor instead.
 func (*NodeConfigSummary) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{5}
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *NodeConfigSummary) GetId() string {
@@ -502,7 +707,7 @@ type AccessTokenSummary struct {
 
 func (x *AccessTokenSummary) Reset() {
 	*x = AccessTokenSummary{}
-	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[6]
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -514,7 +719,7 @@ func (x *AccessTokenSummary) String() string {
 func (*AccessTokenSummary) ProtoMessage() {}
 
 func (x *AccessTokenSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[6]
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -527,7 +732,7 @@ func (x *AccessTokenSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AccessTokenSummary.ProtoReflect.Descriptor instead.
 func (*AccessTokenSummary) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{6}
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *AccessTokenSummary) GetName() string {
@@ -562,7 +767,7 @@ type DNSConfigSummary struct {
 
 func (x *DNSConfigSummary) Reset() {
 	*x = DNSConfigSummary{}
-	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[7]
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -574,7 +779,7 @@ func (x *DNSConfigSummary) String() string {
 func (*DNSConfigSummary) ProtoMessage() {}
 
 func (x *DNSConfigSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[7]
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -587,7 +792,7 @@ func (x *DNSConfigSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DNSConfigSummary.ProtoReflect.Descriptor instead.
 func (*DNSConfigSummary) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{7}
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DNSConfigSummary) GetHasCloudflare() bool {
@@ -608,7 +813,7 @@ type BackupConfigSummary struct {
 
 func (x *BackupConfigSummary) Reset() {
 	*x = BackupConfigSummary{}
-	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[8]
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -620,7 +825,7 @@ func (x *BackupConfigSummary) String() string {
 func (*BackupConfigSummary) ProtoMessage() {}
 
 func (x *BackupConfigSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[8]
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -633,7 +838,7 @@ func (x *BackupConfigSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackupConfigSummary.ProtoReflect.Descriptor instead.
 func (*BackupConfigSummary) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{8}
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *BackupConfigSummary) GetHasRustic() bool {
@@ -658,7 +863,7 @@ type SecretsConfigSummary struct {
 
 func (x *SecretsConfigSummary) Reset() {
 	*x = SecretsConfigSummary{}
-	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[9]
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -670,7 +875,7 @@ func (x *SecretsConfigSummary) String() string {
 func (*SecretsConfigSummary) ProtoMessage() {}
 
 func (x *SecretsConfigSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[9]
+	mi := &file_proto_composia_controller_v1_system_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -683,7 +888,7 @@ func (x *SecretsConfigSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SecretsConfigSummary.ProtoReflect.Descriptor instead.
 func (*SecretsConfigSummary) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{9}
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SecretsConfigSummary) GetProvider() string {
@@ -732,7 +937,20 @@ const file_proto_composia_controller_v1_system_proto_rawDesc = "" +
 	"\raccess_tokens\x18\x05 \x03(\v2*.composia.controller.v1.AccessTokenSummaryR\faccessTokens\x12:\n" +
 	"\x03dns\x18\x06 \x01(\v2(.composia.controller.v1.DNSConfigSummaryR\x03dns\x12C\n" +
 	"\x06backup\x18\a \x01(\v2+.composia.controller.v1.BackupConfigSummaryR\x06backup\x12F\n" +
-	"\asecrets\x18\b \x01(\v2,.composia.controller.v1.SecretsConfigSummaryR\asecrets\"\xcd\x01\n" +
+	"\asecrets\x18\b \x01(\v2,.composia.controller.v1.SecretsConfigSummaryR\asecrets\"\x18\n" +
+	"\x16GetCapabilitiesRequest\"]\n" +
+	"\x17GetCapabilitiesResponse\x12B\n" +
+	"\x06global\x18\x01 \x01(\v2*.composia.controller.v1.GlobalCapabilitiesR\x06global\"G\n" +
+	"\n" +
+	"Capability\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x1f\n" +
+	"\vreason_code\x18\x02 \x01(\tR\n" +
+	"reasonCode\"\x97\x02\n" +
+	"\x12GlobalCapabilities\x12:\n" +
+	"\x06backup\x18\x01 \x01(\v2\".composia.controller.v1.CapabilityR\x06backup\x124\n" +
+	"\x03dns\x18\x02 \x01(\v2\".composia.controller.v1.CapabilityR\x03dns\x12<\n" +
+	"\asecrets\x18\x03 \x01(\v2\".composia.controller.v1.CapabilityR\asecrets\x12Q\n" +
+	"\x12rustic_maintenance\x18\x04 \x01(\v2\".composia.controller.v1.CapabilityR\x11rusticMaintenance\"\xcd\x01\n" +
 	"\x10GitConfigSummary\x12\x1d\n" +
 	"\n" +
 	"remote_url\x18\x01 \x01(\tR\tremoteUrl\x12\x16\n" +
@@ -762,10 +980,11 @@ const file_proto_composia_controller_v1_system_proto_rawDesc = "" +
 	"\x14SecretsConfigSummary\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12!\n" +
 	"\fhas_identity\x18\x02 \x01(\bR\vhasIdentity\x12#\n" +
-	"\rhas_recipient\x18\x03 \x01(\bR\fhasRecipient2\xfa\x01\n" +
+	"\rhas_recipient\x18\x03 \x01(\bR\fhasRecipient2\xee\x02\n" +
 	"\rSystemService\x12r\n" +
 	"\x0fGetSystemStatus\x12..composia.controller.v1.GetSystemStatusRequest\x1a/.composia.controller.v1.GetSystemStatusResponse\x12u\n" +
-	"\x10GetCurrentConfig\x12/.composia.controller.v1.GetCurrentConfigRequest\x1a0.composia.controller.v1.GetCurrentConfigResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
+	"\x10GetCurrentConfig\x12/.composia.controller.v1.GetCurrentConfigRequest\x1a0.composia.controller.v1.GetCurrentConfigResponse\x12r\n" +
+	"\x0fGetCapabilities\x12..composia.controller.v1.GetCapabilitiesRequest\x1a/.composia.controller.v1.GetCapabilitiesResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
 
 var (
 	file_proto_composia_controller_v1_system_proto_rawDescOnce sync.Once
@@ -779,37 +998,48 @@ func file_proto_composia_controller_v1_system_proto_rawDescGZIP() []byte {
 	return file_proto_composia_controller_v1_system_proto_rawDescData
 }
 
-var file_proto_composia_controller_v1_system_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_proto_composia_controller_v1_system_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_proto_composia_controller_v1_system_proto_goTypes = []any{
 	(*GetSystemStatusRequest)(nil),   // 0: composia.controller.v1.GetSystemStatusRequest
 	(*GetSystemStatusResponse)(nil),  // 1: composia.controller.v1.GetSystemStatusResponse
 	(*GetCurrentConfigRequest)(nil),  // 2: composia.controller.v1.GetCurrentConfigRequest
 	(*GetCurrentConfigResponse)(nil), // 3: composia.controller.v1.GetCurrentConfigResponse
-	(*GitConfigSummary)(nil),         // 4: composia.controller.v1.GitConfigSummary
-	(*NodeConfigSummary)(nil),        // 5: composia.controller.v1.NodeConfigSummary
-	(*AccessTokenSummary)(nil),       // 6: composia.controller.v1.AccessTokenSummary
-	(*DNSConfigSummary)(nil),         // 7: composia.controller.v1.DNSConfigSummary
-	(*BackupConfigSummary)(nil),      // 8: composia.controller.v1.BackupConfigSummary
-	(*SecretsConfigSummary)(nil),     // 9: composia.controller.v1.SecretsConfigSummary
-	(*timestamppb.Timestamp)(nil),    // 10: google.protobuf.Timestamp
+	(*GetCapabilitiesRequest)(nil),   // 4: composia.controller.v1.GetCapabilitiesRequest
+	(*GetCapabilitiesResponse)(nil),  // 5: composia.controller.v1.GetCapabilitiesResponse
+	(*Capability)(nil),               // 6: composia.controller.v1.Capability
+	(*GlobalCapabilities)(nil),       // 7: composia.controller.v1.GlobalCapabilities
+	(*GitConfigSummary)(nil),         // 8: composia.controller.v1.GitConfigSummary
+	(*NodeConfigSummary)(nil),        // 9: composia.controller.v1.NodeConfigSummary
+	(*AccessTokenSummary)(nil),       // 10: composia.controller.v1.AccessTokenSummary
+	(*DNSConfigSummary)(nil),         // 11: composia.controller.v1.DNSConfigSummary
+	(*BackupConfigSummary)(nil),      // 12: composia.controller.v1.BackupConfigSummary
+	(*SecretsConfigSummary)(nil),     // 13: composia.controller.v1.SecretsConfigSummary
+	(*timestamppb.Timestamp)(nil),    // 14: google.protobuf.Timestamp
 }
 var file_proto_composia_controller_v1_system_proto_depIdxs = []int32{
-	10, // 0: composia.controller.v1.GetSystemStatusResponse.now:type_name -> google.protobuf.Timestamp
-	4,  // 1: composia.controller.v1.GetCurrentConfigResponse.git:type_name -> composia.controller.v1.GitConfigSummary
-	5,  // 2: composia.controller.v1.GetCurrentConfigResponse.nodes:type_name -> composia.controller.v1.NodeConfigSummary
-	6,  // 3: composia.controller.v1.GetCurrentConfigResponse.access_tokens:type_name -> composia.controller.v1.AccessTokenSummary
-	7,  // 4: composia.controller.v1.GetCurrentConfigResponse.dns:type_name -> composia.controller.v1.DNSConfigSummary
-	8,  // 5: composia.controller.v1.GetCurrentConfigResponse.backup:type_name -> composia.controller.v1.BackupConfigSummary
-	9,  // 6: composia.controller.v1.GetCurrentConfigResponse.secrets:type_name -> composia.controller.v1.SecretsConfigSummary
-	0,  // 7: composia.controller.v1.SystemService.GetSystemStatus:input_type -> composia.controller.v1.GetSystemStatusRequest
-	2,  // 8: composia.controller.v1.SystemService.GetCurrentConfig:input_type -> composia.controller.v1.GetCurrentConfigRequest
-	1,  // 9: composia.controller.v1.SystemService.GetSystemStatus:output_type -> composia.controller.v1.GetSystemStatusResponse
-	3,  // 10: composia.controller.v1.SystemService.GetCurrentConfig:output_type -> composia.controller.v1.GetCurrentConfigResponse
-	9,  // [9:11] is the sub-list for method output_type
-	7,  // [7:9] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	14, // 0: composia.controller.v1.GetSystemStatusResponse.now:type_name -> google.protobuf.Timestamp
+	8,  // 1: composia.controller.v1.GetCurrentConfigResponse.git:type_name -> composia.controller.v1.GitConfigSummary
+	9,  // 2: composia.controller.v1.GetCurrentConfigResponse.nodes:type_name -> composia.controller.v1.NodeConfigSummary
+	10, // 3: composia.controller.v1.GetCurrentConfigResponse.access_tokens:type_name -> composia.controller.v1.AccessTokenSummary
+	11, // 4: composia.controller.v1.GetCurrentConfigResponse.dns:type_name -> composia.controller.v1.DNSConfigSummary
+	12, // 5: composia.controller.v1.GetCurrentConfigResponse.backup:type_name -> composia.controller.v1.BackupConfigSummary
+	13, // 6: composia.controller.v1.GetCurrentConfigResponse.secrets:type_name -> composia.controller.v1.SecretsConfigSummary
+	7,  // 7: composia.controller.v1.GetCapabilitiesResponse.global:type_name -> composia.controller.v1.GlobalCapabilities
+	6,  // 8: composia.controller.v1.GlobalCapabilities.backup:type_name -> composia.controller.v1.Capability
+	6,  // 9: composia.controller.v1.GlobalCapabilities.dns:type_name -> composia.controller.v1.Capability
+	6,  // 10: composia.controller.v1.GlobalCapabilities.secrets:type_name -> composia.controller.v1.Capability
+	6,  // 11: composia.controller.v1.GlobalCapabilities.rustic_maintenance:type_name -> composia.controller.v1.Capability
+	0,  // 12: composia.controller.v1.SystemService.GetSystemStatus:input_type -> composia.controller.v1.GetSystemStatusRequest
+	2,  // 13: composia.controller.v1.SystemService.GetCurrentConfig:input_type -> composia.controller.v1.GetCurrentConfigRequest
+	4,  // 14: composia.controller.v1.SystemService.GetCapabilities:input_type -> composia.controller.v1.GetCapabilitiesRequest
+	1,  // 15: composia.controller.v1.SystemService.GetSystemStatus:output_type -> composia.controller.v1.GetSystemStatusResponse
+	3,  // 16: composia.controller.v1.SystemService.GetCurrentConfig:output_type -> composia.controller.v1.GetCurrentConfigResponse
+	5,  // 17: composia.controller.v1.SystemService.GetCapabilities:output_type -> composia.controller.v1.GetCapabilitiesResponse
+	15, // [15:18] is the sub-list for method output_type
+	12, // [12:15] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_proto_composia_controller_v1_system_proto_init() }
@@ -823,7 +1053,7 @@ func file_proto_composia_controller_v1_system_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_controller_v1_system_proto_rawDesc), len(file_proto_composia_controller_v1_system_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

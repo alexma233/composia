@@ -39,6 +39,9 @@ const (
 	// SystemServiceGetCurrentConfigProcedure is the fully-qualified name of the SystemService's
 	// GetCurrentConfig RPC.
 	SystemServiceGetCurrentConfigProcedure = "/composia.controller.v1.SystemService/GetCurrentConfig"
+	// SystemServiceGetCapabilitiesProcedure is the fully-qualified name of the SystemService's
+	// GetCapabilities RPC.
+	SystemServiceGetCapabilitiesProcedure = "/composia.controller.v1.SystemService/GetCapabilities"
 )
 
 // SystemServiceClient is a client for the composia.controller.v1.SystemService service.
@@ -47,6 +50,8 @@ type SystemServiceClient interface {
 	GetSystemStatus(context.Context, *connect.Request[v1.GetSystemStatusRequest]) (*connect.Response[v1.GetSystemStatusResponse], error)
 	// GetCurrentConfig returns the active controller config as a redacted summary.
 	GetCurrentConfig(context.Context, *connect.Request[v1.GetCurrentConfigRequest]) (*connect.Response[v1.GetCurrentConfigResponse], error)
+	// GetCapabilities returns global feature availability for the current controller state.
+	GetCapabilities(context.Context, *connect.Request[v1.GetCapabilitiesRequest]) (*connect.Response[v1.GetCapabilitiesResponse], error)
 }
 
 // NewSystemServiceClient constructs a client for the composia.controller.v1.SystemService service.
@@ -72,6 +77,12 @@ func NewSystemServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(systemServiceMethods.ByName("GetCurrentConfig")),
 			connect.WithClientOptions(opts...),
 		),
+		getCapabilities: connect.NewClient[v1.GetCapabilitiesRequest, v1.GetCapabilitiesResponse](
+			httpClient,
+			baseURL+SystemServiceGetCapabilitiesProcedure,
+			connect.WithSchema(systemServiceMethods.ByName("GetCapabilities")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -79,6 +90,7 @@ func NewSystemServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 type systemServiceClient struct {
 	getSystemStatus  *connect.Client[v1.GetSystemStatusRequest, v1.GetSystemStatusResponse]
 	getCurrentConfig *connect.Client[v1.GetCurrentConfigRequest, v1.GetCurrentConfigResponse]
+	getCapabilities  *connect.Client[v1.GetCapabilitiesRequest, v1.GetCapabilitiesResponse]
 }
 
 // GetSystemStatus calls composia.controller.v1.SystemService.GetSystemStatus.
@@ -91,12 +103,19 @@ func (c *systemServiceClient) GetCurrentConfig(ctx context.Context, req *connect
 	return c.getCurrentConfig.CallUnary(ctx, req)
 }
 
+// GetCapabilities calls composia.controller.v1.SystemService.GetCapabilities.
+func (c *systemServiceClient) GetCapabilities(ctx context.Context, req *connect.Request[v1.GetCapabilitiesRequest]) (*connect.Response[v1.GetCapabilitiesResponse], error) {
+	return c.getCapabilities.CallUnary(ctx, req)
+}
+
 // SystemServiceHandler is an implementation of the composia.controller.v1.SystemService service.
 type SystemServiceHandler interface {
 	// GetSystemStatus returns the current controller status and node counts.
 	GetSystemStatus(context.Context, *connect.Request[v1.GetSystemStatusRequest]) (*connect.Response[v1.GetSystemStatusResponse], error)
 	// GetCurrentConfig returns the active controller config as a redacted summary.
 	GetCurrentConfig(context.Context, *connect.Request[v1.GetCurrentConfigRequest]) (*connect.Response[v1.GetCurrentConfigResponse], error)
+	// GetCapabilities returns global feature availability for the current controller state.
+	GetCapabilities(context.Context, *connect.Request[v1.GetCapabilitiesRequest]) (*connect.Response[v1.GetCapabilitiesResponse], error)
 }
 
 // NewSystemServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -118,12 +137,20 @@ func NewSystemServiceHandler(svc SystemServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(systemServiceMethods.ByName("GetCurrentConfig")),
 		connect.WithHandlerOptions(opts...),
 	)
+	systemServiceGetCapabilitiesHandler := connect.NewUnaryHandler(
+		SystemServiceGetCapabilitiesProcedure,
+		svc.GetCapabilities,
+		connect.WithSchema(systemServiceMethods.ByName("GetCapabilities")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.controller.v1.SystemService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SystemServiceGetSystemStatusProcedure:
 			systemServiceGetSystemStatusHandler.ServeHTTP(w, r)
 		case SystemServiceGetCurrentConfigProcedure:
 			systemServiceGetCurrentConfigHandler.ServeHTTP(w, r)
+		case SystemServiceGetCapabilitiesProcedure:
+			systemServiceGetCapabilitiesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -139,4 +166,8 @@ func (UnimplementedSystemServiceHandler) GetSystemStatus(context.Context, *conne
 
 func (UnimplementedSystemServiceHandler) GetCurrentConfig(context.Context, *connect.Request[v1.GetCurrentConfigRequest]) (*connect.Response[v1.GetCurrentConfigResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.SystemService.GetCurrentConfig is not implemented"))
+}
+
+func (UnimplementedSystemServiceHandler) GetCapabilities(context.Context, *connect.Request[v1.GetCapabilitiesRequest]) (*connect.Response[v1.GetCapabilitiesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.SystemService.GetCapabilities is not implemented"))
 }

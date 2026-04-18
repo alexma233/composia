@@ -12,6 +12,8 @@ service SystemService {
   rpc GetSystemStatus(GetSystemStatusRequest) returns (GetSystemStatusResponse);
   // GetCurrentConfig returns the active controller config as a redacted summary.
   rpc GetCurrentConfig(GetCurrentConfigRequest) returns (GetCurrentConfigResponse);
+  // GetCapabilities returns global feature availability for the current controller state.
+  rpc GetCapabilities(GetCapabilitiesRequest) returns (GetCapabilitiesResponse);
 }
 
 // GetSystemStatusRequest requests the current controller runtime state.
@@ -58,6 +60,29 @@ message GetCurrentConfigResponse {
   BackupConfigSummary backup = 7;
   // secrets describes the active secrets provider configuration.
   SecretsConfigSummary secrets = 8;
+}
+
+// GetCapabilitiesRequest requests global controller-backed feature availability.
+message GetCapabilitiesRequest {}
+
+// GetCapabilitiesResponse returns global feature availability for the web UI.
+message GetCapabilitiesResponse {
+  GlobalCapabilities global = 1;
+}
+
+// Capability describes whether a feature or action may currently be used.
+message Capability {
+  bool enabled = 1;
+  // reason_code explains why the capability is disabled when enabled is false.
+  string reason_code = 2;
+}
+
+// GlobalCapabilities describes controller-wide feature availability.
+message GlobalCapabilities {
+  Capability backup = 1;
+  Capability dns = 2;
+  Capability secrets = 3;
+  Capability rustic_maintenance = 4;
 }
 
 // GitConfigSummary describes controller Git sync settings without credentials.

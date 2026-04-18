@@ -1532,6 +1532,10 @@ func (server *serviceQueryServer) GetService(ctx context.Context, req *connect.R
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	snapshotByNodeID, err := buildNodeSnapshotMap(ctx, server.db)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 	response := &controllerv1.GetServiceResponse{
 		Name:          service.Name,
 		RuntimeStatus: snapshot.RuntimeStatus,
@@ -1540,6 +1544,7 @@ func (server *serviceQueryServer) GetService(ctx context.Context, req *connect.R
 		Enabled:       service.Enabled,
 		Directory:     filepath.ToSlash(mustRelativeServiceDir(server.cfg.RepoDir, service.Directory)),
 		Instances:     make([]*controllerv1.ServiceInstanceDetail, 0, len(instances)),
+		Actions:       buildServiceActionCapabilities(server.cfg, server.availableNodeIDs, snapshotByNodeID, service),
 	}
 	for _, instance := range instances {
 		if !req.Msg.GetIncludeContainers() {
@@ -1630,6 +1635,10 @@ func (server *serviceQueryServer) listServiceWorkspaceSummaries(ctx context.Cont
 	if err != nil {
 		return nil, err
 	}
+	snapshotByNodeID, err := buildNodeSnapshotMap(ctx, server.db)
+	if err != nil {
+		return nil, err
+	}
 	declaredByName := make(map[string]store.ServiceSummary, len(declaredServices))
 	for _, service := range declaredServices {
 		declaredByName[service.Name] = service
@@ -1639,7 +1648,7 @@ func (server *serviceQueryServer) listServiceWorkspaceSummaries(ctx context.Cont
 		if !entry.IsDir {
 			continue
 		}
-		workspace, err := server.buildServiceWorkspaceSummary(entry.Path, entry.Name, declaredByName)
+		workspace, err := server.buildServiceWorkspaceSummary(entry.Path, entry.Name, declaredByName, snapshotByNodeID)
 		if err != nil {
 			return nil, err
 		}
@@ -1648,12 +1657,13 @@ func (server *serviceQueryServer) listServiceWorkspaceSummaries(ctx context.Cont
 	return workspaces, nil
 }
 
-func (server *serviceQueryServer) buildServiceWorkspaceSummary(folder, defaultName string, declaredByName map[string]store.ServiceSummary) (*controllerv1.ServiceWorkspaceSummary, error) {
+func (server *serviceQueryServer) buildServiceWorkspaceSummary(folder, defaultName string, declaredByName map[string]store.ServiceSummary, snapshotByNodeID map[string]store.NodeSnapshot) (*controllerv1.ServiceWorkspaceSummary, error) {
 	workspace := &controllerv1.ServiceWorkspaceSummary{
 		Folder:        folder,
 		DisplayName:   defaultName,
 		RuntimeStatus: "uninitialized",
 		Nodes:         []string{},
+		Actions:       buildDisabledServiceActionCapabilities(reasonMissingServiceMeta),
 	}
 	metaPath := filepath.Join(server.cfg.RepoDir, filepath.FromSlash(folder), repo.MetaFileName)
 	metaInfo, err := os.Stat(metaPath)
@@ -1667,6 +1677,7 @@ func (server *serviceQueryServer) buildServiceWorkspaceSummary(folder, defaultNa
 		return nil, fmt.Errorf("service meta %q must be a file", metaPath)
 	}
 	workspace.HasMeta = true
+	workspace.Actions = buildDisabledServiceActionCapabilities(reasonServiceNotDeclared)
 	meta, err := repo.LoadServiceMeta(metaPath)
 	if err != nil {
 		workspace.RuntimeStatus = "needs_validation"
@@ -1679,13 +1690,16 @@ func (server *serviceQueryServer) buildServiceWorkspaceSummary(folder, defaultNa
 	}
 	workspace.Nodes = normalizeWorkspaceNodeIDs(meta.Nodes)
 	workspace.Enabled = meta.Enabled == nil || *meta.Enabled
-	if _, err := repo.LoadServiceFromMetaPath(metaPath, server.availableNodeIDs); err != nil {
+	service, err := repo.LoadServiceFromMetaPath(metaPath, server.availableNodeIDs)
+	if err != nil {
 		workspace.RuntimeStatus = "needs_validation"
 		return workspace, nil
 	}
+	workspace.Actions = buildServiceActionCapabilities(server.cfg, server.availableNodeIDs, snapshotByNodeID, service)
 	declared, ok := declaredByName[workspace.ServiceName]
 	if !ok {
 		workspace.RuntimeStatus = "needs_validation"
+		workspace.Actions = buildDisabledServiceActionCapabilities(reasonServiceNotDeclared)
 		return workspace, nil
 	}
 	workspace.IsDeclared = true
@@ -1985,21 +1999,18 @@ func findTaskStepStartedAt(steps []task.StepRecord, stepName task.StepName) *tim
 }
 
 func (server *nodeQueryServer) ListNodes(ctx context.Context, _ *connect.Request[controllerv1.ListNodesRequest]) (*connect.Response[controllerv1.ListNodesResponse], error) {
-	snapshots, err := server.db.ListNodeSnapshots(ctx)
+	snapshotByNodeID, err := buildNodeSnapshotMap(ctx, server.db)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	snapshotByNodeID := make(map[string]store.NodeSnapshot, len(snapshots))
-	for _, snapshot := range snapshots {
-		snapshotByNodeID[snapshot.NodeID] = snapshot
 	}
 
 	response := &controllerv1.ListNodesResponse{
 		Nodes: make([]*controllerv1.NodeSummary, 0, len(server.cfg.Nodes)),
 	}
 	for _, node := range server.cfg.Nodes {
-		response.Nodes = append(response.Nodes, nodeSummary(node, snapshotByNodeID[node.ID]))
+		summary := nodeSummary(node, snapshotByNodeID[node.ID])
+		summary.Actions = buildNodeActionCapabilities(server.cfg, configuredNodeIDs(server.cfg), snapshotByNodeID, node.ID)
+		response.Nodes = append(response.Nodes, summary)
 	}
 
 	return connect.NewResponse(response), nil
@@ -2009,17 +2020,15 @@ func (server *nodeQueryServer) GetNode(ctx context.Context, req *connect.Request
 	if req.Msg == nil || req.Msg.GetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
-	snapshots, err := server.db.ListNodeSnapshots(ctx)
+	snapshotByNodeID, err := buildNodeSnapshotMap(ctx, server.db)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	snapshotByNodeID := make(map[string]store.NodeSnapshot, len(snapshots))
-	for _, snapshot := range snapshots {
-		snapshotByNodeID[snapshot.NodeID] = snapshot
-	}
 	for _, node := range server.cfg.Nodes {
 		if node.ID == req.Msg.GetNodeId() {
-			return connect.NewResponse(&controllerv1.GetNodeResponse{Node: nodeSummary(node, snapshotByNodeID[node.ID])}), nil
+			summary := nodeSummary(node, snapshotByNodeID[node.ID])
+			summary.Actions = buildNodeActionCapabilities(server.cfg, configuredNodeIDs(server.cfg), snapshotByNodeID, node.ID)
+			return connect.NewResponse(&controllerv1.GetNodeResponse{Node: summary}), nil
 		}
 	}
 	return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("node %q is not configured", req.Msg.GetNodeId()))
@@ -2853,6 +2862,11 @@ func (server *backupRecordServer) GetBackup(ctx context.Context, req *connect.Re
 		ArtifactRef:  backup.ArtifactRef,
 		ErrorSummary: backup.ErrorSummary,
 	}
+	snapshotByNodeID, err := buildNodeSnapshotMap(ctx, server.db)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	response.Actions = buildBackupActionCapabilities(server.cfg, server.availableNodeIDs, snapshotByNodeID, backup)
 	return connect.NewResponse(response), nil
 }
 

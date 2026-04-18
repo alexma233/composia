@@ -3,25 +3,34 @@ import type { PageServerLoad } from "./$types";
 import {
   controllerConfig,
   loadRepoHead,
+  loadSystemCapabilities,
   loadSystemStatus,
 } from "$lib/server/controller";
 
 export const load: PageServerLoad = async () => {
   const config = controllerConfig();
   if (!config.ready) {
-    return { ready: false, error: config.reason, system: null, repoHead: null };
+    return {
+      ready: false,
+      error: config.reason,
+      system: null,
+      repoHead: null,
+      capabilities: null,
+    };
   }
 
   try {
-    const [system, repoHead] = await Promise.all([
+    const [system, repoHead, capabilities] = await Promise.all([
       loadSystemStatus(),
       loadRepoHead(),
+      loadSystemCapabilities(),
     ]);
     return {
       ready: true,
       error: null,
       system,
       repoHead,
+      capabilities,
     };
   } catch (error) {
     return {
@@ -30,6 +39,7 @@ export const load: PageServerLoad = async () => {
         error instanceof Error ? error.message : "Failed to load settings.",
       system: null,
       repoHead: null,
+      capabilities: null,
     };
   }
 };

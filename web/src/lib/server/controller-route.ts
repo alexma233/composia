@@ -24,6 +24,16 @@ export function jsonControllerError(
   );
 }
 
+export function jsonCapabilityError(reasonCode: string, fallback: string) {
+  return json(
+    {
+      error: fallback,
+      reasonCode,
+    },
+    { status: 412 },
+  );
+}
+
 export function parseDockerListQuery(url: URL): DockerListQuery {
   return {
     page: parsePositiveInt(url.searchParams.get("page")),

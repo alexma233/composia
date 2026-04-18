@@ -1,8 +1,8 @@
 <script lang="ts">
-  import CheckIcon from '@lucide/svelte/icons/check';
-  import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
-  import { goto, invalidateAll } from '$app/navigation';
-  import { onMount } from 'svelte';
+  import CheckIcon from "@lucide/svelte/icons/check";
+  import ChevronsUpDownIcon from "@lucide/svelte/icons/chevrons-up-down";
+  import { goto, invalidateAll } from "$app/navigation";
+  import { onMount } from "svelte";
   import {
     Columns2,
     Copy,
@@ -19,6 +19,11 @@
   } from "lucide-svelte";
 
   import type { PageData } from "./$types";
+  import {
+    actionErrorMessage,
+    capabilityReasonMessage,
+    serviceActionCapability,
+  } from "$lib/capabilities";
   import { messages } from "$lib/i18n";
 
   import CodeEditor from "$lib/components/app/code-editor.svelte";
@@ -49,7 +54,7 @@
     DialogFooter,
     DialogHeader,
   } from "$lib/components/ui/dialog";
-  import * as Command from '$lib/components/ui/command';
+  import * as Command from "$lib/components/ui/command";
   import DialogContent from "$lib/components/ui/dialog/dialog-content.svelte";
   import DialogOverlay from "$lib/components/ui/dialog/dialog-overlay.svelte";
   import { Input } from "$lib/components/ui/input";
@@ -81,8 +86,8 @@
     normalizeServiceRelativePath,
     upsertFileNode,
   } from "$lib/service-workspace";
-  import { startPolling } from '$lib/refresh';
-  import { cn } from '$lib/utils';
+  import { startPolling } from "$lib/refresh";
+  import { cn } from "$lib/utils";
 
   let { data }: { data: PageData } = $props();
 
@@ -121,7 +126,9 @@
   let workspace = $state<PageData["workspace"]>(null);
   let serviceDetail = $state<PageData["serviceDetail"]>(null);
   let nodeContainers = $state<NonNullable<PageData["nodeContainers"]>>([]);
-  let instanceLoadState = $state<Record<string, "idle" | "loading" | "loaded" | "error">>({});
+  let instanceLoadState = $state<
+    Record<string, "idle" | "loading" | "loaded" | "error">
+  >({});
   let instanceLoadError = $state<Record<string, string>>({});
   let stopActionRefreshHandle = $state<null | (() => void)>(null);
   let migrateSourceNode = $state("");
@@ -213,6 +220,57 @@
   let workspaceNodesLabel = $derived(
     workspace?.nodes?.length ? workspace.nodes.join(", ") : "",
   );
+  let backupCapability = $derived(
+    serviceActionCapability(workspace?.actions, "backup"),
+  );
+  let dnsUpdateCapability = $derived(
+    serviceActionCapability(workspace?.actions, "dnsUpdate"),
+  );
+  let caddySyncCapability = $derived(
+    serviceActionCapability(workspace?.actions, "caddySync"),
+  );
+  let migrateCapability = $derived(
+    serviceActionCapability(workspace?.actions, "migrate"),
+  );
+  let backupReason = $derived(
+    backupCapability.enabled
+      ? ""
+      : capabilityReasonMessage(backupCapability.reasonCode, $messages),
+  );
+  let dnsUpdateReason = $derived(
+    dnsUpdateCapability.enabled
+      ? ""
+      : capabilityReasonMessage(dnsUpdateCapability.reasonCode, $messages),
+  );
+  let caddySyncReason = $derived(
+    caddySyncCapability.enabled
+      ? ""
+      : capabilityReasonMessage(caddySyncCapability.reasonCode, $messages),
+  );
+  let migrateReason = $derived(
+    migrateCapability.enabled
+      ? ""
+      : capabilityReasonMessage(migrateCapability.reasonCode, $messages),
+  );
+  let unavailableAdvancedActions = $derived(
+    !workspace?.isDeclared
+      ? []
+      : [
+          { label: $messages.services.operations.backup, reason: backupReason },
+          {
+            label: $messages.services.operations.dnsUpdate,
+            reason: dnsUpdateReason,
+          },
+          {
+            label: $messages.services.operations.syncCaddy,
+            reason: caddySyncReason,
+          },
+          {
+            label: $messages.services.operations.migrate.migrate,
+            reason: migrateReason,
+          },
+        ].filter((item) => item.reason),
+  );
   let migrateSourceNodes = $derived(serviceDetail?.nodes ?? []);
   let hasMultipleInstanceNodes = $derived(nodeContainers.length > 1);
   let selectedInstanceEntry = $derived(
@@ -261,7 +319,9 @@
             existing.isDeclared !== instance.isDeclared);
 
         if (!existing || changed || hasFreshContainers) {
-          nextLoadState[instance.nodeId] = hasFreshContainers ? "loaded" : "idle";
+          nextLoadState[instance.nodeId] = hasFreshContainers
+            ? "loaded"
+            : "idle";
           return instance;
         }
 
@@ -284,7 +344,9 @@
 
     if (
       selectedInstanceNode !== "__all__" &&
-      !nodeContainers.some((instance) => instance.nodeId === selectedInstanceNode)
+      !nodeContainers.some(
+        (instance) => instance.nodeId === selectedInstanceNode,
+      )
     ) {
       selectedInstanceNode = "__all__";
     }
@@ -784,12 +846,14 @@
       throw new Error(payload.error ?? "Failed to refresh service summary.");
     }
 
-    applyServiceSummaryState(payload as {
-      workspace?: PageData["workspace"];
-      tasks?: TaskSummary[];
-      backups?: BackupSummary[];
-      serviceDetail?: PageData["serviceDetail"];
-    });
+    applyServiceSummaryState(
+      payload as {
+        workspace?: PageData["workspace"];
+        tasks?: TaskSummary[];
+        backups?: BackupSummary[];
+        serviceDetail?: PageData["serviceDetail"];
+      },
+    );
 
     return payload as {
       workspace?: PageData["workspace"];
@@ -802,19 +866,24 @@
   function startActionRefresh(taskId: string) {
     stopActionRefresh();
 
-    stopActionRefreshHandle = startPolling(async () => {
-      const payload = await refreshServiceSummary();
-      const task = (payload.tasks ?? []).find((entry) => entry.taskId === taskId);
-      if (!task) {
-        return true;
-      }
+    stopActionRefreshHandle = startPolling(
+      async () => {
+        const payload = await refreshServiceSummary();
+        const task = (payload.tasks ?? []).find(
+          (entry) => entry.taskId === taskId,
+        );
+        if (!task) {
+          return true;
+        }
 
-      return !isTerminalTaskStatus(task.status);
-    }, {
-      intervalMs: 2500,
-      errorIntervalMs: 4000,
-      initialDelayMs: 1200,
-    });
+        return !isTerminalTaskStatus(task.status);
+      },
+      {
+        intervalMs: 2500,
+        errorIntervalMs: 4000,
+        initialDelayMs: 1200,
+      },
+    );
   }
 
   function stopActionRefresh() {
@@ -823,11 +892,14 @@
   }
 
   onMount(() => {
-    const stopAutoRefresh = startPolling(async () => {
-      await refreshServiceSummary();
-    }, {
-      intervalMs: 5000,
-    });
+    const stopAutoRefresh = startPolling(
+      async () => {
+        await refreshServiceSummary();
+      },
+      {
+        intervalMs: 5000,
+      },
+    );
 
     return () => {
       stopAutoRefresh();
@@ -850,8 +922,28 @@
   }
 
   async function triggerAction(
-    action: "deploy" | "update" | "stop" | "restart" | "backup" | "dns_update" | "caddy_sync",
+    action:
+      | "deploy"
+      | "update"
+      | "stop"
+      | "restart"
+      | "backup"
+      | "dns_update"
+      | "caddy_sync",
   ) {
+    if (action === "backup" && !backupCapability.enabled) {
+      errorMessage = backupReason;
+      return;
+    }
+    if (action === "dns_update" && !dnsUpdateCapability.enabled) {
+      errorMessage = dnsUpdateReason;
+      return;
+    }
+    if (action === "caddy_sync" && !caddySyncCapability.enabled) {
+      errorMessage = caddySyncReason;
+      return;
+    }
+
     actionBusy = action;
     errorMessage = "";
 
@@ -865,9 +957,12 @@
       );
       const payload = (await response.json()) as ServiceActionResult & {
         error?: string;
+        reasonCode?: string;
       };
       if (!response.ok || !payload.taskId) {
-        throw new Error(payload.error ?? `Failed to run ${action}.`);
+        throw new Error(
+          actionErrorMessage(payload, $messages, `Failed to run ${action}.`),
+        );
       }
 
       const newTask: TaskSummary = {
@@ -901,6 +996,10 @@
       errorMessage = "Select a source node and enter a target node.";
       return;
     }
+    if (!migrateCapability.enabled) {
+      errorMessage = migrateReason;
+      return;
+    }
     actionBusy = "migrate";
     errorMessage = "";
 
@@ -918,9 +1017,12 @@
       );
       const payload = (await response.json()) as ServiceActionResult & {
         error?: string;
+        reasonCode?: string;
       };
       if (!response.ok || !payload.taskId) {
-        throw new Error(payload.error ?? "Failed to run migrate.");
+        throw new Error(
+          actionErrorMessage(payload, $messages, "Failed to run migrate."),
+        );
       }
       const newTask: TaskSummary = {
         taskId: payload.taskId,
@@ -1048,25 +1150,48 @@
                 type="button"
                 class="flex w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-left text-sm shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground"
               >
-                <span class="min-w-0 flex-1 truncate font-semibold text-foreground">
+                <span
+                  class="min-w-0 flex-1 truncate font-semibold text-foreground"
+                >
                   {workspace?.displayName ?? $messages.services.selectService}
                 </span>
                 <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
               </button>
             </Popover.Trigger>
-            <Popover.Content class="w-[min(92vw,28rem)] p-0" align="start" sideOffset={8}>
+            <Popover.Content
+              class="w-[min(92vw,28rem)] p-0"
+              align="start"
+              sideOffset={8}
+            >
               <Command.Root>
-                <Command.Input placeholder={$messages.services.searchServicePlaceholder} />
+                <Command.Input
+                  placeholder={$messages.services.searchServicePlaceholder}
+                />
                 <Command.List>
-                  <Command.Empty>{$messages.services.noServicesFound}</Command.Empty>
+                  <Command.Empty
+                    >{$messages.services.noServicesFound}</Command.Empty
+                  >
                   <Command.Group>
                     {#each serviceOptions as service (service.value)}
-                      <Command.Item value={`${service.label} ${service.secondary}`} onSelect={() => { void selectService(service.value); }}>
+                      <Command.Item
+                        value={`${service.label} ${service.secondary}`}
+                        onSelect={() => {
+                          void selectService(service.value);
+                        }}
+                      >
                         <div class="min-w-0">
                           <div class="truncate">{service.label}</div>
-                          <div class="truncate text-xs text-muted-foreground">{service.secondary}</div>
+                          <div class="truncate text-xs text-muted-foreground">
+                            {service.secondary}
+                          </div>
                         </div>
-                        <CheckIcon class={cn('ml-auto size-4', service.value !== workspace?.folder && 'text-transparent')} />
+                        <CheckIcon
+                          class={cn(
+                            "ml-auto size-4",
+                            service.value !== workspace?.folder &&
+                              "text-transparent",
+                          )}
+                        />
                       </Command.Item>
                     {/each}
                   </Command.Group>
@@ -1197,14 +1322,20 @@
                   {$messages.common.loadingWithDots}
                 </div>
               {:else if instanceLoadState[instance.nodeId] === "error"}
-                <div class="rounded-lg border border-dashed border-border/70 px-3 py-4 text-sm text-muted-foreground">
-                  <div>{instanceLoadError[instance.nodeId] || $messages.error.loadFailed}</div>
+                <div
+                  class="rounded-lg border border-dashed border-border/70 px-3 py-4 text-sm text-muted-foreground"
+                >
+                  <div>
+                    {instanceLoadError[instance.nodeId] ||
+                      $messages.error.loadFailed}
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     class="mt-3"
-                    onclick={() => loadInstanceContainers(instance.nodeId, true)}
+                    onclick={() =>
+                      loadInstanceContainers(instance.nodeId, true)}
                   >
                     <RefreshCcw class="mr-2 size-4" />{$messages.common.refresh}
                   </Button>
@@ -1597,11 +1728,26 @@
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div class="grid gap-2 pt-3">
+                  {#if unavailableAdvancedActions.length}
+                    <Alert>
+                      <AlertTitle
+                        >{$messages.capabilities.unavailableTitle}</AlertTitle
+                      >
+                      <AlertDescription>
+                        {#each unavailableAdvancedActions as item}
+                          <div>{item.label}: {item.reason}</div>
+                        {/each}
+                      </AlertDescription>
+                    </Alert>
+                  {/if}
+
                   <Button
                     type="button"
                     variant="outline"
                     onclick={() => triggerAction("backup")}
-                    disabled={!!actionBusy || !workspace?.isDeclared}
+                    disabled={!!actionBusy ||
+                      !workspace?.isDeclared ||
+                      !backupCapability.enabled}
                   >
                     <Wrench class="mr-2 size-4" />{$messages.services.operations
                       .backup}
@@ -1610,7 +1756,9 @@
                     type="button"
                     variant="outline"
                     onclick={() => triggerAction("dns_update")}
-                    disabled={!!actionBusy || !workspace?.isDeclared}
+                    disabled={!!actionBusy ||
+                      !workspace?.isDeclared ||
+                      !dnsUpdateCapability.enabled}
                   >
                     <Upload class="mr-2 size-4" />{$messages.services.operations
                       .dnsUpdate}
@@ -1621,7 +1769,8 @@
                     onclick={() => triggerAction("caddy_sync")}
                     disabled={!!actionBusy ||
                       !workspace?.isDeclared ||
-                      !(workspace?.nodes?.length ?? 0)}
+                      !(workspace?.nodes?.length ?? 0) ||
+                      !caddySyncCapability.enabled}
                   >
                     <Copy class="mr-2 size-4" />{$messages.services.operations
                       .syncCaddy}
@@ -1658,7 +1807,8 @@
                       disabled={!!actionBusy ||
                         !workspace?.isDeclared ||
                         !migrateSourceNode ||
-                        !migrateTargetNode.trim()}
+                        !migrateTargetNode.trim() ||
+                        !migrateCapability.enabled}
                     >
                       <RefreshCcw class="mr-2 size-4" />{$messages.services
                         .operations.migrate.migrate}

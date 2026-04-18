@@ -436,6 +436,83 @@ func (x *ServiceInstanceDetail) GetContainers() []*ServiceContainerSummary {
 	return nil
 }
 
+// ServiceActionCapabilities describes whether service-scoped actions may run.
+type ServiceActionCapabilities struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Backup        *Capability            `protobuf:"bytes,1,opt,name=backup,proto3" json:"backup,omitempty"`
+	Restore       *Capability            `protobuf:"bytes,2,opt,name=restore,proto3" json:"restore,omitempty"`
+	Migrate       *Capability            `protobuf:"bytes,3,opt,name=migrate,proto3" json:"migrate,omitempty"`
+	DnsUpdate     *Capability            `protobuf:"bytes,4,opt,name=dns_update,json=dnsUpdate,proto3" json:"dns_update,omitempty"`
+	CaddySync     *Capability            `protobuf:"bytes,5,opt,name=caddy_sync,json=caddySync,proto3" json:"caddy_sync,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ServiceActionCapabilities) Reset() {
+	*x = ServiceActionCapabilities{}
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServiceActionCapabilities) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServiceActionCapabilities) ProtoMessage() {}
+
+func (x *ServiceActionCapabilities) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServiceActionCapabilities.ProtoReflect.Descriptor instead.
+func (*ServiceActionCapabilities) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ServiceActionCapabilities) GetBackup() *Capability {
+	if x != nil {
+		return x.Backup
+	}
+	return nil
+}
+
+func (x *ServiceActionCapabilities) GetRestore() *Capability {
+	if x != nil {
+		return x.Restore
+	}
+	return nil
+}
+
+func (x *ServiceActionCapabilities) GetMigrate() *Capability {
+	if x != nil {
+		return x.Migrate
+	}
+	return nil
+}
+
+func (x *ServiceActionCapabilities) GetDnsUpdate() *Capability {
+	if x != nil {
+		return x.DnsUpdate
+	}
+	return nil
+}
+
+func (x *ServiceActionCapabilities) GetCaddySync() *Capability {
+	if x != nil {
+		return x.CaddySync
+	}
+	return nil
+}
+
 // GetServiceRequest addresses one service by logical name.
 type GetServiceRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -449,7 +526,7 @@ type GetServiceRequest struct {
 
 func (x *GetServiceRequest) Reset() {
 	*x = GetServiceRequest{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[3]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -461,7 +538,7 @@ func (x *GetServiceRequest) String() string {
 func (*GetServiceRequest) ProtoMessage() {}
 
 func (x *GetServiceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[3]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -474,7 +551,7 @@ func (x *GetServiceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetServiceRequest.ProtoReflect.Descriptor instead.
 func (*GetServiceRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{3}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetServiceRequest) GetServiceName() string {
@@ -506,14 +583,16 @@ type GetServiceResponse struct {
 	// directory is the service directory inside the repo.
 	Directory string `protobuf:"bytes,6,opt,name=directory,proto3" json:"directory,omitempty"`
 	// instances lists per-node runtime details known to the controller.
-	Instances     []*ServiceInstanceDetail `protobuf:"bytes,7,rep,name=instances,proto3" json:"instances,omitempty"`
+	Instances []*ServiceInstanceDetail `protobuf:"bytes,7,rep,name=instances,proto3" json:"instances,omitempty"`
+	// actions describes whether service-scoped actions may currently run.
+	Actions       *ServiceActionCapabilities `protobuf:"bytes,8,opt,name=actions,proto3" json:"actions,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetServiceResponse) Reset() {
 	*x = GetServiceResponse{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[4]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -525,7 +604,7 @@ func (x *GetServiceResponse) String() string {
 func (*GetServiceResponse) ProtoMessage() {}
 
 func (x *GetServiceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[4]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -538,7 +617,7 @@ func (x *GetServiceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetServiceResponse.ProtoReflect.Descriptor instead.
 func (*GetServiceResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{4}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetServiceResponse) GetName() string {
@@ -590,6 +669,13 @@ func (x *GetServiceResponse) GetInstances() []*ServiceInstanceDetail {
 	return nil
 }
 
+func (x *GetServiceResponse) GetActions() *ServiceActionCapabilities {
+	if x != nil {
+		return x.Actions
+	}
+	return nil
+}
+
 // ServiceWorkspaceSummary describes one top-level repo workspace and any merged service state.
 type ServiceWorkspaceSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -610,14 +696,16 @@ type ServiceWorkspaceSummary struct {
 	// nodes lists declared target nodes when the workspace meta is parseable.
 	Nodes []string `protobuf:"bytes,8,rep,name=nodes,proto3" json:"nodes,omitempty"`
 	// enabled reports the desired-state enabled flag when the workspace meta is parseable.
-	Enabled       bool `protobuf:"varint,9,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Enabled bool `protobuf:"varint,9,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// actions describes whether service-scoped actions may currently run.
+	Actions       *ServiceActionCapabilities `protobuf:"bytes,10,opt,name=actions,proto3" json:"actions,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ServiceWorkspaceSummary) Reset() {
 	*x = ServiceWorkspaceSummary{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[5]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -629,7 +717,7 @@ func (x *ServiceWorkspaceSummary) String() string {
 func (*ServiceWorkspaceSummary) ProtoMessage() {}
 
 func (x *ServiceWorkspaceSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[5]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -642,7 +730,7 @@ func (x *ServiceWorkspaceSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceWorkspaceSummary.ProtoReflect.Descriptor instead.
 func (*ServiceWorkspaceSummary) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{5}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ServiceWorkspaceSummary) GetFolder() string {
@@ -708,6 +796,13 @@ func (x *ServiceWorkspaceSummary) GetEnabled() bool {
 	return false
 }
 
+func (x *ServiceWorkspaceSummary) GetActions() *ServiceActionCapabilities {
+	if x != nil {
+		return x.Actions
+	}
+	return nil
+}
+
 // ListServiceWorkspacesRequest requests all top-level service workspaces.
 type ListServiceWorkspacesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -717,7 +812,7 @@ type ListServiceWorkspacesRequest struct {
 
 func (x *ListServiceWorkspacesRequest) Reset() {
 	*x = ListServiceWorkspacesRequest{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[6]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -729,7 +824,7 @@ func (x *ListServiceWorkspacesRequest) String() string {
 func (*ListServiceWorkspacesRequest) ProtoMessage() {}
 
 func (x *ListServiceWorkspacesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[6]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -742,7 +837,7 @@ func (x *ListServiceWorkspacesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServiceWorkspacesRequest.ProtoReflect.Descriptor instead.
 func (*ListServiceWorkspacesRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{6}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{7}
 }
 
 // ListServiceWorkspacesResponse returns top-level repo service workspaces.
@@ -755,7 +850,7 @@ type ListServiceWorkspacesResponse struct {
 
 func (x *ListServiceWorkspacesResponse) Reset() {
 	*x = ListServiceWorkspacesResponse{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[7]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -767,7 +862,7 @@ func (x *ListServiceWorkspacesResponse) String() string {
 func (*ListServiceWorkspacesResponse) ProtoMessage() {}
 
 func (x *ListServiceWorkspacesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[7]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -780,7 +875,7 @@ func (x *ListServiceWorkspacesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServiceWorkspacesResponse.ProtoReflect.Descriptor instead.
 func (*ListServiceWorkspacesResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{7}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListServiceWorkspacesResponse) GetWorkspaces() []*ServiceWorkspaceSummary {
@@ -800,7 +895,7 @@ type GetServiceWorkspaceRequest struct {
 
 func (x *GetServiceWorkspaceRequest) Reset() {
 	*x = GetServiceWorkspaceRequest{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[8]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -812,7 +907,7 @@ func (x *GetServiceWorkspaceRequest) String() string {
 func (*GetServiceWorkspaceRequest) ProtoMessage() {}
 
 func (x *GetServiceWorkspaceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[8]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -825,7 +920,7 @@ func (x *GetServiceWorkspaceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetServiceWorkspaceRequest.ProtoReflect.Descriptor instead.
 func (*GetServiceWorkspaceRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{8}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetServiceWorkspaceRequest) GetFolder() string {
@@ -845,7 +940,7 @@ type GetServiceWorkspaceResponse struct {
 
 func (x *GetServiceWorkspaceResponse) Reset() {
 	*x = GetServiceWorkspaceResponse{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[9]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -857,7 +952,7 @@ func (x *GetServiceWorkspaceResponse) String() string {
 func (*GetServiceWorkspaceResponse) ProtoMessage() {}
 
 func (x *GetServiceWorkspaceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[9]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -870,7 +965,7 @@ func (x *GetServiceWorkspaceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetServiceWorkspaceResponse.ProtoReflect.Descriptor instead.
 func (*GetServiceWorkspaceResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{9}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetServiceWorkspaceResponse) GetWorkspace() *ServiceWorkspaceSummary {
@@ -891,7 +986,7 @@ type ListServiceInstancesRequest struct {
 
 func (x *ListServiceInstancesRequest) Reset() {
 	*x = ListServiceInstancesRequest{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[10]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -903,7 +998,7 @@ func (x *ListServiceInstancesRequest) String() string {
 func (*ListServiceInstancesRequest) ProtoMessage() {}
 
 func (x *ListServiceInstancesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[10]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -916,7 +1011,7 @@ func (x *ListServiceInstancesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServiceInstancesRequest.ProtoReflect.Descriptor instead.
 func (*ListServiceInstancesRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{10}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ListServiceInstancesRequest) GetServiceName() string {
@@ -936,7 +1031,7 @@ type ListServiceInstancesResponse struct {
 
 func (x *ListServiceInstancesResponse) Reset() {
 	*x = ListServiceInstancesResponse{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[11]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -948,7 +1043,7 @@ func (x *ListServiceInstancesResponse) String() string {
 func (*ListServiceInstancesResponse) ProtoMessage() {}
 
 func (x *ListServiceInstancesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[11]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -961,7 +1056,7 @@ func (x *ListServiceInstancesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServiceInstancesResponse.ProtoReflect.Descriptor instead.
 func (*ListServiceInstancesResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{11}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ListServiceInstancesResponse) GetInstances() []*ServiceInstanceSummary {
@@ -986,7 +1081,7 @@ type GetServiceInstanceRequest struct {
 
 func (x *GetServiceInstanceRequest) Reset() {
 	*x = GetServiceInstanceRequest{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[12]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -998,7 +1093,7 @@ func (x *GetServiceInstanceRequest) String() string {
 func (*GetServiceInstanceRequest) ProtoMessage() {}
 
 func (x *GetServiceInstanceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[12]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1011,7 +1106,7 @@ func (x *GetServiceInstanceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetServiceInstanceRequest.ProtoReflect.Descriptor instead.
 func (*GetServiceInstanceRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{12}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetServiceInstanceRequest) GetServiceName() string {
@@ -1046,7 +1141,7 @@ type GetServiceInstanceResponse struct {
 
 func (x *GetServiceInstanceResponse) Reset() {
 	*x = GetServiceInstanceResponse{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[13]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1058,7 +1153,7 @@ func (x *GetServiceInstanceResponse) String() string {
 func (*GetServiceInstanceResponse) ProtoMessage() {}
 
 func (x *GetServiceInstanceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[13]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1071,7 +1166,7 @@ func (x *GetServiceInstanceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetServiceInstanceResponse.ProtoReflect.Descriptor instead.
 func (*GetServiceInstanceResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{13}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetServiceInstanceResponse) GetInstance() *ServiceInstanceDetail {
@@ -1097,7 +1192,7 @@ type GetServiceTasksRequest struct {
 
 func (x *GetServiceTasksRequest) Reset() {
 	*x = GetServiceTasksRequest{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[14]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1109,7 +1204,7 @@ func (x *GetServiceTasksRequest) String() string {
 func (*GetServiceTasksRequest) ProtoMessage() {}
 
 func (x *GetServiceTasksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[14]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1122,7 +1217,7 @@ func (x *GetServiceTasksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetServiceTasksRequest.ProtoReflect.Descriptor instead.
 func (*GetServiceTasksRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{14}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetServiceTasksRequest) GetServiceName() string {
@@ -1165,7 +1260,7 @@ type GetServiceTasksResponse struct {
 
 func (x *GetServiceTasksResponse) Reset() {
 	*x = GetServiceTasksResponse{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[15]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1177,7 +1272,7 @@ func (x *GetServiceTasksResponse) String() string {
 func (*GetServiceTasksResponse) ProtoMessage() {}
 
 func (x *GetServiceTasksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[15]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1190,7 +1285,7 @@ func (x *GetServiceTasksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetServiceTasksResponse.ProtoReflect.Descriptor instead.
 func (*GetServiceTasksResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{15}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetServiceTasksResponse) GetTasks() []*TaskSummary {
@@ -1225,7 +1320,7 @@ type GetServiceBackupsRequest struct {
 
 func (x *GetServiceBackupsRequest) Reset() {
 	*x = GetServiceBackupsRequest{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[16]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1237,7 +1332,7 @@ func (x *GetServiceBackupsRequest) String() string {
 func (*GetServiceBackupsRequest) ProtoMessage() {}
 
 func (x *GetServiceBackupsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[16]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1250,7 +1345,7 @@ func (x *GetServiceBackupsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetServiceBackupsRequest.ProtoReflect.Descriptor instead.
 func (*GetServiceBackupsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{16}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetServiceBackupsRequest) GetServiceName() string {
@@ -1300,7 +1395,7 @@ type GetServiceBackupsResponse struct {
 
 func (x *GetServiceBackupsResponse) Reset() {
 	*x = GetServiceBackupsResponse{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[17]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1312,7 +1407,7 @@ func (x *GetServiceBackupsResponse) String() string {
 func (*GetServiceBackupsResponse) ProtoMessage() {}
 
 func (x *GetServiceBackupsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[17]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1325,7 +1420,7 @@ func (x *GetServiceBackupsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetServiceBackupsResponse.ProtoReflect.Descriptor instead.
 func (*GetServiceBackupsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{17}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetServiceBackupsResponse) GetBackups() []*BackupSummary {
@@ -1358,7 +1453,7 @@ type UpdateServiceTargetNodesRequest struct {
 
 func (x *UpdateServiceTargetNodesRequest) Reset() {
 	*x = UpdateServiceTargetNodesRequest{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[18]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1370,7 +1465,7 @@ func (x *UpdateServiceTargetNodesRequest) String() string {
 func (*UpdateServiceTargetNodesRequest) ProtoMessage() {}
 
 func (x *UpdateServiceTargetNodesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[18]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1383,7 +1478,7 @@ func (x *UpdateServiceTargetNodesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateServiceTargetNodesRequest.ProtoReflect.Descriptor instead.
 func (*UpdateServiceTargetNodesRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{18}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *UpdateServiceTargetNodesRequest) GetServiceName() string {
@@ -1431,7 +1526,7 @@ type UpdateServiceTargetNodesResponse struct {
 
 func (x *UpdateServiceTargetNodesResponse) Reset() {
 	*x = UpdateServiceTargetNodesResponse{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[19]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1443,7 +1538,7 @@ func (x *UpdateServiceTargetNodesResponse) String() string {
 func (*UpdateServiceTargetNodesResponse) ProtoMessage() {}
 
 func (x *UpdateServiceTargetNodesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[19]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1456,7 +1551,7 @@ func (x *UpdateServiceTargetNodesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateServiceTargetNodesResponse.ProtoReflect.Descriptor instead.
 func (*UpdateServiceTargetNodesResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{19}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *UpdateServiceTargetNodesResponse) GetCommitId() string {
@@ -1501,7 +1596,7 @@ type MigrateServiceRequest struct {
 
 func (x *MigrateServiceRequest) Reset() {
 	*x = MigrateServiceRequest{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[20]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1513,7 +1608,7 @@ func (x *MigrateServiceRequest) String() string {
 func (*MigrateServiceRequest) ProtoMessage() {}
 
 func (x *MigrateServiceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[20]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1526,7 +1621,7 @@ func (x *MigrateServiceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MigrateServiceRequest.ProtoReflect.Descriptor instead.
 func (*MigrateServiceRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{20}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *MigrateServiceRequest) GetServiceName() string {
@@ -1567,7 +1662,7 @@ type RunServiceActionRequest struct {
 
 func (x *RunServiceActionRequest) Reset() {
 	*x = RunServiceActionRequest{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[21]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1579,7 +1674,7 @@ func (x *RunServiceActionRequest) String() string {
 func (*RunServiceActionRequest) ProtoMessage() {}
 
 func (x *RunServiceActionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[21]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1592,7 +1687,7 @@ func (x *RunServiceActionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunServiceActionRequest.ProtoReflect.Descriptor instead.
 func (*RunServiceActionRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{21}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *RunServiceActionRequest) GetServiceName() string {
@@ -1638,7 +1733,7 @@ type RunServiceInstanceActionRequest struct {
 
 func (x *RunServiceInstanceActionRequest) Reset() {
 	*x = RunServiceInstanceActionRequest{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[22]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1650,7 +1745,7 @@ func (x *RunServiceInstanceActionRequest) String() string {
 func (*RunServiceInstanceActionRequest) ProtoMessage() {}
 
 func (x *RunServiceInstanceActionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[22]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1663,7 +1758,7 @@ func (x *RunServiceInstanceActionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunServiceInstanceActionRequest.ProtoReflect.Descriptor instead.
 func (*RunServiceInstanceActionRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{22}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *RunServiceInstanceActionRequest) GetServiceName() string {
@@ -1702,7 +1797,7 @@ type ListServicesRequest struct {
 
 func (x *ListServicesRequest) Reset() {
 	*x = ListServicesRequest{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[23]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1714,7 +1809,7 @@ func (x *ListServicesRequest) String() string {
 func (*ListServicesRequest) ProtoMessage() {}
 
 func (x *ListServicesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[23]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1727,7 +1822,7 @@ func (x *ListServicesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServicesRequest.ProtoReflect.Descriptor instead.
 func (*ListServicesRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{23}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ListServicesRequest) GetRuntimeStatus() string {
@@ -1774,7 +1869,7 @@ type ServiceSummary struct {
 
 func (x *ServiceSummary) Reset() {
 	*x = ServiceSummary{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[24]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1786,7 +1881,7 @@ func (x *ServiceSummary) String() string {
 func (*ServiceSummary) ProtoMessage() {}
 
 func (x *ServiceSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[24]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1799,7 +1894,7 @@ func (x *ServiceSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceSummary.ProtoReflect.Descriptor instead.
 func (*ServiceSummary) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{24}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ServiceSummary) GetName() string {
@@ -1863,7 +1958,7 @@ type ListServicesResponse struct {
 
 func (x *ListServicesResponse) Reset() {
 	*x = ListServicesResponse{}
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[25]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1875,7 +1970,7 @@ func (x *ListServicesResponse) String() string {
 func (*ListServicesResponse) ProtoMessage() {}
 
 func (x *ListServicesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[25]
+	mi := &file_proto_composia_controller_v1_service_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1888,7 +1983,7 @@ func (x *ListServicesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServicesResponse.ProtoReflect.Descriptor instead.
 func (*ListServicesResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{25}
+	return file_proto_composia_controller_v1_service_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ListServicesResponse) GetServices() []*ServiceSummary {
@@ -1909,7 +2004,7 @@ var File_proto_composia_controller_v1_service_proto protoreflect.FileDescriptor
 
 const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"\n" +
-	"*proto/composia/controller/v1/service.proto\x12\x16composia.controller.v1\x1a'proto/composia/controller/v1/task.proto\x1a)proto/composia/controller/v1/backup.proto\"\xbb\x01\n" +
+	"*proto/composia/controller/v1/service.proto\x12\x16composia.controller.v1\x1a'proto/composia/controller/v1/task.proto\x1a)proto/composia/controller/v1/backup.proto\x1a)proto/composia/controller/v1/system.proto\"\xbb\x01\n" +
 	"\x16ServiceInstanceSummary\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x17\n" +
 	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12%\n" +
@@ -1937,10 +2032,18 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"isDeclared\x12O\n" +
 	"\n" +
 	"containers\x18\x06 \x03(\v2/.composia.controller.v1.ServiceContainerSummaryR\n" +
-	"containers\"e\n" +
+	"containers\"\xd9\x02\n" +
+	"\x19ServiceActionCapabilities\x12:\n" +
+	"\x06backup\x18\x01 \x01(\v2\".composia.controller.v1.CapabilityR\x06backup\x12<\n" +
+	"\arestore\x18\x02 \x01(\v2\".composia.controller.v1.CapabilityR\arestore\x12<\n" +
+	"\amigrate\x18\x03 \x01(\v2\".composia.controller.v1.CapabilityR\amigrate\x12A\n" +
+	"\n" +
+	"dns_update\x18\x04 \x01(\v2\".composia.controller.v1.CapabilityR\tdnsUpdate\x12A\n" +
+	"\n" +
+	"caddy_sync\x18\x05 \x01(\v2\".composia.controller.v1.CapabilityR\tcaddySync\"e\n" +
 	"\x11GetServiceRequest\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12-\n" +
-	"\x12include_containers\x18\x02 \x01(\bR\x11includeContainers\"\x89\x02\n" +
+	"\x12include_containers\x18\x02 \x01(\bR\x11includeContainers\"\xd6\x02\n" +
 	"\x12GetServiceResponse\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12%\n" +
 	"\x0eruntime_status\x18\x02 \x01(\tR\rruntimeStatus\x12\x1d\n" +
@@ -1949,7 +2052,8 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"\x05nodes\x18\x04 \x03(\tR\x05nodes\x12\x18\n" +
 	"\aenabled\x18\x05 \x01(\bR\aenabled\x12\x1c\n" +
 	"\tdirectory\x18\x06 \x01(\tR\tdirectory\x12K\n" +
-	"\tinstances\x18\a \x03(\v2-.composia.controller.v1.ServiceInstanceDetailR\tinstances\"\xa9\x02\n" +
+	"\tinstances\x18\a \x03(\v2-.composia.controller.v1.ServiceInstanceDetailR\tinstances\x12K\n" +
+	"\aactions\x18\b \x01(\v21.composia.controller.v1.ServiceActionCapabilitiesR\aactions\"\xf6\x02\n" +
 	"\x17ServiceWorkspaceSummary\x12\x16\n" +
 	"\x06folder\x18\x01 \x01(\tR\x06folder\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12!\n" +
@@ -1961,7 +2065,9 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\a \x01(\tR\tupdatedAt\x12\x14\n" +
 	"\x05nodes\x18\b \x03(\tR\x05nodes\x12\x18\n" +
-	"\aenabled\x18\t \x01(\bR\aenabled\"\x1e\n" +
+	"\aenabled\x18\t \x01(\bR\aenabled\x12K\n" +
+	"\aactions\x18\n" +
+	" \x01(\v21.composia.controller.v1.ServiceActionCapabilitiesR\aactions\"\x1e\n" +
 	"\x1cListServiceWorkspacesRequest\"p\n" +
 	"\x1dListServiceWorkspacesResponse\x12O\n" +
 	"\n" +
@@ -2089,81 +2195,90 @@ func file_proto_composia_controller_v1_service_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_composia_controller_v1_service_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_proto_composia_controller_v1_service_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_proto_composia_controller_v1_service_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_proto_composia_controller_v1_service_proto_goTypes = []any{
 	(ServiceAction)(0),                       // 0: composia.controller.v1.ServiceAction
 	(ServiceInstanceAction)(0),               // 1: composia.controller.v1.ServiceInstanceAction
 	(*ServiceInstanceSummary)(nil),           // 2: composia.controller.v1.ServiceInstanceSummary
 	(*ServiceContainerSummary)(nil),          // 3: composia.controller.v1.ServiceContainerSummary
 	(*ServiceInstanceDetail)(nil),            // 4: composia.controller.v1.ServiceInstanceDetail
-	(*GetServiceRequest)(nil),                // 5: composia.controller.v1.GetServiceRequest
-	(*GetServiceResponse)(nil),               // 6: composia.controller.v1.GetServiceResponse
-	(*ServiceWorkspaceSummary)(nil),          // 7: composia.controller.v1.ServiceWorkspaceSummary
-	(*ListServiceWorkspacesRequest)(nil),     // 8: composia.controller.v1.ListServiceWorkspacesRequest
-	(*ListServiceWorkspacesResponse)(nil),    // 9: composia.controller.v1.ListServiceWorkspacesResponse
-	(*GetServiceWorkspaceRequest)(nil),       // 10: composia.controller.v1.GetServiceWorkspaceRequest
-	(*GetServiceWorkspaceResponse)(nil),      // 11: composia.controller.v1.GetServiceWorkspaceResponse
-	(*ListServiceInstancesRequest)(nil),      // 12: composia.controller.v1.ListServiceInstancesRequest
-	(*ListServiceInstancesResponse)(nil),     // 13: composia.controller.v1.ListServiceInstancesResponse
-	(*GetServiceInstanceRequest)(nil),        // 14: composia.controller.v1.GetServiceInstanceRequest
-	(*GetServiceInstanceResponse)(nil),       // 15: composia.controller.v1.GetServiceInstanceResponse
-	(*GetServiceTasksRequest)(nil),           // 16: composia.controller.v1.GetServiceTasksRequest
-	(*GetServiceTasksResponse)(nil),          // 17: composia.controller.v1.GetServiceTasksResponse
-	(*GetServiceBackupsRequest)(nil),         // 18: composia.controller.v1.GetServiceBackupsRequest
-	(*GetServiceBackupsResponse)(nil),        // 19: composia.controller.v1.GetServiceBackupsResponse
-	(*UpdateServiceTargetNodesRequest)(nil),  // 20: composia.controller.v1.UpdateServiceTargetNodesRequest
-	(*UpdateServiceTargetNodesResponse)(nil), // 21: composia.controller.v1.UpdateServiceTargetNodesResponse
-	(*MigrateServiceRequest)(nil),            // 22: composia.controller.v1.MigrateServiceRequest
-	(*RunServiceActionRequest)(nil),          // 23: composia.controller.v1.RunServiceActionRequest
-	(*RunServiceInstanceActionRequest)(nil),  // 24: composia.controller.v1.RunServiceInstanceActionRequest
-	(*ListServicesRequest)(nil),              // 25: composia.controller.v1.ListServicesRequest
-	(*ServiceSummary)(nil),                   // 26: composia.controller.v1.ServiceSummary
-	(*ListServicesResponse)(nil),             // 27: composia.controller.v1.ListServicesResponse
-	(*TaskSummary)(nil),                      // 28: composia.controller.v1.TaskSummary
-	(*BackupSummary)(nil),                    // 29: composia.controller.v1.BackupSummary
-	(*TaskActionResponse)(nil),               // 30: composia.controller.v1.TaskActionResponse
+	(*ServiceActionCapabilities)(nil),        // 5: composia.controller.v1.ServiceActionCapabilities
+	(*GetServiceRequest)(nil),                // 6: composia.controller.v1.GetServiceRequest
+	(*GetServiceResponse)(nil),               // 7: composia.controller.v1.GetServiceResponse
+	(*ServiceWorkspaceSummary)(nil),          // 8: composia.controller.v1.ServiceWorkspaceSummary
+	(*ListServiceWorkspacesRequest)(nil),     // 9: composia.controller.v1.ListServiceWorkspacesRequest
+	(*ListServiceWorkspacesResponse)(nil),    // 10: composia.controller.v1.ListServiceWorkspacesResponse
+	(*GetServiceWorkspaceRequest)(nil),       // 11: composia.controller.v1.GetServiceWorkspaceRequest
+	(*GetServiceWorkspaceResponse)(nil),      // 12: composia.controller.v1.GetServiceWorkspaceResponse
+	(*ListServiceInstancesRequest)(nil),      // 13: composia.controller.v1.ListServiceInstancesRequest
+	(*ListServiceInstancesResponse)(nil),     // 14: composia.controller.v1.ListServiceInstancesResponse
+	(*GetServiceInstanceRequest)(nil),        // 15: composia.controller.v1.GetServiceInstanceRequest
+	(*GetServiceInstanceResponse)(nil),       // 16: composia.controller.v1.GetServiceInstanceResponse
+	(*GetServiceTasksRequest)(nil),           // 17: composia.controller.v1.GetServiceTasksRequest
+	(*GetServiceTasksResponse)(nil),          // 18: composia.controller.v1.GetServiceTasksResponse
+	(*GetServiceBackupsRequest)(nil),         // 19: composia.controller.v1.GetServiceBackupsRequest
+	(*GetServiceBackupsResponse)(nil),        // 20: composia.controller.v1.GetServiceBackupsResponse
+	(*UpdateServiceTargetNodesRequest)(nil),  // 21: composia.controller.v1.UpdateServiceTargetNodesRequest
+	(*UpdateServiceTargetNodesResponse)(nil), // 22: composia.controller.v1.UpdateServiceTargetNodesResponse
+	(*MigrateServiceRequest)(nil),            // 23: composia.controller.v1.MigrateServiceRequest
+	(*RunServiceActionRequest)(nil),          // 24: composia.controller.v1.RunServiceActionRequest
+	(*RunServiceInstanceActionRequest)(nil),  // 25: composia.controller.v1.RunServiceInstanceActionRequest
+	(*ListServicesRequest)(nil),              // 26: composia.controller.v1.ListServicesRequest
+	(*ServiceSummary)(nil),                   // 27: composia.controller.v1.ServiceSummary
+	(*ListServicesResponse)(nil),             // 28: composia.controller.v1.ListServicesResponse
+	(*Capability)(nil),                       // 29: composia.controller.v1.Capability
+	(*TaskSummary)(nil),                      // 30: composia.controller.v1.TaskSummary
+	(*BackupSummary)(nil),                    // 31: composia.controller.v1.BackupSummary
+	(*TaskActionResponse)(nil),               // 32: composia.controller.v1.TaskActionResponse
 }
 var file_proto_composia_controller_v1_service_proto_depIdxs = []int32{
 	3,  // 0: composia.controller.v1.ServiceInstanceDetail.containers:type_name -> composia.controller.v1.ServiceContainerSummary
-	4,  // 1: composia.controller.v1.GetServiceResponse.instances:type_name -> composia.controller.v1.ServiceInstanceDetail
-	7,  // 2: composia.controller.v1.ListServiceWorkspacesResponse.workspaces:type_name -> composia.controller.v1.ServiceWorkspaceSummary
-	7,  // 3: composia.controller.v1.GetServiceWorkspaceResponse.workspace:type_name -> composia.controller.v1.ServiceWorkspaceSummary
-	2,  // 4: composia.controller.v1.ListServiceInstancesResponse.instances:type_name -> composia.controller.v1.ServiceInstanceSummary
-	4,  // 5: composia.controller.v1.GetServiceInstanceResponse.instance:type_name -> composia.controller.v1.ServiceInstanceDetail
-	28, // 6: composia.controller.v1.GetServiceTasksResponse.tasks:type_name -> composia.controller.v1.TaskSummary
-	29, // 7: composia.controller.v1.GetServiceBackupsResponse.backups:type_name -> composia.controller.v1.BackupSummary
-	0,  // 8: composia.controller.v1.RunServiceActionRequest.action:type_name -> composia.controller.v1.ServiceAction
-	1,  // 9: composia.controller.v1.RunServiceInstanceActionRequest.action:type_name -> composia.controller.v1.ServiceInstanceAction
-	26, // 10: composia.controller.v1.ListServicesResponse.services:type_name -> composia.controller.v1.ServiceSummary
-	25, // 11: composia.controller.v1.ServiceQueryService.ListServices:input_type -> composia.controller.v1.ListServicesRequest
-	8,  // 12: composia.controller.v1.ServiceQueryService.ListServiceWorkspaces:input_type -> composia.controller.v1.ListServiceWorkspacesRequest
-	5,  // 13: composia.controller.v1.ServiceQueryService.GetService:input_type -> composia.controller.v1.GetServiceRequest
-	10, // 14: composia.controller.v1.ServiceQueryService.GetServiceWorkspace:input_type -> composia.controller.v1.GetServiceWorkspaceRequest
-	16, // 15: composia.controller.v1.ServiceQueryService.GetServiceTasks:input_type -> composia.controller.v1.GetServiceTasksRequest
-	18, // 16: composia.controller.v1.ServiceQueryService.GetServiceBackups:input_type -> composia.controller.v1.GetServiceBackupsRequest
-	20, // 17: composia.controller.v1.ServiceCommandService.UpdateServiceTargetNodes:input_type -> composia.controller.v1.UpdateServiceTargetNodesRequest
-	23, // 18: composia.controller.v1.ServiceCommandService.RunServiceAction:input_type -> composia.controller.v1.RunServiceActionRequest
-	22, // 19: composia.controller.v1.ServiceCommandService.MigrateService:input_type -> composia.controller.v1.MigrateServiceRequest
-	12, // 20: composia.controller.v1.ServiceInstanceService.ListServiceInstances:input_type -> composia.controller.v1.ListServiceInstancesRequest
-	14, // 21: composia.controller.v1.ServiceInstanceService.GetServiceInstance:input_type -> composia.controller.v1.GetServiceInstanceRequest
-	24, // 22: composia.controller.v1.ServiceInstanceService.RunServiceInstanceAction:input_type -> composia.controller.v1.RunServiceInstanceActionRequest
-	27, // 23: composia.controller.v1.ServiceQueryService.ListServices:output_type -> composia.controller.v1.ListServicesResponse
-	9,  // 24: composia.controller.v1.ServiceQueryService.ListServiceWorkspaces:output_type -> composia.controller.v1.ListServiceWorkspacesResponse
-	6,  // 25: composia.controller.v1.ServiceQueryService.GetService:output_type -> composia.controller.v1.GetServiceResponse
-	11, // 26: composia.controller.v1.ServiceQueryService.GetServiceWorkspace:output_type -> composia.controller.v1.GetServiceWorkspaceResponse
-	17, // 27: composia.controller.v1.ServiceQueryService.GetServiceTasks:output_type -> composia.controller.v1.GetServiceTasksResponse
-	19, // 28: composia.controller.v1.ServiceQueryService.GetServiceBackups:output_type -> composia.controller.v1.GetServiceBackupsResponse
-	21, // 29: composia.controller.v1.ServiceCommandService.UpdateServiceTargetNodes:output_type -> composia.controller.v1.UpdateServiceTargetNodesResponse
-	30, // 30: composia.controller.v1.ServiceCommandService.RunServiceAction:output_type -> composia.controller.v1.TaskActionResponse
-	30, // 31: composia.controller.v1.ServiceCommandService.MigrateService:output_type -> composia.controller.v1.TaskActionResponse
-	13, // 32: composia.controller.v1.ServiceInstanceService.ListServiceInstances:output_type -> composia.controller.v1.ListServiceInstancesResponse
-	15, // 33: composia.controller.v1.ServiceInstanceService.GetServiceInstance:output_type -> composia.controller.v1.GetServiceInstanceResponse
-	30, // 34: composia.controller.v1.ServiceInstanceService.RunServiceInstanceAction:output_type -> composia.controller.v1.TaskActionResponse
-	23, // [23:35] is the sub-list for method output_type
-	11, // [11:23] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	29, // 1: composia.controller.v1.ServiceActionCapabilities.backup:type_name -> composia.controller.v1.Capability
+	29, // 2: composia.controller.v1.ServiceActionCapabilities.restore:type_name -> composia.controller.v1.Capability
+	29, // 3: composia.controller.v1.ServiceActionCapabilities.migrate:type_name -> composia.controller.v1.Capability
+	29, // 4: composia.controller.v1.ServiceActionCapabilities.dns_update:type_name -> composia.controller.v1.Capability
+	29, // 5: composia.controller.v1.ServiceActionCapabilities.caddy_sync:type_name -> composia.controller.v1.Capability
+	4,  // 6: composia.controller.v1.GetServiceResponse.instances:type_name -> composia.controller.v1.ServiceInstanceDetail
+	5,  // 7: composia.controller.v1.GetServiceResponse.actions:type_name -> composia.controller.v1.ServiceActionCapabilities
+	5,  // 8: composia.controller.v1.ServiceWorkspaceSummary.actions:type_name -> composia.controller.v1.ServiceActionCapabilities
+	8,  // 9: composia.controller.v1.ListServiceWorkspacesResponse.workspaces:type_name -> composia.controller.v1.ServiceWorkspaceSummary
+	8,  // 10: composia.controller.v1.GetServiceWorkspaceResponse.workspace:type_name -> composia.controller.v1.ServiceWorkspaceSummary
+	2,  // 11: composia.controller.v1.ListServiceInstancesResponse.instances:type_name -> composia.controller.v1.ServiceInstanceSummary
+	4,  // 12: composia.controller.v1.GetServiceInstanceResponse.instance:type_name -> composia.controller.v1.ServiceInstanceDetail
+	30, // 13: composia.controller.v1.GetServiceTasksResponse.tasks:type_name -> composia.controller.v1.TaskSummary
+	31, // 14: composia.controller.v1.GetServiceBackupsResponse.backups:type_name -> composia.controller.v1.BackupSummary
+	0,  // 15: composia.controller.v1.RunServiceActionRequest.action:type_name -> composia.controller.v1.ServiceAction
+	1,  // 16: composia.controller.v1.RunServiceInstanceActionRequest.action:type_name -> composia.controller.v1.ServiceInstanceAction
+	27, // 17: composia.controller.v1.ListServicesResponse.services:type_name -> composia.controller.v1.ServiceSummary
+	26, // 18: composia.controller.v1.ServiceQueryService.ListServices:input_type -> composia.controller.v1.ListServicesRequest
+	9,  // 19: composia.controller.v1.ServiceQueryService.ListServiceWorkspaces:input_type -> composia.controller.v1.ListServiceWorkspacesRequest
+	6,  // 20: composia.controller.v1.ServiceQueryService.GetService:input_type -> composia.controller.v1.GetServiceRequest
+	11, // 21: composia.controller.v1.ServiceQueryService.GetServiceWorkspace:input_type -> composia.controller.v1.GetServiceWorkspaceRequest
+	17, // 22: composia.controller.v1.ServiceQueryService.GetServiceTasks:input_type -> composia.controller.v1.GetServiceTasksRequest
+	19, // 23: composia.controller.v1.ServiceQueryService.GetServiceBackups:input_type -> composia.controller.v1.GetServiceBackupsRequest
+	21, // 24: composia.controller.v1.ServiceCommandService.UpdateServiceTargetNodes:input_type -> composia.controller.v1.UpdateServiceTargetNodesRequest
+	24, // 25: composia.controller.v1.ServiceCommandService.RunServiceAction:input_type -> composia.controller.v1.RunServiceActionRequest
+	23, // 26: composia.controller.v1.ServiceCommandService.MigrateService:input_type -> composia.controller.v1.MigrateServiceRequest
+	13, // 27: composia.controller.v1.ServiceInstanceService.ListServiceInstances:input_type -> composia.controller.v1.ListServiceInstancesRequest
+	15, // 28: composia.controller.v1.ServiceInstanceService.GetServiceInstance:input_type -> composia.controller.v1.GetServiceInstanceRequest
+	25, // 29: composia.controller.v1.ServiceInstanceService.RunServiceInstanceAction:input_type -> composia.controller.v1.RunServiceInstanceActionRequest
+	28, // 30: composia.controller.v1.ServiceQueryService.ListServices:output_type -> composia.controller.v1.ListServicesResponse
+	10, // 31: composia.controller.v1.ServiceQueryService.ListServiceWorkspaces:output_type -> composia.controller.v1.ListServiceWorkspacesResponse
+	7,  // 32: composia.controller.v1.ServiceQueryService.GetService:output_type -> composia.controller.v1.GetServiceResponse
+	12, // 33: composia.controller.v1.ServiceQueryService.GetServiceWorkspace:output_type -> composia.controller.v1.GetServiceWorkspaceResponse
+	18, // 34: composia.controller.v1.ServiceQueryService.GetServiceTasks:output_type -> composia.controller.v1.GetServiceTasksResponse
+	20, // 35: composia.controller.v1.ServiceQueryService.GetServiceBackups:output_type -> composia.controller.v1.GetServiceBackupsResponse
+	22, // 36: composia.controller.v1.ServiceCommandService.UpdateServiceTargetNodes:output_type -> composia.controller.v1.UpdateServiceTargetNodesResponse
+	32, // 37: composia.controller.v1.ServiceCommandService.RunServiceAction:output_type -> composia.controller.v1.TaskActionResponse
+	32, // 38: composia.controller.v1.ServiceCommandService.MigrateService:output_type -> composia.controller.v1.TaskActionResponse
+	14, // 39: composia.controller.v1.ServiceInstanceService.ListServiceInstances:output_type -> composia.controller.v1.ListServiceInstancesResponse
+	16, // 40: composia.controller.v1.ServiceInstanceService.GetServiceInstance:output_type -> composia.controller.v1.GetServiceInstanceResponse
+	32, // 41: composia.controller.v1.ServiceInstanceService.RunServiceInstanceAction:output_type -> composia.controller.v1.TaskActionResponse
+	30, // [30:42] is the sub-list for method output_type
+	18, // [18:30] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_proto_composia_controller_v1_service_proto_init() }
@@ -2173,13 +2288,14 @@ func file_proto_composia_controller_v1_service_proto_init() {
 	}
 	file_proto_composia_controller_v1_task_proto_init()
 	file_proto_composia_controller_v1_backup_proto_init()
+	file_proto_composia_controller_v1_system_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_controller_v1_service_proto_rawDesc), len(file_proto_composia_controller_v1_service_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   26,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   3,
 		},

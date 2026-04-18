@@ -99,6 +99,7 @@ function buildServiceDetail(
     enabled: workspace.enabled,
     directory: workspace.folder,
     instances,
+    actions: workspace.actions,
   };
 }
 

@@ -3,6 +3,7 @@ syntax = "proto3";
 package composia.controller.v1;
 
 import "proto/composia/controller/v1/task.proto";
+import "proto/composia/controller/v1/system.proto";
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
@@ -75,6 +76,15 @@ message NodeSummary {
   bool is_online = 4;
   // last_heartbeat is the last recorded heartbeat timestamp string.
   string last_heartbeat = 5;
+  // actions describes whether node-scoped actions may currently run.
+  NodeActionCapabilities actions = 6;
+}
+
+// NodeActionCapabilities describes whether node-scoped actions may run.
+message NodeActionCapabilities {
+  Capability caddy_sync = 1;
+  Capability caddy_reload = 2;
+  Capability rustic_maintenance = 3;
 }
 
 // ListNodesResponse returns all configured nodes.

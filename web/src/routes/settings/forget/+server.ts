@@ -1,11 +1,24 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
-import { forgetNodeRustic } from "$lib/server/controller";
-import { jsonControllerError } from "$lib/server/controller-route";
+import {
+  forgetNodeRustic,
+  loadSystemCapabilities,
+} from "$lib/server/controller";
+import {
+  jsonCapabilityError,
+  jsonControllerError,
+} from "$lib/server/controller-route";
 
 export const POST: RequestHandler = async () => {
   try {
+    const capabilities = await loadSystemCapabilities();
+    if (!capabilities.global.rusticMaintenance.enabled) {
+      return jsonCapabilityError(
+        capabilities.global.rusticMaintenance.reasonCode,
+        "Rustic maintenance is unavailable.",
+      );
+    }
     const result = await forgetNodeRustic();
     return json({ taskId: result.taskId });
   } catch (error) {
