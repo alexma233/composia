@@ -31,18 +31,11 @@
 ## Implementation Rules
 
 - Prefer the smallest correct change.
-- Always align with `plan.md` unless the user explicitly asks to change it.
-- Do not introduce undocumented behavior that conflicts with `plan.md`.
 - Keep early milestones narrow and end-to-end.
 - Assume technical users. No excessive fault-tolerance or defensive UX unless explicitly required.
 - Breaking changes are acceptable if they simplify the system.
 - NEVER bypass GPG signing.
 - Reuse existing i18n keys/namespaces before adding new ones.
-
-## Current Delivery Strategy
-
-- First: controller + agent foundation (config loading, SQLite init, heartbeat).
-- Later: task execution, repo parsing, secrets, backups, migration, etc.
 
 ## When To Ask The User
 
