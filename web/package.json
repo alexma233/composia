@@ -42,7 +42,7 @@
     "@codemirror/language": "6.12.3",
     "@codemirror/lint": "6.9.5",
     "@codemirror/state": "6.6.0",
-    "@codemirror/view": "6.41.0",
+    "@codemirror/view": "6.41.1",
     "@fsegurai/codemirror-theme-github-dark": "6.2.5",
     "@fsegurai/codemirror-theme-github-light": "6.2.5",
     "@xterm/addon-fit": "0.11.0",
