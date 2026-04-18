@@ -26,7 +26,7 @@ export const POST: RequestHandler = async ({ params, request, url }) => {
       url.origin,
     );
     const browserControllerBaseUrl =
-      env.COMPOSIA_BROWSER_CONTROLLER_ADDR?.trim() || config.baseUrl;
+      env.WEB_BROWSER_CONTROLLER_ADDR?.trim() || config.baseUrl;
     const controllerUrl = new URL(browserControllerBaseUrl);
     const wsProtocol = controllerUrl.protocol === "https:" ? "wss:" : "ws:";
     const websocketUrl = `${wsProtocol}//${controllerUrl.host}${session.websocketPath}`;

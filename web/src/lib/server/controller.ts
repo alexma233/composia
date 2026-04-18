@@ -227,14 +227,14 @@ export type DashboardData = {
 };
 
 export function controllerConfig() {
-  const baseUrl = env.COMPOSIA_CONTROLLER_ADDR?.trim();
-  const token = env.COMPOSIA_ACCESS_TOKEN?.trim();
+  const baseUrl = env.WEB_CONTROLLER_ADDR?.trim();
+  const token = env.WEB_CONTROLLER_ACCESS_TOKEN?.trim();
 
   if (!baseUrl || !token) {
     return {
       ready: false as const,
       reason:
-        "Set COMPOSIA_CONTROLLER_ADDR and COMPOSIA_ACCESS_TOKEN in the web server environment.",
+        "Set WEB_CONTROLLER_ADDR and WEB_CONTROLLER_ACCESS_TOKEN in the web server environment.",
     };
   }
 

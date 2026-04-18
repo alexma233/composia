@@ -49,7 +49,9 @@ grep "public key:" config/age-identity.key | awk '{print $4}' > config/age-recip
 
 - `controller.access_tokens[].token`：Controller 访问 token，Web UI 会使用它访问 Controller
 - `controller.nodes[].token` 与 `agent.token`：节点认证 token，二者必须一致
-- `.env` 里的 `COMPOSIA_ACCESS_TOKEN`：必须与 `controller.access_tokens[].token` 保持一致
+- `.env` 里的 `WEB_CONTROLLER_ADDR`：Web 服务进程在 Compose 网络内访问 Controller 时使用的基础地址
+- `.env` 里的 `WEB_BROWSER_CONTROLLER_ADDR`：浏览器建立终端 WebSocket 连接时使用的 Controller 基础地址，必须是浏览器可访问的地址
+- `.env` 里的 `WEB_CONTROLLER_ACCESS_TOKEN`：必须与 `controller.access_tokens[].token` 保持一致
 - `.env` 里的 `COMPOSIA_CONFIG_DIR`、`COMPOSIA_CONTROLLER_REPO_DIR`、`COMPOSIA_CONTROLLER_STATE_DIR`、`COMPOSIA_CONTROLLER_LOG_DIR`、`COMPOSIA_AGENT_REPO_DIR`、`COMPOSIA_AGENT_STATE_DIR`：Compose 使用的宿主机路径映射
 - `.env` 里的 `DOCKER_SOCK_GID`：宿主机 `/var/run/docker.sock` 的 GID，agent 需要加入这个组才能访问本机 Docker
 - `.env` 里的 `WEB_LOGIN_USERNAME`：Web 登录页使用的本地用户名
@@ -140,9 +142,9 @@ docker compose up -d
 Web UI 现在有两层鉴权：
 
 - 浏览器先使用 `WEB_LOGIN_USERNAME` 和 `WEB_LOGIN_PASSWORD_HASH` 对应的密码登录
-- Web 服务进程再使用 `COMPOSIA_ACCESS_TOKEN` 访问 Controller
+- Web 服务进程再使用 `WEB_CONTROLLER_ACCESS_TOKEN` 访问 Controller
 
-浏览器不会拿到 `COMPOSIA_ACCESS_TOKEN`。登录成功后只会保存一个签名的 HttpOnly session cookie。
+浏览器不会拿到 `WEB_CONTROLLER_ACCESS_TOKEN`。登录成功后只会保存一个签名的 HttpOnly session cookie。
 
 ### 6. 部署第一个服务
 

@@ -376,4 +376,4 @@ A: Check if the Controller address and Token match
 
 **Q: Frontend requests failing**
 
-A: Ensure the Controller is running and that `COMPOSIA_CONTROLLER_ADDR` and `COMPOSIA_ACCESS_TOKEN` are set correctly for the Web process
+A: Ensure the Controller is running and that `WEB_CONTROLLER_ADDR` and `WEB_CONTROLLER_ACCESS_TOKEN` are set correctly for the Web process

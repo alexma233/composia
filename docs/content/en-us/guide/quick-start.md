@@ -49,7 +49,9 @@ Before startup, review and update at least these values:
 
 - `controller.access_tokens[].token`: controller access token used by the Web UI
 - `controller.nodes[].token` and `agent.token`: node authentication token, which must match on both sides
-- `COMPOSIA_ACCESS_TOKEN` in `.env`: it must match one enabled token under `controller.access_tokens`
+- `WEB_CONTROLLER_ADDR` in `.env`: the controller base URL used by the Web server inside the Compose network
+- `WEB_BROWSER_CONTROLLER_ADDR` in `.env`: the controller base URL exposed to the browser for WebSocket terminal sessions; set this to a browser-reachable address
+- `WEB_CONTROLLER_ACCESS_TOKEN` in `.env`: it must match one enabled token under `controller.access_tokens`
 - `COMPOSIA_CONFIG_DIR`, `COMPOSIA_CONTROLLER_REPO_DIR`, `COMPOSIA_CONTROLLER_STATE_DIR`, `COMPOSIA_CONTROLLER_LOG_DIR`, `COMPOSIA_AGENT_REPO_DIR`, and `COMPOSIA_AGENT_STATE_DIR` in `.env`: host-side bind mount paths used by Compose
 - `DOCKER_SOCK_GID` in `.env`: the GID of the host's `/var/run/docker.sock`; the agent must join this group to access the local Docker daemon
 - `WEB_LOGIN_USERNAME` in `.env`: local username for the Web login page
@@ -140,9 +142,9 @@ If you access the Web UI through an SSH tunnel, local port forwarding, or a reve
 The Web UI uses two auth layers:
 
 - The browser signs in with `WEB_LOGIN_USERNAME` and the password represented by `WEB_LOGIN_PASSWORD_HASH`.
-- The web server uses `COMPOSIA_ACCESS_TOKEN` to call the controller.
+- The web server uses `WEB_CONTROLLER_ACCESS_TOKEN` to call the controller.
 
-The browser does not receive `COMPOSIA_ACCESS_TOKEN`. After login it only stores a signed HttpOnly session cookie.
+The browser does not receive `WEB_CONTROLLER_ACCESS_TOKEN`. After login it only stores a signed HttpOnly session cookie.
 
 ### 6. Deploy Your First Service
 
