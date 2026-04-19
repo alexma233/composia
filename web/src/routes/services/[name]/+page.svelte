@@ -8,6 +8,7 @@
     Copy,
     FilePlus,
     FolderPlus,
+    Lock,
     Pencil,
     Play,
     RefreshCcw,
@@ -84,6 +85,7 @@
   import type { ServiceFileNode, WorkspaceFile } from "$lib/service-workspace";
   import {
     findNode,
+    isEncryptedFilePath,
     normalizeServiceRelativePath,
   } from "$lib/service-workspace";
   import { startPolling } from "$lib/refresh";
@@ -211,7 +213,9 @@
   let editorRelatedFiles = $derived(
     Object.fromEntries(openTabs.map((tab) => [tab.path, tab.content])),
   );
-  let canSave = $derived(Boolean(focusedTab && focusedTab.dirty && !saving));
+  let canSave = $derived(
+    Boolean(focusedTab && focusedTab.dirty && !focusedTab.readOnly && !saving),
+  );
   let selectedNode = $derived(
     selectedNodePath ? findNode(fileTree, selectedNodePath) : null,
   );
@@ -253,6 +257,25 @@
       ? ""
       : capabilityReasonMessage(migrateCapability.reasonCode, $messages),
   );
+
+  function fileUnavailableReason(file: WorkspaceFile | null) {
+    if (!file?.unavailableReasonCode) {
+      return "";
+    }
+
+    return capabilityReasonMessage(file.unavailableReasonCode, $messages);
+  }
+
+  function fileUnavailableDescription(file: WorkspaceFile | null) {
+    if (!file || !isEncryptedFilePath(file.path)) {
+      return "";
+    }
+
+    return file.unavailableReasonCode === "service_not_declared"
+      ? $messages.services.files.encryptedUnavailableDeclared
+      : $messages.services.files.encryptedUnavailableMissingSecrets;
+  }
+
   let migrateSourceNodes = $derived(serviceDetail?.nodes ?? []);
   let hasMultipleInstanceNodes = $derived(nodeContainers.length > 1);
   let selectedInstanceEntry = $derived(
@@ -468,7 +491,7 @@
 
   async function saveTab(path: string) {
     const tab = openTabs.find((item) => item.path === path) ?? null;
-    if (!tab || !headRevision) {
+    if (!tab || !headRevision || tab.readOnly) {
       return;
     }
 
@@ -1602,13 +1625,33 @@
               {#if activeTab}
                 <div class="min-h-0 flex-1">
                   {#key `primary:${activePath}`}
-                    <CodeEditor
-                      path={activeTab.path}
-                      value={activeTab.content}
-                      relatedFiles={editorRelatedFiles}
-                      onchange={({ value }) => updateTab(activeTab.path, value)}
-                      onsave={() => saveTab(activeTab.path)}
-                    />
+                    {#if activeTab.unavailableReasonCode}
+                      <div class="flex h-full items-center justify-center px-6 py-8">
+                        <div class="max-w-md rounded-xl border border-dashed border-border/70 bg-muted/20 p-6 text-center">
+                          <div class="mx-auto mb-4 inline-flex size-10 items-center justify-center rounded-full bg-background text-muted-foreground">
+                            <Lock class="size-5" />
+                          </div>
+                          <div class="text-sm font-medium">
+                            {$messages.services.files.encryptedUnavailableTitle}
+                          </div>
+                          <div class="mt-2 text-sm text-muted-foreground">
+                            {fileUnavailableReason(activeTab)}
+                          </div>
+                          <div class="mt-2 text-sm text-muted-foreground">
+                            {fileUnavailableDescription(activeTab)}
+                          </div>
+                        </div>
+                      </div>
+                    {:else}
+                      <CodeEditor
+                        path={activeTab.path}
+                        value={activeTab.content}
+                        relatedFiles={editorRelatedFiles}
+                        readOnly={activeTab.readOnly}
+                        onchange={({ value }) => updateTab(activeTab.path, value)}
+                        onsave={() => saveTab(activeTab.path)}
+                      />
+                    {/if}
                   {/key}
                 </div>
               {:else}
@@ -1633,14 +1676,34 @@
                 {#if secondaryTab}
                   <div class="min-h-0 flex-1">
                     {#key `secondary:${secondaryPath}`}
-                      <CodeEditor
-                        path={secondaryTab.path}
-                        value={secondaryTab.content}
-                        relatedFiles={editorRelatedFiles}
-                        onchange={({ value }) =>
-                          updateTab(secondaryTab.path, value)}
-                        onsave={() => saveTab(secondaryTab.path)}
-                      />
+                      {#if secondaryTab.unavailableReasonCode}
+                        <div class="flex h-full items-center justify-center px-6 py-8">
+                          <div class="max-w-md rounded-xl border border-dashed border-border/70 bg-muted/20 p-6 text-center">
+                            <div class="mx-auto mb-4 inline-flex size-10 items-center justify-center rounded-full bg-background text-muted-foreground">
+                              <Lock class="size-5" />
+                            </div>
+                            <div class="text-sm font-medium">
+                              {$messages.services.files.encryptedUnavailableTitle}
+                            </div>
+                            <div class="mt-2 text-sm text-muted-foreground">
+                              {fileUnavailableReason(secondaryTab)}
+                            </div>
+                            <div class="mt-2 text-sm text-muted-foreground">
+                              {fileUnavailableDescription(secondaryTab)}
+                            </div>
+                          </div>
+                        </div>
+                      {:else}
+                        <CodeEditor
+                          path={secondaryTab.path}
+                          value={secondaryTab.content}
+                          relatedFiles={editorRelatedFiles}
+                          readOnly={secondaryTab.readOnly}
+                          onchange={({ value }) =>
+                            updateTab(secondaryTab.path, value)}
+                          onsave={() => saveTab(secondaryTab.path)}
+                        />
+                      {/if}
                     {/key}
                   </div>
                 {:else}

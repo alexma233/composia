@@ -13,7 +13,17 @@ export type WorkspaceFile = {
   path: string;
   content: string;
   size: number;
+  readOnly?: boolean;
+  unavailableReasonCode?: string;
 };
+
+export function isEncryptedFilePath(path: string) {
+  return path.toLowerCase().endsWith(".enc");
+}
+
+export function encryptedFileSourcePath(path: string) {
+  return isEncryptedFilePath(path) ? path.slice(0, -4) : path;
+}
 
 export function normalizeServiceRelativePath(input: string) {
   const trimmed = input.trim().replaceAll("\\", "/");

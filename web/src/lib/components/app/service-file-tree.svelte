@@ -1,7 +1,16 @@
 <script lang="ts">
-  import { ChevronDown, ChevronRight, FileText, Folder } from "lucide-svelte";
+  import {
+    ChevronDown,
+    ChevronRight,
+    FileText,
+    Folder,
+    Lock,
+  } from "lucide-svelte";
 
-  import type { ServiceFileNode } from "$lib/service-workspace";
+  import {
+    isEncryptedFilePath,
+    type ServiceFileNode,
+  } from "$lib/service-workspace";
   import ServiceFileTree from "./service-file-tree.svelte";
 
   interface Props {
@@ -114,15 +123,33 @@
           }}
         >
           {#if iconName}
-            <img
-              src={materialIconUrl(iconName)}
-              alt=""
-              aria-hidden="true"
-              class="size-4 shrink-0"
-              decoding="async"
-            />
+            <span class="relative inline-flex size-4 shrink-0 items-center justify-center">
+              <img
+                src={materialIconUrl(iconName)}
+                alt=""
+                aria-hidden="true"
+                class="size-4 shrink-0"
+                decoding="async"
+              />
+              {#if isEncryptedFilePath(node.path)}
+                <span
+                  class="absolute -right-1 -bottom-1 inline-flex size-2.5 items-center justify-center rounded-full bg-background text-foreground"
+                >
+                  <Lock class="size-2" />
+                </span>
+              {/if}
+            </span>
           {:else}
-            <FileText class="size-4" />
+            <span class="relative inline-flex size-4 shrink-0 items-center justify-center">
+              <FileText class="size-4" />
+              {#if isEncryptedFilePath(node.path)}
+                <span
+                  class="absolute -right-1 -bottom-1 inline-flex size-2.5 items-center justify-center rounded-full bg-background text-foreground"
+                >
+                  <Lock class="size-2" />
+                </span>
+              {/if}
+            </span>
           {/if}
           <span class="truncate">{node.name}</span>
         </button>

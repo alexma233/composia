@@ -6,12 +6,21 @@ import {
   deleteRepoPath,
   loadRepoEntries,
   loadRepoFile,
+  loadSystemCapabilities,
   loadSecret,
   moveRepoPath,
   updateRepoFile,
   updateSecret,
 } from "$lib/server/controller";
-import { normalizeServiceRelativePath } from "$lib/service-workspace";
+import {
+  isEncryptedFilePath,
+  normalizeServiceRelativePath,
+} from "$lib/service-workspace";
+
+const ENCRYPTED_FILE_REASON_MESSAGES: Record<string, string> = {
+  missing_secrets_config: "Secrets configuration is incomplete.",
+  service_not_declared: "This service is not declared yet.",
+};
 
 export async function loadServiceFileTree(
   serviceDir: string,
@@ -32,11 +41,16 @@ export async function loadServiceWorkspaceFile(
 ): Promise<WorkspaceFile> {
   const normalized = normalizeServiceRelativePath(relativePath);
   let content: string;
-  if (normalized.endsWith(".enc")) {
-    if (!serviceName) {
-      throw new Error("Cannot load encrypted file for undeclared service");
+  if (isEncryptedFilePath(normalized)) {
+    const unavailableReasonCode = await resolveEncryptedFileUnavailableReason(
+      serviceName,
+    );
+    if (unavailableReasonCode) {
+      return unavailableEncryptedWorkspaceFile(normalized, unavailableReasonCode);
     }
-    const secret = await loadSecret(serviceName, normalized);
+
+    const declaredServiceName = serviceName as string;
+    const secret = await loadSecret(declaredServiceName, normalized);
     content = secret.content ?? "";
   } else {
     const file = await loadRepoFile(
@@ -60,11 +74,24 @@ export async function saveServiceWorkspaceFile(
 ): Promise<{ file: WorkspaceFile; write: RepoWriteResult }> {
   const normalized = normalizeServiceRelativePath(relativePath);
   let write: RepoWriteResult;
-  if (normalized.endsWith(".enc")) {
-    if (!serviceName) {
-      throw new Error("Cannot save encrypted file for undeclared service");
+  if (isEncryptedFilePath(normalized)) {
+    const unavailableReasonCode = await resolveEncryptedFileUnavailableReason(
+      serviceName,
+    );
+    if (unavailableReasonCode) {
+      throw new Error(
+        ENCRYPTED_FILE_REASON_MESSAGES[unavailableReasonCode] ??
+          "Encrypted file is currently unavailable.",
+      );
     }
-    write = await updateSecret(serviceName, normalized, content, baseRevision);
+
+    const declaredServiceName = serviceName as string;
+    write = await updateSecret(
+      declaredServiceName,
+      normalized,
+      content,
+      baseRevision,
+    );
   } else {
     write = await updateRepoFile(
       repoPathForServicePath(serviceDir, normalized),
@@ -79,6 +106,34 @@ export async function saveServiceWorkspaceFile(
       size: content.length,
     },
     write,
+  };
+}
+
+async function resolveEncryptedFileUnavailableReason(
+  serviceName: string | null,
+) {
+  if (!serviceName) {
+    return "service_not_declared";
+  }
+
+  const capabilities = await loadSystemCapabilities();
+  if (capabilities.global.secrets.enabled) {
+    return null;
+  }
+
+  return capabilities.global.secrets.reasonCode || "missing_secrets_config";
+}
+
+function unavailableEncryptedWorkspaceFile(
+  path: string,
+  unavailableReasonCode: string,
+): WorkspaceFile {
+  return {
+    path,
+    content: "",
+    size: 0,
+    readOnly: true,
+    unavailableReasonCode,
   };
 }
 

@@ -239,6 +239,11 @@ export const zhHans = {
       openInSplit: "在右侧打开",
       openFileToEdit: "打开文件开始编辑。",
       openFileToEditSplit: "在右侧打开另一个文件开始分屏编辑。",
+      encryptedUnavailableTitle: "加密文件暂时不可用",
+      encryptedUnavailableMissingSecrets:
+        "请先配置 Secrets 支持，再在编辑器中打开加密文件。",
+      encryptedUnavailableDeclared:
+        "请先声明该服务，再在编辑器中打开加密文件。",
     },
     operations: {
       title: "操作",

@@ -253,6 +253,11 @@ export const enUS = {
       openInSplit: "Open in right pane",
       openFileToEdit: "Open a file to start editing.",
       openFileToEditSplit: "Open another file in the right pane.",
+      encryptedUnavailableTitle: "Encrypted file is unavailable",
+      encryptedUnavailableMissingSecrets:
+        "Configure secrets support before opening encrypted files in the editor.",
+      encryptedUnavailableDeclared:
+        "Declare this service before opening encrypted files in the editor.",
     },
     operations: {
       title: "Operations",

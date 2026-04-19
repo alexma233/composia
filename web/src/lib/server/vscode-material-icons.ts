@@ -3,6 +3,10 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 
 import {
+  encryptedFileSourcePath,
+  isEncryptedFilePath,
+} from "$lib/service-workspace";
+import {
   getIconForDirectoryPath,
   getIconForFilePath,
   isMaterialIconName,
@@ -62,7 +66,10 @@ export async function loadVscodeMaterialIconSvg(iconName: string) {
 }
 
 function resolveFileIconName(path: string): MaterialIcon {
-  const fileName = path.split("/").pop() ?? path;
+  const iconPath = isEncryptedFilePath(path)
+    ? encryptedFileSourcePath(path)
+    : path;
+  const fileName = iconPath.split("/").pop() ?? iconPath;
   const extension = fileName.includes(".")
     ? fileName.slice(fileName.lastIndexOf(".") + 1).toLowerCase()
     : "";
@@ -72,7 +79,7 @@ function resolveFileIconName(path: string): MaterialIcon {
     return "yaml";
   }
 
-  return getIconForFilePath(path);
+  return getIconForFilePath(iconPath);
 }
 
 function resolveVariantIconName(
