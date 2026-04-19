@@ -1,0 +1,72 @@
+name: PR Build and Test
+
+on:
+  pull_request:
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - "package.json"
+      - "bun.lock"
+      - "docs/**"
+      - "web/**"
+      - "proto/**"
+      - "gen/go/**"
+  workflow_dispatch:
+
+jobs:
+  backend-test:
+    runs-on: docker-amd64
+    container:
+      image: golang:1.26.2-bookworm
+
+    steps:
+      - name: Checkout
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
+        uses: https://forgejo.alexma.top/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      - name: Run backend tests
+        run: go test ./...
+
+  web-build:
+    runs-on: docker-amd64
+    container:
+      image: oven/bun:1.3.12
+
+    steps:
+      - name: Checkout
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
+        uses: https://forgejo.alexma.top/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      - name: Install web dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run web type checks
+        run: bun run web:check
+
+      - name: Build web
+        run: bun run web:build
+
+  docs-build:
+    runs-on: docker-amd64
+    container:
+      image: oven/bun:1.3.12
+
+    steps:
+      - name: Checkout
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
+        uses: https://forgejo.alexma.top/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      - name: Install docs dependencies
+        working-directory: docs
+        run: bun install --frozen-lockfile
+
+      - name: Build docs
+        working-directory: docs
+        run: bun run build

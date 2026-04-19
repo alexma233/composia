@@ -74,9 +74,7 @@ export const GET: RequestHandler = async ({ params }) => {
               throw new Error("Compressed Connect streams are not supported.");
             }
 
-            const jsonPayload = JSON.parse(
-              textDecoder.decode(payload),
-            ) as
+            const jsonPayload = JSON.parse(textDecoder.decode(payload)) as
               | { content?: string }
               | {
                   error?: { message?: string };

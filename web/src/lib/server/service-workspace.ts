@@ -42,11 +42,13 @@ export async function loadServiceWorkspaceFile(
   const normalized = normalizeServiceRelativePath(relativePath);
   let content: string;
   if (isEncryptedFilePath(normalized)) {
-    const unavailableReasonCode = await resolveEncryptedFileUnavailableReason(
-      serviceName,
-    );
+    const unavailableReasonCode =
+      await resolveEncryptedFileUnavailableReason(serviceName);
     if (unavailableReasonCode) {
-      return unavailableEncryptedWorkspaceFile(normalized, unavailableReasonCode);
+      return unavailableEncryptedWorkspaceFile(
+        normalized,
+        unavailableReasonCode,
+      );
     }
 
     const declaredServiceName = serviceName as string;
@@ -75,9 +77,8 @@ export async function saveServiceWorkspaceFile(
   const normalized = normalizeServiceRelativePath(relativePath);
   let write: RepoWriteResult;
   if (isEncryptedFilePath(normalized)) {
-    const unavailableReasonCode = await resolveEncryptedFileUnavailableReason(
-      serviceName,
-    );
+    const unavailableReasonCode =
+      await resolveEncryptedFileUnavailableReason(serviceName);
     if (unavailableReasonCode) {
       throw new Error(
         ENCRYPTED_FILE_REASON_MESSAGES[unavailableReasonCode] ??
