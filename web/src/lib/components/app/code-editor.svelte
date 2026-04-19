@@ -176,7 +176,10 @@
       .then((support) => {
         applyLanguageExtension(requestId, support.extension);
       })
-      .catch(() => {
+      .catch((error) => {
+        if (import.meta.env.DEV) {
+          console.error(`Failed to load CodeMirror language support for ${filePath}.`, error);
+        }
         applyLanguageExtension(requestId, []);
       });
   }
