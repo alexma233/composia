@@ -1,4 +1,5 @@
 import type { RepoFileEntry, RepoWriteResult } from "$lib/server/controller";
+import { resolveMaterialIconNames } from "$lib/server/material-icon-theme";
 import type { ServiceFileNode, WorkspaceFile } from "$lib/service-workspace";
 import {
   createRepoDirectory,
@@ -15,9 +16,12 @@ import { normalizeServiceRelativePath } from "$lib/service-workspace";
 export async function loadServiceFileTree(
   serviceDir: string,
 ): Promise<ServiceFileNode[]> {
-  const entries = await loadRepoEntries(repoPathForServicePath(serviceDir, ""), {
-    recursive: true,
-  });
+  const entries = await loadRepoEntries(
+    repoPathForServicePath(serviceDir, ""),
+    {
+      recursive: true,
+    },
+  );
   return buildServiceFileTree(serviceDir, entries);
 }
 
@@ -134,10 +138,16 @@ function buildServiceFileTree(
       continue;
     }
 
+    const icons = resolveMaterialIconNames(relativePath, entry.isDir);
+
     const node: ServiceFileNode = {
       name: entry.name,
       path: relativePath,
       isDir: entry.isDir,
+      iconName: icons.iconName ?? undefined,
+      lightIconName: icons.lightIconName ?? undefined,
+      expandedIconName: icons.expandedIconName ?? undefined,
+      expandedLightIconName: icons.expandedLightIconName ?? undefined,
       children: [],
     };
 

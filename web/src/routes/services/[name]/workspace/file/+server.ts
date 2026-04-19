@@ -1,7 +1,10 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
-import { requireWorkspace } from "$lib/server/service-workspace-route";
+import {
+  loadServiceWorkspaceFiles,
+  requireWorkspace,
+} from "$lib/server/service-workspace-route";
 import { saveServiceWorkspaceFile } from "$lib/server/service-workspace";
 import { normalizeServiceRelativePath } from "$lib/service-workspace";
 
@@ -28,8 +31,14 @@ export const PUT: RequestHandler = async ({ params, request }) => {
       payload.content ?? "",
       payload.baseRevision,
     );
+    const { fileTree } = await loadServiceWorkspaceFiles(params.name);
 
-    return json({ file: result.file, write: result.write });
+    return json({
+      file: result.file,
+      write: result.write,
+      workspace,
+      fileTree,
+    });
   } catch (error) {
     return json(
       {

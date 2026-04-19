@@ -2,6 +2,10 @@ export type ServiceFileNode = {
   name: string;
   path: string;
   isDir: boolean;
+  iconName?: string;
+  lightIconName?: string;
+  expandedIconName?: string;
+  expandedLightIconName?: string;
   children: ServiceFileNode[];
 };
 

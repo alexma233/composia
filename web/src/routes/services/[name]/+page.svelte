@@ -85,7 +85,6 @@
   import {
     findNode,
     normalizeServiceRelativePath,
-    upsertFileNode,
   } from "$lib/service-workspace";
   import { startPolling } from "$lib/refresh";
   import { cn } from "$lib/utils";
@@ -136,6 +135,7 @@
   let migrateTargetNode = $state("");
   let selectedInstanceNode = $state("__all__");
   let serviceSwitchOpen = $state(false);
+  let fileTreeIconTheme = $state<"light" | "dark">("dark");
 
   type ServiceSummaryStatePayload = {
     workspace?: PageData["workspace"];
@@ -600,16 +600,17 @@
         file?: WorkspaceFile;
         write?: RepoWriteResult;
         workspace?: PageData["workspace"];
+        fileTree?: ServiceFileNode[];
       };
       if (!response.ok || !payload.file || !payload.write) {
         throw new Error(payload.error ?? "Failed to create file.");
       }
 
-      headRevision = payload.write.commitId;
-      syncStatus = payload.write.syncStatus;
-      syncError = payload.write.pushError;
-      lastSuccessfulPullAt = payload.write.lastSuccessfulPullAt;
-      fileTree = upsertFileNode(fileTree, normalized);
+      applyFsMutation({
+        write: payload.write,
+        workspace: payload.workspace,
+        fileTree: payload.fileTree,
+      });
       openTabs = [...openTabs, createTab(payload.file)];
       selectedNodePath = normalized;
       if (targetPane === "secondary" && normalized !== activePath) {
@@ -873,7 +874,22 @@
     stopActionRefreshHandle = null;
   }
 
+  function syncFileTreeIconTheme(root: HTMLElement) {
+    fileTreeIconTheme = root.classList.contains("dark") ? "dark" : "light";
+  }
+
   onMount(() => {
+    const root = document.documentElement;
+    syncFileTreeIconTheme(root);
+
+    const themeObserver = new MutationObserver(() => {
+      syncFileTreeIconTheme(root);
+    });
+    themeObserver.observe(root, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
     const stopAutoRefresh = startPolling(
       async () => {
         await refreshServiceSummary();
@@ -884,6 +900,7 @@
     );
 
     return () => {
+      themeObserver.disconnect();
       stopAutoRefresh();
       stopActionRefresh();
     };
@@ -1494,6 +1511,7 @@
             {activePath}
             selectedPath={selectedNodePath}
             {collapsedPaths}
+            iconTheme={fileTreeIconTheme}
             onOpenFile={openFile}
             onSelectNode={selectNode}
             onToggle={toggleDirectory}

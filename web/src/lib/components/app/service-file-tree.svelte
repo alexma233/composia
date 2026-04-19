@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { ChevronDown, ChevronRight, FileText, Folder } from 'lucide-svelte';
+  import { ChevronDown, ChevronRight, FileText, Folder } from "lucide-svelte";
 
-  import type { ServiceFileNode } from '$lib/service-workspace';
-  import ServiceFileTree from './service-file-tree.svelte';
+  import type { ServiceFileNode } from "$lib/service-workspace";
+  import ServiceFileTree from "./service-file-tree.svelte";
 
   interface Props {
     nodes?: ServiceFileNode[];
@@ -10,6 +10,7 @@
     selectedPath?: string;
     collapsedPaths?: Set<string>;
     depth?: number;
+    iconTheme?: "light" | "dark";
     onOpenFile?: (path: string) => void;
     onSelectNode?: (path: string) => void;
     onToggle?: (path: string) => void;
@@ -17,20 +18,43 @@
 
   let {
     nodes = [],
-    activePath = '',
-    selectedPath = '',
+    activePath = "",
+    selectedPath = "",
     collapsedPaths = new Set(),
     depth = 0,
+    iconTheme = "dark",
     onOpenFile = () => {},
     onSelectNode = () => {},
-    onToggle = () => {}
+    onToggle = () => {},
   }: Props = $props();
+
+  function materialIconUrl(iconName: string) {
+    return `/material-icons/${encodeURIComponent(iconName)}`;
+  }
+
+  function nodeIconName(node: ServiceFileNode, expanded = false) {
+    if (iconTheme === "light") {
+      return expanded
+        ? (node.expandedLightIconName ??
+            node.lightIconName ??
+            node.expandedIconName ??
+            node.iconName ??
+            null)
+        : (node.lightIconName ?? node.iconName ?? null);
+    }
+
+    return expanded
+      ? (node.expandedIconName ?? node.iconName ?? null)
+      : (node.iconName ?? null);
+  }
 </script>
 
 <div class="space-y-1">
   {#each nodes as node}
     <div>
       {#if node.isDir}
+        {@const expanded = !collapsedPaths.has(node.path)}
+        {@const iconName = nodeIconName(node, expanded)}
         <button
           type="button"
           class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent/60"
@@ -48,23 +72,35 @@
           {:else}
             <ChevronDown class="size-4" />
           {/if}
-          <Folder class="size-4" />
+          {#if iconName}
+            <img
+              src={materialIconUrl(iconName)}
+              alt=""
+              aria-hidden="true"
+              class="size-4 shrink-0"
+              decoding="async"
+            />
+          {:else}
+            <Folder class="size-4" />
+          {/if}
           <span class="truncate">{node.name}</span>
         </button>
 
-        {#if !collapsedPaths.has(node.path)}
+        {#if expanded}
           <ServiceFileTree
             nodes={node.children}
-            activePath={activePath}
-            selectedPath={selectedPath}
-            collapsedPaths={collapsedPaths}
+            {activePath}
+            {selectedPath}
+            {collapsedPaths}
             depth={depth + 1}
+            {iconTheme}
             {onOpenFile}
             {onSelectNode}
             {onToggle}
           />
         {/if}
       {:else}
+        {@const iconName = nodeIconName(node)}
         <button
           type="button"
           class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent/60"
@@ -77,7 +113,17 @@
             onOpenFile(node.path);
           }}
         >
-          <FileText class="size-4" />
+          {#if iconName}
+            <img
+              src={materialIconUrl(iconName)}
+              alt=""
+              aria-hidden="true"
+              class="size-4 shrink-0"
+              decoding="async"
+            />
+          {:else}
+            <FileText class="size-4" />
+          {/if}
           <span class="truncate">{node.name}</span>
         </button>
       {/if}
