@@ -3,7 +3,8 @@ tmp_dir = "/tmp/air-agent"
 
 [build]
 cmd = "go build -buildvcs=false -o /tmp/air-agent/composia ./cmd/composia"
-bin = "/tmp/air-agent/composia agent -config ./dev/config.controller.container.yaml"
+bin = "/tmp/air-agent/composia"
+args_bin = ["agent", "-config", "./dev/config.controller.container.yaml"]
 include_ext = ["go", "yaml", "yml"]
 exclude_dir = [
   ".git",
