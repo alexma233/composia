@@ -33,7 +33,7 @@ func TestServiceQueryServiceListServices(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	if err := syncDeclaredServicesForTests(context.Background(), db, "alpha", "bravo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
@@ -98,7 +98,7 @@ func TestServiceQueryServiceListServiceWorkspaces(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
@@ -160,7 +160,7 @@ func TestServiceQueryServiceGetServiceWorkspaceReturnsOneWorkspace(t *testing.T)
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
@@ -208,7 +208,7 @@ func TestServiceQueryServiceGetServiceReturnsMinimalSummary(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
@@ -274,7 +274,7 @@ func TestServiceQueryServiceGetServiceTasksReturnsFilteredTasks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
@@ -333,7 +333,7 @@ func TestServiceQueryServiceGetServiceBackupsReturnsFilteredBackups(t *testing.T
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
@@ -391,7 +391,7 @@ func TestServiceCommandServiceUpdateServiceTargetNodesRewritesMetaAndCommits(t *
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
@@ -468,7 +468,7 @@ func TestServiceCommandServiceUpdateServiceTargetNodesRejectsInvalidNode(t *test
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithService(t, repoDir, "alpha", "main")
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
@@ -506,7 +506,7 @@ func TestServiceCommandServiceUpdateServiceTargetNodesRejectsActiveServiceTask(t
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithService(t, repoDir, "alpha", "main")
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
@@ -560,7 +560,7 @@ func TestServiceCommandServiceDeployCreatesPendingTask(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
@@ -659,7 +659,7 @@ func TestServiceCommandServiceDeployIgnoresUnrelatedInvalidDraft(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
@@ -729,7 +729,7 @@ func TestServiceCommandServiceDeployUsesWebSourceHeader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
@@ -810,7 +810,7 @@ func TestServiceCommandServiceDeployUsesOthersSourceHeader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
@@ -894,7 +894,7 @@ func TestServiceCommandServiceCaddySyncCreatesPendingTask(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
@@ -963,7 +963,7 @@ func TestServiceCommandServiceDeployRejectsOfflineOrDisabledNode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
@@ -1035,7 +1035,7 @@ func TestServiceCommandServiceStopAndRestartCreatePendingTasks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
@@ -1106,7 +1106,7 @@ func TestServiceCommandServiceUpdateCreatesPendingTask(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
@@ -1170,7 +1170,7 @@ func TestServiceCommandServiceUpdateDNSCreatesPendingTaskWithoutOnlineNode(t *te
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
@@ -1256,7 +1256,7 @@ func TestServiceCommandServiceBackupCreatesPendingTaskWithDefaultDataNames(t *te
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
@@ -1323,7 +1323,7 @@ func TestServiceCommandServiceMigrateCreatesPendingControllerTask(t *testing.T) 
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := db.SyncDeclaredServices(ctx, map[string][]string{"alpha": {"main"}}); err != nil {

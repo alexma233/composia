@@ -12,7 +12,6 @@ import (
 
 	"connectrpc.com/connect"
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
-	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/internal/config"
 	"forgejo.alexma.top/alexma233/composia/internal/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/store"
@@ -433,78 +432,5 @@ func dockerQueryConnectCode(value string) connect.Code {
 		return connect.CodeUnavailable
 	default:
 		return connect.CodeInternal
-	}
-}
-
-func dockerControllerContainerInfo(item *agentv1.ContainerInfo) *controllerv1.ContainerInfo {
-	if item == nil {
-		return nil
-	}
-	return &controllerv1.ContainerInfo{
-		Id:       item.GetId(),
-		Name:     item.GetName(),
-		Image:    item.GetImage(),
-		State:    item.GetState(),
-		Status:   item.GetStatus(),
-		Created:  item.GetCreated(),
-		Labels:   item.GetLabels(),
-		Ports:    append([]string(nil), item.GetPorts()...),
-		Networks: append([]string(nil), item.GetNetworks()...),
-		ImageId:  item.GetImageId(),
-	}
-}
-
-func dockerControllerNetworkInfo(item *agentv1.NetworkInfo) *controllerv1.NetworkInfo {
-	if item == nil {
-		return nil
-	}
-	return &controllerv1.NetworkInfo{
-		Id:              item.GetId(),
-		Name:            item.GetName(),
-		Driver:          item.GetDriver(),
-		Scope:           item.GetScope(),
-		Internal:        item.GetInternal(),
-		Attachable:      item.GetAttachable(),
-		Created:         item.GetCreated(),
-		Labels:          item.GetLabels(),
-		Subnet:          item.GetSubnet(),
-		Gateway:         item.GetGateway(),
-		ContainersCount: item.GetContainersCount(),
-		Ipv6Enabled:     item.GetIpv6Enabled(),
-	}
-}
-
-func dockerControllerVolumeInfo(item *agentv1.VolumeInfo) *controllerv1.VolumeInfo {
-	if item == nil {
-		return nil
-	}
-	return &controllerv1.VolumeInfo{
-		Name:            item.GetName(),
-		Driver:          item.GetDriver(),
-		Mountpoint:      item.GetMountpoint(),
-		Scope:           item.GetScope(),
-		Created:         item.GetCreated(),
-		Labels:          item.GetLabels(),
-		SizeBytes:       item.GetSizeBytes(),
-		ContainersCount: item.GetContainersCount(),
-		InUse:           item.GetInUse(),
-	}
-}
-
-func dockerControllerImageInfo(item *agentv1.ImageInfo) *controllerv1.ImageInfo {
-	if item == nil {
-		return nil
-	}
-	return &controllerv1.ImageInfo{
-		Id:              item.GetId(),
-		RepoTags:        append([]string(nil), item.GetRepoTags()...),
-		Size:            item.GetSize(),
-		Created:         item.GetCreated(),
-		RepoDigests:     append([]string(nil), item.GetRepoDigests()...),
-		VirtualSize:     item.GetVirtualSize(),
-		Architecture:    item.GetArchitecture(),
-		Os:              item.GetOs(),
-		ContainersCount: item.GetContainersCount(),
-		IsDangling:      item.GetIsDangling(),
 	}
 }

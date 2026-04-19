@@ -42,7 +42,7 @@ func TestBundleServiceStreamsTaskBundle(t *testing.T) {
 	}
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -76,7 +76,7 @@ func TestBundleServiceStreamsTaskBundle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get service bundle: %v", err)
 	}
-	defer stream.Close()
+	defer func() { _ = stream.Close() }()
 
 	archive := bytes.Buffer{}
 	var relativeRoot string
@@ -115,7 +115,7 @@ func TestBundleServiceStreamsCaddySyncBundleWithSingleServiceDir(t *testing.T) {
 	}
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -149,7 +149,7 @@ func TestBundleServiceStreamsCaddySyncBundleWithSingleServiceDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get caddy sync bundle: %v", err)
 	}
-	defer stream.Close()
+	defer func() { _ = stream.Close() }()
 
 	archive := bytes.Buffer{}
 	var relativeRoot string
@@ -190,7 +190,7 @@ func TestBundleServiceStreamsRequestedServiceDirOverride(t *testing.T) {
 	}
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -224,7 +224,7 @@ func TestBundleServiceStreamsRequestedServiceDirOverride(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get overridden caddy sync bundle: %v", err)
 	}
-	defer stream.Close()
+	defer func() { _ = stream.Close() }()
 
 	archive := bytes.Buffer{}
 	var relativeRoot string
@@ -270,7 +270,7 @@ func TestBundleServiceInjectsDecryptedSecretEnv(t *testing.T) {
 	}
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
@@ -303,7 +303,7 @@ func TestBundleServiceInjectsDecryptedSecretEnv(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get service bundle: %v", err)
 	}
-	defer stream.Close()
+	defer func() { _ = stream.Close() }()
 
 	archive := bytes.Buffer{}
 	for stream.Receive() {
@@ -336,7 +336,7 @@ func TestBundleServiceInjectsBackupRuntimeConfig(t *testing.T) {
 	}
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
@@ -369,7 +369,7 @@ func TestBundleServiceInjectsBackupRuntimeConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get backup bundle: %v", err)
 	}
-	defer stream.Close()
+	defer func() { _ = stream.Close() }()
 
 	archive := bytes.Buffer{}
 	for stream.Receive() {
@@ -417,7 +417,7 @@ func TestBundleServiceServiceOverrideSkipsBackupRuntimePayload(t *testing.T) {
 	}
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
@@ -450,7 +450,7 @@ func TestBundleServiceServiceOverrideSkipsBackupRuntimePayload(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get overridden backup bundle: %v", err)
 	}
-	defer stream.Close()
+	defer func() { _ = stream.Close() }()
 
 	archive := bytes.Buffer{}
 	for stream.Receive() {
@@ -492,7 +492,7 @@ func TestBundleServiceInjectsBackupRuntimeConfigFromTaskRevision(t *testing.T) {
 	runGit(t, repoDir, "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "update runtime config")
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
@@ -525,7 +525,7 @@ func TestBundleServiceInjectsBackupRuntimeConfigFromTaskRevision(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get backup bundle: %v", err)
 	}
-	defer stream.Close()
+	defer func() { _ = stream.Close() }()
 
 	archive := bytes.Buffer{}
 	for stream.Receive() {
@@ -554,7 +554,7 @@ func untarGzEntries(t *testing.T, content []byte) map[string]bool {
 	if err != nil {
 		t.Fatalf("open gzip content: %v", err)
 	}
-	defer gzipReader.Close()
+	defer func() { _ = gzipReader.Close() }()
 
 	tarReader := tar.NewReader(gzipReader)
 	for {
@@ -576,7 +576,7 @@ func untarGzContents(t *testing.T, content []byte) map[string]string {
 	if err != nil {
 		t.Fatalf("open gzip content: %v", err)
 	}
-	defer gzipReader.Close()
+	defer func() { _ = gzipReader.Close() }()
 
 	tarReader := tar.NewReader(gzipReader)
 	for {

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/netip"
 	"os"
@@ -115,7 +116,9 @@ func runControllerTasks(ctx context.Context, executor *controllerTaskExecutor) {
 			continue
 		} else if !errors.Is(err, store.ErrNoPendingTask) {
 			// The task remains terminally failed in SQLite; keep the worker alive.
-			appendTaskLogRaw(filepath.Join(executor.cfg.LogDir, "tasks", "controller.log"), fmt.Sprintf("controller task worker error: %v\n", err))
+			if logErr := appendTaskLogRaw(filepath.Join(executor.cfg.LogDir, "tasks", "controller.log"), fmt.Sprintf("controller task worker error: %v\n", err)); logErr != nil {
+				log.Printf("append controller task worker log: %v", logErr)
+			}
 		}
 
 		select {
@@ -463,7 +466,9 @@ func (client *defaultCloudflareDNSClient) ApplyRecordOptions(ctx context.Context
 		if err != nil {
 			return err
 		}
-		response.Body.Close()
+		if err := response.Body.Close(); err != nil {
+			return fmt.Errorf("close Cloudflare patch response body: %w", err)
+		}
 		if response.StatusCode >= 300 {
 			return fmt.Errorf("patch Cloudflare dns record %s: unexpected status %s", recordID, response.Status)
 		}
@@ -509,7 +514,7 @@ func (client *defaultCloudflareDNSClient) doJSON(req *http.Request, target any) 
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode >= 300 {
 		return fmt.Errorf("Cloudflare API request failed with status %s", response.Status)
 	}

@@ -59,12 +59,9 @@ func (uploader *taskLogUploader) Close() error {
 func (uploader *taskLogUploader) flush(ctx context.Context) error {
 	for len(uploader.pending) > 0 {
 		current := uploader.pending[0]
-		acked, err := uploader.sendPendingLog(ctx, current)
+		_, err := uploader.sendPendingLog(ctx, current)
 		if err != nil {
 			return err
-		}
-		if !acked {
-			continue
 		}
 	}
 	return nil

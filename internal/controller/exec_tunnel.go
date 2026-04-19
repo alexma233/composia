@@ -57,7 +57,6 @@ type execSession struct {
 	cols             uint32
 	incoming         chan *agentv1.OpenExecTunnelRequest
 	createdAt        time.Time
-	mu               sync.Mutex
 	browserTaken     bool
 	browserAttaching bool
 	closed           bool
@@ -305,7 +304,7 @@ func (manager *execTunnelManager) handleWebsocket(w http.ResponseWriter, r *http
 		_ = conn.Close()
 		return
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	defer manager.closeSession(session.id)
 
 	if err := writeExecWSEvent(conn, execKindReady, session.id, ""); err != nil {

@@ -22,7 +22,7 @@ func TestTaskServiceListTasks(t *testing.T) {
 	t.Parallel()
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
@@ -107,7 +107,7 @@ func TestTaskServiceGetTaskReturnsSteps(t *testing.T) {
 	t.Parallel()
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
@@ -208,7 +208,7 @@ func TestTaskServiceTailTaskLogsStreamsExistingAndNewContent(t *testing.T) {
 	}
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
@@ -241,7 +241,7 @@ func TestTaskServiceTailTaskLogsStreamsExistingAndNewContent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("tail task logs: %v", err)
 	}
-	defer stream.Close()
+	defer func() { _ = stream.Close() }()
 
 	if !stream.Receive() {
 		t.Fatalf("expected first log chunk, got err=%v", stream.Err())
@@ -274,7 +274,7 @@ func TestTaskServiceRunTaskAgainCreatesNewPendingTask(t *testing.T) {
 	}
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
@@ -335,7 +335,7 @@ func TestTaskServiceRunTaskAgainSupportsBackup(t *testing.T) {
 	}
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
@@ -388,7 +388,7 @@ func TestTaskServiceResolveTaskConfirmationApproveRequeuesMigrateTask(t *testing
 	t.Parallel()
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
@@ -451,7 +451,7 @@ func TestTaskServiceResolveTaskConfirmationRejectCancelsMigrateTask(t *testing.T
 	t.Parallel()
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {

@@ -330,7 +330,7 @@ func (s *dockerServer) streamContainerLogs(ctx context.Context, containerID, tai
 	if err != nil {
 		return err
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	writer := logChunkWriter{write: write}
 	if inspect.Config != nil && inspect.Config.Tty {

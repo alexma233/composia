@@ -148,7 +148,7 @@ func (db *DB) SyncConfiguredNodes(ctx context.Context, nodeIDs []string) error {
 	if err != nil {
 		return fmt.Errorf("begin node sync transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if _, err := tx.ExecContext(ctx, `UPDATE nodes SET is_configured = 0`); err != nil {
 		return fmt.Errorf("mark nodes unconfigured: %w", err)
@@ -233,7 +233,7 @@ func (db *DB) SyncDeclaredServices(ctx context.Context, services map[string][]st
 	if err != nil {
 		return fmt.Errorf("begin service sync transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if _, err := tx.ExecContext(ctx, `UPDATE services SET is_declared = 0`); err != nil {
 		return fmt.Errorf("mark services undeclared: %w", err)
@@ -331,7 +331,7 @@ func (db *DB) ListDeclaredServices(ctx context.Context, runtimeStatusFilter stri
 	if err != nil {
 		return nil, 0, fmt.Errorf("list declared services: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	services := make([]ServiceSummary, 0, limit)
 	for rows.Next() {
@@ -391,7 +391,7 @@ func (db *DB) ListServiceInstances(ctx context.Context, serviceName string) ([]S
 	if err != nil {
 		return nil, fmt.Errorf("list service instances for %q: %w", serviceName, err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	instances := make([]ServiceInstanceSnapshot, 0)
 	for rows.Next() {
@@ -432,7 +432,7 @@ func (db *DB) ListNodeSnapshots(ctx context.Context) ([]NodeSnapshot, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list node snapshots: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	nodes := make([]NodeSnapshot, 0)
 	for rows.Next() {
@@ -478,7 +478,7 @@ func (db *DB) UpdateServiceInstanceRuntimeStatus(ctx context.Context, serviceNam
 	if err != nil {
 		return fmt.Errorf("begin service instance runtime update for %q@%q: %w", serviceName, nodeID, err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	result, err := tx.ExecContext(ctx, `
 		UPDATE service_instances
 		SET runtime_status = ?, updated_at = ?
@@ -638,7 +638,7 @@ func refreshServiceAggregateStatusTx(ctx context.Context, tx *sql.Tx, serviceNam
 	if err != nil {
 		return fmt.Errorf("list service instance runtime states for %q: %w", serviceName, err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	statuses := make([]string, 0)
 	for rows.Next() {
@@ -654,16 +654,12 @@ func refreshServiceAggregateStatusTx(ctx context.Context, tx *sql.Tx, serviceNam
 
 	aggregate := ServiceRuntimeUnknown
 	switch {
-	case len(statuses) == 0:
-		aggregate = ServiceRuntimeUnknown
 	case allStatusesEqual(statuses, ServiceRuntimeRunning):
 		aggregate = ServiceRuntimeRunning
 	case allStatusesEqual(statuses, ServiceRuntimeStopped):
 		aggregate = ServiceRuntimeStopped
 	case hasStatus(statuses, ServiceRuntimeError):
 		aggregate = ServiceRuntimeError
-	default:
-		aggregate = ServiceRuntimeUnknown
 	}
 
 	if _, err := tx.ExecContext(ctx, `

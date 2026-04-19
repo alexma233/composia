@@ -16,7 +16,7 @@ func TestClaimNextPendingTaskReturnsOldestPendingTask(t *testing.T) {
 	t.Parallel()
 
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	older := time.Date(2026, 4, 4, 10, 0, 0, 0, time.UTC)
@@ -45,7 +45,7 @@ func TestClaimNextPendingTaskForNodeHonorsNodeAndGlobalRunningTask(t *testing.T)
 	t.Parallel()
 
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main", "node-2"}); err != nil {
@@ -77,7 +77,7 @@ func TestClaimNextPendingTaskForNodeIsGloballySerialized(t *testing.T) {
 	t.Parallel()
 
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main", "node-2"}); err != nil {
@@ -132,7 +132,7 @@ func TestClaimNextPendingTaskReturnsErrNoPendingTask(t *testing.T) {
 	t.Parallel()
 
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	_, err := db.ClaimNextPendingTask(context.Background(), time.Now().UTC())
 	if !errors.Is(err, ErrNoPendingTask) {
@@ -144,7 +144,7 @@ func TestRecoverRunningTasksMarksRunningRowsFailed(t *testing.T) {
 	t.Parallel()
 
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	startedAt := time.Date(2026, 4, 4, 11, 0, 0, 0, time.UTC)
@@ -190,7 +190,7 @@ func TestRecoverRunningTasksLeavesAwaitingConfirmationUntouched(t *testing.T) {
 	t.Parallel()
 
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	createdAt := time.Date(2026, 4, 4, 11, 0, 0, 0, time.UTC)
@@ -233,7 +233,7 @@ func TestCreateTaskIfNoActiveServiceInstanceTaskIsAtomic(t *testing.T) {
 	t.Parallel()
 
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
@@ -302,7 +302,7 @@ func TestCreateTasksIfNoActiveServiceInstanceTasksIsAllOrNothing(t *testing.T) {
 	t.Parallel()
 
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := db.SyncDeclaredServices(ctx, map[string][]string{"alpha": {"main", "edge"}}); err != nil {
@@ -343,7 +343,7 @@ func TestCreateTaskIfNoActiveServiceTaskIsAtomic(t *testing.T) {
 	t.Parallel()
 
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
@@ -401,7 +401,7 @@ func TestListTasksAppliesFiltersAndCursor(t *testing.T) {
 	t.Parallel()
 
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
@@ -441,7 +441,7 @@ func TestListTasksAppliesNodeAndTypeFilters(t *testing.T) {
 	t.Parallel()
 
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
@@ -473,7 +473,7 @@ func TestCompleteTaskUpdatesLastTaskWithoutOverwritingRuntimeStatus(t *testing.T
 	t.Parallel()
 
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {

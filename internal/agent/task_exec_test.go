@@ -92,7 +92,7 @@ func TestExecuteStopTaskDownloadsBundleAndRunsComposeDown(t *testing.T) {
 	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	logUploader := newTaskLogUploader(reportClient, "task-1")
-	defer logUploader.Close()
+	defer func() { _ = logUploader.Close() }()
 
 	pulledTask := &agentv1.AgentTask{
 		TaskId:       "task-1",
@@ -201,7 +201,7 @@ func TestExecuteBackupTaskRunsRusticAndReportsSnapshot(t *testing.T) {
 	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	logUploader := newTaskLogUploader(reportClient, "task-backup")
-	defer logUploader.Close()
+	defer func() { _ = logUploader.Close() }()
 
 	pulledTask := &agentv1.AgentTask{TaskId: "task-backup", Type: string(task.TypeBackup), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo", DataNames: []string{"config"}}
 	if err := executeBackupTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
@@ -290,7 +290,7 @@ func TestExecuteCaddySyncTaskCopiesServiceCaddyFile(t *testing.T) {
 	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	logUploader := newTaskLogUploader(reportClient, "task-caddy-sync")
-	defer logUploader.Close()
+	defer func() { _ = logUploader.Close() }()
 
 	pulledTask := &agentv1.AgentTask{TaskId: "task-caddy-sync", Type: string(task.TypeCaddySync), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo"}
 	if err := executeCaddySyncTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
@@ -616,7 +616,7 @@ func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	logUploader := newTaskLogUploader(reportClient, "task-tar")
-	defer logUploader.Close()
+	defer func() { _ = logUploader.Close() }()
 
 	pulledTask := &agentv1.AgentTask{TaskId: "task-tar", Type: string(task.TypeBackup), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo", DataNames: []string{"config"}}
 	if err := executeBackupTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
@@ -700,7 +700,7 @@ func TestExecuteBackupTaskRunsPGDumpAll(t *testing.T) {
 	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	logUploader := newTaskLogUploader(reportClient, "task-pg")
-	defer logUploader.Close()
+	defer func() { _ = logUploader.Close() }()
 
 	pulledTask := &agentv1.AgentTask{TaskId: "task-pg", Type: string(task.TypeBackup), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo", DataNames: []string{"db"}}
 	if err := executeBackupTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
@@ -777,7 +777,7 @@ func TestExecuteBackupTaskReportsFailedBackupItem(t *testing.T) {
 	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	logUploader := newTaskLogUploader(reportClient, "task-backup-fail")
-	defer logUploader.Close()
+	defer func() { _ = logUploader.Close() }()
 
 	pulledTask := &agentv1.AgentTask{TaskId: "task-backup-fail", Type: string(task.TypeBackup), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo", DataNames: []string{"config"}}
 	if err := executeBackupTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err == nil {
@@ -868,7 +868,7 @@ func TestExecuteCaddyReloadTaskRunsComposeExec(t *testing.T) {
 
 	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	logUploader := newTaskLogUploader(reportClient, "task-caddy-reload")
-	defer logUploader.Close()
+	defer func() { _ = logUploader.Close() }()
 
 	pulledTask := &agentv1.AgentTask{TaskId: "task-caddy-reload", Type: string(task.TypeCaddyReload), ServiceName: "edge-proxy", NodeId: "main", ServiceDir: "caddy"}
 	if err := executeCaddyReloadTask(context.Background(), reportClient, cfg, pulledTask, logUploader); err != nil {
@@ -958,7 +958,7 @@ func TestExecuteRusticForgetTaskRunsComposeRun(t *testing.T) {
 	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	logUploader := newTaskLogUploader(reportClient, "task-rustic-forget")
-	defer logUploader.Close()
+	defer func() { _ = logUploader.Close() }()
 
 	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-forget", Type: string(task.TypeRusticForget), ServiceName: "backup", NodeId: "main", ParamsJson: `{"service_name":"demo","data_name":"db","service_dir":"backup"}`}
 	if err := executeRusticForgetTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
@@ -1047,7 +1047,7 @@ func TestExecuteRusticPruneTaskRunsComposeRun(t *testing.T) {
 	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	logUploader := newTaskLogUploader(reportClient, "task-rustic-prune")
-	defer logUploader.Close()
+	defer func() { _ = logUploader.Close() }()
 
 	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-prune", Type: string(task.TypeRusticPrune), ServiceName: "backup", NodeId: "main", ParamsJson: `{"service_dir":"backup"}`}
 	if err := executeRusticPruneTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
@@ -1133,7 +1133,7 @@ func TestExecuteRusticInitTaskRunsComposeRun(t *testing.T) {
 	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	logUploader := newTaskLogUploader(reportClient, "task-rustic-init")
-	defer logUploader.Close()
+	defer func() { _ = logUploader.Close() }()
 
 	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-init", Type: string(task.TypeRusticInit), ServiceName: "backup", NodeId: "main", ParamsJson: `{"service_dir":"backup"}`}
 	if err := executeRusticInitTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {

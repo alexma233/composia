@@ -21,7 +21,7 @@ func TestContainerServiceGetContainerLogsStreamsThroughAgentTunnel(t *testing.T)
 	t.Parallel()
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -95,7 +95,7 @@ func TestContainerServiceGetContainerLogsStreamsThroughAgentTunnel(t *testing.T)
 	if err != nil {
 		t.Fatalf("get container logs: %v", err)
 	}
-	defer stream.Close()
+	defer func() { _ = stream.Close() }()
 
 	if !stream.Receive() {
 		t.Fatalf("expected first log chunk, got err=%v", stream.Err())

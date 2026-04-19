@@ -53,7 +53,7 @@ func DueNow(parsed cron.Schedule, now time.Time) bool {
 		return false
 	}
 	windowStart := now.UTC().Truncate(time.Minute)
-	return parsed.Next(windowStart.Add(-time.Minute)) == windowStart
+	return parsed.Next(windowStart.Add(-time.Minute)).Equal(windowStart)
 }
 
 func WindowStart(now time.Time) time.Time {

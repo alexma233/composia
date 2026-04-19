@@ -93,7 +93,7 @@ func (db *DB) CreateTaskWithConstraints(ctx context.Context, record task.Record,
 	if err != nil {
 		return task.Record{}, fmt.Errorf("begin create task transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if constraints.RequireInactiveService {
 		active, err := hasActiveServiceTaskTx(ctx, tx, preparedRecord.ServiceName)
@@ -117,7 +117,7 @@ func (db *DB) CreateTaskWithConstraints(ctx context.Context, record task.Record,
 			return task.Record{}, err
 		}
 		if active {
-			return task.Record{}, ActiveServiceInstanceTaskError{ServiceName: target.ServiceName, NodeID: target.NodeID}
+			return task.Record{}, ActiveServiceInstanceTaskError(target)
 		}
 	}
 
@@ -171,7 +171,7 @@ func (db *DB) CreateTasksIfNoActiveServiceInstanceTasks(ctx context.Context, rec
 	if err != nil {
 		return nil, fmt.Errorf("begin create task transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	for _, key := range instanceKeys {
 		active, err := hasActiveServiceInstanceTaskTx(ctx, tx, key.ServiceName, key.NodeID)
@@ -179,7 +179,7 @@ func (db *DB) CreateTasksIfNoActiveServiceInstanceTasks(ctx context.Context, rec
 			return nil, err
 		}
 		if active {
-			return nil, ActiveServiceInstanceTaskError{ServiceName: key.ServiceName, NodeID: key.NodeID}
+			return nil, ActiveServiceInstanceTaskError(key)
 		}
 	}
 
@@ -271,7 +271,7 @@ func (db *DB) ClaimNextPendingTask(ctx context.Context, startedAt time.Time) (ta
 	if err != nil {
 		return task.Record{}, fmt.Errorf("begin claim task transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	record, err := claimNextPendingTask(ctx, tx, startedAt)
 	if err != nil {
@@ -292,7 +292,7 @@ func (db *DB) ClaimNextPendingTaskForNode(ctx context.Context, nodeID string, st
 	if err != nil {
 		return task.Record{}, fmt.Errorf("begin claim task transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if err := ensureNoRunningTask(ctx, tx); err != nil {
 		return task.Record{}, err
@@ -317,7 +317,7 @@ func (db *DB) ClaimNextPendingTaskOfType(ctx context.Context, taskType task.Type
 	if err != nil {
 		return task.Record{}, fmt.Errorf("begin claim task transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if err := ensureNoRunningTask(ctx, tx); err != nil {
 		return task.Record{}, err
@@ -506,7 +506,7 @@ func (db *DB) CompleteTask(ctx context.Context, taskID string, status task.Statu
 	if err != nil {
 		return fmt.Errorf("begin complete task transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if _, err := tx.ExecContext(ctx, `
 		UPDATE tasks
@@ -681,7 +681,7 @@ func (db *DB) ListTasks(
 	if err != nil {
 		return nil, 0, fmt.Errorf("list tasks: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	tasks := make([]TaskSummary, 0, limit)
 	for rows.Next() {
@@ -757,7 +757,7 @@ func (db *DB) ListTaskSteps(ctx context.Context, taskID string) ([]task.StepReco
 	if err != nil {
 		return nil, fmt.Errorf("list task steps for %q: %w", taskID, err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	steps := make([]task.StepRecord, 0)
 	for rows.Next() {
@@ -811,17 +811,6 @@ func (db *DB) UpsertTaskStep(ctx context.Context, step task.StepRecord) error {
 		return fmt.Errorf("upsert task step %q for task %q: %w", step.StepName, step.TaskID, err)
 	}
 	return nil
-}
-
-func (db *DB) taskCreatedAt(ctx context.Context, taskID string) (string, error) {
-	var createdAt string
-	if err := db.sql.QueryRowContext(ctx, `SELECT created_at FROM tasks WHERE task_id = ?`, taskID).Scan(&createdAt); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return "", fmt.Errorf("task cursor %q does not exist", taskID)
-		}
-		return "", fmt.Errorf("read task cursor %q: %w", taskID, err)
-	}
-	return createdAt, nil
 }
 
 func (db *DB) getTaskRecord(ctx context.Context, taskID string) (task.Record, error) {

@@ -144,7 +144,7 @@ func (tunnel *containerLogTunnelClient) streamContainerLogs(ctx context.Context,
 		tunnel.sendError(ctx, sendCh, message.GetSessionId(), err)
 		return
 	}
-	defer server.client.Close()
+	defer func() { _ = server.client.Close() }()
 
 	err = server.streamContainerLogs(ctx, message.GetContainerId(), message.GetTail(), message.GetTimestamps(), true, func(content string) error {
 		return tunnel.sendMessage(ctx, sendCh, &agentv1.OpenContainerLogTunnelRequest{

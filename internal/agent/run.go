@@ -124,12 +124,8 @@ func Run(ctx context.Context, configPath string) error {
 		}
 	}()
 
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		}
-	}
+	<-ctx.Done()
+	return nil
 }
 
 func ensureAgentDirs(cfg *config.AgentConfig) error {
@@ -285,7 +281,11 @@ func sleepWithContext(ctx context.Context, duration time.Duration) bool {
 
 func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask) error {
 	logUploader := newTaskLogUploader(client, pulledTask.GetTaskId())
-	defer logUploader.Close()
+	defer func() {
+		if err := logUploader.Close(); err != nil {
+			log.Printf("close task log uploader: %v", err)
+		}
+	}()
 
 	switch pulledTask.GetType() {
 	case string(task.TypeDeploy):
@@ -451,7 +451,6 @@ func executeBackupTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepBackup, func() error {
 		for _, item := range runtimeConfig.Items {
-			startedAt := time.Now().UTC()
 			artifactRef, startedAt, finishedAt, err := backupRuntimeItem(ctx, cfg, bundle.RootPath, rusticBundle.RootPath, pulledTask.GetTaskId(), item, runtimeConfig.Rustic, logUploader)
 			if err != nil {
 				_ = reportBackupResult(ctx, client, pulledTask.GetTaskId(), pulledTask.GetServiceName(), item.Name, "", task.StatusFailed, startedAt, time.Now().UTC(), err.Error())
@@ -1382,19 +1381,19 @@ func backupRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot
 	startedAt := time.Now().UTC()
 	stagingDir, err := dataProtectStageDir(cfg.StateDir, fmt.Sprintf("backup-%s-%s-", taskID, item.Name))
 	if err != nil {
-		return "", time.Time{}, time.Time{}, err
+		return "", startedAt, time.Time{}, err
 	}
-	defer os.RemoveAll(stagingDir)
+	defer func() { _ = os.RemoveAll(stagingDir) }()
 	if err := stageBackupItem(ctx, serviceRoot, stagingDir, item, logUploader); err != nil {
-		return "", time.Time{}, time.Time{}, err
+		return "", startedAt, time.Time{}, err
 	}
 	rusticSourceDir, err := rusticDataProtectPath(stagingDir, cfg, rustic)
 	if err != nil {
-		return "", time.Time{}, time.Time{}, err
+		return "", startedAt, time.Time{}, err
 	}
 	artifactRef, err := runRusticBackup(ctx, rusticRoot, rustic, rusticSourceDir, item, logUploader)
 	if err != nil {
-		return "", time.Time{}, time.Time{}, err
+		return "", startedAt, time.Time{}, err
 	}
 	return artifactRef, startedAt, time.Now().UTC(), nil
 }
@@ -1404,7 +1403,7 @@ func restoreRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoo
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(stagingDir)
+	defer func() { _ = os.RemoveAll(stagingDir) }()
 	rusticTargetDir, err := rusticDataProtectPath(stagingDir, cfg, rustic)
 	if err != nil {
 		return err
@@ -1621,14 +1620,24 @@ func copyFile(sourcePath, targetPath string, mode os.FileMode) error {
 	if err != nil {
 		return err
 	}
-	defer sourceFile.Close()
 	targetFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, mode)
 	if err != nil {
+		_ = sourceFile.Close()
 		return err
 	}
-	defer targetFile.Close()
-	_, err = io.Copy(targetFile, sourceFile)
-	return err
+	if _, err = io.Copy(targetFile, sourceFile); err != nil {
+		_ = targetFile.Close()
+		_ = sourceFile.Close()
+		return err
+	}
+	if err := targetFile.Close(); err != nil {
+		_ = sourceFile.Close()
+		return err
+	}
+	if err := sourceFile.Close(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func createTarGzArchive(sourceDir, archivePath string) error {
@@ -1636,20 +1645,24 @@ func createTarGzArchive(sourceDir, archivePath string) error {
 	if err != nil {
 		return fmt.Errorf("create tar archive %q: %w", archivePath, err)
 	}
-	defer archiveFile.Close()
 	gzipWriter := gzip.NewWriter(archiveFile)
 	tarWriter := tar.NewWriter(gzipWriter)
 	if err := writeTarStream(sourceDir, tarWriter); err != nil {
 		_ = tarWriter.Close()
 		_ = gzipWriter.Close()
+		_ = archiveFile.Close()
 		return err
 	}
 	if err := tarWriter.Close(); err != nil {
 		_ = gzipWriter.Close()
+		_ = archiveFile.Close()
 		return fmt.Errorf("close tar archive %q: %w", archivePath, err)
 	}
 	if err := gzipWriter.Close(); err != nil {
 		return fmt.Errorf("close gzip archive %q: %w", archivePath, err)
+	}
+	if err := archiveFile.Close(); err != nil {
+		return fmt.Errorf("close archive file %q: %w", archivePath, err)
 	}
 	return nil
 }
@@ -1688,9 +1701,14 @@ func writeTarStream(sourceDir string, tarWriter *tar.Writer) error {
 		if err != nil {
 			return err
 		}
-		defer file.Close()
-		_, err = io.Copy(tarWriter, file)
-		return err
+		if _, err = io.Copy(tarWriter, file); err != nil {
+			_ = file.Close()
+			return err
+		}
+		if err := file.Close(); err != nil {
+			return err
+		}
+		return nil
 	})
 }
 
@@ -1785,14 +1803,17 @@ func runComposePGDumpAll(ctx context.Context, serviceDir, projectName, serviceNa
 	if err != nil {
 		return fmt.Errorf("create pgdump target file: %w", err)
 	}
-	defer targetFile.Close()
 	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "exec", "-T", serviceName, "pg_dumpall")
 	command.Dir = serviceDir
 	command.Stdout = targetFile
 	command.Stderr = newCommandLogWriter(uploadLog, false)
 	err = command.Run()
 	if err != nil {
+		_ = targetFile.Close()
 		return fmt.Errorf("docker compose exec pg_dumpall failed: %w", err)
+	}
+	if err := targetFile.Close(); err != nil {
+		return fmt.Errorf("close pgdump target file: %w", err)
 	}
 	return nil
 }
@@ -1805,12 +1826,15 @@ func runComposePGImport(ctx context.Context, serviceDir, projectName, serviceNam
 	if err != nil {
 		return fmt.Errorf("open pgimport source file: %w", err)
 	}
-	defer sourceFile.Close()
 	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "exec", "-T", serviceName, "psql")
 	command.Dir = serviceDir
 	command.Stdin = sourceFile
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
+		_ = sourceFile.Close()
 		return fmt.Errorf("docker compose exec psql failed: %w", err)
+	}
+	if err := sourceFile.Close(); err != nil {
+		return fmt.Errorf("close pgimport source file: %w", err)
 	}
 	return nil
 }
@@ -1885,15 +1909,19 @@ func downloadServiceBundle(ctx context.Context, client agentv1connect.BundleServ
 	if err != nil {
 		return nil, fmt.Errorf("get service bundle: %w", err)
 	}
-	defer stream.Close()
+	defer func() { _ = stream.Close() }()
 
 	tempFile, err := os.CreateTemp(cfg.StateDir, "bundle-*.tar.gz")
 	if err != nil {
 		return nil, fmt.Errorf("create temp bundle file: %w", err)
 	}
 	tempPath := tempFile.Name()
-	defer os.Remove(tempPath)
-	defer tempFile.Close()
+	defer func() { _ = os.Remove(tempPath) }()
+	defer func() {
+		if tempFile != nil {
+			_ = tempFile.Close()
+		}
+	}()
 
 	result := &bundleResult{}
 	var relativeRoot string
@@ -1919,6 +1947,7 @@ func downloadServiceBundle(ctx context.Context, client agentv1connect.BundleServ
 	if err := tempFile.Close(); err != nil {
 		return nil, fmt.Errorf("close temp bundle file: %w", err)
 	}
+	tempFile = nil
 
 	targetRoot := filepath.Join(cfg.RepoDir, relativeRoot)
 	stageParentDir := filepath.Dir(targetRoot)
@@ -1929,7 +1958,7 @@ func downloadServiceBundle(ctx context.Context, client agentv1connect.BundleServ
 	if err != nil {
 		return nil, fmt.Errorf("create bundle stage dir: %w", err)
 	}
-	defer os.RemoveAll(stageDir)
+	defer func() { _ = os.RemoveAll(stageDir) }()
 	if err := extractTarGz(tempPath, stageDir); err != nil {
 		return nil, err
 	}
@@ -1984,13 +2013,13 @@ func extractTarGz(archivePath, destinationDir string) error {
 	if err != nil {
 		return fmt.Errorf("open archive %q: %w", archivePath, err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	gzipReader, err := gzip.NewReader(file)
 	if err != nil {
 		return fmt.Errorf("open gzip archive %q: %w", archivePath, err)
 	}
-	defer gzipReader.Close()
+	defer func() { _ = gzipReader.Close() }()
 	if err := extractTarStream(gzipReader, destinationDir); err != nil {
 		return fmt.Errorf("extract tar archive %q: %w", archivePath, err)
 	}
@@ -2024,7 +2053,7 @@ func extractTarStream(reader io.Reader, destinationDir string) error {
 			if err := os.Chmod(cleanTargetPath, os.FileMode(header.Mode)); err != nil {
 				return fmt.Errorf("chmod tar directory %q: %w", cleanTargetPath, err)
 			}
-		case tar.TypeReg, tar.TypeRegA:
+		case tar.TypeReg:
 			if err := os.MkdirAll(filepath.Dir(cleanTargetPath), 0o755); err != nil {
 				return fmt.Errorf("create parent directory for %q: %w", cleanTargetPath, err)
 			}
@@ -2033,7 +2062,7 @@ func extractTarStream(reader io.Reader, destinationDir string) error {
 				return fmt.Errorf("create tar file %q: %w", cleanTargetPath, err)
 			}
 			if _, err := io.Copy(outFile, tarReader); err != nil {
-				outFile.Close()
+				_ = outFile.Close()
 				return fmt.Errorf("write tar file %q: %w", cleanTargetPath, err)
 			}
 			if err := outFile.Close(); err != nil {

@@ -22,7 +22,7 @@ func TestBackupRecordServiceListAndGetBackup(t *testing.T) {
 	t.Parallel()
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
@@ -93,7 +93,7 @@ func TestBackupRecordServiceRestoreBackupCreatesPendingRestoreTask(t *testing.T)
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := db.SyncDeclaredServices(ctx, map[string][]string{"alpha": {"main"}, "backup": {"main"}}); err != nil {

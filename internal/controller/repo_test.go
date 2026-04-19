@@ -158,7 +158,7 @@ func TestRepoCommandServiceSyncRepoFastForwardsConfiguredRemote(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Git: &config.ControllerGitConfig{RemoteURL: originDir, Branch: branch}}, repoMu: &sync.Mutex{}})
 	commandClient := newRepoCommandServiceClient(t, &repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Git: &config.ControllerGitConfig{RemoteURL: originDir, Branch: branch}}, repoMu: &sync.Mutex{}})
@@ -257,7 +257,7 @@ func TestRepoCommandServiceUpdateRepoFileCommitsAndKeepsWorktreeClean(t *testing
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
 		if token != "access-token" {
@@ -332,7 +332,7 @@ func TestRepoCommandServiceCreateRepoDirectoryCommitsPlaceholder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
 	client := newRepoCommandServiceClient(t, &repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
@@ -376,7 +376,7 @@ func TestRepoCommandServiceMoveRepoPathRenamesTrackedFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
 	client := newRepoCommandServiceClient(t, &repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
@@ -417,7 +417,7 @@ func TestRepoCommandServiceDeleteRepoPathRemovesTrackedFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
 	client := newRepoCommandServiceClient(t, &repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, repoMu: &sync.Mutex{}})
@@ -462,7 +462,7 @@ func TestRepoCommandServiceUpdateRepoFileReturnsPushFailureWithoutRollback(t *te
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Git: &config.ControllerGitConfig{RemoteURL: originDir, Branch: branch}}, repoMu: &sync.Mutex{}})
 	client := newRepoCommandServiceClient(t, &repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Git: &config.ControllerGitConfig{RemoteURL: originDir, Branch: branch}}, repoMu: &sync.Mutex{}, pushCurrentBranch: func(repoDir, remoteURL, branch, authUsername, authToken string) error {
@@ -529,7 +529,7 @@ func TestRepoCommandServiceUpdateRepoFileAllowsInvalidMetaDraft(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
 		if token != "access-token" {
@@ -600,7 +600,7 @@ func TestRepoCommandServiceUpdateRepoFileRejectsServiceWithActiveTask(t *testing
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
 		t.Fatalf("sync declared services: %v", err)

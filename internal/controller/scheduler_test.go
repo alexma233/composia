@@ -26,7 +26,7 @@ func TestRunScheduledTasksPassCreatesBackupTasksFromDefaultOverrideAndNone(t *te
 	}
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
@@ -88,7 +88,7 @@ func TestRunScheduledTasksPassCreatesRepoWideRusticMaintenanceTasks(t *testing.T
 	}
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)

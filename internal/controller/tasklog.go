@@ -17,10 +17,13 @@ func appendTaskLogRaw(logPath, content string) error {
 	if err != nil {
 		return fmt.Errorf("open task log %q: %w", logPath, err)
 	}
-	defer file.Close()
 
 	if _, err := file.WriteString(content); err != nil {
+		_ = file.Close()
 		return fmt.Errorf("write task log %q: %w", logPath, err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("close task log %q: %w", logPath, err)
 	}
 	return nil
 }

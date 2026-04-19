@@ -69,7 +69,7 @@ func Run(ctx context.Context, configPath string) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	nodeIDs := make([]string, 0, len(cfg.Nodes))
 	availableNodeIDs := make(map[string]struct{}, len(cfg.Nodes))
@@ -740,7 +740,7 @@ func (server *bundleServer) GetServiceBundle(ctx context.Context, req *connect.R
 	go func() {
 		pipeWriter.CloseWithError(repo.StreamServiceBundleWithExtras(ctx, server.cfg.RepoDir, detail.Record.RepoRevision, params.ServiceDir, extraFiles, pipeWriter))
 	}()
-	defer pipeReader.Close()
+	defer func() { _ = pipeReader.Close() }()
 
 	buffer := make([]byte, 32*1024)
 	firstChunk := true
@@ -1827,10 +1827,6 @@ type serviceTaskCreateOptions struct {
 	CreatedAt       *time.Time
 }
 
-func (server *serviceCommandServer) createServiceTask(ctx context.Context, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string) (task.Record, error) {
-	return server.createServiceTaskWithOptions(ctx, serviceName, nodeIDs, taskType, dataNames, serviceTaskCreateOptions{})
-}
-
 func (server *serviceCommandServer) createServiceTaskWithOptions(ctx context.Context, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string, options serviceTaskCreateOptions) (task.Record, error) {
 	if serviceName == "" {
 		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
@@ -1910,10 +1906,6 @@ func connectTaskAdmissionError(err error) error {
 		return connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 	return connect.NewError(connect.CodeInternal, err)
-}
-
-func createServiceTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string) (task.Record, error) {
-	return (&serviceCommandServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs}).createServiceTask(ctx, serviceName, nodeIDs, taskType, dataNames)
 }
 
 func createServiceTaskWithOptions(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string, options serviceTaskCreateOptions) (task.Record, error) {
@@ -2350,11 +2342,6 @@ type dockerListResult struct {
 	TotalCount uint32                        `json:"total_count,omitempty"`
 }
 
-const (
-	dockerTaskResultBegin = "COMPOSIA_DOCKER_RESULT_BEGIN"
-	dockerTaskResultEnd   = "COMPOSIA_DOCKER_RESULT_END"
-)
-
 func (server *containerServer) RunContainerAction(ctx context.Context, req *connect.Request[controllerv1.RunContainerActionRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
 	if req.Msg == nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id, container_id, and action are required"))
@@ -2552,155 +2539,6 @@ func (server *containerServer) createNodeDockerTask(ctx context.Context, header 
 	}
 	notifyTaskQueue(server.taskQueue)
 	return createdTask, nil
-}
-
-func (server *dockerQueryServer) parseDockerListResult(resource, logContent string) (*dockerListResult, error) {
-	payload, err := extractDockerTaskResult(logContent)
-	if err == nil {
-		return payload, nil
-	}
-
-	return server.parseLegacyDockerListResult(resource, logContent)
-}
-
-func extractDockerTaskResult(logContent string) (*dockerListResult, error) {
-	start := strings.Index(logContent, dockerTaskResultBegin)
-	if start == -1 {
-		return nil, fmt.Errorf("docker task result marker not found")
-	}
-	start += len(dockerTaskResultBegin)
-	end := strings.Index(logContent[start:], dockerTaskResultEnd)
-	if end == -1 {
-		return nil, fmt.Errorf("docker task result end marker not found")
-	}
-	payload := strings.TrimSpace(logContent[start : start+end])
-	if payload == "" {
-		return nil, fmt.Errorf("docker task result payload is empty")
-	}
-
-	var result dockerListResult
-	if err := json.Unmarshal([]byte(payload), &result); err != nil {
-		return nil, fmt.Errorf("decode docker task result: %w", err)
-	}
-	return &result, nil
-}
-
-func (server *dockerQueryServer) parseLegacyDockerListResult(resource, logContent string) (*dockerListResult, error) {
-	lines := strings.Split(strings.TrimSpace(logContent), "\n")
-	result := &dockerListResult{}
-
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" || line == "docker task finished successfully" {
-			continue
-		}
-		if strings.HasPrefix(line, "starting docker") || strings.HasPrefix(line, "docker") {
-			continue
-		}
-
-		switch resource {
-		case "containers":
-			var psData struct {
-				ID      string `json:"ID"`
-				Names   string `json:"Names"`
-				Image   string `json:"Image"`
-				State   string `json:"State"`
-				Status  string `json:"Status"`
-				Created string `json:"CreatedAt"`
-				Labels  string `json:"Labels"`
-			}
-			if err := json.Unmarshal([]byte(line), &psData); err == nil {
-				labels := parseDockerLabels(psData.Labels)
-				result.Containers = append(result.Containers, &controllerv1.ContainerInfo{
-					Id:      psData.ID,
-					Name:    psData.Names,
-					Image:   psData.Image,
-					State:   psData.State,
-					Status:  psData.Status,
-					Created: psData.Created,
-					Labels:  labels,
-				})
-			}
-		case "networks":
-			var netData struct {
-				ID         string `json:"ID"`
-				Name       string `json:"Name"`
-				Driver     string `json:"Driver"`
-				Scope      string `json:"Scope"`
-				Internal   string `json:"Internal"`
-				Attachable string `json:"Attachable"`
-				Labels     string `json:"Labels"`
-				CreatedAt  string `json:"CreatedAt"`
-			}
-			if err := json.Unmarshal([]byte(line), &netData); err == nil {
-				labels := parseDockerLabels(netData.Labels)
-				result.Networks = append(result.Networks, &controllerv1.NetworkInfo{
-					Id:         netData.ID,
-					Name:       netData.Name,
-					Driver:     netData.Driver,
-					Scope:      netData.Scope,
-					Internal:   netData.Internal == "true",
-					Attachable: netData.Attachable == "true",
-					Created:    netData.CreatedAt,
-					Labels:     labels,
-				})
-			}
-		case "volumes":
-			var volData struct {
-				Name       string `json:"Name"`
-				Driver     string `json:"Driver"`
-				Mountpoint string `json:"Mountpoint"`
-				Scope      string `json:"Scope"`
-				Labels     string `json:"Labels"`
-			}
-			if err := json.Unmarshal([]byte(line), &volData); err == nil {
-				labels := parseDockerLabels(volData.Labels)
-				result.Volumes = append(result.Volumes, &controllerv1.VolumeInfo{
-					Name:       volData.Name,
-					Driver:     volData.Driver,
-					Mountpoint: volData.Mountpoint,
-					Scope:      volData.Scope,
-					Labels:     labels,
-				})
-			}
-		case "images":
-			var imgData struct {
-				ID         string `json:"ID"`
-				Repository string `json:"Repository"`
-				Tag        string `json:"Tag"`
-				Size       string `json:"Size"`
-				CreatedAt  string `json:"CreatedAt"`
-			}
-			if err := json.Unmarshal([]byte(line), &imgData); err == nil {
-				var repoTags []string
-				if imgData.Repository != "<none>" && imgData.Tag != "<none>" {
-					repoTags = append(repoTags, imgData.Repository+":"+imgData.Tag)
-				}
-				result.Images = append(result.Images, &controllerv1.ImageInfo{
-					Id:       imgData.ID,
-					RepoTags: repoTags,
-					Created:  imgData.CreatedAt,
-				})
-			}
-		}
-	}
-
-	return result, nil
-}
-
-func parseDockerLabels(labelsStr string) map[string]string {
-	labels := make(map[string]string)
-	if labelsStr == "" {
-		return labels
-	}
-	parts := strings.Split(labelsStr, ",")
-	for _, part := range parts {
-		kv := strings.SplitN(strings.TrimSpace(part), "=", 2)
-		if len(kv) == 2 {
-			labels[kv[0]] = kv[1]
-		}
-	}
-	return labels
 }
 
 func nodeSummary(node config.NodeConfig, snapshot store.NodeSnapshot) *controllerv1.NodeSummary {
@@ -3319,10 +3157,6 @@ func (server *repoCommandServer) syncRepoLocked(ctx context.Context) (store.Repo
 	return state, nil
 }
 
-func (server *repoCommandServer) prepareRepoWrite(ctx context.Context, baseRevision, relativePath string) (store.RepoSyncState, error) {
-	return server.prepareRepoWritePaths(ctx, baseRevision, []string{relativePath})
-}
-
 func (server *repoCommandServer) prepareRepoWritePaths(ctx context.Context, baseRevision string, relativePaths []string) (store.RepoSyncState, error) {
 	if err := server.syncRepoBeforeWrite(ctx); err != nil {
 		return store.RepoSyncState{}, err
@@ -3378,10 +3212,6 @@ func (server *repoCommandServer) refreshDeclaredServices(ctx context.Context) er
 		return connect.NewError(connect.CodeInternal, err)
 	}
 	return nil
-}
-
-func (server *repoCommandServer) ensureRepoPathUnlocked(ctx context.Context, relativePath string) error {
-	return server.ensureRepoPathsUnlocked(ctx, relativePath)
 }
 
 func (server *repoCommandServer) ensureRepoPathsUnlocked(ctx context.Context, relativePaths ...string) error {
@@ -4034,7 +3864,7 @@ func readNewLogContent(logPath string, offset int64) (string, int64, error) {
 	if err != nil {
 		return "", offset, fmt.Errorf("open task log %q: %w", logPath, err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	stat, err := file.Stat()
 	if err != nil {

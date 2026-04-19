@@ -111,7 +111,7 @@ func (db *DB) ListBackups(ctx context.Context, serviceNameFilter, statusFilter, 
 	if err != nil {
 		return nil, 0, fmt.Errorf("list backups: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	backups := make([]BackupSummary, 0, limit)
 	for rows.Next() {
@@ -153,7 +153,7 @@ func (db *DB) ListBackupsForTask(ctx context.Context, taskID string) ([]BackupDe
 	if err != nil {
 		return nil, fmt.Errorf("list backups for task %q: %w", taskID, err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	backups := make([]BackupDetail, 0)
 	for rows.Next() {
 		var detail BackupDetail
@@ -166,17 +166,6 @@ func (db *DB) ListBackupsForTask(ctx context.Context, taskID string) ([]BackupDe
 		return nil, fmt.Errorf("iterate backups for task %q: %w", taskID, err)
 	}
 	return backups, nil
-}
-
-func (db *DB) backupSortTime(ctx context.Context, backupID string) (string, error) {
-	var sortTime string
-	if err := db.sql.QueryRowContext(ctx, `SELECT COALESCE(finished_at, started_at) FROM backups WHERE backup_id = ?`, backupID).Scan(&sortTime); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return "", ErrBackupNotFound
-		}
-		return "", fmt.Errorf("read backup cursor %q: %w", backupID, err)
-	}
-	return sortTime, nil
 }
 
 var _ = task.StatusSucceeded

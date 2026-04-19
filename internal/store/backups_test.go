@@ -12,7 +12,7 @@ func TestListBackupsAppliesFiltersAndCursor(t *testing.T) {
 	t.Parallel()
 
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
@@ -55,7 +55,7 @@ func TestGetBackupReturnsDetail(t *testing.T) {
 	t.Parallel()
 
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {

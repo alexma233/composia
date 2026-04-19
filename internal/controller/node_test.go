@@ -32,7 +32,7 @@ func TestNodeQueryServiceListNodes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main", "node-2"}); err != nil {
@@ -112,7 +112,7 @@ func TestNodeQueryServiceGetNodeReturnsMinimalSummary(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -170,7 +170,7 @@ func TestNodeQueryServiceGetNodeTasksReturnsFilteredTasks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
@@ -228,7 +228,7 @@ func TestNodeMaintenanceServiceReloadNodeCaddyCreatesTask(t *testing.T) {
 	}
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
@@ -290,7 +290,7 @@ func TestNodeMaintenanceServiceSyncNodeCaddyFilesCreatesSyncTask(t *testing.T) {
 	}
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
@@ -360,7 +360,7 @@ func TestNodeMaintenanceServiceSyncNodeCaddyFilesFullRebuildCreatesMultiServiceT
 	}
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
@@ -422,7 +422,7 @@ func TestNodeMaintenanceServicePruneNodeRusticCreatesRusticPruneTask(t *testing.
 	}
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
@@ -486,7 +486,7 @@ func TestNodeMaintenanceServiceInitNodeRusticCreatesRusticInitTask(t *testing.T)
 	}
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
@@ -550,7 +550,7 @@ func TestNodeMaintenanceServiceForgetNodeRusticCreatesRusticForgetTask(t *testin
 	}
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)

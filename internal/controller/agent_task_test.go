@@ -25,7 +25,7 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	t.Parallel()
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	repoDir := t.TempDir()
@@ -204,7 +204,7 @@ func TestReportServiceInstanceStatusRejectsMismatchedNode(t *testing.T) {
 	t.Parallel()
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main", "other"}); err != nil {
@@ -256,7 +256,7 @@ func TestAgentPullNextTaskLongPollWaitsForNewTask(t *testing.T) {
 	t.Parallel()
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -332,7 +332,7 @@ func TestAgentPullNextTaskLongPollWakesWhenRunningTaskCompletes(t *testing.T) {
 	t.Parallel()
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main", "node-2"}); err != nil {
@@ -428,7 +428,7 @@ func TestAgentReportTaskStateSkipsCaddyReloadWhenServiceDoesNotUseCaddy(t *testi
 	t.Parallel()
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	repoDir := t.TempDir()
@@ -489,7 +489,7 @@ func TestAgentReportTaskStateQueuesCaddyReloadAfterStop(t *testing.T) {
 	t.Parallel()
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	repoDir := t.TempDir()

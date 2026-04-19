@@ -93,7 +93,11 @@ func (tunnel *execTunnelClient) handleStartMessage(ctx context.Context, stream *
 		return nil
 	}
 	sessions.set(session)
-	sendExecTunnelMessage(stream, &agentv1.OpenExecTunnelRequest{SessionId: session.id, Kind: execKindReady})
+	if err := sendExecTunnelMessage(stream, &agentv1.OpenExecTunnelRequest{SessionId: session.id, Kind: execKindReady}); err != nil {
+		sessions.delete(session.id)
+		closeRunningExecSession(session)
+		return err
+	}
 	go pumpExecOutput(ctx, stream, session, func() {
 		sessions.delete(session.id)
 	})
@@ -194,7 +198,7 @@ func resizeRunningExecSession(ctx context.Context, session *runningExecSession, 
 	if err != nil {
 		return err
 	}
-	defer dockerClient.Close()
+	defer func() { _ = dockerClient.Close() }()
 	_, err = dockerClient.cli.ExecResize(ctx, session.execID, client.ExecResizeOptions{Height: uint(rows), Width: uint(cols)})
 	if err != nil {
 		return fmt.Errorf("resize docker exec: %w", err)

@@ -84,7 +84,7 @@ func TestExecuteDNSUpdateTaskSyncsDualStackRecords(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {

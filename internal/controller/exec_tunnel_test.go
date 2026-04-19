@@ -21,7 +21,7 @@ func TestContainerExecRequiresWebOriginHeader(t *testing.T) {
 	t.Parallel()
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -76,7 +76,7 @@ func TestContainerExecWebsocketRequiresAllowedOriginAndOneTimeToken(t *testing.T
 	t.Parallel()
 
 	db := openControllerTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -139,7 +139,7 @@ func TestContainerExecWebsocketRequiresAllowedOriginAndOneTimeToken(t *testing.T
 	if err != nil {
 		t.Fatalf("dial websocket with allowed origin: %v", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	var ready execWSEvent
 	if err := conn.ReadJSON(&ready); err != nil {
