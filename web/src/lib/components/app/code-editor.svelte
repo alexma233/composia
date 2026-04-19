@@ -2,12 +2,12 @@
   import { onMount, onDestroy } from 'svelte';
 
   import { defaultKeymap, indentWithTab } from '@codemirror/commands';
+  import { LanguageDescription } from '@codemirror/language';
+  import { languages } from '@codemirror/language-data';
   import { lintGutter, linter } from '@codemirror/lint';
   import { githubDark } from '@fsegurai/codemirror-theme-github-dark';
   import { githubLight } from '@fsegurai/codemirror-theme-github-light';
-  import { markdown } from '@codemirror/lang-markdown';
-  import { yaml } from '@codemirror/lang-yaml';
-  import { EditorState, Compartment } from '@codemirror/state';
+  import { EditorState, Compartment, type Extension } from '@codemirror/state';
   import { EditorView, keymap, lineNumbers } from '@codemirror/view';
   import { basicSetup } from 'codemirror';
 
@@ -35,6 +35,7 @@
   let host: HTMLDivElement;
   let editorView: EditorView | null = null;
   let rootObserver: MutationObserver | null = null;
+  let languageLoadRequest = 0;
 
   const languageCompartment = new Compartment();
   const editableCompartment = new Compartment();
@@ -80,7 +81,7 @@
               }
             }
           ]),
-          languageCompartment.of(languageExtension(path)),
+          languageCompartment.of([]),
           lintCompartment.of(lintExtension(path)),
           editableCompartment.of(EditorView.editable.of(!readOnly)),
           EditorView.updateListener.of((update) => {
@@ -92,6 +93,8 @@
       }),
       parent: host
     });
+
+    void syncLanguage(path);
 
     rootObserver = new MutationObserver(() => syncTheme(root));
     rootObserver.observe(root, {
@@ -106,9 +109,11 @@
   });
 
   onDestroy(() => {
+    languageLoadRequest += 1;
     rootObserver?.disconnect();
     rootObserver = null;
     editorView?.destroy();
+    editorView = null;
   });
 
   $effect(() => {
@@ -119,10 +124,14 @@
           changes: { from: 0, to: currentValue.length, insert: value }
         });
       }
+    }
+  });
 
+  $effect(() => {
+    if (editorView) {
+      void syncLanguage(path);
       editorView.dispatch({
         effects: [
-          languageCompartment.reconfigure(languageExtension(path)),
           lintCompartment.reconfigure(lintExtension(path)),
           editableCompartment.reconfigure(EditorView.editable.of(!readOnly))
         ]
@@ -144,14 +153,51 @@
     });
   }
 
-  function languageExtension(filePath: string) {
-    if (filePath.endsWith('.yaml') || filePath.endsWith('.yml')) {
-      return yaml();
+  function syncLanguage(filePath: string) {
+    if (!editorView) {
+      return;
     }
-    if (filePath.endsWith('.md')) {
-      return markdown();
+
+    const requestId = ++languageLoadRequest;
+    const description = languageDescriptionForPath(filePath);
+
+    if (!description) {
+      applyLanguageExtension(requestId, []);
+      return;
     }
-    return [];
+
+    if (description.support) {
+      applyLanguageExtension(requestId, description.support.extension);
+      return;
+    }
+
+    void description
+      .load()
+      .then((support) => {
+        applyLanguageExtension(requestId, support.extension);
+      })
+      .catch(() => {
+        applyLanguageExtension(requestId, []);
+      });
+  }
+
+  function applyLanguageExtension(requestId: number, extension: Extension) {
+    if (!editorView || requestId !== languageLoadRequest) {
+      return;
+    }
+
+    editorView.dispatch({
+      effects: languageCompartment.reconfigure(extension)
+    });
+  }
+
+  function languageDescriptionForPath(filePath: string) {
+    const fileName = filePath.split('/').pop() ?? filePath;
+    if (!fileName) {
+      return null;
+    }
+
+    return LanguageDescription.matchFilename(languages, fileName);
   }
 
   function lintExtension(filePath: string) {

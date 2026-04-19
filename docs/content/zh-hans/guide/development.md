@@ -237,6 +237,8 @@ go run ./cmd/composia agent \
 
 ## Web 编辑器校验
 
+Web UI 的 CodeMirror 编辑器现在会使用 CodeMirror 官方的 `@codemirror/language-data` 注册表，按文件名或扩展名匹配语言，并按需加载语法支持。像 JSON、JavaScript、TypeScript、HTML、CSS、XML、SQL、Dockerfile、Shell、TOML、YAML 和 Markdown 这类常见文本文件都会启用语法高亮；没有匹配语言的文件会继续回退为纯文本。
+
 Web UI 的 CodeMirror 编辑器会对文件名匹配 `compose*.yml`、`compose*.yaml`、`docker-compose*.yml` 或 `docker-compose*.yaml` 的 Compose 文件执行校验。
 
 编辑器也会校验 `.env` 文件；对于已打开的 Compose 文件，如果其中的 `${VAR}` 或 `${VAR?message}` 引用没有在同目录的已打开 `.env` 文件里定义，会给出提示。

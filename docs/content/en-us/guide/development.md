@@ -237,6 +237,8 @@ go run ./cmd/composia agent \
 
 ## Web Editor Validation
 
+The Web UI CodeMirror editor now uses CodeMirror's official `@codemirror/language-data` registry to match languages by filename or extension and load syntax support on demand. Known types such as JSON, JavaScript, TypeScript, HTML, CSS, XML, SQL, Dockerfile, Shell, TOML, YAML, and Markdown open with syntax highlighting. Files without a matching language continue to fall back to plain text.
+
 The Web UI CodeMirror editor validates Compose files whose names match `compose*.yml`, `compose*.yaml`, `docker-compose*.yml`, or `docker-compose*.yaml`.
 
 The editor also validates `.env` files and, for open Compose files, warns when `${VAR}` or `${VAR?message}` references are not defined by any open `.env` file from the same directory.
