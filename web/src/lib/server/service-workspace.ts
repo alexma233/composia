@@ -1,5 +1,5 @@
 import type { RepoFileEntry, RepoWriteResult } from "$lib/server/controller";
-import { resolveMaterialIconNames } from "$lib/server/material-icon-theme";
+import { resolveMaterialIconNames } from "$lib/server/vscode-material-icons";
 import type { ServiceFileNode, WorkspaceFile } from "$lib/service-workspace";
 import {
   createRepoDirectory,

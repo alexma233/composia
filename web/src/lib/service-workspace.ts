@@ -57,40 +57,6 @@ export function findNode(
   return null;
 }
 
-export function upsertFileNode(
-  nodes: ServiceFileNode[],
-  filePath: string,
-): ServiceFileNode[] {
-  const normalized = normalizeServiceRelativePath(filePath);
-  if (!normalized) {
-    return nodes;
-  }
-
-  const root = JSON.parse(JSON.stringify(nodes));
-  const segments = normalized.split("/");
-  let cursor = root;
-  let currentPath = "";
-
-  segments.forEach((segment, index) => {
-    currentPath = currentPath ? `${currentPath}/${segment}` : segment;
-    const isDir = index < segments.length - 1;
-    let next = cursor.find((entry: ServiceFileNode) => entry.name === segment);
-    if (!next) {
-      next = { name: segment, path: currentPath, isDir, children: [] };
-      cursor.push(next);
-      cursor.sort((left: ServiceFileNode, right: ServiceFileNode) => {
-        if (left.isDir !== right.isDir) {
-          return left.isDir ? -1 : 1;
-        }
-        return left.name.localeCompare(right.name);
-      });
-    }
-    cursor = next.children;
-  });
-
-  return root;
-}
-
 function firstFile(nodes: ServiceFileNode[]): ServiceFileNode | null {
   for (const node of nodes) {
     if (!node.isDir) {

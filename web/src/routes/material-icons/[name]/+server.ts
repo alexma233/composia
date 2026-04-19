@@ -1,9 +1,9 @@
 import type { RequestHandler } from "./$types";
 
-import { loadMaterialIconSvg } from "$lib/server/material-icon-theme";
+import { loadVscodeMaterialIconSvg } from "$lib/server/vscode-material-icons";
 
 export const GET: RequestHandler = async ({ params }) => {
-  const svg = await loadMaterialIconSvg(params.name);
+  const svg = await loadVscodeMaterialIconSvg(params.name);
   if (!svg) {
     return new Response("Icon not found.", { status: 404 });
   }
