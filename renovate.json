@@ -12,6 +12,9 @@
   "lockFileMaintenance": {
     "enabled": true
   },
+  "postUpdateOptions": [
+    "gomodTidy"
+  ],
   "packageRules": [
     {
       "matchManagers": [
@@ -35,6 +38,16 @@
         "patch"
       ],
       "groupName": "go non-major dependencies"
+    },
+    {
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchDepTypes": [
+        "indirect"
+      ],
+      "enabled": true,
+      "groupName": "go indirect dependencies"
     },
     {
       "matchManagers": [
