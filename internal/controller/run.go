@@ -176,7 +176,7 @@ func registerAgentHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db 
 
 func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, availableNodeIDs map[string]struct{}, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, dockerQueries *dockerQueryBroker, execManager *execTunnelManager, logManager *containerLogTunnelManager, repoMu *sync.Mutex) {
 	systemPath, systemHandler := controllerv1connect.NewSystemServiceHandler(
-		&systemServer{db: db, cfg: cfg},
+		&systemServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs},
 		connect.WithInterceptors(interceptor),
 	)
 	mux.Handle(systemPath, systemHandler)
