@@ -1,0 +1,82 @@
+name: Backend CI
+
+env:
+  GOLANGCI_LINT_VERSION: v2.11.4
+
+on:
+  pull_request:
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - "proto/**"
+      - "gen/go/**"
+      - ".forgejo/workflows/backend-ci.yaml"
+  push:
+    branches: ["main"]
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - "proto/**"
+      - "gen/go/**"
+      - ".forgejo/workflows/backend-ci.yaml"
+  workflow_dispatch:
+
+jobs:
+  gofmt:
+    runs-on: docker-amd64
+    container:
+      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.2
+
+    steps:
+      - name: Checkout
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
+        uses: https://forgejo.alexma.top/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      - name: Check Go formatting
+        run: test -z "$(git ls-files '*.go' | xargs -r gofmt -l)"
+
+  build-test:
+    runs-on: docker-amd64
+    container:
+      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.2
+
+    steps:
+      - name: Checkout
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
+        uses: https://forgejo.alexma.top/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      - name: Build backend
+        run: go build ./...
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Run backend tests
+        run: go test ./...
+
+  golangci-lint:
+    runs-on: docker-amd64
+    continue-on-error: true
+    container:
+      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.2
+
+    steps:
+      - name: Checkout
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
+        uses: https://forgejo.alexma.top/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      - name: Install golangci-lint
+        run: |
+          mkdir -p /tmp/golangci-lint-bin
+          curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b /tmp/golangci-lint-bin ${{ env.GOLANGCI_LINT_VERSION }}
+
+      - name: Run golangci-lint
+        run: /tmp/golangci-lint-bin/golangci-lint run

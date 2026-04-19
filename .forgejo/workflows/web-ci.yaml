@@ -1,24 +1,26 @@
-name: PR Build and Test
+name: Web CI
 
 on:
   pull_request:
     paths:
-      - "**/*.go"
-      - "go.mod"
-      - "go.sum"
       - "package.json"
       - "bun.lock"
-      - "docs/**"
       - "web/**"
-      - "proto/**"
-      - "gen/go/**"
+      - ".forgejo/workflows/web-ci.yaml"
+  push:
+    branches: ["main"]
+    paths:
+      - "package.json"
+      - "bun.lock"
+      - "web/**"
+      - ".forgejo/workflows/web-ci.yaml"
   workflow_dispatch:
 
 jobs:
-  backend-test:
+  format:
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.2
+      image: oven/bun:1.3.12
 
     steps:
       - name: Checkout
@@ -27,10 +29,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Run backend tests
-        run: go test ./...
+      - name: Install web dependencies
+        run: bun install --frozen-lockfile
 
-  web-build:
+      - name: Run web format checks
+        run: bun run web:format
+
+  build:
     runs-on: docker-amd64
     container:
       image: oven/bun:1.3.12
@@ -50,23 +55,3 @@ jobs:
 
       - name: Build web
         run: bun run web:build
-
-  docs-build:
-    runs-on: docker-amd64
-    container:
-      image: oven/bun:1.3.12
-
-    steps:
-      - name: Checkout
-        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
-        uses: https://forgejo.alexma.top/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with:
-          fetch-depth: 0
-
-      - name: Install docs dependencies
-        working-directory: docs
-        run: bun install --frozen-lockfile
-
-      - name: Build docs
-        working-directory: docs
-        run: bun run build
