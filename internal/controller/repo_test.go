@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -451,12 +452,7 @@ func TestRepoCommandServiceUpdateRepoFileReturnsPushFailureWithoutRollback(t *te
 
 	rootDir := t.TempDir()
 	repoDir, originDir, branch := createGitRepoWithBareRemote(t, rootDir, map[string]string{"README.md": "hello\n"})
-	t.Cleanup(func() {
-		_ = chmodRecursive(originDir, 0o755)
-	})
-	if err := chmodRecursive(originDir, 0o555); err != nil {
-		t.Fatalf("chmod origin read-only: %v", err)
-	}
+	pushErr := errors.New("push failed for test")
 
 	stateDir := filepath.Join(rootDir, "state")
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
@@ -469,7 +465,9 @@ func TestRepoCommandServiceUpdateRepoFileReturnsPushFailureWithoutRollback(t *te
 	defer db.Close()
 
 	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Git: &config.ControllerGitConfig{RemoteURL: originDir, Branch: branch}}, repoMu: &sync.Mutex{}})
-	client := newRepoCommandServiceClient(t, &repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Git: &config.ControllerGitConfig{RemoteURL: originDir, Branch: branch}}, repoMu: &sync.Mutex{}})
+	client := newRepoCommandServiceClient(t, &repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Git: &config.ControllerGitConfig{RemoteURL: originDir, Branch: branch}}, repoMu: &sync.Mutex{}, pushCurrentBranch: func(repoDir, remoteURL, branch, authUsername, authToken string) error {
+		return pushErr
+	}})
 	head, err := queryClient.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
 	if err != nil {
 		t.Fatalf("get repo head: %v", err)
@@ -490,6 +488,9 @@ func TestRepoCommandServiceUpdateRepoFileReturnsPushFailureWithoutRollback(t *te
 	}
 	if updated.Msg.GetPushError() == "" {
 		t.Fatalf("expected push error in response")
+	}
+	if updated.Msg.GetPushError() != pushErr.Error() {
+		t.Fatalf("expected push error %q, got %q", pushErr.Error(), updated.Msg.GetPushError())
 	}
 	currentRevision, err := repo.CurrentRevision(repoDir)
 	if err != nil {
@@ -708,13 +709,4 @@ func gitClone(t *testing.T, sourceDir, cloneDir string) {
 	if err != nil {
 		t.Fatalf("git clone failed: %v\n%s", err, string(output))
 	}
-}
-
-func chmodRecursive(root string, mode os.FileMode) error {
-	return filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		return os.Chmod(path, mode)
-	})
 }

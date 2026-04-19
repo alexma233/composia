@@ -1302,6 +1302,7 @@ type repoCommandServer struct {
 	cfg              *config.ControllerConfig
 	availableNodeIDs map[string]struct{}
 	repoMu           *sync.Mutex
+	pushCurrentBranch func(repoDir, remoteURL, branch, authUsername, authToken string) error
 }
 
 type containerServer struct {
@@ -3607,7 +3608,11 @@ func (server *repoCommandServer) finalizeRepoGitState(ctx context.Context, commi
 	if err != nil {
 		return repoWriteResult{}, connect.NewError(connect.CodeInternal, err)
 	}
-	if err := repo.PushCurrentBranch(server.cfg.RepoDir, strings.TrimSpace(server.cfg.Git.RemoteURL), branch, server.configuredGitAuthUsername(), authToken); err != nil {
+	pushCurrentBranch := server.pushCurrentBranch
+	if pushCurrentBranch == nil {
+		pushCurrentBranch = repo.PushCurrentBranch
+	}
+	if err := pushCurrentBranch(server.cfg.RepoDir, strings.TrimSpace(server.cfg.Git.RemoteURL), branch, server.configuredGitAuthUsername(), authToken); err != nil {
 		state := store.RepoSyncState{
 			SyncStatus:           store.RepoSyncStatusPushFailed,
 			LastSyncError:        err.Error(),
