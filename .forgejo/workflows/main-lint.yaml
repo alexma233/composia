@@ -17,7 +17,7 @@ jobs:
   gofmt:
     runs-on: docker-amd64
     container:
-      image: golang:1.26.2-bookworm
+      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.2
 
     steps:
       - name: Checkout
