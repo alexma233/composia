@@ -8,6 +8,7 @@
     capabilityReasonMessage,
     nodeActionCapability,
   } from "$lib/capabilities";
+  import DisabledReasonTooltip from "$lib/components/app/disabled-reason-tooltip.svelte";
   import {
     Alert,
     AlertDescription,
@@ -300,26 +301,6 @@
               </Alert>
             {/if}
 
-            {#if (caddySyncReason || caddyReloadReason) && data.node?.isOnline}
-              <Alert>
-                <AlertTitle
-                  >{$messages.capabilities.unavailableTitle}</AlertTitle
-                >
-                <AlertDescription>
-                  {#if caddySyncReason}
-                    <div>
-                      {$messages.nodes.docker.rebuildCaddy}: {caddySyncReason}
-                    </div>
-                  {/if}
-                  {#if caddyReloadReason}
-                    <div>
-                      {$messages.nodes.docker.reloadCaddy}: {caddyReloadReason}
-                    </div>
-                  {/if}
-                </AlertDescription>
-              </Alert>
-            {/if}
-
             <form
               bind:this={pruneForm}
               method="POST"
@@ -337,22 +318,26 @@
             {#if data.node?.isOnline}
               <div class="flex flex-wrap gap-2">
                 <form method="POST" action="?/syncCaddyFiles" use:enhance>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    type="submit"
-                    disabled={!caddySyncCapability.enabled}
-                    >{$messages.nodes.docker.rebuildCaddy}</Button
-                  >
+                  <DisabledReasonTooltip reason={caddySyncReason}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      type="submit"
+                      disabled={!caddySyncCapability.enabled}
+                      >{$messages.nodes.docker.rebuildCaddy}</Button
+                    >
+                  </DisabledReasonTooltip>
                 </form>
                 <form method="POST" action="?/reloadCaddy" use:enhance>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    type="submit"
-                    disabled={!caddyReloadCapability.enabled}
-                    >{$messages.nodes.docker.reloadCaddy}</Button
-                  >
+                  <DisabledReasonTooltip reason={caddyReloadReason}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      type="submit"
+                      disabled={!caddyReloadCapability.enabled}
+                      >{$messages.nodes.docker.reloadCaddy}</Button
+                    >
+                  </DisabledReasonTooltip>
                 </form>
                 <Button
                   variant="outline"

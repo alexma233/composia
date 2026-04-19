@@ -16,6 +16,7 @@
     AlertDescription,
     AlertTitle,
   } from "$lib/components/ui/alert";
+  import DisabledReasonTooltip from "$lib/components/app/disabled-reason-tooltip.svelte";
   import { Badge } from "$lib/components/ui/badge";
   import { Button } from "$lib/components/ui/button";
   import {
@@ -181,13 +182,6 @@
         {/if}
 
         <div class="inset-card space-y-3">
-          {#if restoreReason}
-            <Alert>
-              <AlertTitle>{$messages.capabilities.unavailableTitle}</AlertTitle>
-              <AlertDescription>{restoreReason}</AlertDescription>
-            </Alert>
-          {/if}
-
           <div class="flex items-center justify-between gap-3">
             <div>
               <div class="metric-label">{$messages.backups.restore}</div>
@@ -195,19 +189,21 @@
                 {$messages.backups.targetNode}
               </div>
             </div>
-            <Button
-              type="button"
-              onclick={startRestore}
-              disabled={restoring ||
-                !targetNodeId ||
-                data.backup.status !== "succeeded" ||
-                !data.backup.artifactRef ||
-                !restoreCapability.enabled}
-            >
-              {restoring
-                ? $messages.backups.restoring
-                : $messages.backups.restore}
-            </Button>
+            <DisabledReasonTooltip reason={restoreReason}>
+              <Button
+                type="button"
+                onclick={startRestore}
+                disabled={restoring ||
+                  !targetNodeId ||
+                  data.backup.status !== "succeeded" ||
+                  !data.backup.artifactRef ||
+                  !restoreCapability.enabled}
+              >
+                {restoring
+                  ? $messages.backups.restoring
+                  : $messages.backups.restore}
+              </Button>
+            </DisabledReasonTooltip>
           </div>
 
           <div class="space-y-2">

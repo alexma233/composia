@@ -24,6 +24,7 @@
     capabilityReasonMessage,
     serviceActionCapability,
   } from "$lib/capabilities";
+  import DisabledReasonTooltip from "$lib/components/app/disabled-reason-tooltip.svelte";
   import { messages } from "$lib/i18n";
 
   import CodeEditor from "$lib/components/app/code-editor.svelte";
@@ -251,25 +252,6 @@
     migrateCapability.enabled
       ? ""
       : capabilityReasonMessage(migrateCapability.reasonCode, $messages),
-  );
-  let unavailableAdvancedActions = $derived(
-    !workspace?.isDeclared
-      ? []
-      : [
-          { label: $messages.services.operations.backup, reason: backupReason },
-          {
-            label: $messages.services.operations.dnsUpdate,
-            reason: dnsUpdateReason,
-          },
-          {
-            label: $messages.services.operations.syncCaddy,
-            reason: caddySyncReason,
-          },
-          {
-            label: $messages.services.operations.migrate.migrate,
-            reason: migrateReason,
-          },
-        ].filter((item) => item.reason),
   );
   let migrateSourceNodes = $derived(serviceDetail?.nodes ?? []);
   let hasMultipleInstanceNodes = $derived(nodeContainers.length > 1);
@@ -1728,53 +1710,46 @@
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div class="grid gap-2 pt-3">
-                  {#if unavailableAdvancedActions.length}
-                    <Alert>
-                      <AlertTitle
-                        >{$messages.capabilities.unavailableTitle}</AlertTitle
-                      >
-                      <AlertDescription>
-                        {#each unavailableAdvancedActions as item}
-                          <div>{item.label}: {item.reason}</div>
-                        {/each}
-                      </AlertDescription>
-                    </Alert>
-                  {/if}
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onclick={() => triggerAction("backup")}
-                    disabled={!!actionBusy ||
-                      !workspace?.isDeclared ||
-                      !backupCapability.enabled}
-                  >
-                    <Wrench class="mr-2 size-4" />{$messages.services.operations
-                      .backup}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onclick={() => triggerAction("dns_update")}
-                    disabled={!!actionBusy ||
-                      !workspace?.isDeclared ||
-                      !dnsUpdateCapability.enabled}
-                  >
-                    <Upload class="mr-2 size-4" />{$messages.services.operations
-                      .dnsUpdate}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onclick={() => triggerAction("caddy_sync")}
-                    disabled={!!actionBusy ||
-                      !workspace?.isDeclared ||
-                      !(workspace?.nodes?.length ?? 0) ||
-                      !caddySyncCapability.enabled}
-                  >
-                    <Copy class="mr-2 size-4" />{$messages.services.operations
-                      .syncCaddy}
-                  </Button>
+                  <DisabledReasonTooltip reason={backupReason}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onclick={() => triggerAction("backup")}
+                      disabled={!!actionBusy ||
+                        !workspace?.isDeclared ||
+                        !backupCapability.enabled}
+                    >
+                      <Wrench class="mr-2 size-4" />{$messages.services
+                        .operations.backup}
+                    </Button>
+                  </DisabledReasonTooltip>
+                  <DisabledReasonTooltip reason={dnsUpdateReason}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onclick={() => triggerAction("dns_update")}
+                      disabled={!!actionBusy ||
+                        !workspace?.isDeclared ||
+                        !dnsUpdateCapability.enabled}
+                    >
+                      <Upload class="mr-2 size-4" />{$messages.services
+                        .operations.dnsUpdate}
+                    </Button>
+                  </DisabledReasonTooltip>
+                  <DisabledReasonTooltip reason={caddySyncReason}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onclick={() => triggerAction("caddy_sync")}
+                      disabled={!!actionBusy ||
+                        !workspace?.isDeclared ||
+                        !(workspace?.nodes?.length ?? 0) ||
+                        !caddySyncCapability.enabled}
+                    >
+                      <Copy class="mr-2 size-4" />{$messages.services.operations
+                        .syncCaddy}
+                    </Button>
+                  </DisabledReasonTooltip>
                   <div
                     class="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3"
                   >
@@ -1800,19 +1775,21 @@
                       placeholder={$messages.services.operations.migrate
                         .targetNodeId}
                     />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onclick={triggerMigrate}
-                      disabled={!!actionBusy ||
-                        !workspace?.isDeclared ||
-                        !migrateSourceNode ||
-                        !migrateTargetNode.trim() ||
-                        !migrateCapability.enabled}
-                    >
-                      <RefreshCcw class="mr-2 size-4" />{$messages.services
-                        .operations.migrate.migrate}
-                    </Button>
+                    <DisabledReasonTooltip reason={migrateReason}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onclick={triggerMigrate}
+                        disabled={!!actionBusy ||
+                          !workspace?.isDeclared ||
+                          !migrateSourceNode ||
+                          !migrateTargetNode.trim() ||
+                          !migrateCapability.enabled}
+                      >
+                        <RefreshCcw class="mr-2 size-4" />{$messages.services
+                          .operations.migrate.migrate}
+                      </Button>
+                    </DisabledReasonTooltip>
                   </div>
                   <Button
                     type="button"

@@ -5,11 +5,7 @@
   import { toast } from "svelte-sonner";
 
   import type { PageData } from "./$types";
-  import {
-    actionErrorMessage,
-    capabilityReasonMessage,
-    globalCapability,
-  } from "$lib/capabilities";
+  import { actionErrorMessage, globalCapability } from "$lib/capabilities";
   import { messages } from "$lib/i18n";
 
   import { startPolling } from "$lib/refresh";
@@ -77,14 +73,6 @@
   }
 
   async function runRusticAction(action: "init" | "forget" | "prune") {
-    if (!rusticMaintenanceCapability.enabled) {
-      rusticError = capabilityReasonMessage(
-        rusticMaintenanceCapability.reasonCode,
-        $messages,
-      );
-      return;
-    }
-
     rusticBusy = action;
     rusticError = "";
     rusticTaskId = "";
@@ -145,14 +133,6 @@
   );
   let rusticMaintenanceCapability = $derived(
     globalCapability(data.capabilities?.global, "rusticMaintenance"),
-  );
-  let rusticMaintenanceReason = $derived(
-    rusticMaintenanceCapability.enabled
-      ? ""
-      : capabilityReasonMessage(
-          rusticMaintenanceCapability.reasonCode,
-          $messages,
-        ),
   );
 
   onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
@@ -348,79 +328,71 @@
         </CardContent>
       </Card>
 
-      <Card class="lg:col-span-2">
-        <CardHeader class="section-header">
-          <div class="section-heading">
-            <CardTitle class="section-title"
-              >{$messages.settings.rustic.title}</CardTitle
-            >
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onclick={() => runRusticAction("init")}
-              disabled={rusticBusy !== "" ||
-                !rusticMaintenanceCapability.enabled}
-            >
-              {rusticBusy === "init"
-                ? $messages.settings.rustic.starting
-                : $messages.settings.rustic.init}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onclick={() => runRusticAction("forget")}
-              disabled={rusticBusy !== "" ||
-                !rusticMaintenanceCapability.enabled}
-            >
-              {rusticBusy === "forget"
-                ? $messages.settings.rustic.starting
-                : $messages.settings.rustic.forget}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onclick={() => runRusticAction("prune")}
-              disabled={rusticBusy !== "" ||
-                !rusticMaintenanceCapability.enabled}
-            >
-              {rusticBusy === "prune"
-                ? $messages.settings.rustic.starting
-                : $messages.settings.rustic.prune}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          {#if data.capabilities && rusticMaintenanceReason}
-            <Alert>
-              <AlertTitle>{$messages.capabilities.unavailableTitle}</AlertTitle>
-              <AlertDescription>{rusticMaintenanceReason}</AlertDescription>
-            </Alert>
-          {/if}
-
-          {#if rusticError}
-            <Alert variant="destructive">
-              <AlertTitle>{$messages.error.taskError}</AlertTitle>
-              <AlertDescription>{rusticError}</AlertDescription>
-            </Alert>
-          {/if}
-
-          {#if rusticTaskId}
-            <div class="inset-card">
-              <div class="metric-label">
-                {$messages.settings.rustic.lastTask}
-              </div>
-              <div class="mt-2 break-all text-sm text-foreground">
-                {rusticTaskId}
-              </div>
+      {#if rusticMaintenanceCapability.enabled}
+        <Card class="lg:col-span-2">
+          <CardHeader class="section-header">
+            <div class="section-heading">
+              <CardTitle class="section-title"
+                >{$messages.settings.rustic.title}</CardTitle
+              >
             </div>
-          {/if}
-        </CardContent>
-      </Card>
+            <div class="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onclick={() => runRusticAction("init")}
+                disabled={rusticBusy !== ""}
+              >
+                {rusticBusy === "init"
+                  ? $messages.settings.rustic.starting
+                  : $messages.settings.rustic.init}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onclick={() => runRusticAction("forget")}
+                disabled={rusticBusy !== ""}
+              >
+                {rusticBusy === "forget"
+                  ? $messages.settings.rustic.starting
+                  : $messages.settings.rustic.forget}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onclick={() => runRusticAction("prune")}
+                disabled={rusticBusy !== ""}
+              >
+                {rusticBusy === "prune"
+                  ? $messages.settings.rustic.starting
+                  : $messages.settings.rustic.prune}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            {#if rusticError}
+              <Alert variant="destructive">
+                <AlertTitle>{$messages.error.taskError}</AlertTitle>
+                <AlertDescription>{rusticError}</AlertDescription>
+              </Alert>
+            {/if}
+
+            {#if rusticTaskId}
+              <div class="inset-card">
+                <div class="metric-label">
+                  {$messages.settings.rustic.lastTask}
+                </div>
+                <div class="mt-2 break-all text-sm text-foreground">
+                  {rusticTaskId}
+                </div>
+              </div>
+            {/if}
+          </CardContent>
+        </Card>
+      {/if}
     </section>
   </div>
 </div>
