@@ -1298,10 +1298,10 @@ type repoQueryServer struct {
 }
 
 type repoCommandServer struct {
-	db               *store.DB
-	cfg              *config.ControllerConfig
-	availableNodeIDs map[string]struct{}
-	repoMu           *sync.Mutex
+	db                *store.DB
+	cfg               *config.ControllerConfig
+	availableNodeIDs  map[string]struct{}
+	repoMu            *sync.Mutex
 	pushCurrentBranch func(repoDir, remoteURL, branch, authUsername, authToken string) error
 }
 

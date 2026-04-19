@@ -37,7 +37,12 @@ jobs:
           fetch-depth: 0
 
       - name: Check Go formatting
-        run: test -z "$(git ls-files '*.go' | xargs -r gofmt -l)"
+        run: |
+          unformatted="$(git ls-files '*.go' | xargs -r gofmt -l)"
+          if [ -n "$unformatted" ]; then
+            printf 'Unformatted Go files:\n%s\n' "$unformatted"
+            exit 1
+          fi
 
   build-test:
     runs-on: docker-amd64
