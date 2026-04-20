@@ -3,14 +3,14 @@ module forgejo.alexma.top/alexma233/composia
 go 1.25.0
 
 require (
-	connectrpc.com/connect v1.19.1
+	connectrpc.com/connect v1.19.2
 	filippo.io/age v1.3.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/libdns/cloudflare v0.2.2
 	github.com/libdns/libdns v1.1.1
-	github.com/moby/moby/api v1.54.1
-	github.com/moby/moby/client v0.4.0
+	github.com/moby/moby/api v1.54.2
+	github.com/moby/moby/client v0.4.1
 	github.com/robfig/cron/v3 v3.0.1
 	golang.org/x/net v0.53.0
 	google.golang.org/protobuf v1.36.11
@@ -46,7 +46,6 @@ require (
 	golang.org/x/sys v0.43.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
 	modernc.org/libc v1.72.0 // indirect
-	modernc.org/libc/v2 v2.1.30 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
