@@ -59,6 +59,20 @@
     },
   });
 
+  // CodeMirror may resolve duplicate @codemirror/view versions in the lockfile,
+  // which makes otherwise-compatible key bindings fail TypeScript checks.
+  const editorKeymap = [
+    indentWithTab,
+    ...defaultKeymap,
+    {
+      key: 'Mod-s',
+      run: () => {
+        onsave?.();
+        return true;
+      }
+    }
+  ] as unknown as Parameters<typeof keymap.of>[0];
+
   onMount(() => {
     const root = document.documentElement;
 
@@ -70,17 +84,7 @@
           lineNumbers(),
           themeCompartment.of(resolveTheme(root)),
           editorChromeTheme,
-          keymap.of([
-            indentWithTab,
-            ...defaultKeymap,
-            {
-              key: 'Mod-s',
-              run: () => {
-                onsave?.();
-                return true;
-              }
-            }
-          ]),
+          keymap.of(editorKeymap),
           languageCompartment.of([]),
           lintCompartment.of(lintExtension(path)),
           editableCompartment.of(EditorView.editable.of(!readOnly)),

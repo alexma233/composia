@@ -11,6 +11,9 @@
     "format": "prettier --check .",
     "format:write": "prettier --write ."
   },
+  "overrides": {
+    "@codemirror/view": "6.41.1"
+  },
   "devDependencies": {
     "@fontsource-variable/inter": "5.2.8",
     "@internationalized/date": "3.12.1",
@@ -43,7 +46,7 @@
     "@codemirror/language-data": "6.5.2",
     "@codemirror/lint": "6.9.5",
     "@codemirror/state": "6.6.0",
-    "@codemirror/view": "6.41.0",
+    "@codemirror/view": "6.41.1",
     "@fsegurai/codemirror-theme-github-dark": "6.2.5",
     "@fsegurai/codemirror-theme-github-light": "6.2.5",
     "@lezer/common": "1.5.2",
