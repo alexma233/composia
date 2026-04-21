@@ -1,4 +1,4 @@
-name: Dev Web Docker Build
+name: Canary Web Build
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
       - "package.json"
       - "bun.lock"
       - "web/**"
-      - ".forgejo/workflows/dev-build-web.yaml"
-      - ".forgejo/workflows/release-build-docker.yaml"
+      - ".forgejo/workflows/canary-web-build.yaml"
+      - ".forgejo/workflows/release-build.yaml"
   workflow_dispatch:
 
 env:

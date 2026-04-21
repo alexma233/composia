@@ -1,4 +1,4 @@
-name: Dev Backend Docker Build
+name: Canary Backend Build
 
 on:
   push:
@@ -11,8 +11,8 @@ on:
       - "gen/go/**"
       - "Dockerfile"
       - ".dockerignore"
-      - ".forgejo/workflows/dev-build-backend.yaml"
-      - ".forgejo/workflows/release-build-docker.yaml"
+      - ".forgejo/workflows/canary-backend-build.yaml"
+      - ".forgejo/workflows/release-build.yaml"
   workflow_dispatch:
 
 env:
