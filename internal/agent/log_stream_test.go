@@ -2,10 +2,12 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
@@ -45,15 +47,42 @@ func TestTaskLogUploaderReconnectsAndResendsUnconfirmedLogs(t *testing.T) {
 	}
 }
 
+func TestTaskLogUploaderTimesOutBlockedAck(t *testing.T) {
+	t.Parallel()
+
+	server := &logUploadTestServer{blockAck: true}
+	mux := http.NewServeMux()
+	path, handler := agentv1connect.NewAgentReportServiceHandler(server)
+	mux.Handle(path, handler)
+	httpServer := httptest.NewUnstartedServer(mux)
+	httpServer.EnableHTTP2 = true
+	httpServer.StartTLS()
+	defer httpServer.Close()
+
+	client := agentv1connect.NewAgentReportServiceClient(httpServer.Client(), httpServer.URL)
+	uploader := newTaskLogUploaderWithTimeout(client, "task-1", 50*time.Millisecond)
+	err := uploader.Upload(context.Background(), "one\n")
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected upload timeout, got %v", err)
+	}
+	if err := uploader.Close(); err != nil {
+		t.Fatalf("close uploader after timeout: %v", err)
+	}
+	if server.confirmedSeq != 1 {
+		t.Fatalf("expected first send to reach server before timeout, got confirmed seq %d", server.confirmedSeq)
+	}
+}
+
 type logUploadTestServer struct {
 	agentv1connect.UnimplementedAgentReportServiceHandler
 	streamCount      int
 	confirmedSeq     uint64
 	failedSeqTwoOnce bool
+	blockAck         bool
 	contents         string
 }
 
-func (server *logUploadTestServer) UploadTaskLogs(_ context.Context, stream *connect.BidiStream[agentv1.UploadTaskLogsRequest, agentv1.UploadTaskLogsResponse]) error {
+func (server *logUploadTestServer) UploadTaskLogs(ctx context.Context, stream *connect.BidiStream[agentv1.UploadTaskLogsRequest, agentv1.UploadTaskLogsResponse]) error {
 	server.streamCount++
 	for {
 		message, err := stream.Receive()
@@ -67,6 +96,10 @@ func (server *logUploadTestServer) UploadTaskLogs(_ context.Context, stream *con
 		if message.GetSeq() == server.confirmedSeq+1 {
 			server.confirmedSeq = message.GetSeq()
 			server.contents += message.GetContent()
+		}
+		if server.blockAck {
+			<-ctx.Done()
+			return ctx.Err()
 		}
 		if err := stream.Send(&agentv1.UploadTaskLogsResponse{TaskId: message.GetTaskId(), LastConfirmedSeq: server.confirmedSeq}); err != nil {
 			return err

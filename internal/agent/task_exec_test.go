@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
@@ -1164,10 +1165,96 @@ func TestExecuteRusticInitTaskRunsComposeRun(t *testing.T) {
 	}
 }
 
+func TestExecutePulledTaskWithTimeoutMarksTimedOutTaskFailed(t *testing.T) {
+	t.Parallel()
+
+	reportServer := &agentExecutionTestReportServer{blockLogUploads: true}
+	reportMux := http.NewServeMux()
+	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(reportServer, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	reportMux.Handle(reportPath, reportHandler)
+	reportHTTPServer := httptest.NewUnstartedServer(reportMux)
+	reportHTTPServer.EnableHTTP2 = true
+	reportHTTPServer.StartTLS()
+	defer reportHTTPServer.Close()
+
+	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	pulledTask := &agentv1.AgentTask{TaskId: "task-timeout", Type: string(task.TypePrune), NodeId: "main", ParamsJson: `{"target":"images_all"}`}
+	err := executePulledTaskWithTimeout(context.Background(), nil, reportClient, &config.AgentConfig{}, pulledTask, 50*time.Millisecond)
+	if err == nil || !strings.Contains(err.Error(), "task exceeded execution timeout") {
+		t.Fatalf("expected timeout error, got %v", err)
+	}
+
+	reportServer.mu.Lock()
+	defer reportServer.mu.Unlock()
+	if reportServer.taskStatus != string(task.StatusFailed) {
+		t.Fatalf("expected failed task status, got %q", reportServer.taskStatus)
+	}
+	if !strings.Contains(reportServer.taskErrorSummary, "task exceeded execution timeout") {
+		t.Fatalf("expected timeout error summary, got %q", reportServer.taskErrorSummary)
+	}
+	if reportServer.confirmedSeq != 1 {
+		t.Fatalf("expected initial task log upload attempt before timeout, got confirmed seq %d", reportServer.confirmedSeq)
+	}
+}
+
+func TestReportTaskCompletionWithTimeoutReturnsDeadlineExceeded(t *testing.T) {
+	t.Parallel()
+
+	reportServer := &agentExecutionTestReportServer{blockTaskState: true}
+	reportMux := http.NewServeMux()
+	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(reportServer, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	reportMux.Handle(reportPath, reportHandler)
+	reportHTTPServer := httptest.NewUnstartedServer(reportMux)
+	reportHTTPServer.EnableHTTP2 = true
+	reportHTTPServer.StartTLS()
+	defer reportHTTPServer.Close()
+
+	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	err := reportTaskCompletionWithTimeout(context.Background(), reportClient, "task-timeout", task.StatusFailed, "boom", 50*time.Millisecond)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected task completion timeout, got %v", err)
+	}
+}
+
+func TestReportTaskStepStateWithTimeoutReturnsDeadlineExceeded(t *testing.T) {
+	t.Parallel()
+
+	reportServer := &agentExecutionTestReportServer{blockTaskStepState: true}
+	reportMux := http.NewServeMux()
+	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(reportServer, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	reportMux.Handle(reportPath, reportHandler)
+	reportHTTPServer := httptest.NewUnstartedServer(reportMux)
+	reportHTTPServer.EnableHTTP2 = true
+	reportHTTPServer.StartTLS()
+	defer reportHTTPServer.Close()
+
+	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	err := reportTaskStepStateWithTimeout(context.Background(), reportClient, &agentv1.ReportTaskStepStateRequest{TaskId: "task-timeout", StepName: string(task.StepPrune), Status: string(task.StatusRunning)}, 50*time.Millisecond)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected task step timeout, got %v", err)
+	}
+}
+
 type agentExecutionTestReportServer struct {
 	agentv1connect.UnimplementedAgentReportServiceHandler
 	mu                 sync.Mutex
 	taskStatus         string
+	taskErrorSummary   string
 	runtimeStatus      string
 	stepStatuses       map[task.StepName]string
 	confirmedSeq       uint64
@@ -1175,20 +1262,32 @@ type agentExecutionTestReportServer struct {
 	backupDataName     string
 	backupStatus       string
 	backupErrorSummary string
+	blockLogUploads    bool
+	blockTaskState     bool
+	blockTaskStepState bool
 }
 
 func (server *agentExecutionTestReportServer) Heartbeat(context.Context, *connect.Request[agentv1.HeartbeatRequest]) (*connect.Response[agentv1.HeartbeatResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("not used"))
 }
 
-func (server *agentExecutionTestReportServer) ReportTaskState(_ context.Context, req *connect.Request[agentv1.ReportTaskStateRequest]) (*connect.Response[agentv1.ReportTaskStateResponse], error) {
+func (server *agentExecutionTestReportServer) ReportTaskState(ctx context.Context, req *connect.Request[agentv1.ReportTaskStateRequest]) (*connect.Response[agentv1.ReportTaskStateResponse], error) {
+	if server.blockTaskState {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}
 	server.mu.Lock()
 	defer server.mu.Unlock()
 	server.taskStatus = req.Msg.GetStatus()
+	server.taskErrorSummary = req.Msg.GetErrorSummary()
 	return connect.NewResponse(&agentv1.ReportTaskStateResponse{}), nil
 }
 
-func (server *agentExecutionTestReportServer) ReportTaskStepState(_ context.Context, req *connect.Request[agentv1.ReportTaskStepStateRequest]) (*connect.Response[agentv1.ReportTaskStepStateResponse], error) {
+func (server *agentExecutionTestReportServer) ReportTaskStepState(ctx context.Context, req *connect.Request[agentv1.ReportTaskStepStateRequest]) (*connect.Response[agentv1.ReportTaskStepStateResponse], error) {
+	if server.blockTaskStepState {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}
 	server.mu.Lock()
 	defer server.mu.Unlock()
 	if server.stepStatuses == nil {
@@ -1198,7 +1297,7 @@ func (server *agentExecutionTestReportServer) ReportTaskStepState(_ context.Cont
 	return connect.NewResponse(&agentv1.ReportTaskStepStateResponse{}), nil
 }
 
-func (server *agentExecutionTestReportServer) UploadTaskLogs(_ context.Context, stream *connect.BidiStream[agentv1.UploadTaskLogsRequest, agentv1.UploadTaskLogsResponse]) error {
+func (server *agentExecutionTestReportServer) UploadTaskLogs(ctx context.Context, stream *connect.BidiStream[agentv1.UploadTaskLogsRequest, agentv1.UploadTaskLogsResponse]) error {
 	for {
 		message, err := stream.Receive()
 		if err != nil {
@@ -1212,7 +1311,12 @@ func (server *agentExecutionTestReportServer) UploadTaskLogs(_ context.Context, 
 			server.confirmedSeq = message.GetSeq()
 		}
 		confirmedSeq := server.confirmedSeq
+		blockLogUploads := server.blockLogUploads
 		server.mu.Unlock()
+		if blockLogUploads {
+			<-ctx.Done()
+			return ctx.Err()
+		}
 		if err := stream.Send(&agentv1.UploadTaskLogsResponse{TaskId: message.GetTaskId(), LastConfirmedSeq: confirmedSeq}); err != nil {
 			return err
 		}

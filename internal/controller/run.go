@@ -2134,7 +2134,7 @@ func (server *nodeMaintenanceServer) PruneNodeDocker(ctx context.Context, req *c
 	taskID := uuid.NewString()
 	paramsJSON := fmt.Sprintf(`{"target":%q}`, target)
 
-	_, err = server.db.CreateTask(ctx, task.Record{
+	createdTask, err := server.db.CreateTask(ctx, task.Record{
 		TaskID:      taskID,
 		Type:        task.TypePrune,
 		Source:      requestTaskSource(req.Header()),
@@ -2142,10 +2142,15 @@ func (server *nodeMaintenanceServer) PruneNodeDocker(ctx context.Context, req *c
 		NodeID:      req.Msg.GetNodeId(),
 		Status:      task.StatusPending,
 		ParamsJSON:  paramsJSON,
+		LogPath:     filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
+	}
+	notifyTaskQueue(server.taskQueue)
 
 	return connect.NewResponse(&controllerv1.PruneNodeDockerResponse{
 		TaskId: taskID,

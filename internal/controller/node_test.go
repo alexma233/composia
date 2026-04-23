@@ -408,6 +408,76 @@ func TestNodeMaintenanceServiceSyncNodeCaddyFilesFullRebuildCreatesMultiServiceT
 	}
 }
 
+func TestNodeMaintenanceServicePruneNodeDockerCreatesTaskLogAndNotifiesQueue(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	logDir := filepath.Join(rootDir, "logs")
+	if err := os.MkdirAll(repoDir, 0o755); err != nil {
+		t.Fatalf("create repo dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create task log dir: %v", err)
+	}
+
+	db := openControllerTestDB(t)
+	defer func() { _ = db.Close() }()
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "access-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+	notifier := newTaskQueueNotifier()
+	waitCh := notifier.Subscribe()
+	defer notifier.Unsubscribe(waitCh)
+	path, handler := controllerv1connect.NewNodeMaintenanceServiceHandler(
+		&nodeMaintenanceServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, taskQueue: notifier, taskResults: newTaskResultNotifier()},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewNodeMaintenanceServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
+	response, err := client.PruneNodeDocker(ctx, connect.NewRequest(&controllerv1.PruneNodeDockerRequest{NodeId: "main", Target: "images_all"}))
+	if err != nil {
+		t.Fatalf("prune node docker: %v", err)
+	}
+	detail, err := db.GetTask(ctx, response.Msg.GetTaskId())
+	if err != nil {
+		t.Fatalf("get created task: %v", err)
+	}
+	if detail.Record.Type != task.TypePrune {
+		t.Fatalf("expected prune task type, got %q", detail.Record.Type)
+	}
+	expectedLogPath := filepath.Join(logDir, "tasks", response.Msg.GetTaskId()+".log")
+	if detail.Record.LogPath != expectedLogPath {
+		t.Fatalf("expected prune task log path %q, got %q", expectedLogPath, detail.Record.LogPath)
+	}
+	if _, err := os.Stat(expectedLogPath); err != nil {
+		t.Fatalf("expected prune task log file to exist: %v", err)
+	}
+	select {
+	case <-waitCh:
+	default:
+		t.Fatalf("expected prune task creation to notify task queue")
+	}
+	if detail.Record.ParamsJSON != `{"target":"images_all"}` {
+		t.Fatalf("unexpected prune params %q", detail.Record.ParamsJSON)
+	}
+}
+
 func TestNodeMaintenanceServicePruneNodeRusticCreatesRusticPruneTask(t *testing.T) {
 	t.Parallel()
 

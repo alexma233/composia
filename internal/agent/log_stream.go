@@ -16,6 +16,7 @@ const logStreamRetryDelay = 200 * time.Millisecond
 type taskLogUploader struct {
 	client           agentv1connect.AgentReportServiceClient
 	taskID           string
+	timeout          time.Duration
 	nextSeq          uint64
 	lastConfirmedSeq uint64
 	pending          []*agentv1.UploadTaskLogsRequest
@@ -23,9 +24,14 @@ type taskLogUploader struct {
 }
 
 func newTaskLogUploader(client agentv1connect.AgentReportServiceClient, taskID string) *taskLogUploader {
+	return newTaskLogUploaderWithTimeout(client, taskID, taskReportTimeout)
+}
+
+func newTaskLogUploaderWithTimeout(client agentv1connect.AgentReportServiceClient, taskID string, timeout time.Duration) *taskLogUploader {
 	return &taskLogUploader{
 		client:  client,
 		taskID:  taskID,
+		timeout: timeout,
 		nextSeq: 1,
 	}
 }
@@ -34,6 +40,13 @@ func (uploader *taskLogUploader) Upload(ctx context.Context, content string) err
 	if content == "" {
 		return nil
 	}
+	uploadCtx := ctx
+	var cancel context.CancelFunc
+	if uploader.timeout > 0 {
+		uploadCtx, cancel = context.WithTimeout(ctx, uploader.timeout)
+		defer cancel()
+	}
+	defer func() { _ = uploader.Close() }()
 	uploader.pending = append(uploader.pending, &agentv1.UploadTaskLogsRequest{
 		TaskId:  uploader.taskID,
 		Seq:     uploader.nextSeq,
@@ -41,7 +54,7 @@ func (uploader *taskLogUploader) Upload(ctx context.Context, content string) err
 		Content: content,
 	})
 	uploader.nextSeq++
-	return uploader.flush(ctx)
+	return uploader.flush(uploadCtx)
 }
 
 func (uploader *taskLogUploader) Close() error {
