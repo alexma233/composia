@@ -93,6 +93,7 @@ type ControllerSecretsConfig struct {
 
 type AgentConfig struct {
 	ControllerAddr string            `yaml:"controller_addr"`
+	ControllerGRPC bool              `yaml:"controller_grpc"`
 	NodeID         string            `yaml:"node_id"`
 	Token          string            `yaml:"token"`
 	RepoDir        string            `yaml:"repo_dir"`

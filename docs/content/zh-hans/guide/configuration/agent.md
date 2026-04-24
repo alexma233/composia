@@ -7,6 +7,7 @@
 | 配置项 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | `controller_addr` | string | 是 | Controller API 地址 |
+| `controller_grpc` | boolean | 否 | 使用 gRPC 协议访问 Controller，默认 `false` |
 | `node_id` | string | 是 | 节点 ID，必须匹配 Controller 配置 |
 | `token` | string | 是 | 节点认证 Token |
 | `repo_dir` | string | 是 | 本地服务 bundle 目录 |
@@ -14,6 +15,8 @@
 | `caddy.generated_dir` | string | 否 | Caddy 配置片段输出目录 |
 
 如果 `agent.controller_addr` 以 `http://` 开头，只应在受信任的反向代理负责 TLS 终止，或 Controller 仅暴露在受信任的本地网络内时使用。不要在不受信任的明文网络上传输 agent token。
+
+如果 `agent.controller_grpc` 为 `true`，Agent 会用 gRPC 协议调用 Controller。Controller 仍可同时接受默认 Connect 协议和 gRPC；该开关只影响当前 Agent 客户端。通过 Cloudflare 代理时，需要在 Cloudflare 启用 gRPC，并确保到源站的链路支持 TLS + HTTP/2。
 
 ## 与 Controller 同文件时的约束
 
@@ -28,6 +31,7 @@
 ```yaml
 agent:
   controller_addr: "http://controller:7001"
+  controller_grpc: false
   node_id: "main"
   token: "main-token"
   repo_dir: "/data/repo-agent"
@@ -78,6 +82,7 @@ services:
 ```yaml
 agent:
   controller_addr: "http://controller:7001"
+  controller_grpc: false
   node_id: "main"
   token: "main-token"
   repo_dir: "/data/repo-agent"

@@ -64,6 +64,33 @@ agent:
 	}
 }
 
+func TestLoadAgentAcceptsControllerGRPC(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.yaml")
+	content := strings.TrimSpace(`
+agent:
+  controller_addr: "https://controller.example.com"
+  controller_grpc: true
+  node_id: "node-2"
+  token: "node-token"
+  repo_dir: "/srv/composia/repo"
+  state_dir: "/srv/composia/state"
+`) + "\n"
+
+	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	agent, err := LoadAgent(configPath)
+	if err != nil {
+		t.Fatalf("load agent: %v", err)
+	}
+	if !agent.ControllerGRPC {
+		t.Fatal("expected controller_grpc to be true")
+	}
+}
+
 func TestAgentCaddyGeneratedDirDefault(t *testing.T) {
 	t.Parallel()
 

@@ -65,20 +65,21 @@ func Run(ctx context.Context, configPath string) error {
 	}
 
 	httpClient := controllerHTTPClient(cfg.ControllerAddr)
+	clientOptions := controllerClientOptions(cfg)
 	reportClient := agentv1connect.NewAgentReportServiceClient(
 		httpClient,
 		cfg.ControllerAddr,
-		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(cfg.Token)),
+		clientOptions...,
 	)
 	taskClient := agentv1connect.NewAgentTaskServiceClient(
 		httpClient,
 		cfg.ControllerAddr,
-		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(cfg.Token)),
+		clientOptions...,
 	)
 	bundleClient := agentv1connect.NewBundleServiceClient(
 		httpClient,
 		cfg.ControllerAddr,
-		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(cfg.Token)),
+		clientOptions...,
 	)
 
 	log.Printf("composia agent loops started: node_id=%s controller=%s", cfg.NodeID, cfg.ControllerAddr)
@@ -128,6 +129,14 @@ func Run(ctx context.Context, configPath string) error {
 
 	<-ctx.Done()
 	return nil
+}
+
+func controllerClientOptions(cfg *config.AgentConfig) []connect.ClientOption {
+	options := []connect.ClientOption{connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(cfg.Token))}
+	if cfg.ControllerGRPC {
+		options = append([]connect.ClientOption{connect.WithGRPC()}, options...)
+	}
+	return options
 }
 
 func ensureAgentDirs(cfg *config.AgentConfig) error {

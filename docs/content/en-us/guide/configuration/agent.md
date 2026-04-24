@@ -7,6 +7,7 @@ This page documents the `agent` section in `config/config.yaml`.
 | Configuration | Type | Required | Description |
 |--------------|------|----------|-------------|
 | `controller_addr` | string | Yes | Controller API address |
+| `controller_grpc` | boolean | No | Use the gRPC protocol when calling the Controller, default `false` |
 | `node_id` | string | Yes | Node ID, must match the Controller configuration |
 | `token` | string | Yes | Node authentication token |
 | `repo_dir` | string | Yes | Local service bundle directory |
@@ -14,6 +15,8 @@ This page documents the `agent` section in `config/config.yaml`.
 | `caddy.generated_dir` | string | No | Caddy configuration fragment output directory |
 
 If `agent.controller_addr` starts with `http://`, use it only when TLS is terminated by a trusted reverse proxy or when the controller is reachable only on a trusted local network. Do not send agent tokens over an untrusted cleartext network.
+
+If `agent.controller_grpc` is `true`, the Agent calls the Controller with the gRPC protocol. The Controller can still accept both the default Connect protocol and gRPC; this setting only affects the current Agent client. When proxying through Cloudflare, enable gRPC in Cloudflare and ensure the origin path supports TLS + HTTP/2.
 
 ## Same-File Constraints
 
@@ -28,6 +31,7 @@ If one file contains both `controller` and `agent`, these additional rules apply
 ```yaml
 agent:
   controller_addr: "http://controller:7001"
+  controller_grpc: false
   node_id: "main"
   token: "main-token"
   repo_dir: "/data/repo-agent"
@@ -78,6 +82,7 @@ Add this to the Agent configuration:
 ```yaml
 agent:
   controller_addr: "http://controller:7001"
+  controller_grpc: false
   node_id: "main"
   token: "main-token"
   repo_dir: "/data/repo-agent"

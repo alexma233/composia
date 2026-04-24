@@ -84,6 +84,7 @@ controller:
 
 agent:
   controller_addr: "http://controller:7001"
+  controller_grpc: false
   node_id: "main"
   token: "main-agent-token"
   repo_dir: "/data/repo-agent"
