@@ -247,14 +247,21 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 		}
 	}
 
-	finishedAt := time.Now().UTC()
-	if err := executor.db.UpsertTaskStep(ctx, task.StepRecord{TaskID: record.TaskID, StepName: task.StepFinalize, Status: task.StatusSucceeded, StartedAt: &finishedAt, FinishedAt: &finishedAt}); err != nil {
+	startedAt := time.Now().UTC()
+	logControllerTaskStepStarted(record, task.StepFinalize)
+	finishedAt := startedAt
+	if err := executor.db.UpsertTaskStep(ctx, task.StepRecord{TaskID: record.TaskID, StepName: task.StepFinalize, Status: task.StatusSucceeded, StartedAt: &startedAt, FinishedAt: &finishedAt}); err != nil {
 		return executor.failControllerTask(ctx, record, task.StepFinalize, err)
 	}
+	logControllerTaskStepSucceeded(record, task.StepFinalize, startedAt, finishedAt)
 	if err := appendTaskLogRaw(record.LogPath, "migrate task finished successfully\n"); err != nil {
 		return executor.failControllerTask(ctx, record, task.StepFinalize, err)
 	}
-	return executor.db.CompleteTask(ctx, record.TaskID, task.StatusSucceeded, finishedAt, "")
+	if err := executor.db.CompleteTask(ctx, record.TaskID, task.StatusSucceeded, finishedAt, ""); err != nil {
+		return err
+	}
+	logControllerTaskFinished(record, finishedAt)
+	return nil
 }
 
 func hasTaskStepStatus(steps []task.StepRecord, stepName task.StepName, status task.Status) bool {
@@ -268,13 +275,18 @@ func hasTaskStepStatus(steps []task.StepRecord, stepName task.StepName, status t
 
 func (executor *controllerTaskExecutor) enterMigrateAwaitingConfirmation(ctx context.Context, record task.Record) error {
 	startedAt := time.Now().UTC()
+	logControllerTaskStepStarted(record, task.StepAwaitingConfirmation)
 	if err := executor.db.UpsertTaskStep(ctx, task.StepRecord{TaskID: record.TaskID, StepName: task.StepAwaitingConfirmation, Status: task.StatusAwaitingConfirmation, StartedAt: &startedAt}); err != nil {
 		return err
 	}
 	if err := appendTaskLogRaw(record.LogPath, "migrate task is awaiting manual confirmation before dns_update\n"); err != nil {
 		return err
 	}
-	return executor.db.TransitionTaskStatus(ctx, record.TaskID, task.StatusRunning, task.StatusAwaitingConfirmation, "")
+	if err := executor.db.TransitionTaskStatus(ctx, record.TaskID, task.StatusRunning, task.StatusAwaitingConfirmation, ""); err != nil {
+		return err
+	}
+	logControllerTaskAwaitingConfirmation(record)
+	return nil
 }
 
 func createRestoreTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName, nodeID, repoRevision string, params serviceTaskParams, source task.Source) (task.Record, error) {
@@ -329,6 +341,7 @@ func (executor *controllerTaskExecutor) waitTask(ctx context.Context, taskID str
 
 func (executor *controllerTaskExecutor) runMigrateStep(ctx context.Context, record task.Record, stepName task.StepName, run func() error) error {
 	startedAt := time.Now().UTC()
+	logControllerTaskStepStarted(record, stepName)
 	if err := executor.db.UpsertTaskStep(ctx, task.StepRecord{TaskID: record.TaskID, StepName: stepName, Status: task.StatusRunning, StartedAt: &startedAt}); err != nil {
 		return err
 	}
@@ -336,7 +349,11 @@ func (executor *controllerTaskExecutor) runMigrateStep(ctx context.Context, reco
 		return err
 	}
 	finishedAt := time.Now().UTC()
-	return executor.db.UpsertTaskStep(ctx, task.StepRecord{TaskID: record.TaskID, StepName: stepName, Status: task.StatusSucceeded, StartedAt: &startedAt, FinishedAt: &finishedAt})
+	if err := executor.db.UpsertTaskStep(ctx, task.StepRecord{TaskID: record.TaskID, StepName: stepName, Status: task.StatusSucceeded, StartedAt: &startedAt, FinishedAt: &finishedAt}); err != nil {
+		return err
+	}
+	logControllerTaskStepSucceeded(record, stepName, startedAt, finishedAt)
+	return nil
 }
 
 func (executor *controllerTaskExecutor) persistMigratedTargetNodes(ctx context.Context, record task.Record, service repo.Service, sourceNodeID, targetNodeID string) error {

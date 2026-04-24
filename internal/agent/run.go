@@ -101,7 +101,7 @@ func Run(ctx context.Context, configPath string) error {
 				if ctx.Err() != nil {
 					return
 				}
-				log.Printf("task poll failed: %v", err)
+				log.Printf("task loop failed: %v", err)
 				if !sleepWithContext(ctx, taskRetryAfterPollFail) {
 					return
 				}
@@ -224,7 +224,17 @@ func pollAndRunTask(ctx context.Context, taskClient agentv1connect.AgentTaskServ
 		return nil
 	}
 
-	return executePulledTaskWithTimeout(ctx, bundleClient, reportClient, cfg, response.Msg.GetTask(), taskExecutionTimeout)
+	pulledTask := response.Msg.GetTask()
+	startedAt := time.Now()
+	log.Printf("agent accepted task: task_id=%s type=%s service=%s node=%s repo_revision=%s", pulledTask.GetTaskId(), pulledTask.GetType(), pulledTask.GetServiceName(), pulledTask.GetNodeId(), pulledTask.GetRepoRevision())
+	err = executePulledTaskWithTimeout(ctx, bundleClient, reportClient, cfg, pulledTask, taskExecutionTimeout)
+	duration := time.Since(startedAt).Round(time.Millisecond)
+	if err != nil {
+		log.Printf("agent task failed: task_id=%s type=%s service=%s node=%s duration=%s error=%v", pulledTask.GetTaskId(), pulledTask.GetType(), pulledTask.GetServiceName(), pulledTask.GetNodeId(), duration, err)
+		return err
+	}
+	log.Printf("agent task finished: task_id=%s type=%s service=%s node=%s duration=%s", pulledTask.GetTaskId(), pulledTask.GetType(), pulledTask.GetServiceName(), pulledTask.GetNodeId(), duration)
+	return nil
 }
 
 func executePulledTaskWithTimeout(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, timeout time.Duration) error {
@@ -348,7 +358,7 @@ func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 	case string(task.TypeDockerStart), string(task.TypeDockerStop), string(task.TypeDockerRestart), string(task.TypeDockerRemove):
 		return executeDockerTask(ctx, client, cfg, pulledTask, logUploader)
 	default:
-		return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, fmt.Sprintf("task type %q is not implemented", pulledTask.GetType()))
+		return failTask(ctx, client, pulledTask.GetTaskId(), fmt.Errorf("task type %q is not implemented", pulledTask.GetType()))
 	}
 }
 
@@ -1271,24 +1281,42 @@ func localServiceRoot(repoDir string, pulledTask *agentv1.AgentTask, bundle *bun
 }
 
 func executeTaskStep(ctx context.Context, client agentv1connect.AgentReportServiceClient, logUploader *taskLogUploader, taskID string, stepName task.StepName, execute func() error) error {
-	startedAt := timestamppb.Now()
+	stepStartedAt := time.Now()
+	startedAt := timestamppb.New(stepStartedAt)
+	stepDuration := func() time.Duration {
+		return time.Since(stepStartedAt).Round(time.Millisecond)
+	}
+	logStepFailed := func(err error) {
+		log.Printf("agent task step failed: task_id=%s step=%s duration=%s error=%v", taskID, stepName, stepDuration(), err)
+	}
+
+	log.Printf("agent task step started: task_id=%s step=%s", taskID, stepName)
 	if err := reportTaskStepStateWithTimeout(ctx, client, &agentv1.ReportTaskStepStateRequest{TaskId: taskID, StepName: string(stepName), Status: string(task.StatusRunning), StartedAt: startedAt}, taskReportTimeout); err != nil {
+		logStepFailed(err)
 		return fmt.Errorf("report running step %s: %w", stepName, err)
 	}
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("step %s started\n", stepName)); err != nil {
+		logStepFailed(err)
 		return err
 	}
 	if err := execute(); err != nil {
 		finishedAt := timestamppb.Now()
 		_ = reportTaskStepStateWithTimeout(ctx, client, &agentv1.ReportTaskStepStateRequest{TaskId: taskID, StepName: string(stepName), Status: string(task.StatusFailed), StartedAt: startedAt, FinishedAt: finishedAt}, taskReportTimeout)
 		_ = uploadTaskLog(ctx, logUploader, fmt.Sprintf("step %s failed: %v\n", stepName, err))
+		logStepFailed(err)
 		return err
 	}
 	finishedAt := timestamppb.Now()
 	if err := reportTaskStepStateWithTimeout(ctx, client, &agentv1.ReportTaskStepStateRequest{TaskId: taskID, StepName: string(stepName), Status: string(task.StatusSucceeded), StartedAt: startedAt, FinishedAt: finishedAt}, taskReportTimeout); err != nil {
+		logStepFailed(err)
 		return fmt.Errorf("report succeeded step %s: %w", stepName, err)
 	}
-	return uploadTaskLog(ctx, logUploader, fmt.Sprintf("step %s succeeded\n", stepName))
+	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("step %s succeeded\n", stepName)); err != nil {
+		logStepFailed(err)
+		return err
+	}
+	log.Printf("agent task step succeeded: task_id=%s step=%s duration=%s", taskID, stepName, stepDuration())
+	return nil
 }
 
 func reportTaskCompletion(ctx context.Context, client agentv1connect.AgentReportServiceClient, taskID string, status task.Status, errorSummary string) error {

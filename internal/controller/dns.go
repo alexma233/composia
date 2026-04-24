@@ -139,6 +139,7 @@ func (executor *controllerTaskExecutor) runNextPendingTask(ctx context.Context) 
 		if err != nil {
 			return err
 		}
+		logControllerTaskStarted(record)
 		switch record.Type {
 		case task.TypeDNSUpdate:
 			return executor.executeDNSUpdateTask(ctx, record)
@@ -156,6 +157,7 @@ func (executor *controllerTaskExecutor) executeDNSUpdateTask(ctx context.Context
 		return executor.failControllerTask(ctx, record, task.StepDNSUpdate, err)
 	}
 	startedAt := time.Now().UTC()
+	logControllerTaskStepStarted(record, task.StepDNSUpdate)
 	if err := executor.db.UpsertTaskStep(ctx, task.StepRecord{TaskID: record.TaskID, StepName: task.StepDNSUpdate, Status: task.StatusRunning, StartedAt: &startedAt}); err != nil {
 		return executor.failControllerTask(ctx, record, task.StepDNSUpdate, err)
 	}
@@ -183,19 +185,26 @@ func (executor *controllerTaskExecutor) executeDNSUpdateTask(ctx context.Context
 	if err := executor.db.UpsertTaskStep(ctx, task.StepRecord{TaskID: record.TaskID, StepName: task.StepDNSUpdate, Status: task.StatusSucceeded, StartedAt: &startedAt, FinishedAt: &finishedAt}); err != nil {
 		return executor.failControllerTask(ctx, record, task.StepDNSUpdate, err)
 	}
+	logControllerTaskStepSucceeded(record, task.StepDNSUpdate, startedAt, finishedAt)
 	if err := appendTaskLogRaw(record.LogPath, "dns_update task finished successfully\n"); err != nil {
 		return executor.failControllerTask(ctx, record, task.StepDNSUpdate, err)
 	}
-	return executor.db.CompleteTask(ctx, record.TaskID, task.StatusSucceeded, finishedAt, "")
+	if err := executor.db.CompleteTask(ctx, record.TaskID, task.StatusSucceeded, finishedAt, ""); err != nil {
+		return err
+	}
+	logControllerTaskFinished(record, finishedAt)
+	return nil
 }
 
 func (executor *controllerTaskExecutor) failControllerTask(ctx context.Context, record task.Record, stepName task.StepName, taskErr error) error {
 	finishedAt := time.Now().UTC()
+	logControllerTaskStepFailed(record, stepName, taskErr)
 	_ = executor.db.UpsertTaskStep(ctx, task.StepRecord{TaskID: record.TaskID, StepName: stepName, Status: task.StatusFailed, FinishedAt: &finishedAt})
 	_ = appendTaskLogRaw(record.LogPath, fmt.Sprintf("task failed: %v\n", taskErr))
 	if completeErr := executor.db.CompleteTask(ctx, record.TaskID, task.StatusFailed, finishedAt, taskErr.Error()); completeErr != nil {
 		return completeErr
 	}
+	logControllerTaskFailed(record, finishedAt, taskErr)
 	return taskErr
 }
 

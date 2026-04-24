@@ -544,6 +544,7 @@ func (server *agentReportServer) ReportTaskState(ctx context.Context, req *conne
 	if err := server.db.CompleteTask(ctx, req.Msg.GetTaskId(), task.Status(req.Msg.GetStatus()), finishedAt, req.Msg.GetErrorSummary()); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	logControllerReceivedTaskState(ctx, server.db, req.Msg.GetTaskId(), task.Status(req.Msg.GetStatus()), req.Msg.GetErrorSummary())
 	if err := server.queuePostTaskFollowups(ctx, req.Msg.GetTaskId(), task.Status(req.Msg.GetStatus())); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -614,6 +615,7 @@ func (server *agentReportServer) ReportTaskStepState(ctx context.Context, req *c
 	if err := server.db.UpsertTaskStep(ctx, step); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	logControllerReceivedTaskStepState(ctx, server.db, step)
 	return connect.NewResponse(&agentv1.ReportTaskStepStateResponse{}), nil
 }
 
@@ -1163,6 +1165,7 @@ func (server *agentTaskServer) PullNextTask(ctx context.Context, req *connect.Re
 	for {
 		record, err := server.db.ClaimNextPendingTaskForNode(ctx, req.Msg.GetNodeId(), time.Now().UTC())
 		if err == nil {
+			logControllerAssignedTask(record)
 			response := &agentv1.PullNextTaskResponse{
 				HasTask: true,
 				Task: &agentv1.AgentTask{
