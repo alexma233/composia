@@ -238,17 +238,24 @@ func executePulledTaskWithTimeout(ctx context.Context, bundleClient agentv1conne
 	if err == nil {
 		return nil
 	}
-	if !errors.Is(taskCtx.Err(), context.DeadlineExceeded) {
+	if ctx.Err() != nil && !errors.Is(taskCtx.Err(), context.DeadlineExceeded) {
 		return err
 	}
 
-	timeoutSummary := fmt.Sprintf("task exceeded execution timeout of %s", timeout)
+	taskTimedOut := errors.Is(taskCtx.Err(), context.DeadlineExceeded)
+	failureSummary := err.Error()
+	if taskTimedOut {
+		failureSummary = fmt.Sprintf("task exceeded execution timeout of %s", timeout)
+	}
 	reportCtx, reportCancel := context.WithTimeout(context.Background(), taskReportTimeout)
 	defer reportCancel()
-	if reportErr := reportTaskCompletion(reportCtx, client, pulledTask.GetTaskId(), task.StatusFailed, timeoutSummary); reportErr != nil {
-		return fmt.Errorf("%s: %w (report failed: %v)", timeoutSummary, err, reportErr)
+	if reportErr := reportTaskCompletion(reportCtx, client, pulledTask.GetTaskId(), task.StatusFailed, failureSummary); reportErr != nil {
+		return fmt.Errorf("%s (report failed: %v)", err, reportErr)
 	}
-	return fmt.Errorf("%s: %w", timeoutSummary, err)
+	if taskTimedOut {
+		return fmt.Errorf("%s: %w", failureSummary, err)
+	}
+	return err
 }
 
 func pollAndRunDockerQuery(ctx context.Context, taskClient agentv1connect.AgentTaskServiceClient, reportClient agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig) error {

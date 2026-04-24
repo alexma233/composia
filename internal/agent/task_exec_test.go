@@ -1202,6 +1202,40 @@ func TestExecutePulledTaskWithTimeoutMarksTimedOutTaskFailed(t *testing.T) {
 	}
 }
 
+func TestExecutePulledTaskWithTimeoutMarksExecutionErrorFailed(t *testing.T) {
+	t.Parallel()
+
+	reportServer := &agentExecutionTestReportServer{wrongLogAckTaskID: true}
+	reportMux := http.NewServeMux()
+	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(reportServer, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	reportMux.Handle(reportPath, reportHandler)
+	reportHTTPServer := httptest.NewUnstartedServer(reportMux)
+	reportHTTPServer.EnableHTTP2 = true
+	reportHTTPServer.StartTLS()
+	defer reportHTTPServer.Close()
+
+	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	pulledTask := &agentv1.AgentTask{TaskId: "task-error", Type: string(task.TypePrune), NodeId: "main", ParamsJson: `{"target":"images_all"}`}
+	err := executePulledTaskWithTimeout(context.Background(), nil, reportClient, &config.AgentConfig{}, pulledTask, time.Hour)
+	if err == nil || !strings.Contains(err.Error(), "unexpected log ack task_id") {
+		t.Fatalf("expected log ack task id error, got %v", err)
+	}
+
+	reportServer.mu.Lock()
+	defer reportServer.mu.Unlock()
+	if reportServer.taskStatus != string(task.StatusFailed) {
+		t.Fatalf("expected failed task status, got %q", reportServer.taskStatus)
+	}
+	if !strings.Contains(reportServer.taskErrorSummary, "unexpected log ack task_id") {
+		t.Fatalf("expected execution error summary, got %q", reportServer.taskErrorSummary)
+	}
+}
+
 func TestReportTaskCompletionWithTimeoutReturnsDeadlineExceeded(t *testing.T) {
 	t.Parallel()
 
@@ -1265,6 +1299,7 @@ type agentExecutionTestReportServer struct {
 	blockLogUploads    bool
 	blockTaskState     bool
 	blockTaskStepState bool
+	wrongLogAckTaskID  bool
 }
 
 func (server *agentExecutionTestReportServer) Heartbeat(context.Context, *connect.Request[agentv1.HeartbeatRequest]) (*connect.Response[agentv1.HeartbeatResponse], error) {
@@ -1312,12 +1347,17 @@ func (server *agentExecutionTestReportServer) UploadTaskLogs(ctx context.Context
 		}
 		confirmedSeq := server.confirmedSeq
 		blockLogUploads := server.blockLogUploads
+		wrongLogAckTaskID := server.wrongLogAckTaskID
 		server.mu.Unlock()
 		if blockLogUploads {
 			<-ctx.Done()
 			return ctx.Err()
 		}
-		if err := stream.Send(&agentv1.UploadTaskLogsResponse{TaskId: message.GetTaskId(), LastConfirmedSeq: confirmedSeq}); err != nil {
+		ackTaskID := message.GetTaskId()
+		if wrongLogAckTaskID {
+			ackTaskID = "other-task"
+		}
+		if err := stream.Send(&agentv1.UploadTaskLogsResponse{TaskId: ackTaskID, LastConfirmedSeq: confirmedSeq}); err != nil {
 			return err
 		}
 	}
