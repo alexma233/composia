@@ -84,6 +84,12 @@
   --ring: hsl(160 84% 39%);
 }
 
+:root[data-accent="blue"],
+.dark[data-accent="blue"] {
+  --primary: hsl(221 83% 53%);
+  --ring: hsl(221 83% 53%);
+}
+
 :root[data-accent="violet"],
 .dark[data-accent="violet"] {
   --primary: hsl(262 83% 58%);
