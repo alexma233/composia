@@ -46,7 +46,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
-      - /srv/caddy/generated:/etc/caddy/conf.d  # 生成的配置目录
+      - /data/state-agent/caddy/generated:/etc/caddy/conf.d  # 生成的配置目录
     command: caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
 
 volumes:
@@ -73,10 +73,12 @@ agent:
   node_id: "main"
   token: "main-agent-token"
   caddy:
-    generated_dir: "/srv/caddy/generated"  # 必须与 Caddy 容器挂载路径一致
+    generated_dir: "/data/state-agent/caddy/generated"  # 必须与 Caddy 容器挂载源路径一致
 ```
 
 Agent 侧字段说明见 [配置指南中的 Agent 配置](./configuration/agent)。
+
+不要把 `generated_dir` 放在 Caddy 服务目录内，例如 `repo_dir/caddy/...`。服务部署会用最新 bundle 整体替换服务目录，放在其中的生成配置会在重新部署 Caddy 时被删除。推荐使用 Agent 的 `state_dir` 下的持久目录，并把同一个宿主机目录挂载到 Caddy 容器内。
 
 ## 3. 配置业务服务
 

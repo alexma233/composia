@@ -88,7 +88,7 @@ agent:
   repo_dir: "/data/repo-agent"
   state_dir: "/data/state-agent"
   caddy:
-    generated_dir: "/srv/caddy/generated"
+    generated_dir: "/data/state-agent/caddy/generated"
 ```
 
 同时需要部署 Caddy 基础设施服务，参考 [Caddy 配置](../caddy)。

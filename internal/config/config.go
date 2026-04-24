@@ -335,5 +335,5 @@ func (agent *AgentConfig) CaddyGeneratedDir() string {
 	if agent.Caddy != nil && agent.Caddy.GeneratedDir != "" {
 		return agent.Caddy.GeneratedDir
 	}
-	return filepath.Join(agent.RepoDir, "caddy", "config", "site-generated")
+	return filepath.Join(agent.StateDir, "caddy", "generated")
 }

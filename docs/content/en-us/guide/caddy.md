@@ -46,7 +46,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
-      - /srv/caddy/generated:/etc/caddy/conf.d  # Generated config directory
+      - /data/state-agent/caddy/generated:/etc/caddy/conf.d  # Generated config directory
     command: caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
 
 volumes:
@@ -73,10 +73,12 @@ agent:
   node_id: "main"
   token: "main-agent-token"
   caddy:
-    generated_dir: "/srv/caddy/generated"  # Must match Caddy container mount path
+    generated_dir: "/data/state-agent/caddy/generated"  # Must match the Caddy container mount source path
 ```
 
 For Agent-side field details, see [Agent Configuration in the configuration guide](./configuration/agent).
+
+Do not place `generated_dir` inside the Caddy service directory, such as `repo_dir/caddy/...`. Service deploys replace the service directory with the latest bundle, so generated config placed there is deleted when Caddy is redeployed. Prefer a persistent directory under the Agent `state_dir`, then mount that same host directory into the Caddy container.
 
 ## 3. Configure Business Service
 

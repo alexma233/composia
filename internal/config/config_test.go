@@ -94,9 +94,9 @@ agent:
 func TestAgentCaddyGeneratedDirDefault(t *testing.T) {
 	t.Parallel()
 
-	agent := &AgentConfig{RepoDir: "/srv/composia/repo"}
+	agent := &AgentConfig{RepoDir: "/srv/composia/repo", StateDir: "/srv/composia/state"}
 	got := agent.CaddyGeneratedDir()
-	want := "/srv/composia/repo/caddy/config/site-generated"
+	want := "/srv/composia/state/caddy/generated"
 	if got != want {
 		t.Fatalf("expected default caddy dir %q, got %q", want, got)
 	}

@@ -90,7 +90,7 @@ agent:
   repo_dir: "/data/repo-agent"
   state_dir: "/data/state-agent"
   caddy:
-    generated_dir: "/srv/caddy/generated"
+    generated_dir: "/data/state-agent/caddy/generated"
 ```
 
 ## 按功能阅读

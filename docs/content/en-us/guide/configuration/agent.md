@@ -88,7 +88,7 @@ agent:
   repo_dir: "/data/repo-agent"
   state_dir: "/data/state-agent"
   caddy:
-    generated_dir: "/srv/caddy/generated"
+    generated_dir: "/data/state-agent/caddy/generated"
 ```
 
 You also need to deploy the Caddy infrastructure service. See [Caddy Configuration](../caddy).
