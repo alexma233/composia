@@ -188,7 +188,7 @@ data_protect:
 | 策略 | 说明 | 适用场景 |
 |------|------|----------|
 | `files.copy` | 直接复制文件 | 静态文件、上传目录 |
-| `files.tar_after_stop` | 停止后打包 | 需要一致性的数据 |
+| `files.copy_after_stop` | 停止服务后复制并恢复 | 需要一致性的数据 |
 | `database.pgdumpall` | PostgreSQL 全量导出 | PostgreSQL 数据库 |
 
 #### 备份配置

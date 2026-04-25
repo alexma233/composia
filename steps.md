@@ -60,7 +60,7 @@
 - `update`：完整实现（pull + compose-up + caddy-sync steps）
 - `stop`：完整实现（download bundle、compose-down、remove generated caddy file）
 - `restart`：完整实现（compose-down + compose-up）
-- `backup`：完整实现（rustic、files.copy、files.tar_after_stop、database.pgdumpall）
+- `backup`：完整实现（rustic、files.copy、files.copy_after_stop、database.pgdumpall）
 - `prune`：完整实现（targets: all、containers、networks、images、volumes、builder）
 - `dns_update`：Controller 端实现（Cloudflare 集成）
 - `caddy_sync`：Agent 端实现（同步单 service Caddy 片段，或重建整个 node 的 generated_dir）
@@ -185,19 +185,19 @@
 目标：将当前备份 scaffold 转变为第一个真实数据保护工作流，并明确其 instance 语义。
 
 已完成：
-- 备份执行使用 rustic provider、files.copy、files.tar_after_stop、database.pgdumpall
+- 备份执行使用 rustic provider、files.copy、files.copy_after_stop、database.pgdumpall
 - 备份记录持久化到 SQLite
 - 备份查询 API 稳定
 - service 级 backup 通过 `RunServiceAction` + `node_ids[]` 实现 instance 扇出
 
 待完成：
 1. 对 restore 链路做真实环境下的实际测试，并补齐 backup/restore 组合回归
-2. 对每一个 backup strategy 单独补齐真实测试与失败场景测试：`files.copy`、`files.tar_after_stop`、`database.pgdumpall`
+2. 对每一个 backup strategy 单独补齐真实测试与失败场景测试：`files.copy`、`files.copy_after_stop`、`database.pgdumpall`
 3. 对每一个 backup strategy 进行重构，明确一致性边界、错误处理、恢复语义和日志语义
 4. restore 任务执行的真实回归测试与端到端校验
 5. 迁移复用备份数据的工作流需要在真实环境下验证
 6. `database.pgimport` restore 策略需要真实测试与重构
-7. `files.untar` restore 策略需要真实测试与重构
+7. restore 策略需要真实测试与重构
 8. 定时备份执行的真实环境回归
 
 ---
@@ -279,8 +279,7 @@
 3. 通用 restore 基础能力已实现，并已被 migrate 复用
 4. restore 当前支持：
    - `files.copy`
-   - `files.untar`
-   - `database.pgimport`
+    - `database.pgimport`
 5. Web UI 已提供基础 `MigrateService` 入口
 
 目标语义（待实现）：
@@ -411,7 +410,7 @@ dns update
 7. 完善 migrate 的 `persist_repo` 冲突处理，以及确认后的异常/回滚语义（Phase 9）
 8. 把 restore 从“已有 API/UI 入口”推进到“真实环境验证完成”：按 strategy 跑通回归并收口错误语义
 9. 优先补齐真实环境测试：`migrate`、`ForgetNodeRustic`、`PruneNodeRustic`、`restore`
-10. 按 strategy 重构 backup/restore：`files.copy`、`files.tar_after_stop`、`database.pgdumpall`、`files.untar`、`database.pgimport`
+10. 按 strategy 重构 backup/restore：`files.copy`、`files.copy_after_stop`、`database.pgdumpall`、`database.pgimport`
 11. CLI 命令面实现：`service`、`instance`、`container`、`task`、`backup`、`node`、`repo`、`secret`、`system`
 12. Web UI 增强：改进的 terminal 组件、迁移确认体验、restore 交互细节
 

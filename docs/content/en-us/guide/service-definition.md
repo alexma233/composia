@@ -188,7 +188,7 @@ data_protect:
 | Strategy | Description | Use Case |
 |----------|-------------|----------|
 | `files.copy` | Direct file copy | Static files, upload directories |
-| `files.tar_after_stop` | Archive after stopping service | Data requiring consistency |
+| `files.copy_after_stop` | Stop service, copy files, restart | Data requiring consistency |
 | `database.pgdumpall` | PostgreSQL full export | PostgreSQL databases |
 
 #### Backup Configuration

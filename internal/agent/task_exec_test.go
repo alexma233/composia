@@ -586,7 +586,7 @@ func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	serviceBundle := buildBundleArchive(t, map[string]string{
 		"demo/composia-meta.yaml":    "name: demo\nnodes:\n  - main\n",
 		"demo/config/app.env":        "HELLO=world\n",
-		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","data_protect_dir":"/data-protect","node_id":"main"},"items":[{"name":"config","strategy":"files.tar_after_stop","include":["./config"],"provider":"rustic"}]}`,
+		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","data_protect_dir":"/data-protect","node_id":"main"},"items":[{"name":"config","strategy":"files.copy_after_stop","include":["./config"],"provider":"rustic"}]}`,
 	})
 	rusticBundle := buildBundleArchive(t, map[string]string{
 		"backup/composia-meta.yaml": "name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    data_protect_dir: /data-protect\n",

@@ -123,7 +123,7 @@ backup:
 | 策略 | 说明 | 使用场景 |
 |------|------|----------|
 | `files.copy` | 服务路径直接复制；Docker volume 通过临时容器 tar stream 中转 | 静态文件、上传目录、Docker volume |
-| `files.tar_after_stop` | 停止服务后打包 | 需要一致性的数据 |
+| `files.copy_after_stop` | 停止服务后复制并恢复 | 需要一致性的数据 |
 | `database.pgdumpall` | PostgreSQL 全量导出 | PostgreSQL 数据库 |
 
 ### 执行备份

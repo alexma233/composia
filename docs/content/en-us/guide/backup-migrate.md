@@ -123,7 +123,7 @@ backup:
 | Strategy | Description | Use Case |
 |----------|-------------|----------|
 | `files.copy` | Direct copy for service paths; Docker volumes go through a temporary-container tar stream | Static files, upload directories, Docker volumes |
-| `files.tar_after_stop` | Archive after stopping service | Data requiring consistency |
+| `files.copy_after_stop` | Stop service, copy files, restart | Data requiring consistency |
 | `database.pgdumpall` | PostgreSQL full export | PostgreSQL databases |
 
 ### Execute Backup

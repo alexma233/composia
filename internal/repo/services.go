@@ -689,7 +689,7 @@ func validateDataAction(path, dataName, actionName string, action *DataActionCon
 			}
 		}
 		switch action.Strategy {
-		case "files.tar_after_stop", "files.untar", "files.copy":
+		case "files.copy_after_stop", "files.copy":
 			return nil
 		default:
 			return fmt.Errorf("service meta %q: unsupported %s strategy %q", path, actionName, action.Strategy)

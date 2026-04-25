@@ -1517,18 +1517,6 @@ func applyRestoreItem(ctx context.Context, serviceRoot, stagingDir string, item 
 			}
 		}
 		return nil
-	case "files.untar":
-		archivePath := filepath.Join(stagingDir, item.Name+".tar.gz")
-		extractDir := filepath.Join(stagingDir, "__untar")
-		if err := extractTarGz(archivePath, extractDir); err != nil {
-			return err
-		}
-		for _, include := range item.Include {
-			if err := restoreInclude(ctx, serviceRoot, extractDir, include); err != nil {
-				return fmt.Errorf("restore untar item %s include %s: %w", item.Name, include, err)
-			}
-		}
-		return nil
 	case "database.pgimport":
 		projectName, err := loadComposeProjectName(serviceRoot, filepath.Base(serviceRoot))
 		if err != nil {
@@ -1580,12 +1568,12 @@ func stageBackupItem(ctx context.Context, serviceRoot, stagingDir string, item b
 			}
 		}
 		return nil
-	case "files.tar_after_stop":
+	case "files.copy_after_stop":
 		projectName, err := loadComposeProjectName(serviceRoot, filepath.Base(serviceRoot))
 		if err != nil {
 			return err
 		}
-		if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("temporarily stopping compose project %s for backup item %s\n", projectName, item.Name)); err != nil {
+		if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("stopping compose project %s for cold backup item %s\n", projectName, item.Name)); err != nil {
 			return err
 		}
 		if err := runComposeDown(ctx, serviceRoot, projectName, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); err != nil {
@@ -1593,10 +1581,15 @@ func stageBackupItem(ctx context.Context, serviceRoot, stagingDir string, item b
 		}
 		defer func() {
 			if restartErr := runComposeUp(ctx, serviceRoot, projectName, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); restartErr != nil && retErr == nil {
-				retErr = fmt.Errorf("restart compose project after backup: %w", restartErr)
+				retErr = fmt.Errorf("restart compose project after cold backup: %w", restartErr)
 			}
 		}()
-		return stageTarBackupItem(ctx, serviceRoot, stagingDir, item)
+		for _, include := range item.Include {
+			if err := stageInclude(ctx, serviceRoot, stagingDir, include); err != nil {
+				return fmt.Errorf("stage cold backup item %s include %s: %w", item.Name, include, err)
+			}
+		}
+		return nil
 	case "database.pgdumpall":
 		projectName, err := loadComposeProjectName(serviceRoot, filepath.Base(serviceRoot))
 		if err != nil {
@@ -1610,17 +1603,6 @@ func stageBackupItem(ctx context.Context, serviceRoot, stagingDir string, item b
 	default:
 		return fmt.Errorf("backup strategy %q is not implemented yet", item.Strategy)
 	}
-}
-
-func stageTarBackupItem(ctx context.Context, serviceRoot, stagingDir string, item backupcfg.RuntimeItem) error {
-	copyRoot := filepath.Join(stagingDir, "__tar_stage")
-	for _, include := range item.Include {
-		if err := stageInclude(ctx, serviceRoot, copyRoot, include); err != nil {
-			return fmt.Errorf("stage tar backup item %s include %s: %w", item.Name, include, err)
-		}
-	}
-	archivePath := filepath.Join(stagingDir, item.Name+".tar.gz")
-	return createTarGzArchive(copyRoot, archivePath)
 }
 
 func stageInclude(ctx context.Context, serviceRoot, stagingDir, include string) error {
@@ -1730,33 +1712,6 @@ func copyFile(sourcePath, targetPath string, mode os.FileMode) error {
 	}
 	if err := sourceFile.Close(); err != nil {
 		return err
-	}
-	return nil
-}
-
-func createTarGzArchive(sourceDir, archivePath string) error {
-	archiveFile, err := os.Create(archivePath)
-	if err != nil {
-		return fmt.Errorf("create tar archive %q: %w", archivePath, err)
-	}
-	gzipWriter := gzip.NewWriter(archiveFile)
-	tarWriter := tar.NewWriter(gzipWriter)
-	if err := writeTarStream(sourceDir, tarWriter); err != nil {
-		_ = tarWriter.Close()
-		_ = gzipWriter.Close()
-		_ = archiveFile.Close()
-		return err
-	}
-	if err := tarWriter.Close(); err != nil {
-		_ = gzipWriter.Close()
-		_ = archiveFile.Close()
-		return fmt.Errorf("close tar archive %q: %w", archivePath, err)
-	}
-	if err := gzipWriter.Close(); err != nil {
-		return fmt.Errorf("close gzip archive %q: %w", archivePath, err)
-	}
-	if err := archiveFile.Close(); err != nil {
-		return fmt.Errorf("close archive file %q: %w", archivePath, err)
 	}
 	return nil
 }
