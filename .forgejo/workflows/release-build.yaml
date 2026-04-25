@@ -11,6 +11,10 @@ env:
   FORGEJO_WEB_IMAGE_NAME: forgejo.alexma.top/${{ github.repository_owner }}/composia-web
   GHCR_BACKEND_IMAGE_NAME: ghcr.io/${{ github.repository }}
   GHCR_WEB_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/composia-web
+  CODEBERG_BACKEND_IMAGE_NAME: codeberg.org/alexma233/composia
+  CODEBERG_WEB_IMAGE_NAME: codeberg.org/alexma233/composia-web
+  DOCKERHUB_BACKEND_IMAGE_NAME: alexma233/composia
+  DOCKERHUB_WEB_IMAGE_NAME: alexma233/composia-web
   PLATFORMS: linux/amd64,linux/arm64
 
 jobs:
@@ -31,16 +35,31 @@ jobs:
         uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
         with:
           registry: ${{ env.REGISTRY_HOST }}
-          username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
+          username: ${{ secrets.OCI_IMAGES_FORGEJO_USERNAME }}
+          password: ${{ secrets.OCI_IMAGES_FORGEJO_TOKEN }}
 
       - name: Login to GHCR
         # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.1.0
         uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
         with:
           registry: ghcr.io
-          username: ${{ secrets.GHCR_USERNAME }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          username: ${{ secrets.OCI_IMAGES_GHCR_USERNAME }}
+          password: ${{ secrets.OCI_IMAGES_GHCR_TOKEN }}
+
+      - name: Login to Codeberg
+        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.1.0
+        uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: codeberg.org
+          username: ${{ secrets.OCI_IMAGES_CODEBERG_USERNAME }}
+          password: ${{ secrets.OCI_IMAGES_CODEBERG_TOKEN }}
+
+      - name: Login to Docker Hub
+        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.1.0
+        uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          username: ${{ secrets.OCI_IMAGES_DOCKERHUB_USERNAME }}
+          password: ${{ secrets.OCI_IMAGES_DOCKERHUB_TOKEN }}
 
       - name: Docker meta
         id: meta
@@ -50,6 +69,8 @@ jobs:
           images: |
             ${{ env.FORGEJO_BACKEND_IMAGE_NAME }}
             ${{ env.GHCR_BACKEND_IMAGE_NAME }}
+            ${{ env.CODEBERG_BACKEND_IMAGE_NAME }}
+            ${{ env.DOCKERHUB_BACKEND_IMAGE_NAME }}
           flavor: |
             latest=true
           tags: |
@@ -95,16 +116,31 @@ jobs:
         uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
         with:
           registry: ${{ env.REGISTRY_HOST }}
-          username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
+          username: ${{ secrets.OCI_IMAGES_FORGEJO_USERNAME }}
+          password: ${{ secrets.OCI_IMAGES_FORGEJO_TOKEN }}
 
       - name: Login to GHCR
         # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.1.0
         uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
         with:
           registry: ghcr.io
-          username: ${{ secrets.GHCR_USERNAME }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          username: ${{ secrets.OCI_IMAGES_GHCR_USERNAME }}
+          password: ${{ secrets.OCI_IMAGES_GHCR_TOKEN }}
+
+      - name: Login to Codeberg
+        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.1.0
+        uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: codeberg.org
+          username: ${{ secrets.OCI_IMAGES_CODEBERG_USERNAME }}
+          password: ${{ secrets.OCI_IMAGES_CODEBERG_TOKEN }}
+
+      - name: Login to Docker Hub
+        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.1.0
+        uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          username: ${{ secrets.OCI_IMAGES_DOCKERHUB_USERNAME }}
+          password: ${{ secrets.OCI_IMAGES_DOCKERHUB_TOKEN }}
 
       - name: Docker meta
         id: meta
@@ -114,6 +150,8 @@ jobs:
           images: |
             ${{ env.FORGEJO_WEB_IMAGE_NAME }}
             ${{ env.GHCR_WEB_IMAGE_NAME }}
+            ${{ env.CODEBERG_WEB_IMAGE_NAME }}
+            ${{ env.DOCKERHUB_WEB_IMAGE_NAME }}
           flavor: |
             latest=true
           tags: |

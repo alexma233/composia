@@ -41,16 +41,16 @@ jobs:
         uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
         with:
           registry: ${{ env.REGISTRY_HOST }}
-          username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
+          username: ${{ secrets.OCI_IMAGES_FORGEJO_USERNAME }}
+          password: ${{ secrets.OCI_IMAGES_FORGEJO_TOKEN }}
 
       - name: Login to GHCR
         # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.1.0
         uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
         with:
           registry: ghcr.io
-          username: ${{ secrets.GHCR_USERNAME }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          username: ${{ secrets.OCI_IMAGES_GHCR_USERNAME }}
+          password: ${{ secrets.OCI_IMAGES_GHCR_TOKEN }}
 
       - name: Docker meta
         id: meta
