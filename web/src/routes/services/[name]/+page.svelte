@@ -1318,12 +1318,10 @@
           {#each visibleNodeContainers as instance, index}
             <section class="space-y-3">
               {#if hasMultipleInstanceNodes && selectedInstanceNode === "__all__"}
-                <div class="flex items-center gap-3">
-                  {#if index > 0}
-                    <div class="h-px flex-1 bg-border/70"></div>
-                  {/if}
+                <div class="relative flex items-center justify-center">
+                  <div class="absolute inset-x-0 h-px bg-border/70"></div>
                   <div
-                    class="flex items-center gap-2 text-sm font-medium text-foreground"
+                    class="relative flex items-center gap-2 bg-card px-3 text-sm font-medium text-foreground"
                   >
                     <span>{instance.nodeId}</span>
                     <Badge variant={runtimeStatusTone(instance.runtimeStatus)}
