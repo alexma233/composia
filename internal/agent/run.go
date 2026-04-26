@@ -1505,7 +1505,7 @@ func restoreRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoo
 	if err := runRusticRestore(ctx, rusticRoot, rustic, item.ArtifactRef, rusticTargetDir, logUploader); err != nil {
 		return err
 	}
-	return applyRestoreItem(ctx, serviceRoot, stagingDir, item, logUploader)
+	return applyRestoreItem(ctx, serviceRoot, filepath.Join(stagingDir, item.Name), item, logUploader)
 }
 
 func applyRestoreItem(ctx context.Context, serviceRoot, stagingDir string, item backupcfg.RestoreItem, logUploader *taskLogUploader) error {

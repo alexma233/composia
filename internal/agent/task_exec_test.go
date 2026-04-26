@@ -496,6 +496,44 @@ func TestRestoreIncludeUsesDockerTarImportForVolume(t *testing.T) {
 	}
 }
 
+func TestApplyRestoreItemUsesBackupItemPathForVolume(t *testing.T) {
+	rootDir := t.TempDir()
+	binDir := filepath.Join(rootDir, "bin")
+	volumeTargetDir := filepath.Join(rootDir, "volume-target")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatalf("create bin dir: %v", err)
+	}
+	dockerPath := filepath.Join(binDir, "docker")
+	script := "#!/bin/sh\nif [ \"$1\" = \"run\" ] && [ \"$2\" = \"-i\" ] && [ \"$3\" = \"--rm\" ] && [ \"$4\" = \"-v\" ] && [ \"$5\" = \"test_backup:/target\" ]; then\n  mkdir -p \"$TEST_VOLUME_TARGET_DIR\"\n  tar -C \"$TEST_VOLUME_TARGET_DIR\" -xf -\n  exit 0\nfi\nprintf 'unexpected docker invocation: %s\\n' \"$*\" >&2\nexit 97\n"
+	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake docker script: %v", err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("TEST_VOLUME_TARGET_DIR", volumeTargetDir)
+
+	stagingDir := t.TempDir()
+	stagedVolumeDir := filepath.Join(stagingDir, "mydata", "volumes", sanitizeStagePath("test_backup"))
+	if err := os.MkdirAll(stagedVolumeDir, 0o755); err != nil {
+		t.Fatalf("create staged volume dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(stagedVolumeDir, "hello.txt"), []byte("restored from rustic as-path\n"), 0o644); err != nil {
+		t.Fatalf("seed staged volume file: %v", err)
+	}
+
+	item := backupcfg.RestoreItem{Name: "mydata", Strategy: "files.copy", Include: []string{"test_backup"}}
+	if err := applyRestoreItem(context.Background(), t.TempDir(), filepath.Join(stagingDir, item.Name), item, nil); err != nil {
+		t.Fatalf("apply restore item: %v", err)
+	}
+
+	content, err := os.ReadFile(filepath.Join(volumeTargetDir, "hello.txt"))
+	if err != nil {
+		t.Fatalf("read restored file: %v", err)
+	}
+	if string(content) != "restored from rustic as-path\n" {
+		t.Fatalf("unexpected restored content %q", string(content))
+	}
+}
+
 func TestStageIncludeReturnsErrorWhenDockerTarExportFailsForVolume(t *testing.T) {
 	rootDir := t.TempDir()
 	binDir := filepath.Join(rootDir, "bin")
