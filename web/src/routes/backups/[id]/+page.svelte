@@ -35,7 +35,12 @@
     DialogTitle,
   } from "$lib/components/ui/dialog";
   import { Label } from "$lib/components/ui/label";
-  import * as Select from "$lib/components/ui/select";
+  import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+  } from "$lib/components/ui/select";
   import {
     formatTimestamp,
     taskStatusLabel,
@@ -142,6 +147,10 @@
     }
   }
 </script>
+
+<svelte:head>
+  <title>{$messages.backups.detailsTitle} - {$messages.app.name}</title>
+</svelte:head>
 
 <div class="page-shell">
   <Card>
@@ -251,18 +260,18 @@
             <Label for="restore-target-node"
               >{$messages.backups.selectTargetNode}</Label
             >
-            <Select.Root type="single" bind:value={targetNodeId as any}>
-              <Select.Trigger id="restore-target-node" class="w-full">
+            <Select type="single" bind:value={targetNodeId as any}>
+              <SelectTrigger id="restore-target-node" class="w-full">
                 {targetNodeId || $messages.backups.selectTargetNode}
-              </Select.Trigger>
-              <Select.Content>
+              </SelectTrigger>
+              <SelectContent>
                 {#each eligibleRestoreNodes as node}
-                  <Select.Item value={node.nodeId} label={node.displayName}>
+                  <SelectItem value={node.nodeId} label={node.displayName}>
                     {node.displayName} ({node.nodeId})
-                  </Select.Item>
+                  </SelectItem>
                 {/each}
-              </Select.Content>
-            </Select.Root>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

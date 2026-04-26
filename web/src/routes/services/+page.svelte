@@ -45,6 +45,10 @@
   onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
 </script>
 
+<svelte:head>
+  <title>{$messages.services.title} - {$messages.app.name}</title>
+</svelte:head>
+
 <div class="page-shell">
   <Card>
     <CardHeader>
@@ -111,7 +115,7 @@
           </TableHeader>
           <TableBody>
             {#each data.services as service}
-              <TableRow>
+              <TableRow class="hover:bg-accent/50">
                 <TableCell>
                   <a href={`/services/${service.folder}`} class="font-medium hover:text-primary">{service.displayName}</a>
                 </TableCell>

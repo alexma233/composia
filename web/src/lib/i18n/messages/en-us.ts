@@ -291,6 +291,16 @@ export const enUS = {
       "Are you sure you want to delete this file? This action cannot be undone.",
     deleteFolderConfirm:
       "Are you sure you want to delete this folder? This action cannot be undone.",
+    fileSaved: "Saved {path}",
+    fileCreated: "Created {path}",
+    folderCreated: "Created folder {path}",
+    pathRenamed: "Renamed to {path}",
+    pathDeleted: "Deleted {path}",
+    actionQueued: "{action} queued as {taskId}",
+    deleteFileDialogTitle: "Delete {path}?",
+    deleteFolderDialogTitle: "Delete folder {path}?",
+    deleteServiceDialogMessage: "Delete service folder {folder}?",
+    migrateQueued: "Migrate queued as {taskId}",
   },
   tasks: {
     title: "Tasks",

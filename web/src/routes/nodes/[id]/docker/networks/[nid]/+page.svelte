@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { PageData } from './$types';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
-  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
   import { Badge } from '$lib/components/ui/badge';
   import { messages } from '$lib/i18n';
@@ -47,12 +47,16 @@
   }
 </script>
 
+<svelte:head>
+  <title>{$messages.docker.networks.title} - {$messages.app.name}</title>
+</svelte:head>
+
 <div class="page-shell">
   <div class="page-stack">
 		<Card>
 			<CardHeader>
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div class="space-y-1">
+        <div class="page-header">
+          <div class="page-heading">
             <CardTitle class="page-title">
               {#if networkData}
                 {networkData.Name || data.networkId.substring(0, 12)}
@@ -60,21 +64,21 @@
                 {$messages.docker.networks.title}
               {/if}
             </CardTitle>
-            <CardDescription class="page-description">
+            <p class="page-description">
               {#if networkData}
                 <code class="text-xs bg-muted px-1 py-0.5 rounded">{networkData.Id?.substring(0, 19)}</code>
               {:else}
                 {data.networkId}
               {/if}
-            </CardDescription>
+            </p>
           </div>
-          <div class="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
+          <div class="flex items-center gap-2">
             {#if networkData}
-              <Badge variant={networkData.Scope === 'local' ? 'secondary' : 'outline'} class="w-fit">
+              <Badge variant={networkData.Scope === 'local' ? 'secondary' : 'outline'}>
                 {networkData.Scope}
               </Badge>
             {/if}
-            <a href="/nodes/{data.nodeId}/docker/networks" class="text-sm text-muted-foreground hover:underline sm:text-right">
+            <a href="/nodes/{data.nodeId}/docker/networks" class="text-sm text-muted-foreground transition-colors hover:text-foreground">
               {$messages.docker.networks.backToNetworks}
             </a>
           </div>
@@ -262,7 +266,7 @@
               <Card>
                 <CardHeader class="pb-3">
                   <CardTitle class="text-base">{$messages.docker.networks.rawJson}</CardTitle>
-                  <CardDescription>{$messages.docker.networks.rawJsonDescription}</CardDescription>
+                  <p class="text-sm text-muted-foreground">{$messages.docker.networks.rawJsonDescription}</p>
                 </CardHeader>
                 <CardContent>
                   <pre class="code-surface max-h-[360px] overflow-auto break-all sm:max-h-[600px]">{JSON.stringify(networkData, null, 2)}</pre>

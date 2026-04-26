@@ -1,9 +1,9 @@
 <script lang="ts">
-  import CheckIcon from "@lucide/svelte/icons/check";
-  import ChevronsUpDownIcon from "@lucide/svelte/icons/chevrons-up-down";
   import { goto, invalidateAll } from "$app/navigation";
   import { onMount } from "svelte";
   import {
+    Check,
+    ChevronsUpDown,
     Columns2,
     Copy,
     FilePlus,
@@ -51,14 +51,14 @@
   } from "$lib/components/ui/collapsible";
   import {
     Dialog,
-    DialogTitle,
+    DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,
+    DialogOverlay,
+    DialogTitle,
   } from "$lib/components/ui/dialog";
   import * as Command from "$lib/components/ui/command";
-  import DialogContent from "$lib/components/ui/dialog/dialog-content.svelte";
-  import DialogOverlay from "$lib/components/ui/dialog/dialog-overlay.svelte";
   import { Input } from "$lib/components/ui/input";
   import * as Popover from "$lib/components/ui/popover";
   import {
@@ -70,6 +70,7 @@
   import { toast } from "svelte-sonner";
   import {
     formatTimestamp,
+    isTaskRecent,
     runtimeStatusLabel,
     runtimeStatusTone,
     taskStatusLabel,
@@ -929,14 +930,6 @@
     };
   });
 
-  function isTaskRecent(createdAt: string) {
-    const createdAtMs = Date.parse(createdAt);
-    if (Number.isNaN(createdAtMs)) {
-      return false;
-    }
-    return Date.now() - createdAtMs <= 24 * 60 * 60 * 1000;
-  }
-
   function isTerminalTaskStatus(status: string) {
     return (
       status === "succeeded" || status === "failed" || status === "cancelled"
@@ -1153,6 +1146,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>{workspace?.displayName ?? $messages.services.title} - {$messages.app.name}</title>
+</svelte:head>
+
 <div class="page-shell-workbench flex min-h-[calc(100vh-72px)] flex-col">
   <div class="page-stack flex min-h-0 flex-1 flex-col">
     <Card>
@@ -1177,7 +1174,7 @@
                 >
                   {workspace?.displayName ?? $messages.services.selectService}
                 </span>
-                <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                <ChevronsUpDown class="size-4 shrink-0 opacity-50" />
               </button>
             </Popover.Trigger>
             <Popover.Content
@@ -1207,7 +1204,7 @@
                             {service.secondary}
                           </div>
                         </div>
-                        <CheckIcon
+                        <Check
                           class={cn(
                             "ml-auto size-4",
                             service.value !== workspace?.folder &&
@@ -1262,6 +1259,13 @@
           <Alert variant="destructive">
             <AlertTitle>{$messages.error.syncFailed}</AlertTitle>
             <AlertDescription>{syncError}</AlertDescription>
+          </Alert>
+        {/if}
+
+        {#if errorMessage}
+          <Alert variant="destructive">
+            <AlertTitle>{$messages.error.workspaceError}</AlertTitle>
+            <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         {/if}
       </CardHeader>
@@ -1398,13 +1402,6 @@
           {/each}
         </CardContent>
       </Card>
-    {/if}
-
-    {#if errorMessage}
-      <Alert variant="destructive">
-        <AlertTitle>{$messages.error.workspaceError}</AlertTitle>
-        <AlertDescription>{errorMessage}</AlertDescription>
-      </Alert>
     {/if}
 
     <div

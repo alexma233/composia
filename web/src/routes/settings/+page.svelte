@@ -138,31 +138,30 @@
   onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
 </script>
 
+<svelte:head>
+  <title>{$messages.settings.title} - {$messages.app.name}</title>
+</svelte:head>
+
 <div class="page-shell">
   <div class="page-stack">
-    <Card>
-      <CardHeader>
-        <div class="page-heading">
-          <CardTitle class="page-title">{$messages.settings.title}</CardTitle>
-        </div>
-      </CardHeader>
-    </Card>
-
-    {#if data.error}
-      <Alert variant="destructive">
-        <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
-        <AlertDescription>{data.error}</AlertDescription>
-      </Alert>
-    {/if}
-
     <section class="grid gap-6 lg:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle class="section-title"
-            >{$messages.settings.appearance.title}</CardTitle
-          >
+          <div class="page-header">
+            <div class="page-heading">
+              <CardTitle class="page-title">{$messages.settings.title}</CardTitle>
+            </div>
+          </div>
+
+          {#if data.error}
+            <Alert variant="destructive">
+              <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
+              <AlertDescription>{data.error}</AlertDescription>
+            </Alert>
+          {/if}
         </CardHeader>
         <CardContent>
+          <CardTitle class="section-title">{$messages.settings.appearance.title}</CardTitle>
           <ThemeControls />
         </CardContent>
       </Card>

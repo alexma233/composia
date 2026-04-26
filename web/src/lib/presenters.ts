@@ -128,6 +128,33 @@ export function onlineStatusTone(isOnline: boolean): BadgeVariant {
   return isOnline ? "default" : "secondary";
 }
 
+export function containerStateTone(state: string): BadgeVariant {
+  const s = (state || "").toLowerCase();
+  if (s === "running") return "default";
+  if (s === "created" || s === "starting") return "outline";
+  if (s === "paused") return "secondary";
+  if (s === "restarting" || s === "unhealthy") return "outline";
+  if (s === "exited" || s === "dead" || s === "removing") return "destructive";
+  return "default";
+}
+
+export function isTaskRecent(createdAt: string): boolean {
+  const createdAtMs = Date.parse(createdAt);
+  if (Number.isNaN(createdAtMs)) return false;
+  return Date.now() - createdAtMs <= 24 * 60 * 60 * 1000;
+}
+
+export function formatDuration(startedAt: string): string {
+  if (!startedAt) return "-";
+  const start = new Date(startedAt);
+  const now = new Date();
+  const diff = Math.floor((now.getTime() - start.getTime()) / 1000);
+  if (diff < 60) return `${diff}s`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  return `${Math.floor(diff / 86400)}d`;
+}
+
 export function formatBytes(bytes: number) {
   if (bytes === 0 || !bytes) {
     return "0 B";

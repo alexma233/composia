@@ -20,6 +20,10 @@
   onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
 </script>
 
+<svelte:head>
+  <title>{$messages.nodes.title} - {$messages.app.name}</title>
+</svelte:head>
+
 <div class="page-shell">
   <Card>
     <CardHeader>
@@ -50,7 +54,7 @@
           </TableHeader>
           <TableBody>
             {#each data.nodes as node}
-              <TableRow>
+              <TableRow class="hover:bg-accent/50">
                 <TableCell>
                   <a href={`/nodes/${node.nodeId}`} class="font-medium hover:text-primary">{node.displayName}</a>
                   <div class="text-xs text-muted-foreground">{node.nodeId}</div>

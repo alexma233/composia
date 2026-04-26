@@ -5,9 +5,7 @@
   import { buttonVariants } from '$lib/components/ui/button';
   import type { Snippet } from 'svelte';
   import { onMount, tick } from 'svelte';
-  import CheckIcon from '@lucide/svelte/icons/check';
-  import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
-  import FilterIcon from '@lucide/svelte/icons/filter';
+  import { Check, ChevronsUpDown, Filter } from 'lucide-svelte';
   import { messages } from '$lib/i18n';
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
@@ -155,10 +153,6 @@
     excludedNodeIds = [...data.excludeNodeId];
     currentTypes = [...data.type] as TaskTypeFilter[];
     excludedTypes = [...data.excludeType] as TaskTypeFilter[];
-  });
-
-  $effect(() => {
-    document.title = $messages.tasks.pageTitle;
   });
 
   onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
@@ -375,6 +369,10 @@
   });
 </script>
 
+<svelte:head>
+  <title>{$messages.tasks.pageTitle}</title>
+</svelte:head>
+
 <div class="page-shell">
   <Card>
     <CardHeader>
@@ -387,7 +385,7 @@
             <Popover.Trigger class="inline-flex">
               {#snippet child({ props })}
                 <Button type="button" variant="outline" class="gap-2" {...props}>
-                  <FilterIcon class="size-4" />
+                  <Filter class="size-4" />
                   {$messages.common.filter}
                   {#if activeFilterCount > 0}
                     <Badge variant="secondary">{activeFilterCount}</Badge>
@@ -403,7 +401,7 @@
                   <Popover.Root bind:open={statusSelectOpen}>
                     <Popover.Trigger bind:ref={statusTriggerRef} class={buttonVariants({ variant: 'outline', class: 'w-full justify-between font-normal' })}>
                       <span class="truncate">{statusSummary}</span>
-                      <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                      <ChevronsUpDown class="size-4 shrink-0 opacity-50" />
                     </Popover.Trigger>
                     <Popover.Content class="w-[min(92vw,20rem)] p-0" align="start">
                       <div class="flex border-b p-1 gap-1">
@@ -417,12 +415,12 @@
                           <Command.Group>
                             <Command.Item value="__all__" onSelect={() => { clearModeValues('status', statusMode); closeAndFocus('status'); }}>
                               <span>{statusMode === 'include' ? $messages.tasks.filters.clearIncluded : $messages.tasks.filters.clearExcluded}</span>
-                              <CheckIcon class={cn('ml-auto size-4', (statusMode === 'include' ? currentStatuses.length > 0 : excludedStatuses.length > 0) && 'text-transparent')} />
+                              <Check class={cn('ml-auto size-4', (statusMode === 'include' ? currentStatuses.length > 0 : excludedStatuses.length > 0) && 'text-transparent')} />
                             </Command.Item>
                             {#each statusOptions as status}
                               <Command.Item value={status} onSelect={() => { toggleFilterSelection('status', statusMode, status); }}>
                                 <span>{statusLabel(status)}</span>
-                                <CheckIcon class={cn('ml-auto size-4', !isSelected('status', statusMode, status) && 'text-transparent')} />
+                                <Check class={cn('ml-auto size-4', !isSelected('status', statusMode, status) && 'text-transparent')} />
                               </Command.Item>
                             {/each}
                           </Command.Group>
@@ -437,7 +435,7 @@
                   <Popover.Root bind:open={serviceSelectOpen}>
                     <Popover.Trigger bind:ref={serviceTriggerRef} class={buttonVariants({ variant: 'outline', class: 'w-full justify-between font-normal' })}>
                       <span class="truncate">{serviceSummary}</span>
-                      <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                      <ChevronsUpDown class="size-4 shrink-0 opacity-50" />
                     </Popover.Trigger>
                     <Popover.Content class="w-[min(92vw,22rem)] p-0" align="start">
                       <div class="flex border-b p-1 gap-1">
@@ -451,12 +449,12 @@
                           <Command.Group>
                             <Command.Item value="__all__" onSelect={() => { clearModeValues('service', serviceMode); closeAndFocus('service'); }}>
                               <span>{serviceMode === 'include' ? $messages.tasks.filters.clearIncluded : $messages.tasks.filters.clearExcluded}</span>
-                              <CheckIcon class={cn('ml-auto size-4', (serviceMode === 'include' ? currentServiceNames.length > 0 : excludedServiceNames.length > 0) && 'text-transparent')} />
+                              <Check class={cn('ml-auto size-4', (serviceMode === 'include' ? currentServiceNames.length > 0 : excludedServiceNames.length > 0) && 'text-transparent')} />
                             </Command.Item>
                             {#each serviceOptions as service (service.value)}
                               <Command.Item value={service.value} onSelect={() => { toggleFilterSelection('service', serviceMode, service.value); }}>
                                 <span class="truncate">{service.label}</span>
-                                <CheckIcon class={cn('ml-auto size-4', !isSelected('service', serviceMode, service.value) && 'text-transparent')} />
+                                <Check class={cn('ml-auto size-4', !isSelected('service', serviceMode, service.value) && 'text-transparent')} />
                               </Command.Item>
                             {/each}
                           </Command.Group>
@@ -471,7 +469,7 @@
                   <Popover.Root bind:open={nodeSelectOpen}>
                     <Popover.Trigger bind:ref={nodeTriggerRef} class={buttonVariants({ variant: 'outline', class: 'w-full justify-between font-normal' })}>
                       <span class="truncate">{nodeSummary}</span>
-                      <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                      <ChevronsUpDown class="size-4 shrink-0 opacity-50" />
                     </Popover.Trigger>
                     <Popover.Content class="w-[min(92vw,22rem)] p-0" align="start">
                       <div class="flex border-b p-1 gap-1">
@@ -485,7 +483,7 @@
                           <Command.Group>
                             <Command.Item value="__all__" onSelect={() => { clearModeValues('node', nodeMode); closeAndFocus('node'); }}>
                               <span>{nodeMode === 'include' ? $messages.tasks.filters.clearIncluded : $messages.tasks.filters.clearExcluded}</span>
-                              <CheckIcon class={cn('ml-auto size-4', (nodeMode === 'include' ? currentNodeIds.length > 0 : excludedNodeIds.length > 0) && 'text-transparent')} />
+                              <Check class={cn('ml-auto size-4', (nodeMode === 'include' ? currentNodeIds.length > 0 : excludedNodeIds.length > 0) && 'text-transparent')} />
                             </Command.Item>
                             {#each nodeOptions as node (node.value)}
                               <Command.Item value={`${node.label} ${node.secondary ?? ''}`} onSelect={() => { toggleFilterSelection('node', nodeMode, node.value); }}>
@@ -495,7 +493,7 @@
                                     <div class="truncate text-xs text-muted-foreground">{node.secondary}</div>
                                   {/if}
                                 </div>
-                                <CheckIcon class={cn('ml-auto size-4', !isSelected('node', nodeMode, node.value) && 'text-transparent')} />
+                                <Check class={cn('ml-auto size-4', !isSelected('node', nodeMode, node.value) && 'text-transparent')} />
                               </Command.Item>
                             {/each}
                           </Command.Group>
@@ -510,7 +508,7 @@
                   <Popover.Root bind:open={typeSelectOpen}>
                     <Popover.Trigger bind:ref={typeTriggerRef} class={buttonVariants({ variant: 'outline', class: 'w-full justify-between font-normal' })}>
                       <span class="truncate">{typeSummary}</span>
-                      <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                      <ChevronsUpDown class="size-4 shrink-0 opacity-50" />
                     </Popover.Trigger>
                     <Popover.Content class="w-[min(92vw,24rem)] p-0" align="start">
                       <div class="flex border-b p-1 gap-1">
@@ -524,12 +522,12 @@
                           <Command.Group>
                             <Command.Item value="__all__" onSelect={() => { clearModeValues('type', typeMode); closeAndFocus('type'); }}>
                               <span>{typeMode === 'include' ? $messages.tasks.filters.clearIncluded : $messages.tasks.filters.clearExcluded}</span>
-                              <CheckIcon class={cn('ml-auto size-4', (typeMode === 'include' ? currentTypes.length > 0 : excludedTypes.length > 0) && 'text-transparent')} />
+                              <Check class={cn('ml-auto size-4', (typeMode === 'include' ? currentTypes.length > 0 : excludedTypes.length > 0) && 'text-transparent')} />
                             </Command.Item>
                             {#each taskTypeOptions as type}
                               <Command.Item value={`${typeLabel(type)} ${type}`} onSelect={() => { toggleFilterSelection('type', typeMode, type); }}>
                                 <span class="truncate">{typeLabel(type)}</span>
-                                <CheckIcon class={cn('ml-auto size-4', !isSelected('type', typeMode, type) && 'text-transparent')} />
+                                <Check class={cn('ml-auto size-4', !isSelected('type', typeMode, type) && 'text-transparent')} />
                               </Command.Item>
                             {/each}
                           </Command.Group>

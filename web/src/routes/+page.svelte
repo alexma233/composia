@@ -8,7 +8,13 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { startPolling } from '$lib/refresh';
-	import { formatTimestamp, onlineStatusTone, runtimeStatusLabel, runtimeStatusTone } from '$lib/presenters';
+  import {
+    formatTimestamp,
+    isTaskRecent,
+    onlineStatusTone,
+    runtimeStatusLabel,
+    runtimeStatusTone,
+  } from "$lib/presenters";
   import { messages } from '$lib/i18n';
   import TaskItem from '$lib/components/app/task-item.svelte';
 
@@ -18,12 +24,6 @@
   }
 
 	let { data }: Props = $props();
-
-  function isTaskRecent(createdAt: string) {
-    const createdAtMs = Date.parse(createdAt);
-    if (Number.isNaN(createdAtMs)) return false;
-    return Date.now() - createdAtMs <= 24 * 60 * 60 * 1000;
-  }
 
 	let recentTasks = $derived((data.dashboard?.tasks ?? [])
 		.filter((t) => isTaskRecent(t.createdAt))
@@ -45,14 +45,22 @@
 </svelte:head>
 
 <div class="page-shell">
-  <div class="page-stack">
-    {#if data.error}
-      <Alert variant="destructive">
-        <AlertTitle>{$messages.error.controllerError}</AlertTitle>
-        <AlertDescription>{data.error}</AlertDescription>
-      </Alert>
-    {/if}
+  <Card>
+    <CardHeader>
+      <div class="page-header">
+        <div class="page-heading">
+          <CardTitle class="page-title">{$messages.dashboard.title}</CardTitle>
+        </div>
+      </div>
 
+      {#if data.error}
+        <Alert variant="destructive">
+          <AlertTitle>{$messages.error.controllerError}</AlertTitle>
+          <AlertDescription>{data.error}</AlertDescription>
+        </Alert>
+      {/if}
+    </CardHeader>
+    <CardContent>
     <section class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
 		<Card>
         <CardHeader class="section-header">
@@ -156,5 +164,6 @@
         </Card>
       </div>
     </section>
-  </div>
+    </CardContent>
+  </Card>
 </div>

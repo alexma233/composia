@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { PageData } from './$types';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
-  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
   import { Badge } from '$lib/components/ui/badge';
   import { messages } from '$lib/i18n';
@@ -47,12 +47,16 @@
   }
 </script>
 
+<svelte:head>
+  <title>{$messages.docker.volumes.title} - {$messages.app.name}</title>
+</svelte:head>
+
 <div class="page-shell">
   <div class="page-stack">
 		<Card>
 			<CardHeader>
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div class="space-y-1">
+        <div class="page-header">
+          <div class="page-heading">
             <CardTitle class="page-title">
               {#if volumeData}
                 {volumeData.Name || data.volumeName}
@@ -60,15 +64,15 @@
                 {$messages.docker.volumes.title}
               {/if}
             </CardTitle>
-            <CardDescription class="page-description">
+            <p class="page-description">
               {#if volumeData}
                 <Badge variant="outline">{volumeData.Driver || $messages.common.local}</Badge>
               {:else}
                 {data.volumeName}
               {/if}
-            </CardDescription>
+            </p>
           </div>
-          <a href="/nodes/{data.nodeId}/docker/volumes" class="text-sm text-muted-foreground hover:underline sm:text-right">
+          <a href="/nodes/{data.nodeId}/docker/volumes" class="text-sm text-muted-foreground transition-colors hover:text-foreground">
             {$messages.docker.volumes.backToVolumes}
           </a>
         </div>
@@ -218,7 +222,7 @@
               <Card>
                 <CardHeader class="pb-3">
                   <CardTitle class="text-base">{$messages.docker.volumes.rawJson}</CardTitle>
-                  <CardDescription>{$messages.docker.volumes.rawJsonDescription}</CardDescription>
+                  <p class="text-sm text-muted-foreground">{$messages.docker.volumes.rawJsonDescription}</p>
                 </CardHeader>
                 <CardContent>
                   <pre class="code-surface max-h-[360px] overflow-auto break-all sm:max-h-[600px]">{JSON.stringify(volumeData, null, 2)}</pre>

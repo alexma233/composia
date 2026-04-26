@@ -224,6 +224,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>{$messages.tasks.taskDetails.title} - {$messages.app.name}</title>
+</svelte:head>
+
 <div class="page-shell">
   <div class="page-stack">
 		<Card>

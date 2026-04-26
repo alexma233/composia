@@ -1,10 +1,10 @@
 <script lang="ts">
   import type { PageData } from './$types';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
-  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
   import { Badge } from '$lib/components/ui/badge';
-  import { formatBytes, parseJsonList } from '$lib/presenters';
+  import { formatBytes, formatTimestamp, parseJsonList } from "$lib/presenters";
   import { messages } from '$lib/i18n';
 
   interface Props {
@@ -31,20 +31,18 @@
       imageData = null;
     }
   });
-
-  function formatDate(timestamp: string): string {
-    if (!timestamp) return '-';
-    const date = new Date(timestamp);
-    return date.toLocaleString();
-  }
 </script>
+
+<svelte:head>
+  <title>{$messages.docker.images.title} - {$messages.app.name}</title>
+</svelte:head>
 
 <div class="page-shell">
   <div class="page-stack">
 		<Card>
 			<CardHeader>
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div class="space-y-1">
+        <div class="page-header">
+          <div class="page-heading">
             <CardTitle class="page-title">
               {#if imageData}
                 {imageData.RepoTags?.[0]?.split(':')[0] || data.imageId.substring(0, 12)}
@@ -52,15 +50,15 @@
                 {$messages.docker.images.title}
               {/if}
             </CardTitle>
-            <CardDescription class="page-description">
+            <p class="page-description">
               {#if imageData}
                 <code class="text-xs bg-muted px-1 py-0.5 rounded">{imageData.Id?.substring(0, 19)}</code>
               {:else}
                 {data.imageId}
               {/if}
-            </CardDescription>
+            </p>
           </div>
-          <a href="/nodes/{data.nodeId}/docker/images" class="text-sm text-muted-foreground hover:underline sm:text-right">
+          <a href="/nodes/{data.nodeId}/docker/images" class="text-sm text-muted-foreground transition-colors hover:text-foreground">
             {$messages.docker.images.backToImages}
           </a>
         </div>
@@ -145,7 +143,7 @@
                     </div>
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.common.created}</span>
-                      <span class="sm:text-right">{formatDate(imageData.Created)}</span>
+                      <span class="sm:text-right">{formatTimestamp(imageData.Created)}</span>
                     </div>
                     {#if imageData.Author}
                       <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -206,7 +204,7 @@
               <Card>
                 <CardHeader class="pb-3">
                   <CardTitle class="text-base">{$messages.docker.images.rawJson}</CardTitle>
-                  <CardDescription>{$messages.docker.images.rawJsonDescription}</CardDescription>
+                  <p class="text-sm text-muted-foreground">{$messages.docker.images.rawJsonDescription}</p>
                 </CardHeader>
                 <CardContent>
                   <pre class="code-surface max-h-[360px] overflow-auto break-all sm:max-h-[600px]">{JSON.stringify(imageData, null, 2)}</pre>

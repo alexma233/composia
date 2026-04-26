@@ -3,7 +3,7 @@
   import { page } from '$app/stores';
   import { toast } from 'svelte-sonner';
   import type { PageData } from './$types';
-  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { Badge } from '$lib/components/ui/badge';
   import { Input } from '$lib/components/ui/input';
@@ -34,7 +34,7 @@
   import CopyButton from '$lib/components/app/copy-button.svelte';
   import SortableTableHead from '$lib/components/app/sortable-table-head.svelte';
   import Spinner from '$lib/components/ui/spinner/spinner.svelte';
-  import SearchIcon from '@lucide/svelte/icons/search';
+  import { Search } from 'lucide-svelte';
   import { Alert, AlertDescription } from '$lib/components/ui/alert';
   import { messages } from '$lib/i18n';
 
@@ -196,28 +196,32 @@
   }
 </script>
 
+<svelte:head>
+  <title>{$messages.docker.volumes.title} - {$messages.app.name}</title>
+</svelte:head>
+
 <div class="page-shell">
   <div class="page-stack">
 		<Card>
 			<CardHeader>
-        <div class="flex flex-wrap items-start justify-between gap-4">
-          <div class="space-y-1">
+        <div class="page-header">
+          <div class="page-heading">
             <CardTitle class="page-title">{$messages.docker.volumes.title}</CardTitle>
-            <CardDescription class="page-description">
+            <p class="page-description">
               {$messages.docker.volumes.title} on {data.nodeId}
               {#if !loading}
-                <Badge variant="secondary" class="ml-2">{data.totalCount}</Badge>
+                <Badge variant="outline" class="ml-2">{data.totalCount}</Badge>
               {/if}
-            </CardDescription>
+            </p>
           </div>
-          <a href="/nodes/{data.nodeId}" class="text-sm text-muted-foreground hover:underline">
+          <a href="/nodes/{data.nodeId}" class="text-sm text-muted-foreground transition-colors hover:text-foreground">
             {$messages.common.back}
           </a>
         </div>
 
         <div class="flex items-center gap-3">
           <div class="relative flex-1 max-w-sm">
-            <SearchIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
               placeholder={$messages.docker.volumes.searchPlaceholder}

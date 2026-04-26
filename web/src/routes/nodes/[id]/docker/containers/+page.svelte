@@ -3,9 +3,9 @@
   import { page } from '$app/stores';
   import { toast } from 'svelte-sonner';
   import type { PageData } from './$types';
-  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
-  import { Badge, type BadgeVariant } from '$lib/components/ui/badge';
+  import { Badge } from '$lib/components/ui/badge';
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
   import {
@@ -30,11 +30,15 @@
     buildDockerListPageUrl,
     type DockerListSortDirection,
   } from '$lib/docker-list-query';
-  import { formatDockerTimestamp, formatShortId } from '$lib/presenters';
+  import {
+  containerStateTone,
+  formatDockerTimestamp,
+  formatShortId,
+} from '$lib/presenters';
   import CopyButton from '$lib/components/app/copy-button.svelte';
   import SortableTableHead from '$lib/components/app/sortable-table-head.svelte';
   import Spinner from '$lib/components/ui/spinner/spinner.svelte';
-  import SearchIcon from '@lucide/svelte/icons/search';
+  import { Search } from 'lucide-svelte';
   import { Alert, AlertDescription } from '$lib/components/ui/alert';
   import { messages } from '$lib/i18n';
 
@@ -232,16 +236,6 @@
       : $messages.common.delete,
   );
 
-  function getStateVariant(state: string): BadgeVariant {
-    const s = (state || '').toLowerCase();
-    if (s === 'running') return 'default';
-    if (s === 'created' || s === 'starting') return 'outline';
-    if (s === 'paused') return 'secondary';
-    if (s === 'restarting' || s === 'unhealthy') return 'outline';
-    if (s === 'exited' || s === 'dead' || s === 'removing') return 'destructive';
-    return 'default';
-  }
-
   function handleSort(field: string) {
     if (sortField === field) {
       sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
@@ -262,28 +256,32 @@
   }
 </script>
 
+<svelte:head>
+  <title>{$messages.docker.containers.title} - {$messages.app.name}</title>
+</svelte:head>
+
 <div class="page-shell">
   <div class="page-stack">
 		<Card>
 			<CardHeader>
-        <div class="flex flex-wrap items-start justify-between gap-4">
-          <div class="space-y-1">
+        <div class="page-header">
+          <div class="page-heading">
             <CardTitle class="page-title">{$messages.docker.containers.title}</CardTitle>
-            <CardDescription class="page-description">
+            <p class="page-description">
               {data.nodeId}
               {#if !loading}
-                <Badge variant="secondary" class="ml-2">{data.totalCount}</Badge>
+                <Badge variant="outline" class="ml-2">{data.totalCount}</Badge>
               {/if}
-            </CardDescription>
+            </p>
           </div>
-          <a href="/nodes/{data.nodeId}" class="text-sm text-muted-foreground hover:underline">
+          <a href="/nodes/{data.nodeId}" class="text-sm text-muted-foreground transition-colors hover:text-foreground">
             {$messages.common.back}
           </a>
         </div>
 
         <div class="flex items-center gap-3">
           <div class="relative flex-1 max-w-sm">
-            <SearchIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
               placeholder={$messages.common.search + '...'}
@@ -359,7 +357,7 @@
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={getStateVariant(container.state)}>
+                    <Badge variant={containerStateTone(container.state)}>
                       {container.state}
                     </Badge>
                     {#if container.status}
@@ -406,12 +404,12 @@
                   </TableCell>
                   <TableCell>
                     <div class="flex flex-wrap gap-2">
-                      <a href="/nodes/{data.nodeId}/docker/containers/{encodeURIComponent(container.id)}?tab=logs">
-                        <Button variant="outline" size="sm">{$messages.docker.containers.logsLabel}</Button>
-                      </a>
-                      <a href="/nodes/{data.nodeId}/docker/containers/{encodeURIComponent(container.id)}?tab=terminal">
-                        <Button variant="outline" size="sm">{$messages.docker.containers.terminalLabel}</Button>
-                      </a>
+                      <Button variant="outline" size="sm" onclick={() => goto(`/nodes/${data.nodeId}/docker/containers/${encodeURIComponent(container.id)}?tab=logs`)}>
+                        {$messages.docker.containers.logsLabel}
+                      </Button>
+                      <Button variant="outline" size="sm" onclick={() => goto(`/nodes/${data.nodeId}/docker/containers/${encodeURIComponent(container.id)}?tab=terminal`)}>
+                        {$messages.docker.containers.terminalLabel}
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"

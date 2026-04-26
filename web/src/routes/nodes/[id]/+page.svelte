@@ -188,6 +188,10 @@
   });
 </script>
 
+<svelte:head>
+  <title>{data.node?.displayName ?? $messages.nodes.title} - {$messages.app.name}</title>
+</svelte:head>
+
 <div class="page-shell">
   <div class="page-stack">
     <Card>

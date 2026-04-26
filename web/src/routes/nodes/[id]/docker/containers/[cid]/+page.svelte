@@ -25,6 +25,12 @@
   import { Input } from "$lib/components/ui/input";
   import XtermSurface from "$lib/components/app/xterm-surface.svelte";
   import { messages } from "$lib/i18n";
+  import {
+    containerStateTone,
+    formatBytes,
+    formatDuration,
+    formatTimestamp,
+  } from "$lib/presenters";
   import { startPolling } from "$lib/refresh";
 
   interface Props {
@@ -84,18 +90,6 @@
     return date.toLocaleString();
   }
 
-  function formatDuration(startedAt: string): string {
-    if (!startedAt) return "-";
-    const start = new Date(startedAt);
-    const now = new Date();
-    const diff = Math.floor((now.getTime() - start.getTime()) / 1000);
-
-    if (diff < 60) return `${diff}s`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-    return `${Math.floor(diff / 86400)}d`;
-  }
-
   function actionLabel(action: "start" | "stop" | "restart"): string {
     switch (action) {
       case "start":
@@ -116,14 +110,6 @@
     if (s === "exited" || s === "dead" || s === "removing")
       return "destructive";
     return "default";
-  }
-
-  function formatBytes(bytes: number): string {
-    if (bytes === 0 || !bytes) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB", "TB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   }
 
   async function startLogStream() {
@@ -412,14 +398,16 @@
   });
 </script>
 
+<svelte:head>
+  <title>{containerData?.Name?.replace(/^\//, "") || data.containerId} - {$messages.app.name}</title>
+</svelte:head>
+
 <div class="page-shell">
   <div class="page-stack">
     <Card>
       <CardHeader>
-        <div
-          class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
-        >
-          <div class="space-y-1">
+        <div class="page-header">
+          <div class="page-heading">
             <CardTitle class="page-title">
               {#if containerData}
                 {containerData.Name?.replace(/^\//, "") || data.containerId}
@@ -427,7 +415,7 @@
                 {$messages.docker.containers.container}
               {/if}
             </CardTitle>
-            <CardDescription class="page-description">
+            <p class="page-description">
               {#if containerData}
                 <code class="text-xs bg-muted px-1 py-0.5 rounded"
                   >{containerData.Id}</code
@@ -435,52 +423,49 @@
               {:else}
                 {data.containerId}
               {/if}
-            </CardDescription>
+            </p>
           </div>
-          <div class="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
+          <div class="flex items-center gap-2">
             {#if containerData}
               <Badge
                 variant={getStateVariant(containerData.State?.Status)}
-                class="w-fit"
               >
                 {containerData.State?.Status || $messages.common.unknown}
               </Badge>
             {/if}
-            <div class="flex flex-wrap gap-2 sm:justify-end">
-              <Button
-                class="flex-1 sm:flex-none"
-                variant="outline"
-                size="sm"
-                onclick={() => void queueContainerAction("start")}
-                disabled={actionBusy !== "" ||
-                  containerData?.State?.Status?.toLowerCase() === "running"}
-                >{$messages.docker.containers.start}</Button
-              >
-              <Button
-                class="flex-1 sm:flex-none"
-                variant="outline"
-                size="sm"
-                onclick={() => void queueContainerAction("stop")}
-                disabled={actionBusy !== "" ||
-                  containerData?.State?.Status?.toLowerCase() !== "running"}
-                >{$messages.docker.containers.stop}</Button
-              >
-              <Button
-                class="flex-1 sm:flex-none"
-                variant="outline"
-                size="sm"
-                onclick={() => void queueContainerAction("restart")}
-                disabled={actionBusy !== ""}
-                >{$messages.docker.containers.restart}</Button
-              >
-            </div>
             <a
               href="/nodes/{data.nodeId}/docker/containers"
-              class="text-sm text-muted-foreground hover:underline sm:text-right"
+              class="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               {$messages.docker.containers.backToContainers}
             </a>
           </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onclick={() => void queueContainerAction("start")}
+            disabled={actionBusy !== "" ||
+              containerData?.State?.Status?.toLowerCase() === "running"}
+            >{$messages.docker.containers.start}</Button
+          >
+          <Button
+            variant="outline"
+            size="sm"
+            onclick={() => void queueContainerAction("stop")}
+            disabled={actionBusy !== "" ||
+              containerData?.State?.Status?.toLowerCase() !== "running"}
+            >{$messages.docker.containers.stop}</Button
+          >
+          <Button
+            variant="outline"
+            size="sm"
+            onclick={() => void queueContainerAction("restart")}
+            disabled={actionBusy !== ""}
+            >{$messages.docker.containers.restart}</Button
+          >
         </div>
       </CardHeader>
 
@@ -600,7 +585,7 @@
                         >{$messages.docker.containers.created}</span
                       >
                       <span class="sm:text-right"
-                        >{formatDate(containerData.Created)}</span
+                        >{formatTimestamp(containerData.Created)}</span
                       >
                     </div>
                   </CardContent>
@@ -620,7 +605,7 @@
                         >{$messages.common.status}</span
                       >
                       <Badge
-                        variant={getStateVariant(containerData.State?.Status)}
+                        variant={containerStateTone(containerData.State?.Status)}
                       >
                         {containerData.State?.Status ||
                           $messages.common.unknown}
@@ -658,7 +643,7 @@
                           >{$messages.docker.containers.started}</span
                         >
                         <span class="sm:text-right"
-                          >{formatDate(containerData.State?.StartedAt)}</span
+                          >{formatTimestamp(containerData.State?.StartedAt)}</span
                         >
                       </div>
                     {:else}
@@ -679,7 +664,7 @@
                           >{$messages.docker.containers.finished}</span
                         >
                         <span class="sm:text-right"
-                          >{formatDate(containerData.State?.FinishedAt)}</span
+                          >{formatTimestamp(containerData.State?.FinishedAt)}</span
                         >
                       </div>
                     {/if}

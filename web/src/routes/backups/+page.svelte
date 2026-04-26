@@ -36,10 +36,6 @@
     currentPage = data.page;
   });
 
-  $effect(() => {
-    document.title = $messages.backups.pageTitle;
-  });
-
   onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
 
   function pageUrl(page: number): string {
@@ -56,6 +52,10 @@
     void goto(pageUrl(currentPage));
   });
 </script>
+
+<svelte:head>
+  <title>{$messages.backups.pageTitle}</title>
+</svelte:head>
 
 <div class="page-shell">
   <Card>
@@ -88,7 +88,7 @@
           </TableHeader>
           <TableBody>
             {#each data.backups as backup}
-              <TableRow>
+              <TableRow class="hover:bg-accent/50">
                 <TableCell>
                   <a href={`/backups/${backup.backupId}`} class="font-medium hover:text-primary">{backup.serviceName} / {backup.dataName}</a>
                   <div class="text-xs text-muted-foreground">{backup.backupId}</div>

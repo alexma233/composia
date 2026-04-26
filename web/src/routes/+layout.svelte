@@ -100,7 +100,7 @@
               >
               <form method="POST" action="/logout">
                 <button type="submit" class="nav-pill nav-pill-inactive"
-                  >{($messages.nav as Record<string, string>).logout}</button
+                  >{$messages.nav.logout}</button
                 >
               </form>
             {/if}
