@@ -54,7 +54,11 @@
 </script>
 
 <svelte:head>
-  <title>{$messages.backups.pageTitle}</title>
+  <title>{$messages.backups.title} - {$messages.app.name}</title>
+  <meta
+    name="description"
+    content={$messages.backups.pageDescription}
+  />
 </svelte:head>
 
 <div class="page-shell">

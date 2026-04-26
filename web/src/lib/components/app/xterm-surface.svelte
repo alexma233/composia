@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
 
+  import { observeThemeChange } from '$lib/theme-observer';
+
   type DataHandler = (data: string) => void;
   type ResizeHandler = (rows: number, cols: number) => void;
   type Disposable = { dispose(): void };
@@ -27,11 +29,15 @@
 
   let host = $state<HTMLDivElement | null>(null);
 
+  const XTERM_FONT_SIZE = 12;
+  const XTERM_LINE_HEIGHT = 1.45;
+  const XTERM_FONT_FAMILY = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace';
+
   let terminal: import('@xterm/xterm').Terminal | null = null;
   let fitAddon: import('@xterm/addon-fit').FitAddon | null = null;
   let dataListener: Disposable | null = null;
   let resizeObserver: ResizeObserver | null = null;
-  let themeObserver: MutationObserver | null = null;
+  let disconnectThemeObserver: (() => void) | null = null;
   let fitScheduled = false;
   let renderedText = '';
 
@@ -69,18 +75,19 @@
     }
   }
 
-  function applyTheme() {
+  function applyTheme(isDark?: boolean) {
     if (!terminal || !host) {
       return;
     }
 
+    const dark = isDark ?? document.documentElement.classList.contains('dark');
     const styles = getComputedStyle(host);
     terminal.options.theme = {
       background: styles.backgroundColor,
       foreground: styles.color,
       cursor: styles.color,
       cursorAccent: styles.backgroundColor,
-      selectionBackground: 'rgba(127, 127, 127, 0.3)'
+      selectionBackground: dark ? 'rgba(200, 200, 200, 0.3)' : 'rgba(127, 127, 127, 0.3)'
     };
   }
 
@@ -126,9 +133,9 @@
         convertEol: true,
         cursorBlink: interactive,
         disableStdin: !interactive,
-        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace',
-        fontSize: 12,
-        lineHeight: 1.45,
+        fontFamily: XTERM_FONT_FAMILY,
+        fontSize: XTERM_FONT_SIZE,
+        lineHeight: XTERM_LINE_HEIGHT,
         scrollback: interactive ? 5000 : 20000
       });
       fitAddon = new FitAddon();
@@ -145,22 +152,18 @@
       resizeObserver = new ResizeObserver(() => scheduleFit());
       resizeObserver.observe(host);
 
-      themeObserver = new MutationObserver(() => applyTheme());
-      themeObserver.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class', 'style', 'data-accent']
-      });
+      disconnectThemeObserver = observeThemeChange((isDark) => applyTheme(isDark));
     }
 
     void setup();
 
     return () => {
       disposed = true;
-      themeObserver?.disconnect();
+      disconnectThemeObserver?.();
       resizeObserver?.disconnect();
       dataListener?.dispose();
       terminal?.dispose();
-      themeObserver = null;
+      disconnectThemeObserver = null;
       resizeObserver = null;
       dataListener = null;
       terminal = null;
@@ -183,5 +186,5 @@
 </script>
 
 <div class={`terminal-surface ${heightClass}`}>
-  <div bind:this={host} class="h-full w-full bg-background px-3 py-2 text-foreground"></div>
+  <div bind:this={host} class="h-full w-full bg-background px-3 py-2 text-foreground" aria-label="Terminal"></div>
 </div>

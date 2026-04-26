@@ -153,8 +153,9 @@
 </svelte:head>
 
 <div class="page-shell">
-  <Card>
-    <CardHeader>
+  <div class="page-stack">
+    <Card>
+      <CardHeader>
       <div class="page-header">
         <div class="page-heading">
           <CardTitle class="page-title"
@@ -305,5 +306,6 @@
         </Dialog>
       </CardContent>
     {/if}
-  </Card>
+    </Card>
+  </div>
 </div>

@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { Snippet } from "svelte";
+  import type { Snippet } from 'svelte';
 
-  import * as Tooltip from "$lib/components/ui/tooltip";
+  import * as Tooltip from '$lib/components/ui/tooltip';
 
   interface Props {
     reason?: string;

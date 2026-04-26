@@ -2,8 +2,16 @@
   import { Copy, Check } from 'lucide-svelte';
   import { Button } from '$lib/components/ui/button';
   import * as Tooltip from '$lib/components/ui/tooltip';
+  import { messages } from '$lib/i18n';
 
-  let { text, label = 'Copy to clipboard' }: { text: string; label?: string } = $props();
+  interface Props {
+    text: string;
+    label?: string;
+  }
+
+  let { text, label = $messages.common.copy }: Props = $props();
+
+
 
   let copied = $state(false);
 
@@ -31,6 +39,6 @@
     </Button>
   </Tooltip.Trigger>
   <Tooltip.Content>
-    <p>{copied ? 'Copied!' : label}</p>
+    <p>{copied ? $messages.common.copied : label}</p>
   </Tooltip.Content>
 </Tooltip.Root>

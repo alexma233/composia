@@ -1,10 +1,12 @@
 <script lang="ts">
   import type { PageData } from './$types';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
-  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
   import { Badge } from '$lib/components/ui/badge';
   import { messages } from '$lib/i18n';
+
+  import { formatTimestamp } from '$lib/presenters';
 
   interface Props {
     data: PageData;
@@ -14,6 +16,7 @@
 
   let networkData = $state<any>(null);
   let parseError = $state<string | null>(null);
+  let activeTab = $state('info');
 
   $effect(() => {
     if (!data.rawJson) {
@@ -32,18 +35,12 @@
     }
   });
 
-  function formatDate(timestamp: string): string {
-    if (!timestamp) return '-';
-    const date = new Date(timestamp);
-    return date.toLocaleString();
-  }
-
   function getDriverColor(driver: string): 'default' | 'outline' | 'secondary' {
     const d = driver?.toLowerCase() || '';
-    if (d === 'bridge') return 'default';
-    if (d === 'host') return 'outline';
-    if (d === 'overlay') return 'default';
-    return 'secondary';
+    if (d === 'bridge' || d === 'host') return 'default';
+    if (d === 'overlay') return 'outline';
+    if (d === 'macvlan') return 'secondary';
+    return 'outline';
   }
 </script>
 
@@ -97,7 +94,7 @@
             <AlertDescription>{$messages.error.parseFailed}: {parseError}</AlertDescription>
           </Alert>
         {:else if networkData}
-          <Tabs value="info" class="w-full">
+          <Tabs bind:value={activeTab} class="w-full">
             <div class="mb-4 overflow-x-auto pb-1 scrollbar-none">
               <TabsList class="min-w-max">
                 <TabsTrigger value="info">{$messages.docker.containers.info}</TabsTrigger>
@@ -129,7 +126,7 @@
                     {/if}
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.common.created}</span>
-                      <span class="sm:text-right">{formatDate(networkData.Created)}</span>
+                      <span class="sm:text-right">{formatTimestamp(networkData.Created)}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -266,7 +263,7 @@
               <Card>
                 <CardHeader class="pb-3">
                   <CardTitle class="text-base">{$messages.docker.networks.rawJson}</CardTitle>
-                  <p class="text-sm text-muted-foreground">{$messages.docker.networks.rawJsonDescription}</p>
+                  <CardDescription>{$messages.docker.networks.rawJsonDescription}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <pre class="code-surface max-h-[360px] overflow-auto break-all sm:max-h-[600px]">{JSON.stringify(networkData, null, 2)}</pre>

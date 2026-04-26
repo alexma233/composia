@@ -2,6 +2,16 @@
   import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-svelte';
   import { TableHead } from '$lib/components/ui/table';
 
+  interface Props {
+    field: string;
+    label: string;
+    sortField: string;
+    sortDirection: 'asc' | 'desc';
+    onSort: (field: string) => void;
+    class?: string;
+    [key: string]: unknown;
+  }
+
   let {
     field,
     label,
@@ -10,20 +20,16 @@
     onSort,
     class: className,
     ...restProps
-  }: {
-    field: string;
-    label: string;
-    sortField: string;
-    sortDirection: 'asc' | 'desc';
-    onSort: (field: string) => void;
-    class?: string;
-    [key: string]: unknown;
-  } = $props();
+  }: Props = $props();
 
   let sorted = $derived(sortField === field);
+
+  let ariaSort: 'ascending' | 'descending' | 'none' = $derived(
+    sorted ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'
+  );
 </script>
 
-<TableHead class={className} {...restProps}>
+<TableHead class={className} aria-sort={ariaSort} {...restProps}>
   <button
     type="button"
     class="flex items-center gap-1 hover:text-foreground"

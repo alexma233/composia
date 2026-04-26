@@ -111,5 +111,5 @@
     </Alert>
   {/if}
 
-  <pre class="code-surface min-h-0 flex-1 overflow-auto">{content || $messages.tasks.logStreamEmpty}</pre>
+  <pre class="code-surface min-h-0 flex-1 overflow-auto" aria-live="polite" role="log">{content || $messages.tasks.logStreamEmpty}</pre>
 </div>

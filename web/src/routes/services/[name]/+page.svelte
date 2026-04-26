@@ -379,7 +379,7 @@
         error?: string;
       };
       if (!response.ok || !payload.instance) {
-        throw new Error(payload.error ?? "Failed to load service instance.");
+        throw new Error(payload.error ?? $messages.services.instances.loadFailed);
       }
 
       nodeContainers = nodeContainers.map((instance) =>
@@ -392,7 +392,7 @@
       const message =
         loadError instanceof Error
           ? loadError.message
-          : "Failed to load service instance.";
+          : $messages.services.instances.loadFailed;
       instanceLoadState = { ...instanceLoadState, [nodeId]: "error" };
       instanceLoadError = { ...instanceLoadError, [nodeId]: message };
       errorMessage = message;
@@ -436,7 +436,7 @@
       );
       const payload = await response.json();
       if (!response.ok) {
-        errorMessage = payload.error ?? "Failed to open file.";
+        errorMessage = payload.error ?? $messages.services.files.openFileFailed;
         return;
       }
 
@@ -450,7 +450,7 @@
       errorMessage = "";
     } catch (openError) {
       errorMessage =
-        openError instanceof Error ? openError.message : "Failed to open file.";
+        openError instanceof Error ? openError.message : $messages.services.files.openFileFailed;
     }
   }
 
@@ -519,7 +519,7 @@
         workspace?: PageData["workspace"];
       };
       if (!response.ok || !payload.file || !payload.write) {
-        throw new Error(payload.error ?? "Failed to save file.");
+        throw new Error(payload.error ?? $messages.services.files.saveFileFailed);
       }
 
       headRevision = payload.write.commitId;
@@ -537,10 +537,10 @@
             }
           : item,
       );
-      toast.success(`Saved ${tab.path}`);
+      toast.success($messages.services.files.saved.replace('{path}', tab.path));
     } catch (saveError) {
       errorMessage =
-        saveError instanceof Error ? saveError.message : "Failed to save file.";
+        saveError instanceof Error ? saveError.message : $messages.services.files.saveFileFailed;
     } finally {
       saving = false;
     }
@@ -627,7 +627,7 @@
         fileTree?: ServiceFileNode[];
       };
       if (!response.ok || !payload.file || !payload.write) {
-        throw new Error(payload.error ?? "Failed to create file.");
+        throw new Error(payload.error ?? $messages.services.files.createFileFailed);
       }
 
       applyFsMutation({
@@ -644,12 +644,12 @@
       }
       showNewFile = false;
       newFilePath = "";
-      toast.success(`Created ${normalized}`);
+      toast.success($messages.services.fileCreated.replace('{path}', normalized));
     } catch (createError) {
       errorMessage =
         createError instanceof Error
           ? createError.message
-          : "Failed to create file.";
+          : $messages.services.files.createFileFailed;
     } finally {
       saving = false;
     }
@@ -678,19 +678,19 @@
       );
       const payload = await response.json();
       if (!response.ok || !payload.write) {
-        throw new Error(payload.error ?? "Failed to create folder.");
+        throw new Error(payload.error ?? $messages.services.files.createFolderFailed);
       }
 
       applyFsMutation(payload);
       selectedNodePath = normalized;
       showNewFolder = false;
       newFolderPath = "";
-      toast.success(`Created folder ${normalized}`);
+      toast.success($messages.services.folderCreated.replace('{path}', normalized));
     } catch (directoryError) {
       errorMessage =
         directoryError instanceof Error
           ? directoryError.message
-          : "Failed to create folder.";
+          : $messages.services.files.createFolderFailed;
     } finally {
       saving = false;
     }
@@ -720,7 +720,7 @@
       );
       const payload = await response.json();
       if (!response.ok || !payload.write) {
-        throw new Error(payload.error ?? "Failed to rename path.");
+        throw new Error(payload.error ?? $messages.services.files.renameFailed);
       }
 
       applyFsMutation(payload);
@@ -751,12 +751,12 @@
       selectedNodePath = destination;
       renamePath = destination;
       showRename = false;
-      toast.success(`Renamed to ${destination}`);
+      toast.success($messages.services.pathRenamed.replace('{path}', destination));
     } catch (renameError) {
       errorMessage =
         renameError instanceof Error
           ? renameError.message
-          : "Failed to rename path.";
+          : $messages.services.files.renameFailed;
     } finally {
       saving = false;
     }
@@ -766,7 +766,14 @@
     if (
       !selectedNodePath ||
       !confirm(
-        `Delete ${selectedNode?.isDir ? "folder" : "file"} ${selectedNodePath}?`,
+        $messages.services.files.deleteFileConfirm
+          .replace(
+            '{type}',
+            selectedNode?.isDir
+              ? $messages.common.folder
+              : $messages.common.file,
+          )
+          .replace('{path}', selectedNodePath),
       )
     ) {
       return;
@@ -790,7 +797,7 @@
       );
       const payload = await response.json();
       if (!response.ok || !payload.write) {
-        throw new Error(payload.error ?? "Failed to delete path.");
+        throw new Error(payload.error ?? $messages.services.files.deleteFailed);
       }
 
       applyFsMutation(payload);
@@ -822,12 +829,12 @@
       }
       selectedNodePath = "";
       showRename = false;
-      toast.success(`Deleted ${deletedPath}`);
+      toast.success($messages.services.pathDeleted.replace('{path}', deletedPath));
     } catch (deleteError) {
       errorMessage =
         deleteError instanceof Error
           ? deleteError.message
-          : "Failed to delete path.";
+          : $messages.services.files.deleteFailed;
     } finally {
       saving = false;
     }
@@ -850,7 +857,7 @@
     const response = await fetch(`/services/${workspace?.folder}/workspace`);
     const payload = await response.json();
     if (!response.ok) {
-      throw new Error(payload.error ?? "Failed to refresh service summary.");
+      throw new Error(payload.error ?? $messages.services.refreshFailed);
     }
 
     applyServiceSummaryState(
@@ -976,7 +983,7 @@
       };
       if (!response.ok || !payload.taskId) {
         throw new Error(
-          actionErrorMessage(payload, $messages, `Failed to run ${action}.`),
+          actionErrorMessage(payload, $messages, $messages.services.actions.runFailed.replace('{action}', action)),
         );
       }
 
@@ -989,13 +996,13 @@
         createdAt: new Date().toISOString(),
       };
       tasks = [newTask, ...tasks].slice(0, 12);
-      toast.success(`${action} queued as ${payload.taskId}`);
+      toast.success($messages.services.actionQueued.replace('{action}', action).replace('{taskId}', payload.taskId));
       startActionRefresh(payload.taskId);
     } catch (actionError) {
       errorMessage =
         actionError instanceof Error
           ? actionError.message
-          : `Failed to run ${action}.`;
+          : $messages.services.actions.runFailed.replace('{action}', action);
     } finally {
       actionBusy = "";
     }
@@ -1008,7 +1015,7 @@
       !migrateSourceNode ||
       !migrateTargetNode.trim()
     ) {
-      errorMessage = "Select a source node and enter a target node.";
+      errorMessage = $messages.services.actions.selectSourceAndTarget;
       return;
     }
     if (!migrateCapability.enabled) {
@@ -1036,7 +1043,7 @@
       };
       if (!response.ok || !payload.taskId) {
         throw new Error(
-          actionErrorMessage(payload, $messages, "Failed to run migrate."),
+          actionErrorMessage(payload, $messages, $messages.services.actions.migrateFailed),
         );
       }
       const newTask: TaskSummary = {
@@ -1048,13 +1055,13 @@
         createdAt: new Date().toISOString(),
       };
       tasks = [newTask, ...tasks].slice(0, 12);
-      toast.success(`migrate queued as ${payload.taskId}`);
+      toast.success($messages.services.migrateQueued.replace('{taskId}', payload.taskId));
       startActionRefresh(payload.taskId);
     } catch (actionError) {
       errorMessage =
         actionError instanceof Error
           ? actionError.message
-          : "Failed to run migrate.";
+          : $messages.services.actions.migrateFailed;
     } finally {
       actionBusy = "";
     }
@@ -1079,7 +1086,7 @@
       });
       const payload = await response.json();
       if (!response.ok || !payload.redirectTo) {
-        throw new Error(payload.error ?? "Failed to rename service folder.");
+        throw new Error(payload.error ?? $messages.services.files.renameServiceFolderFailed);
       }
 
       window.location.href = payload.redirectTo;
@@ -1087,7 +1094,7 @@
       errorMessage =
         renameError instanceof Error
           ? renameError.message
-          : "Failed to rename service folder.";
+          : $messages.services.files.renameServiceFolderFailed;
       saving = false;
     }
   }
@@ -1095,7 +1102,7 @@
   async function deleteServiceRoot() {
     if (
       !workspace?.folder ||
-      !confirm(`Delete service folder ${workspace.folder}?`)
+      !confirm($messages.services.files.deleteServiceFolderConfirm.replace('{name}', workspace.folder))
     ) {
       return;
     }
@@ -1113,7 +1120,7 @@
       });
       const payload = await response.json();
       if (!response.ok || !payload.redirectTo) {
-        throw new Error(payload.error ?? "Failed to delete service folder.");
+        throw new Error(payload.error ?? $messages.services.files.deleteServiceFolderFailed);
       }
 
       window.location.href = payload.redirectTo;
@@ -1121,7 +1128,7 @@
       errorMessage =
         deleteError instanceof Error
           ? deleteError.message
-          : "Failed to delete service folder.";
+          : $messages.services.files.deleteServiceFolderFailed;
       saving = false;
     }
   }
@@ -1154,74 +1161,74 @@
   <div class="page-stack flex min-h-0 flex-1 flex-col">
     <Card>
       <CardHeader class="gap-3 py-4">
-        <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="page-header">
+          <div class="page-heading">
+            <CardTitle class="page-title">
+              <Popover.Root bind:open={serviceSwitchOpen}>
+                <Popover.Trigger class="inline-flex">
+                  <button
+                    type="button"
+                    class="flex items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground"
+                  >
+                    <span
+                      class="min-w-0 truncate font-semibold text-foreground"
+                    >
+                      {workspace?.displayName ?? $messages.services.selectService}
+                    </span>
+                    <ChevronsUpDown class="size-4 shrink-0 opacity-50" />
+                  </button>
+                </Popover.Trigger>
+                <Popover.Content
+                  class="w-[min(92vw,28rem)] p-0"
+                  align="start"
+                  sideOffset={8}
+                >
+                  <Command.Root>
+                    <Command.Input
+                      placeholder={$messages.services.searchServicePlaceholder}
+                    />
+                    <Command.List>
+                      <Command.Empty
+                        >{$messages.services.noServicesFound}</Command.Empty
+                      >
+                      <Command.Group>
+                        {#each serviceOptions as service (service.value)}
+                          <Command.Item
+                            value={`${service.label} ${service.secondary}`}
+                            onSelect={() => {
+                              void selectService(service.value);
+                            }}
+                          >
+                            <div class="min-w-0">
+                              <div class="truncate">{service.label}</div>
+                              <div class="truncate text-xs text-muted-foreground">
+                                {service.secondary}
+                              </div>
+                            </div>
+                            <Check
+                              class={cn(
+                                "ml-auto size-4",
+                                service.value !== workspace?.folder &&
+                                  "text-transparent",
+                              )}
+                            />
+                          </Command.Item>
+                        {/each}
+                      </Command.Group>
+                    </Command.List>
+                  </Command.Root>
+                </Popover.Content>
+              </Popover.Root>
+            </CardTitle>
+            <p class="page-meta">
+              {workspace?.folder ?? $messages.common.na}
+            </p>
+          </div>
           <Badge
             variant={runtimeStatusTone(workspace?.runtimeStatus ?? "unknown")}
           >
             {runtimeStatusLabel(workspace?.runtimeStatus ?? "", $messages)}
           </Badge>
-        </div>
-
-        <div class="max-w-2xl space-y-1">
-          <Popover.Root bind:open={serviceSwitchOpen}>
-            <Popover.Trigger class="inline-flex w-full">
-              <button
-                type="button"
-                class="flex w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-left text-sm shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground"
-              >
-                <span
-                  class="min-w-0 flex-1 truncate font-semibold text-foreground"
-                >
-                  {workspace?.displayName ?? $messages.services.selectService}
-                </span>
-                <ChevronsUpDown class="size-4 shrink-0 opacity-50" />
-              </button>
-            </Popover.Trigger>
-            <Popover.Content
-              class="w-[min(92vw,28rem)] p-0"
-              align="start"
-              sideOffset={8}
-            >
-              <Command.Root>
-                <Command.Input
-                  placeholder={$messages.services.searchServicePlaceholder}
-                />
-                <Command.List>
-                  <Command.Empty
-                    >{$messages.services.noServicesFound}</Command.Empty
-                  >
-                  <Command.Group>
-                    {#each serviceOptions as service (service.value)}
-                      <Command.Item
-                        value={`${service.label} ${service.secondary}`}
-                        onSelect={() => {
-                          void selectService(service.value);
-                        }}
-                      >
-                        <div class="min-w-0">
-                          <div class="truncate">{service.label}</div>
-                          <div class="truncate text-xs text-muted-foreground">
-                            {service.secondary}
-                          </div>
-                        </div>
-                        <Check
-                          class={cn(
-                            "ml-auto size-4",
-                            service.value !== workspace?.folder &&
-                              "text-transparent",
-                          )}
-                        />
-                      </Command.Item>
-                    {/each}
-                  </Command.Group>
-                </Command.List>
-              </Command.Root>
-            </Popover.Content>
-          </Popover.Root>
-
-          <div class="truncate text-sm text-muted-foreground">
-            {workspace?.folder ?? $messages.common.na}
-          </div>
         </div>
 
         <div
@@ -1277,7 +1284,7 @@
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
               <CardTitle class="section-title"
-                >{$messages.services.instances}</CardTitle
+                >{$messages.services.instances.title}</CardTitle
               >
               <div class="text-sm text-muted-foreground">
                 {$messages.services.containersByNode}
@@ -1428,10 +1435,10 @@
               </Popover.Trigger>
               <Popover.Content class="w-80" sideOffset={8}>
                 <div class="space-y-3">
-                  <Input
-                    bind:value={newFilePath}
-                    placeholder="config/new-file.yaml"
-                  />
+                    <Input
+                      bind:value={newFilePath}
+                      placeholder={$messages.services.files.newFilePathPlaceholder}
+                    />
                   <div class="flex items-center justify-between gap-3">
                     <p class="text-xs text-muted-foreground">
                       {$messages.common.parentsAutoCreated}
@@ -1463,10 +1470,10 @@
               </Popover.Trigger>
               <Popover.Content class="w-80" sideOffset={8}>
                 <div class="space-y-3">
-                  <Input
-                    bind:value={newFolderPath}
-                    placeholder="config/snippets"
-                  />
+                    <Input
+                      bind:value={newFolderPath}
+                      placeholder={$messages.services.files.newFolderPathPlaceholder}
+                    />
                   <div class="flex items-center justify-between gap-3">
                     <p class="text-xs text-muted-foreground">
                       {$messages.common.trackedWithGitkeep}
@@ -1509,7 +1516,7 @@
         {#if showRename}
           <div class="border-b px-4 py-3 text-sm">
             <div class="space-y-3">
-              <Input bind:value={renamePath} placeholder="new/path.yaml" />
+              <Input bind:value={renamePath} placeholder={$messages.services.files.newFilePlaceholder} />
               <div class="flex justify-end">
                 <Button
                   type="button"
@@ -1897,7 +1904,7 @@
               <div class="space-y-3 border-t pt-4">
                 <Input
                   bind:value={renameServiceFolder}
-                  placeholder="new-service-folder"
+                  placeholder={$messages.services.files.newServiceFolderPlaceholder}
                 />
                 <div class="flex justify-end">
                   <Button

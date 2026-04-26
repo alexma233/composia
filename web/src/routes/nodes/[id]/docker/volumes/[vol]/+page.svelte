@@ -1,10 +1,12 @@
 <script lang="ts">
   import type { PageData } from './$types';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
-  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
   import { Badge } from '$lib/components/ui/badge';
   import { messages } from '$lib/i18n';
+
+  import { formatBytes, formatTimestamp } from '$lib/presenters';
 
   interface Props {
     data: PageData;
@@ -14,6 +16,7 @@
 
   let volumeData = $state<any>(null);
   let parseError = $state<string | null>(null);
+  let activeTab = $state('info');
 
   $effect(() => {
     if (!data.rawJson) {
@@ -31,20 +34,6 @@
       volumeData = null;
     }
   });
-
-  function formatSize(bytes: number): string {
-    if (!bytes) return '-';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }
-
-  function formatDate(timestamp: string): string {
-    if (!timestamp) return '-';
-    const date = new Date(timestamp);
-    return date.toLocaleString();
-  }
 </script>
 
 <svelte:head>
@@ -66,7 +55,8 @@
             </CardTitle>
             <p class="page-description">
               {#if volumeData}
-                <Badge variant="outline">{volumeData.Driver || $messages.common.local}</Badge>
+                <code class="text-xs bg-muted px-1 py-0.5 rounded">{volumeData.Name || data.volumeName}</code>
+                <Badge variant="outline" class="ml-2">{volumeData.Driver || $messages.common.local}</Badge>
               {:else}
                 {data.volumeName}
               {/if}
@@ -90,7 +80,7 @@
             <AlertDescription>{$messages.error.parseFailed}: {parseError}</AlertDescription>
           </Alert>
         {:else if volumeData}
-          <Tabs value="info" class="w-full">
+          <Tabs bind:value={activeTab} class="w-full">
             <div class="mb-4 overflow-x-auto pb-1 scrollbar-none">
               <TabsList class="min-w-max">
                 <TabsTrigger value="info">{$messages.docker.containers.info}</TabsTrigger>
@@ -122,7 +112,7 @@
                     {/if}
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.volumes.created}</span>
-                      <span class="sm:text-right">{formatDate(volumeData.CreatedAt)}</span>
+                      <span class="sm:text-right">{formatTimestamp(volumeData.CreatedAt)}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -135,7 +125,7 @@
                     {#if volumeData.UsageData?.Size}
                       <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                         <span class="text-muted-foreground">{$messages.docker.volumes.size}</span>
-                        <Badge variant="secondary">{formatSize(volumeData.UsageData.Size)}</Badge>
+                        <Badge variant="secondary">{formatBytes(volumeData.UsageData.Size)}</Badge>
                       </div>
                     {:else}
                       <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -156,7 +146,7 @@
               {#if volumeData.Labels && Object.keys(volumeData.Labels).length > 0}
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">{$messages.common.labels}</CardTitle>
+                    <CardTitle class="text-base">{$messages.docker.volumes.labels}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div class="space-y-1">
@@ -199,7 +189,7 @@
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.volumes.size}</span>
-                      <Badge variant="secondary">{formatSize(volumeData.UsageData.Size)}</Badge>
+                      <Badge variant="secondary">{formatBytes(volumeData.UsageData.Size)}</Badge>
                     </div>
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span class="text-muted-foreground">{$messages.docker.volumes.refCount}</span>
@@ -222,7 +212,7 @@
               <Card>
                 <CardHeader class="pb-3">
                   <CardTitle class="text-base">{$messages.docker.volumes.rawJson}</CardTitle>
-                  <p class="text-sm text-muted-foreground">{$messages.docker.volumes.rawJsonDescription}</p>
+                  <CardDescription>{$messages.docker.volumes.rawJsonDescription}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <pre class="code-surface max-h-[360px] overflow-auto break-all sm:max-h-[600px]">{JSON.stringify(volumeData, null, 2)}</pre>

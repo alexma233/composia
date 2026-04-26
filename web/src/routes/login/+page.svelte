@@ -2,6 +2,7 @@
   import type { ActionData, PageData } from "./$types";
 
   import { messages } from "$lib/i18n";
+  import { Alert, AlertDescription, AlertTitle } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
   import {
     Card,
@@ -33,9 +34,10 @@
     </CardHeader>
     <CardContent>
       {#if !data.ready}
-        <div class="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {data.error}
-        </div>
+        <Alert variant="destructive">
+          <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
+          <AlertDescription>{data.error}</AlertDescription>
+        </Alert>
       {:else}
         <form method="POST" class="space-y-4">
           <input type="hidden" name="next" value={data.next} />
@@ -57,13 +59,14 @@
           </div>
 
           {#if form?.invalid}
-            <div class="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {$messages.auth.login.invalidCredentials}
-            </div>
+            <Alert variant="destructive">
+              <AlertTitle>{$messages.auth.login.invalidCredentials}</AlertTitle>
+            </Alert>
           {:else if form?.error}
-            <div class="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {form.error}
-            </div>
+            <Alert variant="destructive">
+              <AlertTitle>{$messages.auth.login.invalidCredentials}</AlertTitle>
+              <AlertDescription>{form.error}</AlertDescription>
+            </Alert>
           {/if}
 
           <Button type="submit" class="w-full">{$messages.auth.login.submit}</Button>

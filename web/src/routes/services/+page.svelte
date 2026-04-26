@@ -47,6 +47,10 @@
 
 <svelte:head>
   <title>{$messages.services.title} - {$messages.app.name}</title>
+  <meta
+    name="description"
+    content={$messages.services.pageDescription}
+  />
 </svelte:head>
 
 <div class="page-shell">
@@ -139,7 +143,7 @@
           </TableBody>
         </Table>
       {:else}
-        <div class="empty-state">{$messages.common.noData}</div>
+        <div class="empty-state">{$messages.services.noServices}</div>
       {/if}
     </CardContent>
   </Card>

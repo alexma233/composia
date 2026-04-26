@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { PageData } from './$types';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
-  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
   import { Badge } from '$lib/components/ui/badge';
   import { formatBytes, formatTimestamp, parseJsonList } from "$lib/presenters";
@@ -15,6 +15,7 @@
 
   let imageData = $state<any>(null);
   let parseError = $state<string | null>(null);
+  let activeTab = $state('info');
 
   $effect(() => {
     if (!data.rawJson) {
@@ -76,7 +77,7 @@
             <AlertDescription>{$messages.error.parseFailed}: {parseError}</AlertDescription>
           </Alert>
         {:else if imageData}
-          <Tabs value="info" class="w-full">
+          <Tabs bind:value={activeTab} class="w-full">
             <div class="mb-4 overflow-x-auto pb-1 scrollbar-none">
               <TabsList class="min-w-max">
                 <TabsTrigger value="info">{$messages.docker.containers.info}</TabsTrigger>
@@ -204,7 +205,7 @@
               <Card>
                 <CardHeader class="pb-3">
                   <CardTitle class="text-base">{$messages.docker.images.rawJson}</CardTitle>
-                  <p class="text-sm text-muted-foreground">{$messages.docker.images.rawJsonDescription}</p>
+                  <CardDescription>{$messages.docker.images.rawJsonDescription}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <pre class="code-surface max-h-[360px] overflow-auto break-all sm:max-h-[600px]">{JSON.stringify(imageData, null, 2)}</pre>
@@ -213,7 +214,7 @@
             </TabsContent>
           </Tabs>
         {:else}
-          <div class="text-sm text-muted-foreground">{$messages.common.loading}...</div>
+          <div class="text-sm text-muted-foreground">{$messages.common.loadingWithDots}</div>
         {/if}
       </CardContent>
     </Card>

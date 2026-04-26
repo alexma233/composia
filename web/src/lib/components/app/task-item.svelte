@@ -2,18 +2,10 @@
   import { Badge } from '$lib/components/ui/badge';
   import { messages } from '$lib/i18n';
   import { formatTimestamp, taskStatusLabel, taskStatusTone, taskTypeLabel } from '$lib/presenters';
-
-  interface TaskItem {
-    taskId: string;
-    type: string;
-    status: string;
-    serviceName?: string | null;
-    nodeId?: string | null;
-    createdAt: string;
-  }
+  import type { TaskSummary } from '$lib/server/controller';
 
   interface Props {
-    task: TaskItem;
+    task: TaskSummary;
     showService?: boolean;
     showNode?: boolean;
   }

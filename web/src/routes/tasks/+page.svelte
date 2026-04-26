@@ -370,7 +370,11 @@
 </script>
 
 <svelte:head>
-  <title>{$messages.tasks.pageTitle}</title>
+  <title>{$messages.tasks.title} - {$messages.app.name}</title>
+  <meta
+    name="description"
+    content={$messages.tasks.pageDescription}
+  />
 </svelte:head>
 
 <div class="page-shell">

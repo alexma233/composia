@@ -92,6 +92,7 @@
           variant={$preferredLocale === locale ? 'secondary' : 'ghost'}
           size="sm"
           class="min-w-24 justify-start"
+          aria-label={localeLabels[locale]}
           onclick={() => setPreferredLocale(locale)}
         >
           {localeLabels[locale]}

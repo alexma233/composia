@@ -22,6 +22,10 @@
 
 <svelte:head>
   <title>{$messages.nodes.title} - {$messages.app.name}</title>
+  <meta
+    name="description"
+    content={$messages.nodes.pageDescription}
+  />
 </svelte:head>
 
 <div class="page-shell">

@@ -316,7 +316,7 @@
                         <code class="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
                           {formatShortId(image.id)}
                         </code>
-                        <CopyButton text={image.id} label={$messages.common.copy + ' ID'} />
+                        <CopyButton text={image.id} label={$messages.common.copy} />
                       </div>
                     </div>
                   </TableCell>

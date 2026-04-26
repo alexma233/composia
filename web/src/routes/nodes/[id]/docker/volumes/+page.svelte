@@ -176,6 +176,8 @@
     removeTarget ? $messages.docker.volumes.removeConfirm.replace('{name}', removeTarget.name) : '',
   );
 
+  let removeActionLabel = $derived($messages.common.delete);
+
   function handleSort(field: string) {
     if (sortField === field) {
       sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
@@ -208,7 +210,7 @@
           <div class="page-heading">
             <CardTitle class="page-title">{$messages.docker.volumes.title}</CardTitle>
             <p class="page-description">
-              {$messages.docker.volumes.title} on {data.nodeId}
+              {$messages.docker.volumes.titleOnNode.replace('{nodeId}', data.nodeId)}
               {#if !loading}
                 <Badge variant="outline" class="ml-2">{data.totalCount}</Badge>
               {/if}
@@ -249,7 +251,7 @@
           <div class="flex min-h-[320px] items-center justify-center">
             <div class="flex items-center gap-3 text-sm text-muted-foreground">
               <Spinner />
-              <span>{$messages.docker.volumes.loadingWithUsage}</span>
+              <span>{$messages.common.loading} {$messages.docker.volumes.title}...</span>
             </div>
           </div>
         {:else if volumes.length > 0}
@@ -257,7 +259,7 @@
             <TableHeader>
               <TableRow>
                 <SortableTableHead field="name" label={$messages.common.name} {sortField} {sortDirection} onSort={handleSort} class="w-[25%]" />
-                <TableHead class="w-[10%]">{$messages.docker.volumes.driver}</TableHead>
+                <SortableTableHead field="driver" label={$messages.docker.volumes.driver} {sortField} {sortDirection} onSort={handleSort} class="w-[10%]" />
                 <TableHead class="w-[10%]">{$messages.docker.volumes.size}</TableHead>
                 <TableHead class="w-[10%]">{$messages.docker.volumes.usage}</TableHead>
                 <TableHead class="w-[25%]">{$messages.docker.volumes.mountpoint}</TableHead>
@@ -328,7 +330,7 @@
                       onclick={() => openRemoveDialog(volume)}
                       disabled={removeBusyId === volume.name}
                     >
-                      {$messages.common.delete}
+            {removeActionLabel}
                     </Button>
                   </TableCell>
                 </TableRow>

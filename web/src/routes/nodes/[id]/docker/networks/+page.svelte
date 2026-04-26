@@ -179,6 +179,8 @@
     removeTarget ? $messages.docker.networks.removeConfirm.replace('{name}', removeTarget.name) : '',
   );
 
+  let removeActionLabel = $derived($messages.common.delete);
+
   function isSystemNetwork(name: string): boolean {
     return name === 'bridge' || name === 'host' || name === 'none';
   }
@@ -300,7 +302,7 @@
                         <code class="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
                           {formatShortId(network.id)}
                         </code>
-                        <CopyButton text={network.id} label={$messages.common.copy + ' ID'} />
+                        <CopyButton text={network.id} label={$messages.common.copy} />
                       </div>
                     </div>
                   </TableCell>
@@ -319,9 +321,9 @@
                   </TableCell>
                   <TableCell>
                     {#if network.containersCount > 0}
-                      <Badge variant="default">{network.containersCount}</Badge>
+                      <Badge variant="default">{network.containersCount} {$messages.nodes.docker.containers}</Badge>
                     {:else}
-                      <span class="text-muted-foreground">0</span>
+                      <Badge variant="secondary">{$messages.docker.networks.unused}</Badge>
                     {/if}
                   </TableCell>
                   <TableCell>
@@ -336,7 +338,7 @@
                       onclick={() => openRemoveDialog(network)}
                       disabled={removeBusyId === network.id || isSystemNetwork(network.name)}
                     >
-                      {$messages.common.delete}
+            {removeActionLabel}
                     </Button>
                   </TableCell>
                 </TableRow>

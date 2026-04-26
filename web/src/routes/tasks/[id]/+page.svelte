@@ -225,7 +225,7 @@
 </script>
 
 <svelte:head>
-  <title>{$messages.tasks.taskDetails.title} - {$messages.app.name}</title>
+  <title>{data.task?.type ? `${taskTypeLabel(data.task.type, $messages)} - ` : ''}{$messages.tasks.pageTitle}</title>
 </svelte:head>
 
 <div class="page-shell">

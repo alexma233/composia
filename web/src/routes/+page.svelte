@@ -37,7 +37,7 @@
 </script>
 
 <svelte:head>
-  <title>{$messages.dashboard.pageTitle}</title>
+  <title>{$messages.dashboard.title} - {$messages.app.name}</title>
   <meta
     name="description"
     content={$messages.dashboard.pageDescription}
@@ -55,7 +55,7 @@
 
       {#if data.error}
         <Alert variant="destructive">
-          <AlertTitle>{$messages.error.controllerError}</AlertTitle>
+          <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
           <AlertDescription>{data.error}</AlertDescription>
         </Alert>
       {/if}

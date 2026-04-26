@@ -5,13 +5,13 @@
     FileText,
     Folder,
     Lock,
-  } from "lucide-svelte";
+  } from 'lucide-svelte';
 
   import {
     isEncryptedFilePath,
     type ServiceFileNode,
-  } from "$lib/service-workspace";
-  import ServiceFileTree from "./service-file-tree.svelte";
+  } from '$lib/service-workspace';
+  import ServiceFileTree from './service-file-tree.svelte';
 
   interface Props {
     nodes?: ServiceFileNode[];
@@ -70,7 +70,8 @@
           class:bg-secondary={selectedPath === node.path}
           class:text-secondary-foreground={selectedPath === node.path}
           class:text-muted-foreground={selectedPath !== node.path}
-          style="padding-left:{depth * 12 + 8}px"
+          aria-expanded={expanded}
+          style="--depth: {depth}; padding-left: calc(var(--depth) * 12px + 8px)"
           onclick={() => {
             onSelectNode(node.path);
             onToggle(node.path);
@@ -116,7 +117,7 @@
           class:bg-secondary={activePath === node.path}
           class:text-secondary-foreground={activePath === node.path}
           class:text-muted-foreground={activePath !== node.path}
-          style="padding-left:{depth * 12 + 28}px"
+          style="--depth: {depth}; padding-left: calc(var(--depth) * 12px + 28px)"
           onclick={() => {
             onSelectNode(node.path);
             onOpenFile(node.path);

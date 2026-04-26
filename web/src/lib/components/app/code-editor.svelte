@@ -13,6 +13,7 @@
 
   import { composeLinter, isComposeFilePath } from '$lib/codemirror/compose-lint';
   import { envLinter, isEnvFilePath } from '$lib/codemirror/env-lint';
+  import { observeThemeChange } from '$lib/theme-observer';
 
   interface Props {
     value?: string;
@@ -34,7 +35,7 @@
 
   let host: HTMLDivElement;
   let editorView: EditorView | null = null;
-  let rootObserver: MutationObserver | null = null;
+  let disconnectThemeObserver: (() => void) | null = null;
   let languageLoadRequest = 0;
 
   const languageCompartment = new Compartment();
@@ -42,10 +43,14 @@
   const lintCompartment = new Compartment();
   const themeCompartment = new Compartment();
 
+  function editorBorderRadius(): string {
+    return getComputedStyle(document.documentElement).getPropertyValue('--radius-xl') || '0.75rem';
+  }
+
   const editorChromeTheme = EditorView.theme({
     '&': {
       height: '100%',
-      borderRadius: '0.75rem',
+      borderRadius: editorBorderRadius(),
       overflow: 'hidden',
     },
     '&.cm-focused': {
@@ -100,22 +105,18 @@
 
     void syncLanguage(path);
 
-    rootObserver = new MutationObserver(() => syncTheme(root));
-    rootObserver.observe(root, {
-      attributes: true,
-      attributeFilter: ['class', 'data-theme-mode']
-    });
+    disconnectThemeObserver = observeThemeChange(() => syncTheme(root));
 
     return () => {
-      rootObserver?.disconnect();
-      rootObserver = null;
+      disconnectThemeObserver?.();
+      disconnectThemeObserver = null;
     };
   });
 
   onDestroy(() => {
     languageLoadRequest += 1;
-    rootObserver?.disconnect();
-    rootObserver = null;
+    disconnectThemeObserver?.();
+    disconnectThemeObserver = null;
     editorView?.destroy();
     editorView = null;
   });
@@ -220,4 +221,4 @@
   }
 </script>
 
-<div bind:this={host} class="h-full min-h-0 overflow-hidden rounded-xl"></div>
+<div bind:this={host} class="h-full min-h-0 overflow-hidden rounded-xl" role="textbox" aria-label="Code editor"></div>

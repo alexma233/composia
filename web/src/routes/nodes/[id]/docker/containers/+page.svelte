@@ -268,7 +268,7 @@
           <div class="page-heading">
             <CardTitle class="page-title">{$messages.docker.containers.title}</CardTitle>
             <p class="page-description">
-              {data.nodeId}
+              {$messages.docker.containers.titleOnNode.replace('{nodeId}', data.nodeId)}
               {#if !loading}
                 <Badge variant="outline" class="ml-2">{data.totalCount}</Badge>
               {/if}
@@ -284,7 +284,7 @@
             <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder={$messages.common.search + '...'}
+              placeholder={$messages.docker.containers.searchPlaceholder}
               class="pl-9"
               bind:value={searchQuery}
               oninput={handleSearchInput}
@@ -309,7 +309,7 @@
           <div class="flex min-h-[320px] items-center justify-center">
             <div class="flex items-center gap-3 text-sm text-muted-foreground">
               <Spinner />
-              <span>{$messages.common.loading}...</span>
+              <span>{$messages.common.loading} {$messages.docker.containers.title}...</span>
             </div>
           </div>
         {:else if containers.length > 0}
@@ -322,7 +322,7 @@
                 <TableHead class="w-[15%]">{$messages.docker.containers.ports}</TableHead>
                 <TableHead class="w-[15%]">{$messages.docker.containers.networks}</TableHead>
                 <SortableTableHead field="created" label={$messages.common.created} {sortField} {sortDirection} onSort={handleSort} class="w-[12%]" />
-                <TableHead class="w-[18%]">{$messages.common.actions}</TableHead>
+                <TableHead class="w-[10%]">{$messages.common.actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -448,6 +448,11 @@
               {/each}
             </TableBody>
           </Table>
+          {#if data.totalCount > containers.length}
+            <div class="mt-3 text-xs text-muted-foreground text-center">
+              {$messages.docker.containers.countSummary.replace('{shown}', String(containers.length)).replace('{total}', String(data.totalCount))}
+            </div>
+          {/if}
 
           {#if totalPages > 1}
             <div class="mt-6">
@@ -494,7 +499,6 @@
         <DialogHeader>
           <DialogTitle>{$messages.docker.containers.removeDialogTitle}</DialogTitle>
           <DialogDescription>{removeDescription}</DialogDescription>
-          <DialogDescription>{removeVolumesDescription}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button type="button" variant="outline" onclick={() => (removeDialogOpen = false)}>
