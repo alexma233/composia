@@ -30,6 +30,7 @@ message BackupSummary {
   string started_at = 6;
   // finished_at is empty until the backup reaches a terminal state.
   string finished_at = 7;
+  string node_id = 8;
 }
 
 // ListBackupsRequest filters backup records by service, status, data name, and page.
@@ -75,6 +76,7 @@ message GetBackupResponse {
   string error_summary = 9;
   // actions describes whether backup-scoped actions may currently run.
   BackupActionCapabilities actions = 10;
+  string node_id = 11;
 }
 
 // BackupActionCapabilities describes whether backup-scoped actions may run.

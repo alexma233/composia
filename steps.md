@@ -279,7 +279,8 @@
 3. 通用 restore 基础能力已实现，并已被 migrate 复用
 4. restore 当前支持：
    - `files.copy`
-    - `database.pgimport`
+   - `files.copy_after_stop`
+   - `database.pgimport`
 5. Web UI 已提供基础 `MigrateService` 入口
 
 目标语义（待实现）：

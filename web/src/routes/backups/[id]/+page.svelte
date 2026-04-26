@@ -25,6 +25,15 @@
     CardHeader,
     CardTitle,
   } from "$lib/components/ui/card";
+  import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogOverlay,
+    DialogTitle,
+  } from "$lib/components/ui/dialog";
   import { Label } from "$lib/components/ui/label";
   import * as Select from "$lib/components/ui/select";
   import {
@@ -41,8 +50,18 @@
 
   let targetNodeId = $state("");
   let restoring = $state(false);
+  let restoreDialogOpen = $state(false);
   let eligibleRestoreNodes = $derived(
     data.nodes.filter((node: NodeSummary) => node.enabled && node.isOnline),
+  );
+  let defaultRestoreNodeId = $derived(
+    eligibleRestoreNodes.find((node) => node.nodeId === data.backup?.nodeId)
+      ?.nodeId ??
+      eligibleRestoreNodes[0]?.nodeId ??
+      "",
+  );
+  let restoreWarning = $derived(
+    $messages.backups.restoreWarning.replace("{nodeId}", targetNodeId || "-"),
   );
   let restoreCapability = $derived(
     backupActionCapability(data.backup?.actions, "restore"),
@@ -54,8 +73,25 @@
   );
 
   $effect(() => {
-    targetNodeId = eligibleRestoreNodes[0]?.nodeId ?? "";
+    if (
+      !targetNodeId ||
+      !eligibleRestoreNodes.some((node) => node.nodeId === targetNodeId)
+    ) {
+      targetNodeId = defaultRestoreNodeId;
+    }
   });
+
+  function openRestoreDialog() {
+    if (
+      !data.backup?.backupId ||
+      !targetNodeId ||
+      restoring ||
+      !restoreCapability.enabled
+    ) {
+      return;
+    }
+    restoreDialogOpen = true;
+  }
 
   async function startRestore() {
     if (
@@ -93,6 +129,7 @@
       toast.success(
         $messages.backups.restoreQueued.replace("{taskId}", payload.taskId),
       );
+      restoreDialogOpen = false;
       goto(`/tasks/${payload.taskId}`);
     } catch (error) {
       toast.error(
@@ -192,7 +229,7 @@
             <DisabledReasonTooltip reason={restoreReason}>
               <Button
                 type="button"
-                onclick={startRestore}
+                onclick={openRestoreDialog}
                 disabled={restoring ||
                   !targetNodeId ||
                   data.backup.status !== "succeeded" ||
@@ -207,6 +244,10 @@
           </div>
 
           <div class="space-y-2">
+            <div class="text-sm text-muted-foreground">
+              {$messages.backups.sourceNode}: {data.backup.nodeId ||
+                $messages.common.na}
+            </div>
             <Label for="restore-target-node"
               >{$messages.backups.selectTargetNode}</Label
             >
@@ -224,6 +265,35 @@
             </Select.Root>
           </div>
         </div>
+
+        <Dialog bind:open={restoreDialogOpen}>
+          <DialogOverlay />
+          <DialogContent class="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{$messages.backups.restoreConfirmTitle}</DialogTitle>
+              <DialogDescription>{restoreWarning}</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onclick={() => (restoreDialogOpen = false)}
+              >
+                {$messages.common.cancel}
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onclick={startRestore}
+                disabled={restoring || !targetNodeId}
+              >
+                {restoring
+                  ? $messages.backups.restoring
+                  : $messages.backups.restore}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     {/if}
   </Card>

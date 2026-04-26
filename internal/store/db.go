@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -579,6 +580,7 @@ func (db *DB) migrate(ctx context.Context) error {
 			backup_id TEXT PRIMARY KEY,
 			task_id TEXT NOT NULL,
 			service_name TEXT NOT NULL,
+			node_id TEXT,
 			data_name TEXT NOT NULL,
 			status TEXT NOT NULL,
 			started_at TEXT NOT NULL,
@@ -586,8 +588,10 @@ func (db *DB) migrate(ctx context.Context) error {
 			artifact_ref TEXT,
 			error_summary TEXT,
 			FOREIGN KEY (task_id) REFERENCES tasks(task_id),
-			FOREIGN KEY (service_name) REFERENCES services(service_name)
+			FOREIGN KEY (service_name) REFERENCES services(service_name),
+			FOREIGN KEY (node_id) REFERENCES nodes(node_id)
 		);`,
+		`ALTER TABLE backups ADD COLUMN node_id TEXT;`,
 		`CREATE TABLE IF NOT EXISTS repo_state (
 			singleton_id INTEGER PRIMARY KEY CHECK (singleton_id = 1),
 			sync_status TEXT NOT NULL,
@@ -622,11 +626,18 @@ func (db *DB) migrate(ctx context.Context) error {
 
 	for _, statement := range statements {
 		if _, err := db.sql.ExecContext(ctx, statement); err != nil {
+			if isDuplicateColumnError(err) {
+				continue
+			}
 			return fmt.Errorf("apply sqlite schema statement: %w", err)
 		}
 	}
 
 	return nil
+}
+
+func isDuplicateColumnError(err error) bool {
+	return err != nil && strings.Contains(strings.ToLower(err.Error()), "duplicate column name")
 }
 
 func refreshServiceAggregateStatusTx(ctx context.Context, tx *sql.Tx, serviceName string) error {

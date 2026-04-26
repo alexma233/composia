@@ -173,7 +173,7 @@ data_protect:
         exclude:                       # 排除路径（可选）
           - ./data/uploads/temp
       restore:                         # 恢复策略
-        strategy: files.copy
+        strategy: files.copy_after_stop
         include:
           - ./data/uploads
     
@@ -190,6 +190,8 @@ data_protect:
 | `files.copy` | 直接复制文件 | 静态文件、上传目录 |
 | `files.copy_after_stop` | 停止服务后复制并恢复 | 需要一致性的数据 |
 | `database.pgdumpall` | PostgreSQL 全量导出 | PostgreSQL 数据库 |
+
+恢复策略中，`files.copy` 会直接恢复；`files.copy_after_stop` 会先停止 Compose project，恢复文件或 Docker volume 后再启动。
 
 #### 备份配置
 

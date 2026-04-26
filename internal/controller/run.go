@@ -635,6 +635,10 @@ func (server *agentReportServer) ReportBackupResult(ctx context.Context, req *co
 	if err := ensureTaskNodeMatch(ctx, server.db, req.Msg.GetTaskId()); err != nil {
 		return nil, err
 	}
+	nodeID, err := server.db.TaskNodeID(ctx, req.Msg.GetTaskId())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 	startedAt := time.Now().UTC().Format(time.RFC3339)
 	if req.Msg.GetStartedAt() != nil {
 		startedAt = req.Msg.GetStartedAt().AsTime().UTC().Format(time.RFC3339)
@@ -647,6 +651,7 @@ func (server *agentReportServer) ReportBackupResult(ctx context.Context, req *co
 		BackupID:     req.Msg.GetBackupId(),
 		TaskID:       req.Msg.GetTaskId(),
 		ServiceName:  req.Msg.GetServiceName(),
+		NodeID:       nodeID,
 		DataName:     req.Msg.GetDataName(),
 		Status:       req.Msg.GetStatus(),
 		StartedAt:    startedAt,
@@ -2702,6 +2707,7 @@ func (server *backupRecordServer) GetBackup(ctx context.Context, req *connect.Re
 		BackupId:     backup.BackupID,
 		TaskId:       backup.TaskID,
 		ServiceName:  backup.ServiceName,
+		NodeId:       backup.NodeID,
 		DataName:     backup.DataName,
 		Status:       backup.Status,
 		StartedAt:    backup.StartedAt,
@@ -2783,6 +2789,7 @@ func backupSummaryMessage(backup store.BackupSummary) *controllerv1.BackupSummar
 		BackupId:    backup.BackupID,
 		TaskId:      backup.TaskID,
 		ServiceName: backup.ServiceName,
+		NodeId:      backup.NodeID,
 		DataName:    backup.DataName,
 		Status:      backup.Status,
 		StartedAt:   backup.StartedAt,

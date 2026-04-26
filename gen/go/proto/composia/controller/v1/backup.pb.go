@@ -35,6 +35,7 @@ type BackupSummary struct {
 	StartedAt string `protobuf:"bytes,6,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
 	// finished_at is empty until the backup reaches a terminal state.
 	FinishedAt    string `protobuf:"bytes,7,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	NodeId        string `protobuf:"bytes,8,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -114,6 +115,13 @@ func (x *BackupSummary) GetStartedAt() string {
 func (x *BackupSummary) GetFinishedAt() string {
 	if x != nil {
 		return x.FinishedAt
+	}
+	return ""
+}
+
+func (x *BackupSummary) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
 	}
 	return ""
 }
@@ -317,6 +325,7 @@ type GetBackupResponse struct {
 	ErrorSummary string `protobuf:"bytes,9,opt,name=error_summary,json=errorSummary,proto3" json:"error_summary,omitempty"`
 	// actions describes whether backup-scoped actions may currently run.
 	Actions       *BackupActionCapabilities `protobuf:"bytes,10,opt,name=actions,proto3" json:"actions,omitempty"`
+	NodeId        string                    `protobuf:"bytes,11,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -419,6 +428,13 @@ func (x *GetBackupResponse) GetActions() *BackupActionCapabilities {
 		return x.Actions
 	}
 	return nil
+}
+
+func (x *GetBackupResponse) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
 }
 
 // BackupActionCapabilities describes whether backup-scoped actions may run.
@@ -524,7 +540,7 @@ var File_proto_composia_controller_v1_backup_proto protoreflect.FileDescriptor
 
 const file_proto_composia_controller_v1_backup_proto_rawDesc = "" +
 	"\n" +
-	")proto/composia/controller/v1/backup.proto\x12\x16composia.controller.v1\x1a'proto/composia/controller/v1/task.proto\x1a)proto/composia/controller/v1/system.proto\"\xdd\x01\n" +
+	")proto/composia/controller/v1/backup.proto\x12\x16composia.controller.v1\x1a'proto/composia/controller/v1/task.proto\x1a)proto/composia/controller/v1/system.proto\"\xf6\x01\n" +
 	"\rBackupSummary\x12\x1b\n" +
 	"\tbackup_id\x18\x01 \x01(\tR\bbackupId\x12\x17\n" +
 	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12!\n" +
@@ -534,7 +550,8 @@ const file_proto_composia_controller_v1_backup_proto_rawDesc = "" +
 	"\n" +
 	"started_at\x18\x06 \x01(\tR\tstartedAt\x12\x1f\n" +
 	"\vfinished_at\x18\a \x01(\tR\n" +
-	"finishedAt\"\x9d\x01\n" +
+	"finishedAt\x12\x17\n" +
+	"\anode_id\x18\b \x01(\tR\x06nodeId\"\x9d\x01\n" +
 	"\x12ListBackupsRequest\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x1b\n" +
@@ -546,7 +563,7 @@ const file_proto_composia_controller_v1_backup_proto_rawDesc = "" +
 	"\vtotal_count\x18\x02 \x01(\rR\n" +
 	"totalCount\"/\n" +
 	"\x10GetBackupRequest\x12\x1b\n" +
-	"\tbackup_id\x18\x01 \x01(\tR\bbackupId\"\xf5\x02\n" +
+	"\tbackup_id\x18\x01 \x01(\tR\bbackupId\"\x8e\x03\n" +
 	"\x11GetBackupResponse\x12\x1b\n" +
 	"\tbackup_id\x18\x01 \x01(\tR\bbackupId\x12\x17\n" +
 	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12!\n" +
@@ -560,7 +577,8 @@ const file_proto_composia_controller_v1_backup_proto_rawDesc = "" +
 	"\fartifact_ref\x18\b \x01(\tR\vartifactRef\x12#\n" +
 	"\rerror_summary\x18\t \x01(\tR\ferrorSummary\x12J\n" +
 	"\aactions\x18\n" +
-	" \x01(\v20.composia.controller.v1.BackupActionCapabilitiesR\aactions\"X\n" +
+	" \x01(\v20.composia.controller.v1.BackupActionCapabilitiesR\aactions\x12\x17\n" +
+	"\anode_id\x18\v \x01(\tR\x06nodeId\"X\n" +
 	"\x18BackupActionCapabilities\x12<\n" +
 	"\arestore\x18\x01 \x01(\v2\".composia.controller.v1.CapabilityR\arestore\"L\n" +
 	"\x14RestoreBackupRequest\x12\x1b\n" +

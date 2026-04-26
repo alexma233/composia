@@ -201,6 +201,7 @@ export type BackupSummary = {
   backupId: string;
   taskId: string;
   serviceName: string;
+  nodeId: string;
   dataName: string;
   status: string;
   startedAt: string;
@@ -208,6 +209,7 @@ export type BackupSummary = {
 };
 
 export type BackupDetail = BackupSummary & {
+  nodeId: string;
   artifactRef: string;
   errorSummary: string;
   actions: BackupActionCapabilities;
@@ -867,6 +869,8 @@ export async function loadBackupDetail(
     service_name?: string;
     dataName?: string;
     data_name?: string;
+    nodeId?: string;
+    node_id?: string;
     status?: string;
     startedAt?: string;
     started_at?: string;
@@ -894,6 +898,7 @@ export async function loadBackupDetail(
     taskId: response.taskId ?? response.task_id ?? "",
     serviceName: response.serviceName ?? response.service_name ?? "",
     dataName: response.dataName ?? response.data_name ?? "",
+    nodeId: response.nodeId ?? response.node_id ?? "",
     status: response.status ?? "",
     startedAt: response.startedAt ?? response.started_at ?? "",
     finishedAt: response.finishedAt ?? response.finished_at ?? "",

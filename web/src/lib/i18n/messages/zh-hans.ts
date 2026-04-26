@@ -377,8 +377,12 @@ export const zhHans = {
     restoreQueued: "恢复任务已加入队列：{taskId}",
     restoreFailed: "启动恢复失败。",
     detailsTitle: "备份详情",
+    sourceNode: "来源节点",
     targetNode: "目标节点",
     selectTargetNode: "选择目标节点",
+    restoreConfirmTitle: "确认恢复",
+    restoreWarning:
+      "该恢复可能覆盖节点 {nodeId} 上同名的文件、目录或 Docker volume。",
     noArtifact: "此备份没有记录 Artifact Ref。",
   },
   settings: {

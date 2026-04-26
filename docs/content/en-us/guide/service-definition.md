@@ -173,7 +173,7 @@ data_protect:
         exclude:                       # Exclude paths (optional)
           - ./data/uploads/temp
       restore:                         # Restore strategy
-        strategy: files.copy
+        strategy: files.copy_after_stop
         include:
           - ./data/uploads
     
@@ -190,6 +190,8 @@ data_protect:
 | `files.copy` | Direct file copy | Static files, upload directories |
 | `files.copy_after_stop` | Stop service, copy files, restart | Data requiring consistency |
 | `database.pgdumpall` | PostgreSQL full export | PostgreSQL databases |
+
+For restore, `files.copy` restores immediately, while `files.copy_after_stop` stops the Compose project, restores the files or Docker volumes, then starts it again.
 
 #### Backup Configuration
 

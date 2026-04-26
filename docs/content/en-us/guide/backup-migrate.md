@@ -97,7 +97,7 @@ data_protect:
         exclude:
           - ./data/uploads/temp
       restore:
-        strategy: files.copy
+        strategy: files.copy_after_stop
         include:
           - ./data/uploads
     
@@ -125,6 +125,8 @@ backup:
 | `files.copy` | Direct copy for service paths; Docker volumes go through a temporary-container tar stream | Static files, upload directories, Docker volumes |
 | `files.copy_after_stop` | Stop service, copy files, restart | Data requiring consistency |
 | `database.pgdumpall` | PostgreSQL full export | PostgreSQL databases |
+
+For restore, `files.copy_after_stop` uses the same target layout as `files.copy`, but wraps the restore with `docker compose down` and `docker compose up -d`.
 
 ### Execute Backup
 

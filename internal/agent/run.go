@@ -1371,6 +1371,9 @@ func failServiceTask(ctx context.Context, client agentv1connect.AgentReportServi
 }
 
 func uploadTaskLog(ctx context.Context, logUploader *taskLogUploader, content string) error {
+	if logUploader == nil {
+		return nil
+	}
 	if err := logUploader.Upload(ctx, content); err != nil {
 		return fmt.Errorf("upload task logs: %w", err)
 	}
@@ -1508,9 +1511,30 @@ func restoreRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoo
 	return applyRestoreItem(ctx, serviceRoot, filepath.Join(stagingDir, item.Name), item, logUploader)
 }
 
-func applyRestoreItem(ctx context.Context, serviceRoot, stagingDir string, item backupcfg.RestoreItem, logUploader *taskLogUploader) error {
+func applyRestoreItem(ctx context.Context, serviceRoot, stagingDir string, item backupcfg.RestoreItem, logUploader *taskLogUploader) (retErr error) {
 	switch item.Strategy {
-	case "files.copy":
+	case "files.copy", "files.copy_after_stop":
+		if item.Strategy == "files.copy_after_stop" {
+			projectName, err := loadComposeProjectName(serviceRoot, filepath.Base(serviceRoot))
+			if err != nil {
+				return err
+			}
+			if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("stopping compose project %s for cold restore item %s\n", projectName, item.Name)); err != nil {
+				return err
+			}
+			if err := runComposeDown(ctx, serviceRoot, projectName, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); err != nil {
+				return err
+			}
+			defer func() {
+				if restartErr := runComposeUp(ctx, serviceRoot, projectName, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); restartErr != nil {
+					if retErr == nil {
+						retErr = fmt.Errorf("restart compose project after cold restore: %w", restartErr)
+						return
+					}
+					_ = uploadTaskLog(ctx, logUploader, fmt.Sprintf("restart compose project after cold restore failed: %v\n", restartErr))
+				}
+			}()
+		}
 		for _, include := range item.Include {
 			if err := restoreInclude(ctx, serviceRoot, stagingDir, include); err != nil {
 				return fmt.Errorf("restore item %s include %s: %w", item.Name, include, err)

@@ -394,8 +394,12 @@ export const enUS = {
     restoreQueued: "Restore queued as {taskId}",
     restoreFailed: "Failed to start restore.",
     detailsTitle: "Backup Details",
+    sourceNode: "Source node",
     targetNode: "Target node",
     selectTargetNode: "Select target node",
+    restoreConfirmTitle: "Confirm restore",
+    restoreWarning:
+      "This restore may overwrite files, directories, or Docker volumes with the same names on node {nodeId}.",
     noArtifact: "No Artifact Ref recorded for this backup.",
   },
   settings: {

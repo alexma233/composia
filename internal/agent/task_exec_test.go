@@ -534,6 +534,61 @@ func TestApplyRestoreItemUsesBackupItemPathForVolume(t *testing.T) {
 	}
 }
 
+func TestApplyRestoreItemStopsComposeForCopyAfterStop(t *testing.T) {
+	rootDir := t.TempDir()
+	binDir := filepath.Join(rootDir, "bin")
+	dockerLogFile := filepath.Join(rootDir, "docker.log")
+	volumeTargetDir := filepath.Join(rootDir, "volume-target")
+	serviceRoot := filepath.Join(rootDir, "repo", "test-backup")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatalf("create bin dir: %v", err)
+	}
+	if err := os.MkdirAll(serviceRoot, 0o755); err != nil {
+		t.Fatalf("create service root: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(serviceRoot, "composia-meta.yaml"), []byte("name: test-backup\nproject_name: test-backup\nnodes:\n  - main\n"), 0o644); err != nil {
+		t.Fatalf("write service meta: %v", err)
+	}
+	dockerPath := filepath.Join(binDir, "docker")
+	script := "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\nif [ \"$1\" = \"compose\" ]; then\n  exit 0\nfi\nif [ \"$1\" = \"run\" ] && [ \"$2\" = \"-i\" ] && [ \"$3\" = \"--rm\" ] && [ \"$4\" = \"-v\" ] && [ \"$5\" = \"test_backup:/target\" ]; then\n  mkdir -p \"$TEST_VOLUME_TARGET_DIR\"\n  tar -C \"$TEST_VOLUME_TARGET_DIR\" -xf -\n  exit 0\nfi\nprintf 'unexpected docker invocation: %s\\n' \"$*\" >&2\nexit 98\n"
+	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake docker script: %v", err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("TEST_DOCKER_LOG_FILE", dockerLogFile)
+	t.Setenv("TEST_VOLUME_TARGET_DIR", volumeTargetDir)
+
+	stagingDir := t.TempDir()
+	stagedVolumeDir := filepath.Join(stagingDir, "mydata", "volumes", sanitizeStagePath("test_backup"))
+	if err := os.MkdirAll(stagedVolumeDir, 0o755); err != nil {
+		t.Fatalf("create staged volume dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(stagedVolumeDir, "hello.txt"), []byte("cold restored\n"), 0o644); err != nil {
+		t.Fatalf("seed staged volume file: %v", err)
+	}
+
+	item := backupcfg.RestoreItem{Name: "mydata", Strategy: "files.copy_after_stop", Include: []string{"test_backup"}}
+	if err := applyRestoreItem(context.Background(), serviceRoot, filepath.Join(stagingDir, item.Name), item, nil); err != nil {
+		t.Fatalf("apply cold restore item: %v", err)
+	}
+
+	content, err := os.ReadFile(filepath.Join(volumeTargetDir, "hello.txt"))
+	if err != nil {
+		t.Fatalf("read restored file: %v", err)
+	}
+	if string(content) != "cold restored\n" {
+		t.Fatalf("unexpected restored content %q", string(content))
+	}
+	dockerLog, err := os.ReadFile(dockerLogFile)
+	if err != nil {
+		t.Fatalf("read docker log: %v", err)
+	}
+	logText := string(dockerLog)
+	if !strings.Contains(logText, "compose --project-name test-backup down") || !strings.Contains(logText, "compose --project-name test-backup up -d") {
+		t.Fatalf("expected compose down/up around restore, got %q", logText)
+	}
+}
+
 func TestStageIncludeReturnsErrorWhenDockerTarExportFailsForVolume(t *testing.T) {
 	rootDir := t.TempDir()
 	binDir := filepath.Join(rootDir, "bin")

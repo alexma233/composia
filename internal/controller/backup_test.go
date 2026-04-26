@@ -28,7 +28,10 @@ func TestBackupRecordServiceListAndGetBackup(t *testing.T) {
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
-	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-1", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "alpha", CreatedAt: time.Date(2026, 4, 4, 14, 0, 0, 0, time.UTC)}); err != nil {
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-1", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "alpha", NodeID: "main", CreatedAt: time.Date(2026, 4, 4, 14, 0, 0, 0, time.UTC)}); err != nil {
 		t.Fatalf("create task-1: %v", err)
 	}
 	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-2", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "bravo", CreatedAt: time.Date(2026, 4, 4, 14, 5, 0, 0, time.UTC)}); err != nil {
@@ -58,7 +61,7 @@ func TestBackupRecordServiceListAndGetBackup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list backups: %v", err)
 	}
-	if len(listResponse.Msg.GetBackups()) != 1 || listResponse.Msg.GetBackups()[0].GetBackupId() != "backup-1" {
+	if len(listResponse.Msg.GetBackups()) != 1 || listResponse.Msg.GetBackups()[0].GetBackupId() != "backup-1" || listResponse.Msg.GetBackups()[0].GetNodeId() != "main" {
 		t.Fatalf("unexpected backup list response: %+v", listResponse.Msg.GetBackups())
 	}
 
@@ -66,7 +69,7 @@ func TestBackupRecordServiceListAndGetBackup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get backup: %v", err)
 	}
-	if getResponse.Msg.GetArtifactRef() != "snapshot-1" || getResponse.Msg.GetServiceName() != "alpha" {
+	if getResponse.Msg.GetArtifactRef() != "snapshot-1" || getResponse.Msg.GetServiceName() != "alpha" || getResponse.Msg.GetNodeId() != "main" {
 		t.Fatalf("unexpected backup detail response: %+v", getResponse.Msg)
 	}
 }
