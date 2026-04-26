@@ -251,10 +251,10 @@ export const zhHans = {
       encryptedUnavailableMissingSecrets:
         "请先配置 Secrets 支持，再在编辑器中打开加密文件。",
       encryptedUnavailableDeclared:
-          "请先声明该服务，再在编辑器中打开加密文件。",
-        openFileFailed: "打开文件失败。",
-        saveFileFailed: "保存文件失败。",
-        saved: "已保存 {path}",
+        "请先声明该服务，再在编辑器中打开加密文件。",
+      openFileFailed: "打开文件失败。",
+      saveFileFailed: "保存文件失败。",
+      saved: "已保存 {path}",
       createFileFailed: "创建文件失败。",
       createFolderFailed: "创建文件夹失败。",
       renameFailed: "重命名路径失败。",

@@ -425,8 +425,7 @@ export const enUS = {
   backups: {
     title: "Backups",
     pageTitle: "Backups - Composia",
-    pageDescription:
-      "Browse backup records and restore data to target nodes.",
+    pageDescription: "Browse backup records and restore data to target nodes.",
     backup: "Backup",
     dataName: "Data name",
     noBackups: "No backups loaded",
