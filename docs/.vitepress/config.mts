@@ -156,7 +156,7 @@ export default withMermaid(defineConfig({
     root: {
       label: 'English',
       lang: 'en-US',
-      description: 'A self-hosted service manager built around Docker Compose',
+      description: 'Multi-node Docker Compose management without lock-in — your files stay yours',
       themeConfig: {
         siteTitle: 'Composia',
         nav: [
@@ -170,6 +170,7 @@ export default withMermaid(defineConfig({
               items: [
                 { text: 'Introduction', link: '/guide/' },
                 { text: 'Quick Start', link: '/guide/quick-start' },
+                { text: 'Installation', link: '/guide/installation' },
                 { text: 'Architecture', link: '/guide/architecture' }
               ]
             },
@@ -194,7 +195,8 @@ export default withMermaid(defineConfig({
                 { text: 'DNS Configuration', link: '/guide/dns' },
                 { text: 'Caddy Configuration', link: '/guide/caddy' },
                 { text: 'Backup & Migration', link: '/guide/backup-migrate' },
-                { text: 'Operations', link: '/guide/operations' }
+                { text: 'Operations', link: '/guide/operations' },
+                { text: 'Troubleshooting', link: '/guide/troubleshooting' }
               ]
             },
             {
@@ -235,7 +237,7 @@ export default withMermaid(defineConfig({
     'zh-hans': {
       label: '简体中文',
       lang: 'zh-Hans',
-      description: '基于 Docker Compose 的自托管服务管理器',
+      description: '多节点 Docker Compose 管理，无平台锁定——文件始终归你',
       themeConfig: {
         siteTitle: 'Composia',
         nav: [
@@ -249,6 +251,7 @@ export default withMermaid(defineConfig({
               items: [
                 { text: '简介', link: '/zh-hans/guide/' },
                 { text: '快速开始', link: '/zh-hans/guide/quick-start' },
+                { text: '安装指南', link: '/zh-hans/guide/installation' },
                 { text: '架构概览', link: '/zh-hans/guide/architecture' }
               ]
             },
@@ -273,16 +276,15 @@ export default withMermaid(defineConfig({
                 { text: 'DNS 配置', link: '/zh-hans/guide/dns' },
                 { text: 'Caddy 配置', link: '/zh-hans/guide/caddy' },
                 { text: '备份与迁移', link: '/zh-hans/guide/backup-migrate' },
-                { text: '日常运维', link: '/zh-hans/guide/operations' }
+                { text: '日常运维', link: '/zh-hans/guide/operations' },
+                { text: '故障排查', link: '/zh-hans/guide/troubleshooting' }
               ]
             },
             {
               text: '开发',
               items: [
                 { text: '开发指南', link: '/zh-hans/guide/development' },
-                { text: 'API 参考', link: '/zh-hans/guide/api/' },
-                { text: 'Controller API Reference', link: '/guide/api/controller-reference' },
-                { text: 'Agent Internal API Reference', link: '/guide/api/agent-internal-reference' }
+                { text: 'API 参考', link: '/zh-hans/guide/api/' }
               ]
             }
           ]

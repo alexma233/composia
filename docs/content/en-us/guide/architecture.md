@@ -1,12 +1,12 @@
 # Architecture Overview
 
-Composia uses a control plane-agent (Controller-Agent) architecture that supports distributed multi-node service management.
+Composia uses a controller-agent architecture: the **Controller** makes decisions and schedules work, while **Agents** execute on each Docker host. This pattern is sometimes called a "control plane" — the coordination layer that manages the actual workloads.
 
 ## System Architecture
 
 ```mermaid
 flowchart TB
-    subgraph CP[Control Plane]
+    subgraph CP[Controller]
         WEB[Web UI\nSvelteKit]
         API[API Server\nConnectRPC]
         DB[(Task Queue / State\nSQLite)]
@@ -28,9 +28,9 @@ flowchart TB
 
 ## Core Components
 
-### Control Plane (Controller)
+### Controller
 
-The control plane is the central hub of the system, running in its own container:
+The Controller is the central hub of the system — it decides what should happen and delegates execution to agents:
 
 | Function | Description |
 |----------|-------------|
@@ -46,7 +46,7 @@ Agents run on target Docker hosts:
 
 | Function | Description |
 |----------|-------------|
-| Heartbeat Communication | Regularly reporting status to the control plane (default: 15 seconds) |
+| Heartbeat Communication | Regularly reporting status to the Controller (default: 15 seconds) |
 | Task Execution | Executing deployment, stop, restart, and other operations |
 | Log Collection | Collecting and forwarding container logs |
 | Runtime Summary | Reports disk capacity and Docker inventory statistics |
@@ -114,28 +114,9 @@ flowchart LR
 - Controller aggregates status from all agents into SQLite
 - Web UI displays real-time status updates
 
-## Core Object Model
+## Object Model
 
-```mermaid
-flowchart TB
-    S[Service<br/>Service Definition]
-    SI1[ServiceInstance<br/>Node Instance A]
-    SI2[ServiceInstance<br/>Node Instance B]
-    C1[Container<br/>Docker Container]
-    C2[Container<br/>Docker Container]
-
-    S --> SI1
-    S --> SI2
-    SI1 --> C1
-    SI2 --> C2
-```
-
-| Object | Description | Storage |
-|--------|-------------|---------|
-| Service | Logical service definition from Git repository | Git Repo |
-| ServiceInstance | Deployment instance of a service on a specific node | SQLite |
-| Container | Actual Docker container | Docker Daemon |
-| Node | Docker host where an Agent runs | Controller Config |
+Composia models infrastructure as four objects: **Service** (logical definition), **ServiceInstance** (per-node deployment), **Container** (actual Docker process), and **Node** (Docker host). For a detailed walkthrough of how they relate, see [Core Concepts](./core-concepts).
 
 ## Security
 

@@ -5,8 +5,8 @@ title: Composia
 
 hero:
   name: "Composia"
-  text: "Docker Compose 控制平面"
-  tagline: 一个平台无关的 Docker Compose 控制平面，在不牺牲纯文件和 CLI 工作流的前提下统一管理多节点自托管基础设施
+  text: "Docker Compose 多节点管理"
+  tagline: 将 Compose 文件部署到多节点。你始终掌控一切。
   actions:
     - theme: brand
       text: 快速开始
@@ -21,8 +21,8 @@ hero:
 features:
   - title: 🐳 原生 Docker Compose
     details: 保持 Docker Compose 和纯文件工作流为核心，而不是把配置锁进平台私有模型。
-  - title: 🎛️ 单一控制平面
-    details: 通过单一控制平面统一协调服务、节点、任务和状态，同时保留对底层系统的直接控制。
+  - title: 🎛️ 统一管理面板
+    details: 在一个界面中统一协调服务、节点、任务和状态，同时保留对底层系统的直接访问。
   - title: 🤖 多代理架构
     details: 支持一个或多个执行代理，可横向扩展以管理大规模基础设施。
   - title: 📋 运行态可见性
@@ -32,5 +32,5 @@ features:
   - title: 🔒 安全可靠
     details: 采用 AGPL-3.0 开源协议，代码透明可审计，支持私有部署。
   - title: 🚫 避免平台锁定
-    details: 控制平面负责协调、校验和汇总，而不是夺走操作者对基础设施本身的主权。
+    details: Composia 负责协调和汇总，而不是夺走操作者对基础设施本身的主权。
 ---

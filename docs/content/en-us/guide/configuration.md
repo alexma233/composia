@@ -1,8 +1,24 @@
 # Configuration Guide
 
-This page now keeps the overview only. Platform configuration has been split into dedicated documents by feature so each topic is easier to scan.
+This page provides an overview of Composia's configuration system. Each feature has its own dedicated page — use the table below to find what you need.
 
-Configuration loading is strict. Unknown fields are rejected during startup.
+Configuration loading is strict: unknown fields are rejected during startup.
+
+## What Do You Need to Configure?
+
+| You want to... | Read this |
+|----------------|-----------|
+| Set up a new installation from scratch | [Quick Start](./quick-start) or [Installation](./installation) |
+| Understand the config file layout | This page (full example below) |
+| Add nodes or configure access tokens | [Controller Configuration](./configuration/controller) |
+| Set up an agent on a new host | [Agent Configuration](./configuration/agent) |
+| Sync service definitions from a remote Git repo | [Git Remote Sync](./configuration/git-sync) |
+| Configure DNS records for services | [DNS Configuration (controller)](./configuration/dns) |
+| Schedule automatic backups | [Backup Configuration](./configuration/backup) |
+| Enable secrets encryption | [Secrets Configuration](./configuration/secrets) |
+| Define a service (composia-meta.yaml) | [Service Definition](./service-definition) |
+| Verify config is valid | [Configuration Verification](./configuration/verification) |
+| Secure token and key files | [Configuration Security](./configuration/security) |
 
 ## Configuration Types
 

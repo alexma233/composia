@@ -1,12 +1,12 @@
 # 架构概览
 
-Composia 采用控制平面-代理（Control Plane-Agent）架构，支持分布式多节点服务管理。
+Composia 采用 Controller-Agent 架构：**Controller** 负责决策和调度，**Agent** 在每个 Docker 主机上执行实际工作。这种模式有时被称为"控制平面"——协调层负责管理实际负载。
 
 ## 系统架构
 
 ```mermaid
 flowchart TB
-    subgraph CP[Control Plane]
+    subgraph CP[Controller]
         WEB[Web UI\nSvelteKit]
         API[API Server\nConnectRPC]
         DB[(Task Queue / State\nSQLite)]
@@ -28,9 +28,9 @@ flowchart TB
 
 ## 核心组件
 
-### 控制平面（Controller）
+### Controller
 
-控制平面是系统的中心枢纽，运行在独立容器中：
+Controller 是系统的中心枢纽——它决定应该发生什么，并将执行委托给 Agent：
 
 | 功能 | 说明 |
 |------|------|
@@ -46,7 +46,7 @@ flowchart TB
 
 | 功能 | 说明 |
 |------|------|
-| 心跳通信 | 定期向控制平面报告状态（默认 15 秒） |
+| 心跳通信 | 定期向 Controller 报告状态（默认 15 秒） |
 | 任务执行 | 执行部署、停止、重启等操作 |
 | 日志收集 | 收集和转发容器日志 |
 | 运行时摘要 | 上报磁盘容量和 Docker 资源统计 |
@@ -114,28 +114,9 @@ flowchart LR
 - Controller 聚合所有代理的状态到 SQLite
 - Web UI 实时展示最新状态
 
-## 核心对象模型
+## 对象模型
 
-```mermaid
-flowchart TB
-    S[Service<br/>服务定义]
-    SI1[ServiceInstance<br/>节点实例 A]
-    SI2[ServiceInstance<br/>节点实例 B]
-    C1[Container<br/>Docker 容器]
-    C2[Container<br/>Docker 容器]
-
-    S --> SI1
-    S --> SI2
-    SI1 --> C1
-    SI2 --> C2
-```
-
-| 对象 | 说明 | 存储位置 |
-|------|------|----------|
-| Service | 逻辑服务定义，来源于 Git 仓库 | Git Repo |
-| ServiceInstance | 服务在某个节点上的部署实例 | SQLite |
-| Container | 实际的 Docker 容器 | Docker Daemon |
-| Node | 执行代理对应的 Docker 主机 | Controller 配置 |
+Composia 将基础设施建模为四种对象：**Service**（逻辑定义）、**ServiceInstance**（按节点部署实例）、**Container**（实际 Docker 进程）和 **Node**（Docker 主机）。详细关系说明请参见[核心概念](./core-concepts)。
 
 ## 安全性
 

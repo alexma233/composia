@@ -1,28 +1,20 @@
 # Why Composia?
 
-Composia exists for operators who want a real control plane for Docker Compose without giving up direct ownership of their files, their CLI workflows, or their infrastructure.
-
-## The Core Principle
-
-Composia is designed around one rule:
-
-**The platform should help manage your Docker Compose infrastructure, not trap you inside a platform-specific abstraction.**
-
-That is why Composia keeps the desired state in plain files, stays close to standard Docker Compose workflows, and treats the control plane as an enhancement layer instead of the only way to operate your services.
+Composia is built around one idea: **your Compose files should always be the source of truth.** It adds multi-node coordination and operational visibility as an enhancement layer — your files stay yours, your CLI workflows keep working, and you can walk away from Composia at any time without losing your infrastructure.
 
 In practice, this means:
 
 - You should still be able to understand your system from the repo itself
 - You should still be able to operate services with the appropriate CLI tools
 - You should be able to move away from Composia without first reverse-engineering a private platform model
-- The control plane should coordinate, validate, execute, and report, not take ownership away from the operator
+- Composia should coordinate, validate, execute, and report, not take ownership away from the operator
 
 ## What Composia Is
 
-Composia is a self-hosted Docker Compose control plane built around:
+Composia is a self-hosted Docker Compose management platform built around:
 
 - Git-backed service definitions
-- A single control plane
+- Centralized coordination
 - One or more execution agents
 - Multi-node service deployment
 - Task execution, repo writes, secrets, backup, restore, and operational visibility
@@ -75,12 +67,12 @@ Composia does not start from the assumption that the platform should become the 
 - Docker Compose remains the operational foundation
 - Files remain the source of truth for desired state
 - Operators should retain direct control over the underlying system
-- The control plane should stay removable
+- The management layer should stay removable
 
 In short:
 
 - Dokploy and Coolify are self-hosted PaaS platforms
-- Composia is a Compose-native control plane for self-hosted infrastructure
+- Composia is a Compose-native coordination layer for self-hosted infrastructure
 
 ## Where Composia Sits
 
@@ -89,13 +81,13 @@ Composia sits between two common categories:
 - Simpler Compose managers
 - Higher-level self-hosted PaaS platforms
 
-It keeps the Compose-native, file-first, operator-controlled model that many people want, while adding the control plane capabilities that lightweight stack managers usually do not provide.
+It keeps the Compose-native, file-first, operator-controlled model that many people want, while adding the coordination capabilities that lightweight stack managers usually do not provide.
 
 That balance is the point.
 
 ## Choose Composia If You Want
 
-- A multi-node Docker Compose control plane
+- A multi-node Docker Compose management platform
 - Git-backed desired state instead of opaque platform state
 - A system that respects normal CLI and file-based workflows
 - Clear service, instance, container, and node boundaries
@@ -105,4 +97,4 @@ That balance is the point.
 
 If Dockge or Dockman are primarily better ways to operate Compose stacks, and Dokploy or Coolify are primarily self-hosted PaaS platforms, then Composia is trying to be something else:
 
-**A platform-agnostic Docker Compose control plane that improves coordination and operations without taking ownership of your infrastructure away from you.**
+**A multi-node Docker Compose coordination layer that works with your files, not instead of them.**

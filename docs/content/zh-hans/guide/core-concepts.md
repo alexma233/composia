@@ -50,7 +50,7 @@ repo/
 - 使用 `composia-meta.yaml` 定义服务属性
 - 包含 Docker Compose 配置
 - 可以部署到多个节点
-- 控制平面保存的是期望状态
+- Controller 保存的是期望状态
 
 ### ServiceInstance（服务实例）
 

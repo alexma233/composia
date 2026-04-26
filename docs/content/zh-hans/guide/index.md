@@ -1,6 +1,6 @@
 # 简介
 
-Composia 是一个围绕服务定义、单一控制平面和多个执行代理构建的自托管 Docker Compose 管理平台。
+Composia 为 Docker Compose 增加多节点协作能力——以你的文件为唯一事实来源，从一处管理跨节点的所有服务。
 
 ## 什么是 Composia？
 
@@ -8,7 +8,7 @@ Composia 让你能够：
 
 - **管理 Docker Compose 服务** —— 使用 `docker-compose.yaml` 配合少量 `composia-meta.yaml` 元数据定义服务
 - **多节点部署** —— 将服务部署到多个节点（代理）上
-- **集中控制** —— 通过单一控制平面管理所有服务和节点
+- **集中管理** —— 从一个入口管理所有服务和节点
 - **运行态可见性** —— 查看服务状态、任务日志、节点摘要，以及按节点划分的 Docker 详情
 
 ## 适用场景
@@ -31,9 +31,9 @@ nodes:
   - main
 ```
 
-### 控制平面（Control Plane）
+### Controller
 
-控制平面是 Composia 的核心，负责：
+Controller（连同 Web UI）是整个系统的中心调度点：
 
 - 管理服务定义和配置
 - 协调代理节点
@@ -46,7 +46,7 @@ nodes:
 
 - 执行部署命令
 - 上报心跳、任务结果、日志和 Docker 摘要
-- 与控制平面通信
+- 与 Controller 通信
 
 ## 技术栈
 

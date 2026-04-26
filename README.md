@@ -28,13 +28,30 @@
   </p>
 </div>
 
-Composia is a platform-agnostic Docker Compose control plane for self-hosted infrastructure.
+Composia is a self-hosted control plane for Docker Compose — define your services as plain files, deploy them to one or many nodes, and get unified visibility across your infrastructure.
 
-It is built for operators who want multi-node coordination, task execution, and operational visibility without giving up direct ownership of their files, their CLI workflows, or their underlying systems.
+**Unlike PaaS platforms, Composia stays out of your way.** Your configuration lives in standard `docker-compose.yaml` and `composia-meta.yaml` files that you own. The control plane coordinates and reports, but you always retain direct CLI and file-based access to every node.
 
-Composia keeps desired state in plain files, stays close to standard Docker Compose workflows, and treats the control plane as an enhancement layer rather than the only way to operate services.
+A service definition looks like this:
 
-If you want the rationale and how Composia differs from Compose managers and self-hosted PaaS platforms, see [Why Composia?](https://docs.composia.xyz/guide/why-composia).
+```yaml
+# composia-meta.yaml — declare what and where
+name: my-app
+nodes:
+  - main
+  - edge
+
+# docker-compose.yaml — standard Compose, no lock-in
+services:
+  app:
+    image: myapp:1.2.3
+    ports:
+      - "8080:80"
+    volumes:
+      - ./data:/app/data
+```
+
+See [Why Composia?](https://docs.composia.xyz/guide/why-composia) for how it compares to other tools.
 
 ## Stack
 

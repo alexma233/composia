@@ -50,7 +50,7 @@ repo/
 - Uses `composia-meta.yaml` to define service properties
 - Contains Docker Compose configuration
 - Can be deployed to multiple nodes
-- The control plane stores the desired state
+- The Controller stores the desired state
 
 ### ServiceInstance
 

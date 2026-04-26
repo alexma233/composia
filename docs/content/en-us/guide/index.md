@@ -1,6 +1,6 @@
 # Introduction
 
-Composia is a self-hosted Docker Compose management platform built around service definitions, a single control plane, and multiple execution agents.
+Composia adds multi-node coordination to Docker Compose — keep your files as the source of truth while managing services across many nodes from one place.
 
 ## What is Composia?
 
@@ -8,7 +8,7 @@ Composia enables you to:
 
 - **Manage Docker Compose Services** — Define services with `docker-compose.yaml` plus a small `composia-meta.yaml`
 - **Multi-Node Deployment** — Deploy services to multiple nodes (agents) across your infrastructure
-- **Centralized Control** — Manage all services and nodes through a single control plane
+- **Centralized Management** — Manage all services and nodes from one place
 - **Operational Visibility** — View service status, task logs, node summaries, and node-scoped Docker details
 
 ## Use Cases
@@ -33,7 +33,7 @@ nodes:
 
 ### Control Plane
 
-The control plane is the core of Composia, responsible for:
+The Controller (together with the Web UI) acts as the central coordination point for the whole system:
 
 - **Service Management**: Loading and maintaining service definitions from Git repositories
 - **State Aggregation**: Collecting status information from all agents
@@ -44,7 +44,7 @@ The control plane is the core of Composia, responsible for:
 
 Agents run on actual Docker hosts and are responsible for:
 
-- **Heartbeat Communication**: Regularly reporting status to the control plane
+- **Heartbeat Communication**: Regularly reporting status to the Controller
 - **Task Execution**: Executing deployment, stop, restart, and other operations
 - **Task and Runtime Reporting**: Reporting task results, logs, and Docker inventory summaries back to the Controller
 

@@ -275,75 +275,11 @@ services:
 
 Use ConnectRPC query methods such as `composia.controller.v1.ServiceQueryService/GetService` together with external alerting systems.
 
-## Troubleshooting
-
-### Common Issues
-
-**1. Agent Cannot Connect to Controller**
-
-Check:
-- Is Controller address correct?
-- Do Tokens match?
-- Network connectivity
-- Firewall settings
-
-**2. Deployment Failed**
-
-Check:
-- Error messages in task logs
-- Docker Compose file syntax
-- Is image pullable?
-- Port conflicts
-
-**3. Service Status Inconsistent**
-
-Check:
-- Is Agent online?
-- Are containers actually running?
-- Are labels correctly set?
-
-**4. Caddy Configuration Not Applied**
-
-Check:
-- Caddy infrastructure service status
-- Configuration fragment syntax
-- Agent directory mounts
-
-### Debug Mode
-
-Use the explicit config files below when reproducing operational issues locally:
-
-```bash
-# Controller
-go run ./cmd/composia controller -config ./dev/config.controller.yaml
-
-# Agent
-go run ./cmd/composia agent -config ./dev/config.controller.yaml
-```
-
-### Getting Support
-
-- View [GitHub Issues](https://github.com/alexma233/composia/issues)
-- Refer to [Development Guide](./development)
-- Check log files
-
-## Performance Optimization
-
-### Controller Optimization
-
-- Use SSD storage for `state_dir`
-- Regularly clean old task logs
-- Set appropriate `pull_interval`
-
-### Agent Optimization
-
-- Ensure smooth Docker socket access
-- Monitor Agent resource usage
-- Regularly clean unused resources
-
 ## Related Documentation
 
 - [Deployment](./deployment) — Service deployment operations
 - [Backup & Migration](./backup-migrate) — Data protection operations
 - [DNS Configuration](./dns) — DNS configuration and updates
 - [Caddy Configuration](./caddy) — Proxy configuration and automated sync
+- [Troubleshooting](./troubleshooting) — Common issues and solutions
+- [Development Guide](./development) — Development and debugging

@@ -287,75 +287,11 @@ services:
 
 可将 ConnectRPC 查询方法（例如 `composia.controller.v1.ServiceQueryService/GetService`）与外部告警系统结合使用。
 
-## 故障排查
-
-### 常见问题
-
-**1. Agent 无法连接 Controller**
-
-检查：
-- Controller 地址是否正确
-- Token 是否匹配
-- 网络连通性
-- 防火墙设置
-
-**2. 部署失败**
-
-检查：
-- 任务日志中的错误信息
-- Docker Compose 文件语法
-- 镜像是否可拉取
-- 端口是否冲突
-
-**3. 服务状态不一致**
-
-检查：
-- Agent 是否在线
-- 容器是否实际运行
-- 标签是否正确设置
-
-**4. Caddy 配置未生效**
-
-检查：
-- Caddy 基础设施服务状态
-- 配置片段语法
-- Agent 目录挂载
-
-### 调试模式
-
-在本地复现运维问题时，建议直接使用明确的配置文件启动：
-
-```bash
-# Controller
-go run ./cmd/composia controller -config ./dev/config.controller.yaml
-
-# Agent
-go run ./cmd/composia agent -config ./dev/config.controller.yaml
-```
-
-### 获取支持
-
-- 查看 [GitHub Issues](https://github.com/alexma233/composia/issues)
-- 查阅 [开发文档](./development)
-- 检查日志文件
-
-## 性能优化
-
-### Controller 优化
-
-- 使用 SSD 存储 `state_dir`
-- 定期清理旧任务日志
-- 合理设置 `pull_interval`
-
-### Agent 优化
-
-- 确保 Docker socket 访问顺畅
-- 监控 Agent 资源使用
-- 定期清理未使用资源
-
 ## 相关文档
 
 - [部署管理](./deployment) —— 服务部署操作
 - [备份与迁移](./backup-migrate) —— 数据保护操作
 - [DNS 配置](./dns) —— DNS 配置与更新
 - [Caddy 配置](./caddy) —— 代理配置与自动同步
+- [故障排查](./troubleshooting) —— 常见问题与解决方法
+- [开发指南](./development) —— 开发与调试

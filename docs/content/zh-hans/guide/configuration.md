@@ -1,8 +1,24 @@
 # 配置指南
 
-本文档现在只保留总览。平台配置已经按功能拆分成独立文档，便于按需查阅。
+本文档提供 Composia 配置系统总览。每个功能都有独立的文档页面——使用下表快速定位你需要的文档。
 
 配置加载是严格模式，启动时会拒绝未知字段。
+
+## 你需要配置什么？
+
+| 你想... | 阅读这个 |
+|----------------|-----------|
+| 从零开始安装 | [快速开始](./quick-start) 或 [安装指南](./installation) |
+| 了解配置文件结构 | 本页（下方完整示例） |
+| 添加节点或配置访问令牌 | [Controller 配置](./configuration/controller) |
+| 在新主机上设置 Agent | [Agent 配置](./configuration/agent) |
+| 从远程 Git 仓库同步服务定义 | [Git 远端同步](./configuration/git-sync) |
+| 为服务配置 DNS 记录 | [DNS 配置（Controller）](./configuration/dns) |
+| 定时自动备份 | [备份配置](./configuration/backup) |
+| 启用 Secrets 加密 | [Secrets 配置](./configuration/secrets) |
+| 定义服务（composia-meta.yaml） | [服务定义](./service-definition) |
+| 验证配置是否有效 | [配置验证](./configuration/verification) |
+| 保护 token 和密钥文件 | [配置安全](./configuration/security) |
 
 ## 配置分类
 

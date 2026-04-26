@@ -1,17 +1,12 @@
 # Quick Start
 
-This guide will help you get Composia up and running in minutes using pre-built container images.
+Get Composia running and deploy your first service in minutes. For a complete walkthrough of every configuration option, see [Installation](./installation).
 
 ## Prerequisites
 
-- Docker Engine 20.10+
-- Docker Compose v2.0+
+- Docker Engine 20.10+ and Docker Compose v2.0+
 
-## Installation
-
-### 1. Create a Working Directory
-
-Create a local working directory and download the production Compose file directly instead of cloning the full repository:
+## Setup
 
 ```bash
 mkdir -p composia/config
@@ -20,173 +15,100 @@ curl -L https://forgejo.alexma.top/alexma233/composia/raw/branch/main/.env.examp
 cd composia
 ```
 
-The directory layout looks like this:
+## Minimal Configuration
 
-```text
-composia/
-├── docker-compose.yaml
-└── config/
-    ├── config.yaml
-    ├── age-identity.key
-    └── age-recipients.txt
-```
-
-### 2. Download the Startup Files
-
-The published `docker-compose.yaml` is production-ready. Use the [Configuration Guide](./configuration), [Controller Configuration](./configuration/controller), and [Agent Configuration](./configuration/agent) to write `config/config.yaml`, then update the placeholder values in `.env` as needed.
-
-If you enable `secrets`, follow [Secrets Configuration](./configuration/secrets) and generate your own age key pair:
-
-```bash
-mkdir -p config
-age-keygen -o config/age-identity.key
-grep "public key:" config/age-identity.key | awk '{print $4}' > config/age-recipients.txt
-```
-
-### 3. Adjust the Platform Configuration
-
-Before startup, review and update at least these values:
-
-- `controller.access_tokens[].token`: controller access token used by the Web UI
-- `controller.nodes[].token` and `agent.token`: node authentication token, which must match on both sides
-- `WEB_CONTROLLER_ADDR` in `.env`: the controller base URL used by the Web server inside the Compose network
-- `WEB_BROWSER_CONTROLLER_ADDR` in `.env`: the controller base URL exposed to the browser for WebSocket terminal sessions; set this to a browser-reachable address
-- `WEB_CONTROLLER_ACCESS_TOKEN` in `.env`: it must match one enabled token under `controller.access_tokens`
-- `COMPOSIA_CONFIG_DIR`, `COMPOSIA_CONTROLLER_REPO_DIR`, `COMPOSIA_CONTROLLER_STATE_DIR`, `COMPOSIA_CONTROLLER_LOG_DIR`, `COMPOSIA_AGENT_REPO_DIR`, and `COMPOSIA_AGENT_STATE_DIR` in `.env`: host-side bind mount paths used by Compose
-- `DOCKER_SOCK_GID` in `.env`: the GID of the host's `/var/run/docker.sock`; the agent must join this group to access the local Docker daemon
-- `WEB_LOGIN_USERNAME` in `.env`: local username for the Web login page
-- `WEB_LOGIN_PASSWORD_HASH` in `.env`: Argon2 password hash for the Web login page
-- `WEB_SESSION_SECRET` in `.env`: random secret used to sign the Web session cookie
-- `ORIGIN` in `.env`: set this to the exact address you use to open the Web UI, such as `http://localhost:3000`, `http://127.0.0.1:3000`, or your production domain. Do not mix hosts, or form login may fail with `Cross-site POST form submissions are forbidden`
-
-First, look up the Docker socket GID on the host and write it into `.env`:
-
-```bash
-ls -ln /var/run/docker.sock
-```
-
-For example, if the output is:
-
-```text
-srw-rw---- 1 0 131 0 Mar  5 01:52 /var/run/docker.sock
-```
-
-set this in `.env`:
+Edit `.env` and fill in at least these values:
 
 ```env
-DOCKER_SOCK_GID=131
+# Required
+WEB_CONTROLLER_ADDR=http://controller:7001
+WEB_BROWSER_CONTROLLER_ADDR=http://localhost:7001
+WEB_CONTROLLER_ACCESS_TOKEN=replace-with-a-secure-token
+WEB_LOGIN_USERNAME=admin
+WEB_LOGIN_PASSWORD_HASH=<generate below>
+WEB_SESSION_SECRET=<generate below>
+ORIGIN=http://localhost:3000
+DOCKER_SOCK_GID=<from ls -ln /var/run/docker.sock>
 ```
 
-If this value is wrong, the `agent` will fail with `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock`.
-
-The default `docker-compose.yaml` reads its bind mount paths from `.env`. With the default values, the controller repo, state, and log directories live under `./data/`, the agent state directory lives at `./data/state-agent`, and only the agent repo uses the fixed host absolute path `/data/repo-agent`. Create these directories before startup:
+Generate the password hash and session secret:
 
 ```bash
-mkdir -p ./data/repo-controller ./data/state-controller ./data/logs ./data/state-agent
-sudo mkdir -p /data/repo-agent
-sudo chown 65532:65532 /data/repo-agent
-```
-
-If you change these paths, update both `.env` and `config/config.yaml`. `agent.repo_dir`, the host-side mount paths, and the container-side mount paths must match exactly, or bind mounts in managed service Compose files may resolve to the wrong host location and file mounts can fail.
-
-Generate the Argon2 hash before startup. You can generate it directly in this page:
-
-<ClientOnly>
-  <Argon2Generator />
-</ClientOnly>
-
-If you prefer the CLI instead:
-
-```bash
-docker run --rm authelia/authelia:latest authelia crypto hash generate argon2 --password 'replace-with-your-password'
-```
-
-Generate a session secret with a long random value, for example:
-
-```bash
+docker run --rm authelia/authelia:latest authelia crypto hash generate argon2 --password 'your-password'
 openssl rand -hex 32
 ```
 
-If you do not want to use `secrets` yet, remove the `secrets` section from `config/config.yaml` before startup.
+Create a minimal `config/config.yaml`:
 
-### 4. Start Composia
+```yaml
+controller:
+  listen_addr: ":7001"
+  controller_addr: "http://controller:7001"
+  repo_dir: "/data/repo-controller"
+  state_dir: "/data/state-controller"
+  log_dir: "/data/logs"
+  access_tokens:
+    - name: "admin"
+      token: "replace-with-a-secure-token"
+      enabled: true
+  nodes:
+    - id: "main"
+      display_name: "Main"
+      enabled: true
+      token: "main-agent-token"
 
-After updating the placeholder values in `.env`, run this command from the working directory to start Composia with `docker-compose.yaml`, `.env`, and `config/config.yaml`:
+agent:
+  controller_addr: "http://controller:7001"
+  node_id: "main"
+  token: "main-agent-token"
+  repo_dir: "/data/repo-agent"
+  state_dir: "/data/state-agent"
+```
+
+Create the required directories:
+
+```bash
+mkdir -p ./data/repo-controller ./data/state-controller ./data/logs ./data/state-agent
+sudo mkdir -p /data/repo-agent && sudo chown 65532:65532 /data/repo-agent
+```
+
+## Start
 
 ```bash
 docker compose up -d
 ```
 
-This starts the following long-running services:
+Open `http://localhost:3000` and sign in with your configured credentials.
 
-| Service | Port | Description |
-|---------|------|-------------|
-| controller | `:7001` | Control Plane API |
-| web | `:3000` | Web Management Interface |
-| agent | - | Execution Agent (connects to local Docker) |
+## Deploy Your First Service
 
-The Compose file also runs a one-shot `init-repo-controller` container first to initialize the controller Git working tree volume.
+1. Navigate to **Services** > **Create service**
+2. Enter a service name
+3. Paste your `docker-compose.yaml` content in the editor
+4. Set the target node to `main` in `composia-meta.yaml`
+5. Click **Deploy**
 
-### 5. Access the Interface
-
-Make sure `.env` uses an `ORIGIN` value that exactly matches the address you will open in the browser, then visit it, for example `http://localhost:3000`.
-
-If you access the Web UI through an SSH tunnel, local port forwarding, or a reverse proxy, update `ORIGIN` to match that address. For example:
-
-- If you open `http://localhost:3000`, set `ORIGIN=http://localhost:3000`
-- If you open `http://127.0.0.1:3000`, set `ORIGIN=http://127.0.0.1:3000`
-- If you open `https://composia.example.com`, set `ORIGIN=https://composia.example.com`
-
-`localhost` and `127.0.0.1` are different origins and are not interchangeable.
-
-The Web UI uses two auth layers:
-
-- The browser signs in with `WEB_LOGIN_USERNAME` and the password represented by `WEB_LOGIN_PASSWORD_HASH`.
-- The web server uses `WEB_CONTROLLER_ACCESS_TOKEN` to call the controller.
-
-The browser does not receive `WEB_CONTROLLER_ACCESS_TOKEN`. After login it only stores a signed HttpOnly session cookie.
-
-### 6. Deploy Your First Service
-
-1. Navigate to the **Services** page in the web interface
-2. Click **Create service**
-3. Enter a service name
-4. Add your `docker-compose.yaml` content in the editor
-5. Define the target nodes in `composia-meta.yaml`
-6. Click **Deploy**
-
-### 7. Stop Composia
-
-This stops the Composia stack started from `docker-compose.yaml` in your working directory:
-
-```bash
-docker compose down
-```
-
-## Image Registry Options
-
-By default, `docker-compose.yaml` uses the self-hosted Forgejo registry. To use GitHub Container Registry instead, replace the image references:
+Here is a minimal example to get started:
 
 ```yaml
+# composia-meta.yaml
+name: hello
+nodes:
+  - main
+```
+```yaml
+# docker-compose.yaml
 services:
-  controller:
-    image: ghcr.io/alexma233/composia:latest
-  
-  web:
-    image: ghcr.io/alexma233/composia-web:latest
-  
-  agent:
-    image: ghcr.io/alexma233/composia:latest
+  hello:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
 ```
 
 ## Next Steps
 
-- [Core Concepts](./core-concepts) — Understand the relationship between Services, Instances, Containers, and Nodes
-- [Configuration Guide](./configuration) — View the platform configuration overview
-- [Controller Configuration](./configuration/controller) — Learn the base fields, tokens, and node configuration
-- [Agent Configuration](./configuration/agent) — Learn the agent requirements and Caddy output directory
-- [Architecture](./architecture) — Understand how the system works
-
-## Local Development
-
-For development with source code, see the [Development Guide](./development).
+- [Installation](./installation) — full setup walkthrough with all options
+- [Core Concepts](./core-concepts) — understand Services, Instances, Containers, and Nodes
+- [Architecture](./architecture) — system architecture and data flow
+- [Configuration Guide](./configuration) — all platform configuration options
+- [Service Definition](./service-definition) — create and configure services
