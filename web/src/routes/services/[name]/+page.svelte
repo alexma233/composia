@@ -1932,18 +1932,19 @@
         <Card>
           <CardHeader class="section-header">
             <div class="section-heading">
-              <CardTitle class="section-title"
-                >{$messages.services.recentTasks}</CardTitle
-              >
+              <CardTitle class="section-title">
+                {#if workspace?.serviceName}
+                  <a
+                    class="hover:text-foreground/80 transition-colors"
+                    href={`/tasks?serviceName=${encodeURIComponent(workspace.serviceName)}`}
+                  >
+                    {$messages.services.recentTasks}
+                  </a>
+                {:else}
+                  {$messages.services.recentTasks}
+                {/if}
+              </CardTitle>
             </div>
-            {#if workspace?.serviceName}
-              <a
-                class="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                href={`/tasks?serviceName=${encodeURIComponent(workspace.serviceName)}`}
-              >
-                {$messages.common.viewAll}
-              </a>
-            {/if}
           </CardHeader>
           <CardContent class="space-y-3">
             {#each recentTasks as task}

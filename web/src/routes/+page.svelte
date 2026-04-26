@@ -63,13 +63,13 @@
     <CardContent>
     <section class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
 		<Card>
-        <CardHeader class="section-header">
-          <div class="section-heading">
+        <CardHeader>
+          <div class="flex items-center justify-between gap-3">
             <CardTitle class="section-title">
               <a class="hover:text-foreground/80 transition-colors" href="/services">{$messages.dashboard.services}</a>
             </CardTitle>
+            <Badge variant="outline">{data.dashboard?.services.length ?? 0}</Badge>
           </div>
-          <Badge variant="outline">{data.dashboard?.services.length ?? 0}</Badge>
         </CardHeader>
         <CardContent>
           <div class="space-y-3">
@@ -101,13 +101,13 @@
 
       <div class="grid gap-6">
 			<Card>
-          <CardHeader class="section-header">
-            <div class="section-heading">
+          <CardHeader>
+            <div class="flex items-center justify-between gap-3">
               <CardTitle class="section-title">
                 <a class="hover:text-foreground/80 transition-colors" href="/nodes">{$messages.dashboard.nodes}</a>
               </CardTitle>
+              <Badge variant="outline">{data.dashboard?.nodes.length ?? 0}</Badge>
             </div>
-            <Badge variant="outline">{data.dashboard?.nodes.length ?? 0}</Badge>
           </CardHeader>
           <CardContent>
             <div class="space-y-3">
@@ -139,14 +139,11 @@
         </Card>
 
 			<Card>
-          <CardHeader class="section-header">
-            <div class="section-heading">
+          <CardHeader>
+            <div class="flex items-center justify-between gap-3">
               <CardTitle class="section-title">
                 <a class="hover:text-foreground/80 transition-colors" href="/tasks">{$messages.dashboard.tasks}</a>
               </CardTitle>
-            </div>
-            <div class="flex items-center gap-2">
-              <a class="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/tasks">{$messages.common.viewAll}</a>
               <Badge variant="outline">{totalTaskCount()}</Badge>
             </div>
           </CardHeader>
