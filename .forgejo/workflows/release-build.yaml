@@ -15,7 +15,8 @@ env:
   CODEBERG_WEB_IMAGE_NAME: codeberg.org/alexma233/composia-web
   DOCKERHUB_BACKEND_IMAGE_NAME: alexma233/composia
   DOCKERHUB_WEB_IMAGE_NAME: alexma233/composia-web
-  PLATFORMS: linux/amd64,linux/arm64
+  BACKEND_PLATFORMS: linux/amd64,linux/arm64,linux/386,linux/arm/v7,linux/riscv64
+  WEB_PLATFORMS: linux/amd64,linux/arm64
 
 jobs:
   docker-backend:
@@ -90,7 +91,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          platforms: ${{ env.PLATFORMS }}
+          platforms: ${{ env.BACKEND_PLATFORMS }}
           builder: ${{ steps.buildx.outputs.name }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -171,7 +172,7 @@ jobs:
           context: .
           file: ./web/Dockerfile
           push: true
-          platforms: ${{ env.PLATFORMS }}
+          platforms: ${{ env.WEB_PLATFORMS }}
           builder: ${{ steps.buildx.outputs.name }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

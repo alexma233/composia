@@ -15,7 +15,7 @@ env:
   REGISTRY_HOST: forgejo.alexma.top
   FORGEJO_WEB_IMAGE_NAME: forgejo.alexma.top/${{ github.repository_owner }}/composia-web
   GHCR_WEB_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/composia-web
-  PLATFORMS: linux/amd64
+  PLATFORMS: linux/amd64,linux/arm64
 
 jobs:
   docker-web:

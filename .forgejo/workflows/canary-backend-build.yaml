@@ -19,7 +19,7 @@ env:
   REGISTRY_HOST: forgejo.alexma.top
   FORGEJO_BACKEND_IMAGE_NAME: forgejo.alexma.top/${{ github.repository }}
   GHCR_BACKEND_IMAGE_NAME: ghcr.io/${{ github.repository }}
-  PLATFORMS: linux/amd64
+  PLATFORMS: linux/amd64,linux/arm64
 
 jobs:
   docker-backend:
