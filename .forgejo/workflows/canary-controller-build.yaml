@@ -96,6 +96,17 @@ jobs:
           cache-to: |
             type=registry,ref=${{ env.FORGEJO_IMAGE_NAME }}:buildcache,mode=max
 
+  binary-controller:
+    runs-on: docker-amd64
+    container:
+      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.2
+    steps:
+      - name: Checkout
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
+        uses: https://forgejo.alexma.top/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
       - name: Build canary binary
         run: |
           mkdir -p "${{ env.BINARY_OUTPUT_DIR }}"
