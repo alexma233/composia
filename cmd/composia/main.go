@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"forgejo.alexma.top/alexma233/composia/internal/agent"
+	"forgejo.alexma.top/alexma233/composia/internal/cli"
 	"forgejo.alexma.top/alexma233/composia/internal/controller"
 )
 
@@ -41,12 +42,15 @@ func main() {
 		}
 		err = agent.Run(ctx, configPath)
 	default:
-		usage()
-		os.Exit(2)
+		err = cli.Run(ctx, os.Args[1:], os.Stdout, os.Stderr)
 	}
 
 	if err != nil {
-		log.Printf("composia failed: %v", err)
+		if command == "controller" || command == "agent" {
+			log.Printf("composia failed: %v", err)
+		} else {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		}
 		os.Exit(1)
 	}
 }
@@ -70,5 +74,5 @@ func parseConfigFlag(args []string) (string, error) {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: composia <controller|agent> [-config path]")
+	cli.PrintUsage(os.Stderr)
 }

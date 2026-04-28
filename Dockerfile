@@ -16,7 +16,11 @@ COPY . .
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} \
-    go build -trimpath -ldflags="-s -w" -o /composia ./cmd/composia
+    go build -trimpath -ldflags="-s -w" -o /composia ./cmd/composia && \
+    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} \
+    go build -trimpath -ldflags="-s -w" -o /composia-controller ./cmd/composia-controller && \
+    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} \
+    go build -trimpath -ldflags="-s -w" -o /composia-agent ./cmd/composia-agent
 
 FROM golang:1.26-alpine@sha256:f85330846cde1e57ca9ec309382da3b8e6ae3ab943d2739500e08c86393a21b1 AS dev
 
@@ -36,6 +40,8 @@ WORKDIR /app
 RUN apk add --no-cache ca-certificates docker-cli docker-cli-compose git
 
 COPY --from=builder /composia /usr/local/bin/composia
+COPY --from=builder /composia-controller /usr/local/bin/composia-controller
+COPY --from=builder /composia-agent /usr/local/bin/composia-agent
 
 RUN adduser -D -u 65532 composia && \
     mkdir -p /app && \
@@ -44,4 +50,4 @@ RUN adduser -D -u 65532 composia && \
 USER composia
 
 ENTRYPOINT ["/usr/local/bin/composia"]
-CMD ["controller", "-config", "/app/config.yaml"]
+CMD ["--help"]

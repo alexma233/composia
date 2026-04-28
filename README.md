@@ -89,7 +89,9 @@ buf generate
 ## Repository Layout
 
 ```text
-cmd/composia/         # composia entrypoint
+cmd/composia/         # user-facing CLI entrypoint
+cmd/composia-agent/   # agent runtime entrypoint
+cmd/composia-controller/ # controller runtime entrypoint
 dev/                  # local development state and local-only config
 gen/go/               # generated protobuf and Connect code
 internal/             # backend packages
