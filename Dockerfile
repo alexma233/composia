@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.23@sha256:2780b5c3bab67f1f76c781860de469442999ed1a0d7992a5efdf2cffc0e3d769
-FROM --platform=$BUILDPLATFORM golang:1.26@sha256:b54cbf583d390341599d7bcbc062425c081105cc5ef6d170ced98ef9d047c716 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26@sha256:b54cbf583d390341599d7bcbc062425c081105cc5ef6d170ced98ef9d047c716 AS backend-builder-base
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -13,12 +13,33 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 COPY . .
 
+FROM backend-builder-base AS cli-builder
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
+
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} \
-    go build -trimpath -ldflags="-s -w" -o /out/composia ./cmd/composia && \
+    go build -trimpath -ldflags="-s -w" -o /out/composia ./cmd/composia
+
+FROM backend-builder-base AS controller-builder
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} \
-    go build -trimpath -ldflags="-s -w" -o /out/composia-controller ./cmd/composia-controller && \
+    go build -trimpath -ldflags="-s -w" -o /out/composia-controller ./cmd/composia-controller
+
+FROM backend-builder-base AS agent-builder
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} \
     go build -trimpath -ldflags="-s -w" -o /out/composia-agent ./cmd/composia-agent
 
@@ -38,7 +59,7 @@ FROM alpine:3.23@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a50
 WORKDIR /app
 
 RUN apk add --no-cache ca-certificates
-COPY --from=builder /out/composia /usr/local/bin/composia
+COPY --from=cli-builder /out/composia /usr/local/bin/composia
 
 USER 65532:65532
 ENTRYPOINT ["/usr/local/bin/composia"]
@@ -49,7 +70,7 @@ FROM alpine:3.23@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a50
 WORKDIR /app
 
 RUN apk add --no-cache ca-certificates git
-COPY --from=builder /out/composia-controller /usr/local/bin/composia-controller
+COPY --from=controller-builder /out/composia-controller /usr/local/bin/composia-controller
 
 USER 65532:65532
 ENTRYPOINT ["/usr/local/bin/composia-controller"]
@@ -60,7 +81,7 @@ FROM alpine:3.23@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a50
 WORKDIR /app
 
 RUN apk add --no-cache ca-certificates docker-cli docker-cli-compose git
-COPY --from=builder /out/composia-agent /usr/local/bin/composia-agent
+COPY --from=agent-builder /out/composia-agent /usr/local/bin/composia-agent
 
 USER 65532:65532
 ENTRYPOINT ["/usr/local/bin/composia-agent"]

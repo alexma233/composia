@@ -100,6 +100,9 @@ jobs:
     runs-on: docker-amd64
     container:
       image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.2
+    strategy:
+      matrix:
+        goarch: [amd64, arm64]
     steps:
       - name: Checkout
         # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
@@ -110,7 +113,7 @@ jobs:
       - name: Build canary binary
         run: |
           mkdir -p "${{ env.BINARY_OUTPUT_DIR }}"
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath \
+          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.goarch }} go build -trimpath \
             -ldflags "-s -w -X forgejo.alexma.top/alexma233/composia/internal/version.Value=canary-${{ github.sha }}" \
             -o "${{ env.BINARY_OUTPUT_DIR }}/composia-controller" \
             ./cmd/composia-controller
@@ -118,5 +121,5 @@ jobs:
       - name: Upload canary binary
         uses: https://forgejo.alexma.top/actions/upload-artifact@v4
         with:
-          name: composia-controller-canary-linux-amd64
+          name: composia-controller-canary-linux-${{ matrix.goarch }}
           path: ${{ env.BINARY_OUTPUT_DIR }}/composia-controller

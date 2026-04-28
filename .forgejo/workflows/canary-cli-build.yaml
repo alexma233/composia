@@ -99,6 +99,27 @@ jobs:
     runs-on: docker-amd64
     container:
       image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.2
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            ext: ""
+          - goos: linux
+            goarch: arm64
+            ext: ""
+          - goos: darwin
+            goarch: amd64
+            ext: ""
+          - goos: darwin
+            goarch: arm64
+            ext: ""
+          - goos: windows
+            goarch: amd64
+            ext: ".exe"
+          - goos: windows
+            goarch: arm64
+            ext: ".exe"
     steps:
       - name: Checkout
         # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
@@ -109,13 +130,13 @@ jobs:
       - name: Build canary binary
         run: |
           mkdir -p "${{ env.BINARY_OUTPUT_DIR }}"
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath \
+          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -trimpath \
             -ldflags "-s -w -X forgejo.alexma.top/alexma233/composia/internal/version.Value=canary-${{ github.sha }}" \
-            -o "${{ env.BINARY_OUTPUT_DIR }}/composia" \
+            -o "${{ env.BINARY_OUTPUT_DIR }}/composia${{ matrix.ext }}" \
             ./cmd/composia
 
       - name: Upload canary binary
         uses: https://forgejo.alexma.top/actions/upload-artifact@v4
         with:
-          name: composia-canary-linux-amd64
-          path: ${{ env.BINARY_OUTPUT_DIR }}/composia
+          name: composia-canary-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ${{ env.BINARY_OUTPUT_DIR }}/composia${{ matrix.ext }}

@@ -115,13 +115,13 @@ Release packaging is handled by GoReleaser:
 goreleaser release --snapshot --clean
 ```
 
-The release configuration builds Linux tarballs plus `.deb` and `.rpm` packages. Darwin and Windows receive CLI-only archives. Nix users can install the Linux package from the flake:
+The release configuration builds pure binary archives for Linux, Darwin, and Windows. Linux releases include `.deb`, `.rpm`, and Arch Linux binary packages. Nix users can install the Linux package from the flake:
 
 ```bash
 nix profile install git+https://forgejo.alexma.top/alexma233/composia
 ```
 
-An AUR `PKGBUILD` template is available under `packaging/aur/`.
+An AUR source-build `PKGBUILD` template is available under `packaging/aur/`.
 
 Container images are split by runtime role:
 
