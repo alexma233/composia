@@ -1,0 +1,34 @@
+# Maintainer: AlexMa <alexma@furcode.co>
+pkgname=composia
+pkgver=0.0.0
+pkgrel=1
+pkgdesc='Self-hosted Docker Compose control plane and CLI'
+arch=('x86_64' 'aarch64' 'armv7h' 'riscv64')
+url='https://docs.composia.xyz'
+license=('AGPL-3.0-only')
+depends=('glibc')
+makedepends=('go' 'git')
+source=("${pkgname}-${pkgver}.tar.gz::https://forgejo.alexma.top/alexma233/composia/archive/v${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+  cd "${srcdir}/${pkgname}"
+
+  export CGO_ENABLED=0
+  export GOPATH="${srcdir}/go"
+  local ldflags="-s -w -X forgejo.alexma.top/alexma233/composia/internal/version.Value=v${pkgver}"
+
+  go build -trimpath -ldflags "${ldflags}" -o composia ./cmd/composia
+  go build -trimpath -ldflags "${ldflags}" -o composia-controller ./cmd/composia-controller
+  go build -trimpath -ldflags "${ldflags}" -o composia-agent ./cmd/composia-agent
+}
+
+package() {
+  cd "${srcdir}/${pkgname}"
+
+  install -Dm755 composia "${pkgdir}/usr/bin/composia"
+  install -Dm755 composia-controller "${pkgdir}/usr/bin/composia-controller"
+  install -Dm755 composia-agent "${pkgdir}/usr/bin/composia-agent"
+  install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+  install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+}

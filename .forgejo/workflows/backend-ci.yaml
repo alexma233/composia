@@ -11,7 +11,14 @@ on:
       - "go.sum"
       - "proto/**"
       - "gen/go/**"
+      - "scripts/build/**"
+      - ".goreleaser.yaml"
+      - "flake.nix"
+      - "flake.lock"
       - ".forgejo/workflows/backend-ci.yaml"
+      - ".forgejo/workflows/canary-agent-build.yaml"
+      - ".forgejo/workflows/canary-cli-build.yaml"
+      - ".forgejo/workflows/canary-controller-build.yaml"
   push:
     branches: ["main"]
     paths:
@@ -20,7 +27,14 @@ on:
       - "go.sum"
       - "proto/**"
       - "gen/go/**"
+      - "scripts/build/**"
+      - ".goreleaser.yaml"
+      - "flake.nix"
+      - "flake.lock"
       - ".forgejo/workflows/backend-ci.yaml"
+      - ".forgejo/workflows/canary-agent-build.yaml"
+      - ".forgejo/workflows/canary-cli-build.yaml"
+      - ".forgejo/workflows/canary-controller-build.yaml"
   workflow_dispatch:
 
 jobs:
@@ -58,6 +72,9 @@ jobs:
 
       - name: Build backend
         run: go build ./...
+
+      - name: Build release binaries
+        run: sh ./scripts/build/binaries.sh
 
       - name: Run go vet
         run: go vet ./...

@@ -40,7 +40,7 @@ services:
       - ${COMPOSIA_CONFIG_DIR}:/app/configs
 
   controller:
-    image: forgejo.alexma.top/alexma233/composia:latest
+    image: forgejo.alexma.top/alexma233/composia-controller:latest
     depends_on:
       init-repo-controller:
         condition: service_completed_successfully
@@ -48,7 +48,6 @@ services:
         condition: service_completed_successfully
       init-config-perms:
         condition: service_completed_successfully
-    entrypoint: ["/usr/local/bin/composia-controller"]
     command: ["-config", "/app/configs/config.yaml"]
     ports:
       - "7001:7001"
@@ -74,7 +73,7 @@ services:
       - ${COMPOSIA_AGENT_STATE_DIR}:/data/state-agent
 
   agent:
-    image: forgejo.alexma.top/alexma233/composia:latest
+    image: forgejo.alexma.top/alexma233/composia-agent:latest
     depends_on:
       controller:
         condition: service_started
@@ -82,7 +81,6 @@ services:
         condition: service_completed_successfully
       init-config-perms:
         condition: service_completed_successfully
-    entrypoint: ["/usr/local/bin/composia-agent"]
     command: ["-config", "/app/configs/config.yaml"]
     group_add:
       - "${DOCKER_SOCK_GID}"

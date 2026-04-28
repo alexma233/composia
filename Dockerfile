@@ -16,11 +16,11 @@ COPY . .
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} \
-    go build -trimpath -ldflags="-s -w" -o /composia ./cmd/composia && \
+    go build -trimpath -ldflags="-s -w" -o /out/composia ./cmd/composia && \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} \
-    go build -trimpath -ldflags="-s -w" -o /composia-controller ./cmd/composia-controller && \
+    go build -trimpath -ldflags="-s -w" -o /out/composia-controller ./cmd/composia-controller && \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} \
-    go build -trimpath -ldflags="-s -w" -o /composia-agent ./cmd/composia-agent
+    go build -trimpath -ldflags="-s -w" -o /out/composia-agent ./cmd/composia-agent
 
 FROM golang:1.26-alpine@sha256:f85330846cde1e57ca9ec309382da3b8e6ae3ab943d2739500e08c86393a21b1 AS dev
 
@@ -33,21 +33,35 @@ RUN apk add --no-cache ca-certificates docker-cli docker-cli-compose git && \
 
 CMD ["air", "-v"]
 
-FROM alpine:3.23@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11 AS final
+FROM alpine:3.23@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11 AS cli
+
+WORKDIR /app
+
+RUN apk add --no-cache ca-certificates
+COPY --from=builder /out/composia /usr/local/bin/composia
+
+USER 65532:65532
+ENTRYPOINT ["/usr/local/bin/composia"]
+CMD ["--help"]
+
+FROM alpine:3.23@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11 AS controller
+
+WORKDIR /app
+
+RUN apk add --no-cache ca-certificates git
+COPY --from=builder /out/composia-controller /usr/local/bin/composia-controller
+
+USER 65532:65532
+ENTRYPOINT ["/usr/local/bin/composia-controller"]
+CMD ["-config", "/app/config.yaml"]
+
+FROM alpine:3.23@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11 AS agent
 
 WORKDIR /app
 
 RUN apk add --no-cache ca-certificates docker-cli docker-cli-compose git
+COPY --from=builder /out/composia-agent /usr/local/bin/composia-agent
 
-COPY --from=builder /composia /usr/local/bin/composia
-COPY --from=builder /composia-controller /usr/local/bin/composia-controller
-COPY --from=builder /composia-agent /usr/local/bin/composia-agent
-
-RUN adduser -D -u 65532 composia && \
-    mkdir -p /app && \
-    chown -R composia:composia /app
-
-USER composia
-
-ENTRYPOINT ["/usr/local/bin/composia"]
-CMD ["--help"]
+USER 65532:65532
+ENTRYPOINT ["/usr/local/bin/composia-agent"]
+CMD ["-config", "/app/config.yaml"]

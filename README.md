@@ -86,6 +86,52 @@ mise run dev:logs
 buf generate
 ```
 
+## Binary Builds
+
+Composia can run without Docker. Linux release packages include:
+
+- `composia` — user-facing CLI
+- `composia-controller` — controller runtime
+- `composia-agent` — agent runtime
+
+Darwin and Windows releases include only the `composia` CLI.
+
+Build local binaries for the current platform:
+
+```bash
+sh ./scripts/build/binaries.sh
+```
+
+Cross-build by setting Go target variables:
+
+```bash
+VERSION=v0.1.0 GOOS=linux GOARCH=amd64 sh ./scripts/build/binaries.sh
+VERSION=v0.1.0 GOOS=linux GOARCH=arm GOARM=7 sh ./scripts/build/binaries.sh
+```
+
+Release packaging is handled by GoReleaser:
+
+```bash
+goreleaser release --snapshot --clean
+```
+
+The release configuration builds Linux tarballs plus `.deb` and `.rpm` packages. Darwin and Windows receive CLI-only archives. Nix users can install the Linux package from the flake:
+
+```bash
+nix profile install git+https://forgejo.alexma.top/alexma233/composia
+```
+
+An AUR `PKGBUILD` template is available under `packaging/aur/`.
+
+Container images are split by runtime role:
+
+```text
+forgejo.alexma.top/alexma233/composia-cli
+forgejo.alexma.top/alexma233/composia-controller
+forgejo.alexma.top/alexma233/composia-agent
+forgejo.alexma.top/alexma233/composia-web
+```
+
 ## Repository Layout
 
 ```text

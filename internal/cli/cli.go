@@ -120,14 +120,6 @@ func isControllerCommand(command string) bool {
 func PrintUsage(w io.Writer) {
 	fmt.Fprint(w, `usage: composia [global flags] <command> [args]
 
-Runtime binaries:
-  composia-controller [-config path]
-  composia-agent [-config path]
-
-Legacy runtime commands:
-  composia controller [-config path]
-  composia agent [-config path]
-
 Global flags:
   --addr string        controller base URL (or COMPOSIA_CONTROLLER_ADDR)
   --token string       controller access token (or COMPOSIA_ACCESS_TOKEN)

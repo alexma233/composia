@@ -6,21 +6,54 @@ on:
       - "v*"
 
 env:
+  GORELEASER_VERSION: v2.15.0
   REGISTRY_HOST: forgejo.alexma.top
-  FORGEJO_BACKEND_IMAGE_NAME: forgejo.alexma.top/${{ github.repository }}
-  FORGEJO_WEB_IMAGE_NAME: forgejo.alexma.top/${{ github.repository_owner }}/composia-web
-  GHCR_BACKEND_IMAGE_NAME: ghcr.io/${{ github.repository }}
-  GHCR_WEB_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/composia-web
-  CODEBERG_BACKEND_IMAGE_NAME: codeberg.org/alexma233/composia
-  CODEBERG_WEB_IMAGE_NAME: codeberg.org/alexma233/composia-web
-  DOCKERHUB_BACKEND_IMAGE_NAME: alexma233/composia
-  DOCKERHUB_WEB_IMAGE_NAME: alexma233/composia-web
-  BACKEND_PLATFORMS: linux/amd64,linux/arm64,linux/386,linux/arm/v7,linux/riscv64
   WEB_PLATFORMS: linux/amd64,linux/arm64
+  BACKEND_PLATFORMS: linux/amd64,linux/arm64,linux/386,linux/arm/v7,linux/riscv64
 
 jobs:
+  binary-packages:
+    runs-on: docker-amd64
+    container:
+      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.2
+    steps:
+      - name: Checkout
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
+        uses: https://forgejo.alexma.top/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      - name: Install GoReleaser
+        run: go install github.com/goreleaser/goreleaser/v2@${{ env.GORELEASER_VERSION }}
+
+      - name: Build and publish binary packages
+        env:
+          GITEA_TOKEN: ${{ secrets.FORGEJO_RELEASE_TOKEN }}
+        run: goreleaser release --clean
+
   docker-backend:
     runs-on: docker-amd64-dind
+    strategy:
+      matrix:
+        include:
+          - target: cli
+            description: Composia CLI image
+            forgejo_image: forgejo.alexma.top/${{ github.repository_owner }}/composia-cli
+            ghcr_image: ghcr.io/${{ github.repository_owner }}/composia-cli
+            codeberg_image: codeberg.org/alexma233/composia-cli
+            dockerhub_image: alexma233/composia-cli
+          - target: controller
+            description: Composia controller runtime image
+            forgejo_image: forgejo.alexma.top/${{ github.repository_owner }}/composia-controller
+            ghcr_image: ghcr.io/${{ github.repository_owner }}/composia-controller
+            codeberg_image: codeberg.org/alexma233/composia-controller
+            dockerhub_image: alexma233/composia-controller
+          - target: agent
+            description: Composia agent runtime image
+            forgejo_image: forgejo.alexma.top/${{ github.repository_owner }}/composia-agent
+            ghcr_image: ghcr.io/${{ github.repository_owner }}/composia-agent
+            codeberg_image: codeberg.org/alexma233/composia-agent
+            dockerhub_image: alexma233/composia-agent
     steps:
       - name: Checkout
         # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
@@ -68,10 +101,10 @@ jobs:
         uses: https://forgejo.alexma.top/actions/docker-metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf
         with:
           images: |
-            ${{ env.FORGEJO_BACKEND_IMAGE_NAME }}
-            ${{ env.GHCR_BACKEND_IMAGE_NAME }}
-            ${{ env.CODEBERG_BACKEND_IMAGE_NAME }}
-            ${{ env.DOCKERHUB_BACKEND_IMAGE_NAME }}
+            ${{ matrix.forgejo_image }}
+            ${{ matrix.ghcr_image }}
+            ${{ matrix.codeberg_image }}
+            ${{ matrix.dockerhub_image }}
           flavor: |
             latest=true
           tags: |
@@ -79,10 +112,11 @@ jobs:
             type=semver,pattern={{major}}.{{minor}},enable=true
             type=semver,pattern={{major}},enable=true
           labels: |
-            org.opencontainers.image.description=Composia controller runtime image
+            org.opencontainers.image.description=${{ matrix.description }}
             org.opencontainers.image.documentation=https://docs.composia.xyz
             org.opencontainers.image.vendor=${{ github.repository_owner }}
             org.opencontainers.image.ref.name=${{ github.ref_name }}
+            io.composia.image=${{ matrix.target }}
 
       - name: Build and push
         # renovate: datasource=git-refs depName=actions/docker-build-push-action packageName=https://forgejo.alexma.top/actions/docker-build-push-action currentValue=v7.1.0
@@ -90,15 +124,16 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
+          target: ${{ matrix.target }}
           push: true
           platforms: ${{ env.BACKEND_PLATFORMS }}
           builder: ${{ steps.buildx.outputs.name }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
-            type=registry,ref=${{ env.FORGEJO_BACKEND_IMAGE_NAME }}:buildcache
+            type=registry,ref=${{ matrix.forgejo_image }}:buildcache
           cache-to: |
-            type=registry,ref=${{ env.FORGEJO_BACKEND_IMAGE_NAME }}:buildcache,mode=max
+            type=registry,ref=${{ matrix.forgejo_image }}:buildcache,mode=max
 
   docker-web:
     runs-on: docker-amd64-dind
@@ -149,10 +184,10 @@ jobs:
         uses: https://forgejo.alexma.top/actions/docker-metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf
         with:
           images: |
-            ${{ env.FORGEJO_WEB_IMAGE_NAME }}
-            ${{ env.GHCR_WEB_IMAGE_NAME }}
-            ${{ env.CODEBERG_WEB_IMAGE_NAME }}
-            ${{ env.DOCKERHUB_WEB_IMAGE_NAME }}
+            forgejo.alexma.top/${{ github.repository_owner }}/composia-web
+            ghcr.io/${{ github.repository_owner }}/composia-web
+            codeberg.org/alexma233/composia-web
+            alexma233/composia-web
           flavor: |
             latest=true
           tags: |
@@ -177,6 +212,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
-            type=registry,ref=${{ env.FORGEJO_WEB_IMAGE_NAME }}:buildcache
+            type=registry,ref=forgejo.alexma.top/${{ github.repository_owner }}/composia-web:buildcache
           cache-to: |
-            type=registry,ref=${{ env.FORGEJO_WEB_IMAGE_NAME }}:buildcache,mode=max
+            type=registry,ref=forgejo.alexma.top/${{ github.repository_owner }}/composia-web:buildcache,mode=max

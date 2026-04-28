@@ -1,0 +1,181 @@
+version: 2
+
+project_name: composia
+
+gitea_urls:
+  api: https://forgejo.alexma.top/api/v1
+  download: https://forgejo.alexma.top
+
+builds:
+  - id: composia-linux
+    main: ./cmd/composia
+    binary: composia
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch: &common_linux_goarch
+      - amd64
+      - arm64
+      - "386"
+      - arm
+      - riscv64
+    goarm:
+      - "7"
+    ignore: &common_linux_ignore
+      - goarch: amd64
+        goarm: "7"
+      - goarch: arm64
+        goarm: "7"
+      - goarch: "386"
+        goarm: "7"
+      - goarch: riscv64
+        goarm: "7"
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X forgejo.alexma.top/alexma233/composia/internal/version.Value={{ .Version }}
+
+  - id: composia-darwin
+    main: ./cmd/composia
+    binary: composia
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X forgejo.alexma.top/alexma233/composia/internal/version.Value={{ .Version }}
+
+  - id: composia-windows
+    main: ./cmd/composia
+    binary: composia
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X forgejo.alexma.top/alexma233/composia/internal/version.Value={{ .Version }}
+
+  - id: composia-controller-linux
+    main: ./cmd/composia-controller
+    binary: composia-controller
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch: *common_linux_goarch
+    goarm:
+      - "7"
+    ignore: *common_linux_ignore
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X forgejo.alexma.top/alexma233/composia/internal/version.Value={{ .Version }}
+
+  - id: composia-agent-linux
+    main: ./cmd/composia-agent
+    binary: composia-agent
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch: *common_linux_goarch
+    goarm:
+      - "7"
+    ignore: *common_linux_ignore
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X forgejo.alexma.top/alexma233/composia/internal/version.Value={{ .Version }}
+
+archives:
+  - id: linux-binaries
+    ids:
+      - composia-linux
+      - composia-controller-linux
+      - composia-agent-linux
+    formats:
+      - tar.gz
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}
+    files:
+      - LICENSE
+      - README.md
+
+  - id: darwin-cli
+    ids:
+      - composia-darwin
+    formats:
+      - tar.gz
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - LICENSE
+      - README.md
+
+  - id: windows-cli
+    ids:
+      - composia-windows
+    formats:
+      - zip
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+nfpms:
+  - id: linux-packages
+    ids:
+      - composia-linux
+      - composia-controller-linux
+      - composia-agent-linux
+    package_name: composia
+    vendor: AlexMa
+    homepage: https://docs.composia.xyz
+    maintainer: AlexMa <alexma@furcode.co>
+    description: Self-hosted Docker Compose control plane and CLI.
+    license: AGPL-3.0-only
+    section: utils
+    priority: optional
+    bindir: /usr/bin
+    formats:
+      - deb
+      - rpm
+    contents:
+      - src: LICENSE
+        dst: /usr/share/licenses/composia/LICENSE
+        file_info:
+          mode: 0644
+      - src: README.md
+        dst: /usr/share/doc/composia/README.md
+        file_info:
+          mode: 0644
+
+release:
+  gitea:
+    owner: alexma233
+    name: composia

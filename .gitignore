@@ -22,6 +22,10 @@
 go.work
 go.work.sum
 
+# Nix build result symlinks
+result
+result-*
+
 # env file
 .env
 

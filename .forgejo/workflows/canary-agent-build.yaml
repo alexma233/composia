@@ -1,28 +1,37 @@
-name: Canary Backend Build
+name: Canary Agent Build
 
 on:
   push:
     branches: ["main"]
     paths:
-      - "**/*.go"
+      - "cmd/composia-agent/**"
+      - "internal/agent/**"
+      - "internal/backup/**"
+      - "internal/config/**"
+      - "internal/repo/**"
+      - "internal/rpcutil/**"
+      - "internal/schedule/**"
+      - "internal/store/**"
+      - "internal/task/**"
+      - "internal/version/**"
+      - "proto/composia/agent/**"
+      - "gen/go/proto/composia/agent/**"
       - "go.mod"
       - "go.sum"
-      - "proto/**"
-      - "gen/go/**"
       - "Dockerfile"
       - ".dockerignore"
-      - ".forgejo/workflows/canary-backend-build.yaml"
+      - ".forgejo/workflows/canary-agent-build.yaml"
       - ".forgejo/workflows/release-build.yaml"
   workflow_dispatch:
 
 env:
   REGISTRY_HOST: forgejo.alexma.top
-  FORGEJO_BACKEND_IMAGE_NAME: forgejo.alexma.top/${{ github.repository }}
-  GHCR_BACKEND_IMAGE_NAME: ghcr.io/${{ github.repository }}
+  FORGEJO_IMAGE_NAME: forgejo.alexma.top/${{ github.repository_owner }}/composia-agent
+  GHCR_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/composia-agent
   PLATFORMS: linux/amd64,linux/arm64
 
 jobs:
-  docker-backend:
+  docker-agent:
     runs-on: docker-amd64-dind
     steps:
       - name: Checkout
@@ -58,20 +67,21 @@ jobs:
         uses: https://forgejo.alexma.top/actions/docker-metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf
         with:
           images: |
-            ${{ env.FORGEJO_BACKEND_IMAGE_NAME }}
-            ${{ env.GHCR_BACKEND_IMAGE_NAME }}
+            ${{ env.FORGEJO_IMAGE_NAME }}
+            ${{ env.GHCR_IMAGE_NAME }}
           flavor: |
             latest=false
           tags: |
             type=raw,value=canary-{{sha}},enable=true
             type=raw,value=canary,enable=true
           labels: |
-            org.opencontainers.image.description=Composia controller runtime image
+            org.opencontainers.image.description=Composia agent runtime image
             org.opencontainers.image.documentation=https://docs.composia.xyz
             org.opencontainers.image.vendor=${{ github.repository_owner }}
             org.opencontainers.image.ref.name=canary
             org.opencontainers.image.version=canary-{{sha}}
             io.composia.channel=canary
+            io.composia.image=agent
 
       - name: Build and push
         # renovate: datasource=git-refs depName=actions/docker-build-push-action packageName=https://forgejo.alexma.top/actions/docker-build-push-action currentValue=v7.1.0
@@ -79,12 +89,13 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
+          target: agent
           push: true
           platforms: ${{ env.PLATFORMS }}
           builder: ${{ steps.buildx.outputs.name }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
-            type=registry,ref=${{ env.FORGEJO_BACKEND_IMAGE_NAME }}:buildcache
+            type=registry,ref=${{ env.FORGEJO_IMAGE_NAME }}:buildcache
           cache-to: |
-            type=registry,ref=${{ env.FORGEJO_BACKEND_IMAGE_NAME }}:buildcache,mode=max
+            type=registry,ref=${{ env.FORGEJO_IMAGE_NAME }}:buildcache,mode=max
