@@ -73,8 +73,8 @@ func Run(ctx context.Context, args []string, out io.Writer, errOut io.Writer) er
 		return nil
 	}
 	if rest[0] == "version" {
-		fmt.Fprintln(out, version.Value)
-		return nil
+		_, err := fmt.Fprintln(out, version.Value)
+		return err
 	}
 	if !isControllerCommand(rest[0]) {
 		PrintUsage(errOut)
@@ -118,7 +118,7 @@ func isControllerCommand(command string) bool {
 }
 
 func PrintUsage(w io.Writer) {
-	fmt.Fprint(w, `usage: composia [global flags] <command> [args]
+	_, _ = fmt.Fprint(w, `usage: composia [global flags] <command> [args]
 
 Global flags:
   --addr string        controller base URL (or COMPOSIA_CONTROLLER_ADDR)
@@ -258,13 +258,6 @@ func (values *stringListFlag) Set(value string) error {
 
 func requireArgs(args []string, count int, usage string) error {
 	if len(args) != count {
-		return fmt.Errorf("usage: %s", usage)
-	}
-	return nil
-}
-
-func requireAtLeastArgs(args []string, count int, usage string) error {
-	if len(args) < count {
 		return fmt.Errorf("usage: %s", usage)
 	}
 	return nil
