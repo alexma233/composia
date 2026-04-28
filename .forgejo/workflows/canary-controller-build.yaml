@@ -5,15 +5,9 @@ on:
     branches: ["main"]
     paths:
       - "cmd/composia-controller/**"
-      - "internal/backup/**"
-      - "internal/config/**"
-      - "internal/controller/**"
-      - "internal/repo/**"
-      - "internal/rpcutil/**"
-      - "internal/schedule/**"
-      - "internal/secret/**"
-      - "internal/store/**"
-      - "internal/task/**"
+      - "internal/app/controller/**"
+      - "internal/core/**"
+      - "internal/platform/**"
       - "internal/version/**"
       - "proto/**"
       - "gen/go/**"

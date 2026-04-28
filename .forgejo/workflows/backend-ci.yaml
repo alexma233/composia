@@ -6,7 +6,11 @@ env:
 on:
   pull_request:
     paths:
-      - "**/*.go"
+      - "cmd/**"
+      - "internal/app/**"
+      - "internal/core/**"
+      - "internal/platform/**"
+      - "internal/version/**"
       - "go.mod"
       - "go.sum"
       - "proto/**"
@@ -22,7 +26,11 @@ on:
   push:
     branches: ["main"]
     paths:
-      - "**/*.go"
+      - "cmd/**"
+      - "internal/app/**"
+      - "internal/core/**"
+      - "internal/platform/**"
+      - "internal/version/**"
       - "go.mod"
       - "go.sum"
       - "proto/**"

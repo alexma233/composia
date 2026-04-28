@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"forgejo.alexma.top/alexma233/composia/internal/cli"
+	"forgejo.alexma.top/alexma233/composia/internal/app/cli"
 )
 
 func main() {

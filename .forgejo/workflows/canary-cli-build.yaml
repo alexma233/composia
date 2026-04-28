@@ -5,8 +5,8 @@ on:
     branches: ["main"]
     paths:
       - "cmd/composia/**"
-      - "internal/cli/**"
-      - "internal/rpcutil/**"
+      - "internal/app/cli/**"
+      - "internal/platform/rpcutil/**"
       - "internal/version/**"
       - "proto/composia/controller/**"
       - "gen/go/proto/composia/controller/**"
