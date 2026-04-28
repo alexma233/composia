@@ -22,6 +22,7 @@ env:
   REGISTRY_HOST: forgejo.alexma.top
   FORGEJO_IMAGE_NAME: forgejo.alexma.top/${{ github.repository_owner }}/composia-cli
   GHCR_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/composia-cli
+  BINARY_OUTPUT_DIR: dist/canary-cli
   PLATFORMS: linux/amd64,linux/arm64
 
 jobs:
@@ -93,3 +94,17 @@ jobs:
             type=registry,ref=${{ env.FORGEJO_IMAGE_NAME }}:buildcache
           cache-to: |
             type=registry,ref=${{ env.FORGEJO_IMAGE_NAME }}:buildcache,mode=max
+
+      - name: Build canary binary
+        run: |
+          mkdir -p "${{ env.BINARY_OUTPUT_DIR }}"
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath \
+            -ldflags "-s -w -X forgejo.alexma.top/alexma233/composia/internal/version.Value=canary-${{ github.sha }}" \
+            -o "${{ env.BINARY_OUTPUT_DIR }}/composia" \
+            ./cmd/composia
+
+      - name: Upload canary binary
+        uses: https://forgejo.alexma.top/actions/upload-artifact@v4
+        with:
+          name: composia-canary-linux-amd64
+          path: ${{ env.BINARY_OUTPUT_DIR }}/composia
