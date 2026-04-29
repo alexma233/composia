@@ -25,6 +25,7 @@ env:
 
 jobs:
   docker-cli:
+    runs-on: docker-amd64-dind
     uses: ./.forgejo/workflows/reusable-docker-publish.yaml
     secrets: inherit
     with:

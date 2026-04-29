@@ -29,6 +29,7 @@ jobs:
         run: goreleaser release --clean
 
   docker-backend:
+    runs-on: docker-amd64-dind
     strategy:
       matrix:
         include:
@@ -77,6 +78,7 @@ jobs:
       login_dockerhub: true
 
   docker-web:
+    runs-on: docker-amd64-dind
     uses: ./.forgejo/workflows/reusable-docker-publish.yaml
     secrets: inherit
     with:
