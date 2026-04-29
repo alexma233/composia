@@ -33,20 +33,20 @@ jobs:
       target: cli
       platforms: linux/amd64,linux/arm64
       images: |
-        forgejo.alexma.top/${{ github.repository_owner }}/composia-cli
-        ghcr.io/${{ github.repository_owner }}/composia-cli
+        forgejo.alexma.top/alexma233/composia-cli
+        ghcr.io/alexma233/composia-cli
       tags: |
         type=raw,value=canary-{{sha}},enable=true
         type=raw,value=canary,enable=true
       labels: |
         org.opencontainers.image.description=Composia CLI image
         org.opencontainers.image.documentation=https://docs.composia.xyz
-        org.opencontainers.image.vendor=${{ github.repository_owner }}
+        org.opencontainers.image.vendor=alexma233
         org.opencontainers.image.ref.name=canary
         org.opencontainers.image.version=canary-{{sha}}
         io.composia.channel=canary
         io.composia.image=cli
-      cache_ref: forgejo.alexma.top/${{ github.repository_owner }}/composia-cli:buildcache
+      cache_ref: forgejo.alexma.top/alexma233/composia-cli:buildcache
 
   binary-cli:
     runs-on: docker-amd64

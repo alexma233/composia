@@ -35,20 +35,20 @@ jobs:
         include:
           - target: cli
             description: Composia CLI image
-            forgejo_image: forgejo.alexma.top/${{ github.repository_owner }}/composia-cli
-            ghcr_image: ghcr.io/${{ github.repository_owner }}/composia-cli
+            forgejo_image: forgejo.alexma.top/alexma233/composia-cli
+            ghcr_image: ghcr.io/alexma233/composia-cli
             codeberg_image: codeberg.org/alexma233/composia-cli
             dockerhub_image: alexma233/composia-cli
           - target: controller
             description: Composia controller runtime image
-            forgejo_image: forgejo.alexma.top/${{ github.repository_owner }}/composia-controller
-            ghcr_image: ghcr.io/${{ github.repository_owner }}/composia-controller
+            forgejo_image: forgejo.alexma.top/alexma233/composia-controller
+            ghcr_image: ghcr.io/alexma233/composia-controller
             codeberg_image: codeberg.org/alexma233/composia-controller
             dockerhub_image: alexma233/composia-controller
           - target: agent
             description: Composia agent runtime image
-            forgejo_image: forgejo.alexma.top/${{ github.repository_owner }}/composia-agent
-            ghcr_image: ghcr.io/${{ github.repository_owner }}/composia-agent
+            forgejo_image: forgejo.alexma.top/alexma233/composia-agent
+            ghcr_image: ghcr.io/alexma233/composia-agent
             codeberg_image: codeberg.org/alexma233/composia-agent
             dockerhub_image: alexma233/composia-agent
     uses: ./.forgejo/workflows/reusable-docker-publish.yaml
@@ -69,7 +69,7 @@ jobs:
       labels: |
         org.opencontainers.image.description=${{ matrix.description }}
         org.opencontainers.image.documentation=https://docs.composia.xyz
-        org.opencontainers.image.vendor=${{ github.repository_owner }}
+        org.opencontainers.image.vendor=alexma233
         org.opencontainers.image.ref.name=${{ github.ref_name }}
         io.composia.image=${{ matrix.target }}
       cache_ref: ${{ matrix.forgejo_image }}:buildcache
@@ -86,8 +86,8 @@ jobs:
       target: final
       platforms: linux/amd64,linux/arm64
       images: |
-        forgejo.alexma.top/${{ github.repository_owner }}/composia-web
-        ghcr.io/${{ github.repository_owner }}/composia-web
+        forgejo.alexma.top/alexma233/composia-web
+        ghcr.io/alexma233/composia-web
         codeberg.org/alexma233/composia-web
         alexma233/composia-web
       tags: |
@@ -97,9 +97,9 @@ jobs:
       labels: |
         org.opencontainers.image.description=Composia web interface image
         org.opencontainers.image.documentation=https://docs.composia.xyz
-        org.opencontainers.image.vendor=${{ github.repository_owner }}
+        org.opencontainers.image.vendor=alexma233
         org.opencontainers.image.ref.name=${{ github.ref_name }}
-      cache_ref: forgejo.alexma.top/${{ github.repository_owner }}/composia-web:buildcache
+      cache_ref: forgejo.alexma.top/alexma233/composia-web:buildcache
       latest: true
       login_codeberg: true
       login_dockerhub: true

@@ -2,6 +2,8 @@ version: 2
 
 project_name: composia
 
+force_token: gitea
+
 gitea_urls:
   api: https://forgejo.alexma.top/api/v1
   download: https://forgejo.alexma.top
