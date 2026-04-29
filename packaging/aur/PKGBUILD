@@ -1,6 +1,6 @@
 # Maintainer: AlexMa <alexma@furcode.co>
 pkgname=composia
-pkgver=0.0.0
+pkgver=0.1.0
 pkgrel=1
 pkgdesc='Self-hosted Docker Compose control plane and CLI'
 arch=('x86_64' 'aarch64' 'armv7h' 'riscv64')
