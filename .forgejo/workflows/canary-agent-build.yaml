@@ -27,7 +27,6 @@ env:
 
 jobs:
   docker-agent:
-    runs-on: docker-amd64-dind
     uses: ./.forgejo/workflows/reusable-docker-publish.yaml
     secrets: inherit
     with:
@@ -35,20 +34,20 @@ jobs:
       target: agent
       platforms: linux/amd64,linux/arm64
       images: |
-        forgejo.alexma.top/${{ github.repository_owner }}/composia-agent
-        ghcr.io/${{ github.repository_owner }}/composia-agent
+        forgejo.alexma.top/${{ forgejo.repository_owner }}/composia-agent
+        ghcr.io/${{ forgejo.repository_owner }}/composia-agent
       tags: |
         type=raw,value=canary-{{sha}},enable=true
         type=raw,value=canary,enable=true
       labels: |
         org.opencontainers.image.description=Composia agent runtime image
         org.opencontainers.image.documentation=https://docs.composia.xyz
-        org.opencontainers.image.vendor=${{ github.repository_owner }}
+        org.opencontainers.image.vendor=${{ forgejo.repository_owner }}
         org.opencontainers.image.ref.name=canary
         org.opencontainers.image.version=canary-{{sha}}
         io.composia.channel=canary
         io.composia.image=agent
-      cache_ref: forgejo.alexma.top/${{ github.repository_owner }}/composia-agent:buildcache
+      cache_ref: forgejo.alexma.top/${{ forgejo.repository_owner }}/composia-agent:buildcache
 
   binary-agent:
     runs-on: docker-amd64
