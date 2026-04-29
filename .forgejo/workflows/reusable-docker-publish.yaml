@@ -1,0 +1,115 @@
+name: Reusable Docker Publish
+
+on:
+  workflow_call:
+    inputs:
+      dockerfile:
+        required: true
+        type: string
+      target:
+        required: true
+        type: string
+      platforms:
+        required: true
+        type: string
+      images:
+        required: true
+        type: string
+      tags:
+        required: true
+        type: string
+      labels:
+        required: true
+        type: string
+      cache_ref:
+        required: true
+        type: string
+      latest:
+        default: false
+        required: false
+        type: boolean
+      login_codeberg:
+        default: false
+        required: false
+        type: boolean
+      login_dockerhub:
+        default: false
+        required: false
+        type: boolean
+
+env:
+  REGISTRY_HOST: forgejo.alexma.top
+
+jobs:
+  publish:
+    runs-on: docker-amd64-dind
+    steps:
+      - name: Checkout
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
+        uses: https://forgejo.alexma.top/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up Docker Buildx
+        id: buildx
+        # renovate: datasource=git-refs depName=actions/docker-setup-buildx-action packageName=https://forgejo.alexma.top/actions/docker-setup-buildx-action currentValue=v4.0.0
+        uses: https://forgejo.alexma.top/actions/docker-setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+      - name: Login to Forgejo Registry
+        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.1.0
+        uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: ${{ env.REGISTRY_HOST }}
+          username: ${{ secrets.OCI_IMAGES_FORGEJO_USERNAME }}
+          password: ${{ secrets.OCI_IMAGES_FORGEJO_TOKEN }}
+
+      - name: Login to GHCR
+        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.1.0
+        uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.OCI_IMAGES_GHCR_USERNAME }}
+          password: ${{ secrets.OCI_IMAGES_GHCR_TOKEN }}
+
+      - name: Login to Codeberg
+        if: ${{ inputs.login_codeberg }}
+        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.1.0
+        uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: codeberg.org
+          username: ${{ secrets.OCI_IMAGES_CODEBERG_USERNAME }}
+          password: ${{ secrets.OCI_IMAGES_CODEBERG_TOKEN }}
+
+      - name: Login to Docker Hub
+        if: ${{ inputs.login_dockerhub }}
+        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.1.0
+        uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          username: ${{ secrets.OCI_IMAGES_DOCKERHUB_USERNAME }}
+          password: ${{ secrets.OCI_IMAGES_DOCKERHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        # renovate: datasource=git-refs depName=actions/docker-metadata-action packageName=https://forgejo.alexma.top/actions/docker-metadata-action currentValue=v6.0.0
+        uses: https://forgejo.alexma.top/actions/docker-metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf
+        with:
+          images: ${{ inputs.images }}
+          flavor: |
+            latest=${{ inputs.latest }}
+          tags: ${{ inputs.tags }}
+          labels: ${{ inputs.labels }}
+
+      - name: Build and push
+        # renovate: datasource=git-refs depName=actions/docker-build-push-action packageName=https://forgejo.alexma.top/actions/docker-build-push-action currentValue=v7.1.0
+        uses: https://forgejo.alexma.top/actions/docker-build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f
+        with:
+          context: .
+          file: ${{ inputs.dockerfile }}
+          target: ${{ inputs.target }}
+          push: true
+          platforms: ${{ inputs.platforms }}
+          builder: ${{ steps.buildx.outputs.name }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=registry,ref=${{ inputs.cache_ref }}
+          cache-to: |
+            type=registry,ref=${{ inputs.cache_ref }},mode=max

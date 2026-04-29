@@ -7,94 +7,50 @@ on:
       - "cmd/composia-controller/**"
       - "internal/app/controller/**"
       - "internal/core/**"
-      - "internal/platform/**"
+      - "internal/platform/rpcutil/**"
+      - "internal/platform/secret/**"
+      - "internal/platform/store/**"
       - "internal/version/**"
-      - "proto/**"
-      - "gen/go/**"
+      - "proto/composia/agent/**"
+      - "proto/composia/controller/**"
+      - "gen/go/proto/composia/agent/**"
+      - "gen/go/proto/composia/controller/**"
       - "go.mod"
       - "go.sum"
+      - "scripts/build/canary-binary.sh"
       - "Dockerfile"
       - ".dockerignore"
       - ".forgejo/workflows/canary-controller-build.yaml"
+      - ".forgejo/workflows/reusable-docker-publish.yaml"
       - ".forgejo/workflows/release-build.yaml"
   workflow_dispatch:
 
 env:
-  REGISTRY_HOST: forgejo.alexma.top
-  FORGEJO_IMAGE_NAME: forgejo.alexma.top/${{ github.repository_owner }}/composia-controller
-  GHCR_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/composia-controller
   BINARY_OUTPUT_DIR: dist/canary-controller
-  PLATFORMS: linux/amd64,linux/arm64
 
 jobs:
   docker-controller:
-    runs-on: docker-amd64-dind
-    steps:
-      - name: Checkout
-        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
-        uses: https://forgejo.alexma.top/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with:
-          fetch-depth: 0
-
-      - name: Set up Docker Buildx
-        id: buildx
-        # renovate: datasource=git-refs depName=actions/docker-setup-buildx-action packageName=https://forgejo.alexma.top/actions/docker-setup-buildx-action currentValue=v4.0.0
-        uses: https://forgejo.alexma.top/actions/docker-setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
-
-      - name: Login to Forgejo Registry
-        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.1.0
-        uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
-        with:
-          registry: ${{ env.REGISTRY_HOST }}
-          username: ${{ secrets.OCI_IMAGES_FORGEJO_USERNAME }}
-          password: ${{ secrets.OCI_IMAGES_FORGEJO_TOKEN }}
-
-      - name: Login to GHCR
-        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.1.0
-        uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
-        with:
-          registry: ghcr.io
-          username: ${{ secrets.OCI_IMAGES_GHCR_USERNAME }}
-          password: ${{ secrets.OCI_IMAGES_GHCR_TOKEN }}
-
-      - name: Docker meta
-        id: meta
-        # renovate: datasource=git-refs depName=actions/docker-metadata-action packageName=https://forgejo.alexma.top/actions/docker-metadata-action currentValue=v6.0.0
-        uses: https://forgejo.alexma.top/actions/docker-metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf
-        with:
-          images: |
-            ${{ env.FORGEJO_IMAGE_NAME }}
-            ${{ env.GHCR_IMAGE_NAME }}
-          flavor: |
-            latest=false
-          tags: |
-            type=raw,value=canary-{{sha}},enable=true
-            type=raw,value=canary,enable=true
-          labels: |
-            org.opencontainers.image.description=Composia controller runtime image
-            org.opencontainers.image.documentation=https://docs.composia.xyz
-            org.opencontainers.image.vendor=${{ github.repository_owner }}
-            org.opencontainers.image.ref.name=canary
-            org.opencontainers.image.version=canary-{{sha}}
-            io.composia.channel=canary
-            io.composia.image=controller
-
-      - name: Build and push
-        # renovate: datasource=git-refs depName=actions/docker-build-push-action packageName=https://forgejo.alexma.top/actions/docker-build-push-action currentValue=v7.1.0
-        uses: https://forgejo.alexma.top/actions/docker-build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f
-        with:
-          context: .
-          file: ./Dockerfile
-          target: controller
-          push: true
-          platforms: ${{ env.PLATFORMS }}
-          builder: ${{ steps.buildx.outputs.name }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: |
-            type=registry,ref=${{ env.FORGEJO_IMAGE_NAME }}:buildcache
-          cache-to: |
-            type=registry,ref=${{ env.FORGEJO_IMAGE_NAME }}:buildcache,mode=max
+    uses: ./.forgejo/workflows/reusable-docker-publish.yaml
+    secrets: inherit
+    with:
+      dockerfile: ./Dockerfile
+      target: controller
+      platforms: linux/amd64,linux/arm64
+      images: |
+        forgejo.alexma.top/${{ github.repository_owner }}/composia-controller
+        ghcr.io/${{ github.repository_owner }}/composia-controller
+      tags: |
+        type=raw,value=canary-{{sha}},enable=true
+        type=raw,value=canary,enable=true
+      labels: |
+        org.opencontainers.image.description=Composia controller runtime image
+        org.opencontainers.image.documentation=https://docs.composia.xyz
+        org.opencontainers.image.vendor=${{ github.repository_owner }}
+        org.opencontainers.image.ref.name=canary
+        org.opencontainers.image.version=canary-{{sha}}
+        io.composia.channel=canary
+        io.composia.image=controller
+      cache_ref: forgejo.alexma.top/${{ github.repository_owner }}/composia-controller:buildcache
 
   binary-controller:
     runs-on: docker-amd64
@@ -111,12 +67,13 @@ jobs:
           fetch-depth: 0
 
       - name: Build canary binary
-        run: |
-          mkdir -p "${{ env.BINARY_OUTPUT_DIR }}"
-          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.goarch }} go build -trimpath \
-            -ldflags "-s -w -X forgejo.alexma.top/alexma233/composia/internal/version.Value=canary-${{ github.sha }}" \
-            -o "${{ env.BINARY_OUTPUT_DIR }}/composia-controller" \
-            ./cmd/composia-controller
+        env:
+          BINARY_NAME: composia-controller
+          PACKAGE: ./cmd/composia-controller
+          VERSION: canary-${{ github.sha }}
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+        run: sh ./scripts/build/canary-binary.sh
 
       - name: Upload canary binary
         uses: https://forgejo.alexma.top/actions/upload-artifact@v4

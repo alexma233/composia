@@ -1,4 +1,4 @@
-name: Docs CI
+name: Docs
 
 on:
   pull_request:
@@ -17,10 +17,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-deploy:
     runs-on: docker-amd64
     container:
-      image: oven/bun:1.3.13
+      image: forgejo.alexma.top/alexma233/ci-images-bun-wrangler:4.85.0
 
     steps:
       - name: Checkout
@@ -36,3 +36,15 @@ jobs:
       - name: Build docs
         working-directory: docs
         run: bun run build
+
+      - name: Deploy to Cloudflare Pages
+        if: ${{ github.event_name != 'pull_request' }}
+        id: deploy
+        # renovate: datasource=git-refs depName=actions/cloudflare-wrangler-action packageName=https://forgejo.alexma.top/actions/cloudflare-wrangler-action currentValue=v3.15.0
+        uses: https://forgejo.alexma.top/actions/cloudflare-wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Cloudflare uses the branch name to decide if a deploy is production or preview.
+          # Use the project's production branch (main) so the deployment is marked as Production.
+          command: pages deploy ./docs/.vitepress/dist --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT }} --branch=main

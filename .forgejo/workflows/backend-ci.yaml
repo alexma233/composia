@@ -23,6 +23,7 @@ on:
       - ".forgejo/workflows/canary-agent-build.yaml"
       - ".forgejo/workflows/canary-cli-build.yaml"
       - ".forgejo/workflows/canary-controller-build.yaml"
+      - ".forgejo/workflows/reusable-docker-publish.yaml"
   push:
     branches: ["main"]
     paths:
@@ -43,6 +44,7 @@ on:
       - ".forgejo/workflows/canary-agent-build.yaml"
       - ".forgejo/workflows/canary-cli-build.yaml"
       - ".forgejo/workflows/canary-controller-build.yaml"
+      - ".forgejo/workflows/reusable-docker-publish.yaml"
   workflow_dispatch:
 
 jobs:
