@@ -56,6 +56,13 @@
       "pinDigests": true
     },
     {
+      "matchPackageNames": [
+        "bun",
+        "oven/bun"
+      ],
+      "groupName": "bun runtime updates"
+    },
+    {
       "matchManagers": [
         "custom.regex"
       ],
@@ -87,6 +94,29 @@
     }
   ],
   "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)package\\.json$/"
+      ],
+      "matchStrings": [
+        "\\\"packageManager\\\"\\s*:\\s*\\\"bun@(?<currentValue>[^\\\"]+)\\\""
+      ],
+      "depNameTemplate": "bun",
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)\\.forgejo/workflows/.+\\.ya?ml$/",
+        "/^dev/docker-compose\\.dev\\.yaml$/"
+      ],
+      "matchStrings": [
+        "image:\\s+(?<depName>oven/bun):(?<currentValue>[^\\s@]+)"
+      ],
+      "datasourceTemplate": "docker"
+    },
     {
       "customType": "regex",
       "managerFilePatterns": [
