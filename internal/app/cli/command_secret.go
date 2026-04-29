@@ -66,7 +66,7 @@ func (application *app) runSecretEdit(args []string) error {
 	}
 	response, err := application.client.secrets.UpdateSecret(application.ctx, newRequest(&controllerv1.UpdateSecretRequest{ServiceName: serviceName, FilePath: filePath, Content: updatedContent, BaseRevision: baseRevision, CommitMessage: *message}))
 	if err != nil {
-		return err
+		return repoWriteError(err)
 	}
 	if application.cfg.json {
 		return application.printMessage(response.Msg)
@@ -102,7 +102,7 @@ func (application *app) runSecretUpdate(args []string) error {
 	}
 	response, err := application.client.secrets.UpdateSecret(application.ctx, newRequest(&controllerv1.UpdateSecretRequest{ServiceName: fs.Arg(0), FilePath: fs.Arg(1), Content: content, BaseRevision: baseRevision, CommitMessage: *message}))
 	if err != nil {
-		return err
+		return repoWriteError(err)
 	}
 	if application.cfg.json {
 		return application.printMessage(response.Msg)

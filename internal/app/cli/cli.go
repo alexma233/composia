@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -49,6 +50,8 @@ type controllerClient struct {
 	backups         controllerv1connect.BackupRecordServiceClient
 	nodes           controllerv1connect.NodeQueryServiceClient
 	nodeCommands    controllerv1connect.NodeMaintenanceServiceClient
+	docker          controllerv1connect.DockerQueryServiceClient
+	containers      controllerv1connect.ContainerServiceClient
 	repos           controllerv1connect.RepoQueryServiceClient
 	repoCommands    controllerv1connect.RepoCommandServiceClient
 	secrets         controllerv1connect.SecretServiceClient
@@ -69,12 +72,20 @@ func Run(ctx context.Context, args []string, out io.Writer, errOut io.Writer) er
 		return errors.New("missing command")
 	}
 	if rest[0] == "help" {
-		PrintUsage(out)
+		PrintCommandUsage(out, rest[1:])
+		return nil
+	}
+	if isHelpArg(rest) {
+		PrintCommandUsage(out, trimHelpArgs(rest))
 		return nil
 	}
 	if rest[0] == "version" {
 		_, err := fmt.Fprintln(out, version.Value)
 		return err
+	}
+	if rest[0] == "config" {
+		application := &app{ctx: ctx, out: out, errOut: errOut, cfg: cfg}
+		return application.runConfig(rest[1:])
 	}
 	if !isControllerCommand(rest[0]) {
 		PrintUsage(errOut)
@@ -99,6 +110,8 @@ func Run(ctx context.Context, args []string, out io.Writer, errOut io.Writer) er
 		return application.runBackup(rest[1:])
 	case "node":
 		return application.runNode(rest[1:])
+	case "container":
+		return application.runContainer(rest[1:])
 	case "repo":
 		return application.runRepo(rest[1:])
 	case "secret":
@@ -110,11 +123,33 @@ func Run(ctx context.Context, args []string, out io.Writer, errOut io.Writer) er
 
 func isControllerCommand(command string) bool {
 	switch command {
-	case "system", "service", "instance", "task", "backup", "node", "repo", "secret":
+	case "system", "service", "instance", "task", "backup", "node", "container", "repo", "secret", "config":
 		return true
 	default:
 		return false
 	}
+}
+
+func isHelpArg(args []string) bool {
+	if len(args) == 0 {
+		return false
+	}
+	for _, arg := range args {
+		if arg == "--help" || arg == "-h" {
+			return true
+		}
+	}
+	return false
+}
+
+func trimHelpArgs(args []string) []string {
+	trimmed := make([]string, 0, len(args))
+	for _, arg := range args {
+		if arg != "--help" && arg != "-h" {
+			trimmed = append(trimmed, arg)
+		}
+	}
+	return trimmed
 }
 
 func PrintUsage(w io.Writer) {
@@ -133,10 +168,108 @@ Commands:
   task list|get|logs|run-again|approve|reject
   backup list|get|restore
   node list|get|tasks|reload-caddy|prune
+  container list|get|logs|start|stop|restart|remove|exec
   repo head|files|get|edit|update|history|sync|validate
   secret get|edit|update
+  config get|set|unset|path
   version
 `)
+}
+
+var commandUsages = map[string]string{
+	"system":             "usage: composia system status\n",
+	"service":            "usage: composia service <list|get|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate>\n",
+	"service list":       "usage: composia service list [--status status] [--page-size n] [--page n]\n",
+	"service get":        "usage: composia service get [--containers] <service>\n",
+	"service deploy":     "usage: composia service deploy [--wait] [--follow] [--timeout duration] [--node node] <service>\n",
+	"service update":     "usage: composia service update [--wait] [--follow] [--timeout duration] [--node node] <service>\n",
+	"service stop":       "usage: composia service stop [--wait] [--follow] [--timeout duration] [--node node] <service>\n",
+	"service restart":    "usage: composia service restart [--wait] [--follow] [--timeout duration] [--node node] <service>\n",
+	"service backup":     "usage: composia service backup [--wait] [--follow] [--timeout duration] [--node node] [--data name] <service>\n",
+	"service dns-update": "usage: composia service dns-update [--wait] [--follow] [--timeout duration] [--node node] <service>\n",
+	"service caddy-sync": "usage: composia service caddy-sync [--wait] [--follow] [--timeout duration] [--node node] <service>\n",
+	"service migrate":    "usage: composia service migrate [--wait] [--follow] [--timeout duration] --source node --target node <service>\n",
+	"instance":           "usage: composia instance <list|get|deploy|update|stop|restart|backup>\n",
+	"instance list":      "usage: composia instance list <service>\n",
+	"instance get":       "usage: composia instance get [--containers] <service> <node>\n",
+	"instance deploy":    "usage: composia instance deploy [--wait] [--follow] [--timeout duration] <service> <node>\n",
+	"instance update":    "usage: composia instance update [--wait] [--follow] [--timeout duration] <service> <node>\n",
+	"instance stop":      "usage: composia instance stop [--wait] [--follow] [--timeout duration] <service> <node>\n",
+	"instance restart":   "usage: composia instance restart [--wait] [--follow] [--timeout duration] <service> <node>\n",
+	"instance backup":    "usage: composia instance backup [--wait] [--follow] [--timeout duration] [--data name] <service> <node>\n",
+	"task":               "usage: composia task <list|get|logs|wait|run-again|approve|reject>\n",
+	"task list":          "usage: composia task list [filters]\n",
+	"task get":           "usage: composia task get <task>\n",
+	"task logs":          "usage: composia task logs <task>\n",
+	"task wait":          "usage: composia task wait [--follow] [--timeout duration] [--interval duration] <task>\n",
+	"task run-again":     "usage: composia task run-again [--wait] [--follow] [--timeout duration] <task>\n",
+	"task approve":       "usage: composia task approve [--comment text] <task>\n",
+	"task reject":        "usage: composia task reject [--comment text] <task>\n",
+	"backup":             "usage: composia backup <list|get|restore>\n",
+	"backup list":        "usage: composia backup list [--service name] [--status status] [--data name]\n",
+	"backup get":         "usage: composia backup get <backup>\n",
+	"backup restore":     "usage: composia backup restore [--wait] [--follow] [--timeout duration] --node node <backup>\n",
+	"node":               "usage: composia node <list|get|tasks|reload-caddy|prune>\n",
+	"node list":          "usage: composia node list\n",
+	"node get":           "usage: composia node get <node>\n",
+	"node tasks":         "usage: composia node tasks [--status status] <node>\n",
+	"node reload-caddy":  "usage: composia node reload-caddy [--wait] [--follow] [--timeout duration] <node>\n",
+	"node prune":         "usage: composia node prune [--wait] [--follow] [--timeout duration] [--target all|container|image|network|volume] <node>\n",
+	"container":          "usage: composia container <list|get|logs|start|stop|restart|remove|exec>\n",
+	"container list":     "usage: composia container list --node node [--search text] [--sort-by field] [--desc] [--page-size n] [--page n]\n",
+	"container get":      "usage: composia container get --node node <container>\n",
+	"container logs":     "usage: composia container logs --node node [--tail n|all] [--timestamps] <container>\n",
+	"container start":    "usage: composia container start [--wait] [--follow] [--timeout duration] --node node <container>\n",
+	"container stop":     "usage: composia container stop [--wait] [--follow] [--timeout duration] --node node <container>\n",
+	"container restart":  "usage: composia container restart [--wait] [--follow] [--timeout duration] --node node <container>\n",
+	"container remove":   "usage: composia container remove [--wait] [--follow] [--timeout duration] --node node [--force] [--volumes] <container>\n",
+	"container exec":     "usage: composia container exec --node node <container> -- <command> [args...]\n",
+	"repo":               "usage: composia repo <head|files|get|edit|update|history|sync|validate>\n",
+	"repo head":          "usage: composia repo head\n",
+	"repo files":         "usage: composia repo files [--recursive] [path]\n",
+	"repo get":           "usage: composia repo get <path>\n",
+	"repo edit":          "usage: composia repo edit [--create] [--message text] <path>\n",
+	"repo update":        "usage: composia repo update --file file [--message text] <path>\n",
+	"repo history":       "usage: composia repo history [--page-size n] [--cursor cursor]\n",
+	"repo sync":          "usage: composia repo sync\n",
+	"repo validate":      "usage: composia repo validate\n",
+	"secret":             "usage: composia secret <get|edit|update>\n",
+	"secret get":         "usage: composia secret get <service> <file>\n",
+	"secret edit":        "usage: composia secret edit [--message text] <service> <file>\n",
+	"secret update":      "usage: composia secret update --file file [--message text] <service> <file>\n",
+	"config":             "usage: composia config <get|set|unset|path>\n",
+	"config get":         "usage: composia config get [key]\n",
+	"config set":         "usage: composia config set <addr|token_file> <value>\n",
+	"config unset":       "usage: composia config unset <addr|token_file>\n",
+	"config path":        "usage: composia config path\n",
+}
+
+func PrintCommandUsage(w io.Writer, args []string) {
+	if len(args) == 0 {
+		PrintUsage(w)
+		return
+	}
+	key := strings.Join(args, " ")
+	if usage, ok := commandUsages[key]; ok {
+		_, _ = fmt.Fprint(w, usage)
+		return
+	}
+	matches := make([]string, 0)
+	prefix := key + " "
+	for candidate := range commandUsages {
+		if strings.HasPrefix(candidate, prefix) {
+			matches = append(matches, candidate)
+		}
+	}
+	if len(matches) == 0 {
+		_, _ = fmt.Fprintf(w, "unknown help topic %q\n", key)
+		PrintUsage(w)
+		return
+	}
+	sort.Strings(matches)
+	for _, match := range matches {
+		_, _ = fmt.Fprint(w, commandUsages[match])
+	}
 }
 
 func parseGlobalFlags(args []string) (globalConfig, []string, error) {
@@ -163,8 +296,15 @@ func newCommandFlagSet(name string) *flag.FlagSet {
 
 func (application *app) configureClient() error {
 	cfg := application.cfg
+	localConfig, err := loadCLIConfig()
+	if err != nil {
+		return err
+	}
 	if cfg.addr == "" {
 		cfg.addr = os.Getenv(envControllerAddr)
+	}
+	if cfg.addr == "" {
+		cfg.addr = localConfig[cliConfigKeyAddr]
 	}
 	if cfg.token == "" && cfg.tokenFile != "" {
 		content, err := os.ReadFile(cfg.tokenFile)
@@ -175,6 +315,16 @@ func (application *app) configureClient() error {
 	}
 	if cfg.token == "" {
 		cfg.token = os.Getenv(envAccessToken)
+	}
+	if cfg.token == "" && cfg.tokenFile == "" {
+		cfg.tokenFile = localConfig[cliConfigKeyTokenFile]
+	}
+	if cfg.token == "" && cfg.tokenFile != "" {
+		content, err := os.ReadFile(cfg.tokenFile)
+		if err != nil {
+			return fmt.Errorf("read token file %q: %w", cfg.tokenFile, err)
+		}
+		cfg.token = strings.TrimSpace(string(content))
 	}
 	if strings.TrimSpace(cfg.addr) == "" {
 		return fmt.Errorf("controller address is required: pass --addr or set %s", envControllerAddr)
@@ -196,6 +346,8 @@ func (application *app) configureClient() error {
 		backups:         controllerv1connect.NewBackupRecordServiceClient(httpClient, baseURL, auth),
 		nodes:           controllerv1connect.NewNodeQueryServiceClient(httpClient, baseURL, auth),
 		nodeCommands:    controllerv1connect.NewNodeMaintenanceServiceClient(httpClient, baseURL, auth),
+		docker:          controllerv1connect.NewDockerQueryServiceClient(httpClient, baseURL, auth),
+		containers:      controllerv1connect.NewContainerServiceClient(httpClient, baseURL, auth),
 		repos:           controllerv1connect.NewRepoQueryServiceClient(httpClient, baseURL, auth),
 		repoCommands:    controllerv1connect.NewRepoCommandServiceClient(httpClient, baseURL, auth),
 		secrets:         controllerv1connect.NewSecretServiceClient(httpClient, baseURL, auth),

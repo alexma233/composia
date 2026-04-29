@@ -76,20 +76,27 @@
 
 ## 5. CLI 命令面实现
 
-当前仍仅实现 `composia controller` 和 `composia agent` 两个入口。面向用户的命令面尚未开始系统实现：
+当前已拆分为 `composia` 用户 CLI、`composia-controller` 和 `composia-agent` 三个入口。用户 CLI 已覆盖主要 controller RPC、repo/secret 写入和本地配置；异步动作支持 `--wait` / `--follow` / `--timeout`，并可用 `composia task wait` 单独等待任务。
 
 ```text
-service list/get/deploy/stop/restart/update/backup/migrate
-instance list/get/deploy/stop/restart/update/backup
-container list/get/logs/start/stop/restart/exec
-task list/get/run-again/logs
-backup list/get
-node list/get/tasks/reload-caddy/prune
-repo head/files/get/update/history/sync
-secret get/update
 system status
-dns update
+service list/get/deploy/stop/restart/update/backup/dns-update/caddy-sync/migrate
+instance list/get/deploy/stop/restart/update/backup
+container list/get/logs/start/stop/restart/remove/exec
+task list/get/logs/wait/run-again/approve/reject
+backup list/get/restore
+node list/get/tasks/reload-caddy/prune
+repo head/files/get/edit/update/history/sync/validate
+secret get/edit/update
+config get/set/unset/path
 ```
+
+后续 CLI 仍可完善：
+
+1. `container exec` 目前只创建 exec session 并输出 websocket path，尚未提供本地 TTY attach 体验。
+2. Docker network/volume/image 的 list/inspect/remove RPC 已存在，但 CLI 尚未公开成稳定命令面。
+3. Rustic 节点维护 RPC 已存在，但 CLI 尚未公开 `rustic init/forget/prune`。
+4. Shell completion 尚未实现。
 
 ---
 

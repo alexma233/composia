@@ -114,30 +114,36 @@ func (application *app) runNodeTasks(args []string) error {
 }
 
 func (application *app) runNodeReloadCaddy(args []string) error {
-	if err := requireArgs(args, 1, "composia node reload-caddy <node>"); err != nil {
+	fs := newCommandFlagSet("node reload-caddy")
+	waitOptions := addWaitFlags(fs)
+	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	response, err := application.client.nodeCommands.ReloadNodeCaddy(application.ctx, newRequest(&controllerv1.ReloadNodeCaddyRequest{NodeId: args[0]}))
+	if err := requireArgs(fs.Args(), 1, "composia node reload-caddy [--wait] [--follow] [--timeout duration] <node>"); err != nil {
+		return err
+	}
+	response, err := application.client.nodeCommands.ReloadNodeCaddy(application.ctx, newRequest(&controllerv1.ReloadNodeCaddyRequest{NodeId: fs.Arg(0)}))
 	if err != nil {
 		return err
 	}
-	return application.printTaskID(response.Msg, response.Msg.GetTaskId())
+	return application.printTaskIDWithWait(response.Msg, response.Msg.GetTaskId(), waitOptions)
 }
 
 func (application *app) runNodePrune(args []string) error {
 	fs := newCommandFlagSet("node prune")
 	target := fs.String("target", "all", "Docker prune target")
+	waitOptions := addWaitFlags(fs)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := requireArgs(fs.Args(), 1, "composia node prune [--target all|container|image|network|volume] <node>"); err != nil {
+	if err := requireArgs(fs.Args(), 1, "composia node prune [--wait] [--follow] [--timeout duration] [--target all|container|image|network|volume] <node>"); err != nil {
 		return err
 	}
 	response, err := application.client.nodeCommands.PruneNodeDocker(application.ctx, newRequest(&controllerv1.PruneNodeDockerRequest{NodeId: fs.Arg(0), Target: *target}))
 	if err != nil {
 		return err
 	}
-	return application.printTaskID(response.Msg, response.Msg.GetTaskId())
+	return application.printTaskIDWithWait(response.Msg, response.Msg.GetTaskId(), waitOptions)
 }
 
 func (application *app) printTaskID(message proto.Message, taskID string) error {
@@ -145,6 +151,16 @@ func (application *app) printTaskID(message proto.Message, taskID string) error 
 		return application.printMessage(message)
 	}
 	return writeKV(application.out, [][2]string{{"task_id", taskID}})
+}
+
+func (application *app) printTaskIDWithWait(message proto.Message, taskID string, options waitOptions) error {
+	if err := application.printTaskID(message, taskID); err != nil {
+		return err
+	}
+	if !options.shouldWait() {
+		return nil
+	}
+	return application.waitTask(taskID, options)
 }
 
 func capabilityText(capability *controllerv1.Capability) (bool, string) {

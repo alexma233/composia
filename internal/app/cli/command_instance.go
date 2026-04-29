@@ -75,24 +75,30 @@ func (application *app) runInstanceAction(actionName string, args []string) erro
 	if err != nil {
 		return err
 	}
-	if err := requireArgs(args, 2, fmt.Sprintf("composia instance %s <service> <node>", actionName)); err != nil {
+	fs := newCommandFlagSet("instance " + actionName)
+	waitOptions := addWaitFlags(fs)
+	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	response, err := application.client.instances.RunServiceInstanceAction(application.ctx, newRequest(&controllerv1.RunServiceInstanceActionRequest{ServiceName: args[0], NodeId: args[1], Action: action}))
+	if err := requireArgs(fs.Args(), 2, fmt.Sprintf("composia instance %s [--wait] [--follow] [--timeout duration] <service> <node>", actionName)); err != nil {
+		return err
+	}
+	response, err := application.client.instances.RunServiceInstanceAction(application.ctx, newRequest(&controllerv1.RunServiceInstanceActionRequest{ServiceName: fs.Arg(0), NodeId: fs.Arg(1), Action: action}))
 	if err != nil {
 		return err
 	}
-	return application.printTaskAction(response.Msg)
+	return application.printTaskActionWithWait(response.Msg, waitOptions)
 }
 
 func (application *app) runInstanceBackup(args []string) error {
 	fs := newCommandFlagSet("instance backup")
 	var dataNames stringListFlag
 	fs.Var(&dataNames, "data", "data entry name; repeat or comma-separate")
+	waitOptions := addWaitFlags(fs)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := requireArgs(fs.Args(), 2, "composia instance backup [--data name] <service> <node>"); err != nil {
+	if err := requireArgs(fs.Args(), 2, "composia instance backup [--wait] [--follow] [--timeout duration] [--data name] <service> <node>"); err != nil {
 		return err
 	}
 	response, err := application.client.serviceCommands.RunServiceAction(application.ctx, newRequest(&controllerv1.RunServiceActionRequest{
@@ -104,7 +110,7 @@ func (application *app) runInstanceBackup(args []string) error {
 	if err != nil {
 		return err
 	}
-	return application.printTaskAction(response.Msg)
+	return application.printTaskActionWithWait(response.Msg, waitOptions)
 }
 
 func (application *app) printInstanceDetail(instance *controllerv1.ServiceInstanceDetail) error {

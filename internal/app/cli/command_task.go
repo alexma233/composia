@@ -17,6 +17,8 @@ func (application *app) runTask(args []string) error {
 		return application.runTaskGet(args[1:])
 	case "logs":
 		return application.runTaskLogs(args[1:])
+	case "wait":
+		return application.runTaskWait(args[1:])
 	case "run-again":
 		return application.runTaskAgain(args[1:])
 	case "approve", "reject":
@@ -106,33 +108,36 @@ func (application *app) runTaskLogs(args []string) error {
 	if err := requireArgs(args, 1, "composia task logs <task>"); err != nil {
 		return err
 	}
-	stream, err := application.client.tasks.TailTaskLogs(application.ctx, newRequest(&controllerv1.TailTaskLogsRequest{TaskId: args[0]}))
-	if err != nil {
-		return err
-	}
-	for stream.Receive() {
-		if application.cfg.json {
-			if err := application.printMessage(stream.Msg()); err != nil {
-				return err
-			}
-			continue
-		}
-		if _, err := fmt.Fprint(application.out, stream.Msg().GetContent()); err != nil {
-			return err
-		}
-	}
-	return stream.Err()
+	return application.streamTaskLogs(application.ctx, args[0])
 }
 
 func (application *app) runTaskAgain(args []string) error {
-	if err := requireArgs(args, 1, "composia task run-again <task>"); err != nil {
+	fs := newCommandFlagSet("task run-again")
+	waitOptions := addWaitFlags(fs)
+	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	response, err := application.client.tasks.RunTaskAgain(application.ctx, newRequest(&controllerv1.RunTaskAgainRequest{TaskId: args[0]}))
+	if err := requireArgs(fs.Args(), 1, "composia task run-again [--wait] [--follow] [--timeout duration] <task>"); err != nil {
+		return err
+	}
+	response, err := application.client.tasks.RunTaskAgain(application.ctx, newRequest(&controllerv1.RunTaskAgainRequest{TaskId: fs.Arg(0)}))
 	if err != nil {
 		return err
 	}
-	return application.printTaskAction(response.Msg)
+	return application.printTaskActionWithWait(response.Msg, waitOptions)
+}
+
+func (application *app) runTaskWait(args []string) error {
+	fs := newCommandFlagSet("task wait")
+	waitOptions := addWaitFlags(fs)
+	*waitOptions.wait = true
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if err := requireArgs(fs.Args(), 1, "composia task wait [--follow] [--timeout duration] [--interval duration] <task>"); err != nil {
+		return err
+	}
+	return application.waitTask(fs.Arg(0), waitOptions)
 }
 
 func (application *app) runTaskResolve(decision string, args []string) error {

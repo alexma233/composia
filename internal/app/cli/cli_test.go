@@ -3,9 +3,11 @@ package cli
 import (
 	"bytes"
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
+	"connectrpc.com/connect"
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/internal/version"
 )
@@ -96,6 +98,19 @@ func TestInstanceActionFromName(t *testing.T) {
 	}
 }
 
+func TestContainerActionFromName(t *testing.T) {
+	action, err := containerActionFromName("restart")
+	if err != nil {
+		t.Fatalf("containerActionFromName returned error: %v", err)
+	}
+	if action != controllerv1.ContainerAction_CONTAINER_ACTION_RESTART {
+		t.Fatalf("action = %v", action)
+	}
+	if _, err := containerActionFromName("bad"); err == nil {
+		t.Fatalf("expected error for unknown action")
+	}
+}
+
 func TestWriteTable(t *testing.T) {
 	var out bytes.Buffer
 	if err := writeTable(&out, []string{"NAME", "STATUS"}, [][]string{{"alpha", "running"}}); err != nil {
@@ -136,5 +151,40 @@ func TestRunUnknownCommandDoesNotRequireControllerConfig(t *testing.T) {
 	}
 	if !strings.Contains(errOut.String(), "usage: composia") {
 		t.Fatalf("stderr = %q", errOut.String())
+	}
+}
+
+func TestHelpSubcommandDoesNotRequireControllerConfig(t *testing.T) {
+	var out bytes.Buffer
+	var errOut bytes.Buffer
+	if err := Run(context.Background(), []string{"service", "deploy", "--help"}, &out, &errOut); err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+	if !strings.Contains(out.String(), "usage: composia service deploy") {
+		t.Fatalf("stdout = %q", out.String())
+	}
+	if errOut.Len() != 0 {
+		t.Fatalf("stderr = %q", errOut.String())
+	}
+}
+
+func TestParseCLIConfig(t *testing.T) {
+	cfg, err := parseCLIConfig(strings.NewReader("addr=https://controller.example\ntoken_file=/run/secrets/composia\n"))
+	if err != nil {
+		t.Fatalf("parseCLIConfig returned error: %v", err)
+	}
+	if cfg[cliConfigKeyAddr] != "https://controller.example" {
+		t.Fatalf("addr = %q", cfg[cliConfigKeyAddr])
+	}
+	if cfg[cliConfigKeyTokenFile] != "/run/secrets/composia" {
+		t.Fatalf("token_file = %q", cfg[cliConfigKeyTokenFile])
+	}
+}
+
+func TestRepoWriteErrorAddsConflictHint(t *testing.T) {
+	err := connect.NewError(connect.CodeFailedPrecondition, errors.New(`base_revision "old" does not match current HEAD "new"`))
+	got := repoWriteError(err).Error()
+	if !strings.Contains(got, "repo changed while preparing this write") {
+		t.Fatalf("error = %q", got)
 	}
 }

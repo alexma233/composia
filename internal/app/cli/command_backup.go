@@ -99,18 +99,19 @@ func (application *app) runBackupGet(args []string) error {
 func (application *app) runBackupRestore(args []string) error {
 	fs := newCommandFlagSet("backup restore")
 	nodeID := fs.String("node", "", "destination node ID")
+	waitOptions := addWaitFlags(fs)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := requireArgs(fs.Args(), 1, "composia backup restore --node node <backup>"); err != nil {
+	if err := requireArgs(fs.Args(), 1, "composia backup restore [--wait] [--follow] [--timeout duration] --node node <backup>"); err != nil {
 		return err
 	}
 	if *nodeID == "" {
-		return errorsWithUsage("node is required", "composia backup restore --node node <backup>")
+		return errorsWithUsage("node is required", "composia backup restore [--wait] [--follow] [--timeout duration] --node node <backup>")
 	}
 	response, err := application.client.backups.RestoreBackup(application.ctx, newRequest(&controllerv1.RestoreBackupRequest{BackupId: fs.Arg(0), NodeId: *nodeID}))
 	if err != nil {
 		return err
 	}
-	return application.printTaskAction(response.Msg)
+	return application.printTaskActionWithWait(response.Msg, waitOptions)
 }

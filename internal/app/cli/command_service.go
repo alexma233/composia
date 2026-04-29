@@ -92,10 +92,11 @@ func (application *app) runServiceAction(actionName string, args []string) error
 	var dataNames stringListFlag
 	fs.Var(&nodes, "node", "target node ID; repeat or comma-separate")
 	fs.Var(&dataNames, "data", "data entry name for backup-like actions; repeat or comma-separate")
+	waitOptions := addWaitFlags(fs)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := requireArgs(fs.Args(), 1, fmt.Sprintf("composia service %s [--node node] [--data name] <service>", actionName)); err != nil {
+	if err := requireArgs(fs.Args(), 1, fmt.Sprintf("composia service %s [--wait] [--follow] [--timeout duration] [--node node] [--data name] <service>", actionName)); err != nil {
 		return err
 	}
 	response, err := application.client.serviceCommands.RunServiceAction(application.ctx, newRequest(&controllerv1.RunServiceActionRequest{
@@ -107,7 +108,7 @@ func (application *app) runServiceAction(actionName string, args []string) error
 	if err != nil {
 		return err
 	}
-	return application.printTaskAction(response.Msg)
+	return application.printTaskActionWithWait(response.Msg, waitOptions)
 }
 
 func (application *app) runServiceMigrate(args []string) error {
@@ -116,17 +117,18 @@ func (application *app) runServiceMigrate(args []string) error {
 	fs.StringVar(sourceNodeID, "from", "", "source node ID")
 	targetNodeID := fs.String("target", "", "target node ID")
 	fs.StringVar(targetNodeID, "to", "", "target node ID")
+	waitOptions := addWaitFlags(fs)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := requireArgs(fs.Args(), 1, "composia service migrate --source node --target node <service>"); err != nil {
+	if err := requireArgs(fs.Args(), 1, "composia service migrate [--wait] [--follow] [--timeout duration] --source node --target node <service>"); err != nil {
 		return err
 	}
 	if strings.TrimSpace(*sourceNodeID) == "" {
-		return errorsWithUsage("source node is required", "composia service migrate --source node --target node <service>")
+		return errorsWithUsage("source node is required", "composia service migrate [--wait] [--follow] [--timeout duration] --source node --target node <service>")
 	}
 	if strings.TrimSpace(*targetNodeID) == "" {
-		return errorsWithUsage("target node is required", "composia service migrate --source node --target node <service>")
+		return errorsWithUsage("target node is required", "composia service migrate [--wait] [--follow] [--timeout duration] --source node --target node <service>")
 	}
 	response, err := application.client.serviceCommands.MigrateService(application.ctx, newRequest(&controllerv1.MigrateServiceRequest{
 		ServiceName:  fs.Arg(0),
@@ -136,7 +138,7 @@ func (application *app) runServiceMigrate(args []string) error {
 	if err != nil {
 		return err
 	}
-	return application.printTaskAction(response.Msg)
+	return application.printTaskActionWithWait(response.Msg, waitOptions)
 }
 
 func (application *app) printServiceDetail(service *controllerv1.GetServiceResponse) error {

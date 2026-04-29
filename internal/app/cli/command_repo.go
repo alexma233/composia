@@ -69,7 +69,7 @@ func (application *app) runRepoEdit(args []string) error {
 	}
 	response, err := application.client.repoCommands.UpdateRepoFile(application.ctx, newRequest(&controllerv1.UpdateRepoFileRequest{Path: repoPath, Content: updatedContent, BaseRevision: baseRevision, CommitMessage: *message}))
 	if err != nil {
-		return err
+		return repoWriteError(err)
 	}
 	if application.cfg.json {
 		return application.printMessage(response.Msg)
@@ -105,7 +105,7 @@ func (application *app) runRepoUpdate(args []string) error {
 	}
 	response, err := application.client.repoCommands.UpdateRepoFile(application.ctx, newRequest(&controllerv1.UpdateRepoFileRequest{Path: fs.Arg(0), Content: content, BaseRevision: baseRevision, CommitMessage: *message}))
 	if err != nil {
-		return err
+		return repoWriteError(err)
 	}
 	if application.cfg.json {
 		return application.printMessage(response.Msg)
