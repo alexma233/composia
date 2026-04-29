@@ -26,7 +26,7 @@ on:
   workflow_dispatch:
 
 env:
-  BINARY_OUTPUT_DIR: dist/canary-controller
+  OUTPUT_DIR: dist/canary-controller
 
 jobs:
   docker-controller:
@@ -79,4 +79,4 @@ jobs:
         uses: https://forgejo.alexma.top/actions/upload-artifact@v4
         with:
           name: composia-controller-canary-linux-${{ matrix.goarch }}
-          path: ${{ env.BINARY_OUTPUT_DIR }}/composia-controller
+          path: ${{ env.OUTPUT_DIR }}/composia-controller

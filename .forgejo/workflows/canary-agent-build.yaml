@@ -23,7 +23,7 @@ on:
   workflow_dispatch:
 
 env:
-  BINARY_OUTPUT_DIR: dist/canary-agent
+  OUTPUT_DIR: dist/canary-agent
 
 jobs:
   docker-agent:
@@ -76,4 +76,4 @@ jobs:
         uses: https://forgejo.alexma.top/actions/upload-artifact@v4
         with:
           name: composia-agent-canary-linux-${{ matrix.goarch }}
-          path: ${{ env.BINARY_OUTPUT_DIR }}/composia-agent
+          path: ${{ env.OUTPUT_DIR }}/composia-agent
