@@ -25,7 +25,8 @@ jobs:
 
       - name: Build and publish binary packages
         env:
-          GITEA_TOKEN: ${{ secrets.FORGEJO_RELEASE_TOKEN }}
+          GITEA_TOKEN: ${{ forgejo.token }}
+          GORELEASER_FORCE_TOKEN: gitea
         run: goreleaser release --clean
 
   docker-backend:
