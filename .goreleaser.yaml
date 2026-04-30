@@ -143,6 +143,79 @@ checksum:
 snapshot:
   version_template: "{{ incpatch .Version }}-next"
 
+dockers_v2:
+  - id: composia-cli
+    ids:
+      - composia-linux
+    dockerfile: Dockerfile.goreleaser
+    images:
+      - forgejo.alexma.top/alexma233/composia-cli
+      - ghcr.io/alexma233/composia-cli
+      - codeberg.org/alexma233/composia-cli
+      - alexma233/composia-cli
+    tags: &docker_release_tags
+      - "{{ .Version }}"
+      - "{{ .Major }}.{{ .Minor }}"
+      - "{{ .Major }}"
+      - latest
+    labels:
+      org.opencontainers.image.description: Composia CLI image
+      org.opencontainers.image.documentation: https://docs.composia.xyz
+      org.opencontainers.image.vendor: alexma233
+      org.opencontainers.image.ref.name: "{{ .Tag }}"
+      org.opencontainers.image.version: "{{ .Version }}"
+      io.composia.image: cli
+    platforms: &docker_release_platforms
+      - linux/amd64
+      - linux/arm64
+      - linux/386
+      - linux/arm/v7
+      - linux/riscv64
+    flags:
+      - --target=cli
+
+  - id: composia-controller
+    ids:
+      - composia-controller-linux
+    dockerfile: Dockerfile.goreleaser
+    images:
+      - forgejo.alexma.top/alexma233/composia-controller
+      - ghcr.io/alexma233/composia-controller
+      - codeberg.org/alexma233/composia-controller
+      - alexma233/composia-controller
+    tags: *docker_release_tags
+    labels:
+      org.opencontainers.image.description: Composia controller runtime image
+      org.opencontainers.image.documentation: https://docs.composia.xyz
+      org.opencontainers.image.vendor: alexma233
+      org.opencontainers.image.ref.name: "{{ .Tag }}"
+      org.opencontainers.image.version: "{{ .Version }}"
+      io.composia.image: controller
+    platforms: *docker_release_platforms
+    flags:
+      - --target=controller
+
+  - id: composia-agent
+    ids:
+      - composia-agent-linux
+    dockerfile: Dockerfile.goreleaser
+    images:
+      - forgejo.alexma.top/alexma233/composia-agent
+      - ghcr.io/alexma233/composia-agent
+      - codeberg.org/alexma233/composia-agent
+      - alexma233/composia-agent
+    tags: *docker_release_tags
+    labels:
+      org.opencontainers.image.description: Composia agent runtime image
+      org.opencontainers.image.documentation: https://docs.composia.xyz
+      org.opencontainers.image.vendor: alexma233
+      org.opencontainers.image.ref.name: "{{ .Tag }}"
+      org.opencontainers.image.version: "{{ .Version }}"
+      io.composia.image: agent
+    platforms: *docker_release_platforms
+    flags:
+      - --target=agent
+
 changelog:
   use: gitea
   sort: asc
