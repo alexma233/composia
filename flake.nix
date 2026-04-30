@@ -32,7 +32,7 @@
             inherit version;
             src = ./.;
 
-            vendorHash = "sha256-p5Op6squm+bl+KYvyvrU7+5t9xY0uiPskLU5DDdjZIM=";
+            vendorHash = "sha256-LIts6L6jl2ZmHvOBboB9eBIf3VWraaVMca7/s7h65bU=";
 
             subPackages = [
               "cmd/composia"
