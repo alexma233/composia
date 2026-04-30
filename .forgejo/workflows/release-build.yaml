@@ -69,6 +69,7 @@ jobs:
         env:
           GITEA_TOKEN: ${{ forgejo.token }}
           GORELEASER_FORCE_TOKEN: gitea
+          AUR_KEY: ${{ secrets.AUR_KEY }}
         run: goreleaser release --clean
 
   docker-web:
