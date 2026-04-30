@@ -159,7 +159,7 @@ nfpms:
     package_name: composia
     vendor: AlexMa
     homepage: https://docs.composia.xyz
-    maintainer: AlexMa <alexma@furcode.co>
+    maintainer: AlexMa <i@fur.im>
     description: Self-hosted Docker Compose control plane and CLI.
     license: AGPL-3.0-only
     section: utils
