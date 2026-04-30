@@ -21,7 +21,10 @@
       packages = forAllSystems (system:
         let
           pkgs = import nixpkgs { inherit system; };
-          version = if self ? rev then "git-${self.shortRev}" else "dirty";
+          version =
+            if self ? tag then self.tag
+            else if self ? rev then "git-${self.shortRev}"
+            else "dirty";
         in
         {
           composia = pkgs.buildGoModule {
