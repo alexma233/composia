@@ -207,3 +207,12 @@ config.local.yaml
 # Vitepress
 docs/.vitepress/dist
 docs/.vitepress/cache
+
+# Craft Agents
+events.jsonl
+config.json
+views.json
+sources/
+statuses/
+sessions/
+.claude-plugin/
