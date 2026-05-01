@@ -36,6 +36,9 @@ const (
 	// SystemServiceGetSystemStatusProcedure is the fully-qualified name of the SystemService's
 	// GetSystemStatus RPC.
 	SystemServiceGetSystemStatusProcedure = "/composia.controller.v1.SystemService/GetSystemStatus"
+	// SystemServiceReloadControllerConfigProcedure is the fully-qualified name of the SystemService's
+	// ReloadControllerConfig RPC.
+	SystemServiceReloadControllerConfigProcedure = "/composia.controller.v1.SystemService/ReloadControllerConfig"
 	// SystemServiceGetCurrentConfigProcedure is the fully-qualified name of the SystemService's
 	// GetCurrentConfig RPC.
 	SystemServiceGetCurrentConfigProcedure = "/composia.controller.v1.SystemService/GetCurrentConfig"
@@ -48,6 +51,8 @@ const (
 type SystemServiceClient interface {
 	// GetSystemStatus returns the current controller status and node counts.
 	GetSystemStatus(context.Context, *connect.Request[v1.GetSystemStatusRequest]) (*connect.Response[v1.GetSystemStatusResponse], error)
+	// ReloadControllerConfig validates and applies the controller config without replacing the process.
+	ReloadControllerConfig(context.Context, *connect.Request[v1.ReloadControllerConfigRequest]) (*connect.Response[v1.ReloadControllerConfigResponse], error)
 	// GetCurrentConfig returns the active controller config as a redacted summary.
 	GetCurrentConfig(context.Context, *connect.Request[v1.GetCurrentConfigRequest]) (*connect.Response[v1.GetCurrentConfigResponse], error)
 	// GetCapabilities returns global feature availability for the current controller state.
@@ -71,6 +76,12 @@ func NewSystemServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(systemServiceMethods.ByName("GetSystemStatus")),
 			connect.WithClientOptions(opts...),
 		),
+		reloadControllerConfig: connect.NewClient[v1.ReloadControllerConfigRequest, v1.ReloadControllerConfigResponse](
+			httpClient,
+			baseURL+SystemServiceReloadControllerConfigProcedure,
+			connect.WithSchema(systemServiceMethods.ByName("ReloadControllerConfig")),
+			connect.WithClientOptions(opts...),
+		),
 		getCurrentConfig: connect.NewClient[v1.GetCurrentConfigRequest, v1.GetCurrentConfigResponse](
 			httpClient,
 			baseURL+SystemServiceGetCurrentConfigProcedure,
@@ -88,14 +99,20 @@ func NewSystemServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 
 // systemServiceClient implements SystemServiceClient.
 type systemServiceClient struct {
-	getSystemStatus  *connect.Client[v1.GetSystemStatusRequest, v1.GetSystemStatusResponse]
-	getCurrentConfig *connect.Client[v1.GetCurrentConfigRequest, v1.GetCurrentConfigResponse]
-	getCapabilities  *connect.Client[v1.GetCapabilitiesRequest, v1.GetCapabilitiesResponse]
+	getSystemStatus        *connect.Client[v1.GetSystemStatusRequest, v1.GetSystemStatusResponse]
+	reloadControllerConfig *connect.Client[v1.ReloadControllerConfigRequest, v1.ReloadControllerConfigResponse]
+	getCurrentConfig       *connect.Client[v1.GetCurrentConfigRequest, v1.GetCurrentConfigResponse]
+	getCapabilities        *connect.Client[v1.GetCapabilitiesRequest, v1.GetCapabilitiesResponse]
 }
 
 // GetSystemStatus calls composia.controller.v1.SystemService.GetSystemStatus.
 func (c *systemServiceClient) GetSystemStatus(ctx context.Context, req *connect.Request[v1.GetSystemStatusRequest]) (*connect.Response[v1.GetSystemStatusResponse], error) {
 	return c.getSystemStatus.CallUnary(ctx, req)
+}
+
+// ReloadControllerConfig calls composia.controller.v1.SystemService.ReloadControllerConfig.
+func (c *systemServiceClient) ReloadControllerConfig(ctx context.Context, req *connect.Request[v1.ReloadControllerConfigRequest]) (*connect.Response[v1.ReloadControllerConfigResponse], error) {
+	return c.reloadControllerConfig.CallUnary(ctx, req)
 }
 
 // GetCurrentConfig calls composia.controller.v1.SystemService.GetCurrentConfig.
@@ -112,6 +129,8 @@ func (c *systemServiceClient) GetCapabilities(ctx context.Context, req *connect.
 type SystemServiceHandler interface {
 	// GetSystemStatus returns the current controller status and node counts.
 	GetSystemStatus(context.Context, *connect.Request[v1.GetSystemStatusRequest]) (*connect.Response[v1.GetSystemStatusResponse], error)
+	// ReloadControllerConfig validates and applies the controller config without replacing the process.
+	ReloadControllerConfig(context.Context, *connect.Request[v1.ReloadControllerConfigRequest]) (*connect.Response[v1.ReloadControllerConfigResponse], error)
 	// GetCurrentConfig returns the active controller config as a redacted summary.
 	GetCurrentConfig(context.Context, *connect.Request[v1.GetCurrentConfigRequest]) (*connect.Response[v1.GetCurrentConfigResponse], error)
 	// GetCapabilities returns global feature availability for the current controller state.
@@ -131,6 +150,12 @@ func NewSystemServiceHandler(svc SystemServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(systemServiceMethods.ByName("GetSystemStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
+	systemServiceReloadControllerConfigHandler := connect.NewUnaryHandler(
+		SystemServiceReloadControllerConfigProcedure,
+		svc.ReloadControllerConfig,
+		connect.WithSchema(systemServiceMethods.ByName("ReloadControllerConfig")),
+		connect.WithHandlerOptions(opts...),
+	)
 	systemServiceGetCurrentConfigHandler := connect.NewUnaryHandler(
 		SystemServiceGetCurrentConfigProcedure,
 		svc.GetCurrentConfig,
@@ -147,6 +172,8 @@ func NewSystemServiceHandler(svc SystemServiceHandler, opts ...connect.HandlerOp
 		switch r.URL.Path {
 		case SystemServiceGetSystemStatusProcedure:
 			systemServiceGetSystemStatusHandler.ServeHTTP(w, r)
+		case SystemServiceReloadControllerConfigProcedure:
+			systemServiceReloadControllerConfigHandler.ServeHTTP(w, r)
 		case SystemServiceGetCurrentConfigProcedure:
 			systemServiceGetCurrentConfigHandler.ServeHTTP(w, r)
 		case SystemServiceGetCapabilitiesProcedure:
@@ -162,6 +189,10 @@ type UnimplementedSystemServiceHandler struct{}
 
 func (UnimplementedSystemServiceHandler) GetSystemStatus(context.Context, *connect.Request[v1.GetSystemStatusRequest]) (*connect.Response[v1.GetSystemStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.SystemService.GetSystemStatus is not implemented"))
+}
+
+func (UnimplementedSystemServiceHandler) ReloadControllerConfig(context.Context, *connect.Request[v1.ReloadControllerConfigRequest]) (*connect.Response[v1.ReloadControllerConfigResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.SystemService.ReloadControllerConfig is not implemented"))
 }
 
 func (UnimplementedSystemServiceHandler) GetCurrentConfig(context.Context, *connect.Request[v1.GetCurrentConfigRequest]) (*connect.Response[v1.GetCurrentConfigResponse], error) {

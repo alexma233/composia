@@ -48,6 +48,118 @@ func Run(ctx context.Context, configPath string) error {
 	if err != nil {
 		return err
 	}
+	reloadRequests := make(chan reloadRequest)
+	stopReloadSignals := watchControllerReloadSignals(ctx, reloadRequests)
+	defer stopReloadSignals()
+
+	for {
+		runtimeCtx, cancelRuntime := context.WithCancel(ctx)
+		runtimeDone := make(chan error, 1)
+		go func() {
+			runtimeDone <- runControllerRuntime(runtimeCtx, cfg, func(reloadCtx context.Context) error {
+				return requestControllerReload(reloadCtx, reloadRequests)
+			})
+		}()
+
+		reloadAccepted := false
+		for !reloadAccepted {
+			select {
+			case <-ctx.Done():
+				cancelRuntime()
+				if err := <-runtimeDone; err != nil {
+					return err
+				}
+				return nil
+			case err := <-runtimeDone:
+				cancelRuntime()
+				return err
+			case request := <-reloadRequests:
+				nextCfg, err := loadReloadControllerConfig(configPath, cfg)
+				request.respond(err)
+				if err != nil {
+					log.Printf("controller config reload rejected: %v", err)
+					continue
+				}
+				cancelRuntime()
+				if err := <-runtimeDone; err != nil {
+					return err
+				}
+				cfg = nextCfg
+				reloadAccepted = true
+				log.Printf("controller config reloaded")
+			}
+		}
+	}
+}
+
+type reloadRequest struct {
+	reply chan error
+}
+
+func (request reloadRequest) respond(err error) {
+	if request.reply == nil {
+		return
+	}
+	request.reply <- err
+}
+
+func requestControllerReload(ctx context.Context, requests chan<- reloadRequest) error {
+	reply := make(chan error, 1)
+	request := reloadRequest{reply: reply}
+	select {
+	case requests <- request:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	select {
+	case err := <-reply:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func loadReloadControllerConfig(configPath string, current *config.ControllerConfig) (*config.ControllerConfig, error) {
+	next, err := config.LoadController(configPath)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateControllerReload(current, next); err != nil {
+		return nil, err
+	}
+	return next, nil
+}
+
+func validateControllerReload(current, next *config.ControllerConfig) error {
+	if current == nil || next == nil {
+		return fmt.Errorf("controller config is missing")
+	}
+	immutable := []struct {
+		name  string
+		left  string
+		right string
+		path  bool
+	}{
+		{name: "controller.listen_addr", left: current.ListenAddr, right: next.ListenAddr},
+		{name: "controller.repo_dir", left: current.RepoDir, right: next.RepoDir, path: true},
+		{name: "controller.state_dir", left: current.StateDir, right: next.StateDir, path: true},
+		{name: "controller.log_dir", left: current.LogDir, right: next.LogDir, path: true},
+	}
+	for _, field := range immutable {
+		left := field.left
+		right := field.right
+		if field.path {
+			left = filepath.Clean(left)
+			right = filepath.Clean(right)
+		}
+		if left != right {
+			return fmt.Errorf("%s changed and requires process restart", field.name)
+		}
+	}
+	return nil
+}
+
+func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, reload func(context.Context) error) error {
 
 	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
 		return fmt.Errorf("create controller state_dir %q: %w", cfg.StateDir, err)
@@ -126,7 +238,7 @@ func Run(ctx context.Context, configPath string) error {
 		return name, nil
 	})
 	registerAgentHandlers(mux, cfg, db, agentInterceptor, taskQueue, taskResults, dockerQueries, execManager, logManager)
-	registerAccessHandlers(mux, cfg, db, accessInterceptor, availableNodeIDs, taskQueue, taskResults, dockerQueries, execManager, logManager, repoMu)
+	registerAccessHandlers(mux, cfg, db, accessInterceptor, availableNodeIDs, taskQueue, taskResults, dockerQueries, execManager, logManager, repoMu, reload)
 	mux.HandleFunc("/ws/container-exec/", execManager.handleWebsocket)
 
 	server := &http.Server{
@@ -174,9 +286,9 @@ func registerAgentHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db 
 	mux.Handle(bundlePath, bundleHandler)
 }
 
-func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, availableNodeIDs map[string]struct{}, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, dockerQueries *dockerQueryBroker, execManager *execTunnelManager, logManager *containerLogTunnelManager, repoMu *sync.Mutex) {
+func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, availableNodeIDs map[string]struct{}, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, dockerQueries *dockerQueryBroker, execManager *execTunnelManager, logManager *containerLogTunnelManager, repoMu *sync.Mutex, reload func(context.Context) error) {
 	systemPath, systemHandler := controllerv1connect.NewSystemServiceHandler(
-		&systemServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs},
+		&systemServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, reload: reload},
 		connect.WithInterceptors(interceptor),
 	)
 	mux.Handle(systemPath, systemHandler)
@@ -1225,6 +1337,7 @@ type systemServer struct {
 	db               *store.DB
 	cfg              *config.ControllerConfig
 	availableNodeIDs map[string]struct{}
+	reload           func(context.Context) error
 }
 
 type serviceQueryServer struct {
@@ -1415,6 +1528,16 @@ func (server *systemServer) GetSystemStatus(ctx context.Context, _ *connect.Requ
 		LogDir:              server.cfg.LogDir,
 	}
 	return connect.NewResponse(response), nil
+}
+
+func (server *systemServer) ReloadControllerConfig(ctx context.Context, _ *connect.Request[controllerv1.ReloadControllerConfigRequest]) (*connect.Response[controllerv1.ReloadControllerConfigResponse], error) {
+	if server.reload == nil {
+		return nil, connect.NewError(connect.CodeUnimplemented, errors.New("controller reload is not available"))
+	}
+	if err := server.reload(ctx); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	return connect.NewResponse(&controllerv1.ReloadControllerConfigResponse{Accepted: true}), nil
 }
 
 func (server *systemServer) GetCurrentConfig(ctx context.Context, _ *connect.Request[controllerv1.GetCurrentConfigRequest]) (*connect.Response[controllerv1.GetCurrentConfigResponse], error) {

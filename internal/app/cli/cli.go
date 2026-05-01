@@ -162,7 +162,7 @@ Global flags:
   --json              print protobuf JSON for unary RPCs
 
 Commands:
-  system status
+  system status|reload
   service list|get|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate
   instance list|get|deploy|update|stop|restart|backup
   task list|get|logs|run-again|approve|reject
@@ -177,8 +177,10 @@ Commands:
 }
 
 var commandUsages = map[string]string{
-	"system":             "usage: composia system status\n",
+	"system":             "usage: composia system <status|reload>\n",
 	"service":            "usage: composia service <list|get|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate>\n",
+	"system status":      "usage: composia system status\n",
+	"system reload":      "usage: composia system reload\n",
 	"service list":       "usage: composia service list [--status status] [--page-size n] [--page n]\n",
 	"service get":        "usage: composia service get [--containers] <service>\n",
 	"service deploy":     "usage: composia service deploy [--wait] [--follow] [--timeout duration] [--node node] <service>\n",

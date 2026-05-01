@@ -10,7 +10,7 @@ import (
 
 func (application *app) runSystem(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia system status")
+		return fmt.Errorf("usage: composia system <status|reload>")
 	}
 	switch args[0] {
 	case "status":
@@ -25,6 +25,18 @@ func (application *app) runSystem(args []string) error {
 			return application.printMessage(response.Msg)
 		}
 		return application.printSystemStatus(response)
+	case "reload":
+		if err := requireArgs(args[1:], 0, "composia system reload"); err != nil {
+			return err
+		}
+		response, err := application.client.system.ReloadControllerConfig(application.ctx, newRequest(&controllerv1.ReloadControllerConfigRequest{}))
+		if err != nil {
+			return err
+		}
+		if application.cfg.json {
+			return application.printMessage(response.Msg)
+		}
+		return writeKV(application.out, [][2]string{{"accepted", boolText(response.Msg.GetAccepted())}})
 	default:
 		return fmt.Errorf("unknown system command %q", args[0])
 	}

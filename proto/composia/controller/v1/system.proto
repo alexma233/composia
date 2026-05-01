@@ -10,6 +10,8 @@ option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia
 service SystemService {
   // GetSystemStatus returns the current controller status and node counts.
   rpc GetSystemStatus(GetSystemStatusRequest) returns (GetSystemStatusResponse);
+  // ReloadControllerConfig validates and applies the controller config without replacing the process.
+  rpc ReloadControllerConfig(ReloadControllerConfigRequest) returns (ReloadControllerConfigResponse);
   // GetCurrentConfig returns the active controller config as a redacted summary.
   rpc GetCurrentConfig(GetCurrentConfigRequest) returns (GetCurrentConfigResponse);
   // GetCapabilities returns global feature availability for the current controller state.
@@ -37,6 +39,15 @@ message GetSystemStatusResponse {
   string state_dir = 7;
   // log_dir is the controller-side task log directory.
   string log_dir = 8;
+}
+
+// ReloadControllerConfigRequest requests an in-process controller config reload.
+message ReloadControllerConfigRequest {}
+
+// ReloadControllerConfigResponse confirms that the reload was accepted.
+message ReloadControllerConfigResponse {
+  // accepted is true when the current config passed reload validation and was scheduled.
+  bool accepted = 1;
 }
 
 // GetCurrentConfigRequest requests the active redacted controller config.
