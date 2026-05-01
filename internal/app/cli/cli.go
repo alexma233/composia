@@ -83,6 +83,10 @@ func Run(ctx context.Context, args []string, out io.Writer, errOut io.Writer) er
 		_, err := fmt.Fprintln(out, version.Value)
 		return err
 	}
+	if rest[0] == "completion" {
+		application := &app{ctx: ctx, out: out, errOut: errOut, cfg: cfg}
+		return application.runCompletion(rest[1:])
+	}
 	if rest[0] == "config" {
 		application := &app{ctx: ctx, out: out, errOut: errOut, cfg: cfg}
 		return application.runConfig(rest[1:])
@@ -112,6 +116,14 @@ func Run(ctx context.Context, args []string, out io.Writer, errOut io.Writer) er
 		return application.runNode(rest[1:])
 	case "container":
 		return application.runContainer(rest[1:])
+	case "network":
+		return application.runNetwork(rest[1:])
+	case "volume":
+		return application.runVolume(rest[1:])
+	case "image":
+		return application.runImage(rest[1:])
+	case "rustic":
+		return application.runRustic(rest[1:])
 	case "repo":
 		return application.runRepo(rest[1:])
 	case "secret":
@@ -123,7 +135,7 @@ func Run(ctx context.Context, args []string, out io.Writer, errOut io.Writer) er
 
 func isControllerCommand(command string) bool {
 	switch command {
-	case "system", "service", "instance", "task", "backup", "node", "container", "repo", "secret", "config":
+	case "system", "service", "instance", "task", "backup", "node", "container", "network", "volume", "image", "rustic", "repo", "secret", "config":
 		return true
 	default:
 		return false
@@ -165,13 +177,18 @@ Commands:
   system status|reload
   service list|get|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate
   instance list|get|deploy|update|stop|restart|backup
-  task list|get|logs|run-again|approve|reject
+  task list|get|logs|wait|run-again|approve|reject
   backup list|get|restore
-  node list|get|tasks|reload-caddy|prune
+  node list|get|tasks|stats|reload-caddy|prune
   container list|get|logs|start|stop|restart|remove|exec
+  network list|get|remove
+  volume list|get|remove
+  image list|get|remove
+  rustic init|forget|prune
   repo head|files|get|edit|update|history|sync|validate
   secret get|edit|update
   config get|set|unset|path
+  completion bash|zsh|fish
   version
 `)
 }
@@ -211,10 +228,11 @@ var commandUsages = map[string]string{
 	"backup list":        "usage: composia backup list [--service name] [--status status] [--data name]\n",
 	"backup get":         "usage: composia backup get <backup>\n",
 	"backup restore":     "usage: composia backup restore [--wait] [--follow] [--timeout duration] --node node <backup>\n",
-	"node":               "usage: composia node <list|get|tasks|reload-caddy|prune>\n",
+	"node":               "usage: composia node <list|get|tasks|stats|reload-caddy|prune>\n",
 	"node list":          "usage: composia node list\n",
 	"node get":           "usage: composia node get <node>\n",
 	"node tasks":         "usage: composia node tasks [--status status] <node>\n",
+	"node stats":         "usage: composia node stats <node>\n",
 	"node reload-caddy":  "usage: composia node reload-caddy [--wait] [--follow] [--timeout duration] <node>\n",
 	"node prune":         "usage: composia node prune [--wait] [--follow] [--timeout duration] [--target all|container|image|network|volume] <node>\n",
 	"container":          "usage: composia container <list|get|logs|start|stop|restart|remove|exec>\n",
@@ -225,7 +243,23 @@ var commandUsages = map[string]string{
 	"container stop":     "usage: composia container stop [--wait] [--follow] [--timeout duration] --node node <container>\n",
 	"container restart":  "usage: composia container restart [--wait] [--follow] [--timeout duration] --node node <container>\n",
 	"container remove":   "usage: composia container remove [--wait] [--follow] [--timeout duration] --node node [--force] [--volumes] <container>\n",
-	"container exec":     "usage: composia container exec --node node <container> -- <command> [args...]\n",
+	"container exec":     "usage: composia container exec [--tty] [--stdin-file file] [--timeout duration] [--max-output bytes] --node node <container> -- <command> [args...]\n",
+	"network":            "usage: composia network <list|get|remove>\n",
+	"network list":       "usage: composia network list --node node [--search text] [--sort-by field] [--desc] [--page-size n] [--page n]\n",
+	"network get":        "usage: composia network get --node node <network>\n",
+	"network remove":     "usage: composia network remove [--wait] [--follow] [--timeout duration] --node node <network>\n",
+	"volume":             "usage: composia volume <list|get|remove>\n",
+	"volume list":        "usage: composia volume list --node node [--search text] [--sort-by field] [--desc] [--page-size n] [--page n]\n",
+	"volume get":         "usage: composia volume get --node node <volume>\n",
+	"volume remove":      "usage: composia volume remove [--wait] [--follow] [--timeout duration] --node node <volume>\n",
+	"image":              "usage: composia image <list|get|remove>\n",
+	"image list":         "usage: composia image list --node node [--search text] [--sort-by field] [--desc] [--page-size n] [--page n]\n",
+	"image get":          "usage: composia image get --node node <image>\n",
+	"image remove":       "usage: composia image remove [--wait] [--follow] [--timeout duration] --node node [--force] <image>\n",
+	"rustic":             "usage: composia rustic <init|forget|prune>\n",
+	"rustic init":        "usage: composia rustic init [--wait] [--follow] [--timeout duration] <node>\n",
+	"rustic forget":      "usage: composia rustic forget [--wait] [--follow] [--timeout duration] [--service name] [--data name] <node>\n",
+	"rustic prune":       "usage: composia rustic prune [--wait] [--follow] [--timeout duration] [--service name] [--data name] <node>\n",
 	"repo":               "usage: composia repo <head|files|get|edit|update|history|sync|validate>\n",
 	"repo head":          "usage: composia repo head\n",
 	"repo files":         "usage: composia repo files [--recursive] [path]\n",
@@ -244,6 +278,10 @@ var commandUsages = map[string]string{
 	"config set":         "usage: composia config set <addr|token_file> <value>\n",
 	"config unset":       "usage: composia config unset <addr|token_file>\n",
 	"config path":        "usage: composia config path\n",
+	"completion":         "usage: composia completion <bash|zsh|fish>\n",
+	"completion bash":    "usage: composia completion bash\n",
+	"completion zsh":     "usage: composia completion zsh\n",
+	"completion fish":    "usage: composia completion fish\n",
 }
 
 func PrintCommandUsage(w io.Writer, args []string) {

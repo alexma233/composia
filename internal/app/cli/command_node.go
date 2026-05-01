@@ -9,7 +9,7 @@ import (
 
 func (application *app) runNode(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia node <list|get|tasks|reload-caddy|prune>")
+		return fmt.Errorf("usage: composia node <list|get|tasks|stats|reload-caddy|prune>")
 	}
 	switch args[0] {
 	case "list":
@@ -18,6 +18,8 @@ func (application *app) runNode(args []string) error {
 		return application.runNodeGet(args[1:])
 	case "tasks":
 		return application.runNodeTasks(args[1:])
+	case "stats":
+		return application.runNodeStats(args[1:])
 	case "reload-caddy":
 		return application.runNodeReloadCaddy(args[1:])
 	case "prune":
@@ -25,6 +27,35 @@ func (application *app) runNode(args []string) error {
 	default:
 		return fmt.Errorf("unknown node command %q", args[0])
 	}
+}
+
+func (application *app) runNodeStats(args []string) error {
+	if err := requireArgs(args, 1, "composia node stats <node>"); err != nil {
+		return err
+	}
+	response, err := application.client.nodes.GetNodeDockerStats(application.ctx, newRequest(&controllerv1.GetNodeDockerStatsRequest{NodeId: args[0]}))
+	if err != nil {
+		return err
+	}
+	if application.cfg.json {
+		return application.printMessage(response.Msg)
+	}
+	stats := response.Msg.GetStats()
+	if stats == nil {
+		return fmt.Errorf("docker stats for node %q were not found", args[0])
+	}
+	return writeKV(application.out, [][2]string{
+		{"containers_total", uintText(stats.GetContainersTotal())},
+		{"containers_running", uintText(stats.GetContainersRunning())},
+		{"containers_stopped", uintText(stats.GetContainersStopped())},
+		{"containers_paused", uintText(stats.GetContainersPaused())},
+		{"images", uintText(stats.GetImages())},
+		{"networks", uintText(stats.GetNetworks())},
+		{"volumes", uintText(stats.GetVolumes())},
+		{"volumes_size_bytes", uint64Text(stats.GetVolumesSizeBytes())},
+		{"disks_usage_bytes", uint64Text(stats.GetDisksUsageBytes())},
+		{"docker_server_version", stats.GetDockerServerVersion()},
+	})
 }
 
 func (application *app) runNodeList(args []string) error {

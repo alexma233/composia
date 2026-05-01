@@ -49,6 +49,11 @@ func TestIsControllerCommandIncludesSecret(t *testing.T) {
 	if !isControllerCommand("secret") {
 		t.Fatalf("secret command is not recognized")
 	}
+	for _, command := range []string{"network", "volume", "image", "rustic"} {
+		if !isControllerCommand(command) {
+			t.Fatalf("%s command is not recognized", command)
+		}
+	}
 	if isControllerCommand("controller") {
 		t.Fatalf("controller should stay outside controller RPC command set")
 	}
@@ -162,6 +167,70 @@ func TestHelpSubcommandDoesNotRequireControllerConfig(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "usage: composia service deploy") {
 		t.Fatalf("stdout = %q", out.String())
+	}
+	if errOut.Len() != 0 {
+		t.Fatalf("stderr = %q", errOut.String())
+	}
+}
+
+func TestUsageIncludesWaitAndNewCommands(t *testing.T) {
+	var out bytes.Buffer
+	PrintUsage(&out)
+	usage := out.String()
+	for _, want := range []string{
+		"task list|get|logs|wait|run-again|approve|reject",
+		"node list|get|tasks|stats|reload-caddy|prune",
+		"network list|get|remove",
+		"volume list|get|remove",
+		"image list|get|remove",
+		"rustic init|forget|prune",
+		"container list|get|logs|start|stop|restart|remove|exec",
+		"completion bash|zsh|fish",
+	} {
+		if !strings.Contains(usage, want) {
+			t.Fatalf("usage missing %q:\n%s", want, usage)
+		}
+	}
+}
+
+func TestExecCLIHelpers(t *testing.T) {
+	if got := durationSeconds(1500); got != 1 {
+		t.Fatalf("durationSeconds short duration = %d", got)
+	}
+	if got := durationSeconds(1500_000_000); got != 2 {
+		t.Fatalf("durationSeconds rounded duration = %d", got)
+	}
+	origin, err := controllerOrigin("https://Controller.Example:8443/base")
+	if err != nil {
+		t.Fatalf("controllerOrigin returned error: %v", err)
+	}
+	if origin != "https://controller.example:8443" {
+		t.Fatalf("origin = %q", origin)
+	}
+	wsURL, err := containerExecWebsocketURL("https://controller.example/base", "/ws/container-exec/token")
+	if err != nil {
+		t.Fatalf("containerExecWebsocketURL returned error: %v", err)
+	}
+	if wsURL != "wss://controller.example/ws/container-exec/token" {
+		t.Fatalf("wsURL = %q", wsURL)
+	}
+	done, err := handleExecWebsocketEvent([]byte(`{"type":"closed"}`))
+	if err != nil || !done {
+		t.Fatalf("closed event done=%v err=%v", done, err)
+	}
+}
+
+func TestCompletionDoesNotRequireControllerConfig(t *testing.T) {
+	var out bytes.Buffer
+	var errOut bytes.Buffer
+	if err := Run(context.Background(), []string{"completion", "bash"}, &out, &errOut); err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+	got := out.String()
+	for _, want := range []string{"complete -F _composia_completion composia", "network", "rustic"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("completion missing %q:\n%s", want, got)
+		}
 	}
 	if errOut.Len() != 0 {
 		t.Fatalf("stderr = %q", errOut.String())

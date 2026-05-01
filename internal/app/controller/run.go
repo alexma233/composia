@@ -2467,9 +2467,22 @@ type dockerListResult struct {
 	Networks   []*controllerv1.NetworkInfo   `json:"networks,omitempty"`
 	Volumes    []*controllerv1.VolumeInfo    `json:"volumes,omitempty"`
 	Images     []*controllerv1.ImageInfo     `json:"images,omitempty"`
+	Exec       *dockerExecResult             `json:"exec,omitempty"`
 	RawJSON    string                        `json:"raw_json,omitempty"`
 	Content    string                        `json:"content,omitempty"`
 	TotalCount uint32                        `json:"total_count,omitempty"`
+}
+
+type dockerExecResult struct {
+	ExitCode        int32  `json:"exit_code"`
+	Stdout          string `json:"stdout"`
+	Stderr          string `json:"stderr"`
+	TimedOut        bool   `json:"timed_out"`
+	StdoutTruncated bool   `json:"stdout_truncated"`
+	StderrTruncated bool   `json:"stderr_truncated"`
+	StartedAt       string `json:"started_at"`
+	FinishedAt      string `json:"finished_at"`
+	Duration        string `json:"duration"`
 }
 
 func (server *containerServer) RunContainerAction(ctx context.Context, req *connect.Request[controllerv1.RunContainerActionRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {

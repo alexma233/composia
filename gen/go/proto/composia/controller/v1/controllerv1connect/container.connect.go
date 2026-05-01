@@ -45,6 +45,9 @@ const (
 	// ContainerServiceOpenContainerExecProcedure is the fully-qualified name of the ContainerService's
 	// OpenContainerExec RPC.
 	ContainerServiceOpenContainerExecProcedure = "/composia.controller.v1.ContainerService/OpenContainerExec"
+	// ContainerServiceRunContainerExecProcedure is the fully-qualified name of the ContainerService's
+	// RunContainerExec RPC.
+	ContainerServiceRunContainerExecProcedure = "/composia.controller.v1.ContainerService/RunContainerExec"
 	// ContainerServiceRemoveNetworkProcedure is the fully-qualified name of the ContainerService's
 	// RemoveNetwork RPC.
 	ContainerServiceRemoveNetworkProcedure = "/composia.controller.v1.ContainerService/RemoveNetwork"
@@ -66,6 +69,8 @@ type ContainerServiceClient interface {
 	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest]) (*connect.ServerStreamForClient[v1.GetContainerLogsResponse], error)
 	// OpenContainerExec opens an interactive exec session for one container.
 	OpenContainerExec(context.Context, *connect.Request[v1.OpenContainerExecRequest]) (*connect.Response[v1.OpenContainerExecResponse], error)
+	// RunContainerExec runs a non-interactive exec command and returns collected output.
+	RunContainerExec(context.Context, *connect.Request[v1.RunContainerExecRequest]) (*connect.Response[v1.RunContainerExecResponse], error)
 	// RemoveNetwork starts an async deletion for one network on one node.
 	RemoveNetwork(context.Context, *connect.Request[v1.RemoveNetworkRequest]) (*connect.Response[v1.TaskActionResponse], error)
 	// RemoveVolume starts an async deletion for one volume on one node.
@@ -109,6 +114,12 @@ func NewContainerServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(containerServiceMethods.ByName("OpenContainerExec")),
 			connect.WithClientOptions(opts...),
 		),
+		runContainerExec: connect.NewClient[v1.RunContainerExecRequest, v1.RunContainerExecResponse](
+			httpClient,
+			baseURL+ContainerServiceRunContainerExecProcedure,
+			connect.WithSchema(containerServiceMethods.ByName("RunContainerExec")),
+			connect.WithClientOptions(opts...),
+		),
 		removeNetwork: connect.NewClient[v1.RemoveNetworkRequest, v1.TaskActionResponse](
 			httpClient,
 			baseURL+ContainerServiceRemoveNetworkProcedure,
@@ -136,6 +147,7 @@ type containerServiceClient struct {
 	removeContainer    *connect.Client[v1.RemoveContainerRequest, v1.TaskActionResponse]
 	getContainerLogs   *connect.Client[v1.GetContainerLogsRequest, v1.GetContainerLogsResponse]
 	openContainerExec  *connect.Client[v1.OpenContainerExecRequest, v1.OpenContainerExecResponse]
+	runContainerExec   *connect.Client[v1.RunContainerExecRequest, v1.RunContainerExecResponse]
 	removeNetwork      *connect.Client[v1.RemoveNetworkRequest, v1.TaskActionResponse]
 	removeVolume       *connect.Client[v1.RemoveVolumeRequest, v1.TaskActionResponse]
 	removeImage        *connect.Client[v1.RemoveImageRequest, v1.TaskActionResponse]
@@ -159,6 +171,11 @@ func (c *containerServiceClient) GetContainerLogs(ctx context.Context, req *conn
 // OpenContainerExec calls composia.controller.v1.ContainerService.OpenContainerExec.
 func (c *containerServiceClient) OpenContainerExec(ctx context.Context, req *connect.Request[v1.OpenContainerExecRequest]) (*connect.Response[v1.OpenContainerExecResponse], error) {
 	return c.openContainerExec.CallUnary(ctx, req)
+}
+
+// RunContainerExec calls composia.controller.v1.ContainerService.RunContainerExec.
+func (c *containerServiceClient) RunContainerExec(ctx context.Context, req *connect.Request[v1.RunContainerExecRequest]) (*connect.Response[v1.RunContainerExecResponse], error) {
+	return c.runContainerExec.CallUnary(ctx, req)
 }
 
 // RemoveNetwork calls composia.controller.v1.ContainerService.RemoveNetwork.
@@ -187,6 +204,8 @@ type ContainerServiceHandler interface {
 	GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest], *connect.ServerStream[v1.GetContainerLogsResponse]) error
 	// OpenContainerExec opens an interactive exec session for one container.
 	OpenContainerExec(context.Context, *connect.Request[v1.OpenContainerExecRequest]) (*connect.Response[v1.OpenContainerExecResponse], error)
+	// RunContainerExec runs a non-interactive exec command and returns collected output.
+	RunContainerExec(context.Context, *connect.Request[v1.RunContainerExecRequest]) (*connect.Response[v1.RunContainerExecResponse], error)
 	// RemoveNetwork starts an async deletion for one network on one node.
 	RemoveNetwork(context.Context, *connect.Request[v1.RemoveNetworkRequest]) (*connect.Response[v1.TaskActionResponse], error)
 	// RemoveVolume starts an async deletion for one volume on one node.
@@ -226,6 +245,12 @@ func NewContainerServiceHandler(svc ContainerServiceHandler, opts ...connect.Han
 		connect.WithSchema(containerServiceMethods.ByName("OpenContainerExec")),
 		connect.WithHandlerOptions(opts...),
 	)
+	containerServiceRunContainerExecHandler := connect.NewUnaryHandler(
+		ContainerServiceRunContainerExecProcedure,
+		svc.RunContainerExec,
+		connect.WithSchema(containerServiceMethods.ByName("RunContainerExec")),
+		connect.WithHandlerOptions(opts...),
+	)
 	containerServiceRemoveNetworkHandler := connect.NewUnaryHandler(
 		ContainerServiceRemoveNetworkProcedure,
 		svc.RemoveNetwork,
@@ -254,6 +279,8 @@ func NewContainerServiceHandler(svc ContainerServiceHandler, opts ...connect.Han
 			containerServiceGetContainerLogsHandler.ServeHTTP(w, r)
 		case ContainerServiceOpenContainerExecProcedure:
 			containerServiceOpenContainerExecHandler.ServeHTTP(w, r)
+		case ContainerServiceRunContainerExecProcedure:
+			containerServiceRunContainerExecHandler.ServeHTTP(w, r)
 		case ContainerServiceRemoveNetworkProcedure:
 			containerServiceRemoveNetworkHandler.ServeHTTP(w, r)
 		case ContainerServiceRemoveVolumeProcedure:
@@ -283,6 +310,10 @@ func (UnimplementedContainerServiceHandler) GetContainerLogs(context.Context, *c
 
 func (UnimplementedContainerServiceHandler) OpenContainerExec(context.Context, *connect.Request[v1.OpenContainerExecRequest]) (*connect.Response[v1.OpenContainerExecResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ContainerService.OpenContainerExec is not implemented"))
+}
+
+func (UnimplementedContainerServiceHandler) RunContainerExec(context.Context, *connect.Request[v1.RunContainerExecRequest]) (*connect.Response[v1.RunContainerExecResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ContainerService.RunContainerExec is not implemented"))
 }
 
 func (UnimplementedContainerServiceHandler) RemoveNetwork(context.Context, *connect.Request[v1.RemoveNetworkRequest]) (*connect.Response[v1.TaskActionResponse], error) {

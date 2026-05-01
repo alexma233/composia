@@ -34,6 +34,10 @@ type dockerAgentQuery struct {
 	Search     string
 	SortBy     string
 	SortDesc   bool
+	Command    []string
+	Stdin      []byte
+	Timeout    time.Duration
+	MaxOutput  uint64
 }
 
 type dockerAgentQueryResult struct {
@@ -304,6 +308,15 @@ func (server *agentTaskServer) PullNextDockerQuery(ctx context.Context, req *con
 					Search:     query.Search,
 					SortBy:     query.SortBy,
 					SortDesc:   query.SortDesc,
+					Command:    append([]string(nil), query.Command...),
+					Stdin:      append([]byte(nil), query.Stdin...),
+					TimeoutSeconds: func() uint32 {
+						if query.Timeout <= 0 {
+							return 0
+						}
+						return uint32(query.Timeout.Round(time.Second) / time.Second)
+					}(),
+					MaxOutputBytes: query.MaxOutput,
 				},
 			}), nil
 		}
@@ -357,7 +370,11 @@ func executeDockerAgentQuery(ctx context.Context, db *store.DB, cfg *config.Cont
 	}
 	query.NodeID = nodeID
 	queryID := broker.Enqueue(query)
-	result, err := broker.WaitResult(ctx, queryID, dockerQueryMaxWait)
+	waitTimeout := dockerQueryMaxWait
+	if query.Timeout > 0 && query.Timeout+5*time.Second > waitTimeout {
+		waitTimeout = query.Timeout + 5*time.Second
+	}
+	result, err := broker.WaitResult(ctx, queryID, waitTimeout)
 	if err != nil {
 		switch {
 		case errors.Is(err, context.Canceled):

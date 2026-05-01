@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -17,6 +18,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 	"github.com/moby/moby/api/pkg/stdcopy"
 	"github.com/moby/moby/api/types/mount"
+	dockerclient "github.com/moby/moby/client"
 )
 
 type dockerTaskResult struct {
@@ -24,9 +26,49 @@ type dockerTaskResult struct {
 	Networks   []*agentv1.NetworkInfo   `json:"networks,omitempty"`
 	Volumes    []*agentv1.VolumeInfo    `json:"volumes,omitempty"`
 	Images     []*agentv1.ImageInfo     `json:"images,omitempty"`
+	Exec       *dockerExecResult        `json:"exec,omitempty"`
 	RawJSON    string                   `json:"raw_json,omitempty"`
 	Content    string                   `json:"content,omitempty"`
 	TotalCount uint32                   `json:"total_count,omitempty"`
+}
+
+type dockerExecResult struct {
+	ExitCode        int32  `json:"exit_code"`
+	Stdout          string `json:"stdout"`
+	Stderr          string `json:"stderr"`
+	TimedOut        bool   `json:"timed_out"`
+	StdoutTruncated bool   `json:"stdout_truncated"`
+	StderrTruncated bool   `json:"stderr_truncated"`
+	StartedAt       string `json:"started_at"`
+	FinishedAt      string `json:"finished_at"`
+	Duration        string `json:"duration"`
+}
+
+type limitedBuffer struct {
+	buffer    bytes.Buffer
+	limit     uint64
+	truncated bool
+}
+
+func (buffer *limitedBuffer) Write(data []byte) (int, error) {
+	if buffer.limit == 0 || uint64(buffer.buffer.Len()) >= buffer.limit {
+		if len(data) > 0 {
+			buffer.truncated = true
+		}
+		return len(data), nil
+	}
+	remaining := int(buffer.limit - uint64(buffer.buffer.Len()))
+	if len(data) > remaining {
+		buffer.truncated = true
+		_, _ = buffer.buffer.Write(data[:remaining])
+		return len(data), nil
+	}
+	_, _ = buffer.buffer.Write(data)
+	return len(data), nil
+}
+
+func (buffer *limitedBuffer) String() string {
+	return strings.ToValidUTF8(buffer.buffer.String(), "")
 }
 
 type dockerServer struct {
@@ -53,6 +95,73 @@ func newDockerServer() (*dockerServer, error) {
 		return nil, err
 	}
 	return &dockerServer{client: cli}, nil
+}
+
+func (server *dockerServer) runContainerExec(ctx context.Context, containerID string, command []string, stdin []byte, timeoutSeconds uint32, maxOutputBytes uint64) (*dockerExecResult, error) {
+	if strings.TrimSpace(containerID) == "" || len(command) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("container_id and command are required"))
+	}
+	if maxOutputBytes == 0 {
+		maxOutputBytes = 1024 * 1024
+	}
+	if timeoutSeconds == 0 {
+		timeoutSeconds = 30
+	}
+
+	startedAt := time.Now().UTC()
+	execCtx, cancel := context.WithTimeout(ctx, time.Duration(timeoutSeconds)*time.Second)
+	defer cancel()
+
+	createResult, err := server.client.cli.ExecCreate(execCtx, containerID, dockerclient.ExecCreateOptions{
+		AttachStdin:  len(stdin) > 0,
+		AttachStdout: true,
+		AttachStderr: true,
+		Cmd:          append([]string(nil), command...),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create docker exec: %w", err)
+	}
+	attachResult, err := server.client.cli.ExecAttach(execCtx, createResult.ID, dockerclient.ExecAttachOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("attach docker exec: %w", err)
+	}
+	defer attachResult.Close()
+
+	if len(stdin) > 0 {
+		go func() {
+			_, _ = attachResult.Conn.Write(stdin)
+			_ = attachResult.CloseWrite()
+		}()
+	}
+
+	stdout := &limitedBuffer{limit: maxOutputBytes}
+	stderr := &limitedBuffer{limit: maxOutputBytes}
+	_, copyErr := stdcopy.StdCopy(stdout, stderr, attachResult.Reader)
+	timedOut := execCtx.Err() != nil
+	if copyErr != nil && !timedOut && !errors.Is(copyErr, io.EOF) {
+		return nil, fmt.Errorf("read docker exec output: %w", copyErr)
+	}
+
+	inspect, inspectErr := server.client.cli.ExecInspect(context.Background(), createResult.ID, dockerclient.ExecInspectOptions{})
+	if inspectErr != nil && !timedOut {
+		return nil, fmt.Errorf("inspect docker exec: %w", inspectErr)
+	}
+	finishedAt := time.Now().UTC()
+	exitCode := int32(inspect.ExitCode)
+	if timedOut {
+		exitCode = -1
+	}
+	return &dockerExecResult{
+		ExitCode:        exitCode,
+		Stdout:          stdout.String(),
+		Stderr:          stderr.String(),
+		TimedOut:        timedOut,
+		StdoutTruncated: stdout.truncated,
+		StderrTruncated: stderr.truncated,
+		StartedAt:       startedAt.Format(time.RFC3339Nano),
+		FinishedAt:      finishedAt.Format(time.RFC3339Nano),
+		Duration:        finishedAt.Sub(startedAt).String(),
+	}, nil
 }
 
 func normalizeDockerListPage(page uint32) uint32 {
@@ -803,6 +912,15 @@ func executeDockerQuery(ctx context.Context, query *agentv1.DockerQueryTask) (do
 			return dockerTaskResult{}, err
 		}
 		return dockerTaskResult{Content: content}, nil
+	case "exec":
+		if query.GetResource() != "container" {
+			return dockerTaskResult{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unsupported exec resource %q", query.GetResource()))
+		}
+		result, err := server.runContainerExec(ctx, query.GetId(), query.GetCommand(), query.GetStdin(), query.GetTimeoutSeconds(), query.GetMaxOutputBytes())
+		if err != nil {
+			return dockerTaskResult{}, err
+		}
+		return dockerTaskResult{Exec: result}, nil
 	default:
 		return dockerTaskResult{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unsupported docker query action %q", query.GetAction()))
 	}

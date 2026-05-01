@@ -559,3 +559,40 @@ func (server *containerServer) OpenContainerExec(ctx context.Context, req *conne
 		WebsocketPath: "/ws/container-exec/" + session.attachToken,
 	}), nil
 }
+
+func (server *containerServer) RunContainerExec(ctx context.Context, req *connect.Request[controllerv1.RunContainerExecRequest]) (*connect.Response[controllerv1.RunContainerExecResponse], error) {
+	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetContainerId() == "" || len(req.Msg.GetCommand()) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id, container_id, and command are required"))
+	}
+	timeout := time.Duration(req.Msg.GetTimeoutSeconds()) * time.Second
+	result, err := executeDockerAgentQuery(ctx, server.db, server.cfg, server.dockerQueries, req.Msg.GetNodeId(), dockerAgentQuery{
+		Action:    "exec",
+		Resource:  "container",
+		ID:        req.Msg.GetContainerId(),
+		Command:   append([]string(nil), req.Msg.GetCommand()...),
+		Stdin:     append([]byte(nil), req.Msg.GetStdin()...),
+		Timeout:   timeout,
+		MaxOutput: req.Msg.GetMaxOutputBytes(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	var payload dockerListResult
+	if err := json.Unmarshal([]byte(result.PayloadJSON), &payload); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode docker exec result: %w", err))
+	}
+	if payload.Exec == nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("docker exec result is missing"))
+	}
+	return connect.NewResponse(&controllerv1.RunContainerExecResponse{
+		ExitCode:        payload.Exec.ExitCode,
+		Stdout:          payload.Exec.Stdout,
+		Stderr:          payload.Exec.Stderr,
+		TimedOut:        payload.Exec.TimedOut,
+		StdoutTruncated: payload.Exec.StdoutTruncated,
+		StderrTruncated: payload.Exec.StderrTruncated,
+		StartedAt:       payload.Exec.StartedAt,
+		FinishedAt:      payload.Exec.FinishedAt,
+		Duration:        payload.Exec.Duration,
+	}), nil
+}

@@ -496,9 +496,17 @@ type DockerQueryTask struct {
 	// sort_by identifies the list sort field.
 	SortBy string `protobuf:"bytes,11,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
 	// sort_desc reverses the list sort order when true.
-	SortDesc      bool `protobuf:"varint,12,opt,name=sort_desc,json=sortDesc,proto3" json:"sort_desc,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	SortDesc bool `protobuf:"varint,12,opt,name=sort_desc,json=sortDesc,proto3" json:"sort_desc,omitempty"`
+	// command stores exec command arguments for exec queries.
+	Command []string `protobuf:"bytes,13,rep,name=command,proto3" json:"command,omitempty"`
+	// stdin carries optional bytes for exec queries.
+	Stdin []byte `protobuf:"bytes,14,opt,name=stdin,proto3" json:"stdin,omitempty"`
+	// timeout_seconds bounds exec runtime on the agent.
+	TimeoutSeconds uint32 `protobuf:"varint,15,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
+	// max_output_bytes limits each exec output stream; zero uses the agent default.
+	MaxOutputBytes uint64 `protobuf:"varint,16,opt,name=max_output_bytes,json=maxOutputBytes,proto3" json:"max_output_bytes,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *DockerQueryTask) Reset() {
@@ -613,6 +621,34 @@ func (x *DockerQueryTask) GetSortDesc() bool {
 		return x.SortDesc
 	}
 	return false
+}
+
+func (x *DockerQueryTask) GetCommand() []string {
+	if x != nil {
+		return x.Command
+	}
+	return nil
+}
+
+func (x *DockerQueryTask) GetStdin() []byte {
+	if x != nil {
+		return x.Stdin
+	}
+	return nil
+}
+
+func (x *DockerQueryTask) GetTimeoutSeconds() uint32 {
+	if x != nil {
+		return x.TimeoutSeconds
+	}
+	return 0
+}
+
+func (x *DockerQueryTask) GetMaxOutputBytes() uint64 {
+	if x != nil {
+		return x.MaxOutputBytes
+	}
+	return 0
 }
 
 // PullNextDockerQueryRequest identifies the node that is requesting a Docker query.
@@ -4201,7 +4237,7 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"paramsJson\"c\n" +
 	"\x14PullNextTaskResponse\x12\x19\n" +
 	"\bhas_task\x18\x01 \x01(\bR\ahasTask\x120\n" +
-	"\x04task\x18\x02 \x01(\v2\x1c.composia.agent.v1.AgentTaskR\x04task\"\xbc\x02\n" +
+	"\x04task\x18\x02 \x01(\v2\x1c.composia.agent.v1.AgentTaskR\x04task\"\xbf\x03\n" +
 	"\x0fDockerQueryTask\x12\x19\n" +
 	"\bquery_id\x18\x01 \x01(\tR\aqueryId\x12\x17\n" +
 	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12\x16\n" +
@@ -4217,7 +4253,11 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\x06search\x18\n" +
 	" \x01(\tR\x06search\x12\x17\n" +
 	"\asort_by\x18\v \x01(\tR\x06sortBy\x12\x1b\n" +
-	"\tsort_desc\x18\f \x01(\bR\bsortDesc\"5\n" +
+	"\tsort_desc\x18\f \x01(\bR\bsortDesc\x12\x18\n" +
+	"\acommand\x18\r \x03(\tR\acommand\x12\x14\n" +
+	"\x05stdin\x18\x0e \x01(\fR\x05stdin\x12'\n" +
+	"\x0ftimeout_seconds\x18\x0f \x01(\rR\x0etimeoutSeconds\x12(\n" +
+	"\x10max_output_bytes\x18\x10 \x01(\x04R\x0emaxOutputBytes\"5\n" +
 	"\x1aPullNextDockerQueryRequest\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\"t\n" +
 	"\x1bPullNextDockerQueryResponse\x12\x1b\n" +

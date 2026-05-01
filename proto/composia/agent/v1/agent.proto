@@ -162,6 +162,14 @@ message DockerQueryTask {
   string sort_by = 11;
   // sort_desc reverses the list sort order when true.
   bool sort_desc = 12;
+  // command stores exec command arguments for exec queries.
+  repeated string command = 13;
+  // stdin carries optional bytes for exec queries.
+  bytes stdin = 14;
+  // timeout_seconds bounds exec runtime on the agent.
+  uint32 timeout_seconds = 15;
+  // max_output_bytes limits each exec output stream; zero uses the agent default.
+  uint64 max_output_bytes = 16;
 }
 
 // PullNextDockerQueryRequest identifies the node that is requesting a Docker query.

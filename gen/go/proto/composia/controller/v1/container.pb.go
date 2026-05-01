@@ -459,6 +459,204 @@ func (x *OpenContainerExecResponse) GetWebsocketPath() string {
 	return ""
 }
 
+// RunContainerExecRequest runs a non-interactive command in one container.
+type RunContainerExecRequest struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	NodeId      string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	ContainerId string                 `protobuf:"bytes,2,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	// command stores the exec command and arguments.
+	Command []string `protobuf:"bytes,3,rep,name=command,proto3" json:"command,omitempty"`
+	// stdin carries optional bytes written before stdin is closed.
+	Stdin []byte `protobuf:"bytes,4,opt,name=stdin,proto3" json:"stdin,omitempty"`
+	// timeout_seconds bounds command runtime on the agent.
+	TimeoutSeconds uint32 `protobuf:"varint,5,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
+	// max_output_bytes limits each stdout/stderr stream; zero uses the agent default.
+	MaxOutputBytes uint64 `protobuf:"varint,6,opt,name=max_output_bytes,json=maxOutputBytes,proto3" json:"max_output_bytes,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *RunContainerExecRequest) Reset() {
+	*x = RunContainerExecRequest{}
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunContainerExecRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunContainerExecRequest) ProtoMessage() {}
+
+func (x *RunContainerExecRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunContainerExecRequest.ProtoReflect.Descriptor instead.
+func (*RunContainerExecRequest) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *RunContainerExecRequest) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *RunContainerExecRequest) GetContainerId() string {
+	if x != nil {
+		return x.ContainerId
+	}
+	return ""
+}
+
+func (x *RunContainerExecRequest) GetCommand() []string {
+	if x != nil {
+		return x.Command
+	}
+	return nil
+}
+
+func (x *RunContainerExecRequest) GetStdin() []byte {
+	if x != nil {
+		return x.Stdin
+	}
+	return nil
+}
+
+func (x *RunContainerExecRequest) GetTimeoutSeconds() uint32 {
+	if x != nil {
+		return x.TimeoutSeconds
+	}
+	return 0
+}
+
+func (x *RunContainerExecRequest) GetMaxOutputBytes() uint64 {
+	if x != nil {
+		return x.MaxOutputBytes
+	}
+	return 0
+}
+
+// RunContainerExecResponse returns the completed exec result.
+type RunContainerExecResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	ExitCode        int32                  `protobuf:"varint,1,opt,name=exit_code,json=exitCode,proto3" json:"exit_code,omitempty"`
+	Stdout          string                 `protobuf:"bytes,2,opt,name=stdout,proto3" json:"stdout,omitempty"`
+	Stderr          string                 `protobuf:"bytes,3,opt,name=stderr,proto3" json:"stderr,omitempty"`
+	TimedOut        bool                   `protobuf:"varint,4,opt,name=timed_out,json=timedOut,proto3" json:"timed_out,omitempty"`
+	StdoutTruncated bool                   `protobuf:"varint,5,opt,name=stdout_truncated,json=stdoutTruncated,proto3" json:"stdout_truncated,omitempty"`
+	StderrTruncated bool                   `protobuf:"varint,6,opt,name=stderr_truncated,json=stderrTruncated,proto3" json:"stderr_truncated,omitempty"`
+	StartedAt       string                 `protobuf:"bytes,7,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	FinishedAt      string                 `protobuf:"bytes,8,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	Duration        string                 `protobuf:"bytes,9,opt,name=duration,proto3" json:"duration,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *RunContainerExecResponse) Reset() {
+	*x = RunContainerExecResponse{}
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunContainerExecResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunContainerExecResponse) ProtoMessage() {}
+
+func (x *RunContainerExecResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunContainerExecResponse.ProtoReflect.Descriptor instead.
+func (*RunContainerExecResponse) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *RunContainerExecResponse) GetExitCode() int32 {
+	if x != nil {
+		return x.ExitCode
+	}
+	return 0
+}
+
+func (x *RunContainerExecResponse) GetStdout() string {
+	if x != nil {
+		return x.Stdout
+	}
+	return ""
+}
+
+func (x *RunContainerExecResponse) GetStderr() string {
+	if x != nil {
+		return x.Stderr
+	}
+	return ""
+}
+
+func (x *RunContainerExecResponse) GetTimedOut() bool {
+	if x != nil {
+		return x.TimedOut
+	}
+	return false
+}
+
+func (x *RunContainerExecResponse) GetStdoutTruncated() bool {
+	if x != nil {
+		return x.StdoutTruncated
+	}
+	return false
+}
+
+func (x *RunContainerExecResponse) GetStderrTruncated() bool {
+	if x != nil {
+		return x.StderrTruncated
+	}
+	return false
+}
+
+func (x *RunContainerExecResponse) GetStartedAt() string {
+	if x != nil {
+		return x.StartedAt
+	}
+	return ""
+}
+
+func (x *RunContainerExecResponse) GetFinishedAt() string {
+	if x != nil {
+		return x.FinishedAt
+	}
+	return ""
+}
+
+func (x *RunContainerExecResponse) GetDuration() string {
+	if x != nil {
+		return x.Duration
+	}
+	return ""
+}
+
 // RemoveNetworkRequest identifies one node-scoped network deletion.
 type RemoveNetworkRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -470,7 +668,7 @@ type RemoveNetworkRequest struct {
 
 func (x *RemoveNetworkRequest) Reset() {
 	*x = RemoveNetworkRequest{}
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[6]
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -482,7 +680,7 @@ func (x *RemoveNetworkRequest) String() string {
 func (*RemoveNetworkRequest) ProtoMessage() {}
 
 func (x *RemoveNetworkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[6]
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -495,7 +693,7 @@ func (x *RemoveNetworkRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveNetworkRequest.ProtoReflect.Descriptor instead.
 func (*RemoveNetworkRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{6}
+	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *RemoveNetworkRequest) GetNodeId() string {
@@ -523,7 +721,7 @@ type RemoveVolumeRequest struct {
 
 func (x *RemoveVolumeRequest) Reset() {
 	*x = RemoveVolumeRequest{}
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[7]
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -535,7 +733,7 @@ func (x *RemoveVolumeRequest) String() string {
 func (*RemoveVolumeRequest) ProtoMessage() {}
 
 func (x *RemoveVolumeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[7]
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -548,7 +746,7 @@ func (x *RemoveVolumeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveVolumeRequest.ProtoReflect.Descriptor instead.
 func (*RemoveVolumeRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{7}
+	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *RemoveVolumeRequest) GetNodeId() string {
@@ -577,7 +775,7 @@ type RemoveImageRequest struct {
 
 func (x *RemoveImageRequest) Reset() {
 	*x = RemoveImageRequest{}
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[8]
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -589,7 +787,7 @@ func (x *RemoveImageRequest) String() string {
 func (*RemoveImageRequest) ProtoMessage() {}
 
 func (x *RemoveImageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[8]
+	mi := &file_proto_composia_controller_v1_container_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -602,7 +800,7 @@ func (x *RemoveImageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveImageRequest.ProtoReflect.Descriptor instead.
 func (*RemoveImageRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{8}
+	return file_proto_composia_controller_v1_container_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *RemoveImageRequest) GetNodeId() string {
@@ -658,7 +856,26 @@ const file_proto_composia_controller_v1_container_proto_rawDesc = "" +
 	"\x19OpenContainerExecResponse\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12%\n" +
-	"\x0ewebsocket_path\x18\x02 \x01(\tR\rwebsocketPath\"N\n" +
+	"\x0ewebsocket_path\x18\x02 \x01(\tR\rwebsocketPath\"\xd8\x01\n" +
+	"\x17RunContainerExecRequest\x12\x17\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12!\n" +
+	"\fcontainer_id\x18\x02 \x01(\tR\vcontainerId\x12\x18\n" +
+	"\acommand\x18\x03 \x03(\tR\acommand\x12\x14\n" +
+	"\x05stdin\x18\x04 \x01(\fR\x05stdin\x12'\n" +
+	"\x0ftimeout_seconds\x18\x05 \x01(\rR\x0etimeoutSeconds\x12(\n" +
+	"\x10max_output_bytes\x18\x06 \x01(\x04R\x0emaxOutputBytes\"\xb6\x02\n" +
+	"\x18RunContainerExecResponse\x12\x1b\n" +
+	"\texit_code\x18\x01 \x01(\x05R\bexitCode\x12\x16\n" +
+	"\x06stdout\x18\x02 \x01(\tR\x06stdout\x12\x16\n" +
+	"\x06stderr\x18\x03 \x01(\tR\x06stderr\x12\x1b\n" +
+	"\ttimed_out\x18\x04 \x01(\bR\btimedOut\x12)\n" +
+	"\x10stdout_truncated\x18\x05 \x01(\bR\x0fstdoutTruncated\x12)\n" +
+	"\x10stderr_truncated\x18\x06 \x01(\bR\x0fstderrTruncated\x12\x1d\n" +
+	"\n" +
+	"started_at\x18\a \x01(\tR\tstartedAt\x12\x1f\n" +
+	"\vfinished_at\x18\b \x01(\tR\n" +
+	"finishedAt\x12\x1a\n" +
+	"\bduration\x18\t \x01(\tR\bduration\"N\n" +
 	"\x14RemoveNetworkRequest\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x1d\n" +
 	"\n" +
@@ -675,12 +892,13 @@ const file_proto_composia_controller_v1_container_proto_rawDesc = "" +
 	"\x1cCONTAINER_ACTION_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16CONTAINER_ACTION_START\x10\x01\x12\x19\n" +
 	"\x15CONTAINER_ACTION_STOP\x10\x02\x12\x1c\n" +
-	"\x18CONTAINER_ACTION_RESTART\x10\x032\xa4\x06\n" +
+	"\x18CONTAINER_ACTION_RESTART\x10\x032\x9b\a\n" +
 	"\x10ContainerService\x12s\n" +
 	"\x12RunContainerAction\x121.composia.controller.v1.RunContainerActionRequest\x1a*.composia.controller.v1.TaskActionResponse\x12m\n" +
 	"\x0fRemoveContainer\x12..composia.controller.v1.RemoveContainerRequest\x1a*.composia.controller.v1.TaskActionResponse\x12w\n" +
 	"\x10GetContainerLogs\x12/.composia.controller.v1.GetContainerLogsRequest\x1a0.composia.controller.v1.GetContainerLogsResponse0\x01\x12x\n" +
-	"\x11OpenContainerExec\x120.composia.controller.v1.OpenContainerExecRequest\x1a1.composia.controller.v1.OpenContainerExecResponse\x12i\n" +
+	"\x11OpenContainerExec\x120.composia.controller.v1.OpenContainerExecRequest\x1a1.composia.controller.v1.OpenContainerExecResponse\x12u\n" +
+	"\x10RunContainerExec\x12/.composia.controller.v1.RunContainerExecRequest\x1a0.composia.controller.v1.RunContainerExecResponse\x12i\n" +
 	"\rRemoveNetwork\x12,.composia.controller.v1.RemoveNetworkRequest\x1a*.composia.controller.v1.TaskActionResponse\x12g\n" +
 	"\fRemoveVolume\x12+.composia.controller.v1.RemoveVolumeRequest\x1a*.composia.controller.v1.TaskActionResponse\x12e\n" +
 	"\vRemoveImage\x12*.composia.controller.v1.RemoveImageRequest\x1a*.composia.controller.v1.TaskActionResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
@@ -698,7 +916,7 @@ func file_proto_composia_controller_v1_container_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_composia_controller_v1_container_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proto_composia_controller_v1_container_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_proto_composia_controller_v1_container_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_proto_composia_controller_v1_container_proto_goTypes = []any{
 	(ContainerAction)(0),              // 0: composia.controller.v1.ContainerAction
 	(*RunContainerActionRequest)(nil), // 1: composia.controller.v1.RunContainerActionRequest
@@ -707,10 +925,12 @@ var file_proto_composia_controller_v1_container_proto_goTypes = []any{
 	(*GetContainerLogsResponse)(nil),  // 4: composia.controller.v1.GetContainerLogsResponse
 	(*OpenContainerExecRequest)(nil),  // 5: composia.controller.v1.OpenContainerExecRequest
 	(*OpenContainerExecResponse)(nil), // 6: composia.controller.v1.OpenContainerExecResponse
-	(*RemoveNetworkRequest)(nil),      // 7: composia.controller.v1.RemoveNetworkRequest
-	(*RemoveVolumeRequest)(nil),       // 8: composia.controller.v1.RemoveVolumeRequest
-	(*RemoveImageRequest)(nil),        // 9: composia.controller.v1.RemoveImageRequest
-	(*TaskActionResponse)(nil),        // 10: composia.controller.v1.TaskActionResponse
+	(*RunContainerExecRequest)(nil),   // 7: composia.controller.v1.RunContainerExecRequest
+	(*RunContainerExecResponse)(nil),  // 8: composia.controller.v1.RunContainerExecResponse
+	(*RemoveNetworkRequest)(nil),      // 9: composia.controller.v1.RemoveNetworkRequest
+	(*RemoveVolumeRequest)(nil),       // 10: composia.controller.v1.RemoveVolumeRequest
+	(*RemoveImageRequest)(nil),        // 11: composia.controller.v1.RemoveImageRequest
+	(*TaskActionResponse)(nil),        // 12: composia.controller.v1.TaskActionResponse
 }
 var file_proto_composia_controller_v1_container_proto_depIdxs = []int32{
 	0,  // 0: composia.controller.v1.RunContainerActionRequest.action:type_name -> composia.controller.v1.ContainerAction
@@ -718,18 +938,20 @@ var file_proto_composia_controller_v1_container_proto_depIdxs = []int32{
 	2,  // 2: composia.controller.v1.ContainerService.RemoveContainer:input_type -> composia.controller.v1.RemoveContainerRequest
 	3,  // 3: composia.controller.v1.ContainerService.GetContainerLogs:input_type -> composia.controller.v1.GetContainerLogsRequest
 	5,  // 4: composia.controller.v1.ContainerService.OpenContainerExec:input_type -> composia.controller.v1.OpenContainerExecRequest
-	7,  // 5: composia.controller.v1.ContainerService.RemoveNetwork:input_type -> composia.controller.v1.RemoveNetworkRequest
-	8,  // 6: composia.controller.v1.ContainerService.RemoveVolume:input_type -> composia.controller.v1.RemoveVolumeRequest
-	9,  // 7: composia.controller.v1.ContainerService.RemoveImage:input_type -> composia.controller.v1.RemoveImageRequest
-	10, // 8: composia.controller.v1.ContainerService.RunContainerAction:output_type -> composia.controller.v1.TaskActionResponse
-	10, // 9: composia.controller.v1.ContainerService.RemoveContainer:output_type -> composia.controller.v1.TaskActionResponse
-	4,  // 10: composia.controller.v1.ContainerService.GetContainerLogs:output_type -> composia.controller.v1.GetContainerLogsResponse
-	6,  // 11: composia.controller.v1.ContainerService.OpenContainerExec:output_type -> composia.controller.v1.OpenContainerExecResponse
-	10, // 12: composia.controller.v1.ContainerService.RemoveNetwork:output_type -> composia.controller.v1.TaskActionResponse
-	10, // 13: composia.controller.v1.ContainerService.RemoveVolume:output_type -> composia.controller.v1.TaskActionResponse
-	10, // 14: composia.controller.v1.ContainerService.RemoveImage:output_type -> composia.controller.v1.TaskActionResponse
-	8,  // [8:15] is the sub-list for method output_type
-	1,  // [1:8] is the sub-list for method input_type
+	7,  // 5: composia.controller.v1.ContainerService.RunContainerExec:input_type -> composia.controller.v1.RunContainerExecRequest
+	9,  // 6: composia.controller.v1.ContainerService.RemoveNetwork:input_type -> composia.controller.v1.RemoveNetworkRequest
+	10, // 7: composia.controller.v1.ContainerService.RemoveVolume:input_type -> composia.controller.v1.RemoveVolumeRequest
+	11, // 8: composia.controller.v1.ContainerService.RemoveImage:input_type -> composia.controller.v1.RemoveImageRequest
+	12, // 9: composia.controller.v1.ContainerService.RunContainerAction:output_type -> composia.controller.v1.TaskActionResponse
+	12, // 10: composia.controller.v1.ContainerService.RemoveContainer:output_type -> composia.controller.v1.TaskActionResponse
+	4,  // 11: composia.controller.v1.ContainerService.GetContainerLogs:output_type -> composia.controller.v1.GetContainerLogsResponse
+	6,  // 12: composia.controller.v1.ContainerService.OpenContainerExec:output_type -> composia.controller.v1.OpenContainerExecResponse
+	8,  // 13: composia.controller.v1.ContainerService.RunContainerExec:output_type -> composia.controller.v1.RunContainerExecResponse
+	12, // 14: composia.controller.v1.ContainerService.RemoveNetwork:output_type -> composia.controller.v1.TaskActionResponse
+	12, // 15: composia.controller.v1.ContainerService.RemoveVolume:output_type -> composia.controller.v1.TaskActionResponse
+	12, // 16: composia.controller.v1.ContainerService.RemoveImage:output_type -> composia.controller.v1.TaskActionResponse
+	9,  // [9:17] is the sub-list for method output_type
+	1,  // [1:9] is the sub-list for method input_type
 	1,  // [1:1] is the sub-list for extension type_name
 	1,  // [1:1] is the sub-list for extension extendee
 	0,  // [0:1] is the sub-list for field type_name
@@ -747,7 +969,7 @@ func file_proto_composia_controller_v1_container_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_controller_v1_container_proto_rawDesc), len(file_proto_composia_controller_v1_container_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

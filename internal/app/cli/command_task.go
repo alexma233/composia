@@ -8,7 +8,7 @@ import (
 
 func (application *app) runTask(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia task <list|get|logs|run-again|approve|reject>")
+		return fmt.Errorf("usage: composia task <list|get|logs|wait|run-again|approve|reject>")
 	}
 	switch args[0] {
 	case "list":

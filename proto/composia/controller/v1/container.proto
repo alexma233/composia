@@ -16,6 +16,8 @@ service ContainerService {
   rpc GetContainerLogs(GetContainerLogsRequest) returns (stream GetContainerLogsResponse);
   // OpenContainerExec opens an interactive exec session for one container.
   rpc OpenContainerExec(OpenContainerExecRequest) returns (OpenContainerExecResponse);
+  // RunContainerExec runs a non-interactive exec command and returns collected output.
+  rpc RunContainerExec(RunContainerExecRequest) returns (RunContainerExecResponse);
   // RemoveNetwork starts an async deletion for one network on one node.
   rpc RemoveNetwork(RemoveNetworkRequest) returns (TaskActionResponse);
   // RemoveVolume starts an async deletion for one volume on one node.
@@ -84,6 +86,33 @@ message OpenContainerExecResponse {
   string session_id = 1;
   // websocket_path is the controller websocket path for the interactive tunnel.
   string websocket_path = 2;
+}
+
+// RunContainerExecRequest runs a non-interactive command in one container.
+message RunContainerExecRequest {
+  string node_id = 1;
+  string container_id = 2;
+  // command stores the exec command and arguments.
+  repeated string command = 3;
+  // stdin carries optional bytes written before stdin is closed.
+  bytes stdin = 4;
+  // timeout_seconds bounds command runtime on the agent.
+  uint32 timeout_seconds = 5;
+  // max_output_bytes limits each stdout/stderr stream; zero uses the agent default.
+  uint64 max_output_bytes = 6;
+}
+
+// RunContainerExecResponse returns the completed exec result.
+message RunContainerExecResponse {
+  int32 exit_code = 1;
+  string stdout = 2;
+  string stderr = 3;
+  bool timed_out = 4;
+  bool stdout_truncated = 5;
+  bool stderr_truncated = 6;
+  string started_at = 7;
+  string finished_at = 8;
+  string duration = 9;
 }
 
 // RemoveNetworkRequest identifies one node-scoped network deletion.
