@@ -106,7 +106,7 @@ func TestContainerExecWebsocketRequiresAllowedOriginAndOneTimeToken(t *testing.T
 	)
 	mux := http.NewServeMux()
 	mux.Handle(path, handler)
-	mux.HandleFunc("/ws/container-exec/", execManager.handleWebsocket)
+	mux.HandleFunc(rpcutil.ControllerExecWSPath, execManager.handleWebsocket)
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
@@ -124,6 +124,9 @@ func TestContainerExecWebsocketRequiresAllowedOriginAndOneTimeToken(t *testing.T
 	}
 	if strings.Contains(response.Msg.GetWebsocketPath(), response.Msg.GetSessionId()) {
 		t.Fatalf("websocket path must not expose session id: %q", response.Msg.GetWebsocketPath())
+	}
+	if !strings.HasPrefix(response.Msg.GetWebsocketPath(), rpcutil.ControllerExecWSPath) {
+		t.Fatalf("websocket path = %q, want prefix %q", response.Msg.GetWebsocketPath(), rpcutil.ControllerExecWSPath)
 	}
 
 	wsURL := websocketURL(httpServer.URL, response.Msg.GetWebsocketPath())

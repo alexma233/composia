@@ -147,6 +147,8 @@ Use these ConnectRPC methods for deployment operations:
 - `composia.controller.v1.ServiceCommandService/MigrateService` for migration
 - `composia.controller.v1.ServiceInstanceService/RunServiceInstanceAction` for single-instance actions
 
+These identifiers are RPC method names. Actual controller HTTP requests use the `/api/controller` prefix, for example `/api/controller/composia.controller.v1.ServiceCommandService/RunServiceAction`.
+
 ## Multi-Node Deployment Strategies
 
 ### Same Service on Multiple Nodes

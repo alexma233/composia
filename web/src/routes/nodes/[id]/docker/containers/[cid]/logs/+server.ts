@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
-import { controllerConfig } from "$lib/server/controller";
+import { controllerConfig, controllerProcedure } from "$lib/server/controller";
 
 const connectProtocolVersion = "1";
 const connectStreamFlagCompressed = 0x01;
@@ -25,7 +25,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
       try {
         const upstream = await fetch(
-          `${config.baseUrl}/composia.controller.v1.ContainerService/GetContainerLogs`,
+          `${config.baseUrl}${controllerProcedure("/composia.controller.v1.ContainerService/GetContainerLogs")}`,
           {
             method: "POST",
             headers: {

@@ -446,7 +446,7 @@ func (manager *execTunnelManager) sessionForAttachTokenLocked(attachToken string
 }
 
 func execAttachTokenFromPath(path string) string {
-	attachToken := strings.Trim(strings.TrimPrefix(path, "/ws/container-exec/"), "/")
+	attachToken := strings.Trim(strings.TrimPrefix(path, rpcutil.ControllerExecWSPath), "/")
 	if strings.TrimSpace(attachToken) == "" {
 		return ""
 	}
@@ -556,7 +556,7 @@ func (server *containerServer) OpenContainerExec(ctx context.Context, req *conne
 	}
 	return connect.NewResponse(&controllerv1.OpenContainerExecResponse{
 		SessionId:     session.id,
-		WebsocketPath: "/ws/container-exec/" + session.attachToken,
+		WebsocketPath: rpcutil.ControllerExecWSPath + session.attachToken,
 	}), nil
 }
 

@@ -412,7 +412,7 @@ func (application *app) configureClient() error {
 		return fmt.Errorf("controller access token is required: pass --token, --token-file, or set %s", envAccessToken)
 	}
 
-	baseURL := strings.TrimRight(strings.TrimSpace(cfg.addr), "/")
+	baseURL := rpcutil.JoinBaseURL(cfg.addr, rpcutil.ControllerAPIBasePath)
 	auth := connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(strings.TrimSpace(cfg.token)))
 	httpClient := http.DefaultClient
 	application.cfg = cfg

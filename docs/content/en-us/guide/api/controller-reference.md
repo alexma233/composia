@@ -1,6 +1,11 @@
 # Protocol Documentation
 <a name="top"></a>
 
+This page lists protobuf RPC method names. For live HTTP requests, prepend the controller API prefix `/api/controller`.
+
+- RPC method name example: `composia.controller.v1.SystemService/GetSystemStatus`
+- HTTP request path example: `/api/controller/composia.controller.v1.SystemService/GetSystemStatus`
+
 ## Table of Contents
 
 - [proto/composia/controller/v1/task.proto](#proto_composia_controller_v1_task-proto)
@@ -2989,4 +2994,3 @@ ServiceQueryService exposes read-only service workspace, declared service, task,
 | <a name="bool" /> bool |  | bool | boolean | boolean | bool | bool | boolean | TrueClass/FalseClass |
 | <a name="string" /> string | A string must always contain UTF-8 encoded or 7-bit ASCII text. | string | String | str/unicode | string | string | string | String (UTF-8) |
 | <a name="bytes" /> bytes | May contain any arbitrary sequence of bytes. | string | ByteString | str | []byte | ByteString | string | String (ASCII-8BIT) |
-

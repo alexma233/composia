@@ -1,6 +1,11 @@
 # Protocol Documentation
 <a name="top"></a>
 
+This page lists protobuf RPC method names. For live HTTP requests, prepend the agent API prefix `/api/agent`.
+
+- RPC method name example: `composia.agent.v1.AgentTaskService/PullNextTask`
+- HTTP request path example: `/api/agent/composia.agent.v1.AgentTaskService/PullNextTask`
+
 ## Table of Contents
 
 - [proto/composia/agent/v1/agent.proto](#proto_composia_agent_v1_agent-proto)
@@ -1267,4 +1272,3 @@ DockerService exposes Docker operations that run on the agent node.
 | <a name="bool" /> bool |  | bool | boolean | boolean | bool | bool | boolean | TrueClass/FalseClass |
 | <a name="string" /> string | A string must always contain UTF-8 encoded or 7-bit ASCII text. | string | String | str/unicode | string | string | string | String (UTF-8) |
 | <a name="bytes" /> bytes | May contain any arbitrary sequence of bytes. | string | ByteString | str | []byte | ByteString | string | String (ASCII-8BIT) |
-

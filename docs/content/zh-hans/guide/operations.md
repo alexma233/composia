@@ -75,6 +75,8 @@ stateDiagram-v2
 - 在 Web UI 中批准或拒绝该任务
 - 通过 ConnectRPC 调用 `composia.controller.v1.TaskService/ResolveTaskConfirmation`
 
+如果直接走 HTTP，请使用 `/api/controller/composia.controller.v1.TaskService/ResolveTaskConfirmation`。
+
 处理语义：
 
 - `approve`：恢复同一个任务，继续执行后续步骤
@@ -147,6 +149,8 @@ Web UI 提供容器 exec 入口，但当前仍是较基础的终端能力：
 **清理镜像：**
 可通过 Web UI 操作，或调用 ConnectRPC 方法 `composia.controller.v1.NodeMaintenanceService/PruneNodeDocker`。
 
+如果直接走 HTTP，请使用 `/api/controller/composia.controller.v1.NodeMaintenanceService/PruneNodeDocker`。
+
 ### 网络管理
 
 **查看网络：**
@@ -210,6 +214,8 @@ docker compose restart agent
 **API：**
 
 通过 ConnectRPC 方法 `composia.controller.v1.NodeMaintenanceService/PruneNodeDocker` 触发清理。
+
+对应的 HTTP 请求路径是 `/api/controller/composia.controller.v1.NodeMaintenanceService/PruneNodeDocker`。
 
 ### 自动清理建议
 

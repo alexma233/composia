@@ -360,7 +360,7 @@ go run ./cmd/composia agent -config ./dev/config.controller.yaml
 
 The controller currently does not register gRPC reflection.
 
-For RPC inspection, use the generated Connect clients in the Web app or call the registered ConnectRPC methods directly.
+For RPC inspection, use the generated Connect clients in the Web app or call the registered ConnectRPC methods directly. Remember that the method name is not the full HTTP path: prepend `/api/controller` for controller RPCs and `/api/agent` for agent RPCs.
 
 ## Submitting Code
 

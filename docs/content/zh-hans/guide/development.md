@@ -360,7 +360,7 @@ go run ./cmd/composia agent -config ./dev/config.controller.yaml
 
 当前 Controller 没有注册 gRPC reflection。
 
-如需排查 RPC，请优先使用 Web 端生成的 Connect 客户端，或直接调用已注册的 ConnectRPC 方法。
+如需排查 RPC，请优先使用 Web 端生成的 Connect 客户端，或直接调用已注册的 ConnectRPC 方法。注意方法名本身不是完整 HTTP 路径：controller RPC 需要补上 `/api/controller` 前缀，agent RPC 需要补上 `/api/agent` 前缀。
 
 ## 提交代码
 

@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
+	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/version"
 )
 
@@ -249,11 +250,11 @@ func TestExecCLIHelpers(t *testing.T) {
 	if origin != "https://controller.example:8443" {
 		t.Fatalf("origin = %q", origin)
 	}
-	wsURL, err := containerExecWebsocketURL("https://controller.example/base", "/ws/container-exec/token")
+	wsURL, err := containerExecWebsocketURL("https://controller.example/base", rpcutil.ControllerExecWSPath+"token")
 	if err != nil {
 		t.Fatalf("containerExecWebsocketURL returned error: %v", err)
 	}
-	if wsURL != "wss://controller.example/ws/container-exec/token" {
+	if wsURL != "wss://controller.example/api/controller/ws/container-exec/token" {
 		t.Fatalf("wsURL = %q", wsURL)
 	}
 	done, err := handleExecWebsocketEvent([]byte(`{"type":"closed"}`))

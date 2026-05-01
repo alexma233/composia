@@ -235,7 +235,7 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 	})
 	registerAgentHandlers(mux, cfg, db, agentInterceptor, taskQueue, taskResults, dockerQueries, execManager, logManager)
 	registerAccessHandlers(mux, cfg, db, accessInterceptor, availableNodeIDs, taskQueue, taskResults, dockerQueries, execManager, logManager, repoMu, reload)
-	mux.HandleFunc("/ws/container-exec/", execManager.handleWebsocket)
+	mux.HandleFunc(rpcutil.ControllerExecWSPath, execManager.handleWebsocket)
 
 	server := &http.Server{
 		Addr:              cfg.ListenAddr,
@@ -267,19 +267,19 @@ func registerAgentHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db 
 		&agentReportServer{db: db, cfg: cfg, availableNodeIDs: configuredNodeIDs(cfg), logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: taskQueue, taskResults: taskResults, dockerQueries: dockerQueries, execManager: execManager, logManager: logManager},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(agentPath, agentHandler)
+	mountRPCHandler(mux, rpcutil.AgentAPIBasePath, agentPath, agentHandler)
 
 	agentTaskPath, agentTaskHandler := agentv1connect.NewAgentTaskServiceHandler(
 		&agentTaskServer{db: db, taskQueue: taskQueue, dockerQueries: dockerQueries},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(agentTaskPath, agentTaskHandler)
+	mountRPCHandler(mux, rpcutil.AgentAPIBasePath, agentTaskPath, agentTaskHandler)
 
 	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(
 		&bundleServer{db: db, cfg: cfg},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(bundlePath, bundleHandler)
+	mountRPCHandler(mux, rpcutil.AgentAPIBasePath, bundlePath, bundleHandler)
 }
 
 func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, availableNodeIDs map[string]struct{}, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, dockerQueries *dockerQueryBroker, execManager *execTunnelManager, logManager *containerLogTunnelManager, repoMu *sync.Mutex, reload func(context.Context) error) {
@@ -287,79 +287,83 @@ func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db
 		&systemServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, reload: reload},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(systemPath, systemHandler)
+	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, systemPath, systemHandler)
 
 	repoQueryPath, repoQueryHandler := controllerv1connect.NewRepoQueryServiceHandler(
 		&repoQueryServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: repoMu},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(repoQueryPath, repoQueryHandler)
+	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, repoQueryPath, repoQueryHandler)
 
 	repoCommandPath, repoCommandHandler := controllerv1connect.NewRepoCommandServiceHandler(
 		&repoCommandServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: repoMu},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(repoCommandPath, repoCommandHandler)
+	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, repoCommandPath, repoCommandHandler)
 
 	secretPath, secretHandler := controllerv1connect.NewSecretServiceHandler(
 		&secretServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: repoMu},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(secretPath, secretHandler)
+	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, secretPath, secretHandler)
 
 	backupPath, backupHandler := controllerv1connect.NewBackupRecordServiceHandler(
 		&backupRecordServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(backupPath, backupHandler)
+	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, backupPath, backupHandler)
 
 	serviceQueryPath, serviceQueryHandler := controllerv1connect.NewServiceQueryServiceHandler(
 		&serviceQueryServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults, dockerQueries: dockerQueries, repoMu: repoMu},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(serviceQueryPath, serviceQueryHandler)
+	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, serviceQueryPath, serviceQueryHandler)
 
 	serviceCommandPath, serviceCommandHandler := controllerv1connect.NewServiceCommandServiceHandler(
 		&serviceCommandServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults, repoMu: repoMu},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(serviceCommandPath, serviceCommandHandler)
+	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, serviceCommandPath, serviceCommandHandler)
 
 	serviceInstancePath, serviceInstanceHandler := controllerv1connect.NewServiceInstanceServiceHandler(
 		&serviceInstanceServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults, dockerQueries: dockerQueries},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(serviceInstancePath, serviceInstanceHandler)
+	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, serviceInstancePath, serviceInstanceHandler)
 
 	nodeQueryPath, nodeQueryHandler := controllerv1connect.NewNodeQueryServiceHandler(
 		&nodeQueryServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(nodeQueryPath, nodeQueryHandler)
+	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, nodeQueryPath, nodeQueryHandler)
 
 	nodeMaintenancePath, nodeMaintenanceHandler := controllerv1connect.NewNodeMaintenanceServiceHandler(
 		&nodeMaintenanceServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(nodeMaintenancePath, nodeMaintenanceHandler)
+	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, nodeMaintenancePath, nodeMaintenanceHandler)
 
 	dockerQueryPath, dockerQueryHandler := controllerv1connect.NewDockerQueryServiceHandler(
 		&dockerQueryServer{db: db, cfg: cfg, dockerQueries: dockerQueries},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(dockerQueryPath, dockerQueryHandler)
+	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, dockerQueryPath, dockerQueryHandler)
 
 	containerPath, containerHandler := controllerv1connect.NewContainerServiceHandler(
 		&containerServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults, dockerQueries: dockerQueries, execManager: execManager, logManager: logManager},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(containerPath, containerHandler)
+	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, containerPath, containerHandler)
 
 	taskPath, taskHandler := controllerv1connect.NewTaskServiceHandler(
 		&taskServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue},
 		connect.WithInterceptors(interceptor),
 	)
-	mux.Handle(taskPath, taskHandler)
+	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, taskPath, taskHandler)
+}
+
+func mountRPCHandler(mux *http.ServeMux, basePath, rpcPath string, handler http.Handler) {
+	mux.Handle(rpcutil.PrefixRPCPath(basePath, rpcPath), http.StripPrefix(basePath, handler))
 }
 
 func sweepOfflineNodes(ctx context.Context, db *store.DB) {

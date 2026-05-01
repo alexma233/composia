@@ -180,17 +180,17 @@ func runAgentRuntime(processCtx, runtimeCtx context.Context, cfg *config.AgentCo
 	clientOptions := controllerClientOptions(cfg)
 	reportClient := agentv1connect.NewAgentReportServiceClient(
 		httpClient,
-		cfg.ControllerAddr,
+		rpcutil.JoinBaseURL(cfg.ControllerAddr, rpcutil.AgentAPIBasePath),
 		clientOptions...,
 	)
 	taskClient := agentv1connect.NewAgentTaskServiceClient(
 		httpClient,
-		cfg.ControllerAddr,
+		rpcutil.JoinBaseURL(cfg.ControllerAddr, rpcutil.AgentAPIBasePath),
 		clientOptions...,
 	)
 	bundleClient := agentv1connect.NewBundleServiceClient(
 		httpClient,
-		cfg.ControllerAddr,
+		rpcutil.JoinBaseURL(cfg.ControllerAddr, rpcutil.AgentAPIBasePath),
 		clientOptions...,
 	)
 

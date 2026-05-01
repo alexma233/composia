@@ -141,6 +141,8 @@ For restore, `files.copy_after_stop` uses the same target layout as `files.copy`
 
 Use `composia.controller.v1.ServiceCommandService/RunServiceAction` for backup tasks.
 
+For direct HTTP calls, use `/api/controller/composia.controller.v1.ServiceCommandService/RunServiceAction`.
+
 ### View Backups
 
 After backup completes, view in the **Backups** page:
@@ -233,6 +235,8 @@ migrate:
 **API:**
 
 Use `composia.controller.v1.ServiceCommandService/MigrateService`.
+
+For direct HTTP calls, use `/api/controller/composia.controller.v1.ServiceCommandService/MigrateService`.
 
 ### Migration Steps Detail
 

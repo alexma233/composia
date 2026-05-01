@@ -76,12 +76,12 @@ func TestRegisterAccessHandlersKeepsSystemAndServiceBackupCapabilitiesConsistent
 
 	systemClient := controllerv1connect.NewSystemServiceClient(
 		httpServer.Client(),
-		httpServer.URL,
+		rpcutil.JoinBaseURL(httpServer.URL, rpcutil.ControllerAPIBasePath),
 		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")),
 	)
 	serviceClient := controllerv1connect.NewServiceQueryServiceClient(
 		httpServer.Client(),
-		httpServer.URL,
+		rpcutil.JoinBaseURL(httpServer.URL, rpcutil.ControllerAPIBasePath),
 		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")),
 	)
 

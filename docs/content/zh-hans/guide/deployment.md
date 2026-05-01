@@ -147,6 +147,8 @@ nodes:
 - `composia.controller.v1.ServiceCommandService/MigrateService`：迁移服务
 - `composia.controller.v1.ServiceInstanceService/RunServiceInstanceAction`：对单个实例执行操作
 
+这里列出的是 RPC 方法名。实际向 controller 发起 HTTP 请求时，需要带上 `/api/controller` 前缀，例如 `/api/controller/composia.controller.v1.ServiceCommandService/RunServiceAction`。
+
 ## 多节点部署策略
 
 ### 同一服务多节点部署

@@ -141,6 +141,8 @@ backup:
 
 备份任务请使用 `composia.controller.v1.ServiceCommandService/RunServiceAction`。
 
+如果直接走 HTTP 请求，请使用 `/api/controller/composia.controller.v1.ServiceCommandService/RunServiceAction`。
+
 ### 查看备份
 
 备份完成后，可以在「备份」页面查看：
@@ -234,7 +236,11 @@ migrate:
 
 请使用 `composia.controller.v1.ServiceCommandService/MigrateService`。
 
+如果直接走 HTTP 请求，请使用 `/api/controller/composia.controller.v1.ServiceCommandService/MigrateService`。
+
 如果迁移任务进入 `awaiting_confirmation`，请在确认目标节点服务可用后，再调用 `composia.controller.v1.TaskService/ResolveTaskConfirmation`：
+
+对应的 HTTP 路径是 `/api/controller/composia.controller.v1.TaskService/ResolveTaskConfirmation`。
 
 - `decision=approve`：继续执行后续的 DNS 更新与 `persist_repo`
 - `decision=reject`：终止当前迁移任务，不继续修改 DNS，也不会回写仓库

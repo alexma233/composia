@@ -64,6 +64,8 @@ DNS 更新目前适用于以下场景：
 
 手动触发时，请调用 ConnectRPC 方法 `composia.controller.v1.ServiceCommandService/RunServiceAction`，并传入 `SERVICE_ACTION_DNS_UPDATE`。
 
+如果直接走 HTTP，请使用 `/api/controller/composia.controller.v1.ServiceCommandService/RunServiceAction`。
+
 ## DNS 配置示例
 
 **基础 A 记录：**

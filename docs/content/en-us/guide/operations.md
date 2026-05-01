@@ -133,6 +133,8 @@ Availability depends on the node exec tunnel being online and the selected shell
 **Cleaning Images:**
 Use the Web UI or call the ConnectRPC method `composia.controller.v1.NodeMaintenanceService/PruneNodeDocker`.
 
+For direct HTTP calls, use `/api/controller/composia.controller.v1.NodeMaintenanceService/PruneNodeDocker`.
+
 ### Network Management
 
 **Viewing Networks:**
@@ -196,6 +198,8 @@ Execute `prune` tasks to clean up unused resources:
 **API:**
 
 Use the ConnectRPC method `composia.controller.v1.NodeMaintenanceService/PruneNodeDocker`.
+
+The HTTP request path is `/api/controller/composia.controller.v1.NodeMaintenanceService/PruneNodeDocker`.
 
 ### Auto-Cleanup Recommendations
 

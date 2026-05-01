@@ -64,6 +64,8 @@ DNS updates are available in the following cases:
 
 Manual trigger uses the ConnectRPC method `composia.controller.v1.ServiceCommandService/RunServiceAction` with the `SERVICE_ACTION_DNS_UPDATE` action.
 
+The direct HTTP path is `/api/controller/composia.controller.v1.ServiceCommandService/RunServiceAction`.
+
 ## DNS Configuration Examples
 
 **Basic A Record:**
