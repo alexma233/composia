@@ -157,7 +157,6 @@ dockers_v2:
     images:
       - forgejo.alexma.top/alexma233/composia-cli
       - ghcr.io/alexma233/composia-cli
-      - codeberg.org/alexma233/composia-cli
       - alexma233/composia-cli
     tags: &docker_release_tags
       - "{{ .Version }}"
@@ -187,7 +186,6 @@ dockers_v2:
     images:
       - forgejo.alexma.top/alexma233/composia-controller
       - ghcr.io/alexma233/composia-controller
-      - codeberg.org/alexma233/composia-controller
       - alexma233/composia-controller
     tags: *docker_release_tags
     labels:
@@ -208,7 +206,6 @@ dockers_v2:
     images:
       - forgejo.alexma.top/alexma233/composia-agent
       - ghcr.io/alexma233/composia-agent
-      - codeberg.org/alexma233/composia-agent
       - alexma233/composia-agent
     tags: *docker_release_tags
     labels:

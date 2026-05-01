@@ -28,10 +28,6 @@ on:
         default: false
         required: false
         type: boolean
-      login_codeberg:
-        default: false
-        required: false
-        type: boolean
       login_dockerhub:
         default: false
         required: false
@@ -68,15 +64,6 @@ jobs:
           registry: ghcr.io
           username: ${{ secrets.OCI_IMAGES_GHCR_USERNAME }}
           password: ${{ secrets.OCI_IMAGES_GHCR_TOKEN }}
-
-      - name: Login to Codeberg
-        if: ${{ inputs.login_codeberg }}
-        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.1.0
-        uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
-        with:
-          registry: codeberg.org
-          username: ${{ secrets.OCI_IMAGES_CODEBERG_USERNAME }}
-          password: ${{ secrets.OCI_IMAGES_CODEBERG_TOKEN }}
 
       - name: Login to Docker Hub
         if: ${{ inputs.login_dockerhub }}
