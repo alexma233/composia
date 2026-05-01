@@ -80,8 +80,6 @@ jobs:
           scripts/build/copr-srpm.sh
           copr-cli build composia \
             --nowait \
-            --enable-net on \
-            --exclude-chroot fedora-42-riscv64 \
             dist/copr-rpmbuild/SRPMS/*.src.rpm
 
   docker-web:
