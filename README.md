@@ -143,7 +143,6 @@ gen/go/               # generated protobuf and Connect code
 internal/             # backend packages
 proto/                # protobuf definitions
 web/                  # SvelteKit frontend
-plan.md               # product and architecture notes
 ```
 
 ## Attributions

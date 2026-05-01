@@ -56,8 +56,7 @@ grep "public key:" config/age-identity.key | awk '{print $4}' > config/age-recip
 
 | 变量 | 说明 |
 |----------|-------------|
-| `CONTROLLER_ACCESS_TOKEN` | 必须与 `controller.access_tokens` 中的某个 token 匹配 |
-| `WEB_CONTROLLER_ACCESS_TOKEN` | 同上 token，Web 服务进程用于调用 Controller |
+| `WEB_CONTROLLER_ACCESS_TOKEN` | 必须与 `controller.access_tokens` 中的某个 token 匹配；Web 服务进程用于调用 Controller |
 | `WEB_CONTROLLER_ADDR` | Compose 网络内访问 Controller 的基础地址 |
 | `WEB_BROWSER_CONTROLLER_ADDR` | 浏览器访问 Controller 的基础地址（用于 WebSocket 终端） |
 | `WEB_LOGIN_USERNAME` | Web 登录页用户名 |
@@ -148,7 +147,7 @@ docker compose up -d
 | web | `:3000` | Web 管理界面 |
 | agent | — | 执行代理（连接本地 Docker） |
 
-Compose 还会先运行一次性的 `init-repo-controller` 容器，用于初始化 Controller 的 Git 工作树卷。
+Compose 还会先运行多个初始化容器（`init-repo-controller`、`init-perms-controller`、`init-config-perms`、`init-perms-agent`），用于初始化 Git 工作树卷并设置正确的文件权限。
 
 ## 访问界面
 
@@ -160,18 +159,18 @@ Web UI 有两层鉴权：
 
 ## 镜像源选择
 
-默认使用自建 Forgejo Registry。镜像同时发布到 GitHub Container Registry、Codeberg 和 Docker Hub。
+默认使用自建 Forgejo Registry。镜像同时发布到 GitHub Container Registry 和 Docker Hub。
 
 ### Forgejo（默认）
 
 ```yaml
 services:
   controller:
-    image: forgejo.alexma.top/alexma233/composia:latest
+    image: forgejo.alexma.top/alexma233/composia-controller:latest
   web:
     image: forgejo.alexma.top/alexma233/composia-web:latest
   agent:
-    image: forgejo.alexma.top/alexma233/composia:latest
+    image: forgejo.alexma.top/alexma233/composia-agent:latest
 ```
 
 ### GitHub Container Registry
@@ -179,23 +178,11 @@ services:
 ```yaml
 services:
   controller:
-    image: ghcr.io/alexma233/composia:latest
+    image: ghcr.io/alexma233/composia-controller:latest
   web:
     image: ghcr.io/alexma233/composia-web:latest
   agent:
-    image: ghcr.io/alexma233/composia:latest
-```
-
-### Codeberg
-
-```yaml
-services:
-  controller:
-    image: codeberg.org/alexma233/composia:latest
-  web:
-    image: codeberg.org/alexma233/composia-web:latest
-  agent:
-    image: codeberg.org/alexma233/composia:latest
+    image: ghcr.io/alexma233/composia-agent:latest
 ```
 
 ### Docker Hub
@@ -203,11 +190,11 @@ services:
 ```yaml
 services:
   controller:
-    image: alexma233/composia:latest
+    image: alexma233/composia-controller:latest
   web:
     image: alexma233/composia-web:latest
   agent:
-    image: alexma233/composia:latest
+    image: alexma233/composia-agent:latest
 ```
 
 ## 停止 Composia

@@ -26,15 +26,14 @@ Composia uses a task queue to manage all asynchronous operations:
 | `migrate` | Migrate service | Manual/API |
 | `caddy_sync` | Sync Caddy configuration | Automatic |
 | `caddy_reload` | Reload Caddy | Automatic |
-| `prune` | Clean up resources | Manual/API |
+| `prune` | Clean up unused Docker resources | Manual/API |
+| `rustic_init` | Initialize rustic repository on node | Manual/API |
 | `rustic_forget` | Clean rustic snapshot references | Manual/API/Scheduled |
 | `rustic_prune` | Run rustic prune | Manual/API/Scheduled |
-| `docker_list` | Fetch node-scoped Docker resource lists | Web UI/API |
-| `docker_inspect` | Inspect one Docker resource | Web UI/API |
 | `docker_start` | Start a container | Web UI/API |
 | `docker_stop` | Stop a container | Web UI/API |
 | `docker_restart` | Restart a container | Web UI/API |
-| `docker_logs` | Fetch container logs | Web UI/API |
+| `docker_remove` | Remove a container | Web UI/API |
 
 ### Task Lifecycle
 
@@ -196,8 +195,7 @@ Execute `prune` tasks to clean up unused resources:
 
 **API:**
 
-The current controller does not expose REST endpoints under `/api/v1/...`.
-Use the ConnectRPC method `composia.controller.v1.NodeMaintenanceService/PruneNodeDocker` instead.
+Use the ConnectRPC method `composia.controller.v1.NodeMaintenanceService/PruneNodeDocker`.
 
 ### Auto-Cleanup Recommendations
 

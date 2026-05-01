@@ -141,9 +141,7 @@ nodes:
 
 ## 使用 API 操作
 
-当前 Controller 暴露的是 ConnectRPC 服务，而不是 `/api/v1/...` 形式的 REST 接口。
-
-部署相关操作请使用以下 RPC 方法：
+部署相关操作请使用以下 ConnectRPC 方法：
 
 - `composia.controller.v1.ServiceCommandService/RunServiceAction`：deploy、update、stop、restart、backup、dns_update
 - `composia.controller.v1.ServiceCommandService/MigrateService`：迁移服务

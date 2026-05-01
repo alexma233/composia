@@ -124,7 +124,8 @@ backup:
 |------|------|----------|
 | `files.copy` | 服务路径直接复制；Docker volume 通过临时容器 tar stream 中转 | 静态文件、上传目录、Docker volume |
 | `files.copy_after_stop` | 停止服务后复制并恢复 | 需要一致性的数据 |
-| `database.pgdumpall` | PostgreSQL 全量导出 | PostgreSQL 数据库 |
+| `database.pgdumpall` | PostgreSQL 全量导出（`pg_dumpall`） | PostgreSQL 数据库 |
+| `database.pgimport` | PostgreSQL 全量导入（`psql`） | 恢复 PostgreSQL 数据库 |
 
 恢复时，`files.copy_after_stop` 使用与 `files.copy` 相同的目标布局，但会在恢复前执行 `docker compose down`，恢复后执行 `docker compose up -d`。
 
@@ -138,7 +139,6 @@ backup:
 
 **API：**
 
-当前 Controller 暴露的是 ConnectRPC 方法，而不是 `/api/v1/...` 形式的 REST 接口。
 备份任务请使用 `composia.controller.v1.ServiceCommandService/RunServiceAction`。
 
 ### 查看备份

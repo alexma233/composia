@@ -56,8 +56,7 @@ Review and update at least these values in `.env` before startup.
 
 | Variable | Description |
 |----------|-------------|
-| `CONTROLLER_ACCESS_TOKEN` | Must match one token under `controller.access_tokens` |
-| `WEB_CONTROLLER_ACCESS_TOKEN` | Same token, used by the web server to call the controller |
+| `WEB_CONTROLLER_ACCESS_TOKEN` | Must match one token under `controller.access_tokens`; used by the web server to call the controller |
 | `WEB_CONTROLLER_ADDR` | Controller base URL inside the Compose network |
 | `WEB_BROWSER_CONTROLLER_ADDR` | Controller base URL reachable from the browser (for WebSocket terminal sessions) |
 | `WEB_LOGIN_USERNAME` | Username for the Web login page |
@@ -148,7 +147,7 @@ This starts the following services:
 | web | `:3000` | Web Management Interface |
 | agent | — | Execution Agent (connects to local Docker) |
 
-The Compose file also runs a one-shot `init-repo-controller` container first to initialize the controller Git working tree volume.
+The Compose file also runs several init containers first (`init-repo-controller`, `init-perms-controller`, `init-config-perms`, `init-perms-agent`) to initialize the working tree volume and set up correct file permissions.
 
 ## Access the Interface
 
@@ -160,18 +159,18 @@ The Web UI uses two auth layers:
 
 ## Image Registry Options
 
-By default, `docker-compose.yaml` uses the self-hosted Forgejo registry. Images are also published to GitHub Container Registry, Codeberg, and Docker Hub.
+By default, `docker-compose.yaml` uses the self-hosted Forgejo registry. Images are also published to GitHub Container Registry and Docker Hub.
 
 ### Forgejo (default)
 
 ```yaml
 services:
   controller:
-    image: forgejo.alexma.top/alexma233/composia:latest
+    image: forgejo.alexma.top/alexma233/composia-controller:latest
   web:
     image: forgejo.alexma.top/alexma233/composia-web:latest
   agent:
-    image: forgejo.alexma.top/alexma233/composia:latest
+    image: forgejo.alexma.top/alexma233/composia-agent:latest
 ```
 
 ### GitHub Container Registry
@@ -179,23 +178,11 @@ services:
 ```yaml
 services:
   controller:
-    image: ghcr.io/alexma233/composia:latest
+    image: ghcr.io/alexma233/composia-controller:latest
   web:
     image: ghcr.io/alexma233/composia-web:latest
   agent:
-    image: ghcr.io/alexma233/composia:latest
-```
-
-### Codeberg
-
-```yaml
-services:
-  controller:
-    image: codeberg.org/alexma233/composia:latest
-  web:
-    image: codeberg.org/alexma233/composia-web:latest
-  agent:
-    image: codeberg.org/alexma233/composia:latest
+    image: ghcr.io/alexma233/composia-agent:latest
 ```
 
 ### Docker Hub
@@ -203,11 +190,11 @@ services:
 ```yaml
 services:
   controller:
-    image: alexma233/composia:latest
+    image: alexma233/composia-controller:latest
   web:
     image: alexma233/composia-web:latest
   agent:
-    image: alexma233/composia:latest
+    image: alexma233/composia-agent:latest
 ```
 
 ## Stop Composia

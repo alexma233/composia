@@ -30,6 +30,7 @@ access_tokens:
 | `token` | Required token value used by the Web UI, CLI, or custom clients calling the Controller |
 | `enabled` | Whether this token is enabled |
 | `comment` | Optional operator-facing note |
+| `comment` | Optional operator-facing note |
 
 Composia currently has no RBAC. All enabled access tokens grant full controller access regardless of the token name.
 

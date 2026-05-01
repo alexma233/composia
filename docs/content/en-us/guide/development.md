@@ -263,29 +263,39 @@ buf generate
 ```
 composia/
 ├── cmd/
-│   └── composia/           # Main application entry
-│       └── main.go
-├── dev/                    # Development state and local config
-├── docs/                   # Documentation (VitePress)
+│   ├── composia/            # User-facing CLI entrypoint
+│   ├── composia-agent/      # Agent runtime entrypoint
+│   └── composia-controller/ # Controller runtime entrypoint
+├── dev/                     # Development state and local config
+├── docs/                    # Documentation (VitePress)
 │   ├── content/
 │   └── .vitepress/
 ├── gen/
-│   └── go/                 # Generated protobuf code
-├── internal/               # Internal packages
-│   ├── controller/         # Controller implementation
-│   ├── agent/              # Agent implementation
-│   ├── repo/               # Service repo parsing and validation
-│   ├── store/              # SQLite-backed state storage
-│   └── ...
-├── proto/                  # Protobuf source files
-├── web/                    # SvelteKit frontend
+│   └── go/                  # Generated protobuf code
+├── internal/
+│   ├── app/
+│   │   ├── cli/             # CLI subcommand implementations
+│   │   ├── agent/           # Agent implementation
+│   │   └── controller/      # Controller implementation
+│   ├── core/
+│   │   ├── backup/          # Backup runtime orchestration
+│   │   ├── config/          # Configuration loading and validation
+│   │   ├── repo/            # Service repo parsing and validation
+│   │   ├── schedule/        # Cron schedule parsing
+│   │   └── task/            # Task definitions
+│   ├── platform/
+│   │   ├── secret/          # age-based secret management
+│   │   └── store/           # SQLite-backed state storage
+│   └── version/             # Version metadata
+├── proto/                   # Protobuf source files
+├── web/                     # SvelteKit frontend
 │   ├── src/
 │   │   ├── lib/
-│   │   │   ├── components/ # UI components
-│   │   │   └── server/     # Server-side controller access
-│   │   └── routes/         # Page routes
+│   │   │   ├── components/  # UI components
+│   │   │   └── server/      # Server-side controller access
+│   │   └── routes/          # Page routes
 │   └── package.json
-├── docker-compose.yaml     # Compose stack for local/prod-like runs
+├── docker-compose.yaml      # Compose stack for local/prod-like runs
 └── README.md
 ```
 
@@ -293,10 +303,11 @@ composia/
 
 | Directory | Description |
 |-----------|-------------|
-| `internal/controller/` | Controller business logic |
-| `internal/agent/` | Agent business logic |
+| `internal/app/controller/` | Controller business logic |
+| `internal/app/agent/` | Agent business logic |
+| `internal/core/repo/` | Service repo parsing and validation |
 | `proto/` | Protobuf source definitions |
-| `internal/store/` | Data storage layer |
+| `internal/platform/store/` | Data storage layer |
 | `web/src/lib/server/` | Server-side controller access |
 | `web/src/lib/components/` | Reusable UI components |
 

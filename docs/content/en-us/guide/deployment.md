@@ -141,9 +141,7 @@ During deployment, you can view progress in real-time on the **Tasks** page:
 
 ## Using the API
 
-The current controller exposes ConnectRPC services instead of REST endpoints under `/api/v1/...`.
-
-Use these RPC methods for deployment operations:
+Use these ConnectRPC methods for deployment operations:
 
 - `composia.controller.v1.ServiceCommandService/RunServiceAction` for deploy, update, stop, restart, backup, and DNS update
 - `composia.controller.v1.ServiceCommandService/MigrateService` for migration

@@ -263,29 +263,39 @@ buf generate
 ```
 composia/
 ├── cmd/
-│   └── composia/           # 主程序入口
-│       └── main.go
-├── dev/                    # 开发状态与本地配置
-├── docs/                   # 文档（VitePress）
+│   ├── composia/            # 用户 CLI 入口
+│   ├── composia-agent/      # Agent 运行时入口
+│   └── composia-controller/ # Controller 运行时入口
+├── dev/                     # 开发状态与本地配置
+├── docs/                    # 文档（VitePress）
 │   ├── content/
 │   └── .vitepress/
 ├── gen/
-│   └── go/                 # 生成的 protobuf 代码
-├── internal/               # 内部包
-│   ├── controller/         # Controller 实现
-│   ├── agent/              # Agent 实现
-│   ├── repo/               # 服务仓库解析与校验
-│   ├── store/              # 基于 SQLite 的状态存储
-│   └── ...
-├── proto/                  # Protobuf 源文件
-├── web/                    # SvelteKit WebUI
+│   └── go/                  # 生成的 protobuf 代码
+├── internal/
+│   ├── app/
+│   │   ├── cli/             # CLI 子命令实现
+│   │   ├── agent/           # Agent 实现
+│   │   └── controller/      # Controller 实现
+│   ├── core/
+│   │   ├── backup/          # 备份运行时编排
+│   │   ├── config/          # 配置加载与校验
+│   │   ├── repo/            # 服务仓库解析与校验
+│   │   ├── schedule/        # Cron 调度解析
+│   │   └── task/            # 任务定义
+│   ├── platform/
+│   │   ├── secret/          # 基于 age 的密钥管理
+│   │   └── store/           # 基于 SQLite 的状态存储
+│   └── version/             # 版本元数据
+├── proto/                   # Protobuf 源文件
+├── web/                     # SvelteKit WebUI
 │   ├── src/
 │   │   ├── lib/
-│   │   │   ├── components/ # UI 组件
-│   │   │   └── server/     # 服务端 Controller 访问层
-│   │   └── routes/         # 页面路由
+│   │   │   ├── components/  # UI 组件
+│   │   │   └── server/      # 服务端 Controller 访问层
+│   │   └── routes/          # 页面路由
 │   └── package.json
-├── docker-compose.yaml     # 本地/接近生产的 Compose 栈
+├── docker-compose.yaml      # 本地/接近生产的 Compose 栈
 └── README.md
 ```
 
@@ -293,10 +303,11 @@ composia/
 
 | 目录 | 说明 |
 |------|------|
-| `internal/controller/` | Controller 业务逻辑 |
-| `internal/agent/` | Agent 业务逻辑 |
+| `internal/app/controller/` | Controller 业务逻辑 |
+| `internal/app/agent/` | Agent 业务逻辑 |
+| `internal/core/repo/` | 服务仓库解析与校验 |
 | `proto/` | Protobuf 源定义 |
-| `internal/store/` | 数据存储层 |
+| `internal/platform/store/` | 数据存储层 |
 | `web/src/lib/server/` | 服务端 Controller 访问 |
 | `web/src/lib/components/` | 可复用 UI 组件 |
 

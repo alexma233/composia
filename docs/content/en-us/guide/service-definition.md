@@ -157,6 +157,7 @@ nodes:
 | `value` | string | No | Record value; auto-derived from node IP if empty |
 | `proxied` | boolean | No | Enable Cloudflare proxy, default `false` |
 | `ttl` | number | No | TTL in seconds, default `120` |
+| `comment` | string | No | Cloudflare DNS record comment |
 
 #### Data Protection
 
@@ -189,7 +190,8 @@ data_protect:
 |----------|-------------|----------|
 | `files.copy` | Direct file copy | Static files, upload directories |
 | `files.copy_after_stop` | Stop service, copy files, restart | Data requiring consistency |
-| `database.pgdumpall` | PostgreSQL full export | PostgreSQL databases |
+| `database.pgdumpall` | PostgreSQL full export (`pg_dumpall`) | PostgreSQL databases |
+| `database.pgimport` | PostgreSQL full import (`psql`) | Restoring PostgreSQL databases |
 
 For restore, `files.copy` restores immediately, while `files.copy_after_stop` stops the Compose project, restores the files or Docker volumes, then starts it again.
 
@@ -218,6 +220,25 @@ migrate:
 ```
 
 **Note:** Data items for migration must have both `backup` and `restore` strategies defined in `data_protect`.
+
+#### Update Configuration
+
+`update` controls automatic updates for a service:
+
+```yaml
+update:
+  enabled: true
+  strategy: pull_and_recreate   # Only supported strategy
+  schedule: "0 4 * * *"         # Cron schedule for auto-update
+  backup_before_update: true    # Backup before applying the update
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `enabled` | boolean | No | Whether to enable auto-update, default `false` |
+| `strategy` | string | No | Update strategy, currently only `pull_and_recreate` |
+| `schedule` | string | No | Cron expression for the update schedule |
+| `backup_before_update` | boolean | No | Backup service data before applying the update |
 
 #### Infrastructure Declaration
 

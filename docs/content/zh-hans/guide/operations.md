@@ -26,7 +26,8 @@ Composia 使用任务队列管理所有异步操作：
 | `migrate` | 迁移服务 | 手动/API |
 | `caddy_sync` | 同步 Caddy 配置 | 自动 |
 | `caddy_reload` | 重载 Caddy | 自动 |
-| `prune` | 清理资源 | 手动/API |
+| `prune` | 清理未使用的 Docker 资源 | 手动/API |
+| `docker_prune` | 清理节点 Docker 资源 | 手动/API |
 | `rustic_forget` | 清理 rustic 快照索引 | 手动/API/定时 |
 | `rustic_prune` | 执行 rustic prune | 手动/API/定时 |
 | `docker_list` | 拉取节点 Docker 资源列表 | Web UI/API |
@@ -208,8 +209,7 @@ docker compose restart agent
 
 **API：**
 
-当前 Controller 没有提供 `/api/v1/...` 形式的 REST 接口。
-如需通过 API 触发清理，请调用 ConnectRPC 方法 `composia.controller.v1.NodeMaintenanceService/PruneNodeDocker`。
+通过 ConnectRPC 方法 `composia.controller.v1.NodeMaintenanceService/PruneNodeDocker` 触发清理。
 
 ### 自动清理建议
 

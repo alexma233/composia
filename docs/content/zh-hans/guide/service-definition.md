@@ -157,6 +157,7 @@ nodes:
 | `value` | string | 否 | 记录值，为空时自动从节点 IP 推导 |
 | `proxied` | boolean | 否 | 是否启用 Cloudflare 代理，默认 `false` |
 | `ttl` | number | 否 | TTL 秒数，默认 `120` |
+| `comment` | string | 否 | Cloudflare DNS 记录备注 |
 
 #### 数据保护
 
@@ -189,7 +190,8 @@ data_protect:
 |------|------|----------|
 | `files.copy` | 直接复制文件 | 静态文件、上传目录 |
 | `files.copy_after_stop` | 停止服务后复制并恢复 | 需要一致性的数据 |
-| `database.pgdumpall` | PostgreSQL 全量导出 | PostgreSQL 数据库 |
+| `database.pgdumpall` | PostgreSQL 全量导出（`pg_dumpall`） | PostgreSQL 数据库 |
+| `database.pgimport` | PostgreSQL 全量导入（`psql`） | 恢复 PostgreSQL 数据库 |
 
 恢复策略中，`files.copy` 会直接恢复；`files.copy_after_stop` 会先停止 Compose project，恢复文件或 Docker volume 后再启动。
 
@@ -218,6 +220,25 @@ migrate:
 ```
 
 **注意：** 迁移的数据项必须在 `data_protect` 中同时定义 `backup` 和 `restore` 策略。
+
+#### 更新配置
+
+`update` 控制服务的自动更新：
+
+```yaml
+update:
+  enabled: true
+  strategy: pull_and_recreate   # 唯一支持的策略
+  schedule: "0 4 * * *"         # 自动更新的 cron 调度
+  backup_before_update: true    # 更新前先备份
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `enabled` | boolean | 否 | 是否启用自动更新，默认 `false` |
+| `strategy` | string | 否 | 更新策略，当前仅支持 `pull_and_recreate` |
+| `schedule` | string | 否 | 更新调度的 cron 表达式 |
+| `backup_before_update` | boolean | 否 | 更新前备份服务数据 |
 
 #### 基础设施声明
 
