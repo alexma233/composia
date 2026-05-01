@@ -7,15 +7,12 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/signal"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"github.com/gorilla/websocket"
-	"golang.org/x/sys/unix"
 )
 
 func (application *app) runContainer(args []string) error {
@@ -296,9 +293,8 @@ func (application *app) attachContainerExecWebsocket(conn *websocket.Conn) error
 	if rawErr == nil {
 		defer restoreTerminal(fd, state)
 	}
-	resizeCh := make(chan os.Signal, 1)
-	signal.Notify(resizeCh, syscall.SIGWINCH)
-	defer signal.Stop(resizeCh)
+	resizeCh, stopResize := subscribeTerminalResize()
+	defer stopResize()
 
 	var writeMu sync.Mutex
 	writeMessage := func(messageType int, payload []byte) error {
@@ -380,10 +376,6 @@ type execWebsocketEvent struct {
 	Message string `json:"message"`
 }
 
-type terminalState struct {
-	termios *unix.Termios
-}
-
 func handleExecWebsocketEvent(payload []byte) (bool, error) {
 	var event execWebsocketEvent
 	if err := json.Unmarshal(payload, &event); err != nil {
@@ -454,40 +446,6 @@ func containerExecWebsocketURL(addr, path string) (string, error) {
 	parsed.RawQuery = ""
 	parsed.Fragment = ""
 	return parsed.String(), nil
-}
-
-func makeTerminalRaw(fd uintptr) (*terminalState, error) {
-	oldState, err := unix.IoctlGetTermios(int(fd), unix.TCGETS)
-	if err != nil {
-		return nil, err
-	}
-	raw := *oldState
-	raw.Iflag &^= unix.IGNBRK | unix.BRKINT | unix.PARMRK | unix.ISTRIP | unix.INLCR | unix.IGNCR | unix.ICRNL | unix.IXON
-	raw.Oflag &^= unix.OPOST
-	raw.Lflag &^= unix.ECHO | unix.ECHONL | unix.ICANON | unix.ISIG | unix.IEXTEN
-	raw.Cflag &^= unix.CSIZE | unix.PARENB
-	raw.Cflag |= unix.CS8
-	raw.Cc[unix.VMIN] = 1
-	raw.Cc[unix.VTIME] = 0
-	if err := unix.IoctlSetTermios(int(fd), unix.TCSETS, &raw); err != nil {
-		return nil, err
-	}
-	return &terminalState{termios: oldState}, nil
-}
-
-func restoreTerminal(fd uintptr, state *terminalState) {
-	if state == nil || state.termios == nil {
-		return
-	}
-	_ = unix.IoctlSetTermios(int(fd), unix.TCSETS, state.termios)
-}
-
-func terminalSize(fd uintptr) (uint32, uint32, bool) {
-	size, err := unix.IoctlGetWinsize(int(fd), unix.TIOCGWINSZ)
-	if err != nil || size == nil || size.Row == 0 || size.Col == 0 {
-		return 0, 0, false
-	}
-	return uint32(size.Row), uint32(size.Col), true
 }
 
 func containerActionFromName(name string) (controllerv1.ContainerAction, error) {
