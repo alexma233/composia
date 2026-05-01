@@ -269,6 +269,7 @@ aurs:
     license: AGPL-3.0-only
     private_key: "{{ .Env.AUR_KEY }}"
     git_url: "ssh://aur@aur.archlinux.org/composia-bin.git"
+    url_template: "https://forgejo.alexma.top/alexma233/composia/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
     skip_upload: auto
     provides:
       - composia
@@ -280,6 +281,49 @@ aurs:
       install -Dm755 "./composia-agent" "${pkgdir}/usr/bin/composia-agent"
       install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/composia-bin/LICENSE"
       install -Dm644 "./README.md" "${pkgdir}/usr/share/doc/composia-bin/README.md"
+    commit_msg_template: "Update to {{ .Tag }}"
+    commit_author:
+      name: goreleaserbot
+      email: i@fur.im
+
+aur_sources:
+  - name: composia
+    homepage: https://docs.composia.xyz
+    description: Self-hosted Docker Compose control plane and CLI.
+    maintainers:
+      - "AlexMa <i at fur dot im>"
+    license: AGPL-3.0-only
+    private_key: "{{ .Env.AUR_KEY }}"
+    git_url: "ssh://aur@aur.archlinux.org/composia.git"
+    url_template: "https://forgejo.alexma.top/alexma233/composia/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    skip_upload: auto
+    arches:
+      - x86_64
+      - aarch64
+      - armv7h
+      - riscv64
+    provides:
+      - composia
+    conflicts:
+      - composia-bin
+    makedepends:
+      - go
+      - git
+    build: |-
+      cd "${pkgname}-${pkgver}"
+      export CGO_ENABLED=0
+      export GOPATH="${srcdir}/go"
+      local ldflags="-s -w -X forgejo.alexma.top/alexma233/composia/internal/version.Value=v${pkgver}"
+      go build -trimpath -ldflags "${ldflags}" -o composia ./cmd/composia
+      go build -trimpath -ldflags "${ldflags}" -o composia-controller ./cmd/composia-controller
+      go build -trimpath -ldflags "${ldflags}" -o composia-agent ./cmd/composia-agent
+    package: |-
+      cd "${pkgname}-${pkgver}"
+      install -Dm755 composia "${pkgdir}/usr/bin/composia"
+      install -Dm755 composia-controller "${pkgdir}/usr/bin/composia-controller"
+      install -Dm755 composia-agent "${pkgdir}/usr/bin/composia-agent"
+      install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/composia/LICENSE"
+      install -Dm644 README.md "${pkgdir}/usr/share/doc/composia/README.md"
     commit_msg_template: "Update to {{ .Tag }}"
     commit_author:
       name: goreleaserbot
@@ -312,5 +356,3 @@ release:
 
     Linux archives and Linux packages include: `composia` (CLI), `composia-controller` and `composia-agent`
     Windows and macOS archives include: `composia` (CLI)
-
-    ## Changelog

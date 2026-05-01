@@ -68,7 +68,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends rpm python3-pip
-          pip3 install --break-system-packages copr-cli
+          pip3 install --break-system-packages copr-cli rich
 
       - name: Build and publish COPR SRPM
         env:
