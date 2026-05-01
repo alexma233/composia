@@ -18,17 +18,17 @@ type File struct {
 }
 
 type ControllerConfig struct {
-	ListenAddr     string                   `yaml:"listen_addr"`
-	RepoDir        string                   `yaml:"repo_dir"`
-	StateDir       string                   `yaml:"state_dir"`
-	LogDir         string                   `yaml:"log_dir"`
-	Backup         *ControllerBackupConfig  `yaml:"backup"`
-	Git            *ControllerGitConfig     `yaml:"git"`
-	Nodes          []NodeConfig             `yaml:"nodes"`
-	AccessTokens   []AccessTokenConfig      `yaml:"access_tokens"`
-	DNS            *ControllerDNSConfig     `yaml:"dns"`
-	Rustic         *ControllerRusticConfig  `yaml:"rustic"`
-	Secrets        *ControllerSecretsConfig `yaml:"secrets"`
+	ListenAddr   string                   `yaml:"listen_addr"`
+	RepoDir      string                   `yaml:"repo_dir"`
+	StateDir     string                   `yaml:"state_dir"`
+	LogDir       string                   `yaml:"log_dir"`
+	Backup       *ControllerBackupConfig  `yaml:"backup"`
+	Git          *ControllerGitConfig     `yaml:"git"`
+	Nodes        []NodeConfig             `yaml:"nodes"`
+	AccessTokens []AccessTokenConfig      `yaml:"access_tokens"`
+	DNS          *ControllerDNSConfig     `yaml:"dns"`
+	Rustic       *ControllerRusticConfig  `yaml:"rustic"`
+	Secrets      *ControllerSecretsConfig `yaml:"secrets"`
 }
 
 type ControllerBackupConfig struct {
