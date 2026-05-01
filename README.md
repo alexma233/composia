@@ -105,8 +105,8 @@ sh ./scripts/build/binaries.sh
 Cross-build by setting Go target variables:
 
 ```bash
-VERSION=v0.1.4 GOOS=linux GOARCH=amd64 sh ./scripts/build/binaries.sh
-VERSION=v0.1.4 GOOS=linux GOARCH=arm GOARM=7 sh ./scripts/build/binaries.sh
+VERSION=v0.1.5 GOOS=linux GOARCH=amd64 sh ./scripts/build/binaries.sh
+VERSION=v0.1.5 GOOS=linux GOARCH=arm GOARM=7 sh ./scripts/build/binaries.sh
 ```
 
 Release packaging is handled by GoReleaser:
