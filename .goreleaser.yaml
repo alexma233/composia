@@ -140,8 +140,14 @@ archives:
 checksum:
   name_template: checksums.txt
 
+source:
+  enabled: true
+  name_template: "{{ .ProjectName }}-{{ .Version }}"
+  format: tar.gz
+  prefix_template: "{{ .ProjectName }}-{{ .Version }}/"
+
 snapshot:
-  version_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}.next"
 
 dockers_v2:
   - id: composia-cli

@@ -72,6 +72,26 @@ jobs:
           AUR_KEY: ${{ secrets.AUR_KEY }}
         run: goreleaser release --clean
 
+      - name: Install COPR build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends rpm python3-pip
+          pip3 install --break-system-packages copr-cli
+
+      - name: Build and publish COPR SRPM
+        env:
+          COPR_CLI_CONFIG: ${{ secrets.COPR_CLI_CONFIG }}
+        run: |
+          mkdir -p ~/.config
+          printf '%s' "$COPR_CLI_CONFIG" > ~/.config/copr
+          chmod 600 ~/.config/copr
+          scripts/build/copr-srpm.sh
+          copr-cli build composia \
+            --nowait \
+            --enable-net on \
+            --exclude-chroot fedora-42-riscv64 \
+            dist/copr-rpmbuild/SRPMS/*.src.rpm
+
   docker-web:
     runs-on: docker-amd64-dind
     uses: ./.forgejo/workflows/reusable-docker-publish.yaml
