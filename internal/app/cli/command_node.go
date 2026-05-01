@@ -37,14 +37,14 @@ func (application *app) runNodeStats(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	stats := response.Msg.GetStats()
 	if stats == nil {
 		return fmt.Errorf("docker stats for node %q were not found", args[0])
 	}
-	return writeKV(application.out, [][2]string{
+	return application.writeKV([][2]string{
 		{"containers_total", uintText(stats.GetContainersTotal())},
 		{"containers_running", uintText(stats.GetContainersRunning())},
 		{"containers_stopped", uintText(stats.GetContainersStopped())},
@@ -66,7 +66,7 @@ func (application *app) runNodeList(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	rows := make([][]string, 0, len(response.Msg.GetNodes()))
@@ -79,7 +79,7 @@ func (application *app) runNodeList(args []string) error {
 			node.GetLastHeartbeat(),
 		})
 	}
-	return writeTable(application.out, []string{"NODE", "NAME", "ENABLED", "ONLINE", "LAST_HEARTBEAT"}, rows)
+	return application.writeTable([]string{"NODE", "NAME", "ENABLED", "ONLINE", "LAST_HEARTBEAT"}, rows)
 }
 
 func (application *app) runNodeGet(args []string) error {
@@ -90,7 +90,7 @@ func (application *app) runNodeGet(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	node := response.Msg.GetNode()
@@ -100,7 +100,7 @@ func (application *app) runNodeGet(args []string) error {
 	caddySyncEnabled, caddySyncReason := capabilityText(node.GetActions().GetCaddySync())
 	caddyReloadEnabled, caddyReloadReason := capabilityText(node.GetActions().GetCaddyReload())
 	rusticEnabled, rusticReason := capabilityText(node.GetActions().GetRusticMaintenance())
-	return writeKV(application.out, [][2]string{
+	return application.writeKV([][2]string{
 		{"node_id", node.GetNodeId()},
 		{"display_name", node.GetDisplayName()},
 		{"enabled", boolText(node.GetEnabled())},
@@ -130,18 +130,17 @@ func (application *app) runNodeTasks(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	rows := make([][]string, 0, len(response.Msg.GetTasks()))
 	for _, task := range response.Msg.GetTasks() {
 		rows = append(rows, []string{task.GetTaskId(), task.GetType(), task.GetStatus(), task.GetServiceName(), task.GetNodeId(), task.GetCreatedAt()})
 	}
-	if err := writeTable(application.out, []string{"TASK", "TYPE", "STATUS", "SERVICE", "NODE", "CREATED"}, rows); err != nil {
+	if err := application.writeTable([]string{"TASK", "TYPE", "STATUS", "SERVICE", "NODE", "CREATED"}, rows); err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(application.out, "total_count: %d\n", response.Msg.GetTotalCount())
-	return err
+	return application.writeCount("total_count", response.Msg.GetTotalCount())
 }
 
 func (application *app) runNodeReloadCaddy(args []string) error {
@@ -178,10 +177,10 @@ func (application *app) runNodePrune(args []string) error {
 }
 
 func (application *app) printTaskID(message proto.Message, taskID string) error {
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(message)
 	}
-	return writeKV(application.out, [][2]string{{"task_id", taskID}})
+	return application.writeKV([][2]string{{"task_id", taskID}})
 }
 
 func (application *app) printTaskIDWithWait(message proto.Message, taskID string, options waitOptions) error {

@@ -39,7 +39,7 @@ func (application *app) runBackupList(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	rows := make([][]string, 0, len(response.Msg.GetBackups()))
@@ -55,11 +55,10 @@ func (application *app) runBackupList(args []string) error {
 			backup.GetFinishedAt(),
 		})
 	}
-	if err := writeTable(application.out, []string{"BACKUP", "TASK", "SERVICE", "NODE", "DATA", "STATUS", "STARTED", "FINISHED"}, rows); err != nil {
+	if err := application.writeTable([]string{"BACKUP", "TASK", "SERVICE", "NODE", "DATA", "STATUS", "STARTED", "FINISHED"}, rows); err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(application.out, "total_count: %d\n", response.Msg.GetTotalCount())
-	return err
+	return application.writeCount("total_count", response.Msg.GetTotalCount())
 }
 
 func (application *app) runBackupGet(args []string) error {
@@ -70,7 +69,7 @@ func (application *app) runBackupGet(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	backup := response.Msg
@@ -80,7 +79,7 @@ func (application *app) runBackupGet(args []string) error {
 		restoreEnabled = backup.GetActions().GetRestore().GetEnabled()
 		restoreReason = backup.GetActions().GetRestore().GetReasonCode()
 	}
-	return writeKV(application.out, [][2]string{
+	return application.writeKV([][2]string{
 		{"backup_id", backup.GetBackupId()},
 		{"task_id", backup.GetTaskId()},
 		{"service_name", backup.GetServiceName()},

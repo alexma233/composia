@@ -59,7 +59,7 @@ func (application *app) runConfigGet(args []string) error {
 	for _, key := range keys {
 		pairs = append(pairs, [2]string{key, cfg[key]})
 	}
-	return writeKV(application.out, pairs)
+	return application.writeKV(pairs)
 }
 
 func (application *app) runConfigSet(args []string) error {

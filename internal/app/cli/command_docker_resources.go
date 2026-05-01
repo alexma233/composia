@@ -33,18 +33,17 @@ func (application *app) runNetworkList(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	rows := make([][]string, 0, len(response.Msg.GetNetworks()))
 	for _, network := range response.Msg.GetNetworks() {
 		rows = append(rows, []string{network.GetId(), network.GetName(), network.GetDriver(), network.GetScope(), boolText(network.GetInternal()), boolText(network.GetAttachable()), uintText(network.GetContainersCount()), network.GetSubnet(), network.GetGateway()})
 	}
-	if err := writeTable(application.out, []string{"NETWORK", "NAME", "DRIVER", "SCOPE", "INTERNAL", "ATTACHABLE", "CONTAINERS", "SUBNET", "GATEWAY"}, rows); err != nil {
+	if err := application.writeTable([]string{"NETWORK", "NAME", "DRIVER", "SCOPE", "INTERNAL", "ATTACHABLE", "CONTAINERS", "SUBNET", "GATEWAY"}, rows); err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(application.out, "total_count: %d\n", response.Msg.GetTotalCount())
-	return err
+	return application.writeCount("total_count", response.Msg.GetTotalCount())
 }
 
 func (application *app) runNetworkGet(args []string) error {
@@ -56,7 +55,7 @@ func (application *app) runNetworkGet(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	_, err = fmt.Fprintln(application.out, response.Msg.GetRawJson())
@@ -101,18 +100,17 @@ func (application *app) runVolumeList(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	rows := make([][]string, 0, len(response.Msg.GetVolumes()))
 	for _, volume := range response.Msg.GetVolumes() {
 		rows = append(rows, []string{volume.GetName(), volume.GetDriver(), volume.GetScope(), int64Text(volume.GetSizeBytes()), uintText(volume.GetContainersCount()), boolText(volume.GetInUse()), volume.GetMountpoint()})
 	}
-	if err := writeTable(application.out, []string{"VOLUME", "DRIVER", "SCOPE", "SIZE_BYTES", "CONTAINERS", "IN_USE", "MOUNTPOINT"}, rows); err != nil {
+	if err := application.writeTable([]string{"VOLUME", "DRIVER", "SCOPE", "SIZE_BYTES", "CONTAINERS", "IN_USE", "MOUNTPOINT"}, rows); err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(application.out, "total_count: %d\n", response.Msg.GetTotalCount())
-	return err
+	return application.writeCount("total_count", response.Msg.GetTotalCount())
 }
 
 func (application *app) runVolumeGet(args []string) error {
@@ -124,7 +122,7 @@ func (application *app) runVolumeGet(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	_, err = fmt.Fprintln(application.out, response.Msg.GetRawJson())
@@ -169,18 +167,17 @@ func (application *app) runImageList(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	rows := make([][]string, 0, len(response.Msg.GetImages()))
 	for _, image := range response.Msg.GetImages() {
 		rows = append(rows, []string{image.GetId(), strings.Join(image.GetRepoTags(), ","), int64Text(image.GetSize()), image.GetCreated(), image.GetArchitecture(), image.GetOs(), uintText(image.GetContainersCount()), boolText(image.GetIsDangling())})
 	}
-	if err := writeTable(application.out, []string{"IMAGE", "TAGS", "SIZE_BYTES", "CREATED", "ARCH", "OS", "CONTAINERS", "DANGLING"}, rows); err != nil {
+	if err := application.writeTable([]string{"IMAGE", "TAGS", "SIZE_BYTES", "CREATED", "ARCH", "OS", "CONTAINERS", "DANGLING"}, rows); err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(application.out, "total_count: %d\n", response.Msg.GetTotalCount())
-	return err
+	return application.writeCount("total_count", response.Msg.GetTotalCount())
 }
 
 func (application *app) runImageGet(args []string) error {
@@ -192,7 +189,7 @@ func (application *app) runImageGet(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	_, err = fmt.Fprintln(application.out, response.Msg.GetRawJson())

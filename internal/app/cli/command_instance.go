@@ -32,7 +32,7 @@ func (application *app) runInstanceList(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	rows := make([][]string, 0, len(response.Msg.GetInstances()))
@@ -45,7 +45,7 @@ func (application *app) runInstanceList(args []string) error {
 			instance.GetUpdatedAt(),
 		})
 	}
-	return writeTable(application.out, []string{"SERVICE", "NODE", "STATUS", "DECLARED", "UPDATED"}, rows)
+	return application.writeTable([]string{"SERVICE", "NODE", "STATUS", "DECLARED", "UPDATED"}, rows)
 }
 
 func (application *app) runInstanceGet(args []string) error {
@@ -61,7 +61,7 @@ func (application *app) runInstanceGet(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	if response.Msg.GetInstance() == nil {
@@ -114,7 +114,7 @@ func (application *app) runInstanceBackup(args []string) error {
 }
 
 func (application *app) printInstanceDetail(instance *controllerv1.ServiceInstanceDetail) error {
-	if err := writeKV(application.out, [][2]string{
+	if err := application.writeKV([][2]string{
 		{"service_name", instance.GetServiceName()},
 		{"node_id", instance.GetNodeId()},
 		{"runtime_status", instance.GetRuntimeStatus()},
@@ -142,7 +142,7 @@ func (application *app) printInstanceDetail(instance *controllerv1.ServiceInstan
 			container.GetComposeService(),
 		})
 	}
-	return writeTable(application.out, []string{"CONTAINER", "NAME", "IMAGE", "STATE", "STATUS", "PROJECT", "SERVICE"}, rows)
+	return application.writeTable([]string{"CONTAINER", "NAME", "IMAGE", "STATE", "STATUS", "PROJECT", "SERVICE"}, rows)
 }
 
 func instanceActionFromName(name string) (controllerv1.ServiceInstanceAction, error) {

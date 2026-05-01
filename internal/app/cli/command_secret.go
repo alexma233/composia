@@ -30,7 +30,7 @@ func (application *app) runSecretGet(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	_, err = fmt.Fprint(application.out, response.Msg.GetContent())
@@ -68,7 +68,7 @@ func (application *app) runSecretEdit(args []string) error {
 	if err != nil {
 		return repoWriteError(err)
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	return application.printRepoWriteResult(repoWriteResult{
@@ -104,7 +104,7 @@ func (application *app) runSecretUpdate(args []string) error {
 	if err != nil {
 		return repoWriteError(err)
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	return application.printRepoWriteResult(repoWriteResult{

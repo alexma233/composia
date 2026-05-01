@@ -25,11 +25,21 @@ const (
 	envAccessToken    = "COMPOSIA_ACCESS_TOKEN"
 )
 
+type outputMode string
+
+const (
+	outputModeHuman outputMode = "human"
+	outputModeJSON  outputMode = "json"
+	outputModeTerse outputMode = "terse"
+)
+
 type globalConfig struct {
 	addr      string
 	token     string
 	tokenFile string
+	output    outputMode
 	json      bool
+	terse     bool
 	help      bool
 }
 
@@ -86,6 +96,10 @@ func Run(ctx context.Context, args []string, out io.Writer, errOut io.Writer) er
 	if rest[0] == "completion" {
 		application := &app{ctx: ctx, out: out, errOut: errOut, cfg: cfg}
 		return application.runCompletion(rest[1:])
+	}
+	if rest[0] == "skills" {
+		application := &app{ctx: ctx, out: out, errOut: errOut, cfg: cfg}
+		return application.runSkills(rest[1:])
 	}
 	if rest[0] == "config" {
 		application := &app{ctx: ctx, out: out, errOut: errOut, cfg: cfg}
@@ -171,7 +185,9 @@ Global flags:
   --addr string        controller base URL (or COMPOSIA_CONTROLLER_ADDR)
   --token string       controller access token (or COMPOSIA_ACCESS_TOKEN)
   --token-file string  file containing the controller access token
+  --output mode        output mode: human, json, terse (default human)
   --json              print protobuf JSON for unary RPCs
+  --terse             print compact text for coding agents and scripts
 
 Commands:
   system status|reload
@@ -187,6 +203,7 @@ Commands:
   rustic init|forget|prune
   repo head|files|get|edit|update|history|sync|validate
   secret get|edit|update
+  skills list|show
   config get|set|unset|path
   completion bash|zsh|fish
   version
@@ -273,6 +290,9 @@ var commandUsages = map[string]string{
 	"secret get":         "usage: composia secret get <service> <file>\n",
 	"secret edit":        "usage: composia secret edit [--message text] <service> <file>\n",
 	"secret update":      "usage: composia secret update --file file [--message text] <service> <file>\n",
+	"skills":             "usage: composia skills <list|show>\n",
+	"skills list":        "usage: composia skills list\n",
+	"skills show":        "usage: composia skills show <skill>\n",
 	"config":             "usage: composia config <get|set|unset|path>\n",
 	"config get":         "usage: composia config get [key]\n",
 	"config set":         "usage: composia config set <addr|token_file> <value>\n",
@@ -313,18 +333,37 @@ func PrintCommandUsage(w io.Writer, args []string) {
 }
 
 func parseGlobalFlags(args []string) (globalConfig, []string, error) {
-	var cfg globalConfig
+	cfg := globalConfig{output: outputModeHuman}
 	fs := flag.NewFlagSet("composia", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	fs.StringVar(&cfg.addr, "addr", "", "controller base URL")
 	fs.StringVar(&cfg.token, "token", "", "controller access token")
 	fs.StringVar(&cfg.tokenFile, "token-file", "", "controller access token file")
+	output := fs.String("output", string(outputModeHuman), "output mode: human, json, terse")
 	fs.BoolVar(&cfg.json, "json", false, "print JSON")
+	fs.BoolVar(&cfg.terse, "terse", false, "print compact text")
 	fs.BoolVar(&cfg.help, "help", false, "print usage")
 	fs.BoolVar(&cfg.help, "h", false, "print usage")
 	if err := fs.Parse(args); err != nil {
 		return globalConfig{}, nil, err
 	}
+	mode := outputMode(strings.TrimSpace(*output))
+	switch mode {
+	case "", outputModeHuman:
+		mode = outputModeHuman
+	case outputModeJSON, outputModeTerse:
+	default:
+		return globalConfig{}, nil, fmt.Errorf("unknown output mode %q", *output)
+	}
+	if cfg.json {
+		mode = outputModeJSON
+	}
+	if cfg.terse {
+		mode = outputModeTerse
+	}
+	cfg.output = mode
+	cfg.json = mode == outputModeJSON
+	cfg.terse = mode == outputModeTerse
 	return cfg, fs.Args(), nil
 }
 
@@ -396,7 +435,7 @@ func (application *app) configureClient() error {
 }
 
 func (application *app) printMessage(message proto.Message) error {
-	if !application.cfg.json {
+	if !application.isJSONOutput() {
 		return fmt.Errorf("human output is not implemented for %T", message)
 	}
 	data, err := protojson.MarshalOptions{Multiline: true, Indent: "  ", UseProtoNames: true}.Marshal(message)
@@ -408,14 +447,22 @@ func (application *app) printMessage(message proto.Message) error {
 }
 
 func (application *app) printTaskAction(response *controllerv1.TaskActionResponse) error {
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response)
 	}
-	return writeKV(application.out, [][2]string{
+	return application.writeKV([][2]string{
 		{"task_id", response.GetTaskId()},
 		{"status", response.GetStatus()},
 		{"repo_revision", response.GetRepoRevision()},
 	})
+}
+
+func (application *app) isJSONOutput() bool {
+	return application.cfg.output == outputModeJSON || application.cfg.json
+}
+
+func (application *app) isTerseOutput() bool {
+	return application.cfg.output == outputModeTerse || application.cfg.terse
 }
 
 func newRequest[T any](message *T) *connect.Request[T] {

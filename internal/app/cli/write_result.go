@@ -15,7 +15,7 @@ type repoWriteResult struct {
 }
 
 func (application *app) printRepoWriteResult(result repoWriteResult) error {
-	return writeKV(application.out, [][2]string{
+	return application.writeKV([][2]string{
 		{"commit_id", result.commitID},
 		{"sync_status", result.syncStatus},
 		{"push_error", result.pushError},

@@ -21,7 +21,7 @@ func (application *app) runSystem(args []string) error {
 		if err != nil {
 			return err
 		}
-		if application.cfg.json {
+		if application.isJSONOutput() {
 			return application.printMessage(response.Msg)
 		}
 		return application.printSystemStatus(response)
@@ -33,10 +33,10 @@ func (application *app) runSystem(args []string) error {
 		if err != nil {
 			return err
 		}
-		if application.cfg.json {
+		if application.isJSONOutput() {
 			return application.printMessage(response.Msg)
 		}
-		return writeKV(application.out, [][2]string{{"accepted", boolText(response.Msg.GetAccepted())}})
+		return application.writeKV([][2]string{{"accepted", boolText(response.Msg.GetAccepted())}})
 	default:
 		return fmt.Errorf("unknown system command %q", args[0])
 	}
@@ -48,7 +48,7 @@ func (application *app) printSystemStatus(response *connect.Response[controllerv
 	if message.GetNow() != nil {
 		now = message.GetNow().AsTime().Format(time.RFC3339)
 	}
-	return writeKV(application.out, [][2]string{
+	return application.writeKV([][2]string{
 		{"version", message.GetVersion()},
 		{"now", now},
 		{"configured_node_count", uint64Text(message.GetConfiguredNodeCount())},

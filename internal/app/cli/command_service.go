@@ -40,7 +40,7 @@ func (application *app) runServiceList(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	rows := make([][]string, 0, len(response.Msg.GetServices()))
@@ -55,11 +55,10 @@ func (application *app) runServiceList(args []string) error {
 			service.GetUpdatedAt(),
 		})
 	}
-	if err := writeTable(application.out, []string{"NAME", "DECLARED", "STATUS", "INSTANCES", "RUNNING", "TARGETS", "UPDATED"}, rows); err != nil {
+	if err := application.writeTable([]string{"NAME", "DECLARED", "STATUS", "INSTANCES", "RUNNING", "TARGETS", "UPDATED"}, rows); err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(application.out, "total_count: %d\n", response.Msg.GetTotalCount())
-	return err
+	return application.writeCount("total_count", response.Msg.GetTotalCount())
 }
 
 func (application *app) runServiceGet(args []string) error {
@@ -76,7 +75,7 @@ func (application *app) runServiceGet(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	return application.printServiceDetail(response.Msg)
@@ -142,7 +141,7 @@ func (application *app) runServiceMigrate(args []string) error {
 }
 
 func (application *app) printServiceDetail(service *controllerv1.GetServiceResponse) error {
-	if err := writeKV(application.out, [][2]string{
+	if err := application.writeKV([][2]string{
 		{"name", service.GetName()},
 		{"runtime_status", service.GetRuntimeStatus()},
 		{"updated_at", service.GetUpdatedAt()},
@@ -170,7 +169,7 @@ func (application *app) printServiceDetail(service *controllerv1.GetServiceRespo
 			instance.GetUpdatedAt(),
 		})
 	}
-	return writeTable(application.out, []string{"SERVICE", "NODE", "STATUS", "DECLARED", "CONTAINERS", "UPDATED"}, rows)
+	return application.writeTable([]string{"SERVICE", "NODE", "STATUS", "DECLARED", "CONTAINERS", "UPDATED"}, rows)
 }
 
 func serviceActionFromName(name string) (controllerv1.ServiceAction, error) {

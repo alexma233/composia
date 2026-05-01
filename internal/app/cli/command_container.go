@@ -68,7 +68,7 @@ func (application *app) runContainerList(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	rows := make([][]string, 0, len(response.Msg.GetContainers()))
@@ -83,11 +83,10 @@ func (application *app) runContainerList(args []string) error {
 			strings.Join(container.GetNetworks(), ","),
 		})
 	}
-	if err := writeTable(application.out, []string{"CONTAINER", "NAME", "IMAGE", "STATE", "STATUS", "PORTS", "NETWORKS"}, rows); err != nil {
+	if err := application.writeTable([]string{"CONTAINER", "NAME", "IMAGE", "STATE", "STATUS", "PORTS", "NETWORKS"}, rows); err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(application.out, "total_count: %d\n", response.Msg.GetTotalCount())
-	return err
+	return application.writeCount("total_count", response.Msg.GetTotalCount())
 }
 
 func (application *app) runContainerGet(args []string) error {
@@ -106,7 +105,7 @@ func (application *app) runContainerGet(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	_, err = fmt.Fprintln(application.out, response.Msg.GetRawJson())
@@ -132,7 +131,7 @@ func (application *app) runContainerLogs(args []string) error {
 		return err
 	}
 	for stream.Receive() {
-		if application.cfg.json {
+		if application.isJSONOutput() {
 			if err := application.printMessage(stream.Msg()); err != nil {
 				return err
 			}
@@ -234,7 +233,7 @@ func (application *app) runContainerExec(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		if err := application.printMessage(response.Msg); err != nil {
 			return err
 		}
@@ -276,7 +275,7 @@ func (application *app) runContainerExecTTY(nodeID, containerID string, command 
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	wsURL, err := containerExecWebsocketURL(application.cfg.addr, response.Msg.GetWebsocketPath())

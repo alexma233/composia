@@ -71,7 +71,7 @@ func (application *app) runRepoEdit(args []string) error {
 	if err != nil {
 		return repoWriteError(err)
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	return application.printRepoWriteResult(repoWriteResult{
@@ -107,7 +107,7 @@ func (application *app) runRepoUpdate(args []string) error {
 	if err != nil {
 		return repoWriteError(err)
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	return application.printRepoWriteResult(repoWriteResult{
@@ -126,11 +126,11 @@ func (application *app) runRepoHead(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	head := response.Msg
-	return writeKV(application.out, [][2]string{
+	return application.writeKV([][2]string{
 		{"head_revision", head.GetHeadRevision()},
 		{"branch", head.GetBranch()},
 		{"has_remote", boolText(head.GetHasRemote())},
@@ -158,7 +158,7 @@ func (application *app) runRepoFiles(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	rows := make([][]string, 0, len(response.Msg.GetEntries()))
@@ -169,7 +169,7 @@ func (application *app) runRepoFiles(args []string) error {
 		}
 		rows = append(rows, []string{kind, entry.GetPath(), entry.GetName(), int64Text(entry.GetSize())})
 	}
-	return writeTable(application.out, []string{"TYPE", "PATH", "NAME", "SIZE"}, rows)
+	return application.writeTable([]string{"TYPE", "PATH", "NAME", "SIZE"}, rows)
 }
 
 func (application *app) runRepoGet(args []string) error {
@@ -180,7 +180,7 @@ func (application *app) runRepoGet(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	_, err = fmt.Fprint(application.out, response.Msg.GetContent())
@@ -201,21 +201,17 @@ func (application *app) runRepoHistory(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	rows := make([][]string, 0, len(response.Msg.GetCommits()))
 	for _, commit := range response.Msg.GetCommits() {
 		rows = append(rows, []string{commit.GetCommitId(), commit.GetSubject(), commit.GetCommittedAt()})
 	}
-	if err := writeTable(application.out, []string{"COMMIT", "SUBJECT", "COMMITTED"}, rows); err != nil {
+	if err := application.writeTable([]string{"COMMIT", "SUBJECT", "COMMITTED"}, rows); err != nil {
 		return err
 	}
-	if response.Msg.GetNextCursor() != "" {
-		_, err = fmt.Fprintf(application.out, "next_cursor: %s\n", response.Msg.GetNextCursor())
-		return err
-	}
-	return nil
+	return application.writeCursor(response.Msg.GetNextCursor())
 }
 
 func (application *app) runRepoSync(args []string) error {
@@ -226,11 +222,11 @@ func (application *app) runRepoSync(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	sync := response.Msg
-	return writeKV(application.out, [][2]string{
+	return application.writeKV([][2]string{
 		{"head_revision", sync.GetHeadRevision()},
 		{"branch", sync.GetBranch()},
 		{"sync_status", sync.GetSyncStatus()},
@@ -248,7 +244,7 @@ func (application *app) runRepoValidate(args []string) error {
 		return err
 	}
 	errors := response.Msg.GetErrors()
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		if err := application.printMessage(response.Msg); err != nil {
 			return err
 		}
@@ -265,7 +261,7 @@ func (application *app) runRepoValidate(args []string) error {
 	for _, validationError := range errors {
 		rows = append(rows, []string{validationError.GetPath(), uintText(validationError.GetLine()), validationError.GetMessage()})
 	}
-	if err := writeTable(application.out, []string{"PATH", "LINE", "MESSAGE"}, rows); err != nil {
+	if err := application.writeTable([]string{"PATH", "LINE", "MESSAGE"}, rows); err != nil {
 		return err
 	}
 	return fmt.Errorf("repo validation failed with %d error(s)", len(errors))

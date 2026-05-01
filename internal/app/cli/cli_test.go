@@ -26,8 +26,30 @@ func TestParseGlobalFlags(t *testing.T) {
 	if !cfg.json {
 		t.Fatalf("json = false")
 	}
+	if cfg.output != outputModeJSON {
+		t.Fatalf("output = %q", cfg.output)
+	}
 	if strings.Join(rest, " ") != "service list" {
 		t.Fatalf("rest = %v", rest)
+	}
+}
+
+func TestParseGlobalFlagsTerse(t *testing.T) {
+	cfg, rest, err := parseGlobalFlags([]string{"--output", "json", "--terse", "service", "list"})
+	if err != nil {
+		t.Fatalf("parseGlobalFlags returned error: %v", err)
+	}
+	if cfg.output != outputModeTerse || !cfg.terse || cfg.json {
+		t.Fatalf("cfg = %+v", cfg)
+	}
+	if strings.Join(rest, " ") != "service list" {
+		t.Fatalf("rest = %v", rest)
+	}
+}
+
+func TestParseGlobalFlagsRejectsUnknownOutput(t *testing.T) {
+	if _, _, err := parseGlobalFlags([]string{"--output", "xml", "service", "list"}); err == nil {
+		t.Fatalf("expected error")
 	}
 }
 
@@ -127,6 +149,25 @@ func TestWriteTable(t *testing.T) {
 	}
 }
 
+func TestAppTerseOutput(t *testing.T) {
+	var out bytes.Buffer
+	application := &app{out: &out, cfg: globalConfig{output: outputModeTerse, terse: true}}
+	if err := application.writeTable([]string{"NAME", "STATUS"}, [][]string{{"alpha", "running"}}); err != nil {
+		t.Fatalf("writeTable returned error: %v", err)
+	}
+	if err := application.writeKV([][2]string{{"task_id", "tsk_1"}, {"empty", ""}}); err != nil {
+		t.Fatalf("writeKV returned error: %v", err)
+	}
+	if err := application.writeCount("total_count", 1); err != nil {
+		t.Fatalf("writeCount returned error: %v", err)
+	}
+	got := out.String()
+	want := "alpha running\ntask_id=tsk_1\n"
+	if got != want {
+		t.Fatalf("terse output = %q, want %q", got, want)
+	}
+}
+
 func TestRunVersionDoesNotRequireControllerConfig(t *testing.T) {
 	var out bytes.Buffer
 	var errOut bytes.Buffer
@@ -185,6 +226,7 @@ func TestUsageIncludesWaitAndNewCommands(t *testing.T) {
 		"image list|get|remove",
 		"rustic init|forget|prune",
 		"container list|get|logs|start|stop|restart|remove|exec",
+		"skills list|show",
 		"completion bash|zsh|fish",
 	} {
 		if !strings.Contains(usage, want) {
@@ -231,6 +273,38 @@ func TestCompletionDoesNotRequireControllerConfig(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Fatalf("completion missing %q:\n%s", want, got)
 		}
+	}
+	if errOut.Len() != 0 {
+		t.Fatalf("stderr = %q", errOut.String())
+	}
+}
+
+func TestSkillsDoesNotRequireControllerConfig(t *testing.T) {
+	var out bytes.Buffer
+	var errOut bytes.Buffer
+	if err := Run(context.Background(), []string{"--terse", "skills", "list"}, &out, &errOut); err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+	got := out.String()
+	if !strings.Contains(got, "coding-agent ") {
+		t.Fatalf("skills list missing coding-agent:\n%s", got)
+	}
+	if strings.Contains(got, "SKILL") {
+		t.Fatalf("terse skills list included header:\n%s", got)
+	}
+	if errOut.Len() != 0 {
+		t.Fatalf("stderr = %q", errOut.String())
+	}
+}
+
+func TestSkillsShowDoesNotRequireControllerConfig(t *testing.T) {
+	var out bytes.Buffer
+	var errOut bytes.Buffer
+	if err := Run(context.Background(), []string{"skills", "show", "coding-agent"}, &out, &errOut); err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+	if !strings.Contains(out.String(), "Use --terse") {
+		t.Fatalf("skills show output = %q", out.String())
 	}
 	if errOut.Len() != 0 {
 		t.Fatalf("stderr = %q", errOut.String())

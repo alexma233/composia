@@ -67,8 +67,8 @@ func (application *app) waitTask(taskID string, options waitOptions) error {
 		}
 		status := response.Msg.GetStatus()
 		if isTerminalStatus(status) {
-			if !application.cfg.json {
-				if err := writeKV(application.out, [][2]string{{"final_status", status}}); err != nil {
+			if !application.isJSONOutput() {
+				if err := application.writeKV([][2]string{{"final_status", status}}); err != nil {
 					return err
 				}
 			}
@@ -91,7 +91,7 @@ func (application *app) streamTaskLogs(ctx context.Context, taskID string) error
 		return err
 	}
 	for stream.Receive() {
-		if application.cfg.json {
+		if application.isJSONOutput() {
 			if err := application.printMessage(stream.Msg()); err != nil {
 				return err
 			}

@@ -69,7 +69,7 @@ func (application *app) runTaskList(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	rows := make([][]string, 0, len(response.Msg.GetTasks()))
@@ -83,11 +83,10 @@ func (application *app) runTaskList(args []string) error {
 			task.GetCreatedAt(),
 		})
 	}
-	if err := writeTable(application.out, []string{"TASK", "TYPE", "STATUS", "SERVICE", "NODE", "CREATED"}, rows); err != nil {
+	if err := application.writeTable([]string{"TASK", "TYPE", "STATUS", "SERVICE", "NODE", "CREATED"}, rows); err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(application.out, "total_count: %d\n", response.Msg.GetTotalCount())
-	return err
+	return application.writeCount("total_count", response.Msg.GetTotalCount())
 }
 
 func (application *app) runTaskGet(args []string) error {
@@ -98,7 +97,7 @@ func (application *app) runTaskGet(args []string) error {
 	if err != nil {
 		return err
 	}
-	if application.cfg.json {
+	if application.isJSONOutput() {
 		return application.printMessage(response.Msg)
 	}
 	return application.printTaskDetail(response.Msg)
@@ -157,7 +156,7 @@ func (application *app) runTaskResolve(decision string, args []string) error {
 }
 
 func (application *app) printTaskDetail(task *controllerv1.GetTaskResponse) error {
-	if err := writeKV(application.out, [][2]string{
+	if err := application.writeKV([][2]string{
 		{"task_id", task.GetTaskId()},
 		{"type", task.GetType()},
 		{"source", task.GetSource()},
@@ -187,5 +186,5 @@ func (application *app) printTaskDetail(task *controllerv1.GetTaskResponse) erro
 	for _, step := range steps {
 		rows = append(rows, []string{step.GetStepName(), step.GetStatus(), step.GetStartedAt(), step.GetFinishedAt()})
 	}
-	return writeTable(application.out, []string{"STEP", "STATUS", "STARTED", "FINISHED"}, rows)
+	return application.writeTable([]string{"STEP", "STATUS", "STARTED", "FINISHED"}, rows)
 }
