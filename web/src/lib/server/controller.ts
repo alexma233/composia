@@ -45,7 +45,6 @@ export type SystemStatus = {
   version: string;
   configuredNodeCount: number;
   onlineNodeCount: number;
-  controllerAddr: string;
   repoDir: string;
   stateDir: string;
   logDir: string;

@@ -7,13 +7,10 @@
 | 配置项 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | `listen_addr` | string | 是 | Controller 监听地址，如 `:7001` |
-| `controller_addr` | string | 是 | Agent 和 Web UI 访问 Controller 的地址 |
 | `repo_dir` | string | 是 | Git 工作树目录，保存服务定义 |
 | `state_dir` | string | 是 | SQLite 和运行时状态目录 |
 | `log_dir` | string | 是 | 任务日志持久化目录 |
 | `nodes` | array | 是 | 顶层字段必须出现，即使为空数组也要写出 |
-
-如果 `controller.controller_addr` 以 `http://` 开头，只应在受信任的反向代理负责 TLS 终止，或 Controller 仅暴露在受信任的本地网络内时使用。不要在不受信任的明文网络上传输 bearer token。
 
 ## Controller 访问 token（`access_tokens`）
 
@@ -74,7 +71,6 @@ nodes:
 ```yaml
 controller:
   listen_addr: ":7001"
-  controller_addr: "http://controller:7001"
   repo_dir: "/data/repo-controller"
   state_dir: "/data/state-controller"
   log_dir: "/data/logs"

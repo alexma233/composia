@@ -173,10 +173,6 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 	if err := repo.ValidateWorkingTree(cfg.RepoDir); err != nil {
 		return err
 	}
-	if strings.HasPrefix(strings.ToLower(cfg.ControllerAddr), "http://") {
-		log.Printf("warning: controller.controller_addr uses plain HTTP (%s); only use this behind a trusted reverse proxy or on a trusted local network", cfg.ControllerAddr)
-	}
-
 	db, err := store.Open(cfg.StateDir)
 	if err != nil {
 		return err
@@ -1522,7 +1518,6 @@ func (server *systemServer) GetSystemStatus(ctx context.Context, _ *connect.Requ
 		Now:                 timestamppb.Now(),
 		ConfiguredNodeCount: configured,
 		OnlineNodeCount:     online,
-		ControllerAddr:      server.cfg.ControllerAddr,
 		RepoDir:             server.cfg.RepoDir,
 		StateDir:            server.cfg.StateDir,
 		LogDir:              server.cfg.LogDir,
@@ -1542,8 +1537,7 @@ func (server *systemServer) ReloadControllerConfig(ctx context.Context, _ *conne
 
 func (server *systemServer) GetCurrentConfig(ctx context.Context, _ *connect.Request[controllerv1.GetCurrentConfigRequest]) (*connect.Response[controllerv1.GetCurrentConfigResponse], error) {
 	response := &controllerv1.GetCurrentConfigResponse{
-		ListenAddr:     server.cfg.ListenAddr,
-		ControllerAddr: server.cfg.ControllerAddr,
+		ListenAddr: server.cfg.ListenAddr,
 	}
 
 	if server.cfg.Git != nil {

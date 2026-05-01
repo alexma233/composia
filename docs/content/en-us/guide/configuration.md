@@ -37,7 +37,6 @@ For service-side configuration, see [Service Definition](./service-definition).
 controller:
   # Network configuration
   listen_addr: ":7001"
-  controller_addr: "http://controller:7001"
 
   # Directory configuration
   repo_dir: "/data/repo-controller"

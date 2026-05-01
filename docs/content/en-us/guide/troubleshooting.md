@@ -7,7 +7,7 @@ Common issues and how to fix them.
 **Symptoms:** Agent container keeps restarting, node shows as offline in the Web UI.
 
 **Check:**
-- Is `controller_addr` correct in `config/config.yaml`? The agent must be able to reach the controller over the network.
+- Is `agent.controller_addr` correct in `config/config.yaml`? The agent must be able to reach the controller over the network.
 - Do the `controller.nodes[].token` and `agent.token` values match?
 - Network connectivity between the agent host and controller host — check firewalls and DNS.
 - Is the controller running? Check with `docker compose ps`.

@@ -7,13 +7,10 @@ This page documents the `controller` section in `config/config.yaml`.
 | Configuration | Type | Required | Description |
 |--------------|------|----------|-------------|
 | `listen_addr` | string | Yes | Controller listen address, e.g. `:7001` |
-| `controller_addr` | string | Yes | Address used by Agents and Web UI to access the Controller |
 | `repo_dir` | string | Yes | Git working tree directory for storing service definitions |
 | `state_dir` | string | Yes | SQLite and runtime state directory |
 | `log_dir` | string | Yes | Task logs persistence directory |
 | `nodes` | array | Yes | Must be present even if empty |
-
-If `controller.controller_addr` starts with `http://`, use it only when TLS is terminated by a trusted reverse proxy or when the controller is reachable only on a trusted local network. Do not expose bearer tokens over an untrusted cleartext network.
 
 ## Controller Access Tokens (`access_tokens`)
 
@@ -74,7 +71,6 @@ nodes:
 ```yaml
 controller:
   listen_addr: ":7001"
-  controller_addr: "http://controller:7001"
   repo_dir: "/data/repo-controller"
   state_dir: "/data/state-controller"
   log_dir: "/data/logs"

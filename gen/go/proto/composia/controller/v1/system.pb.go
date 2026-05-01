@@ -70,14 +70,12 @@ type GetSystemStatusResponse struct {
 	ConfiguredNodeCount uint64 `protobuf:"varint,3,opt,name=configured_node_count,json=configuredNodeCount,proto3" json:"configured_node_count,omitempty"`
 	// online_node_count is the number of nodes with a recent heartbeat.
 	OnlineNodeCount uint64 `protobuf:"varint,4,opt,name=online_node_count,json=onlineNodeCount,proto3" json:"online_node_count,omitempty"`
-	// controller_addr is the configured public controller address.
-	ControllerAddr string `protobuf:"bytes,5,opt,name=controller_addr,json=controllerAddr,proto3" json:"controller_addr,omitempty"`
 	// repo_dir is the controller-side desired state repository path.
-	RepoDir string `protobuf:"bytes,6,opt,name=repo_dir,json=repoDir,proto3" json:"repo_dir,omitempty"`
+	RepoDir string `protobuf:"bytes,5,opt,name=repo_dir,json=repoDir,proto3" json:"repo_dir,omitempty"`
 	// state_dir is the controller-side persistent state directory.
-	StateDir string `protobuf:"bytes,7,opt,name=state_dir,json=stateDir,proto3" json:"state_dir,omitempty"`
+	StateDir string `protobuf:"bytes,6,opt,name=state_dir,json=stateDir,proto3" json:"state_dir,omitempty"`
 	// log_dir is the controller-side task log directory.
-	LogDir        string `protobuf:"bytes,8,opt,name=log_dir,json=logDir,proto3" json:"log_dir,omitempty"`
+	LogDir        string `protobuf:"bytes,7,opt,name=log_dir,json=logDir,proto3" json:"log_dir,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -138,13 +136,6 @@ func (x *GetSystemStatusResponse) GetOnlineNodeCount() uint64 {
 		return x.OnlineNodeCount
 	}
 	return 0
-}
-
-func (x *GetSystemStatusResponse) GetControllerAddr() string {
-	if x != nil {
-		return x.ControllerAddr
-	}
-	return ""
 }
 
 func (x *GetSystemStatusResponse) GetRepoDir() string {
@@ -293,20 +284,18 @@ type GetCurrentConfigResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// listen_addr is the controller listen address.
 	ListenAddr string `protobuf:"bytes,1,opt,name=listen_addr,json=listenAddr,proto3" json:"listen_addr,omitempty"`
-	// controller_addr is the configured public controller address.
-	ControllerAddr string `protobuf:"bytes,2,opt,name=controller_addr,json=controllerAddr,proto3" json:"controller_addr,omitempty"`
 	// git is the configured Git sync summary for the controller repo.
-	Git *GitConfigSummary `protobuf:"bytes,3,opt,name=git,proto3" json:"git,omitempty"`
+	Git *GitConfigSummary `protobuf:"bytes,2,opt,name=git,proto3" json:"git,omitempty"`
 	// nodes lists configured execution nodes.
-	Nodes []*NodeConfigSummary `protobuf:"bytes,4,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	Nodes []*NodeConfigSummary `protobuf:"bytes,3,rep,name=nodes,proto3" json:"nodes,omitempty"`
 	// access_tokens lists token metadata without returning secret token values.
-	AccessTokens []*AccessTokenSummary `protobuf:"bytes,5,rep,name=access_tokens,json=accessTokens,proto3" json:"access_tokens,omitempty"`
+	AccessTokens []*AccessTokenSummary `protobuf:"bytes,4,rep,name=access_tokens,json=accessTokens,proto3" json:"access_tokens,omitempty"`
 	// dns describes optional DNS integration configuration.
-	Dns *DNSConfigSummary `protobuf:"bytes,6,opt,name=dns,proto3" json:"dns,omitempty"`
+	Dns *DNSConfigSummary `protobuf:"bytes,5,opt,name=dns,proto3" json:"dns,omitempty"`
 	// backup describes optional backup integration configuration.
-	Backup *BackupConfigSummary `protobuf:"bytes,7,opt,name=backup,proto3" json:"backup,omitempty"`
+	Backup *BackupConfigSummary `protobuf:"bytes,6,opt,name=backup,proto3" json:"backup,omitempty"`
 	// secrets describes the active secrets provider configuration.
-	Secrets       *SecretsConfigSummary `protobuf:"bytes,8,opt,name=secrets,proto3" json:"secrets,omitempty"`
+	Secrets       *SecretsConfigSummary `protobuf:"bytes,7,opt,name=secrets,proto3" json:"secrets,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -344,13 +333,6 @@ func (*GetCurrentConfigResponse) Descriptor() ([]byte, []int) {
 func (x *GetCurrentConfigResponse) GetListenAddr() string {
 	if x != nil {
 		return x.ListenAddr
-	}
-	return ""
-}
-
-func (x *GetCurrentConfigResponse) GetControllerAddr() string {
-	if x != nil {
-		return x.ControllerAddr
 	}
 	return ""
 }
@@ -1000,30 +982,28 @@ var File_proto_composia_controller_v1_system_proto protoreflect.FileDescriptor
 const file_proto_composia_controller_v1_system_proto_rawDesc = "" +
 	"\n" +
 	")proto/composia/controller/v1/system.proto\x12\x16composia.controller.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x18\n" +
-	"\x16GetSystemStatusRequest\"\xbb\x02\n" +
+	"\x16GetSystemStatusRequest\"\x92\x02\n" +
 	"\x17GetSystemStatusResponse\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12,\n" +
 	"\x03now\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x03now\x122\n" +
 	"\x15configured_node_count\x18\x03 \x01(\x04R\x13configuredNodeCount\x12*\n" +
-	"\x11online_node_count\x18\x04 \x01(\x04R\x0fonlineNodeCount\x12'\n" +
-	"\x0fcontroller_addr\x18\x05 \x01(\tR\x0econtrollerAddr\x12\x19\n" +
-	"\brepo_dir\x18\x06 \x01(\tR\arepoDir\x12\x1b\n" +
-	"\tstate_dir\x18\a \x01(\tR\bstateDir\x12\x17\n" +
-	"\alog_dir\x18\b \x01(\tR\x06logDir\"\x1f\n" +
+	"\x11online_node_count\x18\x04 \x01(\x04R\x0fonlineNodeCount\x12\x19\n" +
+	"\brepo_dir\x18\x05 \x01(\tR\arepoDir\x12\x1b\n" +
+	"\tstate_dir\x18\x06 \x01(\tR\bstateDir\x12\x17\n" +
+	"\alog_dir\x18\a \x01(\tR\x06logDir\"\x1f\n" +
 	"\x1dReloadControllerConfigRequest\"<\n" +
 	"\x1eReloadControllerConfigResponse\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted\"\x19\n" +
-	"\x17GetCurrentConfigRequest\"\xfb\x03\n" +
+	"\x17GetCurrentConfigRequest\"\xd2\x03\n" +
 	"\x18GetCurrentConfigResponse\x12\x1f\n" +
 	"\vlisten_addr\x18\x01 \x01(\tR\n" +
-	"listenAddr\x12'\n" +
-	"\x0fcontroller_addr\x18\x02 \x01(\tR\x0econtrollerAddr\x12:\n" +
-	"\x03git\x18\x03 \x01(\v2(.composia.controller.v1.GitConfigSummaryR\x03git\x12?\n" +
-	"\x05nodes\x18\x04 \x03(\v2).composia.controller.v1.NodeConfigSummaryR\x05nodes\x12O\n" +
-	"\raccess_tokens\x18\x05 \x03(\v2*.composia.controller.v1.AccessTokenSummaryR\faccessTokens\x12:\n" +
-	"\x03dns\x18\x06 \x01(\v2(.composia.controller.v1.DNSConfigSummaryR\x03dns\x12C\n" +
-	"\x06backup\x18\a \x01(\v2+.composia.controller.v1.BackupConfigSummaryR\x06backup\x12F\n" +
-	"\asecrets\x18\b \x01(\v2,.composia.controller.v1.SecretsConfigSummaryR\asecrets\"\x18\n" +
+	"listenAddr\x12:\n" +
+	"\x03git\x18\x02 \x01(\v2(.composia.controller.v1.GitConfigSummaryR\x03git\x12?\n" +
+	"\x05nodes\x18\x03 \x03(\v2).composia.controller.v1.NodeConfigSummaryR\x05nodes\x12O\n" +
+	"\raccess_tokens\x18\x04 \x03(\v2*.composia.controller.v1.AccessTokenSummaryR\faccessTokens\x12:\n" +
+	"\x03dns\x18\x05 \x01(\v2(.composia.controller.v1.DNSConfigSummaryR\x03dns\x12C\n" +
+	"\x06backup\x18\x06 \x01(\v2+.composia.controller.v1.BackupConfigSummaryR\x06backup\x12F\n" +
+	"\asecrets\x18\a \x01(\v2,.composia.controller.v1.SecretsConfigSummaryR\asecrets\"\x18\n" +
 	"\x16GetCapabilitiesRequest\"]\n" +
 	"\x17GetCapabilitiesResponse\x12B\n" +
 	"\x06global\x18\x01 \x01(\v2*.composia.controller.v1.GlobalCapabilitiesR\x06global\"G\n" +

@@ -14,7 +14,6 @@ func TestLoadControllerRejectsSharedRepoDir(t *testing.T) {
 	content := strings.TrimSpace(`
 controller:
   listen_addr: ":8080"
-  controller_addr: "http://127.0.0.1:8080"
   repo_dir: "/srv/composia/repo"
   state_dir: "/srv/composia/state-controller"
   log_dir: "/srv/composia/logs"
@@ -23,7 +22,6 @@ controller:
       token: "main-token"
 
 agent:
-  controller_addr: "http://127.0.0.1:8080"
   node_id: "main"
   token: "main-token"
   repo_dir: "/srv/composia/repo"
@@ -46,7 +44,6 @@ func TestLoadAgentRejectsUnknownField(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "config.yaml")
 	content := strings.TrimSpace(`
 agent:
-  controller_addr: "http://127.0.0.1:8080"
   node_id: "node-2"
   token: "node-token"
   repo_dir: "/srv/composia/repo"
@@ -109,7 +106,6 @@ func TestLoadControllerRejectsUnknownRusticMainNode(t *testing.T) {
 	content := strings.TrimSpace(`
 controller:
   listen_addr: ":8080"
-  controller_addr: "http://127.0.0.1:8080"
   repo_dir: "/srv/composia/repo"
   state_dir: "/srv/composia/state-controller"
   log_dir: "/srv/composia/logs"
@@ -138,7 +134,6 @@ func TestLoadControllerRejectsInvalidScheduledSpecs(t *testing.T) {
 	content := strings.TrimSpace(`
 controller:
   listen_addr: ":8080"
-  controller_addr: "http://127.0.0.1:8080"
   repo_dir: "/srv/composia/repo"
   state_dir: "/srv/composia/state-controller"
   log_dir: "/srv/composia/logs"
@@ -172,7 +167,6 @@ func TestLoadControllerAcceptsGitAuthUsername(t *testing.T) {
 	content := strings.TrimSpace(`
 controller:
   listen_addr: ":8080"
-  controller_addr: "http://127.0.0.1:8080"
   repo_dir: "/srv/composia/repo"
   state_dir: "/srv/composia/state-controller"
   log_dir: "/srv/composia/logs"
@@ -210,7 +204,6 @@ func TestLoadControllerRejectsDuplicateNodeTokens(t *testing.T) {
 	content := strings.TrimSpace(`
 controller:
   listen_addr: ":8080"
-  controller_addr: "http://127.0.0.1:8080"
   repo_dir: "/srv/composia/repo"
   state_dir: "/srv/composia/state-controller"
   log_dir: "/srv/composia/logs"
@@ -238,7 +231,6 @@ func TestLoadControllerRejectsDuplicateAccessTokens(t *testing.T) {
 	content := strings.TrimSpace(`
 controller:
   listen_addr: ":8080"
-  controller_addr: "http://127.0.0.1:8080"
   repo_dir: "/srv/composia/repo"
   state_dir: "/srv/composia/state-controller"
   log_dir: "/srv/composia/logs"
@@ -269,7 +261,6 @@ func TestLoadControllerRejectsNodeAndAccessTokenCollision(t *testing.T) {
 	content := strings.TrimSpace(`
 controller:
   listen_addr: ":8080"
-  controller_addr: "http://127.0.0.1:8080"
   repo_dir: "/srv/composia/repo"
   state_dir: "/srv/composia/state-controller"
   log_dir: "/srv/composia/logs"

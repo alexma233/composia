@@ -31,14 +31,12 @@ message GetSystemStatusResponse {
   uint64 configured_node_count = 3;
   // online_node_count is the number of nodes with a recent heartbeat.
   uint64 online_node_count = 4;
-  // controller_addr is the configured public controller address.
-  string controller_addr = 5;
   // repo_dir is the controller-side desired state repository path.
-  string repo_dir = 6;
+  string repo_dir = 5;
   // state_dir is the controller-side persistent state directory.
-  string state_dir = 7;
+  string state_dir = 6;
   // log_dir is the controller-side task log directory.
-  string log_dir = 8;
+  string log_dir = 7;
 }
 
 // ReloadControllerConfigRequest requests an in-process controller config reload.
@@ -57,20 +55,18 @@ message GetCurrentConfigRequest {}
 message GetCurrentConfigResponse {
   // listen_addr is the controller listen address.
   string listen_addr = 1;
-  // controller_addr is the configured public controller address.
-  string controller_addr = 2;
   // git is the configured Git sync summary for the controller repo.
-  GitConfigSummary git = 3;
+  GitConfigSummary git = 2;
   // nodes lists configured execution nodes.
-  repeated NodeConfigSummary nodes = 4;
+  repeated NodeConfigSummary nodes = 3;
   // access_tokens lists token metadata without returning secret token values.
-  repeated AccessTokenSummary access_tokens = 5;
+  repeated AccessTokenSummary access_tokens = 4;
   // dns describes optional DNS integration configuration.
-  DNSConfigSummary dns = 6;
+  DNSConfigSummary dns = 5;
   // backup describes optional backup integration configuration.
-  BackupConfigSummary backup = 7;
+  BackupConfigSummary backup = 6;
   // secrets describes the active secrets provider configuration.
-  SecretsConfigSummary secrets = 8;
+  SecretsConfigSummary secrets = 7;
 }
 
 // GetCapabilitiesRequest requests global controller-backed feature availability.

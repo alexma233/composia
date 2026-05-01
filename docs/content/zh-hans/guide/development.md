@@ -181,7 +181,6 @@ docker compose up -d
 # dev/config.controller.yaml
 controller:
   listen_addr: "127.0.0.1:7001"
-  controller_addr: "http://127.0.0.1:7001"
   repo_dir: "/home/alexma/Projects/composia/dev/repo-controller"
   state_dir: "./dev/state-controller"
   log_dir: "./dev/logs"

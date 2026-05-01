@@ -59,7 +59,7 @@ func TestRegisterAccessHandlersKeepsSystemAndServiceBackupCapabilitiesConsistent
 	mux := http.NewServeMux()
 	registerAccessHandlers(
 		mux,
-		&config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}},
+		&config.ControllerConfig{RepoDir: repoDir, StateDir: stateDir, LogDir: filepath.Join(rootDir, "logs"), Nodes: []config.NodeConfig{{ID: "main"}}},
 		db,
 		interceptor,
 		availableNodeIDs,

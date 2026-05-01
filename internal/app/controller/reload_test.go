@@ -10,7 +10,6 @@ import (
 func TestValidateControllerReloadAllowsMutableFields(t *testing.T) {
 	current := baseReloadTestConfig()
 	next := baseReloadTestConfig()
-	next.ControllerAddr = "https://controller.example.test"
 	next.Nodes = append(next.Nodes, config.NodeConfig{ID: "edge", Token: "edge-token"})
 	next.AccessTokens = []config.AccessTokenConfig{{Name: "operator", Token: "operator-token"}}
 
@@ -49,11 +48,10 @@ func TestValidateControllerReloadRejectsRepoDirChange(t *testing.T) {
 
 func baseReloadTestConfig() *config.ControllerConfig {
 	return &config.ControllerConfig{
-		ListenAddr:     "127.0.0.1:7001",
-		ControllerAddr: "http://127.0.0.1:7001",
-		RepoDir:        "/srv/composia/repo",
-		StateDir:       "/var/lib/composia",
-		LogDir:         "/var/log/composia",
-		Nodes:          []config.NodeConfig{{ID: "main", Token: "main-token"}},
+		ListenAddr: "127.0.0.1:7001",
+		RepoDir:    "/srv/composia/repo",
+		StateDir:   "/var/lib/composia",
+		LogDir:     "/var/log/composia",
+		Nodes:      []config.NodeConfig{{ID: "main", Token: "main-token"}},
 	}
 }

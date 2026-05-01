@@ -43,7 +43,6 @@ Create a minimal `config/config.yaml`:
 ```yaml
 controller:
   listen_addr: ":7001"
-  controller_addr: "http://controller:7001"
   repo_dir: "/data/repo-controller"
   state_dir: "/data/state-controller"
   log_dir: "/data/logs"

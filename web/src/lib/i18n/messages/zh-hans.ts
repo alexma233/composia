@@ -434,10 +434,6 @@ export const zhHans = {
     controller: {
       title: "控制器",
       version: "版本",
-      controllerAddress: "控制器地址",
-      plainHttpTitle: "控制器地址正在使用明文 HTTP",
-      plainHttpDescription:
-        "当前控制器地址使用明文 HTTP。只应在受信任的反向代理之后，或受信任的本地网络内使用。",
       repoDir: "仓库目录",
       stateDir: "状态目录",
       logDir: "日志目录",

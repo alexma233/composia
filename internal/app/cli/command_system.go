@@ -53,7 +53,6 @@ func (application *app) printSystemStatus(response *connect.Response[controllerv
 		{"now", now},
 		{"configured_node_count", uint64Text(message.GetConfiguredNodeCount())},
 		{"online_node_count", uint64Text(message.GetOnlineNodeCount())},
-		{"controller_addr", message.GetControllerAddr()},
 		{"repo_dir", message.GetRepoDir()},
 		{"state_dir", message.GetStateDir()},
 		{"log_dir", message.GetLogDir()},

@@ -453,10 +453,6 @@ export const enUS = {
     controller: {
       title: "Controller",
       version: "Version",
-      controllerAddress: "Controller address",
-      plainHttpTitle: "Plain HTTP controller address",
-      plainHttpDescription:
-        "This controller address uses plain HTTP. Only use it behind a trusted reverse proxy or on a trusted local network.",
       repoDir: "Repo dir",
       stateDir: "State dir",
       logDir: "Log dir",

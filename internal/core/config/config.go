@@ -19,7 +19,6 @@ type File struct {
 
 type ControllerConfig struct {
 	ListenAddr     string                   `yaml:"listen_addr"`
-	ControllerAddr string                   `yaml:"controller_addr"`
 	RepoDir        string                   `yaml:"repo_dir"`
 	StateDir       string                   `yaml:"state_dir"`
 	LogDir         string                   `yaml:"log_dir"`
@@ -155,9 +154,6 @@ func validateController(file *File) error {
 	controller := file.Controller
 	if controller.ListenAddr == "" {
 		return fmt.Errorf("controller.listen_addr is required")
-	}
-	if controller.ControllerAddr == "" {
-		return fmt.Errorf("controller.controller_addr is required")
 	}
 	if controller.RepoDir == "" {
 		return fmt.Errorf("controller.repo_dir is required")

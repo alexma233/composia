@@ -37,7 +37,6 @@
 controller:
   # 网络配置
   listen_addr: ":7001"
-  controller_addr: "http://controller:7001"
 
   # 目录配置
   repo_dir: "/data/repo-controller"

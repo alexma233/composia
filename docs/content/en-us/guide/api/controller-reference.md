@@ -18,7 +18,28 @@
   
     - [TaskService](#composia-controller-v1-TaskService)
   
+- [proto/composia/controller/v1/system.proto](#proto_composia_controller_v1_system-proto)
+    - [AccessTokenSummary](#composia-controller-v1-AccessTokenSummary)
+    - [BackupConfigSummary](#composia-controller-v1-BackupConfigSummary)
+    - [Capability](#composia-controller-v1-Capability)
+    - [DNSConfigSummary](#composia-controller-v1-DNSConfigSummary)
+    - [GetCapabilitiesRequest](#composia-controller-v1-GetCapabilitiesRequest)
+    - [GetCapabilitiesResponse](#composia-controller-v1-GetCapabilitiesResponse)
+    - [GetCurrentConfigRequest](#composia-controller-v1-GetCurrentConfigRequest)
+    - [GetCurrentConfigResponse](#composia-controller-v1-GetCurrentConfigResponse)
+    - [GetSystemStatusRequest](#composia-controller-v1-GetSystemStatusRequest)
+    - [GetSystemStatusResponse](#composia-controller-v1-GetSystemStatusResponse)
+    - [GitConfigSummary](#composia-controller-v1-GitConfigSummary)
+    - [GlobalCapabilities](#composia-controller-v1-GlobalCapabilities)
+    - [NodeConfigSummary](#composia-controller-v1-NodeConfigSummary)
+    - [ReloadControllerConfigRequest](#composia-controller-v1-ReloadControllerConfigRequest)
+    - [ReloadControllerConfigResponse](#composia-controller-v1-ReloadControllerConfigResponse)
+    - [SecretsConfigSummary](#composia-controller-v1-SecretsConfigSummary)
+  
+    - [SystemService](#composia-controller-v1-SystemService)
+  
 - [proto/composia/controller/v1/backup.proto](#proto_composia_controller_v1_backup-proto)
+    - [BackupActionCapabilities](#composia-controller-v1-BackupActionCapabilities)
     - [BackupSummary](#composia-controller-v1-BackupSummary)
     - [GetBackupRequest](#composia-controller-v1-GetBackupRequest)
     - [GetBackupResponse](#composia-controller-v1-GetBackupResponse)
@@ -78,6 +99,7 @@
     - [ListNodesResponse](#composia-controller-v1-ListNodesResponse)
     - [NetworkInfo](#composia-controller-v1-NetworkInfo)
     - [NetworkInfo.LabelsEntry](#composia-controller-v1-NetworkInfo-LabelsEntry)
+    - [NodeActionCapabilities](#composia-controller-v1-NodeActionCapabilities)
     - [NodeSummary](#composia-controller-v1-NodeSummary)
     - [PruneNodeDockerRequest](#composia-controller-v1-PruneNodeDockerRequest)
     - [PruneNodeDockerResponse](#composia-controller-v1-PruneNodeDockerResponse)
@@ -150,6 +172,7 @@
     - [MigrateServiceRequest](#composia-controller-v1-MigrateServiceRequest)
     - [RunServiceActionRequest](#composia-controller-v1-RunServiceActionRequest)
     - [RunServiceInstanceActionRequest](#composia-controller-v1-RunServiceInstanceActionRequest)
+    - [ServiceActionCapabilities](#composia-controller-v1-ServiceActionCapabilities)
     - [ServiceContainerSummary](#composia-controller-v1-ServiceContainerSummary)
     - [ServiceInstanceDetail](#composia-controller-v1-ServiceInstanceDetail)
     - [ServiceInstanceSummary](#composia-controller-v1-ServiceInstanceSummary)
@@ -164,20 +187,6 @@
     - [ServiceCommandService](#composia-controller-v1-ServiceCommandService)
     - [ServiceInstanceService](#composia-controller-v1-ServiceInstanceService)
     - [ServiceQueryService](#composia-controller-v1-ServiceQueryService)
-  
-- [proto/composia/controller/v1/system.proto](#proto_composia_controller_v1_system-proto)
-    - [AccessTokenSummary](#composia-controller-v1-AccessTokenSummary)
-    - [BackupConfigSummary](#composia-controller-v1-BackupConfigSummary)
-    - [DNSConfigSummary](#composia-controller-v1-DNSConfigSummary)
-    - [GetCurrentConfigRequest](#composia-controller-v1-GetCurrentConfigRequest)
-    - [GetCurrentConfigResponse](#composia-controller-v1-GetCurrentConfigResponse)
-    - [GetSystemStatusRequest](#composia-controller-v1-GetSystemStatusRequest)
-    - [GetSystemStatusResponse](#composia-controller-v1-GetSystemStatusResponse)
-    - [GitConfigSummary](#composia-controller-v1-GitConfigSummary)
-    - [NodeConfigSummary](#composia-controller-v1-NodeConfigSummary)
-    - [SecretsConfigSummary](#composia-controller-v1-SecretsConfigSummary)
-  
-    - [SystemService](#composia-controller-v1-SystemService)
   
 - [Scalar Value Types](#scalar-value-types)
 
@@ -415,10 +424,303 @@ TaskService exposes task queries, log streaming, retry operations, and confirmat
 
 
 
+<a name="proto_composia_controller_v1_system-proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## proto/composia/controller/v1/system.proto
+
+
+
+<a name="composia-controller-v1-AccessTokenSummary"></a>
+
+### AccessTokenSummary
+AccessTokenSummary describes one controller access token without exposing the token string.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  | name is the operator-facing token name. |
+| enabled | [bool](#bool) |  | enabled reports whether this token may be used. |
+| comment | [string](#string) |  | comment is the optional operator note attached to the token. |
+
+
+
+
+
+
+<a name="composia-controller-v1-BackupConfigSummary"></a>
+
+### BackupConfigSummary
+BackupConfigSummary describes optional backup integration state.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| has_rustic | [bool](#bool) |  | has_rustic reports whether Rustic backup integration is configured. |
+
+
+
+
+
+
+<a name="composia-controller-v1-Capability"></a>
+
+### Capability
+Capability describes whether a feature or action may currently be used.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| enabled | [bool](#bool) |  |  |
+| reason_code | [string](#string) |  | reason_code explains why the capability is disabled when enabled is false. |
+
+
+
+
+
+
+<a name="composia-controller-v1-DNSConfigSummary"></a>
+
+### DNSConfigSummary
+DNSConfigSummary describes optional DNS integration state.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| has_cloudflare | [bool](#bool) |  | has_cloudflare reports whether Cloudflare DNS integration is configured. |
+
+
+
+
+
+
+<a name="composia-controller-v1-GetCapabilitiesRequest"></a>
+
+### GetCapabilitiesRequest
+GetCapabilitiesRequest requests global controller-backed feature availability.
+
+
+
+
+
+
+<a name="composia-controller-v1-GetCapabilitiesResponse"></a>
+
+### GetCapabilitiesResponse
+GetCapabilitiesResponse returns global feature availability for the web UI.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| global | [GlobalCapabilities](#composia-controller-v1-GlobalCapabilities) |  |  |
+
+
+
+
+
+
+<a name="composia-controller-v1-GetCurrentConfigRequest"></a>
+
+### GetCurrentConfigRequest
+GetCurrentConfigRequest requests the active redacted controller config.
+
+
+
+
+
+
+<a name="composia-controller-v1-GetCurrentConfigResponse"></a>
+
+### GetCurrentConfigResponse
+GetCurrentConfigResponse contains redacted config summaries only.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| listen_addr | [string](#string) |  | listen_addr is the controller listen address. |
+| git | [GitConfigSummary](#composia-controller-v1-GitConfigSummary) |  | git is the configured Git sync summary for the controller repo. |
+| nodes | [NodeConfigSummary](#composia-controller-v1-NodeConfigSummary) | repeated | nodes lists configured execution nodes. |
+| access_tokens | [AccessTokenSummary](#composia-controller-v1-AccessTokenSummary) | repeated | access_tokens lists token metadata without returning secret token values. |
+| dns | [DNSConfigSummary](#composia-controller-v1-DNSConfigSummary) |  | dns describes optional DNS integration configuration. |
+| backup | [BackupConfigSummary](#composia-controller-v1-BackupConfigSummary) |  | backup describes optional backup integration configuration. |
+| secrets | [SecretsConfigSummary](#composia-controller-v1-SecretsConfigSummary) |  | secrets describes the active secrets provider configuration. |
+
+
+
+
+
+
+<a name="composia-controller-v1-GetSystemStatusRequest"></a>
+
+### GetSystemStatusRequest
+GetSystemStatusRequest requests the current controller runtime state.
+
+
+
+
+
+
+<a name="composia-controller-v1-GetSystemStatusResponse"></a>
+
+### GetSystemStatusResponse
+GetSystemStatusResponse describes the current controller runtime state.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| version | [string](#string) |  | version is the controller version string. |
+| now | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | now is the controller time when the response was generated. |
+| configured_node_count | [uint64](#uint64) |  | configured_node_count is the number of nodes present in config. |
+| online_node_count | [uint64](#uint64) |  | online_node_count is the number of nodes with a recent heartbeat. |
+| repo_dir | [string](#string) |  | repo_dir is the controller-side desired state repository path. |
+| state_dir | [string](#string) |  | state_dir is the controller-side persistent state directory. |
+| log_dir | [string](#string) |  | log_dir is the controller-side task log directory. |
+
+
+
+
+
+
+<a name="composia-controller-v1-GitConfigSummary"></a>
+
+### GitConfigSummary
+GitConfigSummary describes controller Git sync settings without credentials.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| remote_url | [string](#string) |  | remote_url is the configured Git remote URL. |
+| branch | [string](#string) |  | branch is the tracked Git branch name. |
+| pull_interval | [string](#string) |  | pull_interval stores the configured pull interval duration string. |
+| has_auth | [bool](#bool) |  | has_auth reports whether Git auth is configured, not the auth value itself. |
+| author_name | [string](#string) |  | author_name is the Git author name for controller-created commits. |
+| author_email | [string](#string) |  | author_email is the Git author email for controller-created commits. |
+
+
+
+
+
+
+<a name="composia-controller-v1-GlobalCapabilities"></a>
+
+### GlobalCapabilities
+GlobalCapabilities describes controller-wide feature availability.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| backup | [Capability](#composia-controller-v1-Capability) |  |  |
+| dns | [Capability](#composia-controller-v1-Capability) |  |  |
+| secrets | [Capability](#composia-controller-v1-Capability) |  |  |
+| rustic_maintenance | [Capability](#composia-controller-v1-Capability) |  |  |
+
+
+
+
+
+
+<a name="composia-controller-v1-NodeConfigSummary"></a>
+
+### NodeConfigSummary
+NodeConfigSummary describes one configured node entry.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| id | [string](#string) |  | id is the stable node identifier used across controller and agents. |
+| display_name | [string](#string) |  | display_name is the human-readable node label. |
+| enabled | [bool](#bool) |  | enabled reports whether the node is eligible for controller actions. |
+| public_ipv4 | [string](#string) |  | public_ipv4 is empty when no public IPv4 address is configured. |
+| public_ipv6 | [string](#string) |  | public_ipv6 is empty when no public IPv6 address is configured. |
+
+
+
+
+
+
+<a name="composia-controller-v1-ReloadControllerConfigRequest"></a>
+
+### ReloadControllerConfigRequest
+ReloadControllerConfigRequest requests an in-process controller config reload.
+
+
+
+
+
+
+<a name="composia-controller-v1-ReloadControllerConfigResponse"></a>
+
+### ReloadControllerConfigResponse
+ReloadControllerConfigResponse confirms that the reload was accepted.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| accepted | [bool](#bool) |  | accepted is true when the current config passed reload validation and was scheduled. |
+
+
+
+
+
+
+<a name="composia-controller-v1-SecretsConfigSummary"></a>
+
+### SecretsConfigSummary
+SecretsConfigSummary describes the active secrets provider setup.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| provider | [string](#string) |  | provider is the configured secrets provider name. |
+| has_identity | [bool](#bool) |  | has_identity reports whether an identity source is configured. |
+| has_recipient | [bool](#bool) |  | has_recipient reports whether a recipient source is configured. |
+
+
+
+
+
+ 
+
+ 
+
+ 
+
+
+<a name="composia-controller-v1-SystemService"></a>
+
+### SystemService
+SystemService exposes read-only controller status and config summary data.
+
+| Method Name | Request Type | Response Type | Description |
+| ----------- | ------------ | ------------- | ------------|
+| GetSystemStatus | [GetSystemStatusRequest](#composia-controller-v1-GetSystemStatusRequest) | [GetSystemStatusResponse](#composia-controller-v1-GetSystemStatusResponse) | GetSystemStatus returns the current controller status and node counts. |
+| ReloadControllerConfig | [ReloadControllerConfigRequest](#composia-controller-v1-ReloadControllerConfigRequest) | [ReloadControllerConfigResponse](#composia-controller-v1-ReloadControllerConfigResponse) | ReloadControllerConfig validates and applies the controller config without replacing the process. |
+| GetCurrentConfig | [GetCurrentConfigRequest](#composia-controller-v1-GetCurrentConfigRequest) | [GetCurrentConfigResponse](#composia-controller-v1-GetCurrentConfigResponse) | GetCurrentConfig returns the active controller config as a redacted summary. |
+| GetCapabilities | [GetCapabilitiesRequest](#composia-controller-v1-GetCapabilitiesRequest) | [GetCapabilitiesResponse](#composia-controller-v1-GetCapabilitiesResponse) | GetCapabilities returns global feature availability for the current controller state. |
+
+ 
+
+
+
 <a name="proto_composia_controller_v1_backup-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
 ## proto/composia/controller/v1/backup.proto
+
+
+
+<a name="composia-controller-v1-BackupActionCapabilities"></a>
+
+### BackupActionCapabilities
+BackupActionCapabilities describes whether backup-scoped actions may run.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| restore | [Capability](#composia-controller-v1-Capability) |  |  |
+
+
+
 
 
 
@@ -437,6 +739,7 @@ BackupSummary describes one backup record in list results.
 | status | [string](#string) |  | status is the latest backup status string. |
 | started_at | [string](#string) |  | started_at is the backup start timestamp string. |
 | finished_at | [string](#string) |  | finished_at is empty until the backup reaches a terminal state. |
+| node_id | [string](#string) |  |  |
 
 
 
@@ -475,6 +778,8 @@ GetBackupResponse describes one backup record in detail.
 | finished_at | [string](#string) |  | finished_at is empty until the backup reaches a terminal state. |
 | artifact_ref | [string](#string) |  | artifact_ref identifies the produced backup artifact, when present. |
 | error_summary | [string](#string) |  | error_summary contains the failure summary when the backup fails. |
+| actions | [BackupActionCapabilities](#composia-controller-v1-BackupActionCapabilities) |  | actions describes whether backup-scoped actions may currently run. |
+| node_id | [string](#string) |  |  |
 
 
 
@@ -1337,6 +1642,23 @@ NetworkInfo describes one Docker network for node-scoped list views.
 
 
 
+<a name="composia-controller-v1-NodeActionCapabilities"></a>
+
+### NodeActionCapabilities
+NodeActionCapabilities describes whether node-scoped actions may run.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| caddy_sync | [Capability](#composia-controller-v1-Capability) |  |  |
+| caddy_reload | [Capability](#composia-controller-v1-Capability) |  |  |
+| rustic_maintenance | [Capability](#composia-controller-v1-Capability) |  |  |
+
+
+
+
+
+
 <a name="composia-controller-v1-NodeSummary"></a>
 
 ### NodeSummary
@@ -1350,6 +1672,7 @@ NodeSummary describes one configured node.
 | enabled | [bool](#bool) |  | enabled reports whether the node is eligible for controller actions. |
 | is_online | [bool](#bool) |  | is_online reports whether the node has a recent heartbeat. |
 | last_heartbeat | [string](#string) |  | last_heartbeat is the last recorded heartbeat timestamp string. |
+| actions | [NodeActionCapabilities](#composia-controller-v1-NodeActionCapabilities) |  | actions describes whether node-scoped actions may currently run. |
 
 
 
@@ -2194,6 +2517,7 @@ GetServiceResponse describes one service and all known instances.
 | enabled | [bool](#bool) |  | enabled reports the desired-state enabled flag for this service. |
 | directory | [string](#string) |  | directory is the service directory inside the repo. |
 | instances | [ServiceInstanceDetail](#composia-controller-v1-ServiceInstanceDetail) | repeated | instances lists per-node runtime details known to the controller. |
+| actions | [ServiceActionCapabilities](#composia-controller-v1-ServiceActionCapabilities) |  | actions describes whether service-scoped actions may currently run. |
 
 
 
@@ -2404,6 +2728,25 @@ RunServiceInstanceActionRequest starts an async action for one instance.
 
 
 
+<a name="composia-controller-v1-ServiceActionCapabilities"></a>
+
+### ServiceActionCapabilities
+ServiceActionCapabilities describes whether service-scoped actions may run.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| backup | [Capability](#composia-controller-v1-Capability) |  |  |
+| restore | [Capability](#composia-controller-v1-Capability) |  |  |
+| migrate | [Capability](#composia-controller-v1-Capability) |  |  |
+| dns_update | [Capability](#composia-controller-v1-Capability) |  |  |
+| caddy_sync | [Capability](#composia-controller-v1-Capability) |  |  |
+
+
+
+
+
+
 <a name="composia-controller-v1-ServiceContainerSummary"></a>
 
 ### ServiceContainerSummary
@@ -2503,6 +2846,7 @@ ServiceWorkspaceSummary describes one top-level repo workspace and any merged se
 | updated_at | [string](#string) |  | updated_at is the last known controller update timestamp string. |
 | nodes | [string](#string) | repeated | nodes lists declared target nodes when the workspace meta is parseable. |
 | enabled | [bool](#bool) |  | enabled reports the desired-state enabled flag when the workspace meta is parseable. |
+| actions | [ServiceActionCapabilities](#composia-controller-v1-ServiceActionCapabilities) |  | actions describes whether service-scoped actions may currently run. |
 
 
 
@@ -2621,200 +2965,6 @@ ServiceQueryService exposes read-only service workspace, declared service, task,
 | GetServiceWorkspace | [GetServiceWorkspaceRequest](#composia-controller-v1-GetServiceWorkspaceRequest) | [GetServiceWorkspaceResponse](#composia-controller-v1-GetServiceWorkspaceResponse) | GetServiceWorkspace returns one top-level repo service workspace. |
 | GetServiceTasks | [GetServiceTasksRequest](#composia-controller-v1-GetServiceTasksRequest) | [GetServiceTasksResponse](#composia-controller-v1-GetServiceTasksResponse) | GetServiceTasks returns tasks related to one service. |
 | GetServiceBackups | [GetServiceBackupsRequest](#composia-controller-v1-GetServiceBackupsRequest) | [GetServiceBackupsResponse](#composia-controller-v1-GetServiceBackupsResponse) | GetServiceBackups returns backups related to one service. |
-
- 
-
-
-
-<a name="proto_composia_controller_v1_system-proto"></a>
-<p align="right"><a href="#top">Top</a></p>
-
-## proto/composia/controller/v1/system.proto
-
-
-
-<a name="composia-controller-v1-AccessTokenSummary"></a>
-
-### AccessTokenSummary
-AccessTokenSummary describes one controller access token without exposing the token string.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| name | [string](#string) |  | name is the operator-facing token name. |
-| enabled | [bool](#bool) |  | enabled reports whether this token may be used. |
-| comment | [string](#string) |  | comment is the optional operator note attached to the token. |
-
-
-
-
-
-
-<a name="composia-controller-v1-BackupConfigSummary"></a>
-
-### BackupConfigSummary
-BackupConfigSummary describes optional backup integration state.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| has_rustic | [bool](#bool) |  | has_rustic reports whether Rustic backup integration is configured. |
-
-
-
-
-
-
-<a name="composia-controller-v1-DNSConfigSummary"></a>
-
-### DNSConfigSummary
-DNSConfigSummary describes optional DNS integration state.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| has_cloudflare | [bool](#bool) |  | has_cloudflare reports whether Cloudflare DNS integration is configured. |
-
-
-
-
-
-
-<a name="composia-controller-v1-GetCurrentConfigRequest"></a>
-
-### GetCurrentConfigRequest
-GetCurrentConfigRequest requests the active redacted controller config.
-
-
-
-
-
-
-<a name="composia-controller-v1-GetCurrentConfigResponse"></a>
-
-### GetCurrentConfigResponse
-GetCurrentConfigResponse contains redacted config summaries only.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| listen_addr | [string](#string) |  | listen_addr is the controller listen address. |
-| controller_addr | [string](#string) |  | controller_addr is the configured public controller address. |
-| git | [GitConfigSummary](#composia-controller-v1-GitConfigSummary) |  | git is the configured Git sync summary for the controller repo. |
-| nodes | [NodeConfigSummary](#composia-controller-v1-NodeConfigSummary) | repeated | nodes lists configured execution nodes. |
-| access_tokens | [AccessTokenSummary](#composia-controller-v1-AccessTokenSummary) | repeated | access_tokens lists token metadata without returning secret token values. |
-| dns | [DNSConfigSummary](#composia-controller-v1-DNSConfigSummary) |  | dns describes optional DNS integration configuration. |
-| backup | [BackupConfigSummary](#composia-controller-v1-BackupConfigSummary) |  | backup describes optional backup integration configuration. |
-| secrets | [SecretsConfigSummary](#composia-controller-v1-SecretsConfigSummary) |  | secrets describes the active secrets provider configuration. |
-
-
-
-
-
-
-<a name="composia-controller-v1-GetSystemStatusRequest"></a>
-
-### GetSystemStatusRequest
-GetSystemStatusRequest requests the current controller runtime state.
-
-
-
-
-
-
-<a name="composia-controller-v1-GetSystemStatusResponse"></a>
-
-### GetSystemStatusResponse
-GetSystemStatusResponse describes the current controller runtime state.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| version | [string](#string) |  | version is the controller version string. |
-| now | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | now is the controller time when the response was generated. |
-| configured_node_count | [uint64](#uint64) |  | configured_node_count is the number of nodes present in config. |
-| online_node_count | [uint64](#uint64) |  | online_node_count is the number of nodes with a recent heartbeat. |
-| controller_addr | [string](#string) |  | controller_addr is the configured public controller address. |
-| repo_dir | [string](#string) |  | repo_dir is the controller-side desired state repository path. |
-| state_dir | [string](#string) |  | state_dir is the controller-side persistent state directory. |
-| log_dir | [string](#string) |  | log_dir is the controller-side task log directory. |
-
-
-
-
-
-
-<a name="composia-controller-v1-GitConfigSummary"></a>
-
-### GitConfigSummary
-GitConfigSummary describes controller Git sync settings without credentials.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| remote_url | [string](#string) |  | remote_url is the configured Git remote URL. |
-| branch | [string](#string) |  | branch is the tracked Git branch name. |
-| pull_interval | [string](#string) |  | pull_interval stores the configured pull interval duration string. |
-| has_auth | [bool](#bool) |  | has_auth reports whether Git auth is configured, not the auth value itself. |
-| author_name | [string](#string) |  | author_name is the Git author name for controller-created commits. |
-| author_email | [string](#string) |  | author_email is the Git author email for controller-created commits. |
-
-
-
-
-
-
-<a name="composia-controller-v1-NodeConfigSummary"></a>
-
-### NodeConfigSummary
-NodeConfigSummary describes one configured node entry.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| id | [string](#string) |  | id is the stable node identifier used across controller and agents. |
-| display_name | [string](#string) |  | display_name is the human-readable node label. |
-| enabled | [bool](#bool) |  | enabled reports whether the node is eligible for controller actions. |
-| public_ipv4 | [string](#string) |  | public_ipv4 is empty when no public IPv4 address is configured. |
-| public_ipv6 | [string](#string) |  | public_ipv6 is empty when no public IPv6 address is configured. |
-
-
-
-
-
-
-<a name="composia-controller-v1-SecretsConfigSummary"></a>
-
-### SecretsConfigSummary
-SecretsConfigSummary describes the active secrets provider setup.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| provider | [string](#string) |  | provider is the configured secrets provider name. |
-| has_identity | [bool](#bool) |  | has_identity reports whether an identity source is configured. |
-| has_recipient | [bool](#bool) |  | has_recipient reports whether a recipient source is configured. |
-
-
-
-
-
- 
-
- 
-
- 
-
-
-<a name="composia-controller-v1-SystemService"></a>
-
-### SystemService
-SystemService exposes read-only controller status and config summary data.
-
-| Method Name | Request Type | Response Type | Description |
-| ----------- | ------------ | ------------- | ------------|
-| GetSystemStatus | [GetSystemStatusRequest](#composia-controller-v1-GetSystemStatusRequest) | [GetSystemStatusResponse](#composia-controller-v1-GetSystemStatusResponse) | GetSystemStatus returns the current controller status and node counts. |
-| GetCurrentConfig | [GetCurrentConfigRequest](#composia-controller-v1-GetCurrentConfigRequest) | [GetCurrentConfigResponse](#composia-controller-v1-GetCurrentConfigResponse) | GetCurrentConfig returns the active controller config as a redacted summary. |
 
  
 

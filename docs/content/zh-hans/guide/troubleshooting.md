@@ -7,7 +7,7 @@
 **症状：** Agent 容器不断重启，节点在 Web UI 中显示为离线。
 
 **检查：**
-- `config/config.yaml` 中的 `controller_addr` 是否正确？Agent 必须能通过网络访问 Controller。
+- `config/config.yaml` 中的 `agent.controller_addr` 是否正确？Agent 必须能通过网络访问 Controller。
 - `controller.nodes[].token` 和 `agent.token` 的值是否一致？
 - Agent 主机与 Controller 主机之间的网络连通性——检查防火墙和 DNS。
 - Controller 是否在运行？用 `docker compose ps` 检查。
