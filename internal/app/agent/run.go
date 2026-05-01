@@ -56,6 +56,118 @@ func Run(ctx context.Context, configPath string) error {
 	if err != nil {
 		return err
 	}
+	reloadRequests := make(chan agentReloadRequest)
+	stopReloadSignals := watchAgentReloadSignals(ctx, reloadRequests)
+	defer stopReloadSignals()
+
+	for {
+		runtimeCtx, cancelRuntime := context.WithCancel(ctx)
+		runtimeDone := make(chan error, 1)
+		go func() {
+			runtimeDone <- runAgentRuntime(ctx, runtimeCtx, cfg)
+		}()
+
+		reloadAccepted := false
+		for !reloadAccepted {
+			select {
+			case <-ctx.Done():
+				cancelRuntime()
+				if err := <-runtimeDone; err != nil {
+					return err
+				}
+				return nil
+			case err := <-runtimeDone:
+				cancelRuntime()
+				return err
+			case request := <-reloadRequests:
+				nextCfg, err := loadReloadAgentConfig(configPath, cfg)
+				request.respond(err)
+				if err != nil {
+					log.Printf("agent config reload rejected: %v", err)
+					continue
+				}
+				cancelRuntime()
+				if err := <-runtimeDone; err != nil {
+					return err
+				}
+				cfg = nextCfg
+				reloadAccepted = true
+				log.Printf("agent config reloaded")
+			}
+		}
+	}
+}
+
+type agentReloadRequest struct {
+	reply chan error
+}
+
+func (request agentReloadRequest) respond(err error) {
+	if request.reply == nil {
+		return
+	}
+	request.reply <- err
+}
+
+func requestAgentReload(ctx context.Context, requests chan<- agentReloadRequest) error {
+	reply := make(chan error, 1)
+	request := agentReloadRequest{reply: reply}
+	select {
+	case requests <- request:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	select {
+	case err := <-reply:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func loadReloadAgentConfig(configPath string, current *config.AgentConfig) (*config.AgentConfig, error) {
+	next, err := config.LoadAgent(configPath)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateAgentReload(current, next); err != nil {
+		return nil, err
+	}
+	if err := ensureAgentDirs(next); err != nil {
+		return nil, err
+	}
+	return next, nil
+}
+
+func validateAgentReload(current, next *config.AgentConfig) error {
+	if current == nil || next == nil {
+		return fmt.Errorf("agent config is missing")
+	}
+	immutable := []struct {
+		name  string
+		left  string
+		right string
+		path  bool
+	}{
+		{name: "agent.node_id", left: current.NodeID, right: next.NodeID},
+		{name: "agent.repo_dir", left: current.RepoDir, right: next.RepoDir, path: true},
+		{name: "agent.state_dir", left: current.StateDir, right: next.StateDir, path: true},
+	}
+	for _, field := range immutable {
+		left := field.left
+		right := field.right
+		if field.path {
+			left = filepath.Clean(left)
+			right = filepath.Clean(right)
+		}
+		if left != right {
+			return fmt.Errorf("%s changed and requires process restart", field.name)
+		}
+	}
+	return nil
+}
+
+func runAgentRuntime(processCtx, runtimeCtx context.Context, cfg *config.AgentConfig) error {
 
 	if err := ensureAgentDirs(cfg); err != nil {
 		return err
@@ -83,51 +195,57 @@ func Run(ctx context.Context, configPath string) error {
 	)
 
 	log.Printf("composia agent loops started: node_id=%s controller=%s", cfg.NodeID, cfg.ControllerAddr)
-	startPeriodicTask(ctx, heartbeatInterval, "initial heartbeat", "heartbeat", func() error {
-		return sendHeartbeat(ctx, reportClient, cfg)
+	startPeriodicTask(runtimeCtx, heartbeatInterval, "initial heartbeat", "heartbeat", func() error {
+		return sendHeartbeat(runtimeCtx, reportClient, cfg)
 	})
-	startPeriodicTask(ctx, 5*time.Minute, "initial docker stats report", "docker stats report", func() error {
-		return reportDockerStats(ctx, reportClient, cfg)
+	startPeriodicTask(runtimeCtx, 5*time.Minute, "initial docker stats report", "docker stats report", func() error {
+		return reportDockerStats(runtimeCtx, reportClient, cfg)
 	})
 
-	startExecTunnelLoop(ctx, reportClient, cfg.NodeID)
-	startContainerLogTunnelLoop(ctx, reportClient, cfg.NodeID)
+	startExecTunnelLoop(runtimeCtx, reportClient, cfg.NodeID)
+	startContainerLogTunnelLoop(runtimeCtx, reportClient, cfg.NodeID)
 
+	taskLoopDone := make(chan struct{})
 	go func() {
+		defer close(taskLoopDone)
 		for {
-			if ctx.Err() != nil {
+			if runtimeCtx.Err() != nil {
 				return
 			}
-			if err := pollAndRunTask(ctx, taskClient, bundleClient, reportClient, cfg); err != nil {
-				if ctx.Err() != nil {
+			if err := pollAndRunTask(runtimeCtx, processCtx, taskClient, bundleClient, reportClient, cfg); err != nil {
+				if runtimeCtx.Err() != nil {
 					return
 				}
 				log.Printf("task loop failed: %v", err)
-				if !sleepWithContext(ctx, taskRetryAfterPollFail) {
+				if !sleepWithContext(runtimeCtx, taskRetryAfterPollFail) {
 					return
 				}
 			}
 		}
 	}()
 
+	dockerQueryLoopDone := make(chan struct{})
 	go func() {
+		defer close(dockerQueryLoopDone)
 		for {
-			if ctx.Err() != nil {
+			if runtimeCtx.Err() != nil {
 				return
 			}
-			if err := pollAndRunDockerQuery(ctx, taskClient, reportClient, cfg); err != nil {
-				if ctx.Err() != nil {
+			if err := pollAndRunDockerQuery(runtimeCtx, taskClient, reportClient, cfg); err != nil {
+				if runtimeCtx.Err() != nil {
 					return
 				}
 				log.Printf("docker query poll failed: %v", err)
-				if !sleepWithContext(ctx, taskRetryAfterPollFail) {
+				if !sleepWithContext(runtimeCtx, taskRetryAfterPollFail) {
 					return
 				}
 			}
 		}
 	}()
 
-	<-ctx.Done()
+	<-runtimeCtx.Done()
+	<-taskLoopDone
+	<-dockerQueryLoopDone
 	return nil
 }
 
@@ -221,8 +339,8 @@ func reportDockerStats(ctx context.Context, client agentv1connect.AgentReportSer
 	return nil
 }
 
-func pollAndRunTask(ctx context.Context, taskClient agentv1connect.AgentTaskServiceClient, bundleClient agentv1connect.BundleServiceClient, reportClient agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig) error {
-	callCtx, cancel := context.WithTimeout(ctx, pullNextTaskTimeout)
+func pollAndRunTask(pollCtx, taskCtx context.Context, taskClient agentv1connect.AgentTaskServiceClient, bundleClient agentv1connect.BundleServiceClient, reportClient agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig) error {
+	callCtx, cancel := context.WithTimeout(pollCtx, pullNextTaskTimeout)
 	defer cancel()
 
 	response, err := taskClient.PullNextTask(callCtx, connect.NewRequest(&agentv1.PullNextTaskRequest{NodeId: cfg.NodeID}))
@@ -236,7 +354,7 @@ func pollAndRunTask(ctx context.Context, taskClient agentv1connect.AgentTaskServ
 	pulledTask := response.Msg.GetTask()
 	startedAt := time.Now()
 	log.Printf("agent accepted task: task_id=%s type=%s service=%s node=%s repo_revision=%s", pulledTask.GetTaskId(), pulledTask.GetType(), pulledTask.GetServiceName(), pulledTask.GetNodeId(), pulledTask.GetRepoRevision())
-	err = executePulledTaskWithTimeout(ctx, bundleClient, reportClient, cfg, pulledTask, taskExecutionTimeout)
+	err = executePulledTaskWithTimeout(taskCtx, bundleClient, reportClient, cfg, pulledTask, taskExecutionTimeout)
 	duration := time.Since(startedAt).Round(time.Millisecond)
 	if err != nil {
 		log.Printf("agent task failed: task_id=%s type=%s service=%s node=%s duration=%s error=%v", pulledTask.GetTaskId(), pulledTask.GetType(), pulledTask.GetServiceName(), pulledTask.GetNodeId(), duration, err)
