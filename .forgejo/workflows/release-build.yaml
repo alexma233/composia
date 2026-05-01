@@ -75,7 +75,18 @@ jobs:
           COPR_CLI_CONFIG: ${{ secrets.COPR_CLI_CONFIG }}
         run: |
           mkdir -p ~/.config
-          printf '%s' "$COPR_CLI_CONFIG" > ~/.config/copr
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          config = os.environ["COPR_CLI_CONFIG"].strip()
+          if "\\n" in config and "\n" not in config:
+              config = config.replace("\\n", "\n")
+          if "[copr-cli]" not in config:
+              config = "[copr-cli]\n" + config
+
+          Path.home().joinpath(".config", "copr").write_text(config + "\n", encoding="utf-8")
+          PY
           chmod 600 ~/.config/copr
           scripts/build/copr-srpm.sh
           copr-cli build composia \
