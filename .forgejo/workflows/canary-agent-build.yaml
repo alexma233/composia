@@ -61,14 +61,41 @@ jobs:
           GORELEASER_CURRENT_TAG: v0.0.0-canary-${{ github.sha }}
         run: goreleaser release --clean --skip=announce,validate,archive,nfpm,aur,aur-source,sbom,publish --timeout=10m
 
-      - name: Upload canary binary
+      - name: Set canary short SHA
+        run: printf 'COMPOSIA_SHORT_SHA=%s\n' "$(git rev-parse --short=7 HEAD)" >> "$GITHUB_ENV"
+
+      - name: Upload canary binary linux amd64
         uses: https://forgejo.alexma.top/actions/upload-artifact@v4
         with:
-          name: composia-agent-canary-${{ github.sha }}
-          path: dist/composia-agent-*/*
+          name: composia-agent-canary-linux-amd64-${{ env.COMPOSIA_SHORT_SHA }}
+          path: dist/composia-agent-linux_linux_amd64_v1/composia-agent
+
+      - name: Upload canary binary linux arm64
+        uses: https://forgejo.alexma.top/actions/upload-artifact@v4
+        with:
+          name: composia-agent-canary-linux-arm64-${{ env.COMPOSIA_SHORT_SHA }}
+          path: dist/composia-agent-linux_linux_arm64_v8.0/composia-agent
+
+      - name: Upload canary binary linux 386
+        uses: https://forgejo.alexma.top/actions/upload-artifact@v4
+        with:
+          name: composia-agent-canary-linux-386-${{ env.COMPOSIA_SHORT_SHA }}
+          path: dist/composia-agent-linux_linux_386_sse2/composia-agent
+
+      - name: Upload canary binary linux armv7
+        uses: https://forgejo.alexma.top/actions/upload-artifact@v4
+        with:
+          name: composia-agent-canary-linux-armv7-${{ env.COMPOSIA_SHORT_SHA }}
+          path: dist/composia-agent-linux_linux_arm_7/composia-agent
+
+      - name: Upload canary binary linux riscv64
+        uses: https://forgejo.alexma.top/actions/upload-artifact@v4
+        with:
+          name: composia-agent-canary-linux-riscv64-${{ env.COMPOSIA_SHORT_SHA }}
+          path: dist/composia-agent-linux_linux_riscv64_rva20u64/composia-agent
 
       - name: Upload canary checksums
         uses: https://forgejo.alexma.top/actions/upload-artifact@v4
         with:
-          name: composia-agent-canary-checksums-${{ github.sha }}
+          name: composia-agent-canary-checksums-${{ env.COMPOSIA_SHORT_SHA }}
           path: dist/checksums.txt
