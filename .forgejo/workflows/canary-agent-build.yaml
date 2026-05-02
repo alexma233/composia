@@ -65,6 +65,10 @@ jobs:
         uses: https://forgejo.alexma.top/actions/upload-artifact@v4
         with:
           name: composia-agent-canary-${{ github.sha }}
-          path: |
-            dist/composia-agent-*/*
-            dist/checksums.txt
+          path: dist/composia-agent-*/*
+
+      - name: Upload canary checksums
+        uses: https://forgejo.alexma.top/actions/upload-artifact@v4
+        with:
+          name: composia-agent-canary-checksums-${{ github.sha }}
+          path: dist/checksums.txt

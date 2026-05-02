@@ -68,6 +68,10 @@ jobs:
         uses: https://forgejo.alexma.top/actions/upload-artifact@v4
         with:
           name: composia-controller-canary-${{ github.sha }}
-          path: |
-            dist/composia-controller-*/*
-            dist/checksums.txt
+          path: dist/composia-controller-*/*
+
+      - name: Upload canary checksums
+        uses: https://forgejo.alexma.top/actions/upload-artifact@v4
+        with:
+          name: composia-controller-canary-checksums-${{ github.sha }}
+          path: dist/checksums.txt
