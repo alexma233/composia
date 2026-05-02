@@ -12,83 +12,66 @@ on:
       - "gen/go/proto/composia/controller/**"
       - "go.mod"
       - "go.sum"
-      - "scripts/build/canary-binary.sh"
-      - "Dockerfile"
+      - ".goreleaser.yaml"
+      - "Dockerfile.goreleaser"
       - ".dockerignore"
       - ".forgejo/workflows/canary-cli-build.yaml"
-      - ".forgejo/workflows/reusable-docker-publish.yaml"
       - ".forgejo/workflows/release-build.yaml"
   workflow_dispatch:
 
 env:
-  OUTPUT_DIR: dist/canary-cli
+  COMPOSIA_CANARY_TARGET: cli
+  GORELEASER_VERSION: v2.15.0
 
 jobs:
-  docker-cli:
-    runs-on: docker-amd64-dind
-    uses: ./.forgejo/workflows/reusable-docker-publish.yaml
-    secrets: inherit
-    with:
-      dockerfile: ./Dockerfile
-      target: cli
-      platforms: linux/amd64,linux/arm64
-      images: |
-        forgejo.alexma.top/alexma233/composia-cli
-        ghcr.io/alexma233/composia-cli
-      tags: |
-        type=raw,value=canary-{{sha}},enable=true
-        type=raw,value=canary,enable=true
-      labels: |
-        org.opencontainers.image.description=Composia CLI image
-        org.opencontainers.image.documentation=https://docs.composia.xyz
-        org.opencontainers.image.vendor=alexma233
-        org.opencontainers.image.ref.name=canary
-        org.opencontainers.image.version=canary-{{sha}}
-        io.composia.channel=canary
-        io.composia.image=cli
-      cache_ref: forgejo.alexma.top/alexma233/composia-cli:buildcache
-
   binary-cli:
-    runs-on: docker-amd64
+    runs-on: docker-amd64-dind
     container:
       image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.2
-    strategy:
-      matrix:
-        include:
-          - goos: linux
-            goarch: amd64
-            ext: ""
-          - goos: linux
-            goarch: arm64
-            ext: ""
-          - goos: darwin
-            goarch: amd64
-            ext: ""
-          - goos: darwin
-            goarch: arm64
-            ext: ""
-          - goos: windows
-            goarch: amd64
-            ext: ".exe"
-          - goos: windows
-            goarch: arm64
-            ext: ".exe"
     steps:
       - name: Checkout
         # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
         uses: https://forgejo.alexma.top/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
 
-      - name: Build canary binary
+      - name: Install Docker CLI
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends docker.io
+
+      - name: Set up Docker Buildx
+        # renovate: datasource=git-refs depName=actions/docker-setup-buildx-action packageName=https://forgejo.alexma.top/actions/docker-setup-buildx-action currentValue=v4.0.0
+        uses: https://forgejo.alexma.top/actions/docker-setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+      - name: Login to Forgejo Registry
+        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.1.0
+        uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: forgejo.alexma.top
+          username: ${{ secrets.OCI_IMAGES_FORGEJO_USERNAME }}
+          password: ${{ secrets.OCI_IMAGES_FORGEJO_TOKEN }}
+
+      - name: Login to GHCR
+        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.1.0
+        uses: https://forgejo.alexma.top/actions/docker-login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.OCI_IMAGES_GHCR_USERNAME }}
+          password: ${{ secrets.OCI_IMAGES_GHCR_TOKEN }}
+
+      - name: Install GoReleaser
+        run: go install github.com/goreleaser/goreleaser/v2@${{ env.GORELEASER_VERSION }}
+
+      - name: Build and publish canary artifacts
         env:
-          BINARY_NAME: composia
-          PACKAGE: ./cmd/composia
-          VERSION: canary-${{ github.sha }}
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-        run: sh ./scripts/build/canary-binary.sh
+          GORELEASER_CURRENT_TAG: v0.0.0-canary-${{ github.sha }}
+        run: goreleaser release --clean --skip=announce,archive,nfpm,aur,aur-source,sbom,publish --timeout=10m
 
       - name: Upload canary binary
         uses: https://forgejo.alexma.top/actions/upload-artifact@v4
         with:
-          name: composia-canary-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: ${{ env.OUTPUT_DIR }}/composia${{ matrix.ext }}
+          name: composia-canary-${{ github.sha }}
+          path: |
+            dist/composia-*/*
+            dist/checksums.txt
