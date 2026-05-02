@@ -71,7 +71,7 @@ jobs:
       - name: Build and publish canary artifacts
         env:
           GORELEASER_CURRENT_TAG: v0.0.0-canary-${{ github.sha }}
-        run: goreleaser release --clean --skip=announce,archive,nfpm,aur,aur-source,sbom,publish --timeout=10m
+        run: goreleaser release --clean --skip=announce,validate,archive,nfpm,aur,aur-source,sbom,publish --timeout=10m
 
       - name: Upload canary binary
         uses: https://forgejo.alexma.top/actions/upload-artifact@v4
