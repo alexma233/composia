@@ -38,13 +38,15 @@ mkdir -p \
   "${topdir}/SRPMS"
 
 cp "${source_archive}" "${topdir}/SOURCES/"
-cp "${spec_file}" "${topdir}/SPECS/"
+placeholder='%{composia_version}'
+while IFS= read -r line || [ -n "${line}" ]; do
+  printf '%s\n' "${line//${placeholder}/${version}}"
+done < "${spec_file}" > "${topdir}/SPECS/composia.spec"
 
 # Temporary workaround for GoReleaser/nFPM SRPMs containing RPMTAG_SOURCERPM.
 rpmbuild -bs \
   --target noarch \
   --define "_topdir $(realpath "${topdir}")" \
-  --define "composia_version ${version}" \
   "${topdir}/SPECS/composia.spec"
 
 set -- "${topdir}"/SRPMS/*.src.rpm
