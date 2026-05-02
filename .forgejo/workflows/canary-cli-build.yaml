@@ -21,24 +21,18 @@ on:
 
 env:
   COMPOSIA_CANARY_TARGET: cli
-  GORELEASER_VERSION: v2.15.0
 
 jobs:
   binary-cli:
     runs-on: docker-amd64-dind
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.2
+      image: forgejo.alexma.top/alexma233/ci-image-go-releaser:2.15.4
     steps:
       - name: Checkout
         # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
         uses: https://forgejo.alexma.top/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           fetch-depth: 0
-
-      - name: Install Docker CLI
-        run: |
-          apt-get update
-          apt-get install -y --no-install-recommends docker.io
 
       - name: Set up Docker Buildx
         # renovate: datasource=git-refs depName=actions/docker-setup-buildx-action packageName=https://forgejo.alexma.top/actions/docker-setup-buildx-action currentValue=v4.0.0
@@ -59,9 +53,6 @@ jobs:
           registry: ghcr.io
           username: ${{ secrets.OCI_IMAGES_GHCR_USERNAME }}
           password: ${{ secrets.OCI_IMAGES_GHCR_TOKEN }}
-
-      - name: Install GoReleaser
-        run: go install github.com/goreleaser/goreleaser/v2@${{ env.GORELEASER_VERSION }}
 
       - name: Build and publish canary artifacts
         env:

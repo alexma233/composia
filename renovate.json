@@ -88,6 +88,7 @@
         "forgejo.alexma.top/alexma233/ci-images-bun-wrangler",
         "forgejo.alexma.top/alexma233/ci-images-hugo-wrangler",
         "forgejo.alexma.top/alexma233/ci-images-go-node",
+        "forgejo.alexma.top/alexma233/ci-image-go-releaser",
         "github.com/air-verse/air"
       ],
       "groupName": "tooling updates"
@@ -143,7 +144,7 @@
         "/(^|/)\\.forgejo\\/workflows\\/.+\\.ya?ml$/"
       ],
       "matchStrings": [
-        "\\s*container:\\s*\\n\\s*image:\\s+(?<depName>forgejo\\.alexma\\.top\\/alexma233\\\/(?:ci-images-bun-wrangler|ci-images-hugo-wrangler|ci-images-go-node)):(?<currentValue>[^\\s]+)"
+        "\\s*container:\\s*\\n\\s*image:\\s+(?<depName>forgejo\\.alexma\\.top\\/alexma233\\\/(?:ci-images-bun-wrangler|ci-images-hugo-wrangler|ci-images-go-node|ci-image-go-releaser)):(?<currentValue>[^\\s]+)"
       ],
       "datasourceTemplate": "docker"
     },
