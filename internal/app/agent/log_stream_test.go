@@ -50,7 +50,8 @@ func TestTaskLogUploaderReconnectsAndResendsUnconfirmedLogs(t *testing.T) {
 func TestTaskLogUploaderTimesOutBlockedAck(t *testing.T) {
 	t.Parallel()
 
-	server := &logUploadTestServer{blockAck: true}
+	receivedSeq := make(chan uint64, 1)
+	server := &logUploadTestServer{blockAck: true, receivedSeq: receivedSeq}
 	mux := http.NewServeMux()
 	path, handler := agentv1connect.NewAgentReportServiceHandler(server)
 	mux.Handle(path, handler)
@@ -61,7 +62,21 @@ func TestTaskLogUploaderTimesOutBlockedAck(t *testing.T) {
 
 	client := agentv1connect.NewAgentReportServiceClient(httpServer.Client(), httpServer.URL)
 	uploader := newTaskLogUploaderWithTimeout(client, "task-1", 50*time.Millisecond)
-	err := uploader.Upload(context.Background(), "one\n")
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- uploader.Upload(context.Background(), "one\n")
+	}()
+
+	select {
+	case seq := <-receivedSeq:
+		if seq != 1 {
+			t.Fatalf("expected server to receive seq 1, got %d", seq)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for first send to reach server")
+	}
+
+	err := <-errCh
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("expected upload timeout, got %v", err)
 	}
@@ -79,6 +94,7 @@ type logUploadTestServer struct {
 	confirmedSeq     uint64
 	failedSeqTwoOnce bool
 	blockAck         bool
+	receivedSeq      chan uint64
 	contents         string
 }
 
@@ -96,6 +112,12 @@ func (server *logUploadTestServer) UploadTaskLogs(ctx context.Context, stream *c
 		if message.GetSeq() == server.confirmedSeq+1 {
 			server.confirmedSeq = message.GetSeq()
 			server.contents += message.GetContent()
+		}
+		if server.receivedSeq != nil {
+			select {
+			case server.receivedSeq <- message.GetSeq():
+			default:
+			}
 		}
 		if server.blockAck {
 			<-ctx.Done()
