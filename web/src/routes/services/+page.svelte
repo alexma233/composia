@@ -113,6 +113,7 @@
             <TableRow>
               <TableHead>{$messages.services.service}</TableHead>
               <TableHead>{$messages.services.folder}</TableHead>
+              <TableHead>{$messages.nodes.node}</TableHead>
               <TableHead>{$messages.common.status}</TableHead>
               <TableHead class="w-52">{$messages.common.updated}</TableHead>
             </TableRow>
@@ -124,6 +125,9 @@
                   <a href={`/services/${service.folder}`} class="font-medium hover:text-primary">{service.displayName}</a>
                 </TableCell>
                 <TableCell class="text-muted-foreground">{service.folder}</TableCell>
+                <TableCell class="max-w-64 truncate text-muted-foreground">
+                  {service.nodes.length ? service.nodes.join(", ") : $messages.common.na}
+                </TableCell>
                 <TableCell>
                   <Badge variant={statusTone(service.hasMeta, service.runtimeStatus)}>
                     {statusText(service.hasMeta, service.runtimeStatus)}
