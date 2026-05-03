@@ -57,7 +57,7 @@ func TestBackupRecordServiceListAndGetBackup(t *testing.T) {
 	defer httpServer.Close()
 
 	client := controllerv1connect.NewBackupRecordServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
-	listResponse, err := client.ListBackups(ctx, connect.NewRequest(&controllerv1.ListBackupsRequest{ServiceName: "alpha"}))
+	listResponse, err := client.ListBackups(ctx, connect.NewRequest(&controllerv1.ListBackupsRequest{ServiceName: []string{"alpha"}, ExcludeStatus: []string{"failed"}}))
 	if err != nil {
 		t.Fatalf("list backups: %v", err)
 	}

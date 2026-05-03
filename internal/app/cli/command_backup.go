@@ -24,18 +24,42 @@ func (application *app) runBackup(args []string) error {
 
 func (application *app) runBackupList(args []string) error {
 	fs := newCommandFlagSet("backup list")
-	serviceName := fs.String("service", "", "service name filter")
-	status := fs.String("status", "", "status filter")
-	dataName := fs.String("data", "", "data entry filter")
+	var services stringListFlag
+	var statuses stringListFlag
+	var dataNames stringListFlag
+	var nodes stringListFlag
+	var excludeServices stringListFlag
+	var excludeStatuses stringListFlag
+	var excludeDataNames stringListFlag
+	var excludeNodes stringListFlag
+	fs.Var(&services, "service", "service name filter; repeat or comma-separate")
+	fs.Var(&statuses, "status", "status filter; repeat or comma-separate")
+	fs.Var(&dataNames, "data", "data entry filter; repeat or comma-separate")
+	fs.Var(&nodes, "node", "node ID filter; repeat or comma-separate")
+	fs.Var(&excludeServices, "exclude-service", "service exclusion; repeat or comma-separate")
+	fs.Var(&excludeStatuses, "exclude-status", "status exclusion; repeat or comma-separate")
+	fs.Var(&excludeDataNames, "exclude-data", "data entry exclusion; repeat or comma-separate")
+	fs.Var(&excludeNodes, "exclude-node", "node exclusion; repeat or comma-separate")
 	pageValues, _ := parsePageFlags(fs)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := requireArgs(fs.Args(), 0, "composia backup list [--service name] [--status status] [--data name]"); err != nil {
+	if err := requireArgs(fs.Args(), 0, "composia backup list [filters]"); err != nil {
 		return err
 	}
 	pageSize, page := pageValues()
-	response, err := application.client.backups.ListBackups(application.ctx, newRequest(&controllerv1.ListBackupsRequest{ServiceName: *serviceName, Status: *status, DataName: *dataName, PageSize: pageSize, Page: page}))
+	response, err := application.client.backups.ListBackups(application.ctx, newRequest(&controllerv1.ListBackupsRequest{
+		ServiceName:        []string(services),
+		Status:             []string(statuses),
+		DataName:           []string(dataNames),
+		NodeId:             []string(nodes),
+		ExcludeServiceName: []string(excludeServices),
+		ExcludeStatus:      []string(excludeStatuses),
+		ExcludeDataName:    []string(excludeDataNames),
+		ExcludeNodeId:      []string(excludeNodes),
+		PageSize:           pageSize,
+		Page:               page,
+	}))
 	if err != nil {
 		return err
 	}

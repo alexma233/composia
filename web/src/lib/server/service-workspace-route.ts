@@ -59,7 +59,7 @@ export async function loadServiceWorkspaceSummary(
       ? loadTasks(1, 20, { serviceName: [workspace.serviceName] })
       : Promise.resolve({ items: [], totalCount: 0 }),
     workspace.isDeclared && workspace.serviceName
-      ? loadBackups(1, 20, { serviceName: workspace.serviceName })
+      ? loadBackups(1, 20, { serviceName: [workspace.serviceName] })
       : Promise.resolve({ items: [], totalCount: 0 }),
     workspace.isDeclared && workspace.serviceName
       ? loadServiceInstances(workspace.serviceName)

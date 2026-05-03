@@ -435,6 +435,7 @@ export const enUS = {
     backup: "Backup",
     dataName: "Data name",
     noBackups: "No backups loaded",
+    noBackupsForFilter: "No backups match the selected filter",
     backupId: "Backup ID",
     artifactRef: "Artifact Ref",
     sourceTask: "Source task",
@@ -450,6 +451,11 @@ export const enUS = {
     restoreWarning:
       "This restore may overwrite files, directories, or Docker volumes with the same names on node {nodeId}.",
     noArtifact: "No Artifact Ref recorded for this backup.",
+    filters: {
+      allDataNames: "All data names",
+      searchDataPlaceholder: "Search data names...",
+      noDataFound: "No data names found.",
+    },
   },
   settings: {
     title: "Settings",

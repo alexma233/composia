@@ -78,7 +78,12 @@ func (db *DB) UpsertBackupRecord(ctx context.Context, detail BackupDetail) error
 	return nil
 }
 
-func (db *DB) ListBackups(ctx context.Context, serviceNameFilter, statusFilter, dataNameFilter string, page, limit uint32) ([]BackupSummary, uint32, error) {
+func (db *DB) ListBackups(
+	ctx context.Context,
+	serviceNameFilters, statusFilters, dataNameFilters, nodeIDFilters []string,
+	excludeServiceNameFilters, excludeStatusFilters, excludeDataNameFilters, excludeNodeIDFilters []string,
+	page, limit uint32,
+) ([]BackupSummary, uint32, error) {
 	if limit == 0 {
 		limit = 100
 	}
@@ -87,22 +92,18 @@ func (db *DB) ListBackups(ctx context.Context, serviceNameFilter, statusFilter, 
 	}
 
 	whereClause := "WHERE 1 = 1"
-	args := make([]any, 0, 6)
-	if serviceNameFilter != "" {
-		whereClause += ` AND backups.service_name = ?`
-		args = append(args, serviceNameFilter)
-	}
-	if statusFilter != "" {
-		whereClause += ` AND backups.status = ?`
-		args = append(args, statusFilter)
-	}
-	if dataNameFilter != "" {
-		whereClause += ` AND backups.data_name = ?`
-		args = append(args, dataNameFilter)
-	}
+	args := make([]any, 0, 20)
+	whereClause, args = appendBackupFilterInClause(whereClause, args, "backups.service_name", serviceNameFilters)
+	whereClause, args = appendBackupFilterInClause(whereClause, args, "backups.status", statusFilters)
+	whereClause, args = appendBackupFilterInClause(whereClause, args, "backups.data_name", dataNameFilters)
+	whereClause, args = appendBackupFilterInClause(whereClause, args, "COALESCE(backups.node_id, tasks.node_id, '')", nodeIDFilters)
+	whereClause, args = appendBackupFilterNotInClause(whereClause, args, "backups.service_name", excludeServiceNameFilters)
+	whereClause, args = appendBackupFilterNotInClause(whereClause, args, "backups.status", excludeStatusFilters)
+	whereClause, args = appendBackupFilterNotInClause(whereClause, args, "backups.data_name", excludeDataNameFilters)
+	whereClause, args = appendBackupFilterNotInClause(whereClause, args, "COALESCE(backups.node_id, tasks.node_id, '')", excludeNodeIDFilters)
 
 	var totalCount uint32
-	countQuery := `SELECT COUNT(*) FROM backups ` + whereClause
+	countQuery := `SELECT COUNT(*) FROM backups LEFT JOIN tasks ON tasks.task_id = backups.task_id ` + whereClause
 	if err := db.sql.QueryRowContext(ctx, countQuery, args...).Scan(&totalCount); err != nil {
 		return nil, 0, fmt.Errorf("count backups: %w", err)
 	}
@@ -134,6 +135,43 @@ func (db *DB) ListBackups(ctx context.Context, serviceNameFilter, statusFilter, 
 		return nil, 0, fmt.Errorf("iterate backups: %w", err)
 	}
 	return backups, totalCount, nil
+}
+
+func appendBackupFilterInClause(whereClause string, args []any, expression string, values []string) (string, []any) {
+	return appendBackupFilterClause(whereClause, args, expression, values, false)
+}
+
+func appendBackupFilterNotInClause(whereClause string, args []any, expression string, values []string) (string, []any) {
+	return appendBackupFilterClause(whereClause, args, expression, values, true)
+}
+
+func appendBackupFilterClause(whereClause string, args []any, expression string, values []string, exclude bool) (string, []any) {
+	filtered := make([]string, 0, len(values))
+	for _, value := range values {
+		if value == "" {
+			continue
+		}
+		filtered = append(filtered, value)
+	}
+	if len(filtered) == 0 {
+		return whereClause, args
+	}
+
+	whereClause += ` AND ` + expression
+	if exclude {
+		whereClause += ` NOT`
+	}
+	whereClause += ` IN (`
+	for i, value := range filtered {
+		if i > 0 {
+			whereClause += ", "
+		}
+		whereClause += "?"
+		args = append(args, value)
+	}
+	whereClause += `)`
+
+	return whereClause, args
 }
 
 func (db *DB) GetBackup(ctx context.Context, backupID string) (BackupDetail, error) {

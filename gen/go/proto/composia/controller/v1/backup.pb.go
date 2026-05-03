@@ -126,18 +126,29 @@ func (x *BackupSummary) GetNodeId() string {
 	return ""
 }
 
-// ListBackupsRequest filters backup records by service, status, data name, and page.
+// ListBackupsRequest filters backup records by included and excluded values.
 type ListBackupsRequest struct {
-	state       protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	// status narrows results to one backup status string when set.
-	Status string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	// data_name narrows results to one service data entry when set.
-	DataName string `protobuf:"bytes,3,opt,name=data_name,json=dataName,proto3" json:"data_name,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// service_name includes only backups for these services.
+	ServiceName []string `protobuf:"bytes,1,rep,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// status includes only backups matching one of these status strings.
+	Status []string `protobuf:"bytes,2,rep,name=status,proto3" json:"status,omitempty"`
+	// data_name includes only backups for these service data entries.
+	DataName []string `protobuf:"bytes,3,rep,name=data_name,json=dataName,proto3" json:"data_name,omitempty"`
 	// page_size is the requested page size.
 	PageSize uint32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// page is the 1-based page number.
-	Page          uint32 `protobuf:"varint,5,opt,name=page,proto3" json:"page,omitempty"`
+	Page uint32 `protobuf:"varint,5,opt,name=page,proto3" json:"page,omitempty"`
+	// node_id includes only backups for these source nodes.
+	NodeId []string `protobuf:"bytes,6,rep,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// exclude_service_name removes backups for these services.
+	ExcludeServiceName []string `protobuf:"bytes,7,rep,name=exclude_service_name,json=excludeServiceName,proto3" json:"exclude_service_name,omitempty"`
+	// exclude_status removes backups matching these status strings.
+	ExcludeStatus []string `protobuf:"bytes,8,rep,name=exclude_status,json=excludeStatus,proto3" json:"exclude_status,omitempty"`
+	// exclude_data_name removes backups for these service data entries.
+	ExcludeDataName []string `protobuf:"bytes,9,rep,name=exclude_data_name,json=excludeDataName,proto3" json:"exclude_data_name,omitempty"`
+	// exclude_node_id removes backups for these source nodes.
+	ExcludeNodeId []string `protobuf:"bytes,10,rep,name=exclude_node_id,json=excludeNodeId,proto3" json:"exclude_node_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -172,25 +183,25 @@ func (*ListBackupsRequest) Descriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_backup_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ListBackupsRequest) GetServiceName() string {
+func (x *ListBackupsRequest) GetServiceName() []string {
 	if x != nil {
 		return x.ServiceName
 	}
-	return ""
+	return nil
 }
 
-func (x *ListBackupsRequest) GetStatus() string {
+func (x *ListBackupsRequest) GetStatus() []string {
 	if x != nil {
 		return x.Status
 	}
-	return ""
+	return nil
 }
 
-func (x *ListBackupsRequest) GetDataName() string {
+func (x *ListBackupsRequest) GetDataName() []string {
 	if x != nil {
 		return x.DataName
 	}
-	return ""
+	return nil
 }
 
 func (x *ListBackupsRequest) GetPageSize() uint32 {
@@ -205,6 +216,41 @@ func (x *ListBackupsRequest) GetPage() uint32 {
 		return x.Page
 	}
 	return 0
+}
+
+func (x *ListBackupsRequest) GetNodeId() []string {
+	if x != nil {
+		return x.NodeId
+	}
+	return nil
+}
+
+func (x *ListBackupsRequest) GetExcludeServiceName() []string {
+	if x != nil {
+		return x.ExcludeServiceName
+	}
+	return nil
+}
+
+func (x *ListBackupsRequest) GetExcludeStatus() []string {
+	if x != nil {
+		return x.ExcludeStatus
+	}
+	return nil
+}
+
+func (x *ListBackupsRequest) GetExcludeDataName() []string {
+	if x != nil {
+		return x.ExcludeDataName
+	}
+	return nil
+}
+
+func (x *ListBackupsRequest) GetExcludeNodeId() []string {
+	if x != nil {
+		return x.ExcludeNodeId
+	}
+	return nil
 }
 
 // ListBackupsResponse returns one page of backup records.
@@ -551,13 +597,19 @@ const file_proto_composia_controller_v1_backup_proto_rawDesc = "" +
 	"started_at\x18\x06 \x01(\tR\tstartedAt\x12\x1f\n" +
 	"\vfinished_at\x18\a \x01(\tR\n" +
 	"finishedAt\x12\x17\n" +
-	"\anode_id\x18\b \x01(\tR\x06nodeId\"\x9d\x01\n" +
+	"\anode_id\x18\b \x01(\tR\x06nodeId\"\xe3\x02\n" +
 	"\x12ListBackupsRequest\x12!\n" +
-	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\x12\x1b\n" +
-	"\tdata_name\x18\x03 \x01(\tR\bdataName\x12\x1b\n" +
+	"\fservice_name\x18\x01 \x03(\tR\vserviceName\x12\x16\n" +
+	"\x06status\x18\x02 \x03(\tR\x06status\x12\x1b\n" +
+	"\tdata_name\x18\x03 \x03(\tR\bdataName\x12\x1b\n" +
 	"\tpage_size\x18\x04 \x01(\rR\bpageSize\x12\x12\n" +
-	"\x04page\x18\x05 \x01(\rR\x04page\"w\n" +
+	"\x04page\x18\x05 \x01(\rR\x04page\x12\x17\n" +
+	"\anode_id\x18\x06 \x03(\tR\x06nodeId\x120\n" +
+	"\x14exclude_service_name\x18\a \x03(\tR\x12excludeServiceName\x12%\n" +
+	"\x0eexclude_status\x18\b \x03(\tR\rexcludeStatus\x12*\n" +
+	"\x11exclude_data_name\x18\t \x03(\tR\x0fexcludeDataName\x12&\n" +
+	"\x0fexclude_node_id\x18\n" +
+	" \x03(\tR\rexcludeNodeId\"w\n" +
 	"\x13ListBackupsResponse\x12?\n" +
 	"\abackups\x18\x01 \x03(\v2%.composia.controller.v1.BackupSummaryR\abackups\x12\x1f\n" +
 	"\vtotal_count\x18\x02 \x01(\rR\n" +

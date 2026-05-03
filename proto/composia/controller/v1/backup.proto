@@ -33,17 +33,28 @@ message BackupSummary {
   string node_id = 8;
 }
 
-// ListBackupsRequest filters backup records by service, status, data name, and page.
+// ListBackupsRequest filters backup records by included and excluded values.
 message ListBackupsRequest {
-  string service_name = 1;
-  // status narrows results to one backup status string when set.
-  string status = 2;
-  // data_name narrows results to one service data entry when set.
-  string data_name = 3;
+  // service_name includes only backups for these services.
+  repeated string service_name = 1;
+  // status includes only backups matching one of these status strings.
+  repeated string status = 2;
+  // data_name includes only backups for these service data entries.
+  repeated string data_name = 3;
   // page_size is the requested page size.
   uint32 page_size = 4;
   // page is the 1-based page number.
   uint32 page = 5;
+  // node_id includes only backups for these source nodes.
+  repeated string node_id = 6;
+  // exclude_service_name removes backups for these services.
+  repeated string exclude_service_name = 7;
+  // exclude_status removes backups matching these status strings.
+  repeated string exclude_status = 8;
+  // exclude_data_name removes backups for these service data entries.
+  repeated string exclude_data_name = 9;
+  // exclude_node_id removes backups for these source nodes.
+  repeated string exclude_node_id = 10;
 }
 
 // ListBackupsResponse returns one page of backup records.

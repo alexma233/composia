@@ -1740,7 +1740,15 @@ func (server *serviceQueryServer) GetServiceBackups(ctx context.Context, req *co
 	if _, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName()); err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
-	backups, totalCount, err := server.db.ListBackups(ctx, req.Msg.GetServiceName(), req.Msg.GetStatus(), req.Msg.GetDataName(), req.Msg.GetPage(), req.Msg.GetPageSize())
+	statusFilters := []string(nil)
+	if req.Msg.GetStatus() != "" {
+		statusFilters = []string{req.Msg.GetStatus()}
+	}
+	dataNameFilters := []string(nil)
+	if req.Msg.GetDataName() != "" {
+		dataNameFilters = []string{req.Msg.GetDataName()}
+	}
+	backups, totalCount, err := server.db.ListBackups(ctx, []string{req.Msg.GetServiceName()}, statusFilters, dataNameFilters, nil, nil, nil, nil, nil, req.Msg.GetPage(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -2830,7 +2838,7 @@ func (server *backupRecordServer) ListBackups(ctx context.Context, req *connect.
 	if req.Msg == nil {
 		req.Msg = &controllerv1.ListBackupsRequest{}
 	}
-	backups, totalCount, err := server.db.ListBackups(ctx, req.Msg.GetServiceName(), req.Msg.GetStatus(), req.Msg.GetDataName(), req.Msg.GetPage(), req.Msg.GetPageSize())
+	backups, totalCount, err := server.db.ListBackups(ctx, req.Msg.GetServiceName(), req.Msg.GetStatus(), req.Msg.GetDataName(), req.Msg.GetNodeId(), req.Msg.GetExcludeServiceName(), req.Msg.GetExcludeStatus(), req.Msg.GetExcludeDataName(), req.Msg.GetExcludeNodeId(), req.Msg.GetPage(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}

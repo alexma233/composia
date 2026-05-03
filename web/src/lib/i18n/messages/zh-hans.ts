@@ -416,6 +416,7 @@ export const zhHans = {
     backup: "备份",
     dataName: "数据名称",
     noBackups: "暂无备份数据",
+    noBackupsForFilter: "当前筛选条件下没有备份",
     backupId: "备份 ID",
     artifactRef: "Artifact Ref",
     sourceTask: "来源任务",
@@ -431,6 +432,11 @@ export const zhHans = {
     restoreWarning:
       "该恢复可能覆盖节点 {nodeId} 上同名的文件、目录或 Docker volume。",
     noArtifact: "此备份没有记录 Artifact Ref。",
+    filters: {
+      allDataNames: "所有数据名称",
+      searchDataPlaceholder: "搜索数据名称...",
+      noDataFound: "未找到数据名称。",
+    },
   },
   settings: {
     title: "设置",

@@ -811,9 +811,14 @@ export type TaskFilter = {
 };
 
 export type BackupFilter = {
-  serviceName?: string;
-  status?: string;
-  dataName?: string;
+  serviceName?: string[];
+  status?: string[];
+  dataName?: string[];
+  nodeId?: string[];
+  excludeServiceName?: string[];
+  excludeStatus?: string[];
+  excludeDataName?: string[];
+  excludeNodeId?: string[];
 };
 
 export async function loadTasks(
@@ -866,9 +871,14 @@ export async function loadBackups(
     {
       page,
       pageSize,
-      service_name: filter?.serviceName ?? "",
-      status: filter?.status ?? "",
-      data_name: filter?.dataName ?? "",
+      service_name: filter?.serviceName ?? [],
+      status: filter?.status ?? [],
+      data_name: filter?.dataName ?? [],
+      node_id: filter?.nodeId ?? [],
+      exclude_service_name: filter?.excludeServiceName ?? [],
+      exclude_status: filter?.excludeStatus ?? [],
+      exclude_data_name: filter?.excludeDataName ?? [],
+      exclude_node_id: filter?.excludeNodeId ?? [],
     },
   );
   return {
