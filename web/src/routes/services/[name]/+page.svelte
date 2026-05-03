@@ -2003,13 +2003,16 @@
               >{$messages.services.recentBackups}</CardTitle
             >
           </CardHeader>
-          <CardContent class="space-y-2">
-            {#each backups.slice(0, 6) as backup}
-              <div class="list-row-compact">
-                <div class="flex items-center justify-between gap-3">
-                  <div>
-                    <div class="font-medium">{backup.dataName}</div>
-                    <div class="text-xs text-muted-foreground">
+            <CardContent class="space-y-3">
+              {#each backups.slice(0, 6) as backup}
+              <a
+                href={`/backups/${backup.backupId}`}
+                class="list-row"
+              >
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div class="min-w-0 flex-1">
+                    <div class="truncate text-sm font-medium">{backup.dataName}</div>
+                    <div class="truncate text-xs text-muted-foreground">
                       {backup.backupId}
                     </div>
                   </div>
@@ -2020,7 +2023,7 @@
                 <div class="mt-2 text-xs text-muted-foreground">
                   {formatTimestamp(backup.finishedAt || backup.startedAt)}
                 </div>
-              </div>
+              </a>
             {/each}
             {#if !backups.length}
               <div class="empty-state px-3 py-6">
