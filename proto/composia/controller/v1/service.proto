@@ -288,6 +288,18 @@ enum ServiceAction {
   SERVICE_ACTION_CADDY_SYNC = 7;
 }
 
+// ComposeRecreateMode controls whether docker compose up recreates containers.
+enum ComposeRecreateMode {
+  // COMPOSE_RECREATE_MODE_UNSPECIFIED uses the default automatic behavior.
+  COMPOSE_RECREATE_MODE_UNSPECIFIED = 0;
+  // COMPOSE_RECREATE_MODE_AUTO recreates when bind mounts need refreshed.
+  COMPOSE_RECREATE_MODE_AUTO = 1;
+  // COMPOSE_RECREATE_MODE_NO_RECREATE runs docker compose up without forcing recreation.
+  COMPOSE_RECREATE_MODE_NO_RECREATE = 2;
+  // COMPOSE_RECREATE_MODE_FORCE_RECREATE always passes --force-recreate.
+  COMPOSE_RECREATE_MODE_FORCE_RECREATE = 3;
+}
+
 // RunServiceActionRequest starts an async action for a service.
 message RunServiceActionRequest {
   // service_name is the logical service name.
@@ -298,6 +310,8 @@ message RunServiceActionRequest {
   repeated string node_ids = 3;
   // data_names narrows backup-like actions to selected data entries.
   repeated string data_names = 4;
+  // compose_recreate_mode controls deploy/update container recreation behavior.
+  ComposeRecreateMode compose_recreate_mode = 5;
 }
 
 // ServiceInstanceAction identifies an async action that targets one service instance.
@@ -322,6 +336,8 @@ message RunServiceInstanceActionRequest {
   string node_id = 2;
   // action is the async operation to start.
   ServiceInstanceAction action = 3;
+  // compose_recreate_mode controls deploy/update container recreation behavior.
+  ComposeRecreateMode compose_recreate_mode = 4;
 }
 
 // ListServicesRequest filters services by runtime status and page.

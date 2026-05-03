@@ -272,6 +272,12 @@ export const zhHans = {
       title: "操作",
       deploy: "部署（Up）",
       update: "更新（Pull + Up）",
+      recreate: {
+        label: "Recreate 策略",
+        auto: "自动 recreate",
+        noRecreate: "不强制 recreate",
+        forceRecreate: "强制 recreate",
+      },
       restart: "重启（Down + Up）",
       stop: "停止（Down）",
       backup: "备份",

@@ -191,6 +191,8 @@ export type ServiceAction =
   | "dns_update"
   | "caddy_sync";
 
+export type ComposeRecreateMode = "auto" | "no_recreate" | "force_recreate";
+
 export async function migrateService(
   serviceName: string,
   sourceNodeId: string,
@@ -1309,6 +1311,7 @@ export async function runServiceAction(
   options: {
     nodeIds?: string[];
     dataNames?: string[];
+    composeRecreateMode?: ComposeRecreateMode;
   } = {},
 ): Promise<ServiceActionResult> {
   return callServiceAction(
@@ -1320,6 +1323,9 @@ export async function runServiceAction(
       action: toServiceActionEnum(action),
       nodeIds: options.nodeIds ?? [],
       dataNames: options.dataNames ?? [],
+      composeRecreateMode: toComposeRecreateModeEnum(
+        options.composeRecreateMode ?? "auto",
+      ),
     },
   );
 }
@@ -2118,6 +2124,18 @@ function toServiceActionEnum(action: ServiceAction): number {
       return 6;
     case "caddy_sync":
       return 7;
+  }
+}
+
+function toComposeRecreateModeEnum(mode: ComposeRecreateMode): number {
+  switch (mode) {
+    case "no_recreate":
+      return 2;
+    case "force_recreate":
+      return 3;
+    case "auto":
+    default:
+      return 1;
   }
 }
 

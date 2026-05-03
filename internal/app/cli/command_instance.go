@@ -76,14 +76,22 @@ func (application *app) runInstanceAction(actionName string, args []string) erro
 		return err
 	}
 	fs := newCommandFlagSet("instance " + actionName)
+	recreateMode := "auto"
+	if actionName == "deploy" || actionName == "update" {
+		fs.StringVar(&recreateMode, "recreate", "auto", "compose recreate mode: auto, no_recreate, force_recreate")
+	}
 	waitOptions := addWaitFlags(fs)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := requireArgs(fs.Args(), 2, fmt.Sprintf("composia instance %s [--wait] [--follow] [--timeout duration] <service> <node>", actionName)); err != nil {
+	if err := requireArgs(fs.Args(), 2, fmt.Sprintf("composia instance %s [--wait] [--follow] [--timeout duration] [--recreate auto|no_recreate|force_recreate] <service> <node>", actionName)); err != nil {
 		return err
 	}
-	response, err := application.client.instances.RunServiceInstanceAction(application.ctx, newRequest(&controllerv1.RunServiceInstanceActionRequest{ServiceName: fs.Arg(0), NodeId: fs.Arg(1), Action: action}))
+	composeRecreateMode, err := composeRecreateModeFromName(recreateMode)
+	if err != nil {
+		return err
+	}
+	response, err := application.client.instances.RunServiceInstanceAction(application.ctx, newRequest(&controllerv1.RunServiceInstanceActionRequest{ServiceName: fs.Arg(0), NodeId: fs.Arg(1), Action: action, ComposeRecreateMode: composeRecreateMode}))
 	if err != nil {
 		return err
 	}

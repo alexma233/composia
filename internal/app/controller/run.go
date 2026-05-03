@@ -1369,13 +1369,14 @@ type serviceInstanceServer struct {
 }
 
 type serviceTaskParams struct {
-	ServiceDir   string            `json:"service_dir"`
-	ServiceDirs  []string          `json:"service_dirs,omitempty"`
-	DataNames    []string          `json:"data_names,omitempty"`
-	FullRebuild  bool              `json:"full_rebuild,omitempty"`
-	SourceNodeID string            `json:"source_node_id,omitempty"`
-	TargetNodeID string            `json:"target_node_id,omitempty"`
-	RestoreItems []restoreTaskItem `json:"restore_items,omitempty"`
+	ServiceDir          string            `json:"service_dir"`
+	ServiceDirs         []string          `json:"service_dirs,omitempty"`
+	DataNames           []string          `json:"data_names,omitempty"`
+	FullRebuild         bool              `json:"full_rebuild,omitempty"`
+	SourceNodeID        string            `json:"source_node_id,omitempty"`
+	TargetNodeID        string            `json:"target_node_id,omitempty"`
+	RestoreItems        []restoreTaskItem `json:"restore_items,omitempty"`
+	ComposeRecreateMode string            `json:"compose_recreate_mode,omitempty"`
 }
 
 type restoreTaskItem struct {
@@ -1942,7 +1943,7 @@ func (server *serviceCommandServer) RunServiceAction(ctx context.Context, req *c
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("action is required"))
 	}
 
-	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), nodeIDs, taskType, dataNames, serviceTaskCreateOptions{Source: requestTaskSource(req.Header())})
+	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), nodeIDs, taskType, dataNames, serviceTaskCreateOptions{Source: requestTaskSource(req.Header()), ComposeRecreateMode: composeRecreateModeParam(taskType, req.Msg.GetComposeRecreateMode())})
 	if err != nil {
 		return nil, err
 	}
@@ -1951,9 +1952,26 @@ func (server *serviceCommandServer) RunServiceAction(ctx context.Context, req *c
 }
 
 type serviceTaskCreateOptions struct {
-	AttemptOfTaskID string
-	Source          task.Source
-	CreatedAt       *time.Time
+	AttemptOfTaskID     string
+	Source              task.Source
+	CreatedAt           *time.Time
+	ComposeRecreateMode string
+}
+
+func composeRecreateModeParam(taskType task.Type, mode controllerv1.ComposeRecreateMode) string {
+	if taskType != task.TypeDeploy && taskType != task.TypeUpdate {
+		return ""
+	}
+	switch mode {
+	case controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_NO_RECREATE:
+		return "no_recreate"
+	case controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_FORCE_RECREATE:
+		return "force_recreate"
+	case controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_AUTO, controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_UNSPECIFIED:
+		return "auto"
+	default:
+		return "auto"
+	}
 }
 
 func (server *serviceCommandServer) createServiceTaskWithOptions(ctx context.Context, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string, options serviceTaskCreateOptions) (task.Record, error) {
@@ -1987,7 +2005,7 @@ func (server *serviceCommandServer) createServiceTaskWithOptions(ctx context.Con
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
 	}
-	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir, DataNames: dataNames})
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir, DataNames: dataNames, ComposeRecreateMode: options.ComposeRecreateMode})
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode task params: %w", err))
 	}
@@ -3843,7 +3861,7 @@ func (server *taskServer) RunTaskAgain(ctx context.Context, req *connect.Request
 	if detail.Record.NodeID != "" {
 		targetNodeIDs = []string{detail.Record.NodeID}
 	}
-	createdTask, err := createServiceTaskWithOptions(ctx, server.db, server.cfg, server.availableNodeIDs, detail.Record.ServiceName, targetNodeIDs, rerunType, params.DataNames, serviceTaskCreateOptions{AttemptOfTaskID: detail.Record.TaskID, Source: requestTaskSource(req.Header())})
+	createdTask, err := createServiceTaskWithOptions(ctx, server.db, server.cfg, server.availableNodeIDs, detail.Record.ServiceName, targetNodeIDs, rerunType, params.DataNames, serviceTaskCreateOptions{AttemptOfTaskID: detail.Record.TaskID, Source: requestTaskSource(req.Header()), ComposeRecreateMode: params.ComposeRecreateMode})
 	if err != nil {
 		return nil, err
 	}
@@ -3979,18 +3997,18 @@ func (server *serviceInstanceServer) RunServiceInstanceAction(ctx context.Contex
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("action is required"))
 	}
 
-	createdTask, err := server.createInstanceTask(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId(), taskType, nil, requestTaskSource(req.Header()))
+	createdTask, err := server.createInstanceTask(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId(), taskType, nil, requestTaskSource(req.Header()), composeRecreateModeParam(taskType, req.Msg.GetComposeRecreateMode()))
 	if err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(taskActionResponse(createdTask)), nil
 }
 
-func (server *serviceInstanceServer) createInstanceTask(ctx context.Context, serviceName, nodeID string, taskType task.Type, dataNames []string, source task.Source) (task.Record, error) {
+func (server *serviceInstanceServer) createInstanceTask(ctx context.Context, serviceName, nodeID string, taskType task.Type, dataNames []string, source task.Source, composeRecreateMode string) (task.Record, error) {
 	if serviceName == "" || nodeID == "" {
 		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name and node_id are required"))
 	}
-	return createServiceTaskWithOptions(ctx, server.db, server.cfg, server.availableNodeIDs, serviceName, []string{nodeID}, taskType, dataNames, serviceTaskCreateOptions{Source: source})
+	return createServiceTaskWithOptions(ctx, server.db, server.cfg, server.availableNodeIDs, serviceName, []string{nodeID}, taskType, dataNames, serviceTaskCreateOptions{Source: source, ComposeRecreateMode: composeRecreateMode})
 }
 
 func formatNullableTime(value *time.Time) string {

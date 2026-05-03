@@ -78,6 +78,7 @@
   } from "$lib/presenters";
   import type {
     BackupSummary,
+    ComposeRecreateMode,
     RepoWriteResult,
     ServiceActionResult,
     ServiceInstanceDetail,
@@ -137,6 +138,7 @@
   let migrateSourceNode = $state("");
   let migrateTargetNode = $state("");
   let selectedInstanceNode = $state("__all__");
+  let composeRecreateMode = $state<ComposeRecreateMode>("auto");
   let serviceSwitchOpen = $state(false);
   let fileTreeIconTheme = $state<"light" | "dark">("dark");
 
@@ -943,6 +945,18 @@
     );
   }
 
+  function composeRecreateModeLabel(mode: ComposeRecreateMode) {
+    switch (mode) {
+      case "no_recreate":
+        return $messages.services.operations.recreate.noRecreate;
+      case "force_recreate":
+        return $messages.services.operations.recreate.forceRecreate;
+      case "auto":
+      default:
+        return $messages.services.operations.recreate.auto;
+    }
+  }
+
   async function triggerAction(
     action:
       | "deploy"
@@ -975,6 +989,12 @@
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recreateMode:
+              action === "deploy" || action === "update"
+                ? composeRecreateMode
+                : "auto",
+          }),
         },
       );
       const payload = (await response.json()) as ServiceActionResult & {
@@ -1738,6 +1758,27 @@
           </CardHeader>
           <CardContent class="space-y-4">
             <div class="grid gap-2">
+              <div class="grid gap-1.5">
+                <div class="text-xs font-medium text-muted-foreground">
+                  {$messages.services.operations.recreate.label}
+                </div>
+                <Select type="single" bind:value={composeRecreateMode as any}>
+                  <SelectTrigger class="w-full">
+                    {composeRecreateModeLabel(composeRecreateMode)}
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">
+                      {$messages.services.operations.recreate.auto}
+                    </SelectItem>
+                    <SelectItem value="no_recreate">
+                      {$messages.services.operations.recreate.noRecreate}
+                    </SelectItem>
+                    <SelectItem value="force_recreate">
+                      {$messages.services.operations.recreate.forceRecreate}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <Button
                 type="button"
                 onclick={() => triggerAction("deploy")}

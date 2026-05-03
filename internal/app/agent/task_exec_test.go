@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -22,6 +23,72 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 )
+
+func TestResolveComposeForceRecreateAutoDetectsServiceDirBindMount(t *testing.T) {
+	rootDir := t.TempDir()
+	serviceDir := filepath.Join(rootDir, "repo", "demo")
+	binDir := filepath.Join(rootDir, "bin")
+	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+		t.Fatalf("create service dir: %v", err)
+	}
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatalf("create bin dir: %v", err)
+	}
+	dockerPath := filepath.Join(binDir, "docker")
+	script := "#!/bin/sh\nif [ \"$4\" = \"config\" ]; then printf '%s' \"$TEST_COMPOSE_CONFIG\"; exit 0; fi\nexit 1\n"
+	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake docker script: %v", err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("TEST_COMPOSE_CONFIG", fmt.Sprintf(`{"services":{"web":{"volumes":[{"type":"bind","source":%q,"target":"/app/config"},{"type":"volume","source":"named","target":"/data"}]}}}`, filepath.Join(serviceDir, "config")))
+
+	var logBuilder strings.Builder
+	forceRecreate, err := resolveComposeForceRecreate(context.Background(), serviceDir, "demo", composeRecreateAuto, func(output string) error {
+		_, writeErr := logBuilder.WriteString(output)
+		return writeErr
+	})
+	if err != nil {
+		t.Fatalf("resolve compose force recreate: %v", err)
+	}
+	if !forceRecreate {
+		t.Fatal("expected auto mode to force recreate for service-dir bind mount")
+	}
+	logText := logBuilder.String()
+	if !strings.Contains(logText, "detected bind mounts from replaceable service directory") || !strings.Contains(logText, "using docker compose up -d --force-recreate") {
+		t.Fatalf("expected recreate warning log, got %q", logText)
+	}
+}
+
+func TestRunComposeUpWithForceRecreatePassesFlag(t *testing.T) {
+	rootDir := t.TempDir()
+	serviceDir := filepath.Join(rootDir, "repo", "demo")
+	binDir := filepath.Join(rootDir, "bin")
+	argsFile := filepath.Join(rootDir, "args.txt")
+	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+		t.Fatalf("create service dir: %v", err)
+	}
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatalf("create bin dir: %v", err)
+	}
+	dockerPath := filepath.Join(binDir, "docker")
+	script := "#!/bin/sh\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n"
+	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake docker script: %v", err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("TEST_ARGS_FILE", argsFile)
+
+	if err := runComposeUpWithOptions(context.Background(), serviceDir, "demo", composeUpOptions{ForceRecreate: true}, func(string) error { return nil }); err != nil {
+		t.Fatalf("run compose up: %v", err)
+	}
+	argsContent, err := os.ReadFile(argsFile)
+	if err != nil {
+		t.Fatalf("read args file: %v", err)
+	}
+	if string(argsContent) != "compose --project-name demo up -d --force-recreate " {
+		t.Fatalf("unexpected docker args %q", string(argsContent))
+	}
+}
 
 func TestExecuteStopTaskDownloadsBundleAndRunsComposeDown(t *testing.T) {
 	rootDir := t.TempDir()

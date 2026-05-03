@@ -1,14 +1,18 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
-import { runServiceAction, type ServiceAction } from "$lib/server/controller";
+import {
+  runServiceAction,
+  type ComposeRecreateMode,
+  type ServiceAction,
+} from "$lib/server/controller";
 import {
   jsonCapabilityError,
   jsonControllerError,
 } from "$lib/server/controller-route";
 import { requireDeclaredWorkspace } from "$lib/server/service-workspace-route";
 
-export const POST: RequestHandler = async ({ params }) => {
+export const POST: RequestHandler = async ({ params, request }) => {
   try {
     const workspace = await requireDeclaredWorkspace(params.name);
 
@@ -27,11 +31,40 @@ export const POST: RequestHandler = async ({ params }) => {
       }
     }
 
-    return json(await runServiceAction(workspace.serviceName, params.action));
+    const payload = (await readActionPayload(request)) as {
+      recreateMode?: string;
+    };
+    return json(
+      await runServiceAction(workspace.serviceName, params.action, {
+        composeRecreateMode: parseComposeRecreateMode(payload.recreateMode),
+      }),
+    );
   } catch (error) {
     return jsonControllerError(error, "Failed to run action.", {}, 400);
   }
 };
+
+async function readActionPayload(request: Request): Promise<unknown> {
+  if (!request.headers.get("content-type")?.includes("application/json")) {
+    return {};
+  }
+  try {
+    return await request.json();
+  } catch {
+    return {};
+  }
+}
+
+function parseComposeRecreateMode(value: string | undefined): ComposeRecreateMode {
+  switch (value) {
+    case "no_recreate":
+    case "force_recreate":
+      return value;
+    case "auto":
+    default:
+      return "auto";
+  }
+}
 
 function serviceCapabilityAction(
   action: ServiceAction,

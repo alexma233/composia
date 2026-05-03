@@ -287,6 +287,12 @@ export const enUS = {
       title: "Operations",
       deploy: "Deploy (Up)",
       update: "Update (Pull + Up)",
+      recreate: {
+        label: "Recreate mode",
+        auto: "Auto recreate",
+        noRecreate: "No recreate",
+        forceRecreate: "Force recreate",
+      },
       restart: "Restart (Down + Up)",
       stop: "Stop (Down)",
       backup: "Backup",

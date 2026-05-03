@@ -49,6 +49,9 @@ const (
 	taskRetryAfterPollFail = 1 * time.Second
 	dockerVolumeTarImage   = "alpine:3.20"
 	dockerVolumeImportCmd  = "rm -rf /target/..?* /target/.[!.]* /target/* && tar -C /target -xf -"
+	composeRecreateAuto    = "auto"
+	composeRecreateNo      = "no_recreate"
+	composeRecreateForce   = "force_recreate"
 )
 
 func Run(ctx context.Context, configPath string) error {
@@ -490,6 +493,7 @@ func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 }
 
 func executeDeployTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
+	params := decodeTaskParams(pulledTask.GetParamsJson())
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting remote deploy task for service=%s node=%s repo_revision=%s\n", pulledTask.GetServiceName(), pulledTask.GetNodeId(), pulledTask.GetRepoRevision())); err != nil {
 		return err
 	}
@@ -509,7 +513,7 @@ func executeDeployTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		if err != nil {
 			return err
 		}
-		return runComposeUp(ctx, bundle.RootPath, projectName, func(output string) error {
+		return runComposeUpForServiceTask(ctx, bundle.RootPath, projectName, params, func(output string) error {
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
@@ -533,6 +537,7 @@ func executeDeployTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 }
 
 func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
+	params := decodeTaskParams(pulledTask.GetParamsJson())
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting remote update task for service=%s node=%s repo_revision=%s\n", pulledTask.GetServiceName(), pulledTask.GetNodeId(), pulledTask.GetRepoRevision())); err != nil {
 		return err
 	}
@@ -563,7 +568,7 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		if err != nil {
 			return err
 		}
-		return runComposeUp(ctx, bundle.RootPath, projectName, func(output string) error {
+		return runComposeUpForServiceTask(ctx, bundle.RootPath, projectName, params, func(output string) error {
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
@@ -1301,8 +1306,9 @@ func decodeTaskParams(paramsJSON string) controllerTaskParams {
 }
 
 type controllerTaskParams struct {
-	ServiceDirs []string `json:"service_dirs,omitempty"`
-	FullRebuild bool     `json:"full_rebuild,omitempty"`
+	ServiceDirs         []string `json:"service_dirs,omitempty"`
+	FullRebuild         bool     `json:"full_rebuild,omitempty"`
+	ComposeRecreateMode string   `json:"compose_recreate_mode,omitempty"`
 }
 
 func syncServiceCaddyFile(ctx context.Context, cfg *config.AgentConfig, serviceDir, serviceRoot string, uploadLog func(string) error) error {
@@ -2325,8 +2331,153 @@ func loadComposeProjectName(serviceDir, fallback string) (string, error) {
 	return repo.ComposeProjectName(meta.ProjectName, fallback), nil
 }
 
+type composeUpOptions struct {
+	ForceRecreate bool
+}
+
+type composeConfigOutput struct {
+	Services map[string]composeConfigService `json:"services"`
+}
+
+type composeConfigService struct {
+	Volumes []composeConfigVolume `json:"volumes"`
+}
+
+type composeConfigVolume struct {
+	Type   string `json:"type"`
+	Source string `json:"source"`
+	Target string `json:"target"`
+}
+
+type serviceDirBindMount struct {
+	Service string
+	Source  string
+	Target  string
+}
+
+func runComposeUpForServiceTask(ctx context.Context, serviceDir, projectName string, params controllerTaskParams, uploadLog func(string) error) error {
+	forceRecreate, err := resolveComposeForceRecreate(ctx, serviceDir, projectName, params.ComposeRecreateMode, uploadLog)
+	if err != nil {
+		return err
+	}
+	return runComposeUpWithOptions(ctx, serviceDir, projectName, composeUpOptions{ForceRecreate: forceRecreate}, uploadLog)
+}
+
+func resolveComposeForceRecreate(ctx context.Context, serviceDir, projectName, mode string, uploadLog func(string) error) (bool, error) {
+	normalizedMode := normalizeComposeRecreateMode(mode)
+	if err := uploadLog(fmt.Sprintf("compose recreate mode=%s\n", normalizedMode)); err != nil {
+		return false, err
+	}
+	if normalizedMode == composeRecreateForce {
+		if err := uploadLog("using docker compose up -d --force-recreate by request\n"); err != nil {
+			return false, err
+		}
+		return true, nil
+	}
+
+	mounts, err := detectServiceDirBindMounts(ctx, serviceDir, projectName)
+	if err != nil {
+		if normalizedMode == composeRecreateAuto {
+			return false, err
+		}
+		if err := uploadLog(fmt.Sprintf("warning: could not inspect compose bind mounts: %v\n", err)); err != nil {
+			return false, err
+		}
+		return false, nil
+	}
+	if len(mounts) == 0 {
+		return false, nil
+	}
+	if err := uploadLog("detected bind mounts from replaceable service directory:\n"); err != nil {
+		return false, err
+	}
+	for _, mount := range mounts {
+		if err := uploadLog(fmt.Sprintf("- %s: %s -> %s\n", mount.Service, mount.Source, mount.Target)); err != nil {
+			return false, err
+		}
+	}
+	if normalizedMode == composeRecreateNo {
+		if err := uploadLog("warning: recreate is disabled by request; using docker compose up -d\n"); err != nil {
+			return false, err
+		}
+		return false, nil
+	}
+	if err := uploadLog("using docker compose up -d --force-recreate to refresh bind mounts\n"); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func normalizeComposeRecreateMode(mode string) string {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case composeRecreateNo, "no-recreate", "never":
+		return composeRecreateNo
+	case composeRecreateForce, "force-recreate", "always":
+		return composeRecreateForce
+	default:
+		return composeRecreateAuto
+	}
+}
+
+func detectServiceDirBindMounts(ctx context.Context, serviceDir, projectName string) ([]serviceDirBindMount, error) {
+	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "config", "--format", "json")
+	command.Dir = serviceDir
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	command.Stdout = &stdout
+	command.Stderr = &stderr
+	if err := command.Run(); err != nil {
+		return nil, fmt.Errorf("docker compose config failed: %w %s", err, strings.TrimSpace(stderr.String()))
+	}
+
+	var config composeConfigOutput
+	if err := json.Unmarshal(stdout.Bytes(), &config); err != nil {
+		return nil, fmt.Errorf("decode docker compose config json: %w", err)
+	}
+	serviceRoot, err := filepath.Abs(serviceDir)
+	if err != nil {
+		return nil, fmt.Errorf("resolve service directory: %w", err)
+	}
+	mounts := make([]serviceDirBindMount, 0)
+	for serviceName, service := range config.Services {
+		for _, volume := range service.Volumes {
+			if volume.Type != "bind" || strings.TrimSpace(volume.Source) == "" {
+				continue
+			}
+			sourcePath := volume.Source
+			if !filepath.IsAbs(sourcePath) {
+				sourcePath = filepath.Join(serviceRoot, sourcePath)
+			}
+			sourcePath, err = filepath.Abs(sourcePath)
+			if err != nil {
+				return nil, fmt.Errorf("resolve bind source %q: %w", volume.Source, err)
+			}
+			if pathInside(serviceRoot, sourcePath) {
+				mounts = append(mounts, serviceDirBindMount{Service: serviceName, Source: sourcePath, Target: volume.Target})
+			}
+		}
+	}
+	return mounts, nil
+}
+
+func pathInside(parent, child string) bool {
+	relative, err := filepath.Rel(filepath.Clean(parent), filepath.Clean(child))
+	if err != nil {
+		return false
+	}
+	return relative == "." || (relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)))
+}
+
 func runComposeUp(ctx context.Context, serviceDir, projectName string, uploadLog func(string) error) error {
-	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "up", "-d")
+	return runComposeUpWithOptions(ctx, serviceDir, projectName, composeUpOptions{}, uploadLog)
+}
+
+func runComposeUpWithOptions(ctx context.Context, serviceDir, projectName string, options composeUpOptions, uploadLog func(string) error) error {
+	args := []string{"compose", "--project-name", projectName, "up", "-d"}
+	if options.ForceRecreate {
+		args = append(args, "--force-recreate")
+	}
+	command := exec.CommandContext(ctx, "docker", args...)
 	command.Dir = serviceDir
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose up failed: %w", err)

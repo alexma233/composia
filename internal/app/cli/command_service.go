@@ -89,20 +89,29 @@ func (application *app) runServiceAction(actionName string, args []string) error
 	fs := newCommandFlagSet("service " + actionName)
 	var nodes stringListFlag
 	var dataNames stringListFlag
+	recreateMode := "auto"
 	fs.Var(&nodes, "node", "target node ID; repeat or comma-separate")
 	fs.Var(&dataNames, "data", "data entry name for backup-like actions; repeat or comma-separate")
+	if actionName == "deploy" || actionName == "update" {
+		fs.StringVar(&recreateMode, "recreate", "auto", "compose recreate mode: auto, no_recreate, force_recreate")
+	}
 	waitOptions := addWaitFlags(fs)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := requireArgs(fs.Args(), 1, fmt.Sprintf("composia service %s [--wait] [--follow] [--timeout duration] [--node node] [--data name] <service>", actionName)); err != nil {
+	if err := requireArgs(fs.Args(), 1, fmt.Sprintf("composia service %s [--wait] [--follow] [--timeout duration] [--node node] [--data name] [--recreate auto|no_recreate|force_recreate] <service>", actionName)); err != nil {
+		return err
+	}
+	composeRecreateMode, err := composeRecreateModeFromName(recreateMode)
+	if err != nil {
 		return err
 	}
 	response, err := application.client.serviceCommands.RunServiceAction(application.ctx, newRequest(&controllerv1.RunServiceActionRequest{
-		ServiceName: fs.Arg(0),
-		Action:      action,
-		NodeIds:     []string(nodes),
-		DataNames:   []string(dataNames),
+		ServiceName:         fs.Arg(0),
+		Action:              action,
+		NodeIds:             []string(nodes),
+		DataNames:           []string(dataNames),
+		ComposeRecreateMode: composeRecreateMode,
 	}))
 	if err != nil {
 		return err
@@ -190,6 +199,19 @@ func serviceActionFromName(name string) (controllerv1.ServiceAction, error) {
 		return controllerv1.ServiceAction_SERVICE_ACTION_CADDY_SYNC, nil
 	default:
 		return controllerv1.ServiceAction_SERVICE_ACTION_UNSPECIFIED, fmt.Errorf("unknown service action %q", name)
+	}
+}
+
+func composeRecreateModeFromName(name string) (controllerv1.ComposeRecreateMode, error) {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "", "auto":
+		return controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_AUTO, nil
+	case "no_recreate", "no-recreate", "never":
+		return controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_NO_RECREATE, nil
+	case "force_recreate", "force-recreate", "always":
+		return controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_FORCE_RECREATE, nil
+	default:
+		return controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_UNSPECIFIED, fmt.Errorf("unsupported recreate mode %q; expected auto, no_recreate, or force_recreate", name)
 	}
 }
 
