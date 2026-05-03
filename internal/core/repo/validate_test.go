@@ -191,3 +191,58 @@ data_protect:
 		t.Fatalf("unexpected validation error: %+v", validationErrors[0])
 	}
 }
+
+func TestValidateRepoRejectsComposeFilesOutsideServiceDir(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repoDir, "alpha"), 0o755); err != nil {
+		t.Fatalf("create alpha dir: %v", err)
+	}
+	meta := strings.TrimSpace(`
+name: alpha
+compose_files:
+  - ../compose.yaml
+nodes:
+  - main
+`) + "\n"
+	if err := os.WriteFile(filepath.Join(repoDir, "alpha", MetaFileName), []byte(meta), 0o644); err != nil {
+		t.Fatalf("write alpha meta: %v", err)
+	}
+
+	validationErrors := ValidateRepo(repoDir, map[string]struct{}{"main": {}})
+	if len(validationErrors) != 1 {
+		t.Fatalf("expected 1 validation error, got %d: %+v", len(validationErrors), validationErrors)
+	}
+	if !strings.Contains(validationErrors[0].Message, "compose_files") || !strings.Contains(validationErrors[0].Message, "service directory") {
+		t.Fatalf("unexpected validation error: %+v", validationErrors[0])
+	}
+}
+
+func TestValidateRepoRejectsDuplicateComposeFiles(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repoDir, "alpha"), 0o755); err != nil {
+		t.Fatalf("create alpha dir: %v", err)
+	}
+	meta := strings.TrimSpace(`
+name: alpha
+compose_files:
+  - compose.yaml
+  - ./compose.yaml
+nodes:
+  - main
+`) + "\n"
+	if err := os.WriteFile(filepath.Join(repoDir, "alpha", MetaFileName), []byte(meta), 0o644); err != nil {
+		t.Fatalf("write alpha meta: %v", err)
+	}
+
+	validationErrors := ValidateRepo(repoDir, map[string]struct{}{"main": {}})
+	if len(validationErrors) != 1 {
+		t.Fatalf("expected 1 validation error, got %d: %+v", len(validationErrors), validationErrors)
+	}
+	if !strings.Contains(validationErrors[0].Message, "compose_files") || !strings.Contains(validationErrors[0].Message, "duplicates") {
+		t.Fatalf("unexpected validation error: %+v", validationErrors[0])
+	}
+}

@@ -11,7 +11,7 @@ A basic service requires at least two files:
 ```
 my-service/
 ├── composia-meta.yaml    # Service metadata
-└── docker-compose.yaml   # Docker Compose configuration
+└── docker-compose.yaml   # Docker Compose configuration (default filename)
 ```
 
 ### Full Structure
@@ -21,7 +21,7 @@ A fully-featured service directory might include:
 ```
 my-service/
 ├── composia-meta.yaml      # Service metadata (required)
-├── docker-compose.yaml     # Compose configuration (required)
+├── docker-compose.yaml     # Compose configuration (default filename)
 ├── .env                    # Environment variables (optional)
 ├── Caddyfile.fragment      # Caddy configuration fragment (optional)
 ├── secrets/                # Encrypted secrets (optional)
@@ -38,6 +38,9 @@ my-service/
 # Basic information
 name: my-app               # Service unique name (required)
 project_name: my-app-prod # Compose project name (optional)
+compose_files:            # Compose files passed as -f in order (optional)
+  - compose.yaml
+  - compose.prod.yaml
 enabled: true              # Whether to enable service declaration (optional, default true)
 
 # Deployment targets
@@ -114,9 +117,12 @@ infra:
 |-------|------|----------|-------------|
 | `name` | string | Yes | Service unique identifier, used for URLs and internal references |
 | `project_name` | string | No | Override Docker Compose project name |
+| `compose_files` | string[] | No | Override Compose file discovery and pass each file to `docker compose -f` in order |
 | `enabled` | boolean | No | Whether to enable service declaration, default `true` |
 
 Composia validates `composia-meta.yaml` in strict mode. Unknown fields are rejected instead of ignored.
+
+When `compose_files` is omitted, Composia leaves file discovery to Docker Compose. When it is set, every path must stay inside the service directory, and later files override earlier ones just like standard `docker compose -f ... -f ...` usage.
 
 #### Deployment Targets
 
@@ -259,9 +265,22 @@ infra:
       - rabin
 ```
 
-## docker-compose.yaml
+## Compose Files
 
-The `docker-compose.yaml` in the service directory is a standard Docker Compose file, fully compatible with Composia.
+By default, the `docker-compose.yaml` in the service directory is a standard Docker Compose file, fully compatible with Composia.
+
+If you need a different primary filename or multiple override files, declare them in `composia-meta.yaml`:
+
+```yaml
+name: my-app
+compose_files:
+  - compose.yaml
+  - compose.prod.yaml
+nodes:
+  - main
+```
+
+Composia passes these entries to Docker Compose in order, equivalent to `docker compose -f compose.yaml -f compose.prod.yaml ...`.
 
 ### Minimal Example
 

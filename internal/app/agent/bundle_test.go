@@ -335,7 +335,8 @@ func TestRunComposeUpUsesProjectNameAndServiceDir(t *testing.T) {
 	t.Setenv("TEST_ARGS_FILE", argsFile)
 	t.Setenv("TEST_PWD_FILE", pwdFile)
 
-	if err := runComposeUp(context.Background(), serviceDir, "demo-project", func(string) error { return nil }); err != nil {
+	compose := composeCommandConfig{ProjectName: "demo-project"}
+	if err := runComposeUp(context.Background(), serviceDir, compose, func(string) error { return nil }); err != nil {
 		t.Fatalf("run compose up: %v", err)
 	}
 
@@ -376,7 +377,8 @@ func TestRunComposeDownUsesProjectNameAndServiceDir(t *testing.T) {
 	t.Setenv("TEST_ARGS_FILE", argsFile)
 	t.Setenv("TEST_PWD_FILE", pwdFile)
 
-	if err := runComposeDown(context.Background(), serviceDir, "demo-project", func(string) error { return nil }); err != nil {
+	compose := composeCommandConfig{ProjectName: "demo-project"}
+	if err := runComposeDown(context.Background(), serviceDir, compose, func(string) error { return nil }); err != nil {
 		t.Fatalf("run compose down: %v", err)
 	}
 
@@ -419,7 +421,8 @@ func TestRunComposePullUsesProjectNameAndServiceDir(t *testing.T) {
 	t.Setenv("TEST_ENV_FILE", envFile)
 	t.Setenv("TEST_PWD_FILE", pwdFile)
 
-	if err := runComposePull(context.Background(), serviceDir, "demo-project", func(string) error { return nil }); err != nil {
+	compose := composeCommandConfig{ProjectName: "demo-project"}
+	if err := runComposePull(context.Background(), serviceDir, compose, func(string) error { return nil }); err != nil {
 		t.Fatalf("run compose pull: %v", err)
 	}
 
@@ -476,7 +479,7 @@ func TestRunComposeUpStreamsLogsBeforeCommandExit(t *testing.T) {
 	logsCh := make(chan string, 8)
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- runComposeUp(context.Background(), serviceDir, "demo-project", func(output string) error {
+		errCh <- runComposeUp(context.Background(), serviceDir, composeCommandConfig{ProjectName: "demo-project"}, func(output string) error {
 			logsCh <- output
 			return nil
 		})
@@ -496,7 +499,7 @@ func TestRunComposeUpStreamsLogsBeforeCommandExit(t *testing.T) {
 	}
 }
 
-func TestLoadComposeProjectNameNormalizesFallbackServiceName(t *testing.T) {
+func TestLoadComposeCommandConfigNormalizesFallbackServiceName(t *testing.T) {
 	rootDir := t.TempDir()
 	serviceDir := filepath.Join(rootDir, "service")
 	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
@@ -506,12 +509,41 @@ func TestLoadComposeProjectNameNormalizesFallbackServiceName(t *testing.T) {
 		t.Fatalf("write service meta: %v", err)
 	}
 
-	projectName, err := loadComposeProjectName(serviceDir, "Renovate")
+	compose, meta, err := loadComposeCommandConfig(serviceDir, "Renovate")
 	if err != nil {
-		t.Fatalf("load compose project name: %v", err)
+		t.Fatalf("load compose command config: %v", err)
 	}
-	if projectName != "renovate" {
-		t.Fatalf("expected normalized project name, got %q", projectName)
+	if compose.ProjectName != "renovate" {
+		t.Fatalf("expected normalized project name, got %q", compose.ProjectName)
+	}
+	if meta.Name != "Renovate" {
+		t.Fatalf("expected loaded meta name Renovate, got %q", meta.Name)
+	}
+	if len(compose.Files) != 0 {
+		t.Fatalf("expected no compose files, got %+v", compose.Files)
+	}
+}
+
+func TestLoadComposeCommandConfigLoadsComposeFiles(t *testing.T) {
+	rootDir := t.TempDir()
+	serviceDir := filepath.Join(rootDir, "service")
+	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+		t.Fatalf("create service dir: %v", err)
+	}
+	meta := "name: demo\nproject_name: demo-stack\ncompose_files:\n  - compose.yaml\n  - compose.prod.yaml\nnodes:\n  - main\n"
+	if err := os.WriteFile(filepath.Join(serviceDir, "composia-meta.yaml"), []byte(meta), 0o644); err != nil {
+		t.Fatalf("write service meta: %v", err)
+	}
+
+	compose, _, err := loadComposeCommandConfig(serviceDir, "demo")
+	if err != nil {
+		t.Fatalf("load compose command config: %v", err)
+	}
+	if compose.ProjectName != "demo-stack" {
+		t.Fatalf("expected configured project name, got %q", compose.ProjectName)
+	}
+	if got := strings.Join(compose.Files, ","); got != "compose.yaml,compose.prod.yaml" {
+		t.Fatalf("unexpected compose files %q", got)
 	}
 }
 

@@ -37,7 +37,6 @@ import (
 	"golang.org/x/net/http2"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -509,11 +508,11 @@ func executeDeployTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepComposeUp, func() error {
-		projectName, err := loadComposeProjectName(bundle.RootPath, pulledTask.GetServiceName())
+		compose, _, err := loadComposeCommandConfig(bundle.RootPath, pulledTask.GetServiceName())
 		if err != nil {
 			return err
 		}
-		return runComposeUpForServiceTask(ctx, bundle.RootPath, projectName, params, func(output string) error {
+		return runComposeUpForServiceTask(ctx, bundle.RootPath, compose, params, func(output string) error {
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
@@ -553,22 +552,22 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepPull, func() error {
-		projectName, err := loadComposeProjectName(bundle.RootPath, pulledTask.GetServiceName())
+		compose, _, err := loadComposeCommandConfig(bundle.RootPath, pulledTask.GetServiceName())
 		if err != nil {
 			return err
 		}
-		return runComposePull(ctx, bundle.RootPath, projectName, func(output string) error {
+		return runComposePull(ctx, bundle.RootPath, compose, func(output string) error {
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
 		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepComposeUp, func() error {
-		projectName, err := loadComposeProjectName(bundle.RootPath, pulledTask.GetServiceName())
+		compose, _, err := loadComposeCommandConfig(bundle.RootPath, pulledTask.GetServiceName())
 		if err != nil {
 			return err
 		}
-		return runComposeUpForServiceTask(ctx, bundle.RootPath, projectName, params, func(output string) error {
+		return runComposeUpForServiceTask(ctx, bundle.RootPath, compose, params, func(output string) error {
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
@@ -720,11 +719,11 @@ func executeStopTask(ctx context.Context, bundleClient agentv1connect.BundleServ
 		return err
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepComposeDown, func() error {
-		projectName, err := loadComposeProjectName(serviceRoot, pulledTask.GetServiceName())
+		compose, _, err := loadComposeCommandConfig(serviceRoot, pulledTask.GetServiceName())
 		if err != nil {
 			return err
 		}
-		return runComposeDown(ctx, serviceRoot, projectName, func(output string) error {
+		return runComposeDown(ctx, serviceRoot, compose, func(output string) error {
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
@@ -765,19 +764,19 @@ func executeRestartTask(ctx context.Context, bundleClient agentv1connect.BundleS
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting remote restart task for service=%s dir=%s\n", pulledTask.GetServiceName(), serviceRoot)); err != nil {
 		return err
 	}
-	projectName, err := loadComposeProjectName(serviceRoot, pulledTask.GetServiceName())
+	compose, _, err := loadComposeCommandConfig(serviceRoot, pulledTask.GetServiceName())
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepComposeDown, func() error {
-		return runComposeDown(ctx, serviceRoot, projectName, func(output string) error {
+		return runComposeDown(ctx, serviceRoot, compose, func(output string) error {
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
 		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepComposeUp, func() error {
-		return runComposeUp(ctx, serviceRoot, projectName, func(output string) error {
+		return runComposeUp(ctx, serviceRoot, compose, func(output string) error {
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
@@ -845,7 +844,7 @@ func executeRusticPruneTask(ctx context.Context, bundleClient agentv1connect.Bun
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
-	rusticMeta, err := loadRusticTaskMeta(serviceRoot)
+	rusticMeta, err := loadRusticTaskMeta(serviceRoot, pulledTask.GetServiceName())
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
@@ -881,7 +880,7 @@ func executeRusticInitTask(ctx context.Context, bundleClient agentv1connect.Bund
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
-	rusticMeta, err := loadRusticTaskMeta(serviceRoot)
+	rusticMeta, err := loadRusticTaskMeta(serviceRoot, pulledTask.GetServiceName())
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
@@ -918,7 +917,7 @@ func executeRusticForgetTask(ctx context.Context, bundleClient agentv1connect.Bu
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
-	rusticMeta, err := loadRusticTaskMeta(serviceRoot)
+	rusticMeta, err := loadRusticTaskMeta(serviceRoot, pulledTask.GetServiceName())
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
@@ -943,7 +942,7 @@ func executeCaddyReloadTask(ctx context.Context, client agentv1connect.AgentRepo
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
-	caddyMeta, err := loadCaddyInfraMeta(serviceRoot)
+	caddyMeta, err := loadCaddyInfraMeta(serviceRoot, pulledTask.GetServiceName())
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
@@ -951,11 +950,7 @@ func executeCaddyReloadTask(ctx context.Context, client agentv1connect.AgentRepo
 		return err
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepCaddyReload, func() error {
-		projectName, err := loadComposeProjectName(serviceRoot, pulledTask.GetServiceName())
-		if err != nil {
-			return err
-		}
-		return runCaddyReload(ctx, serviceRoot, projectName, caddyMeta.ComposeService, caddyMeta.ConfigDir, func(output string) error {
+		return runCaddyReload(ctx, serviceRoot, caddyMeta.Compose, caddyMeta.ComposeService, caddyMeta.ConfigDir, func(output string) error {
 			return uploadTaskLog(ctx, logUploader, output)
 		})
 	}); err != nil {
@@ -991,6 +986,7 @@ func executeCaddySyncTask(ctx context.Context, bundleClient agentv1connect.Bundl
 type caddyInfraMeta struct {
 	ComposeService string
 	ConfigDir      string
+	Compose        composeCommandConfig
 }
 
 type caddyServiceMeta struct {
@@ -1001,16 +997,18 @@ type rusticTaskMeta struct {
 	ComposeService string
 	Profile        string
 	InitArgs       []string
+	Compose        composeCommandConfig
 }
 
-func loadCaddyInfraMeta(serviceDir string) (caddyInfraMeta, error) {
-	meta, err := repo.LoadServiceMeta(filepath.Join(serviceDir, "composia-meta.yaml"))
+func loadCaddyInfraMeta(serviceDir, fallback string) (caddyInfraMeta, error) {
+	compose, meta, err := loadComposeCommandConfig(serviceDir, fallback)
 	if err != nil {
 		return caddyInfraMeta{}, err
 	}
 	return caddyInfraMeta{
 		ComposeService: meta.CaddyComposeService(),
 		ConfigDir:      meta.CaddyConfigDir(),
+		Compose:        compose,
 	}, nil
 }
 
@@ -1022,12 +1020,12 @@ func loadServiceCaddyMeta(serviceDir string) (caddyServiceMeta, error) {
 	return caddyServiceMeta{Source: repo.CaddySource(repo.Service{Meta: meta})}, nil
 }
 
-func loadRusticTaskMeta(serviceDir string) (rusticTaskMeta, error) {
-	meta, err := repo.LoadServiceMeta(filepath.Join(serviceDir, "composia-meta.yaml"))
+func loadRusticTaskMeta(serviceDir, fallback string) (rusticTaskMeta, error) {
+	compose, meta, err := loadComposeCommandConfig(serviceDir, fallback)
 	if err != nil {
 		return rusticTaskMeta{}, err
 	}
-	return rusticTaskMeta{ComposeService: meta.RusticComposeService(), Profile: meta.RusticProfile(), InitArgs: meta.RusticInitArgs()}, nil
+	return rusticTaskMeta{ComposeService: meta.RusticComposeService(), Profile: meta.RusticProfile(), InitArgs: meta.RusticInitArgs(), Compose: compose}, nil
 }
 
 func parsePruneParams(pulledTask *agentv1.AgentTask) pruneTaskParams {
@@ -1103,8 +1101,22 @@ func runDockerPruneAll(ctx context.Context, uploadLog func(string) error) error 
 	return nil
 }
 
-func buildRusticComposeRunArgs(composeService, profile string, commandArgs ...string) []string {
-	args := []string{"compose", "run", "--rm", composeService}
+type composeCommandConfig struct {
+	ProjectName string
+	Files       []string
+}
+
+func buildComposeArgs(config composeCommandConfig, commandArgs ...string) []string {
+	args := []string{"compose", "--project-name", config.ProjectName}
+	for _, file := range config.Files {
+		args = append(args, "-f", file)
+	}
+	args = append(args, commandArgs...)
+	return args
+}
+
+func buildRusticComposeRunArgs(config composeCommandConfig, composeService, profile string, commandArgs ...string) []string {
+	args := buildComposeArgs(config, "run", "--rm", composeService)
 	if profile != "" {
 		args = append(args, "-P", profile)
 	}
@@ -1194,7 +1206,7 @@ func runCommandWithLiveLogsAndCapture(command *exec.Cmd, uploadLog func(string) 
 }
 
 func runRusticInit(ctx context.Context, serviceDir string, meta rusticTaskMeta, uploadLog func(string) error) error {
-	args := buildRusticComposeRunArgs(meta.ComposeService, meta.Profile, append([]string{"init"}, meta.InitArgs...)...)
+	args := buildRusticComposeRunArgs(meta.Compose, meta.ComposeService, meta.Profile, append([]string{"init"}, meta.InitArgs...)...)
 	command := exec.CommandContext(ctx, "docker", args...)
 	command.Dir = serviceDir
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
@@ -1204,7 +1216,7 @@ func runRusticInit(ctx context.Context, serviceDir string, meta rusticTaskMeta, 
 }
 
 func runRusticForget(ctx context.Context, serviceDir string, meta rusticTaskMeta, params rusticMaintenanceTaskParams, nodeID string, uploadLog func(string) error) error {
-	args := buildRusticComposeRunArgs(meta.ComposeService, meta.Profile, "forget")
+	args := buildRusticComposeRunArgs(meta.Compose, meta.ComposeService, meta.Profile, "forget")
 	if !params.RepoWide && nodeID != "" {
 		args = append(args, "--filter-host", nodeID)
 	}
@@ -1223,7 +1235,7 @@ func runRusticForget(ctx context.Context, serviceDir string, meta rusticTaskMeta
 }
 
 func runRusticPrune(ctx context.Context, serviceDir string, meta rusticTaskMeta, uploadLog func(string) error) error {
-	args := buildRusticComposeRunArgs(meta.ComposeService, meta.Profile, "prune")
+	args := buildRusticComposeRunArgs(meta.Compose, meta.ComposeService, meta.Profile, "prune")
 	command := exec.CommandContext(ctx, "docker", args...)
 	command.Dir = serviceDir
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
@@ -1232,9 +1244,9 @@ func runRusticPrune(ctx context.Context, serviceDir string, meta rusticTaskMeta,
 	return nil
 }
 
-func runCaddyReload(ctx context.Context, serviceDir, projectName, composeService, configDir string, uploadLog func(string) error) error {
+func runCaddyReload(ctx context.Context, serviceDir string, compose composeCommandConfig, composeService, configDir string, uploadLog func(string) error) error {
 	configPath := filepath.Join(configDir, "Caddyfile")
-	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "exec", "-T", composeService, "caddy", "reload", "--config", configPath, "--adapter", "caddyfile")
+	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "exec", "-T", composeService, "caddy", "reload", "--config", configPath, "--adapter", "caddyfile")...)
 	command.Dir = serviceDir
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose exec caddy reload failed: %w", err)
@@ -1639,18 +1651,18 @@ func applyRestoreItem(ctx context.Context, serviceRoot, stagingDir string, item 
 	switch item.Strategy {
 	case "files.copy", "files.copy_after_stop":
 		if item.Strategy == "files.copy_after_stop" {
-			projectName, err := loadComposeProjectName(serviceRoot, filepath.Base(serviceRoot))
+			compose, _, err := loadComposeCommandConfig(serviceRoot, filepath.Base(serviceRoot))
 			if err != nil {
 				return err
 			}
-			if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("stopping compose project %s for cold restore item %s\n", projectName, item.Name)); err != nil {
+			if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("stopping compose project %s for cold restore item %s\n", compose.ProjectName, item.Name)); err != nil {
 				return err
 			}
-			if err := runComposeDown(ctx, serviceRoot, projectName, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); err != nil {
+			if err := runComposeDown(ctx, serviceRoot, compose, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); err != nil {
 				return err
 			}
 			defer func() {
-				if restartErr := runComposeUp(ctx, serviceRoot, projectName, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); restartErr != nil {
+				if restartErr := runComposeUp(ctx, serviceRoot, compose, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); restartErr != nil {
 					if retErr == nil {
 						retErr = fmt.Errorf("restart compose project after cold restore: %w", restartErr)
 						return
@@ -1666,12 +1678,12 @@ func applyRestoreItem(ctx context.Context, serviceRoot, stagingDir string, item 
 		}
 		return nil
 	case "database.pgimport":
-		projectName, err := loadComposeProjectName(serviceRoot, filepath.Base(serviceRoot))
+		compose, _, err := loadComposeCommandConfig(serviceRoot, filepath.Base(serviceRoot))
 		if err != nil {
 			return err
 		}
 		dumpPath := filepath.Join(stagingDir, item.Name+".sql")
-		return runComposePGImport(ctx, serviceRoot, projectName, item.Service, dumpPath, func(output string) error { return uploadTaskLog(ctx, logUploader, output) })
+		return runComposePGImport(ctx, serviceRoot, compose, item.Service, dumpPath, func(output string) error { return uploadTaskLog(ctx, logUploader, output) })
 	default:
 		return fmt.Errorf("restore strategy %q is not implemented yet", item.Strategy)
 	}
@@ -1717,18 +1729,18 @@ func stageBackupItem(ctx context.Context, serviceRoot, stagingDir string, item b
 		}
 		return nil
 	case "files.copy_after_stop":
-		projectName, err := loadComposeProjectName(serviceRoot, filepath.Base(serviceRoot))
+		compose, _, err := loadComposeCommandConfig(serviceRoot, filepath.Base(serviceRoot))
 		if err != nil {
 			return err
 		}
-		if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("stopping compose project %s for cold backup item %s\n", projectName, item.Name)); err != nil {
+		if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("stopping compose project %s for cold backup item %s\n", compose.ProjectName, item.Name)); err != nil {
 			return err
 		}
-		if err := runComposeDown(ctx, serviceRoot, projectName, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); err != nil {
+		if err := runComposeDown(ctx, serviceRoot, compose, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); err != nil {
 			return err
 		}
 		defer func() {
-			if restartErr := runComposeUp(ctx, serviceRoot, projectName, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); restartErr != nil && retErr == nil {
+			if restartErr := runComposeUp(ctx, serviceRoot, compose, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); restartErr != nil && retErr == nil {
 				retErr = fmt.Errorf("restart compose project after cold backup: %w", restartErr)
 			}
 		}()
@@ -1739,12 +1751,12 @@ func stageBackupItem(ctx context.Context, serviceRoot, stagingDir string, item b
 		}
 		return nil
 	case "database.pgdumpall":
-		projectName, err := loadComposeProjectName(serviceRoot, filepath.Base(serviceRoot))
+		compose, _, err := loadComposeCommandConfig(serviceRoot, filepath.Base(serviceRoot))
 		if err != nil {
 			return err
 		}
 		targetPath := filepath.Join(stagingDir, item.Name+".sql")
-		if err := runComposePGDumpAll(ctx, serviceRoot, projectName, item.Service, targetPath, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); err != nil {
+		if err := runComposePGDumpAll(ctx, serviceRoot, compose, item.Service, targetPath, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); err != nil {
 			return err
 		}
 		return nil
@@ -1989,7 +2001,7 @@ func formatDockerRunError(prefix string, err error, stderr string) error {
 	return fmt.Errorf("%s: %w: %s", prefix, err, trimmed)
 }
 
-func runComposePGDumpAll(ctx context.Context, serviceDir, projectName, serviceName, targetPath string, uploadLog func(string) error) error {
+func runComposePGDumpAll(ctx context.Context, serviceDir string, compose composeCommandConfig, serviceName, targetPath string, uploadLog func(string) error) error {
 	if serviceName == "" {
 		return fmt.Errorf("pgdumpall backup is missing service name")
 	}
@@ -2000,7 +2012,7 @@ func runComposePGDumpAll(ctx context.Context, serviceDir, projectName, serviceNa
 	if err != nil {
 		return fmt.Errorf("create pgdump target file: %w", err)
 	}
-	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "exec", "-T", serviceName, "pg_dumpall")
+	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "exec", "-T", serviceName, "pg_dumpall")...)
 	command.Dir = serviceDir
 	command.Stdout = targetFile
 	command.Stderr = newCommandLogWriter(uploadLog, false)
@@ -2015,7 +2027,7 @@ func runComposePGDumpAll(ctx context.Context, serviceDir, projectName, serviceNa
 	return nil
 }
 
-func runComposePGImport(ctx context.Context, serviceDir, projectName, serviceName, sourcePath string, uploadLog func(string) error) error {
+func runComposePGImport(ctx context.Context, serviceDir string, compose composeCommandConfig, serviceName, sourcePath string, uploadLog func(string) error) error {
 	if serviceName == "" {
 		return fmt.Errorf("pgimport restore is missing service name")
 	}
@@ -2023,7 +2035,7 @@ func runComposePGImport(ctx context.Context, serviceDir, projectName, serviceNam
 	if err != nil {
 		return fmt.Errorf("open pgimport source file: %w", err)
 	}
-	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "exec", "-T", serviceName, "psql")
+	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "exec", "-T", serviceName, "psql")...)
 	command.Dir = serviceDir
 	command.Stdin = sourceFile
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
@@ -2039,7 +2051,11 @@ func runComposePGImport(ctx context.Context, serviceDir, projectName, serviceNam
 var rusticSnapshotRegexp = regexp.MustCompile(`(?m)snapshot\s+([0-9a-fA-F]+)\b[^\n]*\bsaved\.?`)
 
 func runRusticBackup(ctx context.Context, rusticDir string, rustic *backupcfg.RusticConfig, sourceDir string, item backupcfg.RuntimeItem, logUploader *taskLogUploader) (string, error) {
-	args := buildRusticComposeRunArgs(rustic.ComposeService, rustic.Profile, "backup", "--host", rustic.NodeID)
+	compose, _, err := loadComposeCommandConfig(rusticDir, rustic.ServiceName)
+	if err != nil {
+		return "", err
+	}
+	args := buildRusticComposeRunArgs(compose, rustic.ComposeService, rustic.Profile, "backup", "--host", rustic.NodeID)
 	for _, tag := range buildRusticTags(item.Tags) {
 		args = append(args, "--tag", tag)
 	}
@@ -2060,7 +2076,11 @@ func runRusticBackup(ctx context.Context, rusticDir string, rustic *backupcfg.Ru
 }
 
 func runRusticRestore(ctx context.Context, rusticDir string, rustic *backupcfg.RusticConfig, artifactRef, targetDir string, logUploader *taskLogUploader) error {
-	args := buildRusticComposeRunArgs(rustic.ComposeService, rustic.Profile, "restore", artifactRef, targetDir)
+	compose, _, err := loadComposeCommandConfig(rusticDir, rustic.ServiceName)
+	if err != nil {
+		return err
+	}
+	args := buildRusticComposeRunArgs(compose, rustic.ComposeService, rustic.Profile, "restore", artifactRef, targetDir)
 	command := exec.CommandContext(ctx, "docker", args...)
 	command.Dir = rusticDir
 	if err := runCommandWithLiveLogs(command, func(output string) error {
@@ -2316,19 +2336,17 @@ func tarEntryTargetPath(destinationDir, entryName string) (string, error) {
 	return cleanTargetPath, nil
 }
 
-func loadComposeProjectName(serviceDir, fallback string) (string, error) {
+func loadComposeCommandConfig(serviceDir, fallback string) (composeCommandConfig, repo.ServiceMeta, error) {
 	metaPath := filepath.Join(serviceDir, "composia-meta.yaml")
-	content, err := os.ReadFile(metaPath)
+	meta, err := repo.LoadServiceMeta(metaPath)
 	if err != nil {
-		return "", fmt.Errorf("read service meta %q: %w", metaPath, err)
+		return composeCommandConfig{}, repo.ServiceMeta{}, err
 	}
-	var meta struct {
-		ProjectName string `yaml:"project_name"`
+	composeFiles, err := meta.NormalizedComposeFiles()
+	if err != nil {
+		return composeCommandConfig{}, repo.ServiceMeta{}, fmt.Errorf("service meta %q: %w", metaPath, err)
 	}
-	if err := yaml.Unmarshal(content, &meta); err != nil {
-		return "", fmt.Errorf("decode service meta %q: %w", metaPath, err)
-	}
-	return repo.ComposeProjectName(meta.ProjectName, fallback), nil
+	return composeCommandConfig{ProjectName: repo.ComposeProjectName(meta.ProjectName, fallback), Files: composeFiles}, meta, nil
 }
 
 type composeUpOptions struct {
@@ -2355,15 +2373,15 @@ type serviceDirBindMount struct {
 	Target  string
 }
 
-func runComposeUpForServiceTask(ctx context.Context, serviceDir, projectName string, params controllerTaskParams, uploadLog func(string) error) error {
-	forceRecreate, err := resolveComposeForceRecreate(ctx, serviceDir, projectName, params.ComposeRecreateMode, uploadLog)
+func runComposeUpForServiceTask(ctx context.Context, serviceDir string, compose composeCommandConfig, params controllerTaskParams, uploadLog func(string) error) error {
+	forceRecreate, err := resolveComposeForceRecreate(ctx, serviceDir, compose, params.ComposeRecreateMode, uploadLog)
 	if err != nil {
 		return err
 	}
-	return runComposeUpWithOptions(ctx, serviceDir, projectName, composeUpOptions{ForceRecreate: forceRecreate}, uploadLog)
+	return runComposeUpWithOptions(ctx, serviceDir, compose, composeUpOptions{ForceRecreate: forceRecreate}, uploadLog)
 }
 
-func resolveComposeForceRecreate(ctx context.Context, serviceDir, projectName, mode string, uploadLog func(string) error) (bool, error) {
+func resolveComposeForceRecreate(ctx context.Context, serviceDir string, compose composeCommandConfig, mode string, uploadLog func(string) error) (bool, error) {
 	normalizedMode := normalizeComposeRecreateMode(mode)
 	if err := uploadLog(fmt.Sprintf("compose recreate mode=%s\n", normalizedMode)); err != nil {
 		return false, err
@@ -2375,7 +2393,7 @@ func resolveComposeForceRecreate(ctx context.Context, serviceDir, projectName, m
 		return true, nil
 	}
 
-	mounts, err := detectServiceDirBindMounts(ctx, serviceDir, projectName)
+	mounts, err := detectServiceDirBindMounts(ctx, serviceDir, compose)
 	if err != nil {
 		if normalizedMode == composeRecreateAuto {
 			return false, err
@@ -2419,8 +2437,8 @@ func normalizeComposeRecreateMode(mode string) string {
 	}
 }
 
-func detectServiceDirBindMounts(ctx context.Context, serviceDir, projectName string) ([]serviceDirBindMount, error) {
-	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "config", "--format", "json")
+func detectServiceDirBindMounts(ctx context.Context, serviceDir string, compose composeCommandConfig) ([]serviceDirBindMount, error) {
+	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "config", "--format", "json")...)
 	command.Dir = serviceDir
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -2468,12 +2486,12 @@ func pathInside(parent, child string) bool {
 	return relative == "." || (relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)))
 }
 
-func runComposeUp(ctx context.Context, serviceDir, projectName string, uploadLog func(string) error) error {
-	return runComposeUpWithOptions(ctx, serviceDir, projectName, composeUpOptions{}, uploadLog)
+func runComposeUp(ctx context.Context, serviceDir string, compose composeCommandConfig, uploadLog func(string) error) error {
+	return runComposeUpWithOptions(ctx, serviceDir, compose, composeUpOptions{}, uploadLog)
 }
 
-func runComposeUpWithOptions(ctx context.Context, serviceDir, projectName string, options composeUpOptions, uploadLog func(string) error) error {
-	args := []string{"compose", "--project-name", projectName, "up", "-d"}
+func runComposeUpWithOptions(ctx context.Context, serviceDir string, compose composeCommandConfig, options composeUpOptions, uploadLog func(string) error) error {
+	args := buildComposeArgs(compose, "up", "-d")
 	if options.ForceRecreate {
 		args = append(args, "--force-recreate")
 	}
@@ -2485,8 +2503,8 @@ func runComposeUpWithOptions(ctx context.Context, serviceDir, projectName string
 	return nil
 }
 
-func runComposeDown(ctx context.Context, serviceDir, projectName string, uploadLog func(string) error) error {
-	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "down")
+func runComposeDown(ctx context.Context, serviceDir string, compose composeCommandConfig, uploadLog func(string) error) error {
+	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "down")...)
 	command.Dir = serviceDir
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose down failed: %w", err)
@@ -2494,8 +2512,8 @@ func runComposeDown(ctx context.Context, serviceDir, projectName string, uploadL
 	return nil
 }
 
-func runComposePull(ctx context.Context, serviceDir, projectName string, uploadLog func(string) error) error {
-	command := exec.CommandContext(ctx, "docker", "compose", "--project-name", projectName, "pull")
+func runComposePull(ctx context.Context, serviceDir string, compose composeCommandConfig, uploadLog func(string) error) error {
+	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "pull")...)
 	command.Dir = serviceDir
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose pull failed: %w", err)

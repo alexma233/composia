@@ -24,16 +24,17 @@ type Service struct {
 }
 
 type ServiceMeta struct {
-	Name        string             `yaml:"name"`
-	ProjectName string             `yaml:"project_name"`
-	Enabled     *bool              `yaml:"enabled"`
-	Nodes       []string           `yaml:"nodes"`
-	Infra       *InfraConfig       `yaml:"infra"`
-	Network     *NetworkConfig     `yaml:"network"`
-	Update      *UpdateConfig      `yaml:"update"`
-	DataProtect *DataProtectConfig `yaml:"data_protect"`
-	Backup      *BackupConfig      `yaml:"backup"`
-	Migrate     *MigrateConfig     `yaml:"migrate"`
+	Name         string             `yaml:"name"`
+	ProjectName  string             `yaml:"project_name"`
+	ComposeFiles []string           `yaml:"compose_files"`
+	Enabled      *bool              `yaml:"enabled"`
+	Nodes        []string           `yaml:"nodes"`
+	Infra        *InfraConfig       `yaml:"infra"`
+	Network      *NetworkConfig     `yaml:"network"`
+	Update       *UpdateConfig      `yaml:"update"`
+	DataProtect  *DataProtectConfig `yaml:"data_protect"`
+	Backup       *BackupConfig      `yaml:"backup"`
+	Migrate      *MigrateConfig     `yaml:"migrate"`
 }
 
 type InfraConfig struct {
@@ -436,6 +437,11 @@ func validateServiceMeta(path string, meta *ServiceMeta, availableNodeIDs map[st
 			return err
 		}
 	}
+	composeFiles, err := meta.NormalizedComposeFiles()
+	if err != nil {
+		return fmt.Errorf("service meta %q: %w", path, err)
+	}
+	meta.ComposeFiles = composeFiles
 	if meta.Infra != nil {
 		if err := validateInfra(path, meta.Infra); err != nil {
 			return err
@@ -546,6 +552,33 @@ func (meta ServiceMeta) CaddyComposeService() string {
 		return strings.TrimSpace(meta.Infra.Caddy.ComposeService)
 	}
 	return "caddy"
+}
+
+func (meta ServiceMeta) NormalizedComposeFiles() ([]string, error) {
+	if len(meta.ComposeFiles) == 0 {
+		return nil, nil
+	}
+	normalized := make([]string, 0, len(meta.ComposeFiles))
+	seen := make(map[string]struct{}, len(meta.ComposeFiles))
+	for index, file := range meta.ComposeFiles {
+		trimmed := strings.TrimSpace(file)
+		if trimmed == "" {
+			return nil, fmt.Errorf("compose_files[%d] must not be empty", index)
+		}
+		if filepath.IsAbs(trimmed) {
+			return nil, fmt.Errorf("compose_files[%d] must be a relative path", index)
+		}
+		cleaned := filepath.Clean(trimmed)
+		if cleaned == "." || cleaned == ".." || strings.HasPrefix(cleaned, ".."+string(filepath.Separator)) {
+			return nil, fmt.Errorf("compose_files[%d] must stay within the service directory", index)
+		}
+		if _, exists := seen[cleaned]; exists {
+			return nil, fmt.Errorf("compose_files[%d] duplicates %q", index, cleaned)
+		}
+		seen[cleaned] = struct{}{}
+		normalized = append(normalized, cleaned)
+	}
+	return normalized, nil
 }
 
 func ComposeProjectName(projectName, fallback string) string {

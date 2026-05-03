@@ -11,7 +11,7 @@
 ```
 my-service/
 ├── composia-meta.yaml    # 服务元数据
-└── docker-compose.yaml   # Docker Compose 配置
+└── docker-compose.yaml   # Docker Compose 配置（默认文件名）
 ```
 
 ### 完整结构
@@ -21,7 +21,7 @@ my-service/
 ```
 my-service/
 ├── composia-meta.yaml      # 服务元数据（必需）
-├── docker-compose.yaml     # Compose 配置（必需）
+├── docker-compose.yaml     # Compose 配置（默认文件名）
 ├── .env                    # 环境变量（可选）
 ├── Caddyfile.fragment      # Caddy 配置片段（可选）
 ├── secrets/                # 加密密钥（可选）
@@ -38,6 +38,9 @@ my-service/
 # 基础信息
 name: my-app               # 服务唯一名称（必需）
 project_name: my-app-prod # Compose 项目名称（可选）
+compose_files:            # 按顺序传给 -f 的 Compose 文件（可选）
+  - compose.yaml
+  - compose.prod.yaml
 enabled: true              # 是否启用（可选，默认 true）
 
 # 部署目标
@@ -114,9 +117,12 @@ infra:
 |------|------|------|------|
 | `name` | string | 是 | 服务唯一标识符，用于 URL 和内部引用 |
 | `project_name` | string | 否 | 覆盖 Docker Compose 项目名 |
+| `compose_files` | string[] | 否 | 覆盖 Compose 文件自动发现，并按顺序传给 `docker compose -f` |
 | `enabled` | boolean | 否 | 是否启用服务声明，默认 `true` |
 
 Composia 会以严格模式校验 `composia-meta.yaml`。未知字段不会被忽略，而是会直接报错。
+
+如果不设置 `compose_files`，Composia 会沿用 Docker Compose 的默认文件发现规则。设置后，每个路径都必须位于服务目录内，后面的文件会像标准 `docker compose -f ... -f ...` 一样覆盖前面的文件。
 
 #### 部署目标
 
@@ -259,9 +265,22 @@ infra:
       - rabin
 ```
 
-## docker-compose.yaml
+## Compose Files
 
-服务目录中的 `docker-compose.yaml` 是标准的 Docker Compose 文件，Composia 完全兼容。
+默认情况下，服务目录中的 `docker-compose.yaml` 是标准的 Docker Compose 文件，Composia 完全兼容。
+
+如果你需要自定义主文件名，或者指定多个覆盖文件，可以在 `composia-meta.yaml` 中声明：
+
+```yaml
+name: my-app
+compose_files:
+  - compose.yaml
+  - compose.prod.yaml
+nodes:
+  - main
+```
+
+Composia 会按顺序把这些条目传给 Docker Compose，等价于 `docker compose -f compose.yaml -f compose.prod.yaml ...`。
 
 ### 最小示例
 

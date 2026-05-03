@@ -14,6 +14,9 @@ func TestDiscoverServicesParsesValidService(t *testing.T) {
 	metaPath := filepath.Join(repoDir, "vaultwarden", MetaFileName)
 	writeFile(t, metaPath, strings.TrimSpace(`
 name: vaultwarden
+compose_files:
+  - compose.yaml
+  - compose.prod.yaml
 nodes:
   - node-2
 infra:
@@ -63,6 +66,9 @@ migrate:
 	}
 	if got := services[0].Meta.CaddyConfigDir(); got != "/etc/caddy" {
 		t.Fatalf("expected caddy config dir /etc/caddy, got %q", got)
+	}
+	if got := strings.Join(services[0].Meta.ComposeFiles, ","); got != "compose.yaml,compose.prod.yaml" {
+		t.Fatalf("expected normalized compose files, got %q", got)
 	}
 }
 

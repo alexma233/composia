@@ -28,6 +28,7 @@ func TestResolveComposeForceRecreateAutoDetectsServiceDirBindMount(t *testing.T)
 	rootDir := t.TempDir()
 	serviceDir := filepath.Join(rootDir, "repo", "demo")
 	binDir := filepath.Join(rootDir, "bin")
+	argsFile := filepath.Join(rootDir, "args.txt")
 	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
 		t.Fatalf("create service dir: %v", err)
 	}
@@ -35,15 +36,16 @@ func TestResolveComposeForceRecreateAutoDetectsServiceDirBindMount(t *testing.T)
 		t.Fatalf("create bin dir: %v", err)
 	}
 	dockerPath := filepath.Join(binDir, "docker")
-	script := "#!/bin/sh\nif [ \"$4\" = \"config\" ]; then printf '%s' \"$TEST_COMPOSE_CONFIG\"; exit 0; fi\nexit 1\n"
+	script := "#!/bin/sh\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\nprintf '%s' \"$TEST_COMPOSE_CONFIG\"\n"
 	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("TEST_ARGS_FILE", argsFile)
 	t.Setenv("TEST_COMPOSE_CONFIG", fmt.Sprintf(`{"services":{"web":{"volumes":[{"type":"bind","source":%q,"target":"/app/config"},{"type":"volume","source":"named","target":"/data"}]}}}`, filepath.Join(serviceDir, "config")))
 
 	var logBuilder strings.Builder
-	forceRecreate, err := resolveComposeForceRecreate(context.Background(), serviceDir, "demo", composeRecreateAuto, func(output string) error {
+	forceRecreate, err := resolveComposeForceRecreate(context.Background(), serviceDir, composeCommandConfig{ProjectName: "demo", Files: []string{"compose.yaml", "compose.override.yaml"}}, composeRecreateAuto, func(output string) error {
 		_, writeErr := logBuilder.WriteString(output)
 		return writeErr
 	})
@@ -56,6 +58,13 @@ func TestResolveComposeForceRecreateAutoDetectsServiceDirBindMount(t *testing.T)
 	logText := logBuilder.String()
 	if !strings.Contains(logText, "detected bind mounts from replaceable service directory") || !strings.Contains(logText, "using docker compose up -d --force-recreate") {
 		t.Fatalf("expected recreate warning log, got %q", logText)
+	}
+	argsContent, err := os.ReadFile(argsFile)
+	if err != nil {
+		t.Fatalf("read args file: %v", err)
+	}
+	if got := string(argsContent); got != "compose --project-name demo -f compose.yaml -f compose.override.yaml config --format json " {
+		t.Fatalf("unexpected docker args %q", got)
 	}
 }
 
@@ -78,14 +87,14 @@ func TestRunComposeUpWithForceRecreatePassesFlag(t *testing.T) {
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("TEST_ARGS_FILE", argsFile)
 
-	if err := runComposeUpWithOptions(context.Background(), serviceDir, "demo", composeUpOptions{ForceRecreate: true}, func(string) error { return nil }); err != nil {
+	if err := runComposeUpWithOptions(context.Background(), serviceDir, composeCommandConfig{ProjectName: "demo", Files: []string{"compose.yaml", "compose.override.yaml"}}, composeUpOptions{ForceRecreate: true}, func(string) error { return nil }); err != nil {
 		t.Fatalf("run compose up: %v", err)
 	}
 	argsContent, err := os.ReadFile(argsFile)
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
-	if string(argsContent) != "compose --project-name demo up -d --force-recreate " {
+	if string(argsContent) != "compose --project-name demo -f compose.yaml -f compose.override.yaml up -d --force-recreate " {
 		t.Fatalf("unexpected docker args %q", string(argsContent))
 	}
 }
@@ -117,7 +126,7 @@ func TestExecuteStopTaskDownloadsBundleAndRunsComposeDown(t *testing.T) {
 	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\ncompose_files:\n  - compose.yaml\n  - compose.backup.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n"), 0o644); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
 	if err := os.MkdirAll(cfg.CaddyGeneratedDir(), 0o755); err != nil {
@@ -239,7 +248,7 @@ func TestExecuteBackupTaskRunsRusticAndReportsSnapshot(t *testing.T) {
 		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","profile":"prod","data_protect_dir":"/data-protect","node_id":"main"},"items":[{"name":"config","strategy":"files.copy","include":["./config"],"provider":"rustic","tags":["composia-service:demo","composia-data:config","composia-node:main"]}]}`,
 	})
 	rusticBundle := buildBundleArchive(t, map[string]string{
-		"backup/composia-meta.yaml": "name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n    data_protect_dir: /data-protect\n",
+		"backup/composia-meta.yaml": "name: backup\nproject_name: infra-rustic\ncompose_files:\n  - compose.yaml\n  - compose.backup.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n    data_protect_dir: /data-protect\n",
 	})
 	reportServer := &agentExecutionTestReportServer{}
 	bundleMux := http.NewServeMux()
@@ -281,7 +290,7 @@ func TestExecuteBackupTaskRunsRusticAndReportsSnapshot(t *testing.T) {
 		t.Fatalf("read docker args file: %v", err)
 	}
 	argsLog := string(argsContent)
-	if !strings.Contains(argsLog, "compose run --rm rustic -P prod backup --host main") {
+	if !strings.Contains(argsLog, "compose --project-name infra-rustic -f compose.yaml -f compose.backup.yaml run --rm rustic -P prod backup --host main") {
 		t.Fatalf("unexpected rustic args %q", string(argsContent))
 	}
 	if !strings.Contains(argsLog, "/data-protect/") {
@@ -740,16 +749,16 @@ func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\ncompose_files:\n  - compose.backup.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
 	serviceBundle := buildBundleArchive(t, map[string]string{
-		"demo/composia-meta.yaml":    "name: demo\nnodes:\n  - main\n",
+		"demo/composia-meta.yaml":    "name: demo\ncompose_files:\n  - compose.yaml\nnodes:\n  - main\n",
 		"demo/config/app.env":        "HELLO=world\n",
 		"demo/.composia-backup.json": `{"rustic":{"service_name":"backup","service_dir":"backup","compose_service":"rustic","data_protect_dir":"/data-protect","node_id":"main"},"items":[{"name":"config","strategy":"files.copy_after_stop","include":["./config"],"provider":"rustic"}]}`,
 	})
 	rusticBundle := buildBundleArchive(t, map[string]string{
-		"backup/composia-meta.yaml": "name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    data_protect_dir: /data-protect\n",
+		"backup/composia-meta.yaml": "name: backup\nproject_name: infra-rustic\ncompose_files:\n  - compose.backup.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    data_protect_dir: /data-protect\n",
 	})
 	reportServer := &agentExecutionTestReportServer{}
 	bundleMux := http.NewServeMux()
@@ -787,7 +796,7 @@ func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read docker log: %v", err)
 	}
-	if !strings.Contains(string(dockerLog), "compose --project-name demo down") || !strings.Contains(string(dockerLog), "compose --project-name demo up -d") || !strings.Contains(string(dockerLog), "compose run --rm rustic backup --host main") {
+	if !strings.Contains(string(dockerLog), "compose --project-name demo -f compose.yaml down") || !strings.Contains(string(dockerLog), "compose --project-name demo -f compose.yaml up -d") || !strings.Contains(string(dockerLog), "compose --project-name infra-rustic -f compose.backup.yaml run --rm rustic backup --host main") {
 		t.Fatalf("expected compose down and up around backup, got %q", string(dockerLog))
 	}
 	if !strings.Contains(string(dockerLog), "/data-protect/") {
@@ -1009,7 +1018,7 @@ func TestExecuteCaddyReloadTaskRunsComposeExec(t *testing.T) {
 	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "caddy", "composia-meta.yaml"), []byte("name: edge-proxy\nproject_name: infra-caddy\nnodes:\n  - main\ninfra:\n  caddy:\n    compose_service: edge\n    config_dir: /etc/caddy\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "caddy", "composia-meta.yaml"), []byte("name: edge-proxy\nproject_name: infra-caddy\ncompose_files:\n  - compose.yaml\n  - compose.edge.yaml\nnodes:\n  - main\ninfra:\n  caddy:\n    compose_service: edge\n    config_dir: /etc/caddy\n"), 0o644); err != nil {
 		t.Fatalf("write caddy meta: %v", err)
 	}
 
@@ -1040,7 +1049,7 @@ func TestExecuteCaddyReloadTaskRunsComposeExec(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
-	if string(argsContent) != "compose --project-name infra-caddy exec -T edge caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile " {
+	if string(argsContent) != "compose --project-name infra-caddy -f compose.yaml -f compose.edge.yaml exec -T edge caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile " {
 		t.Fatalf("unexpected docker args %q", string(argsContent))
 	}
 	pwdContent, err := os.ReadFile(pwdFile)
@@ -1085,11 +1094,11 @@ func TestExecuteRusticForgetTaskRunsComposeRun(t *testing.T) {
 	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\ncompose_files:\n  - compose.yaml\n  - compose.ops.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n"), 0o644); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
 	bundle := buildBundleArchive(t, map[string]string{
-		"backup/composia-meta.yaml": "name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n",
+		"backup/composia-meta.yaml": "name: backup\nproject_name: infra-rustic\ncompose_files:\n  - compose.yaml\n  - compose.ops.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n",
 	})
 	bundleMux := http.NewServeMux()
 	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle, expectedTaskID: "task-rustic-forget", responseServiceName: "backup", responseRelativeRoot: "backup"}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
@@ -1130,7 +1139,7 @@ func TestExecuteRusticForgetTaskRunsComposeRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
-	if got := string(argsContent); got != "compose run --rm rustic -P prod forget --filter-host main --filter-tags composia-service:demo --filter-tags composia-data:db " {
+	if got := string(argsContent); got != "compose --project-name infra-rustic -f compose.yaml -f compose.ops.yaml run --rm rustic -P prod forget --filter-host main --filter-tags composia-service:demo --filter-tags composia-data:db " {
 		t.Fatalf("unexpected docker args %q", got)
 	}
 	pwdContent, err := os.ReadFile(pwdFile)
@@ -1174,11 +1183,11 @@ func TestExecuteRusticPruneTaskRunsComposeRun(t *testing.T) {
 	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\ncompose_files:\n  - compose.yaml\n  - compose.ops.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n"), 0o644); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
 	bundle := buildBundleArchive(t, map[string]string{
-		"backup/composia-meta.yaml": "name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n",
+		"backup/composia-meta.yaml": "name: backup\nproject_name: infra-rustic\ncompose_files:\n  - compose.yaml\n  - compose.ops.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n",
 	})
 	bundleMux := http.NewServeMux()
 	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle, expectedTaskID: "task-rustic-prune", responseServiceName: "backup", responseRelativeRoot: "backup"}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
@@ -1219,7 +1228,7 @@ func TestExecuteRusticPruneTaskRunsComposeRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
-	if got := string(argsContent); got != "compose run --rm rustic -P prod prune " {
+	if got := string(argsContent); got != "compose --project-name infra-rustic -f compose.yaml -f compose.ops.yaml run --rm rustic -P prod prune " {
 		t.Fatalf("unexpected docker args %q", got)
 	}
 	pwdContent, err := os.ReadFile(pwdFile)
@@ -1264,7 +1273,7 @@ func TestExecuteRusticInitTaskRunsComposeRun(t *testing.T) {
 		t.Fatalf("create state dir: %v", err)
 	}
 	bundle := buildBundleArchive(t, map[string]string{
-		"backup/composia-meta.yaml": "name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n    init_args:\n      - --set-chunker\n      - rabin\n      - --set-chunk-size\n      - 1MiB\n",
+		"backup/composia-meta.yaml": "name: backup\nproject_name: infra-rustic\ncompose_files:\n  - compose.yaml\n  - compose.ops.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n    init_args:\n      - --set-chunker\n      - rabin\n      - --set-chunk-size\n      - 1MiB\n",
 	})
 	bundleMux := http.NewServeMux()
 	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle, expectedTaskID: "task-rustic-init", responseServiceName: "backup", responseRelativeRoot: "backup"}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
@@ -1305,7 +1314,7 @@ func TestExecuteRusticInitTaskRunsComposeRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
-	if got := string(argsContent); got != "compose run --rm rustic -P prod init --set-chunker rabin --set-chunk-size 1MiB " {
+	if got := string(argsContent); got != "compose --project-name infra-rustic -f compose.yaml -f compose.ops.yaml run --rm rustic -P prod init --set-chunker rabin --set-chunk-size 1MiB " {
 		t.Fatalf("unexpected docker args %q", got)
 	}
 	pwdContent, err := os.ReadFile(pwdFile)
