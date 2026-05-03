@@ -46,7 +46,6 @@ func (uploader *taskLogUploader) Upload(ctx context.Context, content string) err
 		uploadCtx, cancel = context.WithTimeout(ctx, uploader.timeout)
 		defer cancel()
 	}
-	defer func() { _ = uploader.Close() }()
 	uploader.pending = append(uploader.pending, &agentv1.UploadTaskLogsRequest{
 		TaskId:  uploader.taskID,
 		Seq:     uploader.nextSeq,

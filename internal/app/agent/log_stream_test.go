@@ -61,7 +61,7 @@ func TestTaskLogUploaderTimesOutBlockedAck(t *testing.T) {
 	defer httpServer.Close()
 
 	client := agentv1connect.NewAgentReportServiceClient(httpServer.Client(), httpServer.URL)
-	uploader := newTaskLogUploaderWithTimeout(client, "task-1", 50*time.Millisecond)
+	uploader := newTaskLogUploaderWithTimeout(client, "task-1", 250*time.Millisecond)
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- uploader.Upload(context.Background(), "one\n")

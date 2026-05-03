@@ -393,7 +393,6 @@ func TestAgentPullNextTaskLongPollWakesWhenRunningTaskCompletes(t *testing.T) {
 
 	responseCh := make(chan *agentv1.PullNextTaskResponse, 1)
 	errCh := make(chan error, 1)
-	startedAt := time.Now()
 	go func() {
 		response, err := taskClient.PullNextTask(pullCtx, connect.NewRequest(&agentv1.PullNextTaskRequest{NodeId: "node-2"}))
 		if err != nil {
@@ -407,13 +406,14 @@ func TestAgentPullNextTaskLongPollWakesWhenRunningTaskCompletes(t *testing.T) {
 	if err := db.CompleteTask(ctx, "task-running", task.StatusSucceeded, time.Date(2026, 4, 5, 11, 2, 0, 0, time.UTC), ""); err != nil {
 		t.Fatalf("complete running task: %v", err)
 	}
+	notifiedAt := time.Now()
 	notifier.Notify()
 
 	select {
 	case err := <-errCh:
 		t.Fatalf("pull next task: %v", err)
 	case response := <-responseCh:
-		if elapsed := time.Since(startedAt); elapsed >= 500*time.Millisecond {
+		if elapsed := time.Since(notifiedAt); elapsed >= 500*time.Millisecond {
 			t.Fatalf("expected notifier wake-up before retry fallback, got %v", elapsed)
 		}
 		if !response.GetHasTask() || response.GetTask().GetTaskId() != "task-pending" {

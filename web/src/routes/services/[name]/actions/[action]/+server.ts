@@ -55,7 +55,9 @@ async function readActionPayload(request: Request): Promise<unknown> {
   }
 }
 
-function parseComposeRecreateMode(value: string | undefined): ComposeRecreateMode {
+function parseComposeRecreateMode(
+  value: string | undefined,
+): ComposeRecreateMode {
   switch (value) {
     case "no_recreate":
     case "force_recreate":

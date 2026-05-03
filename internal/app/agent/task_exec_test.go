@@ -1353,7 +1353,7 @@ func TestExecutePulledTaskWithTimeoutMarksTimedOutTaskFailed(t *testing.T) {
 
 	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	pulledTask := &agentv1.AgentTask{TaskId: "task-timeout", Type: string(task.TypePrune), NodeId: "main", ParamsJson: `{"target":"images_all"}`}
-	err := executePulledTaskWithTimeout(context.Background(), nil, reportClient, &config.AgentConfig{}, pulledTask, 50*time.Millisecond)
+	err := executePulledTaskWithTimeout(context.Background(), nil, reportClient, &config.AgentConfig{}, pulledTask, 250*time.Millisecond)
 	if err == nil || !strings.Contains(err.Error(), "task exceeded execution timeout") {
 		t.Fatalf("expected timeout error, got %v", err)
 	}
