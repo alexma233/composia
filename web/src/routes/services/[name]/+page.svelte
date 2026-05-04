@@ -3,6 +3,7 @@
   import { onMount } from "svelte";
   import {
     Check,
+    ChevronDown,
     ChevronsUpDown,
     Columns2,
     Copy,
@@ -58,6 +59,12 @@
     DialogOverlay,
     DialogTitle,
   } from "$lib/components/ui/dialog";
+  import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+  } from "$lib/components/ui/dropdown-menu";
   import * as Command from "$lib/components/ui/command";
   import { Input } from "$lib/components/ui/input";
   import * as Popover from "$lib/components/ui/popover";
@@ -139,6 +146,7 @@
   let migrateTargetNode = $state("");
   let selectedInstanceNode = $state("__all__");
   let composeRecreateMode = $state<ComposeRecreateMode>("auto");
+  let deployAction = $state<"deploy" | "update" | "restart">("deploy");
   let serviceSwitchOpen = $state(false);
   let fileTreeIconTheme = $state<"light" | "dark">("dark");
 
@@ -1779,32 +1787,44 @@
                   </SelectContent>
                 </Select>
               </div>
-              <Button
-                type="button"
-                onclick={() => triggerAction("deploy")}
-                disabled={!!actionBusy || !workspace?.isDeclared}
-              >
-                <Play class="mr-2 size-4" />{$messages.services.operations
-                  .deploy}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onclick={() => triggerAction("update")}
-                disabled={!!actionBusy || !workspace?.isDeclared}
-              >
-                <Upload class="mr-2 size-4" />{$messages.services.operations
-                  .update}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onclick={() => triggerAction("restart")}
-                disabled={!!actionBusy || !workspace?.isDeclared}
-              >
-                <RefreshCcw class="mr-2 size-4" />{$messages.services.operations
-                  .restart}
-              </Button>
+              <div class="flex items-center">
+                <Button
+                  type="button"
+                  class="rounded-r-none border-r-0"
+                  onclick={() => triggerAction(deployAction)}
+                  disabled={!!actionBusy || !workspace?.isDeclared}
+                >
+                  {#if deployAction === "deploy"}
+                    <Play class="mr-2 size-4" />{$messages.services.operations.deploy}
+                  {:else if deployAction === "update"}
+                    <Upload class="mr-2 size-4" />{$messages.services.operations.update}
+                  {:else}
+                    <RefreshCcw class="mr-2 size-4" />{$messages.services.operations.restart}
+                  {/if}
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger>
+                    <Button
+                      type="button"
+                      class="rounded-l-none px-2"
+                      disabled={!!actionBusy || !workspace?.isDeclared}
+                    >
+                      <ChevronDown class="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onclick={() => (deployAction = "deploy")}>
+                      <Play class="mr-2 size-4" />{$messages.services.operations.deploy}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onclick={() => (deployAction = "update")}>
+                      <Upload class="mr-2 size-4" />{$messages.services.operations.update}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onclick={() => (deployAction = "restart")}>
+                      <RefreshCcw class="mr-2 size-4" />{$messages.services.operations.restart}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               <Button
                 type="button"
                 variant="outline"
