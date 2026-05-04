@@ -1999,9 +1999,18 @@
 
         <Card>
           <CardHeader>
-            <CardTitle class="section-title"
-              >{$messages.services.recentBackups}</CardTitle
-            >
+            <CardTitle class="section-title">
+              {#if workspace?.serviceName}
+                <a
+                  class="hover:text-foreground/80 transition-colors"
+                  href={`/backups?serviceName=${encodeURIComponent(workspace.serviceName)}`}
+                >
+                  {$messages.services.recentBackups}
+                </a>
+              {:else}
+                {$messages.services.recentBackups}
+              {/if}
+            </CardTitle>
           </CardHeader>
             <CardContent class="space-y-3">
               {#each backups.slice(0, 6) as backup}
