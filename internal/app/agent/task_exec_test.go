@@ -99,6 +99,95 @@ func TestRunComposeUpWithForceRecreatePassesFlag(t *testing.T) {
 	}
 }
 
+func TestExecuteDeployTaskSkipsComposeForConfigInfraService(t *testing.T) {
+	rootDir := t.TempDir()
+	binDir := filepath.Join(rootDir, "bin")
+	dockerLogFile := filepath.Join(rootDir, "docker.log")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatalf("create bin dir: %v", err)
+	}
+	dockerPath := filepath.Join(binDir, "docker")
+	script := "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\nexit 97\n"
+	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake docker script: %v", err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("TEST_DOCKER_LOG_FILE", dockerLogFile)
+
+	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
+	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+		t.Fatalf("create repo dir: %v", err)
+	}
+	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.MkdirAll(cfg.CaddyGeneratedDir(), 0o755); err != nil {
+		t.Fatalf("create caddy generated dir: %v", err)
+	}
+
+	bundle := buildBundleArchive(t, map[string]string{
+		"host-service/composia-meta.yaml": "name: host-service\nnodes:\n  - main\ninfra:\n  config: {}\nnetwork:\n  caddy:\n    enabled: true\n    source: ./host-service.caddy\n",
+		"host-service/host-service.caddy": "host.example.com { reverse_proxy 127.0.0.1:8080 }\n",
+	})
+	reportServer := &agentExecutionTestReportServer{}
+	bundleMux := http.NewServeMux()
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle, expectedTaskID: "task-config", responseServiceName: "host-service", responseRelativeRoot: "host-service"}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	bundleMux.Handle(bundlePath, bundleHandler)
+	bundleHTTPServer := httptest.NewServer(bundleMux)
+	defer bundleHTTPServer.Close()
+
+	reportMux := http.NewServeMux()
+	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(reportServer, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	reportMux.Handle(reportPath, reportHandler)
+	reportHTTPServer := httptest.NewUnstartedServer(reportMux)
+	reportHTTPServer.EnableHTTP2 = true
+	reportHTTPServer.StartTLS()
+	defer reportHTTPServer.Close()
+
+	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	logUploader := newTaskLogUploader(reportClient, "task-config")
+	defer func() { _ = logUploader.Close() }()
+
+	pulledTask := &agentv1.AgentTask{TaskId: "task-config", Type: string(task.TypeDeploy), ServiceName: "host-service", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "host-service"}
+	if err := executeDeployTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
+		t.Fatalf("execute infra.config deploy task: %v", err)
+	}
+
+	if _, err := os.Stat(dockerLogFile); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected docker command to be skipped, got stat err=%v", err)
+	}
+	generated, err := os.ReadFile(filepath.Join(cfg.CaddyGeneratedDir(), "host-service.caddy"))
+	if err != nil {
+		t.Fatalf("read generated caddy file: %v", err)
+	}
+	if !strings.Contains(string(generated), "reverse_proxy 127.0.0.1:8080") {
+		t.Fatalf("unexpected generated caddy content %q", string(generated))
+	}
+
+	reportServer.mu.Lock()
+	defer reportServer.mu.Unlock()
+	if reportServer.taskStatus != string(task.StatusSucceeded) {
+		t.Fatalf("expected succeeded task status, got %q", reportServer.taskStatus)
+	}
+	if reportServer.runtimeStatus != store.ServiceRuntimeRunning {
+		t.Fatalf("expected running runtime status, got %q", reportServer.runtimeStatus)
+	}
+	if reportServer.stepStatuses[task.StepComposeUp] != string(task.StatusSucceeded) || reportServer.stepStatuses[task.StepCaddySync] != string(task.StatusSucceeded) {
+		t.Fatalf("unexpected step statuses %+v", reportServer.stepStatuses)
+	}
+}
+
 func TestExecuteStopTaskDownloadsBundleAndRunsComposeDown(t *testing.T) {
 	rootDir := t.TempDir()
 	binDir := filepath.Join(rootDir, "bin")

@@ -1924,6 +1924,9 @@ func (server *serviceCommandServer) RunServiceAction(ctx context.Context, req *c
 		taskType = task.TypeStop
 		nodeIDs = req.Msg.GetNodeIds()
 	case controllerv1.ServiceAction_SERVICE_ACTION_RESTART:
+		if service.Meta.IsConfigInfra() {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q declares infra.config and cannot be restarted", service.Name))
+		}
 		taskType = task.TypeRestart
 		nodeIDs = req.Msg.GetNodeIds()
 	case controllerv1.ServiceAction_SERVICE_ACTION_BACKUP:
@@ -4000,6 +4003,13 @@ func (server *serviceInstanceServer) RunServiceInstanceAction(ctx context.Contex
 	case controllerv1.ServiceInstanceAction_SERVICE_INSTANCE_ACTION_STOP:
 		taskType = task.TypeStop
 	case controllerv1.ServiceInstanceAction_SERVICE_INSTANCE_ACTION_RESTART:
+		service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName())
+		if err != nil {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+		if service.Meta.IsConfigInfra() {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q declares infra.config and cannot be restarted", service.Name))
+		}
 		taskType = task.TypeRestart
 	default:
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("action is required"))

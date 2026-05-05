@@ -72,6 +72,38 @@ migrate:
 	}
 }
 
+func TestDiscoverServicesParsesConfigInfraService(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	metaPath := filepath.Join(repoDir, "host-service", MetaFileName)
+	writeFile(t, metaPath, strings.TrimSpace(`
+name: host-service
+nodes:
+  - main
+infra:
+  config: {}
+network:
+  caddy:
+    enabled: true
+    source: ./host-service.caddy
+`)+"\n")
+
+	services, err := DiscoverServices(repoDir, map[string]struct{}{"main": {}})
+	if err != nil {
+		t.Fatalf("discover services: %v", err)
+	}
+	if len(services) != 1 {
+		t.Fatalf("expected 1 service, got %d", len(services))
+	}
+	if !services[0].Meta.IsConfigInfra() {
+		t.Fatalf("expected infra.config service")
+	}
+	if len(services[0].Meta.ComposeFiles) != 0 {
+		t.Fatalf("expected no compose files, got %+v", services[0].Meta.ComposeFiles)
+	}
+}
+
 func TestDiscoverServicesSkipsServiceWithoutTargetNodes(t *testing.T) {
 	t.Parallel()
 

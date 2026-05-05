@@ -507,7 +507,14 @@ func executeDeployTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 	}); err != nil {
 		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
+	serviceMeta, err := loadServiceTaskMeta(bundle.RootPath)
+	if err != nil {
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
+	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepComposeUp, func() error {
+		if serviceMeta.IsConfigInfra() {
+			return uploadTaskLog(ctx, logUploader, "service declares infra.config; skipping docker compose up\n")
+		}
 		compose, _, err := loadComposeCommandConfig(bundle.RootPath, pulledTask.GetServiceName())
 		if err != nil {
 			return err
@@ -551,7 +558,14 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 	}); err != nil {
 		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
+	serviceMeta, err := loadServiceTaskMeta(bundle.RootPath)
+	if err != nil {
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
+	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepPull, func() error {
+		if serviceMeta.IsConfigInfra() {
+			return uploadTaskLog(ctx, logUploader, "service declares infra.config; skipping docker compose pull\n")
+		}
 		compose, _, err := loadComposeCommandConfig(bundle.RootPath, pulledTask.GetServiceName())
 		if err != nil {
 			return err
@@ -563,6 +577,9 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepComposeUp, func() error {
+		if serviceMeta.IsConfigInfra() {
+			return uploadTaskLog(ctx, logUploader, "service declares infra.config; skipping docker compose up\n")
+		}
 		compose, _, err := loadComposeCommandConfig(bundle.RootPath, pulledTask.GetServiceName())
 		if err != nil {
 			return err
@@ -711,6 +728,10 @@ func executeStopTask(ctx context.Context, bundleClient agentv1connect.BundleServ
 	}); err != nil {
 		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
+	serviceMeta, err := loadServiceTaskMeta(bundle.RootPath)
+	if err != nil {
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
+	}
 	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, bundle)
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
@@ -719,6 +740,9 @@ func executeStopTask(ctx context.Context, bundleClient agentv1connect.BundleServ
 		return err
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepComposeDown, func() error {
+		if serviceMeta.IsConfigInfra() {
+			return uploadTaskLog(ctx, logUploader, "service declares infra.config; skipping docker compose down\n")
+		}
 		compose, _, err := loadComposeCommandConfig(serviceRoot, pulledTask.GetServiceName())
 		if err != nil {
 			return err
@@ -761,8 +785,16 @@ func executeRestartTask(ctx context.Context, bundleClient agentv1connect.BundleS
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
+	serviceMeta, err := loadServiceTaskMeta(serviceRoot)
+	if err != nil {
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
+	}
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting remote restart task for service=%s dir=%s\n", pulledTask.GetServiceName(), serviceRoot)); err != nil {
 		return err
+	}
+	if serviceMeta.IsConfigInfra() {
+		err := fmt.Errorf("service %q declares infra.config and cannot be restarted", pulledTask.GetServiceName())
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	compose, _, err := loadComposeCommandConfig(serviceRoot, pulledTask.GetServiceName())
 	if err != nil {
@@ -1018,6 +1050,10 @@ func loadServiceCaddyMeta(serviceDir string) (caddyServiceMeta, error) {
 		return caddyServiceMeta{}, err
 	}
 	return caddyServiceMeta{Source: repo.CaddySource(repo.Service{Meta: meta})}, nil
+}
+
+func loadServiceTaskMeta(serviceDir string) (repo.ServiceMeta, error) {
+	return repo.LoadServiceMeta(filepath.Join(serviceDir, "composia-meta.yaml"))
 }
 
 func loadRusticTaskMeta(serviceDir, fallback string) (rusticTaskMeta, error) {

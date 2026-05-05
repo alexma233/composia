@@ -40,7 +40,10 @@ type ServiceMeta struct {
 type InfraConfig struct {
 	Caddy  *InfraCaddyConfig  `yaml:"caddy"`
 	Rustic *InfraRusticConfig `yaml:"rustic"`
+	Config *InfraConfigConfig `yaml:"config"`
 }
+
+type InfraConfigConfig struct{}
 
 type InfraCaddyConfig struct {
 	ComposeService string `yaml:"compose_service"`
@@ -442,6 +445,11 @@ func validateServiceMeta(path string, meta *ServiceMeta, availableNodeIDs map[st
 		return fmt.Errorf("service meta %q: %w", path, err)
 	}
 	meta.ComposeFiles = composeFiles
+	if meta.IsConfigInfra() {
+		if err := validateConfigInfra(path, meta); err != nil {
+			return err
+		}
+	}
 	if meta.Infra != nil {
 		if err := validateInfra(path, meta.Infra); err != nil {
 			return err
@@ -503,6 +511,44 @@ func validateServiceMeta(path string, meta *ServiceMeta, availableNodeIDs map[st
 	}
 
 	return nil
+}
+
+func validateConfigInfra(path string, meta *ServiceMeta) error {
+	if meta.Infra != nil && meta.Infra.Caddy != nil {
+		return fmt.Errorf("service meta %q: infra.config cannot be combined with infra.caddy because caddy reload requires docker compose", path)
+	}
+	if meta.Infra != nil && meta.Infra.Rustic != nil {
+		return fmt.Errorf("service meta %q: infra.config cannot be combined with infra.rustic because rustic requires docker compose", path)
+	}
+	if meta.DataProtect == nil {
+		return nil
+	}
+	for _, item := range meta.DataProtect.Data {
+		for _, action := range []struct {
+			name   string
+			config *DataActionConfig
+		}{
+			{name: "backup", config: item.Backup},
+			{name: "restore", config: item.Restore},
+		} {
+			if action.config == nil {
+				continue
+			}
+			if action.config.Strategy != "files.copy" {
+				return fmt.Errorf("service meta %q: infra.config services only support data_protect.data[%q].%s.strategy files.copy", path, item.Name, action.name)
+			}
+			for _, include := range action.config.Include {
+				if _, _, err := ClassifyDataInclude(include); err != nil {
+					return fmt.Errorf("service meta %q: data_protect.data[%q].%s.include %q is invalid: %w", path, item.Name, action.name, include, err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (meta ServiceMeta) IsConfigInfra() bool {
+	return meta.Infra != nil && meta.Infra.Config != nil
 }
 
 func validateNetwork(path string, network *NetworkConfig) error {
