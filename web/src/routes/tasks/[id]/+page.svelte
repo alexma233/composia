@@ -235,7 +235,7 @@
         {#if data.task}
           <div class="page-header">
             <div class="page-heading">
-              <CardTitle class="page-title">{taskTypeLabel(data.task.type, $messages)}</CardTitle>
+              <CardTitle class="page-title" level="1">{taskTypeLabel(data.task.type, $messages)}</CardTitle>
               <div class="page-meta">
                 {data.task.taskId} · {data.task.serviceName || `${$messages.tasks.nodeLevel}: ${data.task.nodeId || $messages.common.na}`}
               </div>
@@ -329,7 +329,7 @@
 
 		<Card>
       <CardHeader>
-        <CardTitle class="section-title">{$messages.tasks.taskSteps}</CardTitle>
+        <CardTitle class="section-title" level="2">{$messages.tasks.taskSteps}</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="space-y-3">
@@ -353,7 +353,7 @@
 
 		<Card>
       <CardHeader class="section-header">
-        <CardTitle class="section-title">{$messages.tasks.taskLogs}</CardTitle>
+        <CardTitle class="section-title" level="2">{$messages.tasks.taskLogs}</CardTitle>
         <div class="metric-label">{logStateLabel(logState)}</div>
       </CardHeader>
       <CardContent class="space-y-4">

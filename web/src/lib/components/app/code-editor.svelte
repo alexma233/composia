@@ -221,4 +221,4 @@
   }
 </script>
 
-<div bind:this={host} class="h-full min-h-0 overflow-hidden rounded-xl" role="textbox" aria-label="Code editor"></div>
+<div bind:this={host} class="h-full min-h-0 overflow-hidden rounded-xl" role="region" aria-label="Code editor"></div>

@@ -40,11 +40,18 @@
 	data-slot="input-group-addon"
 	data-align={align}
 	class={cn(inputGroupAddonVariants({ align }), className)}
+	tabindex="-1"
 	onclick={(e) => {
 		if ((e.target as HTMLElement).closest("button")) {
 			return;
 		}
 		e.currentTarget.parentElement?.querySelector("input")?.focus();
+	}}
+	onkeydown={(e) => {
+		if (e.key === "Enter" || e.key === " ") {
+			e.preventDefault();
+			e.currentTarget.parentElement?.querySelector("input")?.focus();
+		}
 	}}
 	{...restProps}
 >

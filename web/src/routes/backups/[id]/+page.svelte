@@ -158,7 +158,7 @@
       <CardHeader>
       <div class="page-header">
         <div class="page-heading">
-          <CardTitle class="page-title"
+          <CardTitle class="page-title" level="1"
             >{$messages.backups.detailsTitle}</CardTitle
           >
           {#if data.backup}

@@ -15,9 +15,11 @@
 {#if reason}
   <Tooltip.Root>
     <Tooltip.Trigger>
-      <span class={triggerClass}>
-        {@render children?.()}
-      </span>
+      {#snippet child({ props })}
+        <span class={triggerClass} {...props}>
+          {@render children?.()}
+        </span>
+      {/snippet}
     </Tooltip.Trigger>
     <Tooltip.Content>
       <p>{reason}</p>

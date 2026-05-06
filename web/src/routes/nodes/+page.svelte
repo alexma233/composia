@@ -33,7 +33,7 @@
     <CardHeader>
       <div class="page-header">
         <div class="page-heading">
-          <CardTitle class="page-title">{$messages.nodes.title}</CardTitle>
+          <CardTitle class="page-title" level="1">{$messages.nodes.title}</CardTitle>
         </div>
         <Badge variant="outline">{data.nodes.length}</Badge>
       </div>

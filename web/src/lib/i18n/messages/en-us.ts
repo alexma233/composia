@@ -12,6 +12,7 @@ export const enUS = {
     subtitle: "Service-first self-hosted operations",
   },
   nav: {
+    navLabel: "Main navigation",
     overview: "Dashboard",
     services: "Services",
     nodes: "Nodes",

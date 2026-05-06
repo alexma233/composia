@@ -266,7 +266,7 @@
 			<CardHeader>
         <div class="page-header">
           <div class="page-heading">
-            <CardTitle class="page-title">{$messages.docker.containers.title}</CardTitle>
+            <CardTitle class="page-title" level="1">{$messages.docker.containers.title}</CardTitle>
             <p class="page-description">
               {$messages.docker.containers.titleOnNode.replace('{nodeId}', data.nodeId)}
               {#if !loading}
@@ -285,6 +285,7 @@
             <Input
               type="text"
               placeholder={$messages.docker.containers.searchPlaceholder}
+              aria-label={$messages.docker.containers.searchPlaceholder}
               class="pl-9"
               bind:value={searchQuery}
               oninput={handleSearchInput}

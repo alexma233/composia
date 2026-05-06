@@ -77,7 +77,7 @@
             >
           </div>
 
-          <nav class="flex shrink-0 gap-2 text-sm whitespace-nowrap">
+          <nav class="flex shrink-0 gap-2 text-sm whitespace-nowrap" aria-label={$messages.nav.navLabel}>
             {#each visibleLinks as link}
               <a
                 href={link.href}
@@ -110,5 +110,7 @@
     </header>
   {/if}
 
-  {@render children?.()}
+  <main>
+    {@render children?.()}
+  </main>
 </div>

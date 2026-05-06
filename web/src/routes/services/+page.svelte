@@ -58,7 +58,7 @@
     <CardHeader>
       <div class="page-header">
         <div class="page-heading">
-          <CardTitle class="page-title">{$messages.services.title}</CardTitle>
+          <CardTitle class="page-title" level="1">{$messages.services.title}</CardTitle>
         </div>
         <div class="flex items-center gap-3">
           {#if data.repoHead}

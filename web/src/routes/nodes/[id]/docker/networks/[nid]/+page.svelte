@@ -54,7 +54,7 @@
 			<CardHeader>
         <div class="page-header">
           <div class="page-heading">
-            <CardTitle class="page-title">
+            <CardTitle class="page-title" level="1">
               {#if networkData}
                 {networkData.Name || data.networkId.substring(0, 12)}
               {:else}
@@ -107,7 +107,7 @@
               <div class="grid gap-4 md:grid-cols-3">
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">{$messages.docker.networks.configuration}</CardTitle>
+                    <CardTitle class="text-base" level="3">{$messages.docker.networks.configuration}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -133,7 +133,7 @@
 
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">{$messages.docker.networks.networkSettings}</CardTitle>
+                    <CardTitle class="text-base" level="3">{$messages.docker.networks.networkSettings}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     {#if networkData.IPAM?.Config && networkData.IPAM.Config.length > 0}
@@ -170,7 +170,7 @@
 
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">{$messages.docker.networks.accessControl}</CardTitle>
+                    <CardTitle class="text-base" level="3">{$messages.docker.networks.accessControl}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -198,7 +198,7 @@
               {#if networkData.Labels && Object.keys(networkData.Labels).length > 0}
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">{$messages.docker.networks.labels}</CardTitle>
+                    <CardTitle class="text-base" level="3">{$messages.docker.networks.labels}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div class="space-y-1">
@@ -218,7 +218,7 @@
               {#if networkData.Containers && Object.keys(networkData.Containers).length > 0}
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">{$messages.docker.networks.connectedContainers} ({Object.keys(networkData.Containers).length})</CardTitle>
+                    <CardTitle class="text-base" level="3">{$messages.docker.networks.connectedContainers} ({Object.keys(networkData.Containers).length})</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div class="space-y-3">
@@ -262,7 +262,7 @@
             <TabsContent value="raw">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base">{$messages.docker.networks.rawJson}</CardTitle>
+                  <CardTitle class="text-base" level="3">{$messages.docker.networks.rawJson}</CardTitle>
                   <CardDescription>{$messages.docker.networks.rawJsonDescription}</CardDescription>
                 </CardHeader>
                 <CardContent>

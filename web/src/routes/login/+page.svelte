@@ -29,7 +29,7 @@
 <div class="flex min-h-screen items-center justify-center px-4 py-10">
   <Card class="w-full max-w-md border-border/70 bg-background/95 shadow-lg backdrop-blur">
     <CardHeader class="space-y-2 text-center">
-      <CardTitle class="text-2xl font-semibold tracking-tight">{$messages.auth.login.title}</CardTitle>
+      <CardTitle class="text-2xl font-semibold tracking-tight" level="1">{$messages.auth.login.title}</CardTitle>
       <CardDescription>{$messages.auth.login.description}</CardDescription>
     </CardHeader>
     <CardContent>

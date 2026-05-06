@@ -199,7 +199,7 @@
         {#if data.node}
           <div class="page-header">
             <div class="page-heading">
-              <CardTitle class="page-title">{data.node.displayName}</CardTitle>
+              <CardTitle class="page-title" level="1">{data.node.displayName}</CardTitle>
               {#if data.node.displayName !== data.node.nodeId}
                 <p class="page-meta">
                   {data.node.nodeId} · {$messages.dashboard.lastHeartbeat}
@@ -231,7 +231,7 @@
 
     <Card>
       <CardHeader>
-        <CardTitle class="section-title"
+        <CardTitle class="section-title" level="2"
           >{$messages.nodes.docker.title}</CardTitle
         >
       </CardHeader>
@@ -497,7 +497,7 @@
     <Card>
       <CardHeader class="section-header">
         <div class="section-heading">
-          <CardTitle class="section-title">
+          <CardTitle class="section-title" level="2">
             {#if data.node}
               <a
                 class="hover:text-foreground/80 transition-colors"

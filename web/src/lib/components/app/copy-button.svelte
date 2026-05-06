@@ -31,9 +31,9 @@
       class="h-6 w-6 text-muted-foreground hover:text-foreground"
     >
       {#if copied}
-        <Check class="h-3.5 w-3.5 text-green-500" />
+        <Check class="h-3.5 w-3.5 text-green-500" aria-hidden="true" />
       {:else}
-        <Copy class="h-3.5 w-3.5" />
+        <Copy class="h-3.5 w-3.5" aria-hidden="true" />
       {/if}
       <span class="sr-only">{label}</span>
     </Button>

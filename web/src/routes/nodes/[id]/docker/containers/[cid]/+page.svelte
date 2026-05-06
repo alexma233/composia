@@ -408,7 +408,7 @@
       <CardHeader>
         <div class="page-header">
           <div class="page-heading">
-            <CardTitle class="page-title">
+            <CardTitle class="page-title" level="1">
               {#if containerData}
                 {containerData.Name?.replace(/^\//, "") || data.containerId}
               {:else}
@@ -520,7 +520,7 @@
               <div class="grid gap-4 md:grid-cols-2">
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base"
+                    <CardTitle class="text-base" level="3"
                       >{$messages.docker.containers.general}</CardTitle
                     >
                   </CardHeader>
@@ -593,7 +593,7 @@
 
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base"
+                    <CardTitle class="text-base" level="3"
                       >{$messages.docker.containers.runtime}</CardTitle
                     >
                   </CardHeader>
@@ -696,7 +696,7 @@
 
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base"
+                  <CardTitle class="text-base" level="3"
                     >{$messages.docker.containers.process}</CardTitle
                   >
                 </CardHeader>
@@ -744,7 +744,7 @@
                     class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
-                      <CardTitle class="text-base"
+                      <CardTitle class="text-base" level="3"
                         >{$messages.docker.containers.containerLogs}</CardTitle
                       >
                       <CardDescription
@@ -755,7 +755,7 @@
                     <div
                       class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center"
                     >
-                      <Input bind:value={logTail} class="w-full sm:w-24" />
+                      <Input bind:value={logTail} class="w-full sm:w-24" aria-label={$messages.docker.containers.containerLogs} />
                       <Button
                         variant="outline"
                         size="sm"
@@ -788,7 +788,7 @@
             <TabsContent value="terminal" class="space-y-4">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base"
+                  <CardTitle class="text-base" level="3"
                     >{$messages.docker.containers.terminal.title}</CardTitle
                   >
                   <CardDescription
@@ -801,6 +801,8 @@
                     <Input
                       bind:value={terminalCommand}
                       placeholder={$messages.docker.containers.terminal
+                        .placeholder}
+                      aria-label={$messages.docker.containers.terminal
                         .placeholder}
                       class="w-full sm:min-w-[220px] sm:flex-1"
                     />
@@ -856,7 +858,7 @@
               <div class="grid gap-4 md:grid-cols-2">
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base"
+                    <CardTitle class="text-base" level="3"
                       >{$messages.docker.containers.configuration}</CardTitle
                     >
                   </CardHeader>
@@ -969,7 +971,7 @@
 
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base"
+                    <CardTitle class="text-base" level="3"
                       >{$messages.docker.containers.hostConfig}</CardTitle
                     >
                   </CardHeader>
@@ -1069,7 +1071,7 @@
             <TabsContent value="env" class="space-y-4">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base"
+                  <CardTitle class="text-base" level="3"
                     >{$messages.docker.containers.environment}</CardTitle
                   >
                 </CardHeader>
@@ -1103,7 +1105,7 @@
             <TabsContent value="network" class="space-y-4">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base"
+                  <CardTitle class="text-base" level="3"
                     >{$messages.docker.containers.portBindings}</CardTitle
                   >
                 </CardHeader>
@@ -1142,7 +1144,7 @@
 
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base"
+                  <CardTitle class="text-base" level="3"
                     >{$messages.docker.containers.exposedPorts}</CardTitle
                   >
                 </CardHeader>
@@ -1163,7 +1165,7 @@
 
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base"
+                  <CardTitle class="text-base" level="3"
                     >{$messages.docker.containers.networkSettings}</CardTitle
                   >
                 </CardHeader>
@@ -1205,7 +1207,7 @@
             <TabsContent value="volumes" class="space-y-4">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base"
+                  <CardTitle class="text-base" level="3"
                     >{$messages.docker.containers.mounts}</CardTitle
                   >
                 </CardHeader>
@@ -1261,7 +1263,7 @@
             <TabsContent value="labels" class="space-y-4">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base"
+                  <CardTitle class="text-base" level="3"
                     >{$messages.docker.containers.containerLabels}</CardTitle
                   >
                 </CardHeader>
@@ -1294,7 +1296,7 @@
             <TabsContent value="raw">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base"
+                  <CardTitle class="text-base" level="3"
                     >{$messages.docker.containers.rawJson}</CardTitle
                   >
                   <CardDescription>

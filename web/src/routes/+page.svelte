@@ -49,7 +49,7 @@
     <CardHeader>
       <div class="page-header">
         <div class="page-heading">
-          <CardTitle class="page-title">{$messages.dashboard.title}</CardTitle>
+          <CardTitle class="page-title" level="1">{$messages.dashboard.title}</CardTitle>
         </div>
       </div>
 
@@ -65,7 +65,7 @@
 		<Card>
         <CardHeader>
           <div class="flex items-center justify-between gap-3">
-            <CardTitle class="section-title">
+            <CardTitle class="section-title" level="2">
               <a class="hover:text-foreground/80 transition-colors" href="/services">{$messages.dashboard.services}</a>
             </CardTitle>
             <Badge variant="outline">{data.dashboard?.services.length ?? 0}</Badge>
@@ -103,7 +103,7 @@
 			<Card>
           <CardHeader>
             <div class="flex items-center justify-between gap-3">
-              <CardTitle class="section-title">
+              <CardTitle class="section-title" level="2">
                 <a class="hover:text-foreground/80 transition-colors" href="/nodes">{$messages.dashboard.nodes}</a>
               </CardTitle>
               <Badge variant="outline">{data.dashboard?.nodes.length ?? 0}</Badge>
@@ -141,7 +141,7 @@
 			<Card>
           <CardHeader>
             <div class="flex items-center justify-between gap-3">
-              <CardTitle class="section-title">
+              <CardTitle class="section-title" level="2">
                 <a class="hover:text-foreground/80 transition-colors" href="/tasks">{$messages.dashboard.tasks}</a>
               </CardTitle>
               <Badge variant="outline">{totalTaskCount()}</Badge>

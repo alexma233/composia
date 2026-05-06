@@ -46,7 +46,7 @@
 			<CardHeader>
         <div class="page-header">
           <div class="page-heading">
-            <CardTitle class="page-title">
+            <CardTitle class="page-title" level="1">
               {#if volumeData}
                 {volumeData.Name || data.volumeName}
               {:else}
@@ -93,7 +93,7 @@
               <div class="grid gap-4 md:grid-cols-2">
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">{$messages.docker.volumes.details}</CardTitle>
+                    <CardTitle class="text-base" level="3">{$messages.docker.volumes.details}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -119,7 +119,7 @@
 
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">{$messages.docker.volumes.storage}</CardTitle>
+                    <CardTitle class="text-base" level="3">{$messages.docker.volumes.storage}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     {#if volumeData.UsageData?.Size}
@@ -146,7 +146,7 @@
               {#if volumeData.Labels && Object.keys(volumeData.Labels).length > 0}
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">{$messages.docker.volumes.labels}</CardTitle>
+                    <CardTitle class="text-base" level="3">{$messages.docker.volumes.labels}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div class="space-y-1">
@@ -164,7 +164,7 @@
               {#if volumeData.Options && Object.keys(volumeData.Options).length > 0}
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">{$messages.docker.volumes.options}</CardTitle>
+                    <CardTitle class="text-base" level="3">{$messages.docker.volumes.options}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div class="space-y-1">
@@ -184,7 +184,7 @@
               {#if volumeData.UsageData}
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">{$messages.docker.volumes.usageStatistics}</CardTitle>
+                    <CardTitle class="text-base" level="3">{$messages.docker.volumes.usageStatistics}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -211,7 +211,7 @@
             <TabsContent value="raw">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base">{$messages.docker.volumes.rawJson}</CardTitle>
+                  <CardTitle class="text-base" level="3">{$messages.docker.volumes.rawJson}</CardTitle>
                   <CardDescription>{$messages.docker.volumes.rawJsonDescription}</CardDescription>
                 </CardHeader>
                 <CardContent>

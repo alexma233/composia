@@ -1191,20 +1191,23 @@
       <CardHeader class="gap-3 py-4">
         <div class="page-header">
           <div class="page-heading">
-            <CardTitle class="page-title">
+            <CardTitle class="page-title" level="1">
               <Popover.Root bind:open={serviceSwitchOpen}>
                 <Popover.Trigger class="inline-flex">
-                  <button
-                    type="button"
-                    class="flex items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground"
-                  >
-                    <span
-                      class="min-w-0 truncate font-semibold text-foreground"
+                  {#snippet child({ props })}
+                    <button
+                      type="button"
+                      class="flex items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground"
+                      {...props}
                     >
-                      {workspace?.displayName ?? $messages.services.selectService}
-                    </span>
-                    <ChevronsUpDown class="size-4 shrink-0 opacity-50" />
-                  </button>
+                      <span
+                        class="min-w-0 truncate font-semibold text-foreground"
+                      >
+                        {workspace?.displayName ?? $messages.services.selectService}
+                      </span>
+                      <ChevronsUpDown class="size-4 shrink-0 opacity-50" />
+                    </button>
+                  {/snippet}
                 </Popover.Trigger>
                 <Popover.Content
                   class="w-[min(92vw,28rem)] p-0"
@@ -1311,7 +1314,7 @@
         <CardHeader class="gap-3">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <CardTitle class="section-title"
+              <CardTitle class="section-title" level="2"
                 >{$messages.services.instances.title}</CardTitle
               >
               <div class="text-sm text-muted-foreground">
@@ -1321,7 +1324,7 @@
 
             {#if hasMultipleInstanceNodes}
               <Select type="single" bind:value={selectedInstanceNode as any}>
-                <SelectTrigger class="w-[240px]">
+                <SelectTrigger class="w-[240px]" aria-label={$messages.services.instances.title}>
                   {#if selectedInstanceNode === "__all__"}
                     <span>{$messages.services.allNodes}</span>
                   {:else}
@@ -1420,7 +1423,7 @@
                       <div class="mt-1 text-xs text-muted-foreground">
                         {container.image}
                       </div>
-                      <div class="mt-1 text-[11px] text-muted-foreground/80">
+                      <div class="mt-1 text-xs text-muted-foreground">
                         {container.composeProject}/{container.composeService}
                       </div>
                     </a>
@@ -1444,7 +1447,7 @@
     >
       <Card class="flex min-h-0 min-w-0 flex-col">
         <CardHeader class="section-header border-b">
-          <CardTitle class="section-title"
+          <CardTitle class="section-title" level="2"
             >{$messages.services.files.title}</CardTitle
           >
           <div class="flex flex-wrap items-center gap-2">
@@ -1466,6 +1469,7 @@
                     <Input
                       bind:value={newFilePath}
                       placeholder={$messages.services.files.newFilePathPlaceholder}
+                      aria-label={$messages.common.newFile}
                     />
                   <div class="flex items-center justify-between gap-3">
                     <p class="text-xs text-muted-foreground">
@@ -1501,6 +1505,7 @@
                     <Input
                       bind:value={newFolderPath}
                       placeholder={$messages.services.files.newFolderPathPlaceholder}
+                      aria-label={$messages.common.newFolder}
                     />
                   <div class="flex items-center justify-between gap-3">
                     <p class="text-xs text-muted-foreground">
@@ -1544,7 +1549,7 @@
         {#if showRename}
           <div class="border-b px-4 py-3 text-sm">
             <div class="space-y-3">
-              <Input bind:value={renamePath} placeholder={$messages.services.files.newFilePlaceholder} />
+              <Input bind:value={renamePath} placeholder={$messages.services.files.newFilePlaceholder} aria-label={$messages.common.rename} />
               <div class="flex justify-end">
                 <Button
                   type="button"
@@ -1575,7 +1580,7 @@
       <Card class="flex min-h-0 min-w-0 flex-col">
         <CardHeader class="border-b">
           <div class="section-header">
-            <CardTitle class="section-title"
+            <CardTitle class="section-title" level="2"
               >{$messages.services.files.editor}</CardTitle
             >
             <div class="flex items-center gap-2">
@@ -1633,6 +1638,7 @@
                 <button
                   type="button"
                   class="text-xs text-muted-foreground hover:text-foreground"
+                  aria-label={$messages.common.close}
                   onclick={() => closeTab(tab.path)}>x</button
                 >
               </div>
@@ -1760,7 +1766,7 @@
       >
         <Card class="xl:col-span-2 2xl:col-span-1">
           <CardHeader class="section-header">
-            <CardTitle class="section-title"
+            <CardTitle class="section-title" level="2"
               >{$messages.services.operations.title}</CardTitle
             >
           </CardHeader>
@@ -1771,7 +1777,7 @@
                   {$messages.services.operations.recreate.label}
                 </div>
                 <Select type="single" bind:value={composeRecreateMode as any}>
-                  <SelectTrigger class="w-full">
+                  <SelectTrigger class="w-full" aria-label={$messages.services.operations.recreate.label}>
                     {composeRecreateModeLabel(composeRecreateMode)}
                   </SelectTrigger>
                   <SelectContent>
@@ -1901,7 +1907,7 @@
                       {$messages.services.operations.migrate.title}
                     </div>
                     <Select type="single" bind:value={migrateSourceNode as any}>
-                      <SelectTrigger>
+                      <SelectTrigger aria-label={$messages.services.operations.migrate.selectSource}>
                         <span
                           >{migrateSourceNode ||
                             $messages.services.operations.migrate
@@ -1917,6 +1923,8 @@
                     <Input
                       bind:value={migrateTargetNode}
                       placeholder={$messages.services.operations.migrate
+                        .targetNodeId}
+                      aria-label={$messages.services.operations.migrate
                         .targetNodeId}
                     />
                     <DisabledReasonTooltip reason={migrateReason}>
@@ -1966,6 +1974,7 @@
                 <Input
                   bind:value={renameServiceFolder}
                   placeholder={$messages.services.files.newServiceFolderPlaceholder}
+					aria-label={$messages.services.operations.renameFolder}
                 />
                 <div class="flex justify-end">
                   <Button
@@ -1993,7 +2002,7 @@
         <Card>
           <CardHeader class="section-header">
             <div class="section-heading">
-              <CardTitle class="section-title">
+              <CardTitle class="section-title" level="2">
                 {#if workspace?.serviceName}
                   <a
                     class="hover:text-foreground/80 transition-colors"
@@ -2019,7 +2028,7 @@
 
         <Card>
           <CardHeader>
-            <CardTitle class="section-title">
+            <CardTitle class="section-title" level="2">
               {#if workspace?.serviceName}
                 <a
                   class="hover:text-foreground/80 transition-colors"

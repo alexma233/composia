@@ -4,6 +4,7 @@ export const zhHans = {
     subtitle: "面向服务的自托管运维平台",
   },
   nav: {
+    navLabel: "主导航",
     overview: "概览",
     services: "服务",
     nodes: "节点",

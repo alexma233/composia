@@ -322,7 +322,7 @@
     <CardHeader>
       <div class="page-header">
         <div class="page-heading">
-          <CardTitle class="page-title">{$messages.backups.title}</CardTitle>
+          <CardTitle class="page-title" level="1">{$messages.backups.title}</CardTitle>
         </div>
         <div class="flex items-center gap-2">
           <Popover.Root bind:open={filterOpen}>

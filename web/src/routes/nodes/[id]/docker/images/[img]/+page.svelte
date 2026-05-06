@@ -44,7 +44,7 @@
 			<CardHeader>
         <div class="page-header">
           <div class="page-heading">
-            <CardTitle class="page-title">
+            <CardTitle class="page-title" level="1">
               {#if imageData}
                 {imageData.RepoTags?.[0]?.split(':')[0] || data.imageId.substring(0, 12)}
               {:else}
@@ -90,7 +90,7 @@
               <div class="grid gap-4 md:grid-cols-2">
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">{$messages.docker.images.identity}</CardTitle>
+                    <CardTitle class="text-base" level="3">{$messages.docker.images.identity}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -127,7 +127,7 @@
 
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">{$messages.docker.images.details}</CardTitle>
+                    <CardTitle class="text-base" level="3">{$messages.docker.images.details}</CardTitle>
                   </CardHeader>
                   <CardContent class="space-y-2 text-sm">
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -159,7 +159,7 @@
               {#if imageData.Config?.Env && imageData.Config.Env.length > 0}
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">{$messages.docker.images.environmentVariables}</CardTitle>
+                    <CardTitle class="text-base" level="3">{$messages.docker.images.environmentVariables}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div class="space-y-1">
@@ -181,7 +181,7 @@
               {#if imageData.RootFS?.Layers && imageData.RootFS.Layers.length > 0}
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base">{$messages.docker.images.layers} ({imageData.RootFS.Layers.length})</CardTitle>
+                    <CardTitle class="text-base" level="3">{$messages.docker.images.layers} ({imageData.RootFS.Layers.length})</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div class="space-y-2">
@@ -204,7 +204,7 @@
             <TabsContent value="raw">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base">{$messages.docker.images.rawJson}</CardTitle>
+                  <CardTitle class="text-base" level="3">{$messages.docker.images.rawJson}</CardTitle>
                   <CardDescription>{$messages.docker.images.rawJsonDescription}</CardDescription>
                 </CardHeader>
                 <CardContent>

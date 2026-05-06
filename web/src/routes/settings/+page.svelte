@@ -146,7 +146,7 @@
         <CardHeader>
           <div class="page-header">
             <div class="page-heading">
-              <CardTitle class="page-title">{$messages.settings.title}</CardTitle>
+              <CardTitle class="page-title" level="1">{$messages.settings.title}</CardTitle>
             </div>
           </div>
 
@@ -158,14 +158,14 @@
           {/if}
         </CardHeader>
         <CardContent>
-          <CardTitle class="section-title">{$messages.settings.appearance.title}</CardTitle>
+          <CardTitle class="section-title" level="2">{$messages.settings.appearance.title}</CardTitle>
           <ThemeControls />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle class="section-title"
+          <CardTitle class="section-title" level="2"
             >{$messages.settings.controller.title}</CardTitle
           >
         </CardHeader>
@@ -216,7 +216,7 @@
       <Card class="lg:col-span-2">
         <CardHeader class="section-header">
           <div class="section-heading">
-            <CardTitle class="section-title"
+            <CardTitle class="section-title" level="2"
               >{$messages.settings.repoSync.title}</CardTitle
             >
           </div>
@@ -306,7 +306,7 @@
         <Card class="lg:col-span-2">
           <CardHeader class="section-header">
             <div class="section-heading">
-              <CardTitle class="section-title"
+              <CardTitle class="section-title" level="2"
                 >{$messages.settings.rustic.title}</CardTitle
               >
             </div>
