@@ -805,6 +805,60 @@ func (server *agentReportServer) ReportServiceInstanceStatus(ctx context.Context
 	return connect.NewResponse(&agentv1.ReportServiceInstanceStatusResponse{}), nil
 }
 
+func (server *agentReportServer) ReportServiceImageStates(ctx context.Context, req *connect.Request[agentv1.ReportServiceImageStatesRequest]) (*connect.Response[agentv1.ReportServiceImageStatesResponse], error) {
+	if req.Msg.GetServiceName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+	if req.Msg.GetNodeId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
+	}
+	authenticatedNodeID, ok := rpcutil.BearerSubject(ctx)
+	if !ok || authenticatedNodeID != req.Msg.GetNodeId() {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("node_id does not match bearer token"))
+	}
+	reportedAt := time.Now().UTC()
+	if req.Msg.GetReportedAt() != nil {
+		reportedAt = req.Msg.GetReportedAt().AsTime().UTC()
+	}
+	states := make([]store.ServiceImageState, 0, len(req.Msg.GetImages()))
+	for _, image := range req.Msg.GetImages() {
+		if image.GetComposeService() == "" {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("compose_service is required"))
+		}
+		if image.GetImageRef() == "" {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("image_ref is required"))
+		}
+		status := image.GetCheckStatus()
+		if status == "" {
+			status = store.ImageCheckStatusUnknown
+		}
+		if !store.IsValidImageCheckStatus(status) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid check_status %q", status))
+		}
+		states = append(states, store.ServiceImageState{
+			ServiceName:          req.Msg.GetServiceName(),
+			NodeID:               req.Msg.GetNodeId(),
+			ComposeService:       image.GetComposeService(),
+			ImageRef:             image.GetImageRef(),
+			LocalDigest:          image.GetLocalDigest(),
+			RemoteDigest:         image.GetRemoteDigest(),
+			LocalDigestObserved:  image.GetLocalDigestObserved(),
+			RemoteDigestObserved: image.GetRemoteDigestObserved(),
+			CheckStatus:          status,
+			ErrorSummary:         image.GetErrorSummary(),
+			CheckedAt:            reportedAt,
+			UpdatedAt:            reportedAt,
+		})
+	}
+	if err := server.db.UpsertServiceImageStates(ctx, states); err != nil {
+		if errors.Is(err, store.ErrServiceNotFound) {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&agentv1.ReportServiceImageStatesResponse{}), nil
+}
+
 func ensureTaskNodeMatch(ctx context.Context, db *store.DB, taskID string) error {
 	authenticatedNodeID, ok := rpcutil.BearerSubject(ctx)
 	if !ok {

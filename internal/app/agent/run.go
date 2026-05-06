@@ -18,6 +18,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -484,6 +485,8 @@ func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return executeCaddySyncTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypeCaddyReload):
 		return executeCaddyReloadTask(ctx, client, cfg, pulledTask, logUploader)
+	case string(task.TypeImageCheck):
+		return executeImageCheckTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
 	case string(task.TypeDockerStart), string(task.TypeDockerStop), string(task.TypeDockerRestart), string(task.TypeDockerRemove):
 		return executeDockerTask(ctx, client, cfg, pulledTask, logUploader)
 	default:
@@ -527,6 +530,9 @@ func executeDeployTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 	}
 	if err := executeCaddySyncStep(ctx, client, cfg, pulledTask, logUploader, bundle.RootPath); err != nil {
 		return failServiceTask(ctx, client, cfg, pulledTask, err)
+	}
+	if !serviceMeta.IsConfigInfra() {
+		reportServiceImageStatesBestEffort(ctx, client, pulledTask, bundle.RootPath, false, logUploader)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepFinalize, func() error {
 		return uploadTaskLog(ctx, logUploader, "finalize step completed after compose up\n")
@@ -593,6 +599,9 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 	if err := executeCaddySyncStep(ctx, client, cfg, pulledTask, logUploader, bundle.RootPath); err != nil {
 		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
+	if !serviceMeta.IsConfigInfra() {
+		reportServiceImageStatesBestEffort(ctx, client, pulledTask, bundle.RootPath, false, logUploader)
+	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepFinalize, func() error {
 		return uploadTaskLog(ctx, logUploader, "finalize step completed after compose pull and up\n")
 	}); err != nil {
@@ -602,6 +611,39 @@ func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := uploadTaskLog(ctx, logUploader, "update task finished successfully\n"); err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
+	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
+}
+
+func executeImageCheckTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
+	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting image check task for service=%s node=%s repo_revision=%s\n", pulledTask.GetServiceName(), pulledTask.GetNodeId(), pulledTask.GetRepoRevision())); err != nil {
+		return err
+	}
+	var bundle *bundleResult
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
+		var err error
+		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
+		if err != nil {
+			return err
+		}
+		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
+	}); err != nil {
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
+	}
+	serviceMeta, err := loadServiceTaskMeta(bundle.RootPath)
+	if err != nil {
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
+	}
+	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepImageCheck, func() error {
+		if serviceMeta.IsConfigInfra() {
+			return uploadTaskLog(ctx, logUploader, "service declares infra.config; skipping image check\n")
+		}
+		return reportServiceImageStates(ctx, client, pulledTask, bundle.RootPath, true, logUploader)
+	}); err != nil {
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
+	}
+	if err := uploadTaskLog(ctx, logUploader, "image check task finished successfully\n"); err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
@@ -2394,7 +2436,18 @@ type composeConfigOutput struct {
 }
 
 type composeConfigService struct {
+	Image   string                `json:"image"`
 	Volumes []composeConfigVolume `json:"volumes"`
+}
+
+type serviceImageObservation struct {
+	ComposeService string
+	ImageRef       string
+	LocalDigest    string
+	RemoteDigest   string
+	LocalObserved  bool
+	RemoteObserved bool
+	ErrorSummary   string
 }
 
 type composeConfigVolume struct {
@@ -2512,6 +2565,165 @@ func detectServiceDirBindMounts(ctx context.Context, serviceDir string, compose 
 		}
 	}
 	return mounts, nil
+}
+
+func reportServiceImageStatesBestEffort(ctx context.Context, client agentv1connect.AgentReportServiceClient, pulledTask *agentv1.AgentTask, serviceDir string, includeRemote bool, logUploader *taskLogUploader) {
+	if err := reportServiceImageStates(ctx, client, pulledTask, serviceDir, includeRemote, logUploader); err != nil {
+		if logErr := uploadTaskLog(ctx, logUploader, fmt.Sprintf("warning: could not report service image states: %v\n", err)); logErr != nil {
+			log.Printf("upload image state warning for task=%s: %v", pulledTask.GetTaskId(), logErr)
+		}
+	}
+}
+
+func reportServiceImageStates(ctx context.Context, client agentv1connect.AgentReportServiceClient, pulledTask *agentv1.AgentTask, serviceDir string, includeRemote bool, logUploader *taskLogUploader) error {
+	compose, _, err := loadComposeCommandConfig(serviceDir, pulledTask.GetServiceName())
+	if err != nil {
+		return err
+	}
+	observations, err := collectServiceImageObservations(ctx, serviceDir, compose, includeRemote)
+	if err != nil {
+		return err
+	}
+	if len(observations) == 0 {
+		return uploadTaskLog(ctx, logUploader, "no compose service images found to report\n")
+	}
+	images := make([]*agentv1.ServiceImageState, 0, len(observations))
+	for _, observation := range observations {
+		status := store.ImageCheckStatusOK
+		if observation.ErrorSummary != "" {
+			status = store.ImageCheckStatusError
+		}
+		images = append(images, &agentv1.ServiceImageState{
+			ComposeService:       observation.ComposeService,
+			ImageRef:             observation.ImageRef,
+			LocalDigest:          observation.LocalDigest,
+			RemoteDigest:         observation.RemoteDigest,
+			LocalDigestObserved:  observation.LocalObserved,
+			RemoteDigestObserved: observation.RemoteObserved,
+			CheckStatus:          status,
+			ErrorSummary:         observation.ErrorSummary,
+		})
+	}
+	_, err = client.ReportServiceImageStates(ctx, connect.NewRequest(&agentv1.ReportServiceImageStatesRequest{
+		ServiceName: pulledTask.GetServiceName(),
+		NodeId:      pulledTask.GetNodeId(),
+		Images:      images,
+		ReportedAt:  timestamppb.Now(),
+	}))
+	if err != nil {
+		return fmt.Errorf("report service image states: %w", err)
+	}
+	return uploadTaskLog(ctx, logUploader, fmt.Sprintf("reported %d service image state(s)\n", len(images)))
+}
+
+func collectServiceImageObservations(ctx context.Context, serviceDir string, compose composeCommandConfig, includeRemote bool) ([]serviceImageObservation, error) {
+	config, err := loadComposeConfigOutput(ctx, serviceDir, compose)
+	if err != nil {
+		return nil, err
+	}
+	composeServices := make([]string, 0, len(config.Services))
+	for composeService := range config.Services {
+		composeServices = append(composeServices, composeService)
+	}
+	slices.Sort(composeServices)
+
+	observations := make([]serviceImageObservation, 0, len(composeServices))
+	for _, composeService := range composeServices {
+		imageRef := strings.TrimSpace(config.Services[composeService].Image)
+		if imageRef == "" {
+			continue
+		}
+		observation := serviceImageObservation{ComposeService: composeService, ImageRef: imageRef}
+		localDigest, err := inspectLocalImageDigest(ctx, imageRef)
+		if err != nil {
+			observation.ErrorSummary = appendImageObservationError(observation.ErrorSummary, fmt.Sprintf("local digest: %v", err))
+		} else if localDigest != "" {
+			observation.LocalDigest = localDigest
+			observation.LocalObserved = true
+		}
+		if includeRemote {
+			remoteDigest, err := inspectRemoteImageDigest(ctx, imageRef)
+			if err != nil {
+				observation.ErrorSummary = appendImageObservationError(observation.ErrorSummary, fmt.Sprintf("remote digest: %v", err))
+			} else if remoteDigest != "" {
+				observation.RemoteDigest = remoteDigest
+				observation.RemoteObserved = true
+			}
+		}
+		observations = append(observations, observation)
+	}
+	return observations, nil
+}
+
+func loadComposeConfigOutput(ctx context.Context, serviceDir string, compose composeCommandConfig) (composeConfigOutput, error) {
+	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "config", "--format", "json")...)
+	command.Dir = serviceDir
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	command.Stdout = &stdout
+	command.Stderr = &stderr
+	if err := command.Run(); err != nil {
+		return composeConfigOutput{}, fmt.Errorf("docker compose config failed: %w %s", err, strings.TrimSpace(stderr.String()))
+	}
+	var config composeConfigOutput
+	if err := json.Unmarshal(stdout.Bytes(), &config); err != nil {
+		return composeConfigOutput{}, fmt.Errorf("decode docker compose config json: %w", err)
+	}
+	return config, nil
+}
+
+func inspectLocalImageDigest(ctx context.Context, imageRef string) (string, error) {
+	command := exec.CommandContext(ctx, "docker", "image", "inspect", "--format", "{{range .RepoDigests}}{{println .}}{{end}}", imageRef)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	command.Stdout = &stdout
+	command.Stderr = &stderr
+	if err := command.Run(); err != nil {
+		return "", fmt.Errorf("docker image inspect failed: %w %s", err, strings.TrimSpace(stderr.String()))
+	}
+	return firstDigestFromRepoDigests(stdout.String()), nil
+}
+
+func inspectRemoteImageDigest(ctx context.Context, imageRef string) (string, error) {
+	command := exec.CommandContext(ctx, "docker", "buildx", "imagetools", "inspect", "--format", "{{.Digest}}", imageRef)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	command.Stdout = &stdout
+	command.Stderr = &stderr
+	if err := command.Run(); err != nil {
+		return "", fmt.Errorf("docker buildx imagetools inspect failed: %w %s", err, strings.TrimSpace(stderr.String()))
+	}
+	digest := strings.TrimSpace(stdout.String())
+	if digest == "" || digest == "<no value>" {
+		return "", fmt.Errorf("docker buildx imagetools inspect did not return a digest")
+	}
+	return normalizeImageDigest(digest), nil
+}
+
+func firstDigestFromRepoDigests(output string) string {
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		return normalizeImageDigest(line)
+	}
+	return ""
+}
+
+func normalizeImageDigest(value string) string {
+	value = strings.TrimSpace(value)
+	if at := strings.LastIndex(value, "@"); at >= 0 {
+		return value[at+1:]
+	}
+	return value
+}
+
+func appendImageObservationError(existing, next string) string {
+	if existing == "" {
+		return next
+	}
+	return existing + "; " + next
 }
 
 func pathInside(parent, child string) bool {

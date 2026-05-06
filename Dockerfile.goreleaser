@@ -31,7 +31,7 @@ ARG TARGETPLATFORM
 
 WORKDIR /app
 
-RUN apk add --no-cache ca-certificates docker-cli docker-cli-compose git
+RUN apk add --no-cache ca-certificates docker-cli docker-cli-buildx docker-cli-compose git
 COPY ${TARGETPLATFORM}/composia-agent /usr/local/bin/composia-agent
 
 USER 65532:65532

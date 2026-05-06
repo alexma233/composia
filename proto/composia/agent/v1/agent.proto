@@ -20,6 +20,8 @@ service AgentReportService {
   rpc ReportBackupResult(ReportBackupResultRequest) returns (ReportBackupResultResponse);
   // ReportServiceInstanceStatus reports the current status of one service instance.
   rpc ReportServiceInstanceStatus(ReportServiceInstanceStatusRequest) returns (ReportServiceInstanceStatusResponse);
+  // ReportServiceImageStates reports image digest observations for one service instance.
+  rpc ReportServiceImageStates(ReportServiceImageStatesRequest) returns (ReportServiceImageStatesResponse);
   // ReportDockerStats reports the latest Docker stats snapshot for one node.
   rpc ReportDockerStats(ReportDockerStatsRequest) returns (ReportDockerStatsResponse);
   // ReportDockerQueryResult reports the result of one direct Docker query.
@@ -345,6 +347,29 @@ message ReportServiceInstanceStatusRequest {
 
 // ReportServiceInstanceStatusResponse acknowledges a service status update.
 message ReportServiceInstanceStatusResponse {}
+
+// ServiceImageState describes one compose service image digest observation.
+message ServiceImageState {
+  string compose_service = 1;
+  string image_ref = 2;
+  string local_digest = 3;
+  string remote_digest = 4;
+  bool local_digest_observed = 5;
+  bool remote_digest_observed = 6;
+  string check_status = 7;
+  string error_summary = 8;
+}
+
+// ReportServiceImageStatesRequest reports image digests observed by one agent.
+message ReportServiceImageStatesRequest {
+  string service_name = 1;
+  string node_id = 2;
+  repeated ServiceImageState images = 3;
+  google.protobuf.Timestamp reported_at = 4;
+}
+
+// ReportServiceImageStatesResponse acknowledges image state updates.
+message ReportServiceImageStatesResponse {}
 
 // GetServiceBundleRequest identifies the task whose bundle should be streamed.
 message GetServiceBundleRequest {

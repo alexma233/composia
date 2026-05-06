@@ -61,6 +61,22 @@ type DockerStats struct {
 	ReportedAt          time.Time
 }
 
+type ServiceImageState struct {
+	ServiceName          string
+	NodeID               string
+	ComposeService       string
+	ImageRef             string
+	LocalDigest          string
+	RemoteDigest         string
+	LocalDigestObserved  bool
+	RemoteDigestObserved bool
+	UpdateAvailable      bool
+	CheckStatus          string
+	ErrorSummary         string
+	CheckedAt            time.Time
+	UpdatedAt            time.Time
+}
+
 type ServiceSummary struct {
 	Name            string
 	IsDeclared      bool
@@ -102,6 +118,12 @@ const (
 	ServiceRuntimeStopped = "stopped"
 	ServiceRuntimeError   = "error"
 	ServiceRuntimeUnknown = "unknown"
+)
+
+const (
+	ImageCheckStatusUnknown = "unknown"
+	ImageCheckStatusOK      = "ok"
+	ImageCheckStatusError   = "error"
 )
 
 func Open(stateDir string) (*DB, error) {
@@ -513,6 +535,89 @@ func IsValidServiceRuntimeStatus(runtimeStatus string) bool {
 	}
 }
 
+func IsValidImageCheckStatus(status string) bool {
+	switch status {
+	case ImageCheckStatusUnknown, ImageCheckStatusOK, ImageCheckStatusError:
+		return true
+	default:
+		return false
+	}
+}
+
+func (db *DB) UpsertServiceImageStates(ctx context.Context, states []ServiceImageState) error {
+	if len(states) == 0 {
+		return nil
+	}
+	tx, err := db.sql.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin service image state upsert: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	for _, state := range states {
+		if state.ServiceName == "" {
+			return fmt.Errorf("service name is required")
+		}
+		if state.NodeID == "" {
+			return fmt.Errorf("node id is required")
+		}
+		if state.ComposeService == "" {
+			return fmt.Errorf("compose service is required")
+		}
+		if state.ImageRef == "" {
+			return fmt.Errorf("image ref is required")
+		}
+		if state.CheckStatus == "" {
+			state.CheckStatus = ImageCheckStatusUnknown
+		}
+		if !IsValidImageCheckStatus(state.CheckStatus) {
+			return fmt.Errorf("invalid image check status %q", state.CheckStatus)
+		}
+		checkedAt := state.CheckedAt.UTC()
+		if checkedAt.IsZero() {
+			checkedAt = time.Now().UTC()
+		}
+		updatedAt := state.UpdatedAt.UTC()
+		if updatedAt.IsZero() {
+			updatedAt = checkedAt
+		}
+		updateAvailable := state.RemoteDigestObserved && state.LocalDigestObserved && state.RemoteDigest != "" && state.LocalDigest != "" && state.RemoteDigest != state.LocalDigest
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO service_image_states (
+				service_name, node_id, compose_service, image_ref,
+				local_digest, remote_digest, update_available,
+				check_status, error_summary, checked_at, updated_at
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT(service_name, node_id, compose_service, image_ref) DO UPDATE SET
+				local_digest = CASE WHEN ? THEN excluded.local_digest ELSE service_image_states.local_digest END,
+				remote_digest = CASE WHEN ? THEN excluded.remote_digest ELSE service_image_states.remote_digest END,
+				update_available = CASE
+					WHEN (CASE WHEN ? THEN excluded.remote_digest ELSE service_image_states.remote_digest END) != ''
+						AND (CASE WHEN ? THEN excluded.local_digest ELSE service_image_states.local_digest END) != ''
+					THEN (CASE WHEN ? THEN excluded.remote_digest ELSE service_image_states.remote_digest END) != (CASE WHEN ? THEN excluded.local_digest ELSE service_image_states.local_digest END)
+					ELSE 0
+				END,
+				check_status = excluded.check_status,
+				error_summary = excluded.error_summary,
+				checked_at = excluded.checked_at,
+				updated_at = excluded.updated_at
+		`,
+			state.ServiceName, state.NodeID, state.ComposeService, state.ImageRef,
+			state.LocalDigest, state.RemoteDigest, updateAvailable,
+			state.CheckStatus, nullableString(state.ErrorSummary), checkedAt.Format(time.RFC3339), updatedAt.Format(time.RFC3339),
+			state.LocalDigestObserved, state.RemoteDigestObserved,
+			state.RemoteDigestObserved, state.LocalDigestObserved,
+			state.RemoteDigestObserved, state.LocalDigestObserved,
+		); err != nil {
+			return fmt.Errorf("upsert service image state %q@%q %q %q: %w", state.ServiceName, state.NodeID, state.ComposeService, state.ImageRef, err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit service image state upsert: %w", err)
+	}
+	return nil
+}
+
 func (db *DB) migrate(ctx context.Context) error {
 	statements := []string{
 		`PRAGMA foreign_keys = ON;`,
@@ -622,6 +727,23 @@ func (db *DB) migrate(ctx context.Context) error {
 			reported_at TEXT NOT NULL,
 			FOREIGN KEY (node_id) REFERENCES nodes(node_id)
 		);`,
+		`CREATE TABLE IF NOT EXISTS service_image_states (
+			service_name TEXT NOT NULL,
+			node_id TEXT NOT NULL,
+			compose_service TEXT NOT NULL,
+			image_ref TEXT NOT NULL,
+			local_digest TEXT NOT NULL DEFAULT '',
+			remote_digest TEXT NOT NULL DEFAULT '',
+			update_available INTEGER NOT NULL DEFAULT 0,
+			check_status TEXT NOT NULL,
+			error_summary TEXT,
+			checked_at TEXT NOT NULL,
+			updated_at TEXT NOT NULL,
+			PRIMARY KEY (service_name, node_id, compose_service, image_ref),
+			FOREIGN KEY (service_name, node_id) REFERENCES service_instances(service_name, node_id)
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_service_image_states_update_available ON service_image_states(update_available, checked_at DESC);`,
+		`CREATE INDEX IF NOT EXISTS idx_service_image_states_service_node ON service_image_states(service_name, node_id);`,
 	}
 
 	for _, statement := range statements {

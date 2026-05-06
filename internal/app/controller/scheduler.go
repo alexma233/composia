@@ -52,12 +52,58 @@ func runScheduledTasksPass(ctx context.Context, db *store.DB, cfg *config.Contro
 	windowStart := schedule.WindowStart(now)
 	serviceServer := &serviceCommandServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue}
 	for _, service := range services {
+		if err := scheduleServiceImageChecks(ctx, db, serviceServer, service, windowStart); err != nil {
+			log.Printf("scheduler image check scan failed for service=%s: %v", service.Name, err)
+		}
 		if err := scheduleServiceBackups(ctx, db, serviceServer, service, windowStart); err != nil {
 			log.Printf("scheduler backup scan failed for service=%s: %v", service.Name, err)
 		}
 	}
 	if err := scheduleRusticMaintenance(ctx, db, cfg, availableNodeIDs, taskQueue, windowStart); err != nil {
 		log.Printf("scheduler rustic maintenance scan failed: %v", err)
+	}
+	return nil
+}
+
+func scheduleServiceImageChecks(ctx context.Context, db *store.DB, serviceServer *serviceCommandServer, service repo.Service, now time.Time) error {
+	if service.Meta.Update == nil {
+		return nil
+	}
+	if service.Meta.Update.Enabled != nil && !*service.Meta.Update.Enabled {
+		return nil
+	}
+	spec := schedule.Normalize(service.Meta.Update.Schedule)
+	if spec == "" || schedule.IsDisabled(spec) {
+		return nil
+	}
+	parsed, err := schedule.Parse(spec)
+	if err != nil {
+		return err
+	}
+	if !schedule.DueNow(parsed, now) {
+		return nil
+	}
+	serviceDir, err := filepath.Rel(serviceServer.cfg.RepoDir, service.Directory)
+	if err != nil {
+		return err
+	}
+	paramsJSONBytes, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir})
+	if err != nil {
+		return err
+	}
+	paramsJSON := string(paramsJSONBytes)
+	createdAt := now
+	for _, nodeID := range service.TargetNodes {
+		exists, err := db.HasMatchingTaskInWindow(ctx, task.SourceSchedule, task.TypeImageCheck, service.Name, nodeID, paramsJSON, now)
+		if err != nil {
+			return err
+		}
+		if exists {
+			continue
+		}
+		if _, err := serviceServer.createServiceTaskWithOptions(ctx, service.Name, []string{nodeID}, task.TypeImageCheck, nil, serviceTaskCreateOptions{Source: task.SourceSchedule, CreatedAt: &createdAt}); err != nil {
+			log.Printf("scheduler skipped image check for service=%s node=%s: %v", service.Name, nodeID, err)
+		}
 	}
 	return nil
 }

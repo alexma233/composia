@@ -49,7 +49,7 @@ WORKDIR /workspace
 
 ENV PATH="/go/bin:${PATH}"
 
-RUN apk add --no-cache ca-certificates docker-cli docker-cli-compose git && \
+RUN apk add --no-cache ca-certificates docker-cli docker-cli-buildx docker-cli-compose git && \
     go install github.com/air-verse/air@v1.65.1
 
 CMD ["air", "-v"]
@@ -80,7 +80,7 @@ FROM alpine:3.23@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a50
 
 WORKDIR /app
 
-RUN apk add --no-cache ca-certificates docker-cli docker-cli-compose git
+RUN apk add --no-cache ca-certificates docker-cli docker-cli-buildx docker-cli-compose git
 COPY --from=agent-builder /out/composia-agent /usr/local/bin/composia-agent
 
 USER 65532:65532

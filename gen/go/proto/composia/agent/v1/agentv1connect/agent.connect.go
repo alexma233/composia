@@ -57,6 +57,9 @@ const (
 	// AgentReportServiceReportServiceInstanceStatusProcedure is the fully-qualified name of the
 	// AgentReportService's ReportServiceInstanceStatus RPC.
 	AgentReportServiceReportServiceInstanceStatusProcedure = "/composia.agent.v1.AgentReportService/ReportServiceInstanceStatus"
+	// AgentReportServiceReportServiceImageStatesProcedure is the fully-qualified name of the
+	// AgentReportService's ReportServiceImageStates RPC.
+	AgentReportServiceReportServiceImageStatesProcedure = "/composia.agent.v1.AgentReportService/ReportServiceImageStates"
 	// AgentReportServiceReportDockerStatsProcedure is the fully-qualified name of the
 	// AgentReportService's ReportDockerStats RPC.
 	AgentReportServiceReportDockerStatsProcedure = "/composia.agent.v1.AgentReportService/ReportDockerStats"
@@ -136,6 +139,8 @@ type AgentReportServiceClient interface {
 	ReportBackupResult(context.Context, *connect.Request[v1.ReportBackupResultRequest]) (*connect.Response[v1.ReportBackupResultResponse], error)
 	// ReportServiceInstanceStatus reports the current status of one service instance.
 	ReportServiceInstanceStatus(context.Context, *connect.Request[v1.ReportServiceInstanceStatusRequest]) (*connect.Response[v1.ReportServiceInstanceStatusResponse], error)
+	// ReportServiceImageStates reports image digest observations for one service instance.
+	ReportServiceImageStates(context.Context, *connect.Request[v1.ReportServiceImageStatesRequest]) (*connect.Response[v1.ReportServiceImageStatesResponse], error)
 	// ReportDockerStats reports the latest Docker stats snapshot for one node.
 	ReportDockerStats(context.Context, *connect.Request[v1.ReportDockerStatsRequest]) (*connect.Response[v1.ReportDockerStatsResponse], error)
 	// ReportDockerQueryResult reports the result of one direct Docker query.
@@ -193,6 +198,12 @@ func NewAgentReportServiceClient(httpClient connect.HTTPClient, baseURL string, 
 			connect.WithSchema(agentReportServiceMethods.ByName("ReportServiceInstanceStatus")),
 			connect.WithClientOptions(opts...),
 		),
+		reportServiceImageStates: connect.NewClient[v1.ReportServiceImageStatesRequest, v1.ReportServiceImageStatesResponse](
+			httpClient,
+			baseURL+AgentReportServiceReportServiceImageStatesProcedure,
+			connect.WithSchema(agentReportServiceMethods.ByName("ReportServiceImageStates")),
+			connect.WithClientOptions(opts...),
+		),
 		reportDockerStats: connect.NewClient[v1.ReportDockerStatsRequest, v1.ReportDockerStatsResponse](
 			httpClient,
 			baseURL+AgentReportServiceReportDockerStatsProcedure,
@@ -228,6 +239,7 @@ type agentReportServiceClient struct {
 	uploadTaskLogs              *connect.Client[v1.UploadTaskLogsRequest, v1.UploadTaskLogsResponse]
 	reportBackupResult          *connect.Client[v1.ReportBackupResultRequest, v1.ReportBackupResultResponse]
 	reportServiceInstanceStatus *connect.Client[v1.ReportServiceInstanceStatusRequest, v1.ReportServiceInstanceStatusResponse]
+	reportServiceImageStates    *connect.Client[v1.ReportServiceImageStatesRequest, v1.ReportServiceImageStatesResponse]
 	reportDockerStats           *connect.Client[v1.ReportDockerStatsRequest, v1.ReportDockerStatsResponse]
 	reportDockerQueryResult     *connect.Client[v1.ReportDockerQueryResultRequest, v1.ReportDockerQueryResultResponse]
 	openExecTunnel              *connect.Client[v1.OpenExecTunnelRequest, v1.OpenExecTunnelResponse]
@@ -265,6 +277,11 @@ func (c *agentReportServiceClient) ReportServiceInstanceStatus(ctx context.Conte
 	return c.reportServiceInstanceStatus.CallUnary(ctx, req)
 }
 
+// ReportServiceImageStates calls composia.agent.v1.AgentReportService.ReportServiceImageStates.
+func (c *agentReportServiceClient) ReportServiceImageStates(ctx context.Context, req *connect.Request[v1.ReportServiceImageStatesRequest]) (*connect.Response[v1.ReportServiceImageStatesResponse], error) {
+	return c.reportServiceImageStates.CallUnary(ctx, req)
+}
+
 // ReportDockerStats calls composia.agent.v1.AgentReportService.ReportDockerStats.
 func (c *agentReportServiceClient) ReportDockerStats(ctx context.Context, req *connect.Request[v1.ReportDockerStatsRequest]) (*connect.Response[v1.ReportDockerStatsResponse], error) {
 	return c.reportDockerStats.CallUnary(ctx, req)
@@ -300,6 +317,8 @@ type AgentReportServiceHandler interface {
 	ReportBackupResult(context.Context, *connect.Request[v1.ReportBackupResultRequest]) (*connect.Response[v1.ReportBackupResultResponse], error)
 	// ReportServiceInstanceStatus reports the current status of one service instance.
 	ReportServiceInstanceStatus(context.Context, *connect.Request[v1.ReportServiceInstanceStatusRequest]) (*connect.Response[v1.ReportServiceInstanceStatusResponse], error)
+	// ReportServiceImageStates reports image digest observations for one service instance.
+	ReportServiceImageStates(context.Context, *connect.Request[v1.ReportServiceImageStatesRequest]) (*connect.Response[v1.ReportServiceImageStatesResponse], error)
 	// ReportDockerStats reports the latest Docker stats snapshot for one node.
 	ReportDockerStats(context.Context, *connect.Request[v1.ReportDockerStatsRequest]) (*connect.Response[v1.ReportDockerStatsResponse], error)
 	// ReportDockerQueryResult reports the result of one direct Docker query.
@@ -353,6 +372,12 @@ func NewAgentReportServiceHandler(svc AgentReportServiceHandler, opts ...connect
 		connect.WithSchema(agentReportServiceMethods.ByName("ReportServiceInstanceStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentReportServiceReportServiceImageStatesHandler := connect.NewUnaryHandler(
+		AgentReportServiceReportServiceImageStatesProcedure,
+		svc.ReportServiceImageStates,
+		connect.WithSchema(agentReportServiceMethods.ByName("ReportServiceImageStates")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agentReportServiceReportDockerStatsHandler := connect.NewUnaryHandler(
 		AgentReportServiceReportDockerStatsProcedure,
 		svc.ReportDockerStats,
@@ -391,6 +416,8 @@ func NewAgentReportServiceHandler(svc AgentReportServiceHandler, opts ...connect
 			agentReportServiceReportBackupResultHandler.ServeHTTP(w, r)
 		case AgentReportServiceReportServiceInstanceStatusProcedure:
 			agentReportServiceReportServiceInstanceStatusHandler.ServeHTTP(w, r)
+		case AgentReportServiceReportServiceImageStatesProcedure:
+			agentReportServiceReportServiceImageStatesHandler.ServeHTTP(w, r)
 		case AgentReportServiceReportDockerStatsProcedure:
 			agentReportServiceReportDockerStatsHandler.ServeHTTP(w, r)
 		case AgentReportServiceReportDockerQueryResultProcedure:
@@ -430,6 +457,10 @@ func (UnimplementedAgentReportServiceHandler) ReportBackupResult(context.Context
 
 func (UnimplementedAgentReportServiceHandler) ReportServiceInstanceStatus(context.Context, *connect.Request[v1.ReportServiceInstanceStatusRequest]) (*connect.Response[v1.ReportServiceInstanceStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentReportService.ReportServiceInstanceStatus is not implemented"))
+}
+
+func (UnimplementedAgentReportServiceHandler) ReportServiceImageStates(context.Context, *connect.Request[v1.ReportServiceImageStatesRequest]) (*connect.Response[v1.ReportServiceImageStatesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentReportService.ReportServiceImageStates is not implemented"))
 }
 
 func (UnimplementedAgentReportServiceHandler) ReportDockerStats(context.Context, *connect.Request[v1.ReportDockerStatsRequest]) (*connect.Response[v1.ReportDockerStatsResponse], error) {
