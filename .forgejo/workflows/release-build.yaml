@@ -51,7 +51,7 @@ jobs:
           GITEA_TOKEN: ${{ forgejo.token }}
           GORELEASER_FORCE_TOKEN: gitea
           AUR_KEY: ${{ secrets.AUR_KEY }}
-        run: goreleaser release --clean
+        run: goreleaser release --clean --timeout=40m
 
       - name: Install COPR build dependencies
         run: |
