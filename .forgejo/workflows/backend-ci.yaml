@@ -49,7 +49,7 @@ jobs:
   gofmt:
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.2
+      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.3
 
     steps:
       - name: Checkout
@@ -67,7 +67,7 @@ jobs:
   build-test:
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.2
+      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.3
 
     steps:
       - name: Checkout
@@ -87,7 +87,7 @@ jobs:
     runs-on: docker-amd64
     continue-on-error: true
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.2
+      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.3
 
     steps:
       - name: Checkout
