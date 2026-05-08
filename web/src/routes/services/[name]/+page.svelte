@@ -1922,20 +1922,20 @@
               <Button
                 type="button"
                 variant="outline"
+                class="w-full"
                 onclick={() => triggerAction("restart")}
                 disabled={!!actionBusy || !workspace?.isDeclared}
               >
-                <RefreshCcw class="mr-2 size-4" />{$messages.services.operations
-                  .restart}
+                <RefreshCcw class="mr-2 size-4" />{$messages.services.operations.restart}
               </Button>
               <Button
                 type="button"
                 variant="outline"
+                class="w-full"
                 onclick={() => triggerAction("stop")}
                 disabled={!!actionBusy || !workspace?.isDeclared}
               >
-                <Square class="mr-2 size-4" />{$messages.services.operations
-                  .stop}
+                <Square class="mr-2 size-4" />{$messages.services.operations.stop}
               </Button>
             </div>
 
@@ -1957,44 +1957,44 @@
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div class="grid gap-2 pt-3">
-                  <DisabledReasonTooltip reason={backupReason}>
+                  <DisabledReasonTooltip reason={backupReason} triggerClass="w-full">
                     <Button
                       type="button"
                       variant="outline"
+                      class="w-full"
                       onclick={() => triggerAction("backup")}
                       disabled={!!actionBusy ||
                         !workspace?.isDeclared ||
                         !backupCapability.enabled}
                     >
-                      <Wrench class="mr-2 size-4" />{$messages.services
-                        .operations.backup}
+                      <Wrench class="mr-2 size-4" />{$messages.services.operations.backup}
                     </Button>
                   </DisabledReasonTooltip>
-                  <DisabledReasonTooltip reason={dnsUpdateReason}>
+                  <DisabledReasonTooltip reason={dnsUpdateReason} triggerClass="w-full">
                     <Button
                       type="button"
                       variant="outline"
+                      class="w-full"
                       onclick={() => triggerAction("dns_update")}
                       disabled={!!actionBusy ||
                         !workspace?.isDeclared ||
                         !dnsUpdateCapability.enabled}
                     >
-                      <Upload class="mr-2 size-4" />{$messages.services
-                        .operations.dnsUpdate}
+                      <Upload class="mr-2 size-4" />{$messages.services.operations.dnsUpdate}
                     </Button>
                   </DisabledReasonTooltip>
-                  <DisabledReasonTooltip reason={caddySyncReason}>
+                  <DisabledReasonTooltip reason={caddySyncReason} triggerClass="w-full">
                     <Button
                       type="button"
                       variant="outline"
+                      class="w-full"
                       onclick={() => triggerAction("caddy_sync")}
                       disabled={!!actionBusy ||
                         !workspace?.isDeclared ||
                         !(workspace?.nodes?.length ?? 0) ||
                         !caddySyncCapability.enabled}
                     >
-                      <Copy class="mr-2 size-4" />{$messages.services.operations
-                        .syncCaddy}
+                      <Copy class="mr-2 size-4" />{$messages.services.operations.syncCaddy}
                     </Button>
                   </DisabledReasonTooltip>
                   <div
@@ -2024,10 +2024,11 @@
                       aria-label={$messages.services.operations.migrate
                         .targetNodeId}
                     />
-                    <DisabledReasonTooltip reason={migrateReason}>
+                    <DisabledReasonTooltip reason={migrateReason} triggerClass="w-full">
                       <Button
                         type="button"
                         variant="outline"
+                        class="w-full"
                         onclick={triggerMigrate}
                         disabled={!!actionBusy ||
                           !workspace?.isDeclared ||
@@ -2035,32 +2036,30 @@
                           !migrateTargetNode.trim() ||
                           !migrateCapability.enabled}
                       >
-                        <RefreshCcw class="mr-2 size-4" />{$messages.services
-                          .operations.migrate.migrate}
+                        <RefreshCcw class="mr-2 size-4" />{$messages.services.operations.migrate.migrate}
                       </Button>
                     </DisabledReasonTooltip>
                   </div>
                   <Button
                     type="button"
                     variant="outline"
+                    class="w-full"
                     onclick={() => {
                       showServiceRename = !showServiceRename;
                       renameServiceFolder = workspace?.folder ?? "";
                     }}
                     disabled={saving}
                   >
-                    <Pencil class="mr-2 size-4" />{$messages.services.operations
-                      .renameFolder}
+                    <Pencil class="mr-2 size-4" />{$messages.services.operations.renameFolder}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
-                    class="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    class="w-full border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
                     onclick={deleteServiceRoot}
                     disabled={saving}
                   >
-                    <Trash2 class="mr-2 size-4" />{$messages.services.operations
-                      .deleteService}
+                    <Trash2 class="mr-2 size-4" />{$messages.services.operations.deleteService}
                   </Button>
                 </div>
               </CollapsibleContent>
