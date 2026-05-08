@@ -1793,10 +1793,10 @@
           </CardHeader>
           <CardContent class="space-y-4">
             <div class="grid gap-2">
-              <div class="flex items-center justify-center">
+              <div class="flex">
                 <Button
                   type="button"
-                  class="rounded-r-none border-r-0"
+                  class="rounded-r-none border-r-0 flex-1 justify-center"
                   onclick={() => triggerAction("deploy", deployRecreateMode)}
                   disabled={!!actionBusy || !workspace?.isDeclared}
                 >
@@ -1823,11 +1823,11 @@
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div class="flex items-center justify-center">
+              <div class="flex">
                 <Button
                   type="button"
                   variant="outline"
-                  class="rounded-r-none border-r-0"
+                  class="rounded-r-none border-r-0 flex-1 justify-center"
                   onclick={() => triggerAction("update", updateRecreateMode)}
                   disabled={!!actionBusy || !workspace?.isDeclared}
                 >
