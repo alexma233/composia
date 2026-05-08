@@ -3,6 +3,7 @@
   import { onMount } from "svelte";
   import {
     Check,
+    ChevronDown,
     ChevronsUpDown,
     Columns2,
     Copy,
@@ -60,6 +61,12 @@
   } from "$lib/components/ui/dialog";
   import * as Command from "$lib/components/ui/command";
   import { Input } from "$lib/components/ui/input";
+  import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+  } from "$lib/components/ui/dropdown-menu";
   import * as Popover from "$lib/components/ui/popover";
   import {
     Select,
@@ -144,7 +151,8 @@
   let migrateSourceNode = $state("");
   let migrateTargetNode = $state("");
   let selectedInstanceNode = $state("__all__");
-  let composeRecreateMode = $state<ComposeRecreateMode>("auto");
+  let deployRecreateMode = $state<ComposeRecreateMode>("auto");
+  let updateRecreateMode = $state<ComposeRecreateMode>("auto");
   let serviceSwitchOpen = $state(false);
   let fileTreeIconTheme = $state<"light" | "dark">("dark");
 
@@ -945,18 +953,6 @@
     );
   }
 
-  function composeRecreateModeLabel(mode: ComposeRecreateMode) {
-    switch (mode) {
-      case "no_recreate":
-        return $messages.services.operations.recreate.noRecreate;
-      case "force_recreate":
-        return $messages.services.operations.recreate.forceRecreate;
-      case "auto":
-      default:
-        return $messages.services.operations.recreate.auto;
-    }
-  }
-
   async function triggerAction(
     action:
       | "deploy"
@@ -966,6 +962,7 @@
       | "backup"
       | "dns_update"
       | "caddy_sync",
+    recreateMode: ComposeRecreateMode = "auto",
   ) {
     if (action === "backup" && !backupCapability.enabled) {
       errorMessage = backupReason;
@@ -985,10 +982,7 @@
 
     try {
       const body: Record<string, unknown> = {
-        recreateMode:
-          action === "deploy" || action === "update"
-            ? composeRecreateMode
-            : "auto",
+        recreateMode,
       };
 
       if (action === "update") {
@@ -1799,44 +1793,74 @@
           </CardHeader>
           <CardContent class="space-y-4">
             <div class="grid gap-2">
-              <div class="grid gap-1.5">
-                <div class="text-xs font-medium text-muted-foreground">
-                  {$messages.services.operations.recreate.label}
-                </div>
-                <Select type="single" bind:value={composeRecreateMode as any}>
-                  <SelectTrigger class="w-full" aria-label={$messages.services.operations.recreate.label}>
-                    {composeRecreateModeLabel(composeRecreateMode)}
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="auto">
+              <div class="flex items-center">
+                <Button
+                  type="button"
+                  class="rounded-r-none border-r-0"
+                  onclick={() => triggerAction("deploy", deployRecreateMode)}
+                  disabled={!!actionBusy || !workspace?.isDeclared}
+                >
+                  <Play class="mr-2 size-4" />{$messages.services.operations.deploy}
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger>
+                    <Button
+                      type="button"
+                      class="rounded-l-none px-2"
+                      aria-label={$messages.services.operations.recreate.label}
+                      disabled={!!actionBusy || !workspace?.isDeclared}
+                    >
+                      <ChevronDown class="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onclick={() => (deployRecreateMode = "auto")}>
                       {$messages.services.operations.recreate.auto}
-                    </SelectItem>
-                    <SelectItem value="no_recreate">
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onclick={() => (deployRecreateMode = "no_recreate")}>
                       {$messages.services.operations.recreate.noRecreate}
-                    </SelectItem>
-                    <SelectItem value="force_recreate">
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onclick={() => (deployRecreateMode = "force_recreate")}>
                       {$messages.services.operations.recreate.forceRecreate}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-              <Button
-                type="button"
-                onclick={() => triggerAction("deploy")}
-                disabled={!!actionBusy || !workspace?.isDeclared}
-              >
-                <Play class="mr-2 size-4" />{$messages.services.operations
-                  .deploy}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onclick={() => triggerAction("update")}
-                disabled={!!actionBusy || !workspace?.isDeclared}
-              >
-                <Upload class="mr-2 size-4" />{$messages.services.operations
-                  .update}
-              </Button>
+              <div class="flex items-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  class="rounded-r-none border-r-0"
+                  onclick={() => triggerAction("update", updateRecreateMode)}
+                  disabled={!!actionBusy || !workspace?.isDeclared}
+                >
+                  <Upload class="mr-2 size-4" />{$messages.services.operations.update}
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      class="rounded-l-none px-2"
+                      aria-label={$messages.services.operations.recreate.label}
+                      disabled={!!actionBusy || !workspace?.isDeclared}
+                    >
+                      <ChevronDown class="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onclick={() => (updateRecreateMode = "auto")}>
+                      {$messages.services.operations.recreate.auto}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onclick={() => (updateRecreateMode = "no_recreate")}>
+                      {$messages.services.operations.recreate.noRecreate}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onclick={() => (updateRecreateMode = "force_recreate")}>
+                      {$messages.services.operations.recreate.forceRecreate}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               <div class="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-3">
                 <div class="text-xs font-medium">
                   {$messages.services.imageUpdates.title}
