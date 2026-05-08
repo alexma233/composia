@@ -486,13 +486,20 @@ func (db *DB) UpdateTaskParamsJSON(ctx context.Context, taskID, paramsJSON strin
 	if taskID == "" {
 		return fmt.Errorf("task_id is required")
 	}
-	_, err := db.sql.ExecContext(ctx, `
+	result, err := db.sql.ExecContext(ctx, `
 		UPDATE tasks
 		SET params_json = ?
 		WHERE task_id = ?
 	`, nullableString(paramsJSON), taskID)
 	if err != nil {
 		return fmt.Errorf("update params_json for task %q: %w", taskID, err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read update params_json rows affected for task %q: %w", taskID, err)
+	}
+	if affected == 0 {
+		return ErrTaskNotFound
 	}
 	return nil
 }
@@ -525,7 +532,34 @@ func (db *DB) CompleteTask(ctx context.Context, taskID string, status task.Statu
 }
 
 func (db *DB) RecoverRunningTasks(ctx context.Context, finishedAt time.Time) (int64, error) {
-	result, err := db.sql.ExecContext(ctx, `
+	tx, err := db.sql.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, fmt.Errorf("begin recover running tasks transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	rows, err := tx.QueryContext(ctx, `SELECT task_id FROM tasks WHERE status = ? ORDER BY created_at ASC, task_id ASC`, string(task.StatusRunning))
+	if err != nil {
+		return 0, fmt.Errorf("list running tasks to recover: %w", err)
+	}
+	runningTaskIDs := make([]string, 0)
+	for rows.Next() {
+		var taskID string
+		if err := rows.Scan(&taskID); err != nil {
+			_ = rows.Close()
+			return 0, fmt.Errorf("scan running task to recover: %w", err)
+		}
+		runningTaskIDs = append(runningTaskIDs, taskID)
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return 0, fmt.Errorf("iterate running tasks to recover: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return 0, fmt.Errorf("close running tasks recovery rows: %w", err)
+	}
+
+	result, err := tx.ExecContext(ctx, `
 		UPDATE tasks
 		SET status = ?, finished_at = ?, error_summary = ?
 		WHERE status = ?
@@ -541,6 +575,17 @@ func (db *DB) RecoverRunningTasks(ctx context.Context, finishedAt time.Time) (in
 	affected, err := result.RowsAffected()
 	if err != nil {
 		return 0, fmt.Errorf("read recovered running task count: %w", err)
+	}
+	if affected != int64(len(runningTaskIDs)) {
+		return 0, fmt.Errorf("recover running tasks affected %d rows, expected %d", affected, len(runningTaskIDs))
+	}
+	for _, taskID := range runningTaskIDs {
+		if err := updateServiceFromCompletedTask(ctx, tx, taskID, task.StatusFailed, finishedAt); err != nil {
+			return 0, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("commit recover running tasks transaction: %w", err)
 	}
 	return affected, nil
 }
@@ -699,40 +744,11 @@ func (db *DB) ListTasks(
 }
 
 func appendTaskFilterInClause(whereClause string, args []any, column string, values []string) (string, []any) {
-	return appendTaskFilterClause(whereClause, args, column, values, false)
+	return appendStringFilterInClause(whereClause, args, column, values)
 }
 
 func appendTaskFilterNotInClause(whereClause string, args []any, column string, values []string) (string, []any) {
-	return appendTaskFilterClause(whereClause, args, column, values, true)
-}
-
-func appendTaskFilterClause(whereClause string, args []any, column string, values []string, exclude bool) (string, []any) {
-	filtered := make([]string, 0, len(values))
-	for _, value := range values {
-		if value == "" {
-			continue
-		}
-		filtered = append(filtered, value)
-	}
-	if len(filtered) == 0 {
-		return whereClause, args
-	}
-
-	whereClause += ` AND ` + column
-	if exclude {
-		whereClause += ` NOT`
-	}
-	whereClause += ` IN (`
-	for i, value := range filtered {
-		if i > 0 {
-			whereClause += ", "
-		}
-		whereClause += "?"
-		args = append(args, value)
-	}
-	whereClause += `)`
-
-	return whereClause, args
+	return appendStringFilterNotInClause(whereClause, args, column, values)
 }
 
 func (db *DB) GetTask(ctx context.Context, taskID string) (TaskDetail, error) {
@@ -768,12 +784,20 @@ func (db *DB) ListTaskSteps(ctx context.Context, taskID string) ([]task.StepReco
 		if err := rows.Scan(&stepName, &status, &startedAt, &finishedAt); err != nil {
 			return nil, fmt.Errorf("scan task step for %q: %w", taskID, err)
 		}
+		parsedStartedAt, err := parseNullableRFC3339(startedAt, fmt.Sprintf("task %q step %q started_at", taskID, stepName))
+		if err != nil {
+			return nil, err
+		}
+		parsedFinishedAt, err := parseNullableRFC3339(finishedAt, fmt.Sprintf("task %q step %q finished_at", taskID, stepName))
+		if err != nil {
+			return nil, err
+		}
 		steps = append(steps, task.StepRecord{
 			TaskID:     taskID,
 			StepName:   task.StepName(stepName),
 			Status:     task.Status(status),
-			StartedAt:  parseNullableRFC3339(startedAt),
-			FinishedAt: parseNullableRFC3339(finishedAt),
+			StartedAt:  parsedStartedAt,
+			FinishedAt: parsedFinishedAt,
 		})
 	}
 	if err := rows.Err(); err != nil {
@@ -863,8 +887,16 @@ func (db *DB) getTaskRecord(ctx context.Context, taskID string) (task.Record, er
 	record.Source = task.Source(rawSource)
 	record.Status = task.Status(rawStatus)
 	record.CreatedAt = parsedCreatedAt.UTC()
-	record.StartedAt = parseNullableRFC3339(startedAt)
-	record.FinishedAt = parseNullableRFC3339(finishedAt)
+	parsedStartedAt, err := parseNullableRFC3339(startedAt, fmt.Sprintf("task %q started_at", taskID))
+	if err != nil {
+		return task.Record{}, err
+	}
+	parsedFinishedAt, err := parseNullableRFC3339(finishedAt, fmt.Sprintf("task %q finished_at", taskID))
+	if err != nil {
+		return task.Record{}, err
+	}
+	record.StartedAt = parsedStartedAt
+	record.FinishedAt = parsedFinishedAt
 	return record, nil
 }
 
@@ -886,16 +918,16 @@ func timePtr(value time.Time) *time.Time {
 	return &value
 }
 
-func parseNullableRFC3339(value string) *time.Time {
+func parseNullableRFC3339(value, label string) (*time.Time, error) {
 	if value == "" {
-		return nil
+		return nil, nil
 	}
 	parsed, err := time.Parse(time.RFC3339, value)
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("parse %s: %w", label, err)
 	}
 	parsed = parsed.UTC()
-	return &parsed
+	return &parsed, nil
 }
 
 func updateServiceFromCompletedTask(ctx context.Context, tx *sql.Tx, taskID string, status task.Status, finishedAt time.Time) error {

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"sort"
 	"strings"
 	"time"
@@ -573,7 +574,7 @@ func (s *dockerServer) ListVolumes(ctx context.Context, req *connect.Request[age
 	diskUsage, err := s.client.DiskUsage(ctx)
 	if err != nil {
 		// Continue even if disk usage fails
-		fmt.Printf("Warning: failed to get disk usage: %v\n", err)
+		log.Printf("failed to get Docker disk usage: %v", err)
 	}
 
 	volumeMap := make(map[string]int64)

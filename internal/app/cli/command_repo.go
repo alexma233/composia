@@ -197,7 +197,11 @@ func (application *app) runRepoHistory(args []string) error {
 	if err := requireArgs(fs.Args(), 0, "composia repo history [--page-size n] [--cursor cursor]"); err != nil {
 		return err
 	}
-	response, err := application.client.repos.ListRepoCommits(application.ctx, newRequest(&controllerv1.ListRepoCommitsRequest{PageSize: uint32(*pageSize), Cursor: *cursor}))
+	pageSizeValue, err := uint32FlagValue("page-size", *pageSize)
+	if err != nil {
+		return err
+	}
+	response, err := application.client.repos.ListRepoCommits(application.ctx, newRequest(&controllerv1.ListRepoCommitsRequest{PageSize: pageSizeValue, Cursor: *cursor}))
 	if err != nil {
 		return err
 	}

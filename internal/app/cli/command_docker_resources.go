@@ -28,7 +28,10 @@ func (application *app) runNetworkList(args []string) error {
 	if err != nil {
 		return err
 	}
-	pageSize, page := pageValues()
+	pageSize, page, err := pageValues()
+	if err != nil {
+		return err
+	}
 	response, err := application.client.docker.ListNodeNetworks(application.ctx, newRequest(&controllerv1.ListNodeNetworksRequest{NodeId: nodeID, PageSize: pageSize, Page: page, Search: search, SortBy: sortBy, SortDesc: sortDesc}))
 	if err != nil {
 		return err
@@ -95,7 +98,10 @@ func (application *app) runVolumeList(args []string) error {
 	if err != nil {
 		return err
 	}
-	pageSize, page := pageValues()
+	pageSize, page, err := pageValues()
+	if err != nil {
+		return err
+	}
 	response, err := application.client.docker.ListNodeVolumes(application.ctx, newRequest(&controllerv1.ListNodeVolumesRequest{NodeId: nodeID, PageSize: pageSize, Page: page, Search: search, SortBy: sortBy, SortDesc: sortDesc}))
 	if err != nil {
 		return err
@@ -162,7 +168,10 @@ func (application *app) runImageList(args []string) error {
 	if err != nil {
 		return err
 	}
-	pageSize, page := pageValues()
+	pageSize, page, err := pageValues()
+	if err != nil {
+		return err
+	}
 	response, err := application.client.docker.ListNodeImages(application.ctx, newRequest(&controllerv1.ListNodeImagesRequest{NodeId: nodeID, PageSize: pageSize, Page: page, Search: search, SortBy: sortBy, SortDesc: sortDesc}))
 	if err != nil {
 		return err
@@ -218,7 +227,7 @@ func (application *app) runImageRemove(args []string) error {
 	return application.printTaskActionWithWait(response.Msg, waitOptions)
 }
 
-func parseDockerResourceListFlags(name string, args []string, usage string) (string, string, string, bool, func() (uint32, uint32), error) {
+func parseDockerResourceListFlags(name string, args []string, usage string) (string, string, string, bool, func() (uint32, uint32, error), error) {
 	fs := newCommandFlagSet(name)
 	nodeID := fs.String("node", "", "node ID")
 	search := fs.String("search", "", "search text")

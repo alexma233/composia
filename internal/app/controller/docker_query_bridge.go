@@ -19,7 +19,10 @@ import (
 	"github.com/google/uuid"
 )
 
-const dockerQueryMaxWait = 30 * time.Second
+const (
+	dockerQueryMaxWait      = 30 * time.Second
+	dockerQueryCleanupGrace = time.Minute
+)
 
 type dockerAgentQuery struct {
 	QueryID    string
@@ -38,6 +41,7 @@ type dockerAgentQuery struct {
 	Stdin      []byte
 	Timeout    time.Duration
 	MaxOutput  uint64
+	expiresAt  time.Time
 }
 
 type dockerAgentQueryResult struct {
@@ -48,13 +52,23 @@ type dockerAgentQueryResult struct {
 	ErrorCode    string
 }
 
+type assignedDockerQuery struct {
+	nodeID    string
+	expiresAt time.Time
+}
+
+type storedDockerQueryResult struct {
+	result    dockerAgentQueryResult
+	expiresAt time.Time
+}
+
 type dockerQueryBroker struct {
 	mu                sync.Mutex
 	pendingByNode     map[string][]dockerAgentQuery
 	nodeSubscribers   map[string]map[chan struct{}]struct{}
 	resultSubscribers map[string]map[chan struct{}]struct{}
-	results           map[string]dockerAgentQueryResult
-	assignedNodeByID  map[string]string
+	results           map[string]storedDockerQueryResult
+	assignedByID      map[string]assignedDockerQuery
 }
 
 func newDockerQueryBroker() *dockerQueryBroker {
@@ -62,8 +76,8 @@ func newDockerQueryBroker() *dockerQueryBroker {
 		pendingByNode:     make(map[string][]dockerAgentQuery),
 		nodeSubscribers:   make(map[string]map[chan struct{}]struct{}),
 		resultSubscribers: make(map[string]map[chan struct{}]struct{}),
-		results:           make(map[string]dockerAgentQueryResult),
-		assignedNodeByID:  make(map[string]string),
+		results:           make(map[string]storedDockerQueryResult),
+		assignedByID:      make(map[string]assignedDockerQuery),
 	}
 }
 
@@ -107,8 +121,13 @@ func (broker *dockerQueryBroker) Enqueue(query dockerAgentQuery) string {
 	if query.QueryID == "" {
 		query.QueryID = uuid.NewString()
 	}
+	now := time.Now().UTC()
+	if query.expiresAt.IsZero() {
+		query.expiresAt = now.Add(dockerQueryTTL(query))
+	}
 	broker.mu.Lock()
 	defer broker.mu.Unlock()
+	broker.sweepExpiredLocked(now)
 	broker.pendingByNode[query.NodeID] = append(broker.pendingByNode[query.NodeID], query)
 	broker.notifyNodeLocked(query.NodeID)
 	return query.QueryID
@@ -120,6 +139,7 @@ func (broker *dockerQueryBroker) Pull(nodeID string) (dockerAgentQuery, bool) {
 	}
 	broker.mu.Lock()
 	defer broker.mu.Unlock()
+	broker.sweepExpiredLocked(time.Now().UTC())
 	queue := broker.pendingByNode[nodeID]
 	if len(queue) == 0 {
 		return dockerAgentQuery{}, false
@@ -130,7 +150,7 @@ func (broker *dockerQueryBroker) Pull(nodeID string) (dockerAgentQuery, bool) {
 	} else {
 		broker.pendingByNode[nodeID] = queue[1:]
 	}
-	broker.assignedNodeByID[query.QueryID] = nodeID
+	broker.assignedByID[query.QueryID] = assignedDockerQuery{nodeID: nodeID, expiresAt: query.expiresAt}
 	return query, true
 }
 
@@ -173,15 +193,17 @@ func (broker *dockerQueryBroker) StoreResult(result dockerAgentQueryResult) erro
 	}
 	broker.mu.Lock()
 	defer broker.mu.Unlock()
-	expectedNodeID := broker.assignedNodeByID[result.QueryID]
-	if expectedNodeID == "" {
+	now := time.Now().UTC()
+	broker.sweepExpiredLocked(now)
+	assigned := broker.assignedByID[result.QueryID]
+	if assigned.nodeID == "" {
 		return fmt.Errorf("docker query %q is not pending", result.QueryID)
 	}
-	if expectedNodeID != result.NodeID {
-		return fmt.Errorf("docker query %q belongs to node %q, got %q", result.QueryID, expectedNodeID, result.NodeID)
+	if assigned.nodeID != result.NodeID {
+		return fmt.Errorf("docker query %q belongs to node %q, got %q", result.QueryID, assigned.nodeID, result.NodeID)
 	}
-	delete(broker.assignedNodeByID, result.QueryID)
-	broker.results[result.QueryID] = result
+	delete(broker.assignedByID, result.QueryID)
+	broker.results[result.QueryID] = storedDockerQueryResult{result: result, expiresAt: assigned.expiresAt.Add(dockerQueryCleanupGrace)}
 	broker.notifyResultLocked(result.QueryID)
 	return nil
 }
@@ -192,12 +214,13 @@ func (broker *dockerQueryBroker) PopResult(queryID string) (dockerAgentQueryResu
 	}
 	broker.mu.Lock()
 	defer broker.mu.Unlock()
-	result, ok := broker.results[queryID]
+	broker.sweepExpiredLocked(time.Now().UTC())
+	stored, ok := broker.results[queryID]
 	if !ok {
 		return dockerAgentQueryResult{}, false
 	}
 	delete(broker.results, queryID)
-	return result, true
+	return stored.result, true
 }
 
 func (broker *dockerQueryBroker) Cancel(queryID string) {
@@ -207,7 +230,7 @@ func (broker *dockerQueryBroker) Cancel(queryID string) {
 	broker.mu.Lock()
 	defer broker.mu.Unlock()
 	delete(broker.results, queryID)
-	delete(broker.assignedNodeByID, queryID)
+	delete(broker.assignedByID, queryID)
 	for nodeID, queue := range broker.pendingByNode {
 		filtered := queue[:0]
 		for _, query := range queue {
@@ -221,6 +244,41 @@ func (broker *dockerQueryBroker) Cancel(queryID string) {
 			continue
 		}
 		broker.pendingByNode[nodeID] = filtered
+	}
+}
+
+func dockerQueryTTL(query dockerAgentQuery) time.Duration {
+	ttl := dockerQueryMaxWait + dockerQueryCleanupGrace
+	if query.Timeout > 0 && query.Timeout+dockerQueryCleanupGrace > ttl {
+		ttl = query.Timeout + dockerQueryCleanupGrace
+	}
+	return ttl
+}
+
+func (broker *dockerQueryBroker) sweepExpiredLocked(now time.Time) {
+	for nodeID, queue := range broker.pendingByNode {
+		filtered := queue[:0]
+		for _, query := range queue {
+			if !query.expiresAt.IsZero() && !query.expiresAt.After(now) {
+				continue
+			}
+			filtered = append(filtered, query)
+		}
+		if len(filtered) == 0 {
+			delete(broker.pendingByNode, nodeID)
+			continue
+		}
+		broker.pendingByNode[nodeID] = filtered
+	}
+	for queryID, assigned := range broker.assignedByID {
+		if !assigned.expiresAt.IsZero() && !assigned.expiresAt.After(now) {
+			delete(broker.assignedByID, queryID)
+		}
+	}
+	for queryID, stored := range broker.results {
+		if !stored.expiresAt.IsZero() && !stored.expiresAt.After(now) {
+			delete(broker.results, queryID)
+		}
 	}
 }
 

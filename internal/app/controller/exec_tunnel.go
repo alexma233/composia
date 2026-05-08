@@ -155,13 +155,18 @@ func (manager *execTunnelManager) openSession(nodeID, containerID string, comman
 	}
 	manager.sessions[session.id] = session
 	manager.attachTokens[attachToken] = session.id
-	tunnel.sendCh <- &agentv1.OpenExecTunnelResponse{
+	select {
+	case tunnel.sendCh <- &agentv1.OpenExecTunnelResponse{
 		SessionId:   session.id,
 		Kind:        execKindStart,
 		ContainerId: containerID,
 		Command:     append([]string(nil), command...),
 		Rows:        rows,
 		Cols:        cols,
+	}:
+	default:
+		manager.closeSessionLocked(session.id)
+		return nil, fmt.Errorf("node %q exec tunnel is not accepting messages", nodeID)
 	}
 	return session, nil
 }
@@ -173,7 +178,12 @@ func (manager *execTunnelManager) sendToSessionNode(sessionID string, message *a
 	if err != nil {
 		return err
 	}
-	target.tunnel.sendCh <- message
+	select {
+	case target.tunnel.sendCh <- message:
+	default:
+		manager.closeSessionLocked(sessionID)
+		return fmt.Errorf("node %q exec tunnel is not accepting messages", target.session.nodeID)
+	}
 	return nil
 }
 

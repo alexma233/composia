@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
 )
@@ -40,6 +41,22 @@ func TestParseSize(t *testing.T) {
 				t.Fatalf("parseSize(%q) = %d, want %d", tc.input, got, tc.want)
 			}
 		})
+	}
+}
+
+func TestDecodeTaskParamsReturnsJSONError(t *testing.T) {
+	t.Parallel()
+
+	if _, err := decodeTaskParams("{"); err == nil {
+		t.Fatalf("expected invalid task params JSON to fail")
+	}
+}
+
+func TestParseRusticMaintenanceParamsReturnsJSONError(t *testing.T) {
+	t.Parallel()
+
+	if _, err := parseRusticMaintenanceParams(&agentv1.AgentTask{ParamsJson: "{"}); err == nil {
+		t.Fatalf("expected invalid rustic maintenance params JSON to fail")
 	}
 }
 

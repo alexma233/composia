@@ -329,7 +329,7 @@ func TestNodeMaintenanceServiceSyncNodeCaddyFilesCreatesSyncTask(t *testing.T) {
 	if detail.Record.Type != task.TypeCaddySync {
 		t.Fatalf("expected caddy_sync task type, got %q", detail.Record.Type)
 	}
-	params := taskParams(detail.Record.ParamsJSON)
+	params := mustTaskParams(t, detail.Record.ParamsJSON)
 	if params.ServiceDir != "demo" || len(params.ServiceDirs) != 1 || params.ServiceDirs[0] != "demo" || params.FullRebuild {
 		t.Fatalf("unexpected caddy sync params: %+v", params)
 	}
@@ -399,7 +399,7 @@ func TestNodeMaintenanceServiceSyncNodeCaddyFilesFullRebuildCreatesMultiServiceT
 	if detail.Record.Type != task.TypeCaddySync {
 		t.Fatalf("expected caddy_sync task type, got %q", detail.Record.Type)
 	}
-	params := taskParams(detail.Record.ParamsJSON)
+	params := mustTaskParams(t, detail.Record.ParamsJSON)
 	if params.ServiceDir != "" || !params.FullRebuild || len(params.ServiceDirs) != 2 || params.ServiceDirs[0] != "alpha" || params.ServiceDirs[1] != "bravo" {
 		t.Fatalf("unexpected full rebuild caddy sync params: %+v", params)
 	}

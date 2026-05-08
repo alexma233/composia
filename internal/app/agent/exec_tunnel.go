@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"connectrpc.com/connect"
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
 	"github.com/moby/moby/client"
@@ -23,9 +22,24 @@ type execTunnelClient struct {
 type runningExecSession struct {
 	id     string
 	execID string
+	client *DockerClient
 	attach client.HijackedResponse
 	mu     sync.Mutex
 	closed bool
+}
+
+type execTunnelSendStream interface {
+	Send(*agentv1.OpenExecTunnelRequest) error
+}
+
+type execTunnelSender struct {
+	ctx      context.Context
+	cancel   context.CancelFunc
+	stream   execTunnelSendStream
+	messages chan *agentv1.OpenExecTunnelRequest
+	done     chan struct{}
+	errMu    sync.Mutex
+	err      error
 }
 
 type runningExecSessions struct {
@@ -54,9 +68,11 @@ func (tunnel *execTunnelClient) run(ctx context.Context) {
 
 func (tunnel *execTunnelClient) runStream(ctx context.Context) error {
 	stream := tunnel.client.OpenExecTunnel(ctx)
+	sender := newExecTunnelSender(ctx, stream)
+	defer func() { _ = sender.close() }()
 	sessions := &runningExecSessions{sessions: make(map[string]*runningExecSession)}
 	defer sessions.closeAll()
-	if err := sendExecTunnelMessage(stream, &agentv1.OpenExecTunnelRequest{Kind: execKindReady}); err != nil {
+	if err := sender.send(&agentv1.OpenExecTunnelRequest{Kind: execKindReady}); err != nil {
 		return err
 	}
 
@@ -65,61 +81,61 @@ func (tunnel *execTunnelClient) runStream(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		if err := tunnel.handleMessage(ctx, stream, sessions, message); err != nil {
+		if err := tunnel.handleMessage(ctx, sender, sessions, message); err != nil {
 			return err
 		}
 	}
 }
 
-func (tunnel *execTunnelClient) handleMessage(ctx context.Context, stream *connect.BidiStreamForClient[agentv1.OpenExecTunnelRequest, agentv1.OpenExecTunnelResponse], sessions *runningExecSessions, message *agentv1.OpenExecTunnelResponse) error {
+func (tunnel *execTunnelClient) handleMessage(ctx context.Context, sender *execTunnelSender, sessions *runningExecSessions, message *agentv1.OpenExecTunnelResponse) error {
 	switch message.GetKind() {
 	case execKindStart:
-		return tunnel.handleStartMessage(ctx, stream, sessions, message)
+		return tunnel.handleStartMessage(ctx, sender, sessions, message)
 	case execKindStdin:
-		tunnel.handleStdinMessage(stream, sessions.get(message.GetSessionId()), message)
+		tunnel.handleStdinMessage(sender, sessions.get(message.GetSessionId()), message)
 	case execKindResize:
-		tunnel.handleResizeMessage(ctx, stream, sessions.get(message.GetSessionId()), message)
+		tunnel.handleResizeMessage(ctx, sender, sessions.get(message.GetSessionId()), message)
 	case execKindClose:
 		tunnel.handleCloseMessage(sessions.take(message.GetSessionId()))
 	}
 	return nil
 }
 
-func (tunnel *execTunnelClient) handleStartMessage(ctx context.Context, stream *connect.BidiStreamForClient[agentv1.OpenExecTunnelRequest, agentv1.OpenExecTunnelResponse], sessions *runningExecSessions, message *agentv1.OpenExecTunnelResponse) error {
+func (tunnel *execTunnelClient) handleStartMessage(ctx context.Context, sender *execTunnelSender, sessions *runningExecSessions, message *agentv1.OpenExecTunnelResponse) error {
 	session, err := startDockerExecSession(ctx, message)
 	if err != nil {
-		sendExecTunnelError(stream, message.GetSessionId(), err)
-		sendExecTunnelClosed(stream, message.GetSessionId())
+		sendExecTunnelError(sender, message.GetSessionId(), err)
+		sendExecTunnelClosed(sender, message.GetSessionId())
 		return nil
 	}
 	sessions.set(session)
-	if err := sendExecTunnelMessage(stream, &agentv1.OpenExecTunnelRequest{SessionId: session.id, Kind: execKindReady}); err != nil {
+	if err := sender.send(&agentv1.OpenExecTunnelRequest{SessionId: session.id, Kind: execKindReady}); err != nil {
 		sessions.delete(session.id)
 		closeRunningExecSession(session)
 		return err
 	}
-	go pumpExecOutput(ctx, stream, session, func() {
+	go pumpExecOutput(ctx, sender, session, func() {
 		sessions.delete(session.id)
 	})
 	return nil
 }
 
-func (tunnel *execTunnelClient) handleStdinMessage(stream *connect.BidiStreamForClient[agentv1.OpenExecTunnelRequest, agentv1.OpenExecTunnelResponse], session *runningExecSession, message *agentv1.OpenExecTunnelResponse) {
+func (tunnel *execTunnelClient) handleStdinMessage(sender *execTunnelSender, session *runningExecSession, message *agentv1.OpenExecTunnelResponse) {
 	if session == nil {
 		return
 	}
 	if _, err := session.attach.Conn.Write(message.GetPayload()); err != nil {
-		sendExecTunnelError(stream, session.id, err)
+		sendExecTunnelError(sender, session.id, err)
 		closeRunningExecSession(session)
 	}
 }
 
-func (tunnel *execTunnelClient) handleResizeMessage(ctx context.Context, stream *connect.BidiStreamForClient[agentv1.OpenExecTunnelRequest, agentv1.OpenExecTunnelResponse], session *runningExecSession, message *agentv1.OpenExecTunnelResponse) {
+func (tunnel *execTunnelClient) handleResizeMessage(ctx context.Context, sender *execTunnelSender, session *runningExecSession, message *agentv1.OpenExecTunnelResponse) {
 	if session == nil {
 		return
 	}
 	if err := resizeRunningExecSession(ctx, session, message.GetRows(), message.GetCols()); err != nil {
-		sendExecTunnelError(stream, session.id, err)
+		sendExecTunnelError(sender, session.id, err)
 	}
 }
 
@@ -190,7 +206,7 @@ func startDockerExecSession(ctx context.Context, message *agentv1.OpenExecTunnel
 		_ = dockerClient.Close()
 		return nil, fmt.Errorf("attach docker exec: %w", err)
 	}
-	return &runningExecSession{id: message.GetSessionId(), execID: createResult.ID, attach: attachResult.HijackedResponse}, nil
+	return &runningExecSession{id: message.GetSessionId(), execID: createResult.ID, client: dockerClient, attach: attachResult.HijackedResponse}, nil
 }
 
 func resizeRunningExecSession(ctx context.Context, session *runningExecSession, rows, cols uint32) error {
@@ -206,7 +222,7 @@ func resizeRunningExecSession(ctx context.Context, session *runningExecSession, 
 	return nil
 }
 
-func pumpExecOutput(ctx context.Context, stream *connect.BidiStreamForClient[agentv1.OpenExecTunnelRequest, agentv1.OpenExecTunnelResponse], session *runningExecSession, onClose func()) {
+func pumpExecOutput(ctx context.Context, sender *execTunnelSender, session *runningExecSession, onClose func()) {
 	defer onClose()
 	defer closeRunningExecSession(session)
 	buffer := make([]byte, 4096)
@@ -214,34 +230,97 @@ func pumpExecOutput(ctx context.Context, stream *connect.BidiStreamForClient[age
 		n, err := session.attach.Reader.Read(buffer)
 		if n > 0 {
 			payload := append([]byte(nil), buffer[:n]...)
-			if sendErr := sendExecTunnelMessage(stream, &agentv1.OpenExecTunnelRequest{SessionId: session.id, Kind: execKindOutput, Payload: payload}); sendErr != nil {
+			if sendErr := sender.send(&agentv1.OpenExecTunnelRequest{SessionId: session.id, Kind: execKindOutput, Payload: payload}); sendErr != nil {
 				return
 			}
 		}
 		if err != nil {
 			if !errors.Is(err, io.EOF) {
-				sendExecTunnelError(stream, session.id, err)
+				sendExecTunnelError(sender, session.id, err)
 			}
-			sendExecTunnelClosed(stream, session.id)
+			sendExecTunnelClosed(sender, session.id)
 			return
 		}
 		if ctx.Err() != nil {
-			sendExecTunnelClosed(stream, session.id)
+			sendExecTunnelClosed(sender, session.id)
 			return
 		}
 	}
 }
 
-func sendExecTunnelMessage(stream *connect.BidiStreamForClient[agentv1.OpenExecTunnelRequest, agentv1.OpenExecTunnelResponse], message *agentv1.OpenExecTunnelRequest) error {
-	return stream.Send(message)
+func newExecTunnelSender(ctx context.Context, stream execTunnelSendStream) *execTunnelSender {
+	senderCtx, cancel := context.WithCancel(ctx)
+	sender := &execTunnelSender{
+		ctx:      senderCtx,
+		cancel:   cancel,
+		stream:   stream,
+		messages: make(chan *agentv1.OpenExecTunnelRequest, 32),
+		done:     make(chan struct{}),
+	}
+	go sender.run()
+	return sender
 }
 
-func sendExecTunnelError(stream *connect.BidiStreamForClient[agentv1.OpenExecTunnelRequest, agentv1.OpenExecTunnelResponse], sessionID string, err error) {
-	_ = sendExecTunnelMessage(stream, &agentv1.OpenExecTunnelRequest{SessionId: sessionID, Kind: execKindError, Payload: []byte(err.Error())})
+func (sender *execTunnelSender) run() {
+	defer close(sender.done)
+	for {
+		select {
+		case <-sender.ctx.Done():
+			return
+		case message := <-sender.messages:
+			if err := sender.stream.Send(message); err != nil {
+				sender.setErr(err)
+				sender.cancel()
+				return
+			}
+		}
+	}
 }
 
-func sendExecTunnelClosed(stream *connect.BidiStreamForClient[agentv1.OpenExecTunnelRequest, agentv1.OpenExecTunnelResponse], sessionID string) {
-	_ = sendExecTunnelMessage(stream, &agentv1.OpenExecTunnelRequest{SessionId: sessionID, Kind: execKindClosed})
+func (sender *execTunnelSender) send(message *agentv1.OpenExecTunnelRequest) error {
+	select {
+	case <-sender.ctx.Done():
+		return sender.errOrContext()
+	case sender.messages <- message:
+		return nil
+	}
+}
+
+func (sender *execTunnelSender) close() error {
+	sender.cancel()
+	<-sender.done
+	return sender.sendErr()
+}
+
+func (sender *execTunnelSender) setErr(err error) {
+	sender.errMu.Lock()
+	defer sender.errMu.Unlock()
+	if sender.err == nil {
+		sender.err = err
+	}
+}
+
+func (sender *execTunnelSender) errOrContext() error {
+	sender.errMu.Lock()
+	defer sender.errMu.Unlock()
+	if sender.err != nil {
+		return sender.err
+	}
+	return sender.ctx.Err()
+}
+
+func (sender *execTunnelSender) sendErr() error {
+	sender.errMu.Lock()
+	defer sender.errMu.Unlock()
+	return sender.err
+}
+
+func sendExecTunnelError(sender *execTunnelSender, sessionID string, err error) {
+	_ = sender.send(&agentv1.OpenExecTunnelRequest{SessionId: sessionID, Kind: execKindError, Payload: []byte(err.Error())})
+}
+
+func sendExecTunnelClosed(sender *execTunnelSender, sessionID string) {
+	_ = sender.send(&agentv1.OpenExecTunnelRequest{SessionId: sessionID, Kind: execKindClosed})
 }
 
 func closeRunningExecSession(session *runningExecSession) {
@@ -252,4 +331,7 @@ func closeRunningExecSession(session *runningExecSession) {
 	}
 	session.closed = true
 	session.attach.Close()
+	if session.client != nil {
+		_ = session.client.Close()
+	}
 }

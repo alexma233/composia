@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"sort"
@@ -82,12 +83,10 @@ func Run(ctx context.Context, args []string, out io.Writer, errOut io.Writer) er
 		return errors.New("missing command")
 	}
 	if rest[0] == "help" {
-		PrintCommandUsage(out, rest[1:])
-		return nil
+		return PrintCommandUsage(out, rest[1:])
 	}
 	if isHelpArg(rest) {
-		PrintCommandUsage(out, trimHelpArgs(rest))
-		return nil
+		return PrintCommandUsage(out, trimHelpArgs(rest))
 	}
 	if rest[0] == "version" {
 		_, err := fmt.Fprintln(out, version.Value)
@@ -305,15 +304,15 @@ var commandUsages = map[string]string{
 	"completion fish":           "usage: composia completion fish\n",
 }
 
-func PrintCommandUsage(w io.Writer, args []string) {
+func PrintCommandUsage(w io.Writer, args []string) error {
 	if len(args) == 0 {
 		PrintUsage(w)
-		return
+		return nil
 	}
 	key := strings.Join(args, " ")
 	if usage, ok := commandUsages[key]; ok {
 		_, _ = fmt.Fprint(w, usage)
-		return
+		return nil
 	}
 	matches := make([]string, 0)
 	prefix := key + " "
@@ -323,14 +322,13 @@ func PrintCommandUsage(w io.Writer, args []string) {
 		}
 	}
 	if len(matches) == 0 {
-		_, _ = fmt.Fprintf(w, "unknown help topic %q\n", key)
-		PrintUsage(w)
-		return
+		return fmt.Errorf("unknown help topic %q", key)
 	}
 	sort.Strings(matches)
 	for _, match := range matches {
 		_, _ = fmt.Fprint(w, commandUsages[match])
 	}
+	return nil
 }
 
 func parseGlobalFlags(args []string) (globalConfig, []string, error) {
@@ -472,12 +470,31 @@ func newRequest[T any](message *T) *connect.Request[T] {
 	return req
 }
 
-func parsePageFlags(fs *flag.FlagSet) (func() (uint32, uint32), *uint) {
+func parsePageFlags(fs *flag.FlagSet) (func() (uint32, uint32, error), *uint) {
 	pageSize := fs.Uint("page-size", 50, "page size")
 	page := fs.Uint("page", 1, "1-based page number")
-	return func() (uint32, uint32) {
-		return uint32(*pageSize), uint32(*page)
+	return func() (uint32, uint32, error) {
+		pageSizeValue, err := uint32FlagValue("page-size", *pageSize)
+		if err != nil {
+			return 0, 0, err
+		}
+		pageValue, err := uint32FlagValue("page", *page)
+		if err != nil {
+			return 0, 0, err
+		}
+		return pageSizeValue, pageValue, nil
 	}, pageSize
+}
+
+func uint32FlagValue(name string, value uint) (uint32, error) {
+	if value > math.MaxUint32 {
+		return 0, fmt.Errorf("%s exceeds maximum uint32 value %d", name, uint64(math.MaxUint32))
+	}
+	return uint32(value), nil
+}
+
+func commandUsageText(key string) string {
+	return strings.TrimPrefix(strings.TrimSpace(commandUsages[key]), "usage: ")
 }
 
 type stringListFlag []string

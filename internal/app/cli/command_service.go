@@ -70,7 +70,10 @@ func (application *app) runServiceList(args []string) error {
 	if err := requireArgs(fs.Args(), 0, "composia service list [--status status] [--page-size n] [--page n]"); err != nil {
 		return err
 	}
-	pageSize, page := pageValues()
+	pageSize, page, err := pageValues()
+	if err != nil {
+		return err
+	}
 	response, err := application.client.services.ListServices(application.ctx, newRequest(&controllerv1.ListServicesRequest{RuntimeStatus: *status, PageSize: pageSize, Page: page}))
 	if err != nil {
 		return err
@@ -144,7 +147,8 @@ func (application *app) runServiceAction(actionName string, args []string) error
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := requireArgs(fs.Args(), 1, fmt.Sprintf("composia service %s [--wait] [--follow] [--timeout duration] [--node node] [--data name] [--recreate auto|no_recreate|force_recreate] <service>", actionName)); err != nil {
+	usage := commandUsageText("service " + actionName)
+	if err := requireArgs(fs.Args(), 1, usage); err != nil {
 		return err
 	}
 	composeRecreateMode, err := composeRecreateModeFromName(recreateMode)

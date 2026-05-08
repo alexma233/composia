@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1/controllerv1connect"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
@@ -181,6 +182,31 @@ func TestExecTunnelManagerExpiresUnusedAttachToken(t *testing.T) {
 	}
 	if got := manager.lookupSession(session.id); got != nil {
 		t.Fatalf("expected expired session to be removed, got %+v", got)
+	}
+}
+
+func TestExecTunnelManagerDoesNotBlockWhenAgentQueueIsFull(t *testing.T) {
+	t.Parallel()
+
+	manager := newExecTunnelManager()
+	tunnel := manager.registerTunnel("main")
+	for i := 0; i < cap(tunnel.sendCh); i++ {
+		tunnel.sendCh <- &agentv1.OpenExecTunnelResponse{}
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := manager.openSession("main", "ctr", []string{"/bin/sh"}, 24, 80, "https://web.example.test", "web-admin")
+		done <- err
+	}()
+
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("expected full tunnel queue to fail")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("openSession blocked on full tunnel queue")
 	}
 }
 

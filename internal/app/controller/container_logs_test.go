@@ -122,3 +122,28 @@ func TestContainerServiceGetContainerLogsStreamsThroughAgentTunnel(t *testing.T)
 		t.Fatal(err)
 	}
 }
+
+func TestContainerLogTunnelManagerDoesNotBlockWhenAgentQueueIsFull(t *testing.T) {
+	t.Parallel()
+
+	manager := newContainerLogTunnelManager()
+	tunnel := manager.registerTunnel("main")
+	for i := 0; i < cap(tunnel.sendCh); i++ {
+		tunnel.sendCh <- &agentv1.OpenContainerLogTunnelResponse{}
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := manager.openSession("main", "ctr", "", false)
+		done <- err
+	}()
+
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("expected full tunnel queue to fail")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("openSession blocked on full tunnel queue")
+	}
+}

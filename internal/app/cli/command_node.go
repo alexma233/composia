@@ -125,7 +125,10 @@ func (application *app) runNodeTasks(args []string) error {
 	if err := requireArgs(fs.Args(), 1, "composia node tasks [--status status] <node>"); err != nil {
 		return err
 	}
-	pageSize, page := pageValues()
+	pageSize, page, err := pageValues()
+	if err != nil {
+		return err
+	}
 	response, err := application.client.nodes.GetNodeTasks(application.ctx, newRequest(&controllerv1.GetNodeTasksRequest{NodeId: fs.Arg(0), Status: *status, PageSize: pageSize, Page: page}))
 	if err != nil {
 		return err

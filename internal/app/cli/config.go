@@ -69,6 +69,9 @@ func (application *app) runConfigSet(args []string) error {
 	if !isCLIConfigKey(args[0]) {
 		return fmt.Errorf("unknown config key %q", args[0])
 	}
+	if strings.ContainsAny(args[1], "\n\r\x00") {
+		return fmt.Errorf("config value for %q must not contain newline, carriage return, or NUL", args[0])
+	}
 	cfg, err := loadCLIConfig()
 	if err != nil {
 		return err

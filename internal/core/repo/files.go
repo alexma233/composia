@@ -3,6 +3,7 @@ package repo
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -165,8 +166,11 @@ func ReadFile(repoDir, relativePath string) (FileContent, error) {
 	if err != nil {
 		return FileContent{}, err
 	}
+	if err := rejectSymlinkPath(repoDir, normalizedPath, false); err != nil {
+		return FileContent{}, err
+	}
 
-	info, err := os.Stat(absPath)
+	info, err := os.Lstat(absPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return FileContent{}, ErrRepoPathNotFound
@@ -199,10 +203,18 @@ func WriteFile(repoDir, relativePath, content string) (string, error) {
 	if normalizedPath == ".git" || strings.HasPrefix(normalizedPath, ".git/") {
 		return "", ErrRepoPathProtected
 	}
+	if err := rejectSymlinkPath(repoDir, normalizedPath, true); err != nil {
+		return "", err
+	}
 	if err := os.MkdirAll(filepath.Dir(absPath), 0o755); err != nil {
 		return "", fmt.Errorf("create repo parent directory for %q: %w", normalizedPath, err)
 	}
-	if err := os.WriteFile(absPath, []byte(content), 0o644); err != nil {
+	file, err := os.OpenFile(absPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+	if err != nil {
+		return "", fmt.Errorf("write repo file %q: %w", normalizedPath, err)
+	}
+	defer func() { _ = file.Close() }()
+	if _, err := file.WriteString(content); err != nil {
 		return "", fmt.Errorf("write repo file %q: %w", normalizedPath, err)
 	}
 	return filepath.ToSlash(normalizedPath), nil
@@ -219,7 +231,10 @@ func CreateDirectory(repoDir, relativePath string) (string, error) {
 	if normalizedPath == ".git" || strings.HasPrefix(normalizedPath, ".git/") {
 		return "", ErrRepoPathProtected
 	}
-	if _, err := os.Stat(absPath); err == nil {
+	if err := rejectSymlinkPath(repoDir, normalizedPath, true); err != nil {
+		return "", err
+	}
+	if _, err := os.Lstat(absPath); err == nil {
 		return "", ErrRepoPathAlreadyExists
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return "", fmt.Errorf("stat repo directory %q: %w", normalizedPath, err)
@@ -245,7 +260,10 @@ func DeletePath(repoDir, relativePath string) (string, error) {
 	if normalizedPath == ".git" || strings.HasPrefix(normalizedPath, ".git/") {
 		return "", ErrRepoPathProtected
 	}
-	if _, err := os.Stat(absPath); err != nil {
+	if err := rejectSymlinkPath(repoDir, normalizedPath, false); err != nil {
+		return "", err
+	}
+	if _, err := os.Lstat(absPath); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return "", ErrRepoPathNotFound
 		}
@@ -277,14 +295,20 @@ func MovePath(repoDir, sourcePath, destinationPath string) (string, string, erro
 			return "", "", ErrRepoPathProtected
 		}
 	}
-	info, err := os.Stat(absSourcePath)
+	if err := rejectSymlinkPath(repoDir, normalizedSourcePath, false); err != nil {
+		return "", "", err
+	}
+	if err := rejectSymlinkPath(repoDir, normalizedDestinationPath, true); err != nil {
+		return "", "", err
+	}
+	info, err := os.Lstat(absSourcePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return "", "", ErrRepoPathNotFound
 		}
 		return "", "", fmt.Errorf("stat repo source path %q: %w", normalizedSourcePath, err)
 	}
-	if _, err := os.Stat(absDestinationPath); err == nil {
+	if _, err := os.Lstat(absDestinationPath); err == nil {
 		return "", "", ErrRepoPathAlreadyExists
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return "", "", fmt.Errorf("stat repo destination path %q: %w", normalizedDestinationPath, err)
@@ -312,7 +336,10 @@ func CapturePath(repoDir, relativePath string) (PathSnapshot, error) {
 	if normalizedPath == ".git" || strings.HasPrefix(normalizedPath, ".git/") {
 		return PathSnapshot{}, ErrRepoPathProtected
 	}
-	info, err := os.Stat(absPath)
+	if err := rejectSymlinkPath(repoDir, normalizedPath, false); err != nil {
+		return PathSnapshot{}, err
+	}
+	info, err := os.Lstat(absPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return PathSnapshot{RelativePath: filepath.ToSlash(normalizedPath)}, nil
@@ -347,6 +374,15 @@ func RestorePath(repoDir string, snapshot PathSnapshot) error {
 	if err != nil {
 		return err
 	}
+	if normalizedPath == "" {
+		return ErrRepoPathInvalid
+	}
+	if normalizedPath == ".git" || strings.HasPrefix(normalizedPath, ".git/") {
+		return ErrRepoPathProtected
+	}
+	if err := rejectSymlinkPath(repoDir, normalizedPath, true); err != nil {
+		return err
+	}
 	if err := os.RemoveAll(absPath); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("clear repo path %q during restore: %w", normalizedPath, err)
 	}
@@ -354,7 +390,7 @@ func RestorePath(repoDir string, snapshot PathSnapshot) error {
 		return nil
 	}
 	tempPath := filepath.Join(snapshot.TempDir, "data")
-	info, err := os.Stat(tempPath)
+	info, err := os.Lstat(tempPath)
 	if err != nil {
 		return fmt.Errorf("stat snapshot for %q: %w", normalizedPath, err)
 	}
@@ -375,9 +411,18 @@ func CleanupPathSnapshot(snapshot PathSnapshot) error {
 }
 
 func copyDirectory(sourcePath, destinationPath string) error {
-	info, err := os.Stat(sourcePath)
+	info, err := os.Lstat(sourcePath)
 	if err != nil {
 		return fmt.Errorf("stat source directory %q: %w", sourcePath, err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("copy source directory %q: %w", sourcePath, ErrRepoPathInvalid)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("copy source directory %q: %w", sourcePath, ErrRepoPathNotDirectory)
+	}
+	if err := rejectDestinationSymlink(destinationPath); err != nil {
+		return err
 	}
 	if err := os.MkdirAll(destinationPath, info.Mode().Perm()); err != nil {
 		return fmt.Errorf("create destination directory %q: %w", destinationPath, err)
@@ -389,6 +434,9 @@ func copyDirectory(sourcePath, destinationPath string) error {
 	for _, entry := range entries {
 		sourceChild := filepath.Join(sourcePath, entry.Name())
 		destinationChild := filepath.Join(destinationPath, entry.Name())
+		if entry.Type()&os.ModeSymlink != 0 {
+			return fmt.Errorf("copy source path %q: %w", sourceChild, ErrRepoPathInvalid)
+		}
 		if entry.IsDir() {
 			if err := copyDirectory(sourceChild, destinationChild); err != nil {
 				return err
@@ -407,15 +455,79 @@ func copyDirectory(sourcePath, destinationPath string) error {
 }
 
 func copyFile(sourcePath, destinationPath string, mode os.FileMode) error {
-	content, err := os.ReadFile(sourcePath)
+	info, err := os.Lstat(sourcePath)
 	if err != nil {
-		return fmt.Errorf("read source file %q: %w", sourcePath, err)
+		return fmt.Errorf("stat source file %q: %w", sourcePath, err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("copy source file %q: %w", sourcePath, ErrRepoPathInvalid)
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("copy source file %q: %w", sourcePath, ErrRepoPathNotFile)
+	}
+	if err := rejectDestinationSymlink(destinationPath); err != nil {
+		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(destinationPath), 0o755); err != nil {
 		return fmt.Errorf("create destination parent for %q: %w", destinationPath, err)
 	}
-	if err := os.WriteFile(destinationPath, content, mode.Perm()); err != nil {
+	source, err := os.Open(sourcePath)
+	if err != nil {
+		return fmt.Errorf("open source file %q: %w", sourcePath, err)
+	}
+	defer func() { _ = source.Close() }()
+	destination, err := os.OpenFile(destinationPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode.Perm())
+	if err != nil {
 		return fmt.Errorf("write destination file %q: %w", destinationPath, err)
+	}
+	defer func() { _ = destination.Close() }()
+	if _, err := io.Copy(destination, source); err != nil {
+		return fmt.Errorf("copy source file %q to %q: %w", sourcePath, destinationPath, err)
+	}
+	return nil
+}
+
+func rejectDestinationSymlink(path string) error {
+	info, err := os.Lstat(path)
+	if err == nil && info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("destination path %q: %w", path, ErrRepoPathInvalid)
+	}
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("stat destination path %q: %w", path, err)
+	}
+	return nil
+}
+
+func rejectSymlinkPath(repoDir, normalizedPath string, _ bool) error {
+	absRepoDir, err := filepath.Abs(repoDir)
+	if err != nil {
+		return fmt.Errorf("resolve repo root %q: %w", repoDir, err)
+	}
+	info, err := os.Lstat(absRepoDir)
+	if err != nil {
+		return fmt.Errorf("stat repo root %q: %w", repoDir, err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return ErrRepoPathInvalid
+	}
+	if normalizedPath == "" {
+		return nil
+	}
+
+	parts := strings.Split(filepath.Clean(normalizedPath), string(filepath.Separator))
+	current := absRepoDir
+	for _, part := range parts {
+		current = filepath.Join(current, part)
+		info, err := os.Lstat(current)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return nil
+			}
+			return err
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return ErrRepoPathInvalid
+		}
 	}
 	return nil
 }

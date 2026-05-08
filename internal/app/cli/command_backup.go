@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"strings"
 
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 )
@@ -47,7 +48,10 @@ func (application *app) runBackupList(args []string) error {
 	if err := requireArgs(fs.Args(), 0, "composia backup list [filters]"); err != nil {
 		return err
 	}
-	pageSize, page := pageValues()
+	pageSize, page, err := pageValues()
+	if err != nil {
+		return err
+	}
 	response, err := application.client.backups.ListBackups(application.ctx, newRequest(&controllerv1.ListBackupsRequest{
 		ServiceName:        []string(services),
 		Status:             []string(statuses),
@@ -129,10 +133,11 @@ func (application *app) runBackupRestore(args []string) error {
 	if err := requireArgs(fs.Args(), 1, "composia backup restore [--wait] [--follow] [--timeout duration] --node node <backup>"); err != nil {
 		return err
 	}
-	if *nodeID == "" {
+	nodeIDValue := strings.TrimSpace(*nodeID)
+	if nodeIDValue == "" {
 		return errorsWithUsage("node is required", "composia backup restore [--wait] [--follow] [--timeout duration] --node node <backup>")
 	}
-	response, err := application.client.backups.RestoreBackup(application.ctx, newRequest(&controllerv1.RestoreBackupRequest{BackupId: fs.Arg(0), NodeId: *nodeID}))
+	response, err := application.client.backups.RestoreBackup(application.ctx, newRequest(&controllerv1.RestoreBackupRequest{BackupId: fs.Arg(0), NodeId: nodeIDValue}))
 	if err != nil {
 		return err
 	}

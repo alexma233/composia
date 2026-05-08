@@ -412,7 +412,7 @@ func autoPullRepo(ctx context.Context, cfg *config.ControllerConfig, db *store.D
 			}
 			newRevision, _ := repo.CurrentRevision(cfg.RepoDir)
 			if newRevision != previousRevision {
-				log.Printf("auto-pull: repo updated from %s to %s", previousRevision[:8], newRevision[:8])
+				log.Printf("auto-pull: repo updated from %s to %s", shortRevision(previousRevision), shortRevision(newRevision))
 				if err := refreshDeclaredServices(db, cfg, availableNodeIDs); err != nil {
 					log.Printf("auto-pull: refresh declared services failed: %v", err)
 				}
@@ -485,6 +485,13 @@ func refreshDeclaredServices(db *store.DB, cfg *config.ControllerConfig, availab
 		declaredServices[service.Name] = append([]string(nil), service.TargetNodes...)
 	}
 	return db.SyncDeclaredServices(context.Background(), declaredServices)
+}
+
+func shortRevision(revision string) string {
+	if len(revision) <= 8 {
+		return revision
+	}
+	return revision[:8]
 }
 
 type agentReportServer struct {
@@ -691,7 +698,10 @@ func (server *agentReportServer) queuePostTaskFollowups(ctx context.Context, tas
 }
 
 func (server *agentReportServer) queueAutoApplyUpdateForImageCheck(ctx context.Context, record task.Record) error {
-	params := taskParams(record.ParamsJSON)
+	params, err := taskParams(record.ParamsJSON)
+	if err != nil {
+		return err
+	}
 	if server.cfg == nil || params.ServiceDir == "" || record.RepoRevision == "" || record.NodeID == "" {
 		return nil
 	}
@@ -743,7 +753,10 @@ func (server *agentReportServer) queueCaddyReloadForTask(ctx context.Context, re
 	if server.cfg == nil {
 		return nil
 	}
-	params := taskParams(record.ParamsJSON)
+	params, err := taskParams(record.ParamsJSON)
+	if err != nil {
+		return err
+	}
 	if params.ServiceDir == "" || record.RepoRevision == "" || record.NodeID == "" {
 		return nil
 	}
@@ -1459,6 +1472,10 @@ func (server *agentTaskServer) PullNextTask(ctx context.Context, req *connect.Re
 	for {
 		record, err := server.db.ClaimNextPendingTaskForNode(ctx, req.Msg.GetNodeId(), time.Now().UTC())
 		if err == nil {
+			params, err := taskParams(record.ParamsJSON)
+			if err != nil {
+				return nil, connect.NewError(connect.CodeInternal, err)
+			}
 			logControllerAssignedTask(record)
 			response := &agentv1.PullNextTaskResponse{
 				HasTask: true,
@@ -1468,8 +1485,8 @@ func (server *agentTaskServer) PullNextTask(ctx context.Context, req *connect.Re
 					ServiceName:  record.ServiceName,
 					NodeId:       record.NodeID,
 					RepoRevision: record.RepoRevision,
-					ServiceDir:   taskParams(record.ParamsJSON).ServiceDir,
-					DataNames:    taskParams(record.ParamsJSON).DataNames,
+					ServiceDir:   params.ServiceDir,
+					DataNames:    params.DataNames,
 					ParamsJson:   record.ParamsJSON,
 				},
 			}
@@ -2530,34 +2547,7 @@ func (server *serviceCommandServer) runBackupsBeforeUpdate(ctx context.Context, 
 }
 
 func (server *serviceCommandServer) waitTask(ctx context.Context, taskID string, timeout time.Duration) error {
-	deadline := time.Now().Add(timeout)
-	waitCh := server.taskResults.Subscribe(taskID)
-	defer server.taskResults.Unsubscribe(taskID, waitCh)
-	for {
-		detail, err := server.db.GetTask(ctx, taskID)
-		if err == nil {
-			switch detail.Record.Status {
-			case task.StatusSucceeded:
-				return nil
-			case task.StatusFailed, task.StatusCancelled:
-				return fmt.Errorf("task %s failed: %s", taskID, detail.Record.ErrorSummary)
-			}
-		}
-		remaining := time.Until(deadline)
-		if remaining <= 0 {
-			return fmt.Errorf("timeout waiting for task %s", taskID)
-		}
-		waitFor := minDuration(remaining, 5*time.Second)
-		timer := time.NewTimer(waitFor)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return ctx.Err()
-		case <-waitCh:
-			timer.Stop()
-		case <-timer.C:
-		}
-	}
+	return waitTask(ctx, server.db, server.taskResults, taskID, timeout, 5*time.Second)
 }
 
 func applyImageSourceUpdate(content string, source repo.ImageUpdateSource, imageRef, targetValue string) (string, error) {
@@ -2804,15 +2794,15 @@ func validateTaskTargetNode(ctx context.Context, db *store.DB, cfg *config.Contr
 	return nil
 }
 
-func taskParams(paramsJSON string) serviceTaskParams {
+func taskParams(paramsJSON string) (serviceTaskParams, error) {
 	if paramsJSON == "" {
-		return serviceTaskParams{}
+		return serviceTaskParams{}, nil
 	}
 	var params serviceTaskParams
 	if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
-		return serviceTaskParams{}
+		return serviceTaskParams{}, fmt.Errorf("decode task params: %w", err)
 	}
-	return params
+	return params, nil
 }
 
 func findTaskStepStartedAt(steps []task.StepRecord, stepName task.StepName) *time.Time {
@@ -4544,7 +4534,10 @@ func (server *taskServer) RunTaskAgain(ctx context.Context, req *connect.Request
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("task type %q cannot be rerun yet", detail.Record.Type))
 	}
 
-	params := taskParams(detail.Record.ParamsJSON)
+	params, err := taskParams(detail.Record.ParamsJSON)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 	var targetNodeIDs []string
 	if detail.Record.NodeID != "" {
 		targetNodeIDs = []string{detail.Record.NodeID}

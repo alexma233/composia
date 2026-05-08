@@ -15,6 +15,24 @@ import (
 
 const MetaFileName = "composia-meta.yaml"
 
+func walkServiceMetaFiles(repoDir string, visit func(path string) error) error {
+	return filepath.WalkDir(repoDir, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() {
+			if entry.Name() == ".git" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if entry.Name() != MetaFileName {
+			return nil
+		}
+		return visit(path)
+	})
+}
+
 type Service struct {
 	Name        string
 	Directory   string
@@ -152,20 +170,7 @@ func DiscoverServices(repoDir string, availableNodeIDs map[string]struct{}) ([]S
 	servicesByName := make(map[string]Service)
 	duplicateNames := make(map[string]struct{})
 
-	err := filepath.WalkDir(repoDir, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if entry.IsDir() {
-			if entry.Name() == ".git" {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if entry.Name() != MetaFileName {
-			return nil
-		}
-
+	err := walkServiceMetaFiles(repoDir, func(path string) error {
 		service, err := strictServiceFromMetaPath(path, availableNodeIDs)
 		if err != nil {
 			return nil
@@ -198,20 +203,7 @@ func DiscoverServices(repoDir string, availableNodeIDs map[string]struct{}) ([]S
 
 func FindService(repoDir string, availableNodeIDs map[string]struct{}, serviceName string) (Service, error) {
 	var matched *Service
-	err := filepath.WalkDir(repoDir, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if entry.IsDir() {
-			if entry.Name() == ".git" {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if entry.Name() != MetaFileName {
-			return nil
-		}
-
+	err := walkServiceMetaFiles(repoDir, func(path string) error {
 		meta, err := loadServiceMeta(path)
 		if err != nil {
 			return nil
@@ -240,20 +232,7 @@ func FindService(repoDir string, availableNodeIDs map[string]struct{}, serviceNa
 
 func FindCaddyInfraService(repoDir string, availableNodeIDs map[string]struct{}) (Service, error) {
 	var matched *Service
-	err := filepath.WalkDir(repoDir, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if entry.IsDir() {
-			if entry.Name() == ".git" {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if entry.Name() != MetaFileName {
-			return nil
-		}
-
+	err := walkServiceMetaFiles(repoDir, func(path string) error {
 		meta, err := loadServiceMeta(path)
 		if err != nil {
 			return nil
@@ -282,20 +261,7 @@ func FindCaddyInfraService(repoDir string, availableNodeIDs map[string]struct{})
 
 func FindRusticInfraService(repoDir string, availableNodeIDs map[string]struct{}) (Service, error) {
 	var matched *Service
-	err := filepath.WalkDir(repoDir, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if entry.IsDir() {
-			if entry.Name() == ".git" {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if entry.Name() != MetaFileName {
-			return nil
-		}
-
+	err := walkServiceMetaFiles(repoDir, func(path string) error {
 		meta, err := loadServiceMeta(path)
 		if err != nil {
 			return nil

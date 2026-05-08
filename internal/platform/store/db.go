@@ -413,8 +413,8 @@ func (db *DB) GetServiceSnapshot(ctx context.Context, serviceName string) (Servi
 	}
 	if err := db.sql.QueryRowContext(ctx, `
 		SELECT COUNT(*),
-		       SUM(CASE WHEN runtime_status = ? THEN 1 ELSE 0 END),
-		       SUM(CASE WHEN is_declared = 1 THEN 1 ELSE 0 END)
+		       COALESCE(SUM(CASE WHEN runtime_status = ? THEN 1 ELSE 0 END), 0),
+		       COALESCE(SUM(CASE WHEN is_declared = 1 THEN 1 ELSE 0 END), 0)
 		FROM service_instances
 		WHERE service_name = ?
 	`, ServiceRuntimeRunning, serviceName).Scan(&snapshot.InstanceCount, &snapshot.RunningCount, &snapshot.TargetNodeCount); err != nil {
@@ -739,12 +739,16 @@ func (db *DB) LatestServiceImageUpdateChecks(ctx context.Context, serviceName st
 		if err := rows.Scan(&check.ServiceName, &check.NodeID, &check.ImageName, &check.ImageRef, &check.PolicyType, &check.CurrentValue, &check.CurrentTag, &check.CurrentDigest, &check.CandidateTag, &check.CandidateDigest, &check.CandidateTagsJSON, &check.UpdateAvailable, &check.CheckStatus, &check.ErrorSummary, &checkedAt, &updatedAt); err != nil {
 			return nil, fmt.Errorf("scan service image update check: %w", err)
 		}
-		if parsed, err := time.Parse(time.RFC3339, checkedAt); err == nil {
-			check.CheckedAt = parsed
+		parsedCheckedAt, err := time.Parse(time.RFC3339, checkedAt)
+		if err != nil {
+			return nil, fmt.Errorf("parse service image update check %q@%q %q checked_at: %w", check.ServiceName, check.NodeID, check.ImageName, err)
 		}
-		if parsed, err := time.Parse(time.RFC3339, updatedAt); err == nil {
-			check.UpdatedAt = parsed
+		parsedUpdatedAt, err := time.Parse(time.RFC3339, updatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("parse service image update check %q@%q %q updated_at: %w", check.ServiceName, check.NodeID, check.ImageName, err)
 		}
+		check.CheckedAt = parsedCheckedAt.UTC()
+		check.UpdatedAt = parsedUpdatedAt.UTC()
 		checks = append(checks, check)
 	}
 	if err := rows.Err(); err != nil {
@@ -905,7 +909,7 @@ func (db *DB) migrate(ctx context.Context) error {
 
 	for _, statement := range statements {
 		if _, err := db.sql.ExecContext(ctx, statement); err != nil {
-			if isDuplicateColumnError(err) {
+			if statement == `ALTER TABLE backups ADD COLUMN node_id TEXT;` && isDuplicateColumnError(err) {
 				continue
 			}
 			return fmt.Errorf("apply sqlite schema statement: %w", err)
@@ -1063,6 +1067,10 @@ func (db *DB) GetNodeDockerStats(ctx context.Context, nodeID string) (DockerStat
 	if err != nil {
 		return DockerStats{}, fmt.Errorf("get docker stats for node %q: %w", nodeID, err)
 	}
-	stats.ReportedAt, _ = time.Parse(time.RFC3339, reportedAt)
+	parsedReportedAt, err := time.Parse(time.RFC3339, reportedAt)
+	if err != nil {
+		return DockerStats{}, fmt.Errorf("parse docker stats for node %q reported_at: %w", nodeID, err)
+	}
+	stats.ReportedAt = parsedReportedAt.UTC()
 	return stats, nil
 }

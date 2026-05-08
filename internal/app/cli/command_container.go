@@ -47,13 +47,17 @@ func (application *app) runContainerList(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := requireArgs(fs.Args(), 0, "composia container list --node node [--search text] [--sort-by field] [--desc]"); err != nil {
+	usage := "composia container list --node node [--search text] [--sort-by field] [--desc] [--page-size n] [--page n]"
+	if err := requireArgs(fs.Args(), 0, usage); err != nil {
 		return err
 	}
 	if strings.TrimSpace(*nodeID) == "" {
-		return errorsWithUsage("node is required", "composia container list --node node [--search text] [--sort-by field] [--desc]")
+		return errorsWithUsage("node is required", usage)
 	}
-	pageSize, page := pageValues()
+	pageSize, page, err := pageValues()
+	if err != nil {
+		return err
+	}
 	response, err := application.client.docker.ListNodeContainers(application.ctx, newRequest(&controllerv1.ListNodeContainersRequest{
 		NodeId:   strings.TrimSpace(*nodeID),
 		PageSize: pageSize,
@@ -213,9 +217,21 @@ func (application *app) runContainerExec(args []string) error {
 		if strings.TrimSpace(*stdinFile) != "" {
 			return errorsWithUsage("stdin-file cannot be used with --tty", usage)
 		}
-		return application.runContainerExecTTY(strings.TrimSpace(*nodeID), fs.Arg(0), fs.Args()[1:], uint32(*rows), uint32(*cols))
+		rowCount, err := uint32FlagValue("rows", *rows)
+		if err != nil {
+			return err
+		}
+		colCount, err := uint32FlagValue("cols", *cols)
+		if err != nil {
+			return err
+		}
+		return application.runContainerExecTTY(strings.TrimSpace(*nodeID), fs.Arg(0), fs.Args()[1:], rowCount, colCount)
 	}
 	stdin, err := readExecStdin(*stdinFile)
+	if err != nil {
+		return err
+	}
+	timeoutSeconds, err := durationSeconds(*timeout)
 	if err != nil {
 		return err
 	}
@@ -224,7 +240,7 @@ func (application *app) runContainerExec(args []string) error {
 		ContainerId:    fs.Arg(0),
 		Command:        fs.Args()[1:],
 		Stdin:          stdin,
-		TimeoutSeconds: durationSeconds(*timeout),
+		TimeoutSeconds: timeoutSeconds,
 		MaxOutputBytes: *maxOutput,
 	}))
 	if err != nil {
@@ -353,7 +369,7 @@ func (application *app) attachContainerExecWebsocket(conn *websocket.Conn) error
 	for {
 		select {
 		case <-application.ctx.Done():
-			return nil
+			return application.ctx.Err()
 		case <-resizeCh:
 			if rows, cols, ok := terminalSize(os.Stdout.Fd()); ok {
 				payload, _ := json.Marshal(execResizeMessage{Type: "resize", Rows: rows, Cols: cols})
@@ -379,7 +395,7 @@ type execWebsocketEvent struct {
 func handleExecWebsocketEvent(payload []byte) (bool, error) {
 	var event execWebsocketEvent
 	if err := json.Unmarshal(payload, &event); err != nil {
-		return false, nil
+		return false, fmt.Errorf("invalid container exec websocket event JSON: %w", err)
 	}
 	switch event.Type {
 	case "ready":
@@ -392,7 +408,7 @@ func handleExecWebsocketEvent(payload []byte) (bool, error) {
 		}
 		return true, fmt.Errorf("container exec websocket error: %s", event.Message)
 	default:
-		return false, nil
+		return false, fmt.Errorf("unknown container exec websocket event type %q", event.Type)
 	}
 }
 
@@ -407,15 +423,18 @@ func readExecStdin(path string) ([]byte, error) {
 	return os.ReadFile(path)
 }
 
-func durationSeconds(duration time.Duration) uint32 {
+func durationSeconds(duration time.Duration) (uint32, error) {
 	if duration <= 0 {
-		return 0
+		return 0, nil
 	}
 	seconds := duration / time.Second
 	if duration%time.Second != 0 {
 		seconds++
 	}
-	return uint32(seconds)
+	if seconds > time.Duration(^uint32(0)) {
+		return 0, fmt.Errorf("timeout exceeds maximum uint32 seconds value %d", uint64(^uint32(0)))
+	}
+	return uint32(seconds), nil
 }
 
 func controllerOrigin(addr string) (string, error) {

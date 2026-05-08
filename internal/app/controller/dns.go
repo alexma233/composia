@@ -162,7 +162,10 @@ func (executor *controllerTaskExecutor) executeDNSUpdateTask(ctx context.Context
 		return executor.failControllerTask(ctx, record, task.StepDNSUpdate, err)
 	}
 
-	params := taskParams(record.ParamsJSON)
+	params, err := taskParams(record.ParamsJSON)
+	if err != nil {
+		return executor.failControllerTask(ctx, record, task.StepDNSUpdate, err)
+	}
 	service, err := repo.FindServiceAtRevision(executor.cfg.RepoDir, record.RepoRevision, params.ServiceDir, executor.availableNodeIDs)
 	if err != nil {
 		return executor.failControllerTask(ctx, record, task.StepDNSUpdate, err)

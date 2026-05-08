@@ -186,6 +186,60 @@ func TestRecoverRunningTasksMarksRunningRowsFailed(t *testing.T) {
 	}
 }
 
+func TestRecoverRunningTasksUpdatesServiceSummaries(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"alpha": {"main"}}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	startedAt := time.Date(2026, 4, 4, 11, 0, 0, 0, time.UTC)
+	if _, err := db.CreateTask(ctx, task.Record{
+		TaskID:      "task-running-service",
+		Type:        task.TypeDeploy,
+		Source:      task.SourceSystem,
+		ServiceName: "alpha",
+		NodeID:      "main",
+		Status:      task.StatusRunning,
+		CreatedAt:   startedAt.Add(-1 * time.Minute),
+		StartedAt:   &startedAt,
+	}); err != nil {
+		t.Fatalf("create running service task: %v", err)
+	}
+
+	recoveredAt := startedAt.Add(10 * time.Minute)
+	affected, err := db.RecoverRunningTasks(ctx, recoveredAt)
+	if err != nil {
+		t.Fatalf("recover running tasks: %v", err)
+	}
+	if affected != 1 {
+		t.Fatalf("expected 1 recovered task, got %d", affected)
+	}
+
+	instance, err := db.GetServiceInstanceSnapshot(ctx, "alpha", "main")
+	if err != nil {
+		t.Fatalf("get instance snapshot: %v", err)
+	}
+	if instance.LastTaskID != "task-running-service" || instance.UpdatedAt != recoveredAt.Format(time.RFC3339) {
+		t.Fatalf("unexpected instance summary: %+v", instance)
+	}
+	row := db.sql.QueryRowContext(ctx, `SELECT last_task_id, updated_at FROM services WHERE service_name = 'alpha'`)
+	var lastTaskID string
+	var updatedAt string
+	if err := row.Scan(&lastTaskID, &updatedAt); err != nil {
+		t.Fatalf("scan service summary: %v", err)
+	}
+	if lastTaskID != "task-running-service" || updatedAt != recoveredAt.Format(time.RFC3339) {
+		t.Fatalf("unexpected service summary last_task_id=%q updated_at=%q", lastTaskID, updatedAt)
+	}
+}
+
 func TestRecoverRunningTasksLeavesAwaitingConfirmationUntouched(t *testing.T) {
 	t.Parallel()
 
@@ -505,6 +559,18 @@ func TestCompleteTaskUpdatesLastTaskWithoutOverwritingRuntimeStatus(t *testing.T
 	}
 	if updatedAt != finishedAt.Format(time.RFC3339) {
 		t.Fatalf("expected updated_at %q, got %q", finishedAt.Format(time.RFC3339), updatedAt)
+	}
+}
+
+func TestUpdateTaskParamsJSONReturnsErrTaskNotFound(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	err := db.UpdateTaskParamsJSON(context.Background(), "missing-task", `{"ok":true}`)
+	if !errors.Is(err, ErrTaskNotFound) {
+		t.Fatalf("expected ErrTaskNotFound, got %v", err)
 	}
 }
 

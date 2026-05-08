@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -109,6 +110,96 @@ func TestResolveRepoPathRejectsTraversal(t *testing.T) {
 
 	_, _, err := resolveRepoPath(t.TempDir(), "../etc/passwd")
 	if err != ErrRepoPathInvalid {
+		t.Fatalf("expected ErrRepoPathInvalid, got %v", err)
+	}
+}
+
+func TestReadFileRejectsSymlink(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	outsideDir := t.TempDir()
+	outsidePath := filepath.Join(outsideDir, "secret.txt")
+	if err := os.WriteFile(outsidePath, []byte("secret\n"), 0o644); err != nil {
+		t.Fatalf("write outside file: %v", err)
+	}
+	linkPath := filepath.Join(repoDir, "link.txt")
+	if err := os.Symlink(outsidePath, linkPath); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+
+	_, err := ReadFile(repoDir, "link.txt")
+	if !errors.Is(err, ErrRepoPathInvalid) {
+		t.Fatalf("expected ErrRepoPathInvalid, got %v", err)
+	}
+}
+
+func TestWriteFileRejectsSymlinkLeaf(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	outsideDir := t.TempDir()
+	outsidePath := filepath.Join(outsideDir, "secret.txt")
+	if err := os.WriteFile(outsidePath, []byte("secret\n"), 0o644); err != nil {
+		t.Fatalf("write outside file: %v", err)
+	}
+	if err := os.Symlink(outsidePath, filepath.Join(repoDir, "link.txt")); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+
+	_, err := WriteFile(repoDir, "link.txt", "changed\n")
+	if !errors.Is(err, ErrRepoPathInvalid) {
+		t.Fatalf("expected ErrRepoPathInvalid, got %v", err)
+	}
+	content, err := os.ReadFile(outsidePath)
+	if err != nil {
+		t.Fatalf("read outside file: %v", err)
+	}
+	if string(content) != "secret\n" {
+		t.Fatalf("outside file was modified: %q", string(content))
+	}
+}
+
+func TestDeletePathRejectsSymlinkWithoutDeletingTarget(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	outsideDir := t.TempDir()
+	outsidePath := filepath.Join(outsideDir, "secret.txt")
+	if err := os.WriteFile(outsidePath, []byte("secret\n"), 0o644); err != nil {
+		t.Fatalf("write outside file: %v", err)
+	}
+	if err := os.Symlink(outsidePath, filepath.Join(repoDir, "link.txt")); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+
+	_, err := DeletePath(repoDir, "link.txt")
+	if !errors.Is(err, ErrRepoPathInvalid) {
+		t.Fatalf("expected ErrRepoPathInvalid, got %v", err)
+	}
+	if _, err := os.Stat(outsidePath); err != nil {
+		t.Fatalf("outside target should remain: %v", err)
+	}
+}
+
+func TestCapturePathRejectsDirectoryContainingSymlink(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	outsideDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repoDir, "data"), 0o755); err != nil {
+		t.Fatalf("create data dir: %v", err)
+	}
+	outsidePath := filepath.Join(outsideDir, "secret.txt")
+	if err := os.WriteFile(outsidePath, []byte("secret\n"), 0o644); err != nil {
+		t.Fatalf("write outside file: %v", err)
+	}
+	if err := os.Symlink(outsidePath, filepath.Join(repoDir, "data", "link.txt")); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+
+	_, err := CapturePath(repoDir, "data")
+	if !errors.Is(err, ErrRepoPathInvalid) {
 		t.Fatalf("expected ErrRepoPathInvalid, got %v", err)
 	}
 }

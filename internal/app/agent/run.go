@@ -497,7 +497,10 @@ func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 }
 
 func executeDeployTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
-	params := decodeTaskParams(pulledTask.GetParamsJson())
+	params, err := decodeTaskParams(pulledTask.GetParamsJson())
+	if err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting remote deploy task for service=%s node=%s repo_revision=%s\n", pulledTask.GetServiceName(), pulledTask.GetNodeId(), pulledTask.GetRepoRevision())); err != nil {
 		return err
 	}
@@ -551,7 +554,10 @@ func executeDeployTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 }
 
 func executeUpdateTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
-	params := decodeTaskParams(pulledTask.GetParamsJson())
+	params, err := decodeTaskParams(pulledTask.GetParamsJson())
+	if err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting remote update task for service=%s node=%s repo_revision=%s\n", pulledTask.GetServiceName(), pulledTask.GetNodeId(), pulledTask.GetRepoRevision())); err != nil {
 		return err
 	}
@@ -980,7 +986,10 @@ func executeRusticInitTask(ctx context.Context, bundleClient agentv1connect.Bund
 }
 
 func executeRusticForgetTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
-	params := parseRusticMaintenanceParams(pulledTask)
+	params, err := parseRusticMaintenanceParams(pulledTask)
+	if err != nil {
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
+	}
 	var bundle *bundleResult
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
 		var err error
@@ -1042,7 +1051,10 @@ func executeCaddyReloadTask(ctx context.Context, client agentv1connect.AgentRepo
 }
 
 func executeCaddySyncTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
-	params := decodeTaskParams(pulledTask.GetParamsJson())
+	params, err := decodeTaskParams(pulledTask.GetParamsJson())
+	if err != nil {
+		return failServiceTask(ctx, client, cfg, pulledTask, err)
+	}
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting caddy sync task for service=%s node=%s repo_revision=%s full_rebuild=%t\n", pulledTask.GetServiceName(), pulledTask.GetNodeId(), pulledTask.GetRepoRevision(), params.FullRebuild)); err != nil {
 		return err
 	}
@@ -1052,7 +1064,7 @@ func executeCaddySyncTask(ctx context.Context, bundleClient agentv1connect.Bundl
 		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepCaddySync, func() error {
-		return syncCaddyFilesForTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
+		return syncCaddyFilesForTask(ctx, bundleClient, client, cfg, pulledTask, params, logUploader)
 	}); err != nil {
 		return failServiceTask(ctx, client, cfg, pulledTask, err)
 	}
@@ -1126,16 +1138,16 @@ func parsePruneParams(pulledTask *agentv1.AgentTask) pruneTaskParams {
 	return params
 }
 
-func parseRusticMaintenanceParams(pulledTask *agentv1.AgentTask) rusticMaintenanceTaskParams {
+func parseRusticMaintenanceParams(pulledTask *agentv1.AgentTask) (rusticMaintenanceTaskParams, error) {
 	paramsJSON := pulledTask.GetParamsJson()
 	if paramsJSON == "" {
-		return rusticMaintenanceTaskParams{}
+		return rusticMaintenanceTaskParams{}, nil
 	}
 	var params rusticMaintenanceTaskParams
 	if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
-		return rusticMaintenanceTaskParams{}
+		return rusticMaintenanceTaskParams{}, fmt.Errorf("decode rustic maintenance task params: %w", err)
 	}
-	return params
+	return params, nil
 }
 
 func runDockerPrune(ctx context.Context, target string, uploadLog func(string) error) error {
@@ -1345,8 +1357,7 @@ func executeCaddySyncStep(ctx context.Context, client agentv1connect.AgentReport
 	})
 }
 
-func syncCaddyFilesForTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
-	params := decodeTaskParams(pulledTask.GetParamsJson())
+func syncCaddyFilesForTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, params controllerTaskParams, logUploader *taskLogUploader) error {
 	serviceDirs := append([]string(nil), params.ServiceDirs...)
 	if len(serviceDirs) == 0 && pulledTask.GetServiceDir() != "" {
 		serviceDirs = []string{pulledTask.GetServiceDir()}
@@ -1389,15 +1400,15 @@ func syncCaddyFilesForTask(ctx context.Context, bundleClient agentv1connect.Bund
 	return nil
 }
 
-func decodeTaskParams(paramsJSON string) controllerTaskParams {
+func decodeTaskParams(paramsJSON string) (controllerTaskParams, error) {
 	if paramsJSON == "" {
-		return controllerTaskParams{}
+		return controllerTaskParams{}, nil
 	}
 	var params controllerTaskParams
 	if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
-		return controllerTaskParams{}
+		return controllerTaskParams{}, fmt.Errorf("decode task params: %w", err)
 	}
-	return params
+	return params, nil
 }
 
 type controllerTaskParams struct {
@@ -2370,30 +2381,8 @@ func extractTarStream(reader io.Reader, destinationDir string) error {
 			if err := outFile.Close(); err != nil {
 				return fmt.Errorf("close tar file %q: %w", cleanTargetPath, err)
 			}
-		case tar.TypeSymlink:
-			if err := os.MkdirAll(filepath.Dir(cleanTargetPath), 0o755); err != nil {
-				return fmt.Errorf("create parent directory for symlink %q: %w", cleanTargetPath, err)
-			}
-			if err := os.RemoveAll(cleanTargetPath); err != nil {
-				return fmt.Errorf("clear tar symlink target %q: %w", cleanTargetPath, err)
-			}
-			if err := os.Symlink(header.Linkname, cleanTargetPath); err != nil {
-				return fmt.Errorf("create tar symlink %q: %w", cleanTargetPath, err)
-			}
-		case tar.TypeLink:
-			linkTargetPath, err := tarEntryTargetPath(destinationDir, header.Linkname)
-			if err != nil {
-				return fmt.Errorf("tar hardlink %q escapes destination root: %w", header.Linkname, err)
-			}
-			if err := os.MkdirAll(filepath.Dir(cleanTargetPath), 0o755); err != nil {
-				return fmt.Errorf("create parent directory for hardlink %q: %w", cleanTargetPath, err)
-			}
-			if err := os.RemoveAll(cleanTargetPath); err != nil {
-				return fmt.Errorf("clear tar hardlink target %q: %w", cleanTargetPath, err)
-			}
-			if err := os.Link(linkTargetPath, cleanTargetPath); err != nil {
-				return fmt.Errorf("create tar hardlink %q: %w", cleanTargetPath, err)
-			}
+		case tar.TypeSymlink, tar.TypeLink:
+			return fmt.Errorf("refuse tar link entry %q", header.Name)
 		case tar.TypeXHeader, tar.TypeXGlobalHeader, tar.TypeGNULongName, tar.TypeGNULongLink:
 			continue
 		default:
@@ -2627,7 +2616,10 @@ func reportServiceImageUpdateChecks(ctx context.Context, client agentv1connect.A
 	if serviceMeta.Update == nil || len(serviceMeta.Update.Images) == 0 {
 		return uploadTaskLog(ctx, logUploader, "no configured image update checks found\n")
 	}
-	params := decodeTaskParams(pulledTask.GetParamsJson())
+	params, err := decodeTaskParams(pulledTask.GetParamsJson())
+	if err != nil {
+		return err
+	}
 	selected := make(map[string]struct{}, len(params.ImageNames))
 	for _, imageName := range params.ImageNames {
 		imageName = strings.TrimSpace(imageName)
@@ -2656,7 +2648,7 @@ func reportServiceImageUpdateChecks(ctx context.Context, client agentv1connect.A
 	if len(checks) == 0 {
 		return uploadTaskLog(ctx, logUploader, "no selected image update checks found\n")
 	}
-	_, err := client.ReportServiceImageUpdateChecks(ctx, connect.NewRequest(&agentv1.ReportServiceImageUpdateChecksRequest{
+	_, err = client.ReportServiceImageUpdateChecks(ctx, connect.NewRequest(&agentv1.ReportServiceImageUpdateChecksRequest{
 		ServiceName: pulledTask.GetServiceName(),
 		NodeId:      pulledTask.GetNodeId(),
 		Checks:      checks,
@@ -3315,7 +3307,7 @@ type containerStats struct {
 func dockerContainerStats(ctx context.Context) (containerStats, error) {
 	output, err := exec.CommandContext(ctx, "docker", "ps", "-a", "--format", "{{.State}}").Output()
 	if err != nil {
-		return containerStats{}, nil
+		return containerStats{}, fmt.Errorf("docker ps failed: %w", err)
 	}
 
 	var stats containerStats
@@ -3337,7 +3329,7 @@ func dockerContainerStats(ctx context.Context) (containerStats, error) {
 func dockerImageCount(ctx context.Context) (uint32, error) {
 	output, err := exec.CommandContext(ctx, "docker", "images", "-q").Output()
 	if err != nil {
-		return 0, nil
+		return 0, fmt.Errorf("docker images failed: %w", err)
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
@@ -3353,7 +3345,7 @@ func dockerImageCount(ctx context.Context) (uint32, error) {
 func dockerNetworkCount(ctx context.Context) (uint32, error) {
 	output, err := exec.CommandContext(ctx, "docker", "network", "ls", "-q").Output()
 	if err != nil {
-		return 0, nil
+		return 0, fmt.Errorf("docker network ls failed: %w", err)
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
@@ -3369,7 +3361,7 @@ func dockerNetworkCount(ctx context.Context) (uint32, error) {
 func dockerVolumeStats(ctx context.Context) (uint32, uint64, error) {
 	output, err := exec.CommandContext(ctx, "docker", "volume", "ls", "-q").Output()
 	if err != nil {
-		return 0, 0, nil
+		return 0, 0, fmt.Errorf("docker volume ls failed: %w", err)
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
@@ -3382,7 +3374,7 @@ func dockerVolumeStats(ctx context.Context) (uint32, uint64, error) {
 
 	sizeOutput, err := exec.CommandContext(ctx, "docker", "system", "df", "-v", "--format", "{{.RealSize}}").Output()
 	if err != nil {
-		return count, 0, nil
+		return count, 0, fmt.Errorf("docker system df -v failed: %w", err)
 	}
 
 	var totalSize uint64

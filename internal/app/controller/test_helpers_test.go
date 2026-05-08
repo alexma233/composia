@@ -29,3 +29,12 @@ func openControllerTestDB(t *testing.T) *store.DB {
 	}
 	return db
 }
+
+func mustTaskParams(t *testing.T, paramsJSON string) serviceTaskParams {
+	t.Helper()
+	params, err := taskParams(paramsJSON)
+	if err != nil {
+		t.Fatalf("decode task params: %v", err)
+	}
+	return params
+}

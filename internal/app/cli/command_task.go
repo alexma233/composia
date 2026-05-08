@@ -53,7 +53,10 @@ func (application *app) runTaskList(args []string) error {
 	if err := requireArgs(fs.Args(), 0, "composia task list [filters]"); err != nil {
 		return err
 	}
-	pageSize, page := pageValues()
+	pageSize, page, err := pageValues()
+	if err != nil {
+		return err
+	}
 	response, err := application.client.tasks.ListTasks(application.ctx, newRequest(&controllerv1.ListTasksRequest{
 		Status:             []string(statuses),
 		ServiceName:        []string(services),

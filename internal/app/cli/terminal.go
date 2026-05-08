@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"math"
 	"os"
 	"os/signal"
 
@@ -28,7 +29,7 @@ func restoreTerminal(fd uintptr, state *terminalState) {
 
 func terminalSize(fd uintptr) (uint32, uint32, bool) {
 	cols, rows, err := term.GetSize(int(fd))
-	if err != nil || rows <= 0 || cols <= 0 {
+	if err != nil || rows <= 0 || cols <= 0 || rows > math.MaxUint32 || cols > math.MaxUint32 {
 		return 0, 0, false
 	}
 	return uint32(rows), uint32(cols), true

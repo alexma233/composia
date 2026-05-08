@@ -176,6 +176,29 @@ func TestDownloadServiceBundleIgnoresPAXHeaders(t *testing.T) {
 	}
 }
 
+func TestExtractTarStreamRejectsSymlink(t *testing.T) {
+	t.Parallel()
+
+	archive := buildTarArchiveWithHeaders(t, []*tar.Header{
+		{Name: "demo/link", Typeflag: tar.TypeSymlink, Linkname: "../outside", Mode: 0o777},
+	})
+	if err := extractTarStream(bytes.NewReader(archive), t.TempDir()); err == nil {
+		t.Fatalf("expected symlink tar entry to fail")
+	}
+}
+
+func TestExtractTarStreamRejectsHardlink(t *testing.T) {
+	t.Parallel()
+
+	archive := buildTarArchiveWithHeaders(t, []*tar.Header{
+		{Name: "demo/file", Typeflag: tar.TypeReg, Mode: 0o644, Size: int64(len("content"))},
+		{Name: "demo/hardlink", Typeflag: tar.TypeLink, Linkname: "demo/file", Mode: 0o644},
+	})
+	if err := extractTarStream(bytes.NewReader(archive), t.TempDir()); err == nil {
+		t.Fatalf("expected hardlink tar entry to fail")
+	}
+}
+
 func TestDownloadServiceBundleSendsServiceDirOverride(t *testing.T) {
 	t.Parallel()
 
@@ -208,6 +231,26 @@ func TestDownloadServiceBundleSendsServiceDirOverride(t *testing.T) {
 	if result.RelativeRoot != "bravo" || result.RootPath != filepath.Join(cfg.RepoDir, "bravo") {
 		t.Fatalf("unexpected overridden bundle result: %+v", result)
 	}
+}
+
+func buildTarArchiveWithHeaders(t *testing.T, headers []*tar.Header) []byte {
+	t.Helper()
+	buffer := bytes.Buffer{}
+	tarWriter := tar.NewWriter(&buffer)
+	for _, header := range headers {
+		if err := tarWriter.WriteHeader(header); err != nil {
+			t.Fatalf("write tar header: %v", err)
+		}
+		if header.Typeflag == tar.TypeReg && header.Size > 0 {
+			if _, err := tarWriter.Write(bytes.Repeat([]byte("x"), int(header.Size))); err != nil {
+				t.Fatalf("write tar content: %v", err)
+			}
+		}
+	}
+	if err := tarWriter.Close(); err != nil {
+		t.Fatalf("close tar writer: %v", err)
+	}
+	return buffer.Bytes()
 }
 
 type bundleTestServer struct {

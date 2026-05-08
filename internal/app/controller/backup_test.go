@@ -155,7 +155,7 @@ func TestBackupRecordServiceRestoreBackupCreatesPendingRestoreTask(t *testing.T)
 	if detail.Record.Source != task.SourceWeb {
 		t.Fatalf("expected restore task source web, got %q", detail.Record.Source)
 	}
-	params := taskParams(detail.Record.ParamsJSON)
+	params := mustTaskParams(t, detail.Record.ParamsJSON)
 	if params.ServiceDir != "alpha" {
 		t.Fatalf("unexpected restore service_dir: %+v", params)
 	}

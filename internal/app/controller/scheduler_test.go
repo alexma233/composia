@@ -65,7 +65,7 @@ func TestRunScheduledTasksPassCreatesBackupTasksFromDefaultOverrideAndNone(t *te
 	if detail.Record.Source != task.SourceSchedule {
 		t.Fatalf("expected schedule source, got %+v", detail.Record)
 	}
-	params := taskParams(detail.Record.ParamsJSON)
+	params := mustTaskParams(t, detail.Record.ParamsJSON)
 	if len(params.DataNames) != 2 {
 		t.Fatalf("expected two scheduled data names, got %+v", params)
 	}
@@ -195,7 +195,7 @@ func TestRunScheduledTasksPassCreatesImageCheckForDueImages(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get image check task: %v", err)
 	}
-	params := taskParams(detail.Record.ParamsJSON)
+	params := mustTaskParams(t, detail.Record.ParamsJSON)
 	if len(params.ImageNames) != 1 || params.ImageNames[0] != "api" {
 		t.Fatalf("expected due image api, got %+v", params.ImageNames)
 	}

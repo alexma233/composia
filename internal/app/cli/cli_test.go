@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"math"
 	"strings"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
@@ -259,11 +261,19 @@ func TestUsageIncludesWaitAndNewCommands(t *testing.T) {
 }
 
 func TestExecCLIHelpers(t *testing.T) {
-	if got := durationSeconds(1500); got != 1 {
+	got, err := durationSeconds(1500)
+	if err != nil || got != 1 {
 		t.Fatalf("durationSeconds short duration = %d", got)
 	}
-	if got := durationSeconds(1500_000_000); got != 2 {
+	got, err = durationSeconds(1500_000_000)
+	if err != nil || got != 2 {
 		t.Fatalf("durationSeconds rounded duration = %d", got)
+	}
+	if _, err := durationSeconds((time.Duration(math.MaxUint32) + 1) * time.Second); err == nil {
+		t.Fatalf("expected duration overflow error")
+	}
+	if _, err := uint32FlagValue("page-size", uint(math.MaxUint32)+1); err == nil {
+		t.Fatalf("expected uint32 flag overflow error")
 	}
 	origin, err := controllerOrigin("https://Controller.Example:8443/base")
 	if err != nil {
@@ -282,6 +292,49 @@ func TestExecCLIHelpers(t *testing.T) {
 	done, err := handleExecWebsocketEvent([]byte(`{"type":"closed"}`))
 	if err != nil || !done {
 		t.Fatalf("closed event done=%v err=%v", done, err)
+	}
+	if _, err := handleExecWebsocketEvent([]byte(`{`)); err == nil || !strings.Contains(err.Error(), "invalid container exec websocket event JSON") {
+		t.Fatalf("expected invalid JSON error, got %v", err)
+	}
+	if _, err := handleExecWebsocketEvent([]byte(`{"type":"mystery"}`)); err == nil || !strings.Contains(err.Error(), `unknown container exec websocket event type "mystery"`) {
+		t.Fatalf("expected unknown event type error, got %v", err)
+	}
+}
+
+func TestHelpUnknownTopicReturnsError(t *testing.T) {
+	var out bytes.Buffer
+	err := Run(context.Background(), []string{"help", "missing"}, &out, &bytes.Buffer{})
+	if err == nil || !strings.Contains(err.Error(), `unknown help topic "missing"`) {
+		t.Fatalf("expected unknown help topic error, got %v", err)
+	}
+	if out.Len() != 0 {
+		t.Fatalf("stdout = %q", out.String())
+	}
+}
+
+func TestConfigSetRejectsMultilineValue(t *testing.T) {
+	var out bytes.Buffer
+	application := &app{out: &out}
+	err := application.runConfigSet([]string{"addr", "https://controller.example\nnext"})
+	if err == nil || !strings.Contains(err.Error(), "must not contain newline") {
+		t.Fatalf("expected config value validation error, got %v", err)
+	}
+	if out.Len() != 0 {
+		t.Fatalf("stdout = %q", out.String())
+	}
+}
+
+func TestServiceActionUsageMatchesAction(t *testing.T) {
+	err := (&app{}).runServiceAction("backup", nil)
+	if err == nil {
+		t.Fatalf("expected usage error")
+	}
+	message := err.Error()
+	if !strings.Contains(message, "usage: composia service backup") {
+		t.Fatalf("usage = %q", message)
+	}
+	if strings.Contains(message, "--recreate") || strings.Contains(message, "--image") {
+		t.Fatalf("backup usage drifted: %q", message)
 	}
 }
 

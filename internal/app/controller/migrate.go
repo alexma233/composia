@@ -105,7 +105,10 @@ func enabledMigrateDataNames(service repo.Service) []string {
 }
 
 func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, record task.Record) error {
-	params := taskParams(record.ParamsJSON)
+	params, err := taskParams(record.ParamsJSON)
+	if err != nil {
+		return executor.failControllerTask(ctx, record, task.StepFinalize, err)
+	}
 	if params.ServiceDir == "" || params.SourceNodeID == "" || params.TargetNodeID == "" {
 		return executor.failControllerTask(ctx, record, task.StepFinalize, errors.New("migrate task is missing service_dir or source/target node ids"))
 	}
@@ -309,34 +312,7 @@ func createRestoreTask(ctx context.Context, db *store.DB, cfg *config.Controller
 }
 
 func (executor *controllerTaskExecutor) waitTask(ctx context.Context, taskID string, timeout time.Duration) error {
-	deadline := time.Now().Add(timeout)
-	waitCh := executor.taskResults.Subscribe(taskID)
-	defer executor.taskResults.Unsubscribe(taskID, waitCh)
-	for {
-		detail, err := executor.db.GetTask(ctx, taskID)
-		if err == nil {
-			switch detail.Record.Status {
-			case task.StatusSucceeded:
-				return nil
-			case task.StatusFailed, task.StatusCancelled:
-				return fmt.Errorf("task %s failed: %s", taskID, detail.Record.ErrorSummary)
-			}
-		}
-		remaining := time.Until(deadline)
-		if remaining <= 0 {
-			return fmt.Errorf("timeout waiting for task %s", taskID)
-		}
-		timer := time.NewTimer(remaining)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return ctx.Err()
-		case <-waitCh:
-			timer.Stop()
-		case <-timer.C:
-			return fmt.Errorf("timeout waiting for task %s", taskID)
-		}
-	}
+	return waitTask(ctx, executor.db, executor.taskResults, taskID, timeout, 0)
 }
 
 func (executor *controllerTaskExecutor) runMigrateStep(ctx context.Context, record task.Record, stepName task.StepName, run func() error) error {

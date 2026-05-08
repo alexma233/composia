@@ -114,7 +114,7 @@ func TestListCommitsSupportsCursorPaging(t *testing.T) {
 		}
 		return revision
 	}
-	_ = writeAndCommit("one.txt", "one\n", "first")
+	firstCommit := writeAndCommit("one.txt", "one\n", "first")
 	secondCommit := writeAndCommit("two.txt", "two\n", "second")
 	_ = writeAndCommit("three.txt", "three\n", "third")
 
@@ -138,6 +138,14 @@ func TestListCommitsSupportsCursorPaging(t *testing.T) {
 	}
 	if nextCursor != "" {
 		t.Fatalf("expected empty next cursor, got %q", nextCursor)
+	}
+
+	commits, nextCursor, err = ListCommits(repoDir, firstCommit, 2)
+	if err != nil {
+		t.Fatalf("list after root cursor: %v", err)
+	}
+	if len(commits) != 0 || nextCursor != "" {
+		t.Fatalf("expected empty page after root cursor, got commits=%+v cursor=%q", commits, nextCursor)
 	}
 }
 

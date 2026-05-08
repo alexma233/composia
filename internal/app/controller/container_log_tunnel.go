@@ -98,12 +98,18 @@ func (manager *containerLogTunnelManager) openSession(nodeID, containerID, tail 
 		created:  time.Now().UTC(),
 	}
 	manager.sessions[session.id] = session
-	tunnel.sendCh <- &agentv1.OpenContainerLogTunnelResponse{
+	select {
+	case tunnel.sendCh <- &agentv1.OpenContainerLogTunnelResponse{
 		SessionId:   session.id,
 		Kind:        containerLogKindStart,
 		ContainerId: containerID,
 		Tail:        tail,
 		Timestamps:  timestamps,
+	}:
+	default:
+		delete(manager.sessions, session.id)
+		session.close()
+		return nil, fmt.Errorf("node %q container log tunnel is not accepting messages", nodeID)
 	}
 	return session, nil
 }
@@ -118,7 +124,10 @@ func (manager *containerLogTunnelManager) closeSession(sessionID string) {
 	delete(manager.sessions, sessionID)
 	session.close()
 	if tunnel := manager.tunnels[session.nodeID]; tunnel != nil {
-		tunnel.sendCh <- &agentv1.OpenContainerLogTunnelResponse{SessionId: sessionID, Kind: containerLogKindClose}
+		select {
+		case tunnel.sendCh <- &agentv1.OpenContainerLogTunnelResponse{SessionId: sessionID, Kind: containerLogKindClose}:
+		default:
+		}
 	}
 }
 

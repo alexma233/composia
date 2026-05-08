@@ -15,7 +15,9 @@ func StreamServiceBundle(ctx context.Context, repoDir, revision, serviceDir stri
 }
 
 func StreamServiceBundleWithExtras(ctx context.Context, repoDir, revision, serviceDir string, extras map[string]string, writer io.Writer) error {
-	command := exec.CommandContext(ctx, "git", "-C", repoDir, "archive", "--format=tar", revision, serviceDir)
+	commandCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	command := exec.CommandContext(commandCtx, "git", "-C", repoDir, "archive", "--format=tar", revision, serviceDir)
 	stdout, err := command.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("create git archive pipe: %w", err)
@@ -25,6 +27,10 @@ func StreamServiceBundleWithExtras(ctx context.Context, repoDir, revision, servi
 	command.Stderr = stderr
 	if err := command.Start(); err != nil {
 		return fmt.Errorf("start git archive: %w", err)
+	}
+	waitAfterError := func() {
+		cancel()
+		_ = command.Wait()
 	}
 
 	gzipWriter := gzip.NewWriter(writer)
@@ -38,21 +44,21 @@ func StreamServiceBundleWithExtras(ctx context.Context, repoDir, revision, servi
 			}
 			_ = tarWriter.Close()
 			_ = gzipWriter.Close()
-			_ = command.Wait()
+			waitAfterError()
 			return fmt.Errorf("stream git archive entry: %w", err)
 		}
 		clonedHeader := *header
 		if err := tarWriter.WriteHeader(&clonedHeader); err != nil {
 			_ = tarWriter.Close()
 			_ = gzipWriter.Close()
-			_ = command.Wait()
+			waitAfterError()
 			return fmt.Errorf("write bundle header %q: %w", header.Name, err)
 		}
 		if header.Typeflag == tar.TypeReg {
 			if _, err := io.Copy(tarWriter, tarReader); err != nil {
 				_ = tarWriter.Close()
 				_ = gzipWriter.Close()
-				_ = command.Wait()
+				waitAfterError()
 				return fmt.Errorf("write bundle file %q: %w", header.Name, err)
 			}
 		}
@@ -63,23 +69,23 @@ func StreamServiceBundleWithExtras(ctx context.Context, repoDir, revision, servi
 		if err := tarWriter.WriteHeader(header); err != nil {
 			_ = tarWriter.Close()
 			_ = gzipWriter.Close()
-			_ = command.Wait()
+			waitAfterError()
 			return fmt.Errorf("write injected bundle header %q: %w", name, err)
 		}
 		if _, err := tarWriter.Write(body); err != nil {
 			_ = tarWriter.Close()
 			_ = gzipWriter.Close()
-			_ = command.Wait()
+			waitAfterError()
 			return fmt.Errorf("write injected bundle file %q: %w", name, err)
 		}
 	}
 	if err := tarWriter.Close(); err != nil {
 		_ = gzipWriter.Close()
-		_ = command.Wait()
+		waitAfterError()
 		return fmt.Errorf("close tar writer: %w", err)
 	}
 	if err := gzipWriter.Close(); err != nil {
-		_ = command.Wait()
+		waitAfterError()
 		return fmt.Errorf("close gzip writer: %w", err)
 	}
 	if err := command.Wait(); err != nil {

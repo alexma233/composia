@@ -2,6 +2,7 @@ package repo
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -9,11 +10,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
+	"time"
 )
 
 var ErrNoGitChanges = errors.New("no git changes")
+
+const gitCommandTimeout = 2 * time.Minute
 
 type CommitSummary struct {
 	CommitID    string
@@ -30,9 +33,14 @@ func ValidateWorkingTree(repoDir string) error {
 		return fmt.Errorf("repo_dir %q must be a directory", repoDir)
 	}
 
-	cmd := exec.Command("git", "-C", repoDir, "rev-parse", "--is-inside-work-tree")
+	ctx, cancel := context.WithTimeout(context.Background(), gitCommandTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "git", "-C", repoDir, "rev-parse", "--is-inside-work-tree")
 	output, err := cmd.Output()
 	if err != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return fmt.Errorf("repo_dir %q git working tree check timed out: %w", repoDir, ctx.Err())
+		}
 		var stderr bytes.Buffer
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			stderr.Write(exitErr.Stderr)
@@ -81,17 +89,25 @@ func ListCommits(repoDir, cursor string, limit uint32) ([]CommitSummary, string,
 	if limit == 0 {
 		limit = 100
 	}
+	pageSize := int(limit) + 1
+	args := []string{"log", "--format=%H%x00%s%x00%cI", "-n", fmt.Sprintf("%d", pageSize)}
+	if cursor != "" {
+		args = append(args, "--skip=1", cursor)
+	}
 
-	output, err := gitOutput(repoDir, "log", "--format=%H%x00%s%x00%cI")
+	output, err := gitOutput(repoDir, args...)
 	if err != nil {
 		return nil, "", fmt.Errorf("list git commits for %q: %w", repoDir, err)
 	}
 
 	lines := strings.Split(strings.TrimSpace(output), "\n")
-	commits := make([]CommitSummary, 0, len(lines))
+	commits := make([]CommitSummary, 0, limit)
 	for _, line := range lines {
 		if strings.TrimSpace(line) == "" {
 			continue
+		}
+		if len(commits) == pageSize {
+			break
 		}
 		parts := strings.Split(line, "\x00")
 		if len(parts) != 3 {
@@ -104,34 +120,12 @@ func ListCommits(repoDir, cursor string, limit uint32) ([]CommitSummary, string,
 		})
 	}
 
-	start := 0
-	if cursor != "" {
-		found := false
-		for index, commit := range commits {
-			if commit.CommitID == cursor {
-				start = index + 1
-				found = true
-				break
-			}
-		}
-		if !found {
-			return nil, "", fmt.Errorf("repo commit cursor %q not found", cursor)
-		}
-	}
-
-	end := start + int(limit)
-	if end > len(commits) {
-		end = len(commits)
-	}
 	nextCursor := ""
-	if end < len(commits) {
-		nextCursor = commits[end-1].CommitID
+	if len(commits) > int(limit) {
+		commits = commits[:limit]
+		nextCursor = commits[len(commits)-1].CommitID
 	}
-	result := append([]CommitSummary(nil), commits[start:end]...)
-	sort.SliceStable(result, func(left, right int) bool {
-		return left < right
-	})
-	return result, nextCursor, nil
+	return commits, nextCursor, nil
 }
 
 func HasPathChanges(repoDir, relativePath string) (bool, error) {
@@ -260,13 +254,18 @@ func gitCommandWithOptions(repoDir string, extraEnv, gitConfig []string, args ..
 	}
 	commandArgs = append(commandArgs, args...)
 
-	cmd := exec.Command("git", commandArgs...)
+	ctx, cancel := context.WithTimeout(context.Background(), gitCommandTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "git", commandArgs...)
 	if len(extraEnv) > 0 {
 		cmd.Env = append(os.Environ(), extraEnv...)
 	}
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return fmt.Errorf("git %s timed out: %w", strings.Join(args, " "), ctx.Err())
+		}
 		return fmt.Errorf("git %s: %w %s", strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
 	}
 	return nil
@@ -284,12 +283,17 @@ func gitOutputWithOptions(repoDir string, extraEnv, gitConfig []string, args ...
 	}
 	commandArgs = append(commandArgs, args...)
 
-	cmd := exec.Command("git", commandArgs...)
+	ctx, cancel := context.WithTimeout(context.Background(), gitCommandTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "git", commandArgs...)
 	if len(extraEnv) > 0 {
 		cmd.Env = append(os.Environ(), extraEnv...)
 	}
 	output, err := cmd.Output()
 	if err != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return "", fmt.Errorf("git %s timed out: %w", strings.Join(args, " "), ctx.Err())
+		}
 		var stderr bytes.Buffer
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			stderr.Write(exitErr.Stderr)

@@ -938,7 +938,7 @@ func TestServiceCommandServiceCaddySyncCreatesPendingTask(t *testing.T) {
 	if detail.Record.Type != task.TypeCaddySync {
 		t.Fatalf("expected caddy_sync task type, got %q", detail.Record.Type)
 	}
-	params := taskParams(detail.Record.ParamsJSON)
+	params := mustTaskParams(t, detail.Record.ParamsJSON)
 	if params.ServiceDir != "demo" || len(params.ServiceDirs) != 0 || params.FullRebuild {
 		t.Fatalf("unexpected caddy sync params: %+v", params)
 	}
@@ -1483,7 +1483,7 @@ func TestServiceCommandServiceBackupCreatesPendingTaskWithDefaultDataNames(t *te
 	if err != nil {
 		t.Fatalf("get backup task: %v", err)
 	}
-	params := taskParams(detail.Record.ParamsJSON)
+	params := mustTaskParams(t, detail.Record.ParamsJSON)
 	if len(params.DataNames) != 1 || params.DataNames[0] != "config" {
 		t.Fatalf("unexpected backup task params: %+v", params)
 	}
@@ -1564,7 +1564,7 @@ func TestServiceCommandServiceMigrateCreatesPendingControllerTask(t *testing.T) 
 	if detail.Record.Source != task.SourceWeb {
 		t.Fatalf("expected migrate task source web, got %q", detail.Record.Source)
 	}
-	params := taskParams(detail.Record.ParamsJSON)
+	params := mustTaskParams(t, detail.Record.ParamsJSON)
 	if params.SourceNodeID != "main" || params.TargetNodeID != "edge" {
 		t.Fatalf("unexpected migrate params: %+v", params)
 	}
