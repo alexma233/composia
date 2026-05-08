@@ -3,7 +3,6 @@
   import { onMount } from "svelte";
   import {
     Check,
-    ChevronDown,
     ChevronsUpDown,
     Columns2,
     Copy,
@@ -59,12 +58,6 @@
     DialogOverlay,
     DialogTitle,
   } from "$lib/components/ui/dialog";
-  import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-  } from "$lib/components/ui/dropdown-menu";
   import * as Command from "$lib/components/ui/command";
   import { Input } from "$lib/components/ui/input";
   import * as Popover from "$lib/components/ui/popover";
@@ -152,7 +145,6 @@
   let migrateTargetNode = $state("");
   let selectedInstanceNode = $state("__all__");
   let composeRecreateMode = $state<ComposeRecreateMode>("auto");
-  let deployAction = $state<"deploy" | "update" | "restart">("deploy");
   let serviceSwitchOpen = $state(false);
   let fileTreeIconTheme = $state<"light" | "dark">("dark");
 
@@ -1828,111 +1820,97 @@
                   </SelectContent>
                 </Select>
               </div>
-              {#if deployAction === "update"}
-                <div class="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-3">
-                  <div class="text-xs font-medium">
-                    {$messages.services.imageUpdates.title}
+              <Button
+                type="button"
+                onclick={() => triggerAction("deploy")}
+                disabled={!!actionBusy || !workspace?.isDeclared}
+              >
+                <Play class="mr-2 size-4" />{$messages.services.operations
+                  .deploy}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onclick={() => triggerAction("update")}
+                disabled={!!actionBusy || !workspace?.isDeclared}
+              >
+                <Upload class="mr-2 size-4" />{$messages.services.operations
+                  .update}
+              </Button>
+              <div class="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-3">
+                <div class="text-xs font-medium">
+                  {$messages.services.imageUpdates.title}
+                </div>
+                {#if imageUpdateChecks.length === 0}
+                  <div class="text-xs text-muted-foreground">
+                    {$messages.services.imageUpdates.noChecks}
                   </div>
-                  {#if imageUpdateChecks.length === 0}
-                    <div class="text-xs text-muted-foreground">
-                      {$messages.services.imageUpdates.noChecks}
-                    </div>
-                  {:else}
-                    <label class="flex items-center gap-2 text-xs cursor-pointer">
-                      <input
-                        type="checkbox"
-                        bind:checked={applyAllDetectedImages}
-                        class="size-3.5 accent-foreground"
-                      />
-                      {$messages.services.imageUpdates.applyAllDetected}
-                    </label>
-                    {#if !applyAllDetectedImages}
-                      <div class="space-y-1.5 max-h-48 overflow-y-auto">
-                        {#each imageUpdateChecks as check (check.imageName)}
-                          {#if check.updateAvailable && check.policyType !== "mutable_digest"}
-                            <label class="flex items-center gap-2 text-xs cursor-pointer py-0.5">
-                              <input
-                                type="checkbox"
-                                bind:checked={imageUpdateSelections[check.imageName]}
-                                class="size-3.5 accent-foreground"
-                              />
-                              <span class="text-muted-foreground">
-                                <span class="font-medium text-foreground">{check.imageName}</span>
-                                &#8239;{check.policyType}&#8239;
-                                {check.currentTag} &#8594; {check.candidateTag}
-                              </span>
-                            </label>
-                          {:else if check.policyType === "mutable_digest" && check.updateAvailable}
-                            <div class="text-xs text-muted-foreground py-0.5">
-                              <span class="font-medium text-foreground">{check.imageName}</span>
-                              &#8239;mutable&#8239;
-                              {check.currentTag}
-                              {#if check.currentDigest !== check.candidateDigest}
-                                &#8594; new digest
-                              {/if}
-                              <span class="text-green-600 dark:text-green-400 ml-1">
-                                ({$messages.services.imageUpdates.updateAvailable})
-                              </span>
-                            </div>
-                          {:else}
-                            <div class="text-xs text-muted-foreground py-0.5">
+                {:else}
+                  <label class="flex items-center gap-2 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      bind:checked={applyAllDetectedImages}
+                      class="size-3.5 accent-foreground"
+                    />
+                    {$messages.services.imageUpdates.applyAllDetected}
+                  </label>
+                  {#if !applyAllDetectedImages}
+                    <div class="space-y-1.5 max-h-48 overflow-y-auto">
+                      {#each imageUpdateChecks as check (check.imageName)}
+                        {#if check.updateAvailable && check.policyType !== "mutable_digest"}
+                          <label class="flex items-center gap-2 text-xs cursor-pointer py-0.5">
+                            <input
+                              type="checkbox"
+                              bind:checked={imageUpdateSelections[check.imageName]}
+                              class="size-3.5 accent-foreground"
+                            />
+                            <span class="text-muted-foreground">
                               <span class="font-medium text-foreground">{check.imageName}</span>
                               &#8239;{check.policyType}&#8239;
-                              {check.currentTag}
-                            </div>
-                          {/if}
-                        {/each}
-                      </div>
-                    {/if}
-                    <div class="grid gap-1.5">
-                      <input
-                        type="text"
-                        bind:value={setImageInput}
-                        placeholder={$messages.services.imageUpdates.imageTagPlaceholder}
-                        class="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm placeholder:text-muted-foreground"
-                      />
+                              {check.currentTag} &#8594; {check.candidateTag}
+                            </span>
+                          </label>
+                        {:else if check.policyType === "mutable_digest" && check.updateAvailable}
+                          <div class="text-xs text-muted-foreground py-0.5">
+                            <span class="font-medium text-foreground">{check.imageName}</span>
+                            &#8239;mutable&#8239;
+                            {check.currentTag}
+                            {#if check.currentDigest !== check.candidateDigest}
+                              &#8594; new digest
+                            {/if}
+                            <span class="text-green-600 dark:text-green-400 ml-1">
+                              ({$messages.services.imageUpdates.updateAvailable})
+                            </span>
+                          </div>
+                        {:else}
+                          <div class="text-xs text-muted-foreground py-0.5">
+                            <span class="font-medium text-foreground">{check.imageName}</span>
+                            &#8239;{check.policyType}&#8239;
+                            {check.currentTag}
+                          </div>
+                        {/if}
+                      {/each}
                     </div>
                   {/if}
-                </div>
-              {/if}
-              <div class="flex items-center">
-                <Button
-                  type="button"
-                  class="rounded-r-none border-r-0"
-                  onclick={() => triggerAction(deployAction)}
-                  disabled={!!actionBusy || !workspace?.isDeclared}
-                >
-                  {#if deployAction === "deploy"}
-                    <Play class="mr-2 size-4" />{$messages.services.operations.deploy}
-                  {:else if deployAction === "update"}
-                    <Upload class="mr-2 size-4" />{$messages.services.operations.update}
-                  {:else}
-                    <RefreshCcw class="mr-2 size-4" />{$messages.services.operations.restart}
-                  {/if}
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger>
-                    <Button
-                      type="button"
-                      class="rounded-l-none px-2"
-                      disabled={!!actionBusy || !workspace?.isDeclared}
-                    >
-                      <ChevronDown class="size-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onclick={() => (deployAction = "deploy")}>
-                      <Play class="mr-2 size-4" />{$messages.services.operations.deploy}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onclick={() => (deployAction = "update")}>
-                      <Upload class="mr-2 size-4" />{$messages.services.operations.update}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onclick={() => (deployAction = "restart")}>
-                      <RefreshCcw class="mr-2 size-4" />{$messages.services.operations.restart}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  <div class="grid gap-1.5">
+                    <input
+                      type="text"
+                      bind:value={setImageInput}
+                      placeholder={$messages.services.imageUpdates.imageTagPlaceholder}
+                      class="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm placeholder:text-muted-foreground"
+                    />
+                  </div>
+                {/if}
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                onclick={() => triggerAction("restart")}
+                disabled={!!actionBusy || !workspace?.isDeclared}
+              >
+                <RefreshCcw class="mr-2 size-4" />{$messages.services.operations
+                  .restart}
+              </Button>
               <Button
                 type="button"
                 variant="outline"
