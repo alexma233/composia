@@ -57,20 +57,21 @@ export async function loadServiceWorkspaceSummary(
   folder: string,
 ): Promise<ServiceWorkspaceSummaryData> {
   const { workspace, fileTree } = await loadServiceWorkspaceFiles(folder);
-  const [tasksResult, backupsResult, serviceInstances, imageUpdateChecks] = await Promise.all([
-    workspace.isDeclared && workspace.serviceName
-      ? loadTasks(1, 20, { serviceName: [workspace.serviceName] })
-      : Promise.resolve({ items: [], totalCount: 0 }),
-    workspace.isDeclared && workspace.serviceName
-      ? loadBackups(1, 20, { serviceName: [workspace.serviceName] })
-      : Promise.resolve({ items: [], totalCount: 0 }),
-    workspace.isDeclared && workspace.serviceName
-      ? loadServiceInstances(workspace.serviceName)
-      : Promise.resolve([]),
-    workspace.isDeclared && workspace.serviceName
-      ? loadServiceImageUpdateChecks(workspace.serviceName)
-      : Promise.resolve([]),
-  ]);
+  const [tasksResult, backupsResult, serviceInstances, imageUpdateChecks] =
+    await Promise.all([
+      workspace.isDeclared && workspace.serviceName
+        ? loadTasks(1, 20, { serviceName: [workspace.serviceName] })
+        : Promise.resolve({ items: [], totalCount: 0 }),
+      workspace.isDeclared && workspace.serviceName
+        ? loadBackups(1, 20, { serviceName: [workspace.serviceName] })
+        : Promise.resolve({ items: [], totalCount: 0 }),
+      workspace.isDeclared && workspace.serviceName
+        ? loadServiceInstances(workspace.serviceName)
+        : Promise.resolve([]),
+      workspace.isDeclared && workspace.serviceName
+        ? loadServiceImageUpdateChecks(workspace.serviceName)
+        : Promise.resolve([]),
+    ]);
   const serviceDetail =
     workspace.isDeclared && workspace.serviceName
       ? buildServiceDetail(workspace, serviceInstances)
@@ -83,7 +84,8 @@ export async function loadServiceWorkspaceSummary(
     serviceDetail,
     imageUpdateChecks,
     fileTree,
-  };}
+  };
+}
 
 export async function loadServiceWorkspaceFiles(
   folder: string,

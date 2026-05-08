@@ -34,7 +34,14 @@ export const load: PageServerLoad = async ({ params, url }) => {
       loadRepoHead(),
       loadServiceWorkspaces(),
     ]);
-    const { workspace, tasks, backups, serviceDetail, imageUpdateChecks, fileTree } = summary;
+    const {
+      workspace,
+      tasks,
+      backups,
+      serviceDetail,
+      imageUpdateChecks,
+      fileTree,
+    } = summary;
     const nodeContainers = serviceDetail?.instances ?? [];
     const requestedFile = url.searchParams.get("file") ?? "";
     const activeFilePath = requestedFile

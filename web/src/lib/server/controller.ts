@@ -1419,8 +1419,7 @@ export async function loadServiceImageUpdateChecks(
     { serviceName, nodeId: nodeId ?? "" },
   );
   return (response.checks ?? []).map((check) => ({
-    serviceName:
-      check.serviceName ?? check.service_name ?? serviceName,
+    serviceName: check.serviceName ?? check.service_name ?? serviceName,
     nodeId: check.nodeId ?? check.node_id ?? "",
     imageName: check.imageName ?? check.image_name ?? "",
     imageRef: check.imageRef ?? check.image_ref ?? "",
@@ -1431,8 +1430,7 @@ export async function loadServiceImageUpdateChecks(
     candidateTag: check.candidateTag ?? check.candidate_tag ?? "",
     candidateDigest: check.candidateDigest ?? check.candidate_digest ?? "",
     candidateTags: check.candidateTags ?? check.candidate_tags ?? [],
-    updateAvailable:
-      check.updateAvailable ?? check.update_available ?? false,
+    updateAvailable: check.updateAvailable ?? check.update_available ?? false,
     checkStatus: check.checkStatus ?? check.check_status ?? "unknown",
     errorSummary: check.errorSummary ?? check.error_summary ?? "",
     checkedAt: check.checkedAt ?? check.checked_at ?? "",

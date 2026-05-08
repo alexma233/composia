@@ -2997,23 +2997,24 @@ func listRegistryTags(ctx context.Context, imageRef string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list registry tags for %q: %w", imageRef, err)
 	}
-	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode == http.StatusUnauthorized {
 		authRequest, err := registryAuthRequest(ctx, client, response.Header.Get("WWW-Authenticate"))
 		if err != nil {
 			return nil, err
 		}
 		if authRequest != nil {
-			response.Body.Close()
+			if err := response.Body.Close(); err != nil {
+				return nil, fmt.Errorf("close registry tags response for %q: %w", imageRef, err)
+			}
 			request, _ = http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 			request.Header.Set("Authorization", "Bearer "+authRequest.Token)
 			response, err = client.Do(request)
 			if err != nil {
 				return nil, fmt.Errorf("list registry tags for %q: %w", imageRef, err)
 			}
-			defer func() { _ = response.Body.Close() }()
 		}
 	}
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return nil, fmt.Errorf("list registry tags for %q returned %s", imageRef, response.Status)
 	}
