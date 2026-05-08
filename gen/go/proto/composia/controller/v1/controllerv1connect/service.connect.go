@@ -55,6 +55,9 @@ const (
 	// ServiceQueryServiceGetServiceBackupsProcedure is the fully-qualified name of the
 	// ServiceQueryService's GetServiceBackups RPC.
 	ServiceQueryServiceGetServiceBackupsProcedure = "/composia.controller.v1.ServiceQueryService/GetServiceBackups"
+	// ServiceQueryServiceGetServiceImageUpdateChecksProcedure is the fully-qualified name of the
+	// ServiceQueryService's GetServiceImageUpdateChecks RPC.
+	ServiceQueryServiceGetServiceImageUpdateChecksProcedure = "/composia.controller.v1.ServiceQueryService/GetServiceImageUpdateChecks"
 	// ServiceCommandServiceUpdateServiceTargetNodesProcedure is the fully-qualified name of the
 	// ServiceCommandService's UpdateServiceTargetNodes RPC.
 	ServiceCommandServiceUpdateServiceTargetNodesProcedure = "/composia.controller.v1.ServiceCommandService/UpdateServiceTargetNodes"
@@ -89,6 +92,8 @@ type ServiceQueryServiceClient interface {
 	GetServiceTasks(context.Context, *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error)
 	// GetServiceBackups returns backups related to one service.
 	GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error)
+	// GetServiceImageUpdateChecks returns latest configured image update checks for one service.
+	GetServiceImageUpdateChecks(context.Context, *connect.Request[v1.GetServiceImageUpdateChecksRequest]) (*connect.Response[v1.GetServiceImageUpdateChecksResponse], error)
 }
 
 // NewServiceQueryServiceClient constructs a client for the
@@ -138,17 +143,24 @@ func NewServiceQueryServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(serviceQueryServiceMethods.ByName("GetServiceBackups")),
 			connect.WithClientOptions(opts...),
 		),
+		getServiceImageUpdateChecks: connect.NewClient[v1.GetServiceImageUpdateChecksRequest, v1.GetServiceImageUpdateChecksResponse](
+			httpClient,
+			baseURL+ServiceQueryServiceGetServiceImageUpdateChecksProcedure,
+			connect.WithSchema(serviceQueryServiceMethods.ByName("GetServiceImageUpdateChecks")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // serviceQueryServiceClient implements ServiceQueryServiceClient.
 type serviceQueryServiceClient struct {
-	listServices          *connect.Client[v1.ListServicesRequest, v1.ListServicesResponse]
-	listServiceWorkspaces *connect.Client[v1.ListServiceWorkspacesRequest, v1.ListServiceWorkspacesResponse]
-	getService            *connect.Client[v1.GetServiceRequest, v1.GetServiceResponse]
-	getServiceWorkspace   *connect.Client[v1.GetServiceWorkspaceRequest, v1.GetServiceWorkspaceResponse]
-	getServiceTasks       *connect.Client[v1.GetServiceTasksRequest, v1.GetServiceTasksResponse]
-	getServiceBackups     *connect.Client[v1.GetServiceBackupsRequest, v1.GetServiceBackupsResponse]
+	listServices                *connect.Client[v1.ListServicesRequest, v1.ListServicesResponse]
+	listServiceWorkspaces       *connect.Client[v1.ListServiceWorkspacesRequest, v1.ListServiceWorkspacesResponse]
+	getService                  *connect.Client[v1.GetServiceRequest, v1.GetServiceResponse]
+	getServiceWorkspace         *connect.Client[v1.GetServiceWorkspaceRequest, v1.GetServiceWorkspaceResponse]
+	getServiceTasks             *connect.Client[v1.GetServiceTasksRequest, v1.GetServiceTasksResponse]
+	getServiceBackups           *connect.Client[v1.GetServiceBackupsRequest, v1.GetServiceBackupsResponse]
+	getServiceImageUpdateChecks *connect.Client[v1.GetServiceImageUpdateChecksRequest, v1.GetServiceImageUpdateChecksResponse]
 }
 
 // ListServices calls composia.controller.v1.ServiceQueryService.ListServices.
@@ -181,6 +193,12 @@ func (c *serviceQueryServiceClient) GetServiceBackups(ctx context.Context, req *
 	return c.getServiceBackups.CallUnary(ctx, req)
 }
 
+// GetServiceImageUpdateChecks calls
+// composia.controller.v1.ServiceQueryService.GetServiceImageUpdateChecks.
+func (c *serviceQueryServiceClient) GetServiceImageUpdateChecks(ctx context.Context, req *connect.Request[v1.GetServiceImageUpdateChecksRequest]) (*connect.Response[v1.GetServiceImageUpdateChecksResponse], error) {
+	return c.getServiceImageUpdateChecks.CallUnary(ctx, req)
+}
+
 // ServiceQueryServiceHandler is an implementation of the composia.controller.v1.ServiceQueryService
 // service.
 type ServiceQueryServiceHandler interface {
@@ -196,6 +214,8 @@ type ServiceQueryServiceHandler interface {
 	GetServiceTasks(context.Context, *connect.Request[v1.GetServiceTasksRequest]) (*connect.Response[v1.GetServiceTasksResponse], error)
 	// GetServiceBackups returns backups related to one service.
 	GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error)
+	// GetServiceImageUpdateChecks returns latest configured image update checks for one service.
+	GetServiceImageUpdateChecks(context.Context, *connect.Request[v1.GetServiceImageUpdateChecksRequest]) (*connect.Response[v1.GetServiceImageUpdateChecksResponse], error)
 }
 
 // NewServiceQueryServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -241,6 +261,12 @@ func NewServiceQueryServiceHandler(svc ServiceQueryServiceHandler, opts ...conne
 		connect.WithSchema(serviceQueryServiceMethods.ByName("GetServiceBackups")),
 		connect.WithHandlerOptions(opts...),
 	)
+	serviceQueryServiceGetServiceImageUpdateChecksHandler := connect.NewUnaryHandler(
+		ServiceQueryServiceGetServiceImageUpdateChecksProcedure,
+		svc.GetServiceImageUpdateChecks,
+		connect.WithSchema(serviceQueryServiceMethods.ByName("GetServiceImageUpdateChecks")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.controller.v1.ServiceQueryService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ServiceQueryServiceListServicesProcedure:
@@ -255,6 +281,8 @@ func NewServiceQueryServiceHandler(svc ServiceQueryServiceHandler, opts ...conne
 			serviceQueryServiceGetServiceTasksHandler.ServeHTTP(w, r)
 		case ServiceQueryServiceGetServiceBackupsProcedure:
 			serviceQueryServiceGetServiceBackupsHandler.ServeHTTP(w, r)
+		case ServiceQueryServiceGetServiceImageUpdateChecksProcedure:
+			serviceQueryServiceGetServiceImageUpdateChecksHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -286,6 +314,10 @@ func (UnimplementedServiceQueryServiceHandler) GetServiceTasks(context.Context, 
 
 func (UnimplementedServiceQueryServiceHandler) GetServiceBackups(context.Context, *connect.Request[v1.GetServiceBackupsRequest]) (*connect.Response[v1.GetServiceBackupsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceQueryService.GetServiceBackups is not implemented"))
+}
+
+func (UnimplementedServiceQueryServiceHandler) GetServiceImageUpdateChecks(context.Context, *connect.Request[v1.GetServiceImageUpdateChecksRequest]) (*connect.Response[v1.GetServiceImageUpdateChecksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceQueryService.GetServiceImageUpdateChecks is not implemented"))
 }
 
 // ServiceCommandServiceClient is a client for the composia.controller.v1.ServiceCommandService

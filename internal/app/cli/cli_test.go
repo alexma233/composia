@@ -113,6 +113,28 @@ func TestServiceActionFromName(t *testing.T) {
 	}
 }
 
+func TestImageUpdateSelectionsParsesDetectedAndManualUpdates(t *testing.T) {
+	selections, err := imageUpdateSelections([]string{"api"}, []string{"web=2026.05.08"}, true)
+	if err != nil {
+		t.Fatalf("imageUpdateSelections returned error: %v", err)
+	}
+	if len(selections) != 2 {
+		t.Fatalf("expected 2 selections, got %+v", selections)
+	}
+	if selections[0].GetImageName() != "api" || !selections[0].GetUseDetected() {
+		t.Fatalf("unexpected detected selection: %+v", selections[0])
+	}
+	if selections[1].GetImageName() != "web" || selections[1].GetTargetTag() != "2026.05.08" {
+		t.Fatalf("unexpected manual selection: %+v", selections[1])
+	}
+}
+
+func TestImageUpdateSelectionsRejectsDuplicateUpdates(t *testing.T) {
+	if _, err := imageUpdateSelections([]string{"api"}, []string{"api=1.2.3"}, true); err == nil {
+		t.Fatalf("expected duplicate image update error")
+	}
+}
+
 func TestInstanceActionFromName(t *testing.T) {
 	action, err := instanceActionFromName("restart")
 	if err != nil {

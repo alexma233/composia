@@ -19,6 +19,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
       tasks: [],
       backups: [],
       serviceDetail: null,
+      imageUpdateChecks: [],
       services: [],
       nodeContainers: [],
       repoHead: null,
@@ -33,7 +34,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
       loadRepoHead(),
       loadServiceWorkspaces(),
     ]);
-    const { workspace, tasks, backups, serviceDetail, fileTree } = summary;
+    const { workspace, tasks, backups, serviceDetail, imageUpdateChecks, fileTree } = summary;
     const nodeContainers = serviceDetail?.instances ?? [];
     const requestedFile = url.searchParams.get("file") ?? "";
     const activeFilePath = requestedFile
@@ -54,6 +55,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
       tasks,
       backups,
       serviceDetail,
+      imageUpdateChecks,
       services,
       nodeContainers,
       repoHead,
@@ -74,6 +76,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
       tasks: [],
       backups: [],
       serviceDetail: null,
+      imageUpdateChecks: [],
       services: [],
       nodeContainers: [],
       repoHead: null,

@@ -22,6 +22,8 @@ service AgentReportService {
   rpc ReportServiceInstanceStatus(ReportServiceInstanceStatusRequest) returns (ReportServiceInstanceStatusResponse);
   // ReportServiceImageStates reports image digest observations for one service instance.
   rpc ReportServiceImageStates(ReportServiceImageStatesRequest) returns (ReportServiceImageStatesResponse);
+  // ReportServiceImageUpdateChecks reports candidate image updates for one service instance.
+  rpc ReportServiceImageUpdateChecks(ReportServiceImageUpdateChecksRequest) returns (ReportServiceImageUpdateChecksResponse);
   // ReportDockerStats reports the latest Docker stats snapshot for one node.
   rpc ReportDockerStats(ReportDockerStatsRequest) returns (ReportDockerStatsResponse);
   // ReportDockerQueryResult reports the result of one direct Docker query.
@@ -370,6 +372,33 @@ message ReportServiceImageStatesRequest {
 
 // ReportServiceImageStatesResponse acknowledges image state updates.
 message ReportServiceImageStatesResponse {}
+
+// ServiceImageUpdateCheck describes one configured image update check result.
+message ServiceImageUpdateCheck {
+  string image_name = 1;
+  string image_ref = 2;
+  string policy_type = 3;
+  string current_value = 4;
+  string current_tag = 5;
+  string current_digest = 6;
+  string candidate_tag = 7;
+  string candidate_digest = 8;
+  repeated string candidate_tags = 9;
+  bool update_available = 10;
+  string check_status = 11;
+  string error_summary = 12;
+}
+
+// ReportServiceImageUpdateChecksRequest reports candidate image updates observed by one agent.
+message ReportServiceImageUpdateChecksRequest {
+  string service_name = 1;
+  string node_id = 2;
+  repeated ServiceImageUpdateCheck checks = 3;
+  google.protobuf.Timestamp reported_at = 4;
+}
+
+// ReportServiceImageUpdateChecksResponse acknowledges image update check results.
+message ReportServiceImageUpdateChecksResponse {}
 
 // GetServiceBundleRequest identifies the task whose bundle should be streamed.
 message GetServiceBundleRequest {

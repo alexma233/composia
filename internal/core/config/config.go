@@ -29,10 +29,23 @@ type ControllerConfig struct {
 	DNS          *ControllerDNSConfig     `yaml:"dns"`
 	Rustic       *ControllerRusticConfig  `yaml:"rustic"`
 	Secrets      *ControllerSecretsConfig `yaml:"secrets"`
+	Updates      *ControllerUpdatesConfig `yaml:"updates"`
 }
 
 type ControllerBackupConfig struct {
 	DefaultSchedule string `yaml:"default_schedule"`
+}
+
+type ControllerUpdatesConfig struct {
+	DefaultCheckSchedule string                         `yaml:"default_check_schedule"`
+	AutoApply            *bool                          `yaml:"auto_apply"`
+	BackupBeforeUpdate   *bool                          `yaml:"backup_before_update"`
+	DigestPin            *bool                          `yaml:"digest_pin"`
+	Semver               *ControllerUpdatesSemverConfig `yaml:"semver"`
+}
+
+type ControllerUpdatesSemverConfig struct {
+	DefaultAllow []string `yaml:"default_allow"`
 }
 
 type ControllerGitConfig struct {
@@ -212,6 +225,16 @@ func validateController(file *File) error {
 			return fmt.Errorf("controller.backup.default_schedule: %w", err)
 		}
 	}
+	if controller.Updates != nil {
+		if err := schedule.Validate(controller.Updates.DefaultCheckSchedule); err != nil {
+			return fmt.Errorf("controller.updates.default_check_schedule: %w", err)
+		}
+		if controller.Updates.Semver != nil {
+			if err := validateControllerUpdatesSemverAllow(controller.Updates.Semver.DefaultAllow); err != nil {
+				return err
+			}
+		}
+	}
 
 	if controller.Git != nil && controller.Git.RemoteURL != "" && controller.Git.PullInterval == "" {
 		return fmt.Errorf("controller.git.pull_interval is required when controller.git.remote_url is set")
@@ -249,6 +272,23 @@ func validateController(file *File) error {
 		}
 	}
 
+	return nil
+}
+
+func validateControllerUpdatesSemverAllow(allow []string) error {
+	seen := make(map[string]struct{}, len(allow))
+	for _, value := range allow {
+		value = strings.TrimSpace(value)
+		switch value {
+		case "patch", "minor", "major":
+			if _, exists := seen[value]; exists {
+				return fmt.Errorf("controller.updates.semver.default_allow[%q] is duplicated", value)
+			}
+			seen[value] = struct{}{}
+		default:
+			return fmt.Errorf("controller.updates.semver.default_allow must contain only patch, minor, or major")
+		}
+	}
 	return nil
 }
 

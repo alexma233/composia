@@ -72,22 +72,19 @@ func scheduleServiceImageChecks(ctx context.Context, db *store.DB, serviceServer
 	if service.Meta.Update.Enabled != nil && !*service.Meta.Update.Enabled {
 		return nil
 	}
-	spec := schedule.Normalize(service.Meta.Update.Schedule)
-	if spec == "" || schedule.IsDisabled(spec) {
-		return nil
-	}
-	parsed, err := schedule.Parse(spec)
+	dueImageNames, err := dueServiceImageUpdateNames(serviceServer.cfg, service, now)
 	if err != nil {
 		return err
 	}
-	if !schedule.DueNow(parsed, now) {
+	if len(dueImageNames) == 0 {
 		return nil
 	}
 	serviceDir, err := filepath.Rel(serviceServer.cfg.RepoDir, service.Directory)
 	if err != nil {
 		return err
 	}
-	paramsJSONBytes, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir})
+	semverAllow := effectiveControllerSemverAllow(serviceServer.cfg)
+	paramsJSONBytes, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir, ImageNames: dueImageNames, SemverAllow: semverAllow})
 	if err != nil {
 		return err
 	}
@@ -101,11 +98,66 @@ func scheduleServiceImageChecks(ctx context.Context, db *store.DB, serviceServer
 		if exists {
 			continue
 		}
-		if _, err := serviceServer.createServiceTaskWithOptions(ctx, service.Name, []string{nodeID}, task.TypeImageCheck, nil, serviceTaskCreateOptions{Source: task.SourceSchedule, CreatedAt: &createdAt}); err != nil {
+		if _, err := serviceServer.createServiceTaskWithOptions(ctx, service.Name, []string{nodeID}, task.TypeImageCheck, nil, serviceTaskCreateOptions{Source: task.SourceSchedule, CreatedAt: &createdAt, ImageNames: dueImageNames, SemverAllow: semverAllow}); err != nil {
 			log.Printf("scheduler skipped image check for service=%s node=%s: %v", service.Name, nodeID, err)
 		}
 	}
 	return nil
+}
+
+func effectiveControllerSemverAllow(cfg *config.ControllerConfig) []string {
+	if cfg == nil || cfg.Updates == nil || cfg.Updates.Semver == nil || len(cfg.Updates.Semver.DefaultAllow) == 0 {
+		return nil
+	}
+	return append([]string(nil), cfg.Updates.Semver.DefaultAllow...)
+}
+
+func dueServiceImageUpdateNames(cfg *config.ControllerConfig, service repo.Service, now time.Time) ([]string, error) {
+	update := service.Meta.Update
+	if update == nil || len(update.Images) == 0 {
+		return nil, nil
+	}
+	dueImageNames := make([]string, 0, len(update.Images))
+	for imageName, image := range update.Images {
+		spec := effectiveImageCheckSchedule(cfg, update.CheckSchedule, image.CheckSchedule)
+		if spec == "" {
+			continue
+		}
+		parsed, err := schedule.Parse(spec)
+		if err != nil {
+			return nil, err
+		}
+		if schedule.DueNow(parsed, now) {
+			dueImageNames = append(dueImageNames, imageName)
+		}
+	}
+	slices.Sort(dueImageNames)
+	return dueImageNames, nil
+}
+
+func effectiveImageCheckSchedule(cfg *config.ControllerConfig, serviceSchedule, imageSchedule string) string {
+	imageSchedule = schedule.Normalize(imageSchedule)
+	if schedule.IsDisabled(imageSchedule) {
+		return ""
+	}
+	if imageSchedule != "" {
+		return imageSchedule
+	}
+	serviceSchedule = schedule.Normalize(serviceSchedule)
+	if schedule.IsDisabled(serviceSchedule) {
+		return ""
+	}
+	if serviceSchedule != "" {
+		return serviceSchedule
+	}
+	if cfg == nil || cfg.Updates == nil {
+		return ""
+	}
+	defaultSchedule := schedule.Normalize(cfg.Updates.DefaultCheckSchedule)
+	if defaultSchedule == "" || schedule.IsDisabled(defaultSchedule) {
+		return ""
+	}
+	return defaultSchedule
 }
 
 func scheduleServiceBackups(ctx context.Context, db *store.DB, serviceServer *serviceCommandServer, service repo.Service, now time.Time) error {

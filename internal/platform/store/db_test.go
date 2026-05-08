@@ -96,3 +96,56 @@ func TestUpdateServiceInstanceRuntimeStatusValidatesAndPersists(t *testing.T) {
 		t.Fatalf("expected invalid runtime status error")
 	}
 }
+
+func TestServiceImageUpdateChecksRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	stateDir := filepath.Join(t.TempDir(), "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	db, err := Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"app": {"main"}}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	checkedAt := time.Date(2026, 5, 8, 4, 0, 0, 0, time.UTC)
+	if err := db.UpsertServiceImageUpdateChecks(ctx, []ServiceImageUpdateCheck{{
+		ServiceName:       "app",
+		NodeID:            "main",
+		ImageName:         "api",
+		ImageRef:          "ghcr.io/example/api",
+		PolicyType:        "semver",
+		CurrentValue:      "1.2.3@sha256:old",
+		CurrentTag:        "1.2.3",
+		CurrentDigest:     "sha256:old",
+		CandidateTag:      "1.3.0",
+		CandidateDigest:   "sha256:new",
+		CandidateTagsJSON: `["1.3.0"]`,
+		UpdateAvailable:   true,
+		CheckStatus:       ImageCheckStatusOK,
+		CheckedAt:         checkedAt,
+	}}); err != nil {
+		t.Fatalf("upsert image update checks: %v", err)
+	}
+
+	checks, err := db.LatestServiceImageUpdateChecks(ctx, "app", "main")
+	if err != nil {
+		t.Fatalf("latest image update checks: %v", err)
+	}
+	if len(checks) != 1 {
+		t.Fatalf("expected 1 check, got %+v", checks)
+	}
+	check := checks[0]
+	if !check.UpdateAvailable || check.CandidateTag != "1.3.0" || check.CandidateTagsJSON != `["1.3.0"]` {
+		t.Fatalf("unexpected check: %+v", check)
+	}
+}

@@ -4,6 +4,7 @@ import type { RequestHandler } from "./$types";
 import {
   runServiceAction,
   type ComposeRecreateMode,
+  type ImageUpdateSelection,
   type ServiceAction,
 } from "$lib/server/controller";
 import {
@@ -33,10 +34,14 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
     const payload = (await readActionPayload(request)) as {
       recreateMode?: string;
+      imageUpdates?: ImageUpdateSelection[];
+      useAllDetectedImageUpdates?: boolean;
     };
     return json(
       await runServiceAction(workspace.serviceName, params.action, {
         composeRecreateMode: parseComposeRecreateMode(payload.recreateMode),
+        imageUpdates: payload.imageUpdates,
+        useAllDetectedImageUpdates: payload.useAllDetectedImageUpdates,
       }),
     );
   } catch (error) {

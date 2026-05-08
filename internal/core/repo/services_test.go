@@ -28,7 +28,15 @@ network:
     enabled: true
     source: ./site_config.caddy
 update:
-  strategy: pull_and_recreate
+  check_schedule: "0 4 * * *"
+  images:
+    app:
+      image: ghcr.io/example/vaultwarden
+      source:
+        file: .env
+        key: APP_VERSION
+      policy:
+        type: semver
 data_protect:
   data:
     - name: config
@@ -209,6 +217,102 @@ backup:
 	}
 	if len(services) != 0 {
 		t.Fatalf("expected invalid scheduled service to be skipped, got %+v", services)
+	}
+}
+
+func TestDiscoverServicesParsesUpdateImageOverrides(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	metaPath := filepath.Join(repoDir, "app", MetaFileName)
+	writeFile(t, metaPath, strings.TrimSpace(`
+name: app
+nodes:
+  - main
+update:
+  auto_apply: true
+  check_schedule: "0 4 * * *"
+  backup_before_update: true
+  digest_pin: true
+  images:
+    api:
+      image: ghcr.io/example/api
+      auto_apply: false
+      check_schedule: "15 4 * * *"
+      backup_before_update: false
+      digest_pin: false
+      source:
+        file: .env
+        key: API_VERSION
+      policy:
+        type: semver
+        allow:
+          - patch
+          - minor
+    worker:
+      image: ghcr.io/example/worker
+      source:
+        tag: nightly
+      policy:
+        type: mutable_digest
+`)+"\n")
+
+	services, err := DiscoverServices(repoDir, map[string]struct{}{"main": {}})
+	if err != nil {
+		t.Fatalf("discover services: %v", err)
+	}
+	if len(services) != 1 {
+		t.Fatalf("expected 1 service, got %d", len(services))
+	}
+	update := services[0].Meta.Update
+	if update == nil || len(update.Images) != 2 {
+		t.Fatalf("expected update images, got %+v", update)
+	}
+	api := update.Images["api"]
+	if api.Source.File != ".env" || api.Source.Key != "API_VERSION" {
+		t.Fatalf("unexpected api source: %+v", api.Source)
+	}
+	if api.Policy.Type != "semver" || len(api.Policy.Allow) != 2 {
+		t.Fatalf("unexpected api policy: %+v", api.Policy)
+	}
+	if api.AutoApply == nil || *api.AutoApply {
+		t.Fatalf("expected api auto_apply override false")
+	}
+	if api.BackupBeforeUpdate == nil || *api.BackupBeforeUpdate {
+		t.Fatalf("expected api backup_before_update override false")
+	}
+	if api.DigestPin == nil || *api.DigestPin {
+		t.Fatalf("expected api digest_pin override false")
+	}
+}
+
+func TestDiscoverServicesRejectsInvalidUpdateImageSource(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	metaPath := filepath.Join(repoDir, "app", MetaFileName)
+	writeFile(t, metaPath, strings.TrimSpace(`
+name: app
+nodes:
+  - main
+update:
+  images:
+    api:
+      image: ghcr.io/example/api
+      source:
+        file: .env
+        key: API_VERSION
+        tag: latest
+      policy:
+        type: semver
+`)+"\n")
+
+	services, err := DiscoverServices(repoDir, map[string]struct{}{"main": {}})
+	if err != nil {
+		t.Fatalf("discover services: %v", err)
+	}
+	if len(services) != 0 {
+		t.Fatalf("expected invalid image source to make service invalid, got %+v", services)
 	}
 }
 

@@ -177,6 +177,30 @@ export type ServiceActionResult = {
   repoRevision: string;
 };
 
+export type ImageUpdateCheckSummary = {
+  serviceName: string;
+  nodeId: string;
+  imageName: string;
+  imageRef: string;
+  policyType: string;
+  currentValue: string;
+  currentTag: string;
+  currentDigest: string;
+  candidateTag: string;
+  candidateDigest: string;
+  candidateTags: string[];
+  updateAvailable: boolean;
+  checkStatus: string;
+  errorSummary: string;
+  checkedAt: string;
+};
+
+export type ImageUpdateSelection = {
+  imageName: string;
+  targetTag?: string;
+  useDetected?: boolean;
+};
+
 export type ContainerRemoveOptions = {
   force?: boolean;
   removeVolumes?: boolean;
@@ -1322,6 +1346,8 @@ export async function runServiceAction(
     nodeIds?: string[];
     dataNames?: string[];
     composeRecreateMode?: ComposeRecreateMode;
+    imageUpdates?: ImageUpdateSelection[];
+    useAllDetectedImageUpdates?: boolean;
   } = {},
 ): Promise<ServiceActionResult> {
   return callServiceAction(
@@ -1336,8 +1362,81 @@ export async function runServiceAction(
       composeRecreateMode: toComposeRecreateModeEnum(
         options.composeRecreateMode ?? "auto",
       ),
+      imageUpdates: (options.imageUpdates ?? []).map((update) => ({
+        imageName: update.imageName,
+        targetTag: update.targetTag ?? "",
+        useDetected: update.useDetected ?? false,
+      })),
+      useAllDetectedImageUpdates: options.useAllDetectedImageUpdates ?? false,
     },
   );
+}
+
+export async function loadServiceImageUpdateChecks(
+  serviceName: string,
+  nodeId?: string,
+): Promise<ImageUpdateCheckSummary[]> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{
+    checks?: Array<{
+      serviceName?: string;
+      service_name?: string;
+      nodeId?: string;
+      node_id?: string;
+      imageName?: string;
+      image_name?: string;
+      imageRef?: string;
+      image_ref?: string;
+      policyType?: string;
+      policy_type?: string;
+      currentValue?: string;
+      current_value?: string;
+      currentTag?: string;
+      current_tag?: string;
+      currentDigest?: string;
+      current_digest?: string;
+      candidateTag?: string;
+      candidate_tag?: string;
+      candidateDigest?: string;
+      candidate_digest?: string;
+      candidateTags?: string[];
+      candidate_tags?: string[];
+      updateAvailable?: boolean;
+      update_available?: boolean;
+      checkStatus?: string;
+      check_status?: string;
+      errorSummary?: string;
+      error_summary?: string;
+      checkedAt?: string;
+      checked_at?: string;
+    }>;
+  }>(
+    config.baseUrl,
+    config.token,
+    controllerProcedure(
+      "/composia.controller.v1.ServiceQueryService/GetServiceImageUpdateChecks",
+    ),
+    { serviceName, nodeId: nodeId ?? "" },
+  );
+  return (response.checks ?? []).map((check) => ({
+    serviceName:
+      check.serviceName ?? check.service_name ?? serviceName,
+    nodeId: check.nodeId ?? check.node_id ?? "",
+    imageName: check.imageName ?? check.image_name ?? "",
+    imageRef: check.imageRef ?? check.image_ref ?? "",
+    policyType: check.policyType ?? check.policy_type ?? "",
+    currentValue: check.currentValue ?? check.current_value ?? "",
+    currentTag: check.currentTag ?? check.current_tag ?? "",
+    currentDigest: check.currentDigest ?? check.current_digest ?? "",
+    candidateTag: check.candidateTag ?? check.candidate_tag ?? "",
+    candidateDigest: check.candidateDigest ?? check.candidate_digest ?? "",
+    candidateTags: check.candidateTags ?? check.candidate_tags ?? [],
+    updateAvailable:
+      check.updateAvailable ?? check.update_available ?? false,
+    checkStatus: check.checkStatus ?? check.check_status ?? "unknown",
+    errorSummary: check.errorSummary ?? check.error_summary ?? "",
+    checkedAt: check.checkedAt ?? check.checked_at ?? "",
+  }));
 }
 
 export async function loadNodeDetail(

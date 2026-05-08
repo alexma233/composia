@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
+	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
 )
 
 func TestParseSize(t *testing.T) {
@@ -68,5 +69,56 @@ func TestEnsureAgentDirsCreatesDataProtectDirOnStartup(t *testing.T) {
 		if !info.IsDir() {
 			t.Fatalf("expected %q to be a directory", dir)
 		}
+	}
+}
+
+func TestCandidateImageTagsReturnsNewestCandidatesFirst(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		current string
+		tags    []string
+		policy  repo.ImageUpdatePolicy
+		want    []string
+	}{
+		{
+			name:    "semver",
+			current: "1.2.3",
+			tags:    []string{"1.2.4", "1.3.0", "2.0.0", "1.2.5"},
+			policy:  repo.ImageUpdatePolicy{Type: "semver", Allow: []string{"patch", "minor"}},
+			want:    []string{"1.3.0", "1.2.5", "1.2.4"},
+		},
+		{
+			name:    "date",
+			current: "2026-05-01",
+			tags:    []string{"2026-05-03", "2026-05-02", "2026-04-30"},
+			policy:  repo.ImageUpdatePolicy{Type: "date", Format: "2006-01-02"},
+			want:    []string{"2026-05-03", "2026-05-02"},
+		},
+		{
+			name:    "regex numeric",
+			current: "build-10",
+			tags:    []string{"build-11", "build-13", "build-12", "build-9"},
+			policy:  repo.ImageUpdatePolicy{Type: "regex", Pattern: `^build-(\d+)$`, Order: "numeric"},
+			want:    []string{"build-13", "build-12", "build-11"},
+		},
+	}
+
+	for _, tt := range tests {
+		tc := tt
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := candidateImageTags(tc.current, tc.tags, tc.policy)
+			if len(got) != len(tc.want) {
+				t.Fatalf("candidateImageTags() = %+v, want %+v", got, tc.want)
+			}
+			for index := range tc.want {
+				if got[index] != tc.want[index] {
+					t.Fatalf("candidateImageTags() = %+v, want %+v", got, tc.want)
+				}
+			}
+		})
 	}
 }

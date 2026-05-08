@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -78,10 +79,37 @@ type DNSConfig struct {
 }
 
 type UpdateConfig struct {
-	Enabled            *bool  `yaml:"enabled"`
-	Strategy           string `yaml:"strategy"`
-	Schedule           string `yaml:"schedule"`
-	BackupBeforeUpdate *bool  `yaml:"backup_before_update"`
+	Enabled            *bool                        `yaml:"enabled"`
+	AutoApply          *bool                        `yaml:"auto_apply"`
+	CheckSchedule      string                       `yaml:"check_schedule"`
+	BackupBeforeUpdate *bool                        `yaml:"backup_before_update"`
+	DigestPin          *bool                        `yaml:"digest_pin"`
+	Images             map[string]ImageUpdateConfig `yaml:"images"`
+}
+
+type ImageUpdateConfig struct {
+	Image              string            `yaml:"image"`
+	AutoApply          *bool             `yaml:"auto_apply"`
+	CheckSchedule      string            `yaml:"check_schedule"`
+	BackupBeforeUpdate *bool             `yaml:"backup_before_update"`
+	DigestPin          *bool             `yaml:"digest_pin"`
+	Source             ImageUpdateSource `yaml:"source"`
+	Policy             ImageUpdatePolicy `yaml:"policy"`
+}
+
+type ImageUpdateSource struct {
+	File string `yaml:"file"`
+	Key  string `yaml:"key"`
+	Path string `yaml:"path"`
+	Tag  string `yaml:"tag"`
+}
+
+type ImageUpdatePolicy struct {
+	Type    string   `yaml:"type"`
+	Format  string   `yaml:"format"`
+	Pattern string   `yaml:"pattern"`
+	Order   string   `yaml:"order"`
+	Allow   []string `yaml:"allow"`
 }
 
 type DataProtectConfig struct {
@@ -718,11 +746,128 @@ func (meta ServiceMeta) RusticInitArgs() []string {
 }
 
 func validateUpdate(path string, update *UpdateConfig) error {
-	if update.Strategy == "" {
-		return fmt.Errorf("service meta %q: update.strategy is required", path)
+	if err := schedule.Validate(update.CheckSchedule); err != nil {
+		return fmt.Errorf("service meta %q: update.check_schedule: %w", path, err)
 	}
-	if update.Strategy != "pull_and_recreate" {
-		return fmt.Errorf("service meta %q: update.strategy must be pull_and_recreate", path)
+	seenImageNames := make(map[string]struct{}, len(update.Images))
+	for name, image := range update.Images {
+		trimmedName := strings.TrimSpace(name)
+		if trimmedName == "" {
+			return fmt.Errorf("service meta %q: update.images[] name must not be empty", path)
+		}
+		if _, exists := seenImageNames[trimmedName]; exists {
+			return fmt.Errorf("service meta %q: update.images[%q] is duplicated after trimming", path, trimmedName)
+		}
+		seenImageNames[trimmedName] = struct{}{}
+		if err := validateImageUpdate(path, trimmedName, image); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateImageUpdate(path, name string, image ImageUpdateConfig) error {
+	fieldPrefix := fmt.Sprintf("service meta %q: update.images[%q]", path, name)
+	if strings.TrimSpace(image.Image) == "" {
+		return fmt.Errorf("%s.image is required", fieldPrefix)
+	}
+	if err := schedule.Validate(image.CheckSchedule); err != nil {
+		return fmt.Errorf("%s.check_schedule: %w", fieldPrefix, err)
+	}
+	if err := validateImageUpdateSource(fieldPrefix, image.Source); err != nil {
+		return err
+	}
+	return validateImageUpdatePolicy(fieldPrefix, image.Source, image.Policy)
+}
+
+func validateImageUpdateSource(fieldPrefix string, source ImageUpdateSource) error {
+	file := strings.TrimSpace(source.File)
+	key := strings.TrimSpace(source.Key)
+	path := strings.TrimSpace(source.Path)
+	tag := strings.TrimSpace(source.Tag)
+
+	if file != "" {
+		if filepath.IsAbs(file) {
+			return fmt.Errorf("%s.source.file must be a relative path", fieldPrefix)
+		}
+		cleaned := filepath.Clean(file)
+		if cleaned == "." || cleaned == ".." || strings.HasPrefix(cleaned, ".."+string(filepath.Separator)) {
+			return fmt.Errorf("%s.source.file must stay within the service directory", fieldPrefix)
+		}
+	}
+
+	modeCount := 0
+	if file != "" && key != "" && path == "" && tag == "" {
+		modeCount++
+	}
+	if file != "" && path != "" && key == "" && tag == "" {
+		modeCount++
+	}
+	if tag != "" && file == "" && key == "" && path == "" {
+		modeCount++
+	}
+	if modeCount != 1 {
+		return fmt.Errorf("%s.source must specify exactly one of file+key, file+path, or tag", fieldPrefix)
+	}
+	return nil
+}
+
+func validateImageUpdatePolicy(fieldPrefix string, source ImageUpdateSource, policy ImageUpdatePolicy) error {
+	switch strings.TrimSpace(policy.Type) {
+	case "semver":
+		if strings.TrimSpace(source.Tag) != "" {
+			return fmt.Errorf("%s.source.tag is only supported for mutable_digest policy", fieldPrefix)
+		}
+		return validateSemverAllow(fieldPrefix, policy.Allow)
+	case "date":
+		if strings.TrimSpace(source.Tag) != "" {
+			return fmt.Errorf("%s.source.tag is only supported for mutable_digest policy", fieldPrefix)
+		}
+		if strings.TrimSpace(policy.Format) == "" {
+			return fmt.Errorf("%s.policy.format is required for date policy", fieldPrefix)
+		}
+		return nil
+	case "regex":
+		if strings.TrimSpace(source.Tag) != "" {
+			return fmt.Errorf("%s.source.tag is only supported for mutable_digest policy", fieldPrefix)
+		}
+		if strings.TrimSpace(policy.Pattern) == "" {
+			return fmt.Errorf("%s.policy.pattern is required for regex policy", fieldPrefix)
+		}
+		if _, err := regexp.Compile(policy.Pattern); err != nil {
+			return fmt.Errorf("%s.policy.pattern is invalid: %w", fieldPrefix, err)
+		}
+		switch strings.TrimSpace(policy.Order) {
+		case "numeric", "lexicographic":
+			return nil
+		default:
+			return fmt.Errorf("%s.policy.order must be numeric or lexicographic for regex policy", fieldPrefix)
+		}
+	case "mutable_digest":
+		if strings.TrimSpace(source.Tag) == "" {
+			return fmt.Errorf("%s.source.tag is required for mutable_digest policy", fieldPrefix)
+		}
+		return nil
+	case "":
+		return fmt.Errorf("%s.policy.type is required", fieldPrefix)
+	default:
+		return fmt.Errorf("%s.policy.type must be semver, date, regex, or mutable_digest", fieldPrefix)
+	}
+}
+
+func validateSemverAllow(fieldPrefix string, allow []string) error {
+	seen := make(map[string]struct{}, len(allow))
+	for _, value := range allow {
+		value = strings.TrimSpace(value)
+		switch value {
+		case "patch", "minor", "major":
+			if _, exists := seen[value]; exists {
+				return fmt.Errorf("%s.policy.allow[%q] is duplicated", fieldPrefix, value)
+			}
+			seen[value] = struct{}{}
+		default:
+			return fmt.Errorf("%s.policy.allow must contain only patch, minor, or major", fieldPrefix)
+		}
 	}
 	return nil
 }

@@ -229,22 +229,76 @@ migrate:
 
 #### Update Configuration
 
-`update` controls automatic updates for a service:
+`update` controls image update checking and auto-apply for a service:
 
 ```yaml
 update:
   enabled: true
-  strategy: pull_and_recreate   # Only supported strategy
-  schedule: "0 4 * * *"         # Cron schedule for auto-update
-  backup_before_update: true    # Backup before applying the update
+  auto_apply: false
+  backup_before_update: true
+  check_schedule: "0 4 * * *"
+  digest_pin: true
+  images:
+    api:
+      image: ghcr.io/example/api
+      auto_apply: true
+      backup_before_update: true
+      check_schedule: "0 */6 * * *"
+      digest_pin: true
+      source:
+        file: .env
+        key: API_TAG
+      policy:
+        type: semver
+        allow:
+          - patch
+          - minor
+    web:
+      image: nginx
+      source:
+        tag: latest
+      policy:
+        type: mutable_digest
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `enabled` | boolean | No | Whether to enable auto-update, default `false` |
-| `strategy` | string | No | Update strategy, currently only `pull_and_recreate` |
-| `schedule` | string | No | Cron expression for the update schedule |
-| `backup_before_update` | boolean | No | Backup service data before applying the update |
+| `enabled` | boolean | No | Enable image update checks for this service, default `false` |
+| `auto_apply` | boolean | No | Automatically apply detected updates after a successful check, default `false` |
+| `backup_before_update` | boolean | No | Run a backup before applying any image update, default `false` |
+| `check_schedule` | string | No | Cron expression for the image check schedule; falls back to the controller default |
+| `digest_pin` | boolean | No | Pin pinned-tag images to `tag@sha256:digest`, default `true` |
+
+Each entry under `images` is keyed by a logical name and supports:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `image` | string | **Yes** | Full image reference (registry/repo:tag or registry/repo) |
+| `auto_apply` | boolean | No | Override service-level `auto_apply` per image |
+| `backup_before_update` | boolean | No | Override service-level `backup_before_update` per image |
+| `check_schedule` | string | No | Per-image check schedule override |
+| `digest_pin` | boolean | No | Per-image digest pinning, default `true` for pinned tags |
+| `source` | object | **Yes** | Where the current tag is read from and written back to |
+| `policy` | object | **Yes** | How candidate tags are selected |
+
+**Source** must specify exactly one of:
+
+| Combination | Description |
+|-------------|-------------|
+| `file` + `key` | Read/write a tag from an env-file key (e.g. `.env` with `API_TAG=1.2.3`) |
+| `file` + `path` | Read/write an `image:` value inside a YAML or Compose file via a dot-path (e.g. `services.api.image`) |
+| `tag` (only) | Mutable tag only — no file writes; tag is static (e.g. `latest`) |
+
+**Policy** types:
+
+| Type | Description |
+|------|-------------|
+| `semver` | Compare `MAJOR.MINOR.PATCH` tags, obey `allow` list (`patch`, `minor`, `major`). Default allow is `patch, minor`. |
+| `date` | Parse tags with a custom `format` (Go time layout), select newer dates. |
+| `regex` | Match tags against a `pattern` with one capture group, ordered `numeric` or `lexicographic`. |
+| `mutable_digest` | Compare the remote digest of a mutable tag (e.g. `latest`) with the local digest; trigger update when they differ. Requires `source.tag`. |
+
+Service-level defaults (`auto_apply`, `backup_before_update`, `check_schedule`, `digest_pin`) cascade to each image; image-level values override service-level; controller-level defaults fill the remaining gaps.
 
 #### Infrastructure Declaration
 

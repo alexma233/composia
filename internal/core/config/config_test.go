@@ -160,6 +160,79 @@ controller:
 	}
 }
 
+func TestLoadControllerAcceptsUpdatesDefaults(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.yaml")
+	content := strings.TrimSpace(`
+controller:
+  listen_addr: ":8080"
+  repo_dir: "/srv/composia/repo"
+  state_dir: "/srv/composia/state-controller"
+  log_dir: "/srv/composia/logs"
+  nodes:
+    - id: "main"
+      token: "main-token"
+  updates:
+    default_check_schedule: "0 4 * * *"
+    backup_before_update: true
+    digest_pin: true
+    semver:
+      default_allow:
+        - patch
+        - minor
+`) + "\n"
+
+	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	controller, err := LoadController(configPath)
+	if err != nil {
+		t.Fatalf("load controller: %v", err)
+	}
+	if controller.Updates == nil || controller.Updates.Semver == nil {
+		t.Fatalf("expected updates config")
+	}
+	if got := controller.Updates.DefaultCheckSchedule; got != "0 4 * * *" {
+		t.Fatalf("expected default check schedule, got %q", got)
+	}
+	if len(controller.Updates.Semver.DefaultAllow) != 2 {
+		t.Fatalf("expected semver defaults, got %+v", controller.Updates.Semver.DefaultAllow)
+	}
+}
+
+func TestLoadControllerRejectsInvalidUpdatesDefaults(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.yaml")
+	content := strings.TrimSpace(`
+controller:
+  listen_addr: ":8080"
+  repo_dir: "/srv/composia/repo"
+  state_dir: "/srv/composia/state-controller"
+  log_dir: "/srv/composia/logs"
+  nodes:
+    - id: "main"
+      token: "main-token"
+  updates:
+    default_check_schedule: "invalid"
+    semver:
+      default_allow:
+        - patch
+        - feature
+`) + "\n"
+
+	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	_, err := LoadController(configPath)
+	if err == nil || (!strings.Contains(err.Error(), "controller.updates.default_check_schedule") && !strings.Contains(err.Error(), "controller.updates.semver.default_allow")) {
+		t.Fatalf("expected updates validation error, got %v", err)
+	}
+}
+
 func TestLoadControllerAcceptsGitAuthUsername(t *testing.T) {
 	t.Parallel()
 

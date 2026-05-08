@@ -152,3 +152,91 @@ func TestRunScheduledTasksPassCreatesRepoWideRusticMaintenanceTasks(t *testing.T
 		}
 	}
 }
+
+func TestRunScheduledTasksPassCreatesImageCheckForDueImages(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	logDir := filepath.Join(rootDir, "logs")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"app/composia-meta.yaml": "name: app\nnodes:\n  - main\nupdate:\n  check_schedule: none\n  images:\n    api:\n      image: ghcr.io/example/api\n      check_schedule: \"5 4 * * *\"\n      source:\n        file: .env\n        key: API_VERSION\n      policy:\n        type: semver\n    worker:\n      image: ghcr.io/example/worker\n      check_schedule: \"10 4 * * *\"\n      source:\n        file: .env\n        key: WORKER_VERSION\n      policy:\n        type: semver\n",
+	})
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create task log dir: %v", err)
+	}
+
+	db := openControllerTestDB(t)
+	defer func() { _ = db.Close() }()
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := syncDeclaredServicesForTests(ctx, db, "app"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 9, 4, 5, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
+
+	cfg := &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}
+	if err := runScheduledTasksPass(ctx, db, cfg, configuredNodeIDs(cfg), newTaskQueueNotifier(), time.Date(2026, 4, 9, 4, 5, 20, 0, time.UTC)); err != nil {
+		t.Fatalf("run scheduled pass: %v", err)
+	}
+
+	tasks, totalCount, err := db.ListTasks(ctx, nil, []string{"app"}, nil, []string{string(task.TypeImageCheck)}, nil, nil, nil, nil, 1, 10)
+	if err != nil {
+		t.Fatalf("list image check tasks: %v", err)
+	}
+	if totalCount != 1 || len(tasks) != 1 {
+		t.Fatalf("expected 1 scheduled image check task, got total=%d len=%d", totalCount, len(tasks))
+	}
+	detail, err := db.GetTask(ctx, tasks[0].TaskID)
+	if err != nil {
+		t.Fatalf("get image check task: %v", err)
+	}
+	params := taskParams(detail.Record.ParamsJSON)
+	if len(params.ImageNames) != 1 || params.ImageNames[0] != "api" {
+		t.Fatalf("expected due image api, got %+v", params.ImageNames)
+	}
+}
+
+func TestRunScheduledTasksPassUsesControllerUpdatesDefaultCheckSchedule(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	logDir := filepath.Join(rootDir, "logs")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"app/composia-meta.yaml": "name: app\nnodes:\n  - main\nupdate:\n  images:\n    api:\n      image: ghcr.io/example/api\n      source:\n        file: .env\n        key: API_VERSION\n      policy:\n        type: semver\n",
+	})
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create task log dir: %v", err)
+	}
+
+	db := openControllerTestDB(t)
+	defer func() { _ = db.Close() }()
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := syncDeclaredServicesForTests(ctx, db, "app"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 9, 4, 5, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
+
+	cfg := &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}, Updates: &config.ControllerUpdatesConfig{DefaultCheckSchedule: "5 4 * * *"}}
+	if err := runScheduledTasksPass(ctx, db, cfg, configuredNodeIDs(cfg), newTaskQueueNotifier(), time.Date(2026, 4, 9, 4, 5, 20, 0, time.UTC)); err != nil {
+		t.Fatalf("run scheduled pass: %v", err)
+	}
+
+	_, totalCount, err := db.ListTasks(ctx, nil, []string{"app"}, nil, []string{string(task.TypeImageCheck)}, nil, nil, nil, nil, 1, 10)
+	if err != nil {
+		t.Fatalf("list image check tasks: %v", err)
+	}
+	if totalCount != 1 {
+		t.Fatalf("expected 1 scheduled image check task, got %d", totalCount)
+	}
+}

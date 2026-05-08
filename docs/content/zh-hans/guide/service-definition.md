@@ -229,22 +229,76 @@ migrate:
 
 #### 更新配置
 
-`update` 控制服务的自动更新：
+`update` 控制服务的镜像更新检查与自动应用：
 
 ```yaml
 update:
   enabled: true
-  strategy: pull_and_recreate   # 唯一支持的策略
-  schedule: "0 4 * * *"         # 自动更新的 cron 调度
-  backup_before_update: true    # 更新前先备份
+  auto_apply: false
+  backup_before_update: true
+  check_schedule: "0 4 * * *"
+  digest_pin: true
+  images:
+    api:
+      image: ghcr.io/example/api
+      auto_apply: true
+      backup_before_update: true
+      check_schedule: "0 */6 * * *"
+      digest_pin: true
+      source:
+        file: .env
+        key: API_TAG
+      policy:
+        type: semver
+        allow:
+          - patch
+          - minor
+    web:
+      image: nginx
+      source:
+        tag: latest
+      policy:
+        type: mutable_digest
 ```
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `enabled` | boolean | 否 | 是否启用自动更新，默认 `false` |
-| `strategy` | string | 否 | 更新策略，当前仅支持 `pull_and_recreate` |
-| `schedule` | string | 否 | 更新调度的 cron 表达式 |
-| `backup_before_update` | boolean | 否 | 更新前备份服务数据 |
+| `enabled` | boolean | 否 | 为此服务启用镜像更新检查，默认 `false` |
+| `auto_apply` | boolean | 否 | 检查成功后自动应用检测到的更新，默认 `false` |
+| `backup_before_update` | boolean | 否 | 应用任何镜像更新前先运行备份，默认 `false` |
+| `check_schedule` | string | 否 | 镜像检查的 cron 调度；未设置时回退到控制器默认值 |
+| `digest_pin` | boolean | 否 | 将固定标签镜像固定到 `tag@sha256:digest`，默认 `true` |
+
+`images` 下按逻辑名称键值的每个条目支持：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `image` | string | **是** | 完整镜像引用（registry/repo:tag 或 registry/repo） |
+| `auto_apply` | boolean | 否 | 按镜像覆盖服务级 `auto_apply` |
+| `backup_before_update` | boolean | 否 | 按镜像覆盖服务级 `backup_before_update` |
+| `check_schedule` | string | 否 | 按镜像覆盖检查调度 |
+| `digest_pin` | boolean | 否 | 按镜像覆盖 digest 固定，固定标签默认 `true` |
+| `source` | object | **是** | 当前标签的读取和回写来源 |
+| `policy` | object | **是** | 候选标签的选择策略 |
+
+**source** 必须精确指定以下之一：
+
+| 组合 | 说明 |
+|------|------|
+| `file` + `key` | 从 env 文件键读取/写入标签（例如 `.env` 中的 `API_TAG=1.2.3`） |
+| `file` + `path` | 通过点路径读取/写入 YAML 或 Compose 文件中的 `image:` 值（例如 `services.api.image`） |
+| 仅 `tag` | 仅可变标签——不写文件；标签是静态的（例如 `latest`） |
+
+**policy** 类型：
+
+| 类型 | 说明 |
+|------|------|
+| `semver` | 比较 `MAJOR.MINOR.PATCH` 标签，遵循 `allow` 列表（`patch`、`minor`、`major`）。默认允许 `patch, minor`。 |
+| `date` | 用自定义 `format`（Go 时间布局）解析标签，选择更新的日期。 |
+| `regex` | 按带有一个捕获组的 `pattern` 匹配标签，按 `numeric` 或 `lexicographic` 排序。 |
+| `mutable_digest` | 比较可变标签（如 `latest`）的远程与本地 digest；当不同时触发更新。需要 `source.tag`。 |
+
+服务级默认值（`auto_apply`、`backup_before_update`、`check_schedule`、`digest_pin`）级联到每个镜像；镜像级值覆盖服务级；控制器级默认值填补剩余空白。
 
 #### 基础设施声明
 

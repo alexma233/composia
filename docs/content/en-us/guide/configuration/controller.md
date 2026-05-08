@@ -67,6 +67,31 @@ nodes:
 
 `controller.nodes[].token` must also be unique, and it must not reuse a value from `controller.access_tokens[].token`.
 
+## Updates Configuration
+
+```yaml
+controller:
+  updates:
+    default_check_schedule: "0 4 * * *"
+    auto_apply: false
+    backup_before_update: false
+    digest_pin: true
+    semver:
+      default_allow:
+        - patch
+        - minor
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `default_check_schedule` | No | Default cron schedule for image update checks when neither service nor image level specifies one |
+| `auto_apply` | No | Controller-level default for automatically applying detected image updates, default `false` |
+| `backup_before_update` | No | Controller-level default for backing up before image updates, default `false` |
+| `digest_pin` | No | Controller-level default for pinning tags to `tag@sha256:digest`, default `true` |
+| `semver.default_allow` | No | Default allowed semver bump types (`patch`, `minor`, `major`); defaults to `patch, minor` when unset |
+
+Per-image and per-service overrides take precedence over controller-level defaults. See [Service Definition](../service-definition) for the `update` section.
+
 ## Minimal Configuration (Single Node)
 
 ```yaml

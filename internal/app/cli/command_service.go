@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
@@ -9,13 +10,15 @@ import (
 
 func (application *app) runService(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia service <list|get|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate>")
+		return fmt.Errorf("usage: composia service <list|get|update-candidates|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate>")
 	}
 	switch args[0] {
 	case "list":
 		return application.runServiceList(args[1:])
 	case "get":
 		return application.runServiceGet(args[1:])
+	case "update-candidates":
+		return application.runServiceUpdateCandidates(args[1:])
 	case "deploy", "update", "stop", "restart", "backup", "dns-update", "caddy-sync":
 		return application.runServiceAction(args[0], args[1:])
 	case "migrate":
@@ -23,6 +26,38 @@ func (application *app) runService(args []string) error {
 	default:
 		return fmt.Errorf("unknown service command %q", args[0])
 	}
+}
+
+func (application *app) runServiceUpdateCandidates(args []string) error {
+	fs := newCommandFlagSet("service update-candidates")
+	nodeID := fs.String("node", "", "node ID filter")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if err := requireArgs(fs.Args(), 1, "composia service update-candidates [--node node] <service>"); err != nil {
+		return err
+	}
+	response, err := application.client.services.GetServiceImageUpdateChecks(application.ctx, newRequest(&controllerv1.GetServiceImageUpdateChecksRequest{ServiceName: fs.Arg(0), NodeId: *nodeID}))
+	if err != nil {
+		return err
+	}
+	if application.isJSONOutput() {
+		return application.printMessage(response.Msg)
+	}
+	rows := make([][]string, 0, len(response.Msg.GetChecks()))
+	for _, check := range response.Msg.GetChecks() {
+		rows = append(rows, []string{
+			check.GetNodeId(),
+			check.GetImageName(),
+			check.GetPolicyType(),
+			check.GetCurrentTag(),
+			check.GetCandidateTag(),
+			boolText(check.GetUpdateAvailable()),
+			check.GetCheckStatus(),
+			check.GetCheckedAt(),
+		})
+	}
+	return application.writeTable([]string{"NODE", "IMAGE", "POLICY", "CURRENT", "CANDIDATE", "AVAILABLE", "STATUS", "CHECKED"}, rows)
 }
 
 func (application *app) runServiceList(args []string) error {
@@ -89,11 +124,21 @@ func (application *app) runServiceAction(actionName string, args []string) error
 	fs := newCommandFlagSet("service " + actionName)
 	var nodes stringListFlag
 	var dataNames stringListFlag
+	var imageNames stringListFlag
+	var setImages stringListFlag
 	recreateMode := "auto"
+	useDetectedImages := false
+	useAllDetectedImages := false
 	fs.Var(&nodes, "node", "target node ID; repeat or comma-separate")
 	fs.Var(&dataNames, "data", "data entry name for backup-like actions; repeat or comma-separate")
 	if actionName == "deploy" || actionName == "update" {
 		fs.StringVar(&recreateMode, "recreate", "auto", "compose recreate mode: auto, no_recreate, force_recreate")
+	}
+	if actionName == "update" {
+		fs.Var(&imageNames, "image", "configured image update name; repeat or comma-separate")
+		fs.Var(&setImages, "set-image", "configured image update assignment name=tag; repeat or comma-separate")
+		fs.BoolVar(&useDetectedImages, "use-detected", false, "apply detected candidate for --image entries")
+		fs.BoolVar(&useAllDetectedImages, "all-detected", false, "apply all detected image updates")
 	}
 	waitOptions := addWaitFlags(fs)
 	if err := fs.Parse(args); err != nil {
@@ -106,12 +151,18 @@ func (application *app) runServiceAction(actionName string, args []string) error
 	if err != nil {
 		return err
 	}
+	imageUpdates, err := imageUpdateSelections([]string(imageNames), []string(setImages), useDetectedImages)
+	if err != nil {
+		return err
+	}
 	response, err := application.client.serviceCommands.RunServiceAction(application.ctx, newRequest(&controllerv1.RunServiceActionRequest{
-		ServiceName:         fs.Arg(0),
-		Action:              action,
-		NodeIds:             []string(nodes),
-		DataNames:           []string(dataNames),
-		ComposeRecreateMode: composeRecreateMode,
+		ServiceName:                fs.Arg(0),
+		Action:                     action,
+		NodeIds:                    []string(nodes),
+		DataNames:                  []string(dataNames),
+		ComposeRecreateMode:        composeRecreateMode,
+		ImageUpdates:               imageUpdates,
+		UseAllDetectedImageUpdates: useAllDetectedImages,
 	}))
 	if err != nil {
 		return err
@@ -200,6 +251,47 @@ func serviceActionFromName(name string) (controllerv1.ServiceAction, error) {
 	default:
 		return controllerv1.ServiceAction_SERVICE_ACTION_UNSPECIFIED, fmt.Errorf("unknown service action %q", name)
 	}
+}
+
+func imageUpdateSelections(imageNames, setImages []string, useDetected bool) ([]*controllerv1.ImageUpdateSelection, error) {
+	if len(imageNames) == 0 && len(setImages) == 0 {
+		return nil, nil
+	}
+	selectionsByName := make(map[string]*controllerv1.ImageUpdateSelection, len(imageNames)+len(setImages))
+	for _, imageName := range imageNames {
+		imageName = strings.TrimSpace(imageName)
+		if imageName == "" {
+			continue
+		}
+		if _, exists := selectionsByName[imageName]; exists {
+			return nil, fmt.Errorf("image update %q is duplicated", imageName)
+		}
+		selectionsByName[imageName] = &controllerv1.ImageUpdateSelection{ImageName: imageName, UseDetected: useDetected}
+	}
+	for _, assignment := range setImages {
+		assignment = strings.TrimSpace(assignment)
+		if assignment == "" {
+			continue
+		}
+		imageName, targetTag, ok := strings.Cut(assignment, "=")
+		imageName = strings.TrimSpace(imageName)
+		targetTag = strings.TrimSpace(targetTag)
+		if !ok || imageName == "" || targetTag == "" {
+			return nil, fmt.Errorf("invalid set-image %q; expected name=tag", assignment)
+		}
+		if _, exists := selectionsByName[imageName]; exists {
+			return nil, fmt.Errorf("image update %q is duplicated", imageName)
+		}
+		selectionsByName[imageName] = &controllerv1.ImageUpdateSelection{ImageName: imageName, TargetTag: targetTag}
+	}
+	selections := make([]*controllerv1.ImageUpdateSelection, 0, len(selectionsByName))
+	for _, selection := range selectionsByName {
+		selections = append(selections, selection)
+	}
+	slices.SortFunc(selections, func(left, right *controllerv1.ImageUpdateSelection) int {
+		return strings.Compare(left.GetImageName(), right.GetImageName())
+	})
+	return selections, nil
 }
 
 func composeRecreateModeFromName(name string) (controllerv1.ComposeRecreateMode, error) {

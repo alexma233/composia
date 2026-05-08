@@ -86,6 +86,8 @@
   import type {
     BackupSummary,
     ComposeRecreateMode,
+    ImageUpdateCheckSummary,
+    ImageUpdateSelection,
     RepoWriteResult,
     ServiceActionResult,
     ServiceInstanceDetail,
@@ -134,6 +136,10 @@
   let showServiceRename = $state(false);
   let renameServiceFolder = $state("");
   let advancedOperationsOpen = $state(false);
+  let imageUpdateChecks = $state<ImageUpdateCheckSummary[]>([]);
+  let imageUpdateSelections = $state<Record<string, boolean>>({});
+  let applyAllDetectedImages = $state(false);
+  let setImageInput = $state("");
   let workspace = $state<PageData["workspace"]>(null);
   let serviceDetail = $state<PageData["serviceDetail"]>(null);
   let nodeContainers = $state<NonNullable<PageData["nodeContainers"]>>([]);
@@ -155,6 +161,7 @@
     tasks?: TaskSummary[];
     backups?: BackupSummary[];
     serviceDetail?: PageData["serviceDetail"];
+    imageUpdateChecks?: ImageUpdateCheckSummary[];
   };
 
   $effect(() => {
@@ -176,6 +183,7 @@
       tasks: data.tasks,
       backups: data.backups,
       serviceDetail: data.serviceDetail,
+      imageUpdateChecks: data.imageUpdateChecks ?? [],
     });
     migrateSourceNode = data.serviceDetail?.nodes?.[0] ?? "";
     migrateTargetNode = "";
@@ -191,6 +199,7 @@
     tasks = payload.tasks ?? [];
     backups = payload.backups ?? [];
     serviceDetail = payload.serviceDetail ?? null;
+    imageUpdateChecks = payload.imageUpdateChecks ?? [];
     nodeContainers = instances;
     instanceLoadState = Object.fromEntries(
       instances.map((instance) => [
@@ -314,6 +323,7 @@
     tasks = payload.tasks ?? tasks;
     backups = payload.backups ?? backups;
     serviceDetail = payload.serviceDetail ?? serviceDetail;
+    imageUpdateChecks = payload.imageUpdateChecks ?? imageUpdateChecks;
 
     if (payload.serviceDetail?.instances) {
       const existingByNode = new Map(
@@ -871,20 +881,10 @@
     }
 
     applyServiceSummaryState(
-      payload as {
-        workspace?: PageData["workspace"];
-        tasks?: TaskSummary[];
-        backups?: BackupSummary[];
-        serviceDetail?: PageData["serviceDetail"];
-      },
+      payload as ServiceSummaryStatePayload,
     );
 
-    return payload as {
-      workspace?: PageData["workspace"];
-      tasks?: TaskSummary[];
-      backups?: BackupSummary[];
-      serviceDetail?: PageData["serviceDetail"];
-    };
+    return payload as ServiceSummaryStatePayload;
   }
 
   function startActionRefresh(taskId: string) {
@@ -992,17 +992,52 @@
     errorMessage = "";
 
     try {
+      const body: Record<string, unknown> = {
+        recreateMode:
+          action === "deploy" || action === "update"
+            ? composeRecreateMode
+            : "auto",
+      };
+
+      if (action === "update") {
+        const imageUpdates: ImageUpdateSelection[] = [];
+
+        if (applyAllDetectedImages) {
+          body.useAllDetectedImageUpdates = true;
+        } else {
+          for (const check of imageUpdateChecks) {
+            if (imageUpdateSelections[check.imageName]) {
+              imageUpdates.push({
+                imageName: check.imageName,
+                useDetected: true,
+              });
+            }
+          }
+        }
+
+        const trimmed = setImageInput.trim();
+        if (trimmed) {
+          const [imageName, ...tagParts] = trimmed.split("=");
+          const targetTag = tagParts.join("=");
+          if (imageName.trim() && targetTag.trim()) {
+            imageUpdates.push({
+              imageName: imageName.trim(),
+              targetTag: targetTag.trim(),
+            });
+          }
+        }
+
+        if (imageUpdates.length > 0) {
+          body.imageUpdates = imageUpdates;
+        }
+      }
+
       const response = await fetch(
         `/services/${workspace?.folder}/actions/${action}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            recreateMode:
-              action === "deploy" || action === "update"
-                ? composeRecreateMode
-                : "auto",
-          }),
+          body: JSON.stringify(body),
         },
       );
       const payload = (await response.json()) as ServiceActionResult & {
@@ -1793,6 +1828,73 @@
                   </SelectContent>
                 </Select>
               </div>
+              {#if deployAction === "update"}
+                <div class="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-3">
+                  <div class="text-xs font-medium">
+                    {$messages.services.imageUpdates.title}
+                  </div>
+                  {#if imageUpdateChecks.length === 0}
+                    <div class="text-xs text-muted-foreground">
+                      {$messages.services.imageUpdates.noChecks}
+                    </div>
+                  {:else}
+                    <label class="flex items-center gap-2 text-xs cursor-pointer">
+                      <input
+                        type="checkbox"
+                        bind:checked={applyAllDetectedImages}
+                        class="size-3.5 accent-foreground"
+                      />
+                      {$messages.services.imageUpdates.applyAllDetected}
+                    </label>
+                    {#if !applyAllDetectedImages}
+                      <div class="space-y-1.5 max-h-48 overflow-y-auto">
+                        {#each imageUpdateChecks as check (check.imageName)}
+                          {#if check.updateAvailable && check.policyType !== "mutable_digest"}
+                            <label class="flex items-center gap-2 text-xs cursor-pointer py-0.5">
+                              <input
+                                type="checkbox"
+                                bind:checked={imageUpdateSelections[check.imageName]}
+                                class="size-3.5 accent-foreground"
+                              />
+                              <span class="text-muted-foreground">
+                                <span class="font-medium text-foreground">{check.imageName}</span>
+                                &#8239;{check.policyType}&#8239;
+                                {check.currentTag} &#8594; {check.candidateTag}
+                              </span>
+                            </label>
+                          {:else if check.policyType === "mutable_digest" && check.updateAvailable}
+                            <div class="text-xs text-muted-foreground py-0.5">
+                              <span class="font-medium text-foreground">{check.imageName}</span>
+                              &#8239;mutable&#8239;
+                              {check.currentTag}
+                              {#if check.currentDigest !== check.candidateDigest}
+                                &#8594; new digest
+                              {/if}
+                              <span class="text-green-600 dark:text-green-400 ml-1">
+                                ({$messages.services.imageUpdates.updateAvailable})
+                              </span>
+                            </div>
+                          {:else}
+                            <div class="text-xs text-muted-foreground py-0.5">
+                              <span class="font-medium text-foreground">{check.imageName}</span>
+                              &#8239;{check.policyType}&#8239;
+                              {check.currentTag}
+                            </div>
+                          {/if}
+                        {/each}
+                      </div>
+                    {/if}
+                    <div class="grid gap-1.5">
+                      <input
+                        type="text"
+                        bind:value={setImageInput}
+                        placeholder={$messages.services.imageUpdates.imageTagPlaceholder}
+                        class="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm placeholder:text-muted-foreground"
+                      />
+                    </div>
+                  {/if}
+                </div>
+              {/if}
               <div class="flex items-center">
                 <Button
                   type="button"

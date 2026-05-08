@@ -77,6 +77,25 @@ type ServiceImageState struct {
 	UpdatedAt            time.Time
 }
 
+type ServiceImageUpdateCheck struct {
+	ServiceName       string
+	NodeID            string
+	ImageName         string
+	ImageRef          string
+	PolicyType        string
+	CurrentValue      string
+	CurrentTag        string
+	CurrentDigest     string
+	CandidateTag      string
+	CandidateDigest   string
+	CandidateTagsJSON string
+	UpdateAvailable   bool
+	CheckStatus       string
+	ErrorSummary      string
+	CheckedAt         time.Time
+	UpdatedAt         time.Time
+}
+
 type ServiceSummary struct {
 	Name            string
 	IsDeclared      bool
@@ -618,6 +637,122 @@ func (db *DB) UpsertServiceImageStates(ctx context.Context, states []ServiceImag
 	return nil
 }
 
+func (db *DB) UpsertServiceImageUpdateChecks(ctx context.Context, checks []ServiceImageUpdateCheck) error {
+	if len(checks) == 0 {
+		return nil
+	}
+	tx, err := db.sql.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin service image update check upsert: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	for _, check := range checks {
+		if check.ServiceName == "" {
+			return fmt.Errorf("service name is required")
+		}
+		if check.NodeID == "" {
+			return fmt.Errorf("node id is required")
+		}
+		if check.ImageName == "" {
+			return fmt.Errorf("image name is required")
+		}
+		if check.ImageRef == "" {
+			return fmt.Errorf("image ref is required")
+		}
+		if check.CheckStatus == "" {
+			check.CheckStatus = ImageCheckStatusUnknown
+		}
+		if !IsValidImageCheckStatus(check.CheckStatus) {
+			return fmt.Errorf("invalid image check status %q", check.CheckStatus)
+		}
+		checkedAt := check.CheckedAt.UTC()
+		if checkedAt.IsZero() {
+			checkedAt = time.Now().UTC()
+		}
+		updatedAt := check.UpdatedAt.UTC()
+		if updatedAt.IsZero() {
+			updatedAt = checkedAt
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO service_image_update_checks (
+				service_name, node_id, image_name, image_ref, policy_type,
+				current_value, current_tag, current_digest,
+				candidate_tag, candidate_digest, candidate_tags_json,
+				update_available, check_status, error_summary, checked_at, updated_at
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT(service_name, node_id, image_name) DO UPDATE SET
+				image_ref = excluded.image_ref,
+				policy_type = excluded.policy_type,
+				current_value = excluded.current_value,
+				current_tag = excluded.current_tag,
+				current_digest = excluded.current_digest,
+				candidate_tag = excluded.candidate_tag,
+				candidate_digest = excluded.candidate_digest,
+				candidate_tags_json = excluded.candidate_tags_json,
+				update_available = excluded.update_available,
+				check_status = excluded.check_status,
+				error_summary = excluded.error_summary,
+				checked_at = excluded.checked_at,
+				updated_at = excluded.updated_at
+		`,
+			check.ServiceName, check.NodeID, check.ImageName, check.ImageRef, check.PolicyType,
+			check.CurrentValue, check.CurrentTag, check.CurrentDigest,
+			check.CandidateTag, check.CandidateDigest, nullableString(check.CandidateTagsJSON),
+			check.UpdateAvailable, check.CheckStatus, nullableString(check.ErrorSummary), checkedAt.Format(time.RFC3339), updatedAt.Format(time.RFC3339),
+		); err != nil {
+			return fmt.Errorf("upsert service image update check %q@%q %q: %w", check.ServiceName, check.NodeID, check.ImageName, err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit service image update check upsert: %w", err)
+	}
+	return nil
+}
+
+func (db *DB) LatestServiceImageUpdateChecks(ctx context.Context, serviceName string, nodeID string) ([]ServiceImageUpdateCheck, error) {
+	if serviceName == "" {
+		return nil, fmt.Errorf("service name is required")
+	}
+	query := `
+		SELECT service_name, node_id, image_name, image_ref, policy_type,
+			current_value, current_tag, current_digest,
+			candidate_tag, candidate_digest, COALESCE(candidate_tags_json, ''),
+			update_available, check_status, COALESCE(error_summary, ''), checked_at, updated_at
+		FROM service_image_update_checks
+		WHERE service_name = ?`
+	args := []any{serviceName}
+	if nodeID != "" {
+		query += ` AND node_id = ?`
+		args = append(args, nodeID)
+	}
+	query += ` ORDER BY image_name, node_id`
+	rows, err := db.sql.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query service image update checks: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var checks []ServiceImageUpdateCheck
+	for rows.Next() {
+		var check ServiceImageUpdateCheck
+		var checkedAt, updatedAt string
+		if err := rows.Scan(&check.ServiceName, &check.NodeID, &check.ImageName, &check.ImageRef, &check.PolicyType, &check.CurrentValue, &check.CurrentTag, &check.CurrentDigest, &check.CandidateTag, &check.CandidateDigest, &check.CandidateTagsJSON, &check.UpdateAvailable, &check.CheckStatus, &check.ErrorSummary, &checkedAt, &updatedAt); err != nil {
+			return nil, fmt.Errorf("scan service image update check: %w", err)
+		}
+		if parsed, err := time.Parse(time.RFC3339, checkedAt); err == nil {
+			check.CheckedAt = parsed
+		}
+		if parsed, err := time.Parse(time.RFC3339, updatedAt); err == nil {
+			check.UpdatedAt = parsed
+		}
+		checks = append(checks, check)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate service image update checks: %w", err)
+	}
+	return checks, nil
+}
+
 func (db *DB) migrate(ctx context.Context) error {
 	statements := []string{
 		`PRAGMA foreign_keys = ON;`,
@@ -744,6 +879,28 @@ func (db *DB) migrate(ctx context.Context) error {
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_service_image_states_update_available ON service_image_states(update_available, checked_at DESC);`,
 		`CREATE INDEX IF NOT EXISTS idx_service_image_states_service_node ON service_image_states(service_name, node_id);`,
+		`CREATE TABLE IF NOT EXISTS service_image_update_checks (
+			service_name TEXT NOT NULL,
+			node_id TEXT NOT NULL,
+			image_name TEXT NOT NULL,
+			image_ref TEXT NOT NULL,
+			policy_type TEXT NOT NULL,
+			current_value TEXT NOT NULL DEFAULT '',
+			current_tag TEXT NOT NULL DEFAULT '',
+			current_digest TEXT NOT NULL DEFAULT '',
+			candidate_tag TEXT NOT NULL DEFAULT '',
+			candidate_digest TEXT NOT NULL DEFAULT '',
+			candidate_tags_json TEXT,
+			update_available INTEGER NOT NULL DEFAULT 0,
+			check_status TEXT NOT NULL,
+			error_summary TEXT,
+			checked_at TEXT NOT NULL,
+			updated_at TEXT NOT NULL,
+			PRIMARY KEY (service_name, node_id, image_name),
+			FOREIGN KEY (service_name, node_id) REFERENCES service_instances(service_name, node_id)
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_service_image_update_checks_available ON service_image_update_checks(update_available, checked_at DESC);`,
+		`CREATE INDEX IF NOT EXISTS idx_service_image_update_checks_service_node ON service_image_update_checks(service_name, node_id);`,
 	}
 
 	for _, statement := range statements {

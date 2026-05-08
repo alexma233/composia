@@ -22,6 +22,8 @@ service ServiceQueryService {
   rpc GetServiceTasks(GetServiceTasksRequest) returns (GetServiceTasksResponse);
   // GetServiceBackups returns backups related to one service.
   rpc GetServiceBackups(GetServiceBackupsRequest) returns (GetServiceBackupsResponse);
+  // GetServiceImageUpdateChecks returns latest configured image update checks for one service.
+  rpc GetServiceImageUpdateChecks(GetServiceImageUpdateChecksRequest) returns (GetServiceImageUpdateChecksResponse);
 }
 
 // ServiceCommandService triggers service-level state changes and async actions.
@@ -236,6 +238,36 @@ message GetServiceBackupsResponse {
   uint32 total_count = 2;
 }
 
+// GetServiceImageUpdateChecksRequest identifies one service and optional node.
+message GetServiceImageUpdateChecksRequest {
+  string service_name = 1;
+  string node_id = 2;
+}
+
+// ServiceImageUpdateCheckSummary describes the latest update check for one configured image.
+message ServiceImageUpdateCheckSummary {
+  string service_name = 1;
+  string node_id = 2;
+  string image_name = 3;
+  string image_ref = 4;
+  string policy_type = 5;
+  string current_value = 6;
+  string current_tag = 7;
+  string current_digest = 8;
+  string candidate_tag = 9;
+  string candidate_digest = 10;
+  repeated string candidate_tags = 11;
+  bool update_available = 12;
+  string check_status = 13;
+  string error_summary = 14;
+  string checked_at = 15;
+}
+
+// GetServiceImageUpdateChecksResponse returns latest image update checks.
+message GetServiceImageUpdateChecksResponse {
+  repeated ServiceImageUpdateCheckSummary checks = 1;
+}
+
 // UpdateServiceTargetNodesRequest changes the full declared target node set.
 message UpdateServiceTargetNodesRequest {
   string service_name = 1;
@@ -312,6 +344,17 @@ message RunServiceActionRequest {
   repeated string data_names = 4;
   // compose_recreate_mode controls deploy/update container recreation behavior.
   ComposeRecreateMode compose_recreate_mode = 5;
+  // image_updates applies selected configured image updates before running update.
+  repeated ImageUpdateSelection image_updates = 6;
+  // use_all_detected_image_updates applies every detected image update for the service.
+  bool use_all_detected_image_updates = 7;
+}
+
+// ImageUpdateSelection identifies one configured image update to apply.
+message ImageUpdateSelection {
+  string image_name = 1;
+  string target_tag = 2;
+  bool use_detected = 3;
 }
 
 // ServiceInstanceAction identifies an async action that targets one service instance.

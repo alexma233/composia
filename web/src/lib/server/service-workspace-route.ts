@@ -2,9 +2,11 @@ import { json } from "@sveltejs/kit";
 
 import {
   loadBackups,
+  loadServiceImageUpdateChecks,
   loadServiceInstances,
   loadTasks,
   type BackupSummary,
+  type ImageUpdateCheckSummary,
   type ServiceDetail,
   type ServiceInstanceDetail,
   type TaskSummary,
@@ -21,6 +23,7 @@ export type ServiceWorkspaceSummaryData = {
   tasks: TaskSummary[];
   backups: BackupSummary[];
   serviceDetail: ServiceDetail | null;
+  imageUpdateChecks: ImageUpdateCheckSummary[];
   fileTree: ServiceFileNode[];
 };
 
@@ -54,7 +57,7 @@ export async function loadServiceWorkspaceSummary(
   folder: string,
 ): Promise<ServiceWorkspaceSummaryData> {
   const { workspace, fileTree } = await loadServiceWorkspaceFiles(folder);
-  const [tasksResult, backupsResult, serviceInstances] = await Promise.all([
+  const [tasksResult, backupsResult, serviceInstances, imageUpdateChecks] = await Promise.all([
     workspace.isDeclared && workspace.serviceName
       ? loadTasks(1, 20, { serviceName: [workspace.serviceName] })
       : Promise.resolve({ items: [], totalCount: 0 }),
@@ -63,6 +66,9 @@ export async function loadServiceWorkspaceSummary(
       : Promise.resolve({ items: [], totalCount: 0 }),
     workspace.isDeclared && workspace.serviceName
       ? loadServiceInstances(workspace.serviceName)
+      : Promise.resolve([]),
+    workspace.isDeclared && workspace.serviceName
+      ? loadServiceImageUpdateChecks(workspace.serviceName)
       : Promise.resolve([]),
   ]);
   const serviceDetail =
@@ -75,9 +81,9 @@ export async function loadServiceWorkspaceSummary(
     tasks: tasksResult.items,
     backups: backupsResult.items,
     serviceDetail,
+    imageUpdateChecks,
     fileTree,
-  };
-}
+  };}
 
 export async function loadServiceWorkspaceFiles(
   folder: string,

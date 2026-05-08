@@ -66,6 +66,31 @@ nodes:
 
 `controller.nodes[].token` 也不能重复，并且不能复用 `controller.access_tokens[].token` 中的值。
 
+## 更新配置
+
+```yaml
+controller:
+  updates:
+    default_check_schedule: "0 4 * * *"
+    auto_apply: false
+    backup_before_update: false
+    digest_pin: true
+    semver:
+      default_allow:
+        - patch
+        - minor
+```
+
+| 字段 | 必填 | 说明 |
+|------|------|------|
+| `default_check_schedule` | 否 | 镜像更新检查的默认 cron 调度，当服务级和镜像级均未指定时使用 |
+| `auto_apply` | 否 | 控制器级默认值，是否自动应用检测到的镜像更新，默认 `false` |
+| `backup_before_update` | 否 | 控制器级默认值，是否在镜像更新前执行备份，默认 `false` |
+| `digest_pin` | 否 | 控制器级默认值，是否将标签固定到 `tag@sha256:digest`，默认 `true` |
+| `semver.default_allow` | 否 | 默认允许的 semver 升级类型（`patch`、`minor`、`major`）；未设置时默认允许 `patch, minor` |
+
+各镜像和各服务的覆盖值优先于控制器级默认值。请参见[服务定义](../service-definition)中的 `update` 段落。
+
 ## 最小配置（单机部署）
 
 ```yaml

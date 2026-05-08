@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -1401,6 +1402,26 @@ func TestServiceCommandServiceUpdateDNSCreatesPendingTaskWithoutOnlineNode(t *te
 	}
 }
 
+func TestReplaceEnvFileValueUpdatesExistingKey(t *testing.T) {
+	updated, err := replaceEnvFileValue("API_VERSION=1.2.3\nOTHER=value\n", "API_VERSION", "1.3.0@sha256:new")
+	if err != nil {
+		t.Fatalf("replace env file value: %v", err)
+	}
+	if updated != "API_VERSION=1.3.0@sha256:new\nOTHER=value\n" {
+		t.Fatalf("unexpected updated env:\n%s", updated)
+	}
+}
+
+func TestReplaceYAMLPathImageValueUpdatesImage(t *testing.T) {
+	updated, err := replaceYAMLPathImageValue("services:\n  api:\n    image: ghcr.io/example/api:1.2.3\n", "services.api.image", "ghcr.io/example/api", "1.3.0@sha256:new")
+	if err != nil {
+		t.Fatalf("replace yaml path image value: %v", err)
+	}
+	if !strings.Contains(updated, "image: ghcr.io/example/api:1.3.0@sha256:new") {
+		t.Fatalf("unexpected updated yaml:\n%s", updated)
+	}
+}
+
 func TestServiceCommandServiceBackupCreatesPendingTaskWithDefaultDataNames(t *testing.T) {
 	t.Parallel()
 
@@ -1549,6 +1570,91 @@ func TestServiceCommandServiceMigrateCreatesPendingControllerTask(t *testing.T) 
 	}
 	if len(params.DataNames) != 1 || params.DataNames[0] != "config" {
 		t.Fatalf("unexpected migrate data names: %+v", params.DataNames)
+	}
+}
+
+func TestPlanRequestedServiceImageUpdatesIncludesMutableAllDetected(t *testing.T) {
+	t.Parallel()
+
+	db := openControllerTestDB(t)
+	defer func() { _ = db.Close() }()
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"app": {"main"}}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.UpsertServiceImageUpdateChecks(ctx, []store.ServiceImageUpdateCheck{{
+		ServiceName:     "app",
+		NodeID:          "main",
+		ImageName:       "web",
+		ImageRef:        "nginx",
+		PolicyType:      "mutable_digest",
+		CurrentTag:      "latest",
+		CurrentDigest:   "sha256:old",
+		CandidateTag:    "latest",
+		CandidateDigest: "sha256:new",
+		UpdateAvailable: true,
+		CheckStatus:     store.ImageCheckStatusOK,
+		CheckedAt:       time.Date(2026, 5, 8, 4, 0, 0, 0, time.UTC),
+	}}); err != nil {
+		t.Fatalf("upsert image update checks: %v", err)
+	}
+
+	backupBeforeUpdate := true
+	service := repo.Service{
+		Name:        "app",
+		TargetNodes: []string{"main"},
+		Meta: repo.ServiceMeta{Update: &repo.UpdateConfig{Images: map[string]repo.ImageUpdateConfig{
+			"web": {
+				Image:              "nginx",
+				BackupBeforeUpdate: &backupBeforeUpdate,
+				Source:             repo.ImageUpdateSource{Tag: "latest"},
+				Policy:             repo.ImageUpdatePolicy{Type: "mutable_digest"},
+			},
+		}}},
+	}
+	server := &serviceCommandServer{db: db, cfg: &config.ControllerConfig{}}
+	planned, err := server.planRequestedServiceImageUpdates(ctx, service, []string{"main"}, nil, true)
+	if err != nil {
+		t.Fatalf("plan image updates: %v", err)
+	}
+	if len(planned) != 1 || planned[0].ImageName != "web" || planned[0].RepoBacked {
+		t.Fatalf("unexpected planned mutable update: %+v", planned)
+	}
+	if !serviceImageUpdatesNeedBackup(server.cfg, service.Meta.Update, service.Meta.Update.Images, planned, nil) {
+		t.Fatalf("expected mutable all-detected update to require backup")
+	}
+}
+
+func TestPlanRequestedServiceImageUpdatesRejectsEmptyAllDetected(t *testing.T) {
+	t.Parallel()
+
+	db := openControllerTestDB(t)
+	defer func() { _ = db.Close() }()
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"app": {"main"}}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	service := repo.Service{
+		Name:        "app",
+		TargetNodes: []string{"main"},
+		Meta: repo.ServiceMeta{Update: &repo.UpdateConfig{Images: map[string]repo.ImageUpdateConfig{
+			"api": {
+				Image:  "ghcr.io/example/api",
+				Source: repo.ImageUpdateSource{File: ".env", Key: "API_TAG"},
+				Policy: repo.ImageUpdatePolicy{Type: "semver"},
+			},
+		}}},
+	}
+	server := &serviceCommandServer{db: db, cfg: &config.ControllerConfig{}}
+	_, err := server.planRequestedServiceImageUpdates(ctx, service, []string{"main"}, nil, true)
+	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Fatalf("expected failed precondition, got %v", err)
 	}
 }
 
