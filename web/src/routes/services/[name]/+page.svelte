@@ -38,7 +38,7 @@
     AlertTitle,
   } from "$lib/components/ui/alert";
   import { Badge } from "$lib/components/ui/badge";
-  import { Button } from "$lib/components/ui/button";
+  import { Button, buttonVariants } from "$lib/components/ui/button";
   import {
     Card,
     CardContent,
@@ -1793,7 +1793,7 @@
           </CardHeader>
           <CardContent class="space-y-4">
             <div class="grid gap-2">
-              <div class="flex items-center">
+              <div class="flex items-center justify-center">
                 <Button
                   type="button"
                   class="rounded-r-none border-r-0"
@@ -1803,15 +1803,12 @@
                   <Play class="mr-2 size-4" />{$messages.services.operations.deploy}
                 </Button>
                 <DropdownMenu>
-                  <DropdownMenuTrigger>
-                    <Button
-                      type="button"
-                      class="rounded-l-none px-2"
-                      aria-label={$messages.services.operations.recreate.label}
-                      disabled={!!actionBusy || !workspace?.isDeclared}
-                    >
-                      <ChevronDown class="size-4" />
-                    </Button>
+                  <DropdownMenuTrigger
+                    class={cn(buttonVariants(), "rounded-l-none border-l-0 px-2")}
+                    aria-label={$messages.services.operations.recreate.label}
+                    disabled={!!actionBusy || !workspace?.isDeclared}
+                  >
+                    <ChevronDown class="size-4" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
                     <DropdownMenuItem onclick={() => (deployRecreateMode = "auto")}>
@@ -1826,7 +1823,7 @@
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div class="flex items-center">
+              <div class="flex items-center justify-center">
                 <Button
                   type="button"
                   variant="outline"
@@ -1837,16 +1834,12 @@
                   <Upload class="mr-2 size-4" />{$messages.services.operations.update}
                 </Button>
                 <DropdownMenu>
-                  <DropdownMenuTrigger>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      class="rounded-l-none px-2"
-                      aria-label={$messages.services.operations.recreate.label}
-                      disabled={!!actionBusy || !workspace?.isDeclared}
-                    >
-                      <ChevronDown class="size-4" />
-                    </Button>
+                  <DropdownMenuTrigger
+                    class={cn(buttonVariants({ variant: "outline" }), "rounded-l-none border-l-0 px-2")}
+                    aria-label={$messages.services.operations.recreate.label}
+                    disabled={!!actionBusy || !workspace?.isDeclared}
+                  >
+                    <ChevronDown class="size-4" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
                     <DropdownMenuItem onclick={() => (updateRecreateMode = "auto")}>
