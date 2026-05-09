@@ -101,7 +101,11 @@ func (manager *execTunnelManager) registerTunnel(nodeID string) *agentExecTunnel
 		sendCh: make(chan *agentv1.OpenExecTunnelResponse, 256),
 	}
 	manager.mu.Lock()
+	previous := manager.tunnels[nodeID]
 	manager.tunnels[nodeID] = tunnel
+	if previous != nil {
+		close(previous.sendCh)
+	}
 	manager.mu.Unlock()
 	return tunnel
 }
@@ -110,10 +114,11 @@ func (manager *execTunnelManager) unregisterTunnel(nodeID string, tunnel *agentE
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 	current := manager.tunnels[nodeID]
-	if current == tunnel {
-		delete(manager.tunnels, nodeID)
-		close(tunnel.sendCh)
+	if current != tunnel {
+		return
 	}
+	delete(manager.tunnels, nodeID)
+	close(tunnel.sendCh)
 	for _, session := range manager.sessions {
 		if session.nodeID == nodeID {
 			manager.closeSessionLocked(session.id)

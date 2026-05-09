@@ -15,6 +15,8 @@ import (
 
 const DatabaseFileName = "composia.db"
 
+const sqliteSchemaVersion = 1
+
 var ErrServiceNotFound = errors.New("service not found")
 
 type DB struct {
@@ -757,10 +759,16 @@ func (db *DB) LatestServiceImageUpdateChecks(ctx context.Context, serviceName st
 	return checks, nil
 }
 
+type sqliteMigration struct {
+	version    int
+	statements []string
+}
+
 func (db *DB) migrate(ctx context.Context) error {
-	statements := []string{
-		`PRAGMA foreign_keys = ON;`,
-		`CREATE TABLE IF NOT EXISTS nodes (
+	migrations := []sqliteMigration{{
+		version: 1,
+		statements: []string{
+			`CREATE TABLE IF NOT EXISTS nodes (
 			node_id TEXT PRIMARY KEY,
 			is_configured INTEGER NOT NULL,
 			is_online INTEGER NOT NULL,
@@ -770,7 +778,7 @@ func (db *DB) migrate(ctx context.Context) error {
 			disk_total_bytes INTEGER,
 			disk_free_bytes INTEGER
 		);`,
-		`CREATE TABLE IF NOT EXISTS services (
+			`CREATE TABLE IF NOT EXISTS services (
 			service_name TEXT PRIMARY KEY,
 			is_declared INTEGER NOT NULL,
 			runtime_status TEXT NOT NULL,
@@ -778,7 +786,7 @@ func (db *DB) migrate(ctx context.Context) error {
 			updated_at TEXT NOT NULL,
 			FOREIGN KEY (last_task_id) REFERENCES tasks(task_id)
 		);`,
-		`CREATE TABLE IF NOT EXISTS service_instances (
+			`CREATE TABLE IF NOT EXISTS service_instances (
 			service_name TEXT NOT NULL,
 			node_id TEXT NOT NULL,
 			is_declared INTEGER NOT NULL,
@@ -790,7 +798,7 @@ func (db *DB) migrate(ctx context.Context) error {
 			FOREIGN KEY (node_id) REFERENCES nodes(node_id),
 			FOREIGN KEY (last_task_id) REFERENCES tasks(task_id)
 		);`,
-		`CREATE TABLE IF NOT EXISTS tasks (
+			`CREATE TABLE IF NOT EXISTS tasks (
 			task_id TEXT PRIMARY KEY,
 			type TEXT NOT NULL,
 			source TEXT NOT NULL,
@@ -811,7 +819,7 @@ func (db *DB) migrate(ctx context.Context) error {
 			FOREIGN KEY (node_id) REFERENCES nodes(node_id),
 			FOREIGN KEY (attempt_of_task_id) REFERENCES tasks(task_id)
 		);`,
-		`CREATE TABLE IF NOT EXISTS task_steps (
+			`CREATE TABLE IF NOT EXISTS task_steps (
 			task_id TEXT NOT NULL,
 			step_name TEXT NOT NULL,
 			status TEXT NOT NULL,
@@ -820,7 +828,7 @@ func (db *DB) migrate(ctx context.Context) error {
 			PRIMARY KEY (task_id, step_name),
 			FOREIGN KEY (task_id) REFERENCES tasks(task_id)
 		);`,
-		`CREATE TABLE IF NOT EXISTS backups (
+			`CREATE TABLE IF NOT EXISTS backups (
 			backup_id TEXT PRIMARY KEY,
 			task_id TEXT NOT NULL,
 			service_name TEXT NOT NULL,
@@ -835,23 +843,23 @@ func (db *DB) migrate(ctx context.Context) error {
 			FOREIGN KEY (service_name) REFERENCES services(service_name),
 			FOREIGN KEY (node_id) REFERENCES nodes(node_id)
 		);`,
-		`ALTER TABLE backups ADD COLUMN node_id TEXT;`,
-		`CREATE TABLE IF NOT EXISTS repo_state (
+			`ALTER TABLE backups ADD COLUMN node_id TEXT;`,
+			`CREATE TABLE IF NOT EXISTS repo_state (
 			singleton_id INTEGER PRIMARY KEY CHECK (singleton_id = 1),
 			sync_status TEXT NOT NULL,
 			last_sync_error TEXT,
 			last_successful_pull_at TEXT
 		);`,
-		`CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at DESC);`,
-		`CREATE INDEX IF NOT EXISTS idx_tasks_status_created_at ON tasks(status, created_at DESC);`,
-		`CREATE INDEX IF NOT EXISTS idx_tasks_service_created_at ON tasks(service_name, created_at DESC);`,
-		`CREATE INDEX IF NOT EXISTS idx_tasks_node_created_at ON tasks(node_id, created_at DESC);`,
-		`CREATE INDEX IF NOT EXISTS idx_services_declared_runtime_status ON services(is_declared, runtime_status);`,
-		`CREATE INDEX IF NOT EXISTS idx_service_instances_service_node ON service_instances(service_name, node_id);`,
-		`CREATE INDEX IF NOT EXISTS idx_service_instances_service_runtime_status ON service_instances(service_name, runtime_status);`,
-		`CREATE INDEX IF NOT EXISTS idx_backups_service_finished_at ON backups(service_name, finished_at DESC);`,
-		`CREATE INDEX IF NOT EXISTS idx_backups_status_finished_at ON backups(status, finished_at DESC);`,
-		`CREATE TABLE IF NOT EXISTS docker_stats (
+			`CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at DESC);`,
+			`CREATE INDEX IF NOT EXISTS idx_tasks_status_created_at ON tasks(status, created_at DESC);`,
+			`CREATE INDEX IF NOT EXISTS idx_tasks_service_created_at ON tasks(service_name, created_at DESC);`,
+			`CREATE INDEX IF NOT EXISTS idx_tasks_node_created_at ON tasks(node_id, created_at DESC);`,
+			`CREATE INDEX IF NOT EXISTS idx_services_declared_runtime_status ON services(is_declared, runtime_status);`,
+			`CREATE INDEX IF NOT EXISTS idx_service_instances_service_node ON service_instances(service_name, node_id);`,
+			`CREATE INDEX IF NOT EXISTS idx_service_instances_service_runtime_status ON service_instances(service_name, runtime_status);`,
+			`CREATE INDEX IF NOT EXISTS idx_backups_service_finished_at ON backups(service_name, finished_at DESC);`,
+			`CREATE INDEX IF NOT EXISTS idx_backups_status_finished_at ON backups(status, finished_at DESC);`,
+			`CREATE TABLE IF NOT EXISTS docker_stats (
 			node_id TEXT PRIMARY KEY,
 			containers_total INTEGER NOT NULL,
 			containers_running INTEGER NOT NULL,
@@ -866,7 +874,7 @@ func (db *DB) migrate(ctx context.Context) error {
 			reported_at TEXT NOT NULL,
 			FOREIGN KEY (node_id) REFERENCES nodes(node_id)
 		);`,
-		`CREATE TABLE IF NOT EXISTS service_image_states (
+			`CREATE TABLE IF NOT EXISTS service_image_states (
 			service_name TEXT NOT NULL,
 			node_id TEXT NOT NULL,
 			compose_service TEXT NOT NULL,
@@ -881,9 +889,9 @@ func (db *DB) migrate(ctx context.Context) error {
 			PRIMARY KEY (service_name, node_id, compose_service, image_ref),
 			FOREIGN KEY (service_name, node_id) REFERENCES service_instances(service_name, node_id)
 		);`,
-		`CREATE INDEX IF NOT EXISTS idx_service_image_states_update_available ON service_image_states(update_available, checked_at DESC);`,
-		`CREATE INDEX IF NOT EXISTS idx_service_image_states_service_node ON service_image_states(service_name, node_id);`,
-		`CREATE TABLE IF NOT EXISTS service_image_update_checks (
+			`CREATE INDEX IF NOT EXISTS idx_service_image_states_update_available ON service_image_states(update_available, checked_at DESC);`,
+			`CREATE INDEX IF NOT EXISTS idx_service_image_states_service_node ON service_image_states(service_name, node_id);`,
+			`CREATE TABLE IF NOT EXISTS service_image_update_checks (
 			service_name TEXT NOT NULL,
 			node_id TEXT NOT NULL,
 			image_name TEXT NOT NULL,
@@ -903,19 +911,59 @@ func (db *DB) migrate(ctx context.Context) error {
 			PRIMARY KEY (service_name, node_id, image_name),
 			FOREIGN KEY (service_name, node_id) REFERENCES service_instances(service_name, node_id)
 		);`,
-		`CREATE INDEX IF NOT EXISTS idx_service_image_update_checks_available ON service_image_update_checks(update_available, checked_at DESC);`,
-		`CREATE INDEX IF NOT EXISTS idx_service_image_update_checks_service_node ON service_image_update_checks(service_name, node_id);`,
-	}
+			`CREATE INDEX IF NOT EXISTS idx_service_image_update_checks_available ON service_image_update_checks(update_available, checked_at DESC);`,
+			`CREATE INDEX IF NOT EXISTS idx_service_image_update_checks_service_node ON service_image_update_checks(service_name, node_id);`,
+		},
+	}}
 
-	for _, statement := range statements {
-		if _, err := db.sql.ExecContext(ctx, statement); err != nil {
-			if statement == `ALTER TABLE backups ADD COLUMN node_id TEXT;` && isDuplicateColumnError(err) {
-				continue
+	tx, err := db.sql.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin sqlite migration: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	currentVersion, err := sqliteUserVersion(ctx, tx)
+	if err != nil {
+		return err
+	}
+	for _, migration := range migrations {
+		if migration.version <= currentVersion {
+			continue
+		}
+		for _, statement := range migration.statements {
+			if err := applySQLiteMigrationStatement(ctx, tx, statement); err != nil {
+				return err
 			}
-			return fmt.Errorf("apply sqlite schema statement: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, fmt.Sprintf(`PRAGMA user_version = %d;`, migration.version)); err != nil {
+			return fmt.Errorf("set sqlite schema version %d: %w", migration.version, err)
 		}
 	}
 
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit sqlite migration: %w", err)
+	}
+	return nil
+}
+
+func sqliteUserVersion(ctx context.Context, tx *sql.Tx) (int, error) {
+	var version int
+	if err := tx.QueryRowContext(ctx, `PRAGMA user_version;`).Scan(&version); err != nil {
+		return 0, fmt.Errorf("read sqlite schema version: %w", err)
+	}
+	if version > sqliteSchemaVersion {
+		return 0, fmt.Errorf("sqlite schema version %d is newer than supported version %d", version, sqliteSchemaVersion)
+	}
+	return version, nil
+}
+
+func applySQLiteMigrationStatement(ctx context.Context, tx *sql.Tx, statement string) error {
+	if _, err := tx.ExecContext(ctx, statement); err != nil {
+		if statement == `ALTER TABLE backups ADD COLUMN node_id TEXT;` && isDuplicateColumnError(err) {
+			return nil
+		}
+		return fmt.Errorf("apply sqlite schema statement: %w", err)
+	}
 	return nil
 }
 

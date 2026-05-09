@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"os"
 	"path/filepath"
 	"testing"
@@ -147,5 +148,89 @@ func TestServiceImageUpdateChecksRoundTrip(t *testing.T) {
 	check := checks[0]
 	if !check.UpdateAvailable || check.CandidateTag != "1.3.0" || check.CandidateTagsJSON != `["1.3.0"]` {
 		t.Fatalf("unexpected check: %+v", check)
+	}
+}
+
+func TestMigrateSetsSQLiteUserVersion(t *testing.T) {
+	t.Parallel()
+
+	stateDir := filepath.Join(t.TempDir(), "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	db, err := Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	var version int
+	if err := db.sql.QueryRowContext(context.Background(), `PRAGMA user_version;`).Scan(&version); err != nil {
+		t.Fatalf("read sqlite user_version: %v", err)
+	}
+	if version != sqliteSchemaVersion {
+		t.Fatalf("expected sqlite user_version %d, got %d", sqliteSchemaVersion, version)
+	}
+}
+
+func TestMigrateAddsBackupNodeIDToLegacyDatabase(t *testing.T) {
+	t.Parallel()
+
+	stateDir := filepath.Join(t.TempDir(), "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	legacySQL, err := sql.Open("sqlite", filepath.Join(stateDir, DatabaseFileName))
+	if err != nil {
+		t.Fatalf("open legacy sqlite db: %v", err)
+	}
+	if _, err := legacySQL.Exec(`CREATE TABLE backups (
+		backup_id TEXT PRIMARY KEY,
+		task_id TEXT NOT NULL,
+		service_name TEXT NOT NULL,
+		data_name TEXT NOT NULL,
+		status TEXT NOT NULL,
+		started_at TEXT NOT NULL,
+		finished_at TEXT,
+		artifact_ref TEXT,
+		error_summary TEXT
+	);`); err != nil {
+		_ = legacySQL.Close()
+		t.Fatalf("create legacy backups table: %v", err)
+	}
+	if err := legacySQL.Close(); err != nil {
+		t.Fatalf("close legacy sqlite db: %v", err)
+	}
+
+	db, err := Open(stateDir)
+	if err != nil {
+		t.Fatalf("open migrated sqlite db: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	rows, err := db.sql.QueryContext(context.Background(), `PRAGMA table_info(backups);`)
+	if err != nil {
+		t.Fatalf("read backups columns: %v", err)
+	}
+	defer func() { _ = rows.Close() }()
+	foundNodeID := false
+	for rows.Next() {
+		var cid int
+		var name, columnType string
+		var notNull int
+		var defaultValue sql.NullString
+		var primaryKey int
+		if err := rows.Scan(&cid, &name, &columnType, &notNull, &defaultValue, &primaryKey); err != nil {
+			t.Fatalf("scan backups column: %v", err)
+		}
+		if name == "node_id" {
+			foundNodeID = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate backups columns: %v", err)
+	}
+	if !foundNodeID {
+		t.Fatal("expected migration to add backups.node_id")
 	}
 }

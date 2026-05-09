@@ -210,6 +210,40 @@ func TestExecTunnelManagerDoesNotBlockWhenAgentQueueIsFull(t *testing.T) {
 	}
 }
 
+func TestExecTunnelManagerOldTunnelUnregisterDoesNotCloseNewSessions(t *testing.T) {
+	t.Parallel()
+
+	manager := newExecTunnelManager()
+	oldTunnel := manager.registerTunnel("main")
+	newTunnel := manager.registerTunnel("main")
+	select {
+	case _, ok := <-oldTunnel.sendCh:
+		if ok {
+			t.Fatal("expected old tunnel send channel to be closed")
+		}
+	default:
+		t.Fatal("expected old tunnel send channel to be closed")
+	}
+
+	session, err := manager.openSession("main", "ctr", []string{"/bin/sh"}, 24, 80, "https://web.example.test", "web-admin")
+	if err != nil {
+		t.Fatalf("open session on new tunnel: %v", err)
+	}
+	select {
+	case message := <-newTunnel.sendCh:
+		if message.GetSessionId() != session.id {
+			t.Fatalf("expected start message for session %q, got %+v", session.id, message)
+		}
+	default:
+		t.Fatal("expected new tunnel to receive session start")
+	}
+
+	manager.unregisterTunnel("main", oldTunnel)
+	if got := manager.lookupSession(session.id); got == nil {
+		t.Fatal("expected new tunnel session to survive old tunnel unregister")
+	}
+}
+
 func websocketURL(baseURL, path string) string {
 	return "ws" + strings.TrimPrefix(baseURL, "http") + path
 }

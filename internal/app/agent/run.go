@@ -1511,7 +1511,10 @@ func localServiceRoot(repoDir string, pulledTask *agentv1.AgentTask, bundle *bun
 	if pulledTask.GetServiceDir() == "" {
 		return "", fmt.Errorf("task is missing service_dir")
 	}
-	serviceRoot := filepath.Join(repoDir, pulledTask.GetServiceDir())
+	serviceRoot, _, err := resolveRepoRelativePath(repoDir, pulledTask.GetServiceDir(), "service_dir")
+	if err != nil {
+		return "", err
+	}
 	if _, err := os.Stat(filepath.Join(serviceRoot, "composia-meta.yaml")); err != nil {
 		if os.IsNotExist(err) {
 			return "", fmt.Errorf("service bundle for %q is not present on agent", pulledTask.GetServiceName())
@@ -2257,12 +2260,16 @@ func downloadServiceBundle(ctx context.Context, client agentv1connect.BundleServ
 	if relativeRoot == "" {
 		return nil, fmt.Errorf("bundle stream did not include relative_root metadata")
 	}
+	targetRoot, cleanRelativeRoot, err := resolveRepoRelativePath(cfg.RepoDir, relativeRoot, "relative_root")
+	if err != nil {
+		return nil, err
+	}
+	result.RelativeRoot = cleanRelativeRoot
 	if err := tempFile.Close(); err != nil {
 		return nil, fmt.Errorf("close temp bundle file: %w", err)
 	}
 	tempFile = nil
 
-	targetRoot := filepath.Join(cfg.RepoDir, relativeRoot)
 	stageParentDir := filepath.Dir(targetRoot)
 	if err := os.MkdirAll(stageParentDir, 0o755); err != nil {
 		return nil, fmt.Errorf("create bundle stage parent dir %q: %w", stageParentDir, err)
@@ -2275,10 +2282,10 @@ func downloadServiceBundle(ctx context.Context, client agentv1connect.BundleServ
 	if err := extractTarGz(tempPath, stageDir); err != nil {
 		return nil, err
 	}
-	stagedRoot := filepath.Join(stageDir, relativeRoot)
+	stagedRoot := filepath.Join(stageDir, cleanRelativeRoot)
 	if _, err := os.Stat(stagedRoot); err != nil {
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("bundle archive did not contain expected root %q", relativeRoot)
+			return nil, fmt.Errorf("bundle archive did not contain expected root %q", cleanRelativeRoot)
 		}
 		return nil, fmt.Errorf("stat staged bundle root %q: %w", stagedRoot, err)
 	}
@@ -3201,6 +3208,32 @@ func pathInside(parent, child string) bool {
 		return false
 	}
 	return relative == "." || (relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)))
+}
+
+func resolveRepoRelativePath(repoDir, relativePath, fieldName string) (string, string, error) {
+	cleanRelativePath := filepath.Clean(strings.TrimSpace(relativePath))
+	if cleanRelativePath == "" || cleanRelativePath == "." {
+		return "", "", fmt.Errorf("%s must reference a service directory", fieldName)
+	}
+	if filepath.IsAbs(cleanRelativePath) {
+		return "", "", fmt.Errorf("%s %q must be relative", fieldName, relativePath)
+	}
+	if cleanRelativePath == ".." || strings.HasPrefix(cleanRelativePath, ".."+string(filepath.Separator)) {
+		return "", "", fmt.Errorf("%s %q escapes repo root", fieldName, relativePath)
+	}
+
+	absoluteRepoDir, err := filepath.Abs(repoDir)
+	if err != nil {
+		return "", "", fmt.Errorf("resolve repo_dir %q: %w", repoDir, err)
+	}
+	absolutePath, err := filepath.Abs(filepath.Join(absoluteRepoDir, cleanRelativePath))
+	if err != nil {
+		return "", "", fmt.Errorf("resolve %s %q: %w", fieldName, relativePath, err)
+	}
+	if !pathInside(absoluteRepoDir, absolutePath) {
+		return "", "", fmt.Errorf("%s %q escapes repo root", fieldName, relativePath)
+	}
+	return absolutePath, filepath.ToSlash(cleanRelativePath), nil
 }
 
 func runComposeUp(ctx context.Context, serviceDir string, compose composeCommandConfig, uploadLog func(string) error) error {

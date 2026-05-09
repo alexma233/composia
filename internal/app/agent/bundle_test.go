@@ -17,6 +17,7 @@ import (
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
+	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 )
 
@@ -230,6 +231,60 @@ func TestDownloadServiceBundleSendsServiceDirOverride(t *testing.T) {
 	}
 	if result.RelativeRoot != "bravo" || result.RootPath != filepath.Join(cfg.RepoDir, "bravo") {
 		t.Fatalf("unexpected overridden bundle result: %+v", result)
+	}
+}
+
+func TestDownloadServiceBundleRejectsEscapingRelativeRoot(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
+	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+		t.Fatalf("create repo dir: %v", err)
+	}
+	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+
+	bundle := buildBundleArchive(t, map[string]string{"outside/composia-meta.yaml": "name: outside\n"})
+	mux := http.NewServeMux()
+	path, handler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle, responseRelativeRoot: "../outside"}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errString("unexpected token")
+		}
+		return "main", nil
+	})))
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := agentv1connect.NewBundleServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	if _, err := downloadServiceBundle(context.Background(), client, cfg, "task-1", ""); err == nil || !strings.Contains(err.Error(), "escapes repo root") {
+		t.Fatalf("expected escaping relative_root error, got %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(rootDir, "outside")); !os.IsNotExist(err) {
+		t.Fatalf("expected outside path to stay absent, got stat err=%v", err)
+	}
+}
+
+func TestLocalServiceRootRejectsEscapingServiceDir(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	if err := os.MkdirAll(repoDir, 0o755); err != nil {
+		t.Fatalf("create repo dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(rootDir, "outside"), 0o755); err != nil {
+		t.Fatalf("create outside dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(rootDir, "outside", "composia-meta.yaml"), []byte("name: outside\n"), 0o644); err != nil {
+		t.Fatalf("write outside meta: %v", err)
+	}
+
+	pulledTask := &agentv1.AgentTask{TaskId: "task-1", Type: string(task.TypeDeploy), ServiceName: "outside", ServiceDir: "../outside"}
+	if _, err := localServiceRoot(repoDir, pulledTask, nil); err == nil || !strings.Contains(err.Error(), "escapes repo root") {
+		t.Fatalf("expected escaping service_dir error, got %v", err)
 	}
 }
 

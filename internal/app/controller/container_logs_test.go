@@ -147,3 +147,39 @@ func TestContainerLogTunnelManagerDoesNotBlockWhenAgentQueueIsFull(t *testing.T)
 		t.Fatal("openSession blocked on full tunnel queue")
 	}
 }
+
+func TestContainerLogTunnelManagerOldTunnelUnregisterDoesNotCloseNewSessions(t *testing.T) {
+	t.Parallel()
+
+	manager := newContainerLogTunnelManager()
+	oldTunnel := manager.registerTunnel("main")
+	newTunnel := manager.registerTunnel("main")
+	select {
+	case _, ok := <-oldTunnel.sendCh:
+		if ok {
+			t.Fatal("expected old tunnel send channel to be closed")
+		}
+	default:
+		t.Fatal("expected old tunnel send channel to be closed")
+	}
+
+	session, err := manager.openSession("main", "ctr", "", false)
+	if err != nil {
+		t.Fatalf("open session on new tunnel: %v", err)
+	}
+	select {
+	case message := <-newTunnel.sendCh:
+		if message.GetSessionId() != session.id {
+			t.Fatalf("expected start message for session %q, got %+v", session.id, message)
+		}
+	default:
+		t.Fatal("expected new tunnel to receive session start")
+	}
+
+	manager.unregisterTunnel("main", oldTunnel)
+	manager.mu.Lock()
+	defer manager.mu.Unlock()
+	if manager.sessions[session.id] == nil {
+		t.Fatal("expected new tunnel session to survive old tunnel unregister")
+	}
+}

@@ -56,7 +56,11 @@ func (manager *containerLogTunnelManager) registerTunnel(nodeID string) *agentCo
 		sendCh: make(chan *agentv1.OpenContainerLogTunnelResponse, 256),
 	}
 	manager.mu.Lock()
+	previous := manager.tunnels[nodeID]
 	manager.tunnels[nodeID] = tunnel
+	if previous != nil {
+		close(previous.sendCh)
+	}
 	manager.mu.Unlock()
 	return tunnel
 }
@@ -64,10 +68,11 @@ func (manager *containerLogTunnelManager) registerTunnel(nodeID string) *agentCo
 func (manager *containerLogTunnelManager) unregisterTunnel(nodeID string, tunnel *agentContainerLogTunnel) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
-	if manager.tunnels[nodeID] == tunnel {
-		delete(manager.tunnels, nodeID)
-		close(tunnel.sendCh)
+	if manager.tunnels[nodeID] != tunnel {
+		return
 	}
+	delete(manager.tunnels, nodeID)
+	close(tunnel.sendCh)
 	for sessionID, session := range manager.sessions {
 		if session.nodeID != nodeID {
 			continue
