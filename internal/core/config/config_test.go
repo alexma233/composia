@@ -233,6 +233,34 @@ controller:
 	}
 }
 
+func TestLoadControllerRejectsInvalidAlertmanagerListenPath(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.yaml")
+	content := strings.TrimSpace(`
+controller:
+  listen_addr: ":8080"
+  repo_dir: "/srv/composia/repo"
+  state_dir: "/srv/composia/state-controller"
+  log_dir: "/srv/composia/logs"
+  nodes:
+    - id: "main"
+      token: "main-token"
+  notifications:
+    alertmanager:
+      listen_path: "alerts"
+`) + "\n"
+
+	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	_, err := LoadController(configPath)
+	if err == nil || !strings.Contains(err.Error(), "controller.notifications.alertmanager.listen_path") {
+		t.Fatalf("expected alertmanager path validation error, got %v", err)
+	}
+}
+
 func TestLoadControllerAcceptsGitAuthUsername(t *testing.T) {
 	t.Parallel()
 

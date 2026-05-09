@@ -247,10 +247,55 @@ services:
 - **Real-time Status**: Web UI displays service, container, and node status in real-time
 - **Resource Usage**: Node disk capacity and Docker inventory counts
 - **Log Viewing**: Streaming task logs and on-demand container log fetches
+- **Prometheus Metrics**: Built-in `GET /metrics` endpoint with Bearer token auth. See [Notification Configuration](./configuration/notifications) for available metrics
+
+### Built-in Notifications
+
+Composia supports SMTP and Telegram notification channels for task lifecycle, backup, image update, and node online/offline events. Configure them under `controller.notifications`:
+
+```yaml
+controller:
+  notifications:
+    smtp:
+      enabled: true
+      host: smtp.example.com
+      port: 465
+      encryption: ssl_tls
+      from: "bot@example.com"
+      to:
+        - "admin@example.com"
+      on:
+        - task_failed
+        - node_offline
+      task_sources:
+        - schedule
+    telegram:
+      enabled: true
+      bot_token: "123456:ABC-..."
+      chat_id: "-1001234567890"
+      on:
+        - task_failed
+        - backup_failed
+```
+
+An Alertmanager-compatible webhook endpoint is also available. See [Notification Configuration](./configuration/notifications) for the full event list and setup details.
 
 ### Recommended Monitoring Solutions
 
 **Integrate Prometheus + Grafana:**
+
+Scrape the composia controller's `/metrics` endpoint:
+
+```yaml
+scrape_configs:
+  - job_name: composia
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['composia-controller:8080']
+    authorization:
+      type: Bearer
+      credentials: your-access-token
+```
 
 Deploy node-exporter and cadvisor on nodes to be monitored:
 
@@ -273,9 +318,7 @@ services:
       - /var/lib/docker:/var/lib/docker:ro
 ```
 
-**Custom Alerts:**
-
-Use ConnectRPC query methods such as `composia.controller.v1.ServiceQueryService/GetService` together with external alerting systems.
+For task-specific and node events, the built-in notification channels (SMTP, Telegram, Alertmanager webhook) are the recommended alerting path. See [Notification Configuration](./configuration/notifications) for configuration examples and supported events.
 
 ## Related Documentation
 
@@ -283,5 +326,6 @@ Use ConnectRPC query methods such as `composia.controller.v1.ServiceQueryService
 - [Backup & Migration](./backup-migrate) — Data protection operations
 - [DNS Configuration](./dns) — DNS configuration and updates
 - [Caddy Configuration](./caddy) — Proxy configuration and automated sync
+- [Notification Configuration](./configuration/notifications) — SMTP, Telegram, and Alertmanager webhook setup
 - [Troubleshooting](./troubleshooting) — Common issues and solutions
 - [Development Guide](./development) — Development and debugging

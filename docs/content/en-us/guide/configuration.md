@@ -16,6 +16,7 @@ Configuration loading is strict: unknown fields are rejected during startup.
 | Configure DNS records for services | [DNS Configuration (controller)](./configuration/dns) |
 | Schedule automatic backups | [Backup Configuration](./configuration/backup) |
 | Enable secrets encryption | [Secrets Configuration](./configuration/secrets) |
+| Set up SMTP or Telegram notifications | [Notification Configuration](./configuration/notifications) |
 | Define a service (composia-meta.yaml) | [Service Definition](./service-definition) |
 | Verify config is valid | [Configuration Verification](./configuration/verification) |
 | Secure token and key files | [Configuration Security](./configuration/security) |
@@ -97,6 +98,24 @@ controller:
     recipient_file: "/app/configs/age-recipients.txt"
     armor: true
 
+  # Notification configuration (optional)
+  notifications:
+    smtp:
+      enabled: true
+      host: smtp.example.com
+      port: 465
+      encryption: ssl_tls
+      username: "bot@example.com"
+      password: "secret"
+      from: "bot@example.com"
+      to:
+        - "admin@example.com"
+      on:
+        - task_failed
+        - backup_failed
+      task_sources:
+        - schedule
+
 agent:
   controller_addr: "http://controller:7001"
   controller_grpc: false
@@ -116,6 +135,7 @@ agent:
 - [DNS Configuration](./configuration/dns) — `controller.dns` and how it relates to service-side DNS settings
 - [Backup Configuration](./configuration/backup) — `controller.backup`, `controller.rustic`, and service-side schedule override rules
 - [Secrets Configuration](./configuration/secrets) — `controller.secrets`, age key files, and enablement requirements
+- [Notification Configuration](./configuration/notifications) — `controller.notifications`, SMTP, Telegram, Alertmanager webhook, and event filtering
 - [Configuration Security](./configuration/security) — token and key file handling recommendations
 - [Configuration Verification](./configuration/verification) — validating config from local source-based development
 

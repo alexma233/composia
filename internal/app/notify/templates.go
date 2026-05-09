@@ -2,6 +2,7 @@ package notify
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -18,6 +19,8 @@ func renderEvent(event Event) (string, string, error) {
 		return renderImageUpdateEvent(event)
 	case corenotify.EventNodeOffline, corenotify.EventNodeOnline:
 		return renderNodeEvent(event)
+	case corenotify.EventAlertmanagerAlert:
+		return renderAlertmanagerEvent(event)
 	default:
 		return "", "", fmt.Errorf("unsupported notification event %q", event.Type)
 	}
@@ -111,6 +114,49 @@ func renderNodeEvent(event Event) (string, string, error) {
 		fmt.Sprintf("Observed At: %s", formatTime(event.OccurredAt)),
 	}
 	return subject, strings.Join(lines, "\n"), nil
+}
+
+func renderAlertmanagerEvent(event Event) (string, string, error) {
+	if event.Alertmanager == nil {
+		return "", "", fmt.Errorf("alertmanager payload is missing for %q", event.Type)
+	}
+	subject := fmt.Sprintf("[composia] %s %s", event.Type, displayString(event.Alertmanager.AlertName))
+	lines := []string{
+		fmt.Sprintf("Event: %s", event.Type),
+		fmt.Sprintf("Receiver: %s", displayString(event.Alertmanager.Receiver)),
+		fmt.Sprintf("Alert Status: %s", displayString(event.Alertmanager.Status)),
+		fmt.Sprintf("Group Status: %s", displayString(event.Alertmanager.GroupStatus)),
+		fmt.Sprintf("Alert Name: %s", displayString(event.Alertmanager.AlertName)),
+		fmt.Sprintf("Severity: %s", displayString(event.Alertmanager.Severity)),
+		fmt.Sprintf("Instance: %s", displayString(event.Alertmanager.Instance)),
+		fmt.Sprintf("Summary: %s", displayString(event.Alertmanager.Summary)),
+		fmt.Sprintf("Description: %s", displayString(event.Alertmanager.Description)),
+		fmt.Sprintf("Starts At: %s", formatOptionalTime(event.Alertmanager.StartsAt)),
+		fmt.Sprintf("Ends At: %s", formatOptionalTime(event.Alertmanager.EndsAt)),
+		fmt.Sprintf("Generator URL: %s", displayString(event.Alertmanager.GeneratorURL)),
+		fmt.Sprintf("External URL: %s", displayString(event.Alertmanager.ExternalURL)),
+		fmt.Sprintf("Fingerprint: %s", displayString(event.Alertmanager.Fingerprint)),
+		fmt.Sprintf("Observed At: %s", formatTime(event.OccurredAt)),
+	}
+	lines = append(lines, formatStringMapBlock("Labels", event.Alertmanager.Labels)...)
+	lines = append(lines, formatStringMapBlock("Annotations", event.Alertmanager.Annotations)...)
+	return subject, strings.Join(lines, "\n"), nil
+}
+
+func formatStringMapBlock(title string, values map[string]string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	lines := []string{title + ":"}
+	for _, key := range keys {
+		lines = append(lines, fmt.Sprintf("%s=%s", key, displayString(values[key])))
+	}
+	return lines
 }
 
 func formatTime(value time.Time) string {

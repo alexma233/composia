@@ -16,6 +16,7 @@
 | 为服务配置 DNS 记录 | [DNS 配置（Controller）](./configuration/dns) |
 | 定时自动备份 | [备份配置](./configuration/backup) |
 | 启用 Secrets 加密 | [Secrets 配置](./configuration/secrets) |
+| 配置 SMTP 或 Telegram 通知 | [通知配置](./configuration/notifications) |
 | 定义服务（composia-meta.yaml） | [服务定义](./service-definition) |
 | 验证配置是否有效 | [配置验证](./configuration/verification) |
 | 保护 token 和密钥文件 | [配置安全](./configuration/security) |
@@ -97,6 +98,24 @@ controller:
     recipient_file: "/app/configs/age-recipients.txt"
     armor: true
 
+  # 通知配置（可选）
+  notifications:
+    smtp:
+      enabled: true
+      host: smtp.example.com
+      port: 465
+      encryption: ssl_tls
+      username: "bot@example.com"
+      password: "secret"
+      from: "bot@example.com"
+      to:
+        - "admin@example.com"
+      on:
+        - task_failed
+        - backup_failed
+      task_sources:
+        - schedule
+
 agent:
   controller_addr: "http://controller:7001"
   controller_grpc: false
@@ -116,6 +135,7 @@ agent:
 - [DNS 配置](./configuration/dns) —— `controller.dns` 的字段说明与和服务侧 DNS 的关系
 - [备份配置](./configuration/backup) —— `controller.backup`、`controller.rustic` 与服务侧备份定时覆盖规则
 - [Secrets 配置](./configuration/secrets) —— `controller.secrets`、age 密钥文件和启用方式
+- [通知配置](./configuration/notifications) —— `controller.notifications`、SMTP、Telegram、Alertmanager webhook 和事件过滤
 - [配置安全](./configuration/security) —— token 与密钥文件的存放和挂载建议
 - [配置验证](./configuration/verification) —— 本地源码启动时的验证方式
 

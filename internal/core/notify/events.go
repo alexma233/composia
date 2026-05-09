@@ -13,6 +13,7 @@ const (
 	EventImageUpdateApplied       EventType = "image_update_applied"
 	EventNodeOffline              EventType = "node_offline"
 	EventNodeOnline               EventType = "node_online"
+	EventAlertmanagerAlert        EventType = "alertmanager_alert"
 )
 
 func IsValidEventType(value string) bool {
@@ -26,7 +27,8 @@ func IsValidEventType(value string) bool {
 		EventImageUpdateAvailable,
 		EventImageUpdateApplied,
 		EventNodeOffline,
-		EventNodeOnline:
+		EventNodeOnline,
+		EventAlertmanagerAlert:
 		return true
 	default:
 		return false

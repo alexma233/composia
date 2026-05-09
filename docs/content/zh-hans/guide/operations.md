@@ -263,10 +263,55 @@ services:
 - **实时状态**: Web UI 实时显示服务、容器、节点状态
 - **资源使用**: 节点磁盘容量和 Docker 资源数量统计
 - **日志查看**: 流式任务日志，以及按需拉取的容器日志
+- **Prometheus 指标**: 内置 `GET /metrics` 端点，带 Bearer token 认证。可用指标详见 [通知配置](./configuration/notifications)
+
+### 内置通知
+
+Composia 内建支持 SMTP 和 Telegram 通知通道，可覆盖任务生命周期、备份、镜像更新和节点上下线事件。在 `controller.notifications` 下配置：
+
+```yaml
+controller:
+  notifications:
+    smtp:
+      enabled: true
+      host: smtp.example.com
+      port: 465
+      encryption: ssl_tls
+      from: "bot@example.com"
+      to:
+        - "admin@example.com"
+      on:
+        - task_failed
+        - node_offline
+      task_sources:
+        - schedule
+    telegram:
+      enabled: true
+      bot_token: "123456:ABC-..."
+      chat_id: "-1001234567890"
+      on:
+        - task_failed
+        - backup_failed
+```
+
+也提供 Alertmanager 兼容的 webhook 端点。完整事件列表和配置详情请参考 [通知配置](./configuration/notifications)。
 
 ### 建议的监控方案
 
 **集成 Prometheus + Grafana：**
+
+抓取 composia controller 的 `/metrics` 端点：
+
+```yaml
+scrape_configs:
+  - job_name: composia
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['composia-controller:8080']
+    authorization:
+      type: Bearer
+      credentials: your-access-token
+```
 
 在需要监控的节点上部署 node-exporter 和 cadvisor：
 
@@ -289,9 +334,7 @@ services:
       - /var/lib/docker:/var/lib/docker:ro
 ```
 
-**自定义告警：**
-
-可将 ConnectRPC 查询方法（例如 `composia.controller.v1.ServiceQueryService/GetService`）与外部告警系统结合使用。
+对于任务和节点事件，推荐使用内置通知通道（SMTP、Telegram、Alertmanager webhook）。配置示例和支持的事件类型请参考 [通知配置](./configuration/notifications)。
 
 ## 相关文档
 
@@ -299,5 +342,6 @@ services:
 - [备份与迁移](./backup-migrate) —— 数据保护操作
 - [DNS 配置](./dns) —— DNS 配置与更新
 - [Caddy 配置](./caddy) —— 代理配置与自动同步
+- [通知配置](./configuration/notifications) —— SMTP、Telegram、Alertmanager webhook 配置
 - [故障排查](./troubleshooting) —— 常见问题与解决方法
 - [开发指南](./development) —— 开发与调试

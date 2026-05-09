@@ -8,13 +8,14 @@ import (
 )
 
 type Event struct {
-	Type        corenotify.EventType
-	OccurredAt  time.Time
-	Source      task.Source
-	Task        *TaskEvent
-	Backup      *BackupEvent
-	ImageUpdate *ImageUpdateEvent
-	Node        *NodeEvent
+	Type         corenotify.EventType
+	OccurredAt   time.Time
+	Source       task.Source
+	Task         *TaskEvent
+	Backup       *BackupEvent
+	ImageUpdate  *ImageUpdateEvent
+	Node         *NodeEvent
+	Alertmanager *AlertmanagerEvent
 }
 
 type TaskEvent struct {
@@ -56,4 +57,25 @@ type ImageUpdateEvent struct {
 type NodeEvent struct {
 	NodeID        string
 	LastHeartbeat string
+}
+
+type AlertmanagerEvent struct {
+	Receiver          string
+	Status            string
+	GroupStatus       string
+	AlertName         string
+	Severity          string
+	Instance          string
+	Summary           string
+	Description       string
+	ExternalURL       string
+	GeneratorURL      string
+	Fingerprint       string
+	StartsAt          *time.Time
+	EndsAt            *time.Time
+	Labels            map[string]string
+	Annotations       map[string]string
+	GroupLabels       map[string]string
+	CommonLabels      map[string]string
+	CommonAnnotations map[string]string
 }

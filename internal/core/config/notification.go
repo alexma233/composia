@@ -9,14 +9,21 @@ import (
 )
 
 const (
-	SMTPEncryptionNone     = "none"
-	SMTPEncryptionSTARTTLS = "starttls"
-	SMTPEncryptionSSLTLS   = "ssl_tls"
+	SMTPEncryptionNone            = "none"
+	SMTPEncryptionSTARTTLS        = "starttls"
+	SMTPEncryptionSSLTLS          = "ssl_tls"
+	DefaultAlertmanagerListenPath = "/api/v1/alerts"
 )
 
 type ControllerNotificationsConfig struct {
-	SMTP     *ControllerSMTPNotificationConfig     `yaml:"smtp"`
-	Telegram *ControllerTelegramNotificationConfig `yaml:"telegram"`
+	Alertmanager *ControllerAlertmanagerNotificationConfig `yaml:"alertmanager"`
+	SMTP         *ControllerSMTPNotificationConfig         `yaml:"smtp"`
+	Telegram     *ControllerTelegramNotificationConfig     `yaml:"telegram"`
+}
+
+type ControllerAlertmanagerNotificationConfig struct {
+	Enabled    *bool  `yaml:"enabled"`
+	ListenPath string `yaml:"listen_path"`
 }
 
 type ControllerSMTPNotificationConfig struct {
@@ -50,15 +57,43 @@ func (cfg *ControllerTelegramNotificationConfig) IsEnabled() bool {
 	return cfg != nil && (cfg.Enabled == nil || *cfg.Enabled)
 }
 
+func (cfg *ControllerAlertmanagerNotificationConfig) IsEnabled() bool {
+	return cfg != nil && (cfg.Enabled == nil || *cfg.Enabled)
+}
+
+func (cfg *ControllerAlertmanagerNotificationConfig) EffectiveListenPath() string {
+	if cfg == nil || strings.TrimSpace(cfg.ListenPath) == "" {
+		return DefaultAlertmanagerListenPath
+	}
+	return strings.TrimSpace(cfg.ListenPath)
+}
+
 func validateControllerNotifications(cfg *ControllerNotificationsConfig) error {
 	if cfg == nil {
 		return nil
+	}
+	if err := validateAlertmanagerNotifications(cfg.Alertmanager); err != nil {
+		return err
 	}
 	if err := validateSMTPNotifications(cfg.SMTP); err != nil {
 		return err
 	}
 	if err := validateTelegramNotifications(cfg.Telegram); err != nil {
 		return err
+	}
+	return nil
+}
+
+func validateAlertmanagerNotifications(cfg *ControllerAlertmanagerNotificationConfig) error {
+	if cfg == nil || !cfg.IsEnabled() {
+		return nil
+	}
+	listenPath := cfg.EffectiveListenPath()
+	if !strings.HasPrefix(listenPath, "/") {
+		return fmt.Errorf("controller.notifications.alertmanager.listen_path must start with /")
+	}
+	if strings.ContainsAny(listenPath, " \t\n\r") {
+		return fmt.Errorf("controller.notifications.alertmanager.listen_path must not contain whitespace")
 	}
 	return nil
 }

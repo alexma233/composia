@@ -185,6 +185,7 @@ export default withMermaid(defineConfig({
                 { text: 'DNS Configuration', link: '/guide/configuration/dns' },
                 { text: 'Backup Configuration', link: '/guide/configuration/backup' },
                 { text: 'Secrets Configuration', link: '/guide/configuration/secrets' },
+                { text: 'Notification Configuration', link: '/guide/configuration/notifications' },
                 { text: 'Service Definition', link: '/guide/service-definition' }
               ]
             },
@@ -266,6 +267,7 @@ export default withMermaid(defineConfig({
                 { text: 'DNS 配置', link: '/zh-hans/guide/configuration/dns' },
                 { text: '备份配置', link: '/zh-hans/guide/configuration/backup' },
                 { text: 'Secrets 配置', link: '/zh-hans/guide/configuration/secrets' },
+                { text: '通知配置', link: '/zh-hans/guide/configuration/notifications' },
                 { text: '服务定义', link: '/zh-hans/guide/service-definition' }
               ]
             },

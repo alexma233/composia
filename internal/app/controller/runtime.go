@@ -96,6 +96,7 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 	mux := http.NewServeMux()
 	agentTokens := cfg.NodeTokenMap()
 	accessTokens := cfg.EnabledAccessTokenMap()
+	controllerStartedAt := time.Now().UTC()
 
 	agentInterceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
 		nodeID, ok := agentTokens[token]
@@ -114,6 +115,8 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 	})
 	registerAgentHandlers(mux, cfg, db, agentInterceptor, taskQueue, taskResults, dockerQueries, execManager, logManager, repoMu, notifier)
 	registerAccessHandlers(mux, cfg, db, accessInterceptor, availableNodeIDs, taskQueue, taskResults, dockerQueries, execManager, logManager, repoMu, reload, notifier)
+	registerMetricsHandler(mux, db, accessTokens, controllerStartedAt)
+	registerAlertmanagerHandler(mux, cfg.Notifications, notifier)
 	mux.HandleFunc(rpcutil.ControllerExecWSPath, execManager.handleWebsocket)
 
 	protocols := new(http.Protocols)
