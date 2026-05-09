@@ -31,7 +31,7 @@
 
   import CodeEditor from "$lib/components/app/code-editor.svelte";
   import ServiceFileTree from "$lib/components/app/service-file-tree.svelte";
-  import TaskItem from "$lib/components/app/task-item.svelte";
+  import TaskCard from "$lib/components/app/task-card.svelte";
   import {
     Alert,
     AlertDescription,
@@ -2356,7 +2356,7 @@
           </CardHeader>
           <CardContent class="space-y-3">
             {#each recentTasks as task}
-              <TaskItem {task} showService={false} />
+              <TaskCard {task} showService={false} />
             {/each}
             {#if !recentTasks.length}
               <div class="empty-state px-3 py-6">{$messages.tasks.noTasks}</div>

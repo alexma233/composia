@@ -16,7 +16,7 @@
     runtimeStatusTone,
   } from "$lib/presenters";
   import { messages } from '$lib/i18n';
-  import TaskItem from '$lib/components/app/task-item.svelte';
+  import TaskCard from '$lib/components/app/task-card.svelte';
 
   interface Props {
     data: PageData;
@@ -151,7 +151,7 @@
             <div class="space-y-3">
               {#if recentTasks.length}
                 {#each recentTasks as task}
-                  <TaskItem {task} showService />
+                  <TaskCard {task} showService />
                 {/each}
               {:else}
                 <div class="empty-state">{$messages.dashboard.last24Hours}</div>

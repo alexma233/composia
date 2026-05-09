@@ -43,10 +43,10 @@
     formatBytes,
     formatTimestamp,
     onlineStatusTone,
-    taskStatusLabel,
-    taskStatusTone,
   } from "$lib/presenters";
   import { messages } from "$lib/i18n";
+  import TaskRow from "$lib/components/app/task-row.svelte";
+  import { Table, TableBody, TableHead, TableHeader, TableRow } from "$lib/components/ui/table";
 
   interface Props {
     data: PageData;
@@ -512,29 +512,25 @@
         </div>
       </CardHeader>
       <CardContent>
-        <div class="space-y-3">
-          {#each data.tasks as task}
-            <a href={`/tasks/${task.taskId}`} class="list-row">
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="min-w-0 flex-1">
-                  <div class="truncate text-sm font-medium">{task.type}</div>
-                  <div class="truncate text-xs text-muted-foreground">
-                    {task.serviceName ?? $messages.tasks.nodeLevel}
-                  </div>
-                </div>
-                <Badge variant={taskStatusTone(task.status)}
-                  >{taskStatusLabel(task.status, $messages)}</Badge
-                >
-              </div>
-              <div class="mt-2 text-xs text-muted-foreground">
-                {formatTimestamp(task.createdAt)}
-              </div>
-            </a>
-          {/each}
-          {#if !data.tasks.length}
-            <div class="empty-state">{$messages.tasks.noTasks}</div>
-          {/if}
-        </div>
+        {#if data.tasks.length}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{$messages.common.type}</TableHead>
+                <TableHead>{$messages.services.service}</TableHead>
+                <TableHead>{$messages.common.status}</TableHead>
+                <TableHead class="w-52">{$messages.common.created}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {#each data.tasks as task}
+                <TaskRow {task} showService />
+              {/each}
+            </TableBody>
+          </Table>
+        {:else}
+          <div class="empty-state">{$messages.tasks.noTasks}</div>
+        {/if}
       </CardContent>
     </Card>
   </div>

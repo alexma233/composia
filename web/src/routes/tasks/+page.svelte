@@ -26,7 +26,7 @@
   import { startPolling } from '$lib/refresh';
   import { taskStatusLabel, taskTypeLabel } from '$lib/presenters';
   import { cn } from '$lib/utils';
-  import TaskItem from '$lib/components/app/task-item.svelte';
+  import TaskRow from '$lib/components/app/task-row.svelte';
 
   interface Props {
     data: PageData;
@@ -565,7 +565,7 @@
       <div class="space-y-3">
         {#if data.tasks.length}
           {#each data.tasks as task}
-            <TaskItem {task} showNode />
+            <TaskRow {task} showService showNode />
           {/each}
         {:else}
           <div class="empty-state">
