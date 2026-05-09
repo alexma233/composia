@@ -20,24 +20,26 @@ type ControllerNotificationsConfig struct {
 }
 
 type ControllerSMTPNotificationConfig struct {
-	Enabled     *bool    `yaml:"enabled"`
-	Host        string   `yaml:"host"`
-	Port        int      `yaml:"port"`
-	Encryption  string   `yaml:"encryption"`
-	Username    string   `yaml:"username"`
-	Password    string   `yaml:"password"`
-	From        string   `yaml:"from"`
-	To          []string `yaml:"to"`
-	On          []string `yaml:"on"`
-	TaskSources []string `yaml:"task_sources"`
+	Enabled      *bool    `yaml:"enabled"`
+	Host         string   `yaml:"host"`
+	Port         int      `yaml:"port"`
+	Encryption   string   `yaml:"encryption"`
+	Username     string   `yaml:"username"`
+	Password     string   `yaml:"password"`
+	PasswordFile string   `yaml:"password_file"`
+	From         string   `yaml:"from"`
+	To           []string `yaml:"to"`
+	On           []string `yaml:"on"`
+	TaskSources  []string `yaml:"task_sources"`
 }
 
 type ControllerTelegramNotificationConfig struct {
-	Enabled     *bool    `yaml:"enabled"`
-	BotToken    string   `yaml:"bot_token"`
-	ChatID      string   `yaml:"chat_id"`
-	On          []string `yaml:"on"`
-	TaskSources []string `yaml:"task_sources"`
+	Enabled      *bool    `yaml:"enabled"`
+	BotToken     string   `yaml:"bot_token"`
+	BotTokenFile string   `yaml:"bot_token_file"`
+	ChatID       string   `yaml:"chat_id"`
+	On           []string `yaml:"on"`
+	TaskSources  []string `yaml:"task_sources"`
 }
 
 func (cfg *ControllerSMTPNotificationConfig) IsEnabled() bool {

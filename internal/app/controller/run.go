@@ -1547,7 +1547,7 @@ func (server *systemServer) GetCurrentConfig(ctx context.Context, _ *connect.Req
 			RemoteUrl:    server.cfg.Git.RemoteURL,
 			Branch:       server.cfg.Git.Branch,
 			PullInterval: server.cfg.Git.PullInterval,
-			HasAuth:      server.cfg.Git.Auth != nil && server.cfg.Git.Auth.TokenFile != "",
+			HasAuth:      server.cfg.Git.Auth != nil && strings.TrimSpace(server.cfg.Git.Auth.Token) != "",
 			AuthorName:   server.cfg.Git.AuthorName,
 			AuthorEmail:  server.cfg.Git.AuthorEmail,
 		}
@@ -1583,7 +1583,7 @@ func (server *systemServer) GetCurrentConfig(ctx context.Context, _ *connect.Req
 
 	if server.cfg.DNS != nil && server.cfg.DNS.Cloudflare != nil {
 		response.Dns = &controllerv1.DNSConfigSummary{
-			HasCloudflare: server.cfg.DNS.Cloudflare.APITokenFile != "",
+			HasCloudflare: strings.TrimSpace(server.cfg.DNS.Cloudflare.APIToken) != "",
 		}
 	}
 
@@ -3751,14 +3751,10 @@ func (server *repoCommandServer) configuredRemoteBranch() (string, error) {
 }
 
 func (server *repoCommandServer) configuredGitAuthToken() (string, error) {
-	if server.cfg == nil || server.cfg.Git == nil || server.cfg.Git.Auth == nil || strings.TrimSpace(server.cfg.Git.Auth.TokenFile) == "" {
+	if server.cfg == nil || server.cfg.Git == nil || server.cfg.Git.Auth == nil {
 		return "", nil
 	}
-	content, err := os.ReadFile(strings.TrimSpace(server.cfg.Git.Auth.TokenFile))
-	if err != nil {
-		return "", fmt.Errorf("read git auth token file: %w", err)
-	}
-	return strings.TrimSpace(string(content)), nil
+	return strings.TrimSpace(server.cfg.Git.Auth.Token), nil
 }
 
 func (server *repoCommandServer) configuredGitAuthUsername() string {

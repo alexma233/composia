@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"net/netip"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -427,13 +426,9 @@ func (defaultDNSProviderFactory) Cloudflare(cfg *config.ControllerConfig) (cloud
 	if cfg == nil || cfg.DNS == nil || cfg.DNS.Cloudflare == nil {
 		return nil, errors.New("controller dns.cloudflare is not configured")
 	}
-	content, err := os.ReadFile(cfg.DNS.Cloudflare.APITokenFile)
-	if err != nil {
-		return nil, fmt.Errorf("read cloudflare api token file: %w", err)
-	}
-	token := strings.TrimSpace(string(content))
+	token := strings.TrimSpace(cfg.DNS.Cloudflare.APIToken)
 	if token == "" {
-		return nil, errors.New("cloudflare api token file is empty")
+		return nil, errors.New("cloudflare api token is empty")
 	}
 	provider := &cloudflarelibdns.Provider{APIToken: token}
 	return &defaultCloudflareDNSClient{

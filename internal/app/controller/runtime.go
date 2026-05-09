@@ -237,13 +237,7 @@ func autoPullFetchAndFastForward(ctx context.Context, cfg *config.ControllerConf
 	authToken := ""
 	if cfg.Git.Auth != nil {
 		authUsername = strings.TrimSpace(cfg.Git.Auth.Username)
-	}
-	if cfg.Git.Auth != nil && strings.TrimSpace(cfg.Git.Auth.TokenFile) != "" {
-		tokenContent, err := os.ReadFile(strings.TrimSpace(cfg.Git.Auth.TokenFile))
-		if err != nil {
-			return store.RepoSyncState{SyncStatus: store.RepoSyncStatusUnknown}, fmt.Errorf("read git auth token: %w", err)
-		}
-		authToken = strings.TrimSpace(string(tokenContent))
+		authToken = strings.TrimSpace(cfg.Git.Auth.Token)
 	}
 	previousState, err := db.GetRepoSyncState(ctx)
 	if err != nil {

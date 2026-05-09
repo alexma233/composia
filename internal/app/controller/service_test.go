@@ -1328,11 +1328,6 @@ func TestServiceCommandServiceUpdateDNSCreatesPendingTaskWithoutOnlineNode(t *te
 	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
 		t.Fatalf("create log dir: %v", err)
 	}
-	dnsTokenPath := filepath.Join(rootDir, "cloudflare.token")
-	if err := os.WriteFile(dnsTokenPath, []byte("test-token\n"), 0o644); err != nil {
-		t.Fatalf("write cloudflare token: %v", err)
-	}
-
 	db, err := store.Open(stateDir)
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
@@ -1360,7 +1355,7 @@ func TestServiceCommandServiceUpdateDNSCreatesPendingTaskWithoutOnlineNode(t *te
 				RepoDir: repoDir,
 				LogDir:  logDir,
 				Nodes:   []config.NodeConfig{{ID: "main"}},
-				DNS:     &config.ControllerDNSConfig{Cloudflare: &config.CloudflareDNSConfig{APITokenFile: dnsTokenPath}},
+				DNS:     &config.ControllerDNSConfig{Cloudflare: &config.CloudflareDNSConfig{APIToken: "dns-token"}},
 			},
 			availableNodeIDs: map[string]struct{}{"main": {}},
 		},

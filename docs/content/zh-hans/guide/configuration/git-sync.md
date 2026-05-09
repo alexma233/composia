@@ -27,7 +27,8 @@ controller:
 | `author_name` | Git 提交者名称 |
 | `author_email` | Git 提交者邮箱 |
 | `auth.username` | 可选。配置后使用 Basic Auth，作为认证用户名 |
-| `auth.token_file` | 访问令牌文件路径 |
+| `auth.token` | 可选；与 `auth.token_file` 二选一 |
+| `auth.token_file` | 可选；与 `auth.token` 二选一的访问令牌文件路径 |
 
 ## 认证行为
 

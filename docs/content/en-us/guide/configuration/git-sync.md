@@ -27,7 +27,8 @@ controller:
 | `author_name` | Git committer name |
 | `author_email` | Git committer email |
 | `auth.username` | Optional. When set, Composia uses Basic Auth with this username |
-| `auth.token_file` | Path to the access token file |
+| `auth.token` | Optional; use either this or `auth.token_file` |
+| `auth.token_file` | Optional; path to the access token file when not using `auth.token` |
 
 ## Authentication Behavior
 

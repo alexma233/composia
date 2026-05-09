@@ -251,7 +251,7 @@ controller:
     pull_interval: "30s"
     auth:
       username: "octocat"
-      token_file: "/run/secrets/git-token"
+      token: "git-token"
 `) + "\n"
 
 	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
@@ -352,5 +352,211 @@ controller:
 	_, err := LoadController(configPath)
 	if err == nil || !strings.Contains(err.Error(), `controller.access_tokens["web-ui"].token duplicates controller.nodes["main"].token`) {
 		t.Fatalf("expected node/access token collision validation error, got %v", err)
+	}
+}
+
+func TestLoadAgentResolvesTokenFile(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	tokenPath := filepath.Join(rootDir, "agent.token")
+	if err := os.WriteFile(tokenPath, []byte(" agent-token\n"), 0o644); err != nil {
+		t.Fatalf("write token file: %v", err)
+	}
+	configPath := filepath.Join(rootDir, "config.yaml")
+	content := strings.TrimSpace(`
+agent:
+  controller_addr: "https://controller.example.com"
+  node_id: "node-2"
+  token_file: "`+tokenPath+`"
+  repo_dir: "/srv/composia/repo"
+  state_dir: "/srv/composia/state"
+`) + "\n"
+
+	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	agent, err := LoadAgent(configPath)
+	if err != nil {
+		t.Fatalf("load agent: %v", err)
+	}
+	if agent.Token != "agent-token" {
+		t.Fatalf("expected resolved agent token, got %q", agent.Token)
+	}
+}
+
+func TestLoadAgentRejectsTokenAndTokenFile(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	tokenPath := filepath.Join(rootDir, "agent.token")
+	if err := os.WriteFile(tokenPath, []byte("agent-token\n"), 0o644); err != nil {
+		t.Fatalf("write token file: %v", err)
+	}
+	configPath := filepath.Join(rootDir, "config.yaml")
+	content := strings.TrimSpace(`
+agent:
+  controller_addr: "https://controller.example.com"
+  node_id: "node-2"
+  token: "inline-token"
+  token_file: "`+tokenPath+`"
+  repo_dir: "/srv/composia/repo"
+  state_dir: "/srv/composia/state"
+`) + "\n"
+
+	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	_, err := LoadAgent(configPath)
+	if err == nil || !strings.Contains(err.Error(), "agent.token and agent.token_file must not both be set") {
+		t.Fatalf("expected token/token_file validation error, got %v", err)
+	}
+}
+
+func TestLoadControllerResolvesInlineOrFileSecrets(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	nodeTokenPath := filepath.Join(rootDir, "node.token")
+	accessTokenPath := filepath.Join(rootDir, "access.token")
+	gitTokenPath := filepath.Join(rootDir, "git.token")
+	dnsTokenPath := filepath.Join(rootDir, "dns.token")
+	smtpPasswordPath := filepath.Join(rootDir, "smtp.password")
+	telegramTokenPath := filepath.Join(rootDir, "telegram.token")
+	for path, value := range map[string]string{
+		nodeTokenPath:     "node-token\n",
+		accessTokenPath:   "access-token\n",
+		gitTokenPath:      "git-token\n",
+		dnsTokenPath:      "dns-token\n",
+		smtpPasswordPath:  "smtp-password\n",
+		telegramTokenPath: "telegram-token\n",
+	} {
+		if err := os.WriteFile(path, []byte(value), 0o644); err != nil {
+			t.Fatalf("write secret file %q: %v", path, err)
+		}
+	}
+	configPath := filepath.Join(rootDir, "config.yaml")
+	content := strings.TrimSpace(`
+controller:
+  listen_addr: ":8080"
+  repo_dir: "/srv/composia/repo"
+  state_dir: "/srv/composia/state-controller"
+  log_dir: "/srv/composia/logs"
+  nodes:
+    - id: "main"
+      token_file: "`+nodeTokenPath+`"
+  access_tokens:
+    - name: "web-ui"
+      token_file: "`+accessTokenPath+`"
+  git:
+    remote_url: "https://example.com/repo.git"
+    pull_interval: "30s"
+    auth:
+      token_file: "`+gitTokenPath+`"
+  dns:
+    cloudflare:
+      api_token_file: "`+dnsTokenPath+`"
+  notifications:
+    smtp:
+      host: "smtp.example.com"
+      port: 587
+      from: "composia@example.com"
+      to: ["ops@example.com"]
+      password_file: "`+smtpPasswordPath+`"
+    telegram:
+      chat_id: "12345"
+      bot_token_file: "`+telegramTokenPath+`"
+`) + "\n"
+
+	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	controller, err := LoadController(configPath)
+	if err != nil {
+		t.Fatalf("load controller: %v", err)
+	}
+	if got := controller.Nodes[0].Token; got != "node-token" {
+		t.Fatalf("expected resolved node token, got %q", got)
+	}
+	if got := controller.AccessTokens[0].Token; got != "access-token" {
+		t.Fatalf("expected resolved access token, got %q", got)
+	}
+	if got := controller.Git.Auth.Token; got != "git-token" {
+		t.Fatalf("expected resolved git token, got %q", got)
+	}
+	if got := controller.DNS.Cloudflare.APIToken; got != "dns-token" {
+		t.Fatalf("expected resolved dns token, got %q", got)
+	}
+	if got := controller.Notifications.SMTP.Password; got != "smtp-password" {
+		t.Fatalf("expected resolved smtp password, got %q", got)
+	}
+	if got := controller.Notifications.Telegram.BotToken; got != "telegram-token" {
+		t.Fatalf("expected resolved telegram token, got %q", got)
+	}
+}
+
+func TestLoadControllerRejectsEmptyTokenFile(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	tokenPath := filepath.Join(rootDir, "node.token")
+	if err := os.WriteFile(tokenPath, []byte("\n"), 0o644); err != nil {
+		t.Fatalf("write token file: %v", err)
+	}
+	configPath := filepath.Join(rootDir, "config.yaml")
+	content := strings.TrimSpace(`
+controller:
+  listen_addr: ":8080"
+  repo_dir: "/srv/composia/repo"
+  state_dir: "/srv/composia/state-controller"
+  log_dir: "/srv/composia/logs"
+  nodes:
+    - id: "main"
+      token_file: "`+tokenPath+`"
+`) + "\n"
+
+	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	_, err := LoadController(configPath)
+	if err == nil || !strings.Contains(err.Error(), "controller.nodes[\"main\"].token_file") {
+		t.Fatalf("expected empty token file validation error, got %v", err)
+	}
+}
+
+func TestLoadControllerRejectsDuplicateResolvedTokens(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	tokenPath := filepath.Join(rootDir, "shared.token")
+	if err := os.WriteFile(tokenPath, []byte("shared-token\n"), 0o644); err != nil {
+		t.Fatalf("write token file: %v", err)
+	}
+	configPath := filepath.Join(rootDir, "config.yaml")
+	content := strings.TrimSpace(`
+controller:
+  listen_addr: ":8080"
+  repo_dir: "/srv/composia/repo"
+  state_dir: "/srv/composia/state-controller"
+  log_dir: "/srv/composia/logs"
+  nodes:
+    - id: "main"
+      token_file: "`+tokenPath+`"
+  access_tokens:
+    - name: "web-ui"
+      token: "shared-token"
+`) + "\n"
+
+	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	_, err := LoadController(configPath)
+	if err == nil || !strings.Contains(err.Error(), `controller.access_tokens["web-ui"].token duplicates controller.nodes["main"].token`) {
+		t.Fatalf("expected duplicate resolved token validation error, got %v", err)
 	}
 }

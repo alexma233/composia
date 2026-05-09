@@ -17,7 +17,7 @@ This page documents the `controller` section in `config/config.yaml`.
 ```yaml
 access_tokens:
   - name: "admin"
-    token: "your-secure-token-here"
+    token_file: "/app/configs/controller-access-token.txt"
     enabled: true
   - name: "automation"
     token: "automation-token"
@@ -27,14 +27,14 @@ access_tokens:
 | Field | Description |
 |-------|-------------|
 | `name` | Required token name for identification |
-| `token` | Required token value used by the Web UI, CLI, or custom clients calling the Controller |
+| `token` | Use either this or `token_file`; used by the Web UI, CLI, or custom clients calling the Controller |
+| `token_file` | Use either this or `token`; path to a file containing the token |
 | `enabled` | Whether this token is enabled |
-| `comment` | Optional operator-facing note |
 | `comment` | Optional operator-facing note |
 
 Composia currently has no RBAC. All enabled access tokens grant full controller access regardless of the token name.
 
-Token values must be globally unique across both `controller.access_tokens[].token` and `controller.nodes[].token`. The config loader rejects duplicate values and collisions between these two lists.
+Resolved token values must be globally unique across both `controller.access_tokens[].token` and `controller.nodes[].token`. The config loader rejects duplicate values and collisions between these two lists.
 
 Security recommendations:
 
@@ -49,7 +49,7 @@ nodes:
   - id: "main"
     display_name: "Main Server"
     enabled: true
-    token: "main-agent-token"
+    token_file: "/app/configs/main-agent-token.txt"
     public_ipv4: "203.0.113.10"
     public_ipv6: "2001:db8::1"
 ```
@@ -59,13 +59,14 @@ nodes:
 | `id` | Yes | Unique node identifier; the Agent `node_id` must match |
 | `display_name` | No | Display name for the Web UI |
 | `enabled` | No | Whether to allow this node to connect, default `true` |
-| `token` | Yes | Node authentication token |
+| `token` | Conditionally | Use either this or `token_file`; node authentication token |
+| `token_file` | No | Use either this or `token`; path to a file containing the node authentication token |
 | `public_ipv4` | No | Node public IPv4 for automatic DNS records |
 | `public_ipv6` | No | Node public IPv6 for automatic DNS records |
 
 `controller.nodes[].id` must be unique.
 
-`controller.nodes[].token` must also be unique, and it must not reuse a value from `controller.access_tokens[].token`.
+`controller.nodes[].token` resolved values must also be unique, and they must not reuse a value from `controller.access_tokens[].token`.
 
 ## Updates Configuration
 

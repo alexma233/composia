@@ -9,7 +9,8 @@
 | `controller_addr` | string | 是 | Controller API 地址 |
 | `controller_grpc` | boolean | 否 | 使用 gRPC 协议访问 Controller，默认 `false` |
 | `node_id` | string | 是 | 节点 ID，必须匹配 Controller 配置 |
-| `token` | string | 是 | 节点认证 Token |
+| `token` | string | 条件必填 | 与 `token_file` 二选一；节点认证 Token |
+| `token_file` | string | 否 | 与 `token` 二选一；读取节点认证 Token 的文件路径 |
 | `repo_dir` | string | 是 | 本地服务 bundle 目录 |
 | `state_dir` | string | 是 | 本地运行状态目录 |
 | `caddy.generated_dir` | string | 否 | Caddy 配置片段输出目录 |
@@ -33,7 +34,7 @@ agent:
   controller_addr: "http://controller:7001"
   controller_grpc: false
   node_id: "main"
-  token: "main-token"
+  token_file: "/app/configs/main-agent-token.txt"
   repo_dir: "/data/repo-agent"
   state_dir: "/data/state-agent"
 ```
@@ -84,7 +85,7 @@ agent:
   controller_addr: "http://controller:7001"
   controller_grpc: false
   node_id: "main"
-  token: "main-token"
+  token_file: "/app/configs/main-agent-token.txt"
   repo_dir: "/data/repo-agent"
   state_dir: "/data/state-agent"
   caddy:

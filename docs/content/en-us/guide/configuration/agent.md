@@ -9,7 +9,8 @@ This page documents the `agent` section in `config/config.yaml`.
 | `controller_addr` | string | Yes | Controller API address |
 | `controller_grpc` | boolean | No | Use the gRPC protocol when calling the Controller, default `false` |
 | `node_id` | string | Yes | Node ID, must match the Controller configuration |
-| `token` | string | Yes | Node authentication token |
+| `token` | string | Conditionally | Use either this or `token_file`; node authentication token |
+| `token_file` | string | No | Use either this or `token`; path to a file containing the node authentication token |
 | `repo_dir` | string | Yes | Local service bundle directory |
 | `state_dir` | string | Yes | Local runtime state directory |
 | `caddy.generated_dir` | string | No | Caddy configuration fragment output directory |
@@ -33,7 +34,7 @@ agent:
   controller_addr: "http://controller:7001"
   controller_grpc: false
   node_id: "main"
-  token: "main-token"
+  token_file: "/app/configs/main-agent-token.txt"
   repo_dir: "/data/repo-agent"
   state_dir: "/data/state-agent"
 ```
@@ -84,7 +85,7 @@ agent:
   controller_addr: "http://controller:7001"
   controller_grpc: false
   node_id: "main"
-  token: "main-token"
+  token_file: "/app/configs/main-agent-token.txt"
   repo_dir: "/data/repo-agent"
   state_dir: "/data/state-agent"
   caddy:

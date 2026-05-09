@@ -60,6 +60,7 @@ type ControllerGitConfig struct {
 
 type ControllerGitAuthConfig struct {
 	Username  string `yaml:"username"`
+	Token     string `yaml:"token"`
 	TokenFile string `yaml:"token_file"`
 }
 
@@ -70,13 +71,15 @@ type NodeConfig struct {
 	PublicIPv4  string `yaml:"public_ipv4"`
 	PublicIPv6  string `yaml:"public_ipv6"`
 	Token       string `yaml:"token"`
+	TokenFile   string `yaml:"token_file"`
 }
 
 type AccessTokenConfig struct {
-	Name    string `yaml:"name"`
-	Token   string `yaml:"token"`
-	Enabled *bool  `yaml:"enabled"`
-	Comment string `yaml:"comment"`
+	Name      string `yaml:"name"`
+	Token     string `yaml:"token"`
+	TokenFile string `yaml:"token_file"`
+	Enabled   *bool  `yaml:"enabled"`
+	Comment   string `yaml:"comment"`
 }
 
 type ControllerDNSConfig struct {
@@ -84,6 +87,7 @@ type ControllerDNSConfig struct {
 }
 
 type CloudflareDNSConfig struct {
+	APIToken     string `yaml:"api_token"`
 	APITokenFile string `yaml:"api_token_file"`
 }
 
@@ -109,6 +113,7 @@ type AgentConfig struct {
 	ControllerGRPC bool              `yaml:"controller_grpc"`
 	NodeID         string            `yaml:"node_id"`
 	Token          string            `yaml:"token"`
+	TokenFile      string            `yaml:"token_file"`
 	RepoDir        string            `yaml:"repo_dir"`
 	StateDir       string            `yaml:"state_dir"`
 	Caddy          *AgentCaddyConfig `yaml:"caddy"`
@@ -160,6 +165,9 @@ func load(path string) (*File, error) {
 	}
 	if file.Controller == nil && file.Agent == nil {
 		return nil, fmt.Errorf("config %q must contain at least one of controller or agent", path)
+	}
+	if err := resolveInlineOrFileConfig(&file); err != nil {
+		return nil, err
 	}
 	return &file, nil
 }

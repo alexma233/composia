@@ -120,7 +120,7 @@ func backupIntegrationCapability(cfg *config.ControllerConfig, availableNodeIDs 
 }
 
 func dnsIntegrationCapability(cfg *config.ControllerConfig) *controllerv1.Capability {
-	if cfg == nil || cfg.DNS == nil || cfg.DNS.Cloudflare == nil || strings.TrimSpace(cfg.DNS.Cloudflare.APITokenFile) == "" {
+	if cfg == nil || cfg.DNS == nil || cfg.DNS.Cloudflare == nil || strings.TrimSpace(cfg.DNS.Cloudflare.APIToken) == "" {
 		return disabledCapability(reasonMissingDNSIntegration)
 	}
 	return enabledCapability()

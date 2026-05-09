@@ -17,7 +17,7 @@
 ```yaml
 access_tokens:
   - name: "admin"
-    token: "your-secure-token-here"
+    token_file: "/app/configs/controller-access-token.txt"
     enabled: true
   - name: "automation"
     token: "automation-token"
@@ -27,13 +27,14 @@ access_tokens:
 | 字段 | 说明 |
 |------|------|
 | `name` | 必填的 Token 名称，用于识别 |
-| `token` | 必填的 Token 值，供 Web UI、CLI 或自定义客户端访问 Controller |
+| `token` | 与 `token_file` 二选一；供 Web UI、CLI 或自定义客户端访问 Controller |
+| `token_file` | 与 `token` 二选一；读取 Token 的文件路径 |
 | `enabled` | 是否启用该 Token |
 | `comment` | 可选的运维备注 |
 
 Composia 当前没有 RBAC。所有已启用的访问 Token 都拥有完整的 Controller 访问权限，Token 名称不会影响权限。
 
-Token 值必须在 `controller.access_tokens[].token` 和 `controller.nodes[].token` 两处全局唯一。配置加载器会拒绝重复值，以及这两类 Token 之间的冲突。
+解析后的 Token 值必须在 `controller.access_tokens[].token` 和 `controller.nodes[].token` 两处全局唯一。配置加载器会拒绝重复值，以及这两类 Token 之间的冲突。
 
 安全建议：
 
@@ -48,7 +49,7 @@ nodes:
   - id: "main"
     display_name: "Main Server"
     enabled: true
-    token: "main-agent-token"
+    token_file: "/app/configs/main-agent-token.txt"
     public_ipv4: "203.0.113.10"
     public_ipv6: "2001:db8::1"
 ```
@@ -58,13 +59,14 @@ nodes:
 | `id` | 是 | 节点唯一标识，Agent 的 `node_id` 必须匹配 |
 | `display_name` | 否 | 显示名称，用于 Web UI |
 | `enabled` | 否 | 是否允许该节点接入，默认 `true` |
-| `token` | 是 | 节点认证 Token |
+| `token` | 条件必填 | 与 `token_file` 二选一；节点认证 Token |
+| `token_file` | 否 | 与 `token` 二选一；读取节点认证 Token 的文件路径 |
 | `public_ipv4` | 否 | 节点公网 IPv4，用于自动 DNS 记录 |
 | `public_ipv6` | 否 | 节点公网 IPv6，用于自动 DNS 记录 |
 
 `controller.nodes[].id` 不能重复。
 
-`controller.nodes[].token` 也不能重复，并且不能复用 `controller.access_tokens[].token` 中的值。
+`controller.nodes[].token` 的解析值也不能重复，并且不能复用 `controller.access_tokens[].token` 的解析值。
 
 ## 更新配置
 

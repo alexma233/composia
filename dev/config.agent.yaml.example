@@ -2,6 +2,6 @@ agent:
   controller_addr: "http://127.0.0.1:7001"
   controller_grpc: false
   node_id: "node-2"
-  token: "replace-with-dev-node-2-token"
+  token_file: "./dev/node-2-agent-token.txt"
   repo_dir: "./dev/repo-agent-node-2"
   state_dir: "./dev/state-agent-node-2"

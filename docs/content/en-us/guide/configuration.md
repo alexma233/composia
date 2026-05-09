@@ -61,7 +61,7 @@ controller:
     - id: "edge"
       display_name: "Edge"
       enabled: true
-      token: "edge-agent-token"
+      token_file: "/app/configs/edge-agent-token.txt"
 
   # Git sync configuration (optional)
   git:
