@@ -25,6 +25,7 @@
   import { Input } from "$lib/components/ui/input";
   import XtermSurface from "$lib/components/app/xterm-surface.svelte";
   import { messages } from "$lib/i18n";
+  import { actionErrorMessage } from "$lib/capabilities";
   import {
     containerStateTone,
     formatBytes,
@@ -180,7 +181,7 @@
     const payload = await response.json();
     if (!response.ok) {
       throw new Error(
-        payload.error ?? $messages.docker.containers.inspectFailed,
+        actionErrorMessage(payload, $messages, $messages.docker.containers.inspectFailed),
       );
     }
 
@@ -206,7 +207,7 @@
         const response = await fetch(`/tasks/${encodeURIComponent(taskId)}`);
         const payload = await response.json();
         if (!response.ok) {
-          throw new Error(payload.error ?? $messages.error.loadFailed);
+          throw new Error(actionErrorMessage(payload, $messages, $messages.error.loadFailed));
         }
 
         if (isTerminalTaskStatus(payload.task?.status)) {
@@ -237,11 +238,14 @@
       const payload = await response.json();
       if (!response.ok) {
         throw new Error(
-          payload.error ??
+          actionErrorMessage(
+            payload,
+            $messages,
             $messages.docker.containers.actionFailed.replace(
               "{action}",
               actionLabel(action),
             ),
+          ),
         );
       }
       toast.success(
@@ -307,8 +311,11 @@
       const payload = await response.json();
       if (!response.ok) {
         throw new Error(
-          payload.error ??
+          actionErrorMessage(
+            payload,
+            $messages,
             $messages.docker.containers.terminal.connectionFailed,
+          ),
         );
       }
       terminalSessionId = payload.sessionId ?? "";

@@ -3,6 +3,7 @@ import type { RequestHandler } from "./$types";
 
 import { loadBackupDetail, restoreBackup } from "$lib/server/controller";
 import {
+  jsonApiError,
   jsonCapabilityError,
   jsonControllerError,
 } from "$lib/server/controller-route";
@@ -12,7 +13,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
     const body = await request.json();
     const nodeId = body?.nodeId;
     if (typeof nodeId !== "string" || !nodeId.trim()) {
-      return json({ error: "nodeId is required" }, { status: 400 });
+      return jsonApiError("NODE_ID_REQUIRED");
     }
 
     const backup = await loadBackupDetail(params.id);

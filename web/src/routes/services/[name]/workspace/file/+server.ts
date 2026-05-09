@@ -6,6 +6,7 @@ import {
   requireWorkspace,
 } from "$lib/server/service-workspace-route";
 import { saveServiceWorkspaceFile } from "$lib/server/service-workspace";
+import { jsonApiError } from "$lib/server/controller-route";
 import { normalizeServiceRelativePath } from "$lib/service-workspace";
 
 export const PUT: RequestHandler = async ({ params, request }) => {
@@ -18,10 +19,7 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 
     const workspace = await requireWorkspace(params.name);
     if (!payload.path || !payload.baseRevision) {
-      return json(
-        { error: "Path and base revision are required." },
-        { status: 400 },
-      );
+      return jsonApiError("PATH_REVISION_REQUIRED");
     }
 
     const result = await saveServiceWorkspaceFile(
@@ -43,6 +41,7 @@ export const PUT: RequestHandler = async ({ params, request }) => {
     return json(
       {
         error: error instanceof Error ? error.message : "Failed to save file.",
+        errorCode: "SAVE_FILE_FAILED",
       },
       { status: 400 },
     );

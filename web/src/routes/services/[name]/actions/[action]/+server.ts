@@ -8,6 +8,7 @@ import {
   type ServiceAction,
 } from "$lib/server/controller";
 import {
+  jsonApiError,
   jsonCapabilityError,
   jsonControllerError,
 } from "$lib/server/controller-route";
@@ -18,7 +19,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
     const workspace = await requireDeclaredWorkspace(params.name);
 
     if (!isServiceAction(params.action)) {
-      return json({ error: "Unsupported service action." }, { status: 400 });
+      return jsonApiError("UNSUPPORTED_SERVICE_ACTION");
     }
 
     const guardedAction = serviceCapabilityAction(params.action);

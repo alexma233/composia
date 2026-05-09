@@ -168,6 +168,23 @@ export const enUS = {
     logStreamFailed: "Log stream failed",
     lastSyncError: "Last sync error",
   },
+  apiError: {
+    authenticationRequired: "Authentication required.",
+    unsupportedServiceAction: "Unsupported service action.",
+    invalidConfirmationDecision: "Decision must be approve or reject.",
+    serviceNotDeclared: "Service is not declared.",
+    serviceInstanceNotFound: "Service instance not found.",
+    baseRevisionRequired: "Base revision is required.",
+    pathRevisionRequired: "Path and base revision are required.",
+    sourceDestRevisionRequired:
+      "Source path, destination path, and base revision are required.",
+    sourceTargetNodeRequired: "Source and target node IDs are required.",
+    nodeIdRequired: "Node ID is required.",
+    movePathFailed: "Failed to move path.",
+    deletePathFailed: "Failed to delete path.",
+    saveFileFailed: "Failed to save file.",
+    createDirectoryFailed: "Failed to create directory.",
+  },
   dashboard: {
     title: "Dashboard",
     pageTitle: "Dashboard - Composia",

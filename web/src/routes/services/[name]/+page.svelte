@@ -399,7 +399,7 @@
         error?: string;
       };
       if (!response.ok || !payload.instance) {
-        throw new Error(payload.error ?? $messages.services.instances.loadFailed);
+        throw new Error(actionErrorMessage(payload, $messages, $messages.services.instances.loadFailed));
       }
 
       nodeContainers = nodeContainers.map((instance) =>
@@ -456,7 +456,7 @@
       );
       const payload = await response.json();
       if (!response.ok) {
-        errorMessage = payload.error ?? $messages.services.files.openFileFailed;
+        errorMessage = actionErrorMessage(payload, $messages, $messages.services.files.openFileFailed);
         return;
       }
 
@@ -539,7 +539,7 @@
         workspace?: PageData["workspace"];
       };
       if (!response.ok || !payload.file || !payload.write) {
-        throw new Error(payload.error ?? $messages.services.files.saveFileFailed);
+        throw new Error(actionErrorMessage(payload, $messages, $messages.services.files.saveFileFailed));
       }
 
       headRevision = payload.write.commitId;
@@ -647,7 +647,7 @@
         fileTree?: ServiceFileNode[];
       };
       if (!response.ok || !payload.file || !payload.write) {
-        throw new Error(payload.error ?? $messages.services.files.createFileFailed);
+        throw new Error(actionErrorMessage(payload, $messages, $messages.services.files.createFileFailed));
       }
 
       applyFsMutation({
@@ -698,7 +698,7 @@
       );
       const payload = await response.json();
       if (!response.ok || !payload.write) {
-        throw new Error(payload.error ?? $messages.services.files.createFolderFailed);
+        throw new Error(actionErrorMessage(payload, $messages, $messages.services.files.createFolderFailed));
       }
 
       applyFsMutation(payload);
@@ -740,7 +740,7 @@
       );
       const payload = await response.json();
       if (!response.ok || !payload.write) {
-        throw new Error(payload.error ?? $messages.services.files.renameFailed);
+        throw new Error(actionErrorMessage(payload, $messages, $messages.services.files.renameFailed));
       }
 
       applyFsMutation(payload);
@@ -817,7 +817,7 @@
       );
       const payload = await response.json();
       if (!response.ok || !payload.write) {
-        throw new Error(payload.error ?? $messages.services.files.deleteFailed);
+        throw new Error(actionErrorMessage(payload, $messages, $messages.services.files.deleteFailed));
       }
 
       applyFsMutation(payload);
@@ -877,7 +877,7 @@
     const response = await fetch(`/services/${workspace?.folder}/workspace`);
     const payload = await response.json();
     if (!response.ok) {
-      throw new Error(payload.error ?? $messages.services.refreshFailed);
+      throw new Error(actionErrorMessage(payload, $messages, $messages.services.refreshFailed));
     }
 
     applyServiceSummaryState(
@@ -1135,7 +1135,7 @@
       });
       const payload = await response.json();
       if (!response.ok || !payload.redirectTo) {
-        throw new Error(payload.error ?? $messages.services.files.renameServiceFolderFailed);
+        throw new Error(actionErrorMessage(payload, $messages, $messages.services.files.renameServiceFolderFailed));
       }
 
       window.location.href = payload.redirectTo;
@@ -1169,7 +1169,7 @@
       });
       const payload = await response.json();
       if (!response.ok || !payload.redirectTo) {
-        throw new Error(payload.error ?? $messages.services.files.deleteServiceFolderFailed);
+        throw new Error(actionErrorMessage(payload, $messages, $messages.services.files.deleteServiceFolderFailed));
       }
 
       window.location.href = payload.redirectTo;

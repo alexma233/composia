@@ -3,6 +3,7 @@ import type { RequestHandler } from "./$types";
 
 import { migrateService } from "$lib/server/controller";
 import {
+  jsonApiError,
   jsonCapabilityError,
   jsonControllerError,
 } from "$lib/server/controller-route";
@@ -15,10 +16,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
       targetNodeId?: string;
     };
     if (!payload.sourceNodeId || !payload.targetNodeId) {
-      return json(
-        { error: "Source and target node IDs are required." },
-        { status: 400 },
-      );
+      return jsonApiError("SOURCE_TARGET_NODE_REQUIRED");
     }
 
     const workspace = await requireDeclaredWorkspace(params.name);

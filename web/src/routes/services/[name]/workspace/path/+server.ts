@@ -6,6 +6,7 @@ import {
   deleteServiceWorkspacePath,
   moveServiceWorkspacePath,
 } from "$lib/server/service-workspace";
+import { jsonApiError } from "$lib/server/controller-route";
 import { normalizeServiceRelativePath } from "$lib/service-workspace";
 
 export const PATCH: RequestHandler = async ({ params, request }) => {
@@ -21,13 +22,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
       !payload.destinationPath ||
       !payload.baseRevision
     ) {
-      return json(
-        {
-          error:
-            "Source path, destination path, and base revision are required.",
-        },
-        { status: 400 },
-      );
+      return jsonApiError("SOURCE_DEST_REVISION_REQUIRED");
     }
 
     const write = await moveServiceWorkspacePath(
@@ -44,6 +39,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
     return json(
       {
         error: error instanceof Error ? error.message : "Failed to move path.",
+        errorCode: "MOVE_PATH_FAILED",
       },
       { status: 400 },
     );
@@ -58,10 +54,7 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
     };
 
     if (!payload.path || !payload.baseRevision) {
-      return json(
-        { error: "Path and base revision are required." },
-        { status: 400 },
-      );
+      return jsonApiError("PATH_REVISION_REQUIRED");
     }
 
     const write = await deleteServiceWorkspacePath(
@@ -78,6 +71,7 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
       {
         error:
           error instanceof Error ? error.message : "Failed to delete path.",
+        errorCode: "DELETE_PATH_FAILED",
       },
       { status: 400 },
     );

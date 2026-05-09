@@ -1,8 +1,10 @@
 import type { Handle } from "@sveltejs/kit";
 
-import { json, redirect } from "@sveltejs/kit";
+import { redirect } from "@sveltejs/kit";
 
 import { readSessionToken, sessionCookie } from "$lib/server/session";
+
+import { jsonApiError } from "$lib/server/controller-route";
 
 const publicRoutes = new Set(["/login"]);
 
@@ -19,7 +21,7 @@ export const handle: Handle = async ({ event, resolve }) => {
         `/login?next=${encodeURIComponent(pathname + event.url.search)}`,
       );
     }
-    return json({ error: "Authentication required." }, { status: 401 });
+    return jsonApiError("AUTHENTICATION_REQUIRED", 401);
   }
 
   if (user && pathname === "/login") {

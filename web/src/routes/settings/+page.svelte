@@ -54,7 +54,7 @@
 
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? $messages.error.syncFailed);
+        throw new Error(actionErrorMessage(payload, $messages, $messages.error.syncFailed));
       }
 
       syncResult = {

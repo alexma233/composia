@@ -3,6 +3,7 @@ import type { RequestHandler } from "./$types";
 
 import { loadServiceWorkspaceFiles } from "$lib/server/service-workspace-route";
 import { createServiceWorkspaceDirectory } from "$lib/server/service-workspace";
+import { jsonApiError } from "$lib/server/controller-route";
 import { normalizeServiceRelativePath } from "$lib/service-workspace";
 
 export const POST: RequestHandler = async ({ params, request }) => {
@@ -13,10 +14,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
     };
 
     if (!payload.path || !payload.baseRevision) {
-      return json(
-        { error: "Path and base revision are required." },
-        { status: 400 },
-      );
+      return jsonApiError("PATH_REVISION_REQUIRED");
     }
 
     const write = await createServiceWorkspaceDirectory(
@@ -35,6 +33,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
           error instanceof Error
             ? error.message
             : "Failed to create directory.",
+        errorCode: "CREATE_DIRECTORY_FAILED",
       },
       { status: 400 },
     );

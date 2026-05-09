@@ -58,15 +58,51 @@ export function capabilityReasonMessage(
 }
 
 export function actionErrorMessage(
-  payload: { reasonCode?: string; error?: string } | null | undefined,
+  payload:
+    | { reasonCode?: string; errorCode?: string; error?: string }
+    | null
+    | undefined,
   dictionary: Dictionary,
   fallback: string,
 ): string {
   if (payload?.reasonCode) {
     return capabilityReasonMessage(payload.reasonCode, dictionary);
   }
+  if (payload?.errorCode) {
+    return (
+      resolveApiErrorCode(payload.errorCode, dictionary) ??
+      payload?.error ??
+      fallback
+    );
+  }
   return payload?.error ?? fallback;
 }
+
+export function resolveApiErrorCode(
+  code: string,
+  dictionary: Dictionary,
+): string | null {
+  const key = API_ERROR_CODE_MAP[code];
+  if (!key) return null;
+  return (dictionary.apiError as Record<string, string>)[key] ?? null;
+}
+
+const API_ERROR_CODE_MAP: Record<string, string> = {
+  AUTHENTICATION_REQUIRED: "authenticationRequired",
+  UNSUPPORTED_SERVICE_ACTION: "unsupportedServiceAction",
+  INVALID_CONFIRMATION_DECISION: "invalidConfirmationDecision",
+  SERVICE_NOT_DECLARED: "serviceNotDeclared",
+  SERVICE_INSTANCE_NOT_FOUND: "serviceInstanceNotFound",
+  BASE_REVISION_REQUIRED: "baseRevisionRequired",
+  PATH_REVISION_REQUIRED: "pathRevisionRequired",
+  SOURCE_DEST_REVISION_REQUIRED: "sourceDestRevisionRequired",
+  SOURCE_TARGET_NODE_REQUIRED: "sourceTargetNodeRequired",
+  NODE_ID_REQUIRED: "nodeIdRequired",
+  MOVE_PATH_FAILED: "movePathFailed",
+  DELETE_PATH_FAILED: "deletePathFailed",
+  SAVE_FILE_FAILED: "saveFileFailed",
+  CREATE_DIRECTORY_FAILED: "createDirectoryFailed",
+};
 
 export function serviceActionCapability(
   actions: ServiceActionCapabilities | null | undefined,

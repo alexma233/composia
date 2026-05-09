@@ -24,6 +24,10 @@ export function jsonControllerError(
   );
 }
 
+export function jsonApiError(errorCode: string, status = 400) {
+  return json({ errorCode }, { status });
+}
+
 export function jsonCapabilityError(reasonCode: string, fallback: string) {
   return json(
     {

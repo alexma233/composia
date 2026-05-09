@@ -41,6 +41,7 @@
   import { Search } from 'lucide-svelte';
   import { Alert, AlertDescription } from '$lib/components/ui/alert';
   import { messages } from '$lib/i18n';
+  import { actionErrorMessage } from '$lib/capabilities';
 
   interface Props {
     data: PageData;
@@ -156,7 +157,7 @@
       });
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? $messages.docker.containers.actionFailed.replace('{action}', action));
+        throw new Error(actionErrorMessage(payload, $messages, $messages.docker.containers.actionFailed.replace('{action}', action)));
       }
       toast.success($messages.docker.containers.actionQueued.replace('{action}', action).replace('{taskId}', payload.taskId?.slice(0, 12) ?? 'task'));
       await refreshContainers();
@@ -197,7 +198,7 @@
       );
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? $messages.docker.containers.removeFailed);
+        throw new Error(actionErrorMessage(payload, $messages, $messages.docker.containers.removeFailed));
       }
       toast.success(
         $messages.docker.containers.removeQueued.replace('{taskId}', payload.taskId?.slice(0, 12) ?? 'task'),

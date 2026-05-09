@@ -2,7 +2,10 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
 import { deleteRepoPath, moveRepoPath } from "$lib/server/controller";
-import { jsonControllerError } from "$lib/server/controller-route";
+import {
+  jsonApiError,
+  jsonControllerError,
+} from "$lib/server/controller-route";
 import { normalizeServiceRelativePath } from "$lib/service-workspace";
 
 export const PATCH: RequestHandler = async ({ params, request }) => {
@@ -12,7 +15,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
       baseRevision?: string;
     };
     if (!payload.baseRevision) {
-      return json({ error: "Base revision is required." }, { status: 400 });
+      return jsonApiError("BASE_REVISION_REQUIRED");
     }
 
     const nextFolder = normalizeServiceRootFolder(payload.folder ?? "");
@@ -36,7 +39,7 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
   try {
     const payload = (await request.json()) as { baseRevision?: string };
     if (!payload.baseRevision) {
-      return json({ error: "Base revision is required." }, { status: 400 });
+      return jsonApiError("BASE_REVISION_REQUIRED");
     }
 
     const write = await deleteRepoPath(params.name, payload.baseRevision);

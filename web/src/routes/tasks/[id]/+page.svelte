@@ -6,6 +6,7 @@
 
   import type { PageData } from './$types';
   import { messages } from '$lib/i18n';
+  import { actionErrorMessage } from '$lib/capabilities';
 
   import XtermSurface from '$lib/components/app/xterm-surface.svelte';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
@@ -102,7 +103,7 @@
 
       const payload = await response.json();
       if (!response.ok || !payload.taskId) {
-        throw new Error(payload.error ?? $messages.tasks.rerunFailed);
+        throw new Error(actionErrorMessage(payload, $messages, $messages.tasks.rerunFailed));
       }
 
       toast.success($messages.tasks.rerunStarted.replace('{taskId}', payload.taskId.slice(0, 12)));
@@ -130,7 +131,7 @@
 
       const payload = await response.json();
       if (!response.ok || !payload.taskId) {
-        throw new Error(payload.error ?? $messages.tasks.resolveConfirmationFailed);
+        throw new Error(actionErrorMessage(payload, $messages, $messages.tasks.resolveConfirmationFailed));
       }
 
       if (decision === 'approve') {
