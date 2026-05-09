@@ -32,8 +32,6 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 	"forgejo.alexma.top/alexma233/composia/internal/version"
 	"github.com/google/uuid"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gopkg.in/yaml.v3"
 )
@@ -239,9 +237,14 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 	registerAccessHandlers(mux, cfg, db, accessInterceptor, availableNodeIDs, taskQueue, taskResults, dockerQueries, execManager, logManager, repoMu, reload)
 	mux.HandleFunc(rpcutil.ControllerExecWSPath, execManager.handleWebsocket)
 
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
+
 	server := &http.Server{
 		Addr:              cfg.ListenAddr,
-		Handler:           h2c.NewHandler(mux, &http2.Server{}),
+		Handler:           mux,
+		Protocols:         protocols,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
