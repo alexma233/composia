@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.23@sha256:2780b5c3bab67f1f76c781860de469442999ed1a0d7992a5efdf2cffc0e3d769
-FROM --platform=$BUILDPLATFORM golang:1.26@sha256:257c1f60c465aa5d22b4d81f9ae73643a12f228a10165c658ec77bd6ff791f34 AS backend-builder-base
+FROM --platform=$BUILDPLATFORM golang:1.26@sha256:db1271a193b5b6cac1749d8d23c3b3564b37852836a5880ca0a65e1924f7feab AS backend-builder-base
 
 ARG TARGETOS
 ARG TARGETARCH
