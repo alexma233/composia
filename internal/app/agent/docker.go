@@ -143,7 +143,9 @@ func (server *dockerServer) runContainerExec(ctx context.Context, containerID st
 		return nil, fmt.Errorf("read docker exec output: %w", copyErr)
 	}
 
-	inspect, inspectErr := server.client.cli.ExecInspect(context.Background(), createResult.ID, dockerclient.ExecInspectOptions{})
+	inspectCtx, inspectCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer inspectCancel()
+	inspect, inspectErr := server.client.cli.ExecInspect(inspectCtx, createResult.ID, dockerclient.ExecInspectOptions{})
 	if inspectErr != nil && !timedOut {
 		return nil, fmt.Errorf("inspect docker exec: %w", inspectErr)
 	}

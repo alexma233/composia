@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"path"
 	"strings"
 )
 
@@ -64,19 +65,26 @@ func StreamServiceBundleWithExtras(ctx context.Context, repoDir, revision, servi
 		}
 	}
 	for name, content := range extras {
+		extraPath, err := normalizeBundleExtraPath(name)
+		if err != nil {
+			_ = tarWriter.Close()
+			_ = gzipWriter.Close()
+			waitAfterError()
+			return err
+		}
 		body := []byte(content)
-		header := &tar.Header{Name: name, Mode: 0o600, Size: int64(len(body))}
+		header := &tar.Header{Name: extraPath, Mode: 0o600, Size: int64(len(body))}
 		if err := tarWriter.WriteHeader(header); err != nil {
 			_ = tarWriter.Close()
 			_ = gzipWriter.Close()
 			waitAfterError()
-			return fmt.Errorf("write injected bundle header %q: %w", name, err)
+			return fmt.Errorf("write injected bundle header %q: %w", extraPath, err)
 		}
 		if _, err := tarWriter.Write(body); err != nil {
 			_ = tarWriter.Close()
 			_ = gzipWriter.Close()
 			waitAfterError()
-			return fmt.Errorf("write injected bundle file %q: %w", name, err)
+			return fmt.Errorf("write injected bundle file %q: %w", extraPath, err)
 		}
 	}
 	if err := tarWriter.Close(); err != nil {
@@ -92,4 +100,15 @@ func StreamServiceBundleWithExtras(ctx context.Context, repoDir, revision, servi
 		return fmt.Errorf("wait for git archive: %w %s", err, strings.TrimSpace(stderr.String()))
 	}
 	return nil
+}
+
+func normalizeBundleExtraPath(name string) (string, error) {
+	cleanName := path.Clean(strings.ReplaceAll(strings.TrimSpace(name), "\\", "/"))
+	if cleanName == "" || cleanName == "." {
+		return "", fmt.Errorf("bundle extra path must not be empty")
+	}
+	if strings.HasPrefix(cleanName, "/") || cleanName == ".." || strings.HasPrefix(cleanName, "../") {
+		return "", fmt.Errorf("bundle extra path %q escapes bundle root", name)
+	}
+	return cleanName, nil
 }

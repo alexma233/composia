@@ -324,7 +324,7 @@ func startPeriodicTask(ctx context.Context, interval time.Duration, initialLabel
 }
 
 func reportDockerStats(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig) error {
-	stats, err := collectDockerStats()
+	stats, err := collectDockerStats(ctx)
 	if err != nil {
 		return err
 	}
@@ -3287,8 +3287,8 @@ func collectRuntimeSummary(path string) (*agentv1.NodeRuntimeSummary, error) {
 	}, nil
 }
 
-func collectDockerStats() (*agentv1.DockerStats, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+func collectDockerStats(ctx context.Context) (*agentv1.DockerStats, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	var stats agentv1.DockerStats

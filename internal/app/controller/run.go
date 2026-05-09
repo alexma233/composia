@@ -177,7 +177,20 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 	if err != nil {
 		return err
 	}
-	defer func() { _ = db.Close() }()
+	runtimeCtx, cancelRuntime := context.WithCancel(ctx)
+	var background sync.WaitGroup
+	defer func() {
+		cancelRuntime()
+		background.Wait()
+		_ = db.Close()
+	}()
+	startBackground := func(run func()) {
+		background.Add(1)
+		go func() {
+			defer background.Done()
+			run()
+		}()
+	}
 
 	nodeIDs := make([]string, 0, len(cfg.Nodes))
 	availableNodeIDs := make(map[string]struct{}, len(cfg.Nodes))
@@ -185,13 +198,13 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 		nodeIDs = append(nodeIDs, node.ID)
 		availableNodeIDs[node.ID] = struct{}{}
 	}
-	if err := db.SyncConfiguredNodes(ctx, nodeIDs); err != nil {
+	if err := db.SyncConfiguredNodes(runtimeCtx, nodeIDs); err != nil {
 		return err
 	}
-	if err := db.MarkOfflineNodesBefore(ctx, time.Now().Add(-heartbeatOfflineAfter)); err != nil {
+	if err := db.MarkOfflineNodesBefore(runtimeCtx, time.Now().Add(-heartbeatOfflineAfter)); err != nil {
 		return err
 	}
-	if _, err := db.RecoverRunningTasks(ctx, time.Now().UTC()); err != nil {
+	if _, err := db.RecoverRunningTasks(runtimeCtx, time.Now().UTC()); err != nil {
 		return err
 	}
 	repoMu := &sync.Mutex{}
@@ -209,10 +222,12 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 	for _, service := range services {
 		declaredServices[service.Name] = append([]string(nil), service.TargetNodes...)
 	}
-	if err := db.SyncDeclaredServices(ctx, declaredServices); err != nil {
+	if err := db.SyncDeclaredServices(runtimeCtx, declaredServices); err != nil {
 		return err
 	}
-	go runControllerTasks(ctx, &controllerTaskExecutor{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, dnsProviders: defaultDNSProviderFactory{}, taskResults: taskResults, repoMu: repoMu})
+	startBackground(func() {
+		runControllerTasks(runtimeCtx, &controllerTaskExecutor{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, dnsProviders: defaultDNSProviderFactory{}, taskResults: taskResults, repoMu: repoMu})
+	})
 
 	mux := http.NewServeMux()
 	agentTokens := cfg.NodeTokenMap()
@@ -248,19 +263,20 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	go sweepOfflineNodes(ctx, db)
-	go autoPullRepo(ctx, cfg, db, availableNodeIDs, repoMu)
-	go runScheduledTasks(ctx, db, cfg, availableNodeIDs, taskQueue, repoMu)
-	go func() {
-		<-ctx.Done()
+	startBackground(func() { sweepOfflineNodes(runtimeCtx, db) })
+	startBackground(func() { autoPullRepo(runtimeCtx, cfg, db, availableNodeIDs, repoMu) })
+	startBackground(func() { runScheduledTasks(runtimeCtx, db, cfg, availableNodeIDs, taskQueue, repoMu) })
+	startBackground(func() {
+		<-runtimeCtx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_ = server.Shutdown(shutdownCtx)
-	}()
+	})
 
 	log.Printf("composia controller parsed %d declared services", len(services))
 	log.Printf("composia controller listening on %s", cfg.ListenAddr)
 	err = server.ListenAndServe()
+	cancelRuntime()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("run controller server: %w", err)
 	}
@@ -380,7 +396,7 @@ func sweepOfflineNodes(ctx context.Context, db *store.DB) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if err := db.MarkOfflineNodesBefore(context.Background(), time.Now().Add(-heartbeatOfflineAfter)); err != nil {
+			if err := db.MarkOfflineNodesBefore(ctx, time.Now().Add(-heartbeatOfflineAfter)); err != nil {
 				log.Printf("offline sweep failed: %v", err)
 			}
 		}
@@ -416,7 +432,7 @@ func autoPullRepo(ctx context.Context, cfg *config.ControllerConfig, db *store.D
 			newRevision, _ := repo.CurrentRevision(cfg.RepoDir)
 			if newRevision != previousRevision {
 				log.Printf("auto-pull: repo updated from %s to %s", shortRevision(previousRevision), shortRevision(newRevision))
-				if err := refreshDeclaredServices(db, cfg, availableNodeIDs); err != nil {
+				if err := refreshDeclaredServices(ctx, db, cfg, availableNodeIDs); err != nil {
 					log.Printf("auto-pull: refresh declared services failed: %v", err)
 				}
 			}
@@ -478,7 +494,7 @@ func autoPullFetchAndFastForward(ctx context.Context, cfg *config.ControllerConf
 	return state, nil
 }
 
-func refreshDeclaredServices(db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}) error {
+func refreshDeclaredServices(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}) error {
 	services, err := repo.DiscoverServices(cfg.RepoDir, availableNodeIDs)
 	if err != nil {
 		return err
@@ -487,7 +503,7 @@ func refreshDeclaredServices(db *store.DB, cfg *config.ControllerConfig, availab
 	for _, service := range services {
 		declaredServices[service.Name] = append([]string(nil), service.TargetNodes...)
 	}
-	return db.SyncDeclaredServices(context.Background(), declaredServices)
+	return db.SyncDeclaredServices(ctx, declaredServices)
 }
 
 func shortRevision(revision string) string {
@@ -1281,11 +1297,13 @@ func createNodeCaddyReloadTask(ctx context.Context, db *store.DB, cfg *config.Co
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode task params: %w", err))
 	}
+	triggeredBy, _ := rpcutil.BearerSubject(ctx)
 	taskID := uuid.NewString()
 	createdTask, err := db.CreateTaskIfNoActiveServiceInstanceTask(ctx, task.Record{
 		TaskID:      taskID,
 		Type:        task.TypeCaddyReload,
 		Source:      source,
+		TriggeredBy: triggeredBy,
 		ServiceName: service.Name,
 		NodeID:      nodeID,
 		Status:      task.StatusPending,
@@ -2921,7 +2939,6 @@ func (server *nodeMaintenanceServer) ReloadNodeCaddy(ctx context.Context, req *c
 	if err != nil {
 		return nil, err
 	}
-	createdTask.TriggeredBy, _ = rpcutil.BearerSubject(ctx)
 
 	notifyTaskQueue(server.taskQueue)
 

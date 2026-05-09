@@ -98,6 +98,12 @@ func notifyTaskQueue(notifier *taskQueueNotifier) {
 	}
 }
 
+func notifyTaskResult(notifier *taskResultNotifier, taskID string) {
+	if notifier != nil {
+		notifier.Notify(taskID)
+	}
+}
+
 func runControllerTasks(ctx context.Context, executor *controllerTaskExecutor) {
 	if executor == nil || executor.db == nil {
 		return
@@ -195,6 +201,7 @@ func (executor *controllerTaskExecutor) executeDNSUpdateTask(ctx context.Context
 	if err := executor.db.CompleteTask(ctx, record.TaskID, task.StatusSucceeded, finishedAt, ""); err != nil {
 		return err
 	}
+	notifyTaskResult(executor.taskResults, record.TaskID)
 	logControllerTaskFinished(record, finishedAt)
 	return nil
 }
@@ -207,6 +214,7 @@ func (executor *controllerTaskExecutor) failControllerTask(ctx context.Context, 
 	if completeErr := executor.db.CompleteTask(ctx, record.TaskID, task.StatusFailed, finishedAt, taskErr.Error()); completeErr != nil {
 		return completeErr
 	}
+	notifyTaskResult(executor.taskResults, record.TaskID)
 	logControllerTaskFailed(record, finishedAt, taskErr)
 	return taskErr
 }

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -157,6 +158,39 @@ func TestExecuteDNSUpdateTaskSyncsDualStackRecords(t *testing.T) {
 	}
 	if !strings.Contains(string(logContent), "resolved dns target hostname=demo.example.com. zone=example.com.") {
 		t.Fatalf("expected dns task log to include zone resolution, got %q", string(logContent))
+	}
+}
+
+func TestFailControllerTaskNotifiesWaiters(t *testing.T) {
+	t.Parallel()
+
+	db := openControllerTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"demo": {"main"}}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	logPath := filepath.Join(t.TempDir(), "task.log")
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-controller", Type: task.TypeDNSUpdate, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", Status: task.StatusRunning, LogPath: logPath, CreatedAt: time.Now().UTC()}); err != nil {
+		t.Fatalf("create controller task: %v", err)
+	}
+
+	notifier := newTaskResultNotifier()
+	waitCh := notifier.Subscribe("task-controller")
+	defer notifier.Unsubscribe("task-controller", waitCh)
+	executor := &controllerTaskExecutor{db: db, taskResults: notifier}
+	if err := executor.failControllerTask(ctx, task.Record{TaskID: "task-controller", LogPath: logPath}, task.StepDNSUpdate, errors.New("boom")); err == nil {
+		t.Fatal("expected task failure error")
+	}
+
+	select {
+	case <-waitCh:
+	case <-time.After(time.Second):
+		t.Fatal("expected controller task waiter notification")
 	}
 }
 

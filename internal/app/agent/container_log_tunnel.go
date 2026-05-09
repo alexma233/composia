@@ -56,25 +56,40 @@ func (tunnel *containerLogTunnelClient) run(ctx context.Context) {
 }
 
 func (tunnel *containerLogTunnelClient) runStream(ctx context.Context) error {
-	stream := tunnel.client.OpenContainerLogTunnel(ctx)
+	streamCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	stream := tunnel.client.OpenContainerLogTunnel(streamCtx)
 	sendCh := make(chan *agentv1.OpenContainerLogTunnelRequest, 256)
 	recvCh := make(chan *agentv1.OpenContainerLogTunnelResponse)
 	errCh := make(chan error, 2)
+	var wg sync.WaitGroup
 	sessions := &runningContainerLogSessions{sessions: make(map[string]*runningContainerLogSession)}
+	defer func() {
+		cancel()
+		_ = stream.CloseRequest()
+		wg.Wait()
+	}()
 	defer sessions.cancelAll()
 
-	go tunnel.sendLoop(ctx, stream, sendCh, errCh)
-	go tunnel.receiveLoop(stream, recvCh, errCh)
-	if err := tunnel.sendMessage(ctx, sendCh, &agentv1.OpenContainerLogTunnelRequest{Kind: containerLogKindReady}); err != nil {
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		tunnel.sendLoop(streamCtx, stream, sendCh, errCh)
+	}()
+	go func() {
+		defer wg.Done()
+		tunnel.receiveLoop(streamCtx, stream, recvCh, errCh)
+	}()
+	if err := tunnel.sendMessage(streamCtx, sendCh, &agentv1.OpenContainerLogTunnelRequest{Kind: containerLogKindReady}); err != nil {
 		return err
 	}
 
 	for {
 		select {
-		case <-ctx.Done():
+		case <-streamCtx.Done():
 			return nil
 		case err := <-errCh:
-			if errors.Is(err, context.Canceled) && ctx.Err() != nil {
+			if errors.Is(err, context.Canceled) && streamCtx.Err() != nil {
 				return nil
 			}
 			return err
@@ -82,7 +97,7 @@ func (tunnel *containerLogTunnelClient) runStream(ctx context.Context) error {
 			if !ok {
 				return nil
 			}
-			if err := tunnel.handleMessage(ctx, sendCh, sessions, message); err != nil {
+			if err := tunnel.handleMessage(streamCtx, sendCh, sessions, message); err != nil {
 				return err
 			}
 		}
@@ -99,22 +114,34 @@ func (tunnel *containerLogTunnelClient) sendLoop(ctx context.Context, stream *co
 				return
 			}
 			if err := stream.Send(message); err != nil {
-				errCh <- err
+				reportContainerLogTunnelError(ctx, errCh, err)
 				return
 			}
 		}
 	}
 }
 
-func (tunnel *containerLogTunnelClient) receiveLoop(stream *connect.BidiStreamForClient[agentv1.OpenContainerLogTunnelRequest, agentv1.OpenContainerLogTunnelResponse], recvCh chan<- *agentv1.OpenContainerLogTunnelResponse, errCh chan<- error) {
+func (tunnel *containerLogTunnelClient) receiveLoop(ctx context.Context, stream *connect.BidiStreamForClient[agentv1.OpenContainerLogTunnelRequest, agentv1.OpenContainerLogTunnelResponse], recvCh chan<- *agentv1.OpenContainerLogTunnelResponse, errCh chan<- error) {
 	defer close(recvCh)
 	for {
 		message, err := stream.Receive()
 		if err != nil {
-			errCh <- err
+			reportContainerLogTunnelError(ctx, errCh, err)
 			return
 		}
-		recvCh <- message
+		select {
+		case recvCh <- message:
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func reportContainerLogTunnelError(ctx context.Context, errCh chan<- error, err error) {
+	select {
+	case errCh <- err:
+	case <-ctx.Done():
+	default:
 	}
 }
 

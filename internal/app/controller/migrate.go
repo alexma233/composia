@@ -263,6 +263,7 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 	if err := executor.db.CompleteTask(ctx, record.TaskID, task.StatusSucceeded, finishedAt, ""); err != nil {
 		return err
 	}
+	notifyTaskResult(executor.taskResults, record.TaskID)
 	logControllerTaskFinished(record, finishedAt)
 	return nil
 }

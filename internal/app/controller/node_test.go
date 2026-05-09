@@ -273,6 +273,9 @@ func TestNodeMaintenanceServiceReloadNodeCaddyCreatesTask(t *testing.T) {
 	if detail.Record.ServiceName != "edge-proxy" || detail.Record.NodeID != "main" {
 		t.Fatalf("unexpected created task record: %+v", detail.Record)
 	}
+	if detail.Record.TriggeredBy != "test-client" {
+		t.Fatalf("expected triggered_by test-client, got %q", detail.Record.TriggeredBy)
+	}
 }
 
 func TestNodeMaintenanceServiceSyncNodeCaddyFilesCreatesSyncTask(t *testing.T) {
