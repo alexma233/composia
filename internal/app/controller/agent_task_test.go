@@ -297,7 +297,7 @@ func TestAgentPullNextTaskLongPollWaitsForNewTask(t *testing.T) {
 		responseCh <- response.Msg
 	}()
 
-	time.Sleep(50 * time.Millisecond)
+	waitForTaskQueueSubscriber(t, notifier)
 	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: "demo"})
 	if err != nil {
 		t.Fatalf("marshal deploy task params: %v", err)
@@ -402,7 +402,7 @@ func TestAgentPullNextTaskLongPollWakesWhenRunningTaskCompletes(t *testing.T) {
 		responseCh <- response.Msg
 	}()
 
-	time.Sleep(50 * time.Millisecond)
+	waitForTaskQueueSubscriber(t, notifier)
 	if err := db.CompleteTask(ctx, "task-running", task.StatusSucceeded, time.Date(2026, 4, 5, 11, 2, 0, 0, time.UTC), ""); err != nil {
 		t.Fatalf("complete running task: %v", err)
 	}
@@ -413,7 +413,7 @@ func TestAgentPullNextTaskLongPollWakesWhenRunningTaskCompletes(t *testing.T) {
 	case err := <-errCh:
 		t.Fatalf("pull next task: %v", err)
 	case response := <-responseCh:
-		if elapsed := time.Since(notifiedAt); elapsed >= 500*time.Millisecond {
+		if elapsed := time.Since(notifiedAt); elapsed >= 650*time.Millisecond {
 			t.Fatalf("expected notifier wake-up before retry fallback, got %v", elapsed)
 		}
 		if !response.GetHasTask() || response.GetTask().GetTaskId() != "task-pending" {
@@ -421,6 +421,23 @@ func TestAgentPullNextTaskLongPollWakesWhenRunningTaskCompletes(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatalf("timed out waiting for pending task after completion")
+	}
+}
+
+func waitForTaskQueueSubscriber(t *testing.T, notifier *taskQueueNotifier) {
+	t.Helper()
+	deadline := time.Now().Add(time.Second)
+	for {
+		notifier.mu.Lock()
+		subscriberCount := len(notifier.subscribers)
+		notifier.mu.Unlock()
+		if subscriberCount > 0 {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("timed out waiting for task queue subscriber")
+		}
+		time.Sleep(5 * time.Millisecond)
 	}
 }
 

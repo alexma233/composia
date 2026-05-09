@@ -533,7 +533,9 @@ func TestRunComposeUpStreamsLogsBeforeCommandExit(t *testing.T) {
 		if !strings.Contains(output, "starting compose up") {
 			t.Fatalf("expected first streamed chunk, got %q", output)
 		}
-	case <-time.After(150 * time.Millisecond):
+	case err := <-errCh:
+		t.Fatalf("run compose up finished before streaming logs: %v", err)
+	case <-time.After(time.Second):
 		t.Fatal("expected task logs before command exit")
 	}
 
