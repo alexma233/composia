@@ -23,8 +23,10 @@ import (
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1/controllerv1connect"
+	appnotify "forgejo.alexma.top/alexma233/composia/internal/app/notify"
 	backupcfg "forgejo.alexma.top/alexma233/composia/internal/core/backup"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
+	corenotify "forgejo.alexma.top/alexma233/composia/internal/core/notify"
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
@@ -159,9 +161,9 @@ func validateControllerReload(current, next *config.ControllerConfig) error {
 	return nil
 }
 
-func registerAgentHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, dockerQueries *dockerQueryBroker, execManager *execTunnelManager, logManager *containerLogTunnelManager, repoMu *sync.Mutex) {
+func registerAgentHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, dockerQueries *dockerQueryBroker, execManager *execTunnelManager, logManager *containerLogTunnelManager, repoMu *sync.Mutex, notifier *appnotify.Notifier) {
 	agentPath, agentHandler := agentv1connect.NewAgentReportServiceHandler(
-		&agentReportServer{db: db, cfg: cfg, availableNodeIDs: configuredNodeIDs(cfg), logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: taskQueue, taskResults: taskResults, dockerQueries: dockerQueries, execManager: execManager, logManager: logManager, repoMu: repoMu},
+		&agentReportServer{db: db, cfg: cfg, availableNodeIDs: configuredNodeIDs(cfg), logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: taskQueue, taskResults: taskResults, dockerQueries: dockerQueries, execManager: execManager, logManager: logManager, repoMu: repoMu, notifier: notifier},
 		connect.WithInterceptors(interceptor),
 	)
 	mountRPCHandler(mux, rpcutil.AgentAPIBasePath, agentPath, agentHandler)
@@ -179,7 +181,7 @@ func registerAgentHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db 
 	mountRPCHandler(mux, rpcutil.AgentAPIBasePath, bundlePath, bundleHandler)
 }
 
-func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, availableNodeIDs map[string]struct{}, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, dockerQueries *dockerQueryBroker, execManager *execTunnelManager, logManager *containerLogTunnelManager, repoMu *sync.Mutex, reload func(context.Context) error) {
+func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, availableNodeIDs map[string]struct{}, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, dockerQueries *dockerQueryBroker, execManager *execTunnelManager, logManager *containerLogTunnelManager, repoMu *sync.Mutex, reload func(context.Context) error, notifier *appnotify.Notifier) {
 	systemPath, systemHandler := controllerv1connect.NewSystemServiceHandler(
 		&systemServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, reload: reload},
 		connect.WithInterceptors(interceptor),
@@ -253,7 +255,7 @@ func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db
 	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, containerPath, containerHandler)
 
 	taskPath, taskHandler := controllerv1connect.NewTaskServiceHandler(
-		&taskServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue},
+		&taskServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults, notifier: notifier},
 		connect.WithInterceptors(interceptor),
 	)
 	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, taskPath, taskHandler)
@@ -274,6 +276,7 @@ type agentReportServer struct {
 	execManager      *execTunnelManager
 	logManager       *containerLogTunnelManager
 	repoMu           *sync.Mutex
+	notifier         *appnotify.Notifier
 }
 
 type agentTaskServer struct {
@@ -361,6 +364,7 @@ func (server *agentReportServer) Heartbeat(ctx context.Context, req *connect.Req
 	if !ok || authenticatedNodeID != req.Msg.GetNodeId() {
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("node_id does not match bearer token"))
 	}
+	previousSnapshot, hadPreviousSnapshot := snapshotIfExists(ctx, server.db, req.Msg.GetNodeId())
 
 	heartbeatAt := time.Now().UTC()
 	if sentAt := req.Msg.GetSentAt(); sentAt != nil {
@@ -377,6 +381,9 @@ func (server *agentReportServer) Heartbeat(ctx context.Context, req *connect.Req
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if hadPreviousSnapshot && !previousSnapshot.IsOnline && previousSnapshot.LastHeartbeat != "" {
+		dispatchNodeNotification(server.notifier, corenotify.EventNodeOnline, store.NodeSnapshot{NodeID: req.Msg.GetNodeId(), IsOnline: true, LastHeartbeat: heartbeatAt.Format(time.RFC3339)})
 	}
 
 	return connect.NewResponse(&agentv1.HeartbeatResponse{ReceivedAt: timestamppb.Now()}), nil
@@ -435,9 +442,16 @@ func (server *agentReportServer) ReportTaskState(ctx context.Context, req *conne
 	if err := server.db.CompleteTask(ctx, req.Msg.GetTaskId(), task.Status(req.Msg.GetStatus()), finishedAt, req.Msg.GetErrorSummary()); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	logControllerReceivedTaskState(ctx, server.db, req.Msg.GetTaskId(), task.Status(req.Msg.GetStatus()), req.Msg.GetErrorSummary())
-	if err := server.queuePostTaskFollowups(ctx, req.Msg.GetTaskId(), task.Status(req.Msg.GetStatus())); err != nil {
+	detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
+	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	logControllerReceivedTaskState(ctx, server.db, req.Msg.GetTaskId(), task.Status(req.Msg.GetStatus()), req.Msg.GetErrorSummary())
+	if err := server.queuePostTaskFollowups(ctx, detail.Record); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if eventType, ok := taskEventTypeForStatus(detail.Record.Status); ok {
+		dispatchTaskRecordNotification(server.notifier, eventType, detail.Record)
 	}
 	server.resetTaskLogAck(req.Msg.GetTaskId())
 	server.taskResults.Notify(req.Msg.GetTaskId())
@@ -445,22 +459,18 @@ func (server *agentReportServer) ReportTaskState(ctx context.Context, req *conne
 	return connect.NewResponse(&agentv1.ReportTaskStateResponse{}), nil
 }
 
-func (server *agentReportServer) queuePostTaskFollowups(ctx context.Context, taskID string, status task.Status) error {
-	if status != task.StatusSucceeded {
+func (server *agentReportServer) queuePostTaskFollowups(ctx context.Context, record task.Record) error {
+	if record.Status != task.StatusSucceeded {
 		return nil
 	}
-	detail, err := server.db.GetTask(ctx, taskID)
-	if err != nil {
-		return err
-	}
-	switch detail.Record.Type {
+	switch record.Type {
 	case task.TypeDeploy, task.TypeUpdate, task.TypeStop:
-		if err := server.queueCaddyReloadForTask(ctx, detail.Record); err != nil {
+		if err := server.queueCaddyReloadForTask(ctx, record); err != nil {
 			return err
 		}
 		return nil
 	case task.TypeImageCheck:
-		return server.queueAutoApplyUpdateForImageCheck(ctx, detail.Record)
+		return server.queueAutoApplyUpdateForImageCheck(ctx, record)
 	default:
 		return nil
 	}
@@ -514,7 +524,10 @@ func (server *agentReportServer) queueAutoApplyUpdateForImageCheck(ctx context.C
 		return nil
 	}
 	serviceServer := &serviceCommandServer{db: server.db, cfg: server.cfg, availableNodeIDs: server.availableNodeIDs, taskQueue: server.taskQueue, taskResults: server.taskResults, repoMu: server.repoMu}
-	_, err = serviceServer.runServiceUpdateWithImageSelections(ctx, service, nil, selections, false, nil, task.SourceSchedule, composeRecreateModeParam(task.TypeUpdate, controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_AUTO))
+	createdTask, err := serviceServer.runServiceUpdateWithImageSelections(ctx, service, nil, selections, false, nil, task.SourceSchedule, composeRecreateModeParam(task.TypeUpdate, controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_AUTO))
+	if err == nil {
+		dispatchImageUpdateAppliedNotification(server.notifier, record, createdTask, imageUpdateSelectionNames(selections))
+	}
 	return err
 }
 
@@ -586,7 +599,7 @@ func (server *agentReportServer) ReportBackupResult(ctx context.Context, req *co
 	if err := ensureTaskNodeMatch(ctx, server.db, req.Msg.GetTaskId()); err != nil {
 		return nil, err
 	}
-	nodeID, err := server.db.TaskNodeID(ctx, req.Msg.GetTaskId())
+	taskDetail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -598,19 +611,23 @@ func (server *agentReportServer) ReportBackupResult(ctx context.Context, req *co
 	if req.Msg.GetFinishedAt() != nil {
 		finishedAt = req.Msg.GetFinishedAt().AsTime().UTC().Format(time.RFC3339)
 	}
-	if err := server.db.UpsertBackupRecord(ctx, store.BackupDetail{
+	backupDetail := store.BackupDetail{
 		BackupID:     req.Msg.GetBackupId(),
 		TaskID:       req.Msg.GetTaskId(),
 		ServiceName:  req.Msg.GetServiceName(),
-		NodeID:       nodeID,
+		NodeID:       taskDetail.Record.NodeID,
 		DataName:     req.Msg.GetDataName(),
 		Status:       req.Msg.GetStatus(),
 		StartedAt:    startedAt,
 		FinishedAt:   finishedAt,
 		ArtifactRef:  req.Msg.GetArtifactRef(),
 		ErrorSummary: req.Msg.GetErrorSummary(),
-	}); err != nil {
+	}
+	if err := server.db.UpsertBackupRecord(ctx, backupDetail); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if eventType, ok := backupEventTypeForStatus(req.Msg.GetStatus()); ok {
+		dispatchBackupNotification(server.notifier, eventType, taskDetail.Record.Source, backupDetail)
 	}
 	return connect.NewResponse(&agentv1.ReportBackupResultResponse{}), nil
 }
@@ -713,6 +730,10 @@ func (server *agentReportServer) ReportServiceImageUpdateChecks(ctx context.Cont
 	if req.Msg.GetReportedAt() != nil {
 		reportedAt = req.Msg.GetReportedAt().AsTime().UTC()
 	}
+	previousChecks, err := server.db.LatestServiceImageUpdateChecks(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 	checks := make([]store.ServiceImageUpdateCheck, 0, len(req.Msg.GetChecks()))
 	for _, check := range req.Msg.GetChecks() {
 		if check.GetImageName() == "" {
@@ -760,6 +781,13 @@ func (server *agentReportServer) ReportServiceImageUpdateChecks(ctx context.Cont
 			return nil, connect.NewError(connect.CodeNotFound, err)
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	sourceRecord, err := latestTaskRecordForServiceNodeType(ctx, server.db, req.Msg.GetServiceName(), req.Msg.GetNodeId(), task.TypeImageCheck)
+	if err != nil {
+		sourceRecord = task.Record{}
+	}
+	for _, check := range detectNewImageUpdateChecks(previousChecks, checks) {
+		dispatchImageUpdateAvailableNotification(server.notifier, sourceRecord.Source, sourceRecord.TaskID, check)
 	}
 	return connect.NewResponse(&agentv1.ReportServiceImageUpdateChecksResponse{}), nil
 }
@@ -1465,6 +1493,8 @@ type taskServer struct {
 	cfg              *config.ControllerConfig
 	availableNodeIDs map[string]struct{}
 	taskQueue        *taskQueueNotifier
+	taskResults      *taskResultNotifier
+	notifier         *appnotify.Notifier
 }
 
 const (
@@ -4409,6 +4439,10 @@ func (server *taskServer) ResolveTaskConfirmation(ctx context.Context, req *conn
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	detail.Record.Status = task.StatusCancelled
+	detail.Record.FinishedAt = &finishedAt
+	detail.Record.ErrorSummary = errorSummary
+	notifyTaskResult(server.taskResults, detail.Record.TaskID)
+	dispatchTaskRecordNotification(server.notifier, corenotify.EventTaskCancelled, detail.Record)
 	return connect.NewResponse(taskActionResponse(detail.Record)), nil
 }
 

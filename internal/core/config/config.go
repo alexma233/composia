@@ -18,18 +18,19 @@ type File struct {
 }
 
 type ControllerConfig struct {
-	ListenAddr   string                   `yaml:"listen_addr"`
-	RepoDir      string                   `yaml:"repo_dir"`
-	StateDir     string                   `yaml:"state_dir"`
-	LogDir       string                   `yaml:"log_dir"`
-	Backup       *ControllerBackupConfig  `yaml:"backup"`
-	Git          *ControllerGitConfig     `yaml:"git"`
-	Nodes        []NodeConfig             `yaml:"nodes"`
-	AccessTokens []AccessTokenConfig      `yaml:"access_tokens"`
-	DNS          *ControllerDNSConfig     `yaml:"dns"`
-	Rustic       *ControllerRusticConfig  `yaml:"rustic"`
-	Secrets      *ControllerSecretsConfig `yaml:"secrets"`
-	Updates      *ControllerUpdatesConfig `yaml:"updates"`
+	ListenAddr    string                         `yaml:"listen_addr"`
+	RepoDir       string                         `yaml:"repo_dir"`
+	StateDir      string                         `yaml:"state_dir"`
+	LogDir        string                         `yaml:"log_dir"`
+	Backup        *ControllerBackupConfig        `yaml:"backup"`
+	Git           *ControllerGitConfig           `yaml:"git"`
+	Notifications *ControllerNotificationsConfig `yaml:"notifications"`
+	Nodes         []NodeConfig                   `yaml:"nodes"`
+	AccessTokens  []AccessTokenConfig            `yaml:"access_tokens"`
+	DNS           *ControllerDNSConfig           `yaml:"dns"`
+	Rustic        *ControllerRusticConfig        `yaml:"rustic"`
+	Secrets       *ControllerSecretsConfig       `yaml:"secrets"`
+	Updates       *ControllerUpdatesConfig       `yaml:"updates"`
 }
 
 type ControllerBackupConfig struct {
@@ -224,6 +225,9 @@ func validateController(file *File) error {
 		if err := schedule.Validate(controller.Backup.DefaultSchedule); err != nil {
 			return fmt.Errorf("controller.backup.default_schedule: %w", err)
 		}
+	}
+	if err := validateControllerNotifications(controller.Notifications); err != nil {
+		return err
 	}
 	if controller.Updates != nil {
 		if err := schedule.Validate(controller.Updates.DefaultCheckSchedule); err != nil {

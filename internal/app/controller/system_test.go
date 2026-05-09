@@ -70,6 +70,7 @@ func TestRegisterAccessHandlersKeepsSystemAndServiceBackupCapabilitiesConsistent
 		nil,
 		&sync.Mutex{},
 		nil,
+		nil,
 	)
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()

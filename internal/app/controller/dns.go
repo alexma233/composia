@@ -16,10 +16,12 @@ import (
 	"sync"
 	"time"
 
+	appnotify "forgejo.alexma.top/alexma233/composia/internal/app/notify"
 	cloudflarelibdns "github.com/libdns/cloudflare"
 	"github.com/libdns/libdns"
 
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
+	corenotify "forgejo.alexma.top/alexma233/composia/internal/core/notify"
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
@@ -50,6 +52,7 @@ type controllerTaskExecutor struct {
 	taskResults      *taskResultNotifier
 	dnsProviders     dnsProviderFactory
 	repoMu           *sync.Mutex
+	notifier         *appnotify.Notifier
 }
 
 type desiredServiceDNS struct {
@@ -201,7 +204,10 @@ func (executor *controllerTaskExecutor) executeDNSUpdateTask(ctx context.Context
 	if err := executor.db.CompleteTask(ctx, record.TaskID, task.StatusSucceeded, finishedAt, ""); err != nil {
 		return err
 	}
+	record.Status = task.StatusSucceeded
+	record.FinishedAt = &finishedAt
 	notifyTaskResult(executor.taskResults, record.TaskID)
+	dispatchTaskRecordNotification(executor.notifier, corenotify.EventTaskCompleted, record)
 	logControllerTaskFinished(record, finishedAt)
 	return nil
 }
@@ -214,7 +220,11 @@ func (executor *controllerTaskExecutor) failControllerTask(ctx context.Context, 
 	if completeErr := executor.db.CompleteTask(ctx, record.TaskID, task.StatusFailed, finishedAt, taskErr.Error()); completeErr != nil {
 		return completeErr
 	}
+	record.Status = task.StatusFailed
+	record.FinishedAt = &finishedAt
+	record.ErrorSummary = taskErr.Error()
 	notifyTaskResult(executor.taskResults, record.TaskID)
+	dispatchTaskRecordNotification(executor.notifier, corenotify.EventTaskFailed, record)
 	logControllerTaskFailed(record, finishedAt, taskErr)
 	return taskErr
 }

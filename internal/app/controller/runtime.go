@@ -12,7 +12,9 @@ import (
 	"sync"
 	"time"
 
+	appnotify "forgejo.alexma.top/alexma233/composia/internal/app/notify"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
+	corenotify "forgejo.alexma.top/alexma233/composia/internal/core/notify"
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
@@ -71,6 +73,10 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 	dockerQueries := newDockerQueryBroker()
 	execManager := newExecTunnelManager()
 	logManager := newContainerLogTunnelManager()
+	notifier, err := appnotify.New(cfg.Notifications)
+	if err != nil {
+		return fmt.Errorf("initialize notifications: %w", err)
+	}
 
 	services, err := repo.DiscoverServices(cfg.RepoDir, availableNodeIDs)
 	if err != nil {
@@ -84,7 +90,7 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 		return err
 	}
 	startBackground(func() {
-		runControllerTasks(runtimeCtx, &controllerTaskExecutor{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, dnsProviders: defaultDNSProviderFactory{}, taskResults: taskResults, repoMu: repoMu})
+		runControllerTasks(runtimeCtx, &controllerTaskExecutor{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, dnsProviders: defaultDNSProviderFactory{}, taskResults: taskResults, repoMu: repoMu, notifier: notifier})
 	})
 
 	mux := http.NewServeMux()
@@ -106,8 +112,8 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 		}
 		return name, nil
 	})
-	registerAgentHandlers(mux, cfg, db, agentInterceptor, taskQueue, taskResults, dockerQueries, execManager, logManager, repoMu)
-	registerAccessHandlers(mux, cfg, db, accessInterceptor, availableNodeIDs, taskQueue, taskResults, dockerQueries, execManager, logManager, repoMu, reload)
+	registerAgentHandlers(mux, cfg, db, agentInterceptor, taskQueue, taskResults, dockerQueries, execManager, logManager, repoMu, notifier)
+	registerAccessHandlers(mux, cfg, db, accessInterceptor, availableNodeIDs, taskQueue, taskResults, dockerQueries, execManager, logManager, repoMu, reload, notifier)
 	mux.HandleFunc(rpcutil.ControllerExecWSPath, execManager.handleWebsocket)
 
 	protocols := new(http.Protocols)
@@ -121,7 +127,7 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	startBackground(func() { sweepOfflineNodes(runtimeCtx, db) })
+	startBackground(func() { sweepOfflineNodes(runtimeCtx, db, notifier) })
 	startBackground(func() { autoPullRepo(runtimeCtx, cfg, db, availableNodeIDs, repoMu) })
 	startBackground(func() { runScheduledTasks(runtimeCtx, db, cfg, availableNodeIDs, taskQueue, repoMu) })
 	startBackground(func() {
@@ -141,7 +147,7 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 	return nil
 }
 
-func sweepOfflineNodes(ctx context.Context, db *store.DB) {
+func sweepOfflineNodes(ctx context.Context, db *store.DB, notifier *appnotify.Notifier) {
 	ticker := time.NewTicker(offlineSweepInterval)
 	defer ticker.Stop()
 
@@ -150,8 +156,26 @@ func sweepOfflineNodes(ctx context.Context, db *store.DB) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			before, err := buildNodeSnapshotMap(ctx, db)
+			if err != nil {
+				log.Printf("offline sweep snapshot failed: %v", err)
+				continue
+			}
 			if err := db.MarkOfflineNodesBefore(ctx, time.Now().Add(-heartbeatOfflineAfter)); err != nil {
 				log.Printf("offline sweep failed: %v", err)
+				continue
+			}
+			after, err := buildNodeSnapshotMap(ctx, db)
+			if err != nil {
+				log.Printf("offline sweep snapshot refresh failed: %v", err)
+				continue
+			}
+			for nodeID, previous := range before {
+				current, ok := after[nodeID]
+				if !ok || !previous.IsOnline || current.IsOnline {
+					continue
+				}
+				dispatchNodeNotification(notifier, corenotify.EventNodeOffline, current)
 			}
 		}
 	}

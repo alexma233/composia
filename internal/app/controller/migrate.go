@@ -13,6 +13,7 @@ import (
 	"connectrpc.com/connect"
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
+	corenotify "forgejo.alexma.top/alexma233/composia/internal/core/notify"
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
@@ -263,7 +264,10 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 	if err := executor.db.CompleteTask(ctx, record.TaskID, task.StatusSucceeded, finishedAt, ""); err != nil {
 		return err
 	}
+	record.Status = task.StatusSucceeded
+	record.FinishedAt = &finishedAt
 	notifyTaskResult(executor.taskResults, record.TaskID)
+	dispatchTaskRecordNotification(executor.notifier, corenotify.EventTaskCompleted, record)
 	logControllerTaskFinished(record, finishedAt)
 	return nil
 }
@@ -289,6 +293,9 @@ func (executor *controllerTaskExecutor) enterMigrateAwaitingConfirmation(ctx con
 	if err := executor.db.TransitionTaskStatus(ctx, record.TaskID, task.StatusRunning, task.StatusAwaitingConfirmation, ""); err != nil {
 		return err
 	}
+	record.Status = task.StatusAwaitingConfirmation
+	record.StartedAt = &startedAt
+	dispatchTaskRecordNotification(executor.notifier, corenotify.EventTaskAwaitingConfirmation, record)
 	logControllerTaskAwaitingConfirmation(record)
 	return nil
 }
