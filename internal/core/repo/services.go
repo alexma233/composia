@@ -101,8 +101,14 @@ type UpdateConfig struct {
 	AutoApply          *bool                        `yaml:"auto_apply"`
 	CheckSchedule      string                       `yaml:"check_schedule"`
 	BackupBeforeUpdate *bool                        `yaml:"backup_before_update"`
+	BackupData         []UpdateBackupDataItem       `yaml:"backup_data"`
 	DigestPin          *bool                        `yaml:"digest_pin"`
 	Images             map[string]ImageUpdateConfig `yaml:"images"`
+}
+
+type UpdateBackupDataItem struct {
+	Name    string `yaml:"name"`
+	Enabled *bool  `yaml:"enabled"`
 }
 
 type ImageUpdateConfig struct {
@@ -918,6 +924,24 @@ func EnabledBackupDataNames(service Service) []string {
 	}
 	names := make([]string, 0, len(service.Meta.Backup.Data))
 	for _, item := range service.Meta.Backup.Data {
+		if item.Name == "" {
+			continue
+		}
+		if item.Enabled != nil && !*item.Enabled {
+			continue
+		}
+		names = append(names, item.Name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+func EnabledUpdateBackupDataNames(service Service) []string {
+	if service.Meta.Update == nil {
+		return nil
+	}
+	names := make([]string, 0, len(service.Meta.Update.BackupData))
+	for _, item := range service.Meta.Update.BackupData {
 		if item.Name == "" {
 			continue
 		}

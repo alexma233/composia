@@ -1623,7 +1623,7 @@ func TestPlanRequestedServiceImageUpdatesIncludesMutableAllDetected(t *testing.T
 	if len(planned) != 1 || planned[0].ImageName != "web" || planned[0].RepoBacked {
 		t.Fatalf("unexpected planned mutable update: %+v", planned)
 	}
-	if !serviceImageUpdatesNeedBackup(server.cfg, service.Meta.Update, service.Meta.Update.Images, planned, nil) {
+	if !serviceImageUpdatesNeedBackup(server.cfg, service.Meta.Update, service.Meta.Update.Images, planned, nil, nil) {
 		t.Fatalf("expected mutable all-detected update to require backup")
 	}
 }

@@ -37,12 +37,17 @@ export const POST: RequestHandler = async ({ params, request }) => {
       recreateMode?: string;
       imageUpdates?: ImageUpdateSelection[];
       useAllDetectedImageUpdates?: boolean;
+      backupBeforeUpdate?: boolean;
     };
     return json(
       await runServiceAction(workspace.serviceName, params.action, {
         composeRecreateMode: parseComposeRecreateMode(payload.recreateMode),
         imageUpdates: payload.imageUpdates,
         useAllDetectedImageUpdates: payload.useAllDetectedImageUpdates,
+        backupBeforeUpdate:
+          typeof payload.backupBeforeUpdate === "boolean"
+            ? payload.backupBeforeUpdate
+            : undefined,
       }),
     );
   } catch (error) {

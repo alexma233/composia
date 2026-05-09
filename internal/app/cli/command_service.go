@@ -132,6 +132,8 @@ func (application *app) runServiceAction(actionName string, args []string) error
 	recreateMode := "auto"
 	useDetectedImages := false
 	useAllDetectedImages := false
+	forceBackupBeforeUpdate := false
+	skipBackupBeforeUpdate := false
 	fs.Var(&nodes, "node", "target node ID; repeat or comma-separate")
 	fs.Var(&dataNames, "data", "data entry name for backup-like actions; repeat or comma-separate")
 	if actionName == "deploy" || actionName == "update" {
@@ -142,6 +144,8 @@ func (application *app) runServiceAction(actionName string, args []string) error
 		fs.Var(&setImages, "set-image", "configured image update assignment name=tag; repeat or comma-separate")
 		fs.BoolVar(&useDetectedImages, "use-detected", false, "apply detected candidate for --image entries")
 		fs.BoolVar(&useAllDetectedImages, "all-detected", false, "apply all detected image updates")
+		fs.BoolVar(&forceBackupBeforeUpdate, "backup", false, "force backup before update")
+		fs.BoolVar(&skipBackupBeforeUpdate, "no-backup", false, "skip backup before update")
 	}
 	waitOptions := addWaitFlags(fs)
 	if err := fs.Parse(args); err != nil {
@@ -151,6 +155,9 @@ func (application *app) runServiceAction(actionName string, args []string) error
 	if err := requireArgs(fs.Args(), 1, usage); err != nil {
 		return err
 	}
+	if forceBackupBeforeUpdate && skipBackupBeforeUpdate {
+		return errorsWithUsage("--backup and --no-backup cannot be used together", usage)
+	}
 	composeRecreateMode, err := composeRecreateModeFromName(recreateMode)
 	if err != nil {
 		return err
@@ -158,6 +165,15 @@ func (application *app) runServiceAction(actionName string, args []string) error
 	imageUpdates, err := imageUpdateSelections([]string(imageNames), []string(setImages), useDetectedImages)
 	if err != nil {
 		return err
+	}
+	var backupBeforeUpdate *bool
+	if actionName == "update" {
+		switch {
+		case forceBackupBeforeUpdate:
+			backupBeforeUpdate = boolPtr(true)
+		case skipBackupBeforeUpdate:
+			backupBeforeUpdate = boolPtr(false)
+		}
 	}
 	response, err := application.client.serviceCommands.RunServiceAction(application.ctx, newRequest(&controllerv1.RunServiceActionRequest{
 		ServiceName:                fs.Arg(0),
@@ -167,6 +183,7 @@ func (application *app) runServiceAction(actionName string, args []string) error
 		ComposeRecreateMode:        composeRecreateMode,
 		ImageUpdates:               imageUpdates,
 		UseAllDetectedImageUpdates: useAllDetectedImages,
+		BackupBeforeUpdate:         backupBeforeUpdate,
 	}))
 	if err != nil {
 		return err
@@ -296,6 +313,10 @@ func imageUpdateSelections(imageNames, setImages []string, useDetected bool) ([]
 		return strings.Compare(left.GetImageName(), right.GetImageName())
 	})
 	return selections, nil
+}
+
+func boolPtr(value bool) *bool {
+	return &value
 }
 
 func composeRecreateModeFromName(name string) (controllerv1.ComposeRecreateMode, error) {

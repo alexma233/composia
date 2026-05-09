@@ -348,6 +348,8 @@ message RunServiceActionRequest {
   repeated ImageUpdateSelection image_updates = 6;
   // use_all_detected_image_updates applies every detected image update for the service.
   bool use_all_detected_image_updates = 7;
+  // backup_before_update overrides the service config cascade for this request.
+  optional bool backup_before_update = 8;
 }
 
 // ImageUpdateSelection identifies one configured image update to apply.

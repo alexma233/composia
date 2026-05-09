@@ -1348,6 +1348,7 @@ export async function runServiceAction(
     composeRecreateMode?: ComposeRecreateMode;
     imageUpdates?: ImageUpdateSelection[];
     useAllDetectedImageUpdates?: boolean;
+    backupBeforeUpdate?: boolean;
   } = {},
 ): Promise<ServiceActionResult> {
   return callServiceAction(
@@ -1368,6 +1369,7 @@ export async function runServiceAction(
         useDetected: update.useDetected ?? false,
       })),
       useAllDetectedImageUpdates: options.useAllDetectedImageUpdates ?? false,
+      backupBeforeUpdate: options.backupBeforeUpdate,
     },
   );
 }

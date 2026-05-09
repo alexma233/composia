@@ -1974,8 +1974,10 @@ type RunServiceActionRequest struct {
 	ImageUpdates []*ImageUpdateSelection `protobuf:"bytes,6,rep,name=image_updates,json=imageUpdates,proto3" json:"image_updates,omitempty"`
 	// use_all_detected_image_updates applies every detected image update for the service.
 	UseAllDetectedImageUpdates bool `protobuf:"varint,7,opt,name=use_all_detected_image_updates,json=useAllDetectedImageUpdates,proto3" json:"use_all_detected_image_updates,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
+	// backup_before_update overrides the service config cascade for this request.
+	BackupBeforeUpdate *bool `protobuf:"varint,8,opt,name=backup_before_update,json=backupBeforeUpdate,proto3,oneof" json:"backup_before_update,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *RunServiceActionRequest) Reset() {
@@ -2053,6 +2055,13 @@ func (x *RunServiceActionRequest) GetImageUpdates() []*ImageUpdateSelection {
 func (x *RunServiceActionRequest) GetUseAllDetectedImageUpdates() bool {
 	if x != nil {
 		return x.UseAllDetectedImageUpdates
+	}
+	return false
+}
+
+func (x *RunServiceActionRequest) GetBackupBeforeUpdate() bool {
+	if x != nil && x.BackupBeforeUpdate != nil {
+		return *x.BackupBeforeUpdate
 	}
 	return false
 }
@@ -2556,7 +2565,7 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"\x15MigrateServiceRequest\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12$\n" +
 	"\x0esource_node_id\x18\x02 \x01(\tR\fsourceNodeId\x12$\n" +
-	"\x0etarget_node_id\x18\x03 \x01(\tR\ftargetNodeId\"\xad\x03\n" +
+	"\x0etarget_node_id\x18\x03 \x01(\tR\ftargetNodeId\"\xfd\x03\n" +
 	"\x17RunServiceActionRequest\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12=\n" +
 	"\x06action\x18\x02 \x01(\x0e2%.composia.controller.v1.ServiceActionR\x06action\x12\x19\n" +
@@ -2565,7 +2574,9 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"data_names\x18\x04 \x03(\tR\tdataNames\x12_\n" +
 	"\x15compose_recreate_mode\x18\x05 \x01(\x0e2+.composia.controller.v1.ComposeRecreateModeR\x13composeRecreateMode\x12Q\n" +
 	"\rimage_updates\x18\x06 \x03(\v2,.composia.controller.v1.ImageUpdateSelectionR\fimageUpdates\x12B\n" +
-	"\x1euse_all_detected_image_updates\x18\a \x01(\bR\x1auseAllDetectedImageUpdates\"w\n" +
+	"\x1euse_all_detected_image_updates\x18\a \x01(\bR\x1auseAllDetectedImageUpdates\x125\n" +
+	"\x14backup_before_update\x18\b \x01(\bH\x00R\x12backupBeforeUpdate\x88\x01\x01B\x17\n" +
+	"\x15_backup_before_update\"w\n" +
 	"\x14ImageUpdateSelection\x12\x1d\n" +
 	"\n" +
 	"image_name\x18\x01 \x01(\tR\timageName\x12\x1d\n" +
@@ -2751,6 +2762,7 @@ func file_proto_composia_controller_v1_service_proto_init() {
 	file_proto_composia_controller_v1_task_proto_init()
 	file_proto_composia_controller_v1_backup_proto_init()
 	file_proto_composia_controller_v1_system_proto_init()
+	file_proto_composia_controller_v1_service_proto_msgTypes[25].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

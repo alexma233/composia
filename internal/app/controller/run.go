@@ -514,7 +514,7 @@ func (server *agentReportServer) queueAutoApplyUpdateForImageCheck(ctx context.C
 		return nil
 	}
 	serviceServer := &serviceCommandServer{db: server.db, cfg: server.cfg, availableNodeIDs: server.availableNodeIDs, taskQueue: server.taskQueue, taskResults: server.taskResults, repoMu: server.repoMu}
-	_, err = serviceServer.runServiceUpdateWithImageSelections(ctx, service, nil, selections, false, task.SourceSchedule, composeRecreateModeParam(task.TypeUpdate, controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_AUTO))
+	_, err = serviceServer.runServiceUpdateWithImageSelections(ctx, service, nil, selections, false, nil, task.SourceSchedule, composeRecreateModeParam(task.TypeUpdate, controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_AUTO))
 	return err
 }
 
@@ -1961,11 +1961,24 @@ func (server *serviceCommandServer) RunServiceAction(ctx context.Context, req *c
 	}
 
 	if taskType == task.TypeUpdate && (len(req.Msg.GetImageUpdates()) > 0 || req.Msg.GetUseAllDetectedImageUpdates()) {
-		createdTask, err := server.runServiceUpdateWithImageSelections(ctx, service, nodeIDs, req.Msg.GetImageUpdates(), req.Msg.GetUseAllDetectedImageUpdates(), requestTaskSource(req.Header()), composeRecreateModeParam(taskType, req.Msg.GetComposeRecreateMode()))
+		createdTask, err := server.runServiceUpdateWithImageSelections(ctx, service, nodeIDs, req.Msg.GetImageUpdates(), req.Msg.GetUseAllDetectedImageUpdates(), req.Msg.BackupBeforeUpdate, requestTaskSource(req.Header()), composeRecreateModeParam(taskType, req.Msg.GetComposeRecreateMode()))
 		if err != nil {
 			return nil, err
 		}
 		return connect.NewResponse(taskActionResponse(createdTask)), nil
+	}
+
+	if taskType == task.TypeUpdate && effectiveBackupBeforeUpdate(server.cfg, service.Meta.Update, nil, req.Msg.BackupBeforeUpdate) {
+		targetNodeIDs, err := resolveTargetNodeIDs(service, nodeIDs)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		if len(targetNodeIDs) == 0 {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not have any target nodes", service.Name))
+		}
+		if err := server.runBackupsBeforeUpdate(ctx, service, targetNodeIDs, requestTaskSource(req.Header())); err != nil {
+			return nil, err
+		}
 	}
 
 	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), nodeIDs, taskType, dataNames, serviceTaskCreateOptions{Source: requestTaskSource(req.Header()), ComposeRecreateMode: composeRecreateModeParam(taskType, req.Msg.GetComposeRecreateMode())})
@@ -2029,7 +2042,7 @@ type plannedImageUpdate struct {
 	RepoBacked bool
 }
 
-func (server *serviceCommandServer) runServiceUpdateWithImageSelections(ctx context.Context, service repo.Service, nodeIDs []string, selections []*controllerv1.ImageUpdateSelection, useAllDetected bool, source task.Source, composeRecreateMode string) (task.Record, error) {
+func (server *serviceCommandServer) runServiceUpdateWithImageSelections(ctx context.Context, service repo.Service, nodeIDs []string, selections []*controllerv1.ImageUpdateSelection, useAllDetected bool, backupBeforeUpdateOverride *bool, source task.Source, composeRecreateMode string) (task.Record, error) {
 	targetNodeIDs, err := resolveTargetNodeIDs(service, nodeIDs)
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, err)
@@ -2041,7 +2054,7 @@ func (server *serviceCommandServer) runServiceUpdateWithImageSelections(ctx cont
 	if err != nil {
 		return task.Record{}, err
 	}
-	if serviceImageUpdatesNeedBackup(server.cfg, service.Meta.Update, service.Meta.Update.Images, planned, selections) {
+	if serviceImageUpdatesNeedBackup(server.cfg, service.Meta.Update, service.Meta.Update.Images, planned, selections, backupBeforeUpdateOverride) {
 		if err := server.runBackupsBeforeUpdate(ctx, service, targetNodeIDs, source); err != nil {
 			return task.Record{}, err
 		}
@@ -2264,8 +2277,11 @@ func effectiveImageAutoApply(cfg *config.ControllerConfig, update *repo.UpdateCo
 	return false
 }
 
-func effectiveBackupBeforeUpdate(cfg *config.ControllerConfig, update *repo.UpdateConfig, image repo.ImageUpdateConfig) bool {
-	if image.BackupBeforeUpdate != nil {
+func effectiveBackupBeforeUpdate(cfg *config.ControllerConfig, update *repo.UpdateConfig, image *repo.ImageUpdateConfig, requestOverride *bool) bool {
+	if requestOverride != nil {
+		return *requestOverride
+	}
+	if image != nil && image.BackupBeforeUpdate != nil {
 		return *image.BackupBeforeUpdate
 	}
 	if update != nil && update.BackupBeforeUpdate != nil {
@@ -2277,7 +2293,7 @@ func effectiveBackupBeforeUpdate(cfg *config.ControllerConfig, update *repo.Upda
 	return false
 }
 
-func serviceImageUpdatesNeedBackup(cfg *config.ControllerConfig, update *repo.UpdateConfig, images map[string]repo.ImageUpdateConfig, planned []plannedImageUpdate, selections []*controllerv1.ImageUpdateSelection) bool {
+func serviceImageUpdatesNeedBackup(cfg *config.ControllerConfig, update *repo.UpdateConfig, images map[string]repo.ImageUpdateConfig, planned []plannedImageUpdate, selections []*controllerv1.ImageUpdateSelection, requestOverride *bool) bool {
 	seen := make(map[string]struct{}, len(planned)+len(selections))
 	for _, plan := range planned {
 		seen[plan.ImageName] = struct{}{}
@@ -2289,15 +2305,25 @@ func serviceImageUpdatesNeedBackup(cfg *config.ControllerConfig, update *repo.Up
 	}
 	for imageName := range seen {
 		image, ok := images[imageName]
-		if ok && effectiveBackupBeforeUpdate(cfg, update, image) {
+		if ok && effectiveBackupBeforeUpdate(cfg, update, &image, requestOverride) {
 			return true
 		}
 	}
 	return false
 }
 
+func resolveUpdateBackupDataNames(service repo.Service) ([]string, error) {
+	requested := repo.EnabledUpdateBackupDataNames(service)
+	if service.Meta.Update != nil && len(service.Meta.Update.BackupData) > 0 {
+		if len(requested) == 0 {
+			return nil, fmt.Errorf("service %q does not have any enabled update backup data items", service.Name)
+		}
+	}
+	return repo.ValidateRequestedBackupDataNames(service, requested)
+}
+
 func (server *serviceCommandServer) runBackupsBeforeUpdate(ctx context.Context, service repo.Service, targetNodeIDs []string, source task.Source) error {
-	dataNames, err := repo.ValidateRequestedBackupDataNames(service, nil)
+	dataNames, err := resolveUpdateBackupDataNames(service)
 	if err != nil {
 		return connect.NewError(connect.CodeFailedPrecondition, err)
 	}

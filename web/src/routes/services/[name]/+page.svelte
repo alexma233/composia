@@ -64,7 +64,10 @@
   import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
   } from "$lib/components/ui/dropdown-menu";
   import * as Popover from "$lib/components/ui/popover";
@@ -153,6 +156,9 @@
   let selectedInstanceNode = $state("__all__");
   let deployRecreateMode = $state<ComposeRecreateMode>("auto");
   let updateRecreateMode = $state<ComposeRecreateMode>("auto");
+  let updateBackupMode = $state<"default" | "force_on" | "force_off">(
+    "default",
+  );
   let serviceSwitchOpen = $state(false);
   let fileTreeIconTheme = $state<"light" | "dark">("dark");
 
@@ -317,6 +323,14 @@
       secondary: service.folder,
     })),
   );
+  let deployRecreateLabel = $derived(recreateModeLabel(deployRecreateMode));
+  let updateOptionsLabel = $derived.by(() => {
+    const recreateLabel = recreateModeLabel(updateRecreateMode);
+    if (updateBackupMode === "default") {
+      return recreateLabel;
+    }
+    return `${recreateLabel} · ${backupModeTriggerLabel(updateBackupMode)}`;
+  });
 
   function applyServiceSummaryState(payload: ServiceSummaryStatePayload) {
     workspace = payload.workspace ?? workspace;
@@ -399,7 +413,13 @@
         error?: string;
       };
       if (!response.ok || !payload.instance) {
-        throw new Error(actionErrorMessage(payload, $messages, $messages.services.instances.loadFailed));
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.instances.loadFailed,
+          ),
+        );
       }
 
       nodeContainers = nodeContainers.map((instance) =>
@@ -456,7 +476,11 @@
       );
       const payload = await response.json();
       if (!response.ok) {
-        errorMessage = actionErrorMessage(payload, $messages, $messages.services.files.openFileFailed);
+        errorMessage = actionErrorMessage(
+          payload,
+          $messages,
+          $messages.services.files.openFileFailed,
+        );
         return;
       }
 
@@ -470,7 +494,9 @@
       errorMessage = "";
     } catch (openError) {
       errorMessage =
-        openError instanceof Error ? openError.message : $messages.services.files.openFileFailed;
+        openError instanceof Error
+          ? openError.message
+          : $messages.services.files.openFileFailed;
     }
   }
 
@@ -539,7 +565,13 @@
         workspace?: PageData["workspace"];
       };
       if (!response.ok || !payload.file || !payload.write) {
-        throw new Error(actionErrorMessage(payload, $messages, $messages.services.files.saveFileFailed));
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.files.saveFileFailed,
+          ),
+        );
       }
 
       headRevision = payload.write.commitId;
@@ -557,10 +589,12 @@
             }
           : item,
       );
-      toast.success($messages.services.files.saved.replace('{path}', tab.path));
+      toast.success($messages.services.files.saved.replace("{path}", tab.path));
     } catch (saveError) {
       errorMessage =
-        saveError instanceof Error ? saveError.message : $messages.services.files.saveFileFailed;
+        saveError instanceof Error
+          ? saveError.message
+          : $messages.services.files.saveFileFailed;
     } finally {
       saving = false;
     }
@@ -647,7 +681,13 @@
         fileTree?: ServiceFileNode[];
       };
       if (!response.ok || !payload.file || !payload.write) {
-        throw new Error(actionErrorMessage(payload, $messages, $messages.services.files.createFileFailed));
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.files.createFileFailed,
+          ),
+        );
       }
 
       applyFsMutation({
@@ -664,7 +704,9 @@
       }
       showNewFile = false;
       newFilePath = "";
-      toast.success($messages.services.fileCreated.replace('{path}', normalized));
+      toast.success(
+        $messages.services.fileCreated.replace("{path}", normalized),
+      );
     } catch (createError) {
       errorMessage =
         createError instanceof Error
@@ -698,14 +740,22 @@
       );
       const payload = await response.json();
       if (!response.ok || !payload.write) {
-        throw new Error(actionErrorMessage(payload, $messages, $messages.services.files.createFolderFailed));
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.files.createFolderFailed,
+          ),
+        );
       }
 
       applyFsMutation(payload);
       selectedNodePath = normalized;
       showNewFolder = false;
       newFolderPath = "";
-      toast.success($messages.services.folderCreated.replace('{path}', normalized));
+      toast.success(
+        $messages.services.folderCreated.replace("{path}", normalized),
+      );
     } catch (directoryError) {
       errorMessage =
         directoryError instanceof Error
@@ -740,7 +790,13 @@
       );
       const payload = await response.json();
       if (!response.ok || !payload.write) {
-        throw new Error(actionErrorMessage(payload, $messages, $messages.services.files.renameFailed));
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.files.renameFailed,
+          ),
+        );
       }
 
       applyFsMutation(payload);
@@ -771,7 +827,9 @@
       selectedNodePath = destination;
       renamePath = destination;
       showRename = false;
-      toast.success($messages.services.pathRenamed.replace('{path}', destination));
+      toast.success(
+        $messages.services.pathRenamed.replace("{path}", destination),
+      );
     } catch (renameError) {
       errorMessage =
         renameError instanceof Error
@@ -788,12 +846,12 @@
       !confirm(
         $messages.services.files.deleteFileConfirm
           .replace(
-            '{type}',
+            "{type}",
             selectedNode?.isDir
               ? $messages.common.folder
               : $messages.common.file,
           )
-          .replace('{path}', selectedNodePath),
+          .replace("{path}", selectedNodePath),
       )
     ) {
       return;
@@ -817,7 +875,13 @@
       );
       const payload = await response.json();
       if (!response.ok || !payload.write) {
-        throw new Error(actionErrorMessage(payload, $messages, $messages.services.files.deleteFailed));
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.files.deleteFailed,
+          ),
+        );
       }
 
       applyFsMutation(payload);
@@ -849,7 +913,9 @@
       }
       selectedNodePath = "";
       showRename = false;
-      toast.success($messages.services.pathDeleted.replace('{path}', deletedPath));
+      toast.success(
+        $messages.services.pathDeleted.replace("{path}", deletedPath),
+      );
     } catch (deleteError) {
       errorMessage =
         deleteError instanceof Error
@@ -877,12 +943,16 @@
     const response = await fetch(`/services/${workspace?.folder}/workspace`);
     const payload = await response.json();
     if (!response.ok) {
-      throw new Error(actionErrorMessage(payload, $messages, $messages.services.refreshFailed));
+      throw new Error(
+        actionErrorMessage(
+          payload,
+          $messages,
+          $messages.services.refreshFailed,
+        ),
+      );
     }
 
-    applyServiceSummaryState(
-      payload as ServiceSummaryStatePayload,
-    );
+    applyServiceSummaryState(payload as ServiceSummaryStatePayload);
 
     return payload as ServiceSummaryStatePayload;
   }
@@ -986,6 +1056,9 @@
       };
 
       if (action === "update") {
+        if (updateBackupMode !== "default") {
+          body.backupBeforeUpdate = updateBackupMode === "force_on";
+        }
         const imageUpdates: ImageUpdateSelection[] = [];
 
         if (applyAllDetectedImages) {
@@ -1032,7 +1105,11 @@
       };
       if (!response.ok || !payload.taskId) {
         throw new Error(
-          actionErrorMessage(payload, $messages, $messages.services.actions.runFailed.replace('{action}', action)),
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.actions.runFailed.replace("{action}", action),
+          ),
         );
       }
 
@@ -1045,15 +1122,43 @@
         createdAt: new Date().toISOString(),
       };
       tasks = [newTask, ...tasks].slice(0, 12);
-      toast.success($messages.services.actionQueued.replace('{action}', action).replace('{taskId}', payload.taskId));
+      toast.success(
+        $messages.services.actionQueued
+          .replace("{action}", action)
+          .replace("{taskId}", payload.taskId),
+      );
       startActionRefresh(payload.taskId);
     } catch (actionError) {
       errorMessage =
         actionError instanceof Error
           ? actionError.message
-          : $messages.services.actions.runFailed.replace('{action}', action);
+          : $messages.services.actions.runFailed.replace("{action}", action);
     } finally {
       actionBusy = "";
+    }
+  }
+
+  function recreateModeLabel(mode: ComposeRecreateMode) {
+    switch (mode) {
+      case "no_recreate":
+        return $messages.services.operations.recreate.noRecreate;
+      case "force_recreate":
+        return $messages.services.operations.recreate.forceRecreate;
+      case "auto":
+      default:
+        return $messages.services.operations.recreate.auto;
+    }
+  }
+
+  function backupModeTriggerLabel(mode: "default" | "force_on" | "force_off") {
+    switch (mode) {
+      case "force_on":
+        return $messages.services.operations.backupBeforeUpdate.triggerForceOn;
+      case "force_off":
+        return $messages.services.operations.backupBeforeUpdate.triggerForceOff;
+      case "default":
+      default:
+        return $messages.services.operations.backupBeforeUpdate.default;
     }
   }
 
@@ -1092,7 +1197,11 @@
       };
       if (!response.ok || !payload.taskId) {
         throw new Error(
-          actionErrorMessage(payload, $messages, $messages.services.actions.migrateFailed),
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.actions.migrateFailed,
+          ),
         );
       }
       const newTask: TaskSummary = {
@@ -1104,7 +1213,9 @@
         createdAt: new Date().toISOString(),
       };
       tasks = [newTask, ...tasks].slice(0, 12);
-      toast.success($messages.services.migrateQueued.replace('{taskId}', payload.taskId));
+      toast.success(
+        $messages.services.migrateQueued.replace("{taskId}", payload.taskId),
+      );
       startActionRefresh(payload.taskId);
     } catch (actionError) {
       errorMessage =
@@ -1135,7 +1246,13 @@
       });
       const payload = await response.json();
       if (!response.ok || !payload.redirectTo) {
-        throw new Error(actionErrorMessage(payload, $messages, $messages.services.files.renameServiceFolderFailed));
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.files.renameServiceFolderFailed,
+          ),
+        );
       }
 
       window.location.href = payload.redirectTo;
@@ -1151,7 +1268,12 @@
   async function deleteServiceRoot() {
     if (
       !workspace?.folder ||
-      !confirm($messages.services.files.deleteServiceFolderConfirm.replace('{name}', workspace.folder))
+      !confirm(
+        $messages.services.files.deleteServiceFolderConfirm.replace(
+          "{name}",
+          workspace.folder,
+        ),
+      )
     ) {
       return;
     }
@@ -1169,7 +1291,13 @@
       });
       const payload = await response.json();
       if (!response.ok || !payload.redirectTo) {
-        throw new Error(actionErrorMessage(payload, $messages, $messages.services.files.deleteServiceFolderFailed));
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.files.deleteServiceFolderFailed,
+          ),
+        );
       }
 
       window.location.href = payload.redirectTo;
@@ -1203,7 +1331,10 @@
 </script>
 
 <svelte:head>
-  <title>{workspace?.displayName ?? $messages.services.title} - {$messages.app.name}</title>
+  <title
+    >{workspace?.displayName ?? $messages.services.title} - {$messages.app
+      .name}</title
+  >
 </svelte:head>
 
 <div class="page-shell-workbench flex min-h-[calc(100vh-72px)] flex-col">
@@ -1224,7 +1355,8 @@
                       <span
                         class="min-w-0 truncate font-semibold text-foreground"
                       >
-                        {workspace?.displayName ?? $messages.services.selectService}
+                        {workspace?.displayName ??
+                          $messages.services.selectService}
                       </span>
                       <ChevronsUpDown class="size-4 shrink-0 opacity-50" />
                     </button>
@@ -1253,7 +1385,9 @@
                           >
                             <div class="min-w-0">
                               <div class="truncate">{service.label}</div>
-                              <div class="truncate text-xs text-muted-foreground">
+                              <div
+                                class="truncate text-xs text-muted-foreground"
+                              >
                                 {service.secondary}
                               </div>
                             </div>
@@ -1345,7 +1479,10 @@
 
             {#if hasMultipleInstanceNodes}
               <Select type="single" bind:value={selectedInstanceNode as any}>
-                <SelectTrigger class="w-[240px]" aria-label={$messages.services.instances.title}>
+                <SelectTrigger
+                  class="w-[240px]"
+                  aria-label={$messages.services.instances.title}
+                >
                   {#if selectedInstanceNode === "__all__"}
                     <span>{$messages.services.allNodes}</span>
                   {:else}
@@ -1487,11 +1624,12 @@
               </Popover.Trigger>
               <Popover.Content class="w-80" sideOffset={8}>
                 <div class="space-y-3">
-                    <Input
-                      bind:value={newFilePath}
-                      placeholder={$messages.services.files.newFilePathPlaceholder}
-                      aria-label={$messages.common.newFile}
-                    />
+                  <Input
+                    bind:value={newFilePath}
+                    placeholder={$messages.services.files
+                      .newFilePathPlaceholder}
+                    aria-label={$messages.common.newFile}
+                  />
                   <div class="flex items-center justify-between gap-3">
                     <p class="text-xs text-muted-foreground">
                       {$messages.common.parentsAutoCreated}
@@ -1523,11 +1661,12 @@
               </Popover.Trigger>
               <Popover.Content class="w-80" sideOffset={8}>
                 <div class="space-y-3">
-                    <Input
-                      bind:value={newFolderPath}
-                      placeholder={$messages.services.files.newFolderPathPlaceholder}
-                      aria-label={$messages.common.newFolder}
-                    />
+                  <Input
+                    bind:value={newFolderPath}
+                    placeholder={$messages.services.files
+                      .newFolderPathPlaceholder}
+                    aria-label={$messages.common.newFolder}
+                  />
                   <div class="flex items-center justify-between gap-3">
                     <p class="text-xs text-muted-foreground">
                       {$messages.common.trackedWithGitkeep}
@@ -1570,7 +1709,11 @@
         {#if showRename}
           <div class="border-b px-4 py-3 text-sm">
             <div class="space-y-3">
-              <Input bind:value={renamePath} placeholder={$messages.services.files.newFilePlaceholder} aria-label={$messages.common.rename} />
+              <Input
+                bind:value={renamePath}
+                placeholder={$messages.services.files.newFilePlaceholder}
+                aria-label={$messages.common.rename}
+              />
               <div class="flex justify-end">
                 <Button
                   type="button"
@@ -1683,9 +1826,15 @@
                 <div class="min-h-0 flex-1">
                   {#key `primary:${activePath}`}
                     {#if activeTab.unavailableReasonCode}
-                      <div class="flex h-full items-center justify-center px-6 py-8">
-                        <div class="max-w-md rounded-xl border border-dashed border-border/70 bg-muted/20 p-6 text-center">
-                          <div class="mx-auto mb-4 inline-flex size-10 items-center justify-center rounded-full bg-background text-muted-foreground">
+                      <div
+                        class="flex h-full items-center justify-center px-6 py-8"
+                      >
+                        <div
+                          class="max-w-md rounded-xl border border-dashed border-border/70 bg-muted/20 p-6 text-center"
+                        >
+                          <div
+                            class="mx-auto mb-4 inline-flex size-10 items-center justify-center rounded-full bg-background text-muted-foreground"
+                          >
                             <Lock class="size-5" />
                           </div>
                           <div class="text-sm font-medium">
@@ -1705,7 +1854,8 @@
                         value={activeTab.content}
                         relatedFiles={editorRelatedFiles}
                         readOnly={activeTab.readOnly}
-                        onchange={({ value }) => updateTab(activeTab.path, value)}
+                        onchange={({ value }) =>
+                          updateTab(activeTab.path, value)}
                         onsave={() => saveTab(activeTab.path)}
                       />
                     {/if}
@@ -1734,13 +1884,20 @@
                   <div class="min-h-0 flex-1">
                     {#key `secondary:${secondaryPath}`}
                       {#if secondaryTab.unavailableReasonCode}
-                        <div class="flex h-full items-center justify-center px-6 py-8">
-                          <div class="max-w-md rounded-xl border border-dashed border-border/70 bg-muted/20 p-6 text-center">
-                            <div class="mx-auto mb-4 inline-flex size-10 items-center justify-center rounded-full bg-background text-muted-foreground">
+                        <div
+                          class="flex h-full items-center justify-center px-6 py-8"
+                        >
+                          <div
+                            class="max-w-md rounded-xl border border-dashed border-border/70 bg-muted/20 p-6 text-center"
+                          >
+                            <div
+                              class="mx-auto mb-4 inline-flex size-10 items-center justify-center rounded-full bg-background text-muted-foreground"
+                            >
                               <Lock class="size-5" />
                             </div>
                             <div class="text-sm font-medium">
-                              {$messages.services.files.encryptedUnavailableTitle}
+                              {$messages.services.files
+                                .encryptedUnavailableTitle}
                             </div>
                             <div class="mt-2 text-sm text-muted-foreground">
                               {fileUnavailableReason(secondaryTab)}
@@ -1800,26 +1957,39 @@
                   onclick={() => triggerAction("deploy", deployRecreateMode)}
                   disabled={!!actionBusy || !workspace?.isDeclared}
                 >
-                  <Play class="mr-2 size-4" />{$messages.services.operations.deploy}
+                  <Play class="mr-2 size-4" />{$messages.services.operations
+                    .deploy}
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger
-                    class={cn(buttonVariants(), "rounded-l-none border-l-0 px-2")}
+                    class={cn(
+                      buttonVariants(),
+                      "rounded-l-none border-l-0 gap-1 px-3",
+                    )}
                     aria-label={$messages.services.operations.recreate.label}
                     disabled={!!actionBusy || !workspace?.isDeclared}
                   >
-                    <ChevronDown class="size-4" />
+                    <span class="max-w-32 truncate text-xs"
+                      >{deployRecreateLabel}</span
+                    >
+                    <ChevronDown class="size-4 shrink-0" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem onclick={() => (deployRecreateMode = "auto")}>
-                      {$messages.services.operations.recreate.auto}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onclick={() => (deployRecreateMode = "no_recreate")}>
-                      {$messages.services.operations.recreate.noRecreate}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onclick={() => (deployRecreateMode = "force_recreate")}>
-                      {$messages.services.operations.recreate.forceRecreate}
-                    </DropdownMenuItem>
+                    <DropdownMenuLabel
+                      >{$messages.services.operations.recreate
+                        .label}</DropdownMenuLabel
+                    >
+                    <DropdownMenuRadioGroup bind:value={deployRecreateMode}>
+                      <DropdownMenuRadioItem value="auto">
+                        {$messages.services.operations.recreate.auto}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="no_recreate">
+                        {$messages.services.operations.recreate.noRecreate}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="force_recreate">
+                        {$messages.services.operations.recreate.forceRecreate}
+                      </DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -1831,30 +2001,64 @@
                   onclick={() => triggerAction("update", updateRecreateMode)}
                   disabled={!!actionBusy || !workspace?.isDeclared}
                 >
-                  <Upload class="mr-2 size-4" />{$messages.services.operations.update}
+                  <Upload class="mr-2 size-4" />{$messages.services.operations
+                    .update}
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger
-                    class={cn(buttonVariants({ variant: "outline" }), "rounded-l-none border-l-0 px-2")}
-                    aria-label={$messages.services.operations.recreate.label}
+                    class={cn(
+                      buttonVariants({ variant: "outline" }),
+                      "rounded-l-none border-l-0 gap-1 px-3",
+                    )}
+                    aria-label={$messages.services.operations.update}
                     disabled={!!actionBusy || !workspace?.isDeclared}
                   >
-                    <ChevronDown class="size-4" />
+                    <span class="max-w-40 truncate text-xs"
+                      >{updateOptionsLabel}</span
+                    >
+                    <ChevronDown class="size-4 shrink-0" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem onclick={() => (updateRecreateMode = "auto")}>
-                      {$messages.services.operations.recreate.auto}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onclick={() => (updateRecreateMode = "no_recreate")}>
-                      {$messages.services.operations.recreate.noRecreate}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onclick={() => (updateRecreateMode = "force_recreate")}>
-                      {$messages.services.operations.recreate.forceRecreate}
-                    </DropdownMenuItem>
+                    <DropdownMenuLabel
+                      >{$messages.services.operations.recreate
+                        .label}</DropdownMenuLabel
+                    >
+                    <DropdownMenuRadioGroup bind:value={updateRecreateMode}>
+                      <DropdownMenuRadioItem value="auto">
+                        {$messages.services.operations.recreate.auto}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="no_recreate">
+                        {$messages.services.operations.recreate.noRecreate}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="force_recreate">
+                        {$messages.services.operations.recreate.forceRecreate}
+                      </DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel
+                      >{$messages.services.operations.backupBeforeUpdate
+                        .label}</DropdownMenuLabel
+                    >
+                    <DropdownMenuRadioGroup bind:value={updateBackupMode}>
+                      <DropdownMenuRadioItem value="default">
+                        {$messages.services.operations.backupBeforeUpdate
+                          .default}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="force_on">
+                        {$messages.services.operations.backupBeforeUpdate
+                          .forceOn}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="force_off">
+                        {$messages.services.operations.backupBeforeUpdate
+                          .forceOff}
+                      </DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div class="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-3">
+              <div
+                class="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-3"
+              >
                 <div class="text-xs font-medium">
                   {$messages.services.imageUpdates.title}
                 </div>
@@ -1875,33 +2079,46 @@
                     <div class="space-y-1.5 max-h-48 overflow-y-auto">
                       {#each imageUpdateChecks as check (check.imageName)}
                         {#if check.updateAvailable && check.policyType !== "mutable_digest"}
-                          <label class="flex items-center gap-2 text-xs cursor-pointer py-0.5">
+                          <label
+                            class="flex items-center gap-2 text-xs cursor-pointer py-0.5"
+                          >
                             <input
                               type="checkbox"
-                              bind:checked={imageUpdateSelections[check.imageName]}
+                              bind:checked={
+                                imageUpdateSelections[check.imageName]
+                              }
                               class="size-3.5 accent-foreground"
                             />
                             <span class="text-muted-foreground">
-                              <span class="font-medium text-foreground">{check.imageName}</span>
+                              <span class="font-medium text-foreground"
+                                >{check.imageName}</span
+                              >
                               &#8239;{check.policyType}&#8239;
                               {check.currentTag} &#8594; {check.candidateTag}
                             </span>
                           </label>
                         {:else if check.policyType === "mutable_digest" && check.updateAvailable}
                           <div class="text-xs text-muted-foreground py-0.5">
-                            <span class="font-medium text-foreground">{check.imageName}</span>
+                            <span class="font-medium text-foreground"
+                              >{check.imageName}</span
+                            >
                             &#8239;mutable&#8239;
                             {check.currentTag}
                             {#if check.currentDigest !== check.candidateDigest}
                               &#8594; new digest
                             {/if}
-                            <span class="text-green-600 dark:text-green-400 ml-1">
-                              ({$messages.services.imageUpdates.updateAvailable})
+                            <span
+                              class="text-green-600 dark:text-green-400 ml-1"
+                            >
+                              ({$messages.services.imageUpdates
+                                .updateAvailable})
                             </span>
                           </div>
                         {:else}
                           <div class="text-xs text-muted-foreground py-0.5">
-                            <span class="font-medium text-foreground">{check.imageName}</span>
+                            <span class="font-medium text-foreground"
+                              >{check.imageName}</span
+                            >
                             &#8239;{check.policyType}&#8239;
                             {check.currentTag}
                           </div>
@@ -1913,7 +2130,8 @@
                     <input
                       type="text"
                       bind:value={setImageInput}
-                      placeholder={$messages.services.imageUpdates.imageTagPlaceholder}
+                      placeholder={$messages.services.imageUpdates
+                        .imageTagPlaceholder}
                       class="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm placeholder:text-muted-foreground"
                     />
                   </div>
@@ -1926,7 +2144,8 @@
                 onclick={() => triggerAction("restart")}
                 disabled={!!actionBusy || !workspace?.isDeclared}
               >
-                <RefreshCcw class="mr-2 size-4" />{$messages.services.operations.restart}
+                <RefreshCcw class="mr-2 size-4" />{$messages.services.operations
+                  .restart}
               </Button>
               <Button
                 type="button"
@@ -1935,7 +2154,8 @@
                 onclick={() => triggerAction("stop")}
                 disabled={!!actionBusy || !workspace?.isDeclared}
               >
-                <Square class="mr-2 size-4" />{$messages.services.operations.stop}
+                <Square class="mr-2 size-4" />{$messages.services.operations
+                  .stop}
               </Button>
             </div>
 
@@ -1957,7 +2177,10 @@
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div class="grid gap-2 pt-3">
-                  <DisabledReasonTooltip reason={backupReason} triggerClass="w-full">
+                  <DisabledReasonTooltip
+                    reason={backupReason}
+                    triggerClass="w-full"
+                  >
                     <Button
                       type="button"
                       variant="outline"
@@ -1967,10 +2190,14 @@
                         !workspace?.isDeclared ||
                         !backupCapability.enabled}
                     >
-                      <Wrench class="mr-2 size-4" />{$messages.services.operations.backup}
+                      <Wrench class="mr-2 size-4" />{$messages.services
+                        .operations.backup}
                     </Button>
                   </DisabledReasonTooltip>
-                  <DisabledReasonTooltip reason={dnsUpdateReason} triggerClass="w-full">
+                  <DisabledReasonTooltip
+                    reason={dnsUpdateReason}
+                    triggerClass="w-full"
+                  >
                     <Button
                       type="button"
                       variant="outline"
@@ -1980,10 +2207,14 @@
                         !workspace?.isDeclared ||
                         !dnsUpdateCapability.enabled}
                     >
-                      <Upload class="mr-2 size-4" />{$messages.services.operations.dnsUpdate}
+                      <Upload class="mr-2 size-4" />{$messages.services
+                        .operations.dnsUpdate}
                     </Button>
                   </DisabledReasonTooltip>
-                  <DisabledReasonTooltip reason={caddySyncReason} triggerClass="w-full">
+                  <DisabledReasonTooltip
+                    reason={caddySyncReason}
+                    triggerClass="w-full"
+                  >
                     <Button
                       type="button"
                       variant="outline"
@@ -1994,7 +2225,8 @@
                         !(workspace?.nodes?.length ?? 0) ||
                         !caddySyncCapability.enabled}
                     >
-                      <Copy class="mr-2 size-4" />{$messages.services.operations.syncCaddy}
+                      <Copy class="mr-2 size-4" />{$messages.services.operations
+                        .syncCaddy}
                     </Button>
                   </DisabledReasonTooltip>
                   <div
@@ -2004,7 +2236,10 @@
                       {$messages.services.operations.migrate.title}
                     </div>
                     <Select type="single" bind:value={migrateSourceNode as any}>
-                      <SelectTrigger aria-label={$messages.services.operations.migrate.selectSource}>
+                      <SelectTrigger
+                        aria-label={$messages.services.operations.migrate
+                          .selectSource}
+                      >
                         <span
                           >{migrateSourceNode ||
                             $messages.services.operations.migrate
@@ -2024,7 +2259,10 @@
                       aria-label={$messages.services.operations.migrate
                         .targetNodeId}
                     />
-                    <DisabledReasonTooltip reason={migrateReason} triggerClass="w-full">
+                    <DisabledReasonTooltip
+                      reason={migrateReason}
+                      triggerClass="w-full"
+                    >
                       <Button
                         type="button"
                         variant="outline"
@@ -2036,7 +2274,8 @@
                           !migrateTargetNode.trim() ||
                           !migrateCapability.enabled}
                       >
-                        <RefreshCcw class="mr-2 size-4" />{$messages.services.operations.migrate.migrate}
+                        <RefreshCcw class="mr-2 size-4" />{$messages.services
+                          .operations.migrate.migrate}
                       </Button>
                     </DisabledReasonTooltip>
                   </div>
@@ -2050,7 +2289,8 @@
                     }}
                     disabled={saving}
                   >
-                    <Pencil class="mr-2 size-4" />{$messages.services.operations.renameFolder}
+                    <Pencil class="mr-2 size-4" />{$messages.services.operations
+                      .renameFolder}
                   </Button>
                   <Button
                     type="button"
@@ -2059,7 +2299,8 @@
                     onclick={deleteServiceRoot}
                     disabled={saving}
                   >
-                    <Trash2 class="mr-2 size-4" />{$messages.services.operations.deleteService}
+                    <Trash2 class="mr-2 size-4" />{$messages.services.operations
+                      .deleteService}
                   </Button>
                 </div>
               </CollapsibleContent>
@@ -2069,8 +2310,9 @@
               <div class="space-y-3 border-t pt-4">
                 <Input
                   bind:value={renameServiceFolder}
-                  placeholder={$messages.services.files.newServiceFolderPlaceholder}
-					aria-label={$messages.services.operations.renameFolder}
+                  placeholder={$messages.services.files
+                    .newServiceFolderPlaceholder}
+                  aria-label={$messages.services.operations.renameFolder}
                 />
                 <div class="flex justify-end">
                   <Button
@@ -2137,15 +2379,14 @@
               {/if}
             </CardTitle>
           </CardHeader>
-            <CardContent class="space-y-3">
-              {#each backups.slice(0, 6) as backup}
-              <a
-                href={`/backups/${backup.backupId}`}
-                class="list-row"
-              >
+          <CardContent class="space-y-3">
+            {#each backups.slice(0, 6) as backup}
+              <a href={`/backups/${backup.backupId}`} class="list-row">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div class="min-w-0 flex-1">
-                    <div class="truncate text-sm font-medium">{backup.dataName}</div>
+                    <div class="truncate text-sm font-medium">
+                      {backup.dataName}
+                    </div>
                     <div class="truncate text-xs text-muted-foreground">
                       {backup.backupId}
                     </div>
