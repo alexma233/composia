@@ -515,7 +515,7 @@ func (server *agentReportServer) queueAutoApplyUpdateForImageCheck(ctx context.C
 			continue
 		}
 		selection := &controllerv1.ImageUpdateSelection{ImageName: imageName}
-		if image.Policy.Type != "mutable_digest" {
+		if !repo.IsDigestImageDiscovery(image.Discovery, service.Meta.Update.DiscoverySources) {
 			selection.UseDetected = true
 		}
 		selections = append(selections, selection)
@@ -2129,7 +2129,7 @@ func (server *serviceCommandServer) planRequestedServiceImageUpdates(ctx context
 			if !ok || !check.UpdateAvailable {
 				continue
 			}
-			if image.Policy.Type == "mutable_digest" {
+			if repo.IsDigestImageDiscovery(image.Discovery, service.Meta.Update.DiscoverySources) {
 				planned = append(planned, plannedImageUpdate{ImageName: imageName})
 				continue
 			}
@@ -2153,7 +2153,7 @@ func (server *serviceCommandServer) planRequestedServiceImageUpdates(ctx context
 		if !ok {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not declare update.images[%q]", service.Name, imageName))
 		}
-		if image.Policy.Type == "mutable_digest" {
+		if repo.IsDigestImageDiscovery(image.Discovery, service.Meta.Update.DiscoverySources) {
 			if selection.GetTargetTag() != "" || selection.GetUseDetected() {
 				return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("mutable image update %q does not accept target_tag or use_detected", imageName))
 			}
@@ -2200,10 +2200,10 @@ func (server *serviceCommandServer) applyPlannedServiceImageUpdates(ctx context.
 	seenPaths := make(map[string]struct{}, len(planned))
 	for _, update := range planned {
 		image := service.Meta.Update.Images[update.ImageName]
-		if image.Source.File == "" {
+		if repo.ImageUpdateCurrentFile(image.Current) == "" {
 			return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("image update %q is not repo-backed", update.ImageName))
 		}
-		path := filepath.ToSlash(filepath.Join(serviceDir, image.Source.File))
+		path := filepath.ToSlash(filepath.Join(serviceDir, repo.ImageUpdateCurrentFile(image.Current)))
 		if _, exists := seenPaths[path]; !exists {
 			seenPaths[path] = struct{}{}
 			paths = append(paths, path)
@@ -2239,8 +2239,8 @@ func (server *serviceCommandServer) applyPlannedServiceImageUpdates(ctx context.
 			if effectiveDigestPin(server.cfg, service.Meta.Update, image) && targetDigest != "" {
 				targetValue = update.Tag + "@" + targetDigest
 			}
-			path := filepath.ToSlash(filepath.Join(serviceDir, image.Source.File))
-			updatedContent, err := applyImageSourceUpdate(contents[path], image.Source, image.Image, targetValue)
+			path := filepath.ToSlash(filepath.Join(serviceDir, repo.ImageUpdateCurrentFile(image.Current)))
+			updatedContent, err := applyImageCurrentUpdate(contents[path], image.Current, image.Image, targetValue)
 			if err != nil {
 				return repoWriteResult{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("update image %q: %w", update.ImageName, err))
 			}
@@ -2279,7 +2279,11 @@ func (server *serviceCommandServer) applyPlannedServiceImageUpdates(ctx context.
 }
 
 func effectiveDigestPin(cfg *config.ControllerConfig, update *repo.UpdateConfig, image repo.ImageUpdateConfig) bool {
-	if image.Policy.Type == "mutable_digest" {
+	var sources map[string]repo.ImageUpdateDiscovery
+	if update != nil {
+		sources = update.DiscoverySources
+	}
+	if repo.IsDigestImageDiscovery(image.Discovery, sources) {
 		return false
 	}
 	if image.DigestPin != nil {
@@ -2377,14 +2381,14 @@ func (server *serviceCommandServer) waitTask(ctx context.Context, taskID string,
 	return waitTask(ctx, server.db, server.taskResults, taskID, timeout, 5*time.Second)
 }
 
-func applyImageSourceUpdate(content string, source repo.ImageUpdateSource, imageRef, targetValue string) (string, error) {
-	if source.Key != "" {
-		return replaceEnvFileValue(content, source.Key, targetValue)
+func applyImageCurrentUpdate(content string, current repo.ImageUpdateCurrent, imageRef, targetValue string) (string, error) {
+	if current.Env != nil {
+		return replaceEnvFileValue(content, current.Env.Key, targetValue)
 	}
-	if source.Path != "" {
-		return replaceYAMLPathImageValue(content, source.Path, imageRef, targetValue)
+	if current.YAML != nil {
+		return replaceYAMLPathImageValue(content, current.YAML.Path, imageRef, targetValue)
 	}
-	return "", fmt.Errorf("source must specify key or path")
+	return "", fmt.Errorf("current must specify env or yaml")
 }
 
 func replaceEnvFileValue(content, key, targetValue string) (string, error) {

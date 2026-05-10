@@ -54,6 +54,17 @@ func resolveControllerInlineOrFileConfig(controller *ControllerConfig) error {
 		}
 		controller.DNS.Cloudflare.APIToken = resolved
 	}
+	if controller.Updates != nil && controller.Updates.ForgeAuth != nil {
+		if err := resolveForgeAuthConfig(controller.Updates.ForgeAuth.GitHub, "controller.updates.forge_auth.github.token"); err != nil {
+			return err
+		}
+		if err := resolveForgeAuthConfig(controller.Updates.ForgeAuth.GitLab, "controller.updates.forge_auth.gitlab.token"); err != nil {
+			return err
+		}
+		if err := resolveForgeAuthConfig(controller.Updates.ForgeAuth.Forgejo, "controller.updates.forge_auth.forgejo.token"); err != nil {
+			return err
+		}
+	}
 	if controller.Notifications != nil {
 		if controller.Notifications.SMTP != nil {
 			resolved, err := resolveInlineOrFileValue(controller.Notifications.SMTP.Password, controller.Notifications.SMTP.PasswordFile, "controller.notifications.smtp.password", false)
@@ -70,6 +81,18 @@ func resolveControllerInlineOrFileConfig(controller *ControllerConfig) error {
 			controller.Notifications.Telegram.BotToken = resolved
 		}
 	}
+	return nil
+}
+
+func resolveForgeAuthConfig(auth *ForgeAuthConfig, fieldPath string) error {
+	if auth == nil {
+		return nil
+	}
+	resolved, err := resolveInlineOrFileValue(auth.Token, auth.TokenFile, fieldPath, false)
+	if err != nil {
+		return err
+	}
+	auth.Token = resolved
 	return nil
 }
 

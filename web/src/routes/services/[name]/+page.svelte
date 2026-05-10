@@ -2078,7 +2078,7 @@
                   {#if !applyAllDetectedImages}
                     <div class="space-y-1.5 max-h-48 overflow-y-auto">
                       {#each imageUpdateChecks as check (check.imageName)}
-                        {#if check.updateAvailable && check.policyType !== "mutable_digest"}
+                        {#if check.updateAvailable && check.policyType !== "digest"}
                           <label
                             class="flex items-center gap-2 text-xs cursor-pointer py-0.5"
                           >
@@ -2097,7 +2097,7 @@
                               {check.currentTag} &#8594; {check.candidateTag}
                             </span>
                           </label>
-                        {:else if check.policyType === "mutable_digest" && check.updateAvailable}
+                        {:else if check.policyType === "digest" && check.updateAvailable}
                           <div class="text-xs text-muted-foreground py-0.5">
                             <span class="font-medium text-foreground"
                               >{check.imageName}</span

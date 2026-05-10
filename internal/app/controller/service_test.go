@@ -1585,7 +1585,7 @@ func TestPlanRequestedServiceImageUpdatesIncludesMutableAllDetected(t *testing.T
 		NodeID:          "main",
 		ImageName:       "web",
 		ImageRef:        "nginx",
-		PolicyType:      "mutable_digest",
+		PolicyType:      "digest",
 		CurrentTag:      "latest",
 		CurrentDigest:   "sha256:old",
 		CandidateTag:    "latest",
@@ -1605,8 +1605,8 @@ func TestPlanRequestedServiceImageUpdatesIncludesMutableAllDetected(t *testing.T
 			"web": {
 				Image:              "nginx",
 				BackupBeforeUpdate: &backupBeforeUpdate,
-				Source:             repo.ImageUpdateSource{Tag: "latest"},
-				Policy:             repo.ImageUpdatePolicy{Type: "mutable_digest"},
+				Current:            repo.ImageUpdateCurrent{Tag: "latest"},
+				Discovery:          repo.ImageUpdateDiscovery{Type: "digest"},
 			},
 		}}},
 	}
@@ -1640,9 +1640,10 @@ func TestPlanRequestedServiceImageUpdatesRejectsEmptyAllDetected(t *testing.T) {
 		TargetNodes: []string{"main"},
 		Meta: repo.ServiceMeta{Update: &repo.UpdateConfig{Images: map[string]repo.ImageUpdateConfig{
 			"api": {
-				Image:  "ghcr.io/example/api",
-				Source: repo.ImageUpdateSource{File: ".env", Key: "API_TAG"},
-				Policy: repo.ImageUpdatePolicy{Type: "semver"},
+				Image:     "ghcr.io/example/api",
+				Current:   repo.ImageUpdateCurrent{Env: &repo.ImageUpdateCurrentEnv{File: ".env", Key: "API_TAG"}},
+				Discovery: repo.ImageUpdateDiscovery{Auto: boolPtr(true)},
+				Filter:    &repo.ImageUpdateFilter{Type: "semver"},
 			},
 		}}},
 	}

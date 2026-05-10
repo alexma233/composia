@@ -97,13 +97,14 @@ type DNSConfig struct {
 }
 
 type UpdateConfig struct {
-	Enabled            *bool                        `yaml:"enabled"`
-	AutoApply          *bool                        `yaml:"auto_apply"`
-	CheckSchedule      string                       `yaml:"check_schedule"`
-	BackupBeforeUpdate *bool                        `yaml:"backup_before_update"`
-	BackupData         []UpdateBackupDataItem       `yaml:"backup_data"`
-	DigestPin          *bool                        `yaml:"digest_pin"`
-	Images             map[string]ImageUpdateConfig `yaml:"images"`
+	Enabled            *bool                           `yaml:"enabled"`
+	AutoApply          *bool                           `yaml:"auto_apply"`
+	CheckSchedule      string                          `yaml:"check_schedule"`
+	BackupBeforeUpdate *bool                           `yaml:"backup_before_update"`
+	BackupData         []UpdateBackupDataItem          `yaml:"backup_data"`
+	DigestPin          *bool                           `yaml:"digest_pin"`
+	DiscoverySources   map[string]ImageUpdateDiscovery `yaml:"discovery_sources"`
+	Images             map[string]ImageUpdateConfig    `yaml:"images"`
 }
 
 type UpdateBackupDataItem struct {
@@ -112,28 +113,68 @@ type UpdateBackupDataItem struct {
 }
 
 type ImageUpdateConfig struct {
-	Image              string            `yaml:"image"`
-	AutoApply          *bool             `yaml:"auto_apply"`
-	CheckSchedule      string            `yaml:"check_schedule"`
-	BackupBeforeUpdate *bool             `yaml:"backup_before_update"`
-	DigestPin          *bool             `yaml:"digest_pin"`
-	Source             ImageUpdateSource `yaml:"source"`
-	Policy             ImageUpdatePolicy `yaml:"policy"`
+	Image              string               `yaml:"image"`
+	AutoApply          *bool                `yaml:"auto_apply"`
+	CheckSchedule      string               `yaml:"check_schedule"`
+	BackupBeforeUpdate *bool                `yaml:"backup_before_update"`
+	DigestPin          *bool                `yaml:"digest_pin"`
+	Current            ImageUpdateCurrent   `yaml:"current"`
+	Discovery          ImageUpdateDiscovery `yaml:"discovery"`
+	Filter             *ImageUpdateFilter   `yaml:"filter"`
 }
 
-type ImageUpdateSource struct {
+type ImageUpdateCurrent struct {
+	Tag  string                  `yaml:"tag"`
+	Env  *ImageUpdateCurrentEnv  `yaml:"env"`
+	YAML *ImageUpdateCurrentYAML `yaml:"yaml"`
+}
+
+type ImageUpdateCurrentEnv struct {
 	File string `yaml:"file"`
 	Key  string `yaml:"key"`
-	Path string `yaml:"path"`
-	Tag  string `yaml:"tag"`
 }
 
-type ImageUpdatePolicy struct {
+type ImageUpdateCurrentYAML struct {
+	File string `yaml:"file"`
+	Path string `yaml:"path"`
+}
+
+type ImageUpdateDiscovery struct {
+	Ref     string                       `yaml:"-"`
+	Auto    *bool                        `yaml:"auto"`
+	Type    string                       `yaml:"type"`
+	Repo    string                       `yaml:"repo"`
+	Project string                       `yaml:"project"`
+	Sources []ImageUpdateDiscoverySource `yaml:"sources"`
+	Combine string                       `yaml:"combine"`
+}
+
+type ImageUpdateDiscoverySource struct {
+	Type    string `yaml:"type"`
+	Repo    string `yaml:"repo"`
+	Project string `yaml:"project"`
+}
+
+type ImageUpdateFilter struct {
 	Type    string   `yaml:"type"`
 	Format  string   `yaml:"format"`
 	Pattern string   `yaml:"pattern"`
 	Order   string   `yaml:"order"`
 	Allow   []string `yaml:"allow"`
+}
+
+func (discovery *ImageUpdateDiscovery) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind == yaml.ScalarNode {
+		discovery.Ref = strings.TrimSpace(value.Value)
+		return nil
+	}
+	type rawImageUpdateDiscovery ImageUpdateDiscovery
+	var raw rawImageUpdateDiscovery
+	if err := value.Decode(&raw); err != nil {
+		return err
+	}
+	*discovery = ImageUpdateDiscovery(raw)
+	return nil
 }
 
 type DataProtectConfig struct {
@@ -721,6 +762,18 @@ func validateUpdate(path string, update *UpdateConfig) error {
 	if err := schedule.Validate(update.CheckSchedule); err != nil {
 		return fmt.Errorf("service meta %q: update.check_schedule: %w", path, err)
 	}
+	for name, discovery := range update.DiscoverySources {
+		trimmedName := strings.TrimSpace(name)
+		if trimmedName == "" {
+			return fmt.Errorf("service meta %q: update.discovery_sources[] name must not be empty", path)
+		}
+		if discovery.Ref != "" {
+			return fmt.Errorf("service meta %q: update.discovery_sources[%q] cannot reference another discovery source", path, trimmedName)
+		}
+		if err := validateImageUpdateDiscovery(fmt.Sprintf("service meta %q: update.discovery_sources[%q]", path, trimmedName), discovery, nil, nil); err != nil {
+			return err
+		}
+	}
 	seenImageNames := make(map[string]struct{}, len(update.Images))
 	for name, image := range update.Images {
 		trimmedName := strings.TrimSpace(name)
@@ -731,14 +784,14 @@ func validateUpdate(path string, update *UpdateConfig) error {
 			return fmt.Errorf("service meta %q: update.images[%q] is duplicated after trimming", path, trimmedName)
 		}
 		seenImageNames[trimmedName] = struct{}{}
-		if err := validateImageUpdate(path, trimmedName, image); err != nil {
+		if err := validateImageUpdate(path, trimmedName, image, update.DiscoverySources); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func validateImageUpdate(path, name string, image ImageUpdateConfig) error {
+func validateImageUpdate(path, name string, image ImageUpdateConfig, sources map[string]ImageUpdateDiscovery) error {
 	fieldPrefix := fmt.Sprintf("service meta %q: update.images[%q]", path, name)
 	if strings.TrimSpace(image.Image) == "" {
 		return fmt.Errorf("%s.image is required", fieldPrefix)
@@ -746,85 +799,175 @@ func validateImageUpdate(path, name string, image ImageUpdateConfig) error {
 	if err := schedule.Validate(image.CheckSchedule); err != nil {
 		return fmt.Errorf("%s.check_schedule: %w", fieldPrefix, err)
 	}
-	if err := validateImageUpdateSource(fieldPrefix, image.Source); err != nil {
+	if err := validateImageUpdateCurrent(fieldPrefix, image.Current); err != nil {
 		return err
 	}
-	return validateImageUpdatePolicy(fieldPrefix, image.Source, image.Policy)
+	if err := validateImageUpdateDiscovery(fieldPrefix+".discovery", image.Discovery, image.Filter, sources); err != nil {
+		return err
+	}
+	return validateImageUpdateFilter(fieldPrefix+".filter", image.Discovery, image.Filter)
 }
 
-func validateImageUpdateSource(fieldPrefix string, source ImageUpdateSource) error {
-	file := strings.TrimSpace(source.File)
-	key := strings.TrimSpace(source.Key)
-	path := strings.TrimSpace(source.Path)
-	tag := strings.TrimSpace(source.Tag)
-
-	if file != "" {
-		if filepath.IsAbs(file) {
-			return fmt.Errorf("%s.source.file must be a relative path", fieldPrefix)
-		}
-		cleaned := filepath.Clean(file)
-		if cleaned == "." || cleaned == ".." || strings.HasPrefix(cleaned, ".."+string(filepath.Separator)) {
-			return fmt.Errorf("%s.source.file must stay within the service directory", fieldPrefix)
-		}
-	}
-
+func validateImageUpdateCurrent(fieldPrefix string, current ImageUpdateCurrent) error {
 	modeCount := 0
-	if file != "" && key != "" && path == "" && tag == "" {
+	if strings.TrimSpace(current.Tag) != "" {
 		modeCount++
 	}
-	if file != "" && path != "" && key == "" && tag == "" {
+	if current.Env != nil {
 		modeCount++
+		if err := validateImageUpdateCurrentFile(fieldPrefix+".current.env.file", current.Env.File); err != nil {
+			return err
+		}
+		if strings.TrimSpace(current.Env.Key) == "" {
+			return fmt.Errorf("%s.current.env.key is required", fieldPrefix)
+		}
 	}
-	if tag != "" && file == "" && key == "" && path == "" {
+	if current.YAML != nil {
 		modeCount++
+		if err := validateImageUpdateCurrentFile(fieldPrefix+".current.yaml.file", current.YAML.File); err != nil {
+			return err
+		}
+		if strings.TrimSpace(current.YAML.Path) == "" {
+			return fmt.Errorf("%s.current.yaml.path is required", fieldPrefix)
+		}
 	}
 	if modeCount != 1 {
-		return fmt.Errorf("%s.source must specify exactly one of file+key, file+path, or tag", fieldPrefix)
+		return fmt.Errorf("%s.current must specify exactly one of tag, env, or yaml", fieldPrefix)
 	}
 	return nil
 }
 
-func validateImageUpdatePolicy(fieldPrefix string, source ImageUpdateSource, policy ImageUpdatePolicy) error {
-	switch strings.TrimSpace(policy.Type) {
-	case "semver":
-		if strings.TrimSpace(source.Tag) != "" {
-			return fmt.Errorf("%s.source.tag is only supported for mutable_digest policy", fieldPrefix)
-		}
-		return validateSemverAllow(fieldPrefix, policy.Allow)
-	case "date":
-		if strings.TrimSpace(source.Tag) != "" {
-			return fmt.Errorf("%s.source.tag is only supported for mutable_digest policy", fieldPrefix)
-		}
-		if strings.TrimSpace(policy.Format) == "" {
-			return fmt.Errorf("%s.policy.format is required for date policy", fieldPrefix)
+func validateImageUpdateCurrentFile(fieldPrefix, file string) error {
+	file = strings.TrimSpace(file)
+	if file == "" {
+		return fmt.Errorf("%s is required", fieldPrefix)
+	}
+	if filepath.IsAbs(file) {
+		return fmt.Errorf("%s must be a relative path", fieldPrefix)
+	}
+	cleaned := filepath.Clean(file)
+	if cleaned == "." || cleaned == ".." || strings.HasPrefix(cleaned, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("%s must stay within the service directory", fieldPrefix)
+	}
+	return nil
+}
+
+func validateImageUpdateDiscovery(fieldPrefix string, discovery ImageUpdateDiscovery, filter *ImageUpdateFilter, sources map[string]ImageUpdateDiscovery) error {
+	if discovery.Ref != "" {
+		if sources != nil {
+			if _, ok := sources[discovery.Ref]; !ok {
+				return fmt.Errorf("%s references unknown discovery source %q", fieldPrefix, discovery.Ref)
+			}
 		}
 		return nil
-	case "regex":
-		if strings.TrimSpace(source.Tag) != "" {
-			return fmt.Errorf("%s.source.tag is only supported for mutable_digest policy", fieldPrefix)
+	}
+	if discovery.Combine != "" && discovery.Combine != "merge" && discovery.Combine != "first_success" {
+		return fmt.Errorf("%s.combine must be merge or first_success", fieldPrefix)
+	}
+	if discovery.Auto != nil && *discovery.Auto {
+		return nil
+	}
+	if len(discovery.Sources) > 0 {
+		for index, source := range discovery.Sources {
+			if err := validateImageUpdateDiscoverySource(fmt.Sprintf("%s.sources[%d]", fieldPrefix, index), source, filter); err != nil {
+				return err
+			}
 		}
-		if strings.TrimSpace(policy.Pattern) == "" {
-			return fmt.Errorf("%s.policy.pattern is required for regex policy", fieldPrefix)
+		return nil
+	}
+	if strings.TrimSpace(discovery.Type) != "" {
+		return validateImageUpdateDiscoverySource(fieldPrefix, ImageUpdateDiscoverySource{Type: discovery.Type, Repo: discovery.Repo, Project: discovery.Project}, filter)
+	}
+	return nil
+}
+
+func validateImageUpdateDiscoverySource(fieldPrefix string, source ImageUpdateDiscoverySource, filter *ImageUpdateFilter) error {
+	switch strings.TrimSpace(source.Type) {
+	case "probe":
+		if filter != nil && strings.TrimSpace(filter.Type) != "semver" {
+			return fmt.Errorf("%s.type probe requires semver filter", fieldPrefix)
 		}
-		if _, err := regexp.Compile(policy.Pattern); err != nil {
-			return fmt.Errorf("%s.policy.pattern is invalid: %w", fieldPrefix, err)
+		return nil
+	case "registry", "digest":
+		return nil
+	case "github", "forgejo":
+		if strings.TrimSpace(source.Repo) == "" {
+			return fmt.Errorf("%s.repo is required", fieldPrefix)
 		}
-		switch strings.TrimSpace(policy.Order) {
-		case "numeric", "lexicographic":
-			return nil
-		default:
-			return fmt.Errorf("%s.policy.order must be numeric or lexicographic for regex policy", fieldPrefix)
-		}
-	case "mutable_digest":
-		if strings.TrimSpace(source.Tag) == "" {
-			return fmt.Errorf("%s.source.tag is required for mutable_digest policy", fieldPrefix)
+		return nil
+	case "gitlab":
+		if strings.TrimSpace(source.Project) == "" {
+			return fmt.Errorf("%s.project is required", fieldPrefix)
 		}
 		return nil
 	case "":
-		return fmt.Errorf("%s.policy.type is required", fieldPrefix)
+		return fmt.Errorf("%s.type is required", fieldPrefix)
 	default:
-		return fmt.Errorf("%s.policy.type must be semver, date, regex, or mutable_digest", fieldPrefix)
+		return fmt.Errorf("%s.type must be probe, registry, digest, github, gitlab, or forgejo", fieldPrefix)
 	}
+}
+
+func validateImageUpdateFilter(fieldPrefix string, discovery ImageUpdateDiscovery, filter *ImageUpdateFilter) error {
+	if isDigestDiscovery(discovery) {
+		if filter != nil {
+			return fmt.Errorf("%s must be omitted for digest discovery", fieldPrefix)
+		}
+		return nil
+	}
+	if filter == nil {
+		return fmt.Errorf("%s.type is required", fieldPrefix)
+	}
+	switch strings.TrimSpace(filter.Type) {
+	case "semver":
+		return validateSemverAllow(fieldPrefix, filter.Allow)
+	case "date":
+		if strings.TrimSpace(filter.Format) == "" {
+			return fmt.Errorf("%s.format is required for date filter", fieldPrefix)
+		}
+		return nil
+	case "regex":
+		if strings.TrimSpace(filter.Pattern) == "" {
+			return fmt.Errorf("%s.pattern is required for regex filter", fieldPrefix)
+		}
+		if _, err := regexp.Compile(filter.Pattern); err != nil {
+			return fmt.Errorf("%s.pattern is invalid: %w", fieldPrefix, err)
+		}
+		switch strings.TrimSpace(filter.Order) {
+		case "numeric", "lexicographic":
+			return nil
+		default:
+			return fmt.Errorf("%s.order must be numeric or lexicographic for regex filter", fieldPrefix)
+		}
+	case "latest":
+		return nil
+	case "":
+		return fmt.Errorf("%s.type is required", fieldPrefix)
+	default:
+		return fmt.Errorf("%s.type must be semver, date, regex, or latest", fieldPrefix)
+	}
+}
+
+func isDigestDiscovery(discovery ImageUpdateDiscovery) bool {
+	return strings.TrimSpace(discovery.Type) == "digest" && discovery.Ref == "" && len(discovery.Sources) == 0 && (discovery.Auto == nil || !*discovery.Auto)
+}
+
+func IsDigestImageDiscovery(discovery ImageUpdateDiscovery, sources map[string]ImageUpdateDiscovery) bool {
+	if discovery.Ref != "" {
+		if source, ok := sources[discovery.Ref]; ok {
+			return isDigestDiscovery(source)
+		}
+	}
+	return isDigestDiscovery(discovery)
+}
+
+func ImageUpdateCurrentFile(current ImageUpdateCurrent) string {
+	if current.Env != nil {
+		return current.Env.File
+	}
+	if current.YAML != nil {
+		return current.YAML.File
+	}
+	return ""
 }
 
 func validateSemverAllow(fieldPrefix string, allow []string) error {
@@ -834,11 +977,11 @@ func validateSemverAllow(fieldPrefix string, allow []string) error {
 		switch value {
 		case "patch", "minor", "major":
 			if _, exists := seen[value]; exists {
-				return fmt.Errorf("%s.policy.allow[%q] is duplicated", fieldPrefix, value)
+				return fmt.Errorf("%s.allow[%q] is duplicated", fieldPrefix, value)
 			}
 			seen[value] = struct{}{}
 		default:
-			return fmt.Errorf("%s.policy.allow must contain only patch, minor, or major", fieldPrefix)
+			return fmt.Errorf("%s.allow must contain only patch, minor, or major", fieldPrefix)
 		}
 	}
 	return nil

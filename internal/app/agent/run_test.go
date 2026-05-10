@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"context"
+	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
@@ -96,28 +98,28 @@ func TestCandidateImageTagsReturnsNewestCandidatesFirst(t *testing.T) {
 		name    string
 		current string
 		tags    []string
-		policy  repo.ImageUpdatePolicy
+		filter  repo.ImageUpdateFilter
 		want    []string
 	}{
 		{
 			name:    "semver",
 			current: "1.2.3",
 			tags:    []string{"1.2.4", "1.3.0", "2.0.0", "1.2.5"},
-			policy:  repo.ImageUpdatePolicy{Type: "semver", Allow: []string{"patch", "minor"}},
+			filter:  repo.ImageUpdateFilter{Type: "semver", Allow: []string{"patch", "minor"}},
 			want:    []string{"1.3.0", "1.2.5", "1.2.4"},
 		},
 		{
 			name:    "date",
 			current: "2026-05-01",
 			tags:    []string{"2026-05-03", "2026-05-02", "2026-04-30"},
-			policy:  repo.ImageUpdatePolicy{Type: "date", Format: "2006-01-02"},
+			filter:  repo.ImageUpdateFilter{Type: "date", Format: "2006-01-02"},
 			want:    []string{"2026-05-03", "2026-05-02"},
 		},
 		{
 			name:    "regex numeric",
 			current: "build-10",
 			tags:    []string{"build-11", "build-13", "build-12", "build-9"},
-			policy:  repo.ImageUpdatePolicy{Type: "regex", Pattern: `^build-(\d+)$`, Order: "numeric"},
+			filter:  repo.ImageUpdateFilter{Type: "regex", Pattern: `^build-(\d+)$`, Order: "numeric"},
 			want:    []string{"build-13", "build-12", "build-11"},
 		},
 	}
@@ -127,7 +129,7 @@ func TestCandidateImageTagsReturnsNewestCandidatesFirst(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := candidateImageTags(tc.current, tc.tags, tc.policy)
+			got := candidateImageTags(tc.current, tc.tags, &tc.filter)
 			if len(got) != len(tc.want) {
 				t.Fatalf("candidateImageTags() = %+v, want %+v", got, tc.want)
 			}
@@ -137,5 +139,75 @@ func TestCandidateImageTagsReturnsNewestCandidatesFirst(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestProbeSemverImageTagWithExistsPrefersHighestAllowedCandidate(t *testing.T) {
+	t.Parallel()
+
+	exists := map[string]struct{}{
+		"1.2.4": {},
+		"1.2.5": {},
+		"1.3.0": {},
+		"1.3.1": {},
+		"2.0.0": {},
+	}
+
+	got, found, err := probeSemverImageTagWithExists(context.Background(), "ghcr.io/example/app", "1.2.3", &repo.ImageUpdateFilter{Type: "semver", Allow: []string{"patch", "minor", "major"}}, func(_ context.Context, _ string, tag string) (bool, error) {
+		_, ok := exists[tag]
+		return ok, nil
+	})
+	if err != nil {
+		t.Fatalf("probeSemverImageTagWithExists() error = %v", err)
+	}
+	if !found {
+		t.Fatalf("probeSemverImageTagWithExists() found = false, want true")
+	}
+	if got != "2.0.0" {
+		t.Fatalf("probeSemverImageTagWithExists() = %q, want %q", got, "2.0.0")
+	}
+}
+
+func TestProbeSemverImageTagWithExistsPreservesVPrefix(t *testing.T) {
+	t.Parallel()
+
+	got, found, err := probeSemverImageTagWithExists(context.Background(), "ghcr.io/example/app", "v1.2.3", &repo.ImageUpdateFilter{Type: "semver", Allow: []string{"patch"}}, func(_ context.Context, _ string, tag string) (bool, error) {
+		return tag == "v1.2.4", nil
+	})
+	if err != nil {
+		t.Fatalf("probeSemverImageTagWithExists() error = %v", err)
+	}
+	if !found {
+		t.Fatalf("probeSemverImageTagWithExists() found = false, want true")
+	}
+	if got != "v1.2.4" {
+		t.Fatalf("probeSemverImageTagWithExists() = %q, want %q", got, "v1.2.4")
+	}
+}
+
+func TestProbeSemverImageTagWithExistsReturnsNotFoundWhenNextLineMissing(t *testing.T) {
+	t.Parallel()
+
+	got, found, err := probeSemverImageTagWithExists(context.Background(), "ghcr.io/example/app", "1.2.3", &repo.ImageUpdateFilter{Type: "semver", Allow: []string{"minor"}}, func(_ context.Context, _ string, tag string) (bool, error) {
+		return tag == "1.4.0", nil
+	})
+	if err != nil {
+		t.Fatalf("probeSemverImageTagWithExists() error = %v", err)
+	}
+	if found {
+		t.Fatalf("probeSemverImageTagWithExists() found = true with %q, want false", got)
+	}
+}
+
+func TestNextRegistryPageURLResolvesRelativeLink(t *testing.T) {
+	t.Parallel()
+
+	requestURL, err := url.Parse("https://registry-1.docker.io/v2/library/nginx/tags/list?n=100")
+	if err != nil {
+		t.Fatalf("url.Parse() error = %v", err)
+	}
+	got := nextRegistryPageURL(requestURL, []string{`</v2/library/nginx/tags/list?n=100&last=1.25.0>; rel="next"`})
+	if got != "https://registry-1.docker.io/v2/library/nginx/tags/list?n=100&last=1.25.0" {
+		t.Fatalf("nextRegistryPageURL() = %q", got)
 	}
 }

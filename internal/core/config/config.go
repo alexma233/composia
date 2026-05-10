@@ -43,10 +43,23 @@ type ControllerUpdatesConfig struct {
 	BackupBeforeUpdate   *bool                          `yaml:"backup_before_update"`
 	DigestPin            *bool                          `yaml:"digest_pin"`
 	Semver               *ControllerUpdatesSemverConfig `yaml:"semver"`
+	ForgeAuth            *ControllerUpdatesForgeAuth    `yaml:"forge_auth"`
 }
 
 type ControllerUpdatesSemverConfig struct {
 	DefaultAllow []string `yaml:"default_allow"`
+}
+
+type ControllerUpdatesForgeAuth struct {
+	GitHub  *ForgeAuthConfig `yaml:"github"`
+	GitLab  *ForgeAuthConfig `yaml:"gitlab"`
+	Forgejo *ForgeAuthConfig `yaml:"forgejo"`
+}
+
+type ForgeAuthConfig struct {
+	Token     string `yaml:"token"`
+	TokenFile string `yaml:"token_file"`
+	APIURL    string `yaml:"api_url"`
 }
 
 type ControllerGitConfig struct {

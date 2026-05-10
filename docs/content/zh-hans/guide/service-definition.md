@@ -238,6 +238,12 @@ update:
   backup_before_update: true
   check_schedule: "0 4 * * *"
   digest_pin: true
+  discovery_sources:
+    app_release:
+      sources:
+        - type: probe
+        - type: registry
+      combine: merge
   images:
     api:
       image: ghcr.io/example/api
@@ -245,20 +251,22 @@ update:
       backup_before_update: true
       check_schedule: "0 */6 * * *"
       digest_pin: true
-      source:
-        file: .env
-        key: API_TAG
-      policy:
+      current:
+        env:
+          file: .env
+          key: API_TAG
+      discovery: app_release
+      filter:
         type: semver
         allow:
           - patch
           - minor
     web:
       image: nginx
-      source:
+      current:
         tag: latest
-      policy:
-        type: mutable_digest
+      discovery:
+        type: digest
 ```
 
 | 字段 | 类型 | 必填 | 说明 |
@@ -278,25 +286,35 @@ update:
 | `backup_before_update` | boolean | 否 | 按镜像覆盖服务级 `backup_before_update` |
 | `check_schedule` | string | 否 | 按镜像覆盖检查调度 |
 | `digest_pin` | boolean | 否 | 按镜像覆盖 digest 固定，固定标签默认 `true` |
-| `source` | object | **是** | 当前标签的读取和回写来源 |
-| `policy` | object | **是** | 候选标签的选择策略 |
+| `current` | object | **是** | 当前标签的读取和回写来源 |
+| `discovery` | string 或 object | 否 | 命名 provider 或内联发现配置；未设置时默认 registry 发现 |
+| `filter` | object | `discovery.type: digest` 以外必填 | 候选标签的过滤和排序策略 |
 
-**source** 必须精确指定以下之一：
+**current** 必须精确指定以下之一：
 
 | 组合 | 说明 |
 |------|------|
-| `file` + `key` | 从 env 文件键读取/写入标签（例如 `.env` 中的 `API_TAG=1.2.3`） |
-| `file` + `path` | 通过点路径读取/写入 YAML 或 Compose 文件中的 `image:` 值（例如 `services.api.image`） |
-| 仅 `tag` | 仅可变标签——不写文件；标签是静态的（例如 `latest`） |
+| `env.file` + `env.key` | 从 env 文件键读取/写入标签（例如 `.env` 中的 `API_TAG=1.2.3`） |
+| `yaml.file` + `yaml.path` | 通过点路径读取/写入 YAML 或 Compose 文件中的 `image:` 值（例如 `services.api.image`） |
+| `tag` | 静态当前标签，通常配合 digest 发现使用（例如 `latest`） |
 
-**policy** 类型：
+**discovery** 来源：
+
+| 类型 | 说明 |
+|------|------|
+| `digest` | 比较当前 tag 的远程 digest 与本地 digest；不使用 `filter`。 |
+| `probe` | 对生成的 semver 候选执行 registry manifest 探测。 |
+| `registry` | 从 OCI/Docker registry 分页拉取镜像 tag。 |
+| `github` / `gitlab` / `forgejo` | 预留给 forge release API 发现。 |
+
+**filter** 类型：
 
 | 类型 | 说明 |
 |------|------|
 | `semver` | 比较 `MAJOR.MINOR.PATCH` 标签，遵循 `allow` 列表（`patch`、`minor`、`major`）。默认允许 `patch, minor`。 |
 | `date` | 用自定义 `format`（Go 时间布局）解析标签，选择更新的日期。 |
 | `regex` | 按带有一个捕获组的 `pattern` 匹配标签，按 `numeric` 或 `lexicographic` 排序。 |
-| `mutable_digest` | 比较可变标签（如 `latest`）的远程与本地 digest；当不同时触发更新。需要 `source.tag`。 |
+| `latest` | 不额外过滤，按 discovery 产出的顺序选择第一个候选。 |
 
 服务级默认值（`auto_apply`、`backup_before_update`、`check_schedule`、`digest_pin`）级联到每个镜像；镜像级值覆盖服务级；控制器级默认值填补剩余空白。
 

@@ -32,10 +32,13 @@ update:
   images:
     app:
       image: ghcr.io/example/vaultwarden
-      source:
-        file: .env
-        key: APP_VERSION
-      policy:
+      current:
+        env:
+          file: .env
+          key: APP_VERSION
+      discovery:
+        auto: true
+      filter:
         type: semver
 data_protect:
   data:
@@ -241,20 +244,23 @@ update:
       check_schedule: "15 4 * * *"
       backup_before_update: false
       digest_pin: false
-      source:
-        file: .env
-        key: API_VERSION
-      policy:
+      current:
+        env:
+          file: .env
+          key: API_VERSION
+      discovery:
+        auto: true
+      filter:
         type: semver
         allow:
           - patch
           - minor
     worker:
       image: ghcr.io/example/worker
-      source:
+      current:
         tag: nightly
-      policy:
-        type: mutable_digest
+      discovery:
+        type: digest
 `)+"\n")
 
 	services, err := DiscoverServices(repoDir, map[string]struct{}{"main": {}})
@@ -269,11 +275,11 @@ update:
 		t.Fatalf("expected update images, got %+v", update)
 	}
 	api := update.Images["api"]
-	if api.Source.File != ".env" || api.Source.Key != "API_VERSION" {
-		t.Fatalf("unexpected api source: %+v", api.Source)
+	if api.Current.Env == nil || api.Current.Env.File != ".env" || api.Current.Env.Key != "API_VERSION" {
+		t.Fatalf("unexpected api current: %+v", api.Current)
 	}
-	if api.Policy.Type != "semver" || len(api.Policy.Allow) != 2 {
-		t.Fatalf("unexpected api policy: %+v", api.Policy)
+	if api.Filter == nil || api.Filter.Type != "semver" || len(api.Filter.Allow) != 2 {
+		t.Fatalf("unexpected api filter: %+v", api.Filter)
 	}
 	if api.AutoApply == nil || *api.AutoApply {
 		t.Fatalf("expected api auto_apply override false")
@@ -299,11 +305,14 @@ update:
   images:
     api:
       image: ghcr.io/example/api
-      source:
-        file: .env
-        key: API_VERSION
+      current:
         tag: latest
-      policy:
+        env:
+          file: .env
+          key: API_VERSION
+      discovery:
+        auto: true
+      filter:
         type: semver
 `)+"\n")
 

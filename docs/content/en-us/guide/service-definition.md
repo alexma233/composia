@@ -238,6 +238,12 @@ update:
   backup_before_update: true
   check_schedule: "0 4 * * *"
   digest_pin: true
+  discovery_sources:
+    app_release:
+      sources:
+        - type: probe
+        - type: registry
+      combine: merge
   images:
     api:
       image: ghcr.io/example/api
@@ -245,20 +251,22 @@ update:
       backup_before_update: true
       check_schedule: "0 */6 * * *"
       digest_pin: true
-      source:
-        file: .env
-        key: API_TAG
-      policy:
+      current:
+        env:
+          file: .env
+          key: API_TAG
+      discovery: app_release
+      filter:
         type: semver
         allow:
           - patch
           - minor
     web:
       image: nginx
-      source:
+      current:
         tag: latest
-      policy:
-        type: mutable_digest
+      discovery:
+        type: digest
 ```
 
 | Field | Type | Required | Description |
@@ -278,25 +286,35 @@ Each entry under `images` is keyed by a logical name and supports:
 | `backup_before_update` | boolean | No | Override service-level `backup_before_update` per image |
 | `check_schedule` | string | No | Per-image check schedule override |
 | `digest_pin` | boolean | No | Per-image digest pinning, default `true` for pinned tags |
-| `source` | object | **Yes** | Where the current tag is read from and written back to |
-| `policy` | object | **Yes** | How candidate tags are selected |
+| `current` | object | **Yes** | Where the current tag is read from and written back to |
+| `discovery` | string or object | No | Named provider or inline discovery config; defaults to registry discovery when omitted |
+| `filter` | object | Required except `discovery.type: digest` | How candidate tags are selected |
 
-**Source** must specify exactly one of:
+**Current** must specify exactly one of:
 
 | Combination | Description |
 |-------------|-------------|
-| `file` + `key` | Read/write a tag from an env-file key (e.g. `.env` with `API_TAG=1.2.3`) |
-| `file` + `path` | Read/write an `image:` value inside a YAML or Compose file via a dot-path (e.g. `services.api.image`) |
-| `tag` (only) | Mutable tag only — no file writes; tag is static (e.g. `latest`) |
+| `env.file` + `env.key` | Read/write a tag from an env-file key (e.g. `.env` with `API_TAG=1.2.3`) |
+| `yaml.file` + `yaml.path` | Read/write an `image:` value inside a YAML or Compose file via a dot-path (e.g. `services.api.image`) |
+| `tag` | Static current tag, typically used with digest discovery (e.g. `latest`) |
 
-**Policy** types:
+**Discovery** sources:
+
+| Type | Description |
+|------|-------------|
+| `digest` | Compare the remote digest of the current tag with the local digest; no `filter` is used. |
+| `probe` | Probe registry manifests for generated semver candidates. |
+| `registry` | List image tags from the OCI/Docker registry with pagination. |
+| `github` / `gitlab` / `forgejo` | Reserved for forge release API discovery. |
+
+**Filter** types:
 
 | Type | Description |
 |------|-------------|
 | `semver` | Compare `MAJOR.MINOR.PATCH` tags, obey `allow` list (`patch`, `minor`, `major`). Default allow is `patch, minor`. |
 | `date` | Parse tags with a custom `format` (Go time layout), select newer dates. |
 | `regex` | Match tags against a `pattern` with one capture group, ordered `numeric` or `lexicographic`. |
-| `mutable_digest` | Compare the remote digest of a mutable tag (e.g. `latest`) with the local digest; trigger update when they differ. Requires `source.tag`. |
+| `latest` | Use the discovered tags as-is and pick the first candidate. |
 
 Service-level defaults (`auto_apply`, `backup_before_update`, `check_schedule`, `digest_pin`) cascade to each image; image-level values override service-level; controller-level defaults fill the remaining gaps.
 
