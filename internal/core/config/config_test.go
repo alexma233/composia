@@ -202,6 +202,46 @@ controller:
 	}
 }
 
+func TestLoadControllerParsesMultipleForgeAuthEntries(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.yaml")
+	content := strings.TrimSpace(`
+controller:
+  listen_addr: ":8080"
+  repo_dir: "/srv/composia/repo"
+  state_dir: "/srv/composia/state-controller"
+  log_dir: "/srv/composia/logs"
+  nodes:
+    - id: "main"
+      token: "main-token"
+  updates:
+    forge_auth:
+      github:
+        - url: https://github.com
+          token: github-token
+        - url: https://github.example.com
+          api_url: https://github.example.com/api/v3
+          token: enterprise-token
+`) + "\n"
+
+	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	controller, err := LoadController(configPath)
+	if err != nil {
+		t.Fatalf("load controller: %v", err)
+	}
+	entries := controller.Updates.ForgeAuth.GitHub
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 github auth entries, got %+v", entries)
+	}
+	if entries[1].APIURL != "https://github.example.com/api/v3" || entries[1].Token != "enterprise-token" {
+		t.Fatalf("unexpected second auth entry %+v", entries[1])
+	}
+}
+
 func TestLoadControllerRejectsInvalidUpdatesDefaults(t *testing.T) {
 	t.Parallel()
 

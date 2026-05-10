@@ -1300,11 +1300,13 @@ func decodeTaskParams(paramsJSON string) (controllerTaskParams, error) {
 }
 
 type controllerTaskParams struct {
-	ServiceDirs         []string `json:"service_dirs,omitempty"`
-	ImageNames          []string `json:"image_names,omitempty"`
-	SemverAllow         []string `json:"semver_allow,omitempty"`
-	FullRebuild         bool     `json:"full_rebuild,omitempty"`
-	ComposeRecreateMode string   `json:"compose_recreate_mode,omitempty"`
+	ServiceDirs           []string                       `json:"service_dirs,omitempty"`
+	ImageNames            []string                       `json:"image_names,omitempty"`
+	SemverAllow           []string                       `json:"semver_allow,omitempty"`
+	ForgeCandidates       map[string][]string            `json:"forge_candidates,omitempty"`
+	ForgeCandidateSources map[string]map[string][]string `json:"forge_candidate_sources,omitempty"`
+	FullRebuild           bool                           `json:"full_rebuild,omitempty"`
+	ComposeRecreateMode   string                         `json:"compose_recreate_mode,omitempty"`
 }
 
 func syncServiceCaddyFile(ctx context.Context, cfg *config.AgentConfig, serviceDir, serviceRoot string, uploadLog func(string) error) error {

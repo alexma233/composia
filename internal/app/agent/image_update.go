@@ -111,7 +111,7 @@ func reportServiceImageUpdateChecks(ctx context.Context, client agentv1connect.A
 		if image.Filter != nil && image.Filter.Type == "semver" && len(image.Filter.Allow) == 0 && len(params.SemverAllow) > 0 {
 			image.Filter.Allow = append([]string(nil), params.SemverAllow...)
 		}
-		checks = append(checks, collectServiceImageUpdateCheck(ctx, serviceDir, imageName, image, serviceMeta.Update.DiscoverySources))
+		checks = append(checks, collectServiceImageUpdateCheck(ctx, serviceDir, imageName, image, serviceMeta.Update.DiscoverySources, params.ForgeCandidates[imageName], params.ForgeCandidateSources[imageName]))
 	}
 	if len(checks) == 0 {
 		return uploadTaskLog(ctx, logUploader, "no selected image update checks found\n")
@@ -128,7 +128,7 @@ func reportServiceImageUpdateChecks(ctx context.Context, client agentv1connect.A
 	return uploadTaskLog(ctx, logUploader, fmt.Sprintf("reported %d service image update check(s)\n", len(checks)))
 }
 
-func collectServiceImageUpdateCheck(ctx context.Context, serviceDir, imageName string, image repo.ImageUpdateConfig, discoverySources map[string]repo.ImageUpdateDiscovery) *agentv1.ServiceImageUpdateCheck {
+func collectServiceImageUpdateCheck(ctx context.Context, serviceDir, imageName string, image repo.ImageUpdateConfig, discoverySources map[string]repo.ImageUpdateDiscovery, injectedCandidates []string, injectedSourceCandidates map[string][]string) *agentv1.ServiceImageUpdateCheck {
 	policyType := "digest"
 	if image.Filter != nil {
 		policyType = image.Filter.Type
@@ -165,7 +165,7 @@ func collectServiceImageUpdateCheck(ctx context.Context, serviceDir, imageName s
 		return check
 	}
 
-	tags, err := discoverImageUpdateTags(ctx, image.Image, currentTag, discovery, image.Filter)
+	tags, err := discoverImageUpdateTags(ctx, image.Image, currentTag, discovery, image.Filter, injectedCandidates, injectedSourceCandidates)
 	if err != nil {
 		check.CheckStatus = store.ImageCheckStatusError
 		check.ErrorSummary = err.Error()

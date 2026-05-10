@@ -144,6 +144,7 @@ type ImageUpdateDiscovery struct {
 	Auto    *bool                        `yaml:"auto"`
 	Type    string                       `yaml:"type"`
 	Repo    string                       `yaml:"repo"`
+	RepoURL string                       `yaml:"repo_url"`
 	Project string                       `yaml:"project"`
 	Sources []ImageUpdateDiscoverySource `yaml:"sources"`
 	Combine string                       `yaml:"combine"`
@@ -152,7 +153,9 @@ type ImageUpdateDiscovery struct {
 type ImageUpdateDiscoverySource struct {
 	Type    string `yaml:"type"`
 	Repo    string `yaml:"repo"`
+	RepoURL string `yaml:"repo_url"`
 	Project string `yaml:"project"`
+	APIURL  string `yaml:"api_url"`
 }
 
 type ImageUpdateFilter struct {
@@ -876,7 +879,7 @@ func validateImageUpdateDiscovery(fieldPrefix string, discovery ImageUpdateDisco
 		return nil
 	}
 	if strings.TrimSpace(discovery.Type) != "" {
-		return validateImageUpdateDiscoverySource(fieldPrefix, ImageUpdateDiscoverySource{Type: discovery.Type, Repo: discovery.Repo, Project: discovery.Project}, filter)
+		return validateImageUpdateDiscoverySource(fieldPrefix, ImageUpdateDiscoverySource{Type: discovery.Type, Repo: discovery.Repo, RepoURL: discovery.RepoURL, Project: discovery.Project}, filter)
 	}
 	return nil
 }
@@ -952,12 +955,17 @@ func isDigestDiscovery(discovery ImageUpdateDiscovery) bool {
 }
 
 func IsDigestImageDiscovery(discovery ImageUpdateDiscovery, sources map[string]ImageUpdateDiscovery) bool {
-	if discovery.Ref != "" {
-		if source, ok := sources[discovery.Ref]; ok {
-			return isDigestDiscovery(source)
-		}
+	return isDigestDiscovery(ResolveImageUpdateDiscovery(discovery, sources))
+}
+
+func ResolveImageUpdateDiscovery(discovery ImageUpdateDiscovery, sources map[string]ImageUpdateDiscovery) ImageUpdateDiscovery {
+	if discovery.Ref == "" {
+		return discovery
 	}
-	return isDigestDiscovery(discovery)
+	if source, ok := sources[discovery.Ref]; ok {
+		return source
+	}
+	return discovery
 }
 
 func ImageUpdateCurrentFile(current ImageUpdateCurrent) string {

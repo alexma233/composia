@@ -1362,16 +1362,18 @@ type serviceInstanceServer struct {
 }
 
 type serviceTaskParams struct {
-	ServiceDir          string            `json:"service_dir"`
-	ServiceDirs         []string          `json:"service_dirs,omitempty"`
-	DataNames           []string          `json:"data_names,omitempty"`
-	ImageNames          []string          `json:"image_names,omitempty"`
-	SemverAllow         []string          `json:"semver_allow,omitempty"`
-	FullRebuild         bool              `json:"full_rebuild,omitempty"`
-	SourceNodeID        string            `json:"source_node_id,omitempty"`
-	TargetNodeID        string            `json:"target_node_id,omitempty"`
-	RestoreItems        []restoreTaskItem `json:"restore_items,omitempty"`
-	ComposeRecreateMode string            `json:"compose_recreate_mode,omitempty"`
+	ServiceDir            string                         `json:"service_dir"`
+	ServiceDirs           []string                       `json:"service_dirs,omitempty"`
+	DataNames             []string                       `json:"data_names,omitempty"`
+	ImageNames            []string                       `json:"image_names,omitempty"`
+	SemverAllow           []string                       `json:"semver_allow,omitempty"`
+	ForgeCandidates       map[string][]string            `json:"forge_candidates,omitempty"`
+	ForgeCandidateSources map[string]map[string][]string `json:"forge_candidate_sources,omitempty"`
+	FullRebuild           bool                           `json:"full_rebuild,omitempty"`
+	SourceNodeID          string                         `json:"source_node_id,omitempty"`
+	TargetNodeID          string                         `json:"target_node_id,omitempty"`
+	RestoreItems          []restoreTaskItem              `json:"restore_items,omitempty"`
+	ComposeRecreateMode   string                         `json:"compose_recreate_mode,omitempty"`
 }
 
 type restoreTaskItem struct {
@@ -2020,12 +2022,14 @@ func (server *serviceCommandServer) RunServiceAction(ctx context.Context, req *c
 }
 
 type serviceTaskCreateOptions struct {
-	AttemptOfTaskID     string
-	Source              task.Source
-	CreatedAt           *time.Time
-	ComposeRecreateMode string
-	ImageNames          []string
-	SemverAllow         []string
+	AttemptOfTaskID       string
+	Source                task.Source
+	CreatedAt             *time.Time
+	ComposeRecreateMode   string
+	ImageNames            []string
+	SemverAllow           []string
+	ForgeCandidates       map[string][]string
+	ForgeCandidateSources map[string]map[string][]string
 }
 
 func composeRecreateModeParam(taskType task.Type, mode controllerv1.ComposeRecreateMode) string {
@@ -2499,6 +2503,14 @@ func (server *serviceCommandServer) createServiceTaskWithOptions(ctx context.Con
 	if len(targetNodeIDs) == 0 {
 		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not have any target nodes", serviceName))
 	}
+	if taskType == task.TypeImageCheck && options.ForgeCandidates == nil {
+		forgeCandidates, forgeCandidateSources, err := collectForgeImageCandidates(ctx, server.cfg, service, options.ImageNames)
+		if err != nil {
+			return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		options.ForgeCandidates = forgeCandidates
+		options.ForgeCandidateSources = forgeCandidateSources
+	}
 	for _, nodeID := range targetNodeIDs {
 		if err := validateTaskTargetNode(ctx, server.db, server.cfg, nodeID, taskType); err != nil {
 			return task.Record{}, err
@@ -2514,7 +2526,7 @@ func (server *serviceCommandServer) createServiceTaskWithOptions(ctx context.Con
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
 	}
-	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir, DataNames: dataNames, ImageNames: options.ImageNames, SemverAllow: options.SemverAllow, ComposeRecreateMode: options.ComposeRecreateMode})
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir, DataNames: dataNames, ImageNames: options.ImageNames, SemverAllow: options.SemverAllow, ForgeCandidates: options.ForgeCandidates, ForgeCandidateSources: options.ForgeCandidateSources, ComposeRecreateMode: options.ComposeRecreateMode})
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode task params: %w", err))
 	}

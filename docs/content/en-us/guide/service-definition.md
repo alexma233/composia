@@ -240,6 +240,9 @@ update:
   digest_pin: true
   discovery_sources:
     app_release:
+      auto: true
+      repo_url: https://github.com/example/api
+    app_registry:
       sources:
         - type: probe
         - type: registry
@@ -305,7 +308,9 @@ Each entry under `images` is keyed by a logical name and supports:
 | `digest` | Compare the remote digest of the current tag with the local digest; no `filter` is used. |
 | `probe` | Probe registry manifests for generated semver candidates. |
 | `registry` | List image tags from the OCI/Docker registry with pagination. |
-| `github` / `gitlab` / `forgejo` | Reserved for forge release API discovery. |
+| `github` / `gitlab` / `forgejo` | Discover release tags via forge release APIs. Forge API calls run on the controller and are injected into image check tasks as candidates. |
+
+With `auto: true`, `repo_url` can be used to enable forge release discovery. `github.com` maps to GitHub, `gitlab.com` maps to GitLab, and `codeberg.org` maps to Forgejo.
 
 **Filter** types:
 

@@ -211,3 +211,18 @@ func TestNextRegistryPageURLResolvesRelativeLink(t *testing.T) {
 		t.Fatalf("nextRegistryPageURL() = %q", got)
 	}
 }
+
+func TestMergeImageUpdateTagsDeduplicatesInjectedCandidatesFirst(t *testing.T) {
+	t.Parallel()
+
+	got := mergeImageUpdateTags([]string{"v1.2.0", "v1.3.0"}, []string{"v1.3.0", "v1.4.0"})
+	want := []string{"v1.2.0", "v1.3.0", "v1.4.0"}
+	if len(got) != len(want) {
+		t.Fatalf("mergeImageUpdateTags() = %+v, want %+v", got, want)
+	}
+	for index := range want {
+		if got[index] != want[index] {
+			t.Fatalf("mergeImageUpdateTags() = %+v, want %+v", got, want)
+		}
+	}
+}

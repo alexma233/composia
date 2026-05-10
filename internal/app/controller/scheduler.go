@@ -84,7 +84,11 @@ func scheduleServiceImageChecks(ctx context.Context, db *store.DB, serviceServer
 		return err
 	}
 	semverAllow := effectiveControllerSemverAllow(serviceServer.cfg)
-	paramsJSONBytes, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir, ImageNames: dueImageNames, SemverAllow: semverAllow})
+	forgeCandidates, forgeCandidateSources, err := collectForgeImageCandidates(ctx, serviceServer.cfg, service, dueImageNames)
+	if err != nil {
+		return err
+	}
+	paramsJSONBytes, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir, ImageNames: dueImageNames, SemverAllow: semverAllow, ForgeCandidates: forgeCandidates, ForgeCandidateSources: forgeCandidateSources})
 	if err != nil {
 		return err
 	}
@@ -98,7 +102,7 @@ func scheduleServiceImageChecks(ctx context.Context, db *store.DB, serviceServer
 		if exists {
 			continue
 		}
-		if _, err := serviceServer.createServiceTaskWithOptions(ctx, service.Name, []string{nodeID}, task.TypeImageCheck, nil, serviceTaskCreateOptions{Source: task.SourceSchedule, CreatedAt: &createdAt, ImageNames: dueImageNames, SemverAllow: semverAllow}); err != nil {
+		if _, err := serviceServer.createServiceTaskWithOptions(ctx, service.Name, []string{nodeID}, task.TypeImageCheck, nil, serviceTaskCreateOptions{Source: task.SourceSchedule, CreatedAt: &createdAt, ImageNames: dueImageNames, SemverAllow: semverAllow, ForgeCandidates: forgeCandidates, ForgeCandidateSources: forgeCandidateSources}); err != nil {
 			log.Printf("scheduler skipped image check for service=%s node=%s: %v", service.Name, nodeID, err)
 		}
 	}

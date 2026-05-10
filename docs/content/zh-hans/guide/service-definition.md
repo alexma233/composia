@@ -240,6 +240,9 @@ update:
   digest_pin: true
   discovery_sources:
     app_release:
+      auto: true
+      repo_url: https://github.com/example/api
+    app_registry:
       sources:
         - type: probe
         - type: registry
@@ -305,7 +308,9 @@ update:
 | `digest` | 比较当前 tag 的远程 digest 与本地 digest；不使用 `filter`。 |
 | `probe` | 对生成的 semver 候选执行 registry manifest 探测。 |
 | `registry` | 从 OCI/Docker registry 分页拉取镜像 tag。 |
-| `github` / `gitlab` / `forgejo` | 预留给 forge release API 发现。 |
+| `github` / `gitlab` / `forgejo` | 通过 forge release API 发现 release tag。Forge API 调用在 controller 上执行，并作为候选 tag 注入镜像检查任务。 |
+
+使用 `auto: true` 时可以通过 `repo_url` 启用 forge release discovery。`github.com` 会映射到 GitHub，`gitlab.com` 会映射到 GitLab，`codeberg.org` 会映射到 Forgejo。
 
 **filter** 类型：
 

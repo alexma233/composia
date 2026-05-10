@@ -3,22 +3,24 @@ package agent
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
 )
 
 func resolveImageUpdateDiscovery(discovery repo.ImageUpdateDiscovery, sources map[string]repo.ImageUpdateDiscovery) repo.ImageUpdateDiscovery {
-	if discovery.Ref == "" {
-		return discovery
-	}
-	if source, ok := sources[discovery.Ref]; ok {
-		return source
-	}
-	return discovery
+	return repo.ResolveImageUpdateDiscovery(discovery, sources)
 }
 
-func discoverImageUpdateTags(ctx context.Context, imageRef, currentTag string, discovery repo.ImageUpdateDiscovery, filter *repo.ImageUpdateFilter) ([]string, error) {
+func discoverImageUpdateTags(ctx context.Context, imageRef, currentTag string, discovery repo.ImageUpdateDiscovery, filter *repo.ImageUpdateFilter, injectedCandidates []string, injectedSourceCandidates map[string][]string) ([]string, error) {
+	if len(injectedCandidates) > 0 {
+		base, err := discoverImageUpdateTags(ctx, imageRef, currentTag, discovery, filter, nil, injectedSourceCandidates)
+		if err != nil {
+			return nil, err
+		}
+		return mergeImageUpdateTags(injectedCandidates, base), nil
+	}
 	if discovery.Auto != nil && *discovery.Auto {
 		return discoverMergedImageUpdateTags(ctx, imageRef, currentTag, []repo.ImageUpdateDiscoverySource{{Type: "probe"}, {Type: "registry"}}, filter)
 	}
@@ -26,7 +28,13 @@ func discoverImageUpdateTags(ctx context.Context, imageRef, currentTag string, d
 		if discovery.Combine == "merge" {
 			return discoverMergedImageUpdateTags(ctx, imageRef, currentTag, discovery.Sources, filter)
 		}
-		for _, source := range discovery.Sources {
+		for index, source := range discovery.Sources {
+			if isAgentExternalDiscoverySource(source.Type) {
+				if tags := mergeImageUpdateTags(injectedSourceCandidates[strconv.Itoa(index)]); len(tags) > 0 {
+					return tags, nil
+				}
+				continue
+			}
 			tags, err := discoverImageUpdateTagsFromSource(ctx, imageRef, currentTag, source, filter)
 			if err != nil {
 				return nil, err
@@ -38,20 +46,32 @@ func discoverImageUpdateTags(ctx context.Context, imageRef, currentTag string, d
 		return nil, nil
 	}
 	if discovery.Type != "" {
-		return discoverImageUpdateTagsFromSource(ctx, imageRef, currentTag, repo.ImageUpdateDiscoverySource{Type: discovery.Type, Repo: discovery.Repo, Project: discovery.Project}, filter)
+		if isAgentExternalDiscoverySource(discovery.Type) {
+			return mergeImageUpdateTags(injectedSourceCandidates["direct"]), nil
+		}
+		return discoverImageUpdateTagsFromSource(ctx, imageRef, currentTag, repo.ImageUpdateDiscoverySource{Type: discovery.Type, Repo: discovery.Repo, RepoURL: discovery.RepoURL, Project: discovery.Project}, filter)
 	}
 	return discoverImageUpdateTagsFromSource(ctx, imageRef, currentTag, repo.ImageUpdateDiscoverySource{Type: "registry"}, filter)
 }
 
-func discoverMergedImageUpdateTags(ctx context.Context, imageRef, currentTag string, sources []repo.ImageUpdateDiscoverySource, filter *repo.ImageUpdateFilter) ([]string, error) {
+func isAgentExternalDiscoverySource(sourceType string) bool {
+	switch sourceType {
+	case "github", "gitlab", "forgejo":
+		return true
+	default:
+		return false
+	}
+}
+
+func mergeImageUpdateTags(groups ...[]string) []string {
 	seen := make(map[string]struct{})
 	merged := make([]string, 0)
-	for _, source := range sources {
-		tags, err := discoverImageUpdateTagsFromSource(ctx, imageRef, currentTag, source, filter)
-		if err != nil {
-			return nil, err
-		}
-		for _, tag := range tags {
+	for _, group := range groups {
+		for _, tag := range group {
+			tag = strings.TrimSpace(tag)
+			if tag == "" {
+				continue
+			}
 			if _, ok := seen[tag]; ok {
 				continue
 			}
@@ -59,7 +79,19 @@ func discoverMergedImageUpdateTags(ctx context.Context, imageRef, currentTag str
 			merged = append(merged, tag)
 		}
 	}
-	return merged, nil
+	return merged
+}
+
+func discoverMergedImageUpdateTags(ctx context.Context, imageRef, currentTag string, sources []repo.ImageUpdateDiscoverySource, filter *repo.ImageUpdateFilter) ([]string, error) {
+	groups := make([][]string, 0, len(sources))
+	for _, source := range sources {
+		tags, err := discoverImageUpdateTagsFromSource(ctx, imageRef, currentTag, source, filter)
+		if err != nil {
+			return nil, err
+		}
+		groups = append(groups, tags)
+	}
+	return mergeImageUpdateTags(groups...), nil
 }
 
 func discoverImageUpdateTagsFromSource(ctx context.Context, imageRef, currentTag string, source repo.ImageUpdateDiscoverySource, filter *repo.ImageUpdateFilter) ([]string, error) {
@@ -76,7 +108,7 @@ func discoverImageUpdateTagsFromSource(ctx context.Context, imageRef, currentTag
 	case "registry", "":
 		return listRegistryTags(ctx, imageRef)
 	case "github", "gitlab", "forgejo":
-		return nil, fmt.Errorf("%s release discovery is not implemented yet", source.Type)
+		return nil, nil
 	default:
 		return nil, fmt.Errorf("unsupported image update discovery source %q", source.Type)
 	}

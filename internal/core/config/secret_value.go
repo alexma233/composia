@@ -55,13 +55,13 @@ func resolveControllerInlineOrFileConfig(controller *ControllerConfig) error {
 		controller.DNS.Cloudflare.APIToken = resolved
 	}
 	if controller.Updates != nil && controller.Updates.ForgeAuth != nil {
-		if err := resolveForgeAuthConfig(controller.Updates.ForgeAuth.GitHub, "controller.updates.forge_auth.github.token"); err != nil {
+		if err := resolveForgeAuthConfigs(controller.Updates.ForgeAuth.GitHub, "controller.updates.forge_auth.github"); err != nil {
 			return err
 		}
-		if err := resolveForgeAuthConfig(controller.Updates.ForgeAuth.GitLab, "controller.updates.forge_auth.gitlab.token"); err != nil {
+		if err := resolveForgeAuthConfigs(controller.Updates.ForgeAuth.GitLab, "controller.updates.forge_auth.gitlab"); err != nil {
 			return err
 		}
-		if err := resolveForgeAuthConfig(controller.Updates.ForgeAuth.Forgejo, "controller.updates.forge_auth.forgejo.token"); err != nil {
+		if err := resolveForgeAuthConfigs(controller.Updates.ForgeAuth.Forgejo, "controller.updates.forge_auth.forgejo"); err != nil {
 			return err
 		}
 	}
@@ -84,15 +84,14 @@ func resolveControllerInlineOrFileConfig(controller *ControllerConfig) error {
 	return nil
 }
 
-func resolveForgeAuthConfig(auth *ForgeAuthConfig, fieldPath string) error {
-	if auth == nil {
-		return nil
+func resolveForgeAuthConfigs(auths ForgeAuthConfigs, fieldPath string) error {
+	for index := range auths {
+		resolved, err := resolveInlineOrFileValue(auths[index].Token, auths[index].TokenFile, fmt.Sprintf("%s[%d].token", fieldPath, index), false)
+		if err != nil {
+			return err
+		}
+		auths[index].Token = resolved
 	}
-	resolved, err := resolveInlineOrFileValue(auth.Token, auth.TokenFile, fieldPath, false)
-	if err != nil {
-		return err
-	}
-	auth.Token = resolved
 	return nil
 }
 

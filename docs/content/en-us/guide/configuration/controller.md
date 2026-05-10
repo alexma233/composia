@@ -77,6 +77,20 @@ controller:
     auto_apply: false
     backup_before_update: false
     digest_pin: true
+    forge_auth:
+      github:
+        - url: https://github.com
+          token_file: /run/secrets/github-token
+        - url: https://github.example.com
+          api_url: https://github.example.com/api/v3
+          token_file: /run/secrets/github-enterprise-token
+      gitlab:
+        - url: https://gitlab.com
+          token_file: /run/secrets/gitlab-token
+      forgejo:
+        - url: https://git.example.com
+          api_url: https://git.example.com/api/v1
+          token_file: /run/secrets/forgejo-token
     semver:
       default_allow:
         - patch
@@ -89,6 +103,10 @@ controller:
 | `auto_apply` | No | Controller-level default for automatically applying detected image updates, default `false` |
 | `backup_before_update` | No | Controller-level default for backing up before image updates, default `false` |
 | `digest_pin` | No | Controller-level default for pinning tags to `tag@sha256:digest`, default `true` |
+| `forge_auth.<platform>` | No | Optional single auth object or list of auth objects; public releases can be queried without a token |
+| `forge_auth.<platform>.url` | No | Web URL used to match `discovery.repo_url`, for example `https://github.com` |
+| `forge_auth.<platform>.token` / `token_file` | No | Token used by controller-side release discovery |
+| `forge_auth.<platform>.api_url` | No | API base URL for self-hosted instances; GitHub and GitLab default to public APIs, Forgejo can infer Codeberg from `repo_url` |
 | `semver.default_allow` | No | Default allowed semver bump types (`patch`, `minor`, `major`); defaults to `patch, minor` when unset |
 
 Per-image and per-service overrides take precedence over controller-level defaults. See [Service Definition](../service-definition) for the `update` section.

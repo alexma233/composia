@@ -77,6 +77,20 @@ controller:
     auto_apply: false
     backup_before_update: false
     digest_pin: true
+    forge_auth:
+      github:
+        - url: https://github.com
+          token_file: /run/secrets/github-token
+        - url: https://github.example.com
+          api_url: https://github.example.com/api/v3
+          token_file: /run/secrets/github-enterprise-token
+      gitlab:
+        - url: https://gitlab.com
+          token_file: /run/secrets/gitlab-token
+      forgejo:
+        - url: https://git.example.com
+          api_url: https://git.example.com/api/v1
+          token_file: /run/secrets/forgejo-token
     semver:
       default_allow:
         - patch
@@ -89,6 +103,10 @@ controller:
 | `auto_apply` | 否 | 控制器级默认值，是否自动应用检测到的镜像更新，默认 `false` |
 | `backup_before_update` | 否 | 控制器级默认值，是否在镜像更新前执行备份，默认 `false` |
 | `digest_pin` | 否 | 控制器级默认值，是否将标签固定到 `tag@sha256:digest`，默认 `true` |
+| `forge_auth.<platform>` | 否 | 可选的单个 auth 对象或 auth 对象列表；公开 release 可以匿名查询 |
+| `forge_auth.<platform>.url` | 否 | 用于匹配 `discovery.repo_url` 的网页 URL，例如 `https://github.com` |
+| `forge_auth.<platform>.token` / `token_file` | 否 | controller 侧 release discovery 使用的 token |
+| `forge_auth.<platform>.api_url` | 否 | 自托管实例的 API base URL；GitHub/GitLab 默认使用公开 API，Codeberg 可从 `repo_url` 自动推导 |
 | `semver.default_allow` | 否 | 默认允许的 semver 升级类型（`patch`、`minor`、`major`）；未设置时默认允许 `patch, minor` |
 
 各镜像和各服务的覆盖值优先于控制器级默认值。请参见[服务定义](../service-definition)中的 `update` 段落。

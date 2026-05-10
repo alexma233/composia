@@ -51,15 +51,35 @@ type ControllerUpdatesSemverConfig struct {
 }
 
 type ControllerUpdatesForgeAuth struct {
-	GitHub  *ForgeAuthConfig `yaml:"github"`
-	GitLab  *ForgeAuthConfig `yaml:"gitlab"`
-	Forgejo *ForgeAuthConfig `yaml:"forgejo"`
+	GitHub  ForgeAuthConfigs `yaml:"github"`
+	GitLab  ForgeAuthConfigs `yaml:"gitlab"`
+	Forgejo ForgeAuthConfigs `yaml:"forgejo"`
 }
 
 type ForgeAuthConfig struct {
+	URL       string `yaml:"url"`
 	Token     string `yaml:"token"`
 	TokenFile string `yaml:"token_file"`
 	APIURL    string `yaml:"api_url"`
+}
+
+type ForgeAuthConfigs []ForgeAuthConfig
+
+func (configs *ForgeAuthConfigs) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind == yaml.SequenceNode {
+		var items []ForgeAuthConfig
+		if err := value.Decode(&items); err != nil {
+			return err
+		}
+		*configs = items
+		return nil
+	}
+	var item ForgeAuthConfig
+	if err := value.Decode(&item); err != nil {
+		return err
+	}
+	*configs = []ForgeAuthConfig{item}
+	return nil
 }
 
 type ControllerGitConfig struct {
