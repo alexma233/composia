@@ -31,6 +31,12 @@ type ControllerConfig struct {
 	Rustic        *ControllerRusticConfig        `yaml:"rustic"`
 	Secrets       *ControllerSecretsConfig       `yaml:"secrets"`
 	Updates       *ControllerUpdatesConfig       `yaml:"updates"`
+	AutoDeploy    *ControllerAutoDeployConfig     `yaml:"auto_deploy"`
+}
+
+type ControllerAutoDeployConfig struct {
+	Infra    bool `yaml:"infra"`
+	Services bool `yaml:"services"`
 }
 
 type ControllerBackupConfig struct {

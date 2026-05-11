@@ -58,6 +58,8 @@ message ServiceInstanceSummary {
   string updated_at = 4;
   // is_declared reports whether this instance is part of desired state.
   bool is_declared = 5;
+  // pending_deploy_revision is set when a repo change affects this service and a deploy is pending.
+  string pending_deploy_revision = 6;
 }
 
 // ServiceContainerSummary describes one container belonging to a service instance.
@@ -93,6 +95,8 @@ message ServiceInstanceDetail {
   bool is_declared = 5;
   // containers lists runtime containers currently associated with the instance.
   repeated ServiceContainerSummary containers = 6;
+  // pending_deploy_revision is set when a repo change affects this service and a deploy is pending.
+  string pending_deploy_revision = 7;
 }
 
 // ServiceActionCapabilities describes whether service-scoped actions may run.

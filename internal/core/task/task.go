@@ -40,11 +40,12 @@ const (
 type Source string
 
 const (
-	SourceWeb      Source = "web"
-	SourceCLI      Source = "cli"
-	SourceOthers   Source = "others"
-	SourceSchedule Source = "schedule"
-	SourceSystem   Source = "system"
+	SourceWeb        Source = "web"
+	SourceCLI        Source = "cli"
+	SourceOthers     Source = "others"
+	SourceSchedule   Source = "schedule"
+	SourceSystem     Source = "system"
+	SourceAutoDeploy Source = "auto_deploy"
 )
 
 type Record struct {

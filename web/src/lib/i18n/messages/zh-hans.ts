@@ -252,6 +252,7 @@ export const zhHans = {
     instances: {
       title: "实例",
       loadFailed: "加载服务实例失败。",
+      pendingDeploy: "仓库已更新，等待部署",
     },
     allNodes: "所有节点",
     containersByNode: "此服务在各节点上的容器分组。",

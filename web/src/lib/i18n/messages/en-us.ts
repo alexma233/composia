@@ -268,6 +268,7 @@ export const enUS = {
     instances: {
       title: "Instances",
       loadFailed: "Failed to load service instance.",
+      pendingDeploy: "Repo updated, pending deploy",
     },
     allNodes: "All nodes",
     containersByNode: "Containers grouped by node for this service.",

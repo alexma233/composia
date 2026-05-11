@@ -54,6 +54,15 @@ type ServiceMeta struct {
 	DataProtect  *DataProtectConfig `yaml:"data_protect"`
 	Backup       *BackupConfig      `yaml:"backup"`
 	Migrate      *MigrateConfig     `yaml:"migrate"`
+	AutoDeploy   *bool              `yaml:"auto_deploy"`
+}
+
+func (meta ServiceMeta) IsInfra() bool {
+	return meta.Infra != nil
+}
+
+func (meta ServiceMeta) AutoDeployEnabled() bool {
+	return meta.AutoDeploy != nil && *meta.AutoDeploy
 }
 
 type InfraConfig struct {
@@ -1143,4 +1152,32 @@ func CaddySource(service Service) string {
 		return ""
 	}
 	return strings.TrimSpace(service.Meta.Network.Caddy.Source)
+}
+
+func AffectedServicesFromChangedFiles(repoDir string, changedFiles []string) ([]string, error) {
+	affected := make(map[string]struct{})
+	for _, changedFile := range changedFiles {
+		dir := filepath.Dir(filepath.Join(repoDir, changedFile))
+		for {
+			metaPath := filepath.Join(dir, MetaFileName)
+			if _, err := os.Stat(metaPath); err == nil {
+				meta, err := loadServiceMeta(metaPath)
+				if err == nil && meta.Name != "" {
+					affected[meta.Name] = struct{}{}
+				}
+				break
+			}
+			parent := filepath.Dir(dir)
+			if parent == dir || parent == repoDir {
+				break
+			}
+			dir = parent
+		}
+	}
+	names := make([]string, 0, len(affected))
+	for name := range affected {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names, nil
 }

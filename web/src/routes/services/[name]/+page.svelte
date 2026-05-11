@@ -304,6 +304,11 @@
 
   let migrateSourceNodes = $derived(serviceDetail?.nodes ?? []);
   let hasMultipleInstanceNodes = $derived(nodeContainers.length > 1);
+  let pendingDeployInstance = $derived(
+    nodeContainers.find(
+      (instance) => instance.pendingDeployRevision !== "",
+    ) ?? null,
+  );
   let selectedInstanceEntry = $derived(
     nodeContainers.find(
       (instance) => instance.nodeId === selectedInstanceNode,
@@ -1513,6 +1518,16 @@
               </Select>
             {/if}
           </div>
+          {#if pendingDeployInstance}
+            <div class="mt-2 rounded-md border border-yellow-600/40 bg-yellow-500/10 px-3 py-2">
+              <p class="text-sm font-medium text-yellow-600 dark:text-yellow-400">
+                {$messages.services.instances.pendingDeploy}
+              </p>
+              <p class="text-xs text-muted-foreground mt-0.5">
+                commit {pendingDeployInstance.pendingDeployRevision.slice(0, 8)}
+              </p>
+            </div>
+          {/if}
         </CardHeader>
         <CardContent class="space-y-4">
           {#each visibleNodeContainers as instance, index}
@@ -1530,6 +1545,11 @@
                         $messages,
                       )}</Badge
                     >
+                    {#if instance.pendingDeployRevision}
+                      <Badge variant="outline" class="border-yellow-600/40 text-yellow-600 dark:text-yellow-400"
+                        >{$messages.services.instances.pendingDeploy}</Badge
+                      >
+                    {/if}
                   </div>
                   <div class="h-px flex-1 bg-border/70"></div>
                 </div>

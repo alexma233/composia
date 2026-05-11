@@ -198,6 +198,18 @@ func ListFilesAtRevision(repoDir, revision, relativePath string) ([]string, erro
 	return lines, nil
 }
 
+func DiffChangedFiles(repoDir, oldRevision, newRevision string) ([]string, error) {
+	output, err := gitOutput(repoDir, "diff", "--name-only", oldRevision, newRevision)
+	if err != nil {
+		return nil, fmt.Errorf("diff changed files %s..%s: %w", oldRevision, newRevision, err)
+	}
+	if output == "" {
+		return nil, nil
+	}
+	lines := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
+	return lines, nil
+}
+
 func FetchAndFastForward(repoDir, remoteURL, branch, authUsername, authToken string) error {
 	if remoteURL == "" {
 		return fmt.Errorf("remote URL is required")

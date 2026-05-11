@@ -16,6 +16,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	corenotify "forgejo.alexma.top/alexma233/composia/internal/core/notify"
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
+	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 )
@@ -131,7 +132,7 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 	}
 
 	startBackground(func() { sweepOfflineNodes(runtimeCtx, db, notifier) })
-	startBackground(func() { autoPullRepo(runtimeCtx, cfg, db, availableNodeIDs, repoMu) })
+	startBackground(func() { autoPullRepo(runtimeCtx, cfg, db, availableNodeIDs, repoMu, taskQueue) })
 	startBackground(func() { runScheduledTasks(runtimeCtx, db, cfg, availableNodeIDs, taskQueue, repoMu) })
 	startBackground(func() {
 		<-runtimeCtx.Done()
@@ -184,7 +185,7 @@ func sweepOfflineNodes(ctx context.Context, db *store.DB, notifier *appnotify.No
 	}
 }
 
-func autoPullRepo(ctx context.Context, cfg *config.ControllerConfig, db *store.DB, availableNodeIDs map[string]struct{}, repoMu *sync.Mutex) {
+func autoPullRepo(ctx context.Context, cfg *config.ControllerConfig, db *store.DB, availableNodeIDs map[string]struct{}, repoMu *sync.Mutex, taskQueue *taskQueueNotifier) {
 	if cfg.Git == nil || strings.TrimSpace(cfg.Git.RemoteURL) == "" || strings.TrimSpace(cfg.Git.PullInterval) == "" {
 		return
 	}
@@ -216,9 +217,69 @@ func autoPullRepo(ctx context.Context, cfg *config.ControllerConfig, db *store.D
 				if err := refreshDeclaredServices(ctx, db, cfg, availableNodeIDs); err != nil {
 					log.Printf("auto-pull: refresh declared services failed: %v", err)
 				}
+				handleAutoDeploy(ctx, cfg, db, availableNodeIDs, previousRevision, newRevision, taskQueue)
 			}
 		}
 	}
+}
+
+func handleAutoDeploy(ctx context.Context, cfg *config.ControllerConfig, db *store.DB, availableNodeIDs map[string]struct{}, oldRevision, newRevision string, taskQueue *taskQueueNotifier) {
+	changedFiles, err := repo.DiffChangedFiles(cfg.RepoDir, oldRevision, newRevision)
+	if err != nil {
+		log.Printf("auto-deploy: diff changed files failed: %v", err)
+		return
+	}
+	if len(changedFiles) == 0 {
+		return
+	}
+	affectedNames, err := repo.AffectedServicesFromChangedFiles(cfg.RepoDir, changedFiles)
+	if err != nil {
+		log.Printf("auto-deploy: find affected services failed: %v", err)
+		return
+	}
+	if len(affectedNames) == 0 {
+		return
+	}
+	log.Printf("auto-deploy: detected %d affected services: %s", len(affectedNames), strings.Join(affectedNames, ", "))
+
+	for _, serviceName := range affectedNames {
+		service, err := repo.FindService(cfg.RepoDir, availableNodeIDs, serviceName)
+		if err != nil {
+			log.Printf("auto-deploy: lookup service %q failed: %v", serviceName, err)
+			continue
+		}
+		isInfra := service.Meta.IsInfra()
+		shouldAutoDeploy := shouldAutoDeployService(cfg, service, isInfra)
+
+		if err := db.SetServicePendingDeploy(ctx, serviceName, service.TargetNodes, newRevision); err != nil {
+			log.Printf("auto-deploy: set pending deploy for %q failed: %v", serviceName, err)
+		}
+		if shouldAutoDeploy {
+			log.Printf("auto-deploy: triggering deploy for %q", serviceName)
+			server := &serviceCommandServer{
+				db:                db,
+				cfg:               cfg,
+				availableNodeIDs:  availableNodeIDs,
+				taskQueue:         taskQueue,
+			}
+			if _, err := server.createServiceTaskWithOptions(ctx, serviceName, service.TargetNodes, task.TypeDeploy, nil, serviceTaskCreateOptions{Source: task.SourceAutoDeploy}); err != nil {
+				log.Printf("auto-deploy: create deploy task for %q failed: %v", serviceName, err)
+			}
+		}
+	}
+}
+
+func shouldAutoDeployService(cfg *config.ControllerConfig, service repo.Service, isInfra bool) bool {
+	if !service.Meta.AutoDeployEnabled() {
+		return false
+	}
+	if cfg.AutoDeploy == nil {
+		return false
+	}
+	if isInfra {
+		return cfg.AutoDeploy.Infra
+	}
+	return cfg.AutoDeploy.Services
 }
 
 func autoPullFetchAndFastForward(ctx context.Context, cfg *config.ControllerConfig, db *store.DB) (store.RepoSyncState, error) {

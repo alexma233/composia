@@ -224,9 +224,11 @@ type ServiceInstanceSummary struct {
 	// updated_at is the last known status update timestamp string.
 	UpdatedAt string `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// is_declared reports whether this instance is part of desired state.
-	IsDeclared    bool `protobuf:"varint,5,opt,name=is_declared,json=isDeclared,proto3" json:"is_declared,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	IsDeclared bool `protobuf:"varint,5,opt,name=is_declared,json=isDeclared,proto3" json:"is_declared,omitempty"`
+	// pending_deploy_revision is set when a repo change affects this service and a deploy is pending.
+	PendingDeployRevision string `protobuf:"bytes,6,opt,name=pending_deploy_revision,json=pendingDeployRevision,proto3" json:"pending_deploy_revision,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *ServiceInstanceSummary) Reset() {
@@ -292,6 +294,13 @@ func (x *ServiceInstanceSummary) GetIsDeclared() bool {
 		return x.IsDeclared
 	}
 	return false
+}
+
+func (x *ServiceInstanceSummary) GetPendingDeployRevision() string {
+	if x != nil {
+		return x.PendingDeployRevision
+	}
+	return ""
 }
 
 // ServiceContainerSummary describes one container belonging to a service instance.
@@ -416,9 +425,11 @@ type ServiceInstanceDetail struct {
 	// is_declared reports whether this instance is part of desired state.
 	IsDeclared bool `protobuf:"varint,5,opt,name=is_declared,json=isDeclared,proto3" json:"is_declared,omitempty"`
 	// containers lists runtime containers currently associated with the instance.
-	Containers    []*ServiceContainerSummary `protobuf:"bytes,6,rep,name=containers,proto3" json:"containers,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Containers []*ServiceContainerSummary `protobuf:"bytes,6,rep,name=containers,proto3" json:"containers,omitempty"`
+	// pending_deploy_revision is set when a repo change affects this service and a deploy is pending.
+	PendingDeployRevision string `protobuf:"bytes,7,opt,name=pending_deploy_revision,json=pendingDeployRevision,proto3" json:"pending_deploy_revision,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *ServiceInstanceDetail) Reset() {
@@ -491,6 +502,13 @@ func (x *ServiceInstanceDetail) GetContainers() []*ServiceContainerSummary {
 		return x.Containers
 	}
 	return nil
+}
+
+func (x *ServiceInstanceDetail) GetPendingDeployRevision() string {
+	if x != nil {
+		return x.PendingDeployRevision
+	}
+	return ""
 }
 
 // ServiceActionCapabilities describes whether service-scoped actions may run.
@@ -2422,7 +2440,7 @@ var File_proto_composia_controller_v1_service_proto protoreflect.FileDescriptor
 
 const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"\n" +
-	"*proto/composia/controller/v1/service.proto\x12\x16composia.controller.v1\x1a'proto/composia/controller/v1/task.proto\x1a)proto/composia/controller/v1/backup.proto\x1a)proto/composia/controller/v1/system.proto\"\xbb\x01\n" +
+	"*proto/composia/controller/v1/service.proto\x12\x16composia.controller.v1\x1a'proto/composia/controller/v1/task.proto\x1a)proto/composia/controller/v1/backup.proto\x1a)proto/composia/controller/v1/system.proto\"\xf3\x01\n" +
 	"\x16ServiceInstanceSummary\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x17\n" +
 	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12%\n" +
@@ -2430,7 +2448,8 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\x04 \x01(\tR\tupdatedAt\x12\x1f\n" +
 	"\vis_declared\x18\x05 \x01(\bR\n" +
-	"isDeclared\"\x80\x02\n" +
+	"isDeclared\x126\n" +
+	"\x17pending_deploy_revision\x18\x06 \x01(\tR\x15pendingDeployRevision\"\x80\x02\n" +
 	"\x17ServiceContainerSummary\x12!\n" +
 	"\fcontainer_id\x18\x01 \x01(\tR\vcontainerId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -2439,7 +2458,7 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"\x06status\x18\x05 \x01(\tR\x06status\x12\x18\n" +
 	"\acreated\x18\x06 \x01(\tR\acreated\x12'\n" +
 	"\x0fcompose_project\x18\a \x01(\tR\x0ecomposeProject\x12'\n" +
-	"\x0fcompose_service\x18\b \x01(\tR\x0ecomposeService\"\x8b\x02\n" +
+	"\x0fcompose_service\x18\b \x01(\tR\x0ecomposeService\"\xc3\x02\n" +
 	"\x15ServiceInstanceDetail\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x17\n" +
 	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12%\n" +
@@ -2450,7 +2469,8 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"isDeclared\x12O\n" +
 	"\n" +
 	"containers\x18\x06 \x03(\v2/.composia.controller.v1.ServiceContainerSummaryR\n" +
-	"containers\"\xd9\x02\n" +
+	"containers\x126\n" +
+	"\x17pending_deploy_revision\x18\a \x01(\tR\x15pendingDeployRevision\"\xd9\x02\n" +
 	"\x19ServiceActionCapabilities\x12:\n" +
 	"\x06backup\x18\x01 \x01(\v2\".composia.controller.v1.CapabilityR\x06backup\x12<\n" +
 	"\arestore\x18\x02 \x01(\v2\".composia.controller.v1.CapabilityR\arestore\x12<\n" +

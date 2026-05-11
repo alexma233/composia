@@ -15,7 +15,7 @@ import (
 
 const DatabaseFileName = "composia.db"
 
-const sqliteSchemaVersion = 1
+const sqliteSchemaVersion = 2
 
 var ErrServiceNotFound = errors.New("service not found")
 
@@ -119,12 +119,13 @@ type ServiceSnapshot struct {
 }
 
 type ServiceInstanceSnapshot struct {
-	ServiceName   string
-	NodeID        string
-	IsDeclared    bool
-	RuntimeStatus string
-	UpdatedAt     string
-	LastTaskID    string
+	ServiceName            string
+	NodeID                 string
+	IsDeclared             bool
+	RuntimeStatus          string
+	UpdatedAt              string
+	LastTaskID             string
+	PendingDeployRevision  string
 }
 
 type NodeSnapshot struct {
@@ -282,7 +283,7 @@ func (db *DB) SyncDeclaredServices(ctx context.Context, services map[string][]st
 	if _, err := tx.ExecContext(ctx, `UPDATE services SET is_declared = 0`); err != nil {
 		return fmt.Errorf("mark services undeclared: %w", err)
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE service_instances SET is_declared = 0`); err != nil {
+	if _, err := tx.ExecContext(ctx, `UPDATE service_instances SET is_declared = 0, pending_deploy_revision = NULL`); err != nil {
 		return fmt.Errorf("mark service instances undeclared: %w", err)
 	}
 
@@ -427,7 +428,7 @@ func (db *DB) GetServiceSnapshot(ctx context.Context, serviceName string) (Servi
 
 func (db *DB) ListServiceInstances(ctx context.Context, serviceName string) ([]ServiceInstanceSnapshot, error) {
 	rows, err := db.sql.QueryContext(ctx, `
-		SELECT service_name, node_id, is_declared, runtime_status, COALESCE(updated_at, ''), COALESCE(last_task_id, '')
+		SELECT service_name, node_id, is_declared, runtime_status, COALESCE(updated_at, ''), COALESCE(last_task_id, ''), COALESCE(pending_deploy_revision, '')
 		FROM service_instances
 		WHERE service_name = ?
 		ORDER BY node_id ASC
@@ -440,7 +441,7 @@ func (db *DB) ListServiceInstances(ctx context.Context, serviceName string) ([]S
 	instances := make([]ServiceInstanceSnapshot, 0)
 	for rows.Next() {
 		var snapshot ServiceInstanceSnapshot
-		if err := rows.Scan(&snapshot.ServiceName, &snapshot.NodeID, &snapshot.IsDeclared, &snapshot.RuntimeStatus, &snapshot.UpdatedAt, &snapshot.LastTaskID); err != nil {
+		if err := rows.Scan(&snapshot.ServiceName, &snapshot.NodeID, &snapshot.IsDeclared, &snapshot.RuntimeStatus, &snapshot.UpdatedAt, &snapshot.LastTaskID, &snapshot.PendingDeployRevision); err != nil {
 			return nil, fmt.Errorf("scan service instance for %q: %w", serviceName, err)
 		}
 		instances = append(instances, snapshot)
@@ -454,10 +455,10 @@ func (db *DB) ListServiceInstances(ctx context.Context, serviceName string) ([]S
 func (db *DB) GetServiceInstanceSnapshot(ctx context.Context, serviceName, nodeID string) (ServiceInstanceSnapshot, error) {
 	var snapshot ServiceInstanceSnapshot
 	err := db.sql.QueryRowContext(ctx, `
-		SELECT service_name, node_id, is_declared, runtime_status, COALESCE(updated_at, ''), COALESCE(last_task_id, '')
+		SELECT service_name, node_id, is_declared, runtime_status, COALESCE(updated_at, ''), COALESCE(last_task_id, ''), COALESCE(pending_deploy_revision, '')
 		FROM service_instances
 		WHERE service_name = ? AND node_id = ?
-	`, serviceName, nodeID).Scan(&snapshot.ServiceName, &snapshot.NodeID, &snapshot.IsDeclared, &snapshot.RuntimeStatus, &snapshot.UpdatedAt, &snapshot.LastTaskID)
+	`, serviceName, nodeID).Scan(&snapshot.ServiceName, &snapshot.NodeID, &snapshot.IsDeclared, &snapshot.RuntimeStatus, &snapshot.UpdatedAt, &snapshot.LastTaskID, &snapshot.PendingDeployRevision)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ServiceInstanceSnapshot{}, ErrServiceNotFound
@@ -543,6 +544,58 @@ func (db *DB) UpdateServiceInstanceRuntimeStatus(ctx context.Context, serviceNam
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit service instance runtime update for %q@%q: %w", serviceName, nodeID, err)
+	}
+	return nil
+}
+
+func (db *DB) SetServiceInstancePendingDeploy(ctx context.Context, serviceName, nodeID, revision string) error {
+	if _, err := db.sql.ExecContext(ctx, `
+		UPDATE service_instances
+		SET pending_deploy_revision = ?, updated_at = ?
+		WHERE service_name = ? AND node_id = ?
+	`, revision, time.Now().UTC().Format(time.RFC3339), serviceName, nodeID); err != nil {
+		return fmt.Errorf("set pending deploy for %q@%q: %w", serviceName, nodeID, err)
+	}
+	return nil
+}
+
+func (db *DB) SetServicePendingDeploy(ctx context.Context, serviceName string, nodeIDs []string, revision string) error {
+	tx, err := db.sql.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin set pending deploy for %q: %w", serviceName, err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	updatedAt := time.Now().UTC().Format(time.RFC3339)
+	for _, nodeID := range nodeIDs {
+		if _, err := tx.ExecContext(ctx, `
+			UPDATE service_instances
+			SET pending_deploy_revision = ?, updated_at = ?
+			WHERE service_name = ? AND node_id = ?
+		`, revision, updatedAt, serviceName, nodeID); err != nil {
+			return fmt.Errorf("set pending deploy for %q@%q: %w", serviceName, nodeID, err)
+		}
+	}
+	return tx.Commit()
+}
+
+func (db *DB) ClearServiceInstancePendingDeploy(ctx context.Context, serviceName, nodeID string) error {
+	if _, err := db.sql.ExecContext(ctx, `
+		UPDATE service_instances
+		SET pending_deploy_revision = NULL, updated_at = ?
+		WHERE service_name = ? AND node_id = ?
+	`, time.Now().UTC().Format(time.RFC3339), serviceName, nodeID); err != nil {
+		return fmt.Errorf("clear pending deploy for %q@%q: %w", serviceName, nodeID, err)
+	}
+	return nil
+}
+
+func (db *DB) ClearServicePendingDeploy(ctx context.Context, serviceName string) error {
+	if _, err := db.sql.ExecContext(ctx, `
+		UPDATE service_instances
+		SET pending_deploy_revision = NULL, updated_at = ?
+		WHERE service_name = ?
+	`, time.Now().UTC().Format(time.RFC3339), serviceName); err != nil {
+		return fmt.Errorf("clear pending deploy for %q: %w", serviceName, err)
 	}
 	return nil
 }
@@ -914,6 +967,11 @@ func (db *DB) migrate(ctx context.Context) error {
 			`CREATE INDEX IF NOT EXISTS idx_service_image_update_checks_available ON service_image_update_checks(update_available, checked_at DESC);`,
 			`CREATE INDEX IF NOT EXISTS idx_service_image_update_checks_service_node ON service_image_update_checks(service_name, node_id);`,
 		},
+	}, {
+		version: 2,
+		statements: []string{
+			`ALTER TABLE service_instances ADD COLUMN pending_deploy_revision TEXT;`,
+		},
 	}}
 
 	tx, err := db.sql.BeginTx(ctx, nil)
@@ -959,7 +1017,7 @@ func sqliteUserVersion(ctx context.Context, tx *sql.Tx) (int, error) {
 
 func applySQLiteMigrationStatement(ctx context.Context, tx *sql.Tx, statement string) error {
 	if _, err := tx.ExecContext(ctx, statement); err != nil {
-		if statement == `ALTER TABLE backups ADD COLUMN node_id TEXT;` && isDuplicateColumnError(err) {
+		if (statement == `ALTER TABLE backups ADD COLUMN node_id TEXT;` || statement == `ALTER TABLE service_instances ADD COLUMN pending_deploy_revision TEXT;`) && isDuplicateColumnError(err) {
 			return nil
 		}
 		return fmt.Errorf("apply sqlite schema statement: %w", err)

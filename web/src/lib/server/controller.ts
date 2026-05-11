@@ -86,6 +86,7 @@ export type ServiceInstanceSummary = {
   runtimeStatus: string;
   updatedAt: string;
   isDeclared: boolean;
+  pendingDeployRevision: string;
 };
 
 export type ServiceContainerSummary = {
@@ -1183,6 +1184,8 @@ export async function loadServiceDetail(
       updated_at?: string;
       isDeclared?: boolean;
       is_declared?: boolean;
+      pendingDeployRevision?: string;
+      pending_deploy_revision?: string;
       containers?: Array<{
         containerId?: string;
         container_id?: string;
@@ -1221,6 +1224,7 @@ export async function loadServiceDetail(
         instance.runtimeStatus ?? instance.runtime_status ?? "unknown",
       updatedAt: instance.updatedAt ?? instance.updated_at ?? "",
       isDeclared: instance.isDeclared ?? instance.is_declared ?? false,
+      pendingDeployRevision: instance.pendingDeployRevision ?? instance.pending_deploy_revision ?? "",
       containers: (instance.containers ?? []).map((container) => ({
         containerId: container.containerId ?? container.container_id ?? "",
         name: container.name ?? "",
@@ -1253,6 +1257,8 @@ export async function loadServiceInstances(
       updated_at?: string;
       isDeclared?: boolean;
       is_declared?: boolean;
+      pendingDeployRevision?: string;
+      pending_deploy_revision?: string;
     }>;
   }>(
     config.baseUrl,
@@ -1269,6 +1275,7 @@ export async function loadServiceInstances(
       instance.runtimeStatus ?? instance.runtime_status ?? "unknown",
     updatedAt: instance.updatedAt ?? instance.updated_at ?? "",
     isDeclared: instance.isDeclared ?? instance.is_declared ?? false,
+    pendingDeployRevision: instance.pendingDeployRevision ?? instance.pending_deploy_revision ?? "",
     containers: [],
   }));
 }
@@ -1291,6 +1298,8 @@ export async function loadServiceInstance(
       updated_at?: string;
       isDeclared?: boolean;
       is_declared?: boolean;
+      pendingDeployRevision?: string;
+      pending_deploy_revision?: string;
       containers?: Array<{
         containerId?: string;
         container_id?: string;
@@ -1324,6 +1333,7 @@ export async function loadServiceInstance(
       instance.runtimeStatus ?? instance.runtime_status ?? "unknown",
     updatedAt: instance.updatedAt ?? instance.updated_at ?? "",
     isDeclared: instance.isDeclared ?? instance.is_declared ?? false,
+    pendingDeployRevision: instance.pendingDeployRevision ?? instance.pending_deploy_revision ?? "",
     containers: (instance.containers ?? []).map((container) => ({
       containerId: container.containerId ?? container.container_id ?? "",
       name: container.name ?? "",

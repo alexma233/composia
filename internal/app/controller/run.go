@@ -2560,6 +2560,11 @@ func (server *serviceCommandServer) createServiceTaskWithOptions(ctx context.Con
 			return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
 		}
 	}
+	if taskType == task.TypeDeploy || taskType == task.TypeUpdate {
+		if err := server.db.ClearServicePendingDeploy(ctx, serviceName); err != nil {
+			log.Printf("clear pending deploy for %q failed: %v", serviceName, err)
+		}
+	}
 	notifyTaskQueue(server.taskQueue)
 	return createdTasks[0], nil
 }
@@ -3274,11 +3279,12 @@ func taskSummaryMessage(record store.TaskSummary) *controllerv1.TaskSummary {
 
 func serviceInstanceSummaryMessage(record store.ServiceInstanceSnapshot) *controllerv1.ServiceInstanceSummary {
 	return &controllerv1.ServiceInstanceSummary{
-		ServiceName:   record.ServiceName,
-		NodeId:        record.NodeID,
-		RuntimeStatus: record.RuntimeStatus,
-		UpdatedAt:     record.UpdatedAt,
-		IsDeclared:    record.IsDeclared,
+		ServiceName:            record.ServiceName,
+		NodeId:                 record.NodeID,
+		RuntimeStatus:          record.RuntimeStatus,
+		UpdatedAt:              record.UpdatedAt,
+		IsDeclared:             record.IsDeclared,
+		PendingDeployRevision:  record.PendingDeployRevision,
 	}
 }
 
@@ -3301,12 +3307,13 @@ func serviceContainerSummaryMessage(container *controllerv1.ContainerInfo) *cont
 
 func serviceInstanceDetailMessage(record store.ServiceInstanceSnapshot, containers []*controllerv1.ServiceContainerSummary) *controllerv1.ServiceInstanceDetail {
 	return &controllerv1.ServiceInstanceDetail{
-		ServiceName:   record.ServiceName,
-		NodeId:        record.NodeID,
-		RuntimeStatus: record.RuntimeStatus,
-		UpdatedAt:     record.UpdatedAt,
-		IsDeclared:    record.IsDeclared,
-		Containers:    containers,
+		ServiceName:            record.ServiceName,
+		NodeId:                 record.NodeID,
+		RuntimeStatus:          record.RuntimeStatus,
+		UpdatedAt:              record.UpdatedAt,
+		IsDeclared:             record.IsDeclared,
+		Containers:             containers,
+		PendingDeployRevision:  record.PendingDeployRevision,
 	}
 }
 
