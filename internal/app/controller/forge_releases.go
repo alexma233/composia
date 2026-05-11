@@ -31,8 +31,9 @@ func collectForgeImageCandidates(ctx context.Context, cfg *config.ControllerConf
 		if !ok {
 			continue
 		}
+		currentTag := strings.TrimSpace(image.Current.Tag)
 		discovery := repo.ResolveImageUpdateDiscovery(image.Discovery, service.Meta.Update.DiscoverySources)
-		merged, bySource, err := collectForgeCandidatesForDiscovery(ctx, cfg, discovery)
+		merged, bySource, err := collectForgeCandidatesForDiscovery(ctx, cfg, discovery, currentTag)
 		if err != nil {
 			return nil, nil, fmt.Errorf("collect forge candidates for image %q: %w", imageName, err)
 		}
@@ -52,7 +53,7 @@ func collectForgeImageCandidates(ctx context.Context, cfg *config.ControllerConf
 	return mergedResult, sourceResult, nil
 }
 
-func collectForgeCandidatesForDiscovery(ctx context.Context, cfg *config.ControllerConfig, discovery repo.ImageUpdateDiscovery) ([]string, map[string][]string, error) {
+func collectForgeCandidatesForDiscovery(ctx context.Context, cfg *config.ControllerConfig, discovery repo.ImageUpdateDiscovery, currentTag string) ([]string, map[string][]string, error) {
 	if discovery.Auto != nil && *discovery.Auto {
 		if strings.TrimSpace(discovery.RepoURL) == "" {
 			return nil, nil, nil
@@ -61,12 +62,12 @@ func collectForgeCandidatesForDiscovery(ctx context.Context, cfg *config.Control
 		if err != nil || !ok {
 			return nil, nil, err
 		}
-		candidates, err := fetchForgeReleaseTags(ctx, cfg, source)
+		candidates, err := fetchForgeReleaseTags(ctx, cfg, source, currentTag)
 		return candidates, nil, err
 	}
 	if len(discovery.Sources) > 0 {
 		if discovery.Combine == "merge" {
-			candidates, err := mergeForgeCandidateGroups(ctx, cfg, discovery.Sources)
+			candidates, err := mergeForgeCandidateGroups(ctx, cfg, discovery.Sources, currentTag)
 			return candidates, nil, err
 		}
 		bySource := make(map[string][]string)
@@ -74,7 +75,7 @@ func collectForgeCandidatesForDiscovery(ctx context.Context, cfg *config.Control
 			if !isForgeDiscoverySource(source.Type) {
 				continue
 			}
-			candidates, err := fetchForgeReleaseTags(ctx, cfg, source)
+			candidates, err := fetchForgeReleaseTags(ctx, cfg, source, currentTag)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -85,7 +86,7 @@ func collectForgeCandidatesForDiscovery(ctx context.Context, cfg *config.Control
 		return nil, bySource, nil
 	}
 	if isForgeDiscoverySource(discovery.Type) {
-		candidates, err := fetchForgeReleaseTags(ctx, cfg, repo.ImageUpdateDiscoverySource{Type: discovery.Type, Repo: discovery.Repo, RepoURL: discovery.RepoURL, Project: discovery.Project})
+		candidates, err := fetchForgeReleaseTags(ctx, cfg, repo.ImageUpdateDiscoverySource{Type: discovery.Type, Repo: discovery.Repo, RepoURL: discovery.RepoURL, Project: discovery.Project}, currentTag)
 		if len(candidates) == 0 || err != nil {
 			return nil, nil, err
 		}
@@ -123,14 +124,14 @@ func forgeSourceFromRepoURL(rawURL string) (repo.ImageUpdateDiscoverySource, boo
 	}
 }
 
-func mergeForgeCandidateGroups(ctx context.Context, cfg *config.ControllerConfig, sources []repo.ImageUpdateDiscoverySource) ([]string, error) {
+func mergeForgeCandidateGroups(ctx context.Context, cfg *config.ControllerConfig, sources []repo.ImageUpdateDiscoverySource, currentTag string) ([]string, error) {
 	seen := make(map[string]struct{})
 	merged := make([]string, 0)
 	for _, source := range sources {
 		if !isForgeDiscoverySource(source.Type) {
 			continue
 		}
-		candidates, err := fetchForgeReleaseTags(ctx, cfg, source)
+		candidates, err := fetchForgeReleaseTags(ctx, cfg, source, currentTag)
 		if err != nil {
 			return nil, err
 		}
@@ -158,40 +159,79 @@ func isForgeDiscoverySource(sourceType string) bool {
 	}
 }
 
-func fetchForgeReleaseTags(ctx context.Context, cfg *config.ControllerConfig, source repo.ImageUpdateDiscoverySource) ([]string, error) {
+func fetchForgeReleaseTags(ctx context.Context, cfg *config.ControllerConfig, source repo.ImageUpdateDiscoverySource, currentTag string) ([]string, error) {
 	client := &http.Client{Timeout: 30 * time.Second}
 	endpoint, headers, err := forgeReleaseRequest(source, cfg)
 	if err != nil {
 		return nil, err
 	}
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	if err != nil {
-		return nil, err
-	}
-	for key, value := range headers {
-		request.Header.Set(key, value)
-	}
-	response, err := client.Do(request)
-	if err != nil {
-		return nil, fmt.Errorf("request %s releases: %w", source.Type, err)
-	}
-	defer func() { _ = response.Body.Close() }()
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return nil, fmt.Errorf("request %s releases returned %s", source.Type, response.Status)
-	}
-	var releases []struct {
-		TagName string `json:"tag_name"`
-	}
-	if err := json.NewDecoder(response.Body).Decode(&releases); err != nil {
-		return nil, fmt.Errorf("decode %s releases: %w", source.Type, err)
-	}
-	tags := make([]string, 0, len(releases))
-	for _, release := range releases {
-		if tag := strings.TrimSpace(release.TagName); tag != "" {
-			tags = append(tags, tag)
+	currentTag = strings.TrimSpace(currentTag)
+	tags := make([]string, 0)
+	seenCurrentTag := currentTag == ""
+	for endpoint != "" {
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+		if err != nil {
+			return nil, err
+		}
+		for key, value := range headers {
+			request.Header.Set(key, value)
+		}
+		response, err := client.Do(request)
+		if err != nil {
+			return nil, fmt.Errorf("request %s releases: %w", source.Type, err)
+		}
+		func() {
+			defer func() { _ = response.Body.Close() }()
+			if response.StatusCode < 200 || response.StatusCode >= 300 {
+				err = fmt.Errorf("request %s releases returned %s", source.Type, response.Status)
+				return
+			}
+			var releases []struct {
+				TagName string `json:"tag_name"`
+			}
+			if decodeErr := json.NewDecoder(response.Body).Decode(&releases); decodeErr != nil {
+				err = fmt.Errorf("decode %s releases: %w", source.Type, decodeErr)
+				return
+			}
+			for _, release := range releases {
+				tag := strings.TrimSpace(release.TagName)
+				if tag == "" {
+					continue
+				}
+				if !seenCurrentTag && tag == currentTag {
+					seenCurrentTag = true
+					break
+				}
+				tags = append(tags, tag)
+			}
+			endpoint = forgeNextPageURL(response.Header.Values("Link"))
+		}()
+		if err != nil {
+			return nil, err
+		}
+		if seenCurrentTag {
+			break
 		}
 	}
 	return tags, nil
+}
+
+func forgeNextPageURL(linkHeaders []string) string {
+	for _, header := range linkHeaders {
+		for _, part := range strings.Split(header, ",") {
+			part = strings.TrimSpace(part)
+			if part == "" || !strings.Contains(part, `rel="next"`) {
+				continue
+			}
+			start := strings.Index(part, "<")
+			end := strings.Index(part, ">")
+			if start < 0 || end <= start+1 {
+				continue
+			}
+			return strings.TrimSpace(part[start+1 : end])
+		}
+	}
+	return ""
 }
 
 func forgeReleaseRequest(source repo.ImageUpdateDiscoverySource, cfg *config.ControllerConfig) (string, map[string]string, error) {

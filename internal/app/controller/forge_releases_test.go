@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
@@ -82,6 +83,47 @@ func TestForgeSourceFromRepoURLDetectsGitLab(t *testing.T) {
 	}
 	if !ok || source.Type != "gitlab" || source.Project != "group/subgroup/project" {
 		t.Fatalf("unexpected source %+v ok=%v", source, ok)
+	}
+}
+
+func TestFetchForgeReleaseTagsStopsAtCurrentTag(t *testing.T) {
+	t.Parallel()
+
+	var serverURL string
+	pageCalls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		pageCalls++
+		var body string
+		link := ""
+		switch {
+		case strings.Contains(request.URL.RawQuery, "page=2") || strings.Contains(request.URL.RawQuery, "page=2&"):
+			body = `[{"tag_name":"v1.2.3"},{"tag_name":"v1.2.2"}]`
+		case strings.Contains(request.URL.RawQuery, "page=3"):
+			body = `[{"tag_name":"v1.1.0"}]`
+		default:
+			body = `[{"tag_name":"v1.4.0"},{"tag_name":"v1.3.0"}]`
+			link = `<` + serverURL + `/releases?per_page=100&page=2>; rel="next"`
+		}
+		if link != "" {
+			writer.Header().Set("Link", link)
+		}
+		_, _ = writer.Write([]byte(body))
+	}))
+	serverURL = server.URL
+	defer server.Close()
+
+	source := repo.ImageUpdateDiscoverySource{Type: "github", Repo: "example/api", RepoURL: "https://github.com/example/api"}
+	cfg := &config.ControllerConfig{Updates: &config.ControllerUpdatesConfig{ForgeAuth: &config.ControllerUpdatesForgeAuth{GitHub: config.ForgeAuthConfigs{{URL: "https://github.com", APIURL: server.URL}}}}}
+
+	tags, err := fetchForgeReleaseTags(context.Background(), cfg, source, "v1.2.3")
+	if err != nil {
+		t.Fatalf("fetchForgeReleaseTags() error = %v", err)
+	}
+	if pageCalls != 2 {
+		t.Fatalf("expected 2 page calls, got %d", pageCalls)
+	}
+	if len(tags) != 2 || tags[0] != "v1.4.0" || tags[1] != "v1.3.0" {
+		t.Fatalf("unexpected tags %+v", tags)
 	}
 }
 
