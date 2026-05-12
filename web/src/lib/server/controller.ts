@@ -1224,7 +1224,10 @@ export async function loadServiceDetail(
         instance.runtimeStatus ?? instance.runtime_status ?? "unknown",
       updatedAt: instance.updatedAt ?? instance.updated_at ?? "",
       isDeclared: instance.isDeclared ?? instance.is_declared ?? false,
-      pendingDeployRevision: instance.pendingDeployRevision ?? instance.pending_deploy_revision ?? "",
+      pendingDeployRevision:
+        instance.pendingDeployRevision ??
+        instance.pending_deploy_revision ??
+        "",
       containers: (instance.containers ?? []).map((container) => ({
         containerId: container.containerId ?? container.container_id ?? "",
         name: container.name ?? "",
@@ -1275,7 +1278,8 @@ export async function loadServiceInstances(
       instance.runtimeStatus ?? instance.runtime_status ?? "unknown",
     updatedAt: instance.updatedAt ?? instance.updated_at ?? "",
     isDeclared: instance.isDeclared ?? instance.is_declared ?? false,
-    pendingDeployRevision: instance.pendingDeployRevision ?? instance.pending_deploy_revision ?? "",
+    pendingDeployRevision:
+      instance.pendingDeployRevision ?? instance.pending_deploy_revision ?? "",
     containers: [],
   }));
 }
@@ -1333,7 +1337,8 @@ export async function loadServiceInstance(
       instance.runtimeStatus ?? instance.runtime_status ?? "unknown",
     updatedAt: instance.updatedAt ?? instance.updated_at ?? "",
     isDeclared: instance.isDeclared ?? instance.is_declared ?? false,
-    pendingDeployRevision: instance.pendingDeployRevision ?? instance.pending_deploy_revision ?? "",
+    pendingDeployRevision:
+      instance.pendingDeployRevision ?? instance.pending_deploy_revision ?? "",
     containers: (instance.containers ?? []).map((container) => ({
       containerId: container.containerId ?? container.container_id ?? "",
       name: container.name ?? "",
