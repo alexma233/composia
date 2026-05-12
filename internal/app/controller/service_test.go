@@ -22,6 +22,15 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 )
 
+func singleQueuedServiceActionTask(t *testing.T, response *controllerv1.RunServiceActionResponse) *controllerv1.TaskActionResponse {
+	t.Helper()
+	tasks := response.GetTasks()
+	if len(tasks) != 1 {
+		t.Fatalf("expected exactly one queued service task, got %d", len(tasks))
+	}
+	return tasks[0]
+}
+
 func TestServiceQueryServiceListServices(t *testing.T) {
 	t.Parallel()
 
@@ -606,17 +615,18 @@ func TestServiceCommandServiceDeployCreatesPendingTask(t *testing.T) {
 	if err != nil {
 		t.Fatalf("deploy service: %v", err)
 	}
-	if response.Msg.GetTaskId() == "" {
+	queuedTask := singleQueuedServiceActionTask(t, response.Msg)
+	if queuedTask.GetTaskId() == "" {
 		t.Fatalf("expected task ID in deploy response")
 	}
-	if response.Msg.GetStatus() != "pending" {
-		t.Fatalf("expected pending deploy task, got %q", response.Msg.GetStatus())
+	if queuedTask.GetStatus() != "pending" {
+		t.Fatalf("expected pending deploy task, got %q", queuedTask.GetStatus())
 	}
-	if response.Msg.GetRepoRevision() == "" {
+	if queuedTask.GetRepoRevision() == "" {
 		t.Fatalf("expected repo revision in deploy response")
 	}
 
-	detail, err := db.GetTask(ctx, response.Msg.GetTaskId())
+	detail, err := db.GetTask(ctx, queuedTask.GetTaskId())
 	if err != nil {
 		t.Fatalf("get created task: %v", err)
 	}
@@ -705,8 +715,84 @@ func TestServiceCommandServiceDeployIgnoresUnrelatedInvalidDraft(t *testing.T) {
 	if err != nil {
 		t.Fatalf("deploy service with unrelated invalid draft: %v", err)
 	}
-	if response.Msg.GetTaskId() == "" {
+	if singleQueuedServiceActionTask(t, response.Msg).GetTaskId() == "" {
 		t.Fatalf("expected task ID in deploy response")
+	}
+}
+
+func TestServiceCommandServiceDeployReturnsAllQueuedTasks(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	logDir := filepath.Join(rootDir, "logs")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\n  - edge\n",
+	})
+
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create log dir: %v", err)
+	}
+
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"demo": {"main", "edge"}}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main", "edge"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	for _, nodeID := range []string{"main", "edge"} {
+		if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: nodeID, HeartbeatAt: time.Date(2026, 4, 4, 10, 0, 0, 0, time.UTC)}); err != nil {
+			t.Fatalf("record heartbeat for %s: %v", nodeID, err)
+		}
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "access-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+	path, handler := controllerv1connect.NewServiceCommandServiceHandler(
+		&serviceCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}, {ID: "edge"}}}, availableNodeIDs: map[string]struct{}{"main": {}, "edge": {}}},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
+	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_DEPLOY}))
+	if err != nil {
+		t.Fatalf("deploy service: %v", err)
+	}
+	if len(response.Msg.GetTasks()) != 2 {
+		t.Fatalf("expected 2 queued deploy tasks, got %d", len(response.Msg.GetTasks()))
+	}
+	seenNodes := make(map[string]struct{}, len(response.Msg.GetTasks()))
+	for _, queuedTask := range response.Msg.GetTasks() {
+		if queuedTask.GetTaskId() == "" || queuedTask.GetStatus() != "pending" || queuedTask.GetRepoRevision() == "" {
+			t.Fatalf("unexpected queued task: %+v", queuedTask)
+		}
+		detail, err := db.GetTask(ctx, queuedTask.GetTaskId())
+		if err != nil {
+			t.Fatalf("get queued task %q: %v", queuedTask.GetTaskId(), err)
+		}
+		seenNodes[detail.Record.NodeID] = struct{}{}
+	}
+	if len(seenNodes) != 2 {
+		t.Fatalf("expected queued tasks for both nodes, got %+v", seenNodes)
 	}
 }
 
@@ -782,7 +868,7 @@ func TestServiceCommandServiceDeployUsesWebSourceHeader(t *testing.T) {
 		t.Fatalf("deploy service: %v", err)
 	}
 
-	detail, err := db.GetTask(ctx, response.Msg.GetTaskId())
+	detail, err := db.GetTask(ctx, singleQueuedServiceActionTask(t, response.Msg).GetTaskId())
 	if err != nil {
 		t.Fatalf("get created task: %v", err)
 	}
@@ -863,7 +949,7 @@ func TestServiceCommandServiceDeployUsesOthersSourceHeader(t *testing.T) {
 		t.Fatalf("deploy service: %v", err)
 	}
 
-	detail, err := db.GetTask(ctx, response.Msg.GetTaskId())
+	detail, err := db.GetTask(ctx, singleQueuedServiceActionTask(t, response.Msg).GetTaskId())
 	if err != nil {
 		t.Fatalf("get created task: %v", err)
 	}
@@ -928,10 +1014,11 @@ func TestServiceCommandServiceCaddySyncCreatesPendingTask(t *testing.T) {
 	if err != nil {
 		t.Fatalf("caddy sync service: %v", err)
 	}
-	if response.Msg.GetStatus() != "pending" {
-		t.Fatalf("expected pending caddy sync task, got %q", response.Msg.GetStatus())
+	queuedTask := singleQueuedServiceActionTask(t, response.Msg)
+	if queuedTask.GetStatus() != "pending" {
+		t.Fatalf("expected pending caddy sync task, got %q", queuedTask.GetStatus())
 	}
-	detail, err := db.GetTask(ctx, response.Msg.GetTaskId())
+	detail, err := db.GetTask(ctx, queuedTask.GetTaskId())
 	if err != nil {
 		t.Fatalf("get caddy sync task: %v", err)
 	}
@@ -1071,10 +1158,11 @@ func TestServiceCommandServiceStopAndRestartCreatePendingTasks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stop service: %v", err)
 	}
-	if stopResponse.Msg.GetStatus() != "pending" {
-		t.Fatalf("expected pending stop task, got %q", stopResponse.Msg.GetStatus())
+	stopTask := singleQueuedServiceActionTask(t, stopResponse.Msg)
+	if stopTask.GetStatus() != "pending" {
+		t.Fatalf("expected pending stop task, got %q", stopTask.GetStatus())
 	}
-	if err := db.CompleteTask(ctx, stopResponse.Msg.GetTaskId(), task.StatusSucceeded, time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC), ""); err != nil {
+	if err := db.CompleteTask(ctx, stopTask.GetTaskId(), task.StatusSucceeded, time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC), ""); err != nil {
 		t.Fatalf("complete stop task: %v", err)
 	}
 
@@ -1082,8 +1170,8 @@ func TestServiceCommandServiceStopAndRestartCreatePendingTasks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("restart service: %v", err)
 	}
-	if restartResponse.Msg.GetStatus() != "pending" {
-		t.Fatalf("expected pending restart task, got %q", restartResponse.Msg.GetStatus())
+	if singleQueuedServiceActionTask(t, restartResponse.Msg).GetStatus() != "pending" {
+		t.Fatalf("expected pending restart task, got %q", singleQueuedServiceActionTask(t, restartResponse.Msg).GetStatus())
 	}
 }
 
@@ -1307,8 +1395,108 @@ func TestServiceCommandServiceUpdateCreatesPendingTask(t *testing.T) {
 	if err != nil {
 		t.Fatalf("update service: %v", err)
 	}
-	if response.Msg.GetStatus() != "pending" {
-		t.Fatalf("expected pending update task, got %q", response.Msg.GetStatus())
+	if singleQueuedServiceActionTask(t, response.Msg).GetStatus() != "pending" {
+		t.Fatalf("expected pending update task, got %q", singleQueuedServiceActionTask(t, response.Msg).GetStatus())
+	}
+}
+
+func TestServiceCommandServiceUpdateWithImageSelectionsReturnsRepoWriteResult(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	logDir := filepath.Join(rootDir, "logs")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\nupdate:\n  images:\n    api:\n      image: ghcr.io/example/api\n      current:\n        env:\n          file: .env\n          key: API_VERSION\n      discovery:\n        sources:\n          - type: auto\n      filter:\n        type: semver\n",
+		"demo/.env":               "API_VERSION=1.2.3\n",
+	})
+
+	stateDir := filepath.Join(rootDir, "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create log dir: %v", err)
+	}
+
+	db, err := store.Open(stateDir)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
+	if err := db.UpsertServiceImageUpdateChecks(ctx, []store.ServiceImageUpdateCheck{{
+		ServiceName:       "demo",
+		NodeID:            "main",
+		ImageName:         "api",
+		ImageRef:          "ghcr.io/example/api",
+		PolicyType:        "semver",
+		CurrentValue:      "1.2.3@sha256:old",
+		CurrentTag:        "1.2.3",
+		CurrentDigest:     "sha256:old",
+		CandidateTag:      "1.3.0",
+		CandidateDigest:   "sha256:new",
+		CandidateTagsJSON: `["1.3.0"]`,
+		UpdateAvailable:   true,
+		CheckStatus:       store.ImageCheckStatusOK,
+		CheckedAt:         time.Date(2026, 4, 4, 11, 59, 0, 0, time.UTC),
+	}}); err != nil {
+		t.Fatalf("upsert image update checks: %v", err)
+	}
+	baseRevision, err := repo.CurrentRevision(repoDir)
+	if err != nil {
+		t.Fatalf("current repo revision: %v", err)
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "access-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+	path, handler := controllerv1connect.NewServiceCommandServiceHandler(
+		&serviceCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}},
+		connect.WithInterceptors(interceptor),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewServiceCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
+	response, err := client.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{
+		ServiceName:   "demo",
+		Action:        controllerv1.ServiceAction_SERVICE_ACTION_UPDATE,
+		ImageUpdates:  []*controllerv1.ImageUpdateSelection{{ImageName: "api", UseDetected: true}},
+		BaseRevision:  baseRevision,
+		CommitMessage: "update images for demo",
+	}))
+	if err != nil {
+		t.Fatalf("update service with image selection: %v", err)
+	}
+	queuedTask := singleQueuedServiceActionTask(t, response.Msg)
+	if queuedTask.GetStatus() != "pending" {
+		t.Fatalf("expected pending update task, got %q", queuedTask.GetStatus())
+	}
+	if response.Msg.GetRepoWrite() == nil || response.Msg.GetRepoWrite().GetCommitId() == "" {
+		t.Fatalf("expected repo write result, got %+v", response.Msg.GetRepoWrite())
+	}
+	updatedEnv, err := os.ReadFile(filepath.Join(repoDir, "demo", ".env"))
+	if err != nil {
+		t.Fatalf("read updated env file: %v", err)
+	}
+	if string(updatedEnv) != "API_VERSION=1.3.0@sha256:new\n" {
+		t.Fatalf("unexpected updated env file:\n%s", string(updatedEnv))
 	}
 }
 
@@ -1382,10 +1570,11 @@ func TestServiceCommandServiceUpdateDNSCreatesPendingTaskWithoutOnlineNode(t *te
 	if err != nil {
 		t.Fatalf("update service dns: %v", err)
 	}
-	if response.Msg.GetStatus() != "pending" {
-		t.Fatalf("expected pending dns update task, got %q", response.Msg.GetStatus())
+	queuedTask := singleQueuedServiceActionTask(t, response.Msg)
+	if queuedTask.GetStatus() != "pending" {
+		t.Fatalf("expected pending dns update task, got %q", queuedTask.GetStatus())
 	}
-	detail, err := db.GetTask(ctx, response.Msg.GetTaskId())
+	detail, err := db.GetTask(ctx, queuedTask.GetTaskId())
 	if err != nil {
 		t.Fatalf("get dns update task: %v", err)
 	}
@@ -1471,10 +1660,11 @@ func TestServiceCommandServiceBackupCreatesPendingTaskWithDefaultDataNames(t *te
 	if err != nil {
 		t.Fatalf("backup service: %v", err)
 	}
-	if response.Msg.GetStatus() != "pending" {
-		t.Fatalf("expected pending backup task, got %q", response.Msg.GetStatus())
+	queuedTask := singleQueuedServiceActionTask(t, response.Msg)
+	if queuedTask.GetStatus() != "pending" {
+		t.Fatalf("expected pending backup task, got %q", queuedTask.GetStatus())
 	}
-	detail, err := db.GetTask(ctx, response.Msg.GetTaskId())
+	detail, err := db.GetTask(ctx, queuedTask.GetTaskId())
 	if err != nil {
 		t.Fatalf("get backup task: %v", err)
 	}

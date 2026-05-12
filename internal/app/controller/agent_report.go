@@ -207,9 +207,13 @@ func (server *agentReportServer) queueAutoApplyUpdateForImageCheck(ctx context.C
 		return nil
 	}
 	serviceServer := &serviceCommandServer{db: server.db, cfg: server.cfg, availableNodeIDs: server.availableNodeIDs, taskQueue: server.taskQueue, taskResults: server.taskResults, repoMu: server.repoMu}
-	createdTask, err := serviceServer.runServiceUpdateWithImageSelections(ctx, service, nil, selections, false, nil, task.SourceSchedule, composeRecreateModeParam(task.TypeUpdate, controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_AUTO))
-	if err == nil {
-		dispatchImageUpdateAppliedNotification(server.notifier, record, createdTask, imageUpdateSelectionNames(selections))
+	baseRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
+	if err != nil {
+		return fmt.Errorf("read repo revision for image update auto apply: %w", err)
+	}
+	createdTasks, _, err := serviceServer.runServiceUpdateWithImageSelections(ctx, service, nil, selections, false, nil, baseRevision, fmt.Sprintf("update images for %s", service.Name), task.SourceSchedule, composeRecreateModeParam(task.TypeUpdate, controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_AUTO))
+	if err == nil && len(createdTasks) > 0 {
+		dispatchImageUpdateAppliedNotification(server.notifier, record, createdTasks[0], imageUpdateSelectionNames(selections))
 	}
 	return err
 }

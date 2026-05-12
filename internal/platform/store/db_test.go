@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 )
 
 func TestListDeclaredServicesAppliesCursorAndFilter(t *testing.T) {
@@ -180,23 +182,38 @@ func TestMigrateAddsBackupNodeIDToLegacyDatabase(t *testing.T) {
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
+	seedDB, err := Open(stateDir)
+	if err != nil {
+		t.Fatalf("open seed sqlite db: %v", err)
+	}
+	if err := seedDB.Close(); err != nil {
+		t.Fatalf("close seed sqlite db: %v", err)
+	}
 	legacySQL, err := sql.Open("sqlite", filepath.Join(stateDir, DatabaseFileName))
 	if err != nil {
 		t.Fatalf("open legacy sqlite db: %v", err)
 	}
-	if _, err := legacySQL.Exec(`CREATE TABLE backups (
-		backup_id TEXT PRIMARY KEY,
-		task_id TEXT NOT NULL,
-		service_name TEXT NOT NULL,
-		data_name TEXT NOT NULL,
-		status TEXT NOT NULL,
-		started_at TEXT NOT NULL,
-		finished_at TEXT,
-		artifact_ref TEXT,
-		error_summary TEXT
-	);`); err != nil {
-		_ = legacySQL.Close()
-		t.Fatalf("create legacy backups table: %v", err)
+	for _, statement := range []string{
+		`PRAGMA foreign_keys = OFF;`,
+		`DROP TABLE backups;`,
+		`CREATE TABLE backups (
+			backup_id TEXT PRIMARY KEY,
+			task_id TEXT NOT NULL,
+			service_name TEXT NOT NULL,
+			data_name TEXT NOT NULL,
+			status TEXT NOT NULL,
+			started_at TEXT NOT NULL,
+			finished_at TEXT,
+			artifact_ref TEXT,
+			error_summary TEXT
+		);`,
+		`PRAGMA user_version = 2;`,
+		`PRAGMA foreign_keys = ON;`,
+	} {
+		if _, err := legacySQL.Exec(statement); err != nil {
+			_ = legacySQL.Close()
+			t.Fatalf("apply legacy setup statement %q: %v", statement, err)
+		}
 	}
 	if err := legacySQL.Close(); err != nil {
 		t.Fatalf("close legacy sqlite db: %v", err)
@@ -232,5 +249,22 @@ func TestMigrateAddsBackupNodeIDToLegacyDatabase(t *testing.T) {
 	}
 	if !foundNodeID {
 		t.Fatal("expected migration to add backups.node_id")
+	}
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main", "edge"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"alpha": {"main"}}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-1", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "alpha", NodeID: "main", Status: task.StatusSucceeded, CreatedAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("create backup task: %v", err)
+	}
+
+	if _, err := db.sql.ExecContext(ctx, `
+		INSERT INTO backups (backup_id, task_id, service_name, node_id, data_name, status, started_at)
+		VALUES ('backup-invalid', 'task-1', 'alpha', 'edge', 'config', 'succeeded', '2026-04-04T12:05:00Z')
+	`); err == nil {
+		t.Fatal("expected migrated backups table to enforce service instance integrity")
 	}
 }

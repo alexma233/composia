@@ -36,6 +36,14 @@ type BackupDetail struct {
 }
 
 func (db *DB) UpsertBackupRecord(ctx context.Context, detail BackupDetail) error {
+	if detail.NodeID == "" {
+		nodeID, err := db.TaskNodeID(ctx, detail.TaskID)
+		if err != nil && !errors.Is(err, ErrTaskNotFound) {
+			return fmt.Errorf("resolve backup node_id for %q: %w", detail.BackupID, err)
+		}
+		detail.NodeID = nodeID
+	}
+
 	_, err := db.sql.ExecContext(ctx, `
 		INSERT INTO backups (
 			backup_id,
@@ -96,23 +104,22 @@ func (db *DB) ListBackups(
 	whereClause, args = appendBackupFilterInClause(whereClause, args, "backups.service_name", serviceNameFilters)
 	whereClause, args = appendBackupFilterInClause(whereClause, args, "backups.status", statusFilters)
 	whereClause, args = appendBackupFilterInClause(whereClause, args, "backups.data_name", dataNameFilters)
-	whereClause, args = appendBackupFilterInClause(whereClause, args, "COALESCE(backups.node_id, tasks.node_id, '')", nodeIDFilters)
+	whereClause, args = appendBackupFilterInClause(whereClause, args, "COALESCE(backups.node_id, '')", nodeIDFilters)
 	whereClause, args = appendBackupFilterNotInClause(whereClause, args, "backups.service_name", excludeServiceNameFilters)
 	whereClause, args = appendBackupFilterNotInClause(whereClause, args, "backups.status", excludeStatusFilters)
 	whereClause, args = appendBackupFilterNotInClause(whereClause, args, "backups.data_name", excludeDataNameFilters)
-	whereClause, args = appendBackupFilterNotInClause(whereClause, args, "COALESCE(backups.node_id, tasks.node_id, '')", excludeNodeIDFilters)
+	whereClause, args = appendBackupFilterNotInClause(whereClause, args, "COALESCE(backups.node_id, '')", excludeNodeIDFilters)
 
 	var totalCount uint32
-	countQuery := `SELECT COUNT(*) FROM backups LEFT JOIN tasks ON tasks.task_id = backups.task_id ` + whereClause
+	countQuery := `SELECT COUNT(*) FROM backups ` + whereClause
 	if err := db.sql.QueryRowContext(ctx, countQuery, args...).Scan(&totalCount); err != nil {
 		return nil, 0, fmt.Errorf("count backups: %w", err)
 	}
 
 	offset := (page - 1) * limit
 	query := `
-		SELECT backups.backup_id, backups.task_id, backups.service_name, COALESCE(backups.node_id, tasks.node_id, ''), backups.data_name, backups.status, backups.started_at, COALESCE(backups.finished_at, '')
+		SELECT backups.backup_id, backups.task_id, backups.service_name, COALESCE(backups.node_id, ''), backups.data_name, backups.status, backups.started_at, COALESCE(backups.finished_at, '')
 		FROM backups
-		LEFT JOIN tasks ON tasks.task_id = backups.task_id
 	` + whereClause
 	query += ` ORDER BY COALESCE(backups.finished_at, backups.started_at) DESC, backups.backup_id DESC LIMIT ? OFFSET ?`
 	args = append(args, limit, offset)
@@ -148,9 +155,8 @@ func appendBackupFilterNotInClause(whereClause string, args []any, expression st
 func (db *DB) GetBackup(ctx context.Context, backupID string) (BackupDetail, error) {
 	var detail BackupDetail
 	err := db.sql.QueryRowContext(ctx, `
-		SELECT backups.backup_id, backups.task_id, backups.service_name, COALESCE(backups.node_id, tasks.node_id, ''), backups.data_name, backups.status, backups.started_at, COALESCE(backups.finished_at, ''), COALESCE(backups.artifact_ref, ''), COALESCE(backups.error_summary, '')
+		SELECT backups.backup_id, backups.task_id, backups.service_name, COALESCE(backups.node_id, ''), backups.data_name, backups.status, backups.started_at, COALESCE(backups.finished_at, ''), COALESCE(backups.artifact_ref, ''), COALESCE(backups.error_summary, '')
 		FROM backups
-		LEFT JOIN tasks ON tasks.task_id = backups.task_id
 		WHERE backups.backup_id = ?
 	`, backupID).Scan(&detail.BackupID, &detail.TaskID, &detail.ServiceName, &detail.NodeID, &detail.DataName, &detail.Status, &detail.StartedAt, &detail.FinishedAt, &detail.ArtifactRef, &detail.ErrorSummary)
 	if err != nil {
@@ -164,9 +170,8 @@ func (db *DB) GetBackup(ctx context.Context, backupID string) (BackupDetail, err
 
 func (db *DB) ListBackupsForTask(ctx context.Context, taskID string) ([]BackupDetail, error) {
 	rows, err := db.sql.QueryContext(ctx, `
-		SELECT backups.backup_id, backups.task_id, backups.service_name, COALESCE(backups.node_id, tasks.node_id, ''), backups.data_name, backups.status, backups.started_at, COALESCE(backups.finished_at, ''), COALESCE(backups.artifact_ref, ''), COALESCE(backups.error_summary, '')
+		SELECT backups.backup_id, backups.task_id, backups.service_name, COALESCE(backups.node_id, ''), backups.data_name, backups.status, backups.started_at, COALESCE(backups.finished_at, ''), COALESCE(backups.artifact_ref, ''), COALESCE(backups.error_summary, '')
 		FROM backups
-		LEFT JOIN tasks ON tasks.task_id = backups.task_id
 		WHERE backups.task_id = ?
 		ORDER BY backups.data_name ASC, backups.backup_id ASC
 	`, taskID)

@@ -335,6 +335,7 @@ export const zhHans = {
     pathRenamed: "已重命名为 {path}",
     pathDeleted: "已删除 {path}",
     actionQueued: "{action} 已加入队列：{taskId}",
+    actionQueuedMany: "{action} 已加入队列：共 {count} 个任务",
     refreshFailed: "刷新服务摘要失败。",
     deleteFileDialogTitle: "删除 {path}？",
     deleteFolderDialogTitle: "删除文件夹 {path}？",

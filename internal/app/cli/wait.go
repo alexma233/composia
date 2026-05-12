@@ -39,6 +39,28 @@ func (application *app) printTaskActionWithWait(response *controllerv1.TaskActio
 	return application.waitTask(response.GetTaskId(), options)
 }
 
+func (application *app) printServiceActionWithWait(response *controllerv1.RunServiceActionResponse, options waitOptions) error {
+	if err := application.printServiceAction(response); err != nil {
+		return err
+	}
+	if !options.shouldWait() {
+		return nil
+	}
+	tasks := response.GetTasks()
+	if len(tasks) == 0 {
+		return fmt.Errorf("at least one task is required")
+	}
+	if options.follow != nil && *options.follow && len(tasks) != 1 {
+		return fmt.Errorf("--follow requires exactly one queued task")
+	}
+	for _, queuedTask := range tasks {
+		if err := application.waitTask(queuedTask.GetTaskId(), options); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (application *app) waitTask(taskID string, options waitOptions) error {
 	if taskID == "" {
 		return fmt.Errorf("task_id is required")

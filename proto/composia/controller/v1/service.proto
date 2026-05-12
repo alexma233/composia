@@ -30,8 +30,8 @@ service ServiceQueryService {
 service ServiceCommandService {
   // UpdateServiceTargetNodes updates the declared target nodes for a service.
   rpc UpdateServiceTargetNodes(UpdateServiceTargetNodesRequest) returns (UpdateServiceTargetNodesResponse);
-  // RunServiceAction starts an async action for a service and returns the task.
-  rpc RunServiceAction(RunServiceActionRequest) returns (TaskActionResponse);
+  // RunServiceAction starts an async action for a service and returns all created tasks.
+  rpc RunServiceAction(RunServiceActionRequest) returns (RunServiceActionResponse);
   // MigrateService starts an async service migration between two nodes.
   rpc MigrateService(MigrateServiceRequest) returns (TaskActionResponse);
 }
@@ -295,6 +295,20 @@ message UpdateServiceTargetNodesResponse {
   string last_successful_pull_at = 4;
 }
 
+// ServiceActionRepoWriteResult reports the Git write side effect produced by a service action.
+message ServiceActionRepoWriteResult {
+  string commit_id = 1;
+  string sync_status = 2;
+  string push_error = 3;
+  string last_successful_pull_at = 4;
+}
+
+// RunServiceActionResponse returns every queued task and any repo write side effect.
+message RunServiceActionResponse {
+  repeated TaskActionResponse tasks = 1;
+  ServiceActionRepoWriteResult repo_write = 2;
+}
+
 // MigrateServiceRequest moves a service from one node to another.
 message MigrateServiceRequest {
   string service_name = 1;
@@ -354,6 +368,10 @@ message RunServiceActionRequest {
   bool use_all_detected_image_updates = 7;
   // backup_before_update overrides the service config cascade for this request.
   optional bool backup_before_update = 8;
+  // base_revision protects repo-backed image updates against stale HEAD writes.
+  string base_revision = 9;
+  // commit_message is used for repo-backed image update commits.
+  string commit_message = 10;
 }
 
 // ImageUpdateSelection identifies one configured image update to apply.

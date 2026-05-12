@@ -456,6 +456,38 @@ func (application *app) printTaskAction(response *controllerv1.TaskActionRespons
 	})
 }
 
+func (application *app) printServiceAction(response *controllerv1.RunServiceActionResponse) error {
+	if application.isJSONOutput() {
+		return application.printMessage(response)
+	}
+	tasks := response.GetTasks()
+	if len(tasks) == 1 {
+		if err := application.printTaskAction(tasks[0]); err != nil {
+			return err
+		}
+	} else {
+		if err := application.writeKV([][2]string{{"task_count", fmt.Sprintf("%d", len(tasks))}}); err != nil {
+			return err
+		}
+		rows := make([][]string, 0, len(tasks))
+		for _, task := range tasks {
+			rows = append(rows, []string{task.GetTaskId(), task.GetStatus(), task.GetRepoRevision()})
+		}
+		if err := application.writeTable([]string{"TASK ID", "STATUS", "REPO REVISION"}, rows); err != nil {
+			return err
+		}
+	}
+	if response.GetRepoWrite() == nil {
+		return nil
+	}
+	return application.writeKV([][2]string{
+		{"commit_id", response.GetRepoWrite().GetCommitId()},
+		{"sync_status", response.GetRepoWrite().GetSyncStatus()},
+		{"push_error", response.GetRepoWrite().GetPushError()},
+		{"last_successful_pull_at", response.GetRepoWrite().GetLastSuccessfulPullAt()},
+	})
+}
+
 func (application *app) isJSONOutput() bool {
 	return application.cfg.output == outputModeJSON || application.cfg.json
 }

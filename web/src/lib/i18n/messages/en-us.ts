@@ -354,6 +354,7 @@ export const enUS = {
     pathRenamed: "Renamed to {path}",
     pathDeleted: "Deleted {path}",
     actionQueued: "{action} queued as {taskId}",
+    actionQueuedMany: "{action} queued as {count} tasks",
     refreshFailed: "Failed to refresh service summary.",
     deleteFileDialogTitle: "Delete {path}?",
     deleteFolderDialogTitle: "Delete folder {path}?",

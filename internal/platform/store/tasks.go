@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
@@ -258,9 +259,25 @@ func insertTaskRecord(ctx context.Context, execer sqlTaskExecer, record task.Rec
 		nullableString(record.ErrorSummary),
 	)
 	if err != nil {
+		if isSQLiteUniqueConstraintError(err) {
+			switch {
+			case record.ServiceName != "" && record.NodeID != "":
+				return ActiveServiceInstanceTaskError{ServiceName: record.ServiceName, NodeID: record.NodeID}
+			case record.ServiceName != "":
+				return ActiveServiceTaskError{ServiceName: record.ServiceName}
+			}
+		}
 		return fmt.Errorf("create task %q: %w", record.TaskID, err)
 	}
 	return nil
+}
+
+func isSQLiteUniqueConstraintError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "unique constraint failed") && !strings.Contains(message, "tasks.task_id")
 }
 
 func (db *DB) ClaimNextPendingTask(ctx context.Context, startedAt time.Time) (task.Record, error) {

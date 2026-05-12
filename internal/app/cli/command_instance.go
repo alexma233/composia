@@ -118,7 +118,7 @@ func (application *app) runInstanceBackup(args []string) error {
 	if err != nil {
 		return err
 	}
-	return application.printTaskActionWithWait(response.Msg, waitOptions)
+	return application.printServiceActionWithWait(response.Msg, waitOptions)
 }
 
 func (application *app) printInstanceDetail(instance *controllerv1.ServiceInstanceDetail) error {

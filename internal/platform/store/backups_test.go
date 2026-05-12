@@ -15,7 +15,7 @@ func TestListBackupsAppliesFiltersAndCursor(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
-	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"alpha": {"main", "edge"}, "bravo": {"edge"}}); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main", "edge"}); err != nil {

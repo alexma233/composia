@@ -94,6 +94,7 @@
     RepoWriteResult,
     ServiceActionResult,
     ServiceInstanceDetail,
+    TaskActionResult,
     TaskSummary,
   } from "$lib/server/controller";
   import type { ServiceFileNode, WorkspaceFile } from "$lib/service-workspace";
@@ -963,19 +964,28 @@
   }
 
   function startActionRefresh(taskId: string) {
+    startActionRefreshForTasks([taskId]);
+  }
+
+  function startActionRefreshForTasks(taskIds: string[]) {
     stopActionRefresh();
+
+    const pendingTaskIds = taskIds.filter((taskId) => taskId);
+    if (pendingTaskIds.length === 0) {
+      return;
+    }
 
     stopActionRefreshHandle = startPolling(
       async () => {
         const payload = await refreshServiceSummary();
-        const task = (payload.tasks ?? []).find(
-          (entry) => entry.taskId === taskId,
-        );
-        if (!task) {
-          return true;
+        for (const taskId of pendingTaskIds) {
+          const task = (payload.tasks ?? []).find((entry) => entry.taskId === taskId);
+          if (!task || !isTerminalTaskStatus(task.status)) {
+            return true;
+          }
         }
 
-        return !isTerminalTaskStatus(task.status);
+        return false;
       },
       {
         intervalMs: 2500,
@@ -1094,6 +1104,12 @@
         if (imageUpdates.length > 0) {
           body.imageUpdates = imageUpdates;
         }
+        if (imageUpdates.length > 0 || applyAllDetectedImages) {
+          body.baseRevision = headRevision;
+          body.commitMessage = buildImageUpdateCommitMessage(
+            workspace?.serviceName ?? workspace?.folder ?? "service",
+          );
+        }
       }
 
       const response = await fetch(
@@ -1108,7 +1124,7 @@
         error?: string;
         reasonCode?: string;
       };
-      if (!response.ok || !payload.taskId) {
+      if (!response.ok || (payload.tasks ?? []).length === 0) {
         throw new Error(
           actionErrorMessage(
             payload,
@@ -1118,21 +1134,29 @@
         );
       }
 
-      const newTask: TaskSummary = {
-        taskId: payload.taskId,
+      const createdTasks: TaskSummary[] = (payload.tasks ?? []).map((entry) => ({
+        taskId: entry.taskId,
         type: action,
-        status: payload.status,
+        status: entry.status,
         serviceName: workspace?.serviceName ?? "",
         nodeId: "",
         createdAt: new Date().toISOString(),
-      };
-      tasks = [newTask, ...tasks].slice(0, 12);
-      toast.success(
-        $messages.services.actionQueued
-          .replace("{action}", action)
-          .replace("{taskId}", payload.taskId),
-      );
-      startActionRefresh(payload.taskId);
+      }));
+      tasks = [...createdTasks, ...tasks].slice(0, 12);
+      if (createdTasks.length === 1) {
+        toast.success(
+          $messages.services.actionQueued
+            .replace("{action}", action)
+            .replace("{taskId}", createdTasks[0].taskId),
+        );
+      } else {
+        toast.success(
+          $messages.services.actionQueuedMany
+            .replace("{action}", action)
+            .replace("{count}", String(createdTasks.length)),
+        );
+      }
+      startActionRefreshForTasks(createdTasks.map((entry) => entry.taskId));
     } catch (actionError) {
       errorMessage =
         actionError instanceof Error
@@ -1196,7 +1220,7 @@
           }),
         },
       );
-      const payload = (await response.json()) as ServiceActionResult & {
+      const payload = (await response.json()) as TaskActionResult & {
         error?: string;
         reasonCode?: string;
       };
@@ -1230,6 +1254,10 @@
     } finally {
       actionBusy = "";
     }
+  }
+
+  function buildImageUpdateCommitMessage(serviceName: string) {
+    return `update images for ${serviceName}`;
   }
 
   async function renameServiceRoot() {

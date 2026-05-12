@@ -175,6 +175,19 @@ func (application *app) runServiceAction(actionName string, args []string) error
 			backupBeforeUpdate = boolPtr(false)
 		}
 	}
+	baseRevision := ""
+	commitMessage := ""
+	if action == controllerv1.ServiceAction_SERVICE_ACTION_UPDATE && (len(imageUpdates) > 0 || useAllDetectedImages) {
+		head, err := application.client.repos.GetRepoHead(application.ctx, newRequest(&controllerv1.GetRepoHeadRequest{}))
+		if err != nil {
+			return err
+		}
+		baseRevision = strings.TrimSpace(head.Msg.GetHeadRevision())
+		if baseRevision == "" {
+			return fmt.Errorf("repo head_revision is required for repo-backed image updates")
+		}
+		commitMessage = fmt.Sprintf("update images for %s", fs.Arg(0))
+	}
 	response, err := application.client.serviceCommands.RunServiceAction(application.ctx, newRequest(&controllerv1.RunServiceActionRequest{
 		ServiceName:                fs.Arg(0),
 		Action:                     action,
@@ -184,11 +197,13 @@ func (application *app) runServiceAction(actionName string, args []string) error
 		ImageUpdates:               imageUpdates,
 		UseAllDetectedImageUpdates: useAllDetectedImages,
 		BackupBeforeUpdate:         backupBeforeUpdate,
+		BaseRevision:               baseRevision,
+		CommitMessage:              commitMessage,
 	}))
 	if err != nil {
 		return err
 	}
-	return application.printTaskActionWithWait(response.Msg, waitOptions)
+	return application.printServiceActionWithWait(response.Msg, waitOptions)
 }
 
 func (application *app) runServiceMigrate(args []string) error {

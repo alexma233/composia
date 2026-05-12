@@ -451,6 +451,53 @@ func TestCreateTaskIfNoActiveServiceTaskIsAtomic(t *testing.T) {
 	}
 }
 
+func TestCreateTaskRejectsDuplicateActiveServiceInstanceTaskViaUniqueIndex(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"alpha": {"main"}}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-existing", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "alpha", NodeID: "main"}); err != nil {
+		t.Fatalf("create existing task: %v", err)
+	}
+
+	_, err := db.CreateTask(ctx, task.Record{TaskID: "task-conflict", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "alpha", NodeID: "main"})
+	if err == nil {
+		t.Fatal("expected duplicate active service instance task error")
+	}
+	var activeErr ActiveServiceInstanceTaskError
+	if !errors.As(err, &activeErr) {
+		t.Fatalf("expected ActiveServiceInstanceTaskError, got %v", err)
+	}
+}
+
+func TestCreateTaskRejectsMissingServiceInstancePair(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"alpha": {}}); err != nil {
+		t.Fatalf("sync declared services without instances: %v", err)
+	}
+
+	_, err := db.CreateTask(ctx, task.Record{TaskID: "task-invalid", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "alpha", NodeID: "main"})
+	if err == nil {
+		t.Fatal("expected missing service instance error")
+	}
+}
+
 func TestListTasksAppliesFiltersAndCursor(t *testing.T) {
 	t.Parallel()
 
@@ -458,7 +505,7 @@ func TestListTasksAppliesFiltersAndCursor(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
-	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"alpha": {"main", "node-2"}, "bravo": {"node-2"}}); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-1", Type: task.TypeDeploy, Source: task.SourceCLI, Status: task.StatusSucceeded, ServiceName: "alpha", CreatedAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
@@ -498,7 +545,7 @@ func TestListTasksAppliesNodeAndTypeFilters(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
-	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"alpha": {"main", "node-2"}, "bravo": {"node-2"}}); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main", "node-2"}); err != nil {

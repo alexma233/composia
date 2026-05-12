@@ -325,8 +325,8 @@ func (UnimplementedServiceQueryServiceHandler) GetServiceImageUpdateChecks(conte
 type ServiceCommandServiceClient interface {
 	// UpdateServiceTargetNodes updates the declared target nodes for a service.
 	UpdateServiceTargetNodes(context.Context, *connect.Request[v1.UpdateServiceTargetNodesRequest]) (*connect.Response[v1.UpdateServiceTargetNodesResponse], error)
-	// RunServiceAction starts an async action for a service and returns the task.
-	RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
+	// RunServiceAction starts an async action for a service and returns all created tasks.
+	RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.RunServiceActionResponse], error)
 	// MigrateService starts an async service migration between two nodes.
 	MigrateService(context.Context, *connect.Request[v1.MigrateServiceRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
@@ -349,7 +349,7 @@ func NewServiceCommandServiceClient(httpClient connect.HTTPClient, baseURL strin
 			connect.WithSchema(serviceCommandServiceMethods.ByName("UpdateServiceTargetNodes")),
 			connect.WithClientOptions(opts...),
 		),
-		runServiceAction: connect.NewClient[v1.RunServiceActionRequest, v1.TaskActionResponse](
+		runServiceAction: connect.NewClient[v1.RunServiceActionRequest, v1.RunServiceActionResponse](
 			httpClient,
 			baseURL+ServiceCommandServiceRunServiceActionProcedure,
 			connect.WithSchema(serviceCommandServiceMethods.ByName("RunServiceAction")),
@@ -367,7 +367,7 @@ func NewServiceCommandServiceClient(httpClient connect.HTTPClient, baseURL strin
 // serviceCommandServiceClient implements ServiceCommandServiceClient.
 type serviceCommandServiceClient struct {
 	updateServiceTargetNodes *connect.Client[v1.UpdateServiceTargetNodesRequest, v1.UpdateServiceTargetNodesResponse]
-	runServiceAction         *connect.Client[v1.RunServiceActionRequest, v1.TaskActionResponse]
+	runServiceAction         *connect.Client[v1.RunServiceActionRequest, v1.RunServiceActionResponse]
 	migrateService           *connect.Client[v1.MigrateServiceRequest, v1.TaskActionResponse]
 }
 
@@ -378,7 +378,7 @@ func (c *serviceCommandServiceClient) UpdateServiceTargetNodes(ctx context.Conte
 }
 
 // RunServiceAction calls composia.controller.v1.ServiceCommandService.RunServiceAction.
-func (c *serviceCommandServiceClient) RunServiceAction(ctx context.Context, req *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+func (c *serviceCommandServiceClient) RunServiceAction(ctx context.Context, req *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.RunServiceActionResponse], error) {
 	return c.runServiceAction.CallUnary(ctx, req)
 }
 
@@ -392,8 +392,8 @@ func (c *serviceCommandServiceClient) MigrateService(ctx context.Context, req *c
 type ServiceCommandServiceHandler interface {
 	// UpdateServiceTargetNodes updates the declared target nodes for a service.
 	UpdateServiceTargetNodes(context.Context, *connect.Request[v1.UpdateServiceTargetNodesRequest]) (*connect.Response[v1.UpdateServiceTargetNodesResponse], error)
-	// RunServiceAction starts an async action for a service and returns the task.
-	RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
+	// RunServiceAction starts an async action for a service and returns all created tasks.
+	RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.RunServiceActionResponse], error)
 	// MigrateService starts an async service migration between two nodes.
 	MigrateService(context.Context, *connect.Request[v1.MigrateServiceRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
@@ -444,7 +444,7 @@ func (UnimplementedServiceCommandServiceHandler) UpdateServiceTargetNodes(contex
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceCommandService.UpdateServiceTargetNodes is not implemented"))
 }
 
-func (UnimplementedServiceCommandServiceHandler) RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+func (UnimplementedServiceCommandServiceHandler) RunServiceAction(context.Context, *connect.Request[v1.RunServiceActionRequest]) (*connect.Response[v1.RunServiceActionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ServiceCommandService.RunServiceAction is not implemented"))
 }
 

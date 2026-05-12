@@ -172,10 +172,22 @@ export type ServiceDetail = {
   actions: ServiceActionCapabilities;
 };
 
-export type ServiceActionResult = {
+export type TaskActionResult = {
   taskId: string;
   status: string;
   repoRevision: string;
+};
+
+export type ServiceActionRepoWriteResult = {
+  commitId: string;
+  syncStatus: string;
+  pushError: string;
+  lastSuccessfulPullAt: string;
+};
+
+export type ServiceActionResult = {
+  tasks: TaskActionResult[];
+  repoWrite?: ServiceActionRepoWriteResult;
 };
 
 export type ImageUpdateCheckSummary = {
@@ -222,8 +234,8 @@ export async function migrateService(
   serviceName: string,
   sourceNodeId: string,
   targetNodeId: string,
-): Promise<ServiceActionResult> {
-  return callServiceAction(
+): Promise<TaskActionResult> {
+  return callTaskAction(
     controllerProcedure(
       "/composia.controller.v1.ServiceCommandService/MigrateService",
     ),
@@ -969,7 +981,7 @@ export async function loadBackupDetail(
 export async function restoreBackup(
   backupId: string,
   nodeId: string,
-): Promise<ServiceActionResult> {
+): Promise<TaskActionResult> {
   return callTaskAction(
     controllerProcedure(
       "/composia.controller.v1.BackupRecordService/RestoreBackup",
@@ -1364,6 +1376,8 @@ export async function runServiceAction(
     imageUpdates?: ImageUpdateSelection[];
     useAllDetectedImageUpdates?: boolean;
     backupBeforeUpdate?: boolean;
+    baseRevision?: string;
+    commitMessage?: string;
   } = {},
 ): Promise<ServiceActionResult> {
   return callServiceAction(
@@ -1385,6 +1399,8 @@ export async function runServiceAction(
       })),
       useAllDetectedImageUpdates: options.useAllDetectedImageUpdates ?? false,
       backupBeforeUpdate: options.backupBeforeUpdate,
+      baseRevision: options.baseRevision ?? "",
+      commitMessage: options.commitMessage ?? "",
     },
   );
 }
@@ -1671,7 +1687,7 @@ export type DockerContainerSummary = {
   imageId: string;
 };
 
-export type ContainerActionResult = ServiceActionResult;
+export type ContainerActionResult = TaskActionResult;
 
 export type ContainerAction = "start" | "stop" | "restart";
 
@@ -2169,9 +2185,7 @@ export async function loadTaskDetail(taskId: string): Promise<TaskDetail> {
   );
 }
 
-export async function runTaskAgain(
-  taskId: string,
-): Promise<ServiceActionResult> {
+export async function runTaskAgain(taskId: string): Promise<TaskActionResult> {
   return callTaskAction(
     controllerProcedure("/composia.controller.v1.TaskService/RunTaskAgain"),
     {
@@ -2184,7 +2198,7 @@ export async function resolveTaskConfirmation(
   taskId: string,
   decision: "approve" | "reject",
   comment = "",
-): Promise<ServiceActionResult> {
+): Promise<TaskActionResult> {
   return callTaskAction(
     controllerProcedure(
       "/composia.controller.v1.TaskService/ResolveTaskConfirmation",
@@ -2209,13 +2223,62 @@ async function callServiceAction(
   procedure: string,
   body: RpcRequest,
 ): Promise<ServiceActionResult> {
-  return callTaskAction(procedure, body);
+  const config = requireControllerConfig();
+  const response = await rpcCall<{
+    tasks?: Array<{
+      taskId?: string;
+      task_id?: string;
+      status?: string;
+      repoRevision?: string;
+      repo_revision?: string;
+    }>;
+    repoWrite?: {
+      commitId?: string;
+      commit_id?: string;
+      syncStatus?: string;
+      sync_status?: string;
+      pushError?: string;
+      push_error?: string;
+      lastSuccessfulPullAt?: string;
+      last_successful_pull_at?: string;
+    };
+    repo_write?: {
+      commitId?: string;
+      commit_id?: string;
+      syncStatus?: string;
+      sync_status?: string;
+      pushError?: string;
+      push_error?: string;
+      lastSuccessfulPullAt?: string;
+      last_successful_pull_at?: string;
+    };
+  }>(config.baseUrl, config.token, procedure, body);
+
+  const repoWrite = response.repoWrite ?? response.repo_write;
+  return {
+    tasks: (response.tasks ?? []).map((task) => ({
+      taskId: task.taskId ?? task.task_id ?? "",
+      status: task.status ?? "",
+      repoRevision: task.repoRevision ?? task.repo_revision ?? "",
+    })),
+    repoWrite: repoWrite
+      ? {
+          commitId: repoWrite.commitId ?? repoWrite.commit_id ?? "",
+          syncStatus: repoWrite.syncStatus ?? repoWrite.sync_status ?? "",
+          pushError: repoWrite.pushError ?? repoWrite.push_error ?? "",
+          lastSuccessfulPullAt:
+            repoWrite.lastSuccessfulPullAt ??
+            repoWrite.last_successful_pull_at ??
+            "",
+        }
+      : undefined,
+  };
 }
 
 async function callTaskAction(
   procedure: string,
   body: RpcRequest,
-): Promise<ServiceActionResult> {
+): Promise<TaskActionResult> {
   const config = requireControllerConfig();
   const response = await rpcCall<{
     taskId?: string;

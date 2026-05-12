@@ -72,7 +72,7 @@ func (server *serviceCommandServer) UpdateServiceTargetNodes(ctx context.Context
 	}), nil
 }
 
-func (server *serviceCommandServer) RunServiceAction(ctx context.Context, req *connect.Request[controllerv1.RunServiceActionRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
+func (server *serviceCommandServer) RunServiceAction(ctx context.Context, req *connect.Request[controllerv1.RunServiceActionRequest]) (*connect.Response[controllerv1.RunServiceActionResponse], error) {
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
@@ -130,11 +130,11 @@ func (server *serviceCommandServer) RunServiceAction(ctx context.Context, req *c
 	}
 
 	if taskType == task.TypeUpdate && (len(req.Msg.GetImageUpdates()) > 0 || req.Msg.GetUseAllDetectedImageUpdates()) {
-		createdTask, err := server.runServiceUpdateWithImageSelections(ctx, service, nodeIDs, req.Msg.GetImageUpdates(), req.Msg.GetUseAllDetectedImageUpdates(), req.Msg.BackupBeforeUpdate, requestTaskSource(req.Header()), composeRecreateModeParam(taskType, req.Msg.GetComposeRecreateMode()))
+		createdTasks, repoWrite, err := server.runServiceUpdateWithImageSelections(ctx, service, nodeIDs, req.Msg.GetImageUpdates(), req.Msg.GetUseAllDetectedImageUpdates(), req.Msg.BackupBeforeUpdate, req.Msg.GetBaseRevision(), req.Msg.GetCommitMessage(), requestTaskSource(req.Header()), composeRecreateModeParam(taskType, req.Msg.GetComposeRecreateMode()))
 		if err != nil {
 			return nil, err
 		}
-		return connect.NewResponse(taskActionResponse(createdTask)), nil
+		return connect.NewResponse(runServiceActionResponse(createdTasks, repoWrite)), nil
 	}
 
 	if taskType == task.TypeUpdate && effectiveBackupBeforeUpdate(server.cfg, service.Meta.Update, nil, req.Msg.BackupBeforeUpdate) {
@@ -150,12 +150,12 @@ func (server *serviceCommandServer) RunServiceAction(ctx context.Context, req *c
 		}
 	}
 
-	createdTask, err := server.createServiceTaskWithOptions(ctx, req.Msg.GetServiceName(), nodeIDs, taskType, dataNames, serviceTaskCreateOptions{Source: requestTaskSource(req.Header()), ComposeRecreateMode: composeRecreateModeParam(taskType, req.Msg.GetComposeRecreateMode())})
+	createdTasks, err := server.createServiceTasksWithOptions(ctx, req.Msg.GetServiceName(), nodeIDs, taskType, dataNames, serviceTaskCreateOptions{Source: requestTaskSource(req.Header()), ComposeRecreateMode: composeRecreateModeParam(taskType, req.Msg.GetComposeRecreateMode())})
 	if err != nil {
 		return nil, err
 	}
 
-	return connect.NewResponse(taskActionResponse(createdTask)), nil
+	return connect.NewResponse(runServiceActionResponse(createdTasks, nil)), nil
 }
 
 type serviceTaskCreateOptions struct {
@@ -213,30 +213,43 @@ type plannedImageUpdate struct {
 	RepoBacked bool
 }
 
-func (server *serviceCommandServer) runServiceUpdateWithImageSelections(ctx context.Context, service repo.Service, nodeIDs []string, selections []*controllerv1.ImageUpdateSelection, useAllDetected bool, backupBeforeUpdateOverride *bool, source task.Source, composeRecreateMode string) (task.Record, error) {
+func (server *serviceCommandServer) runServiceUpdateWithImageSelections(ctx context.Context, service repo.Service, nodeIDs []string, selections []*controllerv1.ImageUpdateSelection, useAllDetected bool, backupBeforeUpdateOverride *bool, baseRevision, commitMessage string, source task.Source, composeRecreateMode string) ([]task.Record, *repoWriteResult, error) {
 	targetNodeIDs, err := resolveTargetNodeIDs(service, nodeIDs)
 	if err != nil {
-		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 	if len(targetNodeIDs) == 0 {
-		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not have any target nodes", service.Name))
+		return nil, nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not have any target nodes", service.Name))
 	}
 	planned, err := server.planRequestedServiceImageUpdates(ctx, service, targetNodeIDs, selections, useAllDetected)
 	if err != nil {
-		return task.Record{}, err
+		return nil, nil, err
 	}
 	if serviceImageUpdatesNeedBackup(server.cfg, service.Meta.Update, service.Meta.Update.Images, planned, selections, backupBeforeUpdateOverride) {
 		if err := server.runBackupsBeforeUpdate(ctx, service, targetNodeIDs, source); err != nil {
-			return task.Record{}, err
+			return nil, nil, err
 		}
 	}
 	repoBackedPlanned := repoBackedPlannedImageUpdates(planned)
+	var repoWrite *repoWriteResult
 	if len(repoBackedPlanned) > 0 {
-		if err := server.applyPlannedServiceImageUpdates(ctx, service, repoBackedPlanned); err != nil {
-			return task.Record{}, err
+		if strings.TrimSpace(baseRevision) == "" {
+			return nil, nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base_revision is required for repo-backed image updates"))
 		}
+		if strings.TrimSpace(commitMessage) == "" {
+			return nil, nil, connect.NewError(connect.CodeInvalidArgument, errors.New("commit_message is required for repo-backed image updates"))
+		}
+		result, err := server.applyPlannedServiceImageUpdates(ctx, service, repoBackedPlanned, baseRevision, commitMessage)
+		if err != nil {
+			return nil, nil, err
+		}
+		repoWrite = &result
 	}
-	return server.createServiceTaskWithOptions(ctx, service.Name, targetNodeIDs, task.TypeUpdate, nil, serviceTaskCreateOptions{Source: source, ComposeRecreateMode: composeRecreateMode, ImageNames: imageUpdateSelectionNames(selections)})
+	createdTasks, err := server.createServiceTasksWithOptions(ctx, service.Name, targetNodeIDs, task.TypeUpdate, nil, serviceTaskCreateOptions{Source: source, ComposeRecreateMode: composeRecreateMode, ImageNames: imageUpdateSelectionNames(selections)})
+	if err != nil {
+		return nil, nil, err
+	}
+	return createdTasks, repoWrite, nil
 }
 
 func (server *serviceCommandServer) planRequestedServiceImageUpdates(ctx context.Context, service repo.Service, targetNodeIDs []string, selections []*controllerv1.ImageUpdateSelection, useAllDetected bool) ([]plannedImageUpdate, error) {
@@ -332,17 +345,17 @@ func repoBackedPlannedImageUpdates(planned []plannedImageUpdate) []plannedImageU
 	return repoBacked
 }
 
-func (server *serviceCommandServer) applyPlannedServiceImageUpdates(ctx context.Context, service repo.Service, planned []plannedImageUpdate) error {
+func (server *serviceCommandServer) applyPlannedServiceImageUpdates(ctx context.Context, service repo.Service, planned []plannedImageUpdate, baseRevision, commitMessage string) (repoWriteResult, error) {
 	serviceDir, err := filepath.Rel(server.cfg.RepoDir, service.Directory)
 	if err != nil {
-		return connect.NewError(connect.CodeInternal, err)
+		return repoWriteResult{}, connect.NewError(connect.CodeInternal, err)
 	}
 	paths := make([]string, 0, len(planned))
 	seenPaths := make(map[string]struct{}, len(planned))
 	for _, update := range planned {
 		image := service.Meta.Update.Images[update.ImageName]
 		if repo.ImageUpdateCurrentFile(image.Current) == "" {
-			return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("image update %q is not repo-backed", update.ImageName))
+			return repoWriteResult{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("image update %q is not repo-backed", update.ImageName))
 		}
 		path := filepath.ToSlash(filepath.Join(serviceDir, repo.ImageUpdateCurrentFile(image.Current)))
 		if _, exists := seenPaths[path]; !exists {
@@ -352,11 +365,7 @@ func (server *serviceCommandServer) applyPlannedServiceImageUpdates(ctx context.
 	}
 	slices.Sort(paths)
 	repoSrv := &repoCommandServer{db: server.db, cfg: server.cfg, availableNodeIDs: server.availableNodeIDs, repoMu: server.repoMu}
-	baseRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
-	if err != nil {
-		return connect.NewError(connect.CodeInternal, err)
-	}
-	_, err = repoSrv.runRepoWrite(ctx, baseRevision, paths, func(baseSyncState store.RepoSyncState) (repoWriteResult, error) {
+	result, err := repoSrv.runRepoWrite(ctx, baseRevision, paths, func(baseSyncState store.RepoSyncState) (repoWriteResult, error) {
 		contents := make(map[string]string, len(paths))
 		for _, path := range paths {
 			file, err := repo.ReadFile(server.cfg.RepoDir, path)
@@ -365,7 +374,6 @@ func (server *serviceCommandServer) applyPlannedServiceImageUpdates(ctx context.
 			}
 			contents[path] = file.Content
 		}
-		summaries := make([]string, 0, len(planned))
 		for _, update := range planned {
 			image := service.Meta.Update.Images[update.ImageName]
 			targetDigest := update.Digest
@@ -386,7 +394,6 @@ func (server *serviceCommandServer) applyPlannedServiceImageUpdates(ctx context.
 				return repoWriteResult{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("update image %q: %w", update.ImageName, err))
 			}
 			contents[path] = updatedContent
-			summaries = append(summaries, fmt.Sprintf("%s to %s", update.ImageName, update.Tag))
 		}
 		writtenSnapshots := make(map[string]string, len(contents))
 		committed := false
@@ -409,14 +416,17 @@ func (server *serviceCommandServer) applyPlannedServiceImageUpdates(ctx context.
 				_, _ = repo.WriteFile(server.cfg.RepoDir, path, content)
 			}
 		}()
-		commitID, err := repoSrv.commitRepoPaths(paths[0], paths, fmt.Sprintf("update %s images: %s", service.Name, strings.Join(summaries, ", ")))
+		commitID, err := repoSrv.commitRepoPaths(paths[0], paths, strings.TrimSpace(commitMessage))
 		if err != nil {
 			return repoWriteResult{}, err
 		}
 		committed = true
 		return repoSrv.finalizeRepoWrite(ctx, commitID, baseSyncState)
 	})
-	return err
+	if err != nil {
+		return repoWriteResult{}, err
+	}
+	return result, nil
 }
 
 func effectiveDigestPin(cfg *config.ControllerConfig, update *repo.UpdateConfig, image repo.ImageUpdateConfig) bool {
@@ -625,47 +635,55 @@ func inspectControllerRemoteImageDigest(ctx context.Context, imageRef string) (s
 }
 
 func (server *serviceCommandServer) createServiceTaskWithOptions(ctx context.Context, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string, options serviceTaskCreateOptions) (task.Record, error) {
+	createdTasks, err := server.createServiceTasksWithOptions(ctx, serviceName, nodeIDs, taskType, dataNames, options)
+	if err != nil {
+		return task.Record{}, err
+	}
+	return createdTasks[0], nil
+}
+
+func (server *serviceCommandServer) createServiceTasksWithOptions(ctx context.Context, serviceName string, nodeIDs []string, taskType task.Type, dataNames []string, options serviceTaskCreateOptions) ([]task.Record, error) {
 	if serviceName == "" {
-		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
 
 	service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, serviceName)
 	if err != nil {
-		return task.Record{}, connect.NewError(connect.CodeNotFound, err)
+		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
 	targetNodeIDs, err := resolveTargetNodeIDs(service, nodeIDs)
 	if err != nil {
-		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 	if len(targetNodeIDs) == 0 {
-		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not have any target nodes", serviceName))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not have any target nodes", serviceName))
 	}
 	if taskType == task.TypeImageCheck && options.ForgeCandidates == nil {
 		forgeCandidates, forgeCandidateSources, err := collectForgeImageCandidates(ctx, server.cfg, service, options.ImageNames)
 		if err != nil {
-			return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, err)
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 		}
 		options.ForgeCandidates = forgeCandidates
 		options.ForgeCandidateSources = forgeCandidateSources
 	}
 	for _, nodeID := range targetNodeIDs {
 		if err := validateTaskTargetNode(ctx, server.db, server.cfg, nodeID, taskType); err != nil {
-			return task.Record{}, err
+			return nil, err
 		}
 	}
 	repoRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
 	if err != nil {
-		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
 	triggeredBy, _ := rpcutil.BearerSubject(ctx)
 	serviceDir, err := filepath.Rel(server.cfg.RepoDir, service.Directory)
 	if err != nil {
-		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
 	}
 	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir, DataNames: dataNames, ImageNames: options.ImageNames, SemverAllow: options.SemverAllow, ForgeCandidates: options.ForgeCandidates, ForgeCandidateSources: options.ForgeCandidateSources, ComposeRecreateMode: options.ComposeRecreateMode})
 	if err != nil {
-		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode task params: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("encode task params: %w", err))
 	}
 	taskSource := options.Source
 	if taskSource == "" {
@@ -690,11 +708,11 @@ func (server *serviceCommandServer) createServiceTaskWithOptions(ctx context.Con
 	}
 	createdTasks, err := server.db.CreateTasksIfNoActiveServiceInstanceTasks(ctx, pendingTasks)
 	if err != nil {
-		return task.Record{}, connectTaskAdmissionError(err)
+		return nil, connectTaskAdmissionError(err)
 	}
 	for _, createdTask := range createdTasks {
 		if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
-			return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
 		}
 	}
 	if taskType == task.TypeDeploy || taskType == task.TypeUpdate {
@@ -703,5 +721,21 @@ func (server *serviceCommandServer) createServiceTaskWithOptions(ctx context.Con
 		}
 	}
 	notifyTaskQueue(server.taskQueue)
-	return createdTasks[0], nil
+	return createdTasks, nil
+}
+
+func runServiceActionResponse(records []task.Record, repoWrite *repoWriteResult) *controllerv1.RunServiceActionResponse {
+	response := &controllerv1.RunServiceActionResponse{Tasks: make([]*controllerv1.TaskActionResponse, 0, len(records))}
+	for _, record := range records {
+		response.Tasks = append(response.Tasks, taskActionResponse(record))
+	}
+	if repoWrite != nil {
+		response.RepoWrite = &controllerv1.ServiceActionRepoWriteResult{
+			CommitId:             repoWrite.CommitID,
+			SyncStatus:           repoWrite.SyncStatus,
+			PushError:            repoWrite.PushError,
+			LastSuccessfulPullAt: repoWrite.LastSuccessfulPullAt,
+		}
+	}
+	return response
 }

@@ -338,7 +338,7 @@ func TestAgentPullNextTaskLongPollWakesWhenRunningTaskCompletes(t *testing.T) {
 	if err := db.SyncConfiguredNodes(ctx, []string{"main", "node-2"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
 	}
-	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"alpha": {"main"}, "bravo": {"node-2"}}); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	runningStartedAt := time.Date(2026, 4, 5, 11, 0, 10, 0, time.UTC)
