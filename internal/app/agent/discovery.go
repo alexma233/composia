@@ -21,37 +21,28 @@ func discoverImageUpdateTags(ctx context.Context, imageRef, currentTag string, d
 		}
 		return mergeImageUpdateTags(injectedCandidates, base), nil
 	}
-	if discovery.Auto != nil && *discovery.Auto {
-		return discoverMergedImageUpdateTags(ctx, imageRef, currentTag, []repo.ImageUpdateDiscoverySource{{Type: "probe"}, {Type: "registry"}}, filter)
+	if len(discovery.Sources) == 1 && strings.TrimSpace(discovery.Sources[0].Type) == "auto" {
+		return discoverMergedImageUpdateTags(ctx, imageRef, currentTag, autoDiscoverySources(discovery.Sources[0]), filter)
 	}
-	if len(discovery.Sources) > 0 {
-		if discovery.Combine == "merge" {
-			return discoverMergedImageUpdateTags(ctx, imageRef, currentTag, discovery.Sources, filter)
-		}
-		for index, source := range discovery.Sources {
-			if isAgentExternalDiscoverySource(source.Type) {
-				if tags := mergeImageUpdateTags(injectedSourceCandidates[strconv.Itoa(index)]); len(tags) > 0 {
-					return tags, nil
-				}
-				continue
-			}
-			tags, err := discoverImageUpdateTagsFromSource(ctx, imageRef, currentTag, source, filter)
-			if err != nil {
-				return nil, err
-			}
-			if len(tags) > 0 {
+	if discovery.Combine == "merge" {
+		return discoverMergedImageUpdateTags(ctx, imageRef, currentTag, discovery.Sources, filter)
+	}
+	for index, source := range discovery.Sources {
+		if isAgentExternalDiscoverySource(source.Type) {
+			if tags := mergeImageUpdateTags(injectedSourceCandidates[strconv.Itoa(index)]); len(tags) > 0 {
 				return tags, nil
 			}
+			continue
 		}
-		return nil, nil
-	}
-	if discovery.Type != "" {
-		if isAgentExternalDiscoverySource(discovery.Type) {
-			return mergeImageUpdateTags(injectedSourceCandidates["direct"]), nil
+		tags, err := discoverImageUpdateTagsFromSource(ctx, imageRef, currentTag, source, filter)
+		if err != nil {
+			return nil, err
 		}
-		return discoverImageUpdateTagsFromSource(ctx, imageRef, currentTag, repo.ImageUpdateDiscoverySource{Type: discovery.Type, Repo: discovery.Repo, RepoURL: discovery.RepoURL, Project: discovery.Project}, filter)
+		if len(tags) > 0 {
+			return tags, nil
+		}
 	}
-	return discoverImageUpdateTagsFromSource(ctx, imageRef, currentTag, repo.ImageUpdateDiscoverySource{Type: "registry"}, filter)
+	return nil, nil
 }
 
 func isAgentExternalDiscoverySource(sourceType string) bool {
@@ -96,6 +87,8 @@ func discoverMergedImageUpdateTags(ctx context.Context, imageRef, currentTag str
 
 func discoverImageUpdateTagsFromSource(ctx context.Context, imageRef, currentTag string, source repo.ImageUpdateDiscoverySource, filter *repo.ImageUpdateFilter) ([]string, error) {
 	switch source.Type {
+	case "auto":
+		return discoverMergedImageUpdateTags(ctx, imageRef, currentTag, autoDiscoverySources(source), filter)
 	case "probe":
 		if filter == nil || filter.Type != "semver" {
 			return nil, nil
@@ -112,6 +105,10 @@ func discoverImageUpdateTagsFromSource(ctx context.Context, imageRef, currentTag
 	default:
 		return nil, fmt.Errorf("unsupported image update discovery source %q", source.Type)
 	}
+}
+
+func autoDiscoverySources(source repo.ImageUpdateDiscoverySource) []repo.ImageUpdateDiscoverySource {
+	return []repo.ImageUpdateDiscoverySource{{Type: "probe"}, {Type: "registry"}}
 }
 
 func probeSemverImageTag(ctx context.Context, imageRef, current string, filter *repo.ImageUpdateFilter) (string, bool, error) {

@@ -31,9 +31,8 @@ func collectForgeImageCandidates(ctx context.Context, cfg *config.ControllerConf
 		if !ok {
 			continue
 		}
-		currentTag := strings.TrimSpace(image.Current.Tag)
 		discovery := repo.ResolveImageUpdateDiscovery(image.Discovery, service.Meta.Update.DiscoverySources)
-		merged, bySource, err := collectForgeCandidatesForDiscovery(ctx, cfg, discovery, currentTag)
+		merged, bySource, err := collectForgeCandidatesForDiscovery(ctx, cfg, discovery)
 		if err != nil {
 			return nil, nil, fmt.Errorf("collect forge candidates for image %q: %w", imageName, err)
 		}
@@ -53,46 +52,38 @@ func collectForgeImageCandidates(ctx context.Context, cfg *config.ControllerConf
 	return mergedResult, sourceResult, nil
 }
 
-func collectForgeCandidatesForDiscovery(ctx context.Context, cfg *config.ControllerConfig, discovery repo.ImageUpdateDiscovery, currentTag string) ([]string, map[string][]string, error) {
-	if discovery.Auto != nil && *discovery.Auto {
-		if strings.TrimSpace(discovery.RepoURL) == "" {
+func collectForgeCandidatesForDiscovery(ctx context.Context, cfg *config.ControllerConfig, discovery repo.ImageUpdateDiscovery) ([]string, map[string][]string, error) {
+	includePrerelease := discovery.IncludePrerelease != nil && *discovery.IncludePrerelease
+	if len(discovery.Sources) == 1 && strings.TrimSpace(discovery.Sources[0].Type) == "auto" {
+		autoSource := discovery.Sources[0]
+		if strings.TrimSpace(autoSource.RepoURL) == "" {
 			return nil, nil, nil
 		}
-		source, ok, err := forgeSourceFromRepoURL(discovery.RepoURL)
+		source, ok, err := forgeSourceFromRepoURL(autoSource.RepoURL)
 		if err != nil || !ok {
 			return nil, nil, err
 		}
-		candidates, err := fetchForgeReleaseTags(ctx, cfg, source, currentTag)
+		candidates, err := fetchForgeReleaseTags(ctx, cfg, source, includePrerelease)
 		return candidates, nil, err
 	}
-	if len(discovery.Sources) > 0 {
-		if discovery.Combine == "merge" {
-			candidates, err := mergeForgeCandidateGroups(ctx, cfg, discovery.Sources, currentTag)
-			return candidates, nil, err
-		}
-		bySource := make(map[string][]string)
-		for index, source := range discovery.Sources {
-			if !isForgeDiscoverySource(source.Type) {
-				continue
-			}
-			candidates, err := fetchForgeReleaseTags(ctx, cfg, source, currentTag)
-			if err != nil {
-				return nil, nil, err
-			}
-			if len(candidates) > 0 {
-				bySource[strconv.Itoa(index)] = candidates
-			}
-		}
-		return nil, bySource, nil
+	if discovery.Combine == "merge" {
+		candidates, err := mergeForgeCandidateGroups(ctx, cfg, discovery.Sources, includePrerelease)
+		return candidates, nil, err
 	}
-	if isForgeDiscoverySource(discovery.Type) {
-		candidates, err := fetchForgeReleaseTags(ctx, cfg, repo.ImageUpdateDiscoverySource{Type: discovery.Type, Repo: discovery.Repo, RepoURL: discovery.RepoURL, Project: discovery.Project}, currentTag)
-		if len(candidates) == 0 || err != nil {
+	bySource := make(map[string][]string)
+	for index, source := range discovery.Sources {
+		if !isForgeDiscoverySource(source.Type) {
+			continue
+		}
+		candidates, err := fetchForgeReleaseTags(ctx, cfg, source, includePrerelease)
+		if err != nil {
 			return nil, nil, err
 		}
-		return nil, map[string][]string{"direct": candidates}, nil
+		if len(candidates) > 0 {
+			bySource[strconv.Itoa(index)] = candidates
+		}
 	}
-	return nil, nil, nil
+	return nil, bySource, nil
 }
 
 func forgeSourceFromRepoURL(rawURL string) (repo.ImageUpdateDiscoverySource, bool, error) {
@@ -124,14 +115,14 @@ func forgeSourceFromRepoURL(rawURL string) (repo.ImageUpdateDiscoverySource, boo
 	}
 }
 
-func mergeForgeCandidateGroups(ctx context.Context, cfg *config.ControllerConfig, sources []repo.ImageUpdateDiscoverySource, currentTag string) ([]string, error) {
+func mergeForgeCandidateGroups(ctx context.Context, cfg *config.ControllerConfig, sources []repo.ImageUpdateDiscoverySource, includePrerelease bool) ([]string, error) {
 	seen := make(map[string]struct{})
 	merged := make([]string, 0)
 	for _, source := range sources {
 		if !isForgeDiscoverySource(source.Type) {
 			continue
 		}
-		candidates, err := fetchForgeReleaseTags(ctx, cfg, source, currentTag)
+		candidates, err := fetchForgeReleaseTags(ctx, cfg, source, includePrerelease)
 		if err != nil {
 			return nil, err
 		}
@@ -159,16 +150,16 @@ func isForgeDiscoverySource(sourceType string) bool {
 	}
 }
 
-func fetchForgeReleaseTags(ctx context.Context, cfg *config.ControllerConfig, source repo.ImageUpdateDiscoverySource, currentTag string) ([]string, error) {
+func fetchForgeReleaseTags(ctx context.Context, cfg *config.ControllerConfig, source repo.ImageUpdateDiscoverySource, includePrerelease bool) ([]string, error) {
 	client := &http.Client{Timeout: 30 * time.Second}
 	endpoint, headers, err := forgeReleaseRequest(source, cfg)
 	if err != nil {
 		return nil, err
 	}
-	currentTag = strings.TrimSpace(currentTag)
 	tags := make([]string, 0)
-	seenCurrentTag := currentTag == ""
+	pageCount := 0
 	for endpoint != "" {
+		pageCount++
 		request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 		if err != nil {
 			return nil, err
@@ -187,7 +178,8 @@ func fetchForgeReleaseTags(ctx context.Context, cfg *config.ControllerConfig, so
 				return
 			}
 			var releases []struct {
-				TagName string `json:"tag_name"`
+				TagName    string `json:"tag_name"`
+				Prerelease bool   `json:"prerelease"`
 			}
 			if decodeErr := json.NewDecoder(response.Body).Decode(&releases); decodeErr != nil {
 				err = fmt.Errorf("decode %s releases: %w", source.Type, decodeErr)
@@ -198,9 +190,8 @@ func fetchForgeReleaseTags(ctx context.Context, cfg *config.ControllerConfig, so
 				if tag == "" {
 					continue
 				}
-				if !seenCurrentTag && tag == currentTag {
-					seenCurrentTag = true
-					break
+				if !includePrerelease && release.Prerelease {
+					continue
 				}
 				tags = append(tags, tag)
 			}
@@ -209,7 +200,7 @@ func fetchForgeReleaseTags(ctx context.Context, cfg *config.ControllerConfig, so
 		if err != nil {
 			return nil, err
 		}
-		if seenCurrentTag {
+		if len(tags) > 0 || pageCount >= 3 {
 			break
 		}
 	}

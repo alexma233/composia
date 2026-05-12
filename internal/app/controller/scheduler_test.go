@@ -160,7 +160,7 @@ func TestRunScheduledTasksPassCreatesImageCheckForDueImages(t *testing.T) {
 	repoDir := filepath.Join(rootDir, "repo")
 	logDir := filepath.Join(rootDir, "logs")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"app/composia-meta.yaml": "name: app\nnodes:\n  - main\nupdate:\n  check_schedule: none\n  images:\n    api:\n      image: ghcr.io/example/api\n      check_schedule: \"5 4 * * *\"\n      current:\n        env:\n          file: .env\n          key: API_VERSION\n      discovery:\n        auto: true\n      filter:\n        type: semver\n    worker:\n      image: ghcr.io/example/worker\n      check_schedule: \"10 4 * * *\"\n      current:\n        env:\n          file: .env\n          key: WORKER_VERSION\n      discovery:\n        auto: true\n      filter:\n        type: semver\n",
+		"app/composia-meta.yaml": "name: app\nnodes:\n  - main\nupdate:\n  check_schedule: none\n  images:\n    api:\n      image: ghcr.io/example/api\n      check_schedule: \"5 4 * * *\"\n      current:\n        env:\n          file: .env\n          key: API_VERSION\n      discovery:\n        sources:\n          - type: auto\n      filter:\n        type: semver\n    worker:\n      image: ghcr.io/example/worker\n      check_schedule: \"10 4 * * *\"\n      current:\n        env:\n          file: .env\n          key: WORKER_VERSION\n      discovery:\n        sources:\n          - type: auto\n      filter:\n        type: semver\n",
 	})
 	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
 		t.Fatalf("create task log dir: %v", err)
@@ -208,7 +208,7 @@ func TestRunScheduledTasksPassUsesControllerUpdatesDefaultCheckSchedule(t *testi
 	repoDir := filepath.Join(rootDir, "repo")
 	logDir := filepath.Join(rootDir, "logs")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"app/composia-meta.yaml": "name: app\nnodes:\n  - main\nupdate:\n  images:\n    api:\n      image: ghcr.io/example/api\n      current:\n        env:\n          file: .env\n          key: API_VERSION\n      discovery:\n        auto: true\n      filter:\n        type: semver\n",
+		"app/composia-meta.yaml": "name: app\nnodes:\n  - main\nupdate:\n  images:\n    api:\n      image: ghcr.io/example/api\n      current:\n        env:\n          file: .env\n          key: API_VERSION\n      discovery:\n        sources:\n          - type: auto\n      filter:\n        type: semver\n",
 	})
 	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
 		t.Fatalf("create task log dir: %v", err)

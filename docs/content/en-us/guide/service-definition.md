@@ -240,8 +240,10 @@ update:
   digest_pin: true
   discovery_sources:
     app_release:
-      auto: true
-      repo_url: https://github.com/example/api
+      include_prerelease: false
+      sources:
+        - type: auto
+          repo_url: https://github.com/example/api
     app_registry:
       sources:
         - type: probe
@@ -269,7 +271,8 @@ update:
       current:
         tag: latest
       discovery:
-        type: digest
+        sources:
+          - type: digest
 ```
 
 | Field | Type | Required | Description |
@@ -290,8 +293,8 @@ Each entry under `images` is keyed by a logical name and supports:
 | `check_schedule` | string | No | Per-image check schedule override |
 | `digest_pin` | boolean | No | Per-image digest pinning, default `true` for pinned tags |
 | `current` | object | **Yes** | Where the current tag is read from and written back to |
-| `discovery` | string or object | No | Named provider or inline discovery config; defaults to registry discovery when omitted |
-| `filter` | object | Required except `discovery.type: digest` | How candidate tags are selected |
+| `discovery` | string or object | **Yes** | Named provider or inline discovery config |
+| `filter` | object | Required except `discovery.sources: [{type: digest}]` | How candidate tags are selected |
 
 **Current** must specify exactly one of:
 
@@ -305,12 +308,13 @@ Each entry under `images` is keyed by a logical name and supports:
 
 | Type | Description |
 |------|-------------|
-| `digest` | Compare the remote digest of the current tag with the local digest; no `filter` is used. |
+| `auto` | Expand to the built-in automatic source set. `auto` is exclusive and internally merges probe and registry discovery; when `repo_url` is present it also enables controller-side forge release discovery. |
+| `digest` | Compare the remote digest of the current tag with the local digest; no `filter` is used. `digest` is exclusive. |
 | `probe` | Probe registry manifests for generated semver candidates. |
 | `registry` | List image tags from the OCI/Docker registry with pagination. |
 | `github` / `gitlab` / `forgejo` | Discover release tags via forge release APIs. Forge API calls run on the controller and are injected into image check tasks as candidates. |
 
-With `auto: true`, `repo_url` can be used to enable forge release discovery. `github.com` maps to GitHub, `gitlab.com` maps to GitLab, and `codeberg.org` maps to Forgejo.
+`include_prerelease` applies to all forge sources within the same discovery. `github.com` maps to GitHub, `gitlab.com` maps to GitLab, and `codeberg.org` maps to Forgejo when used with `type: auto` and `repo_url`.
 
 **Filter** types:
 

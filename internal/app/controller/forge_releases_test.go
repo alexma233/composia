@@ -28,12 +28,11 @@ func TestCollectForgeImageCandidatesUsesGitHubAutoRepoURL(t *testing.T) {
 	}))
 	defer server.Close()
 
-	auto := true
 	service := repo.Service{Meta: repo.ServiceMeta{Update: &repo.UpdateConfig{Images: map[string]repo.ImageUpdateConfig{
 		"api": {
 			Image:     "ghcr.io/example/api",
 			Current:   repo.ImageUpdateCurrent{Env: &repo.ImageUpdateCurrentEnv{File: ".env", Key: "API_VERSION"}},
-			Discovery: repo.ImageUpdateDiscovery{Auto: &auto, RepoURL: "https://github.com/example/api"},
+			Discovery: repo.ImageUpdateDiscovery{Sources: []repo.ImageUpdateDiscoverySource{{Type: "auto", RepoURL: "https://github.com/example/api"}}},
 			Filter:    &repo.ImageUpdateFilter{Type: "semver"},
 		},
 	}}}}
@@ -55,12 +54,11 @@ func TestCollectForgeImageCandidatesUsesGitHubAutoRepoURL(t *testing.T) {
 func TestCollectForgeImageCandidatesSkipsAutoWithoutRepoHint(t *testing.T) {
 	t.Parallel()
 
-	auto := true
 	service := repo.Service{Meta: repo.ServiceMeta{Update: &repo.UpdateConfig{Images: map[string]repo.ImageUpdateConfig{
 		"api": {
 			Image:     "ghcr.io/example/api",
 			Current:   repo.ImageUpdateCurrent{Env: &repo.ImageUpdateCurrentEnv{File: ".env", Key: "API_VERSION"}},
-			Discovery: repo.ImageUpdateDiscovery{Auto: &auto},
+			Discovery: repo.ImageUpdateDiscovery{Sources: []repo.ImageUpdateDiscoverySource{{Type: "auto"}}},
 			Filter:    &repo.ImageUpdateFilter{Type: "semver"},
 		},
 	}}}}
@@ -86,7 +84,7 @@ func TestForgeSourceFromRepoURLDetectsGitLab(t *testing.T) {
 	}
 }
 
-func TestFetchForgeReleaseTagsStopsAtCurrentTag(t *testing.T) {
+func TestFetchForgeReleaseTagsSkipsPrereleasesAcrossPages(t *testing.T) {
 	t.Parallel()
 
 	var serverURL string
@@ -101,7 +99,7 @@ func TestFetchForgeReleaseTagsStopsAtCurrentTag(t *testing.T) {
 		case strings.Contains(request.URL.RawQuery, "page=3"):
 			body = `[{"tag_name":"v1.1.0"}]`
 		default:
-			body = `[{"tag_name":"v1.4.0"},{"tag_name":"v1.3.0"}]`
+			body = `[{"tag_name":"v1.4.0-rc1","prerelease":true},{"tag_name":"v1.4.0-beta1","prerelease":true}]`
 			link = `<` + serverURL + `/releases?per_page=100&page=2>; rel="next"`
 		}
 		if link != "" {
@@ -115,14 +113,14 @@ func TestFetchForgeReleaseTagsStopsAtCurrentTag(t *testing.T) {
 	source := repo.ImageUpdateDiscoverySource{Type: "github", Repo: "example/api", RepoURL: "https://github.com/example/api"}
 	cfg := &config.ControllerConfig{Updates: &config.ControllerUpdatesConfig{ForgeAuth: &config.ControllerUpdatesForgeAuth{GitHub: config.ForgeAuthConfigs{{URL: "https://github.com", APIURL: server.URL}}}}}
 
-	tags, err := fetchForgeReleaseTags(context.Background(), cfg, source, "v1.2.3")
+	tags, err := fetchForgeReleaseTags(context.Background(), cfg, source, false)
 	if err != nil {
 		t.Fatalf("fetchForgeReleaseTags() error = %v", err)
 	}
 	if pageCalls != 2 {
 		t.Fatalf("expected 2 page calls, got %d", pageCalls)
 	}
-	if len(tags) != 2 || tags[0] != "v1.4.0" || tags[1] != "v1.3.0" {
+	if len(tags) != 2 || tags[0] != "v1.2.3" || tags[1] != "v1.2.2" {
 		t.Fatalf("unexpected tags %+v", tags)
 	}
 }

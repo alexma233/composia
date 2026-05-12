@@ -3,6 +3,7 @@ package repo
 import (
 	"fmt"
 	"io/fs"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -149,14 +150,10 @@ type ImageUpdateCurrentYAML struct {
 }
 
 type ImageUpdateDiscovery struct {
-	Ref     string                       `yaml:"-"`
-	Auto    *bool                        `yaml:"auto"`
-	Type    string                       `yaml:"type"`
-	Repo    string                       `yaml:"repo"`
-	RepoURL string                       `yaml:"repo_url"`
-	Project string                       `yaml:"project"`
-	Sources []ImageUpdateDiscoverySource `yaml:"sources"`
-	Combine string                       `yaml:"combine"`
+	Ref               string                       `yaml:"-"`
+	Sources           []ImageUpdateDiscoverySource `yaml:"sources"`
+	Combine           string                       `yaml:"combine"`
+	IncludePrerelease *bool                        `yaml:"include_prerelease"`
 }
 
 type ImageUpdateDiscoverySource struct {
@@ -876,25 +873,40 @@ func validateImageUpdateDiscovery(fieldPrefix string, discovery ImageUpdateDisco
 	if discovery.Combine != "" && discovery.Combine != "merge" && discovery.Combine != "first_success" {
 		return fmt.Errorf("%s.combine must be merge or first_success", fieldPrefix)
 	}
-	if discovery.Auto != nil && *discovery.Auto {
-		return nil
+	if len(discovery.Sources) == 0 {
+		return fmt.Errorf("%s.sources must contain at least one source", fieldPrefix)
 	}
-	if len(discovery.Sources) > 0 {
-		for index, source := range discovery.Sources {
-			if err := validateImageUpdateDiscoverySource(fmt.Sprintf("%s.sources[%d]", fieldPrefix, index), source, filter); err != nil {
-				return err
-			}
+	hasAuto := false
+	hasDigest := false
+	for index, source := range discovery.Sources {
+		if err := validateImageUpdateDiscoverySource(fmt.Sprintf("%s.sources[%d]", fieldPrefix, index), source, filter); err != nil {
+			return err
 		}
-		return nil
+		switch strings.TrimSpace(source.Type) {
+		case "auto":
+			hasAuto = true
+		case "digest":
+			hasDigest = true
+		}
 	}
-	if strings.TrimSpace(discovery.Type) != "" {
-		return validateImageUpdateDiscoverySource(fieldPrefix, ImageUpdateDiscoverySource{Type: discovery.Type, Repo: discovery.Repo, RepoURL: discovery.RepoURL, Project: discovery.Project}, filter)
+	if hasAuto && len(discovery.Sources) != 1 {
+		return fmt.Errorf("%s.sources with type auto must be exclusive", fieldPrefix)
+	}
+	if hasDigest && len(discovery.Sources) != 1 {
+		return fmt.Errorf("%s.sources with type digest must be exclusive", fieldPrefix)
 	}
 	return nil
 }
 
 func validateImageUpdateDiscoverySource(fieldPrefix string, source ImageUpdateDiscoverySource, filter *ImageUpdateFilter) error {
 	switch strings.TrimSpace(source.Type) {
+	case "auto":
+		if strings.TrimSpace(source.RepoURL) != "" {
+			if _, err := url.ParseRequestURI(strings.TrimSpace(source.RepoURL)); err != nil {
+				return fmt.Errorf("%s.repo_url is invalid: %w", fieldPrefix, err)
+			}
+		}
+		return nil
 	case "probe":
 		if filter != nil && strings.TrimSpace(filter.Type) != "semver" {
 			return fmt.Errorf("%s.type probe requires semver filter", fieldPrefix)
@@ -915,7 +927,7 @@ func validateImageUpdateDiscoverySource(fieldPrefix string, source ImageUpdateDi
 	case "":
 		return fmt.Errorf("%s.type is required", fieldPrefix)
 	default:
-		return fmt.Errorf("%s.type must be probe, registry, digest, github, gitlab, or forgejo", fieldPrefix)
+		return fmt.Errorf("%s.type must be auto, probe, registry, digest, github, gitlab, or forgejo", fieldPrefix)
 	}
 }
 
@@ -960,7 +972,7 @@ func validateImageUpdateFilter(fieldPrefix string, discovery ImageUpdateDiscover
 }
 
 func isDigestDiscovery(discovery ImageUpdateDiscovery) bool {
-	return strings.TrimSpace(discovery.Type) == "digest" && discovery.Ref == "" && len(discovery.Sources) == 0 && (discovery.Auto == nil || !*discovery.Auto)
+	return len(discovery.Sources) == 1 && strings.TrimSpace(discovery.Sources[0].Type) == "digest"
 }
 
 func IsDigestImageDiscovery(discovery ImageUpdateDiscovery, sources map[string]ImageUpdateDiscovery) bool {

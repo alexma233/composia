@@ -37,7 +37,8 @@ update:
           file: .env
           key: APP_VERSION
       discovery:
-        auto: true
+        sources:
+          - type: auto
       filter:
         type: semver
 data_protect:
@@ -249,7 +250,8 @@ update:
           file: .env
           key: API_VERSION
       discovery:
-        auto: true
+        sources:
+          - type: auto
       filter:
         type: semver
         allow:
@@ -260,7 +262,8 @@ update:
       current:
         tag: nightly
       discovery:
-        type: digest
+        sources:
+          - type: digest
 `)+"\n")
 
 	services, err := DiscoverServices(repoDir, map[string]struct{}{"main": {}})
@@ -311,7 +314,8 @@ update:
           file: .env
           key: API_VERSION
       discovery:
-        auto: true
+        sources:
+          - type: auto
       filter:
         type: semver
 `)+"\n")

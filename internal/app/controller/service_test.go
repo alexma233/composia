@@ -1606,7 +1606,7 @@ func TestPlanRequestedServiceImageUpdatesIncludesMutableAllDetected(t *testing.T
 				Image:              "nginx",
 				BackupBeforeUpdate: &backupBeforeUpdate,
 				Current:            repo.ImageUpdateCurrent{Tag: "latest"},
-				Discovery:          repo.ImageUpdateDiscovery{Type: "digest"},
+				Discovery:          repo.ImageUpdateDiscovery{Sources: []repo.ImageUpdateDiscoverySource{{Type: "digest"}}},
 			},
 		}}},
 	}
@@ -1642,7 +1642,7 @@ func TestPlanRequestedServiceImageUpdatesRejectsEmptyAllDetected(t *testing.T) {
 			"api": {
 				Image:     "ghcr.io/example/api",
 				Current:   repo.ImageUpdateCurrent{Env: &repo.ImageUpdateCurrentEnv{File: ".env", Key: "API_TAG"}},
-				Discovery: repo.ImageUpdateDiscovery{Auto: boolPtr(true)},
+				Discovery: repo.ImageUpdateDiscovery{Sources: []repo.ImageUpdateDiscoverySource{{Type: "auto"}}},
 				Filter:    &repo.ImageUpdateFilter{Type: "semver"},
 			},
 		}}},

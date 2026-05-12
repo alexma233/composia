@@ -145,7 +145,7 @@ func collectServiceImageUpdateCheck(ctx context.Context, serviceDir, imageName s
 	check.CurrentDigest = currentDigest
 
 	discovery := resolveImageUpdateDiscovery(image.Discovery, discoverySources)
-	if discovery.Type == "digest" {
+	if repo.IsDigestImageDiscovery(discovery, nil) {
 		remoteDigest, err := inspectRemoteImageDigest(ctx, image.Image+":"+currentTag)
 		if err != nil {
 			check.CheckStatus = store.ImageCheckStatusError

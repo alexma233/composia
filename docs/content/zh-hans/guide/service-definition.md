@@ -240,8 +240,10 @@ update:
   digest_pin: true
   discovery_sources:
     app_release:
-      auto: true
-      repo_url: https://github.com/example/api
+      include_prerelease: false
+      sources:
+        - type: auto
+          repo_url: https://github.com/example/api
     app_registry:
       sources:
         - type: probe
@@ -269,7 +271,8 @@ update:
       current:
         tag: latest
       discovery:
-        type: digest
+        sources:
+          - type: digest
 ```
 
 | 字段 | 类型 | 必填 | 说明 |
@@ -290,8 +293,8 @@ update:
 | `check_schedule` | string | 否 | 按镜像覆盖检查调度 |
 | `digest_pin` | boolean | 否 | 按镜像覆盖 digest 固定，固定标签默认 `true` |
 | `current` | object | **是** | 当前标签的读取和回写来源 |
-| `discovery` | string 或 object | 否 | 命名 provider 或内联发现配置；未设置时默认 registry 发现 |
-| `filter` | object | `discovery.type: digest` 以外必填 | 候选标签的过滤和排序策略 |
+| `discovery` | string 或 object | **是** | 命名 provider 或内联发现配置 |
+| `filter` | object | `discovery.sources: [{type: digest}]` 以外必填 | 候选标签的过滤和排序策略 |
 
 **current** 必须精确指定以下之一：
 
@@ -305,12 +308,13 @@ update:
 
 | 类型 | 说明 |
 |------|------|
-| `digest` | 比较当前 tag 的远程 digest 与本地 digest；不使用 `filter`。 |
+| `auto` | 展开成内置自动 source 集合。`auto` 必须独占，并会在内部 merge probe 和 registry；当设置 `repo_url` 时还会启用 controller 侧 forge release discovery。 |
+| `digest` | 比较当前 tag 的远程 digest 与本地 digest；不使用 `filter`。`digest` 必须独占。 |
 | `probe` | 对生成的 semver 候选执行 registry manifest 探测。 |
 | `registry` | 从 OCI/Docker registry 分页拉取镜像 tag。 |
 | `github` / `gitlab` / `forgejo` | 通过 forge release API 发现 release tag。Forge API 调用在 controller 上执行，并作为候选 tag 注入镜像检查任务。 |
 
-使用 `auto: true` 时可以通过 `repo_url` 启用 forge release discovery。`github.com` 会映射到 GitHub，`gitlab.com` 会映射到 GitLab，`codeberg.org` 会映射到 Forgejo。
+`include_prerelease` 会作用于同一个 discovery 下的所有 forge source。`type: auto` 配合 `repo_url` 使用时，`github.com` 会映射到 GitHub，`gitlab.com` 会映射到 GitLab，`codeberg.org` 会映射到 Forgejo。
 
 **filter** 类型：
 
