@@ -100,7 +100,13 @@ completion bash/zsh/fish
 
 ## 6. 其他待办
 
-1. `auto_deploy` 选项：repo 变更后自动触发 instance 扇出部署任务
+1. ~~`auto_deploy` 选项：repo 变更后自动触发 instance 扇出部署任务~~ (done)
+   - Controller 全局开关 `auto_deploy.infra` / `auto_deploy.services`，默认关闭
+   - 每个 service 可在 `composia-meta.yaml` 中配置 `auto_deploy: true` 主动加入
+   - auto-pull 检测到 repo 变更后，通过 `git diff` 定位受影响 service，写 `pending_deploy_revision`
+   - 若 auto_deploy 启用则立即创建 deploy 任务；否则仅在前端显示 pending 提示（含 commit sha）
+   - 手动 deploy/update 时自动清除 pending 状态
+   - 新增 `task.SourceAutoDeploy` 任务来源
 2. `UpdateServiceTargetNodes` 在迁移场景下 `persist_repo` 的冲突语义完善
 
 ---
