@@ -119,13 +119,13 @@ type ServiceSnapshot struct {
 }
 
 type ServiceInstanceSnapshot struct {
-	ServiceName            string
-	NodeID                 string
-	IsDeclared             bool
-	RuntimeStatus          string
-	UpdatedAt              string
-	LastTaskID             string
-	PendingDeployRevision  string
+	ServiceName           string
+	NodeID                string
+	IsDeclared            bool
+	RuntimeStatus         string
+	UpdatedAt             string
+	LastTaskID            string
+	PendingDeployRevision string
 }
 
 type NodeSnapshot struct {
