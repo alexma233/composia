@@ -257,10 +257,10 @@ func handleAutoDeploy(ctx context.Context, cfg *config.ControllerConfig, db *sto
 		if shouldAutoDeploy {
 			log.Printf("auto-deploy: triggering deploy for %q", serviceName)
 			server := &serviceCommandServer{
-				db:                db,
-				cfg:               cfg,
-				availableNodeIDs:  availableNodeIDs,
-				taskQueue:         taskQueue,
+				db:               db,
+				cfg:              cfg,
+				availableNodeIDs: availableNodeIDs,
+				taskQueue:        taskQueue,
 			}
 			if _, err := server.createServiceTaskWithOptions(ctx, serviceName, service.TargetNodes, task.TypeDeploy, nil, serviceTaskCreateOptions{Source: task.SourceAutoDeploy}); err != nil {
 				log.Printf("auto-deploy: create deploy task for %q failed: %v", serviceName, err)
