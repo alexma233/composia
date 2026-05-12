@@ -159,7 +159,7 @@ func TestExecuteDeployTaskSkipsComposeForConfigInfraService(t *testing.T) {
 	logUploader := newTaskLogUploader(reportClient, "task-config")
 	defer func() { _ = logUploader.Close() }()
 
-	pulledTask := &agentv1.AgentTask{TaskId: "task-config", Type: string(task.TypeDeploy), ServiceName: "host-service", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "host-service"}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-config", Type: protoAgentTaskType(task.TypeDeploy), ServiceName: "host-service", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "host-service"}
 	if err := executeDeployTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute infra.config deploy task: %v", err)
 	}
@@ -262,7 +262,7 @@ func TestExecuteStopTaskDownloadsBundleAndRunsComposeDown(t *testing.T) {
 
 	pulledTask := &agentv1.AgentTask{
 		TaskId:       "task-1",
-		Type:         string(task.TypeStop),
+		Type:         protoAgentTaskType(task.TypeStop),
 		ServiceName:  "demo",
 		NodeId:       "main",
 		RepoRevision: "deadbeef",
@@ -369,7 +369,7 @@ func TestExecuteBackupTaskRunsRusticAndReportsSnapshot(t *testing.T) {
 	logUploader := newTaskLogUploader(reportClient, "task-backup")
 	defer func() { _ = logUploader.Close() }()
 
-	pulledTask := &agentv1.AgentTask{TaskId: "task-backup", Type: string(task.TypeBackup), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo", DataNames: []string{"config"}}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-backup", Type: protoAgentTaskType(task.TypeBackup), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo", DataNames: []string{"config"}}
 	if err := executeBackupTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute backup task: %v", err)
 	}
@@ -458,7 +458,7 @@ func TestExecuteCaddySyncTaskCopiesServiceCaddyFile(t *testing.T) {
 	logUploader := newTaskLogUploader(reportClient, "task-caddy-sync")
 	defer func() { _ = logUploader.Close() }()
 
-	pulledTask := &agentv1.AgentTask{TaskId: "task-caddy-sync", Type: string(task.TypeCaddySync), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo"}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-caddy-sync", Type: protoAgentTaskType(task.TypeCaddySync), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo"}
 	if err := executeCaddySyncTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute caddy sync task: %v", err)
 	}
@@ -877,7 +877,7 @@ func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	logUploader := newTaskLogUploader(reportClient, "task-tar")
 	defer func() { _ = logUploader.Close() }()
 
-	pulledTask := &agentv1.AgentTask{TaskId: "task-tar", Type: string(task.TypeBackup), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo", DataNames: []string{"config"}}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-tar", Type: protoAgentTaskType(task.TypeBackup), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo", DataNames: []string{"config"}}
 	if err := executeBackupTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute tar_after_stop backup task: %v", err)
 	}
@@ -961,7 +961,7 @@ func TestExecuteBackupTaskRunsPGDumpAll(t *testing.T) {
 	logUploader := newTaskLogUploader(reportClient, "task-pg")
 	defer func() { _ = logUploader.Close() }()
 
-	pulledTask := &agentv1.AgentTask{TaskId: "task-pg", Type: string(task.TypeBackup), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo", DataNames: []string{"db"}}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-pg", Type: protoAgentTaskType(task.TypeBackup), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo", DataNames: []string{"db"}}
 	if err := executeBackupTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute pgdumpall backup task: %v", err)
 	}
@@ -1038,7 +1038,7 @@ func TestExecuteBackupTaskReportsFailedBackupItem(t *testing.T) {
 	logUploader := newTaskLogUploader(reportClient, "task-backup-fail")
 	defer func() { _ = logUploader.Close() }()
 
-	pulledTask := &agentv1.AgentTask{TaskId: "task-backup-fail", Type: string(task.TypeBackup), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo", DataNames: []string{"config"}}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-backup-fail", Type: protoAgentTaskType(task.TypeBackup), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo", DataNames: []string{"config"}}
 	if err := executeBackupTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err == nil {
 		t.Fatalf("expected backup task to fail")
 	}
@@ -1129,7 +1129,7 @@ func TestExecuteCaddyReloadTaskRunsComposeExec(t *testing.T) {
 	logUploader := newTaskLogUploader(reportClient, "task-caddy-reload")
 	defer func() { _ = logUploader.Close() }()
 
-	pulledTask := &agentv1.AgentTask{TaskId: "task-caddy-reload", Type: string(task.TypeCaddyReload), ServiceName: "edge-proxy", NodeId: "main", ServiceDir: "caddy"}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-caddy-reload", Type: protoAgentTaskType(task.TypeCaddyReload), ServiceName: "edge-proxy", NodeId: "main", ServiceDir: "caddy"}
 	if err := executeCaddyReloadTask(context.Background(), reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute caddy reload task: %v", err)
 	}
@@ -1219,7 +1219,7 @@ func TestExecuteRusticForgetTaskRunsComposeRun(t *testing.T) {
 	logUploader := newTaskLogUploader(reportClient, "task-rustic-forget")
 	defer func() { _ = logUploader.Close() }()
 
-	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-forget", Type: string(task.TypeRusticForget), ServiceName: "backup", NodeId: "main", ParamsJson: `{"service_name":"demo","data_name":"db","service_dir":"backup"}`}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-forget", Type: protoAgentTaskType(task.TypeRusticForget), ServiceName: "backup", NodeId: "main", ParamsJson: `{"service_name":"demo","data_name":"db","service_dir":"backup"}`}
 	if err := executeRusticForgetTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute rustic forget task: %v", err)
 	}
@@ -1308,7 +1308,7 @@ func TestExecuteRusticPruneTaskRunsComposeRun(t *testing.T) {
 	logUploader := newTaskLogUploader(reportClient, "task-rustic-prune")
 	defer func() { _ = logUploader.Close() }()
 
-	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-prune", Type: string(task.TypeRusticPrune), ServiceName: "backup", NodeId: "main", ParamsJson: `{"service_dir":"backup"}`}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-prune", Type: protoAgentTaskType(task.TypeRusticPrune), ServiceName: "backup", NodeId: "main", ParamsJson: `{"service_dir":"backup"}`}
 	if err := executeRusticPruneTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute rustic prune task: %v", err)
 	}
@@ -1394,7 +1394,7 @@ func TestExecuteRusticInitTaskRunsComposeRun(t *testing.T) {
 	logUploader := newTaskLogUploader(reportClient, "task-rustic-init")
 	defer func() { _ = logUploader.Close() }()
 
-	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-init", Type: string(task.TypeRusticInit), ServiceName: "backup", NodeId: "main", ParamsJson: `{"service_dir":"backup"}`}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-init", Type: protoAgentTaskType(task.TypeRusticInit), ServiceName: "backup", NodeId: "main", ParamsJson: `{"service_dir":"backup"}`}
 	if err := executeRusticInitTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute rustic init task: %v", err)
 	}
@@ -1441,7 +1441,7 @@ func TestExecutePulledTaskWithTimeoutMarksTimedOutTaskFailed(t *testing.T) {
 	defer reportHTTPServer.Close()
 
 	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
-	pulledTask := &agentv1.AgentTask{TaskId: "task-timeout", Type: string(task.TypePrune), NodeId: "main", ParamsJson: `{"target":"images_all"}`}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-timeout", Type: protoAgentTaskType(task.TypePrune), NodeId: "main", ParamsJson: `{"target":"images_all"}`}
 	err := executePulledTaskWithTimeout(context.Background(), nil, reportClient, &config.AgentConfig{}, pulledTask, time.Second)
 	if err == nil || !strings.Contains(err.Error(), "task exceeded execution timeout") {
 		t.Fatalf("expected timeout error, got %v", err)
@@ -1478,7 +1478,7 @@ func TestExecutePulledTaskWithTimeoutMarksExecutionErrorFailed(t *testing.T) {
 	defer reportHTTPServer.Close()
 
 	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
-	pulledTask := &agentv1.AgentTask{TaskId: "task-error", Type: string(task.TypePrune), NodeId: "main", ParamsJson: `{"target":"images_all"}`}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-error", Type: protoAgentTaskType(task.TypePrune), NodeId: "main", ParamsJson: `{"target":"images_all"}`}
 	err := executePulledTaskWithTimeout(context.Background(), nil, reportClient, &config.AgentConfig{}, pulledTask, time.Hour)
 	if err == nil || !strings.Contains(err.Error(), "unexpected log ack task_id") {
 		t.Fatalf("expected log ack task id error, got %v", err)
@@ -1536,7 +1536,7 @@ func TestReportTaskStepStateWithTimeoutReturnsDeadlineExceeded(t *testing.T) {
 	defer reportHTTPServer.Close()
 
 	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
-	err := reportTaskStepStateWithTimeout(context.Background(), reportClient, &agentv1.ReportTaskStepStateRequest{TaskId: "task-timeout", StepName: string(task.StepPrune), Status: string(task.StatusRunning)}, 50*time.Millisecond)
+	err := reportTaskStepStateWithTimeout(context.Background(), reportClient, &agentv1.ReportTaskStepStateRequest{TaskId: "task-timeout", StepName: protoAgentTaskStepName(task.StepPrune), Status: protoAgentTaskStatus(task.StatusRunning)}, 50*time.Millisecond)
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("expected task step timeout, got %v", err)
 	}
@@ -1571,7 +1571,7 @@ func (server *agentExecutionTestReportServer) ReportTaskState(ctx context.Contex
 	}
 	server.mu.Lock()
 	defer server.mu.Unlock()
-	server.taskStatus = req.Msg.GetStatus()
+	server.taskStatus = agentTaskStatusText(req.Msg.GetStatus())
 	server.taskErrorSummary = req.Msg.GetErrorSummary()
 	return connect.NewResponse(&agentv1.ReportTaskStateResponse{}), nil
 }
@@ -1586,7 +1586,7 @@ func (server *agentExecutionTestReportServer) ReportTaskStepState(ctx context.Co
 	if server.stepStatuses == nil {
 		server.stepStatuses = make(map[task.StepName]string)
 	}
-	server.stepStatuses[task.StepName(req.Msg.GetStepName())] = req.Msg.GetStatus()
+	server.stepStatuses[agentTaskStepNameToTask(req.Msg.GetStepName())] = agentTaskStatusText(req.Msg.GetStatus())
 	return connect.NewResponse(&agentv1.ReportTaskStepStateResponse{}), nil
 }
 

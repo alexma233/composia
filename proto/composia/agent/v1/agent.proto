@@ -116,8 +116,8 @@ message PullNextTaskRequest {
 message AgentTask {
   // task_id is the controller task ID assigned to the agent.
   string task_id = 1;
-  // type is the task type string assigned by the controller.
-  string type = 2;
+  // type identifies the task kind assigned by the controller.
+  AgentTaskType type = 2;
   // service_name is the logical service name.
   string service_name = 3;
   // node_id is the target node ID for the task.
@@ -130,6 +130,78 @@ message AgentTask {
   repeated string data_names = 7;
   // params_json stores task-type-specific JSON parameters.
   string params_json = 8;
+}
+
+// AgentTaskType identifies one executable task kind.
+enum AgentTaskType {
+  AGENT_TASK_TYPE_UNSPECIFIED = 0;
+  AGENT_TASK_TYPE_DEPLOY = 1;
+  AGENT_TASK_TYPE_STOP = 2;
+  AGENT_TASK_TYPE_RESTART = 3;
+  AGENT_TASK_TYPE_UPDATE = 4;
+  AGENT_TASK_TYPE_BACKUP = 5;
+  AGENT_TASK_TYPE_RESTORE = 6;
+  AGENT_TASK_TYPE_MIGRATE = 7;
+  AGENT_TASK_TYPE_DNS_UPDATE = 8;
+  AGENT_TASK_TYPE_CADDY_SYNC = 9;
+  AGENT_TASK_TYPE_CADDY_RELOAD = 10;
+  AGENT_TASK_TYPE_IMAGE_CHECK = 11;
+  AGENT_TASK_TYPE_PRUNE = 12;
+  AGENT_TASK_TYPE_RUSTIC_INIT = 13;
+  AGENT_TASK_TYPE_RUSTIC_FORGET = 14;
+  AGENT_TASK_TYPE_RUSTIC_PRUNE = 15;
+  AGENT_TASK_TYPE_DOCKER_START = 16;
+  AGENT_TASK_TYPE_DOCKER_STOP = 17;
+  AGENT_TASK_TYPE_DOCKER_RESTART = 18;
+  AGENT_TASK_TYPE_DOCKER_REMOVE = 19;
+}
+
+// AgentTaskStatus identifies a task lifecycle status reported by an agent.
+enum AgentTaskStatus {
+  AGENT_TASK_STATUS_UNSPECIFIED = 0;
+  AGENT_TASK_STATUS_PENDING = 1;
+  AGENT_TASK_STATUS_RUNNING = 2;
+  AGENT_TASK_STATUS_AWAITING_CONFIRMATION = 3;
+  AGENT_TASK_STATUS_SUCCEEDED = 4;
+  AGENT_TASK_STATUS_FAILED = 5;
+  AGENT_TASK_STATUS_CANCELLED = 6;
+}
+
+// AgentTaskStepName identifies a task step reported by an agent.
+enum AgentTaskStepName {
+  AGENT_TASK_STEP_NAME_UNSPECIFIED = 0;
+  AGENT_TASK_STEP_NAME_RENDER = 1;
+  AGENT_TASK_STEP_NAME_PULL = 2;
+  AGENT_TASK_STEP_NAME_BACKUP = 3;
+  AGENT_TASK_STEP_NAME_COMPOSE_DOWN = 4;
+  AGENT_TASK_STEP_NAME_COMPOSE_UP = 5;
+  AGENT_TASK_STEP_NAME_TRANSFER = 6;
+  AGENT_TASK_STEP_NAME_RESTORE = 7;
+  AGENT_TASK_STEP_NAME_DNS_UPDATE = 8;
+  AGENT_TASK_STEP_NAME_CADDY_SYNC = 9;
+  AGENT_TASK_STEP_NAME_CADDY_RELOAD = 10;
+  AGENT_TASK_STEP_NAME_IMAGE_CHECK = 11;
+  AGENT_TASK_STEP_NAME_INIT = 12;
+  AGENT_TASK_STEP_NAME_PRUNE = 13;
+  AGENT_TASK_STEP_NAME_AWAITING_CONFIRMATION = 14;
+  AGENT_TASK_STEP_NAME_PERSIST_REPO = 15;
+  AGENT_TASK_STEP_NAME_FINALIZE = 16;
+  AGENT_TASK_STEP_NAME_DOCKER_START = 17;
+  AGENT_TASK_STEP_NAME_DOCKER_STOP = 18;
+  AGENT_TASK_STEP_NAME_DOCKER_RESTART = 19;
+  AGENT_TASK_STEP_NAME_DOCKER_REMOVE = 20;
+}
+
+// DockerQueryErrorCode identifies the normalized error code for a Docker query.
+enum DockerQueryErrorCode {
+  DOCKER_QUERY_ERROR_CODE_UNSPECIFIED = 0;
+  DOCKER_QUERY_ERROR_CODE_INVALID_ARGUMENT = 1;
+  DOCKER_QUERY_ERROR_CODE_NOT_FOUND = 2;
+  DOCKER_QUERY_ERROR_CODE_FAILED_PRECONDITION = 3;
+  DOCKER_QUERY_ERROR_CODE_PERMISSION_DENIED = 4;
+  DOCKER_QUERY_ERROR_CODE_DEADLINE_EXCEEDED = 5;
+  DOCKER_QUERY_ERROR_CODE_UNAVAILABLE = 6;
+  DOCKER_QUERY_ERROR_CODE_INTERNAL = 7;
 }
 
 // PullNextTaskResponse indicates whether a task was assigned.
@@ -146,34 +218,19 @@ message DockerQueryTask {
   string query_id = 1;
   // node_id is the target node ID for the query.
   string node_id = 2;
-  // action is one of list, inspect, or logs.
-  string action = 3;
-  // resource is one of container, containers, network, networks, volume, volumes, image, or images.
-  string resource = 4;
-  // id identifies the target Docker resource for inspect-like operations.
-  string id = 5;
-  // tail is forwarded to the Docker log tail option for log queries.
-  string tail = 6;
-  // timestamps includes Docker timestamps in container log results.
-  bool timestamps = 7;
-  // page_size is the requested page size for list queries.
-  uint32 page_size = 8;
-  // page is the 1-based page number for list queries.
-  uint32 page = 9;
-  // search is the case-insensitive search term for list queries.
-  string search = 10;
-  // sort_by identifies the list sort field.
-  string sort_by = 11;
-  // sort_desc reverses the list sort order when true.
-  bool sort_desc = 12;
-  // command stores exec command arguments for exec queries.
-  repeated string command = 13;
-  // stdin carries optional bytes for exec queries.
-  bytes stdin = 14;
-  // timeout_seconds bounds exec runtime on the agent.
-  uint32 timeout_seconds = 15;
-  // max_output_bytes limits each exec output stream; zero uses the agent default.
-  uint64 max_output_bytes = 16;
+  // query carries the typed Docker request to execute.
+  oneof query {
+    ListContainersRequest list_containers = 3;
+    InspectContainerRequest inspect_container = 4;
+    ListNetworksRequest list_networks = 5;
+    InspectNetworkRequest inspect_network = 6;
+    ListVolumesRequest list_volumes = 7;
+    InspectVolumeRequest inspect_volume = 8;
+    ListImagesRequest list_images = 9;
+    InspectImageRequest inspect_image = 10;
+    GetContainerLogsRequest get_container_logs = 11;
+    DockerQueryRunContainerExecRequest run_container_exec = 12;
+  }
 }
 
 // PullNextDockerQueryRequest identifies the node that is requesting a Docker query.
@@ -194,8 +251,8 @@ message PullNextDockerQueryResponse {
 message ReportTaskStateRequest {
   // task_id is the controller task ID being updated.
   string task_id = 1;
-  // status is the latest task status string observed by the agent.
-  string status = 2;
+  // status is the latest task status observed by the agent.
+  AgentTaskStatus status = 2;
   // error_summary contains the task failure summary when the task fails.
   string error_summary = 3;
   // finished_at is set when the task reaches a terminal state.
@@ -210,9 +267,9 @@ message ReportTaskStepStateRequest {
   // task_id is the controller task ID being updated.
   string task_id = 1;
   // step_name identifies the step being updated.
-  string step_name = 2;
-  // status is the latest step status string observed by the agent.
-  string status = 3;
+  AgentTaskStepName step_name = 2;
+  // status is the latest step status observed by the agent.
+  AgentTaskStatus status = 3;
   // started_at is set when the step begins.
   google.protobuf.Timestamp started_at = 4;
   // finished_at is set when the step reaches a terminal state.
@@ -459,12 +516,23 @@ message ReportDockerQueryResultRequest {
   string query_id = 1;
   // node_id is the stable node identifier that executed the query.
   string node_id = 2;
-  // payload_json carries the JSON-encoded query payload on success.
-  string payload_json = 3;
+  // result carries the typed Docker query result on success.
+  oneof result {
+    ListContainersResponse list_containers = 3;
+    InspectContainerResponse inspect_container = 4;
+    ListNetworksResponse list_networks = 5;
+    InspectNetworkResponse inspect_network = 6;
+    ListVolumesResponse list_volumes = 7;
+    InspectVolumeResponse inspect_volume = 8;
+    ListImagesResponse list_images = 9;
+    InspectImageResponse inspect_image = 10;
+    GetContainerLogsResponse get_container_logs = 11;
+    DockerQueryRunContainerExecResponse run_container_exec = 12;
+  }
   // error_message contains the human-readable failure summary when the query fails.
-  string error_message = 4;
-  // error_code carries a Connect-style lowercase code string such as not_found.
-  string error_code = 5;
+  string error_message = 13;
+  // error_code carries the normalized failure code when the query fails.
+  DockerQueryErrorCode error_code = 14;
 }
 
 // ReportDockerQueryResultResponse acknowledges a Docker query result.
@@ -570,6 +638,28 @@ message GetContainerLogsRequest {
 // GetContainerLogsResponse returns one streamed log chunk.
 message GetContainerLogsResponse {
   string content = 1;
+}
+
+// DockerQueryRunContainerExecRequest runs a non-interactive command in one local container.
+message DockerQueryRunContainerExecRequest {
+  string container_id = 1;
+  repeated string command = 2;
+  bytes stdin = 3;
+  uint32 timeout_seconds = 4;
+  uint64 max_output_bytes = 5;
+}
+
+// DockerQueryRunContainerExecResponse returns the collected exec result.
+message DockerQueryRunContainerExecResponse {
+  int32 exit_code = 1;
+  string stdout = 2;
+  string stderr = 3;
+  bool timed_out = 4;
+  bool stdout_truncated = 5;
+  bool stderr_truncated = 6;
+  google.protobuf.Timestamp started_at = 7;
+  google.protobuf.Timestamp finished_at = 8;
+  string duration = 9;
 }
 
 // ListNetworksRequest requests all local Docker networks.

@@ -43,7 +43,7 @@ func (server *agentTaskServer) PullNextTask(ctx context.Context, req *connect.Re
 				HasTask: true,
 				Task: &agentv1.AgentTask{
 					TaskId:       record.TaskID,
-					Type:         string(record.Type),
+					Type:         protoAgentTaskType(record.Type),
 					ServiceName:  record.ServiceName,
 					NodeId:       record.NodeID,
 					RepoRevision: record.RepoRevision,

@@ -1208,7 +1208,8 @@ func (x *GetServiceInstanceRequest) GetIncludeContainers() bool {
 // GetServiceInstanceResponse returns one service instance detail.
 type GetServiceInstanceResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// instance is omitted when the requested instance does not exist.
+	// instance contains the requested service instance.
+	// The RPC returns NotFound when the requested instance does not exist.
 	Instance      *ServiceInstanceDetail `protobuf:"bytes,1,opt,name=instance,proto3" json:"instance,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1255,8 +1256,8 @@ func (x *GetServiceInstanceResponse) GetInstance() *ServiceInstanceDetail {
 type GetServiceTasksRequest struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	ServiceName string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	// status narrows results to one task status string when set.
-	Status string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	// status narrows results to one task status when set.
+	Status TaskStatus `protobuf:"varint,2,opt,name=status,proto3,enum=composia.controller.v1.TaskStatus" json:"status,omitempty"`
 	// page_size is the requested page size.
 	PageSize uint32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// page is the 1-based page number.
@@ -1302,11 +1303,11 @@ func (x *GetServiceTasksRequest) GetServiceName() string {
 	return ""
 }
 
-func (x *GetServiceTasksRequest) GetStatus() string {
+func (x *GetServiceTasksRequest) GetStatus() TaskStatus {
 	if x != nil {
 		return x.Status
 	}
-	return ""
+	return TaskStatus_TASK_STATUS_UNSPECIFIED
 }
 
 func (x *GetServiceTasksRequest) GetPageSize() uint32 {
@@ -2664,10 +2665,10 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12-\n" +
 	"\x12include_containers\x18\x03 \x01(\bR\x11includeContainers\"g\n" +
 	"\x1aGetServiceInstanceResponse\x12I\n" +
-	"\binstance\x18\x01 \x01(\v2-.composia.controller.v1.ServiceInstanceDetailR\binstance\"\x84\x01\n" +
+	"\binstance\x18\x01 \x01(\v2-.composia.controller.v1.ServiceInstanceDetailR\binstance\"\xa8\x01\n" +
 	"\x16GetServiceTasksRequest\x12!\n" +
-	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\x12\x1b\n" +
+	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12:\n" +
+	"\x06status\x18\x02 \x01(\x0e2\".composia.controller.v1.TaskStatusR\x06status\x12\x1b\n" +
 	"\tpage_size\x18\x03 \x01(\rR\bpageSize\x12\x12\n" +
 	"\x04page\x18\x04 \x01(\rR\x04page\"u\n" +
 	"\x17GetServiceTasksResponse\x129\n" +
@@ -2870,9 +2871,10 @@ var file_proto_composia_controller_v1_service_proto_goTypes = []any{
 	(*ServiceSummary)(nil),                      // 34: composia.controller.v1.ServiceSummary
 	(*ListServicesResponse)(nil),                // 35: composia.controller.v1.ListServicesResponse
 	(*Capability)(nil),                          // 36: composia.controller.v1.Capability
-	(*TaskSummary)(nil),                         // 37: composia.controller.v1.TaskSummary
-	(*BackupSummary)(nil),                       // 38: composia.controller.v1.BackupSummary
-	(*TaskActionResponse)(nil),                  // 39: composia.controller.v1.TaskActionResponse
+	(TaskStatus)(0),                             // 37: composia.controller.v1.TaskStatus
+	(*TaskSummary)(nil),                         // 38: composia.controller.v1.TaskSummary
+	(*BackupSummary)(nil),                       // 39: composia.controller.v1.BackupSummary
+	(*TaskActionResponse)(nil),                  // 40: composia.controller.v1.TaskActionResponse
 }
 var file_proto_composia_controller_v1_service_proto_depIdxs = []int32{
 	4,  // 0: composia.controller.v1.ServiceInstanceDetail.containers:type_name -> composia.controller.v1.ServiceContainerSummary
@@ -2888,48 +2890,49 @@ var file_proto_composia_controller_v1_service_proto_depIdxs = []int32{
 	9,  // 10: composia.controller.v1.GetServiceWorkspaceResponse.workspace:type_name -> composia.controller.v1.ServiceWorkspaceSummary
 	3,  // 11: composia.controller.v1.ListServiceInstancesResponse.instances:type_name -> composia.controller.v1.ServiceInstanceSummary
 	5,  // 12: composia.controller.v1.GetServiceInstanceResponse.instance:type_name -> composia.controller.v1.ServiceInstanceDetail
-	37, // 13: composia.controller.v1.GetServiceTasksResponse.tasks:type_name -> composia.controller.v1.TaskSummary
-	38, // 14: composia.controller.v1.GetServiceBackupsResponse.backups:type_name -> composia.controller.v1.BackupSummary
-	23, // 15: composia.controller.v1.GetServiceImageUpdateChecksResponse.checks:type_name -> composia.controller.v1.ServiceImageUpdateCheckSummary
-	39, // 16: composia.controller.v1.RunServiceActionResponse.tasks:type_name -> composia.controller.v1.TaskActionResponse
-	27, // 17: composia.controller.v1.RunServiceActionResponse.repo_write:type_name -> composia.controller.v1.ServiceActionRepoWriteResult
-	0,  // 18: composia.controller.v1.RunServiceActionRequest.action:type_name -> composia.controller.v1.ServiceAction
-	1,  // 19: composia.controller.v1.RunServiceActionRequest.compose_recreate_mode:type_name -> composia.controller.v1.ComposeRecreateMode
-	31, // 20: composia.controller.v1.RunServiceActionRequest.image_updates:type_name -> composia.controller.v1.ImageUpdateSelection
-	2,  // 21: composia.controller.v1.RunServiceInstanceActionRequest.action:type_name -> composia.controller.v1.ServiceInstanceAction
-	1,  // 22: composia.controller.v1.RunServiceInstanceActionRequest.compose_recreate_mode:type_name -> composia.controller.v1.ComposeRecreateMode
-	34, // 23: composia.controller.v1.ListServicesResponse.services:type_name -> composia.controller.v1.ServiceSummary
-	33, // 24: composia.controller.v1.ServiceQueryService.ListServices:input_type -> composia.controller.v1.ListServicesRequest
-	10, // 25: composia.controller.v1.ServiceQueryService.ListServiceWorkspaces:input_type -> composia.controller.v1.ListServiceWorkspacesRequest
-	7,  // 26: composia.controller.v1.ServiceQueryService.GetService:input_type -> composia.controller.v1.GetServiceRequest
-	12, // 27: composia.controller.v1.ServiceQueryService.GetServiceWorkspace:input_type -> composia.controller.v1.GetServiceWorkspaceRequest
-	18, // 28: composia.controller.v1.ServiceQueryService.GetServiceTasks:input_type -> composia.controller.v1.GetServiceTasksRequest
-	20, // 29: composia.controller.v1.ServiceQueryService.GetServiceBackups:input_type -> composia.controller.v1.GetServiceBackupsRequest
-	22, // 30: composia.controller.v1.ServiceQueryService.GetServiceImageUpdateChecks:input_type -> composia.controller.v1.GetServiceImageUpdateChecksRequest
-	25, // 31: composia.controller.v1.ServiceCommandService.UpdateServiceTargetNodes:input_type -> composia.controller.v1.UpdateServiceTargetNodesRequest
-	30, // 32: composia.controller.v1.ServiceCommandService.RunServiceAction:input_type -> composia.controller.v1.RunServiceActionRequest
-	29, // 33: composia.controller.v1.ServiceCommandService.MigrateService:input_type -> composia.controller.v1.MigrateServiceRequest
-	14, // 34: composia.controller.v1.ServiceInstanceService.ListServiceInstances:input_type -> composia.controller.v1.ListServiceInstancesRequest
-	16, // 35: composia.controller.v1.ServiceInstanceService.GetServiceInstance:input_type -> composia.controller.v1.GetServiceInstanceRequest
-	32, // 36: composia.controller.v1.ServiceInstanceService.RunServiceInstanceAction:input_type -> composia.controller.v1.RunServiceInstanceActionRequest
-	35, // 37: composia.controller.v1.ServiceQueryService.ListServices:output_type -> composia.controller.v1.ListServicesResponse
-	11, // 38: composia.controller.v1.ServiceQueryService.ListServiceWorkspaces:output_type -> composia.controller.v1.ListServiceWorkspacesResponse
-	8,  // 39: composia.controller.v1.ServiceQueryService.GetService:output_type -> composia.controller.v1.GetServiceResponse
-	13, // 40: composia.controller.v1.ServiceQueryService.GetServiceWorkspace:output_type -> composia.controller.v1.GetServiceWorkspaceResponse
-	19, // 41: composia.controller.v1.ServiceQueryService.GetServiceTasks:output_type -> composia.controller.v1.GetServiceTasksResponse
-	21, // 42: composia.controller.v1.ServiceQueryService.GetServiceBackups:output_type -> composia.controller.v1.GetServiceBackupsResponse
-	24, // 43: composia.controller.v1.ServiceQueryService.GetServiceImageUpdateChecks:output_type -> composia.controller.v1.GetServiceImageUpdateChecksResponse
-	26, // 44: composia.controller.v1.ServiceCommandService.UpdateServiceTargetNodes:output_type -> composia.controller.v1.UpdateServiceTargetNodesResponse
-	28, // 45: composia.controller.v1.ServiceCommandService.RunServiceAction:output_type -> composia.controller.v1.RunServiceActionResponse
-	39, // 46: composia.controller.v1.ServiceCommandService.MigrateService:output_type -> composia.controller.v1.TaskActionResponse
-	15, // 47: composia.controller.v1.ServiceInstanceService.ListServiceInstances:output_type -> composia.controller.v1.ListServiceInstancesResponse
-	17, // 48: composia.controller.v1.ServiceInstanceService.GetServiceInstance:output_type -> composia.controller.v1.GetServiceInstanceResponse
-	39, // 49: composia.controller.v1.ServiceInstanceService.RunServiceInstanceAction:output_type -> composia.controller.v1.TaskActionResponse
-	37, // [37:50] is the sub-list for method output_type
-	24, // [24:37] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	37, // 13: composia.controller.v1.GetServiceTasksRequest.status:type_name -> composia.controller.v1.TaskStatus
+	38, // 14: composia.controller.v1.GetServiceTasksResponse.tasks:type_name -> composia.controller.v1.TaskSummary
+	39, // 15: composia.controller.v1.GetServiceBackupsResponse.backups:type_name -> composia.controller.v1.BackupSummary
+	23, // 16: composia.controller.v1.GetServiceImageUpdateChecksResponse.checks:type_name -> composia.controller.v1.ServiceImageUpdateCheckSummary
+	40, // 17: composia.controller.v1.RunServiceActionResponse.tasks:type_name -> composia.controller.v1.TaskActionResponse
+	27, // 18: composia.controller.v1.RunServiceActionResponse.repo_write:type_name -> composia.controller.v1.ServiceActionRepoWriteResult
+	0,  // 19: composia.controller.v1.RunServiceActionRequest.action:type_name -> composia.controller.v1.ServiceAction
+	1,  // 20: composia.controller.v1.RunServiceActionRequest.compose_recreate_mode:type_name -> composia.controller.v1.ComposeRecreateMode
+	31, // 21: composia.controller.v1.RunServiceActionRequest.image_updates:type_name -> composia.controller.v1.ImageUpdateSelection
+	2,  // 22: composia.controller.v1.RunServiceInstanceActionRequest.action:type_name -> composia.controller.v1.ServiceInstanceAction
+	1,  // 23: composia.controller.v1.RunServiceInstanceActionRequest.compose_recreate_mode:type_name -> composia.controller.v1.ComposeRecreateMode
+	34, // 24: composia.controller.v1.ListServicesResponse.services:type_name -> composia.controller.v1.ServiceSummary
+	33, // 25: composia.controller.v1.ServiceQueryService.ListServices:input_type -> composia.controller.v1.ListServicesRequest
+	10, // 26: composia.controller.v1.ServiceQueryService.ListServiceWorkspaces:input_type -> composia.controller.v1.ListServiceWorkspacesRequest
+	7,  // 27: composia.controller.v1.ServiceQueryService.GetService:input_type -> composia.controller.v1.GetServiceRequest
+	12, // 28: composia.controller.v1.ServiceQueryService.GetServiceWorkspace:input_type -> composia.controller.v1.GetServiceWorkspaceRequest
+	18, // 29: composia.controller.v1.ServiceQueryService.GetServiceTasks:input_type -> composia.controller.v1.GetServiceTasksRequest
+	20, // 30: composia.controller.v1.ServiceQueryService.GetServiceBackups:input_type -> composia.controller.v1.GetServiceBackupsRequest
+	22, // 31: composia.controller.v1.ServiceQueryService.GetServiceImageUpdateChecks:input_type -> composia.controller.v1.GetServiceImageUpdateChecksRequest
+	25, // 32: composia.controller.v1.ServiceCommandService.UpdateServiceTargetNodes:input_type -> composia.controller.v1.UpdateServiceTargetNodesRequest
+	30, // 33: composia.controller.v1.ServiceCommandService.RunServiceAction:input_type -> composia.controller.v1.RunServiceActionRequest
+	29, // 34: composia.controller.v1.ServiceCommandService.MigrateService:input_type -> composia.controller.v1.MigrateServiceRequest
+	14, // 35: composia.controller.v1.ServiceInstanceService.ListServiceInstances:input_type -> composia.controller.v1.ListServiceInstancesRequest
+	16, // 36: composia.controller.v1.ServiceInstanceService.GetServiceInstance:input_type -> composia.controller.v1.GetServiceInstanceRequest
+	32, // 37: composia.controller.v1.ServiceInstanceService.RunServiceInstanceAction:input_type -> composia.controller.v1.RunServiceInstanceActionRequest
+	35, // 38: composia.controller.v1.ServiceQueryService.ListServices:output_type -> composia.controller.v1.ListServicesResponse
+	11, // 39: composia.controller.v1.ServiceQueryService.ListServiceWorkspaces:output_type -> composia.controller.v1.ListServiceWorkspacesResponse
+	8,  // 40: composia.controller.v1.ServiceQueryService.GetService:output_type -> composia.controller.v1.GetServiceResponse
+	13, // 41: composia.controller.v1.ServiceQueryService.GetServiceWorkspace:output_type -> composia.controller.v1.GetServiceWorkspaceResponse
+	19, // 42: composia.controller.v1.ServiceQueryService.GetServiceTasks:output_type -> composia.controller.v1.GetServiceTasksResponse
+	21, // 43: composia.controller.v1.ServiceQueryService.GetServiceBackups:output_type -> composia.controller.v1.GetServiceBackupsResponse
+	24, // 44: composia.controller.v1.ServiceQueryService.GetServiceImageUpdateChecks:output_type -> composia.controller.v1.GetServiceImageUpdateChecksResponse
+	26, // 45: composia.controller.v1.ServiceCommandService.UpdateServiceTargetNodes:output_type -> composia.controller.v1.UpdateServiceTargetNodesResponse
+	28, // 46: composia.controller.v1.ServiceCommandService.RunServiceAction:output_type -> composia.controller.v1.RunServiceActionResponse
+	40, // 47: composia.controller.v1.ServiceCommandService.MigrateService:output_type -> composia.controller.v1.TaskActionResponse
+	15, // 48: composia.controller.v1.ServiceInstanceService.ListServiceInstances:output_type -> composia.controller.v1.ListServiceInstancesResponse
+	17, // 49: composia.controller.v1.ServiceInstanceService.GetServiceInstance:output_type -> composia.controller.v1.GetServiceInstanceResponse
+	40, // 50: composia.controller.v1.ServiceInstanceService.RunServiceInstanceAction:output_type -> composia.controller.v1.TaskActionResponse
+	38, // [38:51] is the sub-list for method output_type
+	25, // [25:38] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_proto_composia_controller_v1_service_proto_init() }

@@ -31,9 +31,6 @@ func (server *systemServer) GetSystemStatus(ctx context.Context, _ *connect.Requ
 		Now:                 timestamppb.Now(),
 		ConfiguredNodeCount: configured,
 		OnlineNodeCount:     online,
-		RepoDir:             server.cfg.RepoDir,
-		StateDir:            server.cfg.StateDir,
-		LogDir:              server.cfg.LogDir,
 	}
 	return connect.NewResponse(response), nil
 }

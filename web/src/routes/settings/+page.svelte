@@ -180,30 +180,6 @@
                   {data.system.version}
                 </dd>
               </div>
-              <div class="inset-card">
-                <dt class="metric-label">
-                  {$messages.settings.controller.repoDir}
-                </dt>
-                <dd class="mt-2 break-all text-sm text-foreground">
-                  {data.system.repoDir}
-                </dd>
-              </div>
-              <div class="inset-card">
-                <dt class="metric-label">
-                  {$messages.settings.controller.stateDir}
-                </dt>
-                <dd class="mt-2 break-all text-sm text-foreground">
-                  {data.system.stateDir}
-                </dd>
-              </div>
-              <div class="inset-card sm:col-span-2">
-                <dt class="metric-label">
-                  {$messages.settings.controller.logDir}
-                </dt>
-                <dd class="mt-2 break-all text-sm text-foreground">
-                  {data.system.logDir}
-                </dd>
-              </div>
             </dl>
           {:else}
             <div class="empty-state">

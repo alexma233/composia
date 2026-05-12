@@ -7,7 +7,6 @@ import (
 	"time"
 
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
-	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 )
 
 type waitOptions struct {
@@ -90,12 +89,12 @@ func (application *app) waitTask(taskID string, options waitOptions) error {
 		status := response.Msg.GetStatus()
 		if isTerminalStatus(status) {
 			if !application.isJSONOutput() {
-				if err := application.writeKV([][2]string{{"final_status", status}}); err != nil {
+				if err := application.writeKV([][2]string{{"final_status", taskStatusText(status)}}); err != nil {
 					return err
 				}
 			}
-			if status != string(task.StatusSucceeded) {
-				return fmt.Errorf("task %s finished with status %s", taskID, status)
+			if status != controllerv1.TaskStatus_TASK_STATUS_SUCCEEDED {
+				return fmt.Errorf("task %s finished with status %s", taskID, taskStatusText(status))
 			}
 			return nil
 		}
@@ -126,9 +125,9 @@ func (application *app) streamTaskLogs(ctx context.Context, taskID string) error
 	return stream.Err()
 }
 
-func isTerminalStatus(status string) bool {
+func isTerminalStatus(status controllerv1.TaskStatus) bool {
 	switch status {
-	case string(task.StatusSucceeded), string(task.StatusFailed), string(task.StatusCancelled):
+	case controllerv1.TaskStatus_TASK_STATUS_SUCCEEDED, controllerv1.TaskStatus_TASK_STATUS_FAILED, controllerv1.TaskStatus_TASK_STATUS_CANCELLED:
 		return true
 	default:
 		return false

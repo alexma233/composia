@@ -3,7 +3,6 @@ package agent
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -406,15 +405,9 @@ func pollAndRunDockerQuery(ctx context.Context, taskClient agentv1connect.AgentT
 	}
 	if queryErr != nil {
 		reportRequest.ErrorMessage = queryErr.Error()
-		reportRequest.ErrorCode = dockerQueryErrorCode(queryErr)
+		reportRequest.ErrorCode = protoDockerQueryErrorCode(queryErr)
 	} else {
-		payloadJSON, err := json.Marshal(result)
-		if err != nil {
-			reportRequest.ErrorMessage = fmt.Sprintf("marshal docker query result: %v", err)
-			reportRequest.ErrorCode = "internal"
-		} else {
-			reportRequest.PayloadJson = string(payloadJSON)
-		}
+		applyDockerQueryResult(reportRequest, query, result)
 	}
 
 	reportCtx, reportCancel := context.WithTimeout(ctx, heartbeatTimeout)

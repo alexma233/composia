@@ -522,6 +522,9 @@ func (db *DB) UpdateTaskParamsJSON(ctx context.Context, taskID, paramsJSON strin
 }
 
 func (db *DB) CompleteTask(ctx context.Context, taskID string, status task.Status, finishedAt time.Time, errorSummary string) error {
+	if taskID == "" {
+		return fmt.Errorf("task_id is required")
+	}
 	if status != task.StatusSucceeded && status != task.StatusFailed && status != task.StatusCancelled {
 		return fmt.Errorf("invalid terminal task status %q", status)
 	}
@@ -532,12 +535,20 @@ func (db *DB) CompleteTask(ctx context.Context, taskID string, status task.Statu
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	if _, err := tx.ExecContext(ctx, `
+	result, err := tx.ExecContext(ctx, `
 		UPDATE tasks
 		SET status = ?, finished_at = ?, error_summary = ?
-		WHERE task_id = ?
-	`, string(status), finishedAt.UTC().Format(time.RFC3339), nullableString(errorSummary), taskID); err != nil {
+		WHERE task_id = ? AND status IN (?, ?, ?)
+	`, string(status), finishedAt.UTC().Format(time.RFC3339), nullableString(errorSummary), taskID, string(task.StatusPending), string(task.StatusRunning), string(task.StatusAwaitingConfirmation))
+	if err != nil {
 		return fmt.Errorf("complete task %q: %w", taskID, err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read complete task rows affected for %q: %w", taskID, err)
+	}
+	if affected == 0 {
+		return fmt.Errorf("complete task %q: task is missing or already terminal", taskID)
 	}
 	if err := updateServiceFromCompletedTask(ctx, tx, taskID, status, finishedAt); err != nil {
 		return err

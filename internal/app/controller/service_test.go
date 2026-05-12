@@ -619,7 +619,7 @@ func TestServiceCommandServiceDeployCreatesPendingTask(t *testing.T) {
 	if queuedTask.GetTaskId() == "" {
 		t.Fatalf("expected task ID in deploy response")
 	}
-	if queuedTask.GetStatus() != "pending" {
+	if queuedTask.GetStatus() != controllerv1.TaskStatus_TASK_STATUS_PENDING {
 		t.Fatalf("expected pending deploy task, got %q", queuedTask.GetStatus())
 	}
 	if queuedTask.GetRepoRevision() == "" {
@@ -782,7 +782,7 @@ func TestServiceCommandServiceDeployReturnsAllQueuedTasks(t *testing.T) {
 	}
 	seenNodes := make(map[string]struct{}, len(response.Msg.GetTasks()))
 	for _, queuedTask := range response.Msg.GetTasks() {
-		if queuedTask.GetTaskId() == "" || queuedTask.GetStatus() != "pending" || queuedTask.GetRepoRevision() == "" {
+		if queuedTask.GetTaskId() == "" || queuedTask.GetStatus() != controllerv1.TaskStatus_TASK_STATUS_PENDING || queuedTask.GetRepoRevision() == "" {
 			t.Fatalf("unexpected queued task: %+v", queuedTask)
 		}
 		detail, err := db.GetTask(ctx, queuedTask.GetTaskId())
@@ -1015,7 +1015,7 @@ func TestServiceCommandServiceCaddySyncCreatesPendingTask(t *testing.T) {
 		t.Fatalf("caddy sync service: %v", err)
 	}
 	queuedTask := singleQueuedServiceActionTask(t, response.Msg)
-	if queuedTask.GetStatus() != "pending" {
+	if queuedTask.GetStatus() != controllerv1.TaskStatus_TASK_STATUS_PENDING {
 		t.Fatalf("expected pending caddy sync task, got %q", queuedTask.GetStatus())
 	}
 	detail, err := db.GetTask(ctx, queuedTask.GetTaskId())
@@ -1159,7 +1159,7 @@ func TestServiceCommandServiceStopAndRestartCreatePendingTasks(t *testing.T) {
 		t.Fatalf("stop service: %v", err)
 	}
 	stopTask := singleQueuedServiceActionTask(t, stopResponse.Msg)
-	if stopTask.GetStatus() != "pending" {
+	if stopTask.GetStatus() != controllerv1.TaskStatus_TASK_STATUS_PENDING {
 		t.Fatalf("expected pending stop task, got %q", stopTask.GetStatus())
 	}
 	if err := db.CompleteTask(ctx, stopTask.GetTaskId(), task.StatusSucceeded, time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC), ""); err != nil {
@@ -1170,7 +1170,7 @@ func TestServiceCommandServiceStopAndRestartCreatePendingTasks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("restart service: %v", err)
 	}
-	if singleQueuedServiceActionTask(t, restartResponse.Msg).GetStatus() != "pending" {
+	if singleQueuedServiceActionTask(t, restartResponse.Msg).GetStatus() != controllerv1.TaskStatus_TASK_STATUS_PENDING {
 		t.Fatalf("expected pending restart task, got %q", singleQueuedServiceActionTask(t, restartResponse.Msg).GetStatus())
 	}
 }
@@ -1395,7 +1395,7 @@ func TestServiceCommandServiceUpdateCreatesPendingTask(t *testing.T) {
 	if err != nil {
 		t.Fatalf("update service: %v", err)
 	}
-	if singleQueuedServiceActionTask(t, response.Msg).GetStatus() != "pending" {
+	if singleQueuedServiceActionTask(t, response.Msg).GetStatus() != controllerv1.TaskStatus_TASK_STATUS_PENDING {
 		t.Fatalf("expected pending update task, got %q", singleQueuedServiceActionTask(t, response.Msg).GetStatus())
 	}
 }
@@ -1485,7 +1485,7 @@ func TestServiceCommandServiceUpdateWithImageSelectionsReturnsRepoWriteResult(t 
 		t.Fatalf("update service with image selection: %v", err)
 	}
 	queuedTask := singleQueuedServiceActionTask(t, response.Msg)
-	if queuedTask.GetStatus() != "pending" {
+	if queuedTask.GetStatus() != controllerv1.TaskStatus_TASK_STATUS_PENDING {
 		t.Fatalf("expected pending update task, got %q", queuedTask.GetStatus())
 	}
 	if response.Msg.GetRepoWrite() == nil || response.Msg.GetRepoWrite().GetCommitId() == "" {
@@ -1571,7 +1571,7 @@ func TestServiceCommandServiceUpdateDNSCreatesPendingTaskWithoutOnlineNode(t *te
 		t.Fatalf("update service dns: %v", err)
 	}
 	queuedTask := singleQueuedServiceActionTask(t, response.Msg)
-	if queuedTask.GetStatus() != "pending" {
+	if queuedTask.GetStatus() != controllerv1.TaskStatus_TASK_STATUS_PENDING {
 		t.Fatalf("expected pending dns update task, got %q", queuedTask.GetStatus())
 	}
 	detail, err := db.GetTask(ctx, queuedTask.GetTaskId())
@@ -1661,7 +1661,7 @@ func TestServiceCommandServiceBackupCreatesPendingTaskWithDefaultDataNames(t *te
 		t.Fatalf("backup service: %v", err)
 	}
 	queuedTask := singleQueuedServiceActionTask(t, response.Msg)
-	if queuedTask.GetStatus() != "pending" {
+	if queuedTask.GetStatus() != controllerv1.TaskStatus_TASK_STATUS_PENDING {
 		t.Fatalf("expected pending backup task, got %q", queuedTask.GetStatus())
 	}
 	detail, err := db.GetTask(ctx, queuedTask.GetTaskId())

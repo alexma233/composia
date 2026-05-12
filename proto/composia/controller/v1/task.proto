@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package composia.controller.v1;
 
+import "google/protobuf/timestamp.proto";
+
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
 // TaskService exposes task queries, log streaming, retry operations, and confirmation resolution.
@@ -22,15 +24,93 @@ service TaskService {
 message TaskActionResponse {
   string task_id = 1;
   // status is the initial status of the created task.
-  string status = 2;
+  TaskStatus status = 2;
   // repo_revision is the repo revision associated with the created task.
   string repo_revision = 3;
 }
 
+// TaskType identifies a controller task kind.
+enum TaskType {
+  TASK_TYPE_UNSPECIFIED = 0;
+  TASK_TYPE_DEPLOY = 1;
+  TASK_TYPE_STOP = 2;
+  TASK_TYPE_RESTART = 3;
+  TASK_TYPE_UPDATE = 4;
+  TASK_TYPE_BACKUP = 5;
+  TASK_TYPE_RESTORE = 6;
+  TASK_TYPE_MIGRATE = 7;
+  TASK_TYPE_DNS_UPDATE = 8;
+  TASK_TYPE_CADDY_SYNC = 9;
+  TASK_TYPE_CADDY_RELOAD = 10;
+  TASK_TYPE_IMAGE_CHECK = 11;
+  TASK_TYPE_PRUNE = 12;
+  TASK_TYPE_RUSTIC_INIT = 13;
+  TASK_TYPE_RUSTIC_FORGET = 14;
+  TASK_TYPE_RUSTIC_PRUNE = 15;
+  TASK_TYPE_DOCKER_START = 16;
+  TASK_TYPE_DOCKER_STOP = 17;
+  TASK_TYPE_DOCKER_RESTART = 18;
+  TASK_TYPE_DOCKER_REMOVE = 19;
+}
+
+// TaskStatus identifies a task lifecycle status.
+enum TaskStatus {
+  TASK_STATUS_UNSPECIFIED = 0;
+  TASK_STATUS_PENDING = 1;
+  TASK_STATUS_RUNNING = 2;
+  TASK_STATUS_AWAITING_CONFIRMATION = 3;
+  TASK_STATUS_SUCCEEDED = 4;
+  TASK_STATUS_FAILED = 5;
+  TASK_STATUS_CANCELLED = 6;
+}
+
+// TaskSource identifies what created a task.
+enum TaskSource {
+  TASK_SOURCE_UNSPECIFIED = 0;
+  TASK_SOURCE_WEB = 1;
+  TASK_SOURCE_CLI = 2;
+  TASK_SOURCE_OTHERS = 3;
+  TASK_SOURCE_SCHEDULE = 4;
+  TASK_SOURCE_SYSTEM = 5;
+  TASK_SOURCE_AUTO_DEPLOY = 6;
+}
+
+// TaskStepName identifies one recorded task step.
+enum TaskStepName {
+  TASK_STEP_NAME_UNSPECIFIED = 0;
+  TASK_STEP_NAME_RENDER = 1;
+  TASK_STEP_NAME_PULL = 2;
+  TASK_STEP_NAME_BACKUP = 3;
+  TASK_STEP_NAME_COMPOSE_DOWN = 4;
+  TASK_STEP_NAME_COMPOSE_UP = 5;
+  TASK_STEP_NAME_TRANSFER = 6;
+  TASK_STEP_NAME_RESTORE = 7;
+  TASK_STEP_NAME_DNS_UPDATE = 8;
+  TASK_STEP_NAME_CADDY_SYNC = 9;
+  TASK_STEP_NAME_CADDY_RELOAD = 10;
+  TASK_STEP_NAME_IMAGE_CHECK = 11;
+  TASK_STEP_NAME_INIT = 12;
+  TASK_STEP_NAME_PRUNE = 13;
+  TASK_STEP_NAME_AWAITING_CONFIRMATION = 14;
+  TASK_STEP_NAME_PERSIST_REPO = 15;
+  TASK_STEP_NAME_FINALIZE = 16;
+  TASK_STEP_NAME_DOCKER_START = 17;
+  TASK_STEP_NAME_DOCKER_STOP = 18;
+  TASK_STEP_NAME_DOCKER_RESTART = 19;
+  TASK_STEP_NAME_DOCKER_REMOVE = 20;
+}
+
+// TaskConfirmationDecision identifies how an operator resolved a confirmation gate.
+enum TaskConfirmationDecision {
+  TASK_CONFIRMATION_DECISION_UNSPECIFIED = 0;
+  TASK_CONFIRMATION_DECISION_APPROVE = 1;
+  TASK_CONFIRMATION_DECISION_REJECT = 2;
+}
+
 // ListTasksRequest filters task results by included and excluded values.
 message ListTasksRequest {
-  // status includes only tasks matching one of these status strings.
-  repeated string status = 1;
+  // status includes only tasks matching one of these statuses.
+  repeated TaskStatus status = 1;
   // service_name includes only tasks for these services.
   repeated string service_name = 2;
   // page_size is the requested page size.
@@ -40,28 +120,28 @@ message ListTasksRequest {
   // node_id includes only tasks for these nodes.
   repeated string node_id = 5;
   // type includes only tasks of these types.
-  repeated string type = 6;
-  // exclude_status removes tasks matching these status strings.
-  repeated string exclude_status = 7;
+  repeated TaskType type = 6;
+  // exclude_status removes tasks matching these statuses.
+  repeated TaskStatus exclude_status = 7;
   // exclude_service_name removes tasks for these services.
   repeated string exclude_service_name = 8;
   // exclude_node_id removes tasks for these nodes.
   repeated string exclude_node_id = 9;
   // exclude_type removes tasks of these types.
-  repeated string exclude_type = 10;
+  repeated TaskType exclude_type = 10;
 }
 
 // TaskSummary describes one task in list results.
 message TaskSummary {
   string task_id = 1;
-  // type is the controller task type string.
-  string type = 2;
-  // status is the latest task status string.
-  string status = 3;
+  // type identifies the controller task kind.
+  TaskType type = 2;
+  // status is the latest task status.
+  TaskStatus status = 3;
   string service_name = 4;
   string node_id = 5;
-  // created_at is the task creation timestamp string.
-  string created_at = 6;
+  // created_at is the task creation timestamp.
+  google.protobuf.Timestamp created_at = 6;
 }
 
 // ListTasksResponse returns one page of task summaries.
@@ -77,37 +157,36 @@ message GetTaskRequest {
 
 // TaskStepSummary describes one recorded step within a task.
 message TaskStepSummary {
-  string step_name = 1;
-  // status is the latest step status string.
-  string status = 2;
-  // started_at is empty when the step has not started.
-  string started_at = 3;
-  // finished_at is empty until the step finishes.
-  string finished_at = 4;
+  TaskStepName step_name = 1;
+  // status is the latest step status.
+  TaskStatus status = 2;
+  // started_at is unset when the step has not started.
+  google.protobuf.Timestamp started_at = 3;
+  // finished_at is unset until the step finishes.
+  google.protobuf.Timestamp finished_at = 4;
 }
 
 // GetTaskResponse describes one task, including step state and log metadata.
 message GetTaskResponse {
   string task_id = 1;
-  // type is the controller task type string.
-  string type = 2;
+  // type identifies the controller task kind.
+  TaskType type = 2;
   // source identifies what triggered the task.
-  string source = 3;
+  TaskSource source = 3;
   string service_name = 4;
   string node_id = 5;
-  // status is the latest task status string.
-  string status = 6;
-  // created_at is the task creation timestamp string.
-  string created_at = 7;
-  // started_at is empty until task execution begins.
-  string started_at = 8;
-  // finished_at is empty until task execution reaches a terminal state.
-  string finished_at = 9;
+  // status is the latest task status.
+  TaskStatus status = 6;
+  // created_at is the task creation timestamp.
+  google.protobuf.Timestamp created_at = 7;
+  // started_at is unset until task execution begins.
+  google.protobuf.Timestamp started_at = 8;
+  // finished_at is unset until task execution reaches a terminal state.
+  google.protobuf.Timestamp finished_at = 9;
   // repo_revision is the repo revision used when the task started.
   string repo_revision = 10;
   string error_summary = 11;
-  // log_path is the controller-side path to persisted task logs.
-  string log_path = 12;
+  reserved 12;
   // steps lists recorded step state snapshots in execution order.
   repeated TaskStepSummary steps = 13;
   // triggered_by identifies the actor that created the task.
@@ -136,7 +215,7 @@ message RunTaskAgainRequest {
 // ResolveTaskConfirmationRequest resolves a task in awaiting_confirmation state.
 message ResolveTaskConfirmationRequest {
   string task_id = 1;
-  // decision accepts "approve" or "reject".
-  string decision = 2;
+  // decision resolves the confirmation gate.
+  TaskConfirmationDecision decision = 2;
   string comment = 3;
 }

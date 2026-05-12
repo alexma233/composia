@@ -94,7 +94,8 @@ message ListNodesResponse {
 
 // GetNodeResponse returns one node summary.
 message GetNodeResponse {
-  // node is omitted when the requested node does not exist.
+  // node contains the requested configured node.
+  // The RPC returns NotFound when the requested node does not exist.
   NodeSummary node = 1;
 }
 
@@ -102,8 +103,8 @@ message GetNodeResponse {
 message GetNodeTasksRequest {
   // node_id is the stable node identifier.
   string node_id = 1;
-  // status narrows results to one task status string when set.
-  string status = 2;
+  // status narrows results to one task status when set.
+  TaskStatus status = 2;
   // page_size is the requested page size.
   uint32 page_size = 3;
   // page is the 1-based page number.

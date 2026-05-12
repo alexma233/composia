@@ -136,8 +136,8 @@ func (server *serviceQueryServer) GetServiceTasks(ctx context.Context, req *conn
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
 	statusFilters := []string(nil)
-	if req.Msg.GetStatus() != "" {
-		statusFilters = []string{req.Msg.GetStatus()}
+	if status, ok := taskStatusFromProto(req.Msg.GetStatus()); ok {
+		statusFilters = []string{string(status)}
 	}
 	tasks, totalCount, err := server.db.ListTasks(ctx, statusFilters, []string{req.Msg.GetServiceName()}, nil, nil, nil, nil, nil, nil, req.Msg.GetPage(), req.Msg.GetPageSize())
 	if err != nil {

@@ -9,7 +9,6 @@ import (
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
-	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 )
 
 func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask) error {
@@ -21,36 +20,36 @@ func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 	}()
 
 	switch pulledTask.GetType() {
-	case string(task.TypeDeploy):
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DEPLOY:
 		return executeDeployTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
-	case string(task.TypeUpdate):
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_UPDATE:
 		return executeUpdateTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
-	case string(task.TypeBackup):
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_BACKUP:
 		return executeBackupTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
-	case string(task.TypeRestore):
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_RESTORE:
 		return executeRestoreTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
-	case string(task.TypeStop):
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_STOP:
 		return executeStopTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
-	case string(task.TypeRestart):
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_RESTART:
 		return executeRestartTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
-	case string(task.TypePrune):
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_PRUNE:
 		return executePruneTask(ctx, client, cfg, pulledTask, logUploader)
-	case string(task.TypeRusticInit):
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_RUSTIC_INIT:
 		return executeRusticInitTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
-	case string(task.TypeRusticForget):
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_RUSTIC_FORGET:
 		return executeRusticForgetTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
-	case string(task.TypeRusticPrune):
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_RUSTIC_PRUNE:
 		return executeRusticPruneTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
-	case string(task.TypeCaddySync):
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_CADDY_SYNC:
 		return executeCaddySyncTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
-	case string(task.TypeCaddyReload):
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_CADDY_RELOAD:
 		return executeCaddyReloadTask(ctx, client, cfg, pulledTask, logUploader)
-	case string(task.TypeImageCheck):
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_IMAGE_CHECK:
 		return executeImageCheckTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
-	case string(task.TypeDockerStart), string(task.TypeDockerStop), string(task.TypeDockerRestart), string(task.TypeDockerRemove):
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_START, agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_STOP, agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_RESTART, agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE:
 		return executeDockerTask(ctx, client, cfg, pulledTask, logUploader)
 	default:
-		return failTask(ctx, client, pulledTask.GetTaskId(), fmt.Errorf("task type %q is not implemented", pulledTask.GetType()))
+		return failTask(ctx, client, pulledTask.GetTaskId(), fmt.Errorf("task type %s is not implemented", pulledTask.GetType().String()))
 	}
 }
 

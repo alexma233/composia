@@ -424,7 +424,6 @@ export const zhHans = {
       finished: "完成时间",
       repoRevision: "仓库版本",
       resultRevision: "结果版本",
-      logPath: "日志路径",
     },
     taskSteps: "任务步骤",
     taskLogs: "任务日志",
@@ -489,9 +488,6 @@ export const zhHans = {
     controller: {
       title: "控制器",
       version: "版本",
-      repoDir: "仓库目录",
-      stateDir: "状态目录",
-      logDir: "日志目录",
       noData: "暂无控制器数据。",
     },
     repoSync: {

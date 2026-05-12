@@ -451,7 +451,7 @@ func (application *app) printTaskAction(response *controllerv1.TaskActionRespons
 	}
 	return application.writeKV([][2]string{
 		{"task_id", response.GetTaskId()},
-		{"status", response.GetStatus()},
+		{"status", taskStatusText(response.GetStatus())},
 		{"repo_revision", response.GetRepoRevision()},
 	})
 }
@@ -471,7 +471,7 @@ func (application *app) printServiceAction(response *controllerv1.RunServiceActi
 		}
 		rows := make([][]string, 0, len(tasks))
 		for _, task := range tasks {
-			rows = append(rows, []string{task.GetTaskId(), task.GetStatus(), task.GetRepoRevision()})
+			rows = append(rows, []string{task.GetTaskId(), taskStatusText(task.GetStatus()), task.GetRepoRevision()})
 		}
 		if err := application.writeTable([]string{"TASK ID", "STATUS", "REPO REVISION"}, rows); err != nil {
 			return err

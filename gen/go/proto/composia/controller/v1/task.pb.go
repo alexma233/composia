@@ -9,6 +9,7 @@ package controllerv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -21,12 +22,391 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// TaskType identifies a controller task kind.
+type TaskType int32
+
+const (
+	TaskType_TASK_TYPE_UNSPECIFIED    TaskType = 0
+	TaskType_TASK_TYPE_DEPLOY         TaskType = 1
+	TaskType_TASK_TYPE_STOP           TaskType = 2
+	TaskType_TASK_TYPE_RESTART        TaskType = 3
+	TaskType_TASK_TYPE_UPDATE         TaskType = 4
+	TaskType_TASK_TYPE_BACKUP         TaskType = 5
+	TaskType_TASK_TYPE_RESTORE        TaskType = 6
+	TaskType_TASK_TYPE_MIGRATE        TaskType = 7
+	TaskType_TASK_TYPE_DNS_UPDATE     TaskType = 8
+	TaskType_TASK_TYPE_CADDY_SYNC     TaskType = 9
+	TaskType_TASK_TYPE_CADDY_RELOAD   TaskType = 10
+	TaskType_TASK_TYPE_IMAGE_CHECK    TaskType = 11
+	TaskType_TASK_TYPE_PRUNE          TaskType = 12
+	TaskType_TASK_TYPE_RUSTIC_INIT    TaskType = 13
+	TaskType_TASK_TYPE_RUSTIC_FORGET  TaskType = 14
+	TaskType_TASK_TYPE_RUSTIC_PRUNE   TaskType = 15
+	TaskType_TASK_TYPE_DOCKER_START   TaskType = 16
+	TaskType_TASK_TYPE_DOCKER_STOP    TaskType = 17
+	TaskType_TASK_TYPE_DOCKER_RESTART TaskType = 18
+	TaskType_TASK_TYPE_DOCKER_REMOVE  TaskType = 19
+)
+
+// Enum value maps for TaskType.
+var (
+	TaskType_name = map[int32]string{
+		0:  "TASK_TYPE_UNSPECIFIED",
+		1:  "TASK_TYPE_DEPLOY",
+		2:  "TASK_TYPE_STOP",
+		3:  "TASK_TYPE_RESTART",
+		4:  "TASK_TYPE_UPDATE",
+		5:  "TASK_TYPE_BACKUP",
+		6:  "TASK_TYPE_RESTORE",
+		7:  "TASK_TYPE_MIGRATE",
+		8:  "TASK_TYPE_DNS_UPDATE",
+		9:  "TASK_TYPE_CADDY_SYNC",
+		10: "TASK_TYPE_CADDY_RELOAD",
+		11: "TASK_TYPE_IMAGE_CHECK",
+		12: "TASK_TYPE_PRUNE",
+		13: "TASK_TYPE_RUSTIC_INIT",
+		14: "TASK_TYPE_RUSTIC_FORGET",
+		15: "TASK_TYPE_RUSTIC_PRUNE",
+		16: "TASK_TYPE_DOCKER_START",
+		17: "TASK_TYPE_DOCKER_STOP",
+		18: "TASK_TYPE_DOCKER_RESTART",
+		19: "TASK_TYPE_DOCKER_REMOVE",
+	}
+	TaskType_value = map[string]int32{
+		"TASK_TYPE_UNSPECIFIED":    0,
+		"TASK_TYPE_DEPLOY":         1,
+		"TASK_TYPE_STOP":           2,
+		"TASK_TYPE_RESTART":        3,
+		"TASK_TYPE_UPDATE":         4,
+		"TASK_TYPE_BACKUP":         5,
+		"TASK_TYPE_RESTORE":        6,
+		"TASK_TYPE_MIGRATE":        7,
+		"TASK_TYPE_DNS_UPDATE":     8,
+		"TASK_TYPE_CADDY_SYNC":     9,
+		"TASK_TYPE_CADDY_RELOAD":   10,
+		"TASK_TYPE_IMAGE_CHECK":    11,
+		"TASK_TYPE_PRUNE":          12,
+		"TASK_TYPE_RUSTIC_INIT":    13,
+		"TASK_TYPE_RUSTIC_FORGET":  14,
+		"TASK_TYPE_RUSTIC_PRUNE":   15,
+		"TASK_TYPE_DOCKER_START":   16,
+		"TASK_TYPE_DOCKER_STOP":    17,
+		"TASK_TYPE_DOCKER_RESTART": 18,
+		"TASK_TYPE_DOCKER_REMOVE":  19,
+	}
+)
+
+func (x TaskType) Enum() *TaskType {
+	p := new(TaskType)
+	*p = x
+	return p
+}
+
+func (x TaskType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TaskType) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_composia_controller_v1_task_proto_enumTypes[0].Descriptor()
+}
+
+func (TaskType) Type() protoreflect.EnumType {
+	return &file_proto_composia_controller_v1_task_proto_enumTypes[0]
+}
+
+func (x TaskType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TaskType.Descriptor instead.
+func (TaskType) EnumDescriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{0}
+}
+
+// TaskStatus identifies a task lifecycle status.
+type TaskStatus int32
+
+const (
+	TaskStatus_TASK_STATUS_UNSPECIFIED           TaskStatus = 0
+	TaskStatus_TASK_STATUS_PENDING               TaskStatus = 1
+	TaskStatus_TASK_STATUS_RUNNING               TaskStatus = 2
+	TaskStatus_TASK_STATUS_AWAITING_CONFIRMATION TaskStatus = 3
+	TaskStatus_TASK_STATUS_SUCCEEDED             TaskStatus = 4
+	TaskStatus_TASK_STATUS_FAILED                TaskStatus = 5
+	TaskStatus_TASK_STATUS_CANCELLED             TaskStatus = 6
+)
+
+// Enum value maps for TaskStatus.
+var (
+	TaskStatus_name = map[int32]string{
+		0: "TASK_STATUS_UNSPECIFIED",
+		1: "TASK_STATUS_PENDING",
+		2: "TASK_STATUS_RUNNING",
+		3: "TASK_STATUS_AWAITING_CONFIRMATION",
+		4: "TASK_STATUS_SUCCEEDED",
+		5: "TASK_STATUS_FAILED",
+		6: "TASK_STATUS_CANCELLED",
+	}
+	TaskStatus_value = map[string]int32{
+		"TASK_STATUS_UNSPECIFIED":           0,
+		"TASK_STATUS_PENDING":               1,
+		"TASK_STATUS_RUNNING":               2,
+		"TASK_STATUS_AWAITING_CONFIRMATION": 3,
+		"TASK_STATUS_SUCCEEDED":             4,
+		"TASK_STATUS_FAILED":                5,
+		"TASK_STATUS_CANCELLED":             6,
+	}
+)
+
+func (x TaskStatus) Enum() *TaskStatus {
+	p := new(TaskStatus)
+	*p = x
+	return p
+}
+
+func (x TaskStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TaskStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_composia_controller_v1_task_proto_enumTypes[1].Descriptor()
+}
+
+func (TaskStatus) Type() protoreflect.EnumType {
+	return &file_proto_composia_controller_v1_task_proto_enumTypes[1]
+}
+
+func (x TaskStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TaskStatus.Descriptor instead.
+func (TaskStatus) EnumDescriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{1}
+}
+
+// TaskSource identifies what created a task.
+type TaskSource int32
+
+const (
+	TaskSource_TASK_SOURCE_UNSPECIFIED TaskSource = 0
+	TaskSource_TASK_SOURCE_WEB         TaskSource = 1
+	TaskSource_TASK_SOURCE_CLI         TaskSource = 2
+	TaskSource_TASK_SOURCE_OTHERS      TaskSource = 3
+	TaskSource_TASK_SOURCE_SCHEDULE    TaskSource = 4
+	TaskSource_TASK_SOURCE_SYSTEM      TaskSource = 5
+	TaskSource_TASK_SOURCE_AUTO_DEPLOY TaskSource = 6
+)
+
+// Enum value maps for TaskSource.
+var (
+	TaskSource_name = map[int32]string{
+		0: "TASK_SOURCE_UNSPECIFIED",
+		1: "TASK_SOURCE_WEB",
+		2: "TASK_SOURCE_CLI",
+		3: "TASK_SOURCE_OTHERS",
+		4: "TASK_SOURCE_SCHEDULE",
+		5: "TASK_SOURCE_SYSTEM",
+		6: "TASK_SOURCE_AUTO_DEPLOY",
+	}
+	TaskSource_value = map[string]int32{
+		"TASK_SOURCE_UNSPECIFIED": 0,
+		"TASK_SOURCE_WEB":         1,
+		"TASK_SOURCE_CLI":         2,
+		"TASK_SOURCE_OTHERS":      3,
+		"TASK_SOURCE_SCHEDULE":    4,
+		"TASK_SOURCE_SYSTEM":      5,
+		"TASK_SOURCE_AUTO_DEPLOY": 6,
+	}
+)
+
+func (x TaskSource) Enum() *TaskSource {
+	p := new(TaskSource)
+	*p = x
+	return p
+}
+
+func (x TaskSource) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TaskSource) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_composia_controller_v1_task_proto_enumTypes[2].Descriptor()
+}
+
+func (TaskSource) Type() protoreflect.EnumType {
+	return &file_proto_composia_controller_v1_task_proto_enumTypes[2]
+}
+
+func (x TaskSource) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TaskSource.Descriptor instead.
+func (TaskSource) EnumDescriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{2}
+}
+
+// TaskStepName identifies one recorded task step.
+type TaskStepName int32
+
+const (
+	TaskStepName_TASK_STEP_NAME_UNSPECIFIED           TaskStepName = 0
+	TaskStepName_TASK_STEP_NAME_RENDER                TaskStepName = 1
+	TaskStepName_TASK_STEP_NAME_PULL                  TaskStepName = 2
+	TaskStepName_TASK_STEP_NAME_BACKUP                TaskStepName = 3
+	TaskStepName_TASK_STEP_NAME_COMPOSE_DOWN          TaskStepName = 4
+	TaskStepName_TASK_STEP_NAME_COMPOSE_UP            TaskStepName = 5
+	TaskStepName_TASK_STEP_NAME_TRANSFER              TaskStepName = 6
+	TaskStepName_TASK_STEP_NAME_RESTORE               TaskStepName = 7
+	TaskStepName_TASK_STEP_NAME_DNS_UPDATE            TaskStepName = 8
+	TaskStepName_TASK_STEP_NAME_CADDY_SYNC            TaskStepName = 9
+	TaskStepName_TASK_STEP_NAME_CADDY_RELOAD          TaskStepName = 10
+	TaskStepName_TASK_STEP_NAME_IMAGE_CHECK           TaskStepName = 11
+	TaskStepName_TASK_STEP_NAME_INIT                  TaskStepName = 12
+	TaskStepName_TASK_STEP_NAME_PRUNE                 TaskStepName = 13
+	TaskStepName_TASK_STEP_NAME_AWAITING_CONFIRMATION TaskStepName = 14
+	TaskStepName_TASK_STEP_NAME_PERSIST_REPO          TaskStepName = 15
+	TaskStepName_TASK_STEP_NAME_FINALIZE              TaskStepName = 16
+	TaskStepName_TASK_STEP_NAME_DOCKER_START          TaskStepName = 17
+	TaskStepName_TASK_STEP_NAME_DOCKER_STOP           TaskStepName = 18
+	TaskStepName_TASK_STEP_NAME_DOCKER_RESTART        TaskStepName = 19
+	TaskStepName_TASK_STEP_NAME_DOCKER_REMOVE         TaskStepName = 20
+)
+
+// Enum value maps for TaskStepName.
+var (
+	TaskStepName_name = map[int32]string{
+		0:  "TASK_STEP_NAME_UNSPECIFIED",
+		1:  "TASK_STEP_NAME_RENDER",
+		2:  "TASK_STEP_NAME_PULL",
+		3:  "TASK_STEP_NAME_BACKUP",
+		4:  "TASK_STEP_NAME_COMPOSE_DOWN",
+		5:  "TASK_STEP_NAME_COMPOSE_UP",
+		6:  "TASK_STEP_NAME_TRANSFER",
+		7:  "TASK_STEP_NAME_RESTORE",
+		8:  "TASK_STEP_NAME_DNS_UPDATE",
+		9:  "TASK_STEP_NAME_CADDY_SYNC",
+		10: "TASK_STEP_NAME_CADDY_RELOAD",
+		11: "TASK_STEP_NAME_IMAGE_CHECK",
+		12: "TASK_STEP_NAME_INIT",
+		13: "TASK_STEP_NAME_PRUNE",
+		14: "TASK_STEP_NAME_AWAITING_CONFIRMATION",
+		15: "TASK_STEP_NAME_PERSIST_REPO",
+		16: "TASK_STEP_NAME_FINALIZE",
+		17: "TASK_STEP_NAME_DOCKER_START",
+		18: "TASK_STEP_NAME_DOCKER_STOP",
+		19: "TASK_STEP_NAME_DOCKER_RESTART",
+		20: "TASK_STEP_NAME_DOCKER_REMOVE",
+	}
+	TaskStepName_value = map[string]int32{
+		"TASK_STEP_NAME_UNSPECIFIED":           0,
+		"TASK_STEP_NAME_RENDER":                1,
+		"TASK_STEP_NAME_PULL":                  2,
+		"TASK_STEP_NAME_BACKUP":                3,
+		"TASK_STEP_NAME_COMPOSE_DOWN":          4,
+		"TASK_STEP_NAME_COMPOSE_UP":            5,
+		"TASK_STEP_NAME_TRANSFER":              6,
+		"TASK_STEP_NAME_RESTORE":               7,
+		"TASK_STEP_NAME_DNS_UPDATE":            8,
+		"TASK_STEP_NAME_CADDY_SYNC":            9,
+		"TASK_STEP_NAME_CADDY_RELOAD":          10,
+		"TASK_STEP_NAME_IMAGE_CHECK":           11,
+		"TASK_STEP_NAME_INIT":                  12,
+		"TASK_STEP_NAME_PRUNE":                 13,
+		"TASK_STEP_NAME_AWAITING_CONFIRMATION": 14,
+		"TASK_STEP_NAME_PERSIST_REPO":          15,
+		"TASK_STEP_NAME_FINALIZE":              16,
+		"TASK_STEP_NAME_DOCKER_START":          17,
+		"TASK_STEP_NAME_DOCKER_STOP":           18,
+		"TASK_STEP_NAME_DOCKER_RESTART":        19,
+		"TASK_STEP_NAME_DOCKER_REMOVE":         20,
+	}
+)
+
+func (x TaskStepName) Enum() *TaskStepName {
+	p := new(TaskStepName)
+	*p = x
+	return p
+}
+
+func (x TaskStepName) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TaskStepName) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_composia_controller_v1_task_proto_enumTypes[3].Descriptor()
+}
+
+func (TaskStepName) Type() protoreflect.EnumType {
+	return &file_proto_composia_controller_v1_task_proto_enumTypes[3]
+}
+
+func (x TaskStepName) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TaskStepName.Descriptor instead.
+func (TaskStepName) EnumDescriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{3}
+}
+
+// TaskConfirmationDecision identifies how an operator resolved a confirmation gate.
+type TaskConfirmationDecision int32
+
+const (
+	TaskConfirmationDecision_TASK_CONFIRMATION_DECISION_UNSPECIFIED TaskConfirmationDecision = 0
+	TaskConfirmationDecision_TASK_CONFIRMATION_DECISION_APPROVE     TaskConfirmationDecision = 1
+	TaskConfirmationDecision_TASK_CONFIRMATION_DECISION_REJECT      TaskConfirmationDecision = 2
+)
+
+// Enum value maps for TaskConfirmationDecision.
+var (
+	TaskConfirmationDecision_name = map[int32]string{
+		0: "TASK_CONFIRMATION_DECISION_UNSPECIFIED",
+		1: "TASK_CONFIRMATION_DECISION_APPROVE",
+		2: "TASK_CONFIRMATION_DECISION_REJECT",
+	}
+	TaskConfirmationDecision_value = map[string]int32{
+		"TASK_CONFIRMATION_DECISION_UNSPECIFIED": 0,
+		"TASK_CONFIRMATION_DECISION_APPROVE":     1,
+		"TASK_CONFIRMATION_DECISION_REJECT":      2,
+	}
+)
+
+func (x TaskConfirmationDecision) Enum() *TaskConfirmationDecision {
+	p := new(TaskConfirmationDecision)
+	*p = x
+	return p
+}
+
+func (x TaskConfirmationDecision) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TaskConfirmationDecision) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_composia_controller_v1_task_proto_enumTypes[4].Descriptor()
+}
+
+func (TaskConfirmationDecision) Type() protoreflect.EnumType {
+	return &file_proto_composia_controller_v1_task_proto_enumTypes[4]
+}
+
+func (x TaskConfirmationDecision) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TaskConfirmationDecision.Descriptor instead.
+func (TaskConfirmationDecision) EnumDescriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{4}
+}
+
 // TaskActionResponse reports the async task created by a command RPC.
 type TaskActionResponse struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	TaskId string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
 	// status is the initial status of the created task.
-	Status string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	Status TaskStatus `protobuf:"varint,2,opt,name=status,proto3,enum=composia.controller.v1.TaskStatus" json:"status,omitempty"`
 	// repo_revision is the repo revision associated with the created task.
 	RepoRevision  string `protobuf:"bytes,3,opt,name=repo_revision,json=repoRevision,proto3" json:"repo_revision,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -70,11 +450,11 @@ func (x *TaskActionResponse) GetTaskId() string {
 	return ""
 }
 
-func (x *TaskActionResponse) GetStatus() string {
+func (x *TaskActionResponse) GetStatus() TaskStatus {
 	if x != nil {
 		return x.Status
 	}
-	return ""
+	return TaskStatus_TASK_STATUS_UNSPECIFIED
 }
 
 func (x *TaskActionResponse) GetRepoRevision() string {
@@ -87,8 +467,8 @@ func (x *TaskActionResponse) GetRepoRevision() string {
 // ListTasksRequest filters task results by included and excluded values.
 type ListTasksRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// status includes only tasks matching one of these status strings.
-	Status []string `protobuf:"bytes,1,rep,name=status,proto3" json:"status,omitempty"`
+	// status includes only tasks matching one of these statuses.
+	Status []TaskStatus `protobuf:"varint,1,rep,packed,name=status,proto3,enum=composia.controller.v1.TaskStatus" json:"status,omitempty"`
 	// service_name includes only tasks for these services.
 	ServiceName []string `protobuf:"bytes,2,rep,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	// page_size is the requested page size.
@@ -98,15 +478,15 @@ type ListTasksRequest struct {
 	// node_id includes only tasks for these nodes.
 	NodeId []string `protobuf:"bytes,5,rep,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	// type includes only tasks of these types.
-	Type []string `protobuf:"bytes,6,rep,name=type,proto3" json:"type,omitempty"`
-	// exclude_status removes tasks matching these status strings.
-	ExcludeStatus []string `protobuf:"bytes,7,rep,name=exclude_status,json=excludeStatus,proto3" json:"exclude_status,omitempty"`
+	Type []TaskType `protobuf:"varint,6,rep,packed,name=type,proto3,enum=composia.controller.v1.TaskType" json:"type,omitempty"`
+	// exclude_status removes tasks matching these statuses.
+	ExcludeStatus []TaskStatus `protobuf:"varint,7,rep,packed,name=exclude_status,json=excludeStatus,proto3,enum=composia.controller.v1.TaskStatus" json:"exclude_status,omitempty"`
 	// exclude_service_name removes tasks for these services.
 	ExcludeServiceName []string `protobuf:"bytes,8,rep,name=exclude_service_name,json=excludeServiceName,proto3" json:"exclude_service_name,omitempty"`
 	// exclude_node_id removes tasks for these nodes.
 	ExcludeNodeId []string `protobuf:"bytes,9,rep,name=exclude_node_id,json=excludeNodeId,proto3" json:"exclude_node_id,omitempty"`
 	// exclude_type removes tasks of these types.
-	ExcludeType   []string `protobuf:"bytes,10,rep,name=exclude_type,json=excludeType,proto3" json:"exclude_type,omitempty"`
+	ExcludeType   []TaskType `protobuf:"varint,10,rep,packed,name=exclude_type,json=excludeType,proto3,enum=composia.controller.v1.TaskType" json:"exclude_type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -141,7 +521,7 @@ func (*ListTasksRequest) Descriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ListTasksRequest) GetStatus() []string {
+func (x *ListTasksRequest) GetStatus() []TaskStatus {
 	if x != nil {
 		return x.Status
 	}
@@ -176,14 +556,14 @@ func (x *ListTasksRequest) GetNodeId() []string {
 	return nil
 }
 
-func (x *ListTasksRequest) GetType() []string {
+func (x *ListTasksRequest) GetType() []TaskType {
 	if x != nil {
 		return x.Type
 	}
 	return nil
 }
 
-func (x *ListTasksRequest) GetExcludeStatus() []string {
+func (x *ListTasksRequest) GetExcludeStatus() []TaskStatus {
 	if x != nil {
 		return x.ExcludeStatus
 	}
@@ -204,7 +584,7 @@ func (x *ListTasksRequest) GetExcludeNodeId() []string {
 	return nil
 }
 
-func (x *ListTasksRequest) GetExcludeType() []string {
+func (x *ListTasksRequest) GetExcludeType() []TaskType {
 	if x != nil {
 		return x.ExcludeType
 	}
@@ -215,14 +595,14 @@ func (x *ListTasksRequest) GetExcludeType() []string {
 type TaskSummary struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	TaskId string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	// type is the controller task type string.
-	Type string `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	// status is the latest task status string.
-	Status      string `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
-	ServiceName string `protobuf:"bytes,4,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	NodeId      string `protobuf:"bytes,5,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	// created_at is the task creation timestamp string.
-	CreatedAt     string `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// type identifies the controller task kind.
+	Type TaskType `protobuf:"varint,2,opt,name=type,proto3,enum=composia.controller.v1.TaskType" json:"type,omitempty"`
+	// status is the latest task status.
+	Status      TaskStatus `protobuf:"varint,3,opt,name=status,proto3,enum=composia.controller.v1.TaskStatus" json:"status,omitempty"`
+	ServiceName string     `protobuf:"bytes,4,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	NodeId      string     `protobuf:"bytes,5,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// created_at is the task creation timestamp.
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -264,18 +644,18 @@ func (x *TaskSummary) GetTaskId() string {
 	return ""
 }
 
-func (x *TaskSummary) GetType() string {
+func (x *TaskSummary) GetType() TaskType {
 	if x != nil {
 		return x.Type
 	}
-	return ""
+	return TaskType_TASK_TYPE_UNSPECIFIED
 }
 
-func (x *TaskSummary) GetStatus() string {
+func (x *TaskSummary) GetStatus() TaskStatus {
 	if x != nil {
 		return x.Status
 	}
-	return ""
+	return TaskStatus_TASK_STATUS_UNSPECIFIED
 }
 
 func (x *TaskSummary) GetServiceName() string {
@@ -292,11 +672,11 @@ func (x *TaskSummary) GetNodeId() string {
 	return ""
 }
 
-func (x *TaskSummary) GetCreatedAt() string {
+func (x *TaskSummary) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreatedAt
 	}
-	return ""
+	return nil
 }
 
 // ListTasksResponse returns one page of task summaries.
@@ -400,13 +780,13 @@ func (x *GetTaskRequest) GetTaskId() string {
 // TaskStepSummary describes one recorded step within a task.
 type TaskStepSummary struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
-	StepName string                 `protobuf:"bytes,1,opt,name=step_name,json=stepName,proto3" json:"step_name,omitempty"`
-	// status is the latest step status string.
-	Status string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	// started_at is empty when the step has not started.
-	StartedAt string `protobuf:"bytes,3,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	// finished_at is empty until the step finishes.
-	FinishedAt    string `protobuf:"bytes,4,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	StepName TaskStepName           `protobuf:"varint,1,opt,name=step_name,json=stepName,proto3,enum=composia.controller.v1.TaskStepName" json:"step_name,omitempty"`
+	// status is the latest step status.
+	Status TaskStatus `protobuf:"varint,2,opt,name=status,proto3,enum=composia.controller.v1.TaskStatus" json:"status,omitempty"`
+	// started_at is unset when the step has not started.
+	StartedAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	// finished_at is unset until the step finishes.
+	FinishedAt    *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -441,57 +821,55 @@ func (*TaskStepSummary) Descriptor() ([]byte, []int) {
 	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *TaskStepSummary) GetStepName() string {
+func (x *TaskStepSummary) GetStepName() TaskStepName {
 	if x != nil {
 		return x.StepName
 	}
-	return ""
+	return TaskStepName_TASK_STEP_NAME_UNSPECIFIED
 }
 
-func (x *TaskStepSummary) GetStatus() string {
+func (x *TaskStepSummary) GetStatus() TaskStatus {
 	if x != nil {
 		return x.Status
 	}
-	return ""
+	return TaskStatus_TASK_STATUS_UNSPECIFIED
 }
 
-func (x *TaskStepSummary) GetStartedAt() string {
+func (x *TaskStepSummary) GetStartedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.StartedAt
 	}
-	return ""
+	return nil
 }
 
-func (x *TaskStepSummary) GetFinishedAt() string {
+func (x *TaskStepSummary) GetFinishedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.FinishedAt
 	}
-	return ""
+	return nil
 }
 
 // GetTaskResponse describes one task, including step state and log metadata.
 type GetTaskResponse struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	TaskId string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	// type is the controller task type string.
-	Type string `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	// type identifies the controller task kind.
+	Type TaskType `protobuf:"varint,2,opt,name=type,proto3,enum=composia.controller.v1.TaskType" json:"type,omitempty"`
 	// source identifies what triggered the task.
-	Source      string `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
-	ServiceName string `protobuf:"bytes,4,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	NodeId      string `protobuf:"bytes,5,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	// status is the latest task status string.
-	Status string `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
-	// created_at is the task creation timestamp string.
-	CreatedAt string `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	// started_at is empty until task execution begins.
-	StartedAt string `protobuf:"bytes,8,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	// finished_at is empty until task execution reaches a terminal state.
-	FinishedAt string `protobuf:"bytes,9,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	Source      TaskSource `protobuf:"varint,3,opt,name=source,proto3,enum=composia.controller.v1.TaskSource" json:"source,omitempty"`
+	ServiceName string     `protobuf:"bytes,4,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	NodeId      string     `protobuf:"bytes,5,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// status is the latest task status.
+	Status TaskStatus `protobuf:"varint,6,opt,name=status,proto3,enum=composia.controller.v1.TaskStatus" json:"status,omitempty"`
+	// created_at is the task creation timestamp.
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// started_at is unset until task execution begins.
+	StartedAt *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	// finished_at is unset until task execution reaches a terminal state.
+	FinishedAt *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
 	// repo_revision is the repo revision used when the task started.
 	RepoRevision string `protobuf:"bytes,10,opt,name=repo_revision,json=repoRevision,proto3" json:"repo_revision,omitempty"`
 	ErrorSummary string `protobuf:"bytes,11,opt,name=error_summary,json=errorSummary,proto3" json:"error_summary,omitempty"`
-	// log_path is the controller-side path to persisted task logs.
-	LogPath string `protobuf:"bytes,12,opt,name=log_path,json=logPath,proto3" json:"log_path,omitempty"`
 	// steps lists recorded step state snapshots in execution order.
 	Steps []*TaskStepSummary `protobuf:"bytes,13,rep,name=steps,proto3" json:"steps,omitempty"`
 	// triggered_by identifies the actor that created the task.
@@ -541,18 +919,18 @@ func (x *GetTaskResponse) GetTaskId() string {
 	return ""
 }
 
-func (x *GetTaskResponse) GetType() string {
+func (x *GetTaskResponse) GetType() TaskType {
 	if x != nil {
 		return x.Type
 	}
-	return ""
+	return TaskType_TASK_TYPE_UNSPECIFIED
 }
 
-func (x *GetTaskResponse) GetSource() string {
+func (x *GetTaskResponse) GetSource() TaskSource {
 	if x != nil {
 		return x.Source
 	}
-	return ""
+	return TaskSource_TASK_SOURCE_UNSPECIFIED
 }
 
 func (x *GetTaskResponse) GetServiceName() string {
@@ -569,32 +947,32 @@ func (x *GetTaskResponse) GetNodeId() string {
 	return ""
 }
 
-func (x *GetTaskResponse) GetStatus() string {
+func (x *GetTaskResponse) GetStatus() TaskStatus {
 	if x != nil {
 		return x.Status
 	}
-	return ""
+	return TaskStatus_TASK_STATUS_UNSPECIFIED
 }
 
-func (x *GetTaskResponse) GetCreatedAt() string {
+func (x *GetTaskResponse) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreatedAt
 	}
-	return ""
+	return nil
 }
 
-func (x *GetTaskResponse) GetStartedAt() string {
+func (x *GetTaskResponse) GetStartedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.StartedAt
 	}
-	return ""
+	return nil
 }
 
-func (x *GetTaskResponse) GetFinishedAt() string {
+func (x *GetTaskResponse) GetFinishedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.FinishedAt
 	}
-	return ""
+	return nil
 }
 
 func (x *GetTaskResponse) GetRepoRevision() string {
@@ -607,13 +985,6 @@ func (x *GetTaskResponse) GetRepoRevision() string {
 func (x *GetTaskResponse) GetErrorSummary() string {
 	if x != nil {
 		return x.ErrorSummary
-	}
-	return ""
-}
-
-func (x *GetTaskResponse) GetLogPath() string {
-	if x != nil {
-		return x.LogPath
 	}
 	return ""
 }
@@ -785,9 +1156,9 @@ func (x *RunTaskAgainRequest) GetTaskId() string {
 type ResolveTaskConfirmationRequest struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	TaskId string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	// decision accepts "approve" or "reject".
-	Decision      string `protobuf:"bytes,2,opt,name=decision,proto3" json:"decision,omitempty"`
-	Comment       string `protobuf:"bytes,3,opt,name=comment,proto3" json:"comment,omitempty"`
+	// decision resolves the confirmation gate.
+	Decision      TaskConfirmationDecision `protobuf:"varint,2,opt,name=decision,proto3,enum=composia.controller.v1.TaskConfirmationDecision" json:"decision,omitempty"`
+	Comment       string                   `protobuf:"bytes,3,opt,name=comment,proto3" json:"comment,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -829,11 +1200,11 @@ func (x *ResolveTaskConfirmationRequest) GetTaskId() string {
 	return ""
 }
 
-func (x *ResolveTaskConfirmationRequest) GetDecision() string {
+func (x *ResolveTaskConfirmationRequest) GetDecision() TaskConfirmationDecision {
 	if x != nil {
 		return x.Decision
 	}
-	return ""
+	return TaskConfirmationDecision_TASK_CONFIRMATION_DECISION_UNSPECIFIED
 }
 
 func (x *ResolveTaskConfirmationRequest) GetComment() string {
@@ -847,75 +1218,141 @@ var File_proto_composia_controller_v1_task_proto protoreflect.FileDescriptor
 
 const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	"\n" +
-	"'proto/composia/controller/v1/task.proto\x12\x16composia.controller.v1\"j\n" +
+	"'proto/composia/controller/v1/task.proto\x12\x16composia.controller.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8e\x01\n" +
 	"\x12TaskActionResponse\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\x12#\n" +
-	"\rrepo_revision\x18\x03 \x01(\tR\frepoRevision\"\xcf\x02\n" +
-	"\x10ListTasksRequest\x12\x16\n" +
-	"\x06status\x18\x01 \x03(\tR\x06status\x12!\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12:\n" +
+	"\x06status\x18\x02 \x01(\x0e2\".composia.controller.v1.TaskStatusR\x06status\x12#\n" +
+	"\rrepo_revision\x18\x03 \x01(\tR\frepoRevision\"\xdb\x03\n" +
+	"\x10ListTasksRequest\x12:\n" +
+	"\x06status\x18\x01 \x03(\x0e2\".composia.controller.v1.TaskStatusR\x06status\x12!\n" +
 	"\fservice_name\x18\x02 \x03(\tR\vserviceName\x12\x1b\n" +
 	"\tpage_size\x18\x03 \x01(\rR\bpageSize\x12\x12\n" +
 	"\x04page\x18\x04 \x01(\rR\x04page\x12\x17\n" +
-	"\anode_id\x18\x05 \x03(\tR\x06nodeId\x12\x12\n" +
-	"\x04type\x18\x06 \x03(\tR\x04type\x12%\n" +
-	"\x0eexclude_status\x18\a \x03(\tR\rexcludeStatus\x120\n" +
+	"\anode_id\x18\x05 \x03(\tR\x06nodeId\x124\n" +
+	"\x04type\x18\x06 \x03(\x0e2 .composia.controller.v1.TaskTypeR\x04type\x12I\n" +
+	"\x0eexclude_status\x18\a \x03(\x0e2\".composia.controller.v1.TaskStatusR\rexcludeStatus\x120\n" +
 	"\x14exclude_service_name\x18\b \x03(\tR\x12excludeServiceName\x12&\n" +
-	"\x0fexclude_node_id\x18\t \x03(\tR\rexcludeNodeId\x12!\n" +
+	"\x0fexclude_node_id\x18\t \x03(\tR\rexcludeNodeId\x12C\n" +
 	"\fexclude_type\x18\n" +
-	" \x03(\tR\vexcludeType\"\xad\x01\n" +
+	" \x03(\x0e2 .composia.controller.v1.TaskTypeR\vexcludeType\"\x8f\x02\n" +
 	"\vTaskSummary\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
-	"\x04type\x18\x02 \x01(\tR\x04type\x12\x16\n" +
-	"\x06status\x18\x03 \x01(\tR\x06status\x12!\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x124\n" +
+	"\x04type\x18\x02 \x01(\x0e2 .composia.controller.v1.TaskTypeR\x04type\x12:\n" +
+	"\x06status\x18\x03 \x01(\x0e2\".composia.controller.v1.TaskStatusR\x06status\x12!\n" +
 	"\fservice_name\x18\x04 \x01(\tR\vserviceName\x12\x17\n" +
-	"\anode_id\x18\x05 \x01(\tR\x06nodeId\x12\x1d\n" +
+	"\anode_id\x18\x05 \x01(\tR\x06nodeId\x129\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\tR\tcreatedAt\"o\n" +
+	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"o\n" +
 	"\x11ListTasksResponse\x129\n" +
 	"\x05tasks\x18\x01 \x03(\v2#.composia.controller.v1.TaskSummaryR\x05tasks\x12\x1f\n" +
 	"\vtotal_count\x18\x02 \x01(\rR\n" +
 	"totalCount\")\n" +
 	"\x0eGetTaskRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\x86\x01\n" +
-	"\x0fTaskStepSummary\x12\x1b\n" +
-	"\tstep_name\x18\x01 \x01(\tR\bstepName\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\x12\x1d\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\x88\x02\n" +
+	"\x0fTaskStepSummary\x12A\n" +
+	"\tstep_name\x18\x01 \x01(\x0e2$.composia.controller.v1.TaskStepNameR\bstepName\x12:\n" +
+	"\x06status\x18\x02 \x01(\x0e2\".composia.controller.v1.TaskStatusR\x06status\x129\n" +
 	"\n" +
-	"started_at\x18\x03 \x01(\tR\tstartedAt\x12\x1f\n" +
-	"\vfinished_at\x18\x04 \x01(\tR\n" +
-	"finishedAt\"\xa6\x04\n" +
+	"started_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12;\n" +
+	"\vfinished_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"finishedAt\"\xcf\x05\n" +
 	"\x0fGetTaskResponse\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
-	"\x04type\x18\x02 \x01(\tR\x04type\x12\x16\n" +
-	"\x06source\x18\x03 \x01(\tR\x06source\x12!\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x124\n" +
+	"\x04type\x18\x02 \x01(\x0e2 .composia.controller.v1.TaskTypeR\x04type\x12:\n" +
+	"\x06source\x18\x03 \x01(\x0e2\".composia.controller.v1.TaskSourceR\x06source\x12!\n" +
 	"\fservice_name\x18\x04 \x01(\tR\vserviceName\x12\x17\n" +
-	"\anode_id\x18\x05 \x01(\tR\x06nodeId\x12\x16\n" +
-	"\x06status\x18\x06 \x01(\tR\x06status\x12\x1d\n" +
+	"\anode_id\x18\x05 \x01(\tR\x06nodeId\x12:\n" +
+	"\x06status\x18\x06 \x01(\x0e2\".composia.controller.v1.TaskStatusR\x06status\x129\n" +
 	"\n" +
-	"created_at\x18\a \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"started_at\x18\b \x01(\tR\tstartedAt\x12\x1f\n" +
-	"\vfinished_at\x18\t \x01(\tR\n" +
+	"started_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12;\n" +
+	"\vfinished_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"finishedAt\x12#\n" +
 	"\rrepo_revision\x18\n" +
 	" \x01(\tR\frepoRevision\x12#\n" +
-	"\rerror_summary\x18\v \x01(\tR\ferrorSummary\x12\x19\n" +
-	"\blog_path\x18\f \x01(\tR\alogPath\x12=\n" +
+	"\rerror_summary\x18\v \x01(\tR\ferrorSummary\x12=\n" +
 	"\x05steps\x18\r \x03(\v2'.composia.controller.v1.TaskStepSummaryR\x05steps\x12!\n" +
 	"\ftriggered_by\x18\x0e \x01(\tR\vtriggeredBy\x12'\n" +
 	"\x0fresult_revision\x18\x0f \x01(\tR\x0eresultRevision\x12+\n" +
-	"\x12attempt_of_task_id\x18\x10 \x01(\tR\x0fattemptOfTaskId\".\n" +
+	"\x12attempt_of_task_id\x18\x10 \x01(\tR\x0fattemptOfTaskIdJ\x04\b\f\x10\r\".\n" +
 	"\x13TailTaskLogsRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\"0\n" +
 	"\x14TailTaskLogsResponse\x12\x18\n" +
 	"\acontent\x18\x01 \x01(\tR\acontent\".\n" +
 	"\x13RunTaskAgainRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\"o\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\xa1\x01\n" +
 	"\x1eResolveTaskConfirmationRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x1a\n" +
-	"\bdecision\x18\x02 \x01(\tR\bdecision\x12\x18\n" +
-	"\acomment\x18\x03 \x01(\tR\acomment2\xa0\x04\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12L\n" +
+	"\bdecision\x18\x02 \x01(\x0e20.composia.controller.v1.TaskConfirmationDecisionR\bdecision\x12\x18\n" +
+	"\acomment\x18\x03 \x01(\tR\acomment*\x86\x04\n" +
+	"\bTaskType\x12\x19\n" +
+	"\x15TASK_TYPE_UNSPECIFIED\x10\x00\x12\x14\n" +
+	"\x10TASK_TYPE_DEPLOY\x10\x01\x12\x12\n" +
+	"\x0eTASK_TYPE_STOP\x10\x02\x12\x15\n" +
+	"\x11TASK_TYPE_RESTART\x10\x03\x12\x14\n" +
+	"\x10TASK_TYPE_UPDATE\x10\x04\x12\x14\n" +
+	"\x10TASK_TYPE_BACKUP\x10\x05\x12\x15\n" +
+	"\x11TASK_TYPE_RESTORE\x10\x06\x12\x15\n" +
+	"\x11TASK_TYPE_MIGRATE\x10\a\x12\x18\n" +
+	"\x14TASK_TYPE_DNS_UPDATE\x10\b\x12\x18\n" +
+	"\x14TASK_TYPE_CADDY_SYNC\x10\t\x12\x1a\n" +
+	"\x16TASK_TYPE_CADDY_RELOAD\x10\n" +
+	"\x12\x19\n" +
+	"\x15TASK_TYPE_IMAGE_CHECK\x10\v\x12\x13\n" +
+	"\x0fTASK_TYPE_PRUNE\x10\f\x12\x19\n" +
+	"\x15TASK_TYPE_RUSTIC_INIT\x10\r\x12\x1b\n" +
+	"\x17TASK_TYPE_RUSTIC_FORGET\x10\x0e\x12\x1a\n" +
+	"\x16TASK_TYPE_RUSTIC_PRUNE\x10\x0f\x12\x1a\n" +
+	"\x16TASK_TYPE_DOCKER_START\x10\x10\x12\x19\n" +
+	"\x15TASK_TYPE_DOCKER_STOP\x10\x11\x12\x1c\n" +
+	"\x18TASK_TYPE_DOCKER_RESTART\x10\x12\x12\x1b\n" +
+	"\x17TASK_TYPE_DOCKER_REMOVE\x10\x13*\xd0\x01\n" +
+	"\n" +
+	"TaskStatus\x12\x1b\n" +
+	"\x17TASK_STATUS_UNSPECIFIED\x10\x00\x12\x17\n" +
+	"\x13TASK_STATUS_PENDING\x10\x01\x12\x17\n" +
+	"\x13TASK_STATUS_RUNNING\x10\x02\x12%\n" +
+	"!TASK_STATUS_AWAITING_CONFIRMATION\x10\x03\x12\x19\n" +
+	"\x15TASK_STATUS_SUCCEEDED\x10\x04\x12\x16\n" +
+	"\x12TASK_STATUS_FAILED\x10\x05\x12\x19\n" +
+	"\x15TASK_STATUS_CANCELLED\x10\x06*\xba\x01\n" +
+	"\n" +
+	"TaskSource\x12\x1b\n" +
+	"\x17TASK_SOURCE_UNSPECIFIED\x10\x00\x12\x13\n" +
+	"\x0fTASK_SOURCE_WEB\x10\x01\x12\x13\n" +
+	"\x0fTASK_SOURCE_CLI\x10\x02\x12\x16\n" +
+	"\x12TASK_SOURCE_OTHERS\x10\x03\x12\x18\n" +
+	"\x14TASK_SOURCE_SCHEDULE\x10\x04\x12\x16\n" +
+	"\x12TASK_SOURCE_SYSTEM\x10\x05\x12\x1b\n" +
+	"\x17TASK_SOURCE_AUTO_DEPLOY\x10\x06*\x96\x05\n" +
+	"\fTaskStepName\x12\x1e\n" +
+	"\x1aTASK_STEP_NAME_UNSPECIFIED\x10\x00\x12\x19\n" +
+	"\x15TASK_STEP_NAME_RENDER\x10\x01\x12\x17\n" +
+	"\x13TASK_STEP_NAME_PULL\x10\x02\x12\x19\n" +
+	"\x15TASK_STEP_NAME_BACKUP\x10\x03\x12\x1f\n" +
+	"\x1bTASK_STEP_NAME_COMPOSE_DOWN\x10\x04\x12\x1d\n" +
+	"\x19TASK_STEP_NAME_COMPOSE_UP\x10\x05\x12\x1b\n" +
+	"\x17TASK_STEP_NAME_TRANSFER\x10\x06\x12\x1a\n" +
+	"\x16TASK_STEP_NAME_RESTORE\x10\a\x12\x1d\n" +
+	"\x19TASK_STEP_NAME_DNS_UPDATE\x10\b\x12\x1d\n" +
+	"\x19TASK_STEP_NAME_CADDY_SYNC\x10\t\x12\x1f\n" +
+	"\x1bTASK_STEP_NAME_CADDY_RELOAD\x10\n" +
+	"\x12\x1e\n" +
+	"\x1aTASK_STEP_NAME_IMAGE_CHECK\x10\v\x12\x17\n" +
+	"\x13TASK_STEP_NAME_INIT\x10\f\x12\x18\n" +
+	"\x14TASK_STEP_NAME_PRUNE\x10\r\x12(\n" +
+	"$TASK_STEP_NAME_AWAITING_CONFIRMATION\x10\x0e\x12\x1f\n" +
+	"\x1bTASK_STEP_NAME_PERSIST_REPO\x10\x0f\x12\x1b\n" +
+	"\x17TASK_STEP_NAME_FINALIZE\x10\x10\x12\x1f\n" +
+	"\x1bTASK_STEP_NAME_DOCKER_START\x10\x11\x12\x1e\n" +
+	"\x1aTASK_STEP_NAME_DOCKER_STOP\x10\x12\x12!\n" +
+	"\x1dTASK_STEP_NAME_DOCKER_RESTART\x10\x13\x12 \n" +
+	"\x1cTASK_STEP_NAME_DOCKER_REMOVE\x10\x14*\x95\x01\n" +
+	"\x18TaskConfirmationDecision\x12*\n" +
+	"&TASK_CONFIRMATION_DECISION_UNSPECIFIED\x10\x00\x12&\n" +
+	"\"TASK_CONFIRMATION_DECISION_APPROVE\x10\x01\x12%\n" +
+	"!TASK_CONFIRMATION_DECISION_REJECT\x10\x022\xa0\x04\n" +
 	"\vTaskService\x12`\n" +
 	"\tListTasks\x12(.composia.controller.v1.ListTasksRequest\x1a).composia.controller.v1.ListTasksResponse\x12Z\n" +
 	"\aGetTask\x12&.composia.controller.v1.GetTaskRequest\x1a'.composia.controller.v1.GetTaskResponse\x12k\n" +
@@ -935,38 +1372,64 @@ func file_proto_composia_controller_v1_task_proto_rawDescGZIP() []byte {
 	return file_proto_composia_controller_v1_task_proto_rawDescData
 }
 
+var file_proto_composia_controller_v1_task_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
 var file_proto_composia_controller_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_proto_composia_controller_v1_task_proto_goTypes = []any{
-	(*TaskActionResponse)(nil),             // 0: composia.controller.v1.TaskActionResponse
-	(*ListTasksRequest)(nil),               // 1: composia.controller.v1.ListTasksRequest
-	(*TaskSummary)(nil),                    // 2: composia.controller.v1.TaskSummary
-	(*ListTasksResponse)(nil),              // 3: composia.controller.v1.ListTasksResponse
-	(*GetTaskRequest)(nil),                 // 4: composia.controller.v1.GetTaskRequest
-	(*TaskStepSummary)(nil),                // 5: composia.controller.v1.TaskStepSummary
-	(*GetTaskResponse)(nil),                // 6: composia.controller.v1.GetTaskResponse
-	(*TailTaskLogsRequest)(nil),            // 7: composia.controller.v1.TailTaskLogsRequest
-	(*TailTaskLogsResponse)(nil),           // 8: composia.controller.v1.TailTaskLogsResponse
-	(*RunTaskAgainRequest)(nil),            // 9: composia.controller.v1.RunTaskAgainRequest
-	(*ResolveTaskConfirmationRequest)(nil), // 10: composia.controller.v1.ResolveTaskConfirmationRequest
+	(TaskType)(0),                          // 0: composia.controller.v1.TaskType
+	(TaskStatus)(0),                        // 1: composia.controller.v1.TaskStatus
+	(TaskSource)(0),                        // 2: composia.controller.v1.TaskSource
+	(TaskStepName)(0),                      // 3: composia.controller.v1.TaskStepName
+	(TaskConfirmationDecision)(0),          // 4: composia.controller.v1.TaskConfirmationDecision
+	(*TaskActionResponse)(nil),             // 5: composia.controller.v1.TaskActionResponse
+	(*ListTasksRequest)(nil),               // 6: composia.controller.v1.ListTasksRequest
+	(*TaskSummary)(nil),                    // 7: composia.controller.v1.TaskSummary
+	(*ListTasksResponse)(nil),              // 8: composia.controller.v1.ListTasksResponse
+	(*GetTaskRequest)(nil),                 // 9: composia.controller.v1.GetTaskRequest
+	(*TaskStepSummary)(nil),                // 10: composia.controller.v1.TaskStepSummary
+	(*GetTaskResponse)(nil),                // 11: composia.controller.v1.GetTaskResponse
+	(*TailTaskLogsRequest)(nil),            // 12: composia.controller.v1.TailTaskLogsRequest
+	(*TailTaskLogsResponse)(nil),           // 13: composia.controller.v1.TailTaskLogsResponse
+	(*RunTaskAgainRequest)(nil),            // 14: composia.controller.v1.RunTaskAgainRequest
+	(*ResolveTaskConfirmationRequest)(nil), // 15: composia.controller.v1.ResolveTaskConfirmationRequest
+	(*timestamppb.Timestamp)(nil),          // 16: google.protobuf.Timestamp
 }
 var file_proto_composia_controller_v1_task_proto_depIdxs = []int32{
-	2,  // 0: composia.controller.v1.ListTasksResponse.tasks:type_name -> composia.controller.v1.TaskSummary
-	5,  // 1: composia.controller.v1.GetTaskResponse.steps:type_name -> composia.controller.v1.TaskStepSummary
-	1,  // 2: composia.controller.v1.TaskService.ListTasks:input_type -> composia.controller.v1.ListTasksRequest
-	4,  // 3: composia.controller.v1.TaskService.GetTask:input_type -> composia.controller.v1.GetTaskRequest
-	7,  // 4: composia.controller.v1.TaskService.TailTaskLogs:input_type -> composia.controller.v1.TailTaskLogsRequest
-	9,  // 5: composia.controller.v1.TaskService.RunTaskAgain:input_type -> composia.controller.v1.RunTaskAgainRequest
-	10, // 6: composia.controller.v1.TaskService.ResolveTaskConfirmation:input_type -> composia.controller.v1.ResolveTaskConfirmationRequest
-	3,  // 7: composia.controller.v1.TaskService.ListTasks:output_type -> composia.controller.v1.ListTasksResponse
-	6,  // 8: composia.controller.v1.TaskService.GetTask:output_type -> composia.controller.v1.GetTaskResponse
-	8,  // 9: composia.controller.v1.TaskService.TailTaskLogs:output_type -> composia.controller.v1.TailTaskLogsResponse
-	0,  // 10: composia.controller.v1.TaskService.RunTaskAgain:output_type -> composia.controller.v1.TaskActionResponse
-	0,  // 11: composia.controller.v1.TaskService.ResolveTaskConfirmation:output_type -> composia.controller.v1.TaskActionResponse
-	7,  // [7:12] is the sub-list for method output_type
-	2,  // [2:7] is the sub-list for method input_type
-	2,  // [2:2] is the sub-list for extension type_name
-	2,  // [2:2] is the sub-list for extension extendee
-	0,  // [0:2] is the sub-list for field type_name
+	1,  // 0: composia.controller.v1.TaskActionResponse.status:type_name -> composia.controller.v1.TaskStatus
+	1,  // 1: composia.controller.v1.ListTasksRequest.status:type_name -> composia.controller.v1.TaskStatus
+	0,  // 2: composia.controller.v1.ListTasksRequest.type:type_name -> composia.controller.v1.TaskType
+	1,  // 3: composia.controller.v1.ListTasksRequest.exclude_status:type_name -> composia.controller.v1.TaskStatus
+	0,  // 4: composia.controller.v1.ListTasksRequest.exclude_type:type_name -> composia.controller.v1.TaskType
+	0,  // 5: composia.controller.v1.TaskSummary.type:type_name -> composia.controller.v1.TaskType
+	1,  // 6: composia.controller.v1.TaskSummary.status:type_name -> composia.controller.v1.TaskStatus
+	16, // 7: composia.controller.v1.TaskSummary.created_at:type_name -> google.protobuf.Timestamp
+	7,  // 8: composia.controller.v1.ListTasksResponse.tasks:type_name -> composia.controller.v1.TaskSummary
+	3,  // 9: composia.controller.v1.TaskStepSummary.step_name:type_name -> composia.controller.v1.TaskStepName
+	1,  // 10: composia.controller.v1.TaskStepSummary.status:type_name -> composia.controller.v1.TaskStatus
+	16, // 11: composia.controller.v1.TaskStepSummary.started_at:type_name -> google.protobuf.Timestamp
+	16, // 12: composia.controller.v1.TaskStepSummary.finished_at:type_name -> google.protobuf.Timestamp
+	0,  // 13: composia.controller.v1.GetTaskResponse.type:type_name -> composia.controller.v1.TaskType
+	2,  // 14: composia.controller.v1.GetTaskResponse.source:type_name -> composia.controller.v1.TaskSource
+	1,  // 15: composia.controller.v1.GetTaskResponse.status:type_name -> composia.controller.v1.TaskStatus
+	16, // 16: composia.controller.v1.GetTaskResponse.created_at:type_name -> google.protobuf.Timestamp
+	16, // 17: composia.controller.v1.GetTaskResponse.started_at:type_name -> google.protobuf.Timestamp
+	16, // 18: composia.controller.v1.GetTaskResponse.finished_at:type_name -> google.protobuf.Timestamp
+	10, // 19: composia.controller.v1.GetTaskResponse.steps:type_name -> composia.controller.v1.TaskStepSummary
+	4,  // 20: composia.controller.v1.ResolveTaskConfirmationRequest.decision:type_name -> composia.controller.v1.TaskConfirmationDecision
+	6,  // 21: composia.controller.v1.TaskService.ListTasks:input_type -> composia.controller.v1.ListTasksRequest
+	9,  // 22: composia.controller.v1.TaskService.GetTask:input_type -> composia.controller.v1.GetTaskRequest
+	12, // 23: composia.controller.v1.TaskService.TailTaskLogs:input_type -> composia.controller.v1.TailTaskLogsRequest
+	14, // 24: composia.controller.v1.TaskService.RunTaskAgain:input_type -> composia.controller.v1.RunTaskAgainRequest
+	15, // 25: composia.controller.v1.TaskService.ResolveTaskConfirmation:input_type -> composia.controller.v1.ResolveTaskConfirmationRequest
+	8,  // 26: composia.controller.v1.TaskService.ListTasks:output_type -> composia.controller.v1.ListTasksResponse
+	11, // 27: composia.controller.v1.TaskService.GetTask:output_type -> composia.controller.v1.GetTaskResponse
+	13, // 28: composia.controller.v1.TaskService.TailTaskLogs:output_type -> composia.controller.v1.TailTaskLogsResponse
+	5,  // 29: composia.controller.v1.TaskService.RunTaskAgain:output_type -> composia.controller.v1.TaskActionResponse
+	5,  // 30: composia.controller.v1.TaskService.ResolveTaskConfirmation:output_type -> composia.controller.v1.TaskActionResponse
+	26, // [26:31] is the sub-list for method output_type
+	21, // [21:26] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_proto_composia_controller_v1_task_proto_init() }
@@ -979,13 +1442,14 @@ func file_proto_composia_controller_v1_task_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_controller_v1_task_proto_rawDesc), len(file_proto_composia_controller_v1_task_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      5,
 			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_proto_composia_controller_v1_task_proto_goTypes,
 		DependencyIndexes: file_proto_composia_controller_v1_task_proto_depIdxs,
+		EnumInfos:         file_proto_composia_controller_v1_task_proto_enumTypes,
 		MessageInfos:      file_proto_composia_controller_v1_task_proto_msgTypes,
 	}.Build()
 	File_proto_composia_controller_v1_task_proto = out.File

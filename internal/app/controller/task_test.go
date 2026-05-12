@@ -94,7 +94,7 @@ func TestTaskServiceListTasks(t *testing.T) {
 		t.Fatalf("expected total count 2, got %d", response.Msg.GetTotalCount())
 	}
 
-	filtered, err := client.ListTasks(ctx, connect.NewRequest(&controllerv1.ListTasksRequest{NodeId: []string{"main"}, Type: []string{string(task.TypeDeploy)}, PageSize: 10}))
+	filtered, err := client.ListTasks(ctx, connect.NewRequest(&controllerv1.ListTasksRequest{NodeId: []string{"main"}, Type: []controllerv1.TaskType{controllerv1.TaskType_TASK_TYPE_DEPLOY}, PageSize: 10}))
 	if err != nil {
 		t.Fatalf("list filtered tasks: %v", err)
 	}
@@ -181,11 +181,8 @@ func TestTaskServiceGetTaskReturnsSteps(t *testing.T) {
 	if response.Msg.GetTaskId() != "task-detail" || response.Msg.GetRepoRevision() != "deadbeef" {
 		t.Fatalf("unexpected task detail response: %+v", response.Msg)
 	}
-	if len(response.Msg.GetSteps()) != 1 || response.Msg.GetSteps()[0].GetStepName() != "render" {
+	if len(response.Msg.GetSteps()) != 1 || response.Msg.GetSteps()[0].GetStepName() != controllerv1.TaskStepName_TASK_STEP_NAME_RENDER {
 		t.Fatalf("unexpected task step response: %+v", response.Msg.GetSteps())
-	}
-	if response.Msg.GetLogPath() != "/tmp/task-detail.log" {
-		t.Fatalf("expected log path /tmp/task-detail.log, got %q", response.Msg.GetLogPath())
 	}
 	if response.Msg.GetTriggeredBy() != "test-client" {
 		t.Fatalf("expected triggered_by test-client, got %q", response.Msg.GetTriggeredBy())
@@ -311,7 +308,7 @@ func TestTaskServiceRunTaskAgainCreatesNewPendingTask(t *testing.T) {
 	if response.Msg.GetTaskId() == "" || response.Msg.GetTaskId() == "task-old" {
 		t.Fatalf("expected new task ID, got %q", response.Msg.GetTaskId())
 	}
-	if response.Msg.GetStatus() != "pending" {
+	if response.Msg.GetStatus() != controllerv1.TaskStatus_TASK_STATUS_PENDING {
 		t.Fatalf("expected pending rerun task, got %q", response.Msg.GetStatus())
 	}
 	detail, err := db.GetTask(ctx, response.Msg.GetTaskId())
@@ -421,11 +418,11 @@ func TestTaskServiceResolveTaskConfirmationApproveRequeuesMigrateTask(t *testing
 	defer httpServer.Close()
 
 	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
-	response, err := client.ResolveTaskConfirmation(ctx, connect.NewRequest(&controllerv1.ResolveTaskConfirmationRequest{TaskId: "task-migrate", Decision: "approve"}))
+	response, err := client.ResolveTaskConfirmation(ctx, connect.NewRequest(&controllerv1.ResolveTaskConfirmationRequest{TaskId: "task-migrate", Decision: controllerv1.TaskConfirmationDecision_TASK_CONFIRMATION_DECISION_APPROVE}))
 	if err != nil {
 		t.Fatalf("resolve task confirmation: %v", err)
 	}
-	if response.Msg.GetStatus() != string(task.StatusPending) {
+	if response.Msg.GetStatus() != controllerv1.TaskStatus_TASK_STATUS_PENDING {
 		t.Fatalf("expected pending status, got %q", response.Msg.GetStatus())
 	}
 	detail, err := db.GetTask(ctx, "task-migrate")
@@ -484,11 +481,11 @@ func TestTaskServiceResolveTaskConfirmationRejectCancelsMigrateTask(t *testing.T
 	defer httpServer.Close()
 
 	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
-	response, err := client.ResolveTaskConfirmation(ctx, connect.NewRequest(&controllerv1.ResolveTaskConfirmationRequest{TaskId: "task-migrate-reject", Decision: "reject"}))
+	response, err := client.ResolveTaskConfirmation(ctx, connect.NewRequest(&controllerv1.ResolveTaskConfirmationRequest{TaskId: "task-migrate-reject", Decision: controllerv1.TaskConfirmationDecision_TASK_CONFIRMATION_DECISION_REJECT}))
 	if err != nil {
 		t.Fatalf("resolve task confirmation: %v", err)
 	}
-	if response.Msg.GetStatus() != string(task.StatusCancelled) {
+	if response.Msg.GetStatus() != controllerv1.TaskStatus_TASK_STATUS_CANCELLED {
 		t.Fatalf("expected cancelled status, got %q", response.Msg.GetStatus())
 	}
 	detail, err := db.GetTask(ctx, "task-migrate-reject")

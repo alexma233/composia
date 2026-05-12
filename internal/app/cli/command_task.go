@@ -58,14 +58,14 @@ func (application *app) runTaskList(args []string) error {
 		return err
 	}
 	response, err := application.client.tasks.ListTasks(application.ctx, newRequest(&controllerv1.ListTasksRequest{
-		Status:             []string(statuses),
+		Status:             taskStatusesFromTexts([]string(statuses)),
 		ServiceName:        []string(services),
 		NodeId:             []string(nodes),
-		Type:               []string(types),
-		ExcludeStatus:      []string(excludeStatuses),
+		Type:               taskTypesFromTexts([]string(types)),
+		ExcludeStatus:      taskStatusesFromTexts([]string(excludeStatuses)),
 		ExcludeServiceName: []string(excludeServices),
 		ExcludeNodeId:      []string(excludeNodes),
-		ExcludeType:        []string(excludeTypes),
+		ExcludeType:        taskTypesFromTexts([]string(excludeTypes)),
 		PageSize:           pageSize,
 		Page:               page,
 	}))
@@ -79,11 +79,11 @@ func (application *app) runTaskList(args []string) error {
 	for _, task := range response.Msg.GetTasks() {
 		rows = append(rows, []string{
 			task.GetTaskId(),
-			task.GetType(),
-			task.GetStatus(),
+			taskTypeText(task.GetType()),
+			taskStatusText(task.GetStatus()),
 			task.GetServiceName(),
 			task.GetNodeId(),
-			task.GetCreatedAt(),
+			formatProtoTimestamp(task.GetCreatedAt()),
 		})
 	}
 	if err := application.writeTable([]string{"TASK", "TYPE", "STATUS", "SERVICE", "NODE", "CREATED"}, rows); err != nil {
@@ -151,7 +151,7 @@ func (application *app) runTaskResolve(decision string, args []string) error {
 	if err := requireArgs(fs.Args(), 1, fmt.Sprintf("composia task %s [--comment text] <task>", decision)); err != nil {
 		return err
 	}
-	response, err := application.client.tasks.ResolveTaskConfirmation(application.ctx, newRequest(&controllerv1.ResolveTaskConfirmationRequest{TaskId: fs.Arg(0), Decision: decision, Comment: *comment}))
+	response, err := application.client.tasks.ResolveTaskConfirmation(application.ctx, newRequest(&controllerv1.ResolveTaskConfirmationRequest{TaskId: fs.Arg(0), Decision: taskDecisionFromText(decision), Comment: *comment}))
 	if err != nil {
 		return err
 	}
@@ -161,19 +161,18 @@ func (application *app) runTaskResolve(decision string, args []string) error {
 func (application *app) printTaskDetail(task *controllerv1.GetTaskResponse) error {
 	if err := application.writeKV([][2]string{
 		{"task_id", task.GetTaskId()},
-		{"type", task.GetType()},
-		{"source", task.GetSource()},
+		{"type", taskTypeText(task.GetType())},
+		{"source", taskSourceText(task.GetSource())},
 		{"service_name", task.GetServiceName()},
 		{"node_id", task.GetNodeId()},
-		{"status", task.GetStatus()},
-		{"created_at", task.GetCreatedAt()},
-		{"started_at", task.GetStartedAt()},
-		{"finished_at", task.GetFinishedAt()},
+		{"status", taskStatusText(task.GetStatus())},
+		{"created_at", formatProtoTimestamp(task.GetCreatedAt())},
+		{"started_at", formatProtoTimestamp(task.GetStartedAt())},
+		{"finished_at", formatProtoTimestamp(task.GetFinishedAt())},
 		{"repo_revision", task.GetRepoRevision()},
 		{"result_revision", task.GetResultRevision()},
 		{"attempt_of_task_id", task.GetAttemptOfTaskId()},
 		{"triggered_by", task.GetTriggeredBy()},
-		{"log_path", task.GetLogPath()},
 		{"error_summary", task.GetErrorSummary()},
 	}); err != nil {
 		return err
@@ -187,7 +186,7 @@ func (application *app) printTaskDetail(task *controllerv1.GetTaskResponse) erro
 	}
 	rows := make([][]string, 0, len(steps))
 	for _, step := range steps {
-		rows = append(rows, []string{step.GetStepName(), step.GetStatus(), step.GetStartedAt(), step.GetFinishedAt()})
+		rows = append(rows, []string{taskStepNameText(step.GetStepName()), taskStatusText(step.GetStatus()), formatProtoTimestamp(step.GetStartedAt()), formatProtoTimestamp(step.GetFinishedAt())})
 	}
 	return application.writeTable([]string{"STEP", "STATUS", "STARTED", "FINISHED"}, rows)
 }

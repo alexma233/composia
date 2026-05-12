@@ -31,12 +31,7 @@ message GetSystemStatusResponse {
   uint64 configured_node_count = 3;
   // online_node_count is the number of nodes with a recent heartbeat.
   uint64 online_node_count = 4;
-  // repo_dir is the controller-side desired state repository path.
-  string repo_dir = 5;
-  // state_dir is the controller-side persistent state directory.
-  string state_dir = 6;
-  // log_dir is the controller-side task log directory.
-  string log_dir = 7;
+  reserved 5, 6, 7;
 }
 
 // ReloadControllerConfigRequest requests an in-process controller config reload.
@@ -81,7 +76,32 @@ message GetCapabilitiesResponse {
 message Capability {
   bool enabled = 1;
   // reason_code explains why the capability is disabled when enabled is false.
-  string reason_code = 2;
+  CapabilityReasonCode reason_code = 2;
+}
+
+// CapabilityReasonCode explains why a capability is disabled.
+enum CapabilityReasonCode {
+  CAPABILITY_REASON_CODE_UNSPECIFIED = 0;
+  CAPABILITY_REASON_CODE_MISSING_BACKUP_INTEGRATION = 1;
+  CAPABILITY_REASON_CODE_MISSING_BACKUP_DEFINITION = 2;
+  CAPABILITY_REASON_CODE_MISSING_RESTORE_DEFINITION = 3;
+  CAPABILITY_REASON_CODE_MISSING_MIGRATE_DEFINITION = 4;
+  CAPABILITY_REASON_CODE_MISSING_DNS_INTEGRATION = 5;
+  CAPABILITY_REASON_CODE_MISSING_SECRETS_CONFIG = 6;
+  CAPABILITY_REASON_CODE_MISSING_CADDY_INFRA = 7;
+  CAPABILITY_REASON_CODE_MISSING_SERVICE_META = 8;
+  CAPABILITY_REASON_CODE_SERVICE_NOT_DECLARED = 9;
+  CAPABILITY_REASON_CODE_SERVICE_DNS_NOT_DECLARED = 10;
+  CAPABILITY_REASON_CODE_SERVICE_NOT_CADDY_MANAGED = 11;
+  CAPABILITY_REASON_CODE_NODE_DISABLED = 12;
+  CAPABILITY_REASON_CODE_NODE_OFFLINE = 13;
+  CAPABILITY_REASON_CODE_NODE_NOT_ELIGIBLE = 14;
+  CAPABILITY_REASON_CODE_NODE_NOT_RUSTIC_MANAGED = 15;
+  CAPABILITY_REASON_CODE_MISSING_ELIGIBLE_RUSTIC_NODE = 16;
+  CAPABILITY_REASON_CODE_MISSING_ONLINE_RUSTIC_NODE = 17;
+  CAPABILITY_REASON_CODE_BACKUP_NOT_SUCCEEDED = 18;
+  CAPABILITY_REASON_CODE_BACKUP_ARTIFACT_MISSING = 19;
+  CAPABILITY_REASON_CODE_MISSING_RESTORE_TARGET_NODE = 20;
 }
 
 // GlobalCapabilities describes controller-wide feature availability.

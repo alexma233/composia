@@ -823,109 +823,70 @@ func executeDockerQuery(ctx context.Context, query *agentv1.DockerQueryTask) (do
 		_ = server.client.Close()
 	}()
 
-	switch query.GetAction() {
-	case "list":
-		switch query.GetResource() {
-		case "containers":
-			resp, err := server.ListContainers(ctx, connect.NewRequest(&agentv1.ListContainersRequest{
-				PageSize: query.GetPageSize(),
-				Page:     query.GetPage(),
-				Search:   query.GetSearch(),
-				SortBy:   query.GetSortBy(),
-				SortDesc: query.GetSortDesc(),
-			}))
-			if err != nil {
-				return dockerTaskResult{}, err
-			}
-			return dockerTaskResult{Containers: resp.Msg.GetContainers(), TotalCount: resp.Msg.GetTotalCount()}, nil
-		case "networks":
-			resp, err := server.ListNetworks(ctx, connect.NewRequest(&agentv1.ListNetworksRequest{
-				PageSize: query.GetPageSize(),
-				Page:     query.GetPage(),
-				Search:   query.GetSearch(),
-				SortBy:   query.GetSortBy(),
-				SortDesc: query.GetSortDesc(),
-			}))
-			if err != nil {
-				return dockerTaskResult{}, err
-			}
-			return dockerTaskResult{Networks: resp.Msg.GetNetworks(), TotalCount: resp.Msg.GetTotalCount()}, nil
-		case "volumes":
-			resp, err := server.ListVolumes(ctx, connect.NewRequest(&agentv1.ListVolumesRequest{
-				PageSize: query.GetPageSize(),
-				Page:     query.GetPage(),
-				Search:   query.GetSearch(),
-				SortBy:   query.GetSortBy(),
-				SortDesc: query.GetSortDesc(),
-			}))
-			if err != nil {
-				return dockerTaskResult{}, err
-			}
-			return dockerTaskResult{Volumes: resp.Msg.GetVolumes(), TotalCount: resp.Msg.GetTotalCount()}, nil
-		case "images":
-			resp, err := server.ListImages(ctx, connect.NewRequest(&agentv1.ListImagesRequest{
-				PageSize: query.GetPageSize(),
-				Page:     query.GetPage(),
-				Search:   query.GetSearch(),
-				SortBy:   query.GetSortBy(),
-				SortDesc: query.GetSortDesc(),
-			}))
-			if err != nil {
-				return dockerTaskResult{}, err
-			}
-			return dockerTaskResult{Images: resp.Msg.GetImages(), TotalCount: resp.Msg.GetTotalCount()}, nil
-		default:
-			return dockerTaskResult{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unsupported list resource %q", query.GetResource()))
+	switch typed := query.Query.(type) {
+	case *agentv1.DockerQueryTask_ListContainers:
+		resp, err := server.ListContainers(ctx, connect.NewRequest(typed.ListContainers))
+		if err != nil {
+			return dockerTaskResult{}, err
 		}
-	case "inspect":
-		switch query.GetResource() {
-		case "container":
-			resp, err := server.InspectContainer(ctx, connect.NewRequest(&agentv1.InspectContainerRequest{ContainerId: query.GetId()}))
-			if err != nil {
-				return dockerTaskResult{}, err
-			}
-			return dockerTaskResult{RawJSON: resp.Msg.GetRawJson()}, nil
-		case "network":
-			resp, err := server.InspectNetwork(ctx, connect.NewRequest(&agentv1.InspectNetworkRequest{NetworkId: query.GetId()}))
-			if err != nil {
-				return dockerTaskResult{}, err
-			}
-			return dockerTaskResult{RawJSON: resp.Msg.GetRawJson()}, nil
-		case "volume":
-			resp, err := server.InspectVolume(ctx, connect.NewRequest(&agentv1.InspectVolumeRequest{VolumeName: query.GetId()}))
-			if err != nil {
-				return dockerTaskResult{}, err
-			}
-			return dockerTaskResult{RawJSON: resp.Msg.GetRawJson()}, nil
-		case "image":
-			resp, err := server.InspectImage(ctx, connect.NewRequest(&agentv1.InspectImageRequest{ImageId: query.GetId()}))
-			if err != nil {
-				return dockerTaskResult{}, err
-			}
-			return dockerTaskResult{RawJSON: resp.Msg.GetRawJson()}, nil
-		default:
-			return dockerTaskResult{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unsupported inspect resource %q", query.GetResource()))
+		return dockerTaskResult{Containers: resp.Msg.GetContainers(), TotalCount: resp.Msg.GetTotalCount()}, nil
+	case *agentv1.DockerQueryTask_ListNetworks:
+		resp, err := server.ListNetworks(ctx, connect.NewRequest(typed.ListNetworks))
+		if err != nil {
+			return dockerTaskResult{}, err
 		}
-	case "logs":
-		if query.GetResource() != "container" {
-			return dockerTaskResult{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unsupported logs resource %q", query.GetResource()))
+		return dockerTaskResult{Networks: resp.Msg.GetNetworks(), TotalCount: resp.Msg.GetTotalCount()}, nil
+	case *agentv1.DockerQueryTask_ListVolumes:
+		resp, err := server.ListVolumes(ctx, connect.NewRequest(typed.ListVolumes))
+		if err != nil {
+			return dockerTaskResult{}, err
 		}
-		content, err := server.collectContainerLogs(ctx, query.GetId(), query.GetTail(), query.GetTimestamps())
+		return dockerTaskResult{Volumes: resp.Msg.GetVolumes(), TotalCount: resp.Msg.GetTotalCount()}, nil
+	case *agentv1.DockerQueryTask_ListImages:
+		resp, err := server.ListImages(ctx, connect.NewRequest(typed.ListImages))
+		if err != nil {
+			return dockerTaskResult{}, err
+		}
+		return dockerTaskResult{Images: resp.Msg.GetImages(), TotalCount: resp.Msg.GetTotalCount()}, nil
+	case *agentv1.DockerQueryTask_InspectContainer:
+		resp, err := server.InspectContainer(ctx, connect.NewRequest(typed.InspectContainer))
+		if err != nil {
+			return dockerTaskResult{}, err
+		}
+		return dockerTaskResult{RawJSON: resp.Msg.GetRawJson()}, nil
+	case *agentv1.DockerQueryTask_InspectNetwork:
+		resp, err := server.InspectNetwork(ctx, connect.NewRequest(typed.InspectNetwork))
+		if err != nil {
+			return dockerTaskResult{}, err
+		}
+		return dockerTaskResult{RawJSON: resp.Msg.GetRawJson()}, nil
+	case *agentv1.DockerQueryTask_InspectVolume:
+		resp, err := server.InspectVolume(ctx, connect.NewRequest(typed.InspectVolume))
+		if err != nil {
+			return dockerTaskResult{}, err
+		}
+		return dockerTaskResult{RawJSON: resp.Msg.GetRawJson()}, nil
+	case *agentv1.DockerQueryTask_InspectImage:
+		resp, err := server.InspectImage(ctx, connect.NewRequest(typed.InspectImage))
+		if err != nil {
+			return dockerTaskResult{}, err
+		}
+		return dockerTaskResult{RawJSON: resp.Msg.GetRawJson()}, nil
+	case *agentv1.DockerQueryTask_GetContainerLogs:
+		content, err := server.collectContainerLogs(ctx, typed.GetContainerLogs.GetContainerId(), typed.GetContainerLogs.GetTail(), typed.GetContainerLogs.GetTimestamps())
 		if err != nil {
 			return dockerTaskResult{}, err
 		}
 		return dockerTaskResult{Content: content}, nil
-	case "exec":
-		if query.GetResource() != "container" {
-			return dockerTaskResult{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unsupported exec resource %q", query.GetResource()))
-		}
-		result, err := server.runContainerExec(ctx, query.GetId(), query.GetCommand(), query.GetStdin(), query.GetTimeoutSeconds(), query.GetMaxOutputBytes())
+	case *agentv1.DockerQueryTask_RunContainerExec:
+		request := typed.RunContainerExec
+		result, err := server.runContainerExec(ctx, request.GetContainerId(), request.GetCommand(), request.GetStdin(), request.GetTimeoutSeconds(), request.GetMaxOutputBytes())
 		if err != nil {
 			return dockerTaskResult{}, err
 		}
 		return dockerTaskResult{Exec: result}, nil
 	default:
-		return dockerTaskResult{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unsupported docker query action %q", query.GetAction()))
+		return dockerTaskResult{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unsupported docker query"))
 	}
 }
 

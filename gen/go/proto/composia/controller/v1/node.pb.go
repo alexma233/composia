@@ -304,7 +304,8 @@ func (x *ListNodesResponse) GetNodes() []*NodeSummary {
 // GetNodeResponse returns one node summary.
 type GetNodeResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// node is omitted when the requested node does not exist.
+	// node contains the requested configured node.
+	// The RPC returns NotFound when the requested node does not exist.
 	Node          *NodeSummary `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -352,8 +353,8 @@ type GetNodeTasksRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// node_id is the stable node identifier.
 	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	// status narrows results to one task status string when set.
-	Status string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	// status narrows results to one task status when set.
+	Status TaskStatus `protobuf:"varint,2,opt,name=status,proto3,enum=composia.controller.v1.TaskStatus" json:"status,omitempty"`
 	// page_size is the requested page size.
 	PageSize uint32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// page is the 1-based page number.
@@ -399,11 +400,11 @@ func (x *GetNodeTasksRequest) GetNodeId() string {
 	return ""
 }
 
-func (x *GetNodeTasksRequest) GetStatus() string {
+func (x *GetNodeTasksRequest) GetStatus() TaskStatus {
 	if x != nil {
 		return x.Status
 	}
-	return ""
+	return TaskStatus_TASK_STATUS_UNSPECIFIED
 }
 
 func (x *GetNodeTasksRequest) GetPageSize() uint32 {
@@ -2811,10 +2812,10 @@ const file_proto_composia_controller_v1_node_proto_rawDesc = "" +
 	"\x11ListNodesResponse\x129\n" +
 	"\x05nodes\x18\x01 \x03(\v2#.composia.controller.v1.NodeSummaryR\x05nodes\"J\n" +
 	"\x0fGetNodeResponse\x127\n" +
-	"\x04node\x18\x01 \x01(\v2#.composia.controller.v1.NodeSummaryR\x04node\"w\n" +
+	"\x04node\x18\x01 \x01(\v2#.composia.controller.v1.NodeSummaryR\x04node\"\x9b\x01\n" +
 	"\x13GetNodeTasksRequest\x12\x17\n" +
-	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\x12\x1b\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12:\n" +
+	"\x06status\x18\x02 \x01(\x0e2\".composia.controller.v1.TaskStatusR\x06status\x12\x1b\n" +
 	"\tpage_size\x18\x03 \x01(\rR\bpageSize\x12\x12\n" +
 	"\x04page\x18\x04 \x01(\rR\x04page\"r\n" +
 	"\x14GetNodeTasksResponse\x129\n" +
@@ -3083,7 +3084,8 @@ var file_proto_composia_controller_v1_node_proto_goTypes = []any{
 	nil,                                  // 44: composia.controller.v1.NetworkInfo.LabelsEntry
 	nil,                                  // 45: composia.controller.v1.VolumeInfo.LabelsEntry
 	(*Capability)(nil),                   // 46: composia.controller.v1.Capability
-	(*TaskSummary)(nil),                  // 47: composia.controller.v1.TaskSummary
+	(TaskStatus)(0),                      // 47: composia.controller.v1.TaskStatus
+	(*TaskSummary)(nil),                  // 48: composia.controller.v1.TaskSummary
 }
 var file_proto_composia_controller_v1_node_proto_depIdxs = []int32{
 	3,  // 0: composia.controller.v1.NodeSummary.actions:type_name -> composia.controller.v1.NodeActionCapabilities
@@ -3092,56 +3094,57 @@ var file_proto_composia_controller_v1_node_proto_depIdxs = []int32{
 	46, // 3: composia.controller.v1.NodeActionCapabilities.rustic_maintenance:type_name -> composia.controller.v1.Capability
 	2,  // 4: composia.controller.v1.ListNodesResponse.nodes:type_name -> composia.controller.v1.NodeSummary
 	2,  // 5: composia.controller.v1.GetNodeResponse.node:type_name -> composia.controller.v1.NodeSummary
-	47, // 6: composia.controller.v1.GetNodeTasksResponse.tasks:type_name -> composia.controller.v1.TaskSummary
-	9,  // 7: composia.controller.v1.GetNodeDockerStatsResponse.stats:type_name -> composia.controller.v1.DockerStats
-	43, // 8: composia.controller.v1.ContainerInfo.labels:type_name -> composia.controller.v1.ContainerInfo.LabelsEntry
-	24, // 9: composia.controller.v1.ListNodeContainersResponse.containers:type_name -> composia.controller.v1.ContainerInfo
-	44, // 10: composia.controller.v1.NetworkInfo.labels:type_name -> composia.controller.v1.NetworkInfo.LabelsEntry
-	29, // 11: composia.controller.v1.ListNodeNetworksResponse.networks:type_name -> composia.controller.v1.NetworkInfo
-	45, // 12: composia.controller.v1.VolumeInfo.labels:type_name -> composia.controller.v1.VolumeInfo.LabelsEntry
-	34, // 13: composia.controller.v1.ListNodeVolumesResponse.volumes:type_name -> composia.controller.v1.VolumeInfo
-	39, // 14: composia.controller.v1.ListNodeImagesResponse.images:type_name -> composia.controller.v1.ImageInfo
-	0,  // 15: composia.controller.v1.NodeQueryService.ListNodes:input_type -> composia.controller.v1.ListNodesRequest
-	1,  // 16: composia.controller.v1.NodeQueryService.GetNode:input_type -> composia.controller.v1.GetNodeRequest
-	6,  // 17: composia.controller.v1.NodeQueryService.GetNodeTasks:input_type -> composia.controller.v1.GetNodeTasksRequest
-	8,  // 18: composia.controller.v1.NodeQueryService.GetNodeDockerStats:input_type -> composia.controller.v1.GetNodeDockerStatsRequest
-	11, // 19: composia.controller.v1.NodeMaintenanceService.SyncNodeCaddyFiles:input_type -> composia.controller.v1.SyncNodeCaddyFilesRequest
-	13, // 20: composia.controller.v1.NodeMaintenanceService.ReloadNodeCaddy:input_type -> composia.controller.v1.ReloadNodeCaddyRequest
-	15, // 21: composia.controller.v1.NodeMaintenanceService.PruneNodeDocker:input_type -> composia.controller.v1.PruneNodeDockerRequest
-	17, // 22: composia.controller.v1.NodeMaintenanceService.InitNodeRustic:input_type -> composia.controller.v1.InitNodeRusticRequest
-	19, // 23: composia.controller.v1.NodeMaintenanceService.ForgetNodeRustic:input_type -> composia.controller.v1.ForgetNodeRusticRequest
-	21, // 24: composia.controller.v1.NodeMaintenanceService.PruneNodeRustic:input_type -> composia.controller.v1.PruneNodeRusticRequest
-	23, // 25: composia.controller.v1.DockerQueryService.ListNodeContainers:input_type -> composia.controller.v1.ListNodeContainersRequest
-	26, // 26: composia.controller.v1.DockerQueryService.InspectNodeContainer:input_type -> composia.controller.v1.InspectNodeContainerRequest
-	28, // 27: composia.controller.v1.DockerQueryService.ListNodeNetworks:input_type -> composia.controller.v1.ListNodeNetworksRequest
-	31, // 28: composia.controller.v1.DockerQueryService.InspectNodeNetwork:input_type -> composia.controller.v1.InspectNodeNetworkRequest
-	33, // 29: composia.controller.v1.DockerQueryService.ListNodeVolumes:input_type -> composia.controller.v1.ListNodeVolumesRequest
-	36, // 30: composia.controller.v1.DockerQueryService.InspectNodeVolume:input_type -> composia.controller.v1.InspectNodeVolumeRequest
-	38, // 31: composia.controller.v1.DockerQueryService.ListNodeImages:input_type -> composia.controller.v1.ListNodeImagesRequest
-	41, // 32: composia.controller.v1.DockerQueryService.InspectNodeImage:input_type -> composia.controller.v1.InspectNodeImageRequest
-	4,  // 33: composia.controller.v1.NodeQueryService.ListNodes:output_type -> composia.controller.v1.ListNodesResponse
-	5,  // 34: composia.controller.v1.NodeQueryService.GetNode:output_type -> composia.controller.v1.GetNodeResponse
-	7,  // 35: composia.controller.v1.NodeQueryService.GetNodeTasks:output_type -> composia.controller.v1.GetNodeTasksResponse
-	10, // 36: composia.controller.v1.NodeQueryService.GetNodeDockerStats:output_type -> composia.controller.v1.GetNodeDockerStatsResponse
-	12, // 37: composia.controller.v1.NodeMaintenanceService.SyncNodeCaddyFiles:output_type -> composia.controller.v1.SyncNodeCaddyFilesResponse
-	14, // 38: composia.controller.v1.NodeMaintenanceService.ReloadNodeCaddy:output_type -> composia.controller.v1.ReloadNodeCaddyResponse
-	16, // 39: composia.controller.v1.NodeMaintenanceService.PruneNodeDocker:output_type -> composia.controller.v1.PruneNodeDockerResponse
-	18, // 40: composia.controller.v1.NodeMaintenanceService.InitNodeRustic:output_type -> composia.controller.v1.InitNodeRusticResponse
-	20, // 41: composia.controller.v1.NodeMaintenanceService.ForgetNodeRustic:output_type -> composia.controller.v1.ForgetNodeRusticResponse
-	22, // 42: composia.controller.v1.NodeMaintenanceService.PruneNodeRustic:output_type -> composia.controller.v1.PruneNodeRusticResponse
-	25, // 43: composia.controller.v1.DockerQueryService.ListNodeContainers:output_type -> composia.controller.v1.ListNodeContainersResponse
-	27, // 44: composia.controller.v1.DockerQueryService.InspectNodeContainer:output_type -> composia.controller.v1.InspectNodeContainerResponse
-	30, // 45: composia.controller.v1.DockerQueryService.ListNodeNetworks:output_type -> composia.controller.v1.ListNodeNetworksResponse
-	32, // 46: composia.controller.v1.DockerQueryService.InspectNodeNetwork:output_type -> composia.controller.v1.InspectNodeNetworkResponse
-	35, // 47: composia.controller.v1.DockerQueryService.ListNodeVolumes:output_type -> composia.controller.v1.ListNodeVolumesResponse
-	37, // 48: composia.controller.v1.DockerQueryService.InspectNodeVolume:output_type -> composia.controller.v1.InspectNodeVolumeResponse
-	40, // 49: composia.controller.v1.DockerQueryService.ListNodeImages:output_type -> composia.controller.v1.ListNodeImagesResponse
-	42, // 50: composia.controller.v1.DockerQueryService.InspectNodeImage:output_type -> composia.controller.v1.InspectNodeImageResponse
-	33, // [33:51] is the sub-list for method output_type
-	15, // [15:33] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	47, // 6: composia.controller.v1.GetNodeTasksRequest.status:type_name -> composia.controller.v1.TaskStatus
+	48, // 7: composia.controller.v1.GetNodeTasksResponse.tasks:type_name -> composia.controller.v1.TaskSummary
+	9,  // 8: composia.controller.v1.GetNodeDockerStatsResponse.stats:type_name -> composia.controller.v1.DockerStats
+	43, // 9: composia.controller.v1.ContainerInfo.labels:type_name -> composia.controller.v1.ContainerInfo.LabelsEntry
+	24, // 10: composia.controller.v1.ListNodeContainersResponse.containers:type_name -> composia.controller.v1.ContainerInfo
+	44, // 11: composia.controller.v1.NetworkInfo.labels:type_name -> composia.controller.v1.NetworkInfo.LabelsEntry
+	29, // 12: composia.controller.v1.ListNodeNetworksResponse.networks:type_name -> composia.controller.v1.NetworkInfo
+	45, // 13: composia.controller.v1.VolumeInfo.labels:type_name -> composia.controller.v1.VolumeInfo.LabelsEntry
+	34, // 14: composia.controller.v1.ListNodeVolumesResponse.volumes:type_name -> composia.controller.v1.VolumeInfo
+	39, // 15: composia.controller.v1.ListNodeImagesResponse.images:type_name -> composia.controller.v1.ImageInfo
+	0,  // 16: composia.controller.v1.NodeQueryService.ListNodes:input_type -> composia.controller.v1.ListNodesRequest
+	1,  // 17: composia.controller.v1.NodeQueryService.GetNode:input_type -> composia.controller.v1.GetNodeRequest
+	6,  // 18: composia.controller.v1.NodeQueryService.GetNodeTasks:input_type -> composia.controller.v1.GetNodeTasksRequest
+	8,  // 19: composia.controller.v1.NodeQueryService.GetNodeDockerStats:input_type -> composia.controller.v1.GetNodeDockerStatsRequest
+	11, // 20: composia.controller.v1.NodeMaintenanceService.SyncNodeCaddyFiles:input_type -> composia.controller.v1.SyncNodeCaddyFilesRequest
+	13, // 21: composia.controller.v1.NodeMaintenanceService.ReloadNodeCaddy:input_type -> composia.controller.v1.ReloadNodeCaddyRequest
+	15, // 22: composia.controller.v1.NodeMaintenanceService.PruneNodeDocker:input_type -> composia.controller.v1.PruneNodeDockerRequest
+	17, // 23: composia.controller.v1.NodeMaintenanceService.InitNodeRustic:input_type -> composia.controller.v1.InitNodeRusticRequest
+	19, // 24: composia.controller.v1.NodeMaintenanceService.ForgetNodeRustic:input_type -> composia.controller.v1.ForgetNodeRusticRequest
+	21, // 25: composia.controller.v1.NodeMaintenanceService.PruneNodeRustic:input_type -> composia.controller.v1.PruneNodeRusticRequest
+	23, // 26: composia.controller.v1.DockerQueryService.ListNodeContainers:input_type -> composia.controller.v1.ListNodeContainersRequest
+	26, // 27: composia.controller.v1.DockerQueryService.InspectNodeContainer:input_type -> composia.controller.v1.InspectNodeContainerRequest
+	28, // 28: composia.controller.v1.DockerQueryService.ListNodeNetworks:input_type -> composia.controller.v1.ListNodeNetworksRequest
+	31, // 29: composia.controller.v1.DockerQueryService.InspectNodeNetwork:input_type -> composia.controller.v1.InspectNodeNetworkRequest
+	33, // 30: composia.controller.v1.DockerQueryService.ListNodeVolumes:input_type -> composia.controller.v1.ListNodeVolumesRequest
+	36, // 31: composia.controller.v1.DockerQueryService.InspectNodeVolume:input_type -> composia.controller.v1.InspectNodeVolumeRequest
+	38, // 32: composia.controller.v1.DockerQueryService.ListNodeImages:input_type -> composia.controller.v1.ListNodeImagesRequest
+	41, // 33: composia.controller.v1.DockerQueryService.InspectNodeImage:input_type -> composia.controller.v1.InspectNodeImageRequest
+	4,  // 34: composia.controller.v1.NodeQueryService.ListNodes:output_type -> composia.controller.v1.ListNodesResponse
+	5,  // 35: composia.controller.v1.NodeQueryService.GetNode:output_type -> composia.controller.v1.GetNodeResponse
+	7,  // 36: composia.controller.v1.NodeQueryService.GetNodeTasks:output_type -> composia.controller.v1.GetNodeTasksResponse
+	10, // 37: composia.controller.v1.NodeQueryService.GetNodeDockerStats:output_type -> composia.controller.v1.GetNodeDockerStatsResponse
+	12, // 38: composia.controller.v1.NodeMaintenanceService.SyncNodeCaddyFiles:output_type -> composia.controller.v1.SyncNodeCaddyFilesResponse
+	14, // 39: composia.controller.v1.NodeMaintenanceService.ReloadNodeCaddy:output_type -> composia.controller.v1.ReloadNodeCaddyResponse
+	16, // 40: composia.controller.v1.NodeMaintenanceService.PruneNodeDocker:output_type -> composia.controller.v1.PruneNodeDockerResponse
+	18, // 41: composia.controller.v1.NodeMaintenanceService.InitNodeRustic:output_type -> composia.controller.v1.InitNodeRusticResponse
+	20, // 42: composia.controller.v1.NodeMaintenanceService.ForgetNodeRustic:output_type -> composia.controller.v1.ForgetNodeRusticResponse
+	22, // 43: composia.controller.v1.NodeMaintenanceService.PruneNodeRustic:output_type -> composia.controller.v1.PruneNodeRusticResponse
+	25, // 44: composia.controller.v1.DockerQueryService.ListNodeContainers:output_type -> composia.controller.v1.ListNodeContainersResponse
+	27, // 45: composia.controller.v1.DockerQueryService.InspectNodeContainer:output_type -> composia.controller.v1.InspectNodeContainerResponse
+	30, // 46: composia.controller.v1.DockerQueryService.ListNodeNetworks:output_type -> composia.controller.v1.ListNodeNetworksResponse
+	32, // 47: composia.controller.v1.DockerQueryService.InspectNodeNetwork:output_type -> composia.controller.v1.InspectNodeNetworkResponse
+	35, // 48: composia.controller.v1.DockerQueryService.ListNodeVolumes:output_type -> composia.controller.v1.ListNodeVolumesResponse
+	37, // 49: composia.controller.v1.DockerQueryService.InspectNodeVolume:output_type -> composia.controller.v1.InspectNodeVolumeResponse
+	40, // 50: composia.controller.v1.DockerQueryService.ListNodeImages:output_type -> composia.controller.v1.ListNodeImagesResponse
+	42, // 51: composia.controller.v1.DockerQueryService.InspectNodeImage:output_type -> composia.controller.v1.InspectNodeImageResponse
+	34, // [34:52] is the sub-list for method output_type
+	16, // [16:34] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_proto_composia_controller_v1_node_proto_init() }

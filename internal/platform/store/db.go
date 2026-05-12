@@ -15,7 +15,7 @@ import (
 
 const DatabaseFileName = "composia.db"
 
-const sqliteSchemaVersion = 3
+const sqliteSchemaVersion = 4
 
 var ErrServiceNotFound = errors.New("service not found")
 
@@ -823,8 +823,8 @@ func (db *DB) migrate(ctx context.Context) error {
 		statements: []string{
 			`CREATE TABLE IF NOT EXISTS nodes (
 			node_id TEXT PRIMARY KEY,
-			is_configured INTEGER NOT NULL,
-			is_online INTEGER NOT NULL,
+			is_configured INTEGER NOT NULL CHECK (is_configured IN (0, 1)),
+			is_online INTEGER NOT NULL CHECK (is_online IN (0, 1)),
 			last_heartbeat TEXT,
 			agent_version TEXT,
 			docker_server_version TEXT,
@@ -833,8 +833,8 @@ func (db *DB) migrate(ctx context.Context) error {
 		);`,
 			`CREATE TABLE IF NOT EXISTS services (
 			service_name TEXT PRIMARY KEY,
-			is_declared INTEGER NOT NULL,
-			runtime_status TEXT NOT NULL,
+			is_declared INTEGER NOT NULL CHECK (is_declared IN (0, 1)),
+			runtime_status TEXT NOT NULL CHECK (runtime_status IN ('running', 'stopped', 'error', 'unknown')),
 			last_task_id TEXT,
 			updated_at TEXT NOT NULL,
 			FOREIGN KEY (last_task_id) REFERENCES tasks(task_id)
@@ -842,8 +842,8 @@ func (db *DB) migrate(ctx context.Context) error {
 			`CREATE TABLE IF NOT EXISTS service_instances (
 			service_name TEXT NOT NULL,
 			node_id TEXT NOT NULL,
-			is_declared INTEGER NOT NULL,
-			runtime_status TEXT NOT NULL,
+			is_declared INTEGER NOT NULL CHECK (is_declared IN (0, 1)),
+			runtime_status TEXT NOT NULL CHECK (runtime_status IN ('running', 'stopped', 'error', 'unknown')),
 			last_task_id TEXT,
 			updated_at TEXT NOT NULL,
 			PRIMARY KEY (service_name, node_id),
@@ -853,13 +853,13 @@ func (db *DB) migrate(ctx context.Context) error {
 		);`,
 			`CREATE TABLE IF NOT EXISTS tasks (
 			task_id TEXT PRIMARY KEY,
-			type TEXT NOT NULL,
-			source TEXT NOT NULL,
+			type TEXT NOT NULL CHECK (type IN ('deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'dns_update', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove')),
+			source TEXT NOT NULL CHECK (source IN ('web', 'cli', 'others', 'schedule', 'system', 'auto_deploy')),
 			triggered_by TEXT,
 			service_name TEXT,
 			node_id TEXT,
-			status TEXT NOT NULL,
-			params_json TEXT,
+			status TEXT NOT NULL CHECK (status IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled')),
+			params_json TEXT CHECK (params_json IS NULL OR json_valid(params_json)),
 			log_path TEXT,
 			repo_revision TEXT,
 			result_revision TEXT,
@@ -876,7 +876,7 @@ func (db *DB) migrate(ctx context.Context) error {
 			`CREATE TABLE IF NOT EXISTS task_steps (
 			task_id TEXT NOT NULL,
 			step_name TEXT NOT NULL,
-			status TEXT NOT NULL,
+			status TEXT NOT NULL CHECK (status IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled')),
 			started_at TEXT,
 			finished_at TEXT,
 			PRIMARY KEY (task_id, step_name),
@@ -888,7 +888,7 @@ func (db *DB) migrate(ctx context.Context) error {
 			service_name TEXT NOT NULL,
 			node_id TEXT,
 			data_name TEXT NOT NULL,
-			status TEXT NOT NULL,
+			status TEXT NOT NULL CHECK (status IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled')),
 			started_at TEXT NOT NULL,
 			finished_at TEXT,
 			artifact_ref TEXT,
@@ -936,8 +936,8 @@ func (db *DB) migrate(ctx context.Context) error {
 			image_ref TEXT NOT NULL,
 			local_digest TEXT NOT NULL DEFAULT '',
 			remote_digest TEXT NOT NULL DEFAULT '',
-			update_available INTEGER NOT NULL DEFAULT 0,
-			check_status TEXT NOT NULL,
+			update_available INTEGER NOT NULL DEFAULT 0 CHECK (update_available IN (0, 1)),
+			check_status TEXT NOT NULL CHECK (check_status IN ('unknown', 'ok', 'error')),
 			error_summary TEXT,
 			checked_at TEXT NOT NULL,
 			updated_at TEXT NOT NULL,
@@ -957,9 +957,9 @@ func (db *DB) migrate(ctx context.Context) error {
 			current_digest TEXT NOT NULL DEFAULT '',
 			candidate_tag TEXT NOT NULL DEFAULT '',
 			candidate_digest TEXT NOT NULL DEFAULT '',
-			candidate_tags_json TEXT,
-			update_available INTEGER NOT NULL DEFAULT 0,
-			check_status TEXT NOT NULL,
+			candidate_tags_json TEXT CHECK (candidate_tags_json IS NULL OR json_valid(candidate_tags_json)),
+			update_available INTEGER NOT NULL DEFAULT 0 CHECK (update_available IN (0, 1)),
+			check_status TEXT NOT NULL CHECK (check_status IN ('unknown', 'ok', 'error')),
 			error_summary TEXT,
 			checked_at TEXT NOT NULL,
 			updated_at TEXT NOT NULL,
@@ -1027,6 +1027,26 @@ func (db *DB) migrate(ctx context.Context) error {
 			`ALTER TABLE backups_v3 RENAME TO backups;`,
 			`CREATE INDEX IF NOT EXISTS idx_backups_service_finished_at ON backups(service_name, finished_at DESC);`,
 			`CREATE INDEX IF NOT EXISTS idx_backups_status_finished_at ON backups(status, finished_at DESC);`,
+		},
+	}, {
+		version: 4,
+		statements: []string{
+			`CREATE TRIGGER IF NOT EXISTS trg_tasks_validate_insert BEFORE INSERT ON tasks FOR EACH ROW BEGIN SELECT CASE WHEN NEW.type NOT IN ('deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'dns_update', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove') THEN RAISE(ABORT, 'invalid task type') WHEN NEW.source NOT IN ('web', 'cli', 'others', 'schedule', 'system', 'auto_deploy') THEN RAISE(ABORT, 'invalid task source') WHEN NEW.status NOT IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled') THEN RAISE(ABORT, 'invalid task status') WHEN NEW.params_json IS NOT NULL AND json_valid(NEW.params_json) = 0 THEN RAISE(ABORT, 'invalid task params_json') END; END;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_tasks_validate_update BEFORE UPDATE OF type, source, status, params_json ON tasks FOR EACH ROW BEGIN SELECT CASE WHEN NEW.type NOT IN ('deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'dns_update', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove') THEN RAISE(ABORT, 'invalid task type') WHEN NEW.source NOT IN ('web', 'cli', 'others', 'schedule', 'system', 'auto_deploy') THEN RAISE(ABORT, 'invalid task source') WHEN NEW.status NOT IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled') THEN RAISE(ABORT, 'invalid task status') WHEN NEW.params_json IS NOT NULL AND json_valid(NEW.params_json) = 0 THEN RAISE(ABORT, 'invalid task params_json') END; END;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_task_steps_validate_insert BEFORE INSERT ON task_steps FOR EACH ROW BEGIN SELECT CASE WHEN NEW.status NOT IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled') THEN RAISE(ABORT, 'invalid task step status') END; END;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_task_steps_validate_update BEFORE UPDATE OF status ON task_steps FOR EACH ROW BEGIN SELECT CASE WHEN NEW.status NOT IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled') THEN RAISE(ABORT, 'invalid task step status') END; END;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_backups_validate_insert BEFORE INSERT ON backups FOR EACH ROW BEGIN SELECT CASE WHEN NEW.status NOT IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled') THEN RAISE(ABORT, 'invalid backup status') END; END;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_backups_validate_update BEFORE UPDATE OF status ON backups FOR EACH ROW BEGIN SELECT CASE WHEN NEW.status NOT IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled') THEN RAISE(ABORT, 'invalid backup status') END; END;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_services_validate_insert BEFORE INSERT ON services FOR EACH ROW BEGIN SELECT CASE WHEN NEW.is_declared NOT IN (0, 1) THEN RAISE(ABORT, 'invalid services.is_declared') WHEN NEW.runtime_status NOT IN ('running', 'stopped', 'error', 'unknown') THEN RAISE(ABORT, 'invalid service runtime_status') END; END;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_services_validate_update BEFORE UPDATE OF is_declared, runtime_status ON services FOR EACH ROW BEGIN SELECT CASE WHEN NEW.is_declared NOT IN (0, 1) THEN RAISE(ABORT, 'invalid services.is_declared') WHEN NEW.runtime_status NOT IN ('running', 'stopped', 'error', 'unknown') THEN RAISE(ABORT, 'invalid service runtime_status') END; END;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_service_instances_validate_insert BEFORE INSERT ON service_instances FOR EACH ROW BEGIN SELECT CASE WHEN NEW.is_declared NOT IN (0, 1) THEN RAISE(ABORT, 'invalid service_instances.is_declared') WHEN NEW.runtime_status NOT IN ('running', 'stopped', 'error', 'unknown') THEN RAISE(ABORT, 'invalid service instance runtime_status') END; END;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_service_instances_validate_update BEFORE UPDATE OF is_declared, runtime_status ON service_instances FOR EACH ROW BEGIN SELECT CASE WHEN NEW.is_declared NOT IN (0, 1) THEN RAISE(ABORT, 'invalid service_instances.is_declared') WHEN NEW.runtime_status NOT IN ('running', 'stopped', 'error', 'unknown') THEN RAISE(ABORT, 'invalid service instance runtime_status') END; END;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_nodes_validate_insert BEFORE INSERT ON nodes FOR EACH ROW BEGIN SELECT CASE WHEN NEW.is_configured NOT IN (0, 1) THEN RAISE(ABORT, 'invalid nodes.is_configured') WHEN NEW.is_online NOT IN (0, 1) THEN RAISE(ABORT, 'invalid nodes.is_online') END; END;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_nodes_validate_update BEFORE UPDATE OF is_configured, is_online ON nodes FOR EACH ROW BEGIN SELECT CASE WHEN NEW.is_configured NOT IN (0, 1) THEN RAISE(ABORT, 'invalid nodes.is_configured') WHEN NEW.is_online NOT IN (0, 1) THEN RAISE(ABORT, 'invalid nodes.is_online') END; END;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_service_image_states_validate_insert BEFORE INSERT ON service_image_states FOR EACH ROW BEGIN SELECT CASE WHEN NEW.update_available NOT IN (0, 1) THEN RAISE(ABORT, 'invalid service_image_states.update_available') WHEN NEW.check_status NOT IN ('unknown', 'ok', 'error') THEN RAISE(ABORT, 'invalid service_image_states.check_status') END; END;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_service_image_states_validate_update BEFORE UPDATE OF update_available, check_status ON service_image_states FOR EACH ROW BEGIN SELECT CASE WHEN NEW.update_available NOT IN (0, 1) THEN RAISE(ABORT, 'invalid service_image_states.update_available') WHEN NEW.check_status NOT IN ('unknown', 'ok', 'error') THEN RAISE(ABORT, 'invalid service_image_states.check_status') END; END;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_service_image_update_checks_validate_insert BEFORE INSERT ON service_image_update_checks FOR EACH ROW BEGIN SELECT CASE WHEN NEW.update_available NOT IN (0, 1) THEN RAISE(ABORT, 'invalid service_image_update_checks.update_available') WHEN NEW.check_status NOT IN ('unknown', 'ok', 'error') THEN RAISE(ABORT, 'invalid service_image_update_checks.check_status') WHEN NEW.candidate_tags_json IS NOT NULL AND json_valid(NEW.candidate_tags_json) = 0 THEN RAISE(ABORT, 'invalid service_image_update_checks.candidate_tags_json') END; END;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_service_image_update_checks_validate_update BEFORE UPDATE OF update_available, check_status, candidate_tags_json ON service_image_update_checks FOR EACH ROW BEGIN SELECT CASE WHEN NEW.update_available NOT IN (0, 1) THEN RAISE(ABORT, 'invalid service_image_update_checks.update_available') WHEN NEW.check_status NOT IN ('unknown', 'ok', 'error') THEN RAISE(ABORT, 'invalid service_image_update_checks.check_status') WHEN NEW.candidate_tags_json IS NOT NULL AND json_valid(NEW.candidate_tags_json) = 0 THEN RAISE(ABORT, 'invalid service_image_update_checks.candidate_tags_json') END; END;`,
 		},
 	}}
 

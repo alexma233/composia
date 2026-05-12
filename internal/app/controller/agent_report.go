@@ -111,8 +111,9 @@ func (server *agentReportServer) ReportTaskState(ctx context.Context, req *conne
 	if req.Msg.GetTaskId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
 	}
-	if req.Msg.GetStatus() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("status is required"))
+	status, ok := taskStatusFromAgentProto(req.Msg.GetStatus())
+	if !ok || (status != task.StatusSucceeded && status != task.StatusFailed && status != task.StatusCancelled) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("status must be a terminal task status"))
 	}
 	if err := ensureTaskNodeMatch(ctx, server.db, req.Msg.GetTaskId()); err != nil {
 		return nil, err
@@ -122,14 +123,14 @@ func (server *agentReportServer) ReportTaskState(ctx context.Context, req *conne
 	if req.Msg.GetFinishedAt() != nil {
 		finishedAt = req.Msg.GetFinishedAt().AsTime().UTC()
 	}
-	if err := server.db.CompleteTask(ctx, req.Msg.GetTaskId(), task.Status(req.Msg.GetStatus()), finishedAt, req.Msg.GetErrorSummary()); err != nil {
+	if err := server.db.CompleteTask(ctx, req.Msg.GetTaskId(), status, finishedAt, req.Msg.GetErrorSummary()); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	logControllerReceivedTaskState(ctx, server.db, req.Msg.GetTaskId(), task.Status(req.Msg.GetStatus()), req.Msg.GetErrorSummary())
+	logControllerReceivedTaskState(ctx, server.db, req.Msg.GetTaskId(), status, req.Msg.GetErrorSummary())
 	if err := server.queuePostTaskFollowups(ctx, detail.Record); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -246,10 +247,12 @@ func (server *agentReportServer) ReportTaskStepState(ctx context.Context, req *c
 	if req.Msg.GetTaskId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
 	}
-	if req.Msg.GetStepName() == "" {
+	stepName, ok := taskStepNameFromAgentProto(req.Msg.GetStepName())
+	if !ok {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("step_name is required"))
 	}
-	if req.Msg.GetStatus() == "" {
+	status, ok := taskStatusFromAgentProto(req.Msg.GetStatus())
+	if !ok {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("status is required"))
 	}
 	if err := ensureTaskNodeMatch(ctx, server.db, req.Msg.GetTaskId()); err != nil {
@@ -258,8 +261,8 @@ func (server *agentReportServer) ReportTaskStepState(ctx context.Context, req *c
 
 	step := task.StepRecord{
 		TaskID:     req.Msg.GetTaskId(),
-		StepName:   task.StepName(req.Msg.GetStepName()),
-		Status:     task.Status(req.Msg.GetStatus()),
+		StepName:   stepName,
+		Status:     status,
 		StartedAt:  protoTime(req.Msg.GetStartedAt()),
 		FinishedAt: protoTime(req.Msg.GetFinishedAt()),
 	}

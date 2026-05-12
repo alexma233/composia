@@ -22,6 +22,110 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// CapabilityReasonCode explains why a capability is disabled.
+type CapabilityReasonCode int32
+
+const (
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_UNSPECIFIED                  CapabilityReasonCode = 0
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_BACKUP_INTEGRATION   CapabilityReasonCode = 1
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_BACKUP_DEFINITION    CapabilityReasonCode = 2
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_RESTORE_DEFINITION   CapabilityReasonCode = 3
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_MIGRATE_DEFINITION   CapabilityReasonCode = 4
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_DNS_INTEGRATION      CapabilityReasonCode = 5
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_SECRETS_CONFIG       CapabilityReasonCode = 6
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_CADDY_INFRA          CapabilityReasonCode = 7
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_SERVICE_META         CapabilityReasonCode = 8
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_SERVICE_NOT_DECLARED         CapabilityReasonCode = 9
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_SERVICE_DNS_NOT_DECLARED     CapabilityReasonCode = 10
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_SERVICE_NOT_CADDY_MANAGED    CapabilityReasonCode = 11
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_NODE_DISABLED                CapabilityReasonCode = 12
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_NODE_OFFLINE                 CapabilityReasonCode = 13
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_NODE_NOT_ELIGIBLE            CapabilityReasonCode = 14
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_NODE_NOT_RUSTIC_MANAGED      CapabilityReasonCode = 15
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_ELIGIBLE_RUSTIC_NODE CapabilityReasonCode = 16
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_ONLINE_RUSTIC_NODE   CapabilityReasonCode = 17
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_BACKUP_NOT_SUCCEEDED         CapabilityReasonCode = 18
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_BACKUP_ARTIFACT_MISSING      CapabilityReasonCode = 19
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_RESTORE_TARGET_NODE  CapabilityReasonCode = 20
+)
+
+// Enum value maps for CapabilityReasonCode.
+var (
+	CapabilityReasonCode_name = map[int32]string{
+		0:  "CAPABILITY_REASON_CODE_UNSPECIFIED",
+		1:  "CAPABILITY_REASON_CODE_MISSING_BACKUP_INTEGRATION",
+		2:  "CAPABILITY_REASON_CODE_MISSING_BACKUP_DEFINITION",
+		3:  "CAPABILITY_REASON_CODE_MISSING_RESTORE_DEFINITION",
+		4:  "CAPABILITY_REASON_CODE_MISSING_MIGRATE_DEFINITION",
+		5:  "CAPABILITY_REASON_CODE_MISSING_DNS_INTEGRATION",
+		6:  "CAPABILITY_REASON_CODE_MISSING_SECRETS_CONFIG",
+		7:  "CAPABILITY_REASON_CODE_MISSING_CADDY_INFRA",
+		8:  "CAPABILITY_REASON_CODE_MISSING_SERVICE_META",
+		9:  "CAPABILITY_REASON_CODE_SERVICE_NOT_DECLARED",
+		10: "CAPABILITY_REASON_CODE_SERVICE_DNS_NOT_DECLARED",
+		11: "CAPABILITY_REASON_CODE_SERVICE_NOT_CADDY_MANAGED",
+		12: "CAPABILITY_REASON_CODE_NODE_DISABLED",
+		13: "CAPABILITY_REASON_CODE_NODE_OFFLINE",
+		14: "CAPABILITY_REASON_CODE_NODE_NOT_ELIGIBLE",
+		15: "CAPABILITY_REASON_CODE_NODE_NOT_RUSTIC_MANAGED",
+		16: "CAPABILITY_REASON_CODE_MISSING_ELIGIBLE_RUSTIC_NODE",
+		17: "CAPABILITY_REASON_CODE_MISSING_ONLINE_RUSTIC_NODE",
+		18: "CAPABILITY_REASON_CODE_BACKUP_NOT_SUCCEEDED",
+		19: "CAPABILITY_REASON_CODE_BACKUP_ARTIFACT_MISSING",
+		20: "CAPABILITY_REASON_CODE_MISSING_RESTORE_TARGET_NODE",
+	}
+	CapabilityReasonCode_value = map[string]int32{
+		"CAPABILITY_REASON_CODE_UNSPECIFIED":                  0,
+		"CAPABILITY_REASON_CODE_MISSING_BACKUP_INTEGRATION":   1,
+		"CAPABILITY_REASON_CODE_MISSING_BACKUP_DEFINITION":    2,
+		"CAPABILITY_REASON_CODE_MISSING_RESTORE_DEFINITION":   3,
+		"CAPABILITY_REASON_CODE_MISSING_MIGRATE_DEFINITION":   4,
+		"CAPABILITY_REASON_CODE_MISSING_DNS_INTEGRATION":      5,
+		"CAPABILITY_REASON_CODE_MISSING_SECRETS_CONFIG":       6,
+		"CAPABILITY_REASON_CODE_MISSING_CADDY_INFRA":          7,
+		"CAPABILITY_REASON_CODE_MISSING_SERVICE_META":         8,
+		"CAPABILITY_REASON_CODE_SERVICE_NOT_DECLARED":         9,
+		"CAPABILITY_REASON_CODE_SERVICE_DNS_NOT_DECLARED":     10,
+		"CAPABILITY_REASON_CODE_SERVICE_NOT_CADDY_MANAGED":    11,
+		"CAPABILITY_REASON_CODE_NODE_DISABLED":                12,
+		"CAPABILITY_REASON_CODE_NODE_OFFLINE":                 13,
+		"CAPABILITY_REASON_CODE_NODE_NOT_ELIGIBLE":            14,
+		"CAPABILITY_REASON_CODE_NODE_NOT_RUSTIC_MANAGED":      15,
+		"CAPABILITY_REASON_CODE_MISSING_ELIGIBLE_RUSTIC_NODE": 16,
+		"CAPABILITY_REASON_CODE_MISSING_ONLINE_RUSTIC_NODE":   17,
+		"CAPABILITY_REASON_CODE_BACKUP_NOT_SUCCEEDED":         18,
+		"CAPABILITY_REASON_CODE_BACKUP_ARTIFACT_MISSING":      19,
+		"CAPABILITY_REASON_CODE_MISSING_RESTORE_TARGET_NODE":  20,
+	}
+)
+
+func (x CapabilityReasonCode) Enum() *CapabilityReasonCode {
+	p := new(CapabilityReasonCode)
+	*p = x
+	return p
+}
+
+func (x CapabilityReasonCode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CapabilityReasonCode) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_composia_controller_v1_system_proto_enumTypes[0].Descriptor()
+}
+
+func (CapabilityReasonCode) Type() protoreflect.EnumType {
+	return &file_proto_composia_controller_v1_system_proto_enumTypes[0]
+}
+
+func (x CapabilityReasonCode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use CapabilityReasonCode.Descriptor instead.
+func (CapabilityReasonCode) EnumDescriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_system_proto_rawDescGZIP(), []int{0}
+}
+
 // GetSystemStatusRequest requests the current controller runtime state.
 type GetSystemStatusRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -70,14 +174,8 @@ type GetSystemStatusResponse struct {
 	ConfiguredNodeCount uint64 `protobuf:"varint,3,opt,name=configured_node_count,json=configuredNodeCount,proto3" json:"configured_node_count,omitempty"`
 	// online_node_count is the number of nodes with a recent heartbeat.
 	OnlineNodeCount uint64 `protobuf:"varint,4,opt,name=online_node_count,json=onlineNodeCount,proto3" json:"online_node_count,omitempty"`
-	// repo_dir is the controller-side desired state repository path.
-	RepoDir string `protobuf:"bytes,5,opt,name=repo_dir,json=repoDir,proto3" json:"repo_dir,omitempty"`
-	// state_dir is the controller-side persistent state directory.
-	StateDir string `protobuf:"bytes,6,opt,name=state_dir,json=stateDir,proto3" json:"state_dir,omitempty"`
-	// log_dir is the controller-side task log directory.
-	LogDir        string `protobuf:"bytes,7,opt,name=log_dir,json=logDir,proto3" json:"log_dir,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *GetSystemStatusResponse) Reset() {
@@ -136,27 +234,6 @@ func (x *GetSystemStatusResponse) GetOnlineNodeCount() uint64 {
 		return x.OnlineNodeCount
 	}
 	return 0
-}
-
-func (x *GetSystemStatusResponse) GetRepoDir() string {
-	if x != nil {
-		return x.RepoDir
-	}
-	return ""
-}
-
-func (x *GetSystemStatusResponse) GetStateDir() string {
-	if x != nil {
-		return x.StateDir
-	}
-	return ""
-}
-
-func (x *GetSystemStatusResponse) GetLogDir() string {
-	if x != nil {
-		return x.LogDir
-	}
-	return ""
 }
 
 // ReloadControllerConfigRequest requests an in-process controller config reload.
@@ -466,7 +543,7 @@ type Capability struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Enabled bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// reason_code explains why the capability is disabled when enabled is false.
-	ReasonCode    string `protobuf:"bytes,2,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
+	ReasonCode    CapabilityReasonCode `protobuf:"varint,2,opt,name=reason_code,json=reasonCode,proto3,enum=composia.controller.v1.CapabilityReasonCode" json:"reason_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -508,11 +585,11 @@ func (x *Capability) GetEnabled() bool {
 	return false
 }
 
-func (x *Capability) GetReasonCode() string {
+func (x *Capability) GetReasonCode() CapabilityReasonCode {
 	if x != nil {
 		return x.ReasonCode
 	}
-	return ""
+	return CapabilityReasonCode_CAPABILITY_REASON_CODE_UNSPECIFIED
 }
 
 // GlobalCapabilities describes controller-wide feature availability.
@@ -982,15 +1059,12 @@ var File_proto_composia_controller_v1_system_proto protoreflect.FileDescriptor
 const file_proto_composia_controller_v1_system_proto_rawDesc = "" +
 	"\n" +
 	")proto/composia/controller/v1/system.proto\x12\x16composia.controller.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x18\n" +
-	"\x16GetSystemStatusRequest\"\x92\x02\n" +
+	"\x16GetSystemStatusRequest\"\xd3\x01\n" +
 	"\x17GetSystemStatusResponse\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12,\n" +
 	"\x03now\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x03now\x122\n" +
 	"\x15configured_node_count\x18\x03 \x01(\x04R\x13configuredNodeCount\x12*\n" +
-	"\x11online_node_count\x18\x04 \x01(\x04R\x0fonlineNodeCount\x12\x19\n" +
-	"\brepo_dir\x18\x05 \x01(\tR\arepoDir\x12\x1b\n" +
-	"\tstate_dir\x18\x06 \x01(\tR\bstateDir\x12\x17\n" +
-	"\alog_dir\x18\a \x01(\tR\x06logDir\"\x1f\n" +
+	"\x11online_node_count\x18\x04 \x01(\x04R\x0fonlineNodeCountJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\b\"\x1f\n" +
 	"\x1dReloadControllerConfigRequest\"<\n" +
 	"\x1eReloadControllerConfigResponse\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted\"\x19\n" +
@@ -1006,11 +1080,11 @@ const file_proto_composia_controller_v1_system_proto_rawDesc = "" +
 	"\asecrets\x18\a \x01(\v2,.composia.controller.v1.SecretsConfigSummaryR\asecrets\"\x18\n" +
 	"\x16GetCapabilitiesRequest\"]\n" +
 	"\x17GetCapabilitiesResponse\x12B\n" +
-	"\x06global\x18\x01 \x01(\v2*.composia.controller.v1.GlobalCapabilitiesR\x06global\"G\n" +
+	"\x06global\x18\x01 \x01(\v2*.composia.controller.v1.GlobalCapabilitiesR\x06global\"u\n" +
 	"\n" +
 	"Capability\x12\x18\n" +
-	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x1f\n" +
-	"\vreason_code\x18\x02 \x01(\tR\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\x12M\n" +
+	"\vreason_code\x18\x02 \x01(\x0e2,.composia.controller.v1.CapabilityReasonCodeR\n" +
 	"reasonCode\"\x97\x02\n" +
 	"\x12GlobalCapabilities\x12:\n" +
 	"\x06backup\x18\x01 \x01(\v2\".composia.controller.v1.CapabilityR\x06backup\x124\n" +
@@ -1046,7 +1120,30 @@ const file_proto_composia_controller_v1_system_proto_rawDesc = "" +
 	"\x14SecretsConfigSummary\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12!\n" +
 	"\fhas_identity\x18\x02 \x01(\bR\vhasIdentity\x12#\n" +
-	"\rhas_recipient\x18\x03 \x01(\bR\fhasRecipient2\xf8\x03\n" +
+	"\rhas_recipient\x18\x03 \x01(\bR\fhasRecipient*\xbf\b\n" +
+	"\x14CapabilityReasonCode\x12&\n" +
+	"\"CAPABILITY_REASON_CODE_UNSPECIFIED\x10\x00\x125\n" +
+	"1CAPABILITY_REASON_CODE_MISSING_BACKUP_INTEGRATION\x10\x01\x124\n" +
+	"0CAPABILITY_REASON_CODE_MISSING_BACKUP_DEFINITION\x10\x02\x125\n" +
+	"1CAPABILITY_REASON_CODE_MISSING_RESTORE_DEFINITION\x10\x03\x125\n" +
+	"1CAPABILITY_REASON_CODE_MISSING_MIGRATE_DEFINITION\x10\x04\x122\n" +
+	".CAPABILITY_REASON_CODE_MISSING_DNS_INTEGRATION\x10\x05\x121\n" +
+	"-CAPABILITY_REASON_CODE_MISSING_SECRETS_CONFIG\x10\x06\x12.\n" +
+	"*CAPABILITY_REASON_CODE_MISSING_CADDY_INFRA\x10\a\x12/\n" +
+	"+CAPABILITY_REASON_CODE_MISSING_SERVICE_META\x10\b\x12/\n" +
+	"+CAPABILITY_REASON_CODE_SERVICE_NOT_DECLARED\x10\t\x123\n" +
+	"/CAPABILITY_REASON_CODE_SERVICE_DNS_NOT_DECLARED\x10\n" +
+	"\x124\n" +
+	"0CAPABILITY_REASON_CODE_SERVICE_NOT_CADDY_MANAGED\x10\v\x12(\n" +
+	"$CAPABILITY_REASON_CODE_NODE_DISABLED\x10\f\x12'\n" +
+	"#CAPABILITY_REASON_CODE_NODE_OFFLINE\x10\r\x12,\n" +
+	"(CAPABILITY_REASON_CODE_NODE_NOT_ELIGIBLE\x10\x0e\x122\n" +
+	".CAPABILITY_REASON_CODE_NODE_NOT_RUSTIC_MANAGED\x10\x0f\x127\n" +
+	"3CAPABILITY_REASON_CODE_MISSING_ELIGIBLE_RUSTIC_NODE\x10\x10\x125\n" +
+	"1CAPABILITY_REASON_CODE_MISSING_ONLINE_RUSTIC_NODE\x10\x11\x12/\n" +
+	"+CAPABILITY_REASON_CODE_BACKUP_NOT_SUCCEEDED\x10\x12\x122\n" +
+	".CAPABILITY_REASON_CODE_BACKUP_ARTIFACT_MISSING\x10\x13\x126\n" +
+	"2CAPABILITY_REASON_CODE_MISSING_RESTORE_TARGET_NODE\x10\x142\xf8\x03\n" +
 	"\rSystemService\x12r\n" +
 	"\x0fGetSystemStatus\x12..composia.controller.v1.GetSystemStatusRequest\x1a/.composia.controller.v1.GetSystemStatusResponse\x12\x87\x01\n" +
 	"\x16ReloadControllerConfig\x125.composia.controller.v1.ReloadControllerConfigRequest\x1a6.composia.controller.v1.ReloadControllerConfigResponse\x12u\n" +
@@ -1065,52 +1162,55 @@ func file_proto_composia_controller_v1_system_proto_rawDescGZIP() []byte {
 	return file_proto_composia_controller_v1_system_proto_rawDescData
 }
 
+var file_proto_composia_controller_v1_system_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_proto_composia_controller_v1_system_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_proto_composia_controller_v1_system_proto_goTypes = []any{
-	(*GetSystemStatusRequest)(nil),         // 0: composia.controller.v1.GetSystemStatusRequest
-	(*GetSystemStatusResponse)(nil),        // 1: composia.controller.v1.GetSystemStatusResponse
-	(*ReloadControllerConfigRequest)(nil),  // 2: composia.controller.v1.ReloadControllerConfigRequest
-	(*ReloadControllerConfigResponse)(nil), // 3: composia.controller.v1.ReloadControllerConfigResponse
-	(*GetCurrentConfigRequest)(nil),        // 4: composia.controller.v1.GetCurrentConfigRequest
-	(*GetCurrentConfigResponse)(nil),       // 5: composia.controller.v1.GetCurrentConfigResponse
-	(*GetCapabilitiesRequest)(nil),         // 6: composia.controller.v1.GetCapabilitiesRequest
-	(*GetCapabilitiesResponse)(nil),        // 7: composia.controller.v1.GetCapabilitiesResponse
-	(*Capability)(nil),                     // 8: composia.controller.v1.Capability
-	(*GlobalCapabilities)(nil),             // 9: composia.controller.v1.GlobalCapabilities
-	(*GitConfigSummary)(nil),               // 10: composia.controller.v1.GitConfigSummary
-	(*NodeConfigSummary)(nil),              // 11: composia.controller.v1.NodeConfigSummary
-	(*AccessTokenSummary)(nil),             // 12: composia.controller.v1.AccessTokenSummary
-	(*DNSConfigSummary)(nil),               // 13: composia.controller.v1.DNSConfigSummary
-	(*BackupConfigSummary)(nil),            // 14: composia.controller.v1.BackupConfigSummary
-	(*SecretsConfigSummary)(nil),           // 15: composia.controller.v1.SecretsConfigSummary
-	(*timestamppb.Timestamp)(nil),          // 16: google.protobuf.Timestamp
+	(CapabilityReasonCode)(0),              // 0: composia.controller.v1.CapabilityReasonCode
+	(*GetSystemStatusRequest)(nil),         // 1: composia.controller.v1.GetSystemStatusRequest
+	(*GetSystemStatusResponse)(nil),        // 2: composia.controller.v1.GetSystemStatusResponse
+	(*ReloadControllerConfigRequest)(nil),  // 3: composia.controller.v1.ReloadControllerConfigRequest
+	(*ReloadControllerConfigResponse)(nil), // 4: composia.controller.v1.ReloadControllerConfigResponse
+	(*GetCurrentConfigRequest)(nil),        // 5: composia.controller.v1.GetCurrentConfigRequest
+	(*GetCurrentConfigResponse)(nil),       // 6: composia.controller.v1.GetCurrentConfigResponse
+	(*GetCapabilitiesRequest)(nil),         // 7: composia.controller.v1.GetCapabilitiesRequest
+	(*GetCapabilitiesResponse)(nil),        // 8: composia.controller.v1.GetCapabilitiesResponse
+	(*Capability)(nil),                     // 9: composia.controller.v1.Capability
+	(*GlobalCapabilities)(nil),             // 10: composia.controller.v1.GlobalCapabilities
+	(*GitConfigSummary)(nil),               // 11: composia.controller.v1.GitConfigSummary
+	(*NodeConfigSummary)(nil),              // 12: composia.controller.v1.NodeConfigSummary
+	(*AccessTokenSummary)(nil),             // 13: composia.controller.v1.AccessTokenSummary
+	(*DNSConfigSummary)(nil),               // 14: composia.controller.v1.DNSConfigSummary
+	(*BackupConfigSummary)(nil),            // 15: composia.controller.v1.BackupConfigSummary
+	(*SecretsConfigSummary)(nil),           // 16: composia.controller.v1.SecretsConfigSummary
+	(*timestamppb.Timestamp)(nil),          // 17: google.protobuf.Timestamp
 }
 var file_proto_composia_controller_v1_system_proto_depIdxs = []int32{
-	16, // 0: composia.controller.v1.GetSystemStatusResponse.now:type_name -> google.protobuf.Timestamp
-	10, // 1: composia.controller.v1.GetCurrentConfigResponse.git:type_name -> composia.controller.v1.GitConfigSummary
-	11, // 2: composia.controller.v1.GetCurrentConfigResponse.nodes:type_name -> composia.controller.v1.NodeConfigSummary
-	12, // 3: composia.controller.v1.GetCurrentConfigResponse.access_tokens:type_name -> composia.controller.v1.AccessTokenSummary
-	13, // 4: composia.controller.v1.GetCurrentConfigResponse.dns:type_name -> composia.controller.v1.DNSConfigSummary
-	14, // 5: composia.controller.v1.GetCurrentConfigResponse.backup:type_name -> composia.controller.v1.BackupConfigSummary
-	15, // 6: composia.controller.v1.GetCurrentConfigResponse.secrets:type_name -> composia.controller.v1.SecretsConfigSummary
-	9,  // 7: composia.controller.v1.GetCapabilitiesResponse.global:type_name -> composia.controller.v1.GlobalCapabilities
-	8,  // 8: composia.controller.v1.GlobalCapabilities.backup:type_name -> composia.controller.v1.Capability
-	8,  // 9: composia.controller.v1.GlobalCapabilities.dns:type_name -> composia.controller.v1.Capability
-	8,  // 10: composia.controller.v1.GlobalCapabilities.secrets:type_name -> composia.controller.v1.Capability
-	8,  // 11: composia.controller.v1.GlobalCapabilities.rustic_maintenance:type_name -> composia.controller.v1.Capability
-	0,  // 12: composia.controller.v1.SystemService.GetSystemStatus:input_type -> composia.controller.v1.GetSystemStatusRequest
-	2,  // 13: composia.controller.v1.SystemService.ReloadControllerConfig:input_type -> composia.controller.v1.ReloadControllerConfigRequest
-	4,  // 14: composia.controller.v1.SystemService.GetCurrentConfig:input_type -> composia.controller.v1.GetCurrentConfigRequest
-	6,  // 15: composia.controller.v1.SystemService.GetCapabilities:input_type -> composia.controller.v1.GetCapabilitiesRequest
-	1,  // 16: composia.controller.v1.SystemService.GetSystemStatus:output_type -> composia.controller.v1.GetSystemStatusResponse
-	3,  // 17: composia.controller.v1.SystemService.ReloadControllerConfig:output_type -> composia.controller.v1.ReloadControllerConfigResponse
-	5,  // 18: composia.controller.v1.SystemService.GetCurrentConfig:output_type -> composia.controller.v1.GetCurrentConfigResponse
-	7,  // 19: composia.controller.v1.SystemService.GetCapabilities:output_type -> composia.controller.v1.GetCapabilitiesResponse
-	16, // [16:20] is the sub-list for method output_type
-	12, // [12:16] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	17, // 0: composia.controller.v1.GetSystemStatusResponse.now:type_name -> google.protobuf.Timestamp
+	11, // 1: composia.controller.v1.GetCurrentConfigResponse.git:type_name -> composia.controller.v1.GitConfigSummary
+	12, // 2: composia.controller.v1.GetCurrentConfigResponse.nodes:type_name -> composia.controller.v1.NodeConfigSummary
+	13, // 3: composia.controller.v1.GetCurrentConfigResponse.access_tokens:type_name -> composia.controller.v1.AccessTokenSummary
+	14, // 4: composia.controller.v1.GetCurrentConfigResponse.dns:type_name -> composia.controller.v1.DNSConfigSummary
+	15, // 5: composia.controller.v1.GetCurrentConfigResponse.backup:type_name -> composia.controller.v1.BackupConfigSummary
+	16, // 6: composia.controller.v1.GetCurrentConfigResponse.secrets:type_name -> composia.controller.v1.SecretsConfigSummary
+	10, // 7: composia.controller.v1.GetCapabilitiesResponse.global:type_name -> composia.controller.v1.GlobalCapabilities
+	0,  // 8: composia.controller.v1.Capability.reason_code:type_name -> composia.controller.v1.CapabilityReasonCode
+	9,  // 9: composia.controller.v1.GlobalCapabilities.backup:type_name -> composia.controller.v1.Capability
+	9,  // 10: composia.controller.v1.GlobalCapabilities.dns:type_name -> composia.controller.v1.Capability
+	9,  // 11: composia.controller.v1.GlobalCapabilities.secrets:type_name -> composia.controller.v1.Capability
+	9,  // 12: composia.controller.v1.GlobalCapabilities.rustic_maintenance:type_name -> composia.controller.v1.Capability
+	1,  // 13: composia.controller.v1.SystemService.GetSystemStatus:input_type -> composia.controller.v1.GetSystemStatusRequest
+	3,  // 14: composia.controller.v1.SystemService.ReloadControllerConfig:input_type -> composia.controller.v1.ReloadControllerConfigRequest
+	5,  // 15: composia.controller.v1.SystemService.GetCurrentConfig:input_type -> composia.controller.v1.GetCurrentConfigRequest
+	7,  // 16: composia.controller.v1.SystemService.GetCapabilities:input_type -> composia.controller.v1.GetCapabilitiesRequest
+	2,  // 17: composia.controller.v1.SystemService.GetSystemStatus:output_type -> composia.controller.v1.GetSystemStatusResponse
+	4,  // 18: composia.controller.v1.SystemService.ReloadControllerConfig:output_type -> composia.controller.v1.ReloadControllerConfigResponse
+	6,  // 19: composia.controller.v1.SystemService.GetCurrentConfig:output_type -> composia.controller.v1.GetCurrentConfigResponse
+	8,  // 20: composia.controller.v1.SystemService.GetCapabilities:output_type -> composia.controller.v1.GetCapabilitiesResponse
+	17, // [17:21] is the sub-list for method output_type
+	13, // [13:17] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_proto_composia_controller_v1_system_proto_init() }
@@ -1123,13 +1223,14 @@ func file_proto_composia_controller_v1_system_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_controller_v1_system_proto_rawDesc), len(file_proto_composia_controller_v1_system_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_proto_composia_controller_v1_system_proto_goTypes,
 		DependencyIndexes: file_proto_composia_controller_v1_system_proto_depIdxs,
+		EnumInfos:         file_proto_composia_controller_v1_system_proto_enumTypes,
 		MessageInfos:      file_proto_composia_controller_v1_system_proto_msgTypes,
 	}.Build()
 	File_proto_composia_controller_v1_system_proto = out.File

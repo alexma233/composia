@@ -129,7 +129,7 @@ func (application *app) runNodeTasks(args []string) error {
 	if err != nil {
 		return err
 	}
-	response, err := application.client.nodes.GetNodeTasks(application.ctx, newRequest(&controllerv1.GetNodeTasksRequest{NodeId: fs.Arg(0), Status: *status, PageSize: pageSize, Page: page}))
+	response, err := application.client.nodes.GetNodeTasks(application.ctx, newRequest(&controllerv1.GetNodeTasksRequest{NodeId: fs.Arg(0), Status: taskStatusFromText(*status), PageSize: pageSize, Page: page}))
 	if err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func (application *app) runNodeTasks(args []string) error {
 	}
 	rows := make([][]string, 0, len(response.Msg.GetTasks()))
 	for _, task := range response.Msg.GetTasks() {
-		rows = append(rows, []string{task.GetTaskId(), task.GetType(), task.GetStatus(), task.GetServiceName(), task.GetNodeId(), task.GetCreatedAt()})
+		rows = append(rows, []string{task.GetTaskId(), taskTypeText(task.GetType()), taskStatusText(task.GetStatus()), task.GetServiceName(), task.GetNodeId(), formatProtoTimestamp(task.GetCreatedAt())})
 	}
 	if err := application.writeTable([]string{"TASK", "TYPE", "STATUS", "SERVICE", "NODE", "CREATED"}, rows); err != nil {
 		return err
@@ -200,5 +200,5 @@ func capabilityText(capability *controllerv1.Capability) (bool, string) {
 	if capability == nil {
 		return false, ""
 	}
-	return capability.GetEnabled(), capability.GetReasonCode()
+	return capability.GetEnabled(), capabilityReasonText(capability.GetReasonCode())
 }

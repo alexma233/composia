@@ -200,15 +200,16 @@ message GetServiceInstanceRequest {
 
 // GetServiceInstanceResponse returns one service instance detail.
 message GetServiceInstanceResponse {
-  // instance is omitted when the requested instance does not exist.
+  // instance contains the requested service instance.
+  // The RPC returns NotFound when the requested instance does not exist.
   ServiceInstanceDetail instance = 1;
 }
 
 // GetServiceTasksRequest filters service tasks by status and page.
 message GetServiceTasksRequest {
   string service_name = 1;
-  // status narrows results to one task status string when set.
-  string status = 2;
+  // status narrows results to one task status when set.
+  TaskStatus status = 2;
   // page_size is the requested page size.
   uint32 page_size = 3;
   // page is the 1-based page number.

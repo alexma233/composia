@@ -282,7 +282,7 @@ func TestLocalServiceRootRejectsEscapingServiceDir(t *testing.T) {
 		t.Fatalf("write outside meta: %v", err)
 	}
 
-	pulledTask := &agentv1.AgentTask{TaskId: "task-1", Type: string(task.TypeDeploy), ServiceName: "outside", ServiceDir: "../outside"}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-1", Type: protoAgentTaskType(task.TypeDeploy), ServiceName: "outside", ServiceDir: "../outside"}
 	if _, err := localServiceRoot(repoDir, pulledTask, nil); err == nil || !strings.Contains(err.Error(), "escapes repo root") {
 		t.Fatalf("expected escaping service_dir error, got %v", err)
 	}

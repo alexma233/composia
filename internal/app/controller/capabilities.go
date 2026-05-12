@@ -106,7 +106,7 @@ func enabledCapability() *controllerv1.Capability {
 }
 
 func disabledCapability(reason string) *controllerv1.Capability {
-	return &controllerv1.Capability{Enabled: false, ReasonCode: reason}
+	return &controllerv1.Capability{Enabled: false, ReasonCode: protoCapabilityReason(reason)}
 }
 
 func backupIntegrationCapability(cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}) *controllerv1.Capability {

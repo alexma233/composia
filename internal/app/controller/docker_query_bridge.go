@@ -12,11 +12,13 @@ import (
 
 	"connectrpc.com/connect"
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
+	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -351,31 +353,13 @@ func (server *agentTaskServer) PullNextDockerQuery(ctx context.Context, req *con
 	for {
 		query, ok := server.dockerQueries.Pull(req.Msg.GetNodeId())
 		if ok {
+			protoQuery, err := dockerProtoQueryTask(query)
+			if err != nil {
+				return nil, connect.NewError(connect.CodeInternal, err)
+			}
 			return connect.NewResponse(&agentv1.PullNextDockerQueryResponse{
 				HasQuery: true,
-				Query: &agentv1.DockerQueryTask{
-					QueryId:    query.QueryID,
-					NodeId:     query.NodeID,
-					Action:     query.Action,
-					Resource:   query.Resource,
-					Id:         query.ID,
-					Tail:       query.Tail,
-					Timestamps: query.Timestamps,
-					PageSize:   query.PageSize,
-					Page:       query.Page,
-					Search:     query.Search,
-					SortBy:     query.SortBy,
-					SortDesc:   query.SortDesc,
-					Command:    append([]string(nil), query.Command...),
-					Stdin:      append([]byte(nil), query.Stdin...),
-					TimeoutSeconds: func() uint32 {
-						if query.Timeout <= 0 {
-							return 0
-						}
-						return uint32(query.Timeout.Round(time.Second) / time.Second)
-					}(),
-					MaxOutputBytes: query.MaxOutput,
-				},
+				Query:    protoQuery,
 			}), nil
 		}
 
@@ -407,12 +391,16 @@ func (server *agentReportServer) ReportDockerQueryResult(ctx context.Context, re
 	if server.dockerQueries == nil {
 		return nil, connect.NewError(connect.CodeInternal, errors.New("docker query broker is not configured"))
 	}
+	payloadJSON, err := dockerQueryPayloadJSON(req.Msg)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
 	if err := server.dockerQueries.StoreResult(dockerAgentQueryResult{
 		QueryID:      req.Msg.GetQueryId(),
 		NodeID:       req.Msg.GetNodeId(),
-		PayloadJSON:  req.Msg.GetPayloadJson(),
+		PayloadJSON:  payloadJSON,
 		ErrorMessage: req.Msg.GetErrorMessage(),
-		ErrorCode:    req.Msg.GetErrorCode(),
+		ErrorCode:    dockerQueryErrorCodeText(req.Msg.GetErrorCode()),
 	}); err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
@@ -508,4 +496,152 @@ func dockerQueryConnectCode(value string) connect.Code {
 	default:
 		return connect.CodeInternal
 	}
+}
+
+func dockerProtoQueryTask(query dockerAgentQuery) (*agentv1.DockerQueryTask, error) {
+	message := &agentv1.DockerQueryTask{QueryId: query.QueryID, NodeId: query.NodeID}
+	switch query.Action {
+	case "list":
+		switch query.Resource {
+		case "containers":
+			message.Query = &agentv1.DockerQueryTask_ListContainers{ListContainers: &agentv1.ListContainersRequest{PageSize: query.PageSize, Page: query.Page, Search: query.Search, SortBy: query.SortBy, SortDesc: query.SortDesc}}
+		case "networks":
+			message.Query = &agentv1.DockerQueryTask_ListNetworks{ListNetworks: &agentv1.ListNetworksRequest{PageSize: query.PageSize, Page: query.Page, Search: query.Search, SortBy: query.SortBy, SortDesc: query.SortDesc}}
+		case "volumes":
+			message.Query = &agentv1.DockerQueryTask_ListVolumes{ListVolumes: &agentv1.ListVolumesRequest{PageSize: query.PageSize, Page: query.Page, Search: query.Search, SortBy: query.SortBy, SortDesc: query.SortDesc}}
+		case "images":
+			message.Query = &agentv1.DockerQueryTask_ListImages{ListImages: &agentv1.ListImagesRequest{PageSize: query.PageSize, Page: query.Page, Search: query.Search, SortBy: query.SortBy, SortDesc: query.SortDesc}}
+		default:
+			return nil, fmt.Errorf("unsupported docker list resource %q", query.Resource)
+		}
+	case "inspect":
+		switch query.Resource {
+		case "container":
+			message.Query = &agentv1.DockerQueryTask_InspectContainer{InspectContainer: &agentv1.InspectContainerRequest{ContainerId: query.ID}}
+		case "network":
+			message.Query = &agentv1.DockerQueryTask_InspectNetwork{InspectNetwork: &agentv1.InspectNetworkRequest{NetworkId: query.ID}}
+		case "volume":
+			message.Query = &agentv1.DockerQueryTask_InspectVolume{InspectVolume: &agentv1.InspectVolumeRequest{VolumeName: query.ID}}
+		case "image":
+			message.Query = &agentv1.DockerQueryTask_InspectImage{InspectImage: &agentv1.InspectImageRequest{ImageId: query.ID}}
+		default:
+			return nil, fmt.Errorf("unsupported docker inspect resource %q", query.Resource)
+		}
+	case "logs":
+		if query.Resource != "container" {
+			return nil, fmt.Errorf("unsupported docker logs resource %q", query.Resource)
+		}
+		message.Query = &agentv1.DockerQueryTask_GetContainerLogs{GetContainerLogs: &agentv1.GetContainerLogsRequest{ContainerId: query.ID, Tail: query.Tail, Timestamps: query.Timestamps}}
+	case "exec":
+		if query.Resource != "container" {
+			return nil, fmt.Errorf("unsupported docker exec resource %q", query.Resource)
+		}
+		timeoutSeconds := uint32(0)
+		if query.Timeout > 0 {
+			timeoutSeconds = uint32(query.Timeout.Round(time.Second) / time.Second)
+		}
+		message.Query = &agentv1.DockerQueryTask_RunContainerExec{RunContainerExec: &agentv1.DockerQueryRunContainerExecRequest{ContainerId: query.ID, Command: append([]string(nil), query.Command...), Stdin: append([]byte(nil), query.Stdin...), TimeoutSeconds: timeoutSeconds, MaxOutputBytes: query.MaxOutput}}
+	default:
+		return nil, fmt.Errorf("unsupported docker query action %q", query.Action)
+	}
+	return message, nil
+}
+
+func dockerQueryPayloadJSON(req *agentv1.ReportDockerQueryResultRequest) (string, error) {
+	switch result := req.Result.(type) {
+	case *agentv1.ReportDockerQueryResultRequest_ListContainers:
+		return marshalDockerQueryPayload(dockerListResult{Containers: controllerContainerInfos(result.ListContainers.GetContainers()), TotalCount: result.ListContainers.GetTotalCount()})
+	case *agentv1.ReportDockerQueryResultRequest_InspectContainer:
+		return marshalDockerQueryPayload(dockerListResult{RawJSON: result.InspectContainer.GetRawJson()})
+	case *agentv1.ReportDockerQueryResultRequest_ListNetworks:
+		return marshalDockerQueryPayload(dockerListResult{Networks: controllerNetworkInfos(result.ListNetworks.GetNetworks()), TotalCount: result.ListNetworks.GetTotalCount()})
+	case *agentv1.ReportDockerQueryResultRequest_InspectNetwork:
+		return marshalDockerQueryPayload(dockerListResult{RawJSON: result.InspectNetwork.GetRawJson()})
+	case *agentv1.ReportDockerQueryResultRequest_ListVolumes:
+		return marshalDockerQueryPayload(dockerListResult{Volumes: controllerVolumeInfos(result.ListVolumes.GetVolumes()), TotalCount: result.ListVolumes.GetTotalCount()})
+	case *agentv1.ReportDockerQueryResultRequest_InspectVolume:
+		return marshalDockerQueryPayload(dockerListResult{RawJSON: result.InspectVolume.GetRawJson()})
+	case *agentv1.ReportDockerQueryResultRequest_ListImages:
+		return marshalDockerQueryPayload(dockerListResult{Images: controllerImageInfos(result.ListImages.GetImages()), TotalCount: result.ListImages.GetTotalCount()})
+	case *agentv1.ReportDockerQueryResultRequest_InspectImage:
+		return marshalDockerQueryPayload(dockerListResult{RawJSON: result.InspectImage.GetRawJson()})
+	case *agentv1.ReportDockerQueryResultRequest_GetContainerLogs:
+		return marshalDockerQueryPayload(dockerListResult{Content: result.GetContainerLogs.GetContent()})
+	case *agentv1.ReportDockerQueryResultRequest_RunContainerExec:
+		execResult := result.RunContainerExec
+		return marshalDockerQueryPayload(dockerListResult{Exec: &dockerExecResult{ExitCode: execResult.GetExitCode(), Stdout: execResult.GetStdout(), Stderr: execResult.GetStderr(), TimedOut: execResult.GetTimedOut(), StdoutTruncated: execResult.GetStdoutTruncated(), StderrTruncated: execResult.GetStderrTruncated(), StartedAt: protoTimestampString(execResult.GetStartedAt()), FinishedAt: protoTimestampString(execResult.GetFinishedAt()), Duration: execResult.GetDuration()}})
+	default:
+		if req.GetErrorCode() != agentv1.DockerQueryErrorCode_DOCKER_QUERY_ERROR_CODE_UNSPECIFIED || req.GetErrorMessage() != "" {
+			return "", nil
+		}
+		return "", errors.New("docker query result is required")
+	}
+}
+
+func marshalDockerQueryPayload(payload dockerListResult) (string, error) {
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("encode docker query result: %w", err)
+	}
+	return string(encoded), nil
+}
+
+func dockerQueryErrorCodeText(value agentv1.DockerQueryErrorCode) string {
+	switch value {
+	case agentv1.DockerQueryErrorCode_DOCKER_QUERY_ERROR_CODE_INVALID_ARGUMENT:
+		return "invalid_argument"
+	case agentv1.DockerQueryErrorCode_DOCKER_QUERY_ERROR_CODE_NOT_FOUND:
+		return "not_found"
+	case agentv1.DockerQueryErrorCode_DOCKER_QUERY_ERROR_CODE_FAILED_PRECONDITION:
+		return "failed_precondition"
+	case agentv1.DockerQueryErrorCode_DOCKER_QUERY_ERROR_CODE_PERMISSION_DENIED:
+		return "permission_denied"
+	case agentv1.DockerQueryErrorCode_DOCKER_QUERY_ERROR_CODE_DEADLINE_EXCEEDED:
+		return "deadline_exceeded"
+	case agentv1.DockerQueryErrorCode_DOCKER_QUERY_ERROR_CODE_UNAVAILABLE:
+		return "unavailable"
+	case agentv1.DockerQueryErrorCode_DOCKER_QUERY_ERROR_CODE_INTERNAL:
+		return "internal"
+	default:
+		return ""
+	}
+}
+
+func protoTimestampString(value *timestamppb.Timestamp) string {
+	if value == nil {
+		return ""
+	}
+	return value.AsTime().UTC().Format(time.RFC3339)
+}
+
+func controllerContainerInfos(values []*agentv1.ContainerInfo) []*controllerv1.ContainerInfo {
+	infos := make([]*controllerv1.ContainerInfo, 0, len(values))
+	for _, value := range values {
+		infos = append(infos, &controllerv1.ContainerInfo{Id: value.GetId(), Name: value.GetName(), Image: value.GetImage(), State: value.GetState(), Status: value.GetStatus(), Created: value.GetCreated(), Labels: value.GetLabels(), Ports: append([]string(nil), value.GetPorts()...), Networks: append([]string(nil), value.GetNetworks()...), ImageId: value.GetImageId()})
+	}
+	return infos
+}
+
+func controllerNetworkInfos(values []*agentv1.NetworkInfo) []*controllerv1.NetworkInfo {
+	infos := make([]*controllerv1.NetworkInfo, 0, len(values))
+	for _, value := range values {
+		infos = append(infos, &controllerv1.NetworkInfo{Id: value.GetId(), Name: value.GetName(), Driver: value.GetDriver(), Scope: value.GetScope(), Internal: value.GetInternal(), Attachable: value.GetAttachable(), Created: value.GetCreated(), Labels: value.GetLabels(), Subnet: value.GetSubnet(), Gateway: value.GetGateway(), ContainersCount: value.GetContainersCount(), Ipv6Enabled: value.GetIpv6Enabled()})
+	}
+	return infos
+}
+
+func controllerVolumeInfos(values []*agentv1.VolumeInfo) []*controllerv1.VolumeInfo {
+	infos := make([]*controllerv1.VolumeInfo, 0, len(values))
+	for _, value := range values {
+		infos = append(infos, &controllerv1.VolumeInfo{Name: value.GetName(), Driver: value.GetDriver(), Mountpoint: value.GetMountpoint(), Scope: value.GetScope(), Created: value.GetCreated(), Labels: value.GetLabels(), SizeBytes: value.GetSizeBytes(), ContainersCount: value.GetContainersCount(), InUse: value.GetInUse()})
+	}
+	return infos
+}
+
+func controllerImageInfos(values []*agentv1.ImageInfo) []*controllerv1.ImageInfo {
+	infos := make([]*controllerv1.ImageInfo, 0, len(values))
+	for _, value := range values {
+		infos = append(infos, &controllerv1.ImageInfo{Id: value.GetId(), RepoTags: append([]string(nil), value.GetRepoTags()...), Size: value.GetSize(), Created: value.GetCreated(), RepoDigests: append([]string(nil), value.GetRepoDigests()...), VirtualSize: value.GetVirtualSize(), Architecture: value.GetArchitecture(), Os: value.GetOs(), ContainersCount: value.GetContainersCount(), IsDangling: value.GetIsDangling()})
+	}
+	return infos
 }

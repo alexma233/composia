@@ -39,7 +39,7 @@ func (server *taskServer) ListTasks(ctx context.Context, req *connect.Request[co
 		req.Msg = &controllerv1.ListTasksRequest{}
 	}
 
-	tasks, totalCount, err := server.db.ListTasks(ctx, req.Msg.GetStatus(), req.Msg.GetServiceName(), req.Msg.GetNodeId(), req.Msg.GetType(), req.Msg.GetExcludeStatus(), req.Msg.GetExcludeServiceName(), req.Msg.GetExcludeNodeId(), req.Msg.GetExcludeType(), req.Msg.GetPage(), req.Msg.GetPageSize())
+	tasks, totalCount, err := server.db.ListTasks(ctx, taskStatusesFromProto(req.Msg.GetStatus()), req.Msg.GetServiceName(), req.Msg.GetNodeId(), taskTypesFromProto(req.Msg.GetType()), taskStatusesFromProto(req.Msg.GetExcludeStatus()), req.Msg.GetExcludeServiceName(), req.Msg.GetExcludeNodeId(), taskTypesFromProto(req.Msg.GetExcludeType()), req.Msg.GetPage(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -56,13 +56,14 @@ func (server *taskServer) ListTasks(ctx context.Context, req *connect.Request[co
 }
 
 func taskSummaryMessage(record store.TaskSummary) *controllerv1.TaskSummary {
+	createdAt, _ := time.Parse(time.RFC3339, record.CreatedAt)
 	return &controllerv1.TaskSummary{
 		TaskId:      record.TaskID,
-		Type:        record.Type,
-		Status:      record.Status,
+		Type:        protoTaskType(task.Type(record.Type)),
+		Status:      protoTaskStatus(task.Status(record.Status)),
 		ServiceName: record.ServiceName,
 		NodeId:      record.NodeID,
-		CreatedAt:   record.CreatedAt,
+		CreatedAt:   protoTaskTime(createdAt),
 	}
 }
 
@@ -81,17 +82,16 @@ func (server *taskServer) GetTask(ctx context.Context, req *connect.Request[cont
 
 	response := &controllerv1.GetTaskResponse{
 		TaskId:          detail.Record.TaskID,
-		Type:            string(detail.Record.Type),
-		Source:          string(detail.Record.Source),
+		Type:            protoTaskType(detail.Record.Type),
+		Source:          protoTaskSource(detail.Record.Source),
 		ServiceName:     detail.Record.ServiceName,
 		NodeId:          detail.Record.NodeID,
-		Status:          string(detail.Record.Status),
-		CreatedAt:       detail.Record.CreatedAt.UTC().Format(time.RFC3339),
-		StartedAt:       formatNullableTime(detail.Record.StartedAt),
-		FinishedAt:      formatNullableTime(detail.Record.FinishedAt),
+		Status:          protoTaskStatus(detail.Record.Status),
+		CreatedAt:       protoTaskTime(detail.Record.CreatedAt),
+		StartedAt:       protoNullableTaskTime(detail.Record.StartedAt),
+		FinishedAt:      protoNullableTaskTime(detail.Record.FinishedAt),
 		RepoRevision:    detail.Record.RepoRevision,
 		ErrorSummary:    detail.Record.ErrorSummary,
-		LogPath:         detail.Record.LogPath,
 		TriggeredBy:     detail.Record.TriggeredBy,
 		ResultRevision:  detail.Record.ResultRevision,
 		AttemptOfTaskId: detail.Record.AttemptOfTaskID,
@@ -99,10 +99,10 @@ func (server *taskServer) GetTask(ctx context.Context, req *connect.Request[cont
 	}
 	for _, step := range detail.Steps {
 		response.Steps = append(response.Steps, &controllerv1.TaskStepSummary{
-			StepName:   string(step.StepName),
-			Status:     string(step.Status),
-			StartedAt:  formatNullableTime(step.StartedAt),
-			FinishedAt: formatNullableTime(step.FinishedAt),
+			StepName:   protoTaskStepName(step.StepName),
+			Status:     protoTaskStatus(step.Status),
+			StartedAt:  protoNullableTaskTime(step.StartedAt),
+			FinishedAt: protoNullableTaskTime(step.FinishedAt),
 		})
 	}
 
@@ -202,7 +202,7 @@ func (server *taskServer) ResolveTaskConfirmation(ctx context.Context, req *conn
 	if req.Msg == nil || req.Msg.GetTaskId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
 	}
-	decision := strings.ToLower(strings.TrimSpace(req.Msg.GetDecision()))
+	decision := taskConfirmationDecisionFromProto(req.Msg.GetDecision())
 	if decision != confirmationDecisionApprove && decision != confirmationDecisionReject {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("decision must be approve or reject"))
 	}
@@ -269,17 +269,10 @@ func (server *taskServer) ResolveTaskConfirmation(ctx context.Context, req *conn
 	return connect.NewResponse(taskActionResponse(detail.Record)), nil
 }
 
-func formatNullableTime(value *time.Time) string {
-	if value == nil {
-		return ""
-	}
-	return value.UTC().Format(time.RFC3339)
-}
-
 func taskActionResponse(record task.Record) *controllerv1.TaskActionResponse {
 	return &controllerv1.TaskActionResponse{
 		TaskId:       record.TaskID,
-		Status:       string(record.Status),
+		Status:       protoTaskStatus(record.Status),
 		RepoRevision: record.RepoRevision,
 	}
 }

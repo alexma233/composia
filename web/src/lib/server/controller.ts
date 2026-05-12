@@ -51,9 +51,6 @@ export type SystemStatus = {
   version: string;
   configuredNodeCount: number;
   onlineNodeCount: number;
-  repoDir: string;
-  stateDir: string;
-  logDir: string;
 };
 
 export type ServiceSummary = {
@@ -141,7 +138,6 @@ export type TaskDetail = {
   finishedAt: string;
   repoRevision: string;
   errorSummary: string;
-  logPath: string;
   triggeredBy: string;
   resultRevision: string;
   attemptOfTaskId: string;
@@ -340,11 +336,58 @@ function parseCapability(
 ): Capability {
   return {
     enabled: capability?.enabled === true,
-    reasonCode:
-      (typeof capability?.reasonCode === "string" && capability.reasonCode) ||
-      (typeof capability?.reason_code === "string" && capability.reason_code) ||
-      "",
+    reasonCode: normalizeCapabilityReasonCode(
+      capability?.reasonCode ?? capability?.reason_code,
+    ),
   };
+}
+
+function normalizeEnumSuffix(prefix: string, value: unknown): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+  const normalized = value.trim();
+  if (!normalized) {
+    return "";
+  }
+  if (normalized.startsWith(prefix)) {
+    return normalized.slice(prefix.length).toLowerCase();
+  }
+  return normalized.toLowerCase();
+}
+
+function normalizeTaskStatus(value: unknown): string {
+  return normalizeEnumSuffix("TASK_STATUS_", value);
+}
+
+function normalizeTaskType(value: unknown): string {
+  return normalizeEnumSuffix("TASK_TYPE_", value);
+}
+
+function normalizeTaskSource(value: unknown): string {
+  return normalizeEnumSuffix("TASK_SOURCE_", value);
+}
+
+function normalizeTaskStepName(value: unknown): string {
+  return normalizeEnumSuffix("TASK_STEP_NAME_", value);
+}
+
+function normalizeCapabilityReasonCode(value: unknown): string {
+  return normalizeEnumSuffix("CAPABILITY_REASON_CODE_", value);
+}
+
+function encodeTaskStatus(value: string): string {
+  return `TASK_STATUS_${value.trim().toUpperCase()}`;
+}
+
+function encodeTaskType(value: string): string {
+  return `TASK_TYPE_${value.trim().toUpperCase()}`;
+}
+
+function encodeTaskDecision(value: "approve" | "reject"): string {
+  return value === "approve"
+    ? "TASK_CONFIRMATION_DECISION_APPROVE"
+    : "TASK_CONFIRMATION_DECISION_REJECT";
 }
 
 function parseServiceActionCapabilities(
@@ -865,7 +908,18 @@ export async function loadTasks(
 ): Promise<PaginatedResult<TaskSummary>> {
   const config = requireControllerConfig();
   const response = await rpcCall<{
-    tasks?: TaskSummary[];
+    tasks?: Array<{
+      taskId?: string;
+      task_id?: string;
+      type?: unknown;
+      status?: unknown;
+      serviceName?: string;
+      service_name?: string;
+      nodeId?: string;
+      node_id?: string;
+      createdAt?: string;
+      created_at?: string;
+    }>;
     totalCount?: number;
   }>(
     config.baseUrl,
@@ -874,18 +928,25 @@ export async function loadTasks(
     {
       page,
       pageSize,
-      status: filter?.status ?? [],
+      status: (filter?.status ?? []).map(encodeTaskStatus),
       service_name: filter?.serviceName ?? [],
       node_id: filter?.nodeId ?? [],
-      type: filter?.type ?? [],
-      exclude_status: filter?.excludeStatus ?? [],
+      type: (filter?.type ?? []).map(encodeTaskType),
+      exclude_status: (filter?.excludeStatus ?? []).map(encodeTaskStatus),
       exclude_service_name: filter?.excludeServiceName ?? [],
       exclude_node_id: filter?.excludeNodeId ?? [],
-      exclude_type: filter?.excludeType ?? [],
+      exclude_type: (filter?.excludeType ?? []).map(encodeTaskType),
     },
   );
   return {
-    items: response.tasks ?? [],
+    items: (response.tasks ?? []).map((task) => ({
+      taskId: task.taskId ?? task.task_id ?? "",
+      type: normalizeTaskType(task.type),
+      status: normalizeTaskStatus(task.status),
+      serviceName: task.serviceName ?? task.service_name ?? "",
+      nodeId: task.nodeId ?? task.node_id ?? "",
+      createdAt: task.createdAt ?? task.created_at ?? "",
+    })),
     totalCount: response.totalCount ?? 0,
   };
 }
@@ -2177,12 +2238,70 @@ export async function removeNodeImage(
 
 export async function loadTaskDetail(taskId: string): Promise<TaskDetail> {
   const config = requireControllerConfig();
-  return rpcCall<TaskDetail>(
+  const response = await rpcCall<{
+    taskId?: string;
+    task_id?: string;
+    type?: unknown;
+    source?: unknown;
+    serviceName?: string;
+    service_name?: string;
+    nodeId?: string;
+    node_id?: string;
+    status?: unknown;
+    createdAt?: string;
+    created_at?: string;
+    startedAt?: string;
+    started_at?: string;
+    finishedAt?: string;
+    finished_at?: string;
+    repoRevision?: string;
+    repo_revision?: string;
+    errorSummary?: string;
+    error_summary?: string;
+    triggeredBy?: string;
+    triggered_by?: string;
+    resultRevision?: string;
+    result_revision?: string;
+    attemptOfTaskId?: string;
+    attempt_of_task_id?: string;
+    steps?: Array<{
+      stepName?: unknown;
+      step_name?: unknown;
+      status?: unknown;
+      startedAt?: string;
+      started_at?: string;
+      finishedAt?: string;
+      finished_at?: string;
+    }>;
+  }>(
     config.baseUrl,
     config.token,
     controllerProcedure("/composia.controller.v1.TaskService/GetTask"),
     { taskId },
   );
+  return {
+    taskId: response.taskId ?? response.task_id ?? taskId,
+    type: normalizeTaskType(response.type),
+    source: normalizeTaskSource(response.source),
+    serviceName: response.serviceName ?? response.service_name ?? "",
+    nodeId: response.nodeId ?? response.node_id ?? "",
+    status: normalizeTaskStatus(response.status),
+    createdAt: response.createdAt ?? response.created_at ?? "",
+    startedAt: response.startedAt ?? response.started_at ?? "",
+    finishedAt: response.finishedAt ?? response.finished_at ?? "",
+    repoRevision: response.repoRevision ?? response.repo_revision ?? "",
+    errorSummary: response.errorSummary ?? response.error_summary ?? "",
+    triggeredBy: response.triggeredBy ?? response.triggered_by ?? "",
+    resultRevision: response.resultRevision ?? response.result_revision ?? "",
+    attemptOfTaskId:
+      response.attemptOfTaskId ?? response.attempt_of_task_id ?? "",
+    steps: (response.steps ?? []).map((step) => ({
+      stepName: normalizeTaskStepName(step.stepName ?? step.step_name),
+      status: normalizeTaskStatus(step.status),
+      startedAt: step.startedAt ?? step.started_at ?? "",
+      finishedAt: step.finishedAt ?? step.finished_at ?? "",
+    })),
+  };
 }
 
 export async function runTaskAgain(taskId: string): Promise<TaskActionResult> {
@@ -2205,7 +2324,7 @@ export async function resolveTaskConfirmation(
     ),
     {
       taskId,
-      decision,
+      decision: encodeTaskDecision(decision),
       comment,
     },
   );
@@ -2255,12 +2374,12 @@ async function callServiceAction(
   }>(config.baseUrl, config.token, procedure, body);
 
   const repoWrite = response.repoWrite ?? response.repo_write;
-  return {
-    tasks: (response.tasks ?? []).map((task) => ({
-      taskId: task.taskId ?? task.task_id ?? "",
-      status: task.status ?? "",
-      repoRevision: task.repoRevision ?? task.repo_revision ?? "",
-    })),
+	return {
+		tasks: (response.tasks ?? []).map((task) => ({
+			taskId: task.taskId ?? task.task_id ?? "",
+			status: normalizeTaskStatus(task.status),
+			repoRevision: task.repoRevision ?? task.repo_revision ?? "",
+		})),
     repoWrite: repoWrite
       ? {
           commitId: repoWrite.commitId ?? repoWrite.commit_id ?? "",
@@ -2288,11 +2407,11 @@ async function callTaskAction(
     repo_revision?: string;
   }>(config.baseUrl, config.token, procedure, body);
 
-  return {
-    taskId: response.taskId ?? response.task_id ?? "",
-    status: response.status ?? "",
-    repoRevision: response.repoRevision ?? response.repo_revision ?? "",
-  };
+	return {
+		taskId: response.taskId ?? response.task_id ?? "",
+		status: normalizeTaskStatus(response.status),
+		repoRevision: response.repoRevision ?? response.repo_revision ?? "",
+	};
 }
 
 function toServiceActionEnum(action: ServiceAction): number {

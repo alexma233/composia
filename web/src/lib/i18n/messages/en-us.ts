@@ -444,7 +444,6 @@ export const enUS = {
       finished: "Finished",
       repoRevision: "Repo revision",
       resultRevision: "Result revision",
-      logPath: "Log path",
     },
     taskSteps: "Task steps",
     taskLogs: "Task logs",
@@ -509,9 +508,6 @@ export const enUS = {
     controller: {
       title: "Controller",
       version: "Version",
-      repoDir: "Repo dir",
-      stateDir: "State dir",
-      logDir: "Log dir",
       noData: "No controller data loaded.",
     },
     repoSync: {

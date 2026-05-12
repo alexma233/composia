@@ -149,14 +149,13 @@
 
   $effect(() => {
     const nextTaskId = data.task?.taskId ?? '';
-    const hasLogPath = Boolean(data.task?.logPath);
-    if (nextTaskId && hasLogPath && nextTaskId !== logStreamTaskId) {
+    if (nextTaskId && nextTaskId !== logStreamTaskId) {
       void startLogStream(nextTaskId);
     }
   });
 
   $effect(() => {
-    if ((data.task?.taskId && data.task.logPath) || !logStreamTaskId) {
+    if (data.task?.taskId || !logStreamTaskId) {
       return;
     }
     stopLogStream();
@@ -312,12 +311,6 @@
               <div class="mt-2 break-all text-sm text-foreground">{data.task.resultRevision || $messages.common.na}</div>
             </div>
           </div>
-
-          <div class="inset-card">
-            <div class="metric-label">{$messages.tasks.taskDetails.logPath}</div>
-            <div class="mt-2 break-all text-sm text-foreground">{data.task.logPath || $messages.common.na}</div>
-          </div>
-
           {#if data.task.errorSummary}
             <Alert variant="destructive">
               <AlertTitle>{$messages.error.taskError}</AlertTitle>
@@ -365,16 +358,12 @@
           </Alert>
         {/if}
 
-        {#if data.task?.logPath}
-          <XtermSurface
-            active={true}
-            content={logContent}
-            emptyText={$messages.tasks.waitingForOutput}
-            heightClass="h-[360px] sm:h-[560px]"
-          />
-        {:else}
-          <div class="empty-state">{$messages.tasks.noLogFile}</div>
-        {/if}
+				<XtermSurface
+          active={true}
+          content={logContent}
+          emptyText={$messages.tasks.waitingForOutput}
+          heightClass="h-[360px] sm:h-[560px]"
+        />
       </CardContent>
     </Card>
   </div>

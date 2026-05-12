@@ -99,7 +99,7 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 
 	startedAt := timestamppb.New(time.Date(2026, 4, 4, 17, 1, 0, 0, time.UTC))
 	finishedAt := timestamppb.New(time.Date(2026, 4, 4, 17, 2, 0, 0, time.UTC))
-	if _, err := reportClient.ReportTaskStepState(ctx, connect.NewRequest(&agentv1.ReportTaskStepStateRequest{TaskId: "task-remote", StepName: "render", Status: "succeeded", StartedAt: startedAt, FinishedAt: finishedAt})); err != nil {
+	if _, err := reportClient.ReportTaskStepState(ctx, connect.NewRequest(&agentv1.ReportTaskStepStateRequest{TaskId: "task-remote", StepName: agentv1.AgentTaskStepName_AGENT_TASK_STEP_NAME_RENDER, Status: agentv1.AgentTaskStatus_AGENT_TASK_STATUS_SUCCEEDED, StartedAt: startedAt, FinishedAt: finishedAt})); err != nil {
 		t.Fatalf("report task step state: %v", err)
 	}
 	logStream := reportClient.UploadTaskLogs(ctx)
@@ -146,7 +146,7 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	if err := replayStream.CloseResponse(); err != nil {
 		t.Fatalf("close replay response: %v", err)
 	}
-	if _, err := reportClient.ReportTaskState(ctx, connect.NewRequest(&agentv1.ReportTaskStateRequest{TaskId: "task-remote", Status: "succeeded", FinishedAt: finishedAt})); err != nil {
+	if _, err := reportClient.ReportTaskState(ctx, connect.NewRequest(&agentv1.ReportTaskStateRequest{TaskId: "task-remote", Status: agentv1.AgentTaskStatus_AGENT_TASK_STATUS_SUCCEEDED, FinishedAt: finishedAt})); err != nil {
 		t.Fatalf("report task state: %v", err)
 	}
 	if _, err := reportClient.ReportServiceInstanceStatus(ctx, connect.NewRequest(&agentv1.ReportServiceInstanceStatusRequest{ServiceName: "demo", NodeId: "main", RuntimeStatus: store.ServiceRuntimeRunning, ReportedAt: finishedAt})); err != nil {
@@ -489,7 +489,7 @@ func TestAgentReportTaskStateSkipsCaddyReloadWhenServiceDoesNotUseCaddy(t *testi
 
 	reportClient := agentv1connect.NewAgentReportServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	finishedAt := timestamppb.New(time.Date(2026, 4, 4, 18, 2, 0, 0, time.UTC))
-	if _, err := reportClient.ReportTaskState(ctx, connect.NewRequest(&agentv1.ReportTaskStateRequest{TaskId: "task-no-caddy", Status: "succeeded", FinishedAt: finishedAt})); err != nil {
+	if _, err := reportClient.ReportTaskState(ctx, connect.NewRequest(&agentv1.ReportTaskStateRequest{TaskId: "task-no-caddy", Status: agentv1.AgentTaskStatus_AGENT_TASK_STATUS_SUCCEEDED, FinishedAt: finishedAt})); err != nil {
 		t.Fatalf("report task state: %v", err)
 	}
 
@@ -553,7 +553,7 @@ func TestAgentReportTaskStateQueuesCaddyReloadAfterStop(t *testing.T) {
 
 	reportClient := agentv1connect.NewAgentReportServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	finishedAt := timestamppb.New(time.Date(2026, 4, 4, 18, 2, 0, 0, time.UTC))
-	if _, err := reportClient.ReportTaskState(ctx, connect.NewRequest(&agentv1.ReportTaskStateRequest{TaskId: "task-stop-caddy", Status: "succeeded", FinishedAt: finishedAt})); err != nil {
+	if _, err := reportClient.ReportTaskState(ctx, connect.NewRequest(&agentv1.ReportTaskStateRequest{TaskId: "task-stop-caddy", Status: agentv1.AgentTaskStatus_AGENT_TASK_STATUS_SUCCEEDED, FinishedAt: finishedAt})); err != nil {
 		t.Fatalf("report task state: %v", err)
 	}
 

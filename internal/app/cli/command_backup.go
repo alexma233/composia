@@ -105,7 +105,7 @@ func (application *app) runBackupGet(args []string) error {
 	restoreReason := ""
 	if backup.GetActions() != nil && backup.GetActions().GetRestore() != nil {
 		restoreEnabled = backup.GetActions().GetRestore().GetEnabled()
-		restoreReason = backup.GetActions().GetRestore().GetReasonCode()
+		restoreReason = capabilityReasonText(backup.GetActions().GetRestore().GetReasonCode())
 	}
 	return application.writeKV([][2]string{
 		{"backup_id", backup.GetBackupId()},
