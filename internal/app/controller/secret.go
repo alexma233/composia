@@ -50,7 +50,7 @@ func (server *secretServer) GetSecret(ctx context.Context, req *connect.Request[
 	return connect.NewResponse(&controllerv1.GetSecretResponse{ServiceName: service.Name, FilePath: req.Msg.GetFilePath(), Content: plaintext}), nil
 }
 
-func (server *secretServer) UpdateSecret(ctx context.Context, req *connect.Request[controllerv1.UpdateSecretRequest]) (*connect.Response[controllerv1.UpdateSecretResponse], error) {
+func (server *secretServer) UpdateSecret(ctx context.Context, req *connect.Request[controllerv1.UpdateSecretRequest]) (*connect.Response[controllerv1.RepoWriteResult], error) {
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
@@ -82,12 +82,7 @@ func (server *secretServer) UpdateSecret(ctx context.Context, req *connect.Reque
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&controllerv1.UpdateSecretResponse{
-		CommitId:             result.CommitID,
-		SyncStatus:           result.SyncStatus,
-		PushError:            result.PushError,
-		LastSuccessfulPullAt: result.LastSuccessfulPullAt,
-	}), nil
+	return connect.NewResponse(repoWriteResultMessage(result)), nil
 }
 
 func (server *secretServer) resolveServiceFilePath(serviceName, filePath string) (*repo.Service, string, error) {

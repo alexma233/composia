@@ -6,8 +6,8 @@ import "proto/composia/controller/v1/task.proto";
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
-// ContainerService exposes container-level control and inspection entrypoints.
-service ContainerService {
+// DockerCommandService exposes node-scoped Docker command entrypoints.
+service DockerCommandService {
   // RunContainerAction starts an async action for one container on one node.
   rpc RunContainerAction(RunContainerActionRequest) returns (TaskActionResponse);
   // RemoveContainer starts an async deletion for one container on one node.

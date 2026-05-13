@@ -530,7 +530,7 @@ func (server *agentReportServer) OpenExecTunnel(ctx context.Context, stream *con
 	}
 }
 
-func (server *containerServer) openExecSession(ctx context.Context, nodeID, containerID string, command []string, rows, cols uint32) (*execSession, error) {
+func (server *dockerCommandServer) openExecSession(ctx context.Context, nodeID, containerID string, command []string, rows, cols uint32) (*execSession, error) {
 	allowedOrigin, _ := ctx.Value(execOriginContextKey{}).(string)
 	allowedOrigin = strings.TrimSpace(allowedOrigin)
 	if allowedOrigin == "" {
@@ -549,7 +549,7 @@ func (server *containerServer) openExecSession(ctx context.Context, nodeID, cont
 	return server.execManager.openSession(nodeID, containerID, command, rows, cols, allowedOrigin, createdBy)
 }
 
-func (server *containerServer) OpenContainerExec(ctx context.Context, req *connect.Request[controllerv1.OpenContainerExecRequest]) (*connect.Response[controllerv1.OpenContainerExecResponse], error) {
+func (server *dockerCommandServer) OpenContainerExec(ctx context.Context, req *connect.Request[controllerv1.OpenContainerExecRequest]) (*connect.Response[controllerv1.OpenContainerExecResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetContainerId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and container_id are required"))
 	}
@@ -575,7 +575,7 @@ func (server *containerServer) OpenContainerExec(ctx context.Context, req *conne
 	}), nil
 }
 
-func (server *containerServer) RunContainerExec(ctx context.Context, req *connect.Request[controllerv1.RunContainerExecRequest]) (*connect.Response[controllerv1.RunContainerExecResponse], error) {
+func (server *dockerCommandServer) RunContainerExec(ctx context.Context, req *connect.Request[controllerv1.RunContainerExecRequest]) (*connect.Response[controllerv1.RunContainerExecResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetContainerId() == "" || len(req.Msg.GetCommand()) == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id, container_id, and command are required"))
 	}

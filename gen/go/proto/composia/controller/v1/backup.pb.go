@@ -635,10 +635,11 @@ const file_proto_composia_controller_v1_backup_proto_rawDesc = "" +
 	"\arestore\x18\x01 \x01(\v2\".composia.controller.v1.CapabilityR\arestore\"L\n" +
 	"\x14RestoreBackupRequest\x12\x1b\n" +
 	"\tbackup_id\x18\x01 \x01(\tR\bbackupId\x12\x17\n" +
-	"\anode_id\x18\x02 \x01(\tR\x06nodeId2\xca\x02\n" +
-	"\x13BackupRecordService\x12f\n" +
+	"\anode_id\x18\x02 \x01(\tR\x06nodeId2\xde\x01\n" +
+	"\x12BackupQueryService\x12f\n" +
 	"\vListBackups\x12*.composia.controller.v1.ListBackupsRequest\x1a+.composia.controller.v1.ListBackupsResponse\x12`\n" +
-	"\tGetBackup\x12(.composia.controller.v1.GetBackupRequest\x1a).composia.controller.v1.GetBackupResponse\x12i\n" +
+	"\tGetBackup\x12(.composia.controller.v1.GetBackupRequest\x1a).composia.controller.v1.GetBackupResponse2\x81\x01\n" +
+	"\x14BackupCommandService\x12i\n" +
 	"\rRestoreBackup\x12,.composia.controller.v1.RestoreBackupRequest\x1a*.composia.controller.v1.TaskActionResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
 
 var (
@@ -669,12 +670,12 @@ var file_proto_composia_controller_v1_backup_proto_depIdxs = []int32{
 	0, // 0: composia.controller.v1.ListBackupsResponse.backups:type_name -> composia.controller.v1.BackupSummary
 	5, // 1: composia.controller.v1.GetBackupResponse.actions:type_name -> composia.controller.v1.BackupActionCapabilities
 	7, // 2: composia.controller.v1.BackupActionCapabilities.restore:type_name -> composia.controller.v1.Capability
-	1, // 3: composia.controller.v1.BackupRecordService.ListBackups:input_type -> composia.controller.v1.ListBackupsRequest
-	3, // 4: composia.controller.v1.BackupRecordService.GetBackup:input_type -> composia.controller.v1.GetBackupRequest
-	6, // 5: composia.controller.v1.BackupRecordService.RestoreBackup:input_type -> composia.controller.v1.RestoreBackupRequest
-	2, // 6: composia.controller.v1.BackupRecordService.ListBackups:output_type -> composia.controller.v1.ListBackupsResponse
-	4, // 7: composia.controller.v1.BackupRecordService.GetBackup:output_type -> composia.controller.v1.GetBackupResponse
-	8, // 8: composia.controller.v1.BackupRecordService.RestoreBackup:output_type -> composia.controller.v1.TaskActionResponse
+	1, // 3: composia.controller.v1.BackupQueryService.ListBackups:input_type -> composia.controller.v1.ListBackupsRequest
+	3, // 4: composia.controller.v1.BackupQueryService.GetBackup:input_type -> composia.controller.v1.GetBackupRequest
+	6, // 5: composia.controller.v1.BackupCommandService.RestoreBackup:input_type -> composia.controller.v1.RestoreBackupRequest
+	2, // 6: composia.controller.v1.BackupQueryService.ListBackups:output_type -> composia.controller.v1.ListBackupsResponse
+	4, // 7: composia.controller.v1.BackupQueryService.GetBackup:output_type -> composia.controller.v1.GetBackupResponse
+	8, // 8: composia.controller.v1.BackupCommandService.RestoreBackup:output_type -> composia.controller.v1.TaskActionResponse
 	6, // [6:9] is the sub-list for method output_type
 	3, // [3:6] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
@@ -697,7 +698,7 @@ func file_proto_composia_controller_v1_backup_proto_init() {
 			NumEnums:      0,
 			NumMessages:   7,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   2,
 		},
 		GoTypes:           file_proto_composia_controller_v1_backup_proto_goTypes,
 		DependencyIndexes: file_proto_composia_controller_v1_backup_proto_depIdxs,

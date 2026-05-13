@@ -25,7 +25,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
       try {
         const upstream = await fetch(
-          `${config.baseUrl}${controllerProcedure("/composia.controller.v1.ContainerService/GetContainerLogs")}`,
+          `${config.baseUrl}${controllerProcedure("/composia.controller.v1.DockerCommandService/GetContainerLogs")}`,
           {
             method: "POST",
             headers: {

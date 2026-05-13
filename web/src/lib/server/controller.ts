@@ -174,16 +174,9 @@ export type TaskActionResult = {
   repoRevision: string;
 };
 
-export type ServiceActionRepoWriteResult = {
-  commitId: string;
-  syncStatus: string;
-  pushError: string;
-  lastSuccessfulPullAt: string;
-};
-
 export type ServiceActionResult = {
   tasks: TaskActionResult[];
-  repoWrite?: ServiceActionRepoWriteResult;
+  repoWrite?: RepoWriteResult;
 };
 
 export type ImageUpdateCheckSummary = {
@@ -964,7 +957,7 @@ export async function loadBackups(
     config.baseUrl,
     config.token,
     controllerProcedure(
-      "/composia.controller.v1.BackupRecordService/ListBackups",
+      "/composia.controller.v1.BackupQueryService/ListBackups",
     ),
     {
       page,
@@ -1020,7 +1013,7 @@ export async function loadBackupDetail(
     config.baseUrl,
     config.token,
     controllerProcedure(
-      "/composia.controller.v1.BackupRecordService/GetBackup",
+      "/composia.controller.v1.BackupQueryService/GetBackup",
     ),
     { backupId },
   );
@@ -1045,7 +1038,7 @@ export async function restoreBackup(
 ): Promise<TaskActionResult> {
   return callTaskAction(
     controllerProcedure(
-      "/composia.controller.v1.BackupRecordService/RestoreBackup",
+      "/composia.controller.v1.BackupCommandService/RestoreBackup",
     ),
     {
       backupId,
@@ -1939,7 +1932,7 @@ export async function runContainerAction(
 ): Promise<ContainerActionResult> {
   return callTaskAction(
     controllerProcedure(
-      "/composia.controller.v1.ContainerService/RunContainerAction",
+      "/composia.controller.v1.DockerCommandService/RunContainerAction",
     ),
     { nodeId, containerId, action: toContainerActionEnum(action) },
   );
@@ -1952,7 +1945,7 @@ export async function removeNodeContainer(
 ): Promise<ContainerActionResult> {
   return callTaskAction(
     controllerProcedure(
-      "/composia.controller.v1.ContainerService/RemoveContainer",
+      "/composia.controller.v1.DockerCommandService/RemoveContainer",
     ),
     {
       nodeId,
@@ -1976,7 +1969,7 @@ export async function openContainerExec(
     config.baseUrl,
     config.token,
     controllerProcedure(
-      "/composia.controller.v1.ContainerService/OpenContainerExec",
+      "/composia.controller.v1.DockerCommandService/OpenContainerExec",
     ),
     { nodeId, containerId, command, rows, cols },
     { "X-Composia-Web-Origin": browserOrigin },
@@ -2063,7 +2056,7 @@ export async function removeNodeNetwork(
 ): Promise<ContainerActionResult> {
   return callTaskAction(
     controllerProcedure(
-      "/composia.controller.v1.ContainerService/RemoveNetwork",
+      "/composia.controller.v1.DockerCommandService/RemoveNetwork",
     ),
     { nodeId, networkId },
   );
@@ -2144,7 +2137,7 @@ export async function removeNodeVolume(
 ): Promise<ContainerActionResult> {
   return callTaskAction(
     controllerProcedure(
-      "/composia.controller.v1.ContainerService/RemoveVolume",
+      "/composia.controller.v1.DockerCommandService/RemoveVolume",
     ),
     { nodeId, volumeName },
   );
@@ -2231,7 +2224,7 @@ export async function removeNodeImage(
   force = false,
 ): Promise<ContainerActionResult> {
   return callTaskAction(
-    controllerProcedure("/composia.controller.v1.ContainerService/RemoveImage"),
+    controllerProcedure("/composia.controller.v1.DockerCommandService/RemoveImage"),
     { nodeId, imageId, force },
   );
 }

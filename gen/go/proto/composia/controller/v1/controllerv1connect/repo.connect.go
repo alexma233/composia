@@ -255,13 +255,13 @@ func (UnimplementedRepoQueryServiceHandler) ValidateRepo(context.Context, *conne
 // RepoCommandServiceClient is a client for the composia.controller.v1.RepoCommandService service.
 type RepoCommandServiceClient interface {
 	// UpdateRepoFile writes one file, creates a commit, and reports sync state.
-	UpdateRepoFile(context.Context, *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.UpdateRepoFileResponse], error)
+	UpdateRepoFile(context.Context, *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.RepoWriteResult], error)
 	// CreateRepoDirectory creates one directory, creates a commit, and reports sync state.
-	CreateRepoDirectory(context.Context, *connect.Request[v1.CreateRepoDirectoryRequest]) (*connect.Response[v1.CreateRepoDirectoryResponse], error)
+	CreateRepoDirectory(context.Context, *connect.Request[v1.CreateRepoDirectoryRequest]) (*connect.Response[v1.RepoWriteResult], error)
 	// MoveRepoPath moves or renames one repo path.
-	MoveRepoPath(context.Context, *connect.Request[v1.MoveRepoPathRequest]) (*connect.Response[v1.MoveRepoPathResponse], error)
+	MoveRepoPath(context.Context, *connect.Request[v1.MoveRepoPathRequest]) (*connect.Response[v1.RepoWriteResult], error)
 	// DeleteRepoPath deletes one repo path.
-	DeleteRepoPath(context.Context, *connect.Request[v1.DeleteRepoPathRequest]) (*connect.Response[v1.DeleteRepoPathResponse], error)
+	DeleteRepoPath(context.Context, *connect.Request[v1.DeleteRepoPathRequest]) (*connect.Response[v1.RepoWriteResult], error)
 	// SyncRepo pulls or syncs the repo and returns the resulting state snapshot.
 	SyncRepo(context.Context, *connect.Request[v1.SyncRepoRequest]) (*connect.Response[v1.SyncRepoResponse], error)
 }
@@ -277,25 +277,25 @@ func NewRepoCommandServiceClient(httpClient connect.HTTPClient, baseURL string, 
 	baseURL = strings.TrimRight(baseURL, "/")
 	repoCommandServiceMethods := v1.File_proto_composia_controller_v1_repo_proto.Services().ByName("RepoCommandService").Methods()
 	return &repoCommandServiceClient{
-		updateRepoFile: connect.NewClient[v1.UpdateRepoFileRequest, v1.UpdateRepoFileResponse](
+		updateRepoFile: connect.NewClient[v1.UpdateRepoFileRequest, v1.RepoWriteResult](
 			httpClient,
 			baseURL+RepoCommandServiceUpdateRepoFileProcedure,
 			connect.WithSchema(repoCommandServiceMethods.ByName("UpdateRepoFile")),
 			connect.WithClientOptions(opts...),
 		),
-		createRepoDirectory: connect.NewClient[v1.CreateRepoDirectoryRequest, v1.CreateRepoDirectoryResponse](
+		createRepoDirectory: connect.NewClient[v1.CreateRepoDirectoryRequest, v1.RepoWriteResult](
 			httpClient,
 			baseURL+RepoCommandServiceCreateRepoDirectoryProcedure,
 			connect.WithSchema(repoCommandServiceMethods.ByName("CreateRepoDirectory")),
 			connect.WithClientOptions(opts...),
 		),
-		moveRepoPath: connect.NewClient[v1.MoveRepoPathRequest, v1.MoveRepoPathResponse](
+		moveRepoPath: connect.NewClient[v1.MoveRepoPathRequest, v1.RepoWriteResult](
 			httpClient,
 			baseURL+RepoCommandServiceMoveRepoPathProcedure,
 			connect.WithSchema(repoCommandServiceMethods.ByName("MoveRepoPath")),
 			connect.WithClientOptions(opts...),
 		),
-		deleteRepoPath: connect.NewClient[v1.DeleteRepoPathRequest, v1.DeleteRepoPathResponse](
+		deleteRepoPath: connect.NewClient[v1.DeleteRepoPathRequest, v1.RepoWriteResult](
 			httpClient,
 			baseURL+RepoCommandServiceDeleteRepoPathProcedure,
 			connect.WithSchema(repoCommandServiceMethods.ByName("DeleteRepoPath")),
@@ -312,30 +312,30 @@ func NewRepoCommandServiceClient(httpClient connect.HTTPClient, baseURL string, 
 
 // repoCommandServiceClient implements RepoCommandServiceClient.
 type repoCommandServiceClient struct {
-	updateRepoFile      *connect.Client[v1.UpdateRepoFileRequest, v1.UpdateRepoFileResponse]
-	createRepoDirectory *connect.Client[v1.CreateRepoDirectoryRequest, v1.CreateRepoDirectoryResponse]
-	moveRepoPath        *connect.Client[v1.MoveRepoPathRequest, v1.MoveRepoPathResponse]
-	deleteRepoPath      *connect.Client[v1.DeleteRepoPathRequest, v1.DeleteRepoPathResponse]
+	updateRepoFile      *connect.Client[v1.UpdateRepoFileRequest, v1.RepoWriteResult]
+	createRepoDirectory *connect.Client[v1.CreateRepoDirectoryRequest, v1.RepoWriteResult]
+	moveRepoPath        *connect.Client[v1.MoveRepoPathRequest, v1.RepoWriteResult]
+	deleteRepoPath      *connect.Client[v1.DeleteRepoPathRequest, v1.RepoWriteResult]
 	syncRepo            *connect.Client[v1.SyncRepoRequest, v1.SyncRepoResponse]
 }
 
 // UpdateRepoFile calls composia.controller.v1.RepoCommandService.UpdateRepoFile.
-func (c *repoCommandServiceClient) UpdateRepoFile(ctx context.Context, req *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.UpdateRepoFileResponse], error) {
+func (c *repoCommandServiceClient) UpdateRepoFile(ctx context.Context, req *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.RepoWriteResult], error) {
 	return c.updateRepoFile.CallUnary(ctx, req)
 }
 
 // CreateRepoDirectory calls composia.controller.v1.RepoCommandService.CreateRepoDirectory.
-func (c *repoCommandServiceClient) CreateRepoDirectory(ctx context.Context, req *connect.Request[v1.CreateRepoDirectoryRequest]) (*connect.Response[v1.CreateRepoDirectoryResponse], error) {
+func (c *repoCommandServiceClient) CreateRepoDirectory(ctx context.Context, req *connect.Request[v1.CreateRepoDirectoryRequest]) (*connect.Response[v1.RepoWriteResult], error) {
 	return c.createRepoDirectory.CallUnary(ctx, req)
 }
 
 // MoveRepoPath calls composia.controller.v1.RepoCommandService.MoveRepoPath.
-func (c *repoCommandServiceClient) MoveRepoPath(ctx context.Context, req *connect.Request[v1.MoveRepoPathRequest]) (*connect.Response[v1.MoveRepoPathResponse], error) {
+func (c *repoCommandServiceClient) MoveRepoPath(ctx context.Context, req *connect.Request[v1.MoveRepoPathRequest]) (*connect.Response[v1.RepoWriteResult], error) {
 	return c.moveRepoPath.CallUnary(ctx, req)
 }
 
 // DeleteRepoPath calls composia.controller.v1.RepoCommandService.DeleteRepoPath.
-func (c *repoCommandServiceClient) DeleteRepoPath(ctx context.Context, req *connect.Request[v1.DeleteRepoPathRequest]) (*connect.Response[v1.DeleteRepoPathResponse], error) {
+func (c *repoCommandServiceClient) DeleteRepoPath(ctx context.Context, req *connect.Request[v1.DeleteRepoPathRequest]) (*connect.Response[v1.RepoWriteResult], error) {
 	return c.deleteRepoPath.CallUnary(ctx, req)
 }
 
@@ -348,13 +348,13 @@ func (c *repoCommandServiceClient) SyncRepo(ctx context.Context, req *connect.Re
 // service.
 type RepoCommandServiceHandler interface {
 	// UpdateRepoFile writes one file, creates a commit, and reports sync state.
-	UpdateRepoFile(context.Context, *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.UpdateRepoFileResponse], error)
+	UpdateRepoFile(context.Context, *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.RepoWriteResult], error)
 	// CreateRepoDirectory creates one directory, creates a commit, and reports sync state.
-	CreateRepoDirectory(context.Context, *connect.Request[v1.CreateRepoDirectoryRequest]) (*connect.Response[v1.CreateRepoDirectoryResponse], error)
+	CreateRepoDirectory(context.Context, *connect.Request[v1.CreateRepoDirectoryRequest]) (*connect.Response[v1.RepoWriteResult], error)
 	// MoveRepoPath moves or renames one repo path.
-	MoveRepoPath(context.Context, *connect.Request[v1.MoveRepoPathRequest]) (*connect.Response[v1.MoveRepoPathResponse], error)
+	MoveRepoPath(context.Context, *connect.Request[v1.MoveRepoPathRequest]) (*connect.Response[v1.RepoWriteResult], error)
 	// DeleteRepoPath deletes one repo path.
-	DeleteRepoPath(context.Context, *connect.Request[v1.DeleteRepoPathRequest]) (*connect.Response[v1.DeleteRepoPathResponse], error)
+	DeleteRepoPath(context.Context, *connect.Request[v1.DeleteRepoPathRequest]) (*connect.Response[v1.RepoWriteResult], error)
 	// SyncRepo pulls or syncs the repo and returns the resulting state snapshot.
 	SyncRepo(context.Context, *connect.Request[v1.SyncRepoRequest]) (*connect.Response[v1.SyncRepoResponse], error)
 }
@@ -417,19 +417,19 @@ func NewRepoCommandServiceHandler(svc RepoCommandServiceHandler, opts ...connect
 // UnimplementedRepoCommandServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedRepoCommandServiceHandler struct{}
 
-func (UnimplementedRepoCommandServiceHandler) UpdateRepoFile(context.Context, *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.UpdateRepoFileResponse], error) {
+func (UnimplementedRepoCommandServiceHandler) UpdateRepoFile(context.Context, *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.RepoWriteResult], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoCommandService.UpdateRepoFile is not implemented"))
 }
 
-func (UnimplementedRepoCommandServiceHandler) CreateRepoDirectory(context.Context, *connect.Request[v1.CreateRepoDirectoryRequest]) (*connect.Response[v1.CreateRepoDirectoryResponse], error) {
+func (UnimplementedRepoCommandServiceHandler) CreateRepoDirectory(context.Context, *connect.Request[v1.CreateRepoDirectoryRequest]) (*connect.Response[v1.RepoWriteResult], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoCommandService.CreateRepoDirectory is not implemented"))
 }
 
-func (UnimplementedRepoCommandServiceHandler) MoveRepoPath(context.Context, *connect.Request[v1.MoveRepoPathRequest]) (*connect.Response[v1.MoveRepoPathResponse], error) {
+func (UnimplementedRepoCommandServiceHandler) MoveRepoPath(context.Context, *connect.Request[v1.MoveRepoPathRequest]) (*connect.Response[v1.RepoWriteResult], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoCommandService.MoveRepoPath is not implemented"))
 }
 
-func (UnimplementedRepoCommandServiceHandler) DeleteRepoPath(context.Context, *connect.Request[v1.DeleteRepoPathRequest]) (*connect.Response[v1.DeleteRepoPathResponse], error) {
+func (UnimplementedRepoCommandServiceHandler) DeleteRepoPath(context.Context, *connect.Request[v1.DeleteRepoPathRequest]) (*connect.Response[v1.RepoWriteResult], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.RepoCommandService.DeleteRepoPath is not implemented"))
 }
 

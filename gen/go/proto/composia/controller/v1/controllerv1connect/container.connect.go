@@ -21,8 +21,8 @@ import (
 const _ = connect.IsAtLeastVersion1_13_0
 
 const (
-	// ContainerServiceName is the fully-qualified name of the ContainerService service.
-	ContainerServiceName = "composia.controller.v1.ContainerService"
+	// DockerCommandServiceName is the fully-qualified name of the DockerCommandService service.
+	DockerCommandServiceName = "composia.controller.v1.DockerCommandService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -33,34 +33,35 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// ContainerServiceRunContainerActionProcedure is the fully-qualified name of the ContainerService's
-	// RunContainerAction RPC.
-	ContainerServiceRunContainerActionProcedure = "/composia.controller.v1.ContainerService/RunContainerAction"
-	// ContainerServiceRemoveContainerProcedure is the fully-qualified name of the ContainerService's
-	// RemoveContainer RPC.
-	ContainerServiceRemoveContainerProcedure = "/composia.controller.v1.ContainerService/RemoveContainer"
-	// ContainerServiceGetContainerLogsProcedure is the fully-qualified name of the ContainerService's
-	// GetContainerLogs RPC.
-	ContainerServiceGetContainerLogsProcedure = "/composia.controller.v1.ContainerService/GetContainerLogs"
-	// ContainerServiceOpenContainerExecProcedure is the fully-qualified name of the ContainerService's
-	// OpenContainerExec RPC.
-	ContainerServiceOpenContainerExecProcedure = "/composia.controller.v1.ContainerService/OpenContainerExec"
-	// ContainerServiceRunContainerExecProcedure is the fully-qualified name of the ContainerService's
-	// RunContainerExec RPC.
-	ContainerServiceRunContainerExecProcedure = "/composia.controller.v1.ContainerService/RunContainerExec"
-	// ContainerServiceRemoveNetworkProcedure is the fully-qualified name of the ContainerService's
-	// RemoveNetwork RPC.
-	ContainerServiceRemoveNetworkProcedure = "/composia.controller.v1.ContainerService/RemoveNetwork"
-	// ContainerServiceRemoveVolumeProcedure is the fully-qualified name of the ContainerService's
-	// RemoveVolume RPC.
-	ContainerServiceRemoveVolumeProcedure = "/composia.controller.v1.ContainerService/RemoveVolume"
-	// ContainerServiceRemoveImageProcedure is the fully-qualified name of the ContainerService's
-	// RemoveImage RPC.
-	ContainerServiceRemoveImageProcedure = "/composia.controller.v1.ContainerService/RemoveImage"
+	// DockerCommandServiceRunContainerActionProcedure is the fully-qualified name of the
+	// DockerCommandService's RunContainerAction RPC.
+	DockerCommandServiceRunContainerActionProcedure = "/composia.controller.v1.DockerCommandService/RunContainerAction"
+	// DockerCommandServiceRemoveContainerProcedure is the fully-qualified name of the
+	// DockerCommandService's RemoveContainer RPC.
+	DockerCommandServiceRemoveContainerProcedure = "/composia.controller.v1.DockerCommandService/RemoveContainer"
+	// DockerCommandServiceGetContainerLogsProcedure is the fully-qualified name of the
+	// DockerCommandService's GetContainerLogs RPC.
+	DockerCommandServiceGetContainerLogsProcedure = "/composia.controller.v1.DockerCommandService/GetContainerLogs"
+	// DockerCommandServiceOpenContainerExecProcedure is the fully-qualified name of the
+	// DockerCommandService's OpenContainerExec RPC.
+	DockerCommandServiceOpenContainerExecProcedure = "/composia.controller.v1.DockerCommandService/OpenContainerExec"
+	// DockerCommandServiceRunContainerExecProcedure is the fully-qualified name of the
+	// DockerCommandService's RunContainerExec RPC.
+	DockerCommandServiceRunContainerExecProcedure = "/composia.controller.v1.DockerCommandService/RunContainerExec"
+	// DockerCommandServiceRemoveNetworkProcedure is the fully-qualified name of the
+	// DockerCommandService's RemoveNetwork RPC.
+	DockerCommandServiceRemoveNetworkProcedure = "/composia.controller.v1.DockerCommandService/RemoveNetwork"
+	// DockerCommandServiceRemoveVolumeProcedure is the fully-qualified name of the
+	// DockerCommandService's RemoveVolume RPC.
+	DockerCommandServiceRemoveVolumeProcedure = "/composia.controller.v1.DockerCommandService/RemoveVolume"
+	// DockerCommandServiceRemoveImageProcedure is the fully-qualified name of the
+	// DockerCommandService's RemoveImage RPC.
+	DockerCommandServiceRemoveImageProcedure = "/composia.controller.v1.DockerCommandService/RemoveImage"
 )
 
-// ContainerServiceClient is a client for the composia.controller.v1.ContainerService service.
-type ContainerServiceClient interface {
+// DockerCommandServiceClient is a client for the composia.controller.v1.DockerCommandService
+// service.
+type DockerCommandServiceClient interface {
 	// RunContainerAction starts an async action for one container on one node.
 	RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
 	// RemoveContainer starts an async deletion for one container on one node.
@@ -79,70 +80,71 @@ type ContainerServiceClient interface {
 	RemoveImage(context.Context, *connect.Request[v1.RemoveImageRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 
-// NewContainerServiceClient constructs a client for the composia.controller.v1.ContainerService
-// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
-// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
-// the connect.WithGRPC() or connect.WithGRPCWeb() options.
+// NewDockerCommandServiceClient constructs a client for the
+// composia.controller.v1.DockerCommandService service. By default, it uses the Connect protocol
+// with the binary Protobuf Codec, asks for gzipped responses, and sends uncompressed requests. To
+// use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or connect.WithGRPCWeb()
+// options.
 //
 // The URL supplied here should be the base URL for the Connect or gRPC server (for example,
 // http://api.acme.com or https://acme.com/grpc).
-func NewContainerServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ContainerServiceClient {
+func NewDockerCommandServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) DockerCommandServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
-	containerServiceMethods := v1.File_proto_composia_controller_v1_container_proto.Services().ByName("ContainerService").Methods()
-	return &containerServiceClient{
+	dockerCommandServiceMethods := v1.File_proto_composia_controller_v1_container_proto.Services().ByName("DockerCommandService").Methods()
+	return &dockerCommandServiceClient{
 		runContainerAction: connect.NewClient[v1.RunContainerActionRequest, v1.TaskActionResponse](
 			httpClient,
-			baseURL+ContainerServiceRunContainerActionProcedure,
-			connect.WithSchema(containerServiceMethods.ByName("RunContainerAction")),
+			baseURL+DockerCommandServiceRunContainerActionProcedure,
+			connect.WithSchema(dockerCommandServiceMethods.ByName("RunContainerAction")),
 			connect.WithClientOptions(opts...),
 		),
 		removeContainer: connect.NewClient[v1.RemoveContainerRequest, v1.TaskActionResponse](
 			httpClient,
-			baseURL+ContainerServiceRemoveContainerProcedure,
-			connect.WithSchema(containerServiceMethods.ByName("RemoveContainer")),
+			baseURL+DockerCommandServiceRemoveContainerProcedure,
+			connect.WithSchema(dockerCommandServiceMethods.ByName("RemoveContainer")),
 			connect.WithClientOptions(opts...),
 		),
 		getContainerLogs: connect.NewClient[v1.GetContainerLogsRequest, v1.GetContainerLogsResponse](
 			httpClient,
-			baseURL+ContainerServiceGetContainerLogsProcedure,
-			connect.WithSchema(containerServiceMethods.ByName("GetContainerLogs")),
+			baseURL+DockerCommandServiceGetContainerLogsProcedure,
+			connect.WithSchema(dockerCommandServiceMethods.ByName("GetContainerLogs")),
 			connect.WithClientOptions(opts...),
 		),
 		openContainerExec: connect.NewClient[v1.OpenContainerExecRequest, v1.OpenContainerExecResponse](
 			httpClient,
-			baseURL+ContainerServiceOpenContainerExecProcedure,
-			connect.WithSchema(containerServiceMethods.ByName("OpenContainerExec")),
+			baseURL+DockerCommandServiceOpenContainerExecProcedure,
+			connect.WithSchema(dockerCommandServiceMethods.ByName("OpenContainerExec")),
 			connect.WithClientOptions(opts...),
 		),
 		runContainerExec: connect.NewClient[v1.RunContainerExecRequest, v1.RunContainerExecResponse](
 			httpClient,
-			baseURL+ContainerServiceRunContainerExecProcedure,
-			connect.WithSchema(containerServiceMethods.ByName("RunContainerExec")),
+			baseURL+DockerCommandServiceRunContainerExecProcedure,
+			connect.WithSchema(dockerCommandServiceMethods.ByName("RunContainerExec")),
 			connect.WithClientOptions(opts...),
 		),
 		removeNetwork: connect.NewClient[v1.RemoveNetworkRequest, v1.TaskActionResponse](
 			httpClient,
-			baseURL+ContainerServiceRemoveNetworkProcedure,
-			connect.WithSchema(containerServiceMethods.ByName("RemoveNetwork")),
+			baseURL+DockerCommandServiceRemoveNetworkProcedure,
+			connect.WithSchema(dockerCommandServiceMethods.ByName("RemoveNetwork")),
 			connect.WithClientOptions(opts...),
 		),
 		removeVolume: connect.NewClient[v1.RemoveVolumeRequest, v1.TaskActionResponse](
 			httpClient,
-			baseURL+ContainerServiceRemoveVolumeProcedure,
-			connect.WithSchema(containerServiceMethods.ByName("RemoveVolume")),
+			baseURL+DockerCommandServiceRemoveVolumeProcedure,
+			connect.WithSchema(dockerCommandServiceMethods.ByName("RemoveVolume")),
 			connect.WithClientOptions(opts...),
 		),
 		removeImage: connect.NewClient[v1.RemoveImageRequest, v1.TaskActionResponse](
 			httpClient,
-			baseURL+ContainerServiceRemoveImageProcedure,
-			connect.WithSchema(containerServiceMethods.ByName("RemoveImage")),
+			baseURL+DockerCommandServiceRemoveImageProcedure,
+			connect.WithSchema(dockerCommandServiceMethods.ByName("RemoveImage")),
 			connect.WithClientOptions(opts...),
 		),
 	}
 }
 
-// containerServiceClient implements ContainerServiceClient.
-type containerServiceClient struct {
+// dockerCommandServiceClient implements DockerCommandServiceClient.
+type dockerCommandServiceClient struct {
 	runContainerAction *connect.Client[v1.RunContainerActionRequest, v1.TaskActionResponse]
 	removeContainer    *connect.Client[v1.RemoveContainerRequest, v1.TaskActionResponse]
 	getContainerLogs   *connect.Client[v1.GetContainerLogsRequest, v1.GetContainerLogsResponse]
@@ -153,49 +155,49 @@ type containerServiceClient struct {
 	removeImage        *connect.Client[v1.RemoveImageRequest, v1.TaskActionResponse]
 }
 
-// RunContainerAction calls composia.controller.v1.ContainerService.RunContainerAction.
-func (c *containerServiceClient) RunContainerAction(ctx context.Context, req *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+// RunContainerAction calls composia.controller.v1.DockerCommandService.RunContainerAction.
+func (c *dockerCommandServiceClient) RunContainerAction(ctx context.Context, req *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.TaskActionResponse], error) {
 	return c.runContainerAction.CallUnary(ctx, req)
 }
 
-// RemoveContainer calls composia.controller.v1.ContainerService.RemoveContainer.
-func (c *containerServiceClient) RemoveContainer(ctx context.Context, req *connect.Request[v1.RemoveContainerRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+// RemoveContainer calls composia.controller.v1.DockerCommandService.RemoveContainer.
+func (c *dockerCommandServiceClient) RemoveContainer(ctx context.Context, req *connect.Request[v1.RemoveContainerRequest]) (*connect.Response[v1.TaskActionResponse], error) {
 	return c.removeContainer.CallUnary(ctx, req)
 }
 
-// GetContainerLogs calls composia.controller.v1.ContainerService.GetContainerLogs.
-func (c *containerServiceClient) GetContainerLogs(ctx context.Context, req *connect.Request[v1.GetContainerLogsRequest]) (*connect.ServerStreamForClient[v1.GetContainerLogsResponse], error) {
+// GetContainerLogs calls composia.controller.v1.DockerCommandService.GetContainerLogs.
+func (c *dockerCommandServiceClient) GetContainerLogs(ctx context.Context, req *connect.Request[v1.GetContainerLogsRequest]) (*connect.ServerStreamForClient[v1.GetContainerLogsResponse], error) {
 	return c.getContainerLogs.CallServerStream(ctx, req)
 }
 
-// OpenContainerExec calls composia.controller.v1.ContainerService.OpenContainerExec.
-func (c *containerServiceClient) OpenContainerExec(ctx context.Context, req *connect.Request[v1.OpenContainerExecRequest]) (*connect.Response[v1.OpenContainerExecResponse], error) {
+// OpenContainerExec calls composia.controller.v1.DockerCommandService.OpenContainerExec.
+func (c *dockerCommandServiceClient) OpenContainerExec(ctx context.Context, req *connect.Request[v1.OpenContainerExecRequest]) (*connect.Response[v1.OpenContainerExecResponse], error) {
 	return c.openContainerExec.CallUnary(ctx, req)
 }
 
-// RunContainerExec calls composia.controller.v1.ContainerService.RunContainerExec.
-func (c *containerServiceClient) RunContainerExec(ctx context.Context, req *connect.Request[v1.RunContainerExecRequest]) (*connect.Response[v1.RunContainerExecResponse], error) {
+// RunContainerExec calls composia.controller.v1.DockerCommandService.RunContainerExec.
+func (c *dockerCommandServiceClient) RunContainerExec(ctx context.Context, req *connect.Request[v1.RunContainerExecRequest]) (*connect.Response[v1.RunContainerExecResponse], error) {
 	return c.runContainerExec.CallUnary(ctx, req)
 }
 
-// RemoveNetwork calls composia.controller.v1.ContainerService.RemoveNetwork.
-func (c *containerServiceClient) RemoveNetwork(ctx context.Context, req *connect.Request[v1.RemoveNetworkRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+// RemoveNetwork calls composia.controller.v1.DockerCommandService.RemoveNetwork.
+func (c *dockerCommandServiceClient) RemoveNetwork(ctx context.Context, req *connect.Request[v1.RemoveNetworkRequest]) (*connect.Response[v1.TaskActionResponse], error) {
 	return c.removeNetwork.CallUnary(ctx, req)
 }
 
-// RemoveVolume calls composia.controller.v1.ContainerService.RemoveVolume.
-func (c *containerServiceClient) RemoveVolume(ctx context.Context, req *connect.Request[v1.RemoveVolumeRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+// RemoveVolume calls composia.controller.v1.DockerCommandService.RemoveVolume.
+func (c *dockerCommandServiceClient) RemoveVolume(ctx context.Context, req *connect.Request[v1.RemoveVolumeRequest]) (*connect.Response[v1.TaskActionResponse], error) {
 	return c.removeVolume.CallUnary(ctx, req)
 }
 
-// RemoveImage calls composia.controller.v1.ContainerService.RemoveImage.
-func (c *containerServiceClient) RemoveImage(ctx context.Context, req *connect.Request[v1.RemoveImageRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+// RemoveImage calls composia.controller.v1.DockerCommandService.RemoveImage.
+func (c *dockerCommandServiceClient) RemoveImage(ctx context.Context, req *connect.Request[v1.RemoveImageRequest]) (*connect.Response[v1.TaskActionResponse], error) {
 	return c.removeImage.CallUnary(ctx, req)
 }
 
-// ContainerServiceHandler is an implementation of the composia.controller.v1.ContainerService
-// service.
-type ContainerServiceHandler interface {
+// DockerCommandServiceHandler is an implementation of the
+// composia.controller.v1.DockerCommandService service.
+type DockerCommandServiceHandler interface {
 	// RunContainerAction starts an async action for one container on one node.
 	RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.TaskActionResponse], error)
 	// RemoveContainer starts an async deletion for one container on one node.
@@ -214,116 +216,116 @@ type ContainerServiceHandler interface {
 	RemoveImage(context.Context, *connect.Request[v1.RemoveImageRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 
-// NewContainerServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
+// NewDockerCommandServiceHandler builds an HTTP handler from the service implementation. It returns
+// the path on which to mount the handler and the handler itself.
 //
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
-func NewContainerServiceHandler(svc ContainerServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	containerServiceMethods := v1.File_proto_composia_controller_v1_container_proto.Services().ByName("ContainerService").Methods()
-	containerServiceRunContainerActionHandler := connect.NewUnaryHandler(
-		ContainerServiceRunContainerActionProcedure,
+func NewDockerCommandServiceHandler(svc DockerCommandServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	dockerCommandServiceMethods := v1.File_proto_composia_controller_v1_container_proto.Services().ByName("DockerCommandService").Methods()
+	dockerCommandServiceRunContainerActionHandler := connect.NewUnaryHandler(
+		DockerCommandServiceRunContainerActionProcedure,
 		svc.RunContainerAction,
-		connect.WithSchema(containerServiceMethods.ByName("RunContainerAction")),
+		connect.WithSchema(dockerCommandServiceMethods.ByName("RunContainerAction")),
 		connect.WithHandlerOptions(opts...),
 	)
-	containerServiceRemoveContainerHandler := connect.NewUnaryHandler(
-		ContainerServiceRemoveContainerProcedure,
+	dockerCommandServiceRemoveContainerHandler := connect.NewUnaryHandler(
+		DockerCommandServiceRemoveContainerProcedure,
 		svc.RemoveContainer,
-		connect.WithSchema(containerServiceMethods.ByName("RemoveContainer")),
+		connect.WithSchema(dockerCommandServiceMethods.ByName("RemoveContainer")),
 		connect.WithHandlerOptions(opts...),
 	)
-	containerServiceGetContainerLogsHandler := connect.NewServerStreamHandler(
-		ContainerServiceGetContainerLogsProcedure,
+	dockerCommandServiceGetContainerLogsHandler := connect.NewServerStreamHandler(
+		DockerCommandServiceGetContainerLogsProcedure,
 		svc.GetContainerLogs,
-		connect.WithSchema(containerServiceMethods.ByName("GetContainerLogs")),
+		connect.WithSchema(dockerCommandServiceMethods.ByName("GetContainerLogs")),
 		connect.WithHandlerOptions(opts...),
 	)
-	containerServiceOpenContainerExecHandler := connect.NewUnaryHandler(
-		ContainerServiceOpenContainerExecProcedure,
+	dockerCommandServiceOpenContainerExecHandler := connect.NewUnaryHandler(
+		DockerCommandServiceOpenContainerExecProcedure,
 		svc.OpenContainerExec,
-		connect.WithSchema(containerServiceMethods.ByName("OpenContainerExec")),
+		connect.WithSchema(dockerCommandServiceMethods.ByName("OpenContainerExec")),
 		connect.WithHandlerOptions(opts...),
 	)
-	containerServiceRunContainerExecHandler := connect.NewUnaryHandler(
-		ContainerServiceRunContainerExecProcedure,
+	dockerCommandServiceRunContainerExecHandler := connect.NewUnaryHandler(
+		DockerCommandServiceRunContainerExecProcedure,
 		svc.RunContainerExec,
-		connect.WithSchema(containerServiceMethods.ByName("RunContainerExec")),
+		connect.WithSchema(dockerCommandServiceMethods.ByName("RunContainerExec")),
 		connect.WithHandlerOptions(opts...),
 	)
-	containerServiceRemoveNetworkHandler := connect.NewUnaryHandler(
-		ContainerServiceRemoveNetworkProcedure,
+	dockerCommandServiceRemoveNetworkHandler := connect.NewUnaryHandler(
+		DockerCommandServiceRemoveNetworkProcedure,
 		svc.RemoveNetwork,
-		connect.WithSchema(containerServiceMethods.ByName("RemoveNetwork")),
+		connect.WithSchema(dockerCommandServiceMethods.ByName("RemoveNetwork")),
 		connect.WithHandlerOptions(opts...),
 	)
-	containerServiceRemoveVolumeHandler := connect.NewUnaryHandler(
-		ContainerServiceRemoveVolumeProcedure,
+	dockerCommandServiceRemoveVolumeHandler := connect.NewUnaryHandler(
+		DockerCommandServiceRemoveVolumeProcedure,
 		svc.RemoveVolume,
-		connect.WithSchema(containerServiceMethods.ByName("RemoveVolume")),
+		connect.WithSchema(dockerCommandServiceMethods.ByName("RemoveVolume")),
 		connect.WithHandlerOptions(opts...),
 	)
-	containerServiceRemoveImageHandler := connect.NewUnaryHandler(
-		ContainerServiceRemoveImageProcedure,
+	dockerCommandServiceRemoveImageHandler := connect.NewUnaryHandler(
+		DockerCommandServiceRemoveImageProcedure,
 		svc.RemoveImage,
-		connect.WithSchema(containerServiceMethods.ByName("RemoveImage")),
+		connect.WithSchema(dockerCommandServiceMethods.ByName("RemoveImage")),
 		connect.WithHandlerOptions(opts...),
 	)
-	return "/composia.controller.v1.ContainerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return "/composia.controller.v1.DockerCommandService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case ContainerServiceRunContainerActionProcedure:
-			containerServiceRunContainerActionHandler.ServeHTTP(w, r)
-		case ContainerServiceRemoveContainerProcedure:
-			containerServiceRemoveContainerHandler.ServeHTTP(w, r)
-		case ContainerServiceGetContainerLogsProcedure:
-			containerServiceGetContainerLogsHandler.ServeHTTP(w, r)
-		case ContainerServiceOpenContainerExecProcedure:
-			containerServiceOpenContainerExecHandler.ServeHTTP(w, r)
-		case ContainerServiceRunContainerExecProcedure:
-			containerServiceRunContainerExecHandler.ServeHTTP(w, r)
-		case ContainerServiceRemoveNetworkProcedure:
-			containerServiceRemoveNetworkHandler.ServeHTTP(w, r)
-		case ContainerServiceRemoveVolumeProcedure:
-			containerServiceRemoveVolumeHandler.ServeHTTP(w, r)
-		case ContainerServiceRemoveImageProcedure:
-			containerServiceRemoveImageHandler.ServeHTTP(w, r)
+		case DockerCommandServiceRunContainerActionProcedure:
+			dockerCommandServiceRunContainerActionHandler.ServeHTTP(w, r)
+		case DockerCommandServiceRemoveContainerProcedure:
+			dockerCommandServiceRemoveContainerHandler.ServeHTTP(w, r)
+		case DockerCommandServiceGetContainerLogsProcedure:
+			dockerCommandServiceGetContainerLogsHandler.ServeHTTP(w, r)
+		case DockerCommandServiceOpenContainerExecProcedure:
+			dockerCommandServiceOpenContainerExecHandler.ServeHTTP(w, r)
+		case DockerCommandServiceRunContainerExecProcedure:
+			dockerCommandServiceRunContainerExecHandler.ServeHTTP(w, r)
+		case DockerCommandServiceRemoveNetworkProcedure:
+			dockerCommandServiceRemoveNetworkHandler.ServeHTTP(w, r)
+		case DockerCommandServiceRemoveVolumeProcedure:
+			dockerCommandServiceRemoveVolumeHandler.ServeHTTP(w, r)
+		case DockerCommandServiceRemoveImageProcedure:
+			dockerCommandServiceRemoveImageHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
 	})
 }
 
-// UnimplementedContainerServiceHandler returns CodeUnimplemented from all methods.
-type UnimplementedContainerServiceHandler struct{}
+// UnimplementedDockerCommandServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedDockerCommandServiceHandler struct{}
 
-func (UnimplementedContainerServiceHandler) RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.TaskActionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ContainerService.RunContainerAction is not implemented"))
+func (UnimplementedDockerCommandServiceHandler) RunContainerAction(context.Context, *connect.Request[v1.RunContainerActionRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.DockerCommandService.RunContainerAction is not implemented"))
 }
 
-func (UnimplementedContainerServiceHandler) RemoveContainer(context.Context, *connect.Request[v1.RemoveContainerRequest]) (*connect.Response[v1.TaskActionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ContainerService.RemoveContainer is not implemented"))
+func (UnimplementedDockerCommandServiceHandler) RemoveContainer(context.Context, *connect.Request[v1.RemoveContainerRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.DockerCommandService.RemoveContainer is not implemented"))
 }
 
-func (UnimplementedContainerServiceHandler) GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest], *connect.ServerStream[v1.GetContainerLogsResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ContainerService.GetContainerLogs is not implemented"))
+func (UnimplementedDockerCommandServiceHandler) GetContainerLogs(context.Context, *connect.Request[v1.GetContainerLogsRequest], *connect.ServerStream[v1.GetContainerLogsResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.DockerCommandService.GetContainerLogs is not implemented"))
 }
 
-func (UnimplementedContainerServiceHandler) OpenContainerExec(context.Context, *connect.Request[v1.OpenContainerExecRequest]) (*connect.Response[v1.OpenContainerExecResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ContainerService.OpenContainerExec is not implemented"))
+func (UnimplementedDockerCommandServiceHandler) OpenContainerExec(context.Context, *connect.Request[v1.OpenContainerExecRequest]) (*connect.Response[v1.OpenContainerExecResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.DockerCommandService.OpenContainerExec is not implemented"))
 }
 
-func (UnimplementedContainerServiceHandler) RunContainerExec(context.Context, *connect.Request[v1.RunContainerExecRequest]) (*connect.Response[v1.RunContainerExecResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ContainerService.RunContainerExec is not implemented"))
+func (UnimplementedDockerCommandServiceHandler) RunContainerExec(context.Context, *connect.Request[v1.RunContainerExecRequest]) (*connect.Response[v1.RunContainerExecResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.DockerCommandService.RunContainerExec is not implemented"))
 }
 
-func (UnimplementedContainerServiceHandler) RemoveNetwork(context.Context, *connect.Request[v1.RemoveNetworkRequest]) (*connect.Response[v1.TaskActionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ContainerService.RemoveNetwork is not implemented"))
+func (UnimplementedDockerCommandServiceHandler) RemoveNetwork(context.Context, *connect.Request[v1.RemoveNetworkRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.DockerCommandService.RemoveNetwork is not implemented"))
 }
 
-func (UnimplementedContainerServiceHandler) RemoveVolume(context.Context, *connect.Request[v1.RemoveVolumeRequest]) (*connect.Response[v1.TaskActionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ContainerService.RemoveVolume is not implemented"))
+func (UnimplementedDockerCommandServiceHandler) RemoveVolume(context.Context, *connect.Request[v1.RemoveVolumeRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.DockerCommandService.RemoveVolume is not implemented"))
 }
 
-func (UnimplementedContainerServiceHandler) RemoveImage(context.Context, *connect.Request[v1.RemoveImageRequest]) (*connect.Response[v1.TaskActionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.ContainerService.RemoveImage is not implemented"))
+func (UnimplementedDockerCommandServiceHandler) RemoveImage(context.Context, *connect.Request[v1.RemoveImageRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.DockerCommandService.RemoveImage is not implemented"))
 }

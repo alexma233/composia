@@ -83,7 +83,7 @@ mise install
 mise run dev
 mise run dev:down
 mise run dev:logs
-buf generate
+buf generate --path proto/composia/controller/v1 --path proto/composia/agent/v1/agent.proto
 ```
 
 ## Binary Builds

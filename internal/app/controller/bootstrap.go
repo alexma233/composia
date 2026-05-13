@@ -108,11 +108,18 @@ func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db
 	)
 	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, secretPath, secretHandler)
 
-	backupPath, backupHandler := controllerv1connect.NewBackupRecordServiceHandler(
-		&backupRecordServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue},
+	backupSvc := &backupServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue}
+	backupQueryPath, backupQueryHandler := controllerv1connect.NewBackupQueryServiceHandler(
+		backupSvc,
 		connect.WithInterceptors(interceptor),
 	)
-	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, backupPath, backupHandler)
+	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, backupQueryPath, backupQueryHandler)
+
+	backupCommandPath, backupCommandHandler := controllerv1connect.NewBackupCommandServiceHandler(
+		backupSvc,
+		connect.WithInterceptors(interceptor),
+	)
+	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, backupCommandPath, backupCommandHandler)
 
 	serviceQueryPath, serviceQueryHandler := controllerv1connect.NewServiceQueryServiceHandler(
 		&serviceQueryServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults, dockerQueries: dockerQueries, repoMu: repoMu},
@@ -150,11 +157,11 @@ func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db
 	)
 	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, dockerQueryPath, dockerQueryHandler)
 
-	containerPath, containerHandler := controllerv1connect.NewContainerServiceHandler(
-		&containerServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults, dockerQueries: dockerQueries, execManager: execManager, logManager: logManager},
+	dockerCommandPath, dockerCommandHandler := controllerv1connect.NewDockerCommandServiceHandler(
+		&dockerCommandServer{db: db, cfg: cfg, taskQueue: taskQueue, taskResults: taskResults, dockerQueries: dockerQueries, execManager: execManager, logManager: logManager},
 		connect.WithInterceptors(interceptor),
 	)
-	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, containerPath, containerHandler)
+	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, dockerCommandPath, dockerCommandHandler)
 
 	taskPath, taskHandler := controllerv1connect.NewTaskServiceHandler(
 		&taskServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue, taskResults: taskResults, notifier: notifier},

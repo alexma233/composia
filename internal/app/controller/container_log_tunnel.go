@@ -229,7 +229,7 @@ func (server *agentReportServer) OpenContainerLogTunnel(ctx context.Context, str
 	}
 }
 
-func (server *containerServer) openContainerLogSession(nodeID, containerID, tail string, timestamps bool) (*containerLogSession, error) {
+func (server *dockerCommandServer) openContainerLogSession(nodeID, containerID, tail string, timestamps bool) (*containerLogSession, error) {
 	if server.logManager == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("container log manager is not configured"))
 	}

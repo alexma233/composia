@@ -127,7 +127,7 @@ func (application *app) runContainerLogs(args []string) error {
 	if strings.TrimSpace(*nodeID) == "" {
 		return errorsWithUsage("node is required", "composia container logs --node node [--tail n|all] [--timestamps] <container>")
 	}
-	stream, err := application.client.containers.GetContainerLogs(application.ctx, newRequest(&controllerv1.GetContainerLogsRequest{NodeId: strings.TrimSpace(*nodeID), ContainerId: fs.Arg(0), Tail: *tail, Timestamps: *timestamps}))
+	stream, err := application.client.dockerCommands.GetContainerLogs(application.ctx, newRequest(&controllerv1.GetContainerLogsRequest{NodeId: strings.TrimSpace(*nodeID), ContainerId: fs.Arg(0), Tail: *tail, Timestamps: *timestamps}))
 	if err != nil {
 		return err
 	}
@@ -163,7 +163,7 @@ func (application *app) runContainerAction(actionName string, args []string) err
 	if strings.TrimSpace(*nodeID) == "" {
 		return errorsWithUsage("node is required", usage)
 	}
-	response, err := application.client.containers.RunContainerAction(application.ctx, newRequest(&controllerv1.RunContainerActionRequest{NodeId: strings.TrimSpace(*nodeID), ContainerId: fs.Arg(0), Action: action}))
+	response, err := application.client.dockerCommands.RunContainerAction(application.ctx, newRequest(&controllerv1.RunContainerActionRequest{NodeId: strings.TrimSpace(*nodeID), ContainerId: fs.Arg(0), Action: action}))
 	if err != nil {
 		return err
 	}
@@ -186,7 +186,7 @@ func (application *app) runContainerRemove(args []string) error {
 	if strings.TrimSpace(*nodeID) == "" {
 		return errorsWithUsage("node is required", usage)
 	}
-	response, err := application.client.containers.RemoveContainer(application.ctx, newRequest(&controllerv1.RemoveContainerRequest{NodeId: strings.TrimSpace(*nodeID), ContainerId: fs.Arg(0), Force: *force, RemoveVolumes: *volumes}))
+	response, err := application.client.dockerCommands.RemoveContainer(application.ctx, newRequest(&controllerv1.RemoveContainerRequest{NodeId: strings.TrimSpace(*nodeID), ContainerId: fs.Arg(0), Force: *force, RemoveVolumes: *volumes}))
 	if err != nil {
 		return err
 	}
@@ -235,7 +235,7 @@ func (application *app) runContainerExec(args []string) error {
 	if err != nil {
 		return err
 	}
-	response, err := application.client.containers.RunContainerExec(application.ctx, newRequest(&controllerv1.RunContainerExecRequest{
+	response, err := application.client.dockerCommands.RunContainerExec(application.ctx, newRequest(&controllerv1.RunContainerExecRequest{
 		NodeId:         strings.TrimSpace(*nodeID),
 		ContainerId:    fs.Arg(0),
 		Command:        fs.Args()[1:],
@@ -284,7 +284,7 @@ func (application *app) runContainerExecTTY(nodeID, containerID string, command 
 		Cols:        cols,
 	})
 	request.Header().Set("X-Composia-Web-Origin", origin)
-	response, err := application.client.containers.OpenContainerExec(application.ctx, request)
+	response, err := application.client.dockerCommands.OpenContainerExec(application.ctx, request)
 	if err != nil {
 		return err
 	}

@@ -7,12 +7,16 @@ import "proto/composia/controller/v1/system.proto";
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
-// BackupRecordService exposes read-only backup record queries.
-service BackupRecordService {
+// BackupQueryService exposes backup record queries.
+service BackupQueryService {
   // ListBackups returns backup records with filtering and pagination.
   rpc ListBackups(ListBackupsRequest) returns (ListBackupsResponse);
   // GetBackup returns one backup record by ID.
   rpc GetBackup(GetBackupRequest) returns (GetBackupResponse);
+}
+
+// BackupCommandService starts backup-related actions.
+service BackupCommandService {
   // RestoreBackup starts an async restore task from one backup record.
   rpc RestoreBackup(RestoreBackupRequest) returns (TaskActionResponse);
 }

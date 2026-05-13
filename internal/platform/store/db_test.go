@@ -175,7 +175,7 @@ func TestMigrateSetsSQLiteUserVersion(t *testing.T) {
 	}
 }
 
-func TestMigrateAddsBackupNodeIDToLegacyDatabase(t *testing.T) {
+func TestMigrateBackfillsBackupNodeIDAndEnforcesInstanceIntegrity(t *testing.T) {
 	t.Parallel()
 
 	stateDir := filepath.Join(t.TempDir(), "state")

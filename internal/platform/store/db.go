@@ -15,7 +15,7 @@ import (
 
 const DatabaseFileName = "composia.db"
 
-const sqliteSchemaVersion = 4
+const sqliteSchemaVersion = 5
 
 var ErrServiceNotFound = errors.New("service not found")
 
@@ -886,7 +886,7 @@ func (db *DB) migrate(ctx context.Context) error {
 			backup_id TEXT PRIMARY KEY,
 			task_id TEXT NOT NULL,
 			service_name TEXT NOT NULL,
-			node_id TEXT,
+			node_id TEXT NOT NULL,
 			data_name TEXT NOT NULL,
 			status TEXT NOT NULL CHECK (status IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled')),
 			started_at TEXT NOT NULL,
@@ -898,7 +898,6 @@ func (db *DB) migrate(ctx context.Context) error {
 			FOREIGN KEY (service_name, node_id) REFERENCES service_instances(service_name, node_id),
 			FOREIGN KEY (node_id) REFERENCES nodes(node_id)
 		);`,
-			`ALTER TABLE backups ADD COLUMN node_id TEXT;`,
 			`CREATE TABLE IF NOT EXISTS repo_state (
 			singleton_id INTEGER PRIMARY KEY CHECK (singleton_id = 1),
 			sync_status TEXT NOT NULL,
@@ -910,7 +909,6 @@ func (db *DB) migrate(ctx context.Context) error {
 			`CREATE INDEX IF NOT EXISTS idx_tasks_service_created_at ON tasks(service_name, created_at DESC);`,
 			`CREATE INDEX IF NOT EXISTS idx_tasks_node_created_at ON tasks(node_id, created_at DESC);`,
 			`CREATE INDEX IF NOT EXISTS idx_services_declared_runtime_status ON services(is_declared, runtime_status);`,
-			`CREATE INDEX IF NOT EXISTS idx_service_instances_service_node ON service_instances(service_name, node_id);`,
 			`CREATE INDEX IF NOT EXISTS idx_service_instances_service_runtime_status ON service_instances(service_name, runtime_status);`,
 			`CREATE INDEX IF NOT EXISTS idx_backups_service_finished_at ON backups(service_name, finished_at DESC);`,
 			`CREATE INDEX IF NOT EXISTS idx_backups_status_finished_at ON backups(status, finished_at DESC);`,
@@ -986,7 +984,7 @@ func (db *DB) migrate(ctx context.Context) error {
 			backup_id TEXT PRIMARY KEY,
 			task_id TEXT NOT NULL,
 			service_name TEXT NOT NULL,
-			node_id TEXT,
+			node_id TEXT NOT NULL,
 			data_name TEXT NOT NULL,
 			status TEXT NOT NULL,
 			started_at TEXT NOT NULL,
@@ -1047,6 +1045,63 @@ func (db *DB) migrate(ctx context.Context) error {
 			`CREATE TRIGGER IF NOT EXISTS trg_service_image_states_validate_update BEFORE UPDATE OF update_available, check_status ON service_image_states FOR EACH ROW BEGIN SELECT CASE WHEN NEW.update_available NOT IN (0, 1) THEN RAISE(ABORT, 'invalid service_image_states.update_available') WHEN NEW.check_status NOT IN ('unknown', 'ok', 'error') THEN RAISE(ABORT, 'invalid service_image_states.check_status') END; END;`,
 			`CREATE TRIGGER IF NOT EXISTS trg_service_image_update_checks_validate_insert BEFORE INSERT ON service_image_update_checks FOR EACH ROW BEGIN SELECT CASE WHEN NEW.update_available NOT IN (0, 1) THEN RAISE(ABORT, 'invalid service_image_update_checks.update_available') WHEN NEW.check_status NOT IN ('unknown', 'ok', 'error') THEN RAISE(ABORT, 'invalid service_image_update_checks.check_status') WHEN NEW.candidate_tags_json IS NOT NULL AND json_valid(NEW.candidate_tags_json) = 0 THEN RAISE(ABORT, 'invalid service_image_update_checks.candidate_tags_json') END; END;`,
 			`CREATE TRIGGER IF NOT EXISTS trg_service_image_update_checks_validate_update BEFORE UPDATE OF update_available, check_status, candidate_tags_json ON service_image_update_checks FOR EACH ROW BEGIN SELECT CASE WHEN NEW.update_available NOT IN (0, 1) THEN RAISE(ABORT, 'invalid service_image_update_checks.update_available') WHEN NEW.check_status NOT IN ('unknown', 'ok', 'error') THEN RAISE(ABORT, 'invalid service_image_update_checks.check_status') WHEN NEW.candidate_tags_json IS NOT NULL AND json_valid(NEW.candidate_tags_json) = 0 THEN RAISE(ABORT, 'invalid service_image_update_checks.candidate_tags_json') END; END;`,
+		},
+	}, {
+		version: 5,
+		statements: []string{
+			`DROP INDEX IF EXISTS idx_service_instances_service_node;`,
+			`ALTER TABLE backups ADD COLUMN node_id TEXT;`,
+			`UPDATE backups
+			SET node_id = (
+				SELECT tasks.node_id
+				FROM tasks
+				WHERE tasks.task_id = backups.task_id
+			)
+			WHERE node_id IS NULL;`,
+			`CREATE TABLE backups_v5 (
+			backup_id TEXT PRIMARY KEY,
+			task_id TEXT NOT NULL,
+			service_name TEXT NOT NULL,
+			node_id TEXT NOT NULL,
+			data_name TEXT NOT NULL,
+			status TEXT NOT NULL CHECK (status IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled')),
+			started_at TEXT NOT NULL,
+			finished_at TEXT,
+			artifact_ref TEXT,
+			error_summary TEXT,
+			FOREIGN KEY (task_id) REFERENCES tasks(task_id),
+			FOREIGN KEY (service_name) REFERENCES services(service_name),
+			FOREIGN KEY (service_name, node_id) REFERENCES service_instances(service_name, node_id),
+			FOREIGN KEY (node_id) REFERENCES nodes(node_id)
+		);`,
+			`INSERT INTO backups_v5 (
+			backup_id,
+			task_id,
+			service_name,
+			node_id,
+			data_name,
+			status,
+			started_at,
+			finished_at,
+			artifact_ref,
+			error_summary
+		)
+			SELECT
+			backup_id,
+			task_id,
+			service_name,
+			node_id,
+			data_name,
+			status,
+			started_at,
+			finished_at,
+			artifact_ref,
+			error_summary
+			FROM backups;`,
+			`DROP TABLE backups;`,
+			`ALTER TABLE backups_v5 RENAME TO backups;`,
+			`CREATE INDEX IF NOT EXISTS idx_backups_service_finished_at ON backups(service_name, finished_at DESC);`,
+			`CREATE INDEX IF NOT EXISTS idx_backups_status_finished_at ON backups(status, finished_at DESC);`,
 		},
 	}}
 

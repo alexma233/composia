@@ -65,7 +65,16 @@ func (server *repoCommandServer) SyncRepo(ctx context.Context, _ *connect.Reques
 	}), nil
 }
 
-func (server *repoCommandServer) UpdateRepoFile(ctx context.Context, req *connect.Request[controllerv1.UpdateRepoFileRequest]) (*connect.Response[controllerv1.UpdateRepoFileResponse], error) {
+func repoWriteResultMessage(result repoWriteResult) *controllerv1.RepoWriteResult {
+	return &controllerv1.RepoWriteResult{
+		CommitId:             result.CommitID,
+		SyncStatus:           result.SyncStatus,
+		PushError:            result.PushError,
+		LastSuccessfulPullAt: result.LastSuccessfulPullAt,
+	}
+}
+
+func (server *repoCommandServer) UpdateRepoFile(ctx context.Context, req *connect.Request[controllerv1.UpdateRepoFileRequest]) (*connect.Response[controllerv1.RepoWriteResult], error) {
 	if req.Msg == nil || req.Msg.GetPath() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("path is required"))
 	}
@@ -78,15 +87,10 @@ func (server *repoCommandServer) UpdateRepoFile(ctx context.Context, req *connec
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&controllerv1.UpdateRepoFileResponse{
-		CommitId:             result.CommitID,
-		SyncStatus:           result.SyncStatus,
-		PushError:            result.PushError,
-		LastSuccessfulPullAt: result.LastSuccessfulPullAt,
-	}), nil
+	return connect.NewResponse(repoWriteResultMessage(result)), nil
 }
 
-func (server *repoCommandServer) CreateRepoDirectory(ctx context.Context, req *connect.Request[controllerv1.CreateRepoDirectoryRequest]) (*connect.Response[controllerv1.CreateRepoDirectoryResponse], error) {
+func (server *repoCommandServer) CreateRepoDirectory(ctx context.Context, req *connect.Request[controllerv1.CreateRepoDirectoryRequest]) (*connect.Response[controllerv1.RepoWriteResult], error) {
 	if req.Msg == nil || req.Msg.GetPath() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("path is required"))
 	}
@@ -99,15 +103,10 @@ func (server *repoCommandServer) CreateRepoDirectory(ctx context.Context, req *c
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&controllerv1.CreateRepoDirectoryResponse{
-		CommitId:             result.CommitID,
-		SyncStatus:           result.SyncStatus,
-		PushError:            result.PushError,
-		LastSuccessfulPullAt: result.LastSuccessfulPullAt,
-	}), nil
+	return connect.NewResponse(repoWriteResultMessage(result)), nil
 }
 
-func (server *repoCommandServer) MoveRepoPath(ctx context.Context, req *connect.Request[controllerv1.MoveRepoPathRequest]) (*connect.Response[controllerv1.MoveRepoPathResponse], error) {
+func (server *repoCommandServer) MoveRepoPath(ctx context.Context, req *connect.Request[controllerv1.MoveRepoPathRequest]) (*connect.Response[controllerv1.RepoWriteResult], error) {
 	if req.Msg == nil || req.Msg.GetSourcePath() == "" || req.Msg.GetDestinationPath() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("source_path and destination_path are required"))
 	}
@@ -120,15 +119,10 @@ func (server *repoCommandServer) MoveRepoPath(ctx context.Context, req *connect.
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&controllerv1.MoveRepoPathResponse{
-		CommitId:             result.CommitID,
-		SyncStatus:           result.SyncStatus,
-		PushError:            result.PushError,
-		LastSuccessfulPullAt: result.LastSuccessfulPullAt,
-	}), nil
+	return connect.NewResponse(repoWriteResultMessage(result)), nil
 }
 
-func (server *repoCommandServer) DeleteRepoPath(ctx context.Context, req *connect.Request[controllerv1.DeleteRepoPathRequest]) (*connect.Response[controllerv1.DeleteRepoPathResponse], error) {
+func (server *repoCommandServer) DeleteRepoPath(ctx context.Context, req *connect.Request[controllerv1.DeleteRepoPathRequest]) (*connect.Response[controllerv1.RepoWriteResult], error) {
 	if req.Msg == nil || req.Msg.GetPath() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("path is required"))
 	}
@@ -141,12 +135,7 @@ func (server *repoCommandServer) DeleteRepoPath(ctx context.Context, req *connec
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&controllerv1.DeleteRepoPathResponse{
-		CommitId:             result.CommitID,
-		SyncStatus:           result.SyncStatus,
-		PushError:            result.PushError,
-		LastSuccessfulPullAt: result.LastSuccessfulPullAt,
-	}), nil
+	return connect.NewResponse(repoWriteResultMessage(result)), nil
 }
 
 func (server *repoCommandServer) repoLock() *sync.Mutex {

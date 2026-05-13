@@ -78,7 +78,10 @@ func TestGetBackupReturnsDetail(t *testing.T) {
 	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
-	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-1", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "alpha", CreatedAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-1", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "alpha", NodeID: "main", CreatedAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
 		t.Fatalf("create task: %v", err)
 	}
 	if err := db.UpsertBackupRecord(ctx, BackupDetail{BackupID: "backup-1", TaskID: "task-1", ServiceName: "alpha", DataName: "config", Status: "succeeded", StartedAt: "2026-04-04T12:00:00Z", FinishedAt: "2026-04-04T12:01:00Z", ArtifactRef: "snapshot-1"}); err != nil {
@@ -94,7 +97,7 @@ func TestGetBackupReturnsDetail(t *testing.T) {
 	}
 }
 
-func TestBackupNodeIDFallsBackToSourceTask(t *testing.T) {
+func TestBackupNodeIDIsResolvedFromSourceTaskOnWrite(t *testing.T) {
 	t.Parallel()
 
 	db := openTestDB(t)
@@ -119,6 +122,6 @@ func TestBackupNodeIDFallsBackToSourceTask(t *testing.T) {
 		t.Fatalf("get backup: %v", err)
 	}
 	if backup.NodeID != "main" {
-		t.Fatalf("expected fallback node main, got %q", backup.NodeID)
+		t.Fatalf("expected resolved node main, got %q", backup.NodeID)
 	}
 }

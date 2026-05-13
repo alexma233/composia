@@ -13,14 +13,14 @@ import (
 	"path/filepath"
 )
 
-type backupRecordServer struct {
+type backupServer struct {
 	db               *store.DB
 	cfg              *config.ControllerConfig
 	availableNodeIDs map[string]struct{}
 	taskQueue        *taskQueueNotifier
 }
 
-func (server *backupRecordServer) ListBackups(ctx context.Context, req *connect.Request[controllerv1.ListBackupsRequest]) (*connect.Response[controllerv1.ListBackupsResponse], error) {
+func (server *backupServer) ListBackups(ctx context.Context, req *connect.Request[controllerv1.ListBackupsRequest]) (*connect.Response[controllerv1.ListBackupsResponse], error) {
 	if req.Msg == nil {
 		req.Msg = &controllerv1.ListBackupsRequest{}
 	}
@@ -38,7 +38,7 @@ func (server *backupRecordServer) ListBackups(ctx context.Context, req *connect.
 	return connect.NewResponse(response), nil
 }
 
-func (server *backupRecordServer) GetBackup(ctx context.Context, req *connect.Request[controllerv1.GetBackupRequest]) (*connect.Response[controllerv1.GetBackupResponse], error) {
+func (server *backupServer) GetBackup(ctx context.Context, req *connect.Request[controllerv1.GetBackupRequest]) (*connect.Response[controllerv1.GetBackupResponse], error) {
 	if req.Msg == nil || req.Msg.GetBackupId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("backup_id is required"))
 	}
@@ -69,7 +69,7 @@ func (server *backupRecordServer) GetBackup(ctx context.Context, req *connect.Re
 	return connect.NewResponse(response), nil
 }
 
-func (server *backupRecordServer) RestoreBackup(ctx context.Context, req *connect.Request[controllerv1.RestoreBackupRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
+func (server *backupServer) RestoreBackup(ctx context.Context, req *connect.Request[controllerv1.RestoreBackupRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
 	if req.Msg == nil || req.Msg.GetBackupId() == "" || req.Msg.GetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("backup_id and node_id are required"))
 	}

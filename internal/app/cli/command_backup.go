@@ -52,7 +52,7 @@ func (application *app) runBackupList(args []string) error {
 	if err != nil {
 		return err
 	}
-	response, err := application.client.backups.ListBackups(application.ctx, newRequest(&controllerv1.ListBackupsRequest{
+	response, err := application.client.backupQueries.ListBackups(application.ctx, newRequest(&controllerv1.ListBackupsRequest{
 		ServiceName:        []string(services),
 		Status:             []string(statuses),
 		DataName:           []string(dataNames),
@@ -93,7 +93,7 @@ func (application *app) runBackupGet(args []string) error {
 	if err := requireArgs(args, 1, "composia backup get <backup>"); err != nil {
 		return err
 	}
-	response, err := application.client.backups.GetBackup(application.ctx, newRequest(&controllerv1.GetBackupRequest{BackupId: args[0]}))
+	response, err := application.client.backupQueries.GetBackup(application.ctx, newRequest(&controllerv1.GetBackupRequest{BackupId: args[0]}))
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func (application *app) runBackupRestore(args []string) error {
 	if nodeIDValue == "" {
 		return errorsWithUsage("node is required", "composia backup restore [--wait] [--follow] [--timeout duration] --node node <backup>")
 	}
-	response, err := application.client.backups.RestoreBackup(application.ctx, newRequest(&controllerv1.RestoreBackupRequest{BackupId: fs.Arg(0), NodeId: nodeIDValue}))
+	response, err := application.client.backupCommands.RestoreBackup(application.ctx, newRequest(&controllerv1.RestoreBackupRequest{BackupId: fs.Arg(0), NodeId: nodeIDValue}))
 	if err != nil {
 		return err
 	}

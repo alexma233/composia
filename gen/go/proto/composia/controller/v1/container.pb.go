@@ -892,8 +892,8 @@ const file_proto_composia_controller_v1_container_proto_rawDesc = "" +
 	"\x1cCONTAINER_ACTION_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16CONTAINER_ACTION_START\x10\x01\x12\x19\n" +
 	"\x15CONTAINER_ACTION_STOP\x10\x02\x12\x1c\n" +
-	"\x18CONTAINER_ACTION_RESTART\x10\x032\x9b\a\n" +
-	"\x10ContainerService\x12s\n" +
+	"\x18CONTAINER_ACTION_RESTART\x10\x032\x9f\a\n" +
+	"\x14DockerCommandService\x12s\n" +
 	"\x12RunContainerAction\x121.composia.controller.v1.RunContainerActionRequest\x1a*.composia.controller.v1.TaskActionResponse\x12m\n" +
 	"\x0fRemoveContainer\x12..composia.controller.v1.RemoveContainerRequest\x1a*.composia.controller.v1.TaskActionResponse\x12w\n" +
 	"\x10GetContainerLogs\x12/.composia.controller.v1.GetContainerLogsRequest\x1a0.composia.controller.v1.GetContainerLogsResponse0\x01\x12x\n" +
@@ -934,22 +934,22 @@ var file_proto_composia_controller_v1_container_proto_goTypes = []any{
 }
 var file_proto_composia_controller_v1_container_proto_depIdxs = []int32{
 	0,  // 0: composia.controller.v1.RunContainerActionRequest.action:type_name -> composia.controller.v1.ContainerAction
-	1,  // 1: composia.controller.v1.ContainerService.RunContainerAction:input_type -> composia.controller.v1.RunContainerActionRequest
-	2,  // 2: composia.controller.v1.ContainerService.RemoveContainer:input_type -> composia.controller.v1.RemoveContainerRequest
-	3,  // 3: composia.controller.v1.ContainerService.GetContainerLogs:input_type -> composia.controller.v1.GetContainerLogsRequest
-	5,  // 4: composia.controller.v1.ContainerService.OpenContainerExec:input_type -> composia.controller.v1.OpenContainerExecRequest
-	7,  // 5: composia.controller.v1.ContainerService.RunContainerExec:input_type -> composia.controller.v1.RunContainerExecRequest
-	9,  // 6: composia.controller.v1.ContainerService.RemoveNetwork:input_type -> composia.controller.v1.RemoveNetworkRequest
-	10, // 7: composia.controller.v1.ContainerService.RemoveVolume:input_type -> composia.controller.v1.RemoveVolumeRequest
-	11, // 8: composia.controller.v1.ContainerService.RemoveImage:input_type -> composia.controller.v1.RemoveImageRequest
-	12, // 9: composia.controller.v1.ContainerService.RunContainerAction:output_type -> composia.controller.v1.TaskActionResponse
-	12, // 10: composia.controller.v1.ContainerService.RemoveContainer:output_type -> composia.controller.v1.TaskActionResponse
-	4,  // 11: composia.controller.v1.ContainerService.GetContainerLogs:output_type -> composia.controller.v1.GetContainerLogsResponse
-	6,  // 12: composia.controller.v1.ContainerService.OpenContainerExec:output_type -> composia.controller.v1.OpenContainerExecResponse
-	8,  // 13: composia.controller.v1.ContainerService.RunContainerExec:output_type -> composia.controller.v1.RunContainerExecResponse
-	12, // 14: composia.controller.v1.ContainerService.RemoveNetwork:output_type -> composia.controller.v1.TaskActionResponse
-	12, // 15: composia.controller.v1.ContainerService.RemoveVolume:output_type -> composia.controller.v1.TaskActionResponse
-	12, // 16: composia.controller.v1.ContainerService.RemoveImage:output_type -> composia.controller.v1.TaskActionResponse
+	1,  // 1: composia.controller.v1.DockerCommandService.RunContainerAction:input_type -> composia.controller.v1.RunContainerActionRequest
+	2,  // 2: composia.controller.v1.DockerCommandService.RemoveContainer:input_type -> composia.controller.v1.RemoveContainerRequest
+	3,  // 3: composia.controller.v1.DockerCommandService.GetContainerLogs:input_type -> composia.controller.v1.GetContainerLogsRequest
+	5,  // 4: composia.controller.v1.DockerCommandService.OpenContainerExec:input_type -> composia.controller.v1.OpenContainerExecRequest
+	7,  // 5: composia.controller.v1.DockerCommandService.RunContainerExec:input_type -> composia.controller.v1.RunContainerExecRequest
+	9,  // 6: composia.controller.v1.DockerCommandService.RemoveNetwork:input_type -> composia.controller.v1.RemoveNetworkRequest
+	10, // 7: composia.controller.v1.DockerCommandService.RemoveVolume:input_type -> composia.controller.v1.RemoveVolumeRequest
+	11, // 8: composia.controller.v1.DockerCommandService.RemoveImage:input_type -> composia.controller.v1.RemoveImageRequest
+	12, // 9: composia.controller.v1.DockerCommandService.RunContainerAction:output_type -> composia.controller.v1.TaskActionResponse
+	12, // 10: composia.controller.v1.DockerCommandService.RemoveContainer:output_type -> composia.controller.v1.TaskActionResponse
+	4,  // 11: composia.controller.v1.DockerCommandService.GetContainerLogs:output_type -> composia.controller.v1.GetContainerLogsResponse
+	6,  // 12: composia.controller.v1.DockerCommandService.OpenContainerExec:output_type -> composia.controller.v1.OpenContainerExecResponse
+	8,  // 13: composia.controller.v1.DockerCommandService.RunContainerExec:output_type -> composia.controller.v1.RunContainerExecResponse
+	12, // 14: composia.controller.v1.DockerCommandService.RemoveNetwork:output_type -> composia.controller.v1.TaskActionResponse
+	12, // 15: composia.controller.v1.DockerCommandService.RemoveVolume:output_type -> composia.controller.v1.TaskActionResponse
+	12, // 16: composia.controller.v1.DockerCommandService.RemoveImage:output_type -> composia.controller.v1.TaskActionResponse
 	9,  // [9:17] is the sub-list for method output_type
 	1,  // [1:9] is the sub-list for method input_type
 	1,  // [1:1] is the sub-list for extension type_name

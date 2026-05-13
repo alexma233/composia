@@ -45,7 +45,7 @@ type SecretServiceClient interface {
 	// GetSecret returns the decrypted content for one service secret file.
 	GetSecret(context.Context, *connect.Request[v1.GetSecretRequest]) (*connect.Response[v1.GetSecretResponse], error)
 	// UpdateSecret writes one secret file and reports the resulting repo sync state.
-	UpdateSecret(context.Context, *connect.Request[v1.UpdateSecretRequest]) (*connect.Response[v1.UpdateSecretResponse], error)
+	UpdateSecret(context.Context, *connect.Request[v1.UpdateSecretRequest]) (*connect.Response[v1.RepoWriteResult], error)
 }
 
 // NewSecretServiceClient constructs a client for the composia.controller.v1.SecretService service.
@@ -65,7 +65,7 @@ func NewSecretServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(secretServiceMethods.ByName("GetSecret")),
 			connect.WithClientOptions(opts...),
 		),
-		updateSecret: connect.NewClient[v1.UpdateSecretRequest, v1.UpdateSecretResponse](
+		updateSecret: connect.NewClient[v1.UpdateSecretRequest, v1.RepoWriteResult](
 			httpClient,
 			baseURL+SecretServiceUpdateSecretProcedure,
 			connect.WithSchema(secretServiceMethods.ByName("UpdateSecret")),
@@ -77,7 +77,7 @@ func NewSecretServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 // secretServiceClient implements SecretServiceClient.
 type secretServiceClient struct {
 	getSecret    *connect.Client[v1.GetSecretRequest, v1.GetSecretResponse]
-	updateSecret *connect.Client[v1.UpdateSecretRequest, v1.UpdateSecretResponse]
+	updateSecret *connect.Client[v1.UpdateSecretRequest, v1.RepoWriteResult]
 }
 
 // GetSecret calls composia.controller.v1.SecretService.GetSecret.
@@ -86,7 +86,7 @@ func (c *secretServiceClient) GetSecret(ctx context.Context, req *connect.Reques
 }
 
 // UpdateSecret calls composia.controller.v1.SecretService.UpdateSecret.
-func (c *secretServiceClient) UpdateSecret(ctx context.Context, req *connect.Request[v1.UpdateSecretRequest]) (*connect.Response[v1.UpdateSecretResponse], error) {
+func (c *secretServiceClient) UpdateSecret(ctx context.Context, req *connect.Request[v1.UpdateSecretRequest]) (*connect.Response[v1.RepoWriteResult], error) {
 	return c.updateSecret.CallUnary(ctx, req)
 }
 
@@ -95,7 +95,7 @@ type SecretServiceHandler interface {
 	// GetSecret returns the decrypted content for one service secret file.
 	GetSecret(context.Context, *connect.Request[v1.GetSecretRequest]) (*connect.Response[v1.GetSecretResponse], error)
 	// UpdateSecret writes one secret file and reports the resulting repo sync state.
-	UpdateSecret(context.Context, *connect.Request[v1.UpdateSecretRequest]) (*connect.Response[v1.UpdateSecretResponse], error)
+	UpdateSecret(context.Context, *connect.Request[v1.UpdateSecretRequest]) (*connect.Response[v1.RepoWriteResult], error)
 }
 
 // NewSecretServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -136,6 +136,6 @@ func (UnimplementedSecretServiceHandler) GetSecret(context.Context, *connect.Req
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.SecretService.GetSecret is not implemented"))
 }
 
-func (UnimplementedSecretServiceHandler) UpdateSecret(context.Context, *connect.Request[v1.UpdateSecretRequest]) (*connect.Response[v1.UpdateSecretResponse], error) {
+func (UnimplementedSecretServiceHandler) UpdateSecret(context.Context, *connect.Request[v1.UpdateSecretRequest]) (*connect.Response[v1.RepoWriteResult], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.SecretService.UpdateSecret is not implemented"))
 }

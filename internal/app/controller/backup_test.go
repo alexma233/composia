@@ -18,7 +18,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 )
 
-func TestBackupRecordServiceListAndGetBackup(t *testing.T) {
+func TestBackupQueryServiceListAndGetBackup(t *testing.T) {
 	t.Parallel()
 
 	db := openControllerTestDB(t)
@@ -34,7 +34,7 @@ func TestBackupRecordServiceListAndGetBackup(t *testing.T) {
 	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-1", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "alpha", NodeID: "main", CreatedAt: time.Date(2026, 4, 4, 14, 0, 0, 0, time.UTC)}); err != nil {
 		t.Fatalf("create task-1: %v", err)
 	}
-	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-2", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "bravo", CreatedAt: time.Date(2026, 4, 4, 14, 5, 0, 0, time.UTC)}); err != nil {
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-2", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "bravo", NodeID: "main", CreatedAt: time.Date(2026, 4, 4, 14, 5, 0, 0, time.UTC)}); err != nil {
 		t.Fatalf("create task-2: %v", err)
 	}
 	if err := db.UpsertBackupRecord(ctx, store.BackupDetail{BackupID: "backup-1", TaskID: "task-1", ServiceName: "alpha", DataName: "config", Status: "succeeded", StartedAt: "2026-04-04T14:00:00Z", FinishedAt: "2026-04-04T14:01:00Z", ArtifactRef: "snapshot-1"}); err != nil {
@@ -50,14 +50,14 @@ func TestBackupRecordServiceListAndGetBackup(t *testing.T) {
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewBackupRecordServiceHandler(&backupRecordServer{db: db}, connect.WithInterceptors(interceptor))
+	queryPath, queryHandler := controllerv1connect.NewBackupQueryServiceHandler(&backupServer{db: db}, connect.WithInterceptors(interceptor))
 	mux := http.NewServeMux()
-	mux.Handle(path, handler)
+	mux.Handle(queryPath, queryHandler)
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewBackupRecordServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
-	listResponse, err := client.ListBackups(ctx, connect.NewRequest(&controllerv1.ListBackupsRequest{ServiceName: []string{"alpha"}, ExcludeStatus: []string{"failed"}}))
+	queryClient := controllerv1connect.NewBackupQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
+	listResponse, err := queryClient.ListBackups(ctx, connect.NewRequest(&controllerv1.ListBackupsRequest{ServiceName: []string{"alpha"}, ExcludeStatus: []string{"failed"}}))
 	if err != nil {
 		t.Fatalf("list backups: %v", err)
 	}
@@ -65,7 +65,7 @@ func TestBackupRecordServiceListAndGetBackup(t *testing.T) {
 		t.Fatalf("unexpected backup list response: %+v", listResponse.Msg.GetBackups())
 	}
 
-	getResponse, err := client.GetBackup(ctx, connect.NewRequest(&controllerv1.GetBackupRequest{BackupId: "backup-1"}))
+	getResponse, err := queryClient.GetBackup(ctx, connect.NewRequest(&controllerv1.GetBackupRequest{BackupId: "backup-1"}))
 	if err != nil {
 		t.Fatalf("get backup: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestBackupRecordServiceListAndGetBackup(t *testing.T) {
 	}
 }
 
-func TestBackupRecordServiceRestoreBackupCreatesPendingRestoreTask(t *testing.T) {
+func TestBackupCommandServiceRestoreBackupCreatesPendingRestoreTask(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -121,12 +121,12 @@ func TestBackupRecordServiceRestoreBackupCreatesPendingRestoreTask(t *testing.T)
 		}
 		return "test-client", nil
 	})
-	path, handler := controllerv1connect.NewBackupRecordServiceHandler(
-		&backupRecordServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}, taskQueue: newTaskQueueNotifier()},
+	commandPath, commandHandler := controllerv1connect.NewBackupCommandServiceHandler(
+		&backupServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}, taskQueue: newTaskQueueNotifier()},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
-	mux.Handle(path, handler)
+	mux.Handle(commandPath, commandHandler)
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
@@ -136,7 +136,7 @@ func TestBackupRecordServiceRestoreBackupCreatesPendingRestoreTask(t *testing.T)
 			return next(ctx, req)
 		}
 	})
-	client := controllerv1connect.NewBackupRecordServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token"), requestInterceptor))
+	client := controllerv1connect.NewBackupCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token"), requestInterceptor))
 
 	response, err := client.RestoreBackup(ctx, connect.NewRequest(&controllerv1.RestoreBackupRequest{BackupId: "backup-1", NodeId: "main"}))
 	if err != nil {

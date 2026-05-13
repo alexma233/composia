@@ -17,7 +17,7 @@ import (
 	"path/filepath"
 )
 
-type containerServer struct {
+type dockerCommandServer struct {
 	db            *store.DB
 	cfg           *config.ControllerConfig
 	taskQueue     *taskQueueNotifier
@@ -27,7 +27,7 @@ type containerServer struct {
 	logManager    *containerLogTunnelManager
 }
 
-func (server *containerServer) RunContainerAction(ctx context.Context, req *connect.Request[controllerv1.RunContainerActionRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
+func (server *dockerCommandServer) RunContainerAction(ctx context.Context, req *connect.Request[controllerv1.RunContainerActionRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
 	if req.Msg == nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id, container_id, and action are required"))
 	}
@@ -55,7 +55,7 @@ func (server *containerServer) RunContainerAction(ctx context.Context, req *conn
 	return connect.NewResponse(taskActionResponse(record)), nil
 }
 
-func (server *containerServer) RemoveContainer(ctx context.Context, req *connect.Request[controllerv1.RemoveContainerRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
+func (server *dockerCommandServer) RemoveContainer(ctx context.Context, req *connect.Request[controllerv1.RemoveContainerRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
 	if req.Msg == nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and container_id are required"))
 	}
@@ -73,7 +73,7 @@ func (server *containerServer) RemoveContainer(ctx context.Context, req *connect
 	return connect.NewResponse(taskActionResponse(record)), nil
 }
 
-func (server *containerServer) RemoveNetwork(ctx context.Context, req *connect.Request[controllerv1.RemoveNetworkRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
+func (server *dockerCommandServer) RemoveNetwork(ctx context.Context, req *connect.Request[controllerv1.RemoveNetworkRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetNetworkId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and network_id are required"))
 	}
@@ -89,7 +89,7 @@ func (server *containerServer) RemoveNetwork(ctx context.Context, req *connect.R
 	return connect.NewResponse(taskActionResponse(record)), nil
 }
 
-func (server *containerServer) RemoveVolume(ctx context.Context, req *connect.Request[controllerv1.RemoveVolumeRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
+func (server *dockerCommandServer) RemoveVolume(ctx context.Context, req *connect.Request[controllerv1.RemoveVolumeRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetVolumeName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and volume_name are required"))
 	}
@@ -105,7 +105,7 @@ func (server *containerServer) RemoveVolume(ctx context.Context, req *connect.Re
 	return connect.NewResponse(taskActionResponse(record)), nil
 }
 
-func (server *containerServer) RemoveImage(ctx context.Context, req *connect.Request[controllerv1.RemoveImageRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
+func (server *dockerCommandServer) RemoveImage(ctx context.Context, req *connect.Request[controllerv1.RemoveImageRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetImageId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and image_id are required"))
 	}
@@ -122,7 +122,7 @@ func (server *containerServer) RemoveImage(ctx context.Context, req *connect.Req
 	return connect.NewResponse(taskActionResponse(record)), nil
 }
 
-func (server *containerServer) GetContainerLogs(ctx context.Context, req *connect.Request[controllerv1.GetContainerLogsRequest], stream *connect.ServerStream[controllerv1.GetContainerLogsResponse]) error {
+func (server *dockerCommandServer) GetContainerLogs(ctx context.Context, req *connect.Request[controllerv1.GetContainerLogsRequest], stream *connect.ServerStream[controllerv1.GetContainerLogsResponse]) error {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" || req.Msg.GetContainerId() == "" {
 		return connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and container_id are required"))
 	}
@@ -160,7 +160,7 @@ func (server *containerServer) GetContainerLogs(ctx context.Context, req *connec
 	}
 }
 
-func (server *containerServer) createContainerTask(ctx context.Context, header http.Header, nodeID, containerID string, taskType task.Type, params map[string]any) (task.Record, error) {
+func (server *dockerCommandServer) createContainerTask(ctx context.Context, header http.Header, nodeID, containerID string, taskType task.Type, params map[string]any) (task.Record, error) {
 	if nodeID == "" || containerID == "" {
 		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and container_id are required"))
 	}
@@ -193,7 +193,7 @@ func (server *containerServer) createContainerTask(ctx context.Context, header h
 	return createdTask, nil
 }
 
-func (server *containerServer) createNodeDockerTask(ctx context.Context, header http.Header, nodeID string, taskType task.Type, params map[string]any) (task.Record, error) {
+func (server *dockerCommandServer) createNodeDockerTask(ctx context.Context, header http.Header, nodeID string, taskType task.Type, params map[string]any) (task.Record, error) {
 	if nodeID == "" {
 		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}

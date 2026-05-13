@@ -5,6 +5,7 @@ package composia.controller.v1;
 import "proto/composia/controller/v1/task.proto";
 import "proto/composia/controller/v1/backup.proto";
 import "proto/composia/controller/v1/system.proto";
+import "proto/composia/controller/v1/repo.proto";
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
@@ -29,7 +30,7 @@ service ServiceQueryService {
 // ServiceCommandService triggers service-level state changes and async actions.
 service ServiceCommandService {
   // UpdateServiceTargetNodes updates the declared target nodes for a service.
-  rpc UpdateServiceTargetNodes(UpdateServiceTargetNodesRequest) returns (UpdateServiceTargetNodesResponse);
+  rpc UpdateServiceTargetNodes(UpdateServiceTargetNodesRequest) returns (RepoWriteResult);
   // RunServiceAction starts an async action for a service and returns all created tasks.
   rpc RunServiceAction(RunServiceActionRequest) returns (RunServiceActionResponse);
   // MigrateService starts an async service migration between two nodes.
@@ -284,30 +285,10 @@ message UpdateServiceTargetNodesRequest {
   string commit_message = 4;
 }
 
-// UpdateServiceTargetNodesResponse reports the resulting repo write and sync state.
-message UpdateServiceTargetNodesResponse {
-  // commit_id is the Git commit created for the desired-state change.
-  string commit_id = 1;
-  // sync_status is the repo sync state after the write.
-  string sync_status = 2;
-  // push_error contains the last push error when sync_status is failed.
-  string push_error = 3;
-  // last_successful_pull_at is the last successful controller pull timestamp string.
-  string last_successful_pull_at = 4;
-}
-
-// ServiceActionRepoWriteResult reports the Git write side effect produced by a service action.
-message ServiceActionRepoWriteResult {
-  string commit_id = 1;
-  string sync_status = 2;
-  string push_error = 3;
-  string last_successful_pull_at = 4;
-}
-
 // RunServiceActionResponse returns every queued task and any repo write side effect.
 message RunServiceActionResponse {
   repeated TaskActionResponse tasks = 1;
-  ServiceActionRepoWriteResult repo_write = 2;
+  RepoWriteResult repo_write = 2;
 }
 
 // MigrateServiceRequest moves a service from one node to another.

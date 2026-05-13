@@ -216,84 +216,11 @@ func (x *UpdateSecretRequest) GetCommitMessage() string {
 	return ""
 }
 
-// UpdateSecretResponse reports the commit and sync result for the secret update.
-type UpdateSecretResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// commit_id is the Git commit created for the secret update.
-	CommitId string `protobuf:"bytes,1,opt,name=commit_id,json=commitId,proto3" json:"commit_id,omitempty"`
-	// sync_status is the repo sync state after the write.
-	SyncStatus string `protobuf:"bytes,2,opt,name=sync_status,json=syncStatus,proto3" json:"sync_status,omitempty"`
-	// push_error contains the last push error when sync_status is failed.
-	PushError string `protobuf:"bytes,3,opt,name=push_error,json=pushError,proto3" json:"push_error,omitempty"`
-	// last_successful_pull_at is the last successful pull timestamp string.
-	LastSuccessfulPullAt string `protobuf:"bytes,4,opt,name=last_successful_pull_at,json=lastSuccessfulPullAt,proto3" json:"last_successful_pull_at,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
-}
-
-func (x *UpdateSecretResponse) Reset() {
-	*x = UpdateSecretResponse{}
-	mi := &file_proto_composia_controller_v1_secret_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateSecretResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateSecretResponse) ProtoMessage() {}
-
-func (x *UpdateSecretResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_controller_v1_secret_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateSecretResponse.ProtoReflect.Descriptor instead.
-func (*UpdateSecretResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_controller_v1_secret_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *UpdateSecretResponse) GetCommitId() string {
-	if x != nil {
-		return x.CommitId
-	}
-	return ""
-}
-
-func (x *UpdateSecretResponse) GetSyncStatus() string {
-	if x != nil {
-		return x.SyncStatus
-	}
-	return ""
-}
-
-func (x *UpdateSecretResponse) GetPushError() string {
-	if x != nil {
-		return x.PushError
-	}
-	return ""
-}
-
-func (x *UpdateSecretResponse) GetLastSuccessfulPullAt() string {
-	if x != nil {
-		return x.LastSuccessfulPullAt
-	}
-	return ""
-}
-
 var File_proto_composia_controller_v1_secret_proto protoreflect.FileDescriptor
 
 const file_proto_composia_controller_v1_secret_proto_rawDesc = "" +
 	"\n" +
-	")proto/composia/controller/v1/secret.proto\x12\x16composia.controller.v1\"R\n" +
+	")proto/composia/controller/v1/secret.proto\x12\x16composia.controller.v1\x1a'proto/composia/controller/v1/repo.proto\"R\n" +
 	"\x10GetSecretRequest\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x1b\n" +
 	"\tfile_path\x18\x02 \x01(\tR\bfilePath\"m\n" +
@@ -306,17 +233,10 @@ const file_proto_composia_controller_v1_secret_proto_rawDesc = "" +
 	"\tfile_path\x18\x02 \x01(\tR\bfilePath\x12\x18\n" +
 	"\acontent\x18\x03 \x01(\tR\acontent\x12#\n" +
 	"\rbase_revision\x18\x04 \x01(\tR\fbaseRevision\x12%\n" +
-	"\x0ecommit_message\x18\x05 \x01(\tR\rcommitMessage\"\xaa\x01\n" +
-	"\x14UpdateSecretResponse\x12\x1b\n" +
-	"\tcommit_id\x18\x01 \x01(\tR\bcommitId\x12\x1f\n" +
-	"\vsync_status\x18\x02 \x01(\tR\n" +
-	"syncStatus\x12\x1d\n" +
-	"\n" +
-	"push_error\x18\x03 \x01(\tR\tpushError\x125\n" +
-	"\x17last_successful_pull_at\x18\x04 \x01(\tR\x14lastSuccessfulPullAt2\xdc\x01\n" +
+	"\x0ecommit_message\x18\x05 \x01(\tR\rcommitMessage2\xd7\x01\n" +
 	"\rSecretService\x12`\n" +
-	"\tGetSecret\x12(.composia.controller.v1.GetSecretRequest\x1a).composia.controller.v1.GetSecretResponse\x12i\n" +
-	"\fUpdateSecret\x12+.composia.controller.v1.UpdateSecretRequest\x1a,.composia.controller.v1.UpdateSecretResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
+	"\tGetSecret\x12(.composia.controller.v1.GetSecretRequest\x1a).composia.controller.v1.GetSecretResponse\x12d\n" +
+	"\fUpdateSecret\x12+.composia.controller.v1.UpdateSecretRequest\x1a'.composia.controller.v1.RepoWriteResultBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
 
 var (
 	file_proto_composia_controller_v1_secret_proto_rawDescOnce sync.Once
@@ -330,18 +250,18 @@ func file_proto_composia_controller_v1_secret_proto_rawDescGZIP() []byte {
 	return file_proto_composia_controller_v1_secret_proto_rawDescData
 }
 
-var file_proto_composia_controller_v1_secret_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_proto_composia_controller_v1_secret_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_proto_composia_controller_v1_secret_proto_goTypes = []any{
-	(*GetSecretRequest)(nil),     // 0: composia.controller.v1.GetSecretRequest
-	(*GetSecretResponse)(nil),    // 1: composia.controller.v1.GetSecretResponse
-	(*UpdateSecretRequest)(nil),  // 2: composia.controller.v1.UpdateSecretRequest
-	(*UpdateSecretResponse)(nil), // 3: composia.controller.v1.UpdateSecretResponse
+	(*GetSecretRequest)(nil),    // 0: composia.controller.v1.GetSecretRequest
+	(*GetSecretResponse)(nil),   // 1: composia.controller.v1.GetSecretResponse
+	(*UpdateSecretRequest)(nil), // 2: composia.controller.v1.UpdateSecretRequest
+	(*RepoWriteResult)(nil),     // 3: composia.controller.v1.RepoWriteResult
 }
 var file_proto_composia_controller_v1_secret_proto_depIdxs = []int32{
 	0, // 0: composia.controller.v1.SecretService.GetSecret:input_type -> composia.controller.v1.GetSecretRequest
 	2, // 1: composia.controller.v1.SecretService.UpdateSecret:input_type -> composia.controller.v1.UpdateSecretRequest
 	1, // 2: composia.controller.v1.SecretService.GetSecret:output_type -> composia.controller.v1.GetSecretResponse
-	3, // 3: composia.controller.v1.SecretService.UpdateSecret:output_type -> composia.controller.v1.UpdateSecretResponse
+	3, // 3: composia.controller.v1.SecretService.UpdateSecret:output_type -> composia.controller.v1.RepoWriteResult
 	2, // [2:4] is the sub-list for method output_type
 	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -354,13 +274,14 @@ func file_proto_composia_controller_v1_secret_proto_init() {
 	if File_proto_composia_controller_v1_secret_proto != nil {
 		return
 	}
+	file_proto_composia_controller_v1_repo_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_controller_v1_secret_proto_rawDesc), len(file_proto_composia_controller_v1_secret_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

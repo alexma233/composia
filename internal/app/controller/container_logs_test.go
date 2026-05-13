@@ -17,7 +17,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 )
 
-func TestContainerServiceGetContainerLogsStreamsThroughAgentTunnel(t *testing.T) {
+func TestDockerCommandServiceGetContainerLogsStreamsThroughAgentTunnel(t *testing.T) {
 	t.Parallel()
 
 	db := openControllerTestDB(t)
@@ -42,8 +42,8 @@ func TestContainerServiceGetContainerLogsStreamsThroughAgentTunnel(t *testing.T)
 		return "web-admin", nil
 	})
 
-	path, handler := controllerv1connect.NewContainerServiceHandler(
-		&containerServer{
+	path, handler := controllerv1connect.NewDockerCommandServiceHandler(
+		&dockerCommandServer{
 			db:         db,
 			cfg:        &config.ControllerConfig{Nodes: []config.NodeConfig{{ID: "main"}}},
 			logManager: logManager,
@@ -55,7 +55,7 @@ func TestContainerServiceGetContainerLogsStreamsThroughAgentTunnel(t *testing.T)
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewContainerServiceClient(
+	client := controllerv1connect.NewDockerCommandServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
 		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")),

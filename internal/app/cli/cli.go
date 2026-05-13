@@ -58,11 +58,12 @@ type controllerClient struct {
 	serviceCommands controllerv1connect.ServiceCommandServiceClient
 	instances       controllerv1connect.ServiceInstanceServiceClient
 	tasks           controllerv1connect.TaskServiceClient
-	backups         controllerv1connect.BackupRecordServiceClient
+	backupQueries   controllerv1connect.BackupQueryServiceClient
+	backupCommands  controllerv1connect.BackupCommandServiceClient
 	nodes           controllerv1connect.NodeQueryServiceClient
 	nodeCommands    controllerv1connect.NodeMaintenanceServiceClient
 	docker          controllerv1connect.DockerQueryServiceClient
-	containers      controllerv1connect.ContainerServiceClient
+	dockerCommands  controllerv1connect.DockerCommandServiceClient
 	repos           controllerv1connect.RepoQueryServiceClient
 	repoCommands    controllerv1connect.RepoCommandServiceClient
 	secrets         controllerv1connect.SecretServiceClient
@@ -421,11 +422,12 @@ func (application *app) configureClient() error {
 		serviceCommands: controllerv1connect.NewServiceCommandServiceClient(httpClient, baseURL, auth),
 		instances:       controllerv1connect.NewServiceInstanceServiceClient(httpClient, baseURL, auth),
 		tasks:           controllerv1connect.NewTaskServiceClient(httpClient, baseURL, auth),
-		backups:         controllerv1connect.NewBackupRecordServiceClient(httpClient, baseURL, auth),
+		backupQueries:   controllerv1connect.NewBackupQueryServiceClient(httpClient, baseURL, auth),
+		backupCommands:  controllerv1connect.NewBackupCommandServiceClient(httpClient, baseURL, auth),
 		nodes:           controllerv1connect.NewNodeQueryServiceClient(httpClient, baseURL, auth),
 		nodeCommands:    controllerv1connect.NewNodeMaintenanceServiceClient(httpClient, baseURL, auth),
 		docker:          controllerv1connect.NewDockerQueryServiceClient(httpClient, baseURL, auth),
-		containers:      controllerv1connect.NewContainerServiceClient(httpClient, baseURL, auth),
+		dockerCommands:  controllerv1connect.NewDockerCommandServiceClient(httpClient, baseURL, auth),
 		repos:           controllerv1connect.NewRepoQueryServiceClient(httpClient, baseURL, auth),
 		repoCommands:    controllerv1connect.NewRepoCommandServiceClient(httpClient, baseURL, auth),
 		secrets:         controllerv1connect.NewSecretServiceClient(httpClient, baseURL, auth),

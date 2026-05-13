@@ -42,8 +42,8 @@ func TestContainerExecRequiresWebOriginHeader(t *testing.T) {
 		return "web-admin", nil
 	})
 
-	path, handler := controllerv1connect.NewContainerServiceHandler(
-		&containerServer{
+	path, handler := controllerv1connect.NewDockerCommandServiceHandler(
+		&dockerCommandServer{
 			db:          db,
 			cfg:         &config.ControllerConfig{Nodes: []config.NodeConfig{{ID: "main"}}},
 			execManager: execManager,
@@ -55,7 +55,7 @@ func TestContainerExecRequiresWebOriginHeader(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewContainerServiceClient(
+	client := controllerv1connect.NewDockerCommandServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
 		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")),
@@ -97,8 +97,8 @@ func TestContainerExecWebsocketRequiresAllowedOriginAndOneTimeToken(t *testing.T
 		return "web-admin", nil
 	})
 
-	path, handler := controllerv1connect.NewContainerServiceHandler(
-		&containerServer{
+	path, handler := controllerv1connect.NewDockerCommandServiceHandler(
+		&dockerCommandServer{
 			db:          db,
 			cfg:         &config.ControllerConfig{Nodes: []config.NodeConfig{{ID: "main"}}},
 			execManager: execManager,
@@ -111,7 +111,7 @@ func TestContainerExecWebsocketRequiresAllowedOriginAndOneTimeToken(t *testing.T
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewContainerServiceClient(
+	client := controllerv1connect.NewDockerCommandServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
 		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")),

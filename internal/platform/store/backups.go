@@ -43,6 +43,9 @@ func (db *DB) UpsertBackupRecord(ctx context.Context, detail BackupDetail) error
 		}
 		detail.NodeID = nodeID
 	}
+	if detail.NodeID == "" {
+		return fmt.Errorf("backup %q requires node_id", detail.BackupID)
+	}
 
 	_, err := db.sql.ExecContext(ctx, `
 		INSERT INTO backups (
@@ -72,7 +75,7 @@ func (db *DB) UpsertBackupRecord(ctx context.Context, detail BackupDetail) error
 		detail.BackupID,
 		detail.TaskID,
 		detail.ServiceName,
-		nullableString(detail.NodeID),
+		detail.NodeID,
 		detail.DataName,
 		detail.Status,
 		detail.StartedAt,
@@ -104,11 +107,11 @@ func (db *DB) ListBackups(
 	whereClause, args = appendBackupFilterInClause(whereClause, args, "backups.service_name", serviceNameFilters)
 	whereClause, args = appendBackupFilterInClause(whereClause, args, "backups.status", statusFilters)
 	whereClause, args = appendBackupFilterInClause(whereClause, args, "backups.data_name", dataNameFilters)
-	whereClause, args = appendBackupFilterInClause(whereClause, args, "COALESCE(backups.node_id, '')", nodeIDFilters)
+	whereClause, args = appendBackupFilterInClause(whereClause, args, "backups.node_id", nodeIDFilters)
 	whereClause, args = appendBackupFilterNotInClause(whereClause, args, "backups.service_name", excludeServiceNameFilters)
 	whereClause, args = appendBackupFilterNotInClause(whereClause, args, "backups.status", excludeStatusFilters)
 	whereClause, args = appendBackupFilterNotInClause(whereClause, args, "backups.data_name", excludeDataNameFilters)
-	whereClause, args = appendBackupFilterNotInClause(whereClause, args, "COALESCE(backups.node_id, '')", excludeNodeIDFilters)
+	whereClause, args = appendBackupFilterNotInClause(whereClause, args, "backups.node_id", excludeNodeIDFilters)
 
 	var totalCount uint32
 	countQuery := `SELECT COUNT(*) FROM backups ` + whereClause
@@ -118,7 +121,7 @@ func (db *DB) ListBackups(
 
 	offset := (page - 1) * limit
 	query := `
-		SELECT backups.backup_id, backups.task_id, backups.service_name, COALESCE(backups.node_id, ''), backups.data_name, backups.status, backups.started_at, COALESCE(backups.finished_at, '')
+		SELECT backups.backup_id, backups.task_id, backups.service_name, backups.node_id, backups.data_name, backups.status, backups.started_at, COALESCE(backups.finished_at, '')
 		FROM backups
 	` + whereClause
 	query += ` ORDER BY COALESCE(backups.finished_at, backups.started_at) DESC, backups.backup_id DESC LIMIT ? OFFSET ?`
@@ -155,7 +158,7 @@ func appendBackupFilterNotInClause(whereClause string, args []any, expression st
 func (db *DB) GetBackup(ctx context.Context, backupID string) (BackupDetail, error) {
 	var detail BackupDetail
 	err := db.sql.QueryRowContext(ctx, `
-		SELECT backups.backup_id, backups.task_id, backups.service_name, COALESCE(backups.node_id, ''), backups.data_name, backups.status, backups.started_at, COALESCE(backups.finished_at, ''), COALESCE(backups.artifact_ref, ''), COALESCE(backups.error_summary, '')
+		SELECT backups.backup_id, backups.task_id, backups.service_name, backups.node_id, backups.data_name, backups.status, backups.started_at, COALESCE(backups.finished_at, ''), COALESCE(backups.artifact_ref, ''), COALESCE(backups.error_summary, '')
 		FROM backups
 		WHERE backups.backup_id = ?
 	`, backupID).Scan(&detail.BackupID, &detail.TaskID, &detail.ServiceName, &detail.NodeID, &detail.DataName, &detail.Status, &detail.StartedAt, &detail.FinishedAt, &detail.ArtifactRef, &detail.ErrorSummary)
@@ -170,7 +173,7 @@ func (db *DB) GetBackup(ctx context.Context, backupID string) (BackupDetail, err
 
 func (db *DB) ListBackupsForTask(ctx context.Context, taskID string) ([]BackupDetail, error) {
 	rows, err := db.sql.QueryContext(ctx, `
-		SELECT backups.backup_id, backups.task_id, backups.service_name, COALESCE(backups.node_id, ''), backups.data_name, backups.status, backups.started_at, COALESCE(backups.finished_at, ''), COALESCE(backups.artifact_ref, ''), COALESCE(backups.error_summary, '')
+		SELECT backups.backup_id, backups.task_id, backups.service_name, backups.node_id, backups.data_name, backups.status, backups.started_at, COALESCE(backups.finished_at, ''), COALESCE(backups.artifact_ref, ''), COALESCE(backups.error_summary, '')
 		FROM backups
 		WHERE backups.task_id = ?
 		ORDER BY backups.data_name ASC, backups.backup_id ASC

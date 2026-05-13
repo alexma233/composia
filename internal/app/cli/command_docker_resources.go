@@ -70,7 +70,7 @@ func (application *app) runNetworkRemove(args []string) error {
 	if err != nil {
 		return err
 	}
-	response, err := application.client.containers.RemoveNetwork(application.ctx, newRequest(&controllerv1.RemoveNetworkRequest{NodeId: nodeID, NetworkId: id}))
+	response, err := application.client.dockerCommands.RemoveNetwork(application.ctx, newRequest(&controllerv1.RemoveNetworkRequest{NodeId: nodeID, NetworkId: id}))
 	if err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func (application *app) runVolumeRemove(args []string) error {
 	if err != nil {
 		return err
 	}
-	response, err := application.client.containers.RemoveVolume(application.ctx, newRequest(&controllerv1.RemoveVolumeRequest{NodeId: nodeID, VolumeName: id}))
+	response, err := application.client.dockerCommands.RemoveVolume(application.ctx, newRequest(&controllerv1.RemoveVolumeRequest{NodeId: nodeID, VolumeName: id}))
 	if err != nil {
 		return err
 	}
@@ -220,7 +220,7 @@ func (application *app) runImageRemove(args []string) error {
 	if strings.TrimSpace(*nodeID) == "" {
 		return errorsWithUsage("node is required", usage)
 	}
-	response, err := application.client.containers.RemoveImage(application.ctx, newRequest(&controllerv1.RemoveImageRequest{NodeId: strings.TrimSpace(*nodeID), ImageId: fs.Arg(0), Force: *force}))
+	response, err := application.client.dockerCommands.RemoveImage(application.ctx, newRequest(&controllerv1.RemoveImageRequest{NodeId: strings.TrimSpace(*nodeID), ImageId: fs.Arg(0), Force: *force}))
 	if err != nil {
 		return err
 	}

@@ -34,7 +34,7 @@ type serviceCommandServer struct {
 	repoMu           *sync.Mutex
 }
 
-func (server *serviceCommandServer) UpdateServiceTargetNodes(ctx context.Context, req *connect.Request[controllerv1.UpdateServiceTargetNodesRequest]) (*connect.Response[controllerv1.UpdateServiceTargetNodesResponse], error) {
+func (server *serviceCommandServer) UpdateServiceTargetNodes(ctx context.Context, req *connect.Request[controllerv1.UpdateServiceTargetNodesRequest]) (*connect.Response[controllerv1.RepoWriteResult], error) {
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
@@ -64,12 +64,7 @@ func (server *serviceCommandServer) UpdateServiceTargetNodes(ctx context.Context
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&controllerv1.UpdateServiceTargetNodesResponse{
-		CommitId:             result.CommitID,
-		SyncStatus:           result.SyncStatus,
-		PushError:            result.PushError,
-		LastSuccessfulPullAt: result.LastSuccessfulPullAt,
-	}), nil
+	return connect.NewResponse(repoWriteResultMessage(result)), nil
 }
 
 func (server *serviceCommandServer) RunServiceAction(ctx context.Context, req *connect.Request[controllerv1.RunServiceActionRequest]) (*connect.Response[controllerv1.RunServiceActionResponse], error) {
@@ -730,12 +725,7 @@ func runServiceActionResponse(records []task.Record, repoWrite *repoWriteResult)
 		response.Tasks = append(response.Tasks, taskActionResponse(record))
 	}
 	if repoWrite != nil {
-		response.RepoWrite = &controllerv1.ServiceActionRepoWriteResult{
-			CommitId:             repoWrite.CommitID,
-			SyncStatus:           repoWrite.SyncStatus,
-			PushError:            repoWrite.PushError,
-			LastSuccessfulPullAt: repoWrite.LastSuccessfulPullAt,
-		}
+		response.RepoWrite = repoWriteResultMessage(*repoWrite)
 	}
 	return response
 }

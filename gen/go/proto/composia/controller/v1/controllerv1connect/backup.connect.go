@@ -21,8 +21,10 @@ import (
 const _ = connect.IsAtLeastVersion1_13_0
 
 const (
-	// BackupRecordServiceName is the fully-qualified name of the BackupRecordService service.
-	BackupRecordServiceName = "composia.controller.v1.BackupRecordService"
+	// BackupQueryServiceName is the fully-qualified name of the BackupQueryService service.
+	BackupQueryServiceName = "composia.controller.v1.BackupQueryService"
+	// BackupCommandServiceName is the fully-qualified name of the BackupCommandService service.
+	BackupCommandServiceName = "composia.controller.v1.BackupCommandService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -33,142 +35,189 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// BackupRecordServiceListBackupsProcedure is the fully-qualified name of the BackupRecordService's
+	// BackupQueryServiceListBackupsProcedure is the fully-qualified name of the BackupQueryService's
 	// ListBackups RPC.
-	BackupRecordServiceListBackupsProcedure = "/composia.controller.v1.BackupRecordService/ListBackups"
-	// BackupRecordServiceGetBackupProcedure is the fully-qualified name of the BackupRecordService's
+	BackupQueryServiceListBackupsProcedure = "/composia.controller.v1.BackupQueryService/ListBackups"
+	// BackupQueryServiceGetBackupProcedure is the fully-qualified name of the BackupQueryService's
 	// GetBackup RPC.
-	BackupRecordServiceGetBackupProcedure = "/composia.controller.v1.BackupRecordService/GetBackup"
-	// BackupRecordServiceRestoreBackupProcedure is the fully-qualified name of the
-	// BackupRecordService's RestoreBackup RPC.
-	BackupRecordServiceRestoreBackupProcedure = "/composia.controller.v1.BackupRecordService/RestoreBackup"
+	BackupQueryServiceGetBackupProcedure = "/composia.controller.v1.BackupQueryService/GetBackup"
+	// BackupCommandServiceRestoreBackupProcedure is the fully-qualified name of the
+	// BackupCommandService's RestoreBackup RPC.
+	BackupCommandServiceRestoreBackupProcedure = "/composia.controller.v1.BackupCommandService/RestoreBackup"
 )
 
-// BackupRecordServiceClient is a client for the composia.controller.v1.BackupRecordService service.
-type BackupRecordServiceClient interface {
+// BackupQueryServiceClient is a client for the composia.controller.v1.BackupQueryService service.
+type BackupQueryServiceClient interface {
 	// ListBackups returns backup records with filtering and pagination.
 	ListBackups(context.Context, *connect.Request[v1.ListBackupsRequest]) (*connect.Response[v1.ListBackupsResponse], error)
 	// GetBackup returns one backup record by ID.
 	GetBackup(context.Context, *connect.Request[v1.GetBackupRequest]) (*connect.Response[v1.GetBackupResponse], error)
-	// RestoreBackup starts an async restore task from one backup record.
-	RestoreBackup(context.Context, *connect.Request[v1.RestoreBackupRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 
-// NewBackupRecordServiceClient constructs a client for the
-// composia.controller.v1.BackupRecordService service. By default, it uses the Connect protocol with
-// the binary Protobuf Codec, asks for gzipped responses, and sends uncompressed requests. To use
-// the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or connect.WithGRPCWeb() options.
+// NewBackupQueryServiceClient constructs a client for the composia.controller.v1.BackupQueryService
+// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
+// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
+// the connect.WithGRPC() or connect.WithGRPCWeb() options.
 //
 // The URL supplied here should be the base URL for the Connect or gRPC server (for example,
 // http://api.acme.com or https://acme.com/grpc).
-func NewBackupRecordServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) BackupRecordServiceClient {
+func NewBackupQueryServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) BackupQueryServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
-	backupRecordServiceMethods := v1.File_proto_composia_controller_v1_backup_proto.Services().ByName("BackupRecordService").Methods()
-	return &backupRecordServiceClient{
+	backupQueryServiceMethods := v1.File_proto_composia_controller_v1_backup_proto.Services().ByName("BackupQueryService").Methods()
+	return &backupQueryServiceClient{
 		listBackups: connect.NewClient[v1.ListBackupsRequest, v1.ListBackupsResponse](
 			httpClient,
-			baseURL+BackupRecordServiceListBackupsProcedure,
-			connect.WithSchema(backupRecordServiceMethods.ByName("ListBackups")),
+			baseURL+BackupQueryServiceListBackupsProcedure,
+			connect.WithSchema(backupQueryServiceMethods.ByName("ListBackups")),
 			connect.WithClientOptions(opts...),
 		),
 		getBackup: connect.NewClient[v1.GetBackupRequest, v1.GetBackupResponse](
 			httpClient,
-			baseURL+BackupRecordServiceGetBackupProcedure,
-			connect.WithSchema(backupRecordServiceMethods.ByName("GetBackup")),
-			connect.WithClientOptions(opts...),
-		),
-		restoreBackup: connect.NewClient[v1.RestoreBackupRequest, v1.TaskActionResponse](
-			httpClient,
-			baseURL+BackupRecordServiceRestoreBackupProcedure,
-			connect.WithSchema(backupRecordServiceMethods.ByName("RestoreBackup")),
+			baseURL+BackupQueryServiceGetBackupProcedure,
+			connect.WithSchema(backupQueryServiceMethods.ByName("GetBackup")),
 			connect.WithClientOptions(opts...),
 		),
 	}
 }
 
-// backupRecordServiceClient implements BackupRecordServiceClient.
-type backupRecordServiceClient struct {
-	listBackups   *connect.Client[v1.ListBackupsRequest, v1.ListBackupsResponse]
-	getBackup     *connect.Client[v1.GetBackupRequest, v1.GetBackupResponse]
-	restoreBackup *connect.Client[v1.RestoreBackupRequest, v1.TaskActionResponse]
+// backupQueryServiceClient implements BackupQueryServiceClient.
+type backupQueryServiceClient struct {
+	listBackups *connect.Client[v1.ListBackupsRequest, v1.ListBackupsResponse]
+	getBackup   *connect.Client[v1.GetBackupRequest, v1.GetBackupResponse]
 }
 
-// ListBackups calls composia.controller.v1.BackupRecordService.ListBackups.
-func (c *backupRecordServiceClient) ListBackups(ctx context.Context, req *connect.Request[v1.ListBackupsRequest]) (*connect.Response[v1.ListBackupsResponse], error) {
+// ListBackups calls composia.controller.v1.BackupQueryService.ListBackups.
+func (c *backupQueryServiceClient) ListBackups(ctx context.Context, req *connect.Request[v1.ListBackupsRequest]) (*connect.Response[v1.ListBackupsResponse], error) {
 	return c.listBackups.CallUnary(ctx, req)
 }
 
-// GetBackup calls composia.controller.v1.BackupRecordService.GetBackup.
-func (c *backupRecordServiceClient) GetBackup(ctx context.Context, req *connect.Request[v1.GetBackupRequest]) (*connect.Response[v1.GetBackupResponse], error) {
+// GetBackup calls composia.controller.v1.BackupQueryService.GetBackup.
+func (c *backupQueryServiceClient) GetBackup(ctx context.Context, req *connect.Request[v1.GetBackupRequest]) (*connect.Response[v1.GetBackupResponse], error) {
 	return c.getBackup.CallUnary(ctx, req)
 }
 
-// RestoreBackup calls composia.controller.v1.BackupRecordService.RestoreBackup.
-func (c *backupRecordServiceClient) RestoreBackup(ctx context.Context, req *connect.Request[v1.RestoreBackupRequest]) (*connect.Response[v1.TaskActionResponse], error) {
-	return c.restoreBackup.CallUnary(ctx, req)
-}
-
-// BackupRecordServiceHandler is an implementation of the composia.controller.v1.BackupRecordService
+// BackupQueryServiceHandler is an implementation of the composia.controller.v1.BackupQueryService
 // service.
-type BackupRecordServiceHandler interface {
+type BackupQueryServiceHandler interface {
 	// ListBackups returns backup records with filtering and pagination.
 	ListBackups(context.Context, *connect.Request[v1.ListBackupsRequest]) (*connect.Response[v1.ListBackupsResponse], error)
 	// GetBackup returns one backup record by ID.
 	GetBackup(context.Context, *connect.Request[v1.GetBackupRequest]) (*connect.Response[v1.GetBackupResponse], error)
-	// RestoreBackup starts an async restore task from one backup record.
-	RestoreBackup(context.Context, *connect.Request[v1.RestoreBackupRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 
-// NewBackupRecordServiceHandler builds an HTTP handler from the service implementation. It returns
+// NewBackupQueryServiceHandler builds an HTTP handler from the service implementation. It returns
 // the path on which to mount the handler and the handler itself.
 //
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
-func NewBackupRecordServiceHandler(svc BackupRecordServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	backupRecordServiceMethods := v1.File_proto_composia_controller_v1_backup_proto.Services().ByName("BackupRecordService").Methods()
-	backupRecordServiceListBackupsHandler := connect.NewUnaryHandler(
-		BackupRecordServiceListBackupsProcedure,
+func NewBackupQueryServiceHandler(svc BackupQueryServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	backupQueryServiceMethods := v1.File_proto_composia_controller_v1_backup_proto.Services().ByName("BackupQueryService").Methods()
+	backupQueryServiceListBackupsHandler := connect.NewUnaryHandler(
+		BackupQueryServiceListBackupsProcedure,
 		svc.ListBackups,
-		connect.WithSchema(backupRecordServiceMethods.ByName("ListBackups")),
+		connect.WithSchema(backupQueryServiceMethods.ByName("ListBackups")),
 		connect.WithHandlerOptions(opts...),
 	)
-	backupRecordServiceGetBackupHandler := connect.NewUnaryHandler(
-		BackupRecordServiceGetBackupProcedure,
+	backupQueryServiceGetBackupHandler := connect.NewUnaryHandler(
+		BackupQueryServiceGetBackupProcedure,
 		svc.GetBackup,
-		connect.WithSchema(backupRecordServiceMethods.ByName("GetBackup")),
+		connect.WithSchema(backupQueryServiceMethods.ByName("GetBackup")),
 		connect.WithHandlerOptions(opts...),
 	)
-	backupRecordServiceRestoreBackupHandler := connect.NewUnaryHandler(
-		BackupRecordServiceRestoreBackupProcedure,
-		svc.RestoreBackup,
-		connect.WithSchema(backupRecordServiceMethods.ByName("RestoreBackup")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/composia.controller.v1.BackupRecordService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return "/composia.controller.v1.BackupQueryService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case BackupRecordServiceListBackupsProcedure:
-			backupRecordServiceListBackupsHandler.ServeHTTP(w, r)
-		case BackupRecordServiceGetBackupProcedure:
-			backupRecordServiceGetBackupHandler.ServeHTTP(w, r)
-		case BackupRecordServiceRestoreBackupProcedure:
-			backupRecordServiceRestoreBackupHandler.ServeHTTP(w, r)
+		case BackupQueryServiceListBackupsProcedure:
+			backupQueryServiceListBackupsHandler.ServeHTTP(w, r)
+		case BackupQueryServiceGetBackupProcedure:
+			backupQueryServiceGetBackupHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
 	})
 }
 
-// UnimplementedBackupRecordServiceHandler returns CodeUnimplemented from all methods.
-type UnimplementedBackupRecordServiceHandler struct{}
+// UnimplementedBackupQueryServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedBackupQueryServiceHandler struct{}
 
-func (UnimplementedBackupRecordServiceHandler) ListBackups(context.Context, *connect.Request[v1.ListBackupsRequest]) (*connect.Response[v1.ListBackupsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.BackupRecordService.ListBackups is not implemented"))
+func (UnimplementedBackupQueryServiceHandler) ListBackups(context.Context, *connect.Request[v1.ListBackupsRequest]) (*connect.Response[v1.ListBackupsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.BackupQueryService.ListBackups is not implemented"))
 }
 
-func (UnimplementedBackupRecordServiceHandler) GetBackup(context.Context, *connect.Request[v1.GetBackupRequest]) (*connect.Response[v1.GetBackupResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.BackupRecordService.GetBackup is not implemented"))
+func (UnimplementedBackupQueryServiceHandler) GetBackup(context.Context, *connect.Request[v1.GetBackupRequest]) (*connect.Response[v1.GetBackupResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.BackupQueryService.GetBackup is not implemented"))
 }
 
-func (UnimplementedBackupRecordServiceHandler) RestoreBackup(context.Context, *connect.Request[v1.RestoreBackupRequest]) (*connect.Response[v1.TaskActionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.BackupRecordService.RestoreBackup is not implemented"))
+// BackupCommandServiceClient is a client for the composia.controller.v1.BackupCommandService
+// service.
+type BackupCommandServiceClient interface {
+	// RestoreBackup starts an async restore task from one backup record.
+	RestoreBackup(context.Context, *connect.Request[v1.RestoreBackupRequest]) (*connect.Response[v1.TaskActionResponse], error)
+}
+
+// NewBackupCommandServiceClient constructs a client for the
+// composia.controller.v1.BackupCommandService service. By default, it uses the Connect protocol
+// with the binary Protobuf Codec, asks for gzipped responses, and sends uncompressed requests. To
+// use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or connect.WithGRPCWeb()
+// options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewBackupCommandServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) BackupCommandServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	backupCommandServiceMethods := v1.File_proto_composia_controller_v1_backup_proto.Services().ByName("BackupCommandService").Methods()
+	return &backupCommandServiceClient{
+		restoreBackup: connect.NewClient[v1.RestoreBackupRequest, v1.TaskActionResponse](
+			httpClient,
+			baseURL+BackupCommandServiceRestoreBackupProcedure,
+			connect.WithSchema(backupCommandServiceMethods.ByName("RestoreBackup")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// backupCommandServiceClient implements BackupCommandServiceClient.
+type backupCommandServiceClient struct {
+	restoreBackup *connect.Client[v1.RestoreBackupRequest, v1.TaskActionResponse]
+}
+
+// RestoreBackup calls composia.controller.v1.BackupCommandService.RestoreBackup.
+func (c *backupCommandServiceClient) RestoreBackup(ctx context.Context, req *connect.Request[v1.RestoreBackupRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return c.restoreBackup.CallUnary(ctx, req)
+}
+
+// BackupCommandServiceHandler is an implementation of the
+// composia.controller.v1.BackupCommandService service.
+type BackupCommandServiceHandler interface {
+	// RestoreBackup starts an async restore task from one backup record.
+	RestoreBackup(context.Context, *connect.Request[v1.RestoreBackupRequest]) (*connect.Response[v1.TaskActionResponse], error)
+}
+
+// NewBackupCommandServiceHandler builds an HTTP handler from the service implementation. It returns
+// the path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewBackupCommandServiceHandler(svc BackupCommandServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	backupCommandServiceMethods := v1.File_proto_composia_controller_v1_backup_proto.Services().ByName("BackupCommandService").Methods()
+	backupCommandServiceRestoreBackupHandler := connect.NewUnaryHandler(
+		BackupCommandServiceRestoreBackupProcedure,
+		svc.RestoreBackup,
+		connect.WithSchema(backupCommandServiceMethods.ByName("RestoreBackup")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/composia.controller.v1.BackupCommandService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case BackupCommandServiceRestoreBackupProcedure:
+			backupCommandServiceRestoreBackupHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedBackupCommandServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedBackupCommandServiceHandler struct{}
+
+func (UnimplementedBackupCommandServiceHandler) RestoreBackup(context.Context, *connect.Request[v1.RestoreBackupRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.BackupCommandService.RestoreBackup is not implemented"))
 }

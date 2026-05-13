@@ -21,13 +21,13 @@ service RepoQueryService {
 // RepoCommandService applies changes to the controller Git repo.
 service RepoCommandService {
   // UpdateRepoFile writes one file, creates a commit, and reports sync state.
-  rpc UpdateRepoFile(UpdateRepoFileRequest) returns (UpdateRepoFileResponse);
+  rpc UpdateRepoFile(UpdateRepoFileRequest) returns (RepoWriteResult);
   // CreateRepoDirectory creates one directory, creates a commit, and reports sync state.
-  rpc CreateRepoDirectory(CreateRepoDirectoryRequest) returns (CreateRepoDirectoryResponse);
+  rpc CreateRepoDirectory(CreateRepoDirectoryRequest) returns (RepoWriteResult);
   // MoveRepoPath moves or renames one repo path.
-  rpc MoveRepoPath(MoveRepoPathRequest) returns (MoveRepoPathResponse);
+  rpc MoveRepoPath(MoveRepoPathRequest) returns (RepoWriteResult);
   // DeleteRepoPath deletes one repo path.
-  rpc DeleteRepoPath(DeleteRepoPathRequest) returns (DeleteRepoPathResponse);
+  rpc DeleteRepoPath(DeleteRepoPathRequest) returns (RepoWriteResult);
   // SyncRepo pulls or syncs the repo and returns the resulting state snapshot.
   rpc SyncRepo(SyncRepoRequest) returns (SyncRepoResponse);
 }
@@ -145,8 +145,8 @@ message UpdateRepoFileRequest {
   string commit_message = 4;
 }
 
-// UpdateRepoFileResponse reports the commit and sync result for the write.
-message UpdateRepoFileResponse {
+// RepoWriteResult reports the commit and sync result for a repo write.
+message RepoWriteResult {
   // commit_id is the Git commit created for the write.
   string commit_id = 1;
   // sync_status is the repo sync state after the write.
@@ -167,18 +167,6 @@ message CreateRepoDirectoryRequest {
   string commit_message = 3;
 }
 
-// CreateRepoDirectoryResponse reports the commit and sync result for the create.
-message CreateRepoDirectoryResponse {
-  // commit_id is the Git commit created for the directory creation.
-  string commit_id = 1;
-  // sync_status is the repo sync state after the write.
-  string sync_status = 2;
-  // push_error contains the last push error when sync_status is failed.
-  string push_error = 3;
-  // last_successful_pull_at is the last successful pull timestamp string.
-  string last_successful_pull_at = 4;
-}
-
 // MoveRepoPathRequest moves one repo-relative path to another.
 message MoveRepoPathRequest {
   // source_path is the existing repo-relative path to move.
@@ -191,18 +179,6 @@ message MoveRepoPathRequest {
   string commit_message = 4;
 }
 
-// MoveRepoPathResponse reports the commit and sync result for the move.
-message MoveRepoPathResponse {
-  // commit_id is the Git commit created for the move.
-  string commit_id = 1;
-  // sync_status is the repo sync state after the write.
-  string sync_status = 2;
-  // push_error contains the last push error when sync_status is failed.
-  string push_error = 3;
-  // last_successful_pull_at is the last successful pull timestamp string.
-  string last_successful_pull_at = 4;
-}
-
 // DeleteRepoPathRequest deletes one repo-relative path.
 message DeleteRepoPathRequest {
   // path is the repo-relative path to delete.
@@ -211,18 +187,6 @@ message DeleteRepoPathRequest {
   string base_revision = 2;
   // commit_message is used for the generated Git commit.
   string commit_message = 3;
-}
-
-// DeleteRepoPathResponse reports the commit and sync result for the delete.
-message DeleteRepoPathResponse {
-  // commit_id is the Git commit created for the delete.
-  string commit_id = 1;
-  // sync_status is the repo sync state after the write.
-  string sync_status = 2;
-  // push_error contains the last push error when sync_status is failed.
-  string push_error = 3;
-  // last_successful_pull_at is the last successful pull timestamp string.
-  string last_successful_pull_at = 4;
 }
 
 // SyncRepoRequest asks the controller to refresh repo state from its remote.
