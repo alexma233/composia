@@ -1,0 +1,7 @@
+baseURL: https://composia.xyz/
+locale: en-us
+title: Composia
+
+module:
+  imports:
+    - path: github.com/imfing/hextra
