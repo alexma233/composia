@@ -1,6 +1,15 @@
 baseURL: https://composia.xyz/
-locale: en-us
 title: Composia
+
+languages:
+  en:
+    label: English
+    locale: en
+    weight: 1
+  zh-hans:
+    label: 简体中文
+    locale: zh-cn
+    weight: 2
 
 module:
   imports:
