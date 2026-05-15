@@ -1,47 +1,43 @@
-name: Docs
+name: Website CI
 
 on:
   pull_request:
     paths:
-      - "package.json"
-      - "bun.lock"
-      - "docs/package.json"
-      - "docs/bun.lock"
-      - "docs/**"
+      - "site/**"
       - "scripts/docs/**"
       - "proto/**"
-      - ".forgejo/workflows/docs-ci.yaml"
   push:
     branches: ["main"]
     paths:
-      - "package.json"
-      - "bun.lock"
-      - "docs/package.json"
-      - "docs/bun.lock"
-      - "docs/**"
+      - "site/**"
       - "scripts/docs/**"
       - "proto/**"
       - ".forgejo/workflows/docs-ci.yaml"
   workflow_dispatch:
 
+env:
+  HUGO_ENVIRONMENT: production
+  HUGO_ENV: production
+
 jobs:
   build-deploy:
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-bun-wrangler:4.90.1
+      image: forgejo.alexma.top/alexma233/ci-images-hugo-wrangler:latest
 
     steps:
       - name: Checkout
         # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
         uses: https://forgejo.alexma.top/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-      - name: Install docs dependencies
-        working-directory: docs
-        run: bun install --frozen-lockfile
+      - name: Download Hugo modules
+        run: |
+          hugo mod tidy
+          hugo mod verify
 
-      - name: Build docs
-        working-directory: docs
-        run: bun run build
+      - name: Build website
+        run: |
+          hugo --minify -d public
 
       - name: Deploy to Cloudflare Pages
         if: ${{ github.event_name != 'pull_request' }}
@@ -53,4 +49,4 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           # Cloudflare uses the branch name to decide if a deploy is production or preview.
           # Use the project's production branch (main) so the deployment is marked as Production.
-          command: pages deploy ./docs/.vitepress/dist --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT }} --branch=main
+          command: pages deploy ./public --project-name=${{ vars.WEBSITE_CLOUDFLARE_PAGES_PROJECT }} --branch=main
