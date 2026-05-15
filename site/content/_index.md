@@ -5,25 +5,26 @@ layout: hextra-home
 
 {{< hextra/hero-badge link="https://forgejo.alexma.top/alexma233/composia" >}}
   <div class="hx:w-2 hx:h-2 hx:rounded-full hx:bg-primary-400"></div>
-  <span>Free & Open Source</span>
+  <span>Free and open source</span>
   {{< icon name="arrow-circle-right" attributes="height=14" >}}
 {{< /hextra/hero-badge >}}
 
 <div class="hx:mt-6 hx:mb-6">
 {{< hextra/hero-headline >}}
-  Composia — Self-Hosted Docker Compose Control Plane
+  Your Compose files, everywhere
 {{< /hextra/hero-headline >}}
 </div>
 
 <div class="hx:mb-12">
 {{< hextra/hero-subtitle >}}
-  Define services as plain files, deploy them to one or many nodes, and get unified visibility across your infrastructure — without lock-in.
+  A self-hosted orchestration system crafted for power users.&nbsp;<br class="hx:sm:block hx:hidden" />Define services in plain text, keep them in Git, stay database-free and lock-in-free.&nbsp;<br class="hx:sm:block hx:hidden" />
+  Backups, DNS, reverse proxying, and image updates — all included.
 {{< /hextra/hero-subtitle >}}
 </div>
 
 <div class="hx:mb-6">
-{{< hextra/hero-button text="Get Started" link="docs" >}}
-{{< hextra/hero-button text="View on Forgejo" link="https://forgejo.alexma.top/alexma233/composia" style="background-color: transparent; border: 1px solid var(--tw-prose-headings); color: var(--tw-prose-headings);" >}}
+{{< hextra/hero-button text="Quick Start" link="docs" >}}
+{{< hextra/hero-button text="Repository" link="https://forgejo.alexma.top/alexma233/composia" style="background-color: transparent; border: 1px solid var(--tw-prose-headings); color: var(--tw-prose-headings);" >}}
 </div>
 
 <div class="hx:mt-6"></div>
@@ -31,42 +32,60 @@ layout: hextra-home
 {{< hextra/feature-grid >}}
 
 {{< hextra/feature-card
-  title="Multi-Node Orchestration"
-  subtitle="Deploy services to one or many nodes from a single Git repo. Agent-based pull model works through NAT and firewalls."
+  title="Multi-node Compose"
+  subtitle="Deploy services to any node from a simple configuration. Unique connection mode work across NAT, firewalls, and CDNs."
   icon="server"
   style="background: radial-gradient(ellipse at 50% 80%,rgba(236,72,153,0.1),hsla(0,0%,100%,0));"
 >}}
 
 {{< hextra/feature-card
-  title="Standard Files, Zero Lock-In"
-  subtitle="docker-compose.yaml + composia-meta.yaml in your own Git repo. No proprietary formats. SSH into any node, anytime."
-  icon="document"
+  title="Standard files, no lock-in"
+  subtitle="docker-compose.yaml + composia-meta.yaml, stored in your Git repository. Open formats, database-free storage, manual control anytime."
+  icon="lock-open"
   style="background: radial-gradient(ellipse at 50% 80%,rgba(16,185,129,0.1),hsla(0,0%,100%,0));"
 >}}
 
 {{< hextra/feature-card
-  title="Web Dashboard"
-  subtitle="Real-time service status, container log streaming, interactive terminal exec, built-in file tree and YAML editor."
+  title="Easy-to-use web dashboard"
+  subtitle="File browsing and editing, live logs, Docker resource views, and interactive terminals. Mobile-friendly, with everything you need to manage services from a browser."
   icon="desktop-computer"
   style="background: radial-gradient(ellipse at 50% 80%,rgba(37,99,235,0.12),hsla(0,0%,100%,0));"
 >}}
 
 {{< hextra/feature-card
-  title="CLI & Public API"
-  subtitle="Feature-complete terminal client for automation and scripting. Public ConnectRPC API — AI agent ready, third-party friendly."
+  title="CLI and public API"
+  subtitle="A full-featured CLI ready for automation scripts and AI agents. Public APIs make third-party clients easy to build."
   icon="terminal"
 >}}
 
 {{< hextra/feature-card
-  title="Backup & Restore"
-  subtitle="Automated Rustic backups with scheduling, snapshot management, and on-demand restore."
+  title="Backup and restore"
+  subtitle="Automated backups powered by Rustic, with scheduled runs, snapshot management, and on-demand restores."
   icon="save"
 >}}
 
 {{< hextra/feature-card
-  title="DNS & Reverse Proxy"
-  subtitle="Cloudflare DNS management and Caddy reverse proxy out of the box. Automatic Caddyfile sync and reload."
+  title="DNS and reverse proxy"
+  subtitle="Cloudflare DNS management and Caddy reverse proxying work out of the box. Automatically sync and reload your Caddyfile."
   icon="globe"
+>}}
+
+{{< hextra/feature-card
+  title="Image update detection"
+  subtitle="Automatically detect new Docker image tags and apply updates. Supports multiple versioning strategies and can fetch the latest tags from GitHub, Forgejo, and more."
+  icon="arrow-circle-up"
+>}}
+
+{{< hextra/feature-card
+  title="Built-in notifications"
+  subtitle="Email, Telegram, and Alertmanager notifications for task results, backup events, image updates, and node status changes."
+  icon="bell"
+>}}
+
+{{< hextra/feature-card
+  title="And more…"
+  icon="sparkles"
+  subtitle="Task system / encrypted secrets / automatic deployments / Prometheus metrics / cross-platform support / accessibility / and more…"
 >}}
 
 {{< /hextra/feature-grid >}}
