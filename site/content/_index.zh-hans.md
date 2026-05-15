@@ -17,9 +17,7 @@ layout: hextra-home
 
 <div class="hx:mb-12">
 {{< hextra/hero-subtitle >}}
-  为高阶用户精心打造的自托管编排系统。&nbsp;<br class="hx:sm:block hx:hidden" />
-  用纯文本定义服务，放在 Git 仓库，无数据库，无锁定。&nbsp;<br class="hx:sm:block hx:hidden" />
-  备份、DNS、反向代理、镜像更新都一应俱全。
+  为高阶用户精心打造的自托管编排系统。&nbsp;<br class="hx:sm:block hx:hidden" />用纯文本定义服务，放在 Git 仓库，无数据库，无锁定。&nbsp;<br class="hx:sm:block hx:hidden" />备份、DNS、反向代理、镜像更新都一应俱全。
 {{< /hextra/hero-subtitle >}}
 </div>
 

@@ -17,8 +17,7 @@ layout: hextra-home
 
 <div class="hx:mb-12">
 {{< hextra/hero-subtitle >}}
-  A self-hosted orchestration system crafted for power users.&nbsp;<br class="hx:sm:block hx:hidden" />Define services in plain text, keep them in Git, stay database-free and lock-in-free.&nbsp;<br class="hx:sm:block hx:hidden" />
-  Backups, DNS, reverse proxying, and image updates — all included.
+  A self-hosted orchestration system crafted for power users.&nbsp;<br class="hx:sm:block hx:hidden" />Define services in plain text, keep them in Git, stay database-free and lock-in-free.&nbsp;<br class="hx:sm:block hx:hidden" />Backups, DNS, reverse proxying, and image updates — all included.
 {{< /hextra/hero-subtitle >}}
 </div>
 
