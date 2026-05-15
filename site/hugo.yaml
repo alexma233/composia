@@ -11,6 +11,11 @@ languages:
     locale: zh-cn
     weight: 2
 
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+
 module:
   imports:
     - path: github.com/imfing/hextra
