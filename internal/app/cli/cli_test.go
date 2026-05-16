@@ -232,7 +232,9 @@ func TestUsageIncludesWaitAndNewCommands(t *testing.T) {
 	usage := out.String()
 	for _, want := range []string{
 		"task list|get|logs|wait|run-again|approve|reject",
-		"node list|get|tasks|stats|reload-caddy|prune",
+		"node list|get|tasks|stats|sync-caddy-files|reload-caddy|prune",
+		"service list|get|workspace|update-candidates|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate",
+		"repo head|files|get|edit|update|mkdir|mv|rm|history|sync|validate",
 		"network list|get|remove",
 		"volume list|get|remove",
 		"image list|get|remove",
@@ -296,6 +298,33 @@ func TestHelpUnknownTopicReturnsError(t *testing.T) {
 	}
 	if out.Len() != 0 {
 		t.Fatalf("stdout = %q", out.String())
+	}
+}
+
+func TestNewCLICommandHelpDoesNotRequireControllerConfig(t *testing.T) {
+	for _, testCase := range []struct {
+		args []string
+		want string
+	}{
+		{[]string{"help", "service", "workspace"}, "usage: composia service workspace <list|get>"},
+		{[]string{"help", "service", "workspace", "list"}, "usage: composia service workspace list"},
+		{[]string{"help", "service", "workspace", "get"}, "usage: composia service workspace get <folder>"},
+		{[]string{"help", "repo", "mkdir"}, "usage: composia repo mkdir [--message text] <path>"},
+		{[]string{"help", "repo", "mv"}, "usage: composia repo mv [--message text] <source> <destination>"},
+		{[]string{"help", "repo", "rm"}, "usage: composia repo rm [--message text] <path>"},
+		{[]string{"help", "node", "sync-caddy-files"}, "usage: composia node sync-caddy-files [--wait] [--follow] [--timeout duration] [--service name] [--full-rebuild] <node>"},
+	} {
+		var out bytes.Buffer
+		var errOut bytes.Buffer
+		if err := Run(context.Background(), testCase.args, &out, &errOut); err != nil {
+			t.Fatalf("Run(%v) returned error: %v", testCase.args, err)
+		}
+		if !strings.Contains(out.String(), testCase.want) {
+			t.Fatalf("Run(%v) stdout = %q, want %q", testCase.args, out.String(), testCase.want)
+		}
+		if errOut.Len() != 0 {
+			t.Fatalf("Run(%v) stderr = %q", testCase.args, errOut.String())
+		}
 	}
 }
 

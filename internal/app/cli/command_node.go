@@ -9,7 +9,7 @@ import (
 
 func (application *app) runNode(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia node <list|get|tasks|stats|reload-caddy|prune>")
+		return fmt.Errorf("usage: composia node <list|get|tasks|stats|sync-caddy-files|reload-caddy|prune>")
 	}
 	switch args[0] {
 	case "list":
@@ -20,6 +20,8 @@ func (application *app) runNode(args []string) error {
 		return application.runNodeTasks(args[1:])
 	case "stats":
 		return application.runNodeStats(args[1:])
+	case "sync-caddy-files":
+		return application.runNodeSyncCaddyFiles(args[1:])
 	case "reload-caddy":
 		return application.runNodeReloadCaddy(args[1:])
 	case "prune":
@@ -156,6 +158,24 @@ func (application *app) runNodeReloadCaddy(args []string) error {
 		return err
 	}
 	response, err := application.client.nodeCommands.ReloadNodeCaddy(application.ctx, newRequest(&controllerv1.ReloadNodeCaddyRequest{NodeId: fs.Arg(0)}))
+	if err != nil {
+		return err
+	}
+	return application.printTaskIDWithWait(response.Msg, response.Msg.GetTaskId(), waitOptions)
+}
+
+func (application *app) runNodeSyncCaddyFiles(args []string) error {
+	fs := newCommandFlagSet("node sync-caddy-files")
+	serviceName := fs.String("service", "", "service name filter")
+	fullRebuild := fs.Bool("full-rebuild", false, "force a full Caddy file rebuild")
+	waitOptions := addWaitFlags(fs)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if err := requireArgs(fs.Args(), 1, "composia node sync-caddy-files [--wait] [--follow] [--timeout duration] [--service name] [--full-rebuild] <node>"); err != nil {
+		return err
+	}
+	response, err := application.client.nodeCommands.SyncNodeCaddyFiles(application.ctx, newRequest(&controllerv1.SyncNodeCaddyFilesRequest{NodeId: fs.Arg(0), ServiceName: *serviceName, FullRebuild: *fullRebuild}))
 	if err != nil {
 		return err
 	}

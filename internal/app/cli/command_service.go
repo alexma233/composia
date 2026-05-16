@@ -10,13 +10,15 @@ import (
 
 func (application *app) runService(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia service <list|get|update-candidates|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate>")
+		return fmt.Errorf("usage: composia service <list|get|workspace|update-candidates|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate>")
 	}
 	switch args[0] {
 	case "list":
 		return application.runServiceList(args[1:])
 	case "get":
 		return application.runServiceGet(args[1:])
+	case "workspace":
+		return application.runServiceWorkspace(args[1:])
 	case "update-candidates":
 		return application.runServiceUpdateCandidates(args[1:])
 	case "deploy", "update", "stop", "restart", "backup", "dns-update", "caddy-sync":
@@ -26,6 +28,91 @@ func (application *app) runService(args []string) error {
 	default:
 		return fmt.Errorf("unknown service command %q", args[0])
 	}
+}
+
+func (application *app) runServiceWorkspace(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: composia service workspace <list|get>")
+	}
+	switch args[0] {
+	case "list":
+		return application.runServiceWorkspaceList(args[1:])
+	case "get":
+		return application.runServiceWorkspaceGet(args[1:])
+	default:
+		return fmt.Errorf("unknown service workspace command %q", args[0])
+	}
+}
+
+func (application *app) runServiceWorkspaceList(args []string) error {
+	if err := requireArgs(args, 0, "composia service workspace list"); err != nil {
+		return err
+	}
+	response, err := application.client.services.ListServiceWorkspaces(application.ctx, newRequest(&controllerv1.ListServiceWorkspacesRequest{}))
+	if err != nil {
+		return err
+	}
+	if application.isJSONOutput() {
+		return application.printMessage(response.Msg)
+	}
+	rows := make([][]string, 0, len(response.Msg.GetWorkspaces()))
+	for _, workspace := range response.Msg.GetWorkspaces() {
+		rows = append(rows, []string{
+			workspace.GetFolder(),
+			workspace.GetDisplayName(),
+			workspace.GetServiceName(),
+			boolText(workspace.GetHasMeta()),
+			boolText(workspace.GetIsDeclared()),
+			workspace.GetRuntimeStatus(),
+			strings.Join(workspace.GetNodes(), ","),
+			boolText(workspace.GetEnabled()),
+			workspace.GetUpdatedAt(),
+		})
+	}
+	return application.writeTable([]string{"FOLDER", "NAME", "SERVICE", "META", "DECLARED", "STATUS", "NODES", "ENABLED", "UPDATED"}, rows)
+}
+
+func (application *app) runServiceWorkspaceGet(args []string) error {
+	if err := requireArgs(args, 1, "composia service workspace get <folder>"); err != nil {
+		return err
+	}
+	response, err := application.client.services.GetServiceWorkspace(application.ctx, newRequest(&controllerv1.GetServiceWorkspaceRequest{Folder: args[0]}))
+	if err != nil {
+		return err
+	}
+	if application.isJSONOutput() {
+		return application.printMessage(response.Msg)
+	}
+	workspace := response.Msg.GetWorkspace()
+	if workspace == nil {
+		return fmt.Errorf("service workspace %q was not found", args[0])
+	}
+	backupEnabled, backupReason := capabilityText(workspace.GetActions().GetBackup())
+	restoreEnabled, restoreReason := capabilityText(workspace.GetActions().GetRestore())
+	migrateEnabled, migrateReason := capabilityText(workspace.GetActions().GetMigrate())
+	dnsEnabled, dnsReason := capabilityText(workspace.GetActions().GetDnsUpdate())
+	caddyEnabled, caddyReason := capabilityText(workspace.GetActions().GetCaddySync())
+	return application.writeKV([][2]string{
+		{"folder", workspace.GetFolder()},
+		{"display_name", workspace.GetDisplayName()},
+		{"service_name", workspace.GetServiceName()},
+		{"has_meta", boolText(workspace.GetHasMeta())},
+		{"is_declared", boolText(workspace.GetIsDeclared())},
+		{"runtime_status", workspace.GetRuntimeStatus()},
+		{"updated_at", workspace.GetUpdatedAt()},
+		{"nodes", strings.Join(workspace.GetNodes(), ",")},
+		{"enabled", boolText(workspace.GetEnabled())},
+		{"backup_enabled", boolText(backupEnabled)},
+		{"backup_reason", backupReason},
+		{"restore_enabled", boolText(restoreEnabled)},
+		{"restore_reason", restoreReason},
+		{"migrate_enabled", boolText(migrateEnabled)},
+		{"migrate_reason", migrateReason},
+		{"dns_update_enabled", boolText(dnsEnabled)},
+		{"dns_update_reason", dnsReason},
+		{"caddy_sync_enabled", boolText(caddyEnabled)},
+		{"caddy_sync_reason", caddyReason},
+	})
 }
 
 func (application *app) runServiceUpdateCandidates(args []string) error {

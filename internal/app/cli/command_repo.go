@@ -11,7 +11,7 @@ import (
 
 func (application *app) runRepo(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia repo <head|files|get|edit|update|history|sync|validate>")
+		return fmt.Errorf("usage: composia repo <head|files|get|edit|update|mkdir|mv|rm|history|sync|validate>")
 	}
 	switch args[0] {
 	case "head":
@@ -24,6 +24,12 @@ func (application *app) runRepo(args []string) error {
 		return application.runRepoEdit(args[1:])
 	case "update":
 		return application.runRepoUpdate(args[1:])
+	case "mkdir":
+		return application.runRepoMkdir(args[1:])
+	case "mv":
+		return application.runRepoMove(args[1:])
+	case "rm":
+		return application.runRepoRemove(args[1:])
 	case "history":
 		return application.runRepoHistory(args[1:])
 	case "sync":
@@ -33,6 +39,66 @@ func (application *app) runRepo(args []string) error {
 	default:
 		return fmt.Errorf("unknown repo command %q", args[0])
 	}
+}
+
+func (application *app) runRepoMkdir(args []string) error {
+	fs := newCommandFlagSet("repo mkdir")
+	message := fs.String("message", "", "commit message")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if err := requireArgs(fs.Args(), 1, "composia repo mkdir [--message text] <path>"); err != nil {
+		return err
+	}
+	baseRevision, err := application.currentRepoRevision()
+	if err != nil {
+		return err
+	}
+	response, err := application.client.repoCommands.CreateRepoDirectory(application.ctx, newRequest(&controllerv1.CreateRepoDirectoryRequest{Path: fs.Arg(0), BaseRevision: baseRevision, CommitMessage: *message}))
+	if err != nil {
+		return repoWriteError(err)
+	}
+	return application.printRepoWriteMessage(response.Msg)
+}
+
+func (application *app) runRepoMove(args []string) error {
+	fs := newCommandFlagSet("repo mv")
+	message := fs.String("message", "", "commit message")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if err := requireArgs(fs.Args(), 2, "composia repo mv [--message text] <source> <destination>"); err != nil {
+		return err
+	}
+	baseRevision, err := application.currentRepoRevision()
+	if err != nil {
+		return err
+	}
+	response, err := application.client.repoCommands.MoveRepoPath(application.ctx, newRequest(&controllerv1.MoveRepoPathRequest{SourcePath: fs.Arg(0), DestinationPath: fs.Arg(1), BaseRevision: baseRevision, CommitMessage: *message}))
+	if err != nil {
+		return repoWriteError(err)
+	}
+	return application.printRepoWriteMessage(response.Msg)
+}
+
+func (application *app) runRepoRemove(args []string) error {
+	fs := newCommandFlagSet("repo rm")
+	message := fs.String("message", "", "commit message")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if err := requireArgs(fs.Args(), 1, "composia repo rm [--message text] <path>"); err != nil {
+		return err
+	}
+	baseRevision, err := application.currentRepoRevision()
+	if err != nil {
+		return err
+	}
+	response, err := application.client.repoCommands.DeleteRepoPath(application.ctx, newRequest(&controllerv1.DeleteRepoPathRequest{Path: fs.Arg(0), BaseRevision: baseRevision, CommitMessage: *message}))
+	if err != nil {
+		return repoWriteError(err)
+	}
+	return application.printRepoWriteMessage(response.Msg)
 }
 
 func (application *app) runRepoEdit(args []string) error {
@@ -115,6 +181,18 @@ func (application *app) runRepoUpdate(args []string) error {
 		syncStatus:           response.Msg.GetSyncStatus(),
 		pushError:            response.Msg.GetPushError(),
 		lastSuccessfulPullAt: response.Msg.GetLastSuccessfulPullAt(),
+	})
+}
+
+func (application *app) printRepoWriteMessage(message *controllerv1.RepoWriteResult) error {
+	if application.isJSONOutput() {
+		return application.printMessage(message)
+	}
+	return application.printRepoWriteResult(repoWriteResult{
+		commitID:             message.GetCommitId(),
+		syncStatus:           message.GetSyncStatus(),
+		pushError:            message.GetPushError(),
+		lastSuccessfulPullAt: message.GetLastSuccessfulPullAt(),
 	})
 }
 
