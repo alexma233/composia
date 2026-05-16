@@ -1012,9 +1012,7 @@ export async function loadBackupDetail(
   }>(
     config.baseUrl,
     config.token,
-    controllerProcedure(
-      "/composia.controller.v1.BackupQueryService/GetBackup",
-    ),
+    controllerProcedure("/composia.controller.v1.BackupQueryService/GetBackup"),
     { backupId },
   );
   return {
@@ -2224,7 +2222,9 @@ export async function removeNodeImage(
   force = false,
 ): Promise<ContainerActionResult> {
   return callTaskAction(
-    controllerProcedure("/composia.controller.v1.DockerCommandService/RemoveImage"),
+    controllerProcedure(
+      "/composia.controller.v1.DockerCommandService/RemoveImage",
+    ),
     { nodeId, imageId, force },
   );
 }
@@ -2367,12 +2367,12 @@ async function callServiceAction(
   }>(config.baseUrl, config.token, procedure, body);
 
   const repoWrite = response.repoWrite ?? response.repo_write;
-	return {
-		tasks: (response.tasks ?? []).map((task) => ({
-			taskId: task.taskId ?? task.task_id ?? "",
-			status: normalizeTaskStatus(task.status),
-			repoRevision: task.repoRevision ?? task.repo_revision ?? "",
-		})),
+  return {
+    tasks: (response.tasks ?? []).map((task) => ({
+      taskId: task.taskId ?? task.task_id ?? "",
+      status: normalizeTaskStatus(task.status),
+      repoRevision: task.repoRevision ?? task.repo_revision ?? "",
+    })),
     repoWrite: repoWrite
       ? {
           commitId: repoWrite.commitId ?? repoWrite.commit_id ?? "",
@@ -2400,11 +2400,11 @@ async function callTaskAction(
     repo_revision?: string;
   }>(config.baseUrl, config.token, procedure, body);
 
-	return {
-		taskId: response.taskId ?? response.task_id ?? "",
-		status: normalizeTaskStatus(response.status),
-		repoRevision: response.repoRevision ?? response.repo_revision ?? "",
-	};
+  return {
+    taskId: response.taskId ?? response.task_id ?? "",
+    status: normalizeTaskStatus(response.status),
+    repoRevision: response.repoRevision ?? response.repo_revision ?? "",
+  };
 }
 
 function toServiceActionEnum(action: ServiceAction): number {
