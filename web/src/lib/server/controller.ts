@@ -562,6 +562,18 @@ export async function loadSystemStatus(): Promise<SystemStatus> {
   );
 }
 
+export async function reloadControllerConfig(): Promise<{ accepted: boolean }> {
+  const config = requireControllerConfig();
+  return rpcCall<{ accepted: boolean }>(
+    config.baseUrl,
+    config.token,
+    controllerProcedure(
+      "/composia.controller.v1.SystemService/ReloadControllerConfig",
+    ),
+    {},
+  );
+}
+
 export async function loadSystemCapabilities(): Promise<SystemCapabilities> {
   const config = requireControllerConfig();
   const response = await rpcCall<{

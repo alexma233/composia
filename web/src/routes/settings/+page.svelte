@@ -31,6 +31,9 @@
 
   let syncing = $state(false);
   let syncError = $state("");
+  let reloadingController = $state(false);
+  let reloadControllerError = $state("");
+  let reloadAccepted = $state<boolean | null>(null);
   let rusticBusy = $state<"init" | "forget" | "prune" | "">("");
   let rusticError = $state("");
   let rusticTaskId = $state("");
@@ -69,6 +72,44 @@
         error instanceof Error ? error.message : $messages.error.syncFailed;
     } finally {
       syncing = false;
+    }
+  }
+
+  async function reloadControllerConfig() {
+    reloadingController = true;
+    reloadControllerError = "";
+    reloadAccepted = null;
+
+    try {
+      const response = await fetch("/settings/reload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const payload = (await response.json()) as {
+        accepted?: boolean;
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.settings.controller.reloadFailed,
+          ),
+        );
+      }
+
+      reloadAccepted = payload.accepted ?? false;
+      toast.success($messages.settings.controller.reloadAccepted);
+      await invalidateAll();
+    } catch (error) {
+      reloadControllerError =
+        error instanceof Error
+          ? error.message
+          : $messages.settings.controller.reloadFailed;
+    } finally {
+      reloadingController = false;
     }
   }
 
@@ -164,12 +205,42 @@
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle class="section-title" level="2"
-            >{$messages.settings.controller.title}</CardTitle
+        <CardHeader class="section-header">
+          <div class="section-heading">
+            <CardTitle class="section-title" level="2"
+              >{$messages.settings.controller.title}</CardTitle
+            >
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onclick={reloadControllerConfig}
+            disabled={reloadingController}
           >
+            <RefreshCw class="mr-2 size-4" />
+            {reloadingController
+              ? $messages.settings.controller.reloading
+              : $messages.settings.controller.reloadConfig}
+          </Button>
         </CardHeader>
         <CardContent class="space-y-4">
+          {#if reloadControllerError}
+            <Alert variant="destructive">
+              <AlertTitle>{$messages.settings.controller.reloadFailed}</AlertTitle>
+              <AlertDescription>{reloadControllerError}</AlertDescription>
+            </Alert>
+          {/if}
+
+          {#if reloadAccepted === true}
+            <Alert>
+              <AlertTitle>{$messages.common.success}</AlertTitle>
+              <AlertDescription
+                >{$messages.settings.controller.reloadAccepted}</AlertDescription
+              >
+            </Alert>
+          {/if}
+
           {#if data.system}
             <dl class="grid gap-4 sm:grid-cols-2">
               <div class="metric-card">

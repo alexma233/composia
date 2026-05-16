@@ -509,6 +509,10 @@ export const enUS = {
       title: "Controller",
       version: "Version",
       noData: "No controller data loaded.",
+      reloadConfig: "Reload config",
+      reloading: "Reloading...",
+      reloadAccepted: "Controller config reload accepted.",
+      reloadFailed: "Failed to reload controller config.",
     },
     repoSync: {
       title: "Repo sync",

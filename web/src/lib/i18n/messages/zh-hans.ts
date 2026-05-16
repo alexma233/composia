@@ -489,6 +489,10 @@ export const zhHans = {
       title: "控制器",
       version: "版本",
       noData: "暂无控制器数据。",
+      reloadConfig: "重载配置",
+      reloading: "重载中...",
+      reloadAccepted: "控制器配置重载已接受。",
+      reloadFailed: "重载控制器配置失败。",
     },
     repoSync: {
       title: "仓库同步",
