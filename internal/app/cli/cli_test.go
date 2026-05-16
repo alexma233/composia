@@ -137,19 +137,6 @@ func TestImageUpdateSelectionsRejectsDuplicateUpdates(t *testing.T) {
 	}
 }
 
-func TestInstanceActionFromName(t *testing.T) {
-	action, err := instanceActionFromName("restart")
-	if err != nil {
-		t.Fatalf("instanceActionFromName returned error: %v", err)
-	}
-	if action != controllerv1.ServiceInstanceAction_SERVICE_INSTANCE_ACTION_RESTART {
-		t.Fatalf("action = %v", action)
-	}
-	if _, err := instanceActionFromName("backup"); err == nil {
-		t.Fatalf("expected error for unsupported direct instance action")
-	}
-}
-
 func TestContainerActionFromName(t *testing.T) {
 	action, err := containerActionFromName("restart")
 	if err != nil {

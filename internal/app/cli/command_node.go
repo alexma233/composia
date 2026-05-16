@@ -129,7 +129,7 @@ func (application *app) runNodeTasks(args []string) error {
 	if err != nil {
 		return err
 	}
-	response, err := application.client.nodes.GetNodeTasks(application.ctx, newRequest(&controllerv1.GetNodeTasksRequest{NodeId: fs.Arg(0), Status: taskStatusFromText(*status), PageSize: pageSize, Page: page}))
+	response, err := application.client.tasks.ListTasks(application.ctx, newRequest(&controllerv1.ListTasksRequest{NodeId: []string{fs.Arg(0)}, Status: taskStatusesFromTexts([]string{*status}), PageSize: pageSize, Page: page}))
 	if err != nil {
 		return err
 	}

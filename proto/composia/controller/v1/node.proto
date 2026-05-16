@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package composia.controller.v1;
 
-import "proto/composia/controller/v1/task.proto";
 import "proto/composia/controller/v1/system.proto";
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
@@ -13,8 +12,6 @@ service NodeQueryService {
   rpc ListNodes(ListNodesRequest) returns (ListNodesResponse);
   // GetNode returns one node by ID.
   rpc GetNode(GetNodeRequest) returns (GetNodeResponse);
-  // GetNodeTasks returns tasks related to one node.
-  rpc GetNodeTasks(GetNodeTasksRequest) returns (GetNodeTasksResponse);
   // GetNodeDockerStats returns the latest Docker stats snapshot for one node.
   rpc GetNodeDockerStats(GetNodeDockerStatsRequest) returns (GetNodeDockerStatsResponse);
 }
@@ -97,25 +94,6 @@ message GetNodeResponse {
   // node contains the requested configured node.
   // The RPC returns NotFound when the requested node does not exist.
   NodeSummary node = 1;
-}
-
-// GetNodeTasksRequest filters tasks for one node by status and page.
-message GetNodeTasksRequest {
-  // node_id is the stable node identifier.
-  string node_id = 1;
-  // status narrows results to one task status when set.
-  TaskStatus status = 2;
-  // page_size is the requested page size.
-  uint32 page_size = 3;
-  // page is the 1-based page number.
-  uint32 page = 4;
-}
-
-// GetNodeTasksResponse returns one page of node tasks.
-message GetNodeTasksResponse {
-  repeated TaskSummary tasks = 1;
-  // total_count is the total number of matches before pagination.
-  uint32 total_count = 2;
 }
 
 // GetNodeDockerStatsRequest identifies the node whose Docker stats should be returned.

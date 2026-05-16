@@ -34,39 +34,6 @@ type serviceCommandServer struct {
 	repoMu           *sync.Mutex
 }
 
-func (server *serviceCommandServer) UpdateServiceTargetNodes(ctx context.Context, req *connect.Request[controllerv1.UpdateServiceTargetNodesRequest]) (*connect.Response[controllerv1.RepoWriteResult], error) {
-	if req.Msg == nil || req.Msg.GetServiceName() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
-	}
-	if req.Msg.GetBaseRevision() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base_revision is required"))
-	}
-	service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeNotFound, err)
-	}
-	updatedContent, err := repo.RewriteServiceTargetNodes(service.MetaPath, req.Msg.GetNodeIds(), server.availableNodeIDs)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
-	}
-	repoSrv := &repoCommandServer{db: server.db, cfg: server.cfg, availableNodeIDs: server.availableNodeIDs, repoMu: server.repoMu}
-	commitMessage := req.Msg.GetCommitMessage()
-	if commitMessage == "" {
-		commitMessage = fmt.Sprintf("update target nodes for %s", service.Name)
-	}
-	relativeMetaPath, err := filepath.Rel(server.cfg.RepoDir, service.MetaPath)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service meta path: %w", err))
-	}
-	result, err := repoSrv.runRepoWrite(ctx, req.Msg.GetBaseRevision(), []string{relativeMetaPath}, func(baseSyncState store.RepoSyncState) (repoWriteResult, error) {
-		return repoSrv.updateRepoFileTransaction(ctx, relativeMetaPath, updatedContent, commitMessage, baseSyncState)
-	})
-	if err != nil {
-		return nil, err
-	}
-	return connect.NewResponse(repoWriteResultMessage(result)), nil
-}
-
 func (server *serviceCommandServer) RunServiceAction(ctx context.Context, req *connect.Request[controllerv1.RunServiceActionRequest]) (*connect.Response[controllerv1.RunServiceActionResponse], error) {
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))

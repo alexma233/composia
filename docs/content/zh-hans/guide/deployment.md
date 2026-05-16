@@ -143,9 +143,8 @@ nodes:
 
 部署相关操作请使用以下 ConnectRPC 方法：
 
-- `composia.controller.v1.ServiceCommandService/RunServiceAction`：deploy、update、stop、restart、backup、dns_update
+- `composia.controller.v1.ServiceCommandService/RunServiceAction`：deploy、update、stop、restart、backup、dns_update，以及通过 `node_ids` 执行单节点实例操作
 - `composia.controller.v1.ServiceCommandService/MigrateService`：迁移服务
-- `composia.controller.v1.ServiceInstanceService/RunServiceInstanceAction`：对单个实例执行操作
 
 这里列出的是 RPC 方法名。实际向 controller 发起 HTTP 请求时，需要带上 `/api/controller` 前缀，例如 `/api/controller/composia.controller.v1.ServiceCommandService/RunServiceAction`。
 
