@@ -30,7 +30,7 @@ params:
     displayLogo: true
     displayTitle: true
     logo:
-      path: images/logo.svg
+      path: images/favicon.svg
       link: /
       width: 32
       height: 32
