@@ -1,5 +1,6 @@
 baseURL: https://composia.xyz/
 title: Composia
+enableGitInfo: true
 
 languages:
   en:
@@ -19,3 +20,34 @@ markup:
 module:
   imports:
     - path: github.com/imfing/hextra
+
+params:
+  externalLinkDecoration: true
+  displayUpdatedDate: true
+  dateFormat: "Jan 2, 2006"
+  displayUpdatedAuthor: true
+  navbar:
+    displayLogo: true
+    displayTitle: true
+    logo:
+      path: images/logo.svg
+      link: /
+      width: 32
+      height: 32
+  imageZoom:
+    enable: true
+  analytics:
+    umami:
+      serverURL: "https://umi.alexma.top"
+      websiteID: "94db1cb1-74f4-4a40-ad6c-962362670409"
+  search:
+    enable: true
+    type: flexsearch
+    flexsearch:
+      index: content
+  editURL:
+    enable: true
+    base: "https://forgejo.alexma.top/alexma233/composia/_edit/main"
+
+outputs:
+  home: [html, llms]
