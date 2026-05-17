@@ -231,6 +231,7 @@ func TestUsageIncludesWaitAndNewCommands(t *testing.T) {
 	PrintUsage(&out)
 	usage := out.String()
 	for _, want := range []string{
+		"system status|reload|capabilities",
 		"task list|get|logs|wait|run-again|approve|reject",
 		"node list|get|tasks|stats|sync-caddy-files|reload-caddy|prune",
 		"service list|get|workspace|update-candidates|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate",
@@ -245,6 +246,30 @@ func TestUsageIncludesWaitAndNewCommands(t *testing.T) {
 	} {
 		if !strings.Contains(usage, want) {
 			t.Fatalf("usage missing %q:\n%s", want, usage)
+		}
+	}
+}
+
+func TestPrintSystemCapabilities(t *testing.T) {
+	var out bytes.Buffer
+	application := &app{out: &out}
+	message := &controllerv1.GetCapabilitiesResponse{Global: &controllerv1.GlobalCapabilities{
+		Backup: &controllerv1.Capability{Enabled: true},
+		Dns: &controllerv1.Capability{
+			Enabled:    false,
+			ReasonCode: controllerv1.CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_DNS_INTEGRATION,
+		},
+		Secrets:           &controllerv1.Capability{Enabled: true},
+		RusticMaintenance: &controllerv1.Capability{Enabled: false},
+	}}
+
+	if err := application.printSystemCapabilities(message); err != nil {
+		t.Fatalf("printSystemCapabilities returned error: %v", err)
+	}
+	got := out.String()
+	for _, want := range []string{"CAPABILITY", "backup", "true", "dns", "false", "missing_dns_integration", "rustic_maintenance"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("system capabilities output missing %q:\n%s", want, got)
 		}
 	}
 }

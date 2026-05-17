@@ -190,7 +190,7 @@ Global flags:
   --terse             print compact text for coding agents and scripts
 
 Commands:
-  system status|reload
+  system status|reload|capabilities
   service list|get|workspace|update-candidates|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate
   instance list|get|deploy|update|stop|restart|backup
   task list|get|logs|wait|run-again|approve|reject
@@ -211,10 +211,11 @@ Commands:
 }
 
 var commandUsages = map[string]string{
-	"system":                    "usage: composia system <status|reload>\n",
+	"system":                    "usage: composia system <status|reload|capabilities>\n",
 	"service":                   "usage: composia service <list|get|workspace|update-candidates|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate>\n",
 	"system status":             "usage: composia system status\n",
 	"system reload":             "usage: composia system reload\n",
+	"system capabilities":       "usage: composia system capabilities\n",
 	"service list":              "usage: composia service list [--status status] [--page-size n] [--page n]\n",
 	"service get":               "usage: composia service get [--containers] <service>\n",
 	"service workspace":         "usage: composia service workspace <list|get>\n",
