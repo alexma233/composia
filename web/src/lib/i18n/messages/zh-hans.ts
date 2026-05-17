@@ -506,6 +506,11 @@ export const zhHans = {
       noRepoState: "暂无仓库状态数据。",
       syncedSuccessfully: "仓库同步成功",
       head: "HEAD",
+      commitHistory: "提交历史",
+      noCommits: "暂无提交记录。",
+      loadMore: "加载更多",
+      loadingCommits: "加载中...",
+      commitFailed: "加载提交历史失败。",
     },
     rustic: {
       title: "Rustic 维护",

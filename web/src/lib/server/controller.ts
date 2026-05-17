@@ -288,6 +288,12 @@ export type RepoSyncResult = {
   lastSuccessfulPullAt: string;
 };
 
+export type RepoCommitSummary = {
+  commitId: string;
+  subject: string;
+  committedAt: string;
+};
+
 export type SecretEnv = {
   serviceName: string;
   filePath: string;
@@ -1065,6 +1071,29 @@ export async function loadRepoHead(): Promise<RepoHead> {
     controllerProcedure("/composia.controller.v1.RepoQueryService/GetRepoHead"),
     {},
   );
+}
+
+export async function listRepoCommits(
+  pageSize: number,
+  cursor = "",
+): Promise<{ commits: RepoCommitSummary[]; nextCursor: string }> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{
+    commits?: RepoCommitSummary[];
+    nextCursor?: string;
+    next_cursor?: string;
+  }>(
+    config.baseUrl,
+    config.token,
+    controllerProcedure(
+      "/composia.controller.v1.RepoQueryService/ListRepoCommits",
+    ),
+    { pageSize, cursor },
+  );
+  return {
+    commits: response.commits ?? [],
+    nextCursor: response.nextCursor ?? response.next_cursor ?? "",
+  };
 }
 
 export async function loadRepoEntries(

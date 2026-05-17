@@ -526,6 +526,11 @@ export const enUS = {
       noRepoState: "No repo state loaded.",
       syncedSuccessfully: "Repo synced successfully",
       head: "HEAD",
+      commitHistory: "Commit history",
+      noCommits: "No commits found.",
+      loadMore: "Load more",
+      loadingCommits: "Loading...",
+      commitFailed: "Failed to load commit history.",
     },
     rustic: {
       title: "Rustic maintenance",
