@@ -50,7 +50,7 @@ WORKDIR /workspace
 ENV PATH="/go/bin:${PATH}"
 
 RUN apk add --no-cache ca-certificates docker-cli docker-cli-buildx docker-cli-compose git && \
-    go install github.com/air-verse/air@v1.65.1
+    go install github.com/air-verse/air@v1.65.2
 
 CMD ["air", "-v"]
 
