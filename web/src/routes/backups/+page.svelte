@@ -22,10 +22,11 @@
     PaginationPrevButton,
   } from '$lib/components/ui/pagination';
   import * as Popover from '$lib/components/ui/popover';
-  import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
+  import { Table, TableBody, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { startPolling } from '$lib/refresh';
-  import { formatTimestamp, taskStatusLabel, taskStatusTone } from '$lib/presenters';
+  import { taskStatusLabel } from '$lib/presenters';
   import { cn } from '$lib/utils';
+  import BackupRow from '$lib/components/app/backup-row.svelte';
 
   interface Props {
     data: PageData;
@@ -514,17 +515,7 @@
           </TableHeader>
           <TableBody>
             {#each data.backups as backup}
-              <TableRow class="hover:bg-accent/50">
-                <TableCell>
-                  <a href={`/backups/${backup.backupId}`} class="font-medium hover:text-primary">{backup.serviceName} / {backup.dataName}</a>
-                  <div class="text-xs text-muted-foreground">{backup.backupId}</div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={taskStatusTone(backup.status)}>{taskStatusLabel(backup.status, $messages)}</Badge>
-                </TableCell>
-                <TableCell class="text-muted-foreground">{backup.taskId}</TableCell>
-                <TableCell class="text-muted-foreground">{formatTimestamp(backup.finishedAt || backup.startedAt)}</TableCell>
-              </TableRow>
+              <BackupRow {backup} />
             {/each}
           </TableBody>
         </Table>

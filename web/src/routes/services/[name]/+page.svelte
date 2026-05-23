@@ -31,6 +31,7 @@
 
   import CodeEditor from "$lib/components/app/code-editor.svelte";
   import ServiceFileTree from "$lib/components/app/service-file-tree.svelte";
+  import BackupCard from "$lib/components/app/backup-card.svelte";
   import TaskCard from "$lib/components/app/task-card.svelte";
   import {
     Alert,
@@ -79,12 +80,9 @@
   } from "$lib/components/ui/select";
   import { toast } from "svelte-sonner";
   import {
-    formatTimestamp,
     isTaskRecent,
     runtimeStatusLabel,
     runtimeStatusTone,
-    taskStatusLabel,
-    taskStatusTone,
   } from "$lib/presenters";
   import type {
     BackupSummary,
@@ -2429,24 +2427,7 @@
           </CardHeader>
           <CardContent class="space-y-3">
             {#each backups.slice(0, 6) as backup}
-              <a href={`/backups/${backup.backupId}`} class="list-row">
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                  <div class="min-w-0 flex-1">
-                    <div class="truncate text-sm font-medium">
-                      {backup.dataName}
-                    </div>
-                    <div class="truncate text-xs text-muted-foreground">
-                      {backup.backupId}
-                    </div>
-                  </div>
-                  <Badge variant={taskStatusTone(backup.status)}
-                    >{taskStatusLabel(backup.status, $messages)}</Badge
-                  >
-                </div>
-                <div class="mt-2 text-xs text-muted-foreground">
-                  {formatTimestamp(backup.finishedAt || backup.startedAt)}
-                </div>
-              </a>
+              <BackupCard {backup} />
             {/each}
             {#if !backups.length}
               <div class="empty-state px-3 py-6">

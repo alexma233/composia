@@ -7,9 +7,9 @@
   import { Badge } from '$lib/components/ui/badge';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { startPolling } from '$lib/refresh';
-  import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
-  import { formatTimestamp, onlineStatusTone } from '$lib/presenters';
+  import { Table, TableBody, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { messages } from '$lib/i18n';
+  import NodeRow from '$lib/components/app/node-row.svelte';
 
   interface Props {
     data: PageData;
@@ -58,18 +58,7 @@
           </TableHeader>
           <TableBody>
             {#each data.nodes as node}
-              <TableRow class="hover:bg-accent/50">
-                <TableCell>
-                  <a href={`/nodes/${node.nodeId}`} class="font-medium hover:text-primary">{node.displayName}</a>
-                  <div class="text-xs text-muted-foreground">{node.nodeId}</div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={onlineStatusTone(node.isOnline)}>
-                    {node.isOnline ? $messages.status.online : $messages.status.offline}
-                  </Badge>
-                </TableCell>
-                <TableCell class="text-muted-foreground">{formatTimestamp(node.lastHeartbeat)}</TableCell>
-              </TableRow>
+              <NodeRow {node} />
             {/each}
           </TableBody>
         </Table>

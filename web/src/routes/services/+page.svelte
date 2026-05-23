@@ -12,9 +12,9 @@
   import { Input } from '$lib/components/ui/input';
   import { startPolling } from '$lib/refresh';
   import * as Popover from '$lib/components/ui/popover';
-  import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
-  import { formatTimestamp, runtimeStatusTone } from '$lib/presenters';
+  import { Table, TableBody, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { messages } from '$lib/i18n';
+  import ServiceRow from '$lib/components/app/service-row.svelte';
 
   interface Props {
     data: PageData;
@@ -29,18 +29,6 @@
   $effect(() => {
     newFolder = form?.folder ?? '';
   });
-
-  function statusTone(hasMeta: boolean, runtimeStatus: string) {
-    if (!hasMeta) return 'outline';
-    if (runtimeStatus === 'needs_validation') return 'secondary';
-    return runtimeStatusTone(runtimeStatus || 'unknown');
-  }
-
-  function statusText(hasMeta: boolean, runtimeStatus: string) {
-    if (!hasMeta) return $messages.services.noMeta;
-    if (runtimeStatus === 'needs_validation') return $messages.services.metaDraft;
-    return runtimeStatus || $messages.common.unknown;
-  }
 
   onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
 </script>
@@ -120,29 +108,7 @@
           </TableHeader>
           <TableBody>
             {#each data.services as service}
-              <TableRow class="hover:bg-accent/50">
-                <TableCell>
-                  <a href={`/services/${service.folder}`} class="font-medium hover:text-primary">{service.displayName}</a>
-                </TableCell>
-                <TableCell class="text-muted-foreground">{service.folder}</TableCell>
-                <TableCell class="max-w-64 truncate text-muted-foreground">
-                  {service.nodes.length ? service.nodes.join(", ") : $messages.common.na}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={statusTone(service.hasMeta, service.runtimeStatus)}>
-                    {statusText(service.hasMeta, service.runtimeStatus)}
-                  </Badge>
-                </TableCell>
-                <TableCell class="text-muted-foreground">
-                  {#if service.updatedAt}
-                    {formatTimestamp(service.updatedAt)}
-                  {:else if service.hasMeta}
-                    {$messages.services.metaExistsNotDeclared}
-                  {:else}
-                    {$messages.services.noMetaFile}
-                  {/if}
-                </TableCell>
-              </TableRow>
+              <ServiceRow {service} />
             {/each}
           </TableBody>
         </Table>

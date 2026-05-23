@@ -9,14 +9,12 @@
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { startPolling } from '$lib/refresh';
   import {
-    formatTimestamp,
     isTaskRecent,
-    onlineStatusTone,
-    runtimeStatusLabel,
-    runtimeStatusTone,
   } from "$lib/presenters";
   import { messages } from '$lib/i18n';
   import TaskCard from '$lib/components/app/task-card.svelte';
+  import ServiceCard from '$lib/components/app/service-card.svelte';
+  import NodeCard from '$lib/components/app/node-card.svelte';
 
   interface Props {
     data: PageData;
@@ -75,22 +73,7 @@
           <div class="space-y-3">
             {#if data.dashboard?.services.length}
               {#each data.dashboard.services as service}
-                <a
-                  href={`/services/${service.folder ?? service.name}`}
-                  class="list-row"
-                >
-                  <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div class="min-w-0 flex-1">
-                      <div class="truncate text-sm font-medium">{service.name}</div>
-                      <div class="truncate text-xs text-muted-foreground">
-                        {$messages.dashboard.updated} {formatTimestamp(service.updatedAt)}
-                      </div>
-                    </div>
-                    <Badge variant={runtimeStatusTone(service.runtimeStatus)}>
-                      {runtimeStatusLabel(service.runtimeStatus, $messages)}
-                    </Badge>
-                  </div>
-                </a>
+                <ServiceCard {service} />
               {/each}
             {:else}
               <div class="empty-state">{$messages.common.noData}</div>
@@ -113,23 +96,7 @@
             <div class="space-y-3">
               {#if data.dashboard?.nodes.length}
                 {#each data.dashboard.nodes as node}
-                  <a
-                    href={`/nodes/${node.nodeId}`}
-                    class="list-row"
-                  >
-                    <div class="flex flex-wrap items-center justify-between gap-3">
-                      <div class="min-w-0 flex-1">
-                        <div class="truncate text-sm font-medium">{node.displayName}</div>
-                        <div class="truncate text-xs text-muted-foreground">{node.nodeId}</div>
-                      </div>
-                      <Badge variant={onlineStatusTone(node.isOnline)}>
-                        {node.isOnline ? $messages.status.online : $messages.status.offline}
-                      </Badge>
-                    </div>
-                    <div class="mt-2 text-xs text-muted-foreground">
-                      {$messages.dashboard.lastHeartbeat} {formatTimestamp(node.lastHeartbeat)}
-                    </div>
-                  </a>
+                  <NodeCard {node} />
                 {/each}
               {:else}
                 <div class="empty-state">{$messages.common.noData}</div>
