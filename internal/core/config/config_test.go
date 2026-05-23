@@ -428,13 +428,22 @@ func TestLoadAgentResolvesTokenFile(t *testing.T) {
 
 	rootDir := t.TempDir()
 	tokenPath := filepath.Join(rootDir, "agent.token")
+	headerValuePath := filepath.Join(rootDir, "cf-secret")
 	if err := os.WriteFile(tokenPath, []byte(" agent-token\n"), 0o644); err != nil {
 		t.Fatalf("write token file: %v", err)
+	}
+	if err := os.WriteFile(headerValuePath, []byte(" cf-secret\n"), 0o644); err != nil {
+		t.Fatalf("write header value file: %v", err)
 	}
 	configPath := filepath.Join(rootDir, "config.yaml")
 	content := strings.TrimSpace(`
 agent:
   controller_addr: "https://controller.example.com"
+  controller_headers:
+    - name: CF-Access-Client-Id
+      value: cf-id
+    - name: CF-Access-Client-Secret
+      value_file: "`+headerValuePath+`"
   node_id: "node-2"
   token_file: "`+tokenPath+`"
   repo_dir: "/srv/composia/repo"
@@ -451,6 +460,12 @@ agent:
 	}
 	if agent.Token != "agent-token" {
 		t.Fatalf("expected resolved agent token, got %q", agent.Token)
+	}
+	if got := agent.ControllerHeaders[0].Value; got != "cf-id" {
+		t.Fatalf("expected inline header value, got %q", got)
+	}
+	if got := agent.ControllerHeaders[1].Value; got != "cf-secret" {
+		t.Fatalf("expected resolved header value, got %q", got)
 	}
 }
 

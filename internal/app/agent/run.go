@@ -164,7 +164,10 @@ func runAgentRuntime(processCtx, runtimeCtx context.Context, cfg *config.AgentCo
 	}
 
 	httpClient := controllerHTTPClient(cfg.ControllerAddr)
-	clientOptions := controllerClientOptions(cfg)
+	clientOptions, err := controllerClientOptions(cfg)
+	if err != nil {
+		return err
+	}
 	reportClient := agentv1connect.NewAgentReportServiceClient(
 		httpClient,
 		rpcutil.JoinBaseURL(cfg.ControllerAddr, rpcutil.AgentAPIBasePath),
@@ -236,12 +239,24 @@ func runAgentRuntime(processCtx, runtimeCtx context.Context, cfg *config.AgentCo
 	return nil
 }
 
-func controllerClientOptions(cfg *config.AgentConfig) []connect.ClientOption {
-	options := []connect.ClientOption{connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(cfg.Token))}
+func controllerClientOptions(cfg *config.AgentConfig) ([]connect.ClientOption, error) {
+	customHeaders, err := rpcutil.NewStaticHeadersInterceptor(agentControllerHeaders(cfg.ControllerHeaders))
+	if err != nil {
+		return nil, err
+	}
+	options := []connect.ClientOption{connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(cfg.Token), customHeaders)}
 	if cfg.ControllerGRPC {
 		options = append([]connect.ClientOption{connect.WithGRPC()}, options...)
 	}
-	return options
+	return options, nil
+}
+
+func agentControllerHeaders(headers []config.AgentControllerHeaderConfig) map[string]string {
+	result := make(map[string]string, len(headers))
+	for _, header := range headers {
+		result[header.Name] = header.Value
+	}
+	return result
 }
 
 func ensureAgentDirs(cfg *config.AgentConfig) error {

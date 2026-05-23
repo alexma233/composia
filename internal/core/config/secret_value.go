@@ -21,6 +21,13 @@ func resolveInlineOrFileConfig(file *File) error {
 			return err
 		}
 		file.Agent.Token = resolved
+		for index := range file.Agent.ControllerHeaders {
+			resolved, err := resolveInlineOrFileValue(file.Agent.ControllerHeaders[index].Value, file.Agent.ControllerHeaders[index].ValueFile, fmt.Sprintf("agent.controller_headers[%q].value", file.Agent.ControllerHeaders[index].Name), false)
+			if err != nil {
+				return err
+			}
+			file.Agent.ControllerHeaders[index].Value = resolved
+		}
 	}
 	return nil
 }

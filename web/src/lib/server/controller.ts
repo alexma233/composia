@@ -1,4 +1,5 @@
 import { env } from "$env/dynamic/private";
+import { readFileSync } from "node:fs";
 
 type RpcRequest = Record<string, unknown>;
 
@@ -310,6 +311,16 @@ export type DashboardData = {
 export function controllerConfig() {
   const baseUrl = env.WEB_CONTROLLER_ADDR?.trim();
   const token = env.WEB_CONTROLLER_ACCESS_TOKEN?.trim();
+  let headers: Record<string, string>;
+  try {
+    headers = parseControllerHeaders();
+  } catch (error) {
+    return {
+      ready: false as const,
+      reason:
+        error instanceof Error ? error.message : "Invalid controller headers.",
+    };
+  }
 
   if (!baseUrl || !token) {
     return {
@@ -323,7 +334,54 @@ export function controllerConfig() {
     ready: true as const,
     baseUrl: baseUrl.replace(/\/$/, ""),
     token,
+    headers,
   };
+}
+
+const reservedControllerHeaderNames = new Set([
+  "authorization",
+  "connect-protocol-version",
+  "content-type",
+]);
+
+function parseControllerHeaders(): Record<string, string> {
+  const inline = env.WEB_CONTROLLER_HEADERS?.trim();
+  const file = env.WEB_CONTROLLER_HEADERS_FILE?.trim();
+  if (inline && file) {
+    throw new Error(
+      "Set only one of WEB_CONTROLLER_HEADERS or WEB_CONTROLLER_HEADERS_FILE.",
+    );
+  }
+  const raw = file ? readFileSync(file, "utf8").trim() : inline;
+  if (!raw) {
+    return {};
+  }
+  const parsed = JSON.parse(raw) as Record<string, unknown>;
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("WEB_CONTROLLER_HEADERS must be a JSON object.");
+  }
+  const headers: Record<string, string> = {};
+  for (const [name, value] of Object.entries(parsed)) {
+    const normalizedName = name.trim();
+    if (
+      !normalizedName ||
+      !/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(normalizedName)
+    ) {
+      throw new Error(`Invalid WEB_CONTROLLER_HEADERS header name: ${name}`);
+    }
+    if (reservedControllerHeaderNames.has(normalizedName.toLowerCase())) {
+      throw new Error(
+        `WEB_CONTROLLER_HEADERS header ${normalizedName} is reserved.`,
+      );
+    }
+    if (typeof value !== "string" || !value.trim()) {
+      throw new Error(
+        `WEB_CONTROLLER_HEADERS header ${normalizedName} must be a non-empty string.`,
+      );
+    }
+    headers[normalizedName] = value.trim();
+  }
+  return headers;
 }
 
 function parseCapability(
@@ -2497,9 +2555,11 @@ async function rpcCall<T>(
   body: RpcRequest,
   extraHeaders: Record<string, string> = {},
 ): Promise<T> {
+  const controllerHeaders = parseControllerHeaders();
   const response = await fetch(`${baseUrl}${procedure}`, {
     method: "POST",
     headers: {
+      ...controllerHeaders,
       Authorization: `Bearer ${token}`,
       "Connect-Protocol-Version": "1",
       "Content-Type": "application/json",

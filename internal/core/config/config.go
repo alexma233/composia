@@ -148,14 +148,21 @@ type ControllerSecretsConfig struct {
 }
 
 type AgentConfig struct {
-	ControllerAddr string            `yaml:"controller_addr"`
-	ControllerGRPC bool              `yaml:"controller_grpc"`
-	NodeID         string            `yaml:"node_id"`
-	Token          string            `yaml:"token"`
-	TokenFile      string            `yaml:"token_file"`
-	RepoDir        string            `yaml:"repo_dir"`
-	StateDir       string            `yaml:"state_dir"`
-	Caddy          *AgentCaddyConfig `yaml:"caddy"`
+	ControllerAddr    string                        `yaml:"controller_addr"`
+	ControllerGRPC    bool                          `yaml:"controller_grpc"`
+	ControllerHeaders []AgentControllerHeaderConfig `yaml:"controller_headers"`
+	NodeID            string                        `yaml:"node_id"`
+	Token             string                        `yaml:"token"`
+	TokenFile         string                        `yaml:"token_file"`
+	RepoDir           string                        `yaml:"repo_dir"`
+	StateDir          string                        `yaml:"state_dir"`
+	Caddy             *AgentCaddyConfig             `yaml:"caddy"`
+}
+
+type AgentControllerHeaderConfig struct {
+	Name      string `yaml:"name"`
+	Value     string `yaml:"value"`
+	ValueFile string `yaml:"value_file"`
 }
 
 type AgentCaddyConfig struct {
@@ -359,6 +366,21 @@ func validateAgent(file *File) error {
 	}
 	if agent.StateDir == "" {
 		return fmt.Errorf("agent.state_dir is required")
+	}
+	seenHeaders := make(map[string]struct{}, len(agent.ControllerHeaders))
+	for _, header := range agent.ControllerHeaders {
+		name := strings.TrimSpace(header.Name)
+		if name == "" {
+			return fmt.Errorf("agent.controller_headers[].name is required")
+		}
+		if strings.TrimSpace(header.Value) == "" {
+			return fmt.Errorf("agent.controller_headers[%q].value or agent.controller_headers[%q].value_file is required", name, name)
+		}
+		key := strings.ToLower(name)
+		if _, exists := seenHeaders[key]; exists {
+			return fmt.Errorf("agent.controller_headers[%q] is duplicated", name)
+		}
+		seenHeaders[key] = struct{}{}
 	}
 	if file.Controller != nil {
 		if err := validateSharedControllerAgentConfig(file.Controller, agent); err != nil {

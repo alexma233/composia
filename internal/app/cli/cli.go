@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -22,8 +23,9 @@ import (
 )
 
 const (
-	envControllerAddr = "COMPOSIA_CONTROLLER_ADDR"
-	envAccessToken    = "COMPOSIA_ACCESS_TOKEN"
+	envControllerAddr    = "COMPOSIA_CONTROLLER_ADDR"
+	envAccessToken       = "COMPOSIA_ACCESS_TOKEN"
+	envControllerHeaders = "COMPOSIA_CONTROLLER_HEADERS"
 )
 
 type outputMode string
@@ -38,6 +40,7 @@ type globalConfig struct {
 	addr      string
 	token     string
 	tokenFile string
+	headers   map[string]string
 	output    outputMode
 	json      bool
 	terse     bool
@@ -185,6 +188,7 @@ Global flags:
   --addr string        controller base URL (or COMPOSIA_CONTROLLER_ADDR)
   --token string       controller access token (or COMPOSIA_ACCESS_TOKEN)
   --token-file string  file containing the controller access token
+  --header string      custom controller header, repeatable as "Name: value"
   --output mode        output mode: human, json, terse (default human)
   --json              print protobuf JSON for unary RPCs
   --terse             print compact text for coding agents and scripts
@@ -342,11 +346,13 @@ func PrintCommandUsage(w io.Writer, args []string) error {
 
 func parseGlobalFlags(args []string) (globalConfig, []string, error) {
 	cfg := globalConfig{output: outputModeHuman}
+	var headerValues headerFlag
 	fs := flag.NewFlagSet("composia", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	fs.StringVar(&cfg.addr, "addr", "", "controller base URL")
 	fs.StringVar(&cfg.token, "token", "", "controller access token")
 	fs.StringVar(&cfg.tokenFile, "token-file", "", "controller access token file")
+	fs.Var(&headerValues, "header", `custom controller header as "Name: value"`)
 	output := fs.String("output", string(outputModeHuman), "output mode: human, json, terse")
 	fs.BoolVar(&cfg.json, "json", false, "print JSON")
 	fs.BoolVar(&cfg.terse, "terse", false, "print compact text")
@@ -355,6 +361,11 @@ func parseGlobalFlags(args []string) (globalConfig, []string, error) {
 	if err := fs.Parse(args); err != nil {
 		return globalConfig{}, nil, err
 	}
+	headers, err := parseHeaderFlagValues(headerValues)
+	if err != nil {
+		return globalConfig{}, nil, err
+	}
+	cfg.headers = headers
 	mode := outputMode(strings.TrimSpace(*output))
 	switch mode {
 	case "", outputModeHuman:
@@ -393,6 +404,14 @@ func (application *app) configureClient() error {
 	if cfg.addr == "" {
 		cfg.addr = localConfig[cliConfigKeyAddr]
 	}
+	envHeaders, err := parseHeadersJSON(os.Getenv(envControllerHeaders))
+	if err != nil {
+		return err
+	}
+	cfg.headers, err = mergeStaticHeaders(envHeaders, cfg.headers)
+	if err != nil {
+		return err
+	}
 	if cfg.token == "" && cfg.tokenFile != "" {
 		content, err := os.ReadFile(cfg.tokenFile)
 		if err != nil {
@@ -421,7 +440,11 @@ func (application *app) configureClient() error {
 	}
 
 	baseURL := rpcutil.JoinBaseURL(cfg.addr, rpcutil.ControllerAPIBasePath)
-	auth := connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(strings.TrimSpace(cfg.token)))
+	customHeaders, err := rpcutil.NewStaticHeadersInterceptor(cfg.headers)
+	if err != nil {
+		return err
+	}
+	auth := connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(strings.TrimSpace(cfg.token)), customHeaders)
 	httpClient := http.DefaultClient
 	application.cfg = cfg
 	application.client = &controllerClient{
@@ -553,6 +576,63 @@ func (values *stringListFlag) Set(value string) error {
 		}
 	}
 	return nil
+}
+
+type headerFlag []string
+
+func (values *headerFlag) String() string {
+	return strings.Join(*values, ",")
+}
+
+func (values *headerFlag) Set(value string) error {
+	value = strings.TrimSpace(value)
+	if value != "" {
+		*values = append(*values, value)
+	}
+	return nil
+}
+
+func parseHeaderFlagValues(values headerFlag) (map[string]string, error) {
+	headers := make(map[string]string, len(values))
+	for _, value := range values {
+		name, headerValue, ok := strings.Cut(value, ":")
+		if !ok {
+			return nil, fmt.Errorf("custom header %q must use Name: value", value)
+		}
+		headers[strings.TrimSpace(name)] = strings.TrimSpace(headerValue)
+	}
+	return rpcutil.NormalizeStaticHeaders(headers)
+}
+
+func parseHeadersJSON(value string) (map[string]string, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil, nil
+	}
+	var headers map[string]string
+	if err := json.Unmarshal([]byte(value), &headers); err != nil {
+		return nil, fmt.Errorf("parse %s: %w", envControllerHeaders, err)
+	}
+	return rpcutil.NormalizeStaticHeaders(headers)
+}
+
+func mergeStaticHeaders(left, right map[string]string) (map[string]string, error) {
+	merged := make(map[string]string, len(left)+len(right))
+	for name, value := range left {
+		merged[name] = value
+	}
+	for name, value := range right {
+		merged[name] = value
+	}
+	return rpcutil.NormalizeStaticHeaders(merged)
+}
+
+func staticHTTPHeaders(headers map[string]string) http.Header {
+	result := make(http.Header, len(headers))
+	for name, value := range headers {
+		result.Set(name, value)
+	}
+	return result
 }
 
 func requireArgs(args []string, count int, usage string) error {

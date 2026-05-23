@@ -16,7 +16,7 @@ import (
 )
 
 func TestParseGlobalFlags(t *testing.T) {
-	cfg, rest, err := parseGlobalFlags([]string{"--addr", "http://127.0.0.1:7001", "--token", "secret", "--json", "service", "list"})
+	cfg, rest, err := parseGlobalFlags([]string{"--addr", "http://127.0.0.1:7001", "--token", "secret", "--header", "CF-Access-Client-Id: id", "--json", "service", "list"})
 	if err != nil {
 		t.Fatalf("parseGlobalFlags returned error: %v", err)
 	}
@@ -28,6 +28,9 @@ func TestParseGlobalFlags(t *testing.T) {
 	}
 	if !cfg.json {
 		t.Fatalf("json = false")
+	}
+	if got := cfg.headers["Cf-Access-Client-Id"]; got != "id" {
+		t.Fatalf("header = %q", got)
 	}
 	if cfg.output != outputModeJSON {
 		t.Fatalf("output = %q", cfg.output)
@@ -52,6 +55,12 @@ func TestParseGlobalFlagsTerse(t *testing.T) {
 
 func TestParseGlobalFlagsRejectsUnknownOutput(t *testing.T) {
 	if _, _, err := parseGlobalFlags([]string{"--output", "xml", "service", "list"}); err == nil {
+		t.Fatalf("expected error")
+	}
+}
+
+func TestParseGlobalFlagsRejectsReservedHeader(t *testing.T) {
+	if _, _, err := parseGlobalFlags([]string{"--header", "Authorization: Bearer token", "service", "list"}); err == nil {
 		t.Fatalf("expected error")
 	}
 }

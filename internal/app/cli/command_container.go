@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -295,7 +294,9 @@ func (application *app) runContainerExecTTY(nodeID, containerID string, command 
 	if err != nil {
 		return err
 	}
-	conn, _, err := websocket.DefaultDialer.Dial(wsURL, http.Header{"Origin": []string{origin}})
+	dialHeaders := staticHTTPHeaders(application.cfg.headers)
+	dialHeaders.Set("Origin", origin)
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, dialHeaders)
 	if err != nil {
 		return fmt.Errorf("attach container exec websocket: %w", err)
 	}
