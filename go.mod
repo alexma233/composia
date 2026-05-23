@@ -3,7 +3,7 @@ module forgejo.alexma.top/alexma233/composia
 go 1.25.0
 
 require (
-	connectrpc.com/connect v1.19.2
+	connectrpc.com/connect v1.20.0
 	filippo.io/age v1.3.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
@@ -13,7 +13,7 @@ require (
 	github.com/moby/moby/client v0.4.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/robfig/cron/v3 v3.0.1
-	golang.org/x/net v0.54.0
+	golang.org/x/net v0.55.0
 	golang.org/x/term v0.43.0
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/yaml.v3 v3.0.1
