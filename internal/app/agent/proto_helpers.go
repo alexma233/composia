@@ -8,10 +8,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func agentTaskTypeMatches(value agentv1.AgentTaskType, expected task.Type) bool {
-	return value == protoAgentTaskType(expected)
-}
-
 func protoAgentTaskType(value task.Type) agentv1.AgentTaskType {
 	switch value {
 	case task.TypeDeploy:
