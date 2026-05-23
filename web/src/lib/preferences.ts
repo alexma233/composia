@@ -20,10 +20,7 @@ const storageKeys = {
   accentColor: "composia.accent-color",
 } as const;
 
-export const accentMetadata: Record<
-  AccentColor,
-  { preview: string }
-> = {
+export const accentMetadata: Record<AccentColor, { preview: string }> = {
   blue: { preview: "hsl(221 83% 53%)" },
   emerald: { preview: "hsl(160 84% 39%)" },
   violet: { preview: "hsl(262 83% 58%)" },

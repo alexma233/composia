@@ -649,7 +649,7 @@ func (client *defaultCloudflareDNSClient) lookupZoneID(ctx context.Context, zone
 		return "", err
 	}
 	if len(payload.Result) == 0 {
-		return "", fmt.Errorf("Cloudflare zone %q was not found", zone)
+		return "", fmt.Errorf("Cloudflare zone %q was not found", zone) //nolint:staticcheck // Cloudflare is a proper noun
 	}
 	return payload.Result[0].ID, nil
 }
@@ -678,7 +678,7 @@ func (client *defaultCloudflareDNSClient) doJSON(req *http.Request, target any) 
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode >= 300 {
-		return fmt.Errorf("Cloudflare API request failed with status %s", response.Status)
+		return fmt.Errorf("Cloudflare API request failed with status %s", response.Status) //nolint:staticcheck // Cloudflare is a proper noun
 	}
 	if err := json.NewDecoder(response.Body).Decode(target); err != nil {
 		return err

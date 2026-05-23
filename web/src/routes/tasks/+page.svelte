@@ -25,6 +25,7 @@
   import * as Popover from '$lib/components/ui/popover';
   import { startPolling } from '$lib/refresh';
   import { taskStatusLabel, taskTypeLabel } from '$lib/presenters';
+  import { Table, TableBody, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { cn } from '$lib/utils';
   import TaskRow from '$lib/components/app/task-row.svelte';
 
@@ -564,21 +565,30 @@
     </CardHeader>
 
     <CardContent>
-      <div class="space-y-3">
-        {#if data.tasks.length}
-          {#each data.tasks as task}
-            <TaskRow {task} showService showNode />
-          {/each}
-        {:else}
-          <div class="empty-state">
-            {#if data.status.length === 0 && data.excludeStatus.length === 0 && data.serviceName.length === 0 && data.excludeServiceName.length === 0 && data.nodeId.length === 0 && data.excludeNodeId.length === 0 && data.type.length === 0 && JSON.stringify(data.excludeType) === JSON.stringify(defaultExcludedTypes)}
-              {$messages.tasks.noTasks}
-            {:else}
-              {$messages.tasks.noTasksForFilter}
-            {/if}
-          </div>
-        {/if}
-      </div>
+      {#if data.tasks.length}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{$messages.nav.tasks}</TableHead>
+              <TableHead>{$messages.common.status}</TableHead>
+              <TableHead class="w-56">{$messages.common.created}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {#each data.tasks as task}
+              <TaskRow {task} showService showNode />
+            {/each}
+          </TableBody>
+        </Table>
+      {:else}
+        <div class="empty-state">
+          {#if data.status.length === 0 && data.excludeStatus.length === 0 && data.serviceName.length === 0 && data.excludeServiceName.length === 0 && data.nodeId.length === 0 && data.excludeNodeId.length === 0 && data.type.length === 0 && JSON.stringify(data.excludeType) === JSON.stringify(defaultExcludedTypes)}
+            {$messages.tasks.noTasks}
+          {:else}
+            {$messages.tasks.noTasksForFilter}
+          {/if}
+        </div>
+      {/if}
 
       {#if totalPages > 1}
         <div class="mt-6">

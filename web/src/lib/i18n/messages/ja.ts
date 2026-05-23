@@ -17,7 +17,8 @@ export const ja = {
     login: {
       pageTitle: "サインイン - Composia",
       title: "サインイン",
-      description: "ローカル Web アカウントを使用して Composia コンソールを開きます。",
+      description:
+        "ローカル Web アカウントを使用して Composia コンソールを開きます。",
       username: "ユーザー名",
       password: "パスワード",
       submit: "サインイン",
@@ -114,7 +115,8 @@ export const ja = {
     reasons: {
       unavailable: "この操作は現在利用できません。",
       missingBackupIntegration: "バックアップ統合が設定されていません。",
-      missingBackupDefinition: "このサービスはバックアップデータを宣言していません。",
+      missingBackupDefinition:
+        "このサービスはバックアップデータを宣言していません。",
       missingRestoreDefinition:
         "このサービスまたはバックアップデータに復元が宣言されていません。",
       missingMigrateDefinition:
@@ -134,7 +136,8 @@ export const ja = {
       missingEligibleRusticNode: "Rustic メインノードが設定されていません。",
       missingOnlineRusticNode: "オンラインの Rustic メインノードがありません。",
       backupNotSucceeded: "成功したバックアップのみ復元できます。",
-      backupArtifactMissing: "このバックアップにはアーティファクトが記録されていません。",
+      backupArtifactMissing:
+        "このバックアップにはアーティファクトが記録されていません。",
       missingRestoreTargetNode: "復元先の対象ノードがありません。",
     },
   },
@@ -214,7 +217,8 @@ export const ja = {
       version: "Docker バージョン",
       volumesSize: "ボリューム使用量",
       diskUsage: "ディスク使用量",
-      noStats: "Docker 統計はありません。統計はエージェントによって報告されます。",
+      noStats:
+        "Docker 統計はありません。統計はエージェントによって報告されます。",
       nodeOffline:
         "ノードがオフラインです。Caddy 同期、Caddy リロード、prune 操作にはオンラインノードが必要です。",
       rebuildCaddy: "Caddy ファイルを再構築",
@@ -261,7 +265,8 @@ export const ja = {
     selectService: "サービスを選択",
     searchServicePlaceholder: "サービスを検索...",
     noServicesFound: "サービスが見つかりません。",
-    addMetaToDeclare: "このサービスを宣言するには `composia-meta.yaml` を追加してください。",
+    addMetaToDeclare:
+      "このサービスを宣言するには `composia-meta.yaml` を追加してください。",
     fixMetaUntilAccepted:
       "コントローラーが受け入れるまで `composia-meta.yaml` を修正してください。",
     instances: {
@@ -353,7 +358,8 @@ export const ja = {
     pathRenamed: "{path} に名前変更しました",
     pathDeleted: "{path} を削除しました",
     actionQueued: "{action} が {taskId} としてキューに追加されました",
-    actionQueuedMany: "{action} が {count} 件のタスクとしてキューに追加されました",
+    actionQueuedMany:
+      "{action} が {count} 件のタスクとしてキューに追加されました",
     refreshFailed: "サービスサマリーの更新に失敗しました。",
     deleteFileDialogTitle: "{path} を削除しますか？",
     deleteFolderDialogTitle: "フォルダー {path} を削除しますか？",
@@ -361,7 +367,8 @@ export const ja = {
     migrateQueued: "移行が {taskId} としてキューに追加されました",
     actions: {
       runFailed: "{action} の実行に失敗しました。",
-      selectSourceAndTarget: "ソースノードを選択し、ターゲットノードを入力してください。",
+      selectSourceAndTarget:
+        "ソースノードを選択し、ターゲットノードを入力してください。",
       migrateFailed: "移行の実行に失敗しました。",
     },
     imageUpdates: {
@@ -459,12 +466,14 @@ export const ja = {
     cancelledWithTaskId: "タスクをキャンセルしました：{taskId}",
     rollback: "ロールバック...",
     rollbackTitle: "移行ロールバック",
-    rollbackDescription: "実行する復旧アクションを選択してください。ターゲットのクリーンアップはまだ有効化されていません。",
+    rollbackDescription:
+      "実行する復旧アクションを選択してください。ターゲットのクリーンアップはまだ有効化されていません。",
     rollbackDns: "DNS をソースにロールバック",
     deploySource: "ソースサービスをデプロイ",
     stopTarget: "ターゲットサービスを停止",
     cleanupTarget: "ターゲットサービスをクリーンアップ",
-    cleanupUnavailable: "クリーンアップを有効にするには、明確な削除範囲が必要です。",
+    cleanupUnavailable:
+      "クリーンアップを有効にするには、明確な削除範囲が必要です。",
     rollbackCreating: "作成中...",
     rollbackCreate: "ロールバックタスクを作成",
     rollbackQueued: "ロールバックが {taskId} としてキューに追加されました",
@@ -486,7 +495,8 @@ export const ja = {
   backups: {
     title: "バックアップ",
     pageTitle: "バックアップ - Composia",
-    pageDescription: "バックアップレコードを閲覧し、データをターゲットノードに復元します。",
+    pageDescription:
+      "バックアップレコードを閲覧し、データをターゲットノードに復元します。",
     backup: "バックアップ",
     dataName: "データ名",
     noBackups: "バックアップが読み込まれていません",
@@ -505,7 +515,8 @@ export const ja = {
     restoreConfirmTitle: "復元を確認",
     restoreWarning:
       "この復元により、ノード {nodeId} 上の同名のファイル、ディレクトリ、または Docker ボリュームが上書きされる可能性があります。",
-    noArtifact: "このバックアップにはアーティファクト参照が記録されていません。",
+    noArtifact:
+      "このバックアップにはアーティファクト参照が記録されていません。",
     filters: {
       allDataNames: "すべてのデータ名",
       searchDataPlaceholder: "データ名を検索...",
@@ -714,7 +725,8 @@ export const ja = {
       noLayerInfo: "レイヤー情報はありません",
       rawJson: "生 JSON",
       rawJsonDescription: "JSON 形式の完全なイメージ検査データ",
-      removeConfirm: "イメージ {name} を削除しますか？この操作は元に戻せません。",
+      removeConfirm:
+        "イメージ {name} を削除しますか？この操作は元に戻せません。",
       forceRemoveConfirm:
         "イメージ {name} を強制削除しますか？このイメージにはまだ複数のタグまたは依存コンテナがあります。この操作は元に戻せません。",
       removeDialogTitle: "イメージを削除しますか？",
@@ -754,7 +766,8 @@ export const ja = {
       ipv6: "IPv6",
       mac: "MAC",
       connectedContainers: "接続中のコンテナ",
-      noContainersConnected: "このネットワークに接続されているコンテナはありません",
+      noContainersConnected:
+        "このネットワークに接続されているコンテナはありません",
       rawJson: "生 JSON",
       rawJsonDescription: "JSON 形式の完全なネットワーク検査データ",
       removeConfirm:

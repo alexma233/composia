@@ -17,8 +17,7 @@ export const de = {
     login: {
       pageTitle: "Anmelden - Composia",
       title: "Anmelden",
-      description:
-        "Mit dem lokalen Web-Konto die Composia-Konsole öffnen.",
+      description: "Mit dem lokalen Web-Konto die Composia-Konsole öffnen.",
       username: "Benutzername",
       password: "Passwort",
       submit: "Anmelden",
@@ -115,23 +114,19 @@ export const de = {
     reasons: {
       unavailable: "Diese Aktion ist derzeit nicht verfügbar.",
       missingBackupIntegration: "Backup-Integration ist nicht konfiguriert.",
-      missingBackupDefinition:
-        "Dieser Dienst deklariert keine Backup-Daten.",
+      missingBackupDefinition: "Dieser Dienst deklariert keine Backup-Daten.",
       missingRestoreDefinition:
         "Restore ist für diesen Dienst oder diese Backup-Daten nicht deklariert.",
       missingMigrateDefinition:
         "Dieser Dienst deklariert keine migrierbaren Daten.",
       missingDnsIntegration: "DNS-Integration ist nicht konfiguriert.",
       missingSecretsConfig: "Secrets-Konfiguration ist unvollständig.",
-      missingCaddyInfra:
-        "Caddy-Infrastruktur-Dienst ist nicht deklariert.",
+      missingCaddyInfra: "Caddy-Infrastruktur-Dienst ist nicht deklariert.",
       missingServiceMeta:
         "`composia-meta.yaml` hinzufügen, bevor diese Aktion ausgeführt wird.",
       serviceNotDeclared: "Dieser Dienst ist noch nicht deklariert.",
-      serviceDnsNotDeclared:
-        "Dieser Dienst deklariert keine DNS-Verwaltung.",
-      serviceNotCaddyManaged:
-        "Dieser Dienst aktiviert keine Caddy-Verwaltung.",
+      serviceDnsNotDeclared: "Dieser Dienst deklariert keine DNS-Verwaltung.",
+      serviceNotCaddyManaged: "Dieser Dienst aktiviert keine Caddy-Verwaltung.",
       nodeDisabled: "Der Ziel-Node ist deaktiviert.",
       nodeOffline: "Der Ziel-Node ist offline.",
       nodeNotEligible: "Kein geeigneter Ziel-Node verfügbar.",
@@ -141,10 +136,8 @@ export const de = {
       missingOnlineRusticNode: "Kein online Rustic-Haupt-Node verfügbar.",
       backupNotSucceeded:
         "Nur erfolgreiche Backups können wiederhergestellt werden.",
-      backupArtifactMissing:
-        "Dieses Backup hat kein aufgezeichnetes Artifact.",
-      missingRestoreTargetNode:
-        "Kein geeigneter Restore-Ziel-Node verfügbar.",
+      backupArtifactMissing: "Dieses Backup hat kein aufgezeichnetes Artifact.",
+      missingRestoreTargetNode: "Kein geeigneter Restore-Ziel-Node verfügbar.",
     },
   },
   status: {
@@ -179,16 +172,14 @@ export const de = {
   apiError: {
     authenticationRequired: "Authentifizierung erforderlich.",
     unsupportedServiceAction: "Nicht unterstützte Dienst-Aktion.",
-    invalidConfirmationDecision:
-      "Entscheidung muss approve oder reject sein.",
+    invalidConfirmationDecision: "Entscheidung muss approve oder reject sein.",
     serviceNotDeclared: "Dienst ist nicht deklariert.",
     serviceInstanceNotFound: "Dienst-Instanz nicht gefunden.",
     baseRevisionRequired: "Basis-Revision ist erforderlich.",
     pathRevisionRequired: "Pfad und Basis-Revision sind erforderlich.",
     sourceDestRevisionRequired:
       "Quellpfad, Zielpfad und Basis-Revision sind erforderlich.",
-    sourceTargetNodeRequired:
-      "Quell- und Ziel-Node-IDs sind erforderlich.",
+    sourceTargetNodeRequired: "Quell- und Ziel-Node-IDs sind erforderlich.",
     nodeIdRequired: "Node-ID ist erforderlich.",
     movePathFailed: "Verschieben des Pfads fehlgeschlagen.",
     deletePathFailed: "Löschen des Pfads fehlgeschlagen.",
@@ -302,8 +293,7 @@ export const de = {
       deleteFailed: "Löschen des Pfads fehlgeschlagen.",
       renameServiceFolderFailed:
         "Umbenennen des Dienst-Ordners fehlgeschlagen.",
-      deleteServiceFolderFailed:
-        "Löschen des Dienst-Ordners fehlgeschlagen.",
+      deleteServiceFolderFailed: "Löschen des Dienst-Ordners fehlgeschlagen.",
       newFilePathPlaceholder: "config/neue-datei.yaml",
       newFolderPathPlaceholder: "config/snippets",
       newFilePlaceholder: "neuer/pfad.yaml",
@@ -377,8 +367,7 @@ export const de = {
     migrateQueued: "Migration als {taskId} eingereiht",
     actions: {
       runFailed: "{action} fehlgeschlagen.",
-      selectSourceAndTarget:
-        "Quell-Node auswählen und Ziel-Node eingeben.",
+      selectSourceAndTarget: "Quell-Node auswählen und Ziel-Node eingeben.",
       migrateFailed: "Migration fehlgeschlagen.",
     },
     imageUpdates: {
@@ -471,8 +460,7 @@ export const de = {
     resolving: "Wird aufgelöst...",
     rerunFailed: "Erneutes Ausführen des Tasks fehlgeschlagen.",
     rerunStarted: "Task-Neustart gestartet: {taskId}",
-    resolveConfirmationFailed:
-      "Auflösen der Task-Bestätigung fehlgeschlagen.",
+    resolveConfirmationFailed: "Auflösen der Task-Bestätigung fehlgeschlagen.",
     resumed: "Task fortgesetzt: {taskId}",
     cancelledWithTaskId: "Task abgebrochen: {taskId}",
     rollback: "Rollback...",
@@ -545,8 +533,7 @@ export const de = {
       reloadConfig: "Konfiguration neu laden",
       reloading: "Wird neu geladen...",
       reloadAccepted: "Controller-Konfiguration neu geladen.",
-      reloadFailed:
-        "Neuladen der Controller-Konfiguration fehlgeschlagen.",
+      reloadFailed: "Neuladen der Controller-Konfiguration fehlgeschlagen.",
     },
     repoSync: {
       title: "Repo-Sync",
@@ -704,8 +691,7 @@ export const de = {
         reconnect: "Neu verbinden",
         disconnect: "Trennen",
         send: "Senden",
-        inputPlaceholder:
-          "Befehlseingabe eingeben und Senden drücken",
+        inputPlaceholder: "Befehlseingabe eingeben und Senden drücken",
         sessionClosed: "[Sitzung geschlossen]",
       },
     },
@@ -737,8 +723,7 @@ export const de = {
       environmentVariables: "Umgebungsvariablen",
       noLayerInfo: "Keine Layer-Informationen verfügbar",
       rawJson: "Roh-JSON",
-      rawJsonDescription:
-        "Vollständige Image-Inspection-Daten im JSON-Format",
+      rawJsonDescription: "Vollständige Image-Inspection-Daten im JSON-Format",
       removeConfirm:
         "Image {name} entfernen? Diese Aktion kann nicht rückgängig gemacht werden.",
       forceRemoveConfirm:
@@ -780,8 +765,7 @@ export const de = {
       ipv6: "IPv6",
       mac: "MAC",
       connectedContainers: "Verbundene Container",
-      noContainersConnected:
-        "Keine Container mit diesem Network verbunden",
+      noContainersConnected: "Keine Container mit diesem Network verbunden",
       rawJson: "Roh-JSON",
       rawJsonDescription:
         "Vollständige Network-Inspection-Daten im JSON-Format",
@@ -820,8 +804,7 @@ export const de = {
       usageNotAvailable:
         "Nutzungsstatistiken sind für dieses Volume nicht verfügbar. Dies kann vorkommen, wenn das Volume nicht verwendet wird oder die Docker-Version keine Volume-Nutzungsberichte unterstützt.",
       rawJson: "Roh-JSON",
-      rawJsonDescription:
-        "Vollständige Volume-Inspection-Daten im JSON-Format",
+      rawJsonDescription: "Vollständige Volume-Inspection-Daten im JSON-Format",
       removeConfirm:
         "Volume {name} entfernen? Dies löscht die gespeicherten Daten dauerhaft.",
       removeDialogTitle: "Volume entfernen?",

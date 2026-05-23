@@ -467,12 +467,14 @@ export const enUS = {
     cancelledWithTaskId: "Task cancelled: {taskId}",
     rollback: "Rollback...",
     rollbackTitle: "Migration rollback",
-    rollbackDescription: "Choose the recovery actions to run. Target cleanup is not enabled yet.",
+    rollbackDescription:
+      "Choose the recovery actions to run. Target cleanup is not enabled yet.",
     rollbackDns: "Rollback DNS to source",
     deploySource: "Deploy source service",
     stopTarget: "Stop target service",
     cleanupTarget: "Cleanup target service",
-    cleanupUnavailable: "Cleanup needs a clear deletion scope before it can be enabled.",
+    cleanupUnavailable:
+      "Cleanup needs a clear deletion scope before it can be enabled.",
     rollbackCreating: "Creating...",
     rollbackCreate: "Create rollback task",
     rollbackQueued: "Rollback queued as {taskId}",

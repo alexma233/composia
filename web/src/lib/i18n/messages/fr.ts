@@ -120,32 +120,25 @@ export const fr = {
         "Ce service ne déclare aucune donnée de sauvegarde.",
       missingRestoreDefinition:
         "La restauration n'est pas déclarée pour ce service ou ses données de sauvegarde.",
-      missingMigrateDefinition:
-        "Ce service ne déclare aucune donnée migrable.",
+      missingMigrateDefinition: "Ce service ne déclare aucune donnée migrable.",
       missingDnsIntegration: "L'intégration DNS n'est pas configurée.",
       missingSecretsConfig: "La configuration des secrets est incomplète.",
-      missingCaddyInfra:
-        "Le service d'infrastructure Caddy n'est pas déclaré.",
+      missingCaddyInfra: "Le service d'infrastructure Caddy n'est pas déclaré.",
       missingServiceMeta:
         "Ajoutez `composia-meta.yaml` avant d'exécuter cette action.",
       serviceNotDeclared: "Ce service n'est pas encore déclaré.",
-      serviceDnsNotDeclared:
-        "Ce service ne déclare pas la gestion DNS.",
-      serviceNotCaddyManaged:
-        "Ce service n'active pas la gestion Caddy.",
+      serviceDnsNotDeclared: "Ce service ne déclare pas la gestion DNS.",
+      serviceNotCaddyManaged: "Ce service n'active pas la gestion Caddy.",
       nodeDisabled: "Le nœud cible est désactivé.",
       nodeOffline: "Le nœud cible est hors ligne.",
       nodeNotEligible: "Aucun nœud cible éligible n'est disponible.",
-      nodeNotRusticManaged:
-        "Rustic n'est pas déclaré sur le nœud sélectionné.",
-      missingEligibleRusticNode:
-        "Aucun nœud principal Rustic n'est configuré.",
+      nodeNotRusticManaged: "Rustic n'est pas déclaré sur le nœud sélectionné.",
+      missingEligibleRusticNode: "Aucun nœud principal Rustic n'est configuré.",
       missingOnlineRusticNode:
         "Aucun nœud principal Rustic en ligne n'est disponible.",
       backupNotSucceeded:
         "Seules les sauvegardes réussies peuvent être restaurées.",
-      backupArtifactMissing:
-        "Cette sauvegarde n'a pas d'artefact enregistré.",
+      backupArtifactMissing: "Cette sauvegarde n'a pas d'artefact enregistré.",
       missingRestoreTargetNode:
         "Aucun nœud cible de restauration éligible n'est disponible.",
     },
@@ -182,17 +175,14 @@ export const fr = {
   apiError: {
     authenticationRequired: "Authentification requise.",
     unsupportedServiceAction: "Action de service non supportée.",
-    invalidConfirmationDecision:
-      "La décision doit être approve ou reject.",
+    invalidConfirmationDecision: "La décision doit être approve ou reject.",
     serviceNotDeclared: "Le service n'est pas déclaré.",
     serviceInstanceNotFound: "Instance de service introuvable.",
     baseRevisionRequired: "La révision de base est requise.",
-    pathRevisionRequired:
-      "Le chemin et la révision de base sont requis.",
+    pathRevisionRequired: "Le chemin et la révision de base sont requis.",
     sourceDestRevisionRequired:
       "Le chemin source, le chemin de destination et la révision de base sont requis.",
-    sourceTargetNodeRequired:
-      "Les IDs des nœuds source et cible sont requis.",
+    sourceTargetNodeRequired: "Les IDs des nœuds source et cible sont requis.",
     nodeIdRequired: "L'ID du nœud est requis.",
     movePathFailed: "Échec du déplacement du chemin.",
     deletePathFailed: "Échec de la suppression du chemin.",
@@ -277,8 +267,7 @@ export const fr = {
     selectService: "Sélectionner un service",
     searchServicePlaceholder: "Rechercher des services...",
     noServicesFound: "Aucun service trouvé.",
-    addMetaToDeclare:
-      "Ajoutez `composia-meta.yaml` pour déclarer ce service.",
+    addMetaToDeclare: "Ajoutez `composia-meta.yaml` pour déclarer ce service.",
     fixMetaUntilAccepted:
       "Corrigez `composia-meta.yaml` jusqu'à ce que le contrôleur l'accepte.",
     instances: {
@@ -287,10 +276,8 @@ export const fr = {
       pendingDeploy: "Dépôt mis à jour, déploiement en attente",
     },
     allNodes: "Tous les nœuds",
-    containersByNode:
-      "Conteneurs groupés par nœud pour ce service.",
-    noContainersOnNode:
-      "Aucun conteneur correspondant signalé sur ce nœud.",
+    containersByNode: "Conteneurs groupés par nœud pour ce service.",
+    noContainersOnNode: "Aucun conteneur correspondant signalé sur ce nœud.",
     files: {
       title: "Fichiers",
       editor: "Éditeur",
@@ -298,32 +285,28 @@ export const fr = {
       singleView: "Vue unique",
       openInSplit: "Ouvrir dans le volet droit",
       openFileToEdit: "Ouvrez un fichier pour commencer l'édition.",
-      openFileToEditSplit:
-        "Ouvrez un autre fichier dans le volet droit.",
+      openFileToEditSplit: "Ouvrez un autre fichier dans le volet droit.",
       openFileFailed: "Échec de l'ouverture du fichier.",
       saveFileFailed: "Échec de l'enregistrement du fichier.",
       createFileFailed: "Échec de la création du fichier.",
       createFolderFailed: "Échec de la création du dossier.",
       renameFailed: "Échec du renommage du chemin.",
       deleteFailed: "Échec de la suppression du chemin.",
-      renameServiceFolderFailed:
-        "Échec du renommage du dossier de service.",
+      renameServiceFolderFailed: "Échec du renommage du dossier de service.",
       deleteServiceFolderFailed:
         "Échec de la suppression du dossier de service.",
       newFilePathPlaceholder: "config/nouveau-fichier.yaml",
       newFolderPathPlaceholder: "config/snippets",
       newFilePlaceholder: "nouveau/chemin.yaml",
       newServiceFolderPlaceholder: "nouveau-dossier-service",
-      encryptedUnavailableTitle:
-        "Fichier chiffré indisponible",
+      encryptedUnavailableTitle: "Fichier chiffré indisponible",
       encryptedUnavailableMissingSecrets:
         "Configurez le support des secrets avant d'ouvrir des fichiers chiffrés dans l'éditeur.",
       encryptedUnavailableDeclared:
         "Déclarez ce service avant d'ouvrir des fichiers chiffrés dans l'éditeur.",
       saved: "{path} enregistré",
       deleteFileConfirm: "Supprimer le {type} {path} ?",
-      deleteServiceFolderConfirm:
-        "Supprimer le dossier de service {name} ?",
+      deleteServiceFolderConfirm: "Supprimer le dossier de service {name} ?",
     },
     operations: {
       title: "Opérations",
@@ -377,14 +360,11 @@ export const fr = {
     pathRenamed: "Renommé en {path}",
     pathDeleted: "{path} supprimé",
     actionQueued: "{action} mis en file comme {taskId}",
-    actionQueuedMany:
-      "{action} mis en file comme {count} tâches",
-    refreshFailed:
-      "Échec de l'actualisation du résumé du service.",
+    actionQueuedMany: "{action} mis en file comme {count} tâches",
+    refreshFailed: "Échec de l'actualisation du résumé du service.",
     deleteFileDialogTitle: "Supprimer {path} ?",
     deleteFolderDialogTitle: "Supprimer le dossier {path} ?",
-    deleteServiceDialogMessage:
-      "Supprimer le dossier de service {folder} ?",
+    deleteServiceDialogMessage: "Supprimer le dossier de service {folder} ?",
     migrateQueued: "Migration mise en file comme {taskId}",
     actions: {
       runFailed: "Échec de l'exécution de {action}.",
@@ -401,15 +381,13 @@ export const fr = {
       status: "Statut",
       checked: "Vérifiée",
       updateAvailable: "Mise à jour disponible",
-      noChecks:
-        "Aucune vérification de mise à jour d'image pour l'instant.",
+      noChecks: "Aucune vérification de mise à jour d'image pour l'instant.",
       loadFailed:
         "Échec du chargement des vérifications de mise à jour d'image.",
       applyAllDetected: "Appliquer toutes les détectées",
       applyDetected: "Appliquer les détectées",
       imageTagPlaceholder: "nom=tag",
-      noDetectedAvailable:
-        "Aucune mise à jour détectée disponible.",
+      noDetectedAvailable: "Aucune mise à jour détectée disponible.",
     },
   },
   tasks: {
@@ -419,8 +397,7 @@ export const fr = {
       "Afficher et filtrer l'historique des tâches avec pagination et suivi du statut.",
     taskHistory: "Historique des tâches",
     noTasks: "Aucune tâche chargée",
-    noTasksForFilter:
-      "Aucune tâche ne correspond au filtre sélectionné",
+    noTasksForFilter: "Aucune tâche ne correspond au filtre sélectionné",
     types: {
       deploy: "Déployer (Up)",
       update: "Mettre à jour (Pull + Up)",
@@ -503,16 +480,13 @@ export const fr = {
     rollbackCreating: "Création...",
     rollbackCreate: "Créer une tâche d'annulation",
     rollbackQueued: "Annulation mise en file comme {taskId}",
-    rollbackFailed:
-      "Échec de la création de l'annulation de migration.",
-    waitingForOutput:
-      "En attente de la sortie des journaux de tâche...",
+    rollbackFailed: "Échec de la création de l'annulation de migration.",
+    waitingForOutput: "En attente de la sortie des journaux de tâche...",
     noLogFile: "Cette tâche n'a pas de fichier journal.",
     nodeLevel: "niveau nœud",
     noTaskSelected: "Aucune tâche sélectionnée",
     logStreamTitle: "Tâche {taskId}",
-    logStreamEmpty:
-      "Sélectionnez une tâche pour suivre les journaux.",
+    logStreamEmpty: "Sélectionnez une tâche pour suivre les journaux.",
     logStreamStatus: {
       idle: "Inactif",
       connecting: "Connexion",
@@ -529,8 +503,7 @@ export const fr = {
     backup: "Sauvegarde",
     dataName: "Nom des données",
     noBackups: "Aucune sauvegarde chargée",
-    noBackupsForFilter:
-      "Aucune sauvegarde ne correspond au filtre sélectionné",
+    noBackupsForFilter: "Aucune sauvegarde ne correspond au filtre sélectionné",
     backupId: "ID de sauvegarde",
     artifactRef: "Réf. artefact",
     sourceTask: "Tâche source",
@@ -545,8 +518,7 @@ export const fr = {
     restoreConfirmTitle: "Confirmer la restauration",
     restoreWarning:
       "Cette restauration peut écraser des fichiers, répertoires ou volumes Docker portant les mêmes noms sur le nœud {nodeId}.",
-    noArtifact:
-      "Aucune réf. artefact enregistrée pour cette sauvegarde.",
+    noArtifact: "Aucune réf. artefact enregistrée pour cette sauvegarde.",
     filters: {
       allDataNames: "Tous les noms de données",
       searchDataPlaceholder: "Rechercher des noms de données...",
@@ -564,10 +536,8 @@ export const fr = {
       noData: "Aucune donnée du contrôleur chargée.",
       reloadConfig: "Recharger la configuration",
       reloading: "Rechargement...",
-      reloadAccepted:
-        "Rechargement de la configuration du contrôleur accepté.",
-      reloadFailed:
-        "Échec du rechargement de la configuration du contrôleur.",
+      reloadAccepted: "Rechargement de la configuration du contrôleur accepté.",
+      reloadFailed: "Échec du rechargement de la configuration du contrôleur.",
     },
     repoSync: {
       title: "Synchronisation du dépôt",
@@ -585,8 +555,7 @@ export const fr = {
       noCommits: "Aucun commit trouvé.",
       loadMore: "Charger plus",
       loadingCommits: "Chargement...",
-      commitFailed:
-        "Échec du chargement de l'historique des commits.",
+      commitFailed: "Échec du chargement de l'historique des commits.",
     },
     rustic: {
       title: "Maintenance Rustic",
@@ -676,14 +645,11 @@ export const fr = {
       error: "Erreur",
       noContainers: "Aucun conteneur chargé.",
       searchPlaceholder: "Rechercher des conteneurs...",
-      countSummary:
-        "Affichage de {shown} sur {total} conteneurs",
+      countSummary: "Affichage de {shown} sur {total} conteneurs",
       failedToLoad: "Échec du chargement des conteneurs",
-      failedToLoadDetails:
-        "Échec du chargement des détails du conteneur",
+      failedToLoadDetails: "Échec du chargement des détails du conteneur",
       inspectFailed: "Échec de l'inspection du conteneur.",
-      actionFailed:
-        "Échec de l'action {action} sur le conteneur.",
+      actionFailed: "Échec de l'action {action} sur le conteneur.",
       actionQueued: "{action} mis en file : {taskId}",
       health: "Santé",
       start: "Démarrer",
@@ -713,8 +679,7 @@ export const fr = {
         loadFailed: "Échec du chargement des journaux",
         refresh: "Actualiser",
         noLogs: "Aucun journal retourné.",
-        description:
-          "Récupérer la sortie récente stdout et stderr.",
+        description: "Récupérer la sortie récente stdout et stderr.",
       },
       terminal: {
         title: "Terminal",
@@ -730,8 +695,7 @@ export const fr = {
         reconnect: "Reconnecter",
         disconnect: "Déconnecter",
         send: "Envoyer",
-        inputPlaceholder:
-          "Saisir une commande et appuyer sur Envoyer",
+        inputPlaceholder: "Saisir une commande et appuyer sur Envoyer",
         sessionClosed: "[session fermée]",
       },
     },
@@ -746,8 +710,7 @@ export const fr = {
       noImages: "Aucune image chargée.",
       failedToLoad: "Échec du chargement des images",
       searchPlaceholder: "Rechercher des images...",
-      countSummary:
-        "Affichage de {shown} sur {total} images",
+      countSummary: "Affichage de {shown} sur {total} images",
       architecture: "Architecture",
       usage: "Utilisation",
       dangling: "Dangling",
@@ -786,8 +749,7 @@ export const fr = {
       noNetworks: "Aucun réseau chargé.",
       failedToLoad: "Échec du chargement des réseaux",
       searchPlaceholder: "Rechercher des réseaux...",
-      countSummary:
-        "Affichage de {shown} sur {total} réseaux",
+      countSummary: "Affichage de {shown} sur {total} réseaux",
       subnet: "Sous-réseau",
       gateway: "Passerelle",
       containers: "Conteneurs",
@@ -808,8 +770,7 @@ export const fr = {
       ipv6: "IPv6",
       mac: "MAC",
       connectedContainers: "Conteneurs connectés",
-      noContainersConnected:
-        "Aucun conteneur connecté à ce réseau",
+      noContainersConnected: "Aucun conteneur connecté à ce réseau",
       rawJson: "JSON brut",
       rawJsonDescription:
         "Données complètes d'inspection du réseau au format JSON",
@@ -833,8 +794,7 @@ export const fr = {
       searchPlaceholder: "Rechercher des volumes...",
       loadingWithUsage:
         "Chargement des volumes et des données d'utilisation...",
-      countSummary:
-        "Affichage de {shown} sur {total} volumes",
+      countSummary: "Affichage de {shown} sur {total} volumes",
       size: "Taille",
       usage: "Utilisation",
       unused: "Inutilisé",

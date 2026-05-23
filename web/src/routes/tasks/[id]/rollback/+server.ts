@@ -2,7 +2,10 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
 import { createMigrationRollback } from "$lib/server/controller";
-import { jsonApiError, jsonControllerError } from "$lib/server/controller-route";
+import {
+  jsonApiError,
+  jsonControllerError,
+} from "$lib/server/controller-route";
 
 export const POST: RequestHandler = async ({ params, request }) => {
   try {
