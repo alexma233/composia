@@ -131,7 +131,7 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 	restoreItems := append([]restoreTaskItem(nil), params.RestoreItems...)
 	if !stepSucceeded(task.StepComposeDown) {
 		if err := executor.runMigrateStep(ctx, record, task.StepComposeDown, func() error {
-			stopTask, err := createServiceTaskWithOptions(ctx, executor.db, executor.cfg, executor.availableNodeIDs, record.ServiceName, []string{params.SourceNodeID}, task.TypeStop, nil, serviceTaskCreateOptions{Source: record.Source})
+			stopTask, err := executor.createServiceInstanceTask(ctx, record.ServiceName, params.SourceNodeID, task.TypeStop, serviceTaskParams{ServiceDir: params.ServiceDir}, record.RepoRevision, record.Source)
 			if err != nil {
 				return err
 			}
@@ -196,7 +196,7 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 
 	if !stepSucceeded(task.StepComposeUp) {
 		if err := executor.runMigrateStep(ctx, record, task.StepComposeUp, func() error {
-			deployTask, err := createServiceTaskWithOptions(ctx, executor.db, executor.cfg, executor.availableNodeIDs, record.ServiceName, []string{params.TargetNodeID}, task.TypeDeploy, nil, serviceTaskCreateOptions{Source: record.Source})
+			deployTask, err := executor.createServiceInstanceTask(ctx, record.ServiceName, params.TargetNodeID, task.TypeDeploy, serviceTaskParams{ServiceDir: params.ServiceDir}, record.RepoRevision, record.Source)
 			if err != nil {
 				return err
 			}
@@ -218,16 +218,9 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 		}
 	}
 
-	if !stepSucceeded(task.StepAwaitingConfirmation) {
-		if err := executor.enterMigrateAwaitingConfirmation(ctx, record); err != nil {
-			return executor.failControllerTask(ctx, record, task.StepAwaitingConfirmation, err)
-		}
-		return nil
-	}
-
 	if service.Meta.Network != nil && service.Meta.Network.DNS != nil && !stepSucceeded(task.StepDNSUpdate) {
 		if err := executor.runMigrateStep(ctx, record, task.StepDNSUpdate, func() error {
-			client, err := executor.dnsProviders.Cloudflare(executor.cfg)
+			client, err := executor.dnsProviders.ForService(executor.cfg, service.Meta.Network.DNS.Provider)
 			if err != nil {
 				return err
 			}
@@ -241,6 +234,13 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 		}); err != nil {
 			return executor.failControllerTask(ctx, record, task.StepDNSUpdate, err)
 		}
+	}
+
+	if !stepSucceeded(task.StepAwaitingConfirmation) {
+		if err := executor.enterMigrateAwaitingConfirmation(ctx, record); err != nil {
+			return executor.failControllerTask(ctx, record, task.StepAwaitingConfirmation, err)
+		}
+		return nil
 	}
 
 	if !stepSucceeded(task.StepPersistRepo) {

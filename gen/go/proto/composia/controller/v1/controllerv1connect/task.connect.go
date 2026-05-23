@@ -46,6 +46,9 @@ const (
 	// TaskServiceResolveTaskConfirmationProcedure is the fully-qualified name of the TaskService's
 	// ResolveTaskConfirmation RPC.
 	TaskServiceResolveTaskConfirmationProcedure = "/composia.controller.v1.TaskService/ResolveTaskConfirmation"
+	// TaskServiceCreateMigrationRollbackProcedure is the fully-qualified name of the TaskService's
+	// CreateMigrationRollback RPC.
+	TaskServiceCreateMigrationRollbackProcedure = "/composia.controller.v1.TaskService/CreateMigrationRollback"
 )
 
 // TaskServiceClient is a client for the composia.controller.v1.TaskService service.
@@ -60,6 +63,8 @@ type TaskServiceClient interface {
 	RunTaskAgain(context.Context, *connect.Request[v1.RunTaskAgainRequest]) (*connect.Response[v1.TaskActionResponse], error)
 	// ResolveTaskConfirmation resumes or rejects a task waiting for manual confirmation.
 	ResolveTaskConfirmation(context.Context, *connect.Request[v1.ResolveTaskConfirmationRequest]) (*connect.Response[v1.TaskActionResponse], error)
+	// CreateMigrationRollback starts a rollback task from a failed or rejected migration.
+	CreateMigrationRollback(context.Context, *connect.Request[v1.CreateMigrationRollbackRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 
 // NewTaskServiceClient constructs a client for the composia.controller.v1.TaskService service. By
@@ -103,6 +108,12 @@ func NewTaskServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(taskServiceMethods.ByName("ResolveTaskConfirmation")),
 			connect.WithClientOptions(opts...),
 		),
+		createMigrationRollback: connect.NewClient[v1.CreateMigrationRollbackRequest, v1.TaskActionResponse](
+			httpClient,
+			baseURL+TaskServiceCreateMigrationRollbackProcedure,
+			connect.WithSchema(taskServiceMethods.ByName("CreateMigrationRollback")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -113,6 +124,7 @@ type taskServiceClient struct {
 	tailTaskLogs            *connect.Client[v1.TailTaskLogsRequest, v1.TailTaskLogsResponse]
 	runTaskAgain            *connect.Client[v1.RunTaskAgainRequest, v1.TaskActionResponse]
 	resolveTaskConfirmation *connect.Client[v1.ResolveTaskConfirmationRequest, v1.TaskActionResponse]
+	createMigrationRollback *connect.Client[v1.CreateMigrationRollbackRequest, v1.TaskActionResponse]
 }
 
 // ListTasks calls composia.controller.v1.TaskService.ListTasks.
@@ -140,6 +152,11 @@ func (c *taskServiceClient) ResolveTaskConfirmation(ctx context.Context, req *co
 	return c.resolveTaskConfirmation.CallUnary(ctx, req)
 }
 
+// CreateMigrationRollback calls composia.controller.v1.TaskService.CreateMigrationRollback.
+func (c *taskServiceClient) CreateMigrationRollback(ctx context.Context, req *connect.Request[v1.CreateMigrationRollbackRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return c.createMigrationRollback.CallUnary(ctx, req)
+}
+
 // TaskServiceHandler is an implementation of the composia.controller.v1.TaskService service.
 type TaskServiceHandler interface {
 	// ListTasks returns task summaries using include and exclude filters.
@@ -152,6 +169,8 @@ type TaskServiceHandler interface {
 	RunTaskAgain(context.Context, *connect.Request[v1.RunTaskAgainRequest]) (*connect.Response[v1.TaskActionResponse], error)
 	// ResolveTaskConfirmation resumes or rejects a task waiting for manual confirmation.
 	ResolveTaskConfirmation(context.Context, *connect.Request[v1.ResolveTaskConfirmationRequest]) (*connect.Response[v1.TaskActionResponse], error)
+	// CreateMigrationRollback starts a rollback task from a failed or rejected migration.
+	CreateMigrationRollback(context.Context, *connect.Request[v1.CreateMigrationRollbackRequest]) (*connect.Response[v1.TaskActionResponse], error)
 }
 
 // NewTaskServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -191,6 +210,12 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(taskServiceMethods.ByName("ResolveTaskConfirmation")),
 		connect.WithHandlerOptions(opts...),
 	)
+	taskServiceCreateMigrationRollbackHandler := connect.NewUnaryHandler(
+		TaskServiceCreateMigrationRollbackProcedure,
+		svc.CreateMigrationRollback,
+		connect.WithSchema(taskServiceMethods.ByName("CreateMigrationRollback")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.controller.v1.TaskService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TaskServiceListTasksProcedure:
@@ -203,6 +228,8 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 			taskServiceRunTaskAgainHandler.ServeHTTP(w, r)
 		case TaskServiceResolveTaskConfirmationProcedure:
 			taskServiceResolveTaskConfirmationHandler.ServeHTTP(w, r)
+		case TaskServiceCreateMigrationRollbackProcedure:
+			taskServiceCreateMigrationRollbackHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -230,4 +257,8 @@ func (UnimplementedTaskServiceHandler) RunTaskAgain(context.Context, *connect.Re
 
 func (UnimplementedTaskServiceHandler) ResolveTaskConfirmation(context.Context, *connect.Request[v1.ResolveTaskConfirmationRequest]) (*connect.Response[v1.TaskActionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.TaskService.ResolveTaskConfirmation is not implemented"))
+}
+
+func (UnimplementedTaskServiceHandler) CreateMigrationRollback(context.Context, *connect.Request[v1.CreateMigrationRollbackRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.TaskService.CreateMigrationRollback is not implemented"))
 }

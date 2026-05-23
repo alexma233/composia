@@ -18,6 +18,8 @@ service TaskService {
   rpc RunTaskAgain(RunTaskAgainRequest) returns (TaskActionResponse);
   // ResolveTaskConfirmation resumes or rejects a task waiting for manual confirmation.
   rpc ResolveTaskConfirmation(ResolveTaskConfirmationRequest) returns (TaskActionResponse);
+  // CreateMigrationRollback starts a rollback task from a failed or rejected migration.
+  rpc CreateMigrationRollback(CreateMigrationRollbackRequest) returns (TaskActionResponse);
 }
 
 // TaskActionResponse reports the async task created by a command RPC.
@@ -51,6 +53,7 @@ enum TaskType {
   TASK_TYPE_DOCKER_STOP = 17;
   TASK_TYPE_DOCKER_RESTART = 18;
   TASK_TYPE_DOCKER_REMOVE = 19;
+  TASK_TYPE_MIGRATE_ROLLBACK = 20;
 }
 
 // TaskStatus identifies a task lifecycle status.
@@ -218,4 +221,18 @@ message ResolveTaskConfirmationRequest {
   // decision resolves the confirmation gate.
   TaskConfirmationDecision decision = 2;
   string comment = 3;
+}
+
+// CreateMigrationRollbackRequest selects safe recovery actions for one migration task.
+message CreateMigrationRollbackRequest {
+  // task_id identifies the original migrate task.
+  string task_id = 1;
+  // rollback_dns syncs DNS back to the source node.
+  bool rollback_dns = 2;
+  // deploy_source starts the service on the source node again.
+  bool deploy_source = 3;
+  // stop_target stops the service on the migration target node.
+  bool stop_target = 4;
+  // cleanup_target is reserved for a future destructive cleanup workflow.
+  bool cleanup_target = 5;
 }

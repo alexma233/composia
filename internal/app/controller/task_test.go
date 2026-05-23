@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -500,5 +501,78 @@ func TestTaskServiceResolveTaskConfirmationRejectCancelsMigrateTask(t *testing.T
 	}
 	if !hasTaskStepStatus(detail.Steps, task.StepAwaitingConfirmation, task.StatusCancelled) {
 		t.Fatalf("expected awaiting_confirmation step to be cancelled, got %+v", detail.Steps)
+	}
+}
+
+func TestTaskServiceCreateMigrationRollbackCreatesPendingTask(t *testing.T) {
+	t.Parallel()
+
+	db := openControllerTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	logDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+		t.Fatalf("create task log dir: %v", err)
+	}
+	logPath := filepath.Join(logDir, "task.log")
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: "alpha", SourceNodeID: "main", TargetNodeID: "edge"})
+	if err != nil {
+		t.Fatalf("encode params: %v", err)
+	}
+	startedAt := time.Date(2026, 4, 4, 19, 0, 0, 0, time.UTC)
+	finishedAt := startedAt.Add(time.Minute)
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-migrate-cancelled", Type: task.TypeMigrate, Source: task.SourceCLI, ServiceName: "alpha", Status: task.StatusCancelled, ParamsJSON: string(paramsJSON), RepoRevision: "rev-1", LogPath: logPath, CreatedAt: startedAt.Add(-time.Minute), StartedAt: &startedAt, FinishedAt: &finishedAt}); err != nil {
+		t.Fatalf("create migrate task: %v", err)
+	}
+	if err := os.WriteFile(logPath, nil, 0o644); err != nil {
+		t.Fatalf("create log file: %v", err)
+	}
+	for _, stepName := range []task.StepName{task.StepComposeDown, task.StepComposeUp, task.StepDNSUpdate} {
+		if err := db.UpsertTaskStep(ctx, task.StepRecord{TaskID: "task-migrate-cancelled", StepName: stepName, Status: task.StatusSucceeded, StartedAt: &startedAt, FinishedAt: &finishedAt}); err != nil {
+			t.Fatalf("create step %s: %v", stepName, err)
+		}
+	}
+
+	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "access-token" {
+			return "", assertError("unexpected token")
+		}
+		return "test-client", nil
+	})
+
+	path, handler := controllerv1connect.NewTaskServiceHandler(&taskServer{db: db, cfg: &config.ControllerConfig{LogDir: logDir}, taskQueue: newTaskQueueNotifier()}, connect.WithInterceptors(interceptor))
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+
+	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
+	response, err := client.CreateMigrationRollback(ctx, connect.NewRequest(&controllerv1.CreateMigrationRollbackRequest{TaskId: "task-migrate-cancelled", RollbackDns: true, DeploySource: true, StopTarget: true}))
+	if err != nil {
+		t.Fatalf("create migration rollback: %v", err)
+	}
+	if response.Msg.GetStatus() != controllerv1.TaskStatus_TASK_STATUS_PENDING {
+		t.Fatalf("expected pending status, got %q", response.Msg.GetStatus())
+	}
+	detail, err := db.GetTask(ctx, response.Msg.GetTaskId())
+	if err != nil {
+		t.Fatalf("get rollback task: %v", err)
+	}
+	if detail.Record.Type != task.TypeMigrateRollback {
+		t.Fatalf("expected migrate_rollback task, got %q", detail.Record.Type)
+	}
+	if detail.Record.AttemptOfTaskID != "task-migrate-cancelled" {
+		t.Fatalf("expected attempt_of_task_id original task, got %q", detail.Record.AttemptOfTaskID)
+	}
+	rollbackParams, err := taskParams(detail.Record.ParamsJSON)
+	if err != nil {
+		t.Fatalf("decode rollback params: %v", err)
+	}
+	if rollbackParams.OriginalMigrateTaskID != "task-migrate-cancelled" || !rollbackParams.RollbackDNS || !rollbackParams.DeploySource || !rollbackParams.StopTarget {
+		t.Fatalf("unexpected rollback params: %+v", rollbackParams)
 	}
 }

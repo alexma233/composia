@@ -5,25 +5,26 @@ import "time"
 type Type string
 
 const (
-	TypeDeploy        Type = "deploy"
-	TypeStop          Type = "stop"
-	TypeRestart       Type = "restart"
-	TypeUpdate        Type = "update"
-	TypeBackup        Type = "backup"
-	TypeRestore       Type = "restore"
-	TypeMigrate       Type = "migrate"
-	TypeDNSUpdate     Type = "dns_update"
-	TypeCaddySync     Type = "caddy_sync"
-	TypeCaddyReload   Type = "caddy_reload"
-	TypeImageCheck    Type = "image_check"
-	TypePrune         Type = "prune"
-	TypeRusticInit    Type = "rustic_init"
-	TypeRusticForget  Type = "rustic_forget"
-	TypeRusticPrune   Type = "rustic_prune"
-	TypeDockerStart   Type = "docker_start"
-	TypeDockerStop    Type = "docker_stop"
-	TypeDockerRestart Type = "docker_restart"
-	TypeDockerRemove  Type = "docker_remove"
+	TypeDeploy          Type = "deploy"
+	TypeStop            Type = "stop"
+	TypeRestart         Type = "restart"
+	TypeUpdate          Type = "update"
+	TypeBackup          Type = "backup"
+	TypeRestore         Type = "restore"
+	TypeMigrate         Type = "migrate"
+	TypeDNSUpdate       Type = "dns_update"
+	TypeCaddySync       Type = "caddy_sync"
+	TypeCaddyReload     Type = "caddy_reload"
+	TypeImageCheck      Type = "image_check"
+	TypePrune           Type = "prune"
+	TypeRusticInit      Type = "rustic_init"
+	TypeRusticForget    Type = "rustic_forget"
+	TypeRusticPrune     Type = "rustic_prune"
+	TypeDockerStart     Type = "docker_start"
+	TypeDockerStop      Type = "docker_stop"
+	TypeDockerRestart   Type = "docker_restart"
+	TypeDockerRemove    Type = "docker_remove"
+	TypeMigrateRollback Type = "migrate_rollback"
 )
 
 type Status string
@@ -102,7 +103,7 @@ type StepRecord struct {
 
 func IsControllerOwnedType(taskType Type) bool {
 	switch taskType {
-	case TypeDNSUpdate, TypeMigrate:
+	case TypeDNSUpdate, TypeMigrate, TypeMigrateRollback:
 		return true
 	default:
 		return false

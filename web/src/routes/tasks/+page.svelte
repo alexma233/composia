@@ -42,6 +42,7 @@
     | 'backup'
     | 'restore'
     | 'migrate'
+    | 'migrate_rollback'
     | 'dns_update'
     | 'caddy_sync'
     | 'caddy_reload'
@@ -75,6 +76,7 @@
     'backup',
     'restore',
     'migrate',
+    'migrate_rollback',
     'dns_update',
     'caddy_sync',
     'caddy_reload',

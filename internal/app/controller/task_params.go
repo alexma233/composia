@@ -21,6 +21,11 @@ type serviceTaskParams struct {
 	TargetNodeID          string                         `json:"target_node_id,omitempty"`
 	RestoreItems          []restoreTaskItem              `json:"restore_items,omitempty"`
 	ComposeRecreateMode   string                         `json:"compose_recreate_mode,omitempty"`
+	OriginalMigrateTaskID string                         `json:"original_migrate_task_id,omitempty"`
+	RollbackDNS           bool                           `json:"rollback_dns,omitempty"`
+	DeploySource          bool                           `json:"deploy_source,omitempty"`
+	StopTarget            bool                           `json:"stop_target,omitempty"`
+	CleanupTarget         bool                           `json:"cleanup_target,omitempty"`
 }
 
 type restoreTaskItem struct {

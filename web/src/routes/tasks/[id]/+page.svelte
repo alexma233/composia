@@ -13,6 +13,8 @@
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import * as Dialog from '$lib/components/ui/dialog';
+  import { Label } from '$lib/components/ui/label';
   import { startPolling } from '$lib/refresh';
   import { formatTimestamp, taskStatusLabel, taskStatusTone, taskTypeLabel } from '$lib/presenters';
 
@@ -29,6 +31,11 @@
   let logStreamController = $state<AbortController | null>(null);
   let rerunning = $state(false);
   let resolvingConfirmation = $state(false);
+  let rollbackDialogOpen = $state(false);
+  let creatingRollback = $state(false);
+  let rollbackDns = $state(true);
+  let deploySource = $state(false);
+  let stopTarget = $state(false);
   let stopTaskRefreshHandle: null | (() => void) = null;
   let taskRefreshTaskId = '';
 
@@ -88,6 +95,36 @@
     return data.task?.type === 'migrate' && data.task?.status === 'awaiting_confirmation';
   }
 
+  function canCreateMigrationRollback(): boolean {
+    return (
+      data.task?.type === 'migrate' &&
+      ['awaiting_confirmation', 'cancelled', 'failed'].includes(data.task.status)
+    );
+  }
+
+  function hasSucceededStep(stepName: string): boolean {
+    return data.task?.steps?.some((step) => step.stepName === stepName && step.status === 'succeeded') ?? false;
+  }
+
+  function canRollbackDns(): boolean {
+    return hasSucceededStep('dns_update');
+  }
+
+  function canDeploySource(): boolean {
+    return hasSucceededStep('compose_down');
+  }
+
+  function canStopTarget(): boolean {
+    return hasSucceededStep('compose_up');
+  }
+
+  function openRollbackDialog() {
+    rollbackDns = canRollbackDns();
+    deploySource = false;
+    stopTarget = false;
+    rollbackDialogOpen = true;
+  }
+
   async function runAgain() {
     if (!data.task?.taskId || rerunning) {
       return;
@@ -144,6 +181,40 @@
       toast.error(error instanceof Error ? error.message : $messages.tasks.resolveConfirmationFailed);
     } finally {
       resolvingConfirmation = false;
+    }
+  }
+
+  async function createRollback() {
+    if (!data.task?.taskId || creatingRollback) {
+      return;
+    }
+
+    creatingRollback = true;
+
+    try {
+      const response = await fetch(`/tasks/${data.task.taskId}/rollback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rollbackDns,
+          deploySource,
+          stopTarget,
+          cleanupTarget: false,
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload.taskId) {
+        throw new Error(actionErrorMessage(payload, $messages, $messages.tasks.rollbackFailed));
+      }
+
+      toast.success($messages.tasks.rollbackQueued.replace('{taskId}', payload.taskId.slice(0, 12)));
+      rollbackDialogOpen = false;
+      goto(`/tasks/${payload.taskId}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : $messages.tasks.rollbackFailed);
+    } finally {
+      creatingRollback = false;
     }
   }
 
@@ -245,11 +316,25 @@
                 {taskStatusLabel(data.task.status, $messages)}
               </Badge>
               {#if isTerminalStatus(data.task.status)}
+                {#if canCreateMigrationRollback()}
+                  <Button type="button" variant="outline" size="sm" onclick={openRollbackDialog}>
+                    {$messages.tasks.rollback}
+                  </Button>
+                {/if}
                 <Button type="button" variant="outline" size="sm" onclick={runAgain} disabled={rerunning}>
                   <RotateCcw class="mr-2 size-4" />
                   {rerunning ? $messages.tasks.running : $messages.tasks.runAgain}
                 </Button>
               {:else if isAwaitingMigrationConfirmation()}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onclick={openRollbackDialog}
+                  disabled={resolvingConfirmation}
+                >
+                  {$messages.tasks.rollback}
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
@@ -368,3 +453,38 @@
     </Card>
   </div>
 </div>
+
+<Dialog.Root bind:open={rollbackDialogOpen}>
+  <Dialog.Content>
+    <Dialog.Header>
+      <Dialog.Title>{$messages.tasks.rollbackTitle}</Dialog.Title>
+      <Dialog.Description>{$messages.tasks.rollbackDescription}</Dialog.Description>
+    </Dialog.Header>
+    <div class="space-y-3 py-2">
+      <Label class="flex items-center gap-3 rounded-md border border-border/60 p-3 text-sm">
+        <input type="checkbox" bind:checked={rollbackDns} disabled={!canRollbackDns()} />
+        <span>{$messages.tasks.rollbackDns}</span>
+      </Label>
+      <Label class="flex items-center gap-3 rounded-md border border-border/60 p-3 text-sm">
+        <input type="checkbox" bind:checked={deploySource} disabled={!canDeploySource()} />
+        <span>{$messages.tasks.deploySource}</span>
+      </Label>
+      <Label class="flex items-center gap-3 rounded-md border border-border/60 p-3 text-sm">
+        <input type="checkbox" bind:checked={stopTarget} disabled={!canStopTarget()} />
+        <span>{$messages.tasks.stopTarget}</span>
+      </Label>
+      <Label class="flex items-center gap-3 rounded-md border border-border/60 p-3 text-sm text-muted-foreground">
+        <input type="checkbox" disabled />
+        <span>{$messages.tasks.cleanupTarget} · {$messages.tasks.cleanupUnavailable}</span>
+      </Label>
+    </div>
+    <Dialog.Footer>
+      <Button type="button" variant="outline" onclick={() => (rollbackDialogOpen = false)} disabled={creatingRollback}>
+        {$messages.common.cancel}
+      </Button>
+      <Button type="button" onclick={createRollback} disabled={creatingRollback || (!rollbackDns && !deploySource && !stopTarget)}>
+        {creatingRollback ? $messages.tasks.rollbackCreating : $messages.tasks.rollbackCreate}
+      </Button>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>

@@ -15,7 +15,7 @@ import (
 
 const DatabaseFileName = "composia.db"
 
-const sqliteSchemaVersion = 5
+const sqliteSchemaVersion = 6
 
 var ErrServiceNotFound = errors.New("service not found")
 
@@ -853,7 +853,7 @@ func (db *DB) migrate(ctx context.Context) error {
 		);`,
 			`CREATE TABLE IF NOT EXISTS tasks (
 			task_id TEXT PRIMARY KEY,
-			type TEXT NOT NULL CHECK (type IN ('deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'dns_update', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove')),
+			type TEXT NOT NULL CHECK (type IN ('deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'migrate_rollback', 'dns_update', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove')),
 			source TEXT NOT NULL CHECK (source IN ('web', 'cli', 'others', 'schedule', 'system', 'auto_deploy')),
 			triggered_by TEXT,
 			service_name TEXT,
@@ -976,7 +976,7 @@ func (db *DB) migrate(ctx context.Context) error {
 		version: 3,
 		statements: []string{
 			`ALTER TABLE backups ADD COLUMN node_id TEXT;`,
-			`CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_active_service ON tasks(service_name) WHERE service_name IS NOT NULL AND node_id IS NULL AND type = 'migrate' AND status IN ('pending', 'running', 'awaiting_confirmation');`,
+			`CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_active_service ON tasks(service_name) WHERE service_name IS NOT NULL AND node_id IS NULL AND type IN ('migrate', 'migrate_rollback') AND status IN ('pending', 'running', 'awaiting_confirmation');`,
 			`CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_active_service_instance ON tasks(service_name, node_id) WHERE service_name IS NOT NULL AND node_id IS NOT NULL AND type IN ('deploy', 'update', 'stop', 'restart', 'backup', 'dns_update', 'caddy_sync', 'image_check') AND status IN ('pending', 'running', 'awaiting_confirmation');`,
 			`CREATE TRIGGER IF NOT EXISTS trg_tasks_validate_service_instance_insert BEFORE INSERT ON tasks FOR EACH ROW WHEN NEW.service_name IS NOT NULL AND NEW.node_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM service_instances WHERE service_name = NEW.service_name AND node_id = NEW.node_id) BEGIN SELECT RAISE(ABORT, 'task service instance does not exist'); END;`,
 			`CREATE TRIGGER IF NOT EXISTS trg_tasks_validate_service_instance_update BEFORE UPDATE OF service_name, node_id ON tasks FOR EACH ROW WHEN NEW.service_name IS NOT NULL AND NEW.node_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM service_instances WHERE service_name = NEW.service_name AND node_id = NEW.node_id) BEGIN SELECT RAISE(ABORT, 'task service instance does not exist'); END;`,
@@ -1029,8 +1029,8 @@ func (db *DB) migrate(ctx context.Context) error {
 	}, {
 		version: 4,
 		statements: []string{
-			`CREATE TRIGGER IF NOT EXISTS trg_tasks_validate_insert BEFORE INSERT ON tasks FOR EACH ROW BEGIN SELECT CASE WHEN NEW.type NOT IN ('deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'dns_update', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove') THEN RAISE(ABORT, 'invalid task type') WHEN NEW.source NOT IN ('web', 'cli', 'others', 'schedule', 'system', 'auto_deploy') THEN RAISE(ABORT, 'invalid task source') WHEN NEW.status NOT IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled') THEN RAISE(ABORT, 'invalid task status') WHEN NEW.params_json IS NOT NULL AND json_valid(NEW.params_json) = 0 THEN RAISE(ABORT, 'invalid task params_json') END; END;`,
-			`CREATE TRIGGER IF NOT EXISTS trg_tasks_validate_update BEFORE UPDATE OF type, source, status, params_json ON tasks FOR EACH ROW BEGIN SELECT CASE WHEN NEW.type NOT IN ('deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'dns_update', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove') THEN RAISE(ABORT, 'invalid task type') WHEN NEW.source NOT IN ('web', 'cli', 'others', 'schedule', 'system', 'auto_deploy') THEN RAISE(ABORT, 'invalid task source') WHEN NEW.status NOT IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled') THEN RAISE(ABORT, 'invalid task status') WHEN NEW.params_json IS NOT NULL AND json_valid(NEW.params_json) = 0 THEN RAISE(ABORT, 'invalid task params_json') END; END;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_tasks_validate_insert BEFORE INSERT ON tasks FOR EACH ROW BEGIN SELECT CASE WHEN NEW.type NOT IN ('deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'migrate_rollback', 'dns_update', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove') THEN RAISE(ABORT, 'invalid task type') WHEN NEW.source NOT IN ('web', 'cli', 'others', 'schedule', 'system', 'auto_deploy') THEN RAISE(ABORT, 'invalid task source') WHEN NEW.status NOT IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled') THEN RAISE(ABORT, 'invalid task status') WHEN NEW.params_json IS NOT NULL AND json_valid(NEW.params_json) = 0 THEN RAISE(ABORT, 'invalid task params_json') END; END;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_tasks_validate_update BEFORE UPDATE OF type, source, status, params_json ON tasks FOR EACH ROW BEGIN SELECT CASE WHEN NEW.type NOT IN ('deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'migrate_rollback', 'dns_update', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove') THEN RAISE(ABORT, 'invalid task type') WHEN NEW.source NOT IN ('web', 'cli', 'others', 'schedule', 'system', 'auto_deploy') THEN RAISE(ABORT, 'invalid task source') WHEN NEW.status NOT IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled') THEN RAISE(ABORT, 'invalid task status') WHEN NEW.params_json IS NOT NULL AND json_valid(NEW.params_json) = 0 THEN RAISE(ABORT, 'invalid task params_json') END; END;`,
 			`CREATE TRIGGER IF NOT EXISTS trg_task_steps_validate_insert BEFORE INSERT ON task_steps FOR EACH ROW BEGIN SELECT CASE WHEN NEW.status NOT IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled') THEN RAISE(ABORT, 'invalid task step status') END; END;`,
 			`CREATE TRIGGER IF NOT EXISTS trg_task_steps_validate_update BEFORE UPDATE OF status ON task_steps FOR EACH ROW BEGIN SELECT CASE WHEN NEW.status NOT IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled') THEN RAISE(ABORT, 'invalid task step status') END; END;`,
 			`CREATE TRIGGER IF NOT EXISTS trg_backups_validate_insert BEFORE INSERT ON backups FOR EACH ROW BEGIN SELECT CASE WHEN NEW.status NOT IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled') THEN RAISE(ABORT, 'invalid backup status') END; END;`,
@@ -1102,6 +1102,16 @@ func (db *DB) migrate(ctx context.Context) error {
 			`ALTER TABLE backups_v5 RENAME TO backups;`,
 			`CREATE INDEX IF NOT EXISTS idx_backups_service_finished_at ON backups(service_name, finished_at DESC);`,
 			`CREATE INDEX IF NOT EXISTS idx_backups_status_finished_at ON backups(status, finished_at DESC);`,
+		},
+	}, {
+		version: 6,
+		statements: []string{
+			`DROP INDEX IF EXISTS idx_tasks_active_service;`,
+			`CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_active_service ON tasks(service_name) WHERE service_name IS NOT NULL AND node_id IS NULL AND type IN ('migrate', 'migrate_rollback') AND status IN ('pending', 'running', 'awaiting_confirmation');`,
+			`DROP TRIGGER IF EXISTS trg_tasks_validate_insert;`,
+			`DROP TRIGGER IF EXISTS trg_tasks_validate_update;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_tasks_validate_insert BEFORE INSERT ON tasks FOR EACH ROW BEGIN SELECT CASE WHEN NEW.type NOT IN ('deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'migrate_rollback', 'dns_update', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove') THEN RAISE(ABORT, 'invalid task type') WHEN NEW.source NOT IN ('web', 'cli', 'others', 'schedule', 'system', 'auto_deploy') THEN RAISE(ABORT, 'invalid task source') WHEN NEW.status NOT IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled') THEN RAISE(ABORT, 'invalid task status') WHEN NEW.params_json IS NOT NULL AND json_valid(NEW.params_json) = 0 THEN RAISE(ABORT, 'invalid task params_json') END; END;`,
+			`CREATE TRIGGER IF NOT EXISTS trg_tasks_validate_update BEFORE UPDATE OF type, source, status, params_json ON tasks FOR EACH ROW BEGIN SELECT CASE WHEN NEW.type NOT IN ('deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'migrate_rollback', 'dns_update', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove') THEN RAISE(ABORT, 'invalid task type') WHEN NEW.source NOT IN ('web', 'cli', 'others', 'schedule', 'system', 'auto_deploy') THEN RAISE(ABORT, 'invalid task source') WHEN NEW.status NOT IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled') THEN RAISE(ABORT, 'invalid task status') WHEN NEW.params_json IS NOT NULL AND json_valid(NEW.params_json) = 0 THEN RAISE(ABORT, 'invalid task params_json') END; END;`,
 		},
 	}}
 

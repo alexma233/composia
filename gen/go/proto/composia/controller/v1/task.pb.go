@@ -26,26 +26,27 @@ const (
 type TaskType int32
 
 const (
-	TaskType_TASK_TYPE_UNSPECIFIED    TaskType = 0
-	TaskType_TASK_TYPE_DEPLOY         TaskType = 1
-	TaskType_TASK_TYPE_STOP           TaskType = 2
-	TaskType_TASK_TYPE_RESTART        TaskType = 3
-	TaskType_TASK_TYPE_UPDATE         TaskType = 4
-	TaskType_TASK_TYPE_BACKUP         TaskType = 5
-	TaskType_TASK_TYPE_RESTORE        TaskType = 6
-	TaskType_TASK_TYPE_MIGRATE        TaskType = 7
-	TaskType_TASK_TYPE_DNS_UPDATE     TaskType = 8
-	TaskType_TASK_TYPE_CADDY_SYNC     TaskType = 9
-	TaskType_TASK_TYPE_CADDY_RELOAD   TaskType = 10
-	TaskType_TASK_TYPE_IMAGE_CHECK    TaskType = 11
-	TaskType_TASK_TYPE_PRUNE          TaskType = 12
-	TaskType_TASK_TYPE_RUSTIC_INIT    TaskType = 13
-	TaskType_TASK_TYPE_RUSTIC_FORGET  TaskType = 14
-	TaskType_TASK_TYPE_RUSTIC_PRUNE   TaskType = 15
-	TaskType_TASK_TYPE_DOCKER_START   TaskType = 16
-	TaskType_TASK_TYPE_DOCKER_STOP    TaskType = 17
-	TaskType_TASK_TYPE_DOCKER_RESTART TaskType = 18
-	TaskType_TASK_TYPE_DOCKER_REMOVE  TaskType = 19
+	TaskType_TASK_TYPE_UNSPECIFIED      TaskType = 0
+	TaskType_TASK_TYPE_DEPLOY           TaskType = 1
+	TaskType_TASK_TYPE_STOP             TaskType = 2
+	TaskType_TASK_TYPE_RESTART          TaskType = 3
+	TaskType_TASK_TYPE_UPDATE           TaskType = 4
+	TaskType_TASK_TYPE_BACKUP           TaskType = 5
+	TaskType_TASK_TYPE_RESTORE          TaskType = 6
+	TaskType_TASK_TYPE_MIGRATE          TaskType = 7
+	TaskType_TASK_TYPE_DNS_UPDATE       TaskType = 8
+	TaskType_TASK_TYPE_CADDY_SYNC       TaskType = 9
+	TaskType_TASK_TYPE_CADDY_RELOAD     TaskType = 10
+	TaskType_TASK_TYPE_IMAGE_CHECK      TaskType = 11
+	TaskType_TASK_TYPE_PRUNE            TaskType = 12
+	TaskType_TASK_TYPE_RUSTIC_INIT      TaskType = 13
+	TaskType_TASK_TYPE_RUSTIC_FORGET    TaskType = 14
+	TaskType_TASK_TYPE_RUSTIC_PRUNE     TaskType = 15
+	TaskType_TASK_TYPE_DOCKER_START     TaskType = 16
+	TaskType_TASK_TYPE_DOCKER_STOP      TaskType = 17
+	TaskType_TASK_TYPE_DOCKER_RESTART   TaskType = 18
+	TaskType_TASK_TYPE_DOCKER_REMOVE    TaskType = 19
+	TaskType_TASK_TYPE_MIGRATE_ROLLBACK TaskType = 20
 )
 
 // Enum value maps for TaskType.
@@ -71,28 +72,30 @@ var (
 		17: "TASK_TYPE_DOCKER_STOP",
 		18: "TASK_TYPE_DOCKER_RESTART",
 		19: "TASK_TYPE_DOCKER_REMOVE",
+		20: "TASK_TYPE_MIGRATE_ROLLBACK",
 	}
 	TaskType_value = map[string]int32{
-		"TASK_TYPE_UNSPECIFIED":    0,
-		"TASK_TYPE_DEPLOY":         1,
-		"TASK_TYPE_STOP":           2,
-		"TASK_TYPE_RESTART":        3,
-		"TASK_TYPE_UPDATE":         4,
-		"TASK_TYPE_BACKUP":         5,
-		"TASK_TYPE_RESTORE":        6,
-		"TASK_TYPE_MIGRATE":        7,
-		"TASK_TYPE_DNS_UPDATE":     8,
-		"TASK_TYPE_CADDY_SYNC":     9,
-		"TASK_TYPE_CADDY_RELOAD":   10,
-		"TASK_TYPE_IMAGE_CHECK":    11,
-		"TASK_TYPE_PRUNE":          12,
-		"TASK_TYPE_RUSTIC_INIT":    13,
-		"TASK_TYPE_RUSTIC_FORGET":  14,
-		"TASK_TYPE_RUSTIC_PRUNE":   15,
-		"TASK_TYPE_DOCKER_START":   16,
-		"TASK_TYPE_DOCKER_STOP":    17,
-		"TASK_TYPE_DOCKER_RESTART": 18,
-		"TASK_TYPE_DOCKER_REMOVE":  19,
+		"TASK_TYPE_UNSPECIFIED":      0,
+		"TASK_TYPE_DEPLOY":           1,
+		"TASK_TYPE_STOP":             2,
+		"TASK_TYPE_RESTART":          3,
+		"TASK_TYPE_UPDATE":           4,
+		"TASK_TYPE_BACKUP":           5,
+		"TASK_TYPE_RESTORE":          6,
+		"TASK_TYPE_MIGRATE":          7,
+		"TASK_TYPE_DNS_UPDATE":       8,
+		"TASK_TYPE_CADDY_SYNC":       9,
+		"TASK_TYPE_CADDY_RELOAD":     10,
+		"TASK_TYPE_IMAGE_CHECK":      11,
+		"TASK_TYPE_PRUNE":            12,
+		"TASK_TYPE_RUSTIC_INIT":      13,
+		"TASK_TYPE_RUSTIC_FORGET":    14,
+		"TASK_TYPE_RUSTIC_PRUNE":     15,
+		"TASK_TYPE_DOCKER_START":     16,
+		"TASK_TYPE_DOCKER_STOP":      17,
+		"TASK_TYPE_DOCKER_RESTART":   18,
+		"TASK_TYPE_DOCKER_REMOVE":    19,
+		"TASK_TYPE_MIGRATE_ROLLBACK": 20,
 	}
 )
 
@@ -1214,6 +1217,88 @@ func (x *ResolveTaskConfirmationRequest) GetComment() string {
 	return ""
 }
 
+// CreateMigrationRollbackRequest selects safe recovery actions for one migration task.
+type CreateMigrationRollbackRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// task_id identifies the original migrate task.
+	TaskId string `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// rollback_dns syncs DNS back to the source node.
+	RollbackDns bool `protobuf:"varint,2,opt,name=rollback_dns,json=rollbackDns,proto3" json:"rollback_dns,omitempty"`
+	// deploy_source starts the service on the source node again.
+	DeploySource bool `protobuf:"varint,3,opt,name=deploy_source,json=deploySource,proto3" json:"deploy_source,omitempty"`
+	// stop_target stops the service on the migration target node.
+	StopTarget bool `protobuf:"varint,4,opt,name=stop_target,json=stopTarget,proto3" json:"stop_target,omitempty"`
+	// cleanup_target is reserved for a future destructive cleanup workflow.
+	CleanupTarget bool `protobuf:"varint,5,opt,name=cleanup_target,json=cleanupTarget,proto3" json:"cleanup_target,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateMigrationRollbackRequest) Reset() {
+	*x = CreateMigrationRollbackRequest{}
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateMigrationRollbackRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateMigrationRollbackRequest) ProtoMessage() {}
+
+func (x *CreateMigrationRollbackRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_controller_v1_task_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateMigrationRollbackRequest.ProtoReflect.Descriptor instead.
+func (*CreateMigrationRollbackRequest) Descriptor() ([]byte, []int) {
+	return file_proto_composia_controller_v1_task_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *CreateMigrationRollbackRequest) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *CreateMigrationRollbackRequest) GetRollbackDns() bool {
+	if x != nil {
+		return x.RollbackDns
+	}
+	return false
+}
+
+func (x *CreateMigrationRollbackRequest) GetDeploySource() bool {
+	if x != nil {
+		return x.DeploySource
+	}
+	return false
+}
+
+func (x *CreateMigrationRollbackRequest) GetStopTarget() bool {
+	if x != nil {
+		return x.StopTarget
+	}
+	return false
+}
+
+func (x *CreateMigrationRollbackRequest) GetCleanupTarget() bool {
+	if x != nil {
+		return x.CleanupTarget
+	}
+	return false
+}
+
 var File_proto_composia_controller_v1_task_proto protoreflect.FileDescriptor
 
 const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
@@ -1285,7 +1370,14 @@ const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	"\x1eResolveTaskConfirmationRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12L\n" +
 	"\bdecision\x18\x02 \x01(\x0e20.composia.controller.v1.TaskConfirmationDecisionR\bdecision\x12\x18\n" +
-	"\acomment\x18\x03 \x01(\tR\acomment*\x86\x04\n" +
+	"\acomment\x18\x03 \x01(\tR\acomment\"\xc9\x01\n" +
+	"\x1eCreateMigrationRollbackRequest\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12!\n" +
+	"\frollback_dns\x18\x02 \x01(\bR\vrollbackDns\x12#\n" +
+	"\rdeploy_source\x18\x03 \x01(\bR\fdeploySource\x12\x1f\n" +
+	"\vstop_target\x18\x04 \x01(\bR\n" +
+	"stopTarget\x12%\n" +
+	"\x0ecleanup_target\x18\x05 \x01(\bR\rcleanupTarget*\xa6\x04\n" +
 	"\bTaskType\x12\x19\n" +
 	"\x15TASK_TYPE_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10TASK_TYPE_DEPLOY\x10\x01\x12\x12\n" +
@@ -1307,7 +1399,8 @@ const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	"\x16TASK_TYPE_DOCKER_START\x10\x10\x12\x19\n" +
 	"\x15TASK_TYPE_DOCKER_STOP\x10\x11\x12\x1c\n" +
 	"\x18TASK_TYPE_DOCKER_RESTART\x10\x12\x12\x1b\n" +
-	"\x17TASK_TYPE_DOCKER_REMOVE\x10\x13*\xd0\x01\n" +
+	"\x17TASK_TYPE_DOCKER_REMOVE\x10\x13\x12\x1e\n" +
+	"\x1aTASK_TYPE_MIGRATE_ROLLBACK\x10\x14*\xd0\x01\n" +
 	"\n" +
 	"TaskStatus\x12\x1b\n" +
 	"\x17TASK_STATUS_UNSPECIFIED\x10\x00\x12\x17\n" +
@@ -1352,13 +1445,14 @@ const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	"\x18TaskConfirmationDecision\x12*\n" +
 	"&TASK_CONFIRMATION_DECISION_UNSPECIFIED\x10\x00\x12&\n" +
 	"\"TASK_CONFIRMATION_DECISION_APPROVE\x10\x01\x12%\n" +
-	"!TASK_CONFIRMATION_DECISION_REJECT\x10\x022\xa0\x04\n" +
+	"!TASK_CONFIRMATION_DECISION_REJECT\x10\x022\x9f\x05\n" +
 	"\vTaskService\x12`\n" +
 	"\tListTasks\x12(.composia.controller.v1.ListTasksRequest\x1a).composia.controller.v1.ListTasksResponse\x12Z\n" +
 	"\aGetTask\x12&.composia.controller.v1.GetTaskRequest\x1a'.composia.controller.v1.GetTaskResponse\x12k\n" +
 	"\fTailTaskLogs\x12+.composia.controller.v1.TailTaskLogsRequest\x1a,.composia.controller.v1.TailTaskLogsResponse0\x01\x12g\n" +
 	"\fRunTaskAgain\x12+.composia.controller.v1.RunTaskAgainRequest\x1a*.composia.controller.v1.TaskActionResponse\x12}\n" +
-	"\x17ResolveTaskConfirmation\x126.composia.controller.v1.ResolveTaskConfirmationRequest\x1a*.composia.controller.v1.TaskActionResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
+	"\x17ResolveTaskConfirmation\x126.composia.controller.v1.ResolveTaskConfirmationRequest\x1a*.composia.controller.v1.TaskActionResponse\x12}\n" +
+	"\x17CreateMigrationRollback\x126.composia.controller.v1.CreateMigrationRollbackRequest\x1a*.composia.controller.v1.TaskActionResponseBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"
 
 var (
 	file_proto_composia_controller_v1_task_proto_rawDescOnce sync.Once
@@ -1373,7 +1467,7 @@ func file_proto_composia_controller_v1_task_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_composia_controller_v1_task_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_proto_composia_controller_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_proto_composia_controller_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_proto_composia_controller_v1_task_proto_goTypes = []any{
 	(TaskType)(0),                          // 0: composia.controller.v1.TaskType
 	(TaskStatus)(0),                        // 1: composia.controller.v1.TaskStatus
@@ -1391,7 +1485,8 @@ var file_proto_composia_controller_v1_task_proto_goTypes = []any{
 	(*TailTaskLogsResponse)(nil),           // 13: composia.controller.v1.TailTaskLogsResponse
 	(*RunTaskAgainRequest)(nil),            // 14: composia.controller.v1.RunTaskAgainRequest
 	(*ResolveTaskConfirmationRequest)(nil), // 15: composia.controller.v1.ResolveTaskConfirmationRequest
-	(*timestamppb.Timestamp)(nil),          // 16: google.protobuf.Timestamp
+	(*CreateMigrationRollbackRequest)(nil), // 16: composia.controller.v1.CreateMigrationRollbackRequest
+	(*timestamppb.Timestamp)(nil),          // 17: google.protobuf.Timestamp
 }
 var file_proto_composia_controller_v1_task_proto_depIdxs = []int32{
 	1,  // 0: composia.controller.v1.TaskActionResponse.status:type_name -> composia.controller.v1.TaskStatus
@@ -1401,18 +1496,18 @@ var file_proto_composia_controller_v1_task_proto_depIdxs = []int32{
 	0,  // 4: composia.controller.v1.ListTasksRequest.exclude_type:type_name -> composia.controller.v1.TaskType
 	0,  // 5: composia.controller.v1.TaskSummary.type:type_name -> composia.controller.v1.TaskType
 	1,  // 6: composia.controller.v1.TaskSummary.status:type_name -> composia.controller.v1.TaskStatus
-	16, // 7: composia.controller.v1.TaskSummary.created_at:type_name -> google.protobuf.Timestamp
+	17, // 7: composia.controller.v1.TaskSummary.created_at:type_name -> google.protobuf.Timestamp
 	7,  // 8: composia.controller.v1.ListTasksResponse.tasks:type_name -> composia.controller.v1.TaskSummary
 	3,  // 9: composia.controller.v1.TaskStepSummary.step_name:type_name -> composia.controller.v1.TaskStepName
 	1,  // 10: composia.controller.v1.TaskStepSummary.status:type_name -> composia.controller.v1.TaskStatus
-	16, // 11: composia.controller.v1.TaskStepSummary.started_at:type_name -> google.protobuf.Timestamp
-	16, // 12: composia.controller.v1.TaskStepSummary.finished_at:type_name -> google.protobuf.Timestamp
+	17, // 11: composia.controller.v1.TaskStepSummary.started_at:type_name -> google.protobuf.Timestamp
+	17, // 12: composia.controller.v1.TaskStepSummary.finished_at:type_name -> google.protobuf.Timestamp
 	0,  // 13: composia.controller.v1.GetTaskResponse.type:type_name -> composia.controller.v1.TaskType
 	2,  // 14: composia.controller.v1.GetTaskResponse.source:type_name -> composia.controller.v1.TaskSource
 	1,  // 15: composia.controller.v1.GetTaskResponse.status:type_name -> composia.controller.v1.TaskStatus
-	16, // 16: composia.controller.v1.GetTaskResponse.created_at:type_name -> google.protobuf.Timestamp
-	16, // 17: composia.controller.v1.GetTaskResponse.started_at:type_name -> google.protobuf.Timestamp
-	16, // 18: composia.controller.v1.GetTaskResponse.finished_at:type_name -> google.protobuf.Timestamp
+	17, // 16: composia.controller.v1.GetTaskResponse.created_at:type_name -> google.protobuf.Timestamp
+	17, // 17: composia.controller.v1.GetTaskResponse.started_at:type_name -> google.protobuf.Timestamp
+	17, // 18: composia.controller.v1.GetTaskResponse.finished_at:type_name -> google.protobuf.Timestamp
 	10, // 19: composia.controller.v1.GetTaskResponse.steps:type_name -> composia.controller.v1.TaskStepSummary
 	4,  // 20: composia.controller.v1.ResolveTaskConfirmationRequest.decision:type_name -> composia.controller.v1.TaskConfirmationDecision
 	6,  // 21: composia.controller.v1.TaskService.ListTasks:input_type -> composia.controller.v1.ListTasksRequest
@@ -1420,13 +1515,15 @@ var file_proto_composia_controller_v1_task_proto_depIdxs = []int32{
 	12, // 23: composia.controller.v1.TaskService.TailTaskLogs:input_type -> composia.controller.v1.TailTaskLogsRequest
 	14, // 24: composia.controller.v1.TaskService.RunTaskAgain:input_type -> composia.controller.v1.RunTaskAgainRequest
 	15, // 25: composia.controller.v1.TaskService.ResolveTaskConfirmation:input_type -> composia.controller.v1.ResolveTaskConfirmationRequest
-	8,  // 26: composia.controller.v1.TaskService.ListTasks:output_type -> composia.controller.v1.ListTasksResponse
-	11, // 27: composia.controller.v1.TaskService.GetTask:output_type -> composia.controller.v1.GetTaskResponse
-	13, // 28: composia.controller.v1.TaskService.TailTaskLogs:output_type -> composia.controller.v1.TailTaskLogsResponse
-	5,  // 29: composia.controller.v1.TaskService.RunTaskAgain:output_type -> composia.controller.v1.TaskActionResponse
-	5,  // 30: composia.controller.v1.TaskService.ResolveTaskConfirmation:output_type -> composia.controller.v1.TaskActionResponse
-	26, // [26:31] is the sub-list for method output_type
-	21, // [21:26] is the sub-list for method input_type
+	16, // 26: composia.controller.v1.TaskService.CreateMigrationRollback:input_type -> composia.controller.v1.CreateMigrationRollbackRequest
+	8,  // 27: composia.controller.v1.TaskService.ListTasks:output_type -> composia.controller.v1.ListTasksResponse
+	11, // 28: composia.controller.v1.TaskService.GetTask:output_type -> composia.controller.v1.GetTaskResponse
+	13, // 29: composia.controller.v1.TaskService.TailTaskLogs:output_type -> composia.controller.v1.TailTaskLogsResponse
+	5,  // 30: composia.controller.v1.TaskService.RunTaskAgain:output_type -> composia.controller.v1.TaskActionResponse
+	5,  // 31: composia.controller.v1.TaskService.ResolveTaskConfirmation:output_type -> composia.controller.v1.TaskActionResponse
+	5,  // 32: composia.controller.v1.TaskService.CreateMigrationRollback:output_type -> composia.controller.v1.TaskActionResponse
+	27, // [27:33] is the sub-list for method output_type
+	21, // [21:27] is the sub-list for method input_type
 	21, // [21:21] is the sub-list for extension type_name
 	21, // [21:21] is the sub-list for extension extendee
 	0,  // [0:21] is the sub-list for field type_name
@@ -1443,7 +1540,7 @@ func file_proto_composia_controller_v1_task_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_controller_v1_task_proto_rawDesc), len(file_proto_composia_controller_v1_task_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   11,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

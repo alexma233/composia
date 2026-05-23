@@ -62,6 +62,8 @@ export function taskTypeLabel(type: string, messages: Dictionary) {
       return messages.tasks.types.restore;
     case "migrate":
       return messages.tasks.types.migrate;
+    case "migrate_rollback":
+      return messages.tasks.types.migrateRollback;
     case "dns_update":
       return messages.tasks.types.dnsUpdate;
     case "caddy_sync":

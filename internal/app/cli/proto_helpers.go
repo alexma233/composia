@@ -81,6 +81,8 @@ func taskTypeFromText(value string) controllerv1.TaskType {
 		return controllerv1.TaskType_TASK_TYPE_RESTORE
 	case "migrate":
 		return controllerv1.TaskType_TASK_TYPE_MIGRATE
+	case "migrate_rollback":
+		return controllerv1.TaskType_TASK_TYPE_MIGRATE_ROLLBACK
 	case "dns_update":
 		return controllerv1.TaskType_TASK_TYPE_DNS_UPDATE
 	case "caddy_sync":

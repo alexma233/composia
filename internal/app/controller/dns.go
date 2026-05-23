@@ -16,8 +16,12 @@ import (
 	"time"
 
 	appnotify "forgejo.alexma.top/alexma233/composia/internal/app/notify"
+	alidnslibdns "github.com/libdns/alidns"
 	cloudflarelibdns "github.com/libdns/cloudflare"
+	huaweicloudlibdns "github.com/libdns/huaweicloud"
 	"github.com/libdns/libdns"
+	route53libdns "github.com/libdns/route53"
+	tencentcloudlibdns "github.com/libdns/tencentcloud"
 
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	corenotify "forgejo.alexma.top/alexma233/composia/internal/core/notify"
@@ -31,16 +35,21 @@ const cloudflareAPIBaseURL = "https://api.cloudflare.com/client/v4"
 var managedDNSRecordTypes = []string{"A", "AAAA", "CNAME"}
 
 type dnsProviderFactory interface {
-	Cloudflare(cfg *config.ControllerConfig) (cloudflareDNSClient, error)
+	ForService(cfg *config.ControllerConfig, provider string) (dnsClient, error)
 }
 
 type defaultDNSProviderFactory struct{}
 
-type cloudflareDNSClient interface {
+type dnsClient interface {
 	ListZones(ctx context.Context) ([]libdns.Zone, error)
 	SetRecords(ctx context.Context, zone string, records []libdns.Record) ([]libdns.Record, error)
 	DeleteRecords(ctx context.Context, zone string, records []libdns.Record) ([]libdns.Record, error)
 	ApplyRecordOptions(ctx context.Context, zone, fqdn, recordType string, options dnsRecordOptions) error
+}
+
+type libDNSRecordProvider interface {
+	SetRecords(ctx context.Context, zone string, records []libdns.Record) ([]libdns.Record, error)
+	DeleteRecords(ctx context.Context, zone string, records []libdns.Record) ([]libdns.Record, error)
 }
 
 type controllerTaskExecutor struct {
@@ -71,6 +80,12 @@ type defaultCloudflareDNSClient struct {
 	apiToken   string
 	apiBaseURL string
 	httpClient *http.Client
+}
+
+type defaultDNSClient struct {
+	providerName string
+	records      libDNSRecordProvider
+	zones        []string
 }
 
 type cloudflareZoneResponse struct {
@@ -139,7 +154,7 @@ func runControllerTasks(ctx context.Context, executor *controllerTaskExecutor) {
 }
 
 func (executor *controllerTaskExecutor) runNextPendingTask(ctx context.Context) error {
-	for _, taskType := range []task.Type{task.TypeDNSUpdate, task.TypeMigrate} {
+	for _, taskType := range []task.Type{task.TypeDNSUpdate, task.TypeMigrate, task.TypeMigrateRollback} {
 		record, err := executor.db.ClaimNextPendingTaskOfType(ctx, taskType, time.Now().UTC())
 		if errors.Is(err, store.ErrNoPendingTask) {
 			continue
@@ -153,6 +168,8 @@ func (executor *controllerTaskExecutor) runNextPendingTask(ctx context.Context) 
 			return executor.executeDNSUpdateTask(ctx, record)
 		case task.TypeMigrate:
 			return executor.executeMigrateTask(ctx, record)
+		case task.TypeMigrateRollback:
+			return executor.executeMigrateRollbackTask(ctx, record)
 		default:
 			return executor.db.CompleteTask(ctx, record.TaskID, task.StatusFailed, time.Now().UTC(), fmt.Sprintf("controller task type %q is not implemented", record.Type))
 		}
@@ -178,7 +195,10 @@ func (executor *controllerTaskExecutor) executeDNSUpdateTask(ctx context.Context
 	if err != nil {
 		return executor.failControllerTask(ctx, record, task.StepDNSUpdate, err)
 	}
-	client, err := executor.dnsProviders.Cloudflare(executor.cfg)
+	if service.Meta.Network == nil || service.Meta.Network.DNS == nil {
+		return executor.failControllerTask(ctx, record, task.StepDNSUpdate, fmt.Errorf("service %q does not declare network.dns", service.Name))
+	}
+	client, err := executor.dnsProviders.ForService(executor.cfg, service.Meta.Network.DNS.Provider)
 	if err != nil {
 		return executor.failControllerTask(ctx, record, task.StepDNSUpdate, err)
 	}
@@ -228,14 +248,11 @@ func (executor *controllerTaskExecutor) failControllerTask(ctx context.Context, 
 	return taskErr
 }
 
-func buildDesiredServiceDNS(ctx context.Context, service repo.Service, cfg *config.ControllerConfig, client cloudflareDNSClient) (desiredServiceDNS, error) {
+func buildDesiredServiceDNS(ctx context.Context, service repo.Service, cfg *config.ControllerConfig, client dnsClient) (desiredServiceDNS, error) {
 	if service.Meta.Network == nil || service.Meta.Network.DNS == nil {
 		return desiredServiceDNS{}, fmt.Errorf("service %q does not declare network.dns", service.Name)
 	}
 	dnsConfig := service.Meta.Network.DNS
-	if dnsConfig.Provider != "cloudflare" {
-		return desiredServiceDNS{}, fmt.Errorf("service %q dns provider %q is not implemented", service.Name, dnsConfig.Provider)
-	}
 	hostname := strings.TrimSpace(dnsConfig.Hostname)
 	if hostname == "" {
 		return desiredServiceDNS{}, fmt.Errorf("service %q network.dns.hostname is required", service.Name)
@@ -264,7 +281,7 @@ func buildDesiredServiceDNS(ctx context.Context, service repo.Service, cfg *conf
 	}, nil
 }
 
-func matchingZone(ctx context.Context, client cloudflareDNSClient, fqdn string) (string, error) {
+func matchingZone(ctx context.Context, client dnsClient, fqdn string) (string, error) {
 	zones, err := client.ListZones(ctx)
 	if err != nil {
 		return "", err
@@ -278,7 +295,7 @@ func matchingZone(ctx context.Context, client cloudflareDNSClient, fqdn string) 
 			return name, nil
 		}
 	}
-	return "", fmt.Errorf("no Cloudflare zone matched hostname %q", fqdn)
+	return "", fmt.Errorf("no DNS zone matched hostname %q", fqdn)
 }
 
 func desiredDNSRecordSets(service repo.Service, cfg *config.ControllerConfig, relativeName string) (map[string][]libdns.Record, error) {
@@ -386,7 +403,7 @@ func desiredDNSRecordSetsForNode(relativeName string, ttl time.Duration, recordT
 	}
 }
 
-func syncServiceDNS(ctx context.Context, client cloudflareDNSClient, desired desiredServiceDNS, logPath string) error {
+func syncServiceDNS(ctx context.Context, client dnsClient, desired desiredServiceDNS, logPath string) error {
 	staleTypes := make([]string, 0, len(managedDNSRecordTypes))
 	for _, recordType := range managedDNSRecordTypes {
 		if _, ok := desired.RecordSets[recordType]; !ok {
@@ -422,11 +439,32 @@ func syncServiceDNS(ctx context.Context, client cloudflareDNSClient, desired des
 	return nil
 }
 
-func (defaultDNSProviderFactory) Cloudflare(cfg *config.ControllerConfig) (cloudflareDNSClient, error) {
-	if cfg == nil || cfg.DNS == nil || cfg.DNS.Cloudflare == nil {
+func (defaultDNSProviderFactory) ForService(cfg *config.ControllerConfig, providerName string) (dnsClient, error) {
+	providerName = strings.ToLower(strings.TrimSpace(providerName))
+	if cfg == nil || cfg.DNS == nil {
+		return nil, errors.New("controller dns is not configured")
+	}
+	switch providerName {
+	case "cloudflare":
+		return newCloudflareDNSClient(cfg.DNS.Cloudflare)
+	case "alidns":
+		return newAliDNSClient(cfg.DNS.AliDNS)
+	case "dnspod":
+		return newDNSPodClient(cfg.DNS.DNSPod)
+	case "route53":
+		return newRoute53DNSClient(cfg.DNS.Route53)
+	case "huaweicloud":
+		return newHuaweiCloudDNSClient(cfg.DNS.HuaweiCloud)
+	default:
+		return nil, fmt.Errorf("dns provider %q is not implemented", providerName)
+	}
+}
+
+func newCloudflareDNSClient(cfg *config.CloudflareDNSConfig) (dnsClient, error) {
+	if cfg == nil {
 		return nil, errors.New("controller dns.cloudflare is not configured")
 	}
-	token := strings.TrimSpace(cfg.DNS.Cloudflare.APIToken)
+	token := strings.TrimSpace(cfg.APIToken)
 	if token == "" {
 		return nil, errors.New("cloudflare api token is empty")
 	}
@@ -437,6 +475,105 @@ func (defaultDNSProviderFactory) Cloudflare(cfg *config.ControllerConfig) (cloud
 		apiBaseURL: cloudflareAPIBaseURL,
 		httpClient: &http.Client{Timeout: 15 * time.Second},
 	}, nil
+}
+
+func newAliDNSClient(cfg *config.AliDNSConfig) (dnsClient, error) {
+	if cfg == nil {
+		return nil, errors.New("controller dns.alidns is not configured")
+	}
+	if strings.TrimSpace(cfg.AccessKeyID) == "" || strings.TrimSpace(cfg.AccessKeySecret) == "" {
+		return nil, errors.New("alidns access_key_id and access_key_secret are required")
+	}
+	provider := &alidnslibdns.Provider{CredentialInfo: alidnslibdns.CredentialInfo{
+		AccessKeyID:     strings.TrimSpace(cfg.AccessKeyID),
+		AccessKeySecret: strings.TrimSpace(cfg.AccessKeySecret),
+		RegionID:        strings.TrimSpace(cfg.RegionID),
+		SecurityToken:   strings.TrimSpace(cfg.SecurityToken),
+	}}
+	return &defaultDNSClient{providerName: "alidns", records: provider, zones: normalizedDNSZones(cfg.Zones)}, nil
+}
+
+func newDNSPodClient(cfg *config.DNSPodConfig) (dnsClient, error) {
+	if cfg == nil {
+		return nil, errors.New("controller dns.dnspod is not configured")
+	}
+	if strings.TrimSpace(cfg.SecretID) == "" || strings.TrimSpace(cfg.SecretKey) == "" {
+		return nil, errors.New("dnspod secret_id and secret_key are required")
+	}
+	provider := &tencentcloudlibdns.Provider{
+		SecretId:     strings.TrimSpace(cfg.SecretID),
+		SecretKey:    strings.TrimSpace(cfg.SecretKey),
+		SessionToken: strings.TrimSpace(cfg.SessionToken),
+		Region:       strings.TrimSpace(cfg.Region),
+	}
+	return &defaultDNSClient{providerName: "dnspod", records: provider, zones: normalizedDNSZones(cfg.Zones)}, nil
+}
+
+func newRoute53DNSClient(cfg *config.Route53DNSConfig) (dnsClient, error) {
+	if cfg == nil {
+		return nil, errors.New("controller dns.route53 is not configured")
+	}
+	provider := &route53libdns.Provider{
+		AccessKeyId:     strings.TrimSpace(cfg.AccessKeyID),
+		SecretAccessKey: strings.TrimSpace(cfg.SecretAccessKey),
+		SessionToken:    strings.TrimSpace(cfg.SessionToken),
+		Region:          strings.TrimSpace(cfg.Region),
+		Profile:         strings.TrimSpace(cfg.Profile),
+		HostedZoneID:    strings.TrimSpace(cfg.HostedZoneID),
+	}
+	return &defaultDNSClient{providerName: "route53", records: provider, zones: normalizedDNSZones(cfg.Zones)}, nil
+}
+
+func newHuaweiCloudDNSClient(cfg *config.HuaweiCloudDNSConfig) (dnsClient, error) {
+	if cfg == nil {
+		return nil, errors.New("controller dns.huaweicloud is not configured")
+	}
+	if strings.TrimSpace(cfg.AccessKeyID) == "" || strings.TrimSpace(cfg.SecretAccessKey) == "" {
+		return nil, errors.New("huaweicloud access_key_id and secret_access_key are required")
+	}
+	provider := &huaweicloudlibdns.Provider{
+		AccessKeyId:     strings.TrimSpace(cfg.AccessKeyID),
+		SecretAccessKey: strings.TrimSpace(cfg.SecretAccessKey),
+		RegionId:        strings.TrimSpace(cfg.RegionID),
+	}
+	return &defaultDNSClient{providerName: "huaweicloud", records: provider, zones: normalizedDNSZones(cfg.Zones)}, nil
+}
+
+func normalizedDNSZones(zones []string) []string {
+	normalized := make([]string, 0, len(zones))
+	for _, zone := range zones {
+		zone = ensureTrailingDot(zone)
+		if zone != "" {
+			normalized = append(normalized, zone)
+		}
+	}
+	return normalized
+}
+
+func (client *defaultDNSClient) ListZones(_ context.Context) ([]libdns.Zone, error) {
+	if len(client.zones) == 0 {
+		return nil, fmt.Errorf("controller dns.%s.zones is required", client.providerName)
+	}
+	zones := make([]libdns.Zone, 0, len(client.zones))
+	for _, zone := range client.zones {
+		zones = append(zones, libdns.Zone{Name: zone})
+	}
+	return zones, nil
+}
+
+func (client *defaultDNSClient) SetRecords(ctx context.Context, zone string, records []libdns.Record) ([]libdns.Record, error) {
+	return client.records.SetRecords(ctx, zone, records)
+}
+
+func (client *defaultDNSClient) DeleteRecords(ctx context.Context, zone string, records []libdns.Record) ([]libdns.Record, error) {
+	return client.records.DeleteRecords(ctx, zone, records)
+}
+
+func (client *defaultDNSClient) ApplyRecordOptions(_ context.Context, _, _, _ string, options dnsRecordOptions) error {
+	if options.Proxied != nil || options.Comment != "" {
+		return fmt.Errorf("dns provider %q does not support proxied or comment options", client.providerName)
+	}
+	return nil
 }
 
 func (client *defaultCloudflareDNSClient) ListZones(ctx context.Context) ([]libdns.Zone, error) {

@@ -49,6 +49,8 @@ func protoTaskType(value task.Type) controllerv1.TaskType {
 		return controllerv1.TaskType_TASK_TYPE_DOCKER_RESTART
 	case task.TypeDockerRemove:
 		return controllerv1.TaskType_TASK_TYPE_DOCKER_REMOVE
+	case task.TypeMigrateRollback:
+		return controllerv1.TaskType_TASK_TYPE_MIGRATE_ROLLBACK
 	default:
 		return controllerv1.TaskType_TASK_TYPE_UNSPECIFIED
 	}
@@ -198,6 +200,8 @@ func taskTypeFromProto(value controllerv1.TaskType) (task.Type, bool) {
 		return task.TypeDockerRestart, true
 	case controllerv1.TaskType_TASK_TYPE_DOCKER_REMOVE:
 		return task.TypeDockerRemove, true
+	case controllerv1.TaskType_TASK_TYPE_MIGRATE_ROLLBACK:
+		return task.TypeMigrateRollback, true
 	default:
 		return "", false
 	}

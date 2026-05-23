@@ -2422,6 +2422,31 @@ export async function resolveTaskConfirmation(
   );
 }
 
+export type MigrationRollbackOptions = {
+  rollbackDns?: boolean;
+  deploySource?: boolean;
+  stopTarget?: boolean;
+  cleanupTarget?: boolean;
+};
+
+export async function createMigrationRollback(
+  taskId: string,
+  options: MigrationRollbackOptions,
+): Promise<TaskActionResult> {
+  return callTaskAction(
+    controllerProcedure(
+      "/composia.controller.v1.TaskService/CreateMigrationRollback",
+    ),
+    {
+      taskId,
+      rollbackDns: options.rollbackDns ?? false,
+      deploySource: options.deploySource ?? false,
+      stopTarget: options.stopTarget ?? false,
+      cleanupTarget: options.cleanupTarget ?? false,
+    },
+  );
+}
+
 function requireControllerConfig() {
   const config = controllerConfig();
   if (!config.ready) {
