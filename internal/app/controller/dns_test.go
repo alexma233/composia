@@ -17,17 +17,17 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 )
 
-type fakeCloudflareDNSClient struct {
+type fakeDNSClient struct {
 	zones      []libdns.Zone
 	operations []string
 	options    []string
 }
 
-func (client *fakeCloudflareDNSClient) ListZones(_ context.Context) ([]libdns.Zone, error) {
+func (client *fakeDNSClient) ListZones(_ context.Context) ([]libdns.Zone, error) {
 	return append([]libdns.Zone(nil), client.zones...), nil
 }
 
-func (client *fakeCloudflareDNSClient) SetRecords(_ context.Context, zone string, records []libdns.Record) ([]libdns.Record, error) {
+func (client *fakeDNSClient) SetRecords(_ context.Context, zone string, records []libdns.Record) ([]libdns.Record, error) {
 	for _, record := range records {
 		rr := record.RR()
 		client.operations = append(client.operations, "set "+zone+" "+rr.Type+" "+rr.Name+" "+rr.Data)
@@ -35,7 +35,7 @@ func (client *fakeCloudflareDNSClient) SetRecords(_ context.Context, zone string
 	return records, nil
 }
 
-func (client *fakeCloudflareDNSClient) DeleteRecords(_ context.Context, zone string, records []libdns.Record) ([]libdns.Record, error) {
+func (client *fakeDNSClient) DeleteRecords(_ context.Context, zone string, records []libdns.Record) ([]libdns.Record, error) {
 	for _, record := range records {
 		rr := record.RR()
 		client.operations = append(client.operations, "delete "+zone+" "+rr.Type+" "+rr.Name)
@@ -43,7 +43,7 @@ func (client *fakeCloudflareDNSClient) DeleteRecords(_ context.Context, zone str
 	return records, nil
 }
 
-func (client *fakeCloudflareDNSClient) ApplyRecordOptions(_ context.Context, zone, fqdn, recordType string, options dnsRecordOptions) error {
+func (client *fakeDNSClient) ApplyRecordOptions(_ context.Context, zone, fqdn, recordType string, options dnsRecordOptions) error {
 	proxied := "nil"
 	if options.Proxied != nil {
 		if *options.Proxied {
@@ -57,10 +57,10 @@ func (client *fakeCloudflareDNSClient) ApplyRecordOptions(_ context.Context, zon
 }
 
 type fakeDNSProviderFactory struct {
-	client cloudflareDNSClient
+	client dnsClient
 }
 
-func (factory fakeDNSProviderFactory) Cloudflare(_ *config.ControllerConfig) (cloudflareDNSClient, error) {
+func (factory fakeDNSProviderFactory) ForService(_ *config.ControllerConfig, _ string) (dnsClient, error) {
 	return factory.client, nil
 }
 
@@ -111,7 +111,7 @@ func TestExecuteDNSUpdateTaskSyncsDualStackRecords(t *testing.T) {
 		t.Fatalf("create task log: %v", err)
 	}
 
-	fakeClient := &fakeCloudflareDNSClient{zones: []libdns.Zone{{Name: "example.com."}}}
+	fakeClient := &fakeDNSClient{zones: []libdns.Zone{{Name: "example.com."}}}
 	executor := &controllerTaskExecutor{
 		db:               db,
 		cfg:              &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main", PublicIPv4: "203.0.113.10", PublicIPv6: "2001:db8::10"}}},

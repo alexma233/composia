@@ -607,8 +607,10 @@ func validateNetwork(path string, network *NetworkConfig) error {
 	}
 
 	if network.DNS != nil {
-		if network.DNS.Provider != "cloudflare" {
-			return fmt.Errorf("service meta %q: network.dns.provider must be cloudflare", path)
+		switch network.DNS.Provider {
+		case "cloudflare", "alidns", "dnspod", "route53", "huaweicloud":
+		default:
+			return fmt.Errorf("service meta %q: network.dns.provider must be cloudflare, alidns, dnspod, route53, or huaweicloud", path)
 		}
 		if network.DNS.Hostname == "" {
 			return fmt.Errorf("service meta %q: network.dns.hostname is required", path)

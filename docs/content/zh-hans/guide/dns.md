@@ -9,6 +9,24 @@ controller:
   dns:
     cloudflare:
       api_token_file: "/app/configs/cloudflare-token.txt"
+    alidns:
+      access_key_id_file: "/app/configs/alidns-access-key-id.txt"
+      access_key_secret_file: "/app/configs/alidns-access-key-secret.txt"
+      zones: ["example.com"]
+    dnspod:
+      secret_id_file: "/app/configs/dnspod-secret-id.txt"
+      secret_key_file: "/app/configs/dnspod-secret-key.txt"
+      zones: ["example.com"]
+    route53:
+      access_key_id_file: "/app/configs/aws-access-key-id.txt"
+      secret_access_key_file: "/app/configs/aws-secret-access-key.txt"
+      region: "us-east-1"
+      zones: ["example.com"]
+    huaweicloud:
+      access_key_id_file: "/app/configs/huaweicloud-access-key-id.txt"
+      secret_access_key_file: "/app/configs/huaweicloud-secret-access-key.txt"
+      region_id: "cn-south-1"
+      zones: ["example.com"]
 ```
 
 创建 API Token 文件：
@@ -20,6 +38,10 @@ echo "your-cloudflare-api-token" > ./cloudflare-token.txt
 **Cloudflare Token 权限要求：**
 - Zone:Read
 - DNS:Edit
+
+当前支持的 provider：`cloudflare`、`alidns`、`dnspod`、`route53`、`huaweicloud`。
+
+除 Cloudflare 外，其他 provider 需要在 controller 配置里声明 `zones`，用于把服务域名匹配到 DNS zone。
 
 平台侧字段说明见 [配置指南中的 DNS 配置](./configuration/dns)。
 
@@ -41,6 +63,8 @@ network:
     ttl: 120              # TTL 秒数
     # value: "1.2.3.4"    # 可选，手动指定记录值
 ```
+
+`provider` 也可以换成 `alidns`、`dnspod`、`route53` 或 `huaweicloud`。`proxied` 和 `comment` 仅支持 Cloudflare；其他 provider 配置这些字段会报错。
 
 ## 自动推导 IP
 
@@ -109,9 +133,9 @@ network:
 ### DNS 未更新
 
 检查：
-1. Controller 是否配置了 `dns.cloudflare`
-2. Cloudflare API Token 是否有效
-3. 域名 Zone 是否正确
+1. Controller 是否配置了对应 provider，例如 `dns.cloudflare` 或 `dns.route53`
+2. provider 凭据是否有效
+3. 非 Cloudflare provider 是否配置了包含该域名的 `zones`
 
 ## 相关文档
 

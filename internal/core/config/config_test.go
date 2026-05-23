@@ -506,15 +506,31 @@ func TestLoadControllerResolvesInlineOrFileSecrets(t *testing.T) {
 	accessTokenPath := filepath.Join(rootDir, "access.token")
 	gitTokenPath := filepath.Join(rootDir, "git.token")
 	dnsTokenPath := filepath.Join(rootDir, "dns.token")
+	alidnsKeyIDPath := filepath.Join(rootDir, "alidns.key-id")
+	alidnsKeySecretPath := filepath.Join(rootDir, "alidns.key-secret")
+	dnspodSecretIDPath := filepath.Join(rootDir, "dnspod.secret-id")
+	dnspodSecretKeyPath := filepath.Join(rootDir, "dnspod.secret-key")
+	route53KeyIDPath := filepath.Join(rootDir, "route53.key-id")
+	route53SecretKeyPath := filepath.Join(rootDir, "route53.secret-key")
+	huaweiKeyIDPath := filepath.Join(rootDir, "huawei.key-id")
+	huaweiSecretKeyPath := filepath.Join(rootDir, "huawei.secret-key")
 	smtpPasswordPath := filepath.Join(rootDir, "smtp.password")
 	telegramTokenPath := filepath.Join(rootDir, "telegram.token")
 	for path, value := range map[string]string{
-		nodeTokenPath:     "node-token\n",
-		accessTokenPath:   "access-token\n",
-		gitTokenPath:      "git-token\n",
-		dnsTokenPath:      "dns-token\n",
-		smtpPasswordPath:  "smtp-password\n",
-		telegramTokenPath: "telegram-token\n",
+		nodeTokenPath:        "node-token\n",
+		accessTokenPath:      "access-token\n",
+		gitTokenPath:         "git-token\n",
+		dnsTokenPath:         "dns-token\n",
+		alidnsKeyIDPath:      "alidns-key-id\n",
+		alidnsKeySecretPath:  "alidns-key-secret\n",
+		dnspodSecretIDPath:   "dnspod-secret-id\n",
+		dnspodSecretKeyPath:  "dnspod-secret-key\n",
+		route53KeyIDPath:     "route53-key-id\n",
+		route53SecretKeyPath: "route53-secret-key\n",
+		huaweiKeyIDPath:      "huawei-key-id\n",
+		huaweiSecretKeyPath:  "huawei-secret-key\n",
+		smtpPasswordPath:     "smtp-password\n",
+		telegramTokenPath:    "telegram-token\n",
 	} {
 		if err := os.WriteFile(path, []byte(value), 0o644); err != nil {
 			t.Fatalf("write secret file %q: %v", path, err)
@@ -541,6 +557,18 @@ controller:
   dns:
     cloudflare:
       api_token_file: "`+dnsTokenPath+`"
+    alidns:
+      access_key_id_file: "`+alidnsKeyIDPath+`"
+      access_key_secret_file: "`+alidnsKeySecretPath+`"
+    dnspod:
+      secret_id_file: "`+dnspodSecretIDPath+`"
+      secret_key_file: "`+dnspodSecretKeyPath+`"
+    route53:
+      access_key_id_file: "`+route53KeyIDPath+`"
+      secret_access_key_file: "`+route53SecretKeyPath+`"
+    huaweicloud:
+      access_key_id_file: "`+huaweiKeyIDPath+`"
+      secret_access_key_file: "`+huaweiSecretKeyPath+`"
   notifications:
     smtp:
       host: "smtp.example.com"
@@ -572,6 +600,30 @@ controller:
 	}
 	if got := controller.DNS.Cloudflare.APIToken; got != "dns-token" {
 		t.Fatalf("expected resolved dns token, got %q", got)
+	}
+	if got := controller.DNS.AliDNS.AccessKeyID; got != "alidns-key-id" {
+		t.Fatalf("expected resolved alidns key ID, got %q", got)
+	}
+	if got := controller.DNS.AliDNS.AccessKeySecret; got != "alidns-key-secret" {
+		t.Fatalf("expected resolved alidns key secret, got %q", got)
+	}
+	if got := controller.DNS.DNSPod.SecretID; got != "dnspod-secret-id" {
+		t.Fatalf("expected resolved dnspod secret ID, got %q", got)
+	}
+	if got := controller.DNS.DNSPod.SecretKey; got != "dnspod-secret-key" {
+		t.Fatalf("expected resolved dnspod secret key, got %q", got)
+	}
+	if got := controller.DNS.Route53.AccessKeyID; got != "route53-key-id" {
+		t.Fatalf("expected resolved route53 key ID, got %q", got)
+	}
+	if got := controller.DNS.Route53.SecretAccessKey; got != "route53-secret-key" {
+		t.Fatalf("expected resolved route53 secret key, got %q", got)
+	}
+	if got := controller.DNS.HuaweiCloud.AccessKeyID; got != "huawei-key-id" {
+		t.Fatalf("expected resolved huaweicloud key ID, got %q", got)
+	}
+	if got := controller.DNS.HuaweiCloud.SecretAccessKey; got != "huawei-secret-key" {
+		t.Fatalf("expected resolved huaweicloud secret key, got %q", got)
 	}
 	if got := controller.Notifications.SMTP.Password; got != "smtp-password" {
 		t.Fatalf("expected resolved smtp password, got %q", got)

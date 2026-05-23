@@ -9,6 +9,24 @@ controller:
   dns:
     cloudflare:
       api_token_file: "/app/configs/cloudflare-token.txt"
+    alidns:
+      access_key_id_file: "/app/configs/alidns-access-key-id.txt"
+      access_key_secret_file: "/app/configs/alidns-access-key-secret.txt"
+      zones: ["example.com"]
+    dnspod:
+      secret_id_file: "/app/configs/dnspod-secret-id.txt"
+      secret_key_file: "/app/configs/dnspod-secret-key.txt"
+      zones: ["example.com"]
+    route53:
+      access_key_id_file: "/app/configs/aws-access-key-id.txt"
+      secret_access_key_file: "/app/configs/aws-secret-access-key.txt"
+      region: "us-east-1"
+      zones: ["example.com"]
+    huaweicloud:
+      access_key_id_file: "/app/configs/huaweicloud-access-key-id.txt"
+      secret_access_key_file: "/app/configs/huaweicloud-secret-access-key.txt"
+      region_id: "cn-south-1"
+      zones: ["example.com"]
 ```
 
 Create the API Token file:
@@ -20,6 +38,10 @@ echo "your-cloudflare-api-token" > ./cloudflare-token.txt
 **Cloudflare Token Permissions Required:**
 - Zone:Read
 - DNS:Edit
+
+Supported providers: `cloudflare`, `alidns`, `dnspod`, `route53`, and `huaweicloud`.
+
+Providers other than Cloudflare require `zones` in the controller configuration so service hostnames can be matched to DNS zones.
 
 For platform-side field details, see [DNS Configuration in the configuration guide](./configuration/dns).
 
@@ -41,6 +63,8 @@ network:
     ttl: 120              # TTL in seconds
     # value: "1.2.3.4"    # Optional, manually specify record value
 ```
+
+`provider` can also be `alidns`, `dnspod`, `route53`, or `huaweicloud`. `proxied` and `comment` are Cloudflare-only; using them with other providers fails the DNS update.
 
 ## Automatic IP Derivation
 
@@ -109,9 +133,9 @@ Configure separate services for each domain or use wildcards.
 ### DNS Not Updated
 
 Check:
-1. Is Controller configured with `dns.cloudflare`?
-2. Is Cloudflare API Token valid?
-3. Is domain Zone correct?
+1. Is Controller configured with the matching provider, such as `dns.cloudflare` or `dns.route53`?
+2. Are the provider credentials valid?
+3. For non-Cloudflare providers, does `zones` include the hostname's DNS zone?
 
 ## Related Documentation
 

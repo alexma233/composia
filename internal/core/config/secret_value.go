@@ -61,6 +61,26 @@ func resolveControllerInlineOrFileConfig(controller *ControllerConfig) error {
 		}
 		controller.DNS.Cloudflare.APIToken = resolved
 	}
+	if controller.DNS != nil && controller.DNS.AliDNS != nil {
+		if err := resolveAliDNSInlineOrFileConfig(controller.DNS.AliDNS); err != nil {
+			return err
+		}
+	}
+	if controller.DNS != nil && controller.DNS.DNSPod != nil {
+		if err := resolveDNSPodInlineOrFileConfig(controller.DNS.DNSPod); err != nil {
+			return err
+		}
+	}
+	if controller.DNS != nil && controller.DNS.Route53 != nil {
+		if err := resolveRoute53InlineOrFileConfig(controller.DNS.Route53); err != nil {
+			return err
+		}
+	}
+	if controller.DNS != nil && controller.DNS.HuaweiCloud != nil {
+		if err := resolveHuaweiCloudInlineOrFileConfig(controller.DNS.HuaweiCloud); err != nil {
+			return err
+		}
+	}
 	if controller.Updates != nil && controller.Updates.ForgeAuth != nil {
 		if err := resolveForgeAuthConfigs(controller.Updates.ForgeAuth.GitHub, "controller.updates.forge_auth.github"); err != nil {
 			return err
@@ -87,6 +107,59 @@ func resolveControllerInlineOrFileConfig(controller *ControllerConfig) error {
 			}
 			controller.Notifications.Telegram.BotToken = resolved
 		}
+	}
+	return nil
+}
+
+func resolveAliDNSInlineOrFileConfig(cfg *AliDNSConfig) error {
+	var err error
+	if cfg.AccessKeyID, err = resolveInlineOrFileValue(cfg.AccessKeyID, cfg.AccessKeyIDFile, "controller.dns.alidns.access_key_id", false); err != nil {
+		return err
+	}
+	if cfg.AccessKeySecret, err = resolveInlineOrFileValue(cfg.AccessKeySecret, cfg.AccessKeySecretFile, "controller.dns.alidns.access_key_secret", false); err != nil {
+		return err
+	}
+	if cfg.SecurityToken, err = resolveInlineOrFileValue(cfg.SecurityToken, cfg.SecurityTokenFile, "controller.dns.alidns.security_token", false); err != nil {
+		return err
+	}
+	return nil
+}
+
+func resolveDNSPodInlineOrFileConfig(cfg *DNSPodConfig) error {
+	var err error
+	if cfg.SecretID, err = resolveInlineOrFileValue(cfg.SecretID, cfg.SecretIDFile, "controller.dns.dnspod.secret_id", false); err != nil {
+		return err
+	}
+	if cfg.SecretKey, err = resolveInlineOrFileValue(cfg.SecretKey, cfg.SecretKeyFile, "controller.dns.dnspod.secret_key", false); err != nil {
+		return err
+	}
+	if cfg.SessionToken, err = resolveInlineOrFileValue(cfg.SessionToken, cfg.SessionTokenFile, "controller.dns.dnspod.session_token", false); err != nil {
+		return err
+	}
+	return nil
+}
+
+func resolveRoute53InlineOrFileConfig(cfg *Route53DNSConfig) error {
+	var err error
+	if cfg.AccessKeyID, err = resolveInlineOrFileValue(cfg.AccessKeyID, cfg.AccessKeyIDFile, "controller.dns.route53.access_key_id", false); err != nil {
+		return err
+	}
+	if cfg.SecretAccessKey, err = resolveInlineOrFileValue(cfg.SecretAccessKey, cfg.SecretAccessKeyFile, "controller.dns.route53.secret_access_key", false); err != nil {
+		return err
+	}
+	if cfg.SessionToken, err = resolveInlineOrFileValue(cfg.SessionToken, cfg.SessionTokenFile, "controller.dns.route53.session_token", false); err != nil {
+		return err
+	}
+	return nil
+}
+
+func resolveHuaweiCloudInlineOrFileConfig(cfg *HuaweiCloudDNSConfig) error {
+	var err error
+	if cfg.AccessKeyID, err = resolveInlineOrFileValue(cfg.AccessKeyID, cfg.AccessKeyIDFile, "controller.dns.huaweicloud.access_key_id", false); err != nil {
+		return err
+	}
+	if cfg.SecretAccessKey, err = resolveInlineOrFileValue(cfg.SecretAccessKey, cfg.SecretAccessKeyFile, "controller.dns.huaweicloud.secret_access_key", false); err != nil {
+		return err
 	}
 	return nil
 }

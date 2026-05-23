@@ -122,12 +122,61 @@ type AccessTokenConfig struct {
 }
 
 type ControllerDNSConfig struct {
-	Cloudflare *CloudflareDNSConfig `yaml:"cloudflare"`
+	Cloudflare  *CloudflareDNSConfig  `yaml:"cloudflare"`
+	AliDNS      *AliDNSConfig         `yaml:"alidns"`
+	DNSPod      *DNSPodConfig         `yaml:"dnspod"`
+	Route53     *Route53DNSConfig     `yaml:"route53"`
+	HuaweiCloud *HuaweiCloudDNSConfig `yaml:"huaweicloud"`
 }
 
 type CloudflareDNSConfig struct {
-	APIToken     string `yaml:"api_token"`
-	APITokenFile string `yaml:"api_token_file"`
+	APIToken     string   `yaml:"api_token"`
+	APITokenFile string   `yaml:"api_token_file"`
+	Zones        []string `yaml:"zones"`
+}
+
+type AliDNSConfig struct {
+	AccessKeyID         string   `yaml:"access_key_id"`
+	AccessKeyIDFile     string   `yaml:"access_key_id_file"`
+	AccessKeySecret     string   `yaml:"access_key_secret"`
+	AccessKeySecretFile string   `yaml:"access_key_secret_file"`
+	SecurityToken       string   `yaml:"security_token"`
+	SecurityTokenFile   string   `yaml:"security_token_file"`
+	RegionID            string   `yaml:"region_id"`
+	Zones               []string `yaml:"zones"`
+}
+
+type DNSPodConfig struct {
+	SecretID         string   `yaml:"secret_id"`
+	SecretIDFile     string   `yaml:"secret_id_file"`
+	SecretKey        string   `yaml:"secret_key"`
+	SecretKeyFile    string   `yaml:"secret_key_file"`
+	SessionToken     string   `yaml:"session_token"`
+	SessionTokenFile string   `yaml:"session_token_file"`
+	Region           string   `yaml:"region"`
+	Zones            []string `yaml:"zones"`
+}
+
+type Route53DNSConfig struct {
+	AccessKeyID         string   `yaml:"access_key_id"`
+	AccessKeyIDFile     string   `yaml:"access_key_id_file"`
+	SecretAccessKey     string   `yaml:"secret_access_key"`
+	SecretAccessKeyFile string   `yaml:"secret_access_key_file"`
+	SessionToken        string   `yaml:"session_token"`
+	SessionTokenFile    string   `yaml:"session_token_file"`
+	Region              string   `yaml:"region"`
+	Profile             string   `yaml:"profile"`
+	HostedZoneID        string   `yaml:"hosted_zone_id"`
+	Zones               []string `yaml:"zones"`
+}
+
+type HuaweiCloudDNSConfig struct {
+	AccessKeyID         string   `yaml:"access_key_id"`
+	AccessKeyIDFile     string   `yaml:"access_key_id_file"`
+	SecretAccessKey     string   `yaml:"secret_access_key"`
+	SecretAccessKeyFile string   `yaml:"secret_access_key_file"`
+	RegionID            string   `yaml:"region_id"`
+	Zones               []string `yaml:"zones"`
 }
 
 type ControllerRusticConfig struct {
