@@ -41,6 +41,13 @@ export const enUS = {
     light: "Light",
     dark: "Dark",
     system: "System",
+    accentColors: {
+      blue: "Blue",
+      emerald: "Emerald",
+      violet: "Violet",
+      rose: "Rose",
+      amber: "Amber",
+    },
   },
   common: {
     loading: "Loading",

@@ -22,21 +22,13 @@ const storageKeys = {
 
 export const accentMetadata: Record<
   AccentColor,
-  { label: string; labelZhHans: string; preview: string }
+  { preview: string }
 > = {
-  blue: { label: "Blue", labelZhHans: "蓝色", preview: "hsl(221 83% 53%)" },
-  emerald: {
-    label: "Emerald",
-    labelZhHans: "翠绿",
-    preview: "hsl(160 84% 39%)",
-  },
-  violet: {
-    label: "Violet",
-    labelZhHans: "紫罗兰",
-    preview: "hsl(262 83% 58%)",
-  },
-  rose: { label: "Rose", labelZhHans: "玫瑰", preview: "hsl(347 77% 50%)" },
-  amber: { label: "Amber", labelZhHans: "琥珀", preview: "hsl(38 92% 50%)" },
+  blue: { preview: "hsl(221 83% 53%)" },
+  emerald: { preview: "hsl(160 84% 39%)" },
+  violet: { preview: "hsl(262 83% 58%)" },
+  rose: { preview: "hsl(347 77% 50%)" },
+  amber: { preview: "hsl(38 92% 50%)" },
 };
 
 function readStoredValue(key: string) {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Monitor, Moon, Sun } from 'lucide-svelte';
 
-  import { availableLocales, messages, type Locale } from '$lib/i18n';
+  import { availableLocales, messages } from '$lib/i18n';
   import {
     accentColor,
     accentMetadata,
@@ -24,23 +24,12 @@
 
   const localeLabels: Record<string, string> = {
     'en-US': 'English',
-    'zh-Hans': '简体中文'
+    'zh-Hans': '简体中文',
+    'zh-Hant': '繁體中文',
+    'ja': '日本語',
+    'de': 'Deutsch',
+    'fr': 'Français'
   };
-
-  const accentLabelsZhHans: Record<AccentColor, string> = {
-    blue: '蓝色',
-    emerald: '翠绿',
-    violet: '紫罗兰',
-    rose: '玫瑰',
-    amber: '琥珀'
-  };
-
-  function accentLabel(accent: AccentColor) {
-    const locale = $preferredLocale as string;
-    return locale === 'zh-Hans'
-      ? accentLabelsZhHans[accent]
-      : accentMetadata[accent].label;
-  }
 </script>
 
 <div class="space-y-4">
@@ -70,7 +59,7 @@
           variant={$accentColor === accent ? 'secondary' : 'outline'}
           size="sm"
           class="gap-2"
-          aria-label={accentLabel(accent)}
+          aria-label={$messages.preferences.accentColors[accent]}
           aria-pressed={$accentColor === accent}
           onclick={() => setAccentColor(accent as AccentColor)}
         >
@@ -78,7 +67,7 @@
             class="size-4 rounded-full border border-black/10 shadow-xs dark:border-white/10"
             style={`background:${accentMetadata[accent].preview}`}
           ></span>
-          {accentLabel(accent)}
+          {$messages.preferences.accentColors[accent]}
         </Button>
       {/each}
     </div>

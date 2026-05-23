@@ -32,6 +32,13 @@ export const zhHans = {
     light: "浅色",
     dark: "深色",
     system: "跟随系统",
+    accentColors: {
+      blue: "蓝色",
+      emerald: "翠绿",
+      violet: "紫罗兰",
+      rose: "玫瑰",
+      amber: "琥珀",
+    },
   },
   common: {
     loading: "加载中",

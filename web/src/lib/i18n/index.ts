@@ -1,9 +1,20 @@
 import { derived, writable } from "svelte/store";
 
+import { de } from "$lib/i18n/messages/de";
 import { enUS, type Dictionary } from "$lib/i18n/messages/en-us";
+import { fr } from "$lib/i18n/messages/fr";
+import { ja } from "$lib/i18n/messages/ja";
 import { zhHans } from "$lib/i18n/messages/zh-hans";
+import { zhHant } from "$lib/i18n/messages/zh-hant";
 
-export const availableLocales = ["en-US", "zh-Hans"] as const;
+export const availableLocales = [
+  "en-US",
+  "zh-Hans",
+  "zh-Hant",
+  "ja",
+  "de",
+  "fr",
+] as const;
 
 export type Locale = (typeof availableLocales)[number];
 
@@ -14,6 +25,10 @@ export type { Dictionary };
 const dictionaries: Record<Locale, any> = {
   "en-US": enUS,
   "zh-Hans": zhHans,
+  "zh-Hant": zhHant,
+  ja: ja,
+  de: de,
+  fr: fr,
 };
 
 function normalizeLocale(value: string | null | undefined): Locale {
