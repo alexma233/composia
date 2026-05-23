@@ -30,6 +30,18 @@ Configuration loading is strict: unknown fields are rejected during startup.
 
 For service-side configuration, see [Service Definition](./service-definition).
 
+## Default Config Paths
+
+The three binaries keep their configuration separate by role:
+
+| Binary | Default paths | Notes |
+|--------|---------------|-------|
+| `composia` | `~/.config/composia/cli/config` | User-scoped CLI settings. CLI tokens are stored in the system keyring by default; `--file` stores them at `~/.config/composia/cli/token`. |
+| `composia-controller` | `/etc/composia/controller/config.yaml`, then `./config.yaml` | Pass `--config <path>` to override both defaults. |
+| `composia-agent` | `/etc/composia/agent/config.yaml`, then `./config.yaml` | Pass `--config <path>` to override both defaults. |
+
+CLI controller settings resolve in this order: flags, CLI config, then environment variables. `token`, `token_file`, and `token_keyring` are mutually exclusive in CLI config. `composia config set-token` stores the token in the system keyring by default and writes `token_keyring=default`; use `--file` for `token_file` or `--inline` to store `token` directly in the CLI config. On Linux, the keyring backend requires a Secret Service provider such as GNOME Keyring or KWallet.
+
 ## Platform Configuration Overview
 
 ### Full Configuration Example

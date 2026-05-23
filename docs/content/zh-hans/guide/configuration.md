@@ -30,6 +30,18 @@
 
 服务配置请参考 [服务定义](./service-definition)。
 
+## 默认配置路径
+
+三个二进制按角色分离配置：
+
+| 二进制 | 默认路径 | 说明 |
+|--------|----------|------|
+| `composia` | `~/.config/composia/cli/config` | 用户级 CLI 设置。CLI token 默认保存到系统 keyring；使用 `--file` 时保存到 `~/.config/composia/cli/token`。 |
+| `composia-controller` | `/etc/composia/controller/config.yaml`，然后 `./config.yaml` | 传入 `--config <path>` 会覆盖两个默认路径。 |
+| `composia-agent` | `/etc/composia/agent/config.yaml`，然后 `./config.yaml` | 传入 `--config <path>` 会覆盖两个默认路径。 |
+
+CLI 的 Controller 连接配置按以下顺序解析：flag、CLI config、环境变量。CLI config 中 `token`、`token_file`、`token_keyring` 三选一；`composia config set-token` 默认写入系统 keyring 并在配置中写 `token_keyring=default`，使用 `--file` 时写 `token_file`，使用 `--inline` 时才把 `token` 直接写入 CLI config。Linux 上 keyring 后端需要 GNOME Keyring 或 KWallet 这类 Secret Service provider。
+
 ## 平台配置总览
 
 ### 完整配置示例

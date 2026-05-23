@@ -9,16 +9,24 @@ import (
 	"syscall"
 
 	"forgejo.alexma.top/alexma233/composia/internal/app/agent"
+	"forgejo.alexma.top/alexma233/composia/internal/platform/configpath"
 )
 
+var agentDefaultConfigPaths = []string{"/etc/composia/agent/config.yaml", "./config.yaml"}
+
 func main() {
-	configPath := flag.String("config", "./config.yaml", "agent config path")
+	configPath := flag.String("config", "", "agent config path")
 	flag.Parse()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	if err := agent.Run(ctx, *configPath); err != nil {
+	resolvedConfigPath, err := configpath.Resolve(*configPath, agentDefaultConfigPaths, "agent")
+	if err != nil {
+		log.Printf("composia agent failed: %v", err)
+		os.Exit(1)
+	}
+	if err := agent.Run(ctx, resolvedConfigPath); err != nil {
 		log.Printf("composia agent failed: %v", err)
 		os.Exit(1)
 	}

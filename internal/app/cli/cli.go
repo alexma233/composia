@@ -185,9 +185,9 @@ func PrintUsage(w io.Writer) {
 	_, _ = fmt.Fprint(w, `usage: composia [global flags] <command> [args]
 
 Global flags:
-  --addr string        controller base URL (or COMPOSIA_CONTROLLER_ADDR)
-  --token string       controller access token (or COMPOSIA_ACCESS_TOKEN)
-  --token-file string  file containing the controller access token
+  --addr string        controller base URL (overrides CLI config and COMPOSIA_CONTROLLER_ADDR)
+  --token string       controller access token (mutually exclusive with --token-file)
+  --token-file string  file containing the controller access token (mutually exclusive with --token)
   --header string      custom controller header, repeatable as "Name: value"
   --output mode        output mode: human, json, terse (default human)
   --json              print protobuf JSON for unary RPCs
@@ -208,7 +208,7 @@ Commands:
   repo head|files|get|edit|update|mkdir|mv|rm|history|sync|validate
   secret get|edit|update
   skills list|show
-  config get|set|unset|path
+  config get|set|unset|path|setup|set-token|unset-token
   completion bash|zsh|fish
   version
 `)
@@ -306,11 +306,14 @@ var commandUsages = map[string]string{
 	"skills":                    "usage: composia skills <list|show>\n",
 	"skills list":               "usage: composia skills list\n",
 	"skills show":               "usage: composia skills show <skill>\n",
-	"config":                    "usage: composia config <get|set|unset|path>\n",
+	"config":                    "usage: composia config <get|set|unset|path|setup|set-token|unset-token>\n",
 	"config get":                "usage: composia config get [key]\n",
-	"config set":                "usage: composia config set <addr|token_file> <value>\n",
-	"config unset":              "usage: composia config unset <addr|token_file>\n",
+	"config set":                "usage: composia config set <addr|token_file|token_keyring> <value>\n",
+	"config unset":              "usage: composia config unset <addr|token|token_file|token_keyring>\n",
 	"config path":               "usage: composia config path\n",
+	"config setup":              "usage: composia config setup [--stdin] [--file|--inline]\n",
+	"config set-token":          "usage: composia config set-token [--stdin] [--file|--inline]\n",
+	"config unset-token":        "usage: composia config unset-token\n",
 	"completion":                "usage: composia completion <bash|zsh|fish>\n",
 	"completion bash":           "usage: composia completion bash\n",
 	"completion zsh":            "usage: composia completion zsh\n",
@@ -361,6 +364,9 @@ func parseGlobalFlags(args []string) (globalConfig, []string, error) {
 	if err := fs.Parse(args); err != nil {
 		return globalConfig{}, nil, err
 	}
+	if cfg.token != "" && cfg.tokenFile != "" {
+		return globalConfig{}, nil, errors.New("--token and --token-file are mutually exclusive")
+	}
 	headers, err := parseHeaderFlagValues(headerValues)
 	if err != nil {
 		return globalConfig{}, nil, err
@@ -399,10 +405,10 @@ func (application *app) configureClient() error {
 		return err
 	}
 	if cfg.addr == "" {
-		cfg.addr = os.Getenv(envControllerAddr)
+		cfg.addr = localConfig[cliConfigKeyAddr]
 	}
 	if cfg.addr == "" {
-		cfg.addr = localConfig[cliConfigKeyAddr]
+		cfg.addr = os.Getenv(envControllerAddr)
 	}
 	envHeaders, err := parseHeadersJSON(os.Getenv(envControllerHeaders))
 	if err != nil {
@@ -419,11 +425,18 @@ func (application *app) configureClient() error {
 		}
 		cfg.token = strings.TrimSpace(string(content))
 	}
-	if cfg.token == "" {
-		cfg.token = os.Getenv(envAccessToken)
+	if cfg.token == "" && cfg.tokenFile == "" {
+		cfg.token = localConfig[cliConfigKeyToken]
 	}
 	if cfg.token == "" && cfg.tokenFile == "" {
 		cfg.tokenFile = localConfig[cliConfigKeyTokenFile]
+	}
+	if cfg.token == "" && cfg.tokenFile == "" && localConfig[cliConfigKeyTokenKeyring] != "" {
+		content, err := readCLIKeyringToken(localConfig[cliConfigKeyTokenKeyring])
+		if err != nil {
+			return fmt.Errorf("read controller access token from system keyring %q: %w", localConfig[cliConfigKeyTokenKeyring], err)
+		}
+		cfg.token = strings.TrimSpace(content)
 	}
 	if cfg.token == "" && cfg.tokenFile != "" {
 		content, err := os.ReadFile(cfg.tokenFile)
@@ -432,11 +445,22 @@ func (application *app) configureClient() error {
 		}
 		cfg.token = strings.TrimSpace(string(content))
 	}
+	if cfg.token == "" {
+		cfg.token = os.Getenv(envAccessToken)
+	}
 	if strings.TrimSpace(cfg.addr) == "" {
-		return fmt.Errorf("controller address is required: pass --addr or set %s", envControllerAddr)
+		path, pathErr := cliConfigPath()
+		if pathErr != nil {
+			return pathErr
+		}
+		return fmt.Errorf("controller address is required: pass --addr, set addr in %s, or set %s", path, envControllerAddr)
 	}
 	if strings.TrimSpace(cfg.token) == "" {
-		return fmt.Errorf("controller access token is required: pass --token, --token-file, or set %s", envAccessToken)
+		path, pathErr := cliConfigPath()
+		if pathErr != nil {
+			return pathErr
+		}
+		return fmt.Errorf("controller access token is required: pass --token, pass --token-file, run composia config set-token, set token/token_file/token_keyring in %s, or set %s", path, envAccessToken)
 	}
 
 	baseURL := rpcutil.JoinBaseURL(cfg.addr, rpcutil.ControllerAPIBasePath)

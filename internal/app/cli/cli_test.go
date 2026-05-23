@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"math"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -61,6 +63,12 @@ func TestParseGlobalFlagsRejectsUnknownOutput(t *testing.T) {
 
 func TestParseGlobalFlagsRejectsReservedHeader(t *testing.T) {
 	if _, _, err := parseGlobalFlags([]string{"--header", "Authorization: Bearer token", "service", "list"}); err == nil {
+		t.Fatalf("expected error")
+	}
+}
+
+func TestParseGlobalFlagsRejectsTokenAndTokenFile(t *testing.T) {
+	if _, _, err := parseGlobalFlags([]string{"--token", "secret", "--token-file", "/tmp/token", "service", "list"}); err == nil {
 		t.Fatalf("expected error")
 	}
 }
@@ -374,6 +382,175 @@ func TestConfigSetRejectsMultilineValue(t *testing.T) {
 	}
 }
 
+func TestCLIConfigPathUsesXDGCLIConfig(t *testing.T) {
+	configHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+	path, err := cliConfigPath()
+	if err != nil {
+		t.Fatalf("cliConfigPath returned error: %v", err)
+	}
+	want := filepath.Join(configHome, "composia", "cli", "config")
+	if path != want {
+		t.Fatalf("path = %q, want %q", path, want)
+	}
+	tokenPath, err := cliTokenPath()
+	if err != nil {
+		t.Fatalf("cliTokenPath returned error: %v", err)
+	}
+	if tokenPath != filepath.Join(configHome, "composia", "cli", "token") {
+		t.Fatalf("token path = %q", tokenPath)
+	}
+}
+
+func TestConfigureClientUsesConfigBeforeEnv(t *testing.T) {
+	configHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+	t.Setenv(envControllerAddr, "https://env-controller.example")
+	t.Setenv(envAccessToken, "env-token")
+	tokenPath := filepath.Join(configHome, "composia", "cli", "token")
+	if err := os.MkdirAll(filepath.Dir(tokenPath), 0o700); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	if err := os.WriteFile(tokenPath, []byte("config-token\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile token returned error: %v", err)
+	}
+	if err := saveCLIConfig(cliConfig{cliConfigKeyAddr: "https://config-controller.example", cliConfigKeyTokenFile: tokenPath}); err != nil {
+		t.Fatalf("saveCLIConfig returned error: %v", err)
+	}
+	application := &app{cfg: globalConfig{headers: map[string]string{}}}
+	if err := application.configureClient(); err != nil {
+		t.Fatalf("configureClient returned error: %v", err)
+	}
+	if application.cfg.addr != "https://config-controller.example" {
+		t.Fatalf("addr = %q", application.cfg.addr)
+	}
+	if application.cfg.token != "config-token" {
+		t.Fatalf("token = %q", application.cfg.token)
+	}
+}
+
+func TestConfigureClientReadsConfigKeyringBeforeEnv(t *testing.T) {
+	configHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+	t.Setenv(envControllerAddr, "https://env-controller.example")
+	t.Setenv(envAccessToken, "env-token")
+	secrets := stubCLIKeyring(t)
+	secrets[cliKeyringAccount("default")] = "keyring-token"
+	if err := saveCLIConfig(cliConfig{cliConfigKeyAddr: "https://config-controller.example", cliConfigKeyTokenKeyring: defaultCLIKeyringName}); err != nil {
+		t.Fatalf("saveCLIConfig returned error: %v", err)
+	}
+	application := &app{cfg: globalConfig{headers: map[string]string{}}}
+	if err := application.configureClient(); err != nil {
+		t.Fatalf("configureClient returned error: %v", err)
+	}
+	if application.cfg.token != "keyring-token" {
+		t.Fatalf("token = %q", application.cfg.token)
+	}
+}
+
+func TestParseCLIConfigRejectsTokenAndTokenFile(t *testing.T) {
+	_, err := parseCLIConfig(strings.NewReader("token=inline\ntoken_file=/run/secrets/composia\ntoken_keyring=default\n"))
+	if err == nil || !strings.Contains(err.Error(), "mutually exclusive") {
+		t.Fatalf("expected mutually exclusive error, got %v", err)
+	}
+}
+
+func TestConfigGetRedactsInlineToken(t *testing.T) {
+	configHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+	if err := saveCLIConfig(cliConfig{cliConfigKeyToken: "secret"}); err != nil {
+		t.Fatalf("saveCLIConfig returned error: %v", err)
+	}
+	var out bytes.Buffer
+	application := &app{out: &out, cfg: globalConfig{output: outputModeHuman}}
+	if err := application.runConfigGet([]string{cliConfigKeyToken}); err != nil {
+		t.Fatalf("runConfigGet returned error: %v", err)
+	}
+	if strings.TrimSpace(out.String()) != redactedSecretValue {
+		t.Fatalf("token output = %q", out.String())
+	}
+}
+
+func TestConfigSetTokenStdinWritesDefaultKeyring(t *testing.T) {
+	configHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+	secrets := stubCLIKeyring(t)
+	stdin := replaceStdin(t, "secret-token\n")
+	defer stdin()
+	var out bytes.Buffer
+	application := &app{out: &out}
+	if err := application.runConfigSetToken([]string{"--stdin"}); err != nil {
+		t.Fatalf("runConfigSetToken returned error: %v", err)
+	}
+	if secrets[cliKeyringAccount("default")] != "secret-token" {
+		t.Fatalf("keyring token = %q", secrets[cliKeyringAccount("default")])
+	}
+	cfg, err := loadCLIConfig()
+	if err != nil {
+		t.Fatalf("loadCLIConfig returned error: %v", err)
+	}
+	if cfg[cliConfigKeyTokenKeyring] != defaultCLIKeyringName || cfg[cliConfigKeyTokenFile] != "" || cfg[cliConfigKeyToken] != "" {
+		t.Fatalf("cfg = %+v", cfg)
+	}
+}
+
+func TestConfigSetTokenFileWritesDefaultTokenFile(t *testing.T) {
+	configHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+	stdin := replaceStdin(t, "secret-token\n")
+	defer stdin()
+	var out bytes.Buffer
+	application := &app{out: &out}
+	if err := application.runConfigSetToken([]string{"--stdin", "--file"}); err != nil {
+		t.Fatalf("runConfigSetToken returned error: %v", err)
+	}
+	tokenPath, err := cliTokenPath()
+	if err != nil {
+		t.Fatalf("cliTokenPath returned error: %v", err)
+	}
+	content, err := os.ReadFile(tokenPath)
+	if err != nil {
+		t.Fatalf("ReadFile token returned error: %v", err)
+	}
+	if string(content) != "secret-token\n" {
+		t.Fatalf("token file = %q", content)
+	}
+	cfg, err := loadCLIConfig()
+	if err != nil {
+		t.Fatalf("loadCLIConfig returned error: %v", err)
+	}
+	if cfg[cliConfigKeyTokenFile] != tokenPath || cfg[cliConfigKeyToken] != "" || cfg[cliConfigKeyTokenKeyring] != "" {
+		t.Fatalf("cfg = %+v", cfg)
+	}
+}
+
+func TestConfigSetTokenRejectsFileAndInline(t *testing.T) {
+	var out bytes.Buffer
+	application := &app{out: &out}
+	err := application.runConfigSetToken([]string{"--file", "--inline"})
+	if err == nil || !strings.Contains(err.Error(), "mutually exclusive") {
+		t.Fatalf("expected mutually exclusive error, got %v", err)
+	}
+}
+
+func TestConfigUnsetTokenDeletesKeyringToken(t *testing.T) {
+	configHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+	secrets := stubCLIKeyring(t)
+	secrets[cliKeyringAccount("default")] = "secret-token"
+	if err := saveCLIConfig(cliConfig{cliConfigKeyTokenKeyring: defaultCLIKeyringName}); err != nil {
+		t.Fatalf("saveCLIConfig returned error: %v", err)
+	}
+	var out bytes.Buffer
+	application := &app{out: &out}
+	if err := application.runConfigUnsetToken(nil); err != nil {
+		t.Fatalf("runConfigUnsetToken returned error: %v", err)
+	}
+	if _, ok := secrets[cliKeyringAccount("default")]; ok {
+		t.Fatalf("keyring token was not deleted")
+	}
+}
+
 func TestServiceActionUsageMatchesAction(t *testing.T) {
 	err := (&app{}).runServiceAction("backup", nil)
 	if err == nil {
@@ -438,15 +615,62 @@ func TestSkillsShowDoesNotRequireControllerConfig(t *testing.T) {
 }
 
 func TestParseCLIConfig(t *testing.T) {
-	cfg, err := parseCLIConfig(strings.NewReader("addr=https://controller.example\ntoken_file=/run/secrets/composia\n"))
+	cfg, err := parseCLIConfig(strings.NewReader("addr=https://controller.example\ntoken_keyring=default\n"))
 	if err != nil {
 		t.Fatalf("parseCLIConfig returned error: %v", err)
 	}
 	if cfg[cliConfigKeyAddr] != "https://controller.example" {
 		t.Fatalf("addr = %q", cfg[cliConfigKeyAddr])
 	}
-	if cfg[cliConfigKeyTokenFile] != "/run/secrets/composia" {
-		t.Fatalf("token_file = %q", cfg[cliConfigKeyTokenFile])
+	if cfg[cliConfigKeyTokenKeyring] != "default" {
+		t.Fatalf("token_keyring = %q", cfg[cliConfigKeyTokenKeyring])
+	}
+}
+
+func stubCLIKeyring(t *testing.T) map[string]string {
+	t.Helper()
+	secrets := map[string]string{}
+	old := cliKeyring
+	cliKeyring = keyringBackend{
+		Get: func(service, user string) (string, error) {
+			secret, ok := secrets[user]
+			if !ok {
+				return "", errors.New("not found")
+			}
+			return secret, nil
+		},
+		Set: func(service, user, password string) error {
+			secrets[user] = password
+			return nil
+		},
+		Delete: func(service, user string) error {
+			delete(secrets, user)
+			return nil
+		},
+	}
+	t.Cleanup(func() { cliKeyring = old })
+	return secrets
+}
+
+func replaceStdin(t *testing.T, content string) func() {
+	t.Helper()
+	file, err := os.CreateTemp(t.TempDir(), "stdin-*")
+	if err != nil {
+		t.Fatalf("CreateTemp returned error: %v", err)
+	}
+	if _, err := file.WriteString(content); err != nil {
+		_ = file.Close()
+		t.Fatalf("WriteString returned error: %v", err)
+	}
+	if _, err := file.Seek(0, 0); err != nil {
+		_ = file.Close()
+		t.Fatalf("Seek returned error: %v", err)
+	}
+	old := os.Stdin
+	os.Stdin = file
+	return func() {
+		os.Stdin = old
+		_ = file.Close()
 	}
 }
 
