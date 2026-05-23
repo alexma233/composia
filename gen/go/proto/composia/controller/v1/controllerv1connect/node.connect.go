@@ -43,9 +43,6 @@ const (
 	// NodeQueryServiceGetNodeProcedure is the fully-qualified name of the NodeQueryService's GetNode
 	// RPC.
 	NodeQueryServiceGetNodeProcedure = "/composia.controller.v1.NodeQueryService/GetNode"
-	// NodeQueryServiceGetNodeTasksProcedure is the fully-qualified name of the NodeQueryService's
-	// GetNodeTasks RPC.
-	NodeQueryServiceGetNodeTasksProcedure = "/composia.controller.v1.NodeQueryService/GetNodeTasks"
 	// NodeQueryServiceGetNodeDockerStatsProcedure is the fully-qualified name of the NodeQueryService's
 	// GetNodeDockerStats RPC.
 	NodeQueryServiceGetNodeDockerStatsProcedure = "/composia.controller.v1.NodeQueryService/GetNodeDockerStats"
@@ -99,8 +96,6 @@ type NodeQueryServiceClient interface {
 	ListNodes(context.Context, *connect.Request[v1.ListNodesRequest]) (*connect.Response[v1.ListNodesResponse], error)
 	// GetNode returns one node by ID.
 	GetNode(context.Context, *connect.Request[v1.GetNodeRequest]) (*connect.Response[v1.GetNodeResponse], error)
-	// GetNodeTasks returns tasks related to one node.
-	GetNodeTasks(context.Context, *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error)
 	// GetNodeDockerStats returns the latest Docker stats snapshot for one node.
 	GetNodeDockerStats(context.Context, *connect.Request[v1.GetNodeDockerStatsRequest]) (*connect.Response[v1.GetNodeDockerStatsResponse], error)
 }
@@ -128,12 +123,6 @@ func NewNodeQueryServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(nodeQueryServiceMethods.ByName("GetNode")),
 			connect.WithClientOptions(opts...),
 		),
-		getNodeTasks: connect.NewClient[v1.GetNodeTasksRequest, v1.GetNodeTasksResponse](
-			httpClient,
-			baseURL+NodeQueryServiceGetNodeTasksProcedure,
-			connect.WithSchema(nodeQueryServiceMethods.ByName("GetNodeTasks")),
-			connect.WithClientOptions(opts...),
-		),
 		getNodeDockerStats: connect.NewClient[v1.GetNodeDockerStatsRequest, v1.GetNodeDockerStatsResponse](
 			httpClient,
 			baseURL+NodeQueryServiceGetNodeDockerStatsProcedure,
@@ -147,7 +136,6 @@ func NewNodeQueryServiceClient(httpClient connect.HTTPClient, baseURL string, op
 type nodeQueryServiceClient struct {
 	listNodes          *connect.Client[v1.ListNodesRequest, v1.ListNodesResponse]
 	getNode            *connect.Client[v1.GetNodeRequest, v1.GetNodeResponse]
-	getNodeTasks       *connect.Client[v1.GetNodeTasksRequest, v1.GetNodeTasksResponse]
 	getNodeDockerStats *connect.Client[v1.GetNodeDockerStatsRequest, v1.GetNodeDockerStatsResponse]
 }
 
@@ -159,11 +147,6 @@ func (c *nodeQueryServiceClient) ListNodes(ctx context.Context, req *connect.Req
 // GetNode calls composia.controller.v1.NodeQueryService.GetNode.
 func (c *nodeQueryServiceClient) GetNode(ctx context.Context, req *connect.Request[v1.GetNodeRequest]) (*connect.Response[v1.GetNodeResponse], error) {
 	return c.getNode.CallUnary(ctx, req)
-}
-
-// GetNodeTasks calls composia.controller.v1.NodeQueryService.GetNodeTasks.
-func (c *nodeQueryServiceClient) GetNodeTasks(ctx context.Context, req *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error) {
-	return c.getNodeTasks.CallUnary(ctx, req)
 }
 
 // GetNodeDockerStats calls composia.controller.v1.NodeQueryService.GetNodeDockerStats.
@@ -178,8 +161,6 @@ type NodeQueryServiceHandler interface {
 	ListNodes(context.Context, *connect.Request[v1.ListNodesRequest]) (*connect.Response[v1.ListNodesResponse], error)
 	// GetNode returns one node by ID.
 	GetNode(context.Context, *connect.Request[v1.GetNodeRequest]) (*connect.Response[v1.GetNodeResponse], error)
-	// GetNodeTasks returns tasks related to one node.
-	GetNodeTasks(context.Context, *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error)
 	// GetNodeDockerStats returns the latest Docker stats snapshot for one node.
 	GetNodeDockerStats(context.Context, *connect.Request[v1.GetNodeDockerStatsRequest]) (*connect.Response[v1.GetNodeDockerStatsResponse], error)
 }
@@ -203,12 +184,6 @@ func NewNodeQueryServiceHandler(svc NodeQueryServiceHandler, opts ...connect.Han
 		connect.WithSchema(nodeQueryServiceMethods.ByName("GetNode")),
 		connect.WithHandlerOptions(opts...),
 	)
-	nodeQueryServiceGetNodeTasksHandler := connect.NewUnaryHandler(
-		NodeQueryServiceGetNodeTasksProcedure,
-		svc.GetNodeTasks,
-		connect.WithSchema(nodeQueryServiceMethods.ByName("GetNodeTasks")),
-		connect.WithHandlerOptions(opts...),
-	)
 	nodeQueryServiceGetNodeDockerStatsHandler := connect.NewUnaryHandler(
 		NodeQueryServiceGetNodeDockerStatsProcedure,
 		svc.GetNodeDockerStats,
@@ -221,8 +196,6 @@ func NewNodeQueryServiceHandler(svc NodeQueryServiceHandler, opts ...connect.Han
 			nodeQueryServiceListNodesHandler.ServeHTTP(w, r)
 		case NodeQueryServiceGetNodeProcedure:
 			nodeQueryServiceGetNodeHandler.ServeHTTP(w, r)
-		case NodeQueryServiceGetNodeTasksProcedure:
-			nodeQueryServiceGetNodeTasksHandler.ServeHTTP(w, r)
 		case NodeQueryServiceGetNodeDockerStatsProcedure:
 			nodeQueryServiceGetNodeDockerStatsHandler.ServeHTTP(w, r)
 		default:
@@ -240,10 +213,6 @@ func (UnimplementedNodeQueryServiceHandler) ListNodes(context.Context, *connect.
 
 func (UnimplementedNodeQueryServiceHandler) GetNode(context.Context, *connect.Request[v1.GetNodeRequest]) (*connect.Response[v1.GetNodeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeQueryService.GetNode is not implemented"))
-}
-
-func (UnimplementedNodeQueryServiceHandler) GetNodeTasks(context.Context, *connect.Request[v1.GetNodeTasksRequest]) (*connect.Response[v1.GetNodeTasksResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.NodeQueryService.GetNodeTasks is not implemented"))
 }
 
 func (UnimplementedNodeQueryServiceHandler) GetNodeDockerStats(context.Context, *connect.Request[v1.GetNodeDockerStatsRequest]) (*connect.Response[v1.GetNodeDockerStatsResponse], error) {

@@ -143,9 +143,8 @@ During deployment, you can view progress in real-time on the **Tasks** page:
 
 Use these ConnectRPC methods for deployment operations:
 
-- `composia.controller.v1.ServiceCommandService/RunServiceAction` for deploy, update, stop, restart, backup, and DNS update
+- `composia.controller.v1.ServiceCommandService/RunServiceAction` for deploy, update, stop, restart, backup, DNS update, and node-scoped single-instance actions with `node_ids`
 - `composia.controller.v1.ServiceCommandService/MigrateService` for migration
-- `composia.controller.v1.ServiceInstanceService/RunServiceInstanceAction` for single-instance actions
 
 These identifiers are RPC method names. Actual controller HTTP requests use the `/api/controller` prefix, for example `/api/controller/composia.controller.v1.ServiceCommandService/RunServiceAction`.
 

@@ -489,6 +489,10 @@ export const zhHans = {
       title: "控制器",
       version: "版本",
       noData: "暂无控制器数据。",
+      reloadConfig: "重载配置",
+      reloading: "重载中...",
+      reloadAccepted: "控制器配置重载已接受。",
+      reloadFailed: "重载控制器配置失败。",
     },
     repoSync: {
       title: "仓库同步",
@@ -502,6 +506,11 @@ export const zhHans = {
       noRepoState: "暂无仓库状态数据。",
       syncedSuccessfully: "仓库同步成功",
       head: "HEAD",
+      commitHistory: "提交历史",
+      noCommits: "暂无提交记录。",
+      loadMore: "加载更多",
+      loadingCommits: "加载中...",
+      commitFailed: "加载提交历史失败。",
     },
     rustic: {
       title: "Rustic 维护",

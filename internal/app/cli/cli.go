@@ -190,18 +190,18 @@ Global flags:
   --terse             print compact text for coding agents and scripts
 
 Commands:
-  system status|reload
-  service list|get|update-candidates|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate
+  system status|reload|capabilities
+  service list|get|workspace|update-candidates|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate
   instance list|get|deploy|update|stop|restart|backup
   task list|get|logs|wait|run-again|approve|reject
   backup list|get|restore
-  node list|get|tasks|stats|reload-caddy|prune
+  node list|get|tasks|stats|sync-caddy-files|reload-caddy|prune
   container list|get|logs|start|stop|restart|remove|exec
   network list|get|remove
   volume list|get|remove
   image list|get|remove
   rustic init|forget|prune
-  repo head|files|get|edit|update|history|sync|validate
+  repo head|files|get|edit|update|mkdir|mv|rm|history|sync|validate
   secret get|edit|update
   skills list|show
   config get|set|unset|path
@@ -211,12 +211,16 @@ Commands:
 }
 
 var commandUsages = map[string]string{
-	"system":                    "usage: composia system <status|reload>\n",
-	"service":                   "usage: composia service <list|get|update-candidates|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate>\n",
+	"system":                    "usage: composia system <status|reload|capabilities>\n",
+	"service":                   "usage: composia service <list|get|workspace|update-candidates|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate>\n",
 	"system status":             "usage: composia system status\n",
 	"system reload":             "usage: composia system reload\n",
+	"system capabilities":       "usage: composia system capabilities\n",
 	"service list":              "usage: composia service list [--status status] [--page-size n] [--page n]\n",
 	"service get":               "usage: composia service get [--containers] <service>\n",
+	"service workspace":         "usage: composia service workspace <list|get>\n",
+	"service workspace list":    "usage: composia service workspace list\n",
+	"service workspace get":     "usage: composia service workspace get <folder>\n",
 	"service update-candidates": "usage: composia service update-candidates [--node node] <service>\n",
 	"service deploy":            "usage: composia service deploy [--wait] [--follow] [--timeout duration] [--node node] [--recreate auto|no_recreate|force_recreate] <service>\n",
 	"service update":            "usage: composia service update [--wait] [--follow] [--timeout duration] [--node node] [--image name] [--use-detected] [--all-detected] [--set-image name=tag] [--recreate auto|no_recreate|force_recreate] <service>\n",
@@ -246,11 +250,12 @@ var commandUsages = map[string]string{
 	"backup list":               "usage: composia backup list [--service name] [--status status] [--data name]\n",
 	"backup get":                "usage: composia backup get <backup>\n",
 	"backup restore":            "usage: composia backup restore [--wait] [--follow] [--timeout duration] --node node <backup>\n",
-	"node":                      "usage: composia node <list|get|tasks|stats|reload-caddy|prune>\n",
+	"node":                      "usage: composia node <list|get|tasks|stats|sync-caddy-files|reload-caddy|prune>\n",
 	"node list":                 "usage: composia node list\n",
 	"node get":                  "usage: composia node get <node>\n",
 	"node tasks":                "usage: composia node tasks [--status status] <node>\n",
 	"node stats":                "usage: composia node stats <node>\n",
+	"node sync-caddy-files":     "usage: composia node sync-caddy-files [--wait] [--follow] [--timeout duration] [--service name] [--full-rebuild] <node>\n",
 	"node reload-caddy":         "usage: composia node reload-caddy [--wait] [--follow] [--timeout duration] <node>\n",
 	"node prune":                "usage: composia node prune [--wait] [--follow] [--timeout duration] [--target all|container|image|network|volume] <node>\n",
 	"container":                 "usage: composia container <list|get|logs|start|stop|restart|remove|exec>\n",
@@ -278,12 +283,15 @@ var commandUsages = map[string]string{
 	"rustic init":               "usage: composia rustic init [--wait] [--follow] [--timeout duration] <node>\n",
 	"rustic forget":             "usage: composia rustic forget [--wait] [--follow] [--timeout duration] [--service name] [--data name] <node>\n",
 	"rustic prune":              "usage: composia rustic prune [--wait] [--follow] [--timeout duration] [--service name] [--data name] <node>\n",
-	"repo":                      "usage: composia repo <head|files|get|edit|update|history|sync|validate>\n",
+	"repo":                      "usage: composia repo <head|files|get|edit|update|mkdir|mv|rm|history|sync|validate>\n",
 	"repo head":                 "usage: composia repo head\n",
 	"repo files":                "usage: composia repo files [--recursive] [path]\n",
 	"repo get":                  "usage: composia repo get <path>\n",
 	"repo edit":                 "usage: composia repo edit [--create] [--message text] <path>\n",
 	"repo update":               "usage: composia repo update --file file [--message text] <path>\n",
+	"repo mkdir":                "usage: composia repo mkdir [--message text] <path>\n",
+	"repo mv":                   "usage: composia repo mv [--message text] <source> <destination>\n",
+	"repo rm":                   "usage: composia repo rm [--message text] <path>\n",
 	"repo history":              "usage: composia repo history [--page-size n] [--cursor cursor]\n",
 	"repo sync":                 "usage: composia repo sync\n",
 	"repo validate":             "usage: composia repo validate\n",

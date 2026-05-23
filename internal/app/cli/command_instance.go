@@ -71,7 +71,7 @@ func (application *app) runInstanceGet(args []string) error {
 }
 
 func (application *app) runInstanceAction(actionName string, args []string) error {
-	action, err := instanceActionFromName(actionName)
+	action, err := serviceActionFromName(actionName)
 	if err != nil {
 		return err
 	}
@@ -91,11 +91,11 @@ func (application *app) runInstanceAction(actionName string, args []string) erro
 	if err != nil {
 		return err
 	}
-	response, err := application.client.instances.RunServiceInstanceAction(application.ctx, newRequest(&controllerv1.RunServiceInstanceActionRequest{ServiceName: fs.Arg(0), NodeId: fs.Arg(1), Action: action, ComposeRecreateMode: composeRecreateMode}))
+	response, err := application.client.serviceCommands.RunServiceAction(application.ctx, newRequest(&controllerv1.RunServiceActionRequest{ServiceName: fs.Arg(0), NodeIds: []string{fs.Arg(1)}, Action: action, ComposeRecreateMode: composeRecreateMode}))
 	if err != nil {
 		return err
 	}
-	return application.printTaskActionWithWait(response.Msg, waitOptions)
+	return application.printServiceActionWithWait(response.Msg, waitOptions)
 }
 
 func (application *app) runInstanceBackup(args []string) error {
@@ -151,19 +151,4 @@ func (application *app) printInstanceDetail(instance *controllerv1.ServiceInstan
 		})
 	}
 	return application.writeTable([]string{"CONTAINER", "NAME", "IMAGE", "STATE", "STATUS", "PROJECT", "SERVICE"}, rows)
-}
-
-func instanceActionFromName(name string) (controllerv1.ServiceInstanceAction, error) {
-	switch name {
-	case "deploy":
-		return controllerv1.ServiceInstanceAction_SERVICE_INSTANCE_ACTION_DEPLOY, nil
-	case "update":
-		return controllerv1.ServiceInstanceAction_SERVICE_INSTANCE_ACTION_UPDATE, nil
-	case "stop":
-		return controllerv1.ServiceInstanceAction_SERVICE_INSTANCE_ACTION_STOP, nil
-	case "restart":
-		return controllerv1.ServiceInstanceAction_SERVICE_INSTANCE_ACTION_RESTART, nil
-	default:
-		return controllerv1.ServiceInstanceAction_SERVICE_INSTANCE_ACTION_UNSPECIFIED, fmt.Errorf("unknown instance action %q", name)
-	}
 }

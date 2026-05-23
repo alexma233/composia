@@ -128,60 +128,6 @@ func (server *serviceQueryServer) GetServiceWorkspace(ctx context.Context, req *
 	return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("service folder %q not found", folder))
 }
 
-func (server *serviceQueryServer) GetServiceTasks(ctx context.Context, req *connect.Request[controllerv1.GetServiceTasksRequest]) (*connect.Response[controllerv1.GetServiceTasksResponse], error) {
-	if req.Msg == nil || req.Msg.GetServiceName() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
-	}
-	if _, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName()); err != nil {
-		return nil, connect.NewError(connect.CodeNotFound, err)
-	}
-	statusFilters := []string(nil)
-	if status, ok := taskStatusFromProto(req.Msg.GetStatus()); ok {
-		statusFilters = []string{string(status)}
-	}
-	tasks, totalCount, err := server.db.ListTasks(ctx, statusFilters, []string{req.Msg.GetServiceName()}, nil, nil, nil, nil, nil, nil, req.Msg.GetPage(), req.Msg.GetPageSize())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	response := &controllerv1.GetServiceTasksResponse{
-		Tasks:      make([]*controllerv1.TaskSummary, 0, len(tasks)),
-		TotalCount: totalCount,
-	}
-	for _, record := range tasks {
-		response.Tasks = append(response.Tasks, taskSummaryMessage(record))
-	}
-	return connect.NewResponse(response), nil
-}
-
-func (server *serviceQueryServer) GetServiceBackups(ctx context.Context, req *connect.Request[controllerv1.GetServiceBackupsRequest]) (*connect.Response[controllerv1.GetServiceBackupsResponse], error) {
-	if req.Msg == nil || req.Msg.GetServiceName() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
-	}
-	if _, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName()); err != nil {
-		return nil, connect.NewError(connect.CodeNotFound, err)
-	}
-	statusFilters := []string(nil)
-	if req.Msg.GetStatus() != "" {
-		statusFilters = []string{req.Msg.GetStatus()}
-	}
-	dataNameFilters := []string(nil)
-	if req.Msg.GetDataName() != "" {
-		dataNameFilters = []string{req.Msg.GetDataName()}
-	}
-	backups, totalCount, err := server.db.ListBackups(ctx, []string{req.Msg.GetServiceName()}, statusFilters, dataNameFilters, nil, nil, nil, nil, nil, req.Msg.GetPage(), req.Msg.GetPageSize())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	response := &controllerv1.GetServiceBackupsResponse{
-		Backups:    make([]*controllerv1.BackupSummary, 0, len(backups)),
-		TotalCount: totalCount,
-	}
-	for _, backup := range backups {
-		response.Backups = append(response.Backups, backupSummaryMessage(backup))
-	}
-	return connect.NewResponse(response), nil
-}
-
 func (server *serviceQueryServer) listServiceWorkspaceSummaries(ctx context.Context) ([]*controllerv1.ServiceWorkspaceSummary, error) {
 	if server.cfg == nil || strings.TrimSpace(server.cfg.RepoDir) == "" {
 		return nil, errors.New("controller repo_dir is not configured")

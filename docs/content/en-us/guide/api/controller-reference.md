@@ -1,11 +1,6 @@
 # Protocol Documentation
 <a name="top"></a>
 
-This page lists protobuf RPC method names. For live HTTP requests, prepend the controller API prefix `/api/controller`.
-
-- RPC method name example: `composia.controller.v1.SystemService/GetSystemStatus`
-- HTTP request path example: `/api/controller/composia.controller.v1.SystemService/GetSystemStatus`
-
 ## Table of Contents
 
 - [proto/composia/controller/v1/task.proto](#proto_composia_controller_v1_task-proto)
@@ -20,6 +15,12 @@ This page lists protobuf RPC method names. For live HTTP requests, prepend the c
     - [TaskActionResponse](#composia-controller-v1-TaskActionResponse)
     - [TaskStepSummary](#composia-controller-v1-TaskStepSummary)
     - [TaskSummary](#composia-controller-v1-TaskSummary)
+  
+    - [TaskConfirmationDecision](#composia-controller-v1-TaskConfirmationDecision)
+    - [TaskSource](#composia-controller-v1-TaskSource)
+    - [TaskStatus](#composia-controller-v1-TaskStatus)
+    - [TaskStepName](#composia-controller-v1-TaskStepName)
+    - [TaskType](#composia-controller-v1-TaskType)
   
     - [TaskService](#composia-controller-v1-TaskService)
   
@@ -41,6 +42,8 @@ This page lists protobuf RPC method names. For live HTTP requests, prepend the c
     - [ReloadControllerConfigResponse](#composia-controller-v1-ReloadControllerConfigResponse)
     - [SecretsConfigSummary](#composia-controller-v1-SecretsConfigSummary)
   
+    - [CapabilityReasonCode](#composia-controller-v1-CapabilityReasonCode)
+  
     - [SystemService](#composia-controller-v1-SystemService)
   
 - [proto/composia/controller/v1/backup.proto](#proto_composia_controller_v1_backup-proto)
@@ -52,7 +55,8 @@ This page lists protobuf RPC method names. For live HTTP requests, prepend the c
     - [ListBackupsResponse](#composia-controller-v1-ListBackupsResponse)
     - [RestoreBackupRequest](#composia-controller-v1-RestoreBackupRequest)
   
-    - [BackupRecordService](#composia-controller-v1-BackupRecordService)
+    - [BackupCommandService](#composia-controller-v1-BackupCommandService)
+    - [BackupQueryService](#composia-controller-v1-BackupQueryService)
   
 - [proto/composia/controller/v1/container.proto](#proto_composia_controller_v1_container-proto)
     - [GetContainerLogsRequest](#composia-controller-v1-GetContainerLogsRequest)
@@ -64,10 +68,12 @@ This page lists protobuf RPC method names. For live HTTP requests, prepend the c
     - [RemoveNetworkRequest](#composia-controller-v1-RemoveNetworkRequest)
     - [RemoveVolumeRequest](#composia-controller-v1-RemoveVolumeRequest)
     - [RunContainerActionRequest](#composia-controller-v1-RunContainerActionRequest)
+    - [RunContainerExecRequest](#composia-controller-v1-RunContainerExecRequest)
+    - [RunContainerExecResponse](#composia-controller-v1-RunContainerExecResponse)
   
     - [ContainerAction](#composia-controller-v1-ContainerAction)
   
-    - [ContainerService](#composia-controller-v1-ContainerService)
+    - [DockerCommandService](#composia-controller-v1-DockerCommandService)
   
 - [proto/composia/controller/v1/node.proto](#proto_composia_controller_v1_node-proto)
     - [ContainerInfo](#composia-controller-v1-ContainerInfo)
@@ -79,8 +85,6 @@ This page lists protobuf RPC method names. For live HTTP requests, prepend the c
     - [GetNodeDockerStatsResponse](#composia-controller-v1-GetNodeDockerStatsResponse)
     - [GetNodeRequest](#composia-controller-v1-GetNodeRequest)
     - [GetNodeResponse](#composia-controller-v1-GetNodeResponse)
-    - [GetNodeTasksRequest](#composia-controller-v1-GetNodeTasksRequest)
-    - [GetNodeTasksResponse](#composia-controller-v1-GetNodeTasksResponse)
     - [ImageInfo](#composia-controller-v1-ImageInfo)
     - [InitNodeRusticRequest](#composia-controller-v1-InitNodeRusticRequest)
     - [InitNodeRusticResponse](#composia-controller-v1-InitNodeRusticResponse)
@@ -123,9 +127,7 @@ This page lists protobuf RPC method names. For live HTTP requests, prepend the c
   
 - [proto/composia/controller/v1/repo.proto](#proto_composia_controller_v1_repo-proto)
     - [CreateRepoDirectoryRequest](#composia-controller-v1-CreateRepoDirectoryRequest)
-    - [CreateRepoDirectoryResponse](#composia-controller-v1-CreateRepoDirectoryResponse)
     - [DeleteRepoPathRequest](#composia-controller-v1-DeleteRepoPathRequest)
-    - [DeleteRepoPathResponse](#composia-controller-v1-DeleteRepoPathResponse)
     - [GetRepoFileRequest](#composia-controller-v1-GetRepoFileRequest)
     - [GetRepoFileResponse](#composia-controller-v1-GetRepoFileResponse)
     - [GetRepoHeadRequest](#composia-controller-v1-GetRepoHeadRequest)
@@ -135,14 +137,13 @@ This page lists protobuf RPC method names. For live HTTP requests, prepend the c
     - [ListRepoFilesRequest](#composia-controller-v1-ListRepoFilesRequest)
     - [ListRepoFilesResponse](#composia-controller-v1-ListRepoFilesResponse)
     - [MoveRepoPathRequest](#composia-controller-v1-MoveRepoPathRequest)
-    - [MoveRepoPathResponse](#composia-controller-v1-MoveRepoPathResponse)
     - [RepoCommitSummary](#composia-controller-v1-RepoCommitSummary)
     - [RepoFileEntry](#composia-controller-v1-RepoFileEntry)
     - [RepoValidationError](#composia-controller-v1-RepoValidationError)
+    - [RepoWriteResult](#composia-controller-v1-RepoWriteResult)
     - [SyncRepoRequest](#composia-controller-v1-SyncRepoRequest)
     - [SyncRepoResponse](#composia-controller-v1-SyncRepoResponse)
     - [UpdateRepoFileRequest](#composia-controller-v1-UpdateRepoFileRequest)
-    - [UpdateRepoFileResponse](#composia-controller-v1-UpdateRepoFileResponse)
     - [ValidateRepoRequest](#composia-controller-v1-ValidateRepoRequest)
     - [ValidateRepoResponse](#composia-controller-v1-ValidateRepoResponse)
   
@@ -153,21 +154,19 @@ This page lists protobuf RPC method names. For live HTTP requests, prepend the c
     - [GetSecretRequest](#composia-controller-v1-GetSecretRequest)
     - [GetSecretResponse](#composia-controller-v1-GetSecretResponse)
     - [UpdateSecretRequest](#composia-controller-v1-UpdateSecretRequest)
-    - [UpdateSecretResponse](#composia-controller-v1-UpdateSecretResponse)
   
     - [SecretService](#composia-controller-v1-SecretService)
   
 - [proto/composia/controller/v1/service.proto](#proto_composia_controller_v1_service-proto)
-    - [GetServiceBackupsRequest](#composia-controller-v1-GetServiceBackupsRequest)
-    - [GetServiceBackupsResponse](#composia-controller-v1-GetServiceBackupsResponse)
+    - [GetServiceImageUpdateChecksRequest](#composia-controller-v1-GetServiceImageUpdateChecksRequest)
+    - [GetServiceImageUpdateChecksResponse](#composia-controller-v1-GetServiceImageUpdateChecksResponse)
     - [GetServiceInstanceRequest](#composia-controller-v1-GetServiceInstanceRequest)
     - [GetServiceInstanceResponse](#composia-controller-v1-GetServiceInstanceResponse)
     - [GetServiceRequest](#composia-controller-v1-GetServiceRequest)
     - [GetServiceResponse](#composia-controller-v1-GetServiceResponse)
-    - [GetServiceTasksRequest](#composia-controller-v1-GetServiceTasksRequest)
-    - [GetServiceTasksResponse](#composia-controller-v1-GetServiceTasksResponse)
     - [GetServiceWorkspaceRequest](#composia-controller-v1-GetServiceWorkspaceRequest)
     - [GetServiceWorkspaceResponse](#composia-controller-v1-GetServiceWorkspaceResponse)
+    - [ImageUpdateSelection](#composia-controller-v1-ImageUpdateSelection)
     - [ListServiceInstancesRequest](#composia-controller-v1-ListServiceInstancesRequest)
     - [ListServiceInstancesResponse](#composia-controller-v1-ListServiceInstancesResponse)
     - [ListServiceWorkspacesRequest](#composia-controller-v1-ListServiceWorkspacesRequest)
@@ -176,18 +175,17 @@ This page lists protobuf RPC method names. For live HTTP requests, prepend the c
     - [ListServicesResponse](#composia-controller-v1-ListServicesResponse)
     - [MigrateServiceRequest](#composia-controller-v1-MigrateServiceRequest)
     - [RunServiceActionRequest](#composia-controller-v1-RunServiceActionRequest)
-    - [RunServiceInstanceActionRequest](#composia-controller-v1-RunServiceInstanceActionRequest)
+    - [RunServiceActionResponse](#composia-controller-v1-RunServiceActionResponse)
     - [ServiceActionCapabilities](#composia-controller-v1-ServiceActionCapabilities)
     - [ServiceContainerSummary](#composia-controller-v1-ServiceContainerSummary)
+    - [ServiceImageUpdateCheckSummary](#composia-controller-v1-ServiceImageUpdateCheckSummary)
     - [ServiceInstanceDetail](#composia-controller-v1-ServiceInstanceDetail)
     - [ServiceInstanceSummary](#composia-controller-v1-ServiceInstanceSummary)
     - [ServiceSummary](#composia-controller-v1-ServiceSummary)
     - [ServiceWorkspaceSummary](#composia-controller-v1-ServiceWorkspaceSummary)
-    - [UpdateServiceTargetNodesRequest](#composia-controller-v1-UpdateServiceTargetNodesRequest)
-    - [UpdateServiceTargetNodesResponse](#composia-controller-v1-UpdateServiceTargetNodesResponse)
   
+    - [ComposeRecreateMode](#composia-controller-v1-ComposeRecreateMode)
     - [ServiceAction](#composia-controller-v1-ServiceAction)
-    - [ServiceInstanceAction](#composia-controller-v1-ServiceInstanceAction)
   
     - [ServiceCommandService](#composia-controller-v1-ServiceCommandService)
     - [ServiceInstanceService](#composia-controller-v1-ServiceInstanceService)
@@ -228,17 +226,16 @@ GetTaskResponse describes one task, including step state and log metadata.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | task_id | [string](#string) |  |  |
-| type | [string](#string) |  | type is the controller task type string. |
-| source | [string](#string) |  | source identifies what triggered the task. |
+| type | [TaskType](#composia-controller-v1-TaskType) |  | type identifies the controller task kind. |
+| source | [TaskSource](#composia-controller-v1-TaskSource) |  | source identifies what triggered the task. |
 | service_name | [string](#string) |  |  |
 | node_id | [string](#string) |  |  |
-| status | [string](#string) |  | status is the latest task status string. |
-| created_at | [string](#string) |  | created_at is the task creation timestamp string. |
-| started_at | [string](#string) |  | started_at is empty until task execution begins. |
-| finished_at | [string](#string) |  | finished_at is empty until task execution reaches a terminal state. |
+| status | [TaskStatus](#composia-controller-v1-TaskStatus) |  | status is the latest task status. |
+| created_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | created_at is the task creation timestamp. |
+| started_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | started_at is unset until task execution begins. |
+| finished_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | finished_at is unset until task execution reaches a terminal state. |
 | repo_revision | [string](#string) |  | repo_revision is the repo revision used when the task started. |
 | error_summary | [string](#string) |  |  |
-| log_path | [string](#string) |  | log_path is the controller-side path to persisted task logs. |
 | steps | [TaskStepSummary](#composia-controller-v1-TaskStepSummary) | repeated | steps lists recorded step state snapshots in execution order. |
 | triggered_by | [string](#string) |  | triggered_by identifies the actor that created the task. |
 | result_revision | [string](#string) |  | result_revision is the repo revision produced by the task, when applicable. |
@@ -257,16 +254,16 @@ ListTasksRequest filters task results by included and excluded values.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| status | [string](#string) | repeated | status includes only tasks matching one of these status strings. |
+| status | [TaskStatus](#composia-controller-v1-TaskStatus) | repeated | status includes only tasks matching one of these statuses. |
 | service_name | [string](#string) | repeated | service_name includes only tasks for these services. |
 | page_size | [uint32](#uint32) |  | page_size is the requested page size. |
 | page | [uint32](#uint32) |  | page is the 1-based page number. |
 | node_id | [string](#string) | repeated | node_id includes only tasks for these nodes. |
-| type | [string](#string) | repeated | type includes only tasks of these types. |
-| exclude_status | [string](#string) | repeated | exclude_status removes tasks matching these status strings. |
+| type | [TaskType](#composia-controller-v1-TaskType) | repeated | type includes only tasks of these types. |
+| exclude_status | [TaskStatus](#composia-controller-v1-TaskStatus) | repeated | exclude_status removes tasks matching these statuses. |
 | exclude_service_name | [string](#string) | repeated | exclude_service_name removes tasks for these services. |
 | exclude_node_id | [string](#string) | repeated | exclude_node_id removes tasks for these nodes. |
-| exclude_type | [string](#string) | repeated | exclude_type removes tasks of these types. |
+| exclude_type | [TaskType](#composia-controller-v1-TaskType) | repeated | exclude_type removes tasks of these types. |
 
 
 
@@ -298,7 +295,7 @@ ResolveTaskConfirmationRequest resolves a task in awaiting_confirmation state.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | task_id | [string](#string) |  |  |
-| decision | [string](#string) |  | decision accepts &#34;approve&#34; or &#34;reject&#34;. |
+| decision | [TaskConfirmationDecision](#composia-controller-v1-TaskConfirmationDecision) |  | decision resolves the confirmation gate. |
 | comment | [string](#string) |  |  |
 
 
@@ -360,7 +357,7 @@ TaskActionResponse reports the async task created by a command RPC.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | task_id | [string](#string) |  |  |
-| status | [string](#string) |  | status is the initial status of the created task. |
+| status | [TaskStatus](#composia-controller-v1-TaskStatus) |  | status is the initial status of the created task. |
 | repo_revision | [string](#string) |  | repo_revision is the repo revision associated with the created task. |
 
 
@@ -376,10 +373,10 @@ TaskStepSummary describes one recorded step within a task.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| step_name | [string](#string) |  |  |
-| status | [string](#string) |  | status is the latest step status string. |
-| started_at | [string](#string) |  | started_at is empty when the step has not started. |
-| finished_at | [string](#string) |  | finished_at is empty until the step finishes. |
+| step_name | [TaskStepName](#composia-controller-v1-TaskStepName) |  |  |
+| status | [TaskStatus](#composia-controller-v1-TaskStatus) |  | status is the latest step status. |
+| started_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | started_at is unset when the step has not started. |
+| finished_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | finished_at is unset until the step finishes. |
 
 
 
@@ -395,17 +392,125 @@ TaskSummary describes one task in list results.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | task_id | [string](#string) |  |  |
-| type | [string](#string) |  | type is the controller task type string. |
-| status | [string](#string) |  | status is the latest task status string. |
+| type | [TaskType](#composia-controller-v1-TaskType) |  | type identifies the controller task kind. |
+| status | [TaskStatus](#composia-controller-v1-TaskStatus) |  | status is the latest task status. |
 | service_name | [string](#string) |  |  |
 | node_id | [string](#string) |  |  |
-| created_at | [string](#string) |  | created_at is the task creation timestamp string. |
+| created_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | created_at is the task creation timestamp. |
 
 
 
 
 
  
+
+
+<a name="composia-controller-v1-TaskConfirmationDecision"></a>
+
+### TaskConfirmationDecision
+TaskConfirmationDecision identifies how an operator resolved a confirmation gate.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| TASK_CONFIRMATION_DECISION_UNSPECIFIED | 0 |  |
+| TASK_CONFIRMATION_DECISION_APPROVE | 1 |  |
+| TASK_CONFIRMATION_DECISION_REJECT | 2 |  |
+
+
+
+<a name="composia-controller-v1-TaskSource"></a>
+
+### TaskSource
+TaskSource identifies what created a task.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| TASK_SOURCE_UNSPECIFIED | 0 |  |
+| TASK_SOURCE_WEB | 1 |  |
+| TASK_SOURCE_CLI | 2 |  |
+| TASK_SOURCE_OTHERS | 3 |  |
+| TASK_SOURCE_SCHEDULE | 4 |  |
+| TASK_SOURCE_SYSTEM | 5 |  |
+| TASK_SOURCE_AUTO_DEPLOY | 6 |  |
+
+
+
+<a name="composia-controller-v1-TaskStatus"></a>
+
+### TaskStatus
+TaskStatus identifies a task lifecycle status.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| TASK_STATUS_UNSPECIFIED | 0 |  |
+| TASK_STATUS_PENDING | 1 |  |
+| TASK_STATUS_RUNNING | 2 |  |
+| TASK_STATUS_AWAITING_CONFIRMATION | 3 |  |
+| TASK_STATUS_SUCCEEDED | 4 |  |
+| TASK_STATUS_FAILED | 5 |  |
+| TASK_STATUS_CANCELLED | 6 |  |
+
+
+
+<a name="composia-controller-v1-TaskStepName"></a>
+
+### TaskStepName
+TaskStepName identifies one recorded task step.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| TASK_STEP_NAME_UNSPECIFIED | 0 |  |
+| TASK_STEP_NAME_RENDER | 1 |  |
+| TASK_STEP_NAME_PULL | 2 |  |
+| TASK_STEP_NAME_BACKUP | 3 |  |
+| TASK_STEP_NAME_COMPOSE_DOWN | 4 |  |
+| TASK_STEP_NAME_COMPOSE_UP | 5 |  |
+| TASK_STEP_NAME_TRANSFER | 6 |  |
+| TASK_STEP_NAME_RESTORE | 7 |  |
+| TASK_STEP_NAME_DNS_UPDATE | 8 |  |
+| TASK_STEP_NAME_CADDY_SYNC | 9 |  |
+| TASK_STEP_NAME_CADDY_RELOAD | 10 |  |
+| TASK_STEP_NAME_IMAGE_CHECK | 11 |  |
+| TASK_STEP_NAME_INIT | 12 |  |
+| TASK_STEP_NAME_PRUNE | 13 |  |
+| TASK_STEP_NAME_AWAITING_CONFIRMATION | 14 |  |
+| TASK_STEP_NAME_PERSIST_REPO | 15 |  |
+| TASK_STEP_NAME_FINALIZE | 16 |  |
+| TASK_STEP_NAME_DOCKER_START | 17 |  |
+| TASK_STEP_NAME_DOCKER_STOP | 18 |  |
+| TASK_STEP_NAME_DOCKER_RESTART | 19 |  |
+| TASK_STEP_NAME_DOCKER_REMOVE | 20 |  |
+
+
+
+<a name="composia-controller-v1-TaskType"></a>
+
+### TaskType
+TaskType identifies a controller task kind.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| TASK_TYPE_UNSPECIFIED | 0 |  |
+| TASK_TYPE_DEPLOY | 1 |  |
+| TASK_TYPE_STOP | 2 |  |
+| TASK_TYPE_RESTART | 3 |  |
+| TASK_TYPE_UPDATE | 4 |  |
+| TASK_TYPE_BACKUP | 5 |  |
+| TASK_TYPE_RESTORE | 6 |  |
+| TASK_TYPE_MIGRATE | 7 |  |
+| TASK_TYPE_DNS_UPDATE | 8 |  |
+| TASK_TYPE_CADDY_SYNC | 9 |  |
+| TASK_TYPE_CADDY_RELOAD | 10 |  |
+| TASK_TYPE_IMAGE_CHECK | 11 |  |
+| TASK_TYPE_PRUNE | 12 |  |
+| TASK_TYPE_RUSTIC_INIT | 13 |  |
+| TASK_TYPE_RUSTIC_FORGET | 14 |  |
+| TASK_TYPE_RUSTIC_PRUNE | 15 |  |
+| TASK_TYPE_DOCKER_START | 16 |  |
+| TASK_TYPE_DOCKER_STOP | 17 |  |
+| TASK_TYPE_DOCKER_RESTART | 18 |  |
+| TASK_TYPE_DOCKER_REMOVE | 19 |  |
+
 
  
 
@@ -477,7 +582,7 @@ Capability describes whether a feature or action may currently be used.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | enabled | [bool](#bool) |  |  |
-| reason_code | [string](#string) |  | reason_code explains why the capability is disabled when enabled is false. |
+| reason_code | [CapabilityReasonCode](#composia-controller-v1-CapabilityReasonCode) |  | reason_code explains why the capability is disabled when enabled is false. |
 
 
 
@@ -577,9 +682,6 @@ GetSystemStatusResponse describes the current controller runtime state.
 | now | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | now is the controller time when the response was generated. |
 | configured_node_count | [uint64](#uint64) |  | configured_node_count is the number of nodes present in config. |
 | online_node_count | [uint64](#uint64) |  | online_node_count is the number of nodes with a recent heartbeat. |
-| repo_dir | [string](#string) |  | repo_dir is the controller-side desired state repository path. |
-| state_dir | [string](#string) |  | state_dir is the controller-side persistent state directory. |
-| log_dir | [string](#string) |  | log_dir is the controller-side task log directory. |
 
 
 
@@ -685,6 +787,37 @@ SecretsConfigSummary describes the active secrets provider setup.
 
 
  
+
+
+<a name="composia-controller-v1-CapabilityReasonCode"></a>
+
+### CapabilityReasonCode
+CapabilityReasonCode explains why a capability is disabled.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| CAPABILITY_REASON_CODE_UNSPECIFIED | 0 |  |
+| CAPABILITY_REASON_CODE_MISSING_BACKUP_INTEGRATION | 1 |  |
+| CAPABILITY_REASON_CODE_MISSING_BACKUP_DEFINITION | 2 |  |
+| CAPABILITY_REASON_CODE_MISSING_RESTORE_DEFINITION | 3 |  |
+| CAPABILITY_REASON_CODE_MISSING_MIGRATE_DEFINITION | 4 |  |
+| CAPABILITY_REASON_CODE_MISSING_DNS_INTEGRATION | 5 |  |
+| CAPABILITY_REASON_CODE_MISSING_SECRETS_CONFIG | 6 |  |
+| CAPABILITY_REASON_CODE_MISSING_CADDY_INFRA | 7 |  |
+| CAPABILITY_REASON_CODE_MISSING_SERVICE_META | 8 |  |
+| CAPABILITY_REASON_CODE_SERVICE_NOT_DECLARED | 9 |  |
+| CAPABILITY_REASON_CODE_SERVICE_DNS_NOT_DECLARED | 10 |  |
+| CAPABILITY_REASON_CODE_SERVICE_NOT_CADDY_MANAGED | 11 |  |
+| CAPABILITY_REASON_CODE_NODE_DISABLED | 12 |  |
+| CAPABILITY_REASON_CODE_NODE_OFFLINE | 13 |  |
+| CAPABILITY_REASON_CODE_NODE_NOT_ELIGIBLE | 14 |  |
+| CAPABILITY_REASON_CODE_NODE_NOT_RUSTIC_MANAGED | 15 |  |
+| CAPABILITY_REASON_CODE_MISSING_ELIGIBLE_RUSTIC_NODE | 16 |  |
+| CAPABILITY_REASON_CODE_MISSING_ONLINE_RUSTIC_NODE | 17 |  |
+| CAPABILITY_REASON_CODE_BACKUP_NOT_SUCCEEDED | 18 |  |
+| CAPABILITY_REASON_CODE_BACKUP_ARTIFACT_MISSING | 19 |  |
+| CAPABILITY_REASON_CODE_MISSING_RESTORE_TARGET_NODE | 20 |  |
+
 
  
 
@@ -794,16 +927,21 @@ GetBackupResponse describes one backup record in detail.
 <a name="composia-controller-v1-ListBackupsRequest"></a>
 
 ### ListBackupsRequest
-ListBackupsRequest filters backup records by service, status, data name, and page.
+ListBackupsRequest filters backup records by included and excluded values.
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| service_name | [string](#string) |  |  |
-| status | [string](#string) |  | status narrows results to one backup status string when set. |
-| data_name | [string](#string) |  | data_name narrows results to one service data entry when set. |
+| service_name | [string](#string) | repeated | service_name includes only backups for these services. |
+| status | [string](#string) | repeated | status includes only backups matching one of these status strings. |
+| data_name | [string](#string) | repeated | data_name includes only backups for these service data entries. |
 | page_size | [uint32](#uint32) |  | page_size is the requested page size. |
 | page | [uint32](#uint32) |  | page is the 1-based page number. |
+| node_id | [string](#string) | repeated | node_id includes only backups for these source nodes. |
+| exclude_service_name | [string](#string) | repeated | exclude_service_name removes backups for these services. |
+| exclude_status | [string](#string) | repeated | exclude_status removes backups matching these status strings. |
+| exclude_data_name | [string](#string) | repeated | exclude_data_name removes backups for these service data entries. |
+| exclude_node_id | [string](#string) | repeated | exclude_node_id removes backups for these source nodes. |
 
 
 
@@ -848,16 +986,25 @@ RestoreBackupRequest identifies the backup record and target node for one restor
  
 
 
-<a name="composia-controller-v1-BackupRecordService"></a>
+<a name="composia-controller-v1-BackupCommandService"></a>
 
-### BackupRecordService
-BackupRecordService exposes read-only backup record queries.
+### BackupCommandService
+BackupCommandService starts backup-related actions.
+
+| Method Name | Request Type | Response Type | Description |
+| ----------- | ------------ | ------------- | ------------|
+| RestoreBackup | [RestoreBackupRequest](#composia-controller-v1-RestoreBackupRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | RestoreBackup starts an async restore task from one backup record. |
+
+
+<a name="composia-controller-v1-BackupQueryService"></a>
+
+### BackupQueryService
+BackupQueryService exposes backup record queries.
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
 | ListBackups | [ListBackupsRequest](#composia-controller-v1-ListBackupsRequest) | [ListBackupsResponse](#composia-controller-v1-ListBackupsResponse) | ListBackups returns backup records with filtering and pagination. |
 | GetBackup | [GetBackupRequest](#composia-controller-v1-GetBackupRequest) | [GetBackupResponse](#composia-controller-v1-GetBackupResponse) | GetBackup returns one backup record by ID. |
-| RestoreBackup | [RestoreBackupRequest](#composia-controller-v1-RestoreBackupRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | RestoreBackup starts an async restore task from one backup record. |
 
  
 
@@ -1021,6 +1168,49 @@ RunContainerActionRequest identifies one node-scoped container action.
 
 
 
+
+<a name="composia-controller-v1-RunContainerExecRequest"></a>
+
+### RunContainerExecRequest
+RunContainerExecRequest runs a non-interactive command in one container.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| node_id | [string](#string) |  |  |
+| container_id | [string](#string) |  |  |
+| command | [string](#string) | repeated | command stores the exec command and arguments. |
+| stdin | [bytes](#bytes) |  | stdin carries optional bytes written before stdin is closed. |
+| timeout_seconds | [uint32](#uint32) |  | timeout_seconds bounds command runtime on the agent. |
+| max_output_bytes | [uint64](#uint64) |  | max_output_bytes limits each stdout/stderr stream; zero uses the agent default. |
+
+
+
+
+
+
+<a name="composia-controller-v1-RunContainerExecResponse"></a>
+
+### RunContainerExecResponse
+RunContainerExecResponse returns the completed exec result.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| exit_code | [int32](#int32) |  |  |
+| stdout | [string](#string) |  |  |
+| stderr | [string](#string) |  |  |
+| timed_out | [bool](#bool) |  |  |
+| stdout_truncated | [bool](#bool) |  |  |
+| stderr_truncated | [bool](#bool) |  |  |
+| started_at | [string](#string) |  |  |
+| finished_at | [string](#string) |  |  |
+| duration | [string](#string) |  |  |
+
+
+
+
+
  
 
 
@@ -1042,10 +1232,10 @@ ContainerAction identifies a container lifecycle action.
  
 
 
-<a name="composia-controller-v1-ContainerService"></a>
+<a name="composia-controller-v1-DockerCommandService"></a>
 
-### ContainerService
-ContainerService exposes container-level control and inspection entrypoints.
+### DockerCommandService
+DockerCommandService exposes node-scoped Docker command entrypoints.
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
@@ -1053,6 +1243,7 @@ ContainerService exposes container-level control and inspection entrypoints.
 | RemoveContainer | [RemoveContainerRequest](#composia-controller-v1-RemoveContainerRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | RemoveContainer starts an async deletion for one container on one node. |
 | GetContainerLogs | [GetContainerLogsRequest](#composia-controller-v1-GetContainerLogsRequest) | [GetContainerLogsResponse](#composia-controller-v1-GetContainerLogsResponse) stream | GetContainerLogs streams log text for one container. |
 | OpenContainerExec | [OpenContainerExecRequest](#composia-controller-v1-OpenContainerExecRequest) | [OpenContainerExecResponse](#composia-controller-v1-OpenContainerExecResponse) | OpenContainerExec opens an interactive exec session for one container. |
+| RunContainerExec | [RunContainerExecRequest](#composia-controller-v1-RunContainerExecRequest) | [RunContainerExecResponse](#composia-controller-v1-RunContainerExecResponse) | RunContainerExec runs a non-interactive exec command and returns collected output. |
 | RemoveNetwork | [RemoveNetworkRequest](#composia-controller-v1-RemoveNetworkRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | RemoveNetwork starts an async deletion for one network on one node. |
 | RemoveVolume | [RemoveVolumeRequest](#composia-controller-v1-RemoveVolumeRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | RemoveVolume starts an async deletion for one volume on one node. |
 | RemoveImage | [RemoveImageRequest](#composia-controller-v1-RemoveImageRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | RemoveImage starts an async deletion for one image on one node. |
@@ -1217,41 +1408,7 @@ GetNodeResponse returns one node summary.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| node | [NodeSummary](#composia-controller-v1-NodeSummary) |  | node is omitted when the requested node does not exist. |
-
-
-
-
-
-
-<a name="composia-controller-v1-GetNodeTasksRequest"></a>
-
-### GetNodeTasksRequest
-GetNodeTasksRequest filters tasks for one node by status and page.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| node_id | [string](#string) |  | node_id is the stable node identifier. |
-| status | [string](#string) |  | status narrows results to one task status string when set. |
-| page_size | [uint32](#uint32) |  | page_size is the requested page size. |
-| page | [uint32](#uint32) |  | page is the 1-based page number. |
-
-
-
-
-
-
-<a name="composia-controller-v1-GetNodeTasksResponse"></a>
-
-### GetNodeTasksResponse
-GetNodeTasksResponse returns one page of node tasks.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| tasks | [TaskSummary](#composia-controller-v1-TaskSummary) | repeated |  |
-| total_count | [uint32](#uint32) |  | total_count is the total number of matches before pagination. |
+| node | [NodeSummary](#composia-controller-v1-NodeSummary) |  | node contains the requested configured node. The RPC returns NotFound when the requested node does not exist. |
 
 
 
@@ -1895,7 +2052,6 @@ NodeQueryService exposes read-only node and node-scoped task queries.
 | ----------- | ------------ | ------------- | ------------|
 | ListNodes | [ListNodesRequest](#composia-controller-v1-ListNodesRequest) | [ListNodesResponse](#composia-controller-v1-ListNodesResponse) | ListNodes returns all configured nodes with current online state. |
 | GetNode | [GetNodeRequest](#composia-controller-v1-GetNodeRequest) | [GetNodeResponse](#composia-controller-v1-GetNodeResponse) | GetNode returns one node by ID. |
-| GetNodeTasks | [GetNodeTasksRequest](#composia-controller-v1-GetNodeTasksRequest) | [GetNodeTasksResponse](#composia-controller-v1-GetNodeTasksResponse) | GetNodeTasks returns tasks related to one node. |
 | GetNodeDockerStats | [GetNodeDockerStatsRequest](#composia-controller-v1-GetNodeDockerStatsRequest) | [GetNodeDockerStatsResponse](#composia-controller-v1-GetNodeDockerStatsResponse) | GetNodeDockerStats returns the latest Docker stats snapshot for one node. |
 
  
@@ -1926,24 +2082,6 @@ CreateRepoDirectoryRequest creates one repo-relative directory path.
 
 
 
-<a name="composia-controller-v1-CreateRepoDirectoryResponse"></a>
-
-### CreateRepoDirectoryResponse
-CreateRepoDirectoryResponse reports the commit and sync result for the create.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| commit_id | [string](#string) |  | commit_id is the Git commit created for the directory creation. |
-| sync_status | [string](#string) |  | sync_status is the repo sync state after the write. |
-| push_error | [string](#string) |  | push_error contains the last push error when sync_status is failed. |
-| last_successful_pull_at | [string](#string) |  | last_successful_pull_at is the last successful pull timestamp string. |
-
-
-
-
-
-
 <a name="composia-controller-v1-DeleteRepoPathRequest"></a>
 
 ### DeleteRepoPathRequest
@@ -1955,24 +2093,6 @@ DeleteRepoPathRequest deletes one repo-relative path.
 | path | [string](#string) |  | path is the repo-relative path to delete. |
 | base_revision | [string](#string) |  | base_revision protects against writing on top of an unexpected HEAD. |
 | commit_message | [string](#string) |  | commit_message is used for the generated Git commit. |
-
-
-
-
-
-
-<a name="composia-controller-v1-DeleteRepoPathResponse"></a>
-
-### DeleteRepoPathResponse
-DeleteRepoPathResponse reports the commit and sync result for the delete.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| commit_id | [string](#string) |  | commit_id is the Git commit created for the delete. |
-| sync_status | [string](#string) |  | sync_status is the repo sync state after the write. |
-| push_error | [string](#string) |  | push_error contains the last push error when sync_status is failed. |
-| last_successful_pull_at | [string](#string) |  | last_successful_pull_at is the last successful pull timestamp string. |
 
 
 
@@ -2123,24 +2243,6 @@ MoveRepoPathRequest moves one repo-relative path to another.
 
 
 
-<a name="composia-controller-v1-MoveRepoPathResponse"></a>
-
-### MoveRepoPathResponse
-MoveRepoPathResponse reports the commit and sync result for the move.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| commit_id | [string](#string) |  | commit_id is the Git commit created for the move. |
-| sync_status | [string](#string) |  | sync_status is the repo sync state after the write. |
-| push_error | [string](#string) |  | push_error contains the last push error when sync_status is failed. |
-| last_successful_pull_at | [string](#string) |  | last_successful_pull_at is the last successful pull timestamp string. |
-
-
-
-
-
-
 <a name="composia-controller-v1-RepoCommitSummary"></a>
 
 ### RepoCommitSummary
@@ -2187,6 +2289,24 @@ RepoValidationError identifies one validation problem in repo content.
 | path | [string](#string) |  | path is the repo-relative path where validation failed. |
 | line | [uint32](#uint32) |  | line is the 1-based line number when the error maps to one line. |
 | message | [string](#string) |  | message is a human-readable validation failure description. |
+
+
+
+
+
+
+<a name="composia-controller-v1-RepoWriteResult"></a>
+
+### RepoWriteResult
+RepoWriteResult reports the commit and sync result for a repo write.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| commit_id | [string](#string) |  | commit_id is the Git commit created for the write. |
+| sync_status | [string](#string) |  | sync_status is the repo sync state after the write. |
+| push_error | [string](#string) |  | push_error contains the last push error when sync_status is failed. |
+| last_successful_pull_at | [string](#string) |  | last_successful_pull_at is the last successful pull timestamp string. |
 
 
 
@@ -2240,24 +2360,6 @@ UpdateRepoFileRequest writes one file at a repo-relative path.
 
 
 
-<a name="composia-controller-v1-UpdateRepoFileResponse"></a>
-
-### UpdateRepoFileResponse
-UpdateRepoFileResponse reports the commit and sync result for the write.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| commit_id | [string](#string) |  | commit_id is the Git commit created for the write. |
-| sync_status | [string](#string) |  | sync_status is the repo sync state after the write. |
-| push_error | [string](#string) |  | push_error contains the last push error when sync_status is failed. |
-| last_successful_pull_at | [string](#string) |  | last_successful_pull_at is the last successful pull timestamp string. |
-
-
-
-
-
-
 <a name="composia-controller-v1-ValidateRepoRequest"></a>
 
 ### ValidateRepoRequest
@@ -2296,10 +2398,10 @@ RepoCommandService applies changes to the controller Git repo.
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| UpdateRepoFile | [UpdateRepoFileRequest](#composia-controller-v1-UpdateRepoFileRequest) | [UpdateRepoFileResponse](#composia-controller-v1-UpdateRepoFileResponse) | UpdateRepoFile writes one file, creates a commit, and reports sync state. |
-| CreateRepoDirectory | [CreateRepoDirectoryRequest](#composia-controller-v1-CreateRepoDirectoryRequest) | [CreateRepoDirectoryResponse](#composia-controller-v1-CreateRepoDirectoryResponse) | CreateRepoDirectory creates one directory, creates a commit, and reports sync state. |
-| MoveRepoPath | [MoveRepoPathRequest](#composia-controller-v1-MoveRepoPathRequest) | [MoveRepoPathResponse](#composia-controller-v1-MoveRepoPathResponse) | MoveRepoPath moves or renames one repo path. |
-| DeleteRepoPath | [DeleteRepoPathRequest](#composia-controller-v1-DeleteRepoPathRequest) | [DeleteRepoPathResponse](#composia-controller-v1-DeleteRepoPathResponse) | DeleteRepoPath deletes one repo path. |
+| UpdateRepoFile | [UpdateRepoFileRequest](#composia-controller-v1-UpdateRepoFileRequest) | [RepoWriteResult](#composia-controller-v1-RepoWriteResult) | UpdateRepoFile writes one file, creates a commit, and reports sync state. |
+| CreateRepoDirectory | [CreateRepoDirectoryRequest](#composia-controller-v1-CreateRepoDirectoryRequest) | [RepoWriteResult](#composia-controller-v1-RepoWriteResult) | CreateRepoDirectory creates one directory, creates a commit, and reports sync state. |
+| MoveRepoPath | [MoveRepoPathRequest](#composia-controller-v1-MoveRepoPathRequest) | [RepoWriteResult](#composia-controller-v1-RepoWriteResult) | MoveRepoPath moves or renames one repo path. |
+| DeleteRepoPath | [DeleteRepoPathRequest](#composia-controller-v1-DeleteRepoPathRequest) | [RepoWriteResult](#composia-controller-v1-RepoWriteResult) | DeleteRepoPath deletes one repo path. |
 | SyncRepo | [SyncRepoRequest](#composia-controller-v1-SyncRepoRequest) | [SyncRepoResponse](#composia-controller-v1-SyncRepoResponse) | SyncRepo pulls or syncs the repo and returns the resulting state snapshot. |
 
 
@@ -2378,24 +2480,6 @@ UpdateSecretRequest writes one decrypted secret file for a service.
 
 
 
-
-<a name="composia-controller-v1-UpdateSecretResponse"></a>
-
-### UpdateSecretResponse
-UpdateSecretResponse reports the commit and sync result for the secret update.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| commit_id | [string](#string) |  | commit_id is the Git commit created for the secret update. |
-| sync_status | [string](#string) |  | sync_status is the repo sync state after the write. |
-| push_error | [string](#string) |  | push_error contains the last push error when sync_status is failed. |
-| last_successful_pull_at | [string](#string) |  | last_successful_pull_at is the last successful pull timestamp string. |
-
-
-
-
-
  
 
  
@@ -2411,7 +2495,7 @@ SecretService reads and updates encrypted secret files stored in the repo.
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
 | GetSecret | [GetSecretRequest](#composia-controller-v1-GetSecretRequest) | [GetSecretResponse](#composia-controller-v1-GetSecretResponse) | GetSecret returns the decrypted content for one service secret file. |
-| UpdateSecret | [UpdateSecretRequest](#composia-controller-v1-UpdateSecretRequest) | [UpdateSecretResponse](#composia-controller-v1-UpdateSecretResponse) | UpdateSecret writes one secret file and reports the resulting repo sync state. |
+| UpdateSecret | [UpdateSecretRequest](#composia-controller-v1-UpdateSecretRequest) | [RepoWriteResult](#composia-controller-v1-RepoWriteResult) | UpdateSecret writes one secret file and reports the resulting repo sync state. |
 
  
 
@@ -2424,35 +2508,31 @@ SecretService reads and updates encrypted secret files stored in the repo.
 
 
 
-<a name="composia-controller-v1-GetServiceBackupsRequest"></a>
+<a name="composia-controller-v1-GetServiceImageUpdateChecksRequest"></a>
 
-### GetServiceBackupsRequest
-GetServiceBackupsRequest filters service backups by status, data name, and page.
+### GetServiceImageUpdateChecksRequest
+GetServiceImageUpdateChecksRequest identifies one service and optional node.
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | service_name | [string](#string) |  |  |
-| status | [string](#string) |  | status narrows results to one backup status string when set. |
-| data_name | [string](#string) |  | data_name narrows results to one service data entry when set. |
-| page_size | [uint32](#uint32) |  | page_size is the requested page size. |
-| page | [uint32](#uint32) |  | page is the 1-based page number. |
+| node_id | [string](#string) |  |  |
 
 
 
 
 
 
-<a name="composia-controller-v1-GetServiceBackupsResponse"></a>
+<a name="composia-controller-v1-GetServiceImageUpdateChecksResponse"></a>
 
-### GetServiceBackupsResponse
-GetServiceBackupsResponse returns one page of service backups.
+### GetServiceImageUpdateChecksResponse
+GetServiceImageUpdateChecksResponse returns latest image update checks.
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| backups | [BackupSummary](#composia-controller-v1-BackupSummary) | repeated |  |
-| total_count | [uint32](#uint32) |  | total_count is the total number of matches before pagination. |
+| checks | [ServiceImageUpdateCheckSummary](#composia-controller-v1-ServiceImageUpdateCheckSummary) | repeated |  |
 
 
 
@@ -2484,7 +2564,7 @@ GetServiceInstanceResponse returns one service instance detail.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| instance | [ServiceInstanceDetail](#composia-controller-v1-ServiceInstanceDetail) |  | instance is omitted when the requested instance does not exist. |
+| instance | [ServiceInstanceDetail](#composia-controller-v1-ServiceInstanceDetail) |  | instance contains the requested service instance. The RPC returns NotFound when the requested instance does not exist. |
 
 
 
@@ -2529,40 +2609,6 @@ GetServiceResponse describes one service and all known instances.
 
 
 
-<a name="composia-controller-v1-GetServiceTasksRequest"></a>
-
-### GetServiceTasksRequest
-GetServiceTasksRequest filters service tasks by status and page.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| service_name | [string](#string) |  |  |
-| status | [string](#string) |  | status narrows results to one task status string when set. |
-| page_size | [uint32](#uint32) |  | page_size is the requested page size. |
-| page | [uint32](#uint32) |  | page is the 1-based page number. |
-
-
-
-
-
-
-<a name="composia-controller-v1-GetServiceTasksResponse"></a>
-
-### GetServiceTasksResponse
-GetServiceTasksResponse returns one page of service tasks.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| tasks | [TaskSummary](#composia-controller-v1-TaskSummary) | repeated |  |
-| total_count | [uint32](#uint32) |  | total_count is the total number of matches before pagination. |
-
-
-
-
-
-
 <a name="composia-controller-v1-GetServiceWorkspaceRequest"></a>
 
 ### GetServiceWorkspaceRequest
@@ -2587,6 +2633,23 @@ GetServiceWorkspaceResponse returns one top-level repo service workspace.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | workspace | [ServiceWorkspaceSummary](#composia-controller-v1-ServiceWorkspaceSummary) |  |  |
+
+
+
+
+
+
+<a name="composia-controller-v1-ImageUpdateSelection"></a>
+
+### ImageUpdateSelection
+ImageUpdateSelection identifies one configured image update to apply.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| image_name | [string](#string) |  |  |
+| target_tag | [string](#string) |  |  |
+| use_detected | [bool](#bool) |  |  |
 
 
 
@@ -2710,23 +2773,28 @@ RunServiceActionRequest starts an async action for a service.
 | action | [ServiceAction](#composia-controller-v1-ServiceAction) |  | action is the async operation to start. |
 | node_ids | [string](#string) | repeated | node_ids optionally narrows the action to selected nodes. |
 | data_names | [string](#string) | repeated | data_names narrows backup-like actions to selected data entries. |
+| compose_recreate_mode | [ComposeRecreateMode](#composia-controller-v1-ComposeRecreateMode) |  | compose_recreate_mode controls deploy/update container recreation behavior. |
+| image_updates | [ImageUpdateSelection](#composia-controller-v1-ImageUpdateSelection) | repeated | image_updates applies selected configured image updates before running update. |
+| use_all_detected_image_updates | [bool](#bool) |  | use_all_detected_image_updates applies every detected image update for the service. |
+| backup_before_update | [bool](#bool) | optional | backup_before_update overrides the service config cascade for this request. |
+| base_revision | [string](#string) |  | base_revision protects repo-backed image updates against stale HEAD writes. |
+| commit_message | [string](#string) |  | commit_message is used for repo-backed image update commits. |
 
 
 
 
 
 
-<a name="composia-controller-v1-RunServiceInstanceActionRequest"></a>
+<a name="composia-controller-v1-RunServiceActionResponse"></a>
 
-### RunServiceInstanceActionRequest
-RunServiceInstanceActionRequest starts an async action for one instance.
+### RunServiceActionResponse
+RunServiceActionResponse returns every queued task and any repo write side effect.
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| service_name | [string](#string) |  | service_name is the logical service name. |
-| node_id | [string](#string) |  | node_id identifies the node that hosts the target instance. |
-| action | [ServiceInstanceAction](#composia-controller-v1-ServiceInstanceAction) |  | action is the async operation to start. |
+| tasks | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | repeated |  |
+| repo_write | [RepoWriteResult](#composia-controller-v1-RepoWriteResult) |  |  |
 
 
 
@@ -2774,6 +2842,35 @@ ServiceContainerSummary describes one container belonging to a service instance.
 
 
 
+<a name="composia-controller-v1-ServiceImageUpdateCheckSummary"></a>
+
+### ServiceImageUpdateCheckSummary
+ServiceImageUpdateCheckSummary describes the latest update check for one configured image.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| service_name | [string](#string) |  |  |
+| node_id | [string](#string) |  |  |
+| image_name | [string](#string) |  |  |
+| image_ref | [string](#string) |  |  |
+| policy_type | [string](#string) |  |  |
+| current_value | [string](#string) |  |  |
+| current_tag | [string](#string) |  |  |
+| current_digest | [string](#string) |  |  |
+| candidate_tag | [string](#string) |  |  |
+| candidate_digest | [string](#string) |  |  |
+| candidate_tags | [string](#string) | repeated |  |
+| update_available | [bool](#bool) |  |  |
+| check_status | [string](#string) |  |  |
+| error_summary | [string](#string) |  |  |
+| checked_at | [string](#string) |  |  |
+
+
+
+
+
+
 <a name="composia-controller-v1-ServiceInstanceDetail"></a>
 
 ### ServiceInstanceDetail
@@ -2788,6 +2885,7 @@ ServiceInstanceDetail extends the instance summary with container details.
 | updated_at | [string](#string) |  | updated_at is the last known status update timestamp string. |
 | is_declared | [bool](#bool) |  | is_declared reports whether this instance is part of desired state. |
 | containers | [ServiceContainerSummary](#composia-controller-v1-ServiceContainerSummary) | repeated | containers lists runtime containers currently associated with the instance. |
+| pending_deploy_revision | [string](#string) |  | pending_deploy_revision is set when a repo change affects this service and a deploy is pending. |
 
 
 
@@ -2807,6 +2905,7 @@ ServiceInstanceSummary describes one service instance on one node.
 | runtime_status | [string](#string) |  | runtime_status is the controller&#39;s current status string for this instance. |
 | updated_at | [string](#string) |  | updated_at is the last known status update timestamp string. |
 | is_declared | [bool](#bool) |  | is_declared reports whether this instance is part of desired state. |
+| pending_deploy_revision | [string](#string) |  | pending_deploy_revision is set when a repo change affects this service and a deploy is pending. |
 
 
 
@@ -2857,43 +2956,21 @@ ServiceWorkspaceSummary describes one top-level repo workspace and any merged se
 
 
 
-
-<a name="composia-controller-v1-UpdateServiceTargetNodesRequest"></a>
-
-### UpdateServiceTargetNodesRequest
-UpdateServiceTargetNodesRequest changes the full declared target node set.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| service_name | [string](#string) |  |  |
-| node_ids | [string](#string) | repeated | node_ids replaces the full target node list for the service. |
-| base_revision | [string](#string) |  | base_revision provides optimistic concurrency protection for repo writes. |
-| commit_message | [string](#string) |  | commit_message is used for the generated Git commit. |
-
-
-
-
-
-
-<a name="composia-controller-v1-UpdateServiceTargetNodesResponse"></a>
-
-### UpdateServiceTargetNodesResponse
-UpdateServiceTargetNodesResponse reports the resulting repo write and sync state.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| commit_id | [string](#string) |  | commit_id is the Git commit created for the desired-state change. |
-| sync_status | [string](#string) |  | sync_status is the repo sync state after the write. |
-| push_error | [string](#string) |  | push_error contains the last push error when sync_status is failed. |
-| last_successful_pull_at | [string](#string) |  | last_successful_pull_at is the last successful controller pull timestamp string. |
-
-
-
-
-
  
+
+
+<a name="composia-controller-v1-ComposeRecreateMode"></a>
+
+### ComposeRecreateMode
+ComposeRecreateMode controls whether docker compose up recreates containers.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| COMPOSE_RECREATE_MODE_UNSPECIFIED | 0 | COMPOSE_RECREATE_MODE_UNSPECIFIED uses the default automatic behavior. |
+| COMPOSE_RECREATE_MODE_AUTO | 1 | COMPOSE_RECREATE_MODE_AUTO recreates when bind mounts need refreshed. |
+| COMPOSE_RECREATE_MODE_NO_RECREATE | 2 | COMPOSE_RECREATE_MODE_NO_RECREATE runs docker compose up without forcing recreation. |
+| COMPOSE_RECREATE_MODE_FORCE_RECREATE | 3 | COMPOSE_RECREATE_MODE_FORCE_RECREATE always passes --force-recreate. |
+
 
 
 <a name="composia-controller-v1-ServiceAction"></a>
@@ -2913,21 +2990,6 @@ ServiceAction identifies an async action that targets a service.
 | SERVICE_ACTION_CADDY_SYNC | 7 | SERVICE_ACTION_CADDY_SYNC syncs related Caddy configuration. |
 
 
-
-<a name="composia-controller-v1-ServiceInstanceAction"></a>
-
-### ServiceInstanceAction
-ServiceInstanceAction identifies an async action that targets one service instance.
-
-| Name | Number | Description |
-| ---- | ------ | ----------- |
-| SERVICE_INSTANCE_ACTION_UNSPECIFIED | 0 | SERVICE_INSTANCE_ACTION_UNSPECIFIED is invalid and should not be used. |
-| SERVICE_INSTANCE_ACTION_DEPLOY | 1 | SERVICE_INSTANCE_ACTION_DEPLOY creates or reconciles the instance. |
-| SERVICE_INSTANCE_ACTION_UPDATE | 2 | SERVICE_INSTANCE_ACTION_UPDATE refreshes the running instance. |
-| SERVICE_INSTANCE_ACTION_STOP | 3 | SERVICE_INSTANCE_ACTION_STOP stops the instance. |
-| SERVICE_INSTANCE_ACTION_RESTART | 4 | SERVICE_INSTANCE_ACTION_RESTART restarts the instance. |
-
-
  
 
  
@@ -2940,8 +3002,7 @@ ServiceCommandService triggers service-level state changes and async actions.
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| UpdateServiceTargetNodes | [UpdateServiceTargetNodesRequest](#composia-controller-v1-UpdateServiceTargetNodesRequest) | [UpdateServiceTargetNodesResponse](#composia-controller-v1-UpdateServiceTargetNodesResponse) | UpdateServiceTargetNodes updates the declared target nodes for a service. |
-| RunServiceAction | [RunServiceActionRequest](#composia-controller-v1-RunServiceActionRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | RunServiceAction starts an async action for a service and returns the task. |
+| RunServiceAction | [RunServiceActionRequest](#composia-controller-v1-RunServiceActionRequest) | [RunServiceActionResponse](#composia-controller-v1-RunServiceActionResponse) | RunServiceAction starts an async action for a service and returns all created tasks. |
 | MigrateService | [MigrateServiceRequest](#composia-controller-v1-MigrateServiceRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | MigrateService starts an async service migration between two nodes. |
 
 
@@ -2954,7 +3015,6 @@ ServiceInstanceService queries and operates on one concrete service instance.
 | ----------- | ------------ | ------------- | ------------|
 | ListServiceInstances | [ListServiceInstancesRequest](#composia-controller-v1-ListServiceInstancesRequest) | [ListServiceInstancesResponse](#composia-controller-v1-ListServiceInstancesResponse) | ListServiceInstances lists all instances for one service. |
 | GetServiceInstance | [GetServiceInstanceRequest](#composia-controller-v1-GetServiceInstanceRequest) | [GetServiceInstanceResponse](#composia-controller-v1-GetServiceInstanceResponse) | GetServiceInstance returns the detail for one service instance on one node. |
-| RunServiceInstanceAction | [RunServiceInstanceActionRequest](#composia-controller-v1-RunServiceInstanceActionRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | RunServiceInstanceAction starts an async action for one service instance. |
 
 
 <a name="composia-controller-v1-ServiceQueryService"></a>
@@ -2968,8 +3028,7 @@ ServiceQueryService exposes read-only service workspace, declared service, task,
 | ListServiceWorkspaces | [ListServiceWorkspacesRequest](#composia-controller-v1-ListServiceWorkspacesRequest) | [ListServiceWorkspacesResponse](#composia-controller-v1-ListServiceWorkspacesResponse) | ListServiceWorkspaces returns top-level repo service workspaces with merged controller state. |
 | GetService | [GetServiceRequest](#composia-controller-v1-GetServiceRequest) | [GetServiceResponse](#composia-controller-v1-GetServiceResponse) | GetService returns the full detail for a single service. |
 | GetServiceWorkspace | [GetServiceWorkspaceRequest](#composia-controller-v1-GetServiceWorkspaceRequest) | [GetServiceWorkspaceResponse](#composia-controller-v1-GetServiceWorkspaceResponse) | GetServiceWorkspace returns one top-level repo service workspace. |
-| GetServiceTasks | [GetServiceTasksRequest](#composia-controller-v1-GetServiceTasksRequest) | [GetServiceTasksResponse](#composia-controller-v1-GetServiceTasksResponse) | GetServiceTasks returns tasks related to one service. |
-| GetServiceBackups | [GetServiceBackupsRequest](#composia-controller-v1-GetServiceBackupsRequest) | [GetServiceBackupsResponse](#composia-controller-v1-GetServiceBackupsResponse) | GetServiceBackups returns backups related to one service. |
+| GetServiceImageUpdateChecks | [GetServiceImageUpdateChecksRequest](#composia-controller-v1-GetServiceImageUpdateChecksRequest) | [GetServiceImageUpdateChecksResponse](#composia-controller-v1-GetServiceImageUpdateChecksResponse) | GetServiceImageUpdateChecks returns latest configured image update checks for one service. |
 
  
 
@@ -2994,3 +3053,4 @@ ServiceQueryService exposes read-only service workspace, declared service, task,
 | <a name="bool" /> bool |  | bool | boolean | boolean | bool | bool | boolean | TrueClass/FalseClass |
 | <a name="string" /> string | A string must always contain UTF-8 encoded or 7-bit ASCII text. | string | String | str/unicode | string | string | string | String (UTF-8) |
 | <a name="bytes" /> bytes | May contain any arbitrary sequence of bytes. | string | ByteString | str | []byte | ByteString | string | String (ASCII-8BIT) |
+

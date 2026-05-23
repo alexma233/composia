@@ -137,19 +137,6 @@ func TestImageUpdateSelectionsRejectsDuplicateUpdates(t *testing.T) {
 	}
 }
 
-func TestInstanceActionFromName(t *testing.T) {
-	action, err := instanceActionFromName("restart")
-	if err != nil {
-		t.Fatalf("instanceActionFromName returned error: %v", err)
-	}
-	if action != controllerv1.ServiceInstanceAction_SERVICE_INSTANCE_ACTION_RESTART {
-		t.Fatalf("action = %v", action)
-	}
-	if _, err := instanceActionFromName("backup"); err == nil {
-		t.Fatalf("expected error for unsupported direct instance action")
-	}
-}
-
 func TestContainerActionFromName(t *testing.T) {
 	action, err := containerActionFromName("restart")
 	if err != nil {
@@ -244,8 +231,11 @@ func TestUsageIncludesWaitAndNewCommands(t *testing.T) {
 	PrintUsage(&out)
 	usage := out.String()
 	for _, want := range []string{
+		"system status|reload|capabilities",
 		"task list|get|logs|wait|run-again|approve|reject",
-		"node list|get|tasks|stats|reload-caddy|prune",
+		"node list|get|tasks|stats|sync-caddy-files|reload-caddy|prune",
+		"service list|get|workspace|update-candidates|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate",
+		"repo head|files|get|edit|update|mkdir|mv|rm|history|sync|validate",
 		"network list|get|remove",
 		"volume list|get|remove",
 		"image list|get|remove",
@@ -256,6 +246,30 @@ func TestUsageIncludesWaitAndNewCommands(t *testing.T) {
 	} {
 		if !strings.Contains(usage, want) {
 			t.Fatalf("usage missing %q:\n%s", want, usage)
+		}
+	}
+}
+
+func TestPrintSystemCapabilities(t *testing.T) {
+	var out bytes.Buffer
+	application := &app{out: &out}
+	message := &controllerv1.GetCapabilitiesResponse{Global: &controllerv1.GlobalCapabilities{
+		Backup: &controllerv1.Capability{Enabled: true},
+		Dns: &controllerv1.Capability{
+			Enabled:    false,
+			ReasonCode: controllerv1.CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_DNS_INTEGRATION,
+		},
+		Secrets:           &controllerv1.Capability{Enabled: true},
+		RusticMaintenance: &controllerv1.Capability{Enabled: false},
+	}}
+
+	if err := application.printSystemCapabilities(message); err != nil {
+		t.Fatalf("printSystemCapabilities returned error: %v", err)
+	}
+	got := out.String()
+	for _, want := range []string{"CAPABILITY", "backup", "true", "dns", "false", "missing_dns_integration", "rustic_maintenance"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("system capabilities output missing %q:\n%s", want, got)
 		}
 	}
 }
@@ -309,6 +323,33 @@ func TestHelpUnknownTopicReturnsError(t *testing.T) {
 	}
 	if out.Len() != 0 {
 		t.Fatalf("stdout = %q", out.String())
+	}
+}
+
+func TestNewCLICommandHelpDoesNotRequireControllerConfig(t *testing.T) {
+	for _, testCase := range []struct {
+		args []string
+		want string
+	}{
+		{[]string{"help", "service", "workspace"}, "usage: composia service workspace <list|get>"},
+		{[]string{"help", "service", "workspace", "list"}, "usage: composia service workspace list"},
+		{[]string{"help", "service", "workspace", "get"}, "usage: composia service workspace get <folder>"},
+		{[]string{"help", "repo", "mkdir"}, "usage: composia repo mkdir [--message text] <path>"},
+		{[]string{"help", "repo", "mv"}, "usage: composia repo mv [--message text] <source> <destination>"},
+		{[]string{"help", "repo", "rm"}, "usage: composia repo rm [--message text] <path>"},
+		{[]string{"help", "node", "sync-caddy-files"}, "usage: composia node sync-caddy-files [--wait] [--follow] [--timeout duration] [--service name] [--full-rebuild] <node>"},
+	} {
+		var out bytes.Buffer
+		var errOut bytes.Buffer
+		if err := Run(context.Background(), testCase.args, &out, &errOut); err != nil {
+			t.Fatalf("Run(%v) returned error: %v", testCase.args, err)
+		}
+		if !strings.Contains(out.String(), testCase.want) {
+			t.Fatalf("Run(%v) stdout = %q, want %q", testCase.args, out.String(), testCase.want)
+		}
+		if errOut.Len() != 0 {
+			t.Fatalf("Run(%v) stderr = %q", testCase.args, errOut.String())
+		}
 	}
 }
 

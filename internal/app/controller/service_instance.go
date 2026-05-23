@@ -4,7 +4,6 @@ import (
 	"connectrpc.com/connect"
 	"context"
 	"errors"
-	"fmt"
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
@@ -138,44 +137,4 @@ func (server *serviceInstanceServer) GetServiceInstance(ctx context.Context, req
 		return nil, err
 	}
 	return connect.NewResponse(&controllerv1.GetServiceInstanceResponse{Instance: detail}), nil
-}
-
-func (server *serviceInstanceServer) RunServiceInstanceAction(ctx context.Context, req *connect.Request[controllerv1.RunServiceInstanceActionRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
-	if req.Msg == nil || req.Msg.GetServiceName() == "" || req.Msg.GetNodeId() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name, node_id, and action are required"))
-	}
-
-	var taskType task.Type
-	switch req.Msg.GetAction() {
-	case controllerv1.ServiceInstanceAction_SERVICE_INSTANCE_ACTION_DEPLOY:
-		taskType = task.TypeDeploy
-	case controllerv1.ServiceInstanceAction_SERVICE_INSTANCE_ACTION_UPDATE:
-		taskType = task.TypeUpdate
-	case controllerv1.ServiceInstanceAction_SERVICE_INSTANCE_ACTION_STOP:
-		taskType = task.TypeStop
-	case controllerv1.ServiceInstanceAction_SERVICE_INSTANCE_ACTION_RESTART:
-		service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName())
-		if err != nil {
-			return nil, connect.NewError(connect.CodeNotFound, err)
-		}
-		if service.Meta.IsConfigInfra() {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q declares infra.config and cannot be restarted", service.Name))
-		}
-		taskType = task.TypeRestart
-	default:
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("action is required"))
-	}
-
-	createdTask, err := server.createInstanceTask(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId(), taskType, nil, requestTaskSource(req.Header()), composeRecreateModeParam(taskType, req.Msg.GetComposeRecreateMode()))
-	if err != nil {
-		return nil, err
-	}
-	return connect.NewResponse(taskActionResponse(createdTask)), nil
-}
-
-func (server *serviceInstanceServer) createInstanceTask(ctx context.Context, serviceName, nodeID string, taskType task.Type, dataNames []string, source task.Source, composeRecreateMode string) (task.Record, error) {
-	if serviceName == "" || nodeID == "" {
-		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name and node_id are required"))
-	}
-	return createServiceTaskWithOptions(ctx, server.db, server.cfg, server.availableNodeIDs, serviceName, []string{nodeID}, taskType, dataNames, serviceTaskCreateOptions{Source: source, ComposeRecreateMode: composeRecreateMode})
 }

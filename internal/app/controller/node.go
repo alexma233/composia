@@ -65,38 +65,6 @@ func (server *nodeQueryServer) GetNode(ctx context.Context, req *connect.Request
 	return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("node %q is not configured", req.Msg.GetNodeId()))
 }
 
-func (server *nodeQueryServer) GetNodeTasks(ctx context.Context, req *connect.Request[controllerv1.GetNodeTasksRequest]) (*connect.Response[controllerv1.GetNodeTasksResponse], error) {
-	if req.Msg == nil || req.Msg.GetNodeId() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
-	}
-	configured := false
-	for _, node := range server.cfg.Nodes {
-		if node.ID == req.Msg.GetNodeId() {
-			configured = true
-			break
-		}
-	}
-	if !configured {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("node %q is not configured", req.Msg.GetNodeId()))
-	}
-	statusFilters := []string(nil)
-	if status, ok := taskStatusFromProto(req.Msg.GetStatus()); ok {
-		statusFilters = []string{string(status)}
-	}
-	tasks, totalCount, err := server.db.ListTasks(ctx, statusFilters, nil, []string{req.Msg.GetNodeId()}, nil, nil, nil, nil, nil, req.Msg.GetPage(), req.Msg.GetPageSize())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	response := &controllerv1.GetNodeTasksResponse{
-		Tasks:      make([]*controllerv1.TaskSummary, 0, len(tasks)),
-		TotalCount: totalCount,
-	}
-	for _, record := range tasks {
-		response.Tasks = append(response.Tasks, taskSummaryMessage(record))
-	}
-	return connect.NewResponse(response), nil
-}
-
 func (server *nodeQueryServer) GetNodeDockerStats(ctx context.Context, req *connect.Request[controllerv1.GetNodeDockerStatsRequest]) (*connect.Response[controllerv1.GetNodeDockerStatsResponse], error) {
 	if req.Msg == nil || req.Msg.GetNodeId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
