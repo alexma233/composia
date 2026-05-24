@@ -1,13 +1,24 @@
 import type { BadgeVariant } from "$lib/components/ui/badge";
 
+import {
+  formatDistanceToNowStrict,
+  isAfter,
+  isFuture,
+  isValid,
+  parse,
+  parseISO,
+  subDays,
+} from "date-fns";
+import { filesize } from "filesize";
+
 import type { Dictionary } from "$lib/i18n";
 
 export function formatTimestamp(value: string) {
   if (!value) {
     return "-";
   }
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString();
+  const parsed = parseTimestamp(value);
+  return parsed ? parsed.toLocaleString() : value;
 }
 
 export function taskStatusTone(status: string): BadgeVariant {
@@ -141,32 +152,20 @@ export function containerStateTone(state: string): BadgeVariant {
 }
 
 export function isTaskRecent(createdAt: string): boolean {
-  const createdAtMs = Date.parse(createdAt);
-  if (Number.isNaN(createdAtMs)) return false;
-  return Date.now() - createdAtMs <= 24 * 60 * 60 * 1000;
+  const parsed = parseTimestamp(createdAt);
+  return parsed ? isAfter(parsed, subDays(new Date(), 1)) : false;
 }
 
 export function formatDuration(startedAt: string): string {
   if (!startedAt) return "-";
-  const start = new Date(startedAt);
-  const now = new Date();
-  const diff = Math.floor((now.getTime() - start.getTime()) / 1000);
-  if (diff < 60) return `${diff}s`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-  return `${Math.floor(diff / 86400)}d`;
+  const start = parseTimestamp(startedAt);
+  return start
+    ? formatDistanceToNowStrict(start, { roundingMethod: "floor" })
+    : "-";
 }
 
 export function formatBytes(bytes: number) {
-  if (bytes === 0 || !bytes) {
-    return "0 B";
-  }
-
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  return filesize(bytes || 0, { base: 2, round: 2, standard: "jedec" });
 }
 
 export function formatShortId(value: string, length = 12) {
@@ -191,22 +190,35 @@ export function formatDockerTimestamp(timestamp: string) {
     return "-";
   }
 
-  const cleaned = timestamp.replace(/\s+[+-]\d{4}\s+\w+$/, "");
-  const parts = cleaned.split(" ");
-  const parsed =
-    parts.length === 2
-      ? new Date(`${parts[0]}T${parts[1]}`)
-      : new Date(cleaned);
-
-  if (Number.isNaN(parsed.getTime())) {
+  const parsed = parseDockerTimestamp(timestamp);
+  if (!parsed) {
     return timestamp;
   }
 
-  const diff = Math.floor((Date.now() - parsed.getTime()) / 1000);
+  return isFuture(parsed)
+    ? "just now"
+    : formatDistanceToNowStrict(parsed, {
+        addSuffix: true,
+        roundingMethod: "floor",
+      });
+}
 
-  if (diff < 0) return "just now";
-  if (diff < 60) return `${diff}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
+function parseTimestamp(value: string): Date | null {
+  const iso = parseISO(value);
+  if (isValid(iso)) {
+    return iso;
+  }
+
+  const parsed = new Date(value);
+  return isValid(parsed) ? parsed : null;
+}
+
+function parseDockerTimestamp(value: string): Date | null {
+  const cleaned = value.replace(/\s+[+-]\d{4}\s+\w+$/, "");
+  const parsed = parse(cleaned, "yyyy-MM-dd HH:mm:ss", new Date());
+  if (isValid(parsed)) {
+    return parsed;
+  }
+
+  return parseTimestamp(cleaned);
 }

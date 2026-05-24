@@ -8,10 +8,14 @@ import (
 	"connectrpc.com/connect"
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
+	"github.com/cenkalti/backoff/v5"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-const logStreamRetryDelay = 200 * time.Millisecond
+const (
+	logStreamInitialRetryDelay = 200 * time.Millisecond
+	logStreamMaxRetryDelay     = 5 * time.Second
+)
 
 type taskLogUploader struct {
 	client           agentv1connect.AgentReportServiceClient
@@ -21,6 +25,7 @@ type taskLogUploader struct {
 	lastConfirmedSeq uint64
 	pending          []*agentv1.UploadTaskLogsRequest
 	stream           *connect.BidiStreamForClient[agentv1.UploadTaskLogsRequest, agentv1.UploadTaskLogsResponse]
+	retryBackOff     *backoff.ExponentialBackOff
 }
 
 func newTaskLogUploader(client agentv1connect.AgentReportServiceClient, taskID string) *taskLogUploader {
@@ -29,11 +34,20 @@ func newTaskLogUploader(client agentv1connect.AgentReportServiceClient, taskID s
 
 func newTaskLogUploaderWithTimeout(client agentv1connect.AgentReportServiceClient, taskID string, timeout time.Duration) *taskLogUploader {
 	return &taskLogUploader{
-		client:  client,
-		taskID:  taskID,
-		timeout: timeout,
-		nextSeq: 1,
+		client:       client,
+		taskID:       taskID,
+		timeout:      timeout,
+		nextSeq:      1,
+		retryBackOff: newLogStreamBackOff(),
 	}
+}
+
+func newLogStreamBackOff() *backoff.ExponentialBackOff {
+	retryBackOff := backoff.NewExponentialBackOff()
+	retryBackOff.InitialInterval = logStreamInitialRetryDelay
+	retryBackOff.MaxInterval = logStreamMaxRetryDelay
+	retryBackOff.Reset()
+	return retryBackOff
 }
 
 func (uploader *taskLogUploader) Upload(ctx context.Context, content string) error {
@@ -89,10 +103,11 @@ func (uploader *taskLogUploader) ensureStream(ctx context.Context) error {
 
 func (uploader *taskLogUploader) reconnect(ctx context.Context) error {
 	_ = uploader.Close()
+	delay := uploader.retryBackOff.NextBackOff()
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case <-time.After(logStreamRetryDelay):
+	case <-time.After(delay):
 	}
 	uploader.stream = uploader.client.UploadTaskLogs(ctx)
 	return nil
@@ -118,6 +133,7 @@ func (uploader *taskLogUploader) sendPendingLog(ctx context.Context, current *ag
 	if err := uploader.applyAck(current, ack); err != nil {
 		return false, err
 	}
+	uploader.retryBackOff.Reset()
 	return true, nil
 }
 

@@ -6,6 +6,11 @@ import {
   loadNodes,
   loadServices,
 } from "$lib/server/controller";
+import {
+  parseEnumFilterValues,
+  parsePageParam,
+  parseTextFilterValues,
+} from "$lib/filter-query";
 
 const backupStatuses = [
   "pending",
@@ -15,16 +20,6 @@ const backupStatuses = [
   "failed",
   "cancelled",
 ] as const;
-
-function parseStatuses(values: string[]): string[] {
-  return values.filter((value): value is (typeof backupStatuses)[number] =>
-    backupStatuses.includes(value as (typeof backupStatuses)[number]),
-  );
-}
-
-function parseTextFilters(values: string[]): string[] {
-  return values.map((value) => value.trim()).filter(Boolean);
-}
 
 export const load: PageServerLoad = async ({ url }) => {
   const config = controllerConfig();
@@ -48,19 +43,27 @@ export const load: PageServerLoad = async ({ url }) => {
     };
   }
 
-  const page = parseInt(url.searchParams.get("page") || "1", 10) || 1;
-  const status = parseStatuses(url.searchParams.getAll("status"));
-  const serviceName = parseTextFilters(url.searchParams.getAll("serviceName"));
-  const nodeId = parseTextFilters(url.searchParams.getAll("nodeId"));
-  const dataName = parseTextFilters(url.searchParams.getAll("dataName"));
-  const excludeStatus = parseStatuses(url.searchParams.getAll("excludeStatus"));
-  const excludeServiceName = parseTextFilters(
+  const page = parsePageParam(url.searchParams);
+  const status = parseEnumFilterValues(
+    url.searchParams.getAll("status"),
+    backupStatuses,
+  );
+  const serviceName = parseTextFilterValues(
+    url.searchParams.getAll("serviceName"),
+  );
+  const nodeId = parseTextFilterValues(url.searchParams.getAll("nodeId"));
+  const dataName = parseTextFilterValues(url.searchParams.getAll("dataName"));
+  const excludeStatus = parseEnumFilterValues(
+    url.searchParams.getAll("excludeStatus"),
+    backupStatuses,
+  );
+  const excludeServiceName = parseTextFilterValues(
     url.searchParams.getAll("excludeServiceName"),
   );
-  const excludeNodeId = parseTextFilters(
+  const excludeNodeId = parseTextFilterValues(
     url.searchParams.getAll("excludeNodeId"),
   );
-  const excludeDataName = parseTextFilters(
+  const excludeDataName = parseTextFilterValues(
     url.searchParams.getAll("excludeDataName"),
   );
 

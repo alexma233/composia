@@ -12,6 +12,7 @@ import (
 
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
+	"github.com/tomnomnom/linkheader"
 )
 
 func collectForgeImageCandidates(ctx context.Context, cfg *config.ControllerConfig, service repo.Service, imageNames []string) (map[string][]string, map[string]map[string][]string, error) {
@@ -208,19 +209,8 @@ func fetchForgeReleaseTags(ctx context.Context, cfg *config.ControllerConfig, so
 }
 
 func forgeNextPageURL(linkHeaders []string) string {
-	for _, header := range linkHeaders {
-		for _, part := range strings.Split(header, ",") {
-			part = strings.TrimSpace(part)
-			if part == "" || !strings.Contains(part, `rel="next"`) {
-				continue
-			}
-			start := strings.Index(part, "<")
-			end := strings.Index(part, ">")
-			if start < 0 || end <= start+1 {
-				continue
-			}
-			return strings.TrimSpace(part[start+1 : end])
-		}
+	for _, link := range linkheader.ParseMultiple(linkHeaders).FilterByRel("next") {
+		return strings.TrimSpace(link.URL)
 	}
 	return ""
 }

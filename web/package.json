@@ -63,9 +63,13 @@
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "codemirror": "6.0.2",
+    "date-fns": "4.3.0",
+    "dequal": "2.0.3",
+    "filesize": "11.0.17",
     "lucide-svelte": "1.0.1",
     "svelte-sonner": "1.1.1",
     "tailwind-merge": "3.6.0",
+    "valibot": "1.4.0",
     "vscode-material-icons": "0.1.1",
     "yaml": "2.9.0"
   }

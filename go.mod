@@ -6,6 +6,7 @@ require (
 	connectrpc.com/connect v1.20.0
 	filippo.io/age v1.3.1
 	github.com/Masterminds/semver/v3 v3.5.0
+	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/cyphar/filepath-securejoin v0.6.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
@@ -20,6 +21,7 @@ require (
 	github.com/otiai10/copy v1.14.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/tomnomnom/linkheader v0.0.0-20250811210735-e5fe3b51442e
 	github.com/zalando/go-keyring v0.2.8
 	golang.org/x/net v0.55.0
 	golang.org/x/term v0.43.0
