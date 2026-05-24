@@ -46,8 +46,13 @@
       "matchDepTypes": [
         "indirect"
       ],
+      "matchUpdateTypes": [
+        "digest",
+        "minor",
+        "patch"
+      ],
       "enabled": true,
-      "groupName": "go indirect dependencies"
+      "groupName": "go indirect non-major dependencies"
     },
     {
       "matchManagers": [
