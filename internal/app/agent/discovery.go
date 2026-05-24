@@ -151,7 +151,8 @@ func probeSemverImageTagWithExists(ctx context.Context, imageRef, current string
 		if err != nil || !found {
 			return simpleSemver{}, found, err
 		}
-		return simpleSemver{Major: major, Minor: minor, Patch: highestPatch}, true, nil
+		version, err := newSimpleSemver(major, minor, highestPatch)
+		return version, err == nil, err
 	}
 	if _, ok := allowed["patch"]; ok {
 		version, found, err := probePatch(currentVersion.Major, currentVersion.Minor, currentVersion.Patch+1)

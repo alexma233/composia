@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
+	securejoin "github.com/cyphar/filepath-securejoin"
+
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
@@ -212,7 +214,10 @@ func tarEntryTargetPath(destinationDir, entryName string) (string, error) {
 		return "", fmt.Errorf("parent traversal is not allowed")
 	}
 	cleanDestinationDir := filepath.Clean(destinationDir)
-	cleanTargetPath := filepath.Join(cleanDestinationDir, cleanEntryName)
+	cleanTargetPath, err := securejoin.SecureJoin(cleanDestinationDir, cleanEntryName)
+	if err != nil {
+		return "", err
+	}
 	if !strings.HasPrefix(cleanTargetPath, cleanDestinationDir+string(os.PathSeparator)) && cleanTargetPath != cleanDestinationDir {
 		return "", fmt.Errorf("target path escapes destination root")
 	}

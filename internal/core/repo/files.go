@@ -8,6 +8,9 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	securejoin "github.com/cyphar/filepath-securejoin"
+	filecopy "github.com/otiai10/copy"
 )
 
 var ErrRepoPathNotFound = errors.New("repo path not found")
@@ -424,34 +427,27 @@ func copyDirectory(sourcePath, destinationPath string) error {
 	if err := rejectDestinationSymlink(destinationPath); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(destinationPath, info.Mode().Perm()); err != nil {
-		return fmt.Errorf("create destination directory %q: %w", destinationPath, err)
+	if err := rejectCopySourceSymlinks(sourcePath); err != nil {
+		return err
 	}
-	entries, err := os.ReadDir(sourcePath)
-	if err != nil {
-		return fmt.Errorf("read source directory %q: %w", sourcePath, err)
-	}
-	for _, entry := range entries {
-		sourceChild := filepath.Join(sourcePath, entry.Name())
-		destinationChild := filepath.Join(destinationPath, entry.Name())
-		if entry.Type()&os.ModeSymlink != 0 {
-			return fmt.Errorf("copy source path %q: %w", sourceChild, ErrRepoPathInvalid)
-		}
-		if entry.IsDir() {
-			if err := copyDirectory(sourceChild, destinationChild); err != nil {
-				return err
-			}
-			continue
-		}
-		childInfo, err := entry.Info()
-		if err != nil {
-			return fmt.Errorf("stat source file %q: %w", sourceChild, err)
-		}
-		if err := copyFile(sourceChild, destinationChild, childInfo.Mode()); err != nil {
-			return err
-		}
+	if err := filecopy.Copy(sourcePath, destinationPath, filecopy.Options{
+		OnSymlink: func(string) filecopy.SymlinkAction { return filecopy.Skip },
+	}); err != nil {
+		return fmt.Errorf("copy source directory %q to %q: %w", sourcePath, destinationPath, err)
 	}
 	return nil
+}
+
+func rejectCopySourceSymlinks(sourcePath string) error {
+	return filepath.WalkDir(sourcePath, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.Type()&os.ModeSymlink != 0 {
+			return fmt.Errorf("copy source path %q: %w", path, ErrRepoPathInvalid)
+		}
+		return nil
+	})
 }
 
 func copyFile(sourcePath, destinationPath string, mode os.FileMode) error {
@@ -552,7 +548,10 @@ func resolveRepoPath(repoDir, relativePath string) (string, string, error) {
 	}
 	absPath := absRepoDir
 	if relativePath != "" {
-		absPath = filepath.Join(absRepoDir, relativePath)
+		absPath, err = securejoin.SecureJoin(absRepoDir, relativePath)
+		if err != nil {
+			return "", "", fmt.Errorf("resolve repo path %q: %w", relativePath, err)
+		}
 	}
 	cleanAbsPath := filepath.Clean(absPath)
 	cleanRepoRoot := filepath.Clean(absRepoDir)

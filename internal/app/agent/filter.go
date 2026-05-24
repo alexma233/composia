@@ -1,11 +1,14 @@
 package agent
 
 import (
+	"fmt"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Masterminds/semver/v3"
 
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
 )
@@ -86,7 +89,12 @@ func candidateImageTags(current string, tags []string, filter *repo.ImageUpdateF
 	return candidates
 }
 
-type simpleSemver struct{ Major, Minor, Patch int }
+type simpleSemver struct {
+	Major   int
+	Minor   int
+	Patch   int
+	version *semver.Version
+}
 type simpleSemverTag struct {
 	Tag     string
 	Version simpleSemver
@@ -94,26 +102,42 @@ type simpleSemverTag struct {
 
 func parseSimpleSemver(value string) (simpleSemver, bool) {
 	value = strings.TrimPrefix(strings.TrimSpace(value), "v")
-	parts := strings.Split(value, ".")
-	if len(parts) != 3 {
-		return simpleSemver{}, false
-	}
-	major, err := strconv.Atoi(parts[0])
+	version, err := semver.StrictNewVersion(value)
 	if err != nil {
 		return simpleSemver{}, false
 	}
-	minor, err := strconv.Atoi(parts[1])
-	if err != nil {
+	major, ok := semverComponentToInt(version.Major())
+	if !ok {
 		return simpleSemver{}, false
 	}
-	patch, err := strconv.Atoi(parts[2])
-	if err != nil {
+	minor, ok := semverComponentToInt(version.Minor())
+	if !ok {
 		return simpleSemver{}, false
 	}
-	return simpleSemver{Major: major, Minor: minor, Patch: patch}, true
+	patch, ok := semverComponentToInt(version.Patch())
+	if !ok {
+		return simpleSemver{}, false
+	}
+	return simpleSemver{Major: major, Minor: minor, Patch: patch, version: version}, true
+}
+
+func newSimpleSemver(major, minor, patch int) (simpleSemver, error) {
+	version, err := semver.StrictNewVersion(fmt.Sprintf("%d.%d.%d", major, minor, patch))
+	if err != nil {
+		return simpleSemver{}, err
+	}
+	return simpleSemver{Major: major, Minor: minor, Patch: patch, version: version}, nil
+}
+
+func semverComponentToInt(value uint64) (int, bool) {
+	converted := int(value)
+	return converted, uint64(converted) == value
 }
 
 func (version simpleSemver) compare(other simpleSemver) int {
+	if version.version != nil && other.version != nil {
+		return version.version.Compare(other.version)
+	}
 	if version.Major != other.Major {
 		return version.Major - other.Major
 	}
