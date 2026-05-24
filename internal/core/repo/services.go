@@ -11,10 +11,13 @@ import (
 	"strings"
 
 	"forgejo.alexma.top/alexma233/composia/internal/core/schedule"
+	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
 )
 
 const MetaFileName = "composia-meta.yaml"
+
+var serviceMetaValidator = validator.New(validator.WithRequiredStructEnabled())
 
 func walkServiceMetaFiles(repoDir string, visit func(path string) error) error {
 	return filepath.WalkDir(repoDir, func(path string, entry fs.DirEntry, walkErr error) error {
@@ -165,10 +168,10 @@ type ImageUpdateDiscoverySource struct {
 }
 
 type ImageUpdateFilter struct {
-	Type    string   `yaml:"type"`
+	Type    string   `yaml:"type" validate:"required,oneof=semver date regex latest"`
 	Format  string   `yaml:"format"`
 	Pattern string   `yaml:"pattern"`
-	Order   string   `yaml:"order"`
+	Order   string   `yaml:"order" validate:"oneof=numeric lexicographic"`
 	Allow   []string `yaml:"allow"`
 }
 
@@ -943,34 +946,44 @@ func validateImageUpdateFilter(fieldPrefix string, discovery ImageUpdateDiscover
 	if filter == nil {
 		return fmt.Errorf("%s.type is required", fieldPrefix)
 	}
-	switch strings.TrimSpace(filter.Type) {
+	normalizedFilter := *filter
+	normalizedFilter.Type = strings.TrimSpace(filter.Type)
+	normalizedFilter.Format = strings.TrimSpace(filter.Format)
+	normalizedFilter.Pattern = strings.TrimSpace(filter.Pattern)
+	normalizedFilter.Order = strings.TrimSpace(filter.Order)
+	if err := serviceValidationError(serviceMetaValidator.StructPartial(normalizedFilter, "Type"), func(field validator.FieldError) error {
+		if field.Tag() == "required" {
+			return fmt.Errorf("%s.type is required", fieldPrefix)
+		}
+		return fmt.Errorf("%s.type must be semver, date, regex, or latest", fieldPrefix)
+	}); err != nil {
+		return err
+	}
+	switch normalizedFilter.Type {
 	case "semver":
 		return validateSemverAllow(fieldPrefix, filter.Allow)
 	case "date":
-		if strings.TrimSpace(filter.Format) == "" {
+		if !validServiceMetaRequired(normalizedFilter.Format) {
 			return fmt.Errorf("%s.format is required for date filter", fieldPrefix)
 		}
 		return nil
 	case "regex":
-		if strings.TrimSpace(filter.Pattern) == "" {
+		if !validServiceMetaRequired(normalizedFilter.Pattern) {
 			return fmt.Errorf("%s.pattern is required for regex filter", fieldPrefix)
 		}
 		if _, err := regexp.Compile(filter.Pattern); err != nil {
 			return fmt.Errorf("%s.pattern is invalid: %w", fieldPrefix, err)
 		}
-		switch strings.TrimSpace(filter.Order) {
-		case "numeric", "lexicographic":
-			return nil
-		default:
+		if err := serviceValidationError(serviceMetaValidator.StructPartial(normalizedFilter, "Order"), func(field validator.FieldError) error {
 			return fmt.Errorf("%s.order must be numeric or lexicographic for regex filter", fieldPrefix)
+		}); err != nil {
+			return err
 		}
+		return nil
 	case "latest":
 		return nil
-	case "":
-		return fmt.Errorf("%s.type is required", fieldPrefix)
-	default:
-		return fmt.Errorf("%s.type must be semver, date, regex, or latest", fieldPrefix)
 	}
+	return nil
 }
 
 func isDigestDiscovery(discovery ImageUpdateDiscovery) bool {
@@ -1002,20 +1015,41 @@ func ImageUpdateCurrentFile(current ImageUpdateCurrent) string {
 }
 
 func validateSemverAllow(fieldPrefix string, allow []string) error {
-	seen := make(map[string]struct{}, len(allow))
+	normalizedAllow := make([]string, 0, len(allow))
 	for _, value := range allow {
-		value = strings.TrimSpace(value)
-		switch value {
-		case "patch", "minor", "major":
-			if _, exists := seen[value]; exists {
-				return fmt.Errorf("%s.allow[%q] is duplicated", fieldPrefix, value)
-			}
-			seen[value] = struct{}{}
-		default:
-			return fmt.Errorf("%s.allow must contain only patch, minor, or major", fieldPrefix)
+		normalizedAllow = append(normalizedAllow, strings.TrimSpace(value))
+	}
+	if err := serviceValidationError(serviceMetaValidator.Var(normalizedAllow, "dive,oneof=patch minor major"), func(field validator.FieldError) error {
+		return fmt.Errorf("%s.allow must contain only patch, minor, or major", fieldPrefix)
+	}); err != nil {
+		return err
+	}
+	seen := make(map[string]struct{}, len(normalizedAllow))
+	for _, value := range normalizedAllow {
+		if _, exists := seen[value]; exists {
+			return fmt.Errorf("%s.allow[%q] is duplicated", fieldPrefix, value)
 		}
+		seen[value] = struct{}{}
 	}
 	return nil
+}
+
+func validServiceMetaRequired(value any) bool {
+	return serviceMetaValidator.Var(value, "required") == nil
+}
+
+func serviceValidationError(err error, format func(validator.FieldError) error) error {
+	if err == nil {
+		return nil
+	}
+	validationErrors, ok := err.(validator.ValidationErrors)
+	if !ok || len(validationErrors) == 0 {
+		return err
+	}
+	if formatted := format(validationErrors[0]); formatted != nil {
+		return formatted
+	}
+	return err
 }
 
 func validateDataProtectItem(path string, item DataProtectItem) error {

@@ -1,7 +1,7 @@
 import type { Diagnostic } from "@codemirror/lint";
+import { parse as parseEnvFile } from "envfile";
 
 const envFilePattern = /^\.env(?:\.[^.]+)*$/i;
-const envKeyPattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 type Range = {
   from: number;
@@ -18,6 +18,13 @@ type EnvParseResult = {
   diagnostics: Diagnostic[];
 };
 
+type EnvLine = {
+  key: string;
+  keyStart: number;
+  value: string;
+  valueStart: number;
+};
+
 export function isEnvFilePath(filePath: string): boolean {
   const name = filePath.split("/").pop() ?? filePath;
   return envFilePattern.test(name);
@@ -30,6 +37,7 @@ export function envLinter() {
 }
 
 export function collectEnvDefinitions(source: string): EnvParseResult {
+  const parsedEnv = parseEnvFile(source);
   const diagnostics: Diagnostic[] = [];
   const definitions: EnvDefinition[] = [];
   const seenKeys = new Map<string, Range>();
@@ -44,23 +52,22 @@ export function collectEnvDefinitions(source: string): EnvParseResult {
       continue;
     }
 
-    const equalsIndex = line.indexOf("=");
-    if (equalsIndex < 0) {
+    const parsedLine = parseEnvLine(line, offset);
+    if (!parsedLine) {
       diagnostics.push({
         ...nonEmptyRange(lineRange),
         severity: "error",
-        message: "Environment variables must use KEY=VALUE syntax.",
+        message:
+          "Environment variables must use KEY=VALUE or KEY:VALUE syntax.",
       });
       offset += line.length + 1;
       continue;
     }
 
-    const rawKey = line.slice(0, equalsIndex).trim();
-    const keyPrefixOffset = line.slice(0, equalsIndex).indexOf(rawKey);
-    const keyStart = keyPrefixOffset >= 0 ? offset + keyPrefixOffset : offset;
+    const rawKey = parsedLine.key;
     const keyRange = {
-      from: keyStart,
-      to: keyStart + Math.max(rawKey.length, 1),
+      from: parsedLine.keyStart,
+      to: parsedLine.keyStart + Math.max(rawKey.length, 1),
     };
 
     if (rawKey === "") {
@@ -68,16 +75,6 @@ export function collectEnvDefinitions(source: string): EnvParseResult {
         ...keyRange,
         severity: "error",
         message: "Environment variable name cannot be empty.",
-      });
-      offset += line.length + 1;
-      continue;
-    }
-
-    if (!envKeyPattern.test(rawKey)) {
-      diagnostics.push({
-        ...keyRange,
-        severity: "error",
-        message: `Invalid environment variable name \`${rawKey}\`.`,
       });
       offset += line.length + 1;
       continue;
@@ -93,23 +90,45 @@ export function collectEnvDefinitions(source: string): EnvParseResult {
       seenKeys.set(rawKey, keyRange);
     }
 
-    const value = line.slice(equalsIndex + 1);
-    const valueOffset = offset + equalsIndex + 1;
-    const quoteIssue = quoteDiagnostic(value, valueOffset);
+    const quoteIssue = quoteDiagnostic(parsedLine.value, parsedLine.valueStart);
     if (quoteIssue) {
       diagnostics.push(quoteIssue);
     }
 
-    const commentIssue = inlineCommentDiagnostic(value, valueOffset);
+    const commentIssue = inlineCommentDiagnostic(
+      parsedLine.value,
+      parsedLine.valueStart,
+    );
     if (commentIssue) {
       diagnostics.push(commentIssue);
     }
 
-    definitions.push({ key: rawKey, range: keyRange });
+    if (Object.hasOwn(parsedEnv, rawKey)) {
+      definitions.push({ key: rawKey, range: keyRange });
+    }
     offset += line.length + 1;
   }
 
   return { definitions, diagnostics };
+}
+
+function parseEnvLine(line: string, offset: number): EnvLine | null {
+  const match = line.match(/^([^=:#]+?)([=:])(.*)/);
+  if (!match || match.index == null) {
+    return null;
+  }
+
+  const rawKey = match[1] ?? "";
+  const key = rawKey.trim();
+  const keyPrefixOffset = rawKey.indexOf(key);
+  const separatorOffset = rawKey.length;
+
+  return {
+    key,
+    keyStart: offset + (keyPrefixOffset >= 0 ? keyPrefixOffset : 0),
+    value: match[3] ?? "",
+    valueStart: offset + separatorOffset + 1,
+  };
 }
 
 function quoteDiagnostic(value: string, offset: number): Diagnostic | null {

@@ -1,5 +1,6 @@
 import Ajv, { type ErrorObject, type ValidateFunction } from "ajv";
 import type { Diagnostic } from "@codemirror/lint";
+import { pointerSegments as jsonPointerSegments } from "@hyperjump/json-pointer";
 import {
   isMap,
   isPair,
@@ -313,14 +314,7 @@ function rangeFromPositions(
 }
 
 function pointerSegments(pointer: string): string[] {
-  if (!pointer) {
-    return [];
-  }
-
-  return pointer
-    .split("/")
-    .slice(1)
-    .map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~"));
+  return [...jsonPointerSegments(pointer)];
 }
 
 function formatSchemaError(error: ErrorObject): string {

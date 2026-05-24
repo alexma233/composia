@@ -7,10 +7,13 @@ import (
 	"strings"
 
 	"forgejo.alexma.top/alexma233/composia/internal/core/schedule"
+	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
 )
 
 const LocalMainNodeID = "main"
+
+var configValidator = validator.New(validator.WithRequiredStructEnabled())
 
 type File struct {
 	Controller *ControllerConfig `yaml:"controller"`
@@ -18,14 +21,14 @@ type File struct {
 }
 
 type ControllerConfig struct {
-	ListenAddr    string                         `yaml:"listen_addr"`
-	RepoDir       string                         `yaml:"repo_dir"`
-	StateDir      string                         `yaml:"state_dir"`
-	LogDir        string                         `yaml:"log_dir"`
+	ListenAddr    string                         `yaml:"listen_addr" validate:"required"`
+	RepoDir       string                         `yaml:"repo_dir" validate:"required"`
+	StateDir      string                         `yaml:"state_dir" validate:"required"`
+	LogDir        string                         `yaml:"log_dir" validate:"required"`
 	Backup        *ControllerBackupConfig        `yaml:"backup"`
 	Git           *ControllerGitConfig           `yaml:"git"`
 	Notifications *ControllerNotificationsConfig `yaml:"notifications"`
-	Nodes         []NodeConfig                   `yaml:"nodes"`
+	Nodes         []NodeConfig                   `yaml:"nodes" validate:"required"`
 	AccessTokens  []AccessTokenConfig            `yaml:"access_tokens"`
 	DNS           *ControllerDNSConfig           `yaml:"dns"`
 	Rustic        *ControllerRusticConfig        `yaml:"rustic"`
@@ -53,7 +56,7 @@ type ControllerUpdatesConfig struct {
 }
 
 type ControllerUpdatesSemverConfig struct {
-	DefaultAllow []string `yaml:"default_allow"`
+	DefaultAllow []string `yaml:"default_allow" validate:"dive,oneof=patch minor major"`
 }
 
 type ControllerUpdatesForgeAuth struct {
@@ -104,18 +107,18 @@ type ControllerGitAuthConfig struct {
 }
 
 type NodeConfig struct {
-	ID          string `yaml:"id"`
+	ID          string `yaml:"id" validate:"required"`
 	DisplayName string `yaml:"display_name"`
 	Enabled     *bool  `yaml:"enabled"`
 	PublicIPv4  string `yaml:"public_ipv4"`
 	PublicIPv6  string `yaml:"public_ipv6"`
-	Token       string `yaml:"token"`
+	Token       string `yaml:"token" validate:"required"`
 	TokenFile   string `yaml:"token_file"`
 }
 
 type AccessTokenConfig struct {
-	Name      string `yaml:"name"`
-	Token     string `yaml:"token"`
+	Name      string `yaml:"name" validate:"required"`
+	Token     string `yaml:"token" validate:"required"`
 	TokenFile string `yaml:"token_file"`
 	Enabled   *bool  `yaml:"enabled"`
 	Comment   string `yaml:"comment"`
@@ -190,27 +193,27 @@ type ControllerRusticMaintenanceConfig struct {
 }
 
 type ControllerSecretsConfig struct {
-	Provider      string `yaml:"provider"`
-	IdentityFile  string `yaml:"identity_file"`
+	Provider      string `yaml:"provider" validate:"required,oneof=age"`
+	IdentityFile  string `yaml:"identity_file" validate:"required"`
 	RecipientFile string `yaml:"recipient_file"`
 	Armor         *bool  `yaml:"armor"`
 }
 
 type AgentConfig struct {
-	ControllerAddr    string                        `yaml:"controller_addr"`
+	ControllerAddr    string                        `yaml:"controller_addr" validate:"required"`
 	ControllerGRPC    bool                          `yaml:"controller_grpc"`
 	ControllerHeaders []AgentControllerHeaderConfig `yaml:"controller_headers"`
-	NodeID            string                        `yaml:"node_id"`
-	Token             string                        `yaml:"token"`
+	NodeID            string                        `yaml:"node_id" validate:"required"`
+	Token             string                        `yaml:"token" validate:"required"`
 	TokenFile         string                        `yaml:"token_file"`
-	RepoDir           string                        `yaml:"repo_dir"`
-	StateDir          string                        `yaml:"state_dir"`
+	RepoDir           string                        `yaml:"repo_dir" validate:"required"`
+	StateDir          string                        `yaml:"state_dir" validate:"required"`
 	Caddy             *AgentCaddyConfig             `yaml:"caddy"`
 }
 
 type AgentControllerHeaderConfig struct {
-	Name      string `yaml:"name"`
-	Value     string `yaml:"value"`
+	Name      string `yaml:"name" validate:"required"`
+	Value     string `yaml:"value" validate:"required"`
 	ValueFile string `yaml:"value_file"`
 }
 
@@ -269,30 +272,39 @@ func load(path string) (*File, error) {
 
 func validateController(file *File) error {
 	controller := file.Controller
-	if controller.ListenAddr == "" {
-		return fmt.Errorf("controller.listen_addr is required")
-	}
-	if controller.RepoDir == "" {
-		return fmt.Errorf("controller.repo_dir is required")
-	}
-	if controller.StateDir == "" {
-		return fmt.Errorf("controller.state_dir is required")
-	}
-	if controller.LogDir == "" {
-		return fmt.Errorf("controller.log_dir is required")
-	}
-	if controller.Nodes == nil {
-		return fmt.Errorf("controller.nodes must be present, even if it is empty")
+	if err := validationError(configValidator.StructPartial(controller, "ListenAddr", "RepoDir", "StateDir", "LogDir", "Nodes"), func(field validator.FieldError) error {
+		switch field.StructField() {
+		case "ListenAddr":
+			return fmt.Errorf("controller.listen_addr is required")
+		case "RepoDir":
+			return fmt.Errorf("controller.repo_dir is required")
+		case "StateDir":
+			return fmt.Errorf("controller.state_dir is required")
+		case "LogDir":
+			return fmt.Errorf("controller.log_dir is required")
+		case "Nodes":
+			return fmt.Errorf("controller.nodes must be present, even if it is empty")
+		default:
+			return nil
+		}
+	}); err != nil {
+		return err
 	}
 
 	seenNodeIDs := make(map[string]struct{}, len(controller.Nodes))
 	seenNodeTokens := make(map[string]string, len(controller.Nodes))
 	for _, node := range controller.Nodes {
-		if node.ID == "" {
-			return fmt.Errorf("controller.nodes[].id is required")
-		}
-		if node.Token == "" {
-			return fmt.Errorf("controller.nodes[%q].token is required", node.ID)
+		if err := validationError(configValidator.StructPartial(node, "ID", "Token"), func(field validator.FieldError) error {
+			switch field.StructField() {
+			case "ID":
+				return fmt.Errorf("controller.nodes[].id is required")
+			case "Token":
+				return fmt.Errorf("controller.nodes[%q].token is required", node.ID)
+			default:
+				return nil
+			}
+		}); err != nil {
+			return err
 		}
 		if _, exists := seenNodeIDs[node.ID]; exists {
 			return fmt.Errorf("controller.nodes[%q] is duplicated", node.ID)
@@ -349,11 +361,17 @@ func validateController(file *File) error {
 
 	seenAccessTokens := make(map[string]string, len(controller.AccessTokens))
 	for _, token := range controller.AccessTokens {
-		if token.Name == "" {
-			return fmt.Errorf("controller.access_tokens[].name is required")
-		}
-		if token.Token == "" {
-			return fmt.Errorf("controller.access_tokens[%q].token is required", token.Name)
+		if err := validationError(configValidator.StructPartial(token, "Name", "Token"), func(field validator.FieldError) error {
+			switch field.StructField() {
+			case "Name":
+				return fmt.Errorf("controller.access_tokens[].name is required")
+			case "Token":
+				return fmt.Errorf("controller.access_tokens[%q].token is required", token.Name)
+			default:
+				return nil
+			}
+		}); err != nil {
+			return err
 		}
 		if nodeID, exists := seenNodeTokens[token.Token]; exists {
 			return fmt.Errorf("controller.access_tokens[%q].token duplicates controller.nodes[%q].token", token.Name, nodeID)
@@ -365,11 +383,17 @@ func validateController(file *File) error {
 	}
 
 	if controller.Secrets != nil {
-		if controller.Secrets.Provider != "age" {
-			return fmt.Errorf("controller.secrets.provider must be age")
-		}
-		if controller.Secrets.IdentityFile == "" {
-			return fmt.Errorf("controller.secrets.identity_file is required")
+		if err := validationError(configValidator.StructPartial(controller.Secrets, "Provider", "IdentityFile"), func(field validator.FieldError) error {
+			switch field.StructField() {
+			case "Provider":
+				return fmt.Errorf("controller.secrets.provider must be age")
+			case "IdentityFile":
+				return fmt.Errorf("controller.secrets.identity_file is required")
+			default:
+				return nil
+			}
+		}); err != nil {
+			return err
 		}
 	}
 
@@ -383,47 +407,61 @@ func validateController(file *File) error {
 }
 
 func validateControllerUpdatesSemverAllow(allow []string) error {
-	seen := make(map[string]struct{}, len(allow))
+	normalizedAllow := make([]string, 0, len(allow))
 	for _, value := range allow {
-		value = strings.TrimSpace(value)
-		switch value {
-		case "patch", "minor", "major":
-			if _, exists := seen[value]; exists {
-				return fmt.Errorf("controller.updates.semver.default_allow[%q] is duplicated", value)
-			}
-			seen[value] = struct{}{}
-		default:
-			return fmt.Errorf("controller.updates.semver.default_allow must contain only patch, minor, or major")
+		normalizedAllow = append(normalizedAllow, strings.TrimSpace(value))
+	}
+	semverConfig := ControllerUpdatesSemverConfig{DefaultAllow: normalizedAllow}
+	if err := validationError(configValidator.StructPartial(semverConfig, "DefaultAllow"), func(field validator.FieldError) error {
+		return fmt.Errorf("controller.updates.semver.default_allow must contain only patch, minor, or major")
+	}); err != nil {
+		return err
+	}
+	seen := make(map[string]struct{}, len(normalizedAllow))
+	for _, value := range normalizedAllow {
+		if _, exists := seen[value]; exists {
+			return fmt.Errorf("controller.updates.semver.default_allow[%q] is duplicated", value)
 		}
+		seen[value] = struct{}{}
 	}
 	return nil
 }
 
 func validateAgent(file *File) error {
 	agent := file.Agent
-	if agent.ControllerAddr == "" {
-		return fmt.Errorf("agent.controller_addr is required")
-	}
-	if agent.NodeID == "" {
-		return fmt.Errorf("agent.node_id is required")
-	}
-	if agent.Token == "" {
-		return fmt.Errorf("agent.token is required")
-	}
-	if agent.RepoDir == "" {
-		return fmt.Errorf("agent.repo_dir is required")
-	}
-	if agent.StateDir == "" {
-		return fmt.Errorf("agent.state_dir is required")
+	if err := validationError(configValidator.StructPartial(agent, "ControllerAddr", "NodeID", "Token", "RepoDir", "StateDir"), func(field validator.FieldError) error {
+		switch field.StructField() {
+		case "ControllerAddr":
+			return fmt.Errorf("agent.controller_addr is required")
+		case "NodeID":
+			return fmt.Errorf("agent.node_id is required")
+		case "Token":
+			return fmt.Errorf("agent.token is required")
+		case "RepoDir":
+			return fmt.Errorf("agent.repo_dir is required")
+		case "StateDir":
+			return fmt.Errorf("agent.state_dir is required")
+		default:
+			return nil
+		}
+	}); err != nil {
+		return err
 	}
 	seenHeaders := make(map[string]struct{}, len(agent.ControllerHeaders))
 	for _, header := range agent.ControllerHeaders {
 		name := strings.TrimSpace(header.Name)
-		if name == "" {
-			return fmt.Errorf("agent.controller_headers[].name is required")
-		}
-		if strings.TrimSpace(header.Value) == "" {
-			return fmt.Errorf("agent.controller_headers[%q].value or agent.controller_headers[%q].value_file is required", name, name)
+		header = AgentControllerHeaderConfig{Name: name, Value: strings.TrimSpace(header.Value)}
+		if err := validationError(configValidator.StructPartial(header, "Name", "Value"), func(field validator.FieldError) error {
+			switch field.StructField() {
+			case "Name":
+				return fmt.Errorf("agent.controller_headers[].name is required")
+			case "Value":
+				return fmt.Errorf("agent.controller_headers[%q].value or agent.controller_headers[%q].value_file is required", name, name)
+			default:
+				return nil
+			}
+		}); err != nil {
+			return err
 		}
 		key := strings.ToLower(name)
 		if _, exists := seenHeaders[key]; exists {
@@ -437,6 +475,20 @@ func validateAgent(file *File) error {
 		}
 	}
 	return nil
+}
+
+func validationError(err error, format func(validator.FieldError) error) error {
+	if err == nil {
+		return nil
+	}
+	validationErrors, ok := err.(validator.ValidationErrors)
+	if !ok || len(validationErrors) == 0 {
+		return err
+	}
+	if formatted := format(validationErrors[0]); formatted != nil {
+		return formatted
+	}
+	return err
 }
 
 func validateSharedControllerAgentConfig(controller *ControllerConfig, agent *AgentConfig) error {
