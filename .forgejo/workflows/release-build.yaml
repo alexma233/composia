@@ -56,8 +56,8 @@ jobs:
       - name: Publish Debian packages to Forgejo APT registry
         continue-on-error: true
         env:
-          FORGEJO_PACKAGE_USERNAME: ${{ secrets.FORGEJO_PACKAGE_USERNAME }}
-          FORGEJO_PACKAGE_TOKEN: ${{ secrets.FORGEJO_PACKAGE_TOKEN }}
+          DEBIAN_PACKAGE_USERNAME: ${{ secrets.DEBIAN_PACKAGE_USERNAME }}
+          DEBIAN_PACKAGE_TOKEN: ${{ secrets.DEBIAN_PACKAGE_TOKEN }}
         run: |
           apt-get update
           apt-get install -y --no-install-recommends ca-certificates curl
@@ -70,7 +70,7 @@ jobs:
 
           for deb in dist/*.deb; do
             status="$(curl --silent --show-error --output /tmp/forgejo-apt-upload-response --write-out '%{http_code}' \
-              --user "${FORGEJO_PACKAGE_USERNAME}:${FORGEJO_PACKAGE_TOKEN}" \
+              --user "${DEBIAN_PACKAGE_USERNAME}:${DEBIAN_PACKAGE_TOKEN}" \
               --upload-file "${deb}" \
               "https://forgejo.alexma.top/api/packages/alexma233/debian/pool/stable/main/upload" || true)"
 
