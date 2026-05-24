@@ -507,6 +507,12 @@ export const zhHans = {
     appearance: {
       title: "外观",
     },
+    actions: {
+      title: "操作",
+    },
+    status: {
+      title: "状态",
+    },
     controller: {
       title: "控制器",
       version: "版本",
@@ -533,6 +539,25 @@ export const zhHans = {
       loadMore: "加载更多",
       loadingCommits: "加载中...",
       commitFailed: "加载提交历史失败。",
+    },
+    gitConfig: {
+      title: "Git 配置",
+      remoteUrl: "远程地址",
+      branch: "分支",
+      pullInterval: "拉取间隔",
+      hasAuth: "已配置认证",
+      authorName: "作者名",
+      authorEmail: "作者邮箱",
+      noGitConfig: "未找到 Git 配置。",
+      yes: "是",
+      no: "否",
+    },
+    accessTokens: {
+      title: "访问令牌",
+      name: "名称",
+      enabled: "已启用",
+      comment: "备注",
+      noTokens: "未配置访问令牌。",
     },
     rustic: {
       title: "Rustic 维护",

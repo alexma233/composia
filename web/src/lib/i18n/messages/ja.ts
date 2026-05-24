@@ -530,6 +530,12 @@ export const ja = {
     appearance: {
       title: "外観",
     },
+    actions: {
+      title: "操作",
+    },
+    status: {
+      title: "ステータス",
+    },
     controller: {
       title: "コントローラー",
       version: "バージョン",
@@ -556,6 +562,25 @@ export const ja = {
       loadMore: "さらに読み込む",
       loadingCommits: "読み込み中...",
       commitFailed: "コミット履歴の読み込みに失敗しました。",
+    },
+    gitConfig: {
+      title: "Git 設定",
+      remoteUrl: "リモートURL",
+      branch: "ブランチ",
+      pullInterval: "プル間隔",
+      hasAuth: "認証設定済み",
+      authorName: "作者名",
+      authorEmail: "作者メール",
+      noGitConfig: "Git 設定が見つかりません。",
+      yes: "はい",
+      no: "いいえ",
+    },
+    accessTokens: {
+      title: "アクセストークン",
+      name: "名前",
+      enabled: "有効",
+      comment: "コメント",
+      noTokens: "アクセストークンが設定されていません。",
     },
     rustic: {
       title: "Rustic メンテナンス",

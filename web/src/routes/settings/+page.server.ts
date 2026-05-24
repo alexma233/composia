@@ -3,6 +3,7 @@ import type { PageServerLoad } from "./$types";
 import {
   controllerConfig,
   listRepoCommits,
+  loadCurrentConfig,
   loadRepoHead,
   loadSystemCapabilities,
   loadSystemStatus,
@@ -17,23 +18,27 @@ export const load: PageServerLoad = async () => {
       system: null,
       repoHead: null,
       capabilities: null,
+      currentConfig: null,
       initialCommits: { commits: [], nextCursor: "" },
     };
   }
 
   try {
-    const [system, repoHead, capabilities, initialCommits] = await Promise.all([
-      loadSystemStatus(),
-      loadRepoHead(),
-      loadSystemCapabilities(),
-      listRepoCommits(10),
-    ]);
+    const [system, repoHead, capabilities, currentConfig, initialCommits] =
+      await Promise.all([
+        loadSystemStatus(),
+        loadRepoHead(),
+        loadSystemCapabilities(),
+        loadCurrentConfig(),
+        listRepoCommits(10),
+      ]);
     return {
       ready: true,
       error: null,
       system,
       repoHead,
       capabilities,
+      currentConfig,
       initialCommits,
     };
   } catch (error) {
@@ -44,6 +49,7 @@ export const load: PageServerLoad = async () => {
       system: null,
       repoHead: null,
       capabilities: null,
+      currentConfig: null,
       initialCommits: { commits: [], nextCursor: "" },
     };
   }

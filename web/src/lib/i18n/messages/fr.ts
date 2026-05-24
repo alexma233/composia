@@ -532,6 +532,12 @@ export const fr = {
     appearance: {
       title: "Apparence",
     },
+    actions: {
+      title: "Actions",
+    },
+    status: {
+      title: "État",
+    },
     controller: {
       title: "Contrôleur",
       version: "Version",
@@ -558,6 +564,25 @@ export const fr = {
       loadMore: "Charger plus",
       loadingCommits: "Chargement...",
       commitFailed: "Échec du chargement de l'historique des commits.",
+    },
+    gitConfig: {
+      title: "Configuration Git",
+      remoteUrl: "URL distante",
+      branch: "Branche",
+      pullInterval: "Intervalle de pull",
+      hasAuth: "Auth configurée",
+      authorName: "Nom de l'auteur",
+      authorEmail: "Email de l'auteur",
+      noGitConfig: "Aucune configuration Git trouvée.",
+      yes: "Oui",
+      no: "Non",
+    },
+    accessTokens: {
+      title: "Jetons d'accès",
+      name: "Nom",
+      enabled: "Activé",
+      comment: "Commentaire",
+      noTokens: "Aucun jeton d'accès configuré.",
     },
     rustic: {
       title: "Maintenance Rustic",

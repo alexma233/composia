@@ -54,6 +54,36 @@ export type SystemStatus = {
   onlineNodeCount: number;
 };
 
+export type GitConfigSummary = {
+  remoteUrl: string;
+  branch: string;
+  pullInterval: string;
+  hasAuth: boolean;
+  authorName: string;
+  authorEmail: string;
+};
+
+export type NodeConfigSummary = {
+  id: string;
+  displayName: string;
+  enabled: boolean;
+  publicIpv4: string;
+  publicIpv6: string;
+};
+
+export type AccessTokenSummary = {
+  name: string;
+  enabled: boolean;
+  comment: string;
+};
+
+export type CurrentConfig = {
+  listenAddr: string;
+  git?: GitConfigSummary;
+  nodes: NodeConfigSummary[];
+  accessTokens: AccessTokenSummary[];
+};
+
 export type ServiceSummary = {
   name: string;
   folder?: string;
@@ -624,6 +654,83 @@ export async function loadSystemStatus(): Promise<SystemStatus> {
     ),
     {},
   );
+}
+
+export async function loadCurrentConfig(): Promise<CurrentConfig> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{
+    listenAddr?: string;
+    listen_addr?: string;
+    git?: {
+      remoteUrl?: string;
+      remote_url?: string;
+      branch?: string;
+      pullInterval?: string;
+      pull_interval?: string;
+      hasAuth?: boolean;
+      has_auth?: boolean;
+      authorName?: string;
+      author_name?: string;
+      authorEmail?: string;
+      author_email?: string;
+    };
+    nodes?: Array<{
+      id?: string;
+      displayName?: string;
+      display_name?: string;
+      enabled?: boolean;
+      publicIpv4?: string;
+      public_ipv4?: string;
+      publicIpv6?: string;
+      public_ipv6?: string;
+    }>;
+    accessTokens?: Array<{
+      name?: string;
+      enabled?: boolean;
+      comment?: string;
+    }>;
+    access_tokens?: Array<{
+      name?: string;
+      enabled?: boolean;
+      comment?: string;
+    }>;
+  }>(
+    config.baseUrl,
+    config.token,
+    controllerProcedure(
+      "/composia.controller.v1.SystemService/GetCurrentConfig",
+    ),
+    {},
+  );
+
+  const rawGit = response.git;
+  const rawTokens = response.accessTokens ?? response.access_tokens;
+
+  return {
+    listenAddr: response.listenAddr ?? response.listen_addr ?? "",
+    git: rawGit
+      ? {
+          remoteUrl: rawGit.remoteUrl ?? rawGit.remote_url ?? "",
+          branch: rawGit.branch ?? "",
+          pullInterval: rawGit.pullInterval ?? rawGit.pull_interval ?? "",
+          hasAuth: rawGit.hasAuth ?? rawGit.has_auth ?? false,
+          authorName: rawGit.authorName ?? rawGit.author_name ?? "",
+          authorEmail: rawGit.authorEmail ?? rawGit.author_email ?? "",
+        }
+      : undefined,
+    nodes: (response.nodes ?? []).map((node) => ({
+      id: node.id ?? "",
+      displayName: node.displayName ?? node.display_name ?? "",
+      enabled: node.enabled ?? false,
+      publicIpv4: node.publicIpv4 ?? node.public_ipv4 ?? "",
+      publicIpv6: node.publicIpv6 ?? node.public_ipv6 ?? "",
+    })),
+    accessTokens: (rawTokens ?? []).map((token) => ({
+      name: token.name ?? "",
+      enabled: token.enabled ?? false,
+      comment: token.comment ?? "",
+    })),
+  };
 }
 
 export async function reloadControllerConfig(): Promise<{ accepted: boolean }> {

@@ -507,6 +507,12 @@ export const zhHant = {
     appearance: {
       title: "外觀",
     },
+    actions: {
+      title: "操作",
+    },
+    status: {
+      title: "狀態",
+    },
     controller: {
       title: "控制器",
       version: "版本",
@@ -533,6 +539,25 @@ export const zhHant = {
       loadMore: "載入更多",
       loadingCommits: "載入中...",
       commitFailed: "載入提交歷史失敗。",
+    },
+    gitConfig: {
+      title: "Git 設定",
+      remoteUrl: "遠端位址",
+      branch: "分支",
+      pullInterval: "拉取間隔",
+      hasAuth: "已設定認證",
+      authorName: "作者名稱",
+      authorEmail: "作者信箱",
+      noGitConfig: "未找到 Git 設定。",
+      yes: "是",
+      no: "否",
+    },
+    accessTokens: {
+      title: "存取權杖",
+      name: "名稱",
+      enabled: "已啟用",
+      comment: "備註",
+      noTokens: "未設定存取權杖。",
     },
     rustic: {
       title: "Rustic 維護",

@@ -527,6 +527,12 @@ export const enUS = {
     appearance: {
       title: "Appearance",
     },
+    actions: {
+      title: "Operations",
+    },
+    status: {
+      title: "Status",
+    },
     controller: {
       title: "Controller",
       version: "Version",
@@ -553,6 +559,25 @@ export const enUS = {
       loadMore: "Load more",
       loadingCommits: "Loading...",
       commitFailed: "Failed to load commit history.",
+    },
+    gitConfig: {
+      title: "Git config",
+      remoteUrl: "Remote URL",
+      branch: "Branch",
+      pullInterval: "Pull interval",
+      hasAuth: "Auth configured",
+      authorName: "Author name",
+      authorEmail: "Author email",
+      noGitConfig: "No Git config found.",
+      yes: "Yes",
+      no: "No",
+    },
+    accessTokens: {
+      title: "Access tokens",
+      name: "Name",
+      enabled: "Enabled",
+      comment: "Comment",
+      noTokens: "No access tokens configured.",
     },
     rustic: {
       title: "Rustic maintenance",

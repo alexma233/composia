@@ -526,7 +526,13 @@ export const de = {
   settings: {
     title: "Einstellungen",
     appearance: {
-      title: "Erscheinungsbild",
+      title: "Aussehen",
+    },
+    actions: {
+      title: "Aktionen",
+    },
+    status: {
+      title: "Status",
     },
     controller: {
       title: "Controller",
@@ -554,6 +560,25 @@ export const de = {
       loadMore: "Mehr laden",
       loadingCommits: "Laden...",
       commitFailed: "Laden des Commit-Verlaufs fehlgeschlagen.",
+    },
+    gitConfig: {
+      title: "Git-Konfiguration",
+      remoteUrl: "Remote-URL",
+      branch: "Branch",
+      pullInterval: "Pull-Intervall",
+      hasAuth: "Auth konfiguriert",
+      authorName: "Autor-Name",
+      authorEmail: "Autor-E-Mail",
+      noGitConfig: "Keine Git-Konfiguration gefunden.",
+      yes: "Ja",
+      no: "Nein",
+    },
+    accessTokens: {
+      title: "Zugriffstoken",
+      name: "Name",
+      enabled: "Aktiviert",
+      comment: "Kommentar",
+      noTokens: "Keine Zugriffstoken konfiguriert.",
     },
     rustic: {
       title: "Rustic-Wartung",

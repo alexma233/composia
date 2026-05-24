@@ -246,26 +246,75 @@
       </Card>
 
       <Card>
-        <CardHeader class="section-header">
-          <div class="section-heading">
-            <CardTitle class="section-title" level="2"
-              >{$messages.settings.controller.title}</CardTitle
-            >
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onclick={reloadControllerConfig}
-            disabled={reloadingController}
-          >
-            <RefreshCw class="mr-2 size-4" />
-            {reloadingController
-              ? $messages.settings.controller.reloading
-              : $messages.settings.controller.reloadConfig}
-          </Button>
+        <CardHeader>
+          <CardTitle class="section-title" level="2">{$messages.settings.actions.title}</CardTitle>
         </CardHeader>
         <CardContent class="space-y-4">
+          <div class="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onclick={reloadControllerConfig}
+              disabled={reloadingController}
+            >
+              <RefreshCw class="mr-2 size-4" />
+              {reloadingController
+                ? $messages.settings.controller.reloading
+                : $messages.settings.controller.reloadConfig}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onclick={syncRepo}
+              disabled={syncing}
+            >
+              <RefreshCw class="mr-2 size-4" />
+              {syncing
+                ? $messages.settings.repoSync.syncing
+                : $messages.settings.repoSync.syncRepo}
+            </Button>
+          </div>
+
+          {#if rusticMaintenanceCapability.enabled}
+            <div class="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onclick={() => runRusticAction("init")}
+                disabled={rusticBusy !== ""}
+              >
+                {rusticBusy === "init"
+                  ? $messages.settings.rustic.starting
+                  : $messages.settings.rustic.init}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onclick={() => runRusticAction("forget")}
+                disabled={rusticBusy !== ""}
+              >
+                {rusticBusy === "forget"
+                  ? $messages.settings.rustic.starting
+                  : $messages.settings.rustic.forget}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onclick={() => runRusticAction("prune")}
+                disabled={rusticBusy !== ""}
+              >
+                {rusticBusy === "prune"
+                  ? $messages.settings.rustic.starting
+                  : $messages.settings.rustic.prune}
+              </Button>
+            </div>
+          {/if}
+
           {#if reloadControllerError}
             <Alert variant="destructive">
               <AlertTitle>{$messages.settings.controller.reloadFailed}</AlertTitle>
@@ -276,52 +325,10 @@
           {#if reloadAccepted === true}
             <Alert>
               <AlertTitle>{$messages.common.success}</AlertTitle>
-              <AlertDescription
-                >{$messages.settings.controller.reloadAccepted}</AlertDescription
-              >
+              <AlertDescription>{$messages.settings.controller.reloadAccepted}</AlertDescription>
             </Alert>
           {/if}
 
-          {#if data.system}
-            <dl class="grid gap-4 sm:grid-cols-2">
-              <div class="metric-card">
-                <dt class="metric-label">
-                  {$messages.settings.controller.version}
-                </dt>
-                <dd class="mt-2 text-sm font-medium text-foreground">
-                  {data.system.version}
-                </dd>
-              </div>
-            </dl>
-          {:else}
-            <div class="empty-state">
-              {$messages.settings.controller.noData}
-            </div>
-          {/if}
-        </CardContent>
-      </Card>
-
-      <Card class="lg:col-span-2">
-        <CardHeader class="section-header">
-          <div class="section-heading">
-            <CardTitle class="section-title" level="2"
-              >{$messages.settings.repoSync.title}</CardTitle
-            >
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onclick={syncRepo}
-            disabled={syncing}
-          >
-            <RefreshCw class="mr-2 size-4" />
-            {syncing
-              ? $messages.settings.repoSync.syncing
-              : $messages.settings.repoSync.syncRepo}
-          </Button>
-        </CardHeader>
-        <CardContent class="space-y-4">
           {#if syncError}
             <Alert variant="destructive">
               <AlertTitle>{$messages.error.syncFailed}</AlertTitle>
@@ -329,69 +336,175 @@
             </Alert>
           {/if}
 
-          {#if data.repoHead || syncResult}
-            <dl class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div class="metric-card">
-                <dt class="metric-label">
-                  {$messages.settings.repoSync.branch}
-                </dt>
-                <dd class="mt-2 text-sm font-medium text-foreground">
-                  {data.repoHead?.branch || $messages.settings.repoSync.head}
-                </dd>
-              </div>
-              <div class="metric-card">
-                <dt class="metric-label">
-                  {$messages.settings.repoSync.syncStatus}
-                </dt>
-                <dd class="mt-2 text-sm font-medium text-foreground">
-                  {displaySyncStatus}
-                </dd>
-              </div>
-              <div class="metric-card">
-                <dt class="metric-label">
-                  {$messages.settings.repoSync.worktree}
-                </dt>
-                <dd class="mt-2 text-sm font-medium text-foreground">
-                  {data.repoHead?.cleanWorktree
-                    ? $messages.status.clean
-                    : $messages.status.dirty}
-                </dd>
-              </div>
-              <div class="metric-card">
-                <dt class="metric-label">
-                  {$messages.settings.repoSync.lastPull}
-                </dt>
-                <dd class="mt-2 text-sm font-medium text-foreground">
-                  {displayLastPull}
-                </dd>
-              </div>
-            </dl>
+          {#if rusticError}
+            <Alert variant="destructive">
+              <AlertTitle>{$messages.error.taskError}</AlertTitle>
+              <AlertDescription>{rusticError}</AlertDescription>
+            </Alert>
+          {/if}
 
+          {#if rusticTaskId}
             <div class="inset-card">
               <div class="metric-label">
-                {$messages.settings.repoSync.revision}
+                {$messages.settings.rustic.lastTask}
               </div>
               <div class="mt-2 break-all text-sm text-foreground">
-                {displayHeadRevision}
+                {rusticTaskId}
               </div>
-            </div>
-
-            {#if displayLastSyncError}
-              <Alert variant="destructive">
-                <AlertTitle>{$messages.error.lastSyncError}</AlertTitle>
-                <AlertDescription>{displayLastSyncError}</AlertDescription>
-              </Alert>
-            {/if}
-          {:else}
-            <div class="empty-state">
-              {$messages.settings.repoSync.noRepoState}
             </div>
           {/if}
         </CardContent>
       </Card>
 
+      <Card class="lg:col-span-2">
+        <CardHeader>
+          <CardTitle class="section-title" level="2">{$messages.settings.status.title}</CardTitle>
+        </CardHeader>
+        <CardContent class="space-y-6">
+          <section>
+            <CardTitle class="section-label" level="3">{$messages.settings.controller.title}</CardTitle>
+            {#if data.system}
+              <dl class="mt-3 grid gap-4 sm:grid-cols-2">
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.controller.version}
+                  </dt>
+                  <dd class="mt-2 text-sm font-medium text-foreground">
+                    {data.system.version}
+                  </dd>
+                </div>
+              </dl>
+            {:else}
+              <div class="empty-state mt-3">
+                {$messages.settings.controller.noData}
+              </div>
+            {/if}
+          </section>
+
+          <section class="border-t border-border pt-6">
+            <CardTitle class="section-label" level="3">{$messages.settings.repoSync.title}</CardTitle>
+            {#if data.repoHead || syncResult}
+              <dl class="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.repoSync.branch}
+                  </dt>
+                  <dd class="mt-2 text-sm font-medium text-foreground">
+                    {data.repoHead?.branch || $messages.settings.repoSync.head}
+                  </dd>
+                </div>
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.repoSync.syncStatus}
+                  </dt>
+                  <dd class="mt-2 text-sm font-medium text-foreground">
+                    {displaySyncStatus}
+                  </dd>
+                </div>
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.repoSync.worktree}
+                  </dt>
+                  <dd class="mt-2 text-sm font-medium text-foreground">
+                    {data.repoHead?.cleanWorktree
+                      ? $messages.status.clean
+                      : $messages.status.dirty}
+                  </dd>
+                </div>
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.repoSync.lastPull}
+                  </dt>
+                  <dd class="mt-2 text-sm font-medium text-foreground">
+                    {displayLastPull}
+                  </dd>
+                </div>
+              </dl>
+
+              <div class="mt-4 inset-card">
+                <div class="metric-label">
+                  {$messages.settings.repoSync.revision}
+                </div>
+                <div class="mt-2 break-all text-sm text-foreground">
+                  {displayHeadRevision}
+                </div>
+              </div>
+
+              {#if displayLastSyncError}
+                <Alert variant="destructive">
+                  <AlertTitle>{$messages.error.lastSyncError}</AlertTitle>
+                  <AlertDescription>{displayLastSyncError}</AlertDescription>
+                </Alert>
+              {/if}
+            {:else}
+              <div class="empty-state mt-3">
+                {$messages.settings.repoSync.noRepoState}
+              </div>
+            {/if}
+          </section>
+
+          {#if data.currentConfig?.git}
+            <section class="border-t border-border pt-6">
+              <CardTitle class="section-label" level="3">{$messages.settings.gitConfig.title}</CardTitle>
+              <dl class="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.gitConfig.remoteUrl}
+                  </dt>
+                  <dd class="mt-2 break-all text-sm font-medium text-foreground">
+                    {data.currentConfig.git.remoteUrl}
+                  </dd>
+                </div>
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.gitConfig.branch}
+                  </dt>
+                  <dd class="mt-2 text-sm font-medium text-foreground">
+                    {data.currentConfig.git.branch}
+                  </dd>
+                </div>
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.gitConfig.pullInterval}
+                  </dt>
+                  <dd class="mt-2 text-sm font-medium text-foreground">
+                    {data.currentConfig.git.pullInterval}
+                  </dd>
+                </div>
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.gitConfig.hasAuth}
+                  </dt>
+                  <dd class="mt-2 text-sm font-medium text-foreground">
+                    {data.currentConfig.git.hasAuth
+                      ? $messages.settings.gitConfig.yes
+                      : $messages.settings.gitConfig.no}
+                  </dd>
+                </div>
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.gitConfig.authorName}
+                  </dt>
+                  <dd class="mt-2 text-sm font-medium text-foreground">
+                    {data.currentConfig.git.authorName || "—"}
+                  </dd>
+                </div>
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.gitConfig.authorEmail}
+                  </dt>
+                  <dd class="mt-2 break-all text-sm font-medium text-foreground">
+                    {data.currentConfig.git.authorEmail || "—"}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+          {/if}
+        </CardContent>
+      </Card>
+
       {#if hasCommits}
-        <Card class="lg:col-span-2">
+        <Card>
           <CardHeader class="section-header">
             <div class="section-heading">
               <CardTitle class="section-title" level="2"
@@ -443,71 +556,48 @@
         </Card>
       {/if}
 
-      {#if rusticMaintenanceCapability.enabled}
-        <Card class="lg:col-span-2">
+      {#if data.currentConfig?.accessTokens && data.currentConfig.accessTokens.length > 0}
+        <Card>
           <CardHeader class="section-header">
             <div class="section-heading">
               <CardTitle class="section-title" level="2"
-                >{$messages.settings.rustic.title}</CardTitle
+                >{$messages.settings.accessTokens.title}</CardTitle
               >
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onclick={() => runRusticAction("init")}
-                disabled={rusticBusy !== ""}
-              >
-                {rusticBusy === "init"
-                  ? $messages.settings.rustic.starting
-                  : $messages.settings.rustic.init}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onclick={() => runRusticAction("forget")}
-                disabled={rusticBusy !== ""}
-              >
-                {rusticBusy === "forget"
-                  ? $messages.settings.rustic.starting
-                  : $messages.settings.rustic.forget}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onclick={() => runRusticAction("prune")}
-                disabled={rusticBusy !== ""}
-              >
-                {rusticBusy === "prune"
-                  ? $messages.settings.rustic.starting
-                  : $messages.settings.rustic.prune}
-              </Button>
             </div>
           </CardHeader>
-          <CardContent class="space-y-4">
-            {#if rusticError}
-              <Alert variant="destructive">
-                <AlertTitle>{$messages.error.taskError}</AlertTitle>
-                <AlertDescription>{rusticError}</AlertDescription>
-              </Alert>
-            {/if}
-
-            {#if rusticTaskId}
-              <div class="inset-card">
-                <div class="metric-label">
-                  {$messages.settings.rustic.lastTask}
-                </div>
-                <div class="mt-2 break-all text-sm text-foreground">
-                  {rusticTaskId}
-                </div>
-              </div>
-            {/if}
+          <CardContent>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-border">
+                    <th class="px-3 py-2 text-left font-medium text-muted-foreground">
+                      {$messages.settings.accessTokens.name}
+                    </th>
+                    <th class="px-3 py-2 text-left font-medium text-muted-foreground">
+                      {$messages.settings.accessTokens.enabled}
+                    </th>
+                    <th class="px-3 py-2 text-left font-medium text-muted-foreground">
+                      {$messages.settings.accessTokens.comment}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each data.currentConfig.accessTokens as token}
+                    <tr class="border-b border-border last:border-b-0">
+                      <td class="px-3 py-2 font-medium text-foreground">{token.name}</td>
+                      <td class="px-3 py-2 text-foreground">
+                        {token.enabled ? $messages.settings.gitConfig.yes : $messages.settings.gitConfig.no}
+                      </td>
+                      <td class="px-3 py-2 text-foreground">{token.comment || "—"}</td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
       {/if}
     </section>
   </div>
 </div>
+
