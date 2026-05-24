@@ -1,6 +1,6 @@
 import { writable, type Unsubscriber } from "svelte/store";
 
-import { defaultLocale, setLocale, type Locale } from "$lib/i18n";
+import { availableLocales, defaultLocale, setLocale, type Locale } from "$lib/i18n";
 
 export const availableThemeModes = ["system", "light", "dark"] as const;
 export const availableAccentColors = [
@@ -50,10 +50,11 @@ function normalizeAccentColor(value: string | null | undefined): AccentColor {
 }
 
 function normalizeLocale(value: string | null | undefined): Locale {
-  if (value === "en-US" || value === "zh-Hans") {
-    return value;
-  }
-  return defaultLocale;
+  if (!value) return defaultLocale;
+  const match = availableLocales.find(
+    (locale) => locale.toLowerCase() === value.toLowerCase(),
+  );
+  return match ?? defaultLocale;
 }
 
 const initialThemeMode = normalizeThemeMode(
