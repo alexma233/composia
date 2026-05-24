@@ -1,3 +1,5 @@
+import type { Dictionary } from "$lib/i18n/messages/en-us";
+
 export const ja = {
   app: {
     name: "Composia",
@@ -813,4 +815,4 @@ export const ja = {
       removeFailed: "ボリュームの削除に失敗しました。",
     },
   },
-} as const;
+} as const satisfies Dictionary;

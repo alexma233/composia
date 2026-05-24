@@ -1,3 +1,5 @@
+import type { Dictionary } from "$lib/i18n/messages/en-us";
+
 export const de = {
   app: {
     name: "Composia",
@@ -812,4 +814,4 @@ export const de = {
       removeFailed: "Entfernen des Volumes fehlgeschlagen.",
     },
   },
-} as const;
+} as const satisfies Dictionary;

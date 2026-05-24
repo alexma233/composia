@@ -5,6 +5,8 @@ on:
     paths:
       - "package.json"
       - "bun.lock"
+      - "buf.gen.yaml"
+      - "proto/**"
       - "web/**"
       - ".forgejo/workflows/web-ci.yaml"
   push:
@@ -12,6 +14,8 @@ on:
     paths:
       - "package.json"
       - "bun.lock"
+      - "buf.gen.yaml"
+      - "proto/**"
       - "web/**"
       - ".forgejo/workflows/web-ci.yaml"
   workflow_dispatch:

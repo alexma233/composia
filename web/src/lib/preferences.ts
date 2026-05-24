@@ -1,6 +1,11 @@
 import { writable, type Unsubscriber } from "svelte/store";
 
-import { availableLocales, defaultLocale, setLocale, type Locale } from "$lib/i18n";
+import {
+  availableLocales,
+  defaultLocale,
+  setLocale,
+  type Locale,
+} from "$lib/i18n";
 
 export const availableThemeModes = ["system", "light", "dark"] as const;
 export const availableAccentColors = [

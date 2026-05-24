@@ -1,3 +1,5 @@
+import type { Dictionary } from "$lib/i18n/messages/en-us";
+
 export const zhHans = {
   app: {
     name: "Composia",
@@ -786,4 +788,4 @@ export const zhHans = {
       removeFailed: "删除卷失败。",
     },
   },
-} as const;
+} as const satisfies Dictionary;

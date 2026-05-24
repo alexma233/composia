@@ -44,9 +44,10 @@
     lastSuccessfulPullAt?: string;
   } | null>(null);
 
+  const getInitialCommits = () => data.initialCommits;
   let commitPageSize = 10;
-  let commits = $state(data.initialCommits?.commits ?? []);
-  let commitsCursor = $state(data.initialCommits?.nextCursor ?? "");
+  let commits = $state(getInitialCommits()?.commits ?? []);
+  let commitsCursor = $state(getInitialCommits()?.nextCursor ?? "");
   let loadingCommits = $state(false);
   let commitsError = $state("");
   let hasCommits = $derived(commits.length > 0 || !!commitsCursor);
