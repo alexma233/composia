@@ -2,7 +2,7 @@
   import { Badge } from '$lib/components/ui/badge';
   import { TableCell, TableRow } from '$lib/components/ui/table';
   import { messages } from '$lib/i18n';
-  import { formatTimestamp, runtimeStatusTone } from '$lib/presenters';
+  import { formatTimestamp, runtimeStatusLabel, runtimeStatusTone } from '$lib/presenters';
   import type { ServiceWorkspaceSummary } from '$lib/server/controller';
 
   interface Props {
@@ -20,7 +20,7 @@
   function statusText(hasMeta: boolean, runtimeStatus: string) {
     if (!hasMeta) return $messages.services.noMeta;
     if (runtimeStatus === 'needs_validation') return $messages.services.metaDraft;
-    return runtimeStatus || $messages.common.unknown;
+    return runtimeStatusLabel(runtimeStatus, $messages);
   }
 </script>
 

@@ -149,8 +149,8 @@ export const zhHans = {
     unknown: "未知",
     healthy: "健康",
     unhealthy: "异常",
-    clean: "Clean",
-    dirty: "Dirty",
+    clean: "干净",
+    dirty: "有更改",
   },
   error: {
     loadFailed: "加载失败",
