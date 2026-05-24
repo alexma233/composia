@@ -1999,18 +1999,19 @@
               <div class="flex">
                 <Button
                   type="button"
-                  class="rounded-r-none border-r-0 flex-1 justify-center"
+                  class="rounded-r-none border-r-0 flex-1 shrink min-w-0 justify-center"
                   onclick={() => triggerAction("deploy", deployRecreateMode)}
                   disabled={!!actionBusy || !workspace?.isDeclared}
                 >
-                  <Play class="mr-2 size-4" />{$messages.services.operations
-                    .deploy}
+                  <Play class="mr-2 size-4 shrink-0" /><span class="truncate"
+                    >{$messages.services.operations.deploy}</span
+                  >
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     class={cn(
                       buttonVariants(),
-                      "rounded-l-none border-l-0 gap-1 px-3",
+                      "rounded-l-none border-l-0 gap-1 px-3 shrink-0",
                     )}
                     aria-label={$messages.services.operations.recreate.label}
                     disabled={!!actionBusy || !workspace?.isDeclared}
@@ -2043,18 +2044,19 @@
                 <Button
                   type="button"
                   variant="outline"
-                  class="rounded-r-none border-r-0 flex-1 justify-center"
+                  class="rounded-r-none border-r-0 flex-1 shrink min-w-0 justify-center"
                   onclick={() => triggerAction("update", updateRecreateMode)}
                   disabled={!!actionBusy || !workspace?.isDeclared}
                 >
-                  <Upload class="mr-2 size-4" />{$messages.services.operations
-                    .update}
+                  <Upload class="mr-2 size-4 shrink-0" /><span class="truncate"
+                    >{$messages.services.operations.update}</span
+                  >
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     class={cn(
                       buttonVariants({ variant: "outline" }),
-                      "rounded-l-none border-l-0 gap-1 px-3",
+                      "rounded-l-none border-l-0 gap-1 px-3 shrink-0",
                     )}
                     aria-label={$messages.services.operations.update}
                     disabled={!!actionBusy || !workspace?.isDeclared}
