@@ -53,6 +53,42 @@ jobs:
           AUR_KEY: ${{ secrets.AUR_KEY }}
         run: goreleaser release --clean --timeout=40m
 
+      - name: Publish Debian packages to Forgejo APT registry
+        continue-on-error: true
+        env:
+          FORGEJO_PACKAGE_USERNAME: ${{ secrets.FORGEJO_PACKAGE_USERNAME }}
+          FORGEJO_PACKAGE_TOKEN: ${{ secrets.FORGEJO_PACKAGE_TOKEN }}
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates curl
+
+          set -- dist/*.deb
+          if [ ! -e "$1" ]; then
+            printf 'No Debian packages found, skipping APT registry upload.\n'
+            exit 0
+          fi
+
+          for deb in dist/*.deb; do
+            status="$(curl --silent --show-error --output /tmp/forgejo-apt-upload-response --write-out '%{http_code}' \
+              --user "${FORGEJO_PACKAGE_USERNAME}:${FORGEJO_PACKAGE_TOKEN}" \
+              --upload-file "${deb}" \
+              "https://forgejo.alexma.top/api/packages/alexma233/debian/pool/stable/main/upload" || true)"
+
+            case "${status}" in
+              2*)
+                printf 'Published %s to Forgejo APT registry.\n' "${deb}"
+                ;;
+              409)
+                printf 'Skipping %s because this package already exists in the Forgejo APT registry.\n' "${deb}"
+                ;;
+              *)
+                printf 'Warning: failed to publish %s to Forgejo APT registry (HTTP %s).\n' "${deb}" "${status}"
+                cat /tmp/forgejo-apt-upload-response
+                printf '\n'
+                ;;
+            esac
+          done
+
       - name: Install COPR build dependencies
         run: |
           apt-get update

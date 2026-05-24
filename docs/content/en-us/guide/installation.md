@@ -7,6 +7,22 @@ This guide covers the full setup of Composia with pre-built container images. Fo
 - Docker Engine 20.10+
 - Docker Compose v2.0+
 
+## APT Packages
+
+The APT repository installs the `composia`, `composia-controller`, and `composia-agent` binaries. The container-based deployment below is still the recommended path for running the full platform, including the Web UI.
+
+```bash
+sudo install -d -m 0755 /etc/apt/keyrings
+sudo curl https://forgejo.alexma.top/api/packages/alexma233/debian/repository.key \
+  -o /etc/apt/keyrings/composia.asc
+
+echo "deb [signed-by=/etc/apt/keyrings/composia.asc] https://forgejo.alexma.top/api/packages/alexma233/debian stable main" \
+  | sudo tee /etc/apt/sources.list.d/composia.list
+
+sudo apt update
+sudo apt install composia
+```
+
 ## Create a Working Directory
 
 Download the production Compose file directly instead of cloning the full repository:

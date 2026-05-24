@@ -7,6 +7,22 @@
 - Docker Engine 20.10+
 - Docker Compose v2.0+
 
+## APT 包
+
+APT 仓库会安装 `composia`、`composia-controller` 和 `composia-agent` 三个二进制文件。下方的容器部署仍然是运行完整平台（包括 Web UI）的推荐方式。
+
+```bash
+sudo install -d -m 0755 /etc/apt/keyrings
+sudo curl https://forgejo.alexma.top/api/packages/alexma233/debian/repository.key \
+  -o /etc/apt/keyrings/composia.asc
+
+echo "deb [signed-by=/etc/apt/keyrings/composia.asc] https://forgejo.alexma.top/api/packages/alexma233/debian stable main" \
+  | sudo tee /etc/apt/sources.list.d/composia.list
+
+sudo apt update
+sudo apt install composia
+```
+
 ## 创建工作目录
 
 直接下载生产用的 Compose 文件，不需要克隆整个仓库：
