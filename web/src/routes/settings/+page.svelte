@@ -250,25 +250,30 @@
 </svelte:head>
 
 <div class="page-shell">
+  <Card class="mb-6">
+    <CardHeader>
+      <div class="page-header">
+        <div class="page-heading">
+          <CardTitle class="page-title" level="1">{$messages.settings.title}</CardTitle>
+        </div>
+      </div>
+
+      {#if data.error}
+        <Alert variant="destructive">
+          <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
+          <AlertDescription>{data.error}</AlertDescription>
+        </Alert>
+      {/if}
+    </CardHeader>
+  </Card>
+
   <div class="page-stack">
     <section class="grid gap-6 lg:grid-cols-2">
       <Card>
         <CardHeader>
-          <div class="page-header">
-            <div class="page-heading">
-              <CardTitle class="page-title" level="1">{$messages.settings.title}</CardTitle>
-            </div>
-          </div>
-
-          {#if data.error}
-            <Alert variant="destructive">
-              <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
-              <AlertDescription>{data.error}</AlertDescription>
-            </Alert>
-          {/if}
+          <CardTitle class="section-title" level="2">{$messages.settings.appearance.title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <CardTitle class="section-title" level="2">{$messages.settings.appearance.title}</CardTitle>
           <ThemeControls />
         </CardContent>
       </Card>
@@ -306,40 +311,43 @@
           </div>
 
           {#if rusticMaintenanceCapability.enabled}
-            <div class="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onclick={() => runRusticAction("init")}
-                disabled={rusticBusy !== ""}
-              >
-                {rusticBusy === "init"
-                  ? $messages.settings.rustic.starting
-                  : $messages.settings.rustic.init}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onclick={() => runRusticAction("forget")}
-                disabled={rusticBusy !== ""}
-              >
-                {rusticBusy === "forget"
-                  ? $messages.settings.rustic.starting
-                  : $messages.settings.rustic.forget}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onclick={() => runRusticAction("prune")}
-                disabled={rusticBusy !== ""}
-              >
-                {rusticBusy === "prune"
-                  ? $messages.settings.rustic.starting
-                  : $messages.settings.rustic.prune}
-              </Button>
+            <div class="space-y-2">
+              <CardTitle class="section-label" level="3">{$messages.settings.rustic.title}</CardTitle>
+              <div class="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onclick={() => runRusticAction("init")}
+                  disabled={rusticBusy !== ""}
+                >
+                  {rusticBusy === "init"
+                    ? $messages.settings.rustic.starting
+                    : $messages.settings.rustic.init}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onclick={() => runRusticAction("forget")}
+                  disabled={rusticBusy !== ""}
+                >
+                  {rusticBusy === "forget"
+                    ? $messages.settings.rustic.starting
+                    : $messages.settings.rustic.forget}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onclick={() => runRusticAction("prune")}
+                  disabled={rusticBusy !== ""}
+                >
+                  {rusticBusy === "prune"
+                    ? $messages.settings.rustic.starting
+                    : $messages.settings.rustic.prune}
+                </Button>
+              </div>
             </div>
           {/if}
 
