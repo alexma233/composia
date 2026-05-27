@@ -9,7 +9,7 @@
     "@mermaid-js/mermaid-mindmap": "9.3.0",
     "cytoscape": "3.33.4",
     "cytoscape-cose-bilkent": "4.1.0",
-    "dayjs": "1.11.20",
+    "dayjs": "1.11.21",
     "debug": "4.4.3",
     "mermaid": "11.15.0",
     "vitepress": "2.0.0-alpha.17",
