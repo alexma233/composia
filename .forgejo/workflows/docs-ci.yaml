@@ -58,11 +58,13 @@ jobs:
         uses: https://forgejo.alexma.top/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Download Hugo modules
+        working-directory: site
         run: |
           hugo mod tidy
           hugo mod verify
 
       - name: Build website
+        working-directory: site
         run: |
           hugo --minify -d public
 
@@ -75,4 +77,4 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           packageManager: npm
-          command: pages deploy ./public --project-name=${{ vars.WEBSITE_CLOUDFLARE_PAGES_PROJECT }} --branch=main
+          command: pages deploy ./site/public --project-name=${{ vars.WEBSITE_CLOUDFLARE_PAGES_PROJECT }} --branch=main
