@@ -46,6 +46,17 @@ func TestParseSize(t *testing.T) {
 	}
 }
 
+func TestParseDockerSystemDFVolumeSize(t *testing.T) {
+	t.Parallel()
+
+	output := []byte("Images\t4.8GB\nContainers\t20kB\nLocal Volumes\t1.5MB\nBuild Cache\t512B\n")
+
+	got := parseDockerSystemDFVolumeSize(output)
+	if got != 1500000 {
+		t.Fatalf("parseDockerSystemDFVolumeSize() = %d, want %d", got, uint64(1500000))
+	}
+}
+
 func TestDecodeTaskParamsReturnsJSONError(t *testing.T) {
 	t.Parallel()
 

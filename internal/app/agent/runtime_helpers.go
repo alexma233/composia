@@ -206,24 +206,31 @@ func dockerVolumeStats(ctx context.Context) (uint32, uint64, error) {
 		}
 	}
 
-	sizeOutput, err := exec.CommandContext(ctx, "docker", "system", "df", "-v", "--format", "{{.RealSize}}").Output()
+	sizeOutput, err := exec.CommandContext(ctx, "docker", "system", "df", "--format", "{{.Type}}\t{{.Size}}").Output()
 	if err != nil {
-		return count, 0, fmt.Errorf("docker system df -v failed: %w", err)
+		return count, 0, fmt.Errorf("docker system df failed: %w", err)
 	}
 
+	return count, parseDockerSystemDFVolumeSize(sizeOutput), nil
+}
+
+func parseDockerSystemDFVolumeSize(output []byte) uint64 {
 	var totalSize uint64
-	sizeLines := strings.Split(strings.TrimSpace(string(sizeOutput)), "\n")
+	sizeLines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	for _, line := range sizeLines {
 		line = strings.TrimSpace(line)
-		if line == "" || line == "0B" {
+		if line == "" {
 			continue
 		}
-		if size, ok := parseSize(line); ok {
+		kind, sizeText, ok := strings.Cut(line, "\t")
+		if !ok || !strings.Contains(strings.ToLower(kind), "volume") {
+			continue
+		}
+		if size, ok := parseSize(sizeText); ok {
 			totalSize += size
 		}
 	}
-
-	return count, totalSize, nil
+	return totalSize
 }
 
 func parseSize(s string) (uint64, bool) {
