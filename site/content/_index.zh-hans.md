@@ -24,6 +24,7 @@ layout: hextra-home
 <div class="hx:mb-6">
 {{< hextra/hero-button text="快速开始" link="docs" >}}
 {{< hextra/hero-button text="仓库地址" link="https://forgejo.alexma.top/alexma233/composia" style="background-color: transparent; border: 1px solid var(--tw-prose-headings); color: var(--tw-prose-headings);" >}}
+{{< hextra/hero-button text="为什么选择 Composia" link="docs/about/why-composia" style="background-color: transparent; border: 1px solid var(--tw-prose-headings); color: var(--tw-prose-headings);" >}}
 </div>
 
 <div class="hx:mt-6"></div>

@@ -24,6 +24,7 @@ layout: hextra-home
 <div class="hx:mb-6">
 {{< hextra/hero-button text="Schnellstart" link="docs" >}}
 {{< hextra/hero-button text="Repository" link="https://forgejo.alexma.top/alexma233/composia" style="background-color: transparent; border: 1px solid var(--tw-prose-headings); color: var(--tw-prose-headings);" >}}
+{{< hextra/hero-button text="Warum Composia" link="docs/about/why-composia" style="background-color: transparent; border: 1px solid var(--tw-prose-headings); color: var(--tw-prose-headings);" >}}
 </div>
 
 <div class="hx:mt-6"></div>
