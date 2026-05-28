@@ -1,3 +1,6 @@
+# =============================================================================
+# Controller stack — keep these on your controller node
+# =============================================================================
 services:
   init-repo-controller:
     image: alpine/git:v2.52.0
@@ -22,23 +25,6 @@ services:
       - ${COMPOSIA_CONTROLLER_STATE_DIR}:/data/state-controller
       - ${COMPOSIA_CONTROLLER_LOG_DIR}:/data/logs
 
-  init-config-perms:
-    image: alpine:3.23
-    entrypoint:
-      - sh
-      - -ec
-      - |
-        if [ -f /app/configs/age-identity.key ]; then
-          chown 65532:65532 /app/configs/age-identity.key
-          chmod 600 /app/configs/age-identity.key
-        fi
-        if [ -f /app/configs/age-recipients.txt ]; then
-          chown 65532:65532 /app/configs/age-recipients.txt
-          chmod 644 /app/configs/age-recipients.txt
-        fi
-    volumes:
-      - ${COMPOSIA_CONFIG_DIR}:/app/configs
-
   controller:
     image: forgejo.alexma.top/alexma233/composia-controller:latest
     depends_on:
@@ -59,6 +45,48 @@ services:
     networks:
       - composia
     restart: unless-stopped
+
+# =============================================================================
+# Web UI — keep on controller node
+# =============================================================================
+
+  web:
+    image: forgejo.alexma.top/alexma233/composia-web:latest
+    depends_on:
+      controller:
+        condition: service_started
+    env_file:
+      - ./.env
+    ports:
+      - "3000:3000"
+    networks:
+      - composia
+    restart: unless-stopped
+
+# =============================================================================
+# Shared init — needed on both controller and agent nodes
+# =============================================================================
+
+  init-config-perms:
+    image: alpine:3.23
+    entrypoint:
+      - sh
+      - -ec
+      - |
+        if [ -f /app/configs/age-identity.key ]; then
+          chown 65532:65532 /app/configs/age-identity.key
+          chmod 600 /app/configs/age-identity.key
+        fi
+        if [ -f /app/configs/age-recipients.txt ]; then
+          chown 65532:65532 /app/configs/age-recipients.txt
+          chmod 644 /app/configs/age-recipients.txt
+        fi
+    volumes:
+      - ${COMPOSIA_CONFIG_DIR}:/app/configs
+
+# =============================================================================
+# Agent stack — keep these on each agent node
+# =============================================================================
 
   init-perms-agent:
     image: alpine:3.23
@@ -89,19 +117,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${COMPOSIA_AGENT_REPO_DIR}:${COMPOSIA_AGENT_REPO_DIR}
       - ${COMPOSIA_AGENT_STATE_DIR}:/data/state-agent
-    networks:
-      - composia
-    restart: unless-stopped
-
-  web:
-    image: forgejo.alexma.top/alexma233/composia-web:latest
-    depends_on:
-      controller:
-        condition: service_started
-    env_file:
-      - ./.env
-    ports:
-      - "3000:3000"
     networks:
       - composia
     restart: unless-stopped

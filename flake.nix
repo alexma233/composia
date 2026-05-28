@@ -48,7 +48,7 @@
 
             meta = {
               description = "Self-hosted Docker Compose control plane and CLI";
-              homepage = "https://docs.composia.xyz";
+              homepage = "https://composia.xyz";
               license = pkgs.lib.licenses.agpl3Only;
               mainProgram = "composia";
               platforms = supportedSystems;

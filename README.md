@@ -22,7 +22,7 @@
   </p>
 
   <p>
-    <a href="https://docs.composia.xyz">
+    <a href="https://composia.xyz">
       <strong>📚 Documentation</strong>
     </a>
   </p>
@@ -51,7 +51,7 @@ services:
       - ./data:/app/data
 ```
 
-See [Why Composia?](https://docs.composia.xyz/guide/why-composia) for how it compares to other tools.
+See [Why Composia?](https://composia.xyz/docs/about/why-composia/) for how it compares to other tools.
 
 ## Stack
 
@@ -65,16 +65,16 @@ See [Why Composia?](https://docs.composia.xyz/guide/why-composia) for how it com
 
 See the documentation site for installation, configuration, deployment, and operations:
 
-- [Quick Start](https://docs.composia.xyz/guide/quick-start)
-- [Configuration Guide](https://docs.composia.xyz/guide/configuration)
-- [Development Guide](https://docs.composia.xyz/guide/development)
-- [Why Composia?](https://docs.composia.xyz/guide/why-composia)
+- [Installation](https://composia.xyz/docs/installation/docker-compose/)
+- [Configuration Guide](https://composia.xyz/docs/installation/configuration/)
+- [Development Guide](https://composia.xyz/docs/developer-guide/source-build/)
+- [Why Composia?](https://composia.xyz/docs/about/why-composia/)
 
 ## Development
 
 This repository includes `mise.toml` for local tool versions.
 
-For full setup and workflow details, see the [Development Guide](https://docs.composia.xyz/guide/development).
+For full setup and workflow details, see the [Development Guide](https://composia.xyz/docs/developer-guide/source-build/).
 
 Common local commands:
 
@@ -148,9 +148,33 @@ web/                  # SvelteKit frontend
 ## Attributions
 
 - [Dockman](https://github.com/RA341/dockman) - Docker management UI reference for Docker resource list/inspect page patterns (AGPL-3.0)
+- [Twemoji](https://github.com/twitter/twemoji) - the Composia logo is adapted from Twemoji graphics by Twitter, Inc. and other contributors, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+<details>
+<summary>Twemoji attribution details</summary>
+
+Source: https://github.com/twitter/twemoji
+
+License: Creative Commons Attribution 4.0 International
+
+License URL: https://creativecommons.org/licenses/by/4.0/
+
+License text: [LICENSES/CC-BY-4.0.txt](LICENSES/CC-BY-4.0.txt)
+
+Changes: pixelated and adapted into the Composia logo, then exported as SVG and favicon assets.
+
+</details>
 
 ## License
 
-This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See [LICENSE](LICENSE) for details.
+Source code is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See [LICENSE](LICENSE) for details.
+
+Except where otherwise noted, documentation and website content in this repository, including Markdown files and content under `site/content/`, are licensed under [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/). See [LICENSES/CC-BY-4.0.txt](LICENSES/CC-BY-4.0.txt) for the license text.
+
+This documentation license does not apply to source code, configuration files, generated files, third-party materials, trademarks, service marks, or project logos except where explicitly stated.
+
+When reusing the documentation or website content, provide attribution to the Composia project, link to the original repository when reasonably practicable, link to the CC BY 4.0 license, and indicate if changes were made.
+
+The Composia logo and derived site icons are licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) and include attribution to Twemoji as described above.
 
 If you require a commercial license for use cases not permitted under AGPL-3.0, please contact the author.

@@ -5,7 +5,7 @@ Release:        1%{?dist}
 Summary:        Self-hosted Docker Compose control plane and CLI.
 
 License:        AGPL-3.0-only
-URL:            https://docs.composia.xyz
+URL:            https://composia.xyz
 Source0:        %{name}-%{version}.tar.gz
 
 # go.mod declares go 1.25.0. Builds on Fedora 42 (Go 1.24) will fail;

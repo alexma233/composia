@@ -204,9 +204,9 @@ web/.vercel/
 .DS_Store
 config.local.yaml
 
-# Vitepress
-docs/.vitepress/dist
-docs/.vitepress/cache
+# Hugo
+site/public
+site/.hugo_build.lock
 
 # Craft Agents
 events.jsonl

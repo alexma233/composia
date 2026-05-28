@@ -2,6 +2,6 @@ version: v1
 
 plugins:
   - plugin: doc
-    out: docs/content/en-us/guide/api
+    out: site/content/docs/developer-guide/api
     opt:
       - markdown,agent-internal-reference.md

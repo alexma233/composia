@@ -13,11 +13,7 @@
     "web:format": "bun run --cwd web format",
     "web:format:write": "bun run --cwd web format:write",
     "docs:api:generate": "sh ./scripts/docs/generate-proto-docs.sh",
-    "docs:dev": "bun run --cwd docs dev",
-    "docs:build": "bun run --cwd docs build",
-    "docs:preview": "bun run --cwd docs preview"
-  },
-  "devDependencies": {
-    "vitepress": "2.0.0-alpha.17"
+    "docs:dev": "hugo serve --port 5174 -s site",
+    "docs:build": "hugo --minify -s site"
   }
 }
