@@ -7,4 +7,5 @@ weight: 40
 Ressourcen, um zu Composia beizutragen oder Integrationen zu erstellen:
 
 - [Source Build](source-build/) — Binärdateien und lokale Container-Images aus dem Quellcode bauen.
-- [API-Referenz](api/) — automatisch aus Protobuf-Definitionen generiert.
+- [Controller-Referenz](api/controller-reference/) — öffentliche Controller-API.
+- [Agent-Intern-Referenz](api/agent-internal-reference/) — Agent-Server-RPC-Protokoll.

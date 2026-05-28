@@ -7,4 +7,5 @@ weight: 40
 Resources for contributing to Composia or building integrations:
 
 - [Source Build](source-build/) - build binaries and local container images from source.
-- [API Reference](api/) - auto-generated from protobuf definitions.
+- [Controller Reference](api/controller-reference/) - public controller API.
+- [Agent Internal Reference](api/agent-internal-reference/) - agent-server RPC protocol.

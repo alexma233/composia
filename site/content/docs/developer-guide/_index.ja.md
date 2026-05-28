@@ -7,4 +7,5 @@ weight: 40
 Composia への貢献や統合の構築のためのリソース:
 
 - [ソースビルド](source-build/) - ソースからバイナリとローカルコンテナイメージをビルドします。
-- [API リファレンス](api/) - protobuf 定義から自動生成されます。
+- [Controller リファレンス](api/controller-reference/) - コントローラの公開 API。
+- [Agent 内部リファレンス](api/agent-internal-reference/) - エージェント-サーバー RPC プロトコル。
