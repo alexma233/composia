@@ -46,7 +46,7 @@
       "devDependencies": {
         "@bufbuild/protoc-gen-es": "2.12.0",
         "@fontsource-variable/inter": "5.2.8",
-        "@internationalized/date": "3.12.1",
+        "@internationalized/date": "3.12.2",
         "@lucide/svelte": "1.17.0",
         "@sveltejs/adapter-auto": "7.0.1",
         "@sveltejs/adapter-node": "5.5.4",
@@ -217,7 +217,7 @@
 
     "@hyperjump/json-pointer": ["@hyperjump/json-pointer@1.1.2", "", {}, "sha512-zPNgu1zdhtjQHFNLGzvEsLDsLOEvhRj6u6ktIQmlz7YPESv5uF8SnAe3Dq0oL6gZ6OGWSLq2n7pphRNF6Hpg6w=="],
 
-    "@internationalized/date": ["@internationalized/date@3.12.1", "", { "dependencies": { "@swc/helpers": "^0.5.0" } }, "sha512-6IedsVWXyq4P9Tj+TxuU8WGWM70hYLl12nbYU8jkikVpa6WXapFazPUcHUMDMoWftIDE2ILDkFFte6W2nFCkRQ=="],
+    "@internationalized/date": ["@internationalized/date@3.12.2", "", { "dependencies": { "@swc/helpers": "^0.5.0" } }, "sha512-FY1Y+H64NDs+HAF6omlnWxm3mEpfgaCSWtL5l551ZZfImA+kGjPFgrnJrGjH6lfmLL0g8Z/mBu1R3kufeCp6Jw=="],
 
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 
