@@ -74,5 +74,5 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: node
+          packageManager: npm
           command: pages deploy ./public --project-name=${{ vars.WEBSITE_CLOUDFLARE_PAGES_PROJECT }} --branch=main
