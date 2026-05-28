@@ -72,9 +72,17 @@
           <div class="min-w-0 shrink-0 max-md:hidden">
             <a
               href="/"
-              class="text-xl font-semibold tracking-tight text-primary sm:text-2xl"
-              >{$messages.app.name}</a
+              class="flex items-center gap-2 text-xl font-semibold tracking-tight text-primary sm:text-2xl"
             >
+              <img
+                src="/favicon.svg"
+                alt=""
+                width="28"
+                height="28"
+                class="shrink-0"
+              />
+              {$messages.app.name}
+            </a>
           </div>
 
           <nav class="flex shrink-0 gap-2 text-sm whitespace-nowrap" aria-label={$messages.nav.navLabel}>
