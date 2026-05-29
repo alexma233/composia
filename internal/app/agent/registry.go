@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -99,12 +100,12 @@ type registryAuthToken struct {
 
 func registryAuthRequest(ctx context.Context, client *http.Client, challenge string) (*registryAuthToken, error) {
 	if !strings.HasPrefix(strings.ToLower(challenge), "bearer ") {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 	params := parseAuthChallenge(challenge[len("Bearer "):])
 	realm := params["realm"]
 	if realm == "" {
-		return nil, fmt.Errorf("registry auth challenge is missing realm")
+		return nil, errors.New("registry auth challenge is missing realm")
 	}
 	values := url.Values{}
 	for _, key := range []string{"service", "scope"} {

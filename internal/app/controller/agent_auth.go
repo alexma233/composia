@@ -1,9 +1,11 @@
 package controller
 
 import (
-	"connectrpc.com/connect"
 	"context"
 	"errors"
+
+	"connectrpc.com/connect"
+
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 )

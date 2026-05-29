@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -56,7 +57,12 @@ func TestAlertmanagerHandlerDispatchesAlertEvents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal payload: %v", err)
 	}
-	resp, err := http.Post(server.URL+"/hooks/alerts", "application/json", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, server.URL+"/hooks/alerts", bytes.NewReader(body))
+	if err != nil {
+		t.Fatalf("create alertmanager request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("post alertmanager payload: %v", err)
 	}
@@ -87,7 +93,7 @@ func TestAlertmanagerHandlerRejectsInvalidMethod(t *testing.T) {
 
 	notifier := &recordingNotifier{}
 	handler := &alertmanagerHandler{notifier: notifier}
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/alerts", nil)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/api/v1/alerts", nil)
 	resp := httptest.NewRecorder()
 	handler.ServeHTTP(resp, req)
 	if resp.Code != http.StatusMethodNotAllowed {

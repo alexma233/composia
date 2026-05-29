@@ -1,14 +1,16 @@
 package controller
 
 import (
-	"connectrpc.com/connect"
 	"context"
 	"errors"
+	"sync"
+
+	"connectrpc.com/connect"
+
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
-	"sync"
 )
 
 type repoQueryServer struct {

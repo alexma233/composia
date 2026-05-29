@@ -320,13 +320,13 @@ func TestCreateTaskIfNoActiveServiceInstanceTaskIsAtomic(t *testing.T) {
 	successCount := 0
 	conflictCount := 0
 	for result := range results {
-		switch err := result.err.(type) {
+		switch result.err {
 		case nil:
 			successCount++
 		default:
 			var activeErr ActiveServiceInstanceTaskError
-			if !errors.As(err, &activeErr) {
-				t.Fatalf("unexpected create error: %v", err)
+			if !errors.As(result.err, &activeErr) {
+				t.Fatalf("unexpected create error: %v", result.err)
 			}
 			conflictCount++
 		}
@@ -427,13 +427,13 @@ func TestCreateTaskIfNoActiveServiceTaskIsAtomic(t *testing.T) {
 	successCount := 0
 	conflictCount := 0
 	for result := range results {
-		switch err := result.err.(type) {
+		switch result.err {
 		case nil:
 			successCount++
 		default:
 			var activeErr ActiveServiceTaskError
-			if !errors.As(err, &activeErr) {
-				t.Fatalf("unexpected create error: %v", err)
+			if !errors.As(result.err, &activeErr) {
+				t.Fatalf("unexpected create error: %v", result.err)
 			}
 			conflictCount++
 		}
@@ -625,7 +625,7 @@ func openTestDB(t *testing.T) *DB {
 	t.Helper()
 
 	stateDir := filepath.Join(t.TempDir(), "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 

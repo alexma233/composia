@@ -2,16 +2,18 @@ package controller
 
 import (
 	"bytes"
-	"connectrpc.com/connect"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+
+	"connectrpc.com/connect"
+
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
-	"io"
 )
 
 type bundleServer struct {

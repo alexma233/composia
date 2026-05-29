@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
@@ -8,10 +9,10 @@ import (
 
 func (application *app) runTask(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia task <list|get|logs|wait|run-again|approve|reject>")
+		return errors.New("usage: composia task <list|get|logs|wait|run-again|approve|reject>")
 	}
 	switch args[0] {
-	case "list":
+	case "list": //nolint:goconst
 		return application.runTaskList(args[1:])
 	case "get":
 		return application.runTaskGet(args[1:])

@@ -20,7 +20,8 @@ type composeCommandConfig struct {
 }
 
 func buildComposeArgs(config composeCommandConfig, commandArgs ...string) []string {
-	args := []string{"compose", "--project-name", config.ProjectName}
+	args := make([]string, 0, 3+2*len(config.Files)+len(commandArgs))
+	args = append(args, "compose", "--project-name", config.ProjectName)
 	for _, file := range config.Files {
 		args = append(args, "-f", file)
 	}
@@ -48,7 +49,7 @@ func runComposeUpWithOptions(ctx context.Context, serviceDir string, compose com
 	if options.ForceRecreate {
 		args = append(args, "--force-recreate")
 	}
-	command := exec.CommandContext(ctx, "docker", args...)
+	command := exec.CommandContext(ctx, "docker", args...) //nolint:gosec
 	command.Dir = serviceDir
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose up failed: %w", err)
@@ -57,7 +58,7 @@ func runComposeUpWithOptions(ctx context.Context, serviceDir string, compose com
 }
 
 func runComposeDown(ctx context.Context, serviceDir string, compose composeCommandConfig, uploadLog func(string) error) error {
-	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "down")...)
+	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "down")...) //nolint:gosec
 	command.Dir = serviceDir
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose down failed: %w", err)
@@ -66,7 +67,7 @@ func runComposeDown(ctx context.Context, serviceDir string, compose composeComma
 }
 
 func runComposePull(ctx context.Context, serviceDir string, compose composeCommandConfig, uploadLog func(string) error) error {
-	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "pull")...)
+	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "pull")...) //nolint:gosec
 	command.Dir = serviceDir
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose pull failed: %w", err)
@@ -80,7 +81,7 @@ func collectRuntimeSummary(path string) (*agentv1.NodeRuntimeSummary, error) {
 		return nil, fmt.Errorf("read filesystem stats for %q: %w", path, err)
 	}
 
-	blockSize := uint64(stat.Bsize)
+	blockSize := uint64(stat.Bsize) //nolint:gosec
 	dockerVersion := dockerServerVersion()
 
 	return &agentv1.NodeRuntimeSummary{
@@ -288,7 +289,7 @@ func parseSize(s string) (uint64, bool) {
 func dockerDiskUsage(ctx context.Context) (uint64, error) {
 	output, err := exec.CommandContext(ctx, "docker", "system", "df", "--format", "{{.Size}}").Output()
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 
 	var total uint64

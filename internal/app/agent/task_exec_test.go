@@ -29,15 +29,15 @@ func TestResolveComposeForceRecreateAutoDetectsServiceDirBindMount(t *testing.T)
 	serviceDir := filepath.Join(rootDir, "repo", "demo")
 	binDir := filepath.Join(rootDir, "bin")
 	argsFile := filepath.Join(rootDir, "args.txt")
-	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+	if err := os.MkdirAll(serviceDir, 0o750); err != nil {
 		t.Fatalf("create service dir: %v", err)
 	}
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
+	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
 	dockerPath := filepath.Join(binDir, "docker")
 	script := "#!/bin/sh\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\nprintf '%s' \"$TEST_COMPOSE_CONFIG\"\n"
-	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+	if err := os.WriteFile(dockerPath, []byte(script), 0o750); err != nil { //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
@@ -59,7 +59,7 @@ func TestResolveComposeForceRecreateAutoDetectsServiceDirBindMount(t *testing.T)
 	if !strings.Contains(logText, "detected bind mounts from replaceable service directory") || !strings.Contains(logText, "using docker compose up -d --force-recreate") {
 		t.Fatalf("expected recreate warning log, got %q", logText)
 	}
-	argsContent, err := os.ReadFile(argsFile)
+	argsContent, err := os.ReadFile(argsFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
@@ -73,15 +73,15 @@ func TestRunComposeUpWithForceRecreatePassesFlag(t *testing.T) {
 	serviceDir := filepath.Join(rootDir, "repo", "demo")
 	binDir := filepath.Join(rootDir, "bin")
 	argsFile := filepath.Join(rootDir, "args.txt")
-	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+	if err := os.MkdirAll(serviceDir, 0o750); err != nil {
 		t.Fatalf("create service dir: %v", err)
 	}
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
+	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
 	dockerPath := filepath.Join(binDir, "docker")
 	script := "#!/bin/sh\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n"
-	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+	if err := os.WriteFile(dockerPath, []byte(script), 0o750); err != nil { //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
@@ -90,7 +90,7 @@ func TestRunComposeUpWithForceRecreatePassesFlag(t *testing.T) {
 	if err := runComposeUpWithOptions(context.Background(), serviceDir, composeCommandConfig{ProjectName: "demo", Files: []string{"compose.yaml", "compose.override.yaml"}}, composeUpOptions{ForceRecreate: true}, func(string) error { return nil }); err != nil {
 		t.Fatalf("run compose up: %v", err)
 	}
-	argsContent, err := os.ReadFile(argsFile)
+	argsContent, err := os.ReadFile(argsFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
@@ -103,25 +103,25 @@ func TestExecuteDeployTaskSkipsComposeForConfigInfraService(t *testing.T) {
 	rootDir := t.TempDir()
 	binDir := filepath.Join(rootDir, "bin")
 	dockerLogFile := filepath.Join(rootDir, "docker.log")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
+	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
 	dockerPath := filepath.Join(binDir, "docker")
 	script := "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\nexit 97\n"
-	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+	if err := os.WriteFile(dockerPath, []byte(script), 0o750); err != nil { //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("TEST_DOCKER_LOG_FILE", dockerLogFile)
 
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.RepoDir, 0o750); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.CaddyGeneratedDir(), 0o755); err != nil {
+	if err := os.MkdirAll(cfg.CaddyGeneratedDir(), 0o750); err != nil {
 		t.Fatalf("create caddy generated dir: %v", err)
 	}
 
@@ -132,10 +132,10 @@ func TestExecuteDeployTaskSkipsComposeForConfigInfraService(t *testing.T) {
 	reportServer := &agentExecutionTestReportServer{}
 	bundleMux := http.NewServeMux()
 	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle, expectedTaskID: "task-config", responseServiceName: "host-service", responseRelativeRoot: "host-service"}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "main-token" {
+		if token != "main-token" { //nolint:goconst
 			return "", errString("unexpected token")
 		}
-		return "main", nil
+		return "main", nil //nolint:goconst
 	})))
 	bundleMux.Handle(bundlePath, bundleHandler)
 	bundleHTTPServer := httptest.NewServer(bundleMux)
@@ -193,12 +193,12 @@ func TestExecuteStopTaskDownloadsBundleAndRunsComposeDown(t *testing.T) {
 	binDir := filepath.Join(rootDir, "bin")
 	argsFile := filepath.Join(rootDir, "args.txt")
 	pwdFile := filepath.Join(rootDir, "pwd.txt")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
+	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
 	dockerPath := filepath.Join(binDir, "docker")
-	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n"
-	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n" //nolint:goconst
+	if err := os.WriteFile(dockerPath, []byte(script), 0o750); err != nil {                      //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
@@ -206,22 +206,22 @@ func TestExecuteStopTaskDownloadsBundleAndRunsComposeDown(t *testing.T) {
 	t.Setenv("TEST_PWD_FILE", pwdFile)
 
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.RepoDir, 0o750); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o750); err != nil {
 		t.Fatalf("create backup repo dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\ncompose_files:\n  - compose.yaml\n  - compose.backup.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\ncompose_files:\n  - compose.yaml\n  - compose.backup.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n"), 0o600); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
-	if err := os.MkdirAll(cfg.CaddyGeneratedDir(), 0o755); err != nil {
+	if err := os.MkdirAll(cfg.CaddyGeneratedDir(), 0o750); err != nil {
 		t.Fatalf("create caddy generated dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cfg.CaddyGeneratedDir(), "demo.caddy"), []byte("demo"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.CaddyGeneratedDir(), "demo.caddy"), []byte("demo"), 0o600); err != nil {
 		t.Fatalf("seed generated caddy file: %v", err)
 	}
 
@@ -272,14 +272,14 @@ func TestExecuteStopTaskDownloadsBundleAndRunsComposeDown(t *testing.T) {
 		t.Fatalf("execute stop task: %v", err)
 	}
 
-	argsContent, err := os.ReadFile(argsFile)
+	argsContent, err := os.ReadFile(argsFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
 	if string(argsContent) != "compose --project-name demo down " {
 		t.Fatalf("unexpected docker args %q", string(argsContent))
 	}
-	pwdContent, err := os.ReadFile(pwdFile)
+	pwdContent, err := os.ReadFile(pwdFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read pwd file: %v", err)
 	}
@@ -308,27 +308,27 @@ func TestExecuteBackupTaskRunsRusticAndReportsSnapshot(t *testing.T) {
 	binDir := filepath.Join(rootDir, "bin")
 	dockerArgsFile := filepath.Join(rootDir, "docker-args.txt")
 	dockerPath := filepath.Join(binDir, "docker")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
+	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
 	dockerScript := "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_ARGS_FILE\"\nprintf '[INFO] snapshot abc12345 successfully saved.\\n'\n"
-	if err := os.WriteFile(dockerPath, []byte(dockerScript), 0o755); err != nil {
+	if err := os.WriteFile(dockerPath, []byte(dockerScript), 0o750); err != nil { //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("TEST_DOCKER_ARGS_FILE", dockerArgsFile)
 
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.RepoDir, 0o750); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o750); err != nil {
 		t.Fatalf("create backup repo dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o600); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
 	serviceBundle := buildBundleArchive(t, map[string]string{
@@ -374,7 +374,7 @@ func TestExecuteBackupTaskRunsRusticAndReportsSnapshot(t *testing.T) {
 		t.Fatalf("execute backup task: %v", err)
 	}
 
-	argsContent, err := os.ReadFile(dockerArgsFile)
+	argsContent, err := os.ReadFile(dockerArgsFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read docker args file: %v", err)
 	}
@@ -410,16 +410,16 @@ func TestExecuteBackupTaskRunsRusticAndReportsSnapshot(t *testing.T) {
 func TestExecuteCaddySyncTaskCopiesServiceCaddyFile(t *testing.T) {
 	rootDir := t.TempDir()
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.RepoDir, 0o750); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o750); err != nil {
 		t.Fatalf("create backup repo dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o600); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
 
@@ -479,22 +479,22 @@ func TestExecuteCaddySyncTaskCopiesServiceCaddyFile(t *testing.T) {
 func TestExecuteCaddyTasksUseServiceDirForGeneratedFileName(t *testing.T) {
 	rootDir := t.TempDir()
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.RepoDir, 0o750); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "element-web"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "element-web"), 0o750); err != nil {
 		t.Fatalf("create service dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "element-web", "composia-meta.yaml"), []byte("name: element\nnodes:\n  - main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./site-config.caddy\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "element-web", "composia-meta.yaml"), []byte("name: element\nnodes:\n  - main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./site-config.caddy\n"), 0o600); err != nil {
 		t.Fatalf("write service meta: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "element-web", "site-config.caddy"), []byte("element.alexma.top { reverse_proxy 127.0.0.1:8080 }\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "element-web", "site-config.caddy"), []byte("element.alexma.top { reverse_proxy 127.0.0.1:8080 }\n"), 0o600); err != nil {
 		t.Fatalf("write caddy source: %v", err)
 	}
-	if err := os.MkdirAll(cfg.CaddyGeneratedDir(), 0o755); err != nil {
+	if err := os.MkdirAll(cfg.CaddyGeneratedDir(), 0o750); err != nil {
 		t.Fatalf("create caddy generated dir: %v", err)
 	}
 	if err := syncServiceCaddyFile(context.Background(), cfg, "element-web", filepath.Join(cfg.RepoDir, "element-web"), func(string) error { return nil }); err != nil {
@@ -519,10 +519,10 @@ func TestBuildBackupVolumeFlagsServicePath(t *testing.T) {
 
 	serviceRoot := t.TempDir()
 	sourceDir := filepath.Join(serviceRoot, "volumes", "data")
-	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
+	if err := os.MkdirAll(sourceDir, 0o750); err != nil {
 		t.Fatalf("create source dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(sourceDir, "hello.txt"), []byte("hello\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(sourceDir, "hello.txt"), []byte("hello\n"), 0o600); err != nil {
 		t.Fatalf("write source file: %v", err)
 	}
 
@@ -583,10 +583,10 @@ func TestPrepareRestoreVolumeFlagsServicePath(t *testing.T) {
 	serviceRoot := t.TempDir()
 	stagingDir := t.TempDir()
 	targetDir := filepath.Join(serviceRoot, "volumes", "data")
-	if err := os.MkdirAll(filepath.Join(targetDir, "nested"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(targetDir, "nested"), 0o750); err != nil {
 		t.Fatalf("create target dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(targetDir, "nested", "old.txt"), []byte("old\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(targetDir, "nested", "old.txt"), []byte("old\n"), 0o600); err != nil {
 		t.Fatalf("write old file: %v", err)
 	}
 
@@ -626,10 +626,10 @@ func TestPrepareRestoreVolumeFlagsServiceFile(t *testing.T) {
 	serviceRoot := t.TempDir()
 	stagingDir := t.TempDir()
 	targetPath := filepath.Join(serviceRoot, "config", "app.env")
-	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0o750); err != nil {
 		t.Fatalf("create target parent: %v", err)
 	}
-	if err := os.WriteFile(targetPath, []byte("old\n"), 0o640); err != nil {
+	if err := os.WriteFile(targetPath, []byte("old\n"), 0o600); err != nil {
 		t.Fatalf("write old file: %v", err)
 	}
 
@@ -655,34 +655,34 @@ func TestRestoreRuntimeItemDirectMountsItemPath(t *testing.T) {
 	rootDir := t.TempDir()
 	binDir := filepath.Join(rootDir, "bin")
 	dockerLogFile := filepath.Join(rootDir, "docker.log")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
+	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
 	dockerPath := filepath.Join(binDir, "docker")
 	script := "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\nexit 0\n"
-	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+	if err := os.WriteFile(dockerPath, []byte(script), 0o750); err != nil { //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("TEST_DOCKER_LOG_FILE", dockerLogFile)
 
 	cfg := &config.AgentConfig{StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	serviceRoot := filepath.Join(rootDir, "repo", "demo")
 	targetDir := filepath.Join(serviceRoot, "config")
-	if err := os.MkdirAll(targetDir, 0o755); err != nil {
+	if err := os.MkdirAll(targetDir, 0o750); err != nil {
 		t.Fatalf("create restore target: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(targetDir, "stale.txt"), []byte("stale\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(targetDir, "stale.txt"), []byte("stale\n"), 0o600); err != nil {
 		t.Fatalf("write stale file: %v", err)
 	}
 	rusticRoot := filepath.Join(rootDir, "repo", "backup")
-	if err := os.MkdirAll(rusticRoot, 0o755); err != nil {
+	if err := os.MkdirAll(rusticRoot, 0o750); err != nil {
 		t.Fatalf("create rustic root: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(rusticRoot, "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(rusticRoot, "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o600); err != nil {
 		t.Fatalf("write rustic meta: %v", err)
 	}
 
@@ -695,7 +695,7 @@ func TestRestoreRuntimeItemDirectMountsItemPath(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(targetDir, "stale.txt")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("expected stale target cleared, got %v", err)
 	}
-	dockerLog, err := os.ReadFile(dockerLogFile)
+	dockerLog, err := os.ReadFile(dockerLogFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read docker log: %v", err)
 	}
@@ -710,27 +710,27 @@ func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	binDir := filepath.Join(rootDir, "bin")
 	dockerLogFile := filepath.Join(rootDir, "docker.log")
 	dockerPath := filepath.Join(binDir, "docker")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
+	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
 	dockerScript := "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\ncase \"$*\" in *\" rustic backup \"*) printf 'snapshot aaa999 saved\\n' ;; esac\n"
-	if err := os.WriteFile(dockerPath, []byte(dockerScript), 0o755); err != nil {
+	if err := os.WriteFile(dockerPath, []byte(dockerScript), 0o750); err != nil { //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("TEST_DOCKER_LOG_FILE", dockerLogFile)
 
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.RepoDir, 0o750); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o750); err != nil {
 		t.Fatalf("create backup repo dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\ncompose_files:\n  - compose.backup.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\ncompose_files:\n  - compose.backup.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o600); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
 	serviceBundle := buildBundleArchive(t, map[string]string{
@@ -773,7 +773,7 @@ func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	if err := executeBackupTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute tar_after_stop backup task: %v", err)
 	}
-	dockerLog, err := os.ReadFile(dockerLogFile)
+	dockerLog, err := os.ReadFile(dockerLogFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read docker log: %v", err)
 	}
@@ -795,27 +795,27 @@ func TestExecuteBackupTaskRunsPGDumpAll(t *testing.T) {
 	binDir := filepath.Join(rootDir, "bin")
 	dockerLogFile := filepath.Join(rootDir, "docker.log")
 	dockerPath := filepath.Join(binDir, "docker")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
+	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
 	dockerScript := "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\ncase \"$*\" in *\"postgres pg_dumpall\"*) printf 'dump-sql\\n' ;; *\" rustic backup \"*) printf 'snapshot abc888 saved\\n' ;; esac\n"
-	if err := os.WriteFile(dockerPath, []byte(dockerScript), 0o755); err != nil {
+	if err := os.WriteFile(dockerPath, []byte(dockerScript), 0o750); err != nil { //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("TEST_DOCKER_LOG_FILE", dockerLogFile)
 
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.RepoDir, 0o750); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o750); err != nil {
 		t.Fatalf("create backup repo dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o600); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
 	serviceBundle := buildBundleArchive(t, map[string]string{
@@ -857,7 +857,7 @@ func TestExecuteBackupTaskRunsPGDumpAll(t *testing.T) {
 	if err := executeBackupTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute pgdumpall backup task: %v", err)
 	}
-	dockerLog, err := os.ReadFile(dockerLogFile)
+	dockerLog, err := os.ReadFile(dockerLogFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read docker log: %v", err)
 	}
@@ -878,20 +878,20 @@ func TestExecuteBackupTaskReportsFailedBackupItem(t *testing.T) {
 	rootDir := t.TempDir()
 	binDir := filepath.Join(rootDir, "bin")
 	dockerPath := filepath.Join(binDir, "docker")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
+	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
 	dockerScript := "#!/bin/sh\nprintf 'backup failed\\n' >&2\nexit 44\n"
-	if err := os.WriteFile(dockerPath, []byte(dockerScript), 0o755); err != nil {
+	if err := os.WriteFile(dockerPath, []byte(dockerScript), 0o750); err != nil { //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.RepoDir, 0o750); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	serviceBundle := buildBundleArchive(t, map[string]string{
@@ -980,12 +980,12 @@ func TestExecuteCaddyReloadTaskRunsComposeExec(t *testing.T) {
 	binDir := filepath.Join(rootDir, "bin")
 	argsFile := filepath.Join(rootDir, "args.txt")
 	pwdFile := filepath.Join(rootDir, "pwd.txt")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
+	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
 	dockerPath := filepath.Join(binDir, "docker")
-	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n"
-	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n" //nolint:goconst
+	if err := os.WriteFile(dockerPath, []byte(script), 0o750); err != nil {                      //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
@@ -993,13 +993,13 @@ func TestExecuteCaddyReloadTaskRunsComposeExec(t *testing.T) {
 	t.Setenv("TEST_PWD_FILE", pwdFile)
 
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "caddy"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "caddy"), 0o750); err != nil {
 		t.Fatalf("create repo caddy dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "caddy", "composia-meta.yaml"), []byte("name: edge-proxy\nproject_name: infra-caddy\ncompose_files:\n  - compose.yaml\n  - compose.edge.yaml\nnodes:\n  - main\ninfra:\n  caddy:\n    compose_service: edge\n    config_dir: /etc/caddy\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "caddy", "composia-meta.yaml"), []byte("name: edge-proxy\nproject_name: infra-caddy\ncompose_files:\n  - compose.yaml\n  - compose.edge.yaml\nnodes:\n  - main\ninfra:\n  caddy:\n    compose_service: edge\n    config_dir: /etc/caddy\n"), 0o600); err != nil {
 		t.Fatalf("write caddy meta: %v", err)
 	}
 
@@ -1026,14 +1026,14 @@ func TestExecuteCaddyReloadTaskRunsComposeExec(t *testing.T) {
 		t.Fatalf("execute caddy reload task: %v", err)
 	}
 
-	argsContent, err := os.ReadFile(argsFile)
+	argsContent, err := os.ReadFile(argsFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
 	if string(argsContent) != "compose --project-name infra-caddy -f compose.yaml -f compose.edge.yaml exec -T edge caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile " {
 		t.Fatalf("unexpected docker args %q", string(argsContent))
 	}
-	pwdContent, err := os.ReadFile(pwdFile)
+	pwdContent, err := os.ReadFile(pwdFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read pwd file: %v", err)
 	}
@@ -1056,12 +1056,12 @@ func TestExecuteRusticForgetTaskRunsComposeRun(t *testing.T) {
 	binDir := filepath.Join(rootDir, "bin")
 	argsFile := filepath.Join(rootDir, "args.txt")
 	pwdFile := filepath.Join(rootDir, "pwd.txt")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
+	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
 	dockerPath := filepath.Join(binDir, "docker")
-	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n"
-	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n" //nolint:goconst
+	if err := os.WriteFile(dockerPath, []byte(script), 0o750); err != nil {                      //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
@@ -1069,13 +1069,13 @@ func TestExecuteRusticForgetTaskRunsComposeRun(t *testing.T) {
 	t.Setenv("TEST_PWD_FILE", pwdFile)
 
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o750); err != nil {
 		t.Fatalf("create backup repo dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\ncompose_files:\n  - compose.yaml\n  - compose.ops.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\ncompose_files:\n  - compose.yaml\n  - compose.ops.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n"), 0o600); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
 	bundle := buildBundleArchive(t, map[string]string{
@@ -1116,14 +1116,14 @@ func TestExecuteRusticForgetTaskRunsComposeRun(t *testing.T) {
 		t.Fatalf("execute rustic forget task: %v", err)
 	}
 
-	argsContent, err := os.ReadFile(argsFile)
+	argsContent, err := os.ReadFile(argsFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
 	if got := string(argsContent); got != "compose --project-name infra-rustic -f compose.yaml -f compose.ops.yaml run --rm rustic -P prod forget --filter-host main --filter-tags composia-service:demo --filter-tags composia-data:db " {
 		t.Fatalf("unexpected docker args %q", got)
 	}
-	pwdContent, err := os.ReadFile(pwdFile)
+	pwdContent, err := os.ReadFile(pwdFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read pwd file: %v", err)
 	}
@@ -1145,12 +1145,12 @@ func TestExecuteRusticPruneTaskRunsComposeRun(t *testing.T) {
 	binDir := filepath.Join(rootDir, "bin")
 	argsFile := filepath.Join(rootDir, "args.txt")
 	pwdFile := filepath.Join(rootDir, "pwd.txt")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
+	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
 	dockerPath := filepath.Join(binDir, "docker")
-	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n"
-	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n" //nolint:goconst
+	if err := os.WriteFile(dockerPath, []byte(script), 0o750); err != nil {                      //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
@@ -1158,13 +1158,13 @@ func TestExecuteRusticPruneTaskRunsComposeRun(t *testing.T) {
 	t.Setenv("TEST_PWD_FILE", pwdFile)
 
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o750); err != nil {
 		t.Fatalf("create backup repo dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\ncompose_files:\n  - compose.yaml\n  - compose.ops.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\ncompose_files:\n  - compose.yaml\n  - compose.ops.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n    profile: prod\n"), 0o600); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
 	bundle := buildBundleArchive(t, map[string]string{
@@ -1205,14 +1205,14 @@ func TestExecuteRusticPruneTaskRunsComposeRun(t *testing.T) {
 		t.Fatalf("execute rustic prune task: %v", err)
 	}
 
-	argsContent, err := os.ReadFile(argsFile)
+	argsContent, err := os.ReadFile(argsFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
 	if got := string(argsContent); got != "compose --project-name infra-rustic -f compose.yaml -f compose.ops.yaml run --rm rustic -P prod prune " {
 		t.Fatalf("unexpected docker args %q", got)
 	}
-	pwdContent, err := os.ReadFile(pwdFile)
+	pwdContent, err := os.ReadFile(pwdFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read pwd file: %v", err)
 	}
@@ -1234,12 +1234,12 @@ func TestExecuteRusticInitTaskRunsComposeRun(t *testing.T) {
 	binDir := filepath.Join(rootDir, "bin")
 	argsFile := filepath.Join(rootDir, "args.txt")
 	pwdFile := filepath.Join(rootDir, "pwd.txt")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
+	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
 	dockerPath := filepath.Join(binDir, "docker")
-	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n"
-	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n" //nolint:goconst
+	if err := os.WriteFile(dockerPath, []byte(script), 0o750); err != nil {                      //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
@@ -1247,10 +1247,10 @@ func TestExecuteRusticInitTaskRunsComposeRun(t *testing.T) {
 	t.Setenv("TEST_PWD_FILE", pwdFile)
 
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "backup"), 0o750); err != nil {
 		t.Fatalf("create backup repo dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	bundle := buildBundleArchive(t, map[string]string{
@@ -1291,14 +1291,14 @@ func TestExecuteRusticInitTaskRunsComposeRun(t *testing.T) {
 		t.Fatalf("execute rustic init task: %v", err)
 	}
 
-	argsContent, err := os.ReadFile(argsFile)
+	argsContent, err := os.ReadFile(argsFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
 	if got := string(argsContent); got != "compose --project-name infra-rustic -f compose.yaml -f compose.ops.yaml run --rm rustic -P prod init --set-chunker rabin --set-chunk-size 1MiB " {
 		t.Fatalf("unexpected docker args %q", got)
 	}
-	pwdContent, err := os.ReadFile(pwdFile)
+	pwdContent, err := os.ReadFile(pwdFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read pwd file: %v", err)
 	}

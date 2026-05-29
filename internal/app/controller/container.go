@@ -1,20 +1,22 @@
 package controller
 
 import (
-	"connectrpc.com/connect"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"os"
+	"path/filepath"
+
+	"connectrpc.com/connect"
+
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 	"github.com/google/uuid"
-	"net/http"
-	"os"
-	"path/filepath"
 )
 
 type dockerCommandServer struct {
@@ -181,12 +183,12 @@ func (server *dockerCommandServer) createContainerTask(ctx context.Context, head
 		NodeID:      nodeID,
 		Status:      task.StatusPending,
 		ParamsJSON:  string(paramsJSON),
-		LogPath:     filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+		LogPath:     filepath.Join(server.cfg.LogDir, "tasks", taskID+".log"),
 	})
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, err)
 	}
-	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o600); err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
 	}
 	notifyTaskQueue(server.taskQueue)
@@ -214,12 +216,12 @@ func (server *dockerCommandServer) createNodeDockerTask(ctx context.Context, hea
 		NodeID:      nodeID,
 		Status:      task.StatusPending,
 		ParamsJSON:  string(paramsJSON),
-		LogPath:     filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+		LogPath:     filepath.Join(server.cfg.LogDir, "tasks", taskID+".log"),
 	})
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, err)
 	}
-	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o600); err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
 	}
 	notifyTaskQueue(server.taskQueue)

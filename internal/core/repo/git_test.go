@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"encoding/base64"
 	"os"
 	"os/exec"
@@ -13,7 +14,7 @@ func TestValidateWorkingTreeAcceptsGitRepo(t *testing.T) {
 	t.Parallel()
 
 	repoDir := t.TempDir()
-	if output, err := exec.Command("git", "-C", repoDir, "init").CombinedOutput(); err != nil {
+	if output, err := exec.CommandContext(context.Background(), "git", "-C", repoDir, "init").CombinedOutput(); err != nil { //nolint:gosec
 		t.Fatalf("git init failed: %v\n%s", err, string(output))
 	}
 
@@ -37,7 +38,7 @@ func TestValidateWorkingTreeRejectsFilePath(t *testing.T) {
 
 	root := t.TempDir()
 	filePath := filepath.Join(root, "repo.txt")
-	if err := os.WriteFile(filePath, []byte("not a directory"), 0o644); err != nil {
+	if err := os.WriteFile(filePath, []byte("not a directory"), 0o600); err != nil {
 		t.Fatalf("write temp file: %v", err)
 	}
 
@@ -52,7 +53,7 @@ func TestGitHeadHelpers(t *testing.T) {
 
 	repoDir := t.TempDir()
 	gitRun(t, repoDir, "init")
-	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("hello\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("hello\n"), 0o600); err != nil {
 		t.Fatalf("write README: %v", err)
 	}
 	gitRun(t, repoDir, "add", ".")
@@ -84,7 +85,7 @@ func TestGitHeadHelpers(t *testing.T) {
 		t.Fatalf("expected clean worktree")
 	}
 
-	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("dirty\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("dirty\n"), 0o600); err != nil {
 		t.Fatalf("rewrite README: %v", err)
 	}
 	clean, err = IsCleanWorkingTree(repoDir)
@@ -103,7 +104,7 @@ func TestListCommitsSupportsCursorPaging(t *testing.T) {
 	gitRun(t, repoDir, "init")
 	writeAndCommit := func(filename, content, message string) string {
 		t.Helper()
-		if err := os.WriteFile(filepath.Join(repoDir, filename), []byte(content), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(repoDir, filename), []byte(content), 0o600); err != nil {
 			t.Fatalf("write %s: %v", filename, err)
 		}
 		gitRun(t, repoDir, "add", ".")
@@ -179,7 +180,7 @@ func TestFetchAndFastForwardUsesGitConfigForAuthHeaders(t *testing.T) {
 	remoteDir := t.TempDir()
 	gitRun(t, remoteDir, "init", "--bare")
 	gitRun(t, repoDir, "init")
-	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("hello\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("hello\n"), 0o600); err != nil {
 		t.Fatalf("write README: %v", err)
 	}
 	gitRun(t, repoDir, "add", ".")
@@ -191,7 +192,7 @@ func TestFetchAndFastForwardUsesGitConfigForAuthHeaders(t *testing.T) {
 	logPath := filepath.Join(spyDir, "git-invocations.log")
 	spyPath := filepath.Join(spyDir, "git")
 	spyScript := "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"" + logPath + "\"\nfor arg in \"$@\"; do\n  if [ \"$arg\" = \"fetch\" ]; then\n    echo 'forced fetch failure' >&2\n    exit 1\n  fi\ndone\nexec /usr/bin/git \"$@\"\n"
-	if err := os.WriteFile(spyPath, []byte(spyScript), 0o755); err != nil {
+	if err := os.WriteFile(spyPath, []byte(spyScript), 0o755); err != nil { //nolint:gosec
 		t.Fatalf("write git spy: %v", err)
 	}
 
@@ -201,7 +202,7 @@ func TestFetchAndFastForwardUsesGitConfigForAuthHeaders(t *testing.T) {
 	cloneDir := t.TempDir()
 	gitRun(t, cloneDir, "clone", remoteDir, ".")
 
-	logBefore, err := os.ReadFile(logPath)
+	logBefore, err := os.ReadFile(logPath) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read initial spy log: %v", err)
 	}
@@ -212,7 +213,7 @@ func TestFetchAndFastForwardUsesGitConfigForAuthHeaders(t *testing.T) {
 		t.Fatalf("expected forced fetch failure, got %v", err)
 	}
 
-	logAfter, err := os.ReadFile(logPath)
+	logAfter, err := os.ReadFile(logPath) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read final spy log: %v", err)
 	}
@@ -233,7 +234,7 @@ func TestFetchAndFastForwardUsesGitConfigForAuthHeaders(t *testing.T) {
 func gitRun(t *testing.T, repoDir string, args ...string) {
 	t.Helper()
 	commandArgs := append([]string{"-C", repoDir}, args...)
-	output, err := exec.Command("git", commandArgs...).CombinedOutput()
+	output, err := exec.CommandContext(context.Background(), "git", commandArgs...).CombinedOutput() //nolint:gosec
 	if err != nil {
 		t.Fatalf("git %v failed: %v\n%s", args, err, string(output))
 	}

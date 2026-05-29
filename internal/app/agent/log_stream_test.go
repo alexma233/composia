@@ -3,7 +3,7 @@ package agent
 import (
 	"context"
 	"errors"
-	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -103,11 +103,14 @@ func (server *logUploadTestServer) UploadTaskLogs(ctx context.Context, stream *c
 	for {
 		message, err := stream.Receive()
 		if err != nil {
+			if !errors.Is(err, io.EOF) {
+				return err
+			}
 			return nil
 		}
 		if message.GetSeq() == 2 && !server.failedSeqTwoOnce {
 			server.failedSeqTwoOnce = true
-			return fmt.Errorf("drop stream before acking seq 2")
+			return errors.New("drop stream before acking seq 2")
 		}
 		if message.GetSeq() == server.confirmedSeq+1 {
 			server.confirmedSeq = message.GetSeq()
@@ -130,21 +133,21 @@ func (server *logUploadTestServer) UploadTaskLogs(ctx context.Context, stream *c
 }
 
 func (server *logUploadTestServer) Heartbeat(context.Context, *connect.Request[agentv1.HeartbeatRequest]) (*connect.Response[agentv1.HeartbeatResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("not used"))
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("not used"))
 }
 
 func (server *logUploadTestServer) ReportTaskState(context.Context, *connect.Request[agentv1.ReportTaskStateRequest]) (*connect.Response[agentv1.ReportTaskStateResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("not used"))
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("not used"))
 }
 
 func (server *logUploadTestServer) ReportTaskStepState(context.Context, *connect.Request[agentv1.ReportTaskStepStateRequest]) (*connect.Response[agentv1.ReportTaskStepStateResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("not used"))
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("not used"))
 }
 
 func (server *logUploadTestServer) ReportBackupResult(context.Context, *connect.Request[agentv1.ReportBackupResultRequest]) (*connect.Response[agentv1.ReportBackupResultResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("not used"))
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("not used"))
 }
 
 func (server *logUploadTestServer) ReportServiceInstanceStatus(context.Context, *connect.Request[agentv1.ReportServiceInstanceStatusRequest]) (*connect.Response[agentv1.ReportServiceInstanceStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("not used"))
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("not used"))
 }

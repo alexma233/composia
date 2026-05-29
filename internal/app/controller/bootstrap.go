@@ -1,17 +1,19 @@
 package controller
 
 import (
-	"connectrpc.com/connect"
 	"context"
+	"log"
+	"net/http"
+	"sync"
+
+	"connectrpc.com/connect"
+
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1/controllerv1connect"
 	appnotify "forgejo.alexma.top/alexma233/composia/internal/app/notify"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
-	"log"
-	"net/http"
-	"sync"
 )
 
 func Run(ctx context.Context, configPath string) error {

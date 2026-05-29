@@ -25,10 +25,10 @@ func ValidateRepo(repoDir string, availableNodeIDs map[string]struct{}) []Valida
 	_ = filepath.WalkDir(repoDir, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			errorsByPath = append(errorsByPath, ValidationError{Path: relativePath(repoDir, path), Message: walkErr.Error()})
-			return nil
+			return nil //nolint:nilerr
 		}
 		if entry.IsDir() {
-			if entry.Name() == ".git" {
+			if entry.Name() == gitDirName {
 				return filepath.SkipDir
 			}
 			return nil

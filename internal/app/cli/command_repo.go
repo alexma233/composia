@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -11,14 +12,14 @@ import (
 
 func (application *app) runRepo(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia repo <head|files|get|edit|update|mkdir|mv|rm|history|sync|validate>")
+		return errors.New("usage: composia repo <head|files|get|edit|update|mkdir|mv|rm|history|sync|validate>")
 	}
 	switch args[0] {
 	case "head":
 		return application.runRepoHead(args[1:])
 	case "files":
 		return application.runRepoFiles(args[1:])
-	case "get":
+	case "get": //nolint:goconst
 		return application.runRepoGet(args[1:])
 	case "edit":
 		return application.runRepoEdit(args[1:])
@@ -226,7 +227,7 @@ func (application *app) runRepoFiles(args []string) error {
 		return err
 	}
 	if len(fs.Args()) > 1 {
-		return fmt.Errorf("usage: composia repo files [--recursive] [path]")
+		return errors.New("usage: composia repo files [--recursive] [path]")
 	}
 	path := ""
 	if len(fs.Args()) == 1 {
@@ -355,7 +356,7 @@ func (application *app) currentRepoRevision() (string, error) {
 		return "", err
 	}
 	if response.Msg.GetHeadRevision() == "" {
-		return "", fmt.Errorf("controller repo has no HEAD revision")
+		return "", errors.New("controller repo has no HEAD revision")
 	}
 	return response.Msg.GetHeadRevision(), nil
 }
@@ -366,7 +367,7 @@ func readContentSource(path string) (string, error) {
 	if path == "-" {
 		content, err = io.ReadAll(os.Stdin)
 	} else {
-		content, err = os.ReadFile(path)
+		content, err = os.ReadFile(path) //nolint:gosec
 	}
 	if err != nil {
 		return "", fmt.Errorf("read %q: %w", path, err)

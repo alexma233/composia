@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -16,7 +17,7 @@ const (
 func ClassifyDataInclude(include string) (DataIncludeKind, string, error) {
 	trimmed := strings.TrimSpace(include)
 	if trimmed == "" {
-		return "", "", fmt.Errorf("include must not be empty")
+		return "", "", errors.New("include must not be empty")
 	}
 	if filepath.IsAbs(trimmed) {
 		return "", "", fmt.Errorf("include %q must not be an absolute path", include)

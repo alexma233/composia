@@ -2,6 +2,7 @@ package rpcutil
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -33,7 +34,7 @@ func NormalizeStaticHeaders(headers map[string]string) (map[string]string, error
 		name = strings.TrimSpace(name)
 		value = strings.TrimSpace(value)
 		if name == "" {
-			return nil, fmt.Errorf("custom header name must not be empty")
+			return nil, errors.New("custom header name must not be empty")
 		}
 		if value == "" {
 			return nil, fmt.Errorf("custom header %q value must not be empty", name)
@@ -82,7 +83,7 @@ func setStaticHeaders(header http.Header, headers map[string]string) {
 
 func validHeaderName(name string) bool {
 	for _, char := range name {
-		if char > 127 || !isTokenChar(byte(char)) {
+		if char > 127 || !isTokenChar(byte(char)) { //nolint:gosec
 			return false
 		}
 	}

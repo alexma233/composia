@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -16,12 +17,12 @@ import (
 
 func (application *app) runContainer(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia container <list|get|logs|start|stop|restart|remove|exec>")
+		return errors.New("usage: composia container <list|get|logs|start|stop|restart|remove|exec>")
 	}
 	switch args[0] {
-	case "list":
+	case "list": //nolint:goconst
 		return application.runContainerList(args[1:])
-	case "get":
+	case "get": //nolint:goconst
 		return application.runContainerGet(args[1:])
 	case "logs":
 		return application.runContainerLogs(args[1:])
@@ -296,7 +297,10 @@ func (application *app) runContainerExecTTY(nodeID, containerID string, command 
 	}
 	dialHeaders := staticHTTPHeaders(application.cfg.headers)
 	dialHeaders.Set("Origin", origin)
-	conn, _, err := websocket.DefaultDialer.Dial(wsURL, dialHeaders)
+	conn, dialResponse, err := websocket.DefaultDialer.Dial(wsURL, dialHeaders)
+	if dialResponse != nil && dialResponse.Body != nil {
+		defer func() { _ = dialResponse.Body.Close() }()
+	}
 	if err != nil {
 		return fmt.Errorf("attach container exec websocket: %w", err)
 	}
@@ -373,7 +377,10 @@ func (application *app) attachContainerExecWebsocket(conn *websocket.Conn) error
 			return application.ctx.Err()
 		case <-resizeCh:
 			if rows, cols, ok := terminalSize(os.Stdout.Fd()); ok {
-				payload, _ := json.Marshal(execResizeMessage{Type: "resize", Rows: rows, Cols: cols})
+				payload, err := json.Marshal(execResizeMessage{Type: "resize", Rows: rows, Cols: cols})
+				if err != nil {
+					return fmt.Errorf("marshal resize message: %w", err)
+				}
 				_ = writeMessage(websocket.TextMessage, payload)
 			}
 		case err := <-errCh:
@@ -405,7 +412,7 @@ func handleExecWebsocketEvent(payload []byte) (bool, error) {
 		return true, nil
 	case "error":
 		if event.Message == "" {
-			return true, fmt.Errorf("container exec websocket error")
+			return true, errors.New("container exec websocket error")
 		}
 		return true, fmt.Errorf("container exec websocket error: %s", event.Message)
 	default:
@@ -421,7 +428,7 @@ func readExecStdin(path string) ([]byte, error) {
 	if path == "-" {
 		return io.ReadAll(os.Stdin)
 	}
-	return os.ReadFile(path)
+	return os.ReadFile(path) //nolint:gosec
 }
 
 func durationSeconds(duration time.Duration) (uint32, error) {
@@ -444,7 +451,7 @@ func controllerOrigin(addr string) (string, error) {
 		return "", err
 	}
 	if parsed.Scheme == "" || parsed.Host == "" {
-		return "", fmt.Errorf("controller address must include scheme and host")
+		return "", errors.New("controller address must include scheme and host")
 	}
 	return strings.ToLower(parsed.Scheme) + "://" + strings.ToLower(parsed.Host), nil
 }

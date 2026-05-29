@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -9,12 +10,12 @@ import (
 
 func (application *app) runBackup(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia backup <list|get|restore>")
+		return errors.New("usage: composia backup <list|get|restore>")
 	}
 	switch args[0] {
-	case "list":
+	case "list": //nolint:goconst
 		return application.runBackupList(args[1:])
-	case "get":
+	case "get": //nolint:goconst
 		return application.runBackupGet(args[1:])
 	case "restore":
 		return application.runBackupRestore(args[1:])

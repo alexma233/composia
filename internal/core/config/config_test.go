@@ -28,7 +28,7 @@ agent:
   state_dir: "/srv/composia/state-agent"
 `) + "\n"
 
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -51,7 +51,7 @@ agent:
   unexpected: true
 `) + "\n"
 
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -75,7 +75,7 @@ agent:
   state_dir: "/srv/composia/state"
 `) + "\n"
 
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -117,7 +117,7 @@ controller:
       - "node-2"
 `) + "\n"
 
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -150,7 +150,7 @@ controller:
       prune_schedule: "invalid"
 `) + "\n"
 
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -183,7 +183,7 @@ controller:
         - minor
 `) + "\n"
 
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -225,7 +225,7 @@ controller:
           token: enterprise-token
 `) + "\n"
 
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -263,7 +263,7 @@ controller:
         - feature
 `) + "\n"
 
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -291,7 +291,7 @@ controller:
       listen_path: "alerts"
 `) + "\n"
 
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -322,7 +322,7 @@ controller:
       token: "git-token"
 `) + "\n"
 
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -355,7 +355,7 @@ controller:
       token: "shared-token"
 `) + "\n"
 
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -385,7 +385,7 @@ controller:
       token: "shared-token"
 `) + "\n"
 
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -413,7 +413,7 @@ controller:
       token: "shared-token"
 `) + "\n"
 
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -429,10 +429,10 @@ func TestLoadAgentResolvesTokenFile(t *testing.T) {
 	rootDir := t.TempDir()
 	tokenPath := filepath.Join(rootDir, "agent.token")
 	headerValuePath := filepath.Join(rootDir, "cf-secret")
-	if err := os.WriteFile(tokenPath, []byte(" agent-token\n"), 0o644); err != nil {
+	if err := os.WriteFile(tokenPath, []byte(" agent-token\n"), 0o600); err != nil {
 		t.Fatalf("write token file: %v", err)
 	}
-	if err := os.WriteFile(headerValuePath, []byte(" cf-secret\n"), 0o644); err != nil {
+	if err := os.WriteFile(headerValuePath, []byte(" cf-secret\n"), 0o600); err != nil {
 		t.Fatalf("write header value file: %v", err)
 	}
 	configPath := filepath.Join(rootDir, "config.yaml")
@@ -450,7 +450,7 @@ agent:
   state_dir: "/srv/composia/state"
 `) + "\n"
 
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -474,7 +474,7 @@ func TestLoadAgentRejectsTokenAndTokenFile(t *testing.T) {
 
 	rootDir := t.TempDir()
 	tokenPath := filepath.Join(rootDir, "agent.token")
-	if err := os.WriteFile(tokenPath, []byte("agent-token\n"), 0o644); err != nil {
+	if err := os.WriteFile(tokenPath, []byte("agent-token\n"), 0o600); err != nil {
 		t.Fatalf("write token file: %v", err)
 	}
 	configPath := filepath.Join(rootDir, "config.yaml")
@@ -488,7 +488,7 @@ agent:
   state_dir: "/srv/composia/state"
 `) + "\n"
 
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -516,7 +516,7 @@ func TestLoadControllerResolvesInlineOrFileSecrets(t *testing.T) {
 	huaweiSecretKeyPath := filepath.Join(rootDir, "huawei.secret-key")
 	smtpPasswordPath := filepath.Join(rootDir, "smtp.password")
 	telegramTokenPath := filepath.Join(rootDir, "telegram.token")
-	for path, value := range map[string]string{
+	for path, value := range map[string]string{ //nolint:gosec
 		nodeTokenPath:        "node-token\n",
 		accessTokenPath:      "access-token\n",
 		gitTokenPath:         "git-token\n",
@@ -532,7 +532,7 @@ func TestLoadControllerResolvesInlineOrFileSecrets(t *testing.T) {
 		smtpPasswordPath:     "smtp-password\n",
 		telegramTokenPath:    "telegram-token\n",
 	} {
-		if err := os.WriteFile(path, []byte(value), 0o644); err != nil {
+		if err := os.WriteFile(path, []byte(value), 0o600); err != nil {
 			t.Fatalf("write secret file %q: %v", path, err)
 		}
 	}
@@ -581,7 +581,7 @@ controller:
       bot_token_file: "`+telegramTokenPath+`"
 `) + "\n"
 
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -638,7 +638,7 @@ func TestLoadControllerRejectsEmptyTokenFile(t *testing.T) {
 
 	rootDir := t.TempDir()
 	tokenPath := filepath.Join(rootDir, "node.token")
-	if err := os.WriteFile(tokenPath, []byte("\n"), 0o644); err != nil {
+	if err := os.WriteFile(tokenPath, []byte("\n"), 0o600); err != nil {
 		t.Fatalf("write token file: %v", err)
 	}
 	configPath := filepath.Join(rootDir, "config.yaml")
@@ -653,7 +653,7 @@ controller:
       token_file: "`+tokenPath+`"
 `) + "\n"
 
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
@@ -668,7 +668,7 @@ func TestLoadControllerRejectsDuplicateResolvedTokens(t *testing.T) {
 
 	rootDir := t.TempDir()
 	tokenPath := filepath.Join(rootDir, "shared.token")
-	if err := os.WriteFile(tokenPath, []byte("shared-token\n"), 0o644); err != nil {
+	if err := os.WriteFile(tokenPath, []byte("shared-token\n"), 0o600); err != nil {
 		t.Fatalf("write token file: %v", err)
 	}
 	configPath := filepath.Join(rootDir, "config.yaml")
@@ -686,7 +686,7 @@ controller:
       token: "shared-token"
 `) + "\n"
 
-	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 

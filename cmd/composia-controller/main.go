@@ -19,15 +19,17 @@ func main() {
 	flag.Parse()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	resolvedConfigPath, err := configpath.Resolve(*configPath, controllerDefaultConfigPaths, "controller")
 	if err != nil {
 		log.Printf("composia controller failed: %v", err)
+		stop()
 		os.Exit(1)
 	}
 	if err := controller.Run(ctx, resolvedConfigPath); err != nil {
 		log.Printf("composia controller failed: %v", err)
+		stop()
 		os.Exit(1)
 	}
+	stop()
 }

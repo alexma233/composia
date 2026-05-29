@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,7 +20,7 @@ import (
 
 func executeBackupTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
 	if len(pulledTask.GetDataNames()) == 0 {
-		err := fmt.Errorf("backup task is missing data_names")
+		err := errors.New("backup task is missing data_names")
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	var bundle *bundleResult
@@ -127,7 +128,7 @@ func executeRestoreTask(ctx context.Context, bundleClient agentv1connect.BundleS
 }
 
 func loadBackupRuntimeConfig(serviceRoot string) (*backupcfg.RuntimeConfig, error) {
-	content, err := os.ReadFile(filepath.Join(serviceRoot, ".composia-backup.json"))
+	content, err := os.ReadFile(filepath.Join(serviceRoot, ".composia-backup.json")) //nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("read backup runtime config: %w", err)
 	}
@@ -136,22 +137,22 @@ func loadBackupRuntimeConfig(serviceRoot string) (*backupcfg.RuntimeConfig, erro
 		return nil, fmt.Errorf("decode backup runtime config: %w", err)
 	}
 	if cfg.Rustic == nil {
-		return nil, fmt.Errorf("backup runtime config is missing rustic provider")
+		return nil, errors.New("backup runtime config is missing rustic provider")
 	}
 	if cfg.Rustic.ServiceDir == "" {
-		return nil, fmt.Errorf("backup runtime config is missing rustic service_dir")
+		return nil, errors.New("backup runtime config is missing rustic service_dir")
 	}
 	if cfg.Rustic.NodeID == "" {
-		return nil, fmt.Errorf("backup runtime config is missing rustic node_id")
+		return nil, errors.New("backup runtime config is missing rustic node_id")
 	}
 	if len(cfg.Items) == 0 {
-		return nil, fmt.Errorf("backup runtime config did not include any items")
+		return nil, errors.New("backup runtime config did not include any items")
 	}
 	return &cfg, nil
 }
 
 func loadRestoreRuntimeConfig(serviceRoot string) (*backupcfg.RestoreConfig, error) {
-	content, err := os.ReadFile(filepath.Join(serviceRoot, ".composia-restore.json"))
+	content, err := os.ReadFile(filepath.Join(serviceRoot, ".composia-restore.json")) //nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("read restore runtime config: %w", err)
 	}
@@ -160,13 +161,13 @@ func loadRestoreRuntimeConfig(serviceRoot string) (*backupcfg.RestoreConfig, err
 		return nil, fmt.Errorf("decode restore runtime config: %w", err)
 	}
 	if cfg.Rustic == nil {
-		return nil, fmt.Errorf("restore runtime config is missing rustic provider")
+		return nil, errors.New("restore runtime config is missing rustic provider")
 	}
 	if cfg.Rustic.ServiceDir == "" {
-		return nil, fmt.Errorf("restore runtime config is missing rustic service_dir")
+		return nil, errors.New("restore runtime config is missing rustic service_dir")
 	}
 	if len(cfg.Items) == 0 {
-		return nil, fmt.Errorf("restore runtime config did not include any items")
+		return nil, errors.New("restore runtime config did not include any items")
 	}
 	return &cfg, nil
 }
@@ -282,10 +283,10 @@ func restoreRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoo
 }
 
 func prepareRestoreVolumeFlags(ctx context.Context, serviceRoot, stagingDir, containerStagingDir string, item backupcfg.RestoreItem) ([]string, error) {
-	if err := os.MkdirAll(filepath.Join(stagingDir, item.Name, "paths"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(stagingDir, item.Name, "paths"), 0o750); err != nil {
 		return nil, fmt.Errorf("create direct restore paths dir: %w", err)
 	}
-	if err := os.MkdirAll(filepath.Join(stagingDir, item.Name, "volumes"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(stagingDir, item.Name, "volumes"), 0o750); err != nil {
 		return nil, fmt.Errorf("create direct restore volumes dir: %w", err)
 	}
 
@@ -315,10 +316,10 @@ func prepareRestoreVolumeFlags(ctx context.Context, serviceRoot, stagingDir, con
 					return nil, fmt.Errorf("recreate restore target %q: %w", targetPath, err)
 				}
 			} else {
-				if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+				if err := os.MkdirAll(filepath.Dir(targetPath), 0o750); err != nil {
 					return nil, fmt.Errorf("create restore target parent %q: %w", filepath.Dir(targetPath), err)
 				}
-				file, err := os.OpenFile(targetPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode().Perm())
+				file, err := os.OpenFile(targetPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode().Perm()) //nolint:gosec
 				if err != nil {
 					return nil, fmt.Errorf("recreate restore target file %q: %w", targetPath, err)
 				}

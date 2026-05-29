@@ -73,7 +73,7 @@ func (server *serviceCommandServer) MigrateService(ctx context.Context, req *con
 		Status:       task.StatusPending,
 		ParamsJSON:   string(paramsJSON),
 		RepoRevision: repoRevision,
-		LogPath:      filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+		LogPath:      filepath.Join(server.cfg.LogDir, "tasks", taskID+".log"),
 	}, store.TaskAdmissionConstraints{
 		RequireInactiveService: true,
 		RequireInactiveServiceInstances: []store.ServiceInstanceTarget{
@@ -84,7 +84,7 @@ func (server *serviceCommandServer) MigrateService(ctx context.Context, req *con
 	if err != nil {
 		return nil, connectTaskAdmissionError(err)
 	}
-	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o600); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
 	}
 	notifyTaskQueue(server.taskQueue)
@@ -309,11 +309,11 @@ func createRestoreTask(ctx context.Context, db *store.DB, cfg *config.Controller
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode restore task params: %w", err))
 	}
 	taskID := uuid.NewString()
-	createdTask, err := db.CreateTaskIfNoActiveServiceInstanceTask(ctx, task.Record{TaskID: taskID, Type: task.TypeRestore, Source: source, ServiceName: serviceName, NodeID: nodeID, Status: task.StatusPending, ParamsJSON: string(paramsJSON), RepoRevision: repoRevision, LogPath: filepath.Join(cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID))})
+	createdTask, err := db.CreateTaskIfNoActiveServiceInstanceTask(ctx, task.Record{TaskID: taskID, Type: task.TypeRestore, Source: source, ServiceName: serviceName, NodeID: nodeID, Status: task.StatusPending, ParamsJSON: string(paramsJSON), RepoRevision: repoRevision, LogPath: filepath.Join(cfg.LogDir, "tasks", taskID+".log")})
 	if err != nil {
 		return task.Record{}, connectTaskAdmissionError(err)
 	}
-	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o600); err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
 	}
 	return createdTask, nil

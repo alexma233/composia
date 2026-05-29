@@ -20,7 +20,7 @@ func syncDeclaredServicesForTests(ctx context.Context, db *store.DB, serviceName
 func openControllerTestDB(t *testing.T) *store.DB {
 	t.Helper()
 	stateDir := filepath.Join(t.TempDir(), "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	db, err := store.Open(stateDir)

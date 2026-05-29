@@ -12,8 +12,10 @@ import (
 	"github.com/google/uuid"
 )
 
-var ErrNoPendingTask = errors.New("no pending task")
-var ErrTaskNotFound = errors.New("task not found")
+var (
+	ErrNoPendingTask = errors.New("no pending task")
+	ErrTaskNotFound  = errors.New("task not found")
+)
 
 type ActiveServiceTaskError struct {
 	ServiceName string
@@ -82,7 +84,7 @@ func (db *DB) CreateTaskWithConstraints(ctx context.Context, record task.Record,
 	}
 	if constraints.RequireInactiveService {
 		if preparedRecord.ServiceName == "" {
-			return task.Record{}, fmt.Errorf("service_name is required")
+			return task.Record{}, errors.New("service_name is required")
 		}
 	}
 	instanceTargets := constraints.RequireInactiveServiceInstances
@@ -108,10 +110,10 @@ func (db *DB) CreateTaskWithConstraints(ctx context.Context, record task.Record,
 
 	for _, target := range instanceTargets {
 		if target.ServiceName == "" {
-			return task.Record{}, fmt.Errorf("service_name is required")
+			return task.Record{}, errors.New("service_name is required")
 		}
 		if target.NodeID == "" {
-			return task.Record{}, fmt.Errorf("node_id is required")
+			return task.Record{}, errors.New("node_id is required")
 		}
 		active, err := hasActiveServiceInstanceTaskTx(ctx, tx, target.ServiceName, target.NodeID)
 		if err != nil {
@@ -141,7 +143,7 @@ func (db *DB) CreateTaskIfNoActiveServiceInstanceTask(ctx context.Context, recor
 
 func (db *DB) CreateTasksIfNoActiveServiceInstanceTasks(ctx context.Context, records []task.Record) ([]task.Record, error) {
 	if len(records) == 0 {
-		return nil, fmt.Errorf("at least one task record is required")
+		return nil, errors.New("at least one task record is required")
 	}
 
 	preparedRecords := make([]task.Record, 0, len(records))
@@ -149,10 +151,10 @@ func (db *DB) CreateTasksIfNoActiveServiceInstanceTasks(ctx context.Context, rec
 	seenKeys := make(map[serviceInstanceKey]struct{}, len(records))
 	for _, record := range records {
 		if record.ServiceName == "" {
-			return nil, fmt.Errorf("service_name is required")
+			return nil, errors.New("service_name is required")
 		}
 		if record.NodeID == "" {
-			return nil, fmt.Errorf("node_id is required")
+			return nil, errors.New("node_id is required")
 		}
 		preparedRecord, err := prepareTaskRecord(record)
 		if err != nil {
@@ -202,10 +204,10 @@ type serviceInstanceKey struct {
 
 func prepareTaskRecord(record task.Record) (task.Record, error) {
 	if record.Type == "" {
-		return task.Record{}, fmt.Errorf("task type is required")
+		return task.Record{}, errors.New("task type is required")
 	}
 	if record.Source == "" {
-		return task.Record{}, fmt.Errorf("task source is required")
+		return task.Record{}, errors.New("task source is required")
 	}
 	if record.Status == "" {
 		record.Status = task.StatusPending
@@ -475,10 +477,10 @@ func markTaskRunning(ctx context.Context, tx *sql.Tx, taskID string, startedAt t
 
 func (db *DB) TransitionTaskStatus(ctx context.Context, taskID string, fromStatus, toStatus task.Status, errorSummary string) error {
 	if taskID == "" {
-		return fmt.Errorf("task_id is required")
+		return errors.New("task_id is required")
 	}
 	if fromStatus == "" || toStatus == "" {
-		return fmt.Errorf("from_status and to_status are required")
+		return errors.New("from_status and to_status are required")
 	}
 
 	result, err := db.sql.ExecContext(ctx, `
@@ -501,7 +503,7 @@ func (db *DB) TransitionTaskStatus(ctx context.Context, taskID string, fromStatu
 
 func (db *DB) UpdateTaskParamsJSON(ctx context.Context, taskID, paramsJSON string) error {
 	if taskID == "" {
-		return fmt.Errorf("task_id is required")
+		return errors.New("task_id is required")
 	}
 	result, err := db.sql.ExecContext(ctx, `
 		UPDATE tasks
@@ -523,7 +525,7 @@ func (db *DB) UpdateTaskParamsJSON(ctx context.Context, taskID, paramsJSON strin
 
 func (db *DB) CompleteTask(ctx context.Context, taskID string, status task.Status, finishedAt time.Time, errorSummary string) error {
 	if taskID == "" {
-		return fmt.Errorf("task_id is required")
+		return errors.New("task_id is required")
 	}
 	if status != task.StatusSucceeded && status != task.StatusFailed && status != task.StatusCancelled {
 		return fmt.Errorf("invalid terminal task status %q", status)
@@ -570,17 +572,16 @@ func (db *DB) RecoverRunningTasks(ctx context.Context, finishedAt time.Time) (in
 	if err != nil {
 		return 0, fmt.Errorf("list running tasks to recover: %w", err)
 	}
+	defer func() { _ = rows.Close() }()
 	runningTaskIDs := make([]string, 0)
 	for rows.Next() {
 		var taskID string
 		if err := rows.Scan(&taskID); err != nil {
-			_ = rows.Close()
 			return 0, fmt.Errorf("scan running task to recover: %w", err)
 		}
 		runningTaskIDs = append(runningTaskIDs, taskID)
 	}
 	if err := rows.Err(); err != nil {
-		_ = rows.Close()
 		return 0, fmt.Errorf("iterate running tasks to recover: %w", err)
 	}
 	if err := rows.Close(); err != nil {
@@ -628,7 +629,8 @@ func hasActiveServiceTaskTx(ctx context.Context, tx *sql.Tx, serviceName string)
 
 func hasActiveServiceTask(ctx context.Context, queryer interface {
 	QueryRowContext(context.Context, string, ...any) *sql.Row
-}, serviceName string) (bool, error) {
+}, serviceName string,
+) (bool, error) {
 	var count int
 	err := queryer.QueryRowContext(ctx, `
 		SELECT COUNT(*)
@@ -656,7 +658,8 @@ func hasActiveServiceInstanceTaskTx(ctx context.Context, tx *sql.Tx, serviceName
 
 func hasActiveServiceInstanceTask(ctx context.Context, queryer interface {
 	QueryRowContext(context.Context, string, ...any) *sql.Row
-}, serviceName, nodeID string) (bool, error) {
+}, serviceName, nodeID string,
+) (bool, error) {
 	var count int
 	err := queryer.QueryRowContext(ctx, `
 		SELECT COUNT(*)
@@ -836,13 +839,13 @@ func (db *DB) ListTaskSteps(ctx context.Context, taskID string) ([]task.StepReco
 
 func (db *DB) UpsertTaskStep(ctx context.Context, step task.StepRecord) error {
 	if step.TaskID == "" {
-		return fmt.Errorf("task step task_id is required")
+		return errors.New("task step task_id is required")
 	}
 	if step.StepName == "" {
-		return fmt.Errorf("task step step_name is required")
+		return errors.New("task step step_name is required")
 	}
 	if step.Status == "" {
-		return fmt.Errorf("task step status is required")
+		return errors.New("task step status is required")
 	}
 
 	_, err := db.sql.ExecContext(ctx, `
@@ -948,7 +951,7 @@ func timePtr(value time.Time) *time.Time {
 
 func parseNullableRFC3339(value, label string) (*time.Time, error) {
 	if value == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 	parsed, err := time.Parse(time.RFC3339, value)
 	if err != nil {

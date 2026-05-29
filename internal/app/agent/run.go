@@ -126,7 +126,7 @@ func loadReloadAgentConfig(configPath string, current *config.AgentConfig) (*con
 
 func validateAgentReload(current, next *config.AgentConfig) error {
 	if current == nil || next == nil {
-		return fmt.Errorf("agent config is missing")
+		return errors.New("agent config is missing")
 	}
 	immutable := []struct {
 		name  string
@@ -153,7 +153,6 @@ func validateAgentReload(current, next *config.AgentConfig) error {
 }
 
 func runAgentRuntime(processCtx, runtimeCtx context.Context, cfg *config.AgentConfig) error {
-
 	if err := ensureAgentDirs(cfg); err != nil {
 		return err
 	}
@@ -258,16 +257,16 @@ func agentControllerHeaders(headers []config.AgentControllerHeaderConfig) map[st
 }
 
 func ensureAgentDirs(cfg *config.AgentConfig) error {
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		return fmt.Errorf("create agent state_dir %q: %w", cfg.StateDir, err)
 	}
-	if err := os.MkdirAll(dataProtectStageRoot(cfg.StateDir), 0o755); err != nil {
+	if err := os.MkdirAll(dataProtectStageRoot(cfg.StateDir), 0o750); err != nil {
 		return fmt.Errorf("create agent data-protect dir %q: %w", dataProtectStageRoot(cfg.StateDir), err)
 	}
-	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.RepoDir, 0o750); err != nil {
 		return fmt.Errorf("create agent repo_dir %q: %w", cfg.RepoDir, err)
 	}
-	if err := os.MkdirAll(cfg.CaddyGeneratedDir(), 0o755); err != nil {
+	if err := os.MkdirAll(cfg.CaddyGeneratedDir(), 0o750); err != nil {
 		return fmt.Errorf("create agent caddy.generated_dir %q: %w", cfg.CaddyGeneratedDir(), err)
 	}
 	return nil
@@ -387,7 +386,7 @@ func executePulledTaskWithTimeout(ctx context.Context, bundleClient agentv1conne
 	reportCtx, reportCancel := context.WithTimeout(context.Background(), taskReportTimeout)
 	defer reportCancel()
 	if reportErr := reportTaskCompletion(reportCtx, client, pulledTask.GetTaskId(), task.StatusFailed, failureSummary); reportErr != nil {
-		return fmt.Errorf("%s (report failed: %v)", err, reportErr)
+		return fmt.Errorf("%w (report failed: %w)", err, reportErr)
 	}
 	if taskTimedOut {
 		return fmt.Errorf("%s: %w", failureSummary, err)

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -250,7 +251,7 @@ func LoadAgent(path string) (*AgentConfig, error) {
 }
 
 func load(path string) (*File, error) {
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(path) //nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("read config %q: %w", path, err)
 	}
@@ -275,15 +276,15 @@ func validateController(file *File) error {
 	if err := validationError(configValidator.StructPartial(controller, "ListenAddr", "RepoDir", "StateDir", "LogDir", "Nodes"), func(field validator.FieldError) error {
 		switch field.StructField() {
 		case "ListenAddr":
-			return fmt.Errorf("controller.listen_addr is required")
+			return errors.New("controller.listen_addr is required")
 		case "RepoDir":
-			return fmt.Errorf("controller.repo_dir is required")
+			return errors.New("controller.repo_dir is required")
 		case "StateDir":
-			return fmt.Errorf("controller.state_dir is required")
+			return errors.New("controller.state_dir is required")
 		case "LogDir":
-			return fmt.Errorf("controller.log_dir is required")
+			return errors.New("controller.log_dir is required")
 		case "Nodes":
-			return fmt.Errorf("controller.nodes must be present, even if it is empty")
+			return errors.New("controller.nodes must be present, even if it is empty")
 		default:
 			return nil
 		}
@@ -297,7 +298,7 @@ func validateController(file *File) error {
 		if err := validationError(configValidator.StructPartial(node, "ID", "Token"), func(field validator.FieldError) error {
 			switch field.StructField() {
 			case "ID":
-				return fmt.Errorf("controller.nodes[].id is required")
+				return errors.New("controller.nodes[].id is required")
 			case "Token":
 				return fmt.Errorf("controller.nodes[%q].token is required", node.ID)
 			default:
@@ -320,7 +321,7 @@ func validateController(file *File) error {
 		for _, nodeID := range controller.Rustic.MainNodes {
 			nodeID = strings.TrimSpace(nodeID)
 			if nodeID == "" {
-				return fmt.Errorf("controller.rustic.main_nodes[] must not be empty")
+				return errors.New("controller.rustic.main_nodes[] must not be empty")
 			}
 			if _, exists := seenNodeIDs[nodeID]; !exists {
 				return fmt.Errorf("controller.rustic.main_nodes[%q] must reference a configured controller.nodes entry", nodeID)
@@ -356,7 +357,7 @@ func validateController(file *File) error {
 	}
 
 	if controller.Git != nil && controller.Git.RemoteURL != "" && controller.Git.PullInterval == "" {
-		return fmt.Errorf("controller.git.pull_interval is required when controller.git.remote_url is set")
+		return errors.New("controller.git.pull_interval is required when controller.git.remote_url is set")
 	}
 
 	seenAccessTokens := make(map[string]string, len(controller.AccessTokens))
@@ -364,7 +365,7 @@ func validateController(file *File) error {
 		if err := validationError(configValidator.StructPartial(token, "Name", "Token"), func(field validator.FieldError) error {
 			switch field.StructField() {
 			case "Name":
-				return fmt.Errorf("controller.access_tokens[].name is required")
+				return errors.New("controller.access_tokens[].name is required")
 			case "Token":
 				return fmt.Errorf("controller.access_tokens[%q].token is required", token.Name)
 			default:
@@ -386,9 +387,9 @@ func validateController(file *File) error {
 		if err := validationError(configValidator.StructPartial(controller.Secrets, "Provider", "IdentityFile"), func(field validator.FieldError) error {
 			switch field.StructField() {
 			case "Provider":
-				return fmt.Errorf("controller.secrets.provider must be age")
+				return errors.New("controller.secrets.provider must be age")
 			case "IdentityFile":
-				return fmt.Errorf("controller.secrets.identity_file is required")
+				return errors.New("controller.secrets.identity_file is required")
 			default:
 				return nil
 			}
@@ -413,7 +414,7 @@ func validateControllerUpdatesSemverAllow(allow []string) error {
 	}
 	semverConfig := ControllerUpdatesSemverConfig{DefaultAllow: normalizedAllow}
 	if err := validationError(configValidator.StructPartial(semverConfig, "DefaultAllow"), func(field validator.FieldError) error {
-		return fmt.Errorf("controller.updates.semver.default_allow must contain only patch, minor, or major")
+		return errors.New("controller.updates.semver.default_allow must contain only patch, minor, or major")
 	}); err != nil {
 		return err
 	}
@@ -432,15 +433,15 @@ func validateAgent(file *File) error {
 	if err := validationError(configValidator.StructPartial(agent, "ControllerAddr", "NodeID", "Token", "RepoDir", "StateDir"), func(field validator.FieldError) error {
 		switch field.StructField() {
 		case "ControllerAddr":
-			return fmt.Errorf("agent.controller_addr is required")
+			return errors.New("agent.controller_addr is required")
 		case "NodeID":
-			return fmt.Errorf("agent.node_id is required")
+			return errors.New("agent.node_id is required")
 		case "Token":
-			return fmt.Errorf("agent.token is required")
+			return errors.New("agent.token is required")
 		case "RepoDir":
-			return fmt.Errorf("agent.repo_dir is required")
+			return errors.New("agent.repo_dir is required")
 		case "StateDir":
-			return fmt.Errorf("agent.state_dir is required")
+			return errors.New("agent.state_dir is required")
 		default:
 			return nil
 		}
@@ -454,7 +455,7 @@ func validateAgent(file *File) error {
 		if err := validationError(configValidator.StructPartial(header, "Name", "Value"), func(field validator.FieldError) error {
 			switch field.StructField() {
 			case "Name":
-				return fmt.Errorf("agent.controller_headers[].name is required")
+				return errors.New("agent.controller_headers[].name is required")
 			case "Value":
 				return fmt.Errorf("agent.controller_headers[%q].value or agent.controller_headers[%q].value_file is required", name, name)
 			default:
@@ -481,7 +482,8 @@ func validationError(err error, format func(validator.FieldError) error) error {
 	if err == nil {
 		return nil
 	}
-	validationErrors, ok := err.(validator.ValidationErrors)
+	var validationErrors validator.ValidationErrors
+	ok := errors.As(err, &validationErrors)
 	if !ok || len(validationErrors) == 0 {
 		return err
 	}
@@ -496,7 +498,7 @@ func validateSharedControllerAgentConfig(controller *ControllerConfig, agent *Ag
 		return fmt.Errorf("agent.node_id must be %q when controller and agent share one config file", LocalMainNodeID)
 	}
 	if samePath(controller.RepoDir, agent.RepoDir) {
-		return fmt.Errorf("controller.repo_dir and agent.repo_dir must not use the same path")
+		return errors.New("controller.repo_dir and agent.repo_dir must not use the same path")
 	}
 	if !hasNode(controller.Nodes, LocalMainNodeID) {
 		return fmt.Errorf("controller.nodes must include %q when a local agent is configured", LocalMainNodeID)

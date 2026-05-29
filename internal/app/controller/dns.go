@@ -325,18 +325,18 @@ func desiredDNSRecordSetsForValue(relativeName string, ttl time.Duration, record
 		case "", "A", "AAAA":
 			if addr.Is4() {
 				if recordType == "AAAA" {
-					return nil, fmt.Errorf("record_type AAAA requires an IPv6 value")
+					return nil, errors.New("record_type AAAA requires an IPv6 value")
 				}
 				recordSets["A"] = []libdns.Record{libdns.Address{Name: relativeName, TTL: ttl, IP: addr}}
 				return recordSets, nil
 			}
 			if recordType == "A" {
-				return nil, fmt.Errorf("record_type A requires an IPv4 value")
+				return nil, errors.New("record_type A requires an IPv4 value")
 			}
 			recordSets["AAAA"] = []libdns.Record{libdns.Address{Name: relativeName, TTL: ttl, IP: addr}}
 			return recordSets, nil
 		case "CNAME":
-			return nil, fmt.Errorf("record_type CNAME requires a hostname value")
+			return nil, errors.New("record_type CNAME requires a hostname value")
 		default:
 			return nil, fmt.Errorf("unsupported dns record_type %q", recordType)
 		}
@@ -672,7 +672,7 @@ func (client *defaultCloudflareDNSClient) lookupRecordIDs(ctx context.Context, z
 }
 
 func (client *defaultCloudflareDNSClient) doJSON(req *http.Request, target any) error {
-	response, err := client.httpClient.Do(req)
+	response, err := client.httpClient.Do(req) //nolint:gosec
 	if err != nil {
 		return err
 	}

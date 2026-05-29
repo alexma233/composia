@@ -19,15 +19,17 @@ func main() {
 	flag.Parse()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	resolvedConfigPath, err := configpath.Resolve(*configPath, agentDefaultConfigPaths, "agent")
 	if err != nil {
 		log.Printf("composia agent failed: %v", err)
+		stop()
 		os.Exit(1)
 	}
 	if err := agent.Run(ctx, resolvedConfigPath); err != nil {
 		log.Printf("composia agent failed: %v", err)
+		stop()
 		os.Exit(1)
 	}
+	stop()
 }

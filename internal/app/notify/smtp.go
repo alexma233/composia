@@ -3,10 +3,12 @@ package notify
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/smtp"
+	"strconv"
 	"strings"
 
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
@@ -24,7 +26,7 @@ type smtpSender struct {
 
 func newSMTPSender(cfg *config.ControllerSMTPNotificationConfig) (sender, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("smtp notification config is required")
+		return nil, errors.New("smtp notification config is required")
 	}
 	return &smtpSender{
 		host:       strings.TrimSpace(cfg.Host),
@@ -38,7 +40,7 @@ func newSMTPSender(cfg *config.ControllerSMTPNotificationConfig) (sender, error)
 }
 
 func (sender *smtpSender) Send(ctx context.Context, subject, body string) error {
-	address := net.JoinHostPort(sender.host, fmt.Sprintf("%d", sender.port))
+	address := net.JoinHostPort(sender.host, strconv.Itoa(sender.port))
 	client, err := sender.connect(ctx, address)
 	if err != nil {
 		return err
@@ -119,9 +121,9 @@ func (sender *smtpSender) connect(ctx context.Context, address string) (*smtp.Cl
 
 func buildSMTPMessage(from string, to []string, subject, body string) string {
 	headers := []string{
-		fmt.Sprintf("From: %s", from),
-		fmt.Sprintf("To: %s", strings.Join(to, ", ")),
-		fmt.Sprintf("Subject: %s", subject),
+		"From: " + from,
+		"To: " + strings.Join(to, ", "),
+		"Subject: " + subject,
 		"MIME-Version: 1.0",
 		"Content-Type: text/plain; charset=UTF-8",
 		"Content-Transfer-Encoding: 8bit",

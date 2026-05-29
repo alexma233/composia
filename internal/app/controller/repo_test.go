@@ -95,7 +95,7 @@ func TestRepoQueryServiceListRepoFilesAndGetRepoFile(t *testing.T) {
 	if len(listResponse.Msg.GetEntries()) != 2 {
 		t.Fatalf("expected 2 root entries, got %d", len(listResponse.Msg.GetEntries()))
 	}
-	if listResponse.Msg.GetEntries()[0].GetPath() != "alpha" || !listResponse.Msg.GetEntries()[0].GetIsDir() {
+	if listResponse.Msg.GetEntries()[0].GetPath() != "alpha" || !listResponse.Msg.GetEntries()[0].GetIsDir() { //nolint:goconst
 		t.Fatalf("unexpected first repo entry: %+v", listResponse.Msg.GetEntries()[0])
 	}
 	if listResponse.Msg.GetEntries()[1].GetPath() != "README.md" || listResponse.Msg.GetEntries()[1].GetSize() == 0 {
@@ -124,7 +124,7 @@ func TestRepoQueryServiceListRepoFilesAndGetRepoFile(t *testing.T) {
 		t.Fatalf("unexpected repo file size: %d", fileResponse.Msg.GetSize())
 	}
 
-	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("dirty\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("dirty\n"), 0o600); err != nil {
 		t.Fatalf("rewrite repo file: %v", err)
 	}
 	getHeadResponse, err := client.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
@@ -143,7 +143,7 @@ func TestRepoCommandServiceSyncRepoFastForwardsConfiguredRemote(t *testing.T) {
 	repoDir, originDir, branch := createGitRepoWithBareRemote(t, rootDir, map[string]string{"README.md": "one\n"})
 	upstreamDir := filepath.Join(rootDir, "upstream")
 	gitClone(t, originDir, upstreamDir)
-	if err := os.WriteFile(filepath.Join(upstreamDir, "README.md"), []byte("two\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(upstreamDir, "README.md"), []byte("two\n"), 0o600); err != nil {
 		t.Fatalf("rewrite upstream README: %v", err)
 	}
 	runGit(t, upstreamDir, "add", ".")
@@ -151,7 +151,7 @@ func TestRepoCommandServiceSyncRepoFastForwardsConfiguredRemote(t *testing.T) {
 	runGit(t, upstreamDir, "push", originDir, "HEAD:refs/heads/"+branch)
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	db, err := store.Open(stateDir)
@@ -172,7 +172,7 @@ func TestRepoCommandServiceSyncRepoFastForwardsConfiguredRemote(t *testing.T) {
 	if response.Msg.GetLastSuccessfulPullAt() == "" {
 		t.Fatalf("expected last_successful_pull_at in sync response")
 	}
-	content, err := os.ReadFile(filepath.Join(repoDir, "README.md"))
+	content, err := os.ReadFile(filepath.Join(repoDir, "README.md")) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read synced README: %v", err)
 	}
@@ -196,7 +196,7 @@ func TestRepoQueryServiceListRepoCommitsReturnsPagedSummaries(t *testing.T) {
 	createGitRepoWithContent(t, repoDir, map[string]string{
 		"README.md": "one\n",
 	})
-	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("two\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("two\n"), 0o600); err != nil {
 		t.Fatalf("rewrite README: %v", err)
 	}
 	runGit(t, repoDir, "add", ".")
@@ -206,7 +206,7 @@ func TestRepoQueryServiceListRepoCommitsReturnsPagedSummaries(t *testing.T) {
 		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
-		return "test-client", nil
+		return "test-client", nil //nolint:goconst
 	})
 	path, handler := controllerv1connect.NewRepoQueryServiceHandler(
 		&repoQueryServer{cfg: &config.ControllerConfig{RepoDir: repoDir}},
@@ -250,7 +250,7 @@ func TestRepoCommandServiceUpdateRepoFileCommitsAndKeepsWorktreeClean(t *testing
 		"README.md": "hello\n",
 	})
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	db, err := store.Open(stateDir)
@@ -292,7 +292,7 @@ func TestRepoCommandServiceUpdateRepoFileCommitsAndKeepsWorktreeClean(t *testing
 	if updated.Msg.GetCommitId() == "" {
 		t.Fatalf("expected commit id in response")
 	}
-	content, err := os.ReadFile(filepath.Join(repoDir, "README.md"))
+	content, err := os.ReadFile(filepath.Join(repoDir, "README.md")) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read updated file: %v", err)
 	}
@@ -325,7 +325,7 @@ func TestRepoCommandServiceCreateRepoDirectoryCommitsPlaceholder(t *testing.T) {
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithContent(t, repoDir, map[string]string{"README.md": "hello\n"})
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	db, err := store.Open(stateDir)
@@ -369,7 +369,7 @@ func TestRepoCommandServiceMoveRepoPathRenamesTrackedFile(t *testing.T) {
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithContent(t, repoDir, map[string]string{"alpha/app.env": "A=1\n"})
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	db, err := store.Open(stateDir)
@@ -410,7 +410,7 @@ func TestRepoCommandServiceDeleteRepoPathRemovesTrackedFile(t *testing.T) {
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithContent(t, repoDir, map[string]string{"alpha/.env": "A=1\n"})
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	db, err := store.Open(stateDir)
@@ -455,7 +455,7 @@ func TestRepoCommandServiceUpdateRepoFileReturnsPushFailureWithoutRollback(t *te
 	pushErr := errors.New("push failed for test")
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	db, err := store.Open(stateDir)
@@ -522,7 +522,7 @@ func TestRepoCommandServiceUpdateRepoFileAllowsInvalidMetaDraft(t *testing.T) {
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithService(t, repoDir, "alpha", "main")
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	db, err := store.Open(stateDir)
@@ -563,7 +563,7 @@ func TestRepoCommandServiceUpdateRepoFileAllowsInvalidMetaDraft(t *testing.T) {
 	if updated.Msg.GetCommitId() == "" {
 		t.Fatalf("expected commit id for invalid draft save")
 	}
-	content, err := os.ReadFile(filepath.Join(repoDir, "alpha", "composia-meta.yaml"))
+	content, err := os.ReadFile(filepath.Join(repoDir, "alpha", "composia-meta.yaml")) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read updated file: %v", err)
 	}
@@ -593,7 +593,7 @@ func TestRepoCommandServiceUpdateRepoFileRejectsServiceWithActiveTask(t *testing
 		"README.md":                "hello\n",
 	})
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	db, err := store.Open(stateDir)
@@ -691,7 +691,7 @@ func createGitRepoWithBareRemote(t *testing.T, rootDir string, files map[string]
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithContent(t, repoDir, files)
 	originDir := filepath.Join(rootDir, "origin.git")
-	if err := os.MkdirAll(originDir, 0o755); err != nil {
+	if err := os.MkdirAll(originDir, 0o750); err != nil {
 		t.Fatalf("create origin dir: %v", err)
 	}
 	runGit(t, originDir, "init", "--bare")
@@ -705,7 +705,7 @@ func createGitRepoWithBareRemote(t *testing.T, rootDir string, files map[string]
 
 func gitClone(t *testing.T, sourceDir, cloneDir string) {
 	t.Helper()
-	output, err := exec.Command("git", "clone", sourceDir, cloneDir).CombinedOutput()
+	output, err := exec.CommandContext(context.Background(), "git", "clone", sourceDir, cloneDir).CombinedOutput() //nolint:gosec
 	if err != nil {
 		t.Fatalf("git clone failed: %v\n%s", err, string(output))
 	}

@@ -98,7 +98,7 @@ func loadServiceCaddyMeta(serviceDir string) (caddyServiceMeta, error) {
 
 func runCaddyReload(ctx context.Context, serviceDir string, compose composeCommandConfig, composeService, configDir string, uploadLog func(string) error) error {
 	configPath := filepath.Join(configDir, "Caddyfile")
-	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "exec", "-T", composeService, "caddy", "reload", "--config", configPath, "--adapter", "caddyfile")...)
+	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "exec", "-T", composeService, "caddy", "reload", "--config", configPath, "--adapter", "caddyfile")...) //nolint:gosec
 	command.Dir = serviceDir
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose exec caddy reload failed: %w", err)
@@ -137,7 +137,10 @@ func syncCaddyFilesForTask(ctx context.Context, bundleClient agentv1connect.Bund
 		}
 	}
 	for _, serviceDir := range serviceDirs {
-		bundleTask := proto.Clone(pulledTask).(*agentv1.AgentTask)
+		bundleTask, ok := proto.Clone(pulledTask).(*agentv1.AgentTask)
+		if !ok {
+			return errors.New("clone caddy sync task")
+		}
 		bundleTask.ServiceDir = serviceDir
 		bundleTask.ServiceName = filepath.Base(serviceDir)
 		bundle, err := downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), serviceDir)
@@ -177,14 +180,14 @@ func syncServiceCaddyFile(ctx context.Context, cfg *config.AgentConfig, serviceD
 		return err
 	}
 	targetPath := filepath.Join(cfg.CaddyGeneratedDir(), targetName)
-	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0o750); err != nil {
 		return fmt.Errorf("create generated caddy directory for %q: %w", targetPath, err)
 	}
-	contents, err := os.ReadFile(sourcePath)
+	contents, err := os.ReadFile(sourcePath) //nolint:gosec
 	if err != nil {
 		return fmt.Errorf("read caddy source %q: %w", sourcePath, err)
 	}
-	if err := os.WriteFile(targetPath, contents, 0o644); err != nil {
+	if err := os.WriteFile(targetPath, contents, 0o600); err != nil { //nolint:gosec
 		return fmt.Errorf("write generated caddy file %q: %w", targetPath, err)
 	}
 	if err := uploadLog(fmt.Sprintf("synced caddy file source=%s target=%s\n", sourcePath, targetPath)); err != nil {
@@ -217,7 +220,7 @@ func removeServiceCaddyFile(ctx context.Context, cfg *config.AgentConfig, servic
 func caddyGeneratedFileName(serviceDir string) (string, error) {
 	cleanDir := filepath.Clean(strings.TrimSpace(serviceDir))
 	if cleanDir == "" || cleanDir == "." {
-		return "", fmt.Errorf("service_dir is required for caddy generated file")
+		return "", errors.New("service_dir is required for caddy generated file")
 	}
 	base := filepath.Base(cleanDir)
 	if base == "." || base == string(filepath.Separator) || base == "" {
@@ -229,7 +232,7 @@ func caddyGeneratedFileName(serviceDir string) (string, error) {
 func resolveServiceCaddySourcePath(serviceRoot, source string) (string, error) {
 	cleanSource := filepath.Clean(strings.TrimSpace(source))
 	if cleanSource == "." || cleanSource == "" {
-		return "", fmt.Errorf("network.caddy.source must not be empty")
+		return "", errors.New("network.caddy.source must not be empty")
 	}
 	resolved := filepath.Join(serviceRoot, cleanSource)
 	relative, err := filepath.Rel(serviceRoot, resolved)

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -35,14 +36,15 @@ func ValidateWorkingTree(repoDir string) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), gitCommandTimeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "git", "-C", repoDir, "rev-parse", "--is-inside-work-tree")
+	cmd := exec.CommandContext(ctx, "git", "-C", repoDir, "rev-parse", "--is-inside-work-tree") //nolint:gosec
 	output, err := cmd.Output()
 	if err != nil {
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			return fmt.Errorf("repo_dir %q git working tree check timed out: %w", repoDir, ctx.Err())
 		}
 		var stderr bytes.Buffer
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
 			stderr.Write(exitErr.Stderr)
 		}
 		return fmt.Errorf("repo_dir %q must be a git working tree: %w %s", repoDir, err, strings.TrimSpace(stderr.String()))
@@ -90,7 +92,7 @@ func ListCommits(repoDir, cursor string, limit uint32) ([]CommitSummary, string,
 		limit = 100
 	}
 	pageSize := int(limit) + 1
-	args := []string{"log", "--format=%H%x00%s%x00%cI", "-n", fmt.Sprintf("%d", pageSize)}
+	args := []string{"log", "--format=%H%x00%s%x00%cI", "-n", strconv.Itoa(pageSize)}
 	if cursor != "" {
 		args = append(args, "--skip=1", cursor)
 	}
@@ -151,9 +153,10 @@ func CommitPath(repoDir, relativePath, message, authorName, authorEmail string) 
 
 func CommitPaths(repoDir string, relativePaths []string, message, authorName, authorEmail string) (string, error) {
 	if len(relativePaths) == 0 {
-		return "", fmt.Errorf("at least one repo path is required")
+		return "", errors.New("at least one repo path is required")
 	}
-	addArgs := []string{"add", "-A", "--"}
+	addArgs := make([]string, 0, 3+len(relativePaths))
+	addArgs = append(addArgs, "add", "-A", "--")
 	addArgs = append(addArgs, relativePaths...)
 	if _, err := gitOutput(repoDir, addArgs...); err != nil {
 		return "", fmt.Errorf("stage repo paths %q: %w", strings.Join(relativePaths, ", "), err)
@@ -166,7 +169,7 @@ func CommitPaths(repoDir string, relativePaths []string, message, authorName, au
 		return "", ErrNoGitChanges
 	}
 	if message == "" {
-		message = fmt.Sprintf("update %s", relativePaths[0])
+		message = "update " + relativePaths[0]
 	}
 	if err := gitCommandWithOptions(repoDir, gitAuthorEnv(authorName, authorEmail), []string{"commit.gpgsign=false"}, "commit", "-m", message); err != nil {
 		return "", fmt.Errorf("commit repo paths %q: %w", strings.Join(relativePaths, ", "), err)
@@ -212,10 +215,10 @@ func DiffChangedFiles(repoDir, oldRevision, newRevision string) ([]string, error
 
 func FetchAndFastForward(repoDir, remoteURL, branch, authUsername, authToken string) error {
 	if remoteURL == "" {
-		return fmt.Errorf("remote URL is required")
+		return errors.New("remote URL is required")
 	}
 	if branch == "" {
-		return fmt.Errorf("remote branch is required")
+		return errors.New("remote branch is required")
 	}
 	if _, err := gitOutputWithOptions(repoDir, nil, gitRemoteConfig(remoteURL, authUsername, authToken), "fetch", remoteURL, branch); err != nil {
 		return fmt.Errorf("fetch remote branch %q: %w", branch, err)
@@ -228,10 +231,10 @@ func FetchAndFastForward(repoDir, remoteURL, branch, authUsername, authToken str
 
 func PushCurrentBranch(repoDir, remoteURL, branch, authUsername, authToken string) error {
 	if remoteURL == "" {
-		return fmt.Errorf("remote URL is required")
+		return errors.New("remote URL is required")
 	}
 	if branch == "" {
-		return fmt.Errorf("remote branch is required")
+		return errors.New("remote branch is required")
 	}
 	if err := gitCommandWithOptions(repoDir, nil, gitRemoteConfig(remoteURL, authUsername, authToken), "push", remoteURL, "HEAD:refs/heads/"+branch); err != nil {
 		return fmt.Errorf("push HEAD to remote branch %q: %w", branch, err)
@@ -268,7 +271,7 @@ func gitCommandWithOptions(repoDir string, extraEnv, gitConfig []string, args ..
 
 	ctx, cancel := context.WithTimeout(context.Background(), gitCommandTimeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "git", commandArgs...)
+	cmd := exec.CommandContext(ctx, "git", commandArgs...) //nolint:gosec
 	if len(extraEnv) > 0 {
 		cmd.Env = append(os.Environ(), extraEnv...)
 	}
@@ -297,7 +300,7 @@ func gitOutputWithOptions(repoDir string, extraEnv, gitConfig []string, args ...
 
 	ctx, cancel := context.WithTimeout(context.Background(), gitCommandTimeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "git", commandArgs...)
+	cmd := exec.CommandContext(ctx, "git", commandArgs...) //nolint:gosec
 	if len(extraEnv) > 0 {
 		cmd.Env = append(os.Environ(), extraEnv...)
 	}
@@ -307,7 +310,8 @@ func gitOutputWithOptions(repoDir string, extraEnv, gitConfig []string, args ...
 			return "", fmt.Errorf("git %s timed out: %w", strings.Join(args, " "), ctx.Err())
 		}
 		var stderr bytes.Buffer
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
 			stderr.Write(exitErr.Stderr)
 		}
 		return "", fmt.Errorf("git %s: %w %s", strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))

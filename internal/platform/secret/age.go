@@ -13,7 +13,7 @@ import (
 )
 
 func DecryptFile(filePath string, cfg *config.ControllerSecretsConfig) (string, error) {
-	content, err := os.ReadFile(filePath)
+	content, err := os.ReadFile(filePath) //nolint:gosec
 	if err != nil {
 		return "", fmt.Errorf("read encrypted secret file %q: %w", filePath, err)
 	}
@@ -112,7 +112,7 @@ func openAgeReader(content []byte) (io.Reader, error) {
 }
 
 func loadIdentities(filePath string) ([]age.Identity, error) {
-	content, err := os.ReadFile(filePath)
+	content, err := os.ReadFile(filePath) //nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("read age identity file %q: %w", filePath, err)
 	}
@@ -124,7 +124,7 @@ func loadIdentities(filePath string) ([]age.Identity, error) {
 }
 
 func loadRecipients(filePath string) ([]age.Recipient, error) {
-	content, err := os.ReadFile(filePath)
+	content, err := os.ReadFile(filePath) //nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("read age recipient file %q: %w", filePath, err)
 	}

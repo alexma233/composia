@@ -182,7 +182,7 @@ func resolveInlineOrFileValue(value, filePath, fieldPath string, required bool) 
 		return "", fmt.Errorf("%s and %s_file must not both be set", fieldPath, fieldPath)
 	}
 	if filePath != "" {
-		content, err := os.ReadFile(filePath)
+		content, err := os.ReadFile(filePath) //nolint:gosec
 		if err != nil {
 			return "", fmt.Errorf("read %s_file %q: %w", fieldPath, filePath, err)
 		}

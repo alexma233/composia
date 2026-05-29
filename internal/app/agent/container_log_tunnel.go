@@ -161,7 +161,10 @@ func (tunnel *containerLogTunnelClient) handleStartMessage(ctx context.Context, 
 	}
 	sessionCtx, cancel := context.WithCancel(ctx)
 	sessions.set(&runningContainerLogSession{id: message.GetSessionId(), cancel: cancel})
-	go tunnel.streamContainerLogs(sessionCtx, sendCh, sessions, message)
+	go func() {
+		defer cancel()
+		tunnel.streamContainerLogs(sessionCtx, sendCh, sessions, message)
+	}()
 }
 
 func (tunnel *containerLogTunnelClient) streamContainerLogs(ctx context.Context, sendCh chan<- *agentv1.OpenContainerLogTunnelRequest, sessions *runningContainerLogSessions, message *agentv1.OpenContainerLogTunnelResponse) {

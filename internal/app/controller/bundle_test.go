@@ -1,3 +1,4 @@
+//nolint:goconst
 package controller
 
 import (
@@ -6,6 +7,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -31,7 +33,7 @@ func TestBundleServiceStreamsTaskBundle(t *testing.T) {
 	rootDir := t.TempDir()
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithService(t, repoDir, "demo", "main")
-	if err := os.WriteFile(filepath.Join(repoDir, "demo", "docker-compose.yaml"), []byte("services: {}\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "demo", "docker-compose.yaml"), []byte("services: {}\n"), 0o600); err != nil {
 		t.Fatalf("write compose file: %v", err)
 	}
 	runGit(t, repoDir, "add", ".")
@@ -259,7 +261,7 @@ func TestBundleServiceInjectsDecryptedSecretEnv(t *testing.T) {
 	if err != nil {
 		t.Fatalf("encrypt secret env: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "demo", ".secret.env.enc"), ciphertext, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "demo", ".secret.env.enc"), ciphertext, 0o600); err != nil {
 		t.Fatalf("write encrypted secret env: %v", err)
 	}
 	runGit(t, repoDir, "add", ".")
@@ -400,13 +402,13 @@ func TestBundleServiceServiceOverrideSkipsBackupRuntimePayload(t *testing.T) {
 	if err != nil {
 		t.Fatalf("encrypt rustic secret: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "backup", ".secret.env.enc"), ciphertext, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "backup", ".secret.env.enc"), ciphertext, 0o600); err != nil {
 		t.Fatalf("write encrypted rustic secret: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "demo", "composia-meta.yaml"), []byte("name: demo\nnodes:\n  - main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\nbackup:\n  data:\n    - name: config\n      provider: rustic\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "demo", "composia-meta.yaml"), []byte("name: demo\nnodes:\n  - main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\nbackup:\n  data:\n    - name: config\n      provider: rustic\n"), 0o600); err != nil {
 		t.Fatalf("write demo meta: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o600); err != nil {
 		t.Fatalf("write backup meta: %v", err)
 	}
 	runGit(t, repoDir, "add", ".")
@@ -482,10 +484,10 @@ func TestBundleServiceInjectsBackupRuntimeConfigFromTaskRevision(t *testing.T) {
 		t.Fatalf("read current revision: %v", err)
 	}
 
-	if err := os.WriteFile(filepath.Join(repoDir, "demo", "composia-meta.yaml"), []byte("name: demo\nnodes:\n  - main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config-v2\nbackup:\n  data:\n    - name: config\n      provider: rustic\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "demo", "composia-meta.yaml"), []byte("name: demo\nnodes:\n  - main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config-v2\nbackup:\n  data:\n    - name: config\n      provider: rustic\n"), 0o600); err != nil {
 		t.Fatalf("update demo meta: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic-v2\n    profile: prod-v2\n    data_protect_dir: /data-protect-v2\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "backup", "composia-meta.yaml"), []byte("name: backup\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic-v2\n    profile: prod-v2\n    data_protect_dir: /data-protect-v2\n"), 0o600); err != nil {
 		t.Fatalf("update backup meta: %v", err)
 	}
 	runGit(t, repoDir, "add", ".")
@@ -582,7 +584,7 @@ func untarGzContents(t *testing.T, content []byte) map[string]string {
 	for {
 		header, err := tarReader.Next()
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				return entries
 			}
 			t.Fatalf("read tar entry: %v", err)

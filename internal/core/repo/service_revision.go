@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -10,7 +11,7 @@ import (
 
 func FindServiceAtRevision(repoDir, revision, serviceDir string, availableNodeIDs map[string]struct{}) (Service, error) {
 	if strings.TrimSpace(revision) == "" {
-		return Service{}, fmt.Errorf("service revision is required")
+		return Service{}, errors.New("service revision is required")
 	}
 	relativeMetaPath := filepath.ToSlash(filepath.Join(serviceDir, MetaFileName))
 	content, err := ReadFileAtRevision(repoDir, revision, relativeMetaPath)
@@ -36,7 +37,7 @@ func FindServiceAtRevision(repoDir, revision, serviceDir string, availableNodeID
 
 func FindRusticInfraServiceAtRevision(repoDir, revision string, availableNodeIDs map[string]struct{}) (Service, error) {
 	if strings.TrimSpace(revision) == "" {
-		return Service{}, fmt.Errorf("rustic infra service revision is required")
+		return Service{}, errors.New("rustic infra service revision is required")
 	}
 	services, err := ListFilesAtRevision(repoDir, revision, "")
 	if err != nil {
@@ -77,5 +78,5 @@ func FindRusticInfraServiceAtRevision(repoDir, revision string, availableNodeIDs
 	if matched != nil {
 		return *matched, nil
 	}
-	return Service{}, fmt.Errorf("rustic infra service is not declared")
+	return Service{}, errors.New("rustic infra service is not declared")
 }

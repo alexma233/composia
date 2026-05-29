@@ -1,18 +1,20 @@
 package controller
 
 import (
-	"connectrpc.com/connect"
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+
+	"connectrpc.com/connect"
+
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 	"github.com/google/uuid"
-	"os"
-	"path/filepath"
 )
 
 type nodeQueryServer struct {
@@ -147,12 +149,12 @@ func (server *nodeMaintenanceServer) PruneNodeDocker(ctx context.Context, req *c
 		NodeID:      req.Msg.GetNodeId(),
 		Status:      task.StatusPending,
 		ParamsJSON:  paramsJSON,
-		LogPath:     filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+		LogPath:     filepath.Join(server.cfg.LogDir, "tasks", taskID+".log"),
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o600); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
 	}
 	notifyTaskQueue(server.taskQueue)

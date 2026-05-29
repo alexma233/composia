@@ -1,3 +1,4 @@
+//nolint:goconst
 package controller
 
 import (
@@ -85,10 +86,10 @@ func TestBackupCommandServiceRestoreBackupCreatesPendingRestoreTask(t *testing.T
 	})
 	logDir := filepath.Join(rootDir, "logs")
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create log dir: %v", err)
 	}
 

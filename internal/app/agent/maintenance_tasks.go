@@ -63,7 +63,7 @@ func runDockerPrune(ctx context.Context, target string, uploadLog func(string) e
 		return fmt.Errorf("unknown prune target: %q", target)
 	}
 
-	cmd := exec.CommandContext(ctx, "docker", args...)
+	cmd := exec.CommandContext(ctx, "docker", args...) //nolint:gosec
 	if err := runCommandWithLiveLogs(cmd, uploadLog); err != nil {
 		return fmt.Errorf("docker %s prune failed: %w", target, err)
 	}

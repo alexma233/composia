@@ -15,7 +15,7 @@ func TestListDeclaredServicesAppliesCursorAndFilter(t *testing.T) {
 	t.Parallel()
 
 	stateDir := filepath.Join(t.TempDir(), "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 
@@ -61,7 +61,7 @@ func TestUpdateServiceInstanceRuntimeStatusValidatesAndPersists(t *testing.T) {
 	t.Parallel()
 
 	stateDir := filepath.Join(t.TempDir(), "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 
@@ -104,7 +104,7 @@ func TestServiceImageUpdateChecksRoundTrip(t *testing.T) {
 	t.Parallel()
 
 	stateDir := filepath.Join(t.TempDir(), "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	db, err := Open(stateDir)
@@ -157,7 +157,7 @@ func TestMigrateSetsSQLiteUserVersion(t *testing.T) {
 	t.Parallel()
 
 	stateDir := filepath.Join(t.TempDir(), "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	db, err := Open(stateDir)
@@ -179,7 +179,7 @@ func TestMigrateBackfillsBackupNodeIDAndEnforcesInstanceIntegrity(t *testing.T) 
 	t.Parallel()
 
 	stateDir := filepath.Join(t.TempDir(), "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	seedDB, err := Open(stateDir)
@@ -210,7 +210,7 @@ func TestMigrateBackfillsBackupNodeIDAndEnforcesInstanceIntegrity(t *testing.T) 
 		`PRAGMA user_version = 2;`,
 		`PRAGMA foreign_keys = ON;`,
 	} {
-		if _, err := legacySQL.Exec(statement); err != nil {
+		if _, err := legacySQL.ExecContext(context.Background(), statement); err != nil {
 			_ = legacySQL.Close()
 			t.Fatalf("apply legacy setup statement %q: %v", statement, err)
 		}

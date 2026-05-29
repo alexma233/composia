@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -296,7 +297,7 @@ func localServiceRoot(repoDir string, pulledTask *agentv1.AgentTask, bundle *bun
 		return bundle.RootPath, nil
 	}
 	if pulledTask.GetServiceDir() == "" {
-		return "", fmt.Errorf("task is missing service_dir")
+		return "", errors.New("task is missing service_dir")
 	}
 	serviceRoot, _, err := resolveRepoRelativePath(repoDir, pulledTask.GetServiceDir(), "service_dir")
 	if err != nil {

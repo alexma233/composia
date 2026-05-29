@@ -1,3 +1,4 @@
+//nolint:goconst
 package controller
 
 import (
@@ -34,7 +35,7 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 		"edge/composia-meta.yaml": "name: edge\nnodes:\n  - main\ninfra:\n  caddy:\n    compose_service: caddy\n    config_dir: /etc/caddy\n",
 	})
 	logDir := filepath.Join(t.TempDir(), "logs")
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -184,7 +185,7 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	if len(detail.Steps) != 1 || detail.Steps[0].StepName != task.StepRender {
 		t.Fatalf("unexpected task steps: %+v", detail.Steps)
 	}
-	content, err := os.ReadFile(logPath)
+	content, err := os.ReadFile(logPath) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read task log: %v", err)
 	}
@@ -372,7 +373,7 @@ func TestAgentPullNextTaskLongPollWakesWhenRunningTaskCompletes(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "node-2-token" {
+		if token != "node-2-token" { //nolint:gosec
 			return "", assertError("unexpected token")
 		}
 		return "node-2", nil
@@ -454,7 +455,7 @@ func TestAgentReportTaskStateSkipsCaddyReloadWhenServiceDoesNotUseCaddy(t *testi
 		"edge/composia-meta.yaml": "name: edge\nnodes:\n  - main\ninfra:\n  caddy:\n    compose_service: caddy\n    config_dir: /etc/caddy\n",
 	})
 	logDir := filepath.Join(t.TempDir(), "logs")
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -515,7 +516,7 @@ func TestAgentReportTaskStateQueuesCaddyReloadAfterStop(t *testing.T) {
 		"edge/composia-meta.yaml": "name: edge\nnodes:\n  - main\ninfra:\n  caddy:\n    compose_service: caddy\n    config_dir: /etc/caddy\n",
 	})
 	logDir := filepath.Join(t.TempDir(), "logs")
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {

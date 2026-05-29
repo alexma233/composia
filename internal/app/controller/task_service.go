@@ -1,10 +1,18 @@
 package controller
 
 import (
-	"connectrpc.com/connect"
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"connectrpc.com/connect"
+
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	appnotify "forgejo.alexma.top/alexma233/composia/internal/app/notify"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
@@ -12,12 +20,6 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
-	"io"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
 )
 
 type taskServer struct {
@@ -223,9 +225,9 @@ func (server *taskServer) ResolveTaskConfirmation(ctx context.Context, req *conn
 
 	comment := strings.TrimSpace(req.Msg.GetComment())
 	resolvedBy, _ := rpcutil.BearerSubject(ctx)
-	resolvedLine := fmt.Sprintf("manual confirmation decision=%s", decision)
+	resolvedLine := "manual confirmation decision=" + decision
 	if resolvedBy != "" {
-		resolvedLine += fmt.Sprintf(" actor=%s", resolvedBy)
+		resolvedLine += " actor=" + resolvedBy
 	}
 	if comment != "" {
 		resolvedLine += fmt.Sprintf(" comment=%q", comment)
@@ -242,7 +244,7 @@ func (server *taskServer) ResolveTaskConfirmation(ctx context.Context, req *conn
 		stepStatus = task.StatusCancelled
 		errorSummary = "manual verification rejected"
 		if comment != "" {
-			errorSummary = fmt.Sprintf("manual verification rejected: %s", comment)
+			errorSummary = "manual verification rejected: " + comment
 		}
 	}
 	if err := server.db.UpsertTaskStep(ctx, task.StepRecord{TaskID: detail.Record.TaskID, StepName: task.StepAwaitingConfirmation, Status: stepStatus, StartedAt: findTaskStepStartedAt(detail.Steps, task.StepAwaitingConfirmation), FinishedAt: &finishedAt}); err != nil {
@@ -278,7 +280,7 @@ func taskActionResponse(record task.Record) *controllerv1.TaskActionResponse {
 }
 
 func readNewLogContent(logPath string, offset int64) (string, int64, error) {
-	file, err := os.Open(logPath)
+	file, err := os.Open(logPath) //nolint:gosec
 	if err != nil {
 		return "", offset, fmt.Errorf("open task log %q: %w", logPath, err)
 	}

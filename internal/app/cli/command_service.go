@@ -1,8 +1,10 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
@@ -10,7 +12,7 @@ import (
 
 func (application *app) runService(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia service <list|get|workspace|update-candidates|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate>")
+		return errors.New("usage: composia service <list|get|workspace|update-candidates|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate>")
 	}
 	switch args[0] {
 	case "list":
@@ -32,7 +34,7 @@ func (application *app) runService(args []string) error {
 
 func (application *app) runServiceWorkspace(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia service workspace <list|get>")
+		return errors.New("usage: composia service workspace <list|get>")
 	}
 	switch args[0] {
 	case "list":
@@ -271,9 +273,9 @@ func (application *app) runServiceAction(actionName string, args []string) error
 		}
 		baseRevision = strings.TrimSpace(head.Msg.GetHeadRevision())
 		if baseRevision == "" {
-			return fmt.Errorf("repo head_revision is required for repo-backed image updates")
+			return errors.New("repo head_revision is required for repo-backed image updates")
 		}
-		commitMessage = fmt.Sprintf("update images for %s", fs.Arg(0))
+		commitMessage = "update images for " + fs.Arg(0)
 	}
 	response, err := application.client.serviceCommands.RunServiceAction(application.ctx, newRequest(&controllerv1.RunServiceActionRequest{
 		ServiceName:                fs.Arg(0),
@@ -348,7 +350,7 @@ func (application *app) printServiceDetail(service *controllerv1.GetServiceRespo
 			instance.GetNodeId(),
 			instance.GetRuntimeStatus(),
 			boolText(instance.GetIsDeclared()),
-			fmt.Sprintf("%d", len(instance.GetContainers())),
+			strconv.Itoa(len(instance.GetContainers())),
 			instance.GetUpdatedAt(),
 		})
 	}

@@ -299,7 +299,7 @@ func (broker *dockerQueryBroker) WaitResult(ctx context.Context, queryID string,
 		remaining := time.Until(deadline)
 		if remaining <= 0 {
 			broker.Cancel(queryID)
-			return dockerAgentQueryResult{}, fmt.Errorf("timeout waiting for docker query result")
+			return dockerAgentQueryResult{}, errors.New("timeout waiting for docker query result")
 		}
 		timer := time.NewTimer(remaining)
 		select {
@@ -311,7 +311,7 @@ func (broker *dockerQueryBroker) WaitResult(ctx context.Context, queryID string,
 			timer.Stop()
 		case <-timer.C:
 			broker.Cancel(queryID)
-			return dockerAgentQueryResult{}, fmt.Errorf("timeout waiting for docker query result")
+			return dockerAgentQueryResult{}, errors.New("timeout waiting for docker query result")
 		}
 	}
 }
@@ -538,7 +538,7 @@ func dockerProtoQueryTask(query dockerAgentQuery) (*agentv1.DockerQueryTask, err
 		}
 		timeoutSeconds := uint32(0)
 		if query.Timeout > 0 {
-			timeoutSeconds = uint32(query.Timeout.Round(time.Second) / time.Second)
+			timeoutSeconds = uint32(query.Timeout.Round(time.Second) / time.Second) //nolint:gosec
 		}
 		message.Query = &agentv1.DockerQueryTask_RunContainerExec{RunContainerExec: &agentv1.DockerQueryRunContainerExecRequest{ContainerId: query.ID, Command: append([]string(nil), query.Command...), Stdin: append([]byte(nil), query.Stdin...), TimeoutSeconds: timeoutSeconds, MaxOutputBytes: query.MaxOutput}}
 	default:

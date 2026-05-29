@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,13 +15,13 @@ import (
 
 func (executor *controllerTaskExecutor) createServiceInstanceTask(ctx context.Context, serviceName, nodeID string, taskType task.Type, params serviceTaskParams, repoRevision string, source task.Source) (task.Record, error) {
 	if serviceName == "" {
-		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("service_name is required"))
+		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
 	if nodeID == "" {
-		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("node_id is required"))
+		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
 	if params.ServiceDir == "" {
-		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("service_dir is required"))
+		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("service_dir is required"))
 	}
 	if err := validateTaskTargetNode(ctx, executor.db, executor.cfg, nodeID, taskType); err != nil {
 		return task.Record{}, err
@@ -43,12 +44,12 @@ func (executor *controllerTaskExecutor) createServiceInstanceTask(ctx context.Co
 		Status:       task.StatusPending,
 		ParamsJSON:   string(paramsJSON),
 		RepoRevision: repoRevision,
-		LogPath:      filepath.Join(executor.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+		LogPath:      filepath.Join(executor.cfg.LogDir, "tasks", taskID+".log"),
 	})
 	if err != nil {
 		return task.Record{}, connectTaskAdmissionError(err)
 	}
-	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o600); err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
 	}
 	notifyTaskQueue(executor.taskQueue)

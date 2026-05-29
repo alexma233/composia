@@ -24,7 +24,7 @@ func TestNodeQueryServiceListNodes(t *testing.T) {
 	t.Parallel()
 
 	stateDir := filepath.Join(t.TempDir(), "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 
@@ -49,7 +49,7 @@ func TestNodeQueryServiceListNodes(t *testing.T) {
 		if token != "access-token" {
 			return "", assertError("unexpected token")
 		}
-		return "test-client", nil
+		return "test-client", nil //nolint:goconst
 	})
 
 	path, handler := controllerv1connect.NewNodeQueryServiceHandler(
@@ -104,7 +104,7 @@ func TestNodeQueryServiceGetNodeReturnsMinimalSummary(t *testing.T) {
 	t.Parallel()
 
 	stateDir := filepath.Join(t.TempDir(), "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 
@@ -168,10 +168,10 @@ func TestNodeMaintenanceServiceReloadNodeCaddyCreatesTask(t *testing.T) {
 	createGitRepoWithContent(t, repoDir, map[string]string{
 		"edge-proxy/composia-meta.yaml": "name: edge-proxy\nnodes:\n  - main\ninfra:\n  caddy:\n    compose_service: caddy\n    config_dir: /etc/caddy\n",
 	})
-	if err := os.MkdirAll(logDir, 0o755); err != nil {
+	if err := os.MkdirAll(logDir, 0o750); err != nil {
 		t.Fatalf("create log dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
 	}
 
@@ -221,7 +221,7 @@ func TestNodeMaintenanceServiceReloadNodeCaddyCreatesTask(t *testing.T) {
 	if detail.Record.ServiceName != "edge-proxy" || detail.Record.NodeID != "main" {
 		t.Fatalf("unexpected created task record: %+v", detail.Record)
 	}
-	if detail.Record.TriggeredBy != "test-client" {
+	if detail.Record.TriggeredBy != "test-client" { //nolint:goconst
 		t.Fatalf("expected triggered_by test-client, got %q", detail.Record.TriggeredBy)
 	}
 }
@@ -236,7 +236,7 @@ func TestNodeMaintenanceServiceSyncNodeCaddyFilesCreatesSyncTask(t *testing.T) {
 		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
 		"demo/demo.caddy":         "demo.example.com { reverse_proxy 127.0.0.1:8080 }\n",
 	})
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
 	}
 
@@ -281,7 +281,7 @@ func TestNodeMaintenanceServiceSyncNodeCaddyFilesCreatesSyncTask(t *testing.T) {
 		t.Fatalf("expected caddy_sync task type, got %q", detail.Record.Type)
 	}
 	params := mustTaskParams(t, detail.Record.ParamsJSON)
-	if params.ServiceDir != "demo" || len(params.ServiceDirs) != 1 || params.ServiceDirs[0] != "demo" || params.FullRebuild {
+	if params.ServiceDir != "demo" || len(params.ServiceDirs) != 1 || params.ServiceDirs[0] != "demo" || params.FullRebuild { //nolint:goconst
 		t.Fatalf("unexpected caddy sync params: %+v", params)
 	}
 	revision, err := repo.CurrentRevision(repoDir)
@@ -306,7 +306,7 @@ func TestNodeMaintenanceServiceSyncNodeCaddyFilesFullRebuildCreatesMultiServiceT
 		"bravo/bravo.caddy":          "bravo.example.com { reverse_proxy 127.0.0.1:9090 }\n",
 		"charlie/composia-meta.yaml": "name: charlie\nnodes:\n  - main\n",
 	})
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
 	}
 
@@ -365,10 +365,10 @@ func TestNodeMaintenanceServicePruneNodeDockerCreatesTaskLogAndNotifiesQueue(t *
 	rootDir := t.TempDir()
 	repoDir := filepath.Join(rootDir, "repo")
 	logDir := filepath.Join(rootDir, "logs")
-	if err := os.MkdirAll(repoDir, 0o755); err != nil {
+	if err := os.MkdirAll(repoDir, 0o750); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
 	}
 
@@ -438,7 +438,7 @@ func TestNodeMaintenanceServicePruneNodeRusticCreatesRusticPruneTask(t *testing.
 	createGitRepoWithContent(t, repoDir, map[string]string{
 		"backup/composia-meta.yaml": "name: backup\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n",
 	})
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
 	}
 
@@ -502,7 +502,7 @@ func TestNodeMaintenanceServiceInitNodeRusticCreatesRusticInitTask(t *testing.T)
 	createGitRepoWithContent(t, repoDir, map[string]string{
 		"backup/composia-meta.yaml": "name: backup\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n",
 	})
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
 	}
 
@@ -566,7 +566,7 @@ func TestNodeMaintenanceServiceForgetNodeRusticCreatesRusticForgetTask(t *testin
 	createGitRepoWithContent(t, repoDir, map[string]string{
 		"backup/composia-meta.yaml": "name: backup\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n",
 	})
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
 	}
 

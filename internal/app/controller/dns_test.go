@@ -74,10 +74,10 @@ func TestExecuteDNSUpdateTaskSyncsDualStackRecords(t *testing.T) {
 	})
 	logDir := filepath.Join(rootDir, "logs")
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create log dir: %v", err)
 	}
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 
@@ -107,7 +107,7 @@ func TestExecuteDNSUpdateTaskSyncsDualStackRecords(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("create dns task: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(logDir, "tasks", "task-dns.log"), nil, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(logDir, "tasks", "task-dns.log"), nil, 0o600); err != nil {
 		t.Fatalf("create task log: %v", err)
 	}
 
@@ -152,7 +152,7 @@ func TestExecuteDNSUpdateTaskSyncsDualStackRecords(t *testing.T) {
 	if strings.Join(fakeClient.options, "|") != strings.Join(expectedOptions, "|") {
 		t.Fatalf("unexpected dns options: %+v", fakeClient.options)
 	}
-	logContent, err := os.ReadFile(filepath.Join(logDir, "tasks", "task-dns.log"))
+	logContent, err := os.ReadFile(filepath.Join(logDir, "tasks", "task-dns.log")) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read dns task log: %v", err)
 	}

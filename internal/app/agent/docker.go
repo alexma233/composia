@@ -52,13 +52,13 @@ type limitedBuffer struct {
 }
 
 func (buffer *limitedBuffer) Write(data []byte) (int, error) {
-	if buffer.limit == 0 || uint64(buffer.buffer.Len()) >= buffer.limit {
+	if buffer.limit == 0 || uint64(buffer.buffer.Len()) >= buffer.limit { //nolint:gosec
 		if len(data) > 0 {
 			buffer.truncated = true
 		}
 		return len(data), nil
 	}
-	remaining := int(buffer.limit - uint64(buffer.buffer.Len()))
+	remaining := int(buffer.limit - uint64(buffer.buffer.Len())) //nolint:gosec
 	if len(data) > remaining {
 		buffer.truncated = true
 		_, _ = buffer.buffer.Write(data[:remaining])
@@ -150,7 +150,7 @@ func (server *dockerServer) runContainerExec(ctx context.Context, containerID st
 		return nil, fmt.Errorf("inspect docker exec: %w", inspectErr)
 	}
 	finishedAt := time.Now().UTC()
-	exitCode := int32(inspect.ExitCode)
+	exitCode := int32(inspect.ExitCode) //nolint:gosec
 	if timedOut {
 		exitCode = -1
 	}
@@ -175,7 +175,7 @@ func normalizeDockerListPage(page uint32) uint32 {
 }
 
 func paginateDockerList[T any](items []T, page, pageSize uint32) ([]T, uint32) {
-	totalCount := uint32(len(items))
+	totalCount := uint32(len(items)) //nolint:gosec
 	if totalCount == 0 {
 		return items, 0
 	}
@@ -282,7 +282,7 @@ func (s *dockerServer) ListContainers(ctx context.Context, req *connect.Request[
 		if len(c.Names) > 0 {
 			name = c.Names[0]
 			// Remove leading slash
-			if len(name) > 0 && name[0] == '/' {
+			if name != "" && name[0] == '/' {
 				name = name[1:]
 			}
 		}
@@ -290,7 +290,7 @@ func (s *dockerServer) ListContainers(ctx context.Context, req *connect.Request[
 		var ports []string
 		seenPorts := make(map[string]struct{})
 		for _, p := range c.Ports {
-			portStr := ""
+			var portStr string
 			if p.PublicPort != 0 {
 				portStr = fmt.Sprintf("%d->%d/%s", p.PublicPort, p.PrivatePort, p.Type)
 			} else {
@@ -357,7 +357,7 @@ func (s *dockerServer) ListContainers(ctx context.Context, req *connect.Request[
 
 func (s *dockerServer) InspectContainer(ctx context.Context, req *connect.Request[agentv1.InspectContainerRequest]) (*connect.Response[agentv1.InspectContainerResponse], error) {
 	if req.Msg.GetContainerId() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("container_id is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("container_id is required"))
 	}
 
 	c, err := s.client.ContainerInspect(ctx, req.Msg.GetContainerId())
@@ -378,7 +378,7 @@ func (s *dockerServer) InspectContainer(ctx context.Context, req *connect.Reques
 
 func (s *dockerServer) RunContainerAction(ctx context.Context, req *connect.Request[agentv1.RunContainerActionRequest]) (*connect.Response[agentv1.RunContainerActionResponse], error) {
 	if req.Msg.GetContainerId() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("container_id is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("container_id is required"))
 	}
 
 	switch req.Msg.GetAction() {
@@ -395,7 +395,7 @@ func (s *dockerServer) RunContainerAction(ctx context.Context, req *connect.Requ
 			return nil, err
 		}
 	default:
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("action is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("action is required"))
 	}
 
 	return connect.NewResponse(&agentv1.RunContainerActionResponse{}), nil
@@ -403,7 +403,7 @@ func (s *dockerServer) RunContainerAction(ctx context.Context, req *connect.Requ
 
 func (s *dockerServer) RemoveContainer(ctx context.Context, req *connect.Request[agentv1.RemoveContainerRequest]) (*connect.Response[agentv1.RemoveContainerResponse], error) {
 	if req.Msg.GetContainerId() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("container_id is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("container_id is required"))
 	}
 
 	if err := s.client.ContainerRemove(ctx, req.Msg.GetContainerId(), req.Msg.GetForce(), req.Msg.GetRemoveVolumes()); err != nil {
@@ -415,7 +415,7 @@ func (s *dockerServer) RemoveContainer(ctx context.Context, req *connect.Request
 
 func (s *dockerServer) GetContainerLogs(ctx context.Context, req *connect.Request[agentv1.GetContainerLogsRequest], stream *connect.ServerStream[agentv1.GetContainerLogsResponse]) error {
 	if req.Msg.GetContainerId() == "" {
-		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("container_id is required"))
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("container_id is required"))
 	}
 	return s.streamContainerLogs(ctx, req.Msg.GetContainerId(), req.Msg.GetTail(), req.Msg.GetTimestamps(), true, func(content string) error {
 		return stream.Send(&agentv1.GetContainerLogsResponse{Content: content})
@@ -492,7 +492,7 @@ func (s *dockerServer) ListNetworks(ctx context.Context, req *connect.Request[ag
 			Labels:          n.Labels,
 			Subnet:          subnet,
 			Gateway:         gateway,
-			ContainersCount: uint32(len(n.Containers)),
+			ContainersCount: uint32(len(n.Containers)), //nolint:gosec
 			Ipv6Enabled:     n.EnableIPv6,
 		}
 		if !dockerSearchMatches(req.Msg.GetSearch(), info.GetId(), info.GetName(), info.GetDriver(), info.GetScope(), info.GetSubnet(), info.GetGateway()) {
@@ -533,7 +533,7 @@ func (s *dockerServer) ListNetworks(ctx context.Context, req *connect.Request[ag
 
 func (s *dockerServer) InspectNetwork(ctx context.Context, req *connect.Request[agentv1.InspectNetworkRequest]) (*connect.Response[agentv1.InspectNetworkResponse], error) {
 	if req.Msg.GetNetworkId() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("network_id is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("network_id is required"))
 	}
 
 	n, err := s.client.NetworkInspect(ctx, req.Msg.GetNetworkId())
@@ -554,7 +554,7 @@ func (s *dockerServer) InspectNetwork(ctx context.Context, req *connect.Request[
 
 func (s *dockerServer) RemoveNetwork(ctx context.Context, req *connect.Request[agentv1.RemoveNetworkRequest]) (*connect.Response[agentv1.RemoveNetworkResponse], error) {
 	if req.Msg.GetNetworkId() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("network_id is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("network_id is required"))
 	}
 
 	if err := s.client.NetworkRemove(ctx, req.Msg.GetNetworkId()); err != nil {
@@ -659,7 +659,7 @@ func (s *dockerServer) ListVolumes(ctx context.Context, req *connect.Request[age
 
 func (s *dockerServer) InspectVolume(ctx context.Context, req *connect.Request[agentv1.InspectVolumeRequest]) (*connect.Response[agentv1.InspectVolumeResponse], error) {
 	if req.Msg.GetVolumeName() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("volume_name is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("volume_name is required"))
 	}
 
 	vol, err := s.client.VolumeInspect(ctx, req.Msg.GetVolumeName())
@@ -690,7 +690,7 @@ func (s *dockerServer) InspectVolume(ctx context.Context, req *connect.Request[a
 
 func (s *dockerServer) RemoveVolume(ctx context.Context, req *connect.Request[agentv1.RemoveVolumeRequest]) (*connect.Response[agentv1.RemoveVolumeResponse], error) {
 	if req.Msg.GetVolumeName() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("volume_name is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("volume_name is required"))
 	}
 
 	if err := s.client.VolumeRemove(ctx, req.Msg.GetVolumeName()); err != nil {
@@ -715,7 +715,7 @@ func (s *dockerServer) ListImages(ctx context.Context, req *connect.Request[agen
 
 		containersCount := uint32(0)
 		if img.Containers >= 0 {
-			containersCount = uint32(img.Containers)
+			containersCount = uint32(img.Containers) //nolint:gosec
 		}
 
 		arch := ""
@@ -780,7 +780,7 @@ func (s *dockerServer) ListImages(ctx context.Context, req *connect.Request[agen
 
 func (s *dockerServer) InspectImage(ctx context.Context, req *connect.Request[agentv1.InspectImageRequest]) (*connect.Response[agentv1.InspectImageResponse], error) {
 	if req.Msg.GetImageId() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("image_id is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("image_id is required"))
 	}
 
 	inspect, err := s.client.ImageInspect(ctx, req.Msg.GetImageId())
@@ -801,7 +801,7 @@ func (s *dockerServer) InspectImage(ctx context.Context, req *connect.Request[ag
 
 func (s *dockerServer) RemoveImage(ctx context.Context, req *connect.Request[agentv1.RemoveImageRequest]) (*connect.Response[agentv1.RemoveImageResponse], error) {
 	if req.Msg.GetImageId() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("image_id is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("image_id is required"))
 	}
 
 	if err := s.client.ImageRemove(ctx, req.Msg.GetImageId(), req.Msg.GetForce()); err != nil {
@@ -813,7 +813,7 @@ func (s *dockerServer) RemoveImage(ctx context.Context, req *connect.Request[age
 
 func executeDockerQuery(ctx context.Context, query *agentv1.DockerQueryTask) (dockerTaskResult, error) {
 	if query == nil {
-		return dockerTaskResult{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("query is required"))
+		return dockerTaskResult{}, connect.NewError(connect.CodeInvalidArgument, errors.New("query is required"))
 	}
 	server, err := newDockerServer()
 	if err != nil {
@@ -886,7 +886,7 @@ func executeDockerQuery(ctx context.Context, query *agentv1.DockerQueryTask) (do
 		}
 		return dockerTaskResult{Exec: result}, nil
 	default:
-		return dockerTaskResult{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unsupported docker query"))
+		return dockerTaskResult{}, connect.NewError(connect.CodeInvalidArgument, errors.New("unsupported docker query"))
 	}
 }
 
@@ -947,13 +947,13 @@ func executeDockerTask(ctx context.Context, client agentv1connect.AgentReportSer
 func parseDockerTaskParams(paramsJSON string) (dockerTaskParams, error) {
 	var params dockerTaskParams
 	if paramsJSON == "" {
-		return params, fmt.Errorf("docker task params are required")
+		return params, errors.New("docker task params are required")
 	}
 	if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
 		return params, fmt.Errorf("decode docker task params: %w", err)
 	}
 	if params.Action == "" || params.ID == "" {
-		return params, fmt.Errorf("docker task action and id are required")
+		return params, errors.New("docker task action and id are required")
 	}
 	return params, nil
 }

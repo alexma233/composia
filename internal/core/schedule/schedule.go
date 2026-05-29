@@ -1,6 +1,7 @@
 package schedule
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -27,10 +28,10 @@ func IsDisabled(spec string) bool {
 func Parse(spec string) (cron.Schedule, error) {
 	spec = Normalize(spec)
 	if spec == "" {
-		return nil, fmt.Errorf("schedule is required")
+		return nil, errors.New("schedule is required")
 	}
 	if spec == Disabled {
-		return nil, fmt.Errorf("disabled schedule cannot be parsed")
+		return nil, errors.New("disabled schedule cannot be parsed")
 	}
 	parsed, err := parser.Parse(spec)
 	if err != nil {

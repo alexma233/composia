@@ -2,9 +2,11 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	"path/filepath"
+
+	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 )
 
 type reloadRequest struct {
@@ -47,7 +49,7 @@ func loadReloadControllerConfig(configPath string, current *config.ControllerCon
 
 func validateControllerReload(current, next *config.ControllerConfig) error {
 	if current == nil || next == nil {
-		return fmt.Errorf("controller config is missing")
+		return errors.New("controller config is missing")
 	}
 	immutable := []struct {
 		name  string

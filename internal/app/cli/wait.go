@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"time"
@@ -47,10 +48,10 @@ func (application *app) printServiceActionWithWait(response *controllerv1.RunSer
 	}
 	tasks := response.GetTasks()
 	if len(tasks) == 0 {
-		return fmt.Errorf("at least one task is required")
+		return errors.New("at least one task is required")
 	}
 	if options.follow != nil && *options.follow && len(tasks) != 1 {
-		return fmt.Errorf("--follow requires exactly one queued task")
+		return errors.New("--follow requires exactly one queued task")
 	}
 	for _, queuedTask := range tasks {
 		if err := application.waitTask(queuedTask.GetTaskId(), options); err != nil {
@@ -62,7 +63,7 @@ func (application *app) printServiceActionWithWait(response *controllerv1.RunSer
 
 func (application *app) waitTask(taskID string, options waitOptions) error {
 	if taskID == "" {
-		return fmt.Errorf("task_id is required")
+		return errors.New("task_id is required")
 	}
 	ctx := application.ctx
 	if options.timeout != nil && *options.timeout > 0 {

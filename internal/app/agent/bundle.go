@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -62,7 +63,7 @@ func downloadServiceBundle(ctx context.Context, client agentv1connect.BundleServ
 		return nil, fmt.Errorf("receive service bundle: %w", err)
 	}
 	if relativeRoot == "" {
-		return nil, fmt.Errorf("bundle stream did not include relative_root metadata")
+		return nil, errors.New("bundle stream did not include relative_root metadata")
 	}
 	targetRoot, cleanRelativeRoot, err := resolveRepoRelativePath(cfg.RepoDir, relativeRoot, "relative_root")
 	if err != nil {
@@ -75,7 +76,7 @@ func downloadServiceBundle(ctx context.Context, client agentv1connect.BundleServ
 	tempFile = nil
 
 	stageParentDir := filepath.Dir(targetRoot)
-	if err := os.MkdirAll(stageParentDir, 0o755); err != nil {
+	if err := os.MkdirAll(stageParentDir, 0o750); err != nil {
 		return nil, fmt.Errorf("create bundle stage parent dir %q: %w", stageParentDir, err)
 	}
 	stageDir, err := os.MkdirTemp(stageParentDir, ".bundle-stage-*")
@@ -102,7 +103,7 @@ func downloadServiceBundle(ctx context.Context, client agentv1connect.BundleServ
 
 func replaceDirectory(targetRoot, stagedRoot string) error {
 	parentDir := filepath.Dir(targetRoot)
-	if err := os.MkdirAll(parentDir, 0o755); err != nil {
+	if err := os.MkdirAll(parentDir, 0o750); err != nil {
 		return fmt.Errorf("create bundle parent dir %q: %w", parentDir, err)
 	}
 	backupRoot := targetRoot + ".bak"
@@ -133,7 +134,7 @@ func replaceDirectory(targetRoot, stagedRoot string) error {
 }
 
 func extractTarGz(archivePath, destinationDir string) error {
-	file, err := os.Open(archivePath)
+	file, err := os.Open(archivePath) //nolint:gosec
 	if err != nil {
 		return fmt.Errorf("open archive %q: %w", archivePath, err)
 	}
@@ -151,14 +152,14 @@ func extractTarGz(archivePath, destinationDir string) error {
 }
 
 func extractTarStream(reader io.Reader, destinationDir string) error {
-	if err := os.MkdirAll(destinationDir, 0o755); err != nil {
+	if err := os.MkdirAll(destinationDir, 0o750); err != nil {
 		return fmt.Errorf("create tar destination %q: %w", destinationDir, err)
 	}
 	tarReader := tar.NewReader(reader)
 	for {
 		header, err := tarReader.Next()
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				return nil
 			}
 			return fmt.Errorf("read tar stream: %w", err)
@@ -171,21 +172,21 @@ func extractTarStream(reader io.Reader, destinationDir string) error {
 
 		switch header.Typeflag {
 		case tar.TypeDir:
-			if err := os.MkdirAll(cleanTargetPath, 0o755); err != nil {
+			if err := os.MkdirAll(cleanTargetPath, 0o750); err != nil {
 				return fmt.Errorf("create tar directory %q: %w", cleanTargetPath, err)
 			}
-			if err := os.Chmod(cleanTargetPath, os.FileMode(header.Mode)); err != nil {
+			if err := os.Chmod(cleanTargetPath, os.FileMode(header.Mode)); err != nil { //nolint:gosec
 				return fmt.Errorf("chmod tar directory %q: %w", cleanTargetPath, err)
 			}
 		case tar.TypeReg:
-			if err := os.MkdirAll(filepath.Dir(cleanTargetPath), 0o755); err != nil {
+			if err := os.MkdirAll(filepath.Dir(cleanTargetPath), 0o750); err != nil {
 				return fmt.Errorf("create parent directory for %q: %w", cleanTargetPath, err)
 			}
-			outFile, err := os.OpenFile(cleanTargetPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(header.Mode))
+			outFile, err := os.OpenFile(cleanTargetPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(header.Mode)) //nolint:gosec
 			if err != nil {
 				return fmt.Errorf("create tar file %q: %w", cleanTargetPath, err)
 			}
-			if _, err := io.Copy(outFile, tarReader); err != nil {
+			if _, err := io.Copy(outFile, tarReader); err != nil { //nolint:gosec
 				_ = outFile.Close()
 				return fmt.Errorf("write tar file %q: %w", cleanTargetPath, err)
 			}
@@ -205,13 +206,13 @@ func extractTarStream(reader io.Reader, destinationDir string) error {
 func tarEntryTargetPath(destinationDir, entryName string) (string, error) {
 	cleanEntryName := filepath.Clean(filepath.FromSlash(entryName))
 	if filepath.IsAbs(cleanEntryName) {
-		return "", fmt.Errorf("absolute paths are not allowed")
+		return "", errors.New("absolute paths are not allowed")
 	}
 	if cleanEntryName == "." {
 		return filepath.Clean(destinationDir), nil
 	}
 	if cleanEntryName == ".." || strings.HasPrefix(cleanEntryName, ".."+string(filepath.Separator)) {
-		return "", fmt.Errorf("parent traversal is not allowed")
+		return "", errors.New("parent traversal is not allowed")
 	}
 	cleanDestinationDir := filepath.Clean(destinationDir)
 	cleanTargetPath, err := securejoin.SecureJoin(cleanDestinationDir, cleanEntryName)
@@ -219,7 +220,7 @@ func tarEntryTargetPath(destinationDir, entryName string) (string, error) {
 		return "", err
 	}
 	if !strings.HasPrefix(cleanTargetPath, cleanDestinationDir+string(os.PathSeparator)) && cleanTargetPath != cleanDestinationDir {
-		return "", fmt.Errorf("target path escapes destination root")
+		return "", errors.New("target path escapes destination root")
 	}
 	return cleanTargetPath, nil
 }

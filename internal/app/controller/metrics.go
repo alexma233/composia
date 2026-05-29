@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -225,7 +224,7 @@ func bearerToken(header string) (string, error) {
 	}
 	const prefix = "Bearer "
 	if !strings.HasPrefix(header, prefix) {
-		return "", fmt.Errorf("invalid authorization header")
+		return "", errors.New("invalid authorization header")
 	}
 	token := strings.TrimSpace(strings.TrimPrefix(header, prefix))
 	if token == "" {

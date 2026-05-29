@@ -1,20 +1,22 @@
 package controller
 
 import (
-	"connectrpc.com/connect"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
-	"forgejo.alexma.top/alexma233/composia/internal/core/config"
-	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
-	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"connectrpc.com/connect"
+
+	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
+	"forgejo.alexma.top/alexma233/composia/internal/core/config"
+	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
+	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 )
 
 type serviceQueryServer struct {
@@ -186,7 +188,7 @@ func (server *serviceQueryServer) buildServiceWorkspaceSummary(folder, defaultNa
 	meta, err := repo.LoadServiceMeta(metaPath)
 	if err != nil {
 		workspace.RuntimeStatus = "needs_validation"
-		return workspace, nil
+		return workspace, nil //nolint:nilerr
 	}
 	serviceName := strings.TrimSpace(meta.Name)
 	if serviceName != "" {
@@ -198,7 +200,7 @@ func (server *serviceQueryServer) buildServiceWorkspaceSummary(folder, defaultNa
 	service, err := repo.LoadServiceFromMetaPath(metaPath, server.availableNodeIDs)
 	if err != nil {
 		workspace.RuntimeStatus = "needs_validation"
-		return workspace, nil
+		return workspace, nil //nolint:nilerr
 	}
 	workspace.Actions = buildServiceActionCapabilities(server.cfg, server.availableNodeIDs, snapshotByNodeID, service)
 	declared, ok := declaredByName[workspace.ServiceName]

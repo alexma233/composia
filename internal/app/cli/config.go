@@ -40,7 +40,7 @@ type cliConfig map[string]string
 
 func (application *app) runConfig(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia config <get|set|unset|path|set-token|unset-token|setup>")
+		return errors.New("usage: composia config <get|set|unset|path|set-token|unset-token|setup>")
 	}
 	switch args[0] {
 	case "get":
@@ -64,7 +64,7 @@ func (application *app) runConfig(args []string) error {
 
 func (application *app) runConfigGet(args []string) error {
 	if len(args) > 1 {
-		return fmt.Errorf("usage: composia config get [key]")
+		return errors.New("usage: composia config get [key]")
 	}
 	cfg, err := loadCLIConfig()
 	if err != nil {
@@ -150,7 +150,7 @@ func (application *app) runConfigSetToken(args []string) error {
 		return err
 	}
 	if fs.NArg() != 0 {
-		return fmt.Errorf("usage: composia config set-token [--stdin] [--file|--inline]")
+		return errors.New("usage: composia config set-token [--stdin] [--file|--inline]")
 	}
 	storage, err := cliTokenStorageMode(*file, *inline)
 	if err != nil {
@@ -206,7 +206,7 @@ func (application *app) runConfigSetup(args []string) error {
 		return err
 	}
 	if fs.NArg() != 0 {
-		return fmt.Errorf("usage: composia config setup [--stdin] [--file|--inline]")
+		return errors.New("usage: composia config setup [--stdin] [--file|--inline]")
 	}
 	storage, err := cliTokenStorageMode(*file, *inline)
 	if err != nil {
@@ -329,7 +329,7 @@ func loadCLIConfig() (cliConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	file, err := os.Open(path)
+	file, err := os.Open(path) //nolint:gosec
 	if err != nil {
 		if os.IsNotExist(err) {
 			return cliConfig{}, nil
@@ -486,7 +486,7 @@ func readCLISecret(prompt string, stdin bool) (string, error) {
 		}
 		return strings.TrimSpace(string(content)), nil
 	}
-	fd := int(os.Stdin.Fd())
+	fd := int(os.Stdin.Fd()) //nolint:gosec
 	if !term.IsTerminal(fd) {
 		return "", errors.New("stdin is not a terminal; pass --stdin to read token from stdin")
 	}
@@ -500,7 +500,7 @@ func readCLISecret(prompt string, stdin bool) (string, error) {
 }
 
 func promptCLIValue(out io.Writer, prompt string, current string) (string, error) {
-	fd := int(os.Stdin.Fd())
+	fd := int(os.Stdin.Fd()) //nolint:gosec
 	if !term.IsTerminal(fd) {
 		return current, nil
 	}

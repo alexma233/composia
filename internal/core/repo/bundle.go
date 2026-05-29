@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os/exec"
@@ -18,7 +19,7 @@ func StreamServiceBundle(ctx context.Context, repoDir, revision, serviceDir stri
 func StreamServiceBundleWithExtras(ctx context.Context, repoDir, revision, serviceDir string, extras map[string]string, writer io.Writer) error {
 	commandCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	command := exec.CommandContext(commandCtx, "git", "-C", repoDir, "archive", "--format=tar", revision, serviceDir)
+	command := exec.CommandContext(commandCtx, "git", "-C", repoDir, "archive", "--format=tar", revision, serviceDir) //nolint:gosec
 	stdout, err := command.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("create git archive pipe: %w", err)
@@ -56,7 +57,7 @@ func StreamServiceBundleWithExtras(ctx context.Context, repoDir, revision, servi
 			return fmt.Errorf("write bundle header %q: %w", header.Name, err)
 		}
 		if header.Typeflag == tar.TypeReg {
-			if _, err := io.Copy(tarWriter, tarReader); err != nil {
+			if _, err := io.Copy(tarWriter, tarReader); err != nil { //nolint:gosec
 				_ = tarWriter.Close()
 				_ = gzipWriter.Close()
 				waitAfterError()
@@ -105,7 +106,7 @@ func StreamServiceBundleWithExtras(ctx context.Context, repoDir, revision, servi
 func normalizeBundleExtraPath(name string) (string, error) {
 	cleanName := path.Clean(strings.ReplaceAll(strings.TrimSpace(name), "\\", "/"))
 	if cleanName == "" || cleanName == "." {
-		return "", fmt.Errorf("bundle extra path must not be empty")
+		return "", errors.New("bundle extra path must not be empty")
 	}
 	if strings.HasPrefix(cleanName, "/") || cleanName == ".." || strings.HasPrefix(cleanName, "../") {
 		return "", fmt.Errorf("bundle extra path %q escapes bundle root", name)

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -193,16 +194,16 @@ func currentImageUpdateValue(serviceDir string, image repo.ImageUpdateConfig) (s
 		return image.Current.Tag, image.Current.Tag, "", nil
 	}
 	if image.Current.Env == nil && image.Current.YAML == nil {
-		return "", "", "", fmt.Errorf("image update current source is required")
+		return "", "", "", errors.New("image update current source is required")
 	}
-	currentFile := ""
+	var currentFile string
 	if image.Current.Env != nil {
 		currentFile = image.Current.Env.File
 	} else {
 		currentFile = image.Current.YAML.File
 	}
 	path := filepath.Join(serviceDir, filepath.FromSlash(currentFile))
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(path) //nolint:gosec
 	if err != nil {
 		return "", "", "", fmt.Errorf("read image update current %q: %w", currentFile, err)
 	}
@@ -222,7 +223,7 @@ func currentImageUpdateValue(serviceDir string, image repo.ImageUpdateConfig) (s
 		tag, digest := splitImageRefTagDigest(value)
 		return value, tag, digest, nil
 	}
-	return "", "", "", fmt.Errorf("image update current env or yaml source is required")
+	return "", "", "", errors.New("image update current env or yaml source is required")
 }
 
 func envFileValue(content, key string) (string, error) {
@@ -331,7 +332,7 @@ func collectServiceImageObservations(ctx context.Context, serviceDir string, com
 }
 
 func loadComposeConfigOutput(ctx context.Context, serviceDir string, compose composeCommandConfig) (composeConfigOutput, error) {
-	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "config", "--format", "json")...)
+	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "config", "--format", "json")...) //nolint:gosec
 	command.Dir = serviceDir
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -348,7 +349,7 @@ func loadComposeConfigOutput(ctx context.Context, serviceDir string, compose com
 }
 
 func inspectLocalImageDigest(ctx context.Context, imageRef string) (string, error) {
-	command := exec.CommandContext(ctx, "docker", "image", "inspect", "--format", "{{range .RepoDigests}}{{println .}}{{end}}", imageRef)
+	command := exec.CommandContext(ctx, "docker", "image", "inspect", "--format", "{{range .RepoDigests}}{{println .}}{{end}}", imageRef) //nolint:gosec
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	command.Stdout = &stdout
@@ -360,7 +361,7 @@ func inspectLocalImageDigest(ctx context.Context, imageRef string) (string, erro
 }
 
 func inspectRemoteImageDigest(ctx context.Context, imageRef string) (string, error) {
-	command := exec.CommandContext(ctx, "docker", "buildx", "imagetools", "inspect", "--format", "{{.Digest}}", imageRef)
+	command := exec.CommandContext(ctx, "docker", "buildx", "imagetools", "inspect", "--format", "{{.Digest}}", imageRef) //nolint:gosec
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	command.Stdout = &stdout
@@ -370,7 +371,7 @@ func inspectRemoteImageDigest(ctx context.Context, imageRef string) (string, err
 	}
 	digest := strings.TrimSpace(stdout.String())
 	if digest == "" || digest == "<no value>" {
-		return "", fmt.Errorf("docker buildx imagetools inspect did not return a digest")
+		return "", errors.New("docker buildx imagetools inspect did not return a digest")
 	}
 	return normalizeImageDigest(digest), nil
 }

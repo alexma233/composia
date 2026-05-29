@@ -1,19 +1,21 @@
 package controller
 
 import (
-	"connectrpc.com/connect"
 	"context"
 	"errors"
 	"fmt"
-	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
-	"forgejo.alexma.top/alexma233/composia/internal/core/config"
-	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
-	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"connectrpc.com/connect"
+
+	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
+	"forgejo.alexma.top/alexma233/composia/internal/core/config"
+	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
+	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 )
 
 type repoWriteResult struct {
@@ -186,7 +188,7 @@ func (server *repoCommandServer) configuredRemoteBranch() (string, error) {
 		return "", err
 	}
 	if branch == "" {
-		return "", fmt.Errorf("cannot determine repo branch for remote sync")
+		return "", errors.New("cannot determine repo branch for remote sync")
 	}
 	return branch, nil
 }

@@ -33,14 +33,14 @@ func TestSecretServiceGetAndUpdateServiceSecretEnv(t *testing.T) {
 	if err != nil {
 		t.Fatalf("encrypt initial secret: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "alpha", ".secret.env.enc"), ciphertext, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "alpha", ".secret.env.enc"), ciphertext, 0o600); err != nil {
 		t.Fatalf("write encrypted secret: %v", err)
 	}
 	runGit(t, repoDir, "add", ".")
 	runGit(t, repoDir, "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "add encrypted secret")
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	db, err := store.Open(stateDir)
@@ -115,14 +115,14 @@ func TestSecretServiceUpdateSecretWithoutRecipientFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("encrypt initial secret without recipient file: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "alpha", ".secret.env.enc"), ciphertext, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "alpha", ".secret.env.enc"), ciphertext, 0o600); err != nil {
 		t.Fatalf("write encrypted secret: %v", err)
 	}
 	runGit(t, repoDir, "add", ".")
 	runGit(t, repoDir, "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "add encrypted secret")
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	db, err := store.Open(stateDir)
@@ -179,7 +179,7 @@ func TestSecretServiceUpdateRejectsActiveServiceTask(t *testing.T) {
 	createGitRepoWithService(t, repoDir, "alpha", "main")
 	secretsCfg := writeAgeTestConfig(t, rootDir)
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	db, err := store.Open(stateDir)
@@ -232,7 +232,7 @@ func writeAgeTestConfig(t *testing.T, rootDir string) *config.ControllerSecretsC
 	if err := os.WriteFile(identityPath, []byte(identity.String()+"\n"), 0o600); err != nil {
 		t.Fatalf("write age identity: %v", err)
 	}
-	if err := os.WriteFile(recipientPath, []byte(identity.Recipient().String()+"\n"), 0o644); err != nil {
+	if err := os.WriteFile(recipientPath, []byte(identity.Recipient().String()+"\n"), 0o600); err != nil {
 		t.Fatalf("write age recipient: %v", err)
 	}
 	armorEnabled := true

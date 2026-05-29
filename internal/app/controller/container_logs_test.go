@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -36,7 +37,7 @@ func TestDockerCommandServiceGetContainerLogsStreamsThroughAgentTunnel(t *testin
 	defer logManager.unregisterTunnel("main", tunnel)
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "access-token" {
+		if token != "access-token" { //nolint:goconst
 			return "", assertError("unexpected token")
 		}
 		return "web-admin", nil
@@ -65,7 +66,7 @@ func TestDockerCommandServiceGetContainerLogsStreamsThroughAgentTunnel(t *testin
 	go func() {
 		message, ok := <-tunnel.sendCh
 		if !ok {
-			agentErrCh <- fmt.Errorf("container log tunnel closed before start")
+			agentErrCh <- errors.New("container log tunnel closed before start")
 			return
 		}
 		if message.GetKind() != containerLogKindStart {
@@ -81,7 +82,7 @@ func TestDockerCommandServiceGetContainerLogsStreamsThroughAgentTunnel(t *testin
 			return
 		}
 		if message.GetTimestamps() {
-			agentErrCh <- fmt.Errorf("expected timestamps to be disabled")
+			agentErrCh <- errors.New("expected timestamps to be disabled")
 			return
 		}
 
@@ -128,7 +129,7 @@ func TestContainerLogTunnelManagerDoesNotBlockWhenAgentQueueIsFull(t *testing.T)
 
 	manager := newContainerLogTunnelManager()
 	tunnel := manager.registerTunnel("main")
-	for i := 0; i < cap(tunnel.sendCh); i++ {
+	for range cap(tunnel.sendCh) {
 		tunnel.sendCh <- &agentv1.OpenContainerLogTunnelResponse{}
 	}
 

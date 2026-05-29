@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 
 func (application *app) runSystem(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia system <status|reload|capabilities>")
+		return errors.New("usage: composia system <status|reload|capabilities>")
 	}
 	switch args[0] {
 	case "status":

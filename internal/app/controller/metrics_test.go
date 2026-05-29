@@ -34,7 +34,11 @@ func TestMetricsHandlerRequiresBearerToken(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	resp, err := http.Get(server.URL + metricsPath)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, server.URL+metricsPath, nil)
+	if err != nil {
+		t.Fatalf("create unauthenticated request: %v", err)
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("request metrics without auth: %v", err)
 	}
@@ -43,7 +47,7 @@ func TestMetricsHandlerRequiresBearerToken(t *testing.T) {
 		t.Fatalf("expected 401 without auth, got %d", resp.StatusCode)
 	}
 
-	req, err := http.NewRequest(http.MethodGet, server.URL+metricsPath, nil)
+	req, err = http.NewRequestWithContext(ctx, http.MethodGet, server.URL+metricsPath, nil)
 	if err != nil {
 		t.Fatalf("create authorized request: %v", err)
 	}
@@ -100,7 +104,7 @@ func TestMetricsCollectorIncludesTaskAndBackupCounts(t *testing.T) {
 	registerMetricsHandler(mux, db, map[string]string{"metrics-token": "metrics"}, time.Date(2026, 5, 9, 11, 0, 0, 0, time.UTC))
 	server := httptest.NewServer(mux)
 	defer server.Close()
-	req, err := http.NewRequest(http.MethodGet, server.URL+metricsPath, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, server.URL+metricsPath, nil)
 	if err != nil {
 		t.Fatalf("create request: %v", err)
 	}

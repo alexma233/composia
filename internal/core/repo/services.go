@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"net/url"
@@ -17,6 +18,8 @@ import (
 
 const MetaFileName = "composia-meta.yaml"
 
+const gitDirName = ".git"
+
 var serviceMetaValidator = validator.New(validator.WithRequiredStructEnabled())
 
 func walkServiceMetaFiles(repoDir string, visit func(path string) error) error {
@@ -25,7 +28,7 @@ func walkServiceMetaFiles(repoDir string, visit func(path string) error) error {
 			return walkErr
 		}
 		if entry.IsDir() {
-			if entry.Name() == ".git" {
+			if entry.Name() == gitDirName {
 				return filepath.SkipDir
 			}
 			return nil
@@ -232,7 +235,7 @@ func DiscoverServices(repoDir string, availableNodeIDs map[string]struct{}) ([]S
 	err := walkServiceMetaFiles(repoDir, func(path string) error {
 		service, err := strictServiceFromMetaPath(path, availableNodeIDs)
 		if err != nil {
-			return nil
+			return nil //nolint:nilerr
 		}
 
 		if _, duplicated := duplicateNames[service.Name]; duplicated {
@@ -265,7 +268,7 @@ func FindService(repoDir string, availableNodeIDs map[string]struct{}, serviceNa
 	err := walkServiceMetaFiles(repoDir, func(path string) error {
 		meta, err := loadServiceMeta(path)
 		if err != nil {
-			return nil
+			return nil //nolint:nilerr
 		}
 		if meta.Name != serviceName {
 			return nil
@@ -294,7 +297,7 @@ func FindCaddyInfraService(repoDir string, availableNodeIDs map[string]struct{})
 	err := walkServiceMetaFiles(repoDir, func(path string) error {
 		meta, err := loadServiceMeta(path)
 		if err != nil {
-			return nil
+			return nil //nolint:nilerr
 		}
 		if meta.Infra == nil || meta.Infra.Caddy == nil {
 			return nil
@@ -315,7 +318,7 @@ func FindCaddyInfraService(repoDir string, availableNodeIDs map[string]struct{})
 	if matched != nil {
 		return *matched, nil
 	}
-	return Service{}, fmt.Errorf("caddy infra service is not declared")
+	return Service{}, errors.New("caddy infra service is not declared")
 }
 
 func FindRusticInfraService(repoDir string, availableNodeIDs map[string]struct{}) (Service, error) {
@@ -323,7 +326,7 @@ func FindRusticInfraService(repoDir string, availableNodeIDs map[string]struct{}
 	err := walkServiceMetaFiles(repoDir, func(path string) error {
 		meta, err := loadServiceMeta(path)
 		if err != nil {
-			return nil
+			return nil //nolint:nilerr
 		}
 		if meta.Infra == nil || meta.Infra.Rustic == nil {
 			return nil
@@ -344,7 +347,7 @@ func FindRusticInfraService(repoDir string, availableNodeIDs map[string]struct{}
 	if matched != nil {
 		return *matched, nil
 	}
-	return Service{}, fmt.Errorf("rustic infra service is not declared")
+	return Service{}, errors.New("rustic infra service is not declared")
 }
 
 func strictServiceFromMetaPath(path string, availableNodeIDs map[string]struct{}) (Service, error) {
@@ -371,7 +374,7 @@ func strictServiceFromMeta(path string, meta ServiceMeta, availableNodeIDs map[s
 }
 
 func loadServiceMeta(path string) (ServiceMeta, error) {
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(path) //nolint:gosec
 	if err != nil {
 		return ServiceMeta{}, fmt.Errorf("read service meta %q: %w", path, err)
 	}
@@ -403,7 +406,7 @@ func RewriteServiceTargetNodes(path string, nodeIDs []string, availableNodeIDs m
 	if err := validateServiceMeta(path, &meta, availableNodeIDs); err != nil {
 		return "", err
 	}
-	rawContent, err := os.ReadFile(path)
+	rawContent, err := os.ReadFile(path) //nolint:gosec
 	if err != nil {
 		return "", fmt.Errorf("read service meta %q: %w", path, err)
 	}
@@ -1042,7 +1045,8 @@ func serviceValidationError(err error, format func(validator.FieldError) error) 
 	if err == nil {
 		return nil
 	}
-	validationErrors, ok := err.(validator.ValidationErrors)
+	var validationErrors validator.ValidationErrors
+	ok := errors.As(err, &validationErrors)
 	if !ok || len(validationErrors) == 0 {
 		return err
 	}

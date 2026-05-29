@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
@@ -8,10 +9,10 @@ import (
 
 func (application *app) runSecret(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia secret <get|edit|update>")
+		return errors.New("usage: composia secret <get|edit|update>")
 	}
 	switch args[0] {
-	case "get":
+	case "get": //nolint:goconst
 		return application.runSecretGet(args[1:])
 	case "edit":
 		return application.runSecretEdit(args[1:])

@@ -1,6 +1,8 @@
+//nolint:goconst
 package cli
 
 import (
+	"errors"
 	"fmt"
 
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
@@ -8,7 +10,7 @@ import (
 
 func (application *app) runInstance(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia instance <list|get|deploy|update|stop|restart|backup>")
+		return errors.New("usage: composia instance <list|get|deploy|update|stop|restart|backup>")
 	}
 	switch args[0] {
 	case "list":

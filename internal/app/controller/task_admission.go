@@ -1,22 +1,24 @@
 package controller
 
 import (
-	"connectrpc.com/connect"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
+	"os"
+	"path/filepath"
+	"slices"
+	"time"
+
+	"connectrpc.com/connect"
+
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 	"github.com/google/uuid"
-	"math/rand"
-	"os"
-	"path/filepath"
-	"slices"
-	"time"
 )
 
 func createNodeCaddyReloadTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, nodeID string, source task.Source) (task.Record, error) {
@@ -49,12 +51,12 @@ func createNodeCaddyReloadTask(ctx context.Context, db *store.DB, cfg *config.Co
 		NodeID:      nodeID,
 		Status:      task.StatusPending,
 		ParamsJSON:  string(paramsJSON),
-		LogPath:     filepath.Join(cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+		LogPath:     filepath.Join(cfg.LogDir, "tasks", taskID+".log"),
 	})
 	if err != nil {
 		return task.Record{}, connectTaskAdmissionError(err)
 	}
-	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o600); err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
 	}
 	return createdTask, nil
@@ -126,11 +128,11 @@ func createNodeCaddySyncTask(ctx context.Context, db *store.DB, cfg *config.Cont
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode task params: %w", err))
 	}
 	taskID := uuid.NewString()
-	createdTask, err := db.CreateTask(ctx, task.Record{TaskID: taskID, Type: task.TypeCaddySync, Source: source, ServiceName: matchedName, NodeID: nodeID, Status: task.StatusPending, ParamsJSON: string(paramsJSON), RepoRevision: repoRevision, LogPath: filepath.Join(cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID))})
+	createdTask, err := db.CreateTask(ctx, task.Record{TaskID: taskID, Type: task.TypeCaddySync, Source: source, ServiceName: matchedName, NodeID: nodeID, Status: task.StatusPending, ParamsJSON: string(paramsJSON), RepoRevision: repoRevision, LogPath: filepath.Join(cfg.LogDir, "tasks", taskID+".log")})
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, err)
 	}
-	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o600); err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
 	}
 	return createdTask, nil
@@ -156,7 +158,7 @@ func chooseRusticMainNode(ctx context.Context, db *store.DB, cfg *config.Control
 		candidates = filtered
 	}
 	if len(candidates) == 0 {
-		return "", fmt.Errorf("rustic infra service does not have any eligible main nodes")
+		return "", errors.New("rustic infra service does not have any eligible main nodes")
 	}
 	online := make([]string, 0, len(candidates))
 	for _, nodeID := range candidates {
@@ -165,7 +167,7 @@ func chooseRusticMainNode(ctx context.Context, db *store.DB, cfg *config.Control
 		}
 	}
 	if len(online) == 0 {
-		return "", fmt.Errorf("no eligible online rustic main node is available")
+		return "", errors.New("no eligible online rustic main node is available")
 	}
 	return online[rand.Intn(len(online))], nil
 }
@@ -207,12 +209,12 @@ func createNodeRusticMaintenanceTask(ctx context.Context, db *store.DB, cfg *con
 		ParamsJSON:   string(paramsJSON),
 		RepoRevision: repoRevision,
 		CreatedAt:    derefTime(createdAt),
-		LogPath:      filepath.Join(cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+		LogPath:      filepath.Join(cfg.LogDir, "tasks", taskID+".log"),
 	})
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, err)
 	}
-	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o600); err != nil {
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
 	}
 	return createdTask, nil

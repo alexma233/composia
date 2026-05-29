@@ -11,13 +11,13 @@ func TestListFilesReturnsOneLevelEntries(t *testing.T) {
 	t.Parallel()
 
 	repoDir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(repoDir, "alpha", "nested"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(repoDir, "alpha", "nested"), 0o750); err != nil {
 		t.Fatalf("create nested dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "alpha", "composia-meta.yaml"), []byte("name: alpha\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "alpha", "composia-meta.yaml"), []byte("name: alpha\n"), 0o600); err != nil {
 		t.Fatalf("write meta file: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("hello\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("hello\n"), 0o600); err != nil {
 		t.Fatalf("write README: %v", err)
 	}
 
@@ -54,13 +54,13 @@ func TestListFilesRecursiveReturnsNestedEntries(t *testing.T) {
 	t.Parallel()
 
 	repoDir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(repoDir, "alpha", "nested"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(repoDir, "alpha", "nested"), 0o750); err != nil {
 		t.Fatalf("create nested dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "alpha", "composia-meta.yaml"), []byte("name: alpha\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "alpha", "composia-meta.yaml"), []byte("name: alpha\n"), 0o600); err != nil {
 		t.Fatalf("write meta file: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "alpha", "nested", "app.yaml"), []byte("demo: true\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "alpha", "nested", "app.yaml"), []byte("demo: true\n"), 0o600); err != nil {
 		t.Fatalf("write nested file: %v", err)
 	}
 
@@ -86,10 +86,10 @@ func TestReadFileReturnsContentAndSize(t *testing.T) {
 	t.Parallel()
 
 	repoDir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(repoDir, "alpha"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(repoDir, "alpha"), 0o750); err != nil {
 		t.Fatalf("create alpha dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "alpha", "composia-meta.yaml"), []byte("name: alpha\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "alpha", "composia-meta.yaml"), []byte("name: alpha\n"), 0o600); err != nil {
 		t.Fatalf("write meta file: %v", err)
 	}
 
@@ -109,7 +109,7 @@ func TestResolveRepoPathRejectsTraversal(t *testing.T) {
 	t.Parallel()
 
 	_, _, err := resolveRepoPath(t.TempDir(), "../etc/passwd")
-	if err != ErrRepoPathInvalid {
+	if !errors.Is(err, ErrRepoPathInvalid) {
 		t.Fatalf("expected ErrRepoPathInvalid, got %v", err)
 	}
 }
@@ -120,7 +120,7 @@ func TestReadFileRejectsSymlink(t *testing.T) {
 	repoDir := t.TempDir()
 	outsideDir := t.TempDir()
 	outsidePath := filepath.Join(outsideDir, "secret.txt")
-	if err := os.WriteFile(outsidePath, []byte("secret\n"), 0o644); err != nil {
+	if err := os.WriteFile(outsidePath, []byte("secret\n"), 0o600); err != nil {
 		t.Fatalf("write outside file: %v", err)
 	}
 	linkPath := filepath.Join(repoDir, "link.txt")
@@ -140,7 +140,7 @@ func TestWriteFileRejectsSymlinkLeaf(t *testing.T) {
 	repoDir := t.TempDir()
 	outsideDir := t.TempDir()
 	outsidePath := filepath.Join(outsideDir, "secret.txt")
-	if err := os.WriteFile(outsidePath, []byte("secret\n"), 0o644); err != nil {
+	if err := os.WriteFile(outsidePath, []byte("secret\n"), 0o600); err != nil {
 		t.Fatalf("write outside file: %v", err)
 	}
 	if err := os.Symlink(outsidePath, filepath.Join(repoDir, "link.txt")); err != nil {
@@ -151,7 +151,7 @@ func TestWriteFileRejectsSymlinkLeaf(t *testing.T) {
 	if !errors.Is(err, ErrRepoPathInvalid) {
 		t.Fatalf("expected ErrRepoPathInvalid, got %v", err)
 	}
-	content, err := os.ReadFile(outsidePath)
+	content, err := os.ReadFile(outsidePath) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read outside file: %v", err)
 	}
@@ -166,7 +166,7 @@ func TestDeletePathRejectsSymlinkWithoutDeletingTarget(t *testing.T) {
 	repoDir := t.TempDir()
 	outsideDir := t.TempDir()
 	outsidePath := filepath.Join(outsideDir, "secret.txt")
-	if err := os.WriteFile(outsidePath, []byte("secret\n"), 0o644); err != nil {
+	if err := os.WriteFile(outsidePath, []byte("secret\n"), 0o600); err != nil {
 		t.Fatalf("write outside file: %v", err)
 	}
 	if err := os.Symlink(outsidePath, filepath.Join(repoDir, "link.txt")); err != nil {
@@ -187,11 +187,11 @@ func TestCapturePathRejectsDirectoryContainingSymlink(t *testing.T) {
 
 	repoDir := t.TempDir()
 	outsideDir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(repoDir, "data"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(repoDir, "data"), 0o750); err != nil {
 		t.Fatalf("create data dir: %v", err)
 	}
 	outsidePath := filepath.Join(outsideDir, "secret.txt")
-	if err := os.WriteFile(outsidePath, []byte("secret\n"), 0o644); err != nil {
+	if err := os.WriteFile(outsidePath, []byte("secret\n"), 0o600); err != nil {
 		t.Fatalf("write outside file: %v", err)
 	}
 	if err := os.Symlink(outsidePath, filepath.Join(repoDir, "data", "link.txt")); err != nil {

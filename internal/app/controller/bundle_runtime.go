@@ -2,15 +2,17 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"path/filepath"
+	"slices"
+	"strings"
+
 	backupcfg "forgejo.alexma.top/alexma233/composia/internal/core/backup"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 	secretutil "forgejo.alexma.top/alexma233/composia/internal/platform/secret"
-	"path/filepath"
-	"slices"
-	"strings"
 )
 
 func bundleExtraFiles(cfg *config.ControllerConfig, record task.Record, params serviceTaskParams, includeTaskRuntime bool) (map[string]string, error) {
@@ -52,7 +54,7 @@ func bundleExtraFiles(cfg *config.ControllerConfig, record task.Record, params s
 		}
 	}
 	if len(extraFiles) == 0 {
-		return nil, nil
+		return map[string]string{}, nil
 	}
 	return extraFiles, nil
 }
@@ -96,7 +98,7 @@ func isMissingRevisionPathError(err error) bool {
 
 func buildBackupRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeID, revision string, params serviceTaskParams) (string, error) {
 	if params.ServiceDir == "" {
-		return "", fmt.Errorf("backup runtime payload requires service_dir")
+		return "", errors.New("backup runtime payload requires service_dir")
 	}
 	service, err := repo.FindServiceAtRevision(cfg.RepoDir, revision, params.ServiceDir, configuredNodeIDs(cfg))
 	if err != nil {
@@ -142,7 +144,7 @@ func buildBackupRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeID
 
 func buildRestoreRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeID, revision string, params serviceTaskParams) (string, error) {
 	if params.ServiceDir == "" {
-		return "", fmt.Errorf("restore runtime payload requires service_dir")
+		return "", errors.New("restore runtime payload requires service_dir")
 	}
 	service, err := repo.FindServiceAtRevision(cfg.RepoDir, revision, params.ServiceDir, configuredNodeIDs(cfg))
 	if err != nil {

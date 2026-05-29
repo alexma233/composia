@@ -112,9 +112,7 @@ func autoDiscoverySources(source repo.ImageUpdateDiscoverySource) []repo.ImageUp
 }
 
 func probeSemverImageTag(ctx context.Context, imageRef, current string, filter *repo.ImageUpdateFilter) (string, bool, error) {
-	return probeSemverImageTagWithExists(ctx, imageRef, current, filter, func(ctx context.Context, imageRef, tag string) (bool, error) {
-		return registryManifestExists(ctx, imageRef, tag)
-	})
+	return probeSemverImageTagWithExists(ctx, imageRef, current, filter, registryManifestExists)
 }
 
 func probeSemverImageTagWithExists(ctx context.Context, imageRef, current string, filter *repo.ImageUpdateFilter, exists func(context.Context, string, string) (bool, error)) (string, bool, error) {

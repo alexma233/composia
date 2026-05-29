@@ -102,7 +102,7 @@ func normalizeComposeRecreateMode(mode string) string {
 }
 
 func detectServiceDirBindMounts(ctx context.Context, serviceDir string, compose composeCommandConfig) ([]serviceDirBindMount, error) {
-	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "config", "--format", "json")...)
+	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "config", "--format", "json")...) //nolint:gosec
 	command.Dir = serviceDir
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer

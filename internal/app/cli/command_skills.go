@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 )
@@ -87,7 +88,7 @@ composia --terse repo validate
 
 func (application *app) runSkills(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia skills <list|show>")
+		return errors.New("usage: composia skills <list|show>")
 	}
 	switch args[0] {
 	case "list":

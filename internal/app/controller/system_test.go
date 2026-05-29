@@ -29,7 +29,7 @@ func TestRegisterAccessHandlersKeepsSystemAndServiceBackupCapabilitiesConsistent
 	})
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	db, err := store.Open(stateDir)

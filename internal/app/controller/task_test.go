@@ -201,7 +201,7 @@ func TestTaskServiceTailTaskLogsStreamsExistingAndNewContent(t *testing.T) {
 
 	logDir := t.TempDir()
 	logPath := filepath.Join(logDir, "task.log")
-	if err := os.WriteFile(logPath, []byte("hello\n"), 0o644); err != nil {
+	if err := os.WriteFile(logPath, []byte("hello\n"), 0o600); err != nil {
 		t.Fatalf("write initial log file: %v", err)
 	}
 
@@ -248,7 +248,7 @@ func TestTaskServiceTailTaskLogsStreamsExistingAndNewContent(t *testing.T) {
 		t.Fatalf("unexpected first log chunk %q", stream.Msg().GetContent())
 	}
 
-	if err := os.WriteFile(logPath, []byte("hello\nworld\n"), 0o644); err != nil {
+	if err := os.WriteFile(logPath, []byte("hello\nworld\n"), 0o600); err != nil {
 		t.Fatalf("append log content: %v", err)
 	}
 	if !stream.Receive() {
@@ -267,7 +267,7 @@ func TestTaskServiceRunTaskAgainCreatesNewPendingTask(t *testing.T) {
 	repoDir := filepath.Join(rootDir, "repo")
 	logDir := filepath.Join(rootDir, "logs")
 	createGitRepoWithService(t, repoDir, "alpha", "main")
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
 	}
 
@@ -328,7 +328,7 @@ func TestTaskServiceRunTaskAgainSupportsBackup(t *testing.T) {
 	repoDir := filepath.Join(rootDir, "repo")
 	logDir := filepath.Join(rootDir, "logs")
 	createGitRepoWithService(t, repoDir, "alpha", "main")
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
 	}
 
@@ -398,7 +398,7 @@ func TestTaskServiceResolveTaskConfirmationApproveRequeuesMigrateTask(t *testing
 	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-migrate", Type: task.TypeMigrate, Source: task.SourceCLI, ServiceName: "alpha", Status: task.StatusAwaitingConfirmation, LogPath: logPath, CreatedAt: startedAt.Add(-time.Minute), StartedAt: &startedAt}); err != nil {
 		t.Fatalf("create migrate task: %v", err)
 	}
-	if err := os.WriteFile(logPath, nil, 0o644); err != nil {
+	if err := os.WriteFile(logPath, nil, 0o600); err != nil {
 		t.Fatalf("create log file: %v", err)
 	}
 	if err := db.UpsertTaskStep(ctx, task.StepRecord{TaskID: "task-migrate", StepName: task.StepAwaitingConfirmation, Status: task.StatusAwaitingConfirmation, StartedAt: &startedAt}); err != nil {
@@ -440,7 +440,7 @@ func TestTaskServiceResolveTaskConfirmationApproveRequeuesMigrateTask(t *testing
 	if err != nil {
 		t.Fatalf("read task log: %v", err)
 	}
-	if string(logContent) == "" {
+	if len(logContent) == 0 {
 		t.Fatalf("expected confirmation log entry")
 	}
 }
@@ -461,7 +461,7 @@ func TestTaskServiceResolveTaskConfirmationRejectCancelsMigrateTask(t *testing.T
 	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-migrate-reject", Type: task.TypeMigrate, Source: task.SourceCLI, ServiceName: "alpha", Status: task.StatusAwaitingConfirmation, LogPath: logPath, CreatedAt: startedAt.Add(-time.Minute), StartedAt: &startedAt}); err != nil {
 		t.Fatalf("create migrate task: %v", err)
 	}
-	if err := os.WriteFile(logPath, nil, 0o644); err != nil {
+	if err := os.WriteFile(logPath, nil, 0o600); err != nil {
 		t.Fatalf("create log file: %v", err)
 	}
 	if err := db.UpsertTaskStep(ctx, task.StepRecord{TaskID: "task-migrate-reject", StepName: task.StepAwaitingConfirmation, Status: task.StatusAwaitingConfirmation, StartedAt: &startedAt}); err != nil {
@@ -515,7 +515,7 @@ func TestTaskServiceCreateMigrationRollbackCreatesPendingTask(t *testing.T) {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	logDir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
 	}
 	logPath := filepath.Join(logDir, "task.log")
@@ -528,7 +528,7 @@ func TestTaskServiceCreateMigrationRollbackCreatesPendingTask(t *testing.T) {
 	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-migrate-cancelled", Type: task.TypeMigrate, Source: task.SourceCLI, ServiceName: "alpha", Status: task.StatusCancelled, ParamsJSON: string(paramsJSON), RepoRevision: "rev-1", LogPath: logPath, CreatedAt: startedAt.Add(-time.Minute), StartedAt: &startedAt, FinishedAt: &finishedAt}); err != nil {
 		t.Fatalf("create migrate task: %v", err)
 	}
-	if err := os.WriteFile(logPath, nil, 0o644); err != nil {
+	if err := os.WriteFile(logPath, nil, 0o600); err != nil {
 		t.Fatalf("create log file: %v", err)
 	}
 	for _, stepName := range []task.StepName{task.StepComposeDown, task.StepComposeUp, task.StepDNSUpdate} {

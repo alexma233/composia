@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
@@ -9,12 +10,12 @@ import (
 
 func (application *app) runNode(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia node <list|get|tasks|stats|sync-caddy-files|reload-caddy|prune>")
+		return errors.New("usage: composia node <list|get|tasks|stats|sync-caddy-files|reload-caddy|prune>")
 	}
 	switch args[0] {
-	case "list":
+	case "list": //nolint:goconst
 		return application.runNodeList(args[1:])
-	case "get":
+	case "get": //nolint:goconst
 		return application.runNodeGet(args[1:])
 	case "tasks":
 		return application.runNodeTasks(args[1:])

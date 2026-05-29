@@ -130,8 +130,8 @@ func newSimpleSemver(major, minor, patch int) (simpleSemver, error) {
 }
 
 func semverComponentToInt(value uint64) (int, bool) {
-	converted := int(value)
-	return converted, uint64(converted) == value
+	converted := int(value)                      //nolint:gosec
+	return converted, uint64(converted) == value //nolint:gosec
 }
 
 func (version simpleSemver) compare(other simpleSemver) int {

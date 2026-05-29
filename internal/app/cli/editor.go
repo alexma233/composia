@@ -31,7 +31,7 @@ func editText(ctx context.Context, initialContent string, pattern string, mode o
 	if err := runEditor(ctx, path); err != nil {
 		return "", false, err
 	}
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(path) //nolint:gosec
 	if err != nil {
 		return "", false, fmt.Errorf("read editor temp file: %w", err)
 	}
@@ -41,7 +41,7 @@ func editText(ctx context.Context, initialContent string, pattern string, mode o
 
 func runEditor(ctx context.Context, path string) error {
 	editor := chooseEditor()
-	cmd := exec.CommandContext(ctx, "sh", "-c", editor+" \"$1\"", "composia-editor", path)
+	cmd := exec.CommandContext(ctx, "sh", "-c", editor+" \"$1\"", "composia-editor", path) //nolint:gosec
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

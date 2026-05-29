@@ -33,19 +33,19 @@ func renderTaskEvent(event Event) (string, string, error) {
 	subject := fmt.Sprintf("[composia] %s %s", event.Type, taskLabel(event.Task.ServiceName, event.Task.NodeID))
 	lines := []string{
 		fmt.Sprintf("Event: %s", event.Type),
-		fmt.Sprintf("Task ID: %s", event.Task.TaskID),
+		"Task ID: " + event.Task.TaskID,
 		fmt.Sprintf("Task Type: %s", event.Task.TaskType),
 		fmt.Sprintf("Task Status: %s", event.Task.Status),
-		fmt.Sprintf("Task Source: %s", displayString(string(event.Source))),
-		fmt.Sprintf("Service: %s", displayString(event.Task.ServiceName)),
-		fmt.Sprintf("Node: %s", displayString(event.Task.NodeID)),
-		fmt.Sprintf("Triggered By: %s", displayString(event.Task.TriggeredBy)),
-		fmt.Sprintf("Started At: %s", formatOptionalTime(event.Task.StartedAt)),
-		fmt.Sprintf("Finished At: %s", formatOptionalTime(event.Task.FinishedAt)),
-		fmt.Sprintf("Observed At: %s", formatTime(event.OccurredAt)),
+		"Task Source: " + displayString(string(event.Source)),
+		"Service: " + displayString(event.Task.ServiceName),
+		"Node: " + displayString(event.Task.NodeID),
+		"Triggered By: " + displayString(event.Task.TriggeredBy),
+		"Started At: " + formatOptionalTime(event.Task.StartedAt),
+		"Finished At: " + formatOptionalTime(event.Task.FinishedAt),
+		"Observed At: " + formatTime(event.OccurredAt),
 	}
 	if strings.TrimSpace(event.Task.ErrorSummary) != "" {
-		lines = append(lines, fmt.Sprintf("Error: %s", event.Task.ErrorSummary))
+		lines = append(lines, "Error: "+event.Task.ErrorSummary)
 	}
 	return subject, strings.Join(lines, "\n"), nil
 }
@@ -57,18 +57,18 @@ func renderBackupEvent(event Event) (string, string, error) {
 	subject := fmt.Sprintf("[composia] %s %s %s", event.Type, taskLabel(event.Backup.ServiceName, event.Backup.NodeID), displayString(event.Backup.DataName))
 	lines := []string{
 		fmt.Sprintf("Event: %s", event.Type),
-		fmt.Sprintf("Task ID: %s", event.Backup.TaskID),
-		fmt.Sprintf("Backup ID: %s", event.Backup.BackupID),
-		fmt.Sprintf("Task Source: %s", displayString(string(event.Source))),
-		fmt.Sprintf("Service: %s", displayString(event.Backup.ServiceName)),
-		fmt.Sprintf("Node: %s", displayString(event.Backup.NodeID)),
-		fmt.Sprintf("Data Name: %s", displayString(event.Backup.DataName)),
-		fmt.Sprintf("Status: %s", displayString(event.Backup.Status)),
-		fmt.Sprintf("Artifact Ref: %s", displayString(event.Backup.ArtifactRef)),
-		fmt.Sprintf("Observed At: %s", formatTime(event.OccurredAt)),
+		"Task ID: " + event.Backup.TaskID,
+		"Backup ID: " + event.Backup.BackupID,
+		"Task Source: " + displayString(string(event.Source)),
+		"Service: " + displayString(event.Backup.ServiceName),
+		"Node: " + displayString(event.Backup.NodeID),
+		"Data Name: " + displayString(event.Backup.DataName),
+		"Status: " + displayString(event.Backup.Status),
+		"Artifact Ref: " + displayString(event.Backup.ArtifactRef),
+		"Observed At: " + formatTime(event.OccurredAt),
 	}
 	if strings.TrimSpace(event.Backup.ErrorSummary) != "" {
-		lines = append(lines, fmt.Sprintf("Error: %s", event.Backup.ErrorSummary))
+		lines = append(lines, "Error: "+event.Backup.ErrorSummary)
 	}
 	return subject, strings.Join(lines, "\n"), nil
 }
@@ -84,20 +84,20 @@ func renderImageUpdateEvent(event Event) (string, string, error) {
 	subject := fmt.Sprintf("[composia] %s %s %s", event.Type, taskLabel(event.ImageUpdate.ServiceName, event.ImageUpdate.NodeID), imageName)
 	lines := []string{
 		fmt.Sprintf("Event: %s", event.Type),
-		fmt.Sprintf("Task Source: %s", displayString(string(event.Source))),
-		fmt.Sprintf("Service: %s", displayString(event.ImageUpdate.ServiceName)),
-		fmt.Sprintf("Node: %s", displayString(event.ImageUpdate.NodeID)),
-		fmt.Sprintf("Image Name: %s", displayString(event.ImageUpdate.ImageName)),
-		fmt.Sprintf("Image Ref: %s", displayString(event.ImageUpdate.ImageRef)),
-		fmt.Sprintf("Candidate Tag: %s", displayString(event.ImageUpdate.CandidateTag)),
-		fmt.Sprintf("Candidate Digest: %s", displayString(event.ImageUpdate.CandidateDigest)),
-		fmt.Sprintf("Check Status: %s", displayString(event.ImageUpdate.CheckStatus)),
-		fmt.Sprintf("Image Check Task ID: %s", displayString(event.ImageUpdate.TaskID)),
-		fmt.Sprintf("Update Task ID: %s", displayString(event.ImageUpdate.UpdateTaskID)),
-		fmt.Sprintf("Observed At: %s", formatTime(event.OccurredAt)),
+		"Task Source: " + displayString(string(event.Source)),
+		"Service: " + displayString(event.ImageUpdate.ServiceName),
+		"Node: " + displayString(event.ImageUpdate.NodeID),
+		"Image Name: " + displayString(event.ImageUpdate.ImageName),
+		"Image Ref: " + displayString(event.ImageUpdate.ImageRef),
+		"Candidate Tag: " + displayString(event.ImageUpdate.CandidateTag),
+		"Candidate Digest: " + displayString(event.ImageUpdate.CandidateDigest),
+		"Check Status: " + displayString(event.ImageUpdate.CheckStatus),
+		"Image Check Task ID: " + displayString(event.ImageUpdate.TaskID),
+		"Update Task ID: " + displayString(event.ImageUpdate.UpdateTaskID),
+		"Observed At: " + formatTime(event.OccurredAt),
 	}
 	if len(event.ImageUpdate.SelectedImageIDs) > 0 {
-		lines = append(lines, fmt.Sprintf("Selected Images: %s", strings.Join(event.ImageUpdate.SelectedImageIDs, ", ")))
+		lines = append(lines, "Selected Images: "+strings.Join(event.ImageUpdate.SelectedImageIDs, ", "))
 	}
 	return subject, strings.Join(lines, "\n"), nil
 }
@@ -109,9 +109,9 @@ func renderNodeEvent(event Event) (string, string, error) {
 	subject := fmt.Sprintf("[composia] %s %s", event.Type, displayString(event.Node.NodeID))
 	lines := []string{
 		fmt.Sprintf("Event: %s", event.Type),
-		fmt.Sprintf("Node: %s", displayString(event.Node.NodeID)),
-		fmt.Sprintf("Last Heartbeat: %s", displayString(event.Node.LastHeartbeat)),
-		fmt.Sprintf("Observed At: %s", formatTime(event.OccurredAt)),
+		"Node: " + displayString(event.Node.NodeID),
+		"Last Heartbeat: " + displayString(event.Node.LastHeartbeat),
+		"Observed At: " + formatTime(event.OccurredAt),
 	}
 	return subject, strings.Join(lines, "\n"), nil
 }
@@ -121,23 +121,24 @@ func renderAlertmanagerEvent(event Event) (string, string, error) {
 		return "", "", fmt.Errorf("alertmanager payload is missing for %q", event.Type)
 	}
 	subject := fmt.Sprintf("[composia] %s %s", event.Type, displayString(event.Alertmanager.AlertName))
-	lines := []string{
+	lines := make([]string, 0, 15+len(event.Alertmanager.Labels)+len(event.Alertmanager.Annotations))
+	lines = append(lines,
 		fmt.Sprintf("Event: %s", event.Type),
-		fmt.Sprintf("Receiver: %s", displayString(event.Alertmanager.Receiver)),
-		fmt.Sprintf("Alert Status: %s", displayString(event.Alertmanager.Status)),
-		fmt.Sprintf("Group Status: %s", displayString(event.Alertmanager.GroupStatus)),
-		fmt.Sprintf("Alert Name: %s", displayString(event.Alertmanager.AlertName)),
-		fmt.Sprintf("Severity: %s", displayString(event.Alertmanager.Severity)),
-		fmt.Sprintf("Instance: %s", displayString(event.Alertmanager.Instance)),
-		fmt.Sprintf("Summary: %s", displayString(event.Alertmanager.Summary)),
-		fmt.Sprintf("Description: %s", displayString(event.Alertmanager.Description)),
-		fmt.Sprintf("Starts At: %s", formatOptionalTime(event.Alertmanager.StartsAt)),
-		fmt.Sprintf("Ends At: %s", formatOptionalTime(event.Alertmanager.EndsAt)),
-		fmt.Sprintf("Generator URL: %s", displayString(event.Alertmanager.GeneratorURL)),
-		fmt.Sprintf("External URL: %s", displayString(event.Alertmanager.ExternalURL)),
-		fmt.Sprintf("Fingerprint: %s", displayString(event.Alertmanager.Fingerprint)),
-		fmt.Sprintf("Observed At: %s", formatTime(event.OccurredAt)),
-	}
+		"Receiver: "+displayString(event.Alertmanager.Receiver),
+		"Alert Status: "+displayString(event.Alertmanager.Status),
+		"Group Status: "+displayString(event.Alertmanager.GroupStatus),
+		"Alert Name: "+displayString(event.Alertmanager.AlertName),
+		"Severity: "+displayString(event.Alertmanager.Severity),
+		"Instance: "+displayString(event.Alertmanager.Instance),
+		"Summary: "+displayString(event.Alertmanager.Summary),
+		"Description: "+displayString(event.Alertmanager.Description),
+		"Starts At: "+formatOptionalTime(event.Alertmanager.StartsAt),
+		"Ends At: "+formatOptionalTime(event.Alertmanager.EndsAt),
+		"Generator URL: "+displayString(event.Alertmanager.GeneratorURL),
+		"External URL: "+displayString(event.Alertmanager.ExternalURL),
+		"Fingerprint: "+displayString(event.Alertmanager.Fingerprint),
+		"Observed At: "+formatTime(event.OccurredAt),
+	)
 	lines = append(lines, formatStringMapBlock("Labels", event.Alertmanager.Labels)...)
 	lines = append(lines, formatStringMapBlock("Annotations", event.Alertmanager.Annotations)...)
 	return subject, strings.Join(lines, "\n"), nil

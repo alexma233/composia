@@ -17,6 +17,8 @@ func waitTask(ctx context.Context, db *store.DB, notifier *taskResultNotifier, t
 		detail, err := db.GetTask(ctx, taskID)
 		if err == nil {
 			switch detail.Record.Status {
+			case task.StatusPending, task.StatusRunning, task.StatusAwaitingConfirmation:
+				// Keep waiting.
 			case task.StatusSucceeded:
 				return nil
 			case task.StatusFailed, task.StatusCancelled:

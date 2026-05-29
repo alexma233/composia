@@ -3,7 +3,6 @@ package rpcutil
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -90,7 +89,7 @@ func bearerToken(header string) (string, error) {
 
 	const prefix = "Bearer "
 	if !strings.HasPrefix(header, prefix) {
-		return "", fmt.Errorf("invalid Authorization header")
+		return "", errors.New("invalid Authorization header")
 	}
 
 	token := strings.TrimSpace(strings.TrimPrefix(header, prefix))

@@ -133,13 +133,19 @@ func TestContainerExecWebsocketRequiresAllowedOriginAndOneTimeToken(t *testing.T
 	wsURL := websocketURL(httpServer.URL, response.Msg.GetWebsocketPath())
 	biddenHeader := http.Header{}
 	biddenHeader.Set("Origin", "https://evil.example.test")
-	if _, _, err := websocket.DefaultDialer.Dial(wsURL, biddenHeader); err == nil {
+	if conn, dialResponse, err := websocket.DefaultDialer.Dial(wsURL, biddenHeader); err == nil {
+		_ = conn.Close()
 		t.Fatal("expected websocket origin mismatch to fail")
+	} else if dialResponse != nil && dialResponse.Body != nil {
+		_ = dialResponse.Body.Close()
 	}
 
 	allowedHeader := http.Header{}
 	allowedHeader.Set("Origin", "https://web.example.test")
-	conn, _, err := websocket.DefaultDialer.Dial(wsURL, allowedHeader)
+	conn, dialResponse, err := websocket.DefaultDialer.Dial(wsURL, allowedHeader)
+	if dialResponse != nil && dialResponse.Body != nil {
+		defer func() { _ = dialResponse.Body.Close() }()
+	}
 	if err != nil {
 		t.Fatalf("dial websocket with allowed origin: %v", err)
 	}
@@ -156,8 +162,11 @@ func TestContainerExecWebsocketRequiresAllowedOriginAndOneTimeToken(t *testing.T
 		t.Fatalf("expected ready session %q, got %q", response.Msg.GetSessionId(), ready.Session)
 	}
 
-	if _, _, err := websocket.DefaultDialer.Dial(wsURL, allowedHeader); err == nil {
+	if extraConn, dialResponse, err := websocket.DefaultDialer.Dial(wsURL, allowedHeader); err == nil {
+		_ = extraConn.Close()
 		t.Fatal("expected attach token to be single-use")
+	} else if dialResponse != nil && dialResponse.Body != nil {
+		_ = dialResponse.Body.Close()
 	}
 	_ = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "done"))
 }
@@ -190,7 +199,7 @@ func TestExecTunnelManagerDoesNotBlockWhenAgentQueueIsFull(t *testing.T) {
 
 	manager := newExecTunnelManager()
 	tunnel := manager.registerTunnel("main")
-	for i := 0; i < cap(tunnel.sendCh); i++ {
+	for range cap(tunnel.sendCh) {
 		tunnel.sendCh <- &agentv1.OpenExecTunnelResponse{}
 	}
 

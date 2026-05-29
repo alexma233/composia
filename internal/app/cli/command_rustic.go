@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
@@ -8,7 +9,7 @@ import (
 
 func (application *app) runRustic(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia rustic <init|forget|prune>")
+		return errors.New("usage: composia rustic <init|forget|prune>")
 	}
 	switch args[0] {
 	case "init":

@@ -2,19 +2,10 @@ package controller
 
 import (
 	"bytes"
-	"connectrpc.com/connect"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
-	"forgejo.alexma.top/alexma233/composia/internal/core/config"
-	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
-	"forgejo.alexma.top/alexma233/composia/internal/core/task"
-	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
-	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
-	"github.com/google/uuid"
-	"gopkg.in/yaml.v3"
 	"log"
 	"os"
 	"os/exec"
@@ -23,6 +14,17 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"connectrpc.com/connect"
+
+	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
+	"forgejo.alexma.top/alexma233/composia/internal/core/config"
+	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
+	"forgejo.alexma.top/alexma233/composia/internal/core/task"
+	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
+	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
+	"github.com/google/uuid"
+	"gopkg.in/yaml.v3"
 )
 
 type serviceCommandServer struct {
@@ -501,7 +503,7 @@ func applyImageCurrentUpdate(content string, current repo.ImageUpdateCurrent, im
 	if current.YAML != nil {
 		return replaceYAMLPathImageValue(content, current.YAML.Path, imageRef, targetValue)
 	}
-	return "", fmt.Errorf("current must specify env or yaml")
+	return "", errors.New("current must specify env or yaml")
 }
 
 func replaceEnvFileValue(content, key, targetValue string) (string, error) {
@@ -581,7 +583,7 @@ func yamlPathNode(root *yaml.Node, sourcePath string) (*yaml.Node, error) {
 }
 
 func inspectControllerRemoteImageDigest(ctx context.Context, imageRef string) (string, error) {
-	command := exec.CommandContext(ctx, "docker", "buildx", "imagetools", "inspect", "--format", "{{.Digest}}", imageRef)
+	command := exec.CommandContext(ctx, "docker", "buildx", "imagetools", "inspect", "--format", "{{.Digest}}", imageRef) //nolint:gosec
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	command.Stdout = &stdout
@@ -665,7 +667,7 @@ func (server *serviceCommandServer) createServiceTasksWithOptions(ctx context.Co
 			RepoRevision:    repoRevision,
 			AttemptOfTaskID: options.AttemptOfTaskID,
 			CreatedAt:       derefTime(options.CreatedAt),
-			LogPath:         filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+			LogPath:         filepath.Join(server.cfg.LogDir, "tasks", taskID+".log"),
 		})
 	}
 	createdTasks, err := server.db.CreateTasksIfNoActiveServiceInstanceTasks(ctx, pendingTasks)
@@ -673,7 +675,7 @@ func (server *serviceCommandServer) createServiceTasksWithOptions(ctx context.Co
 		return nil, connectTaskAdmissionError(err)
 	}
 	for _, createdTask := range createdTasks {
-		if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+		if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o600); err != nil {
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
 		}
 	}

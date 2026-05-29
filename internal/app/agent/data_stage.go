@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -18,24 +19,24 @@ func dataProtectStageRoot(stateDir string) string {
 
 func dataProtectStageDir(stateDir, prefix string) (string, error) {
 	stageRoot := dataProtectStageRoot(stateDir)
-	if err := os.MkdirAll(stageRoot, 0o755); err != nil {
+	if err := os.MkdirAll(stageRoot, 0o750); err != nil {
 		return "", fmt.Errorf("create data-protect stage root %q: %w", stageRoot, err)
 	}
 	stageDir, err := os.MkdirTemp(stageRoot, prefix)
 	if err != nil {
 		return "", fmt.Errorf("create data-protect stage dir: %w", err)
 	}
-	if err := os.MkdirAll(filepath.Join(stageDir, "paths"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(stageDir, "paths"), 0o750); err != nil {
 		return "", fmt.Errorf("create data-protect stage paths dir: %w", err)
 	}
-	if err := os.MkdirAll(filepath.Join(stageDir, "volumes"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(stageDir, "volumes"), 0o750); err != nil {
 		return "", fmt.Errorf("create data-protect stage volumes dir: %w", err)
 	}
 	return stageDir, nil
 }
 
 func clearDockerVolume(ctx context.Context, volumeName string) error {
-	command := exec.CommandContext(ctx, "docker", "run", "--rm", "-v", volumeName+":/target", "alpine:3.20", "sh", "-c", "rm -rf /target/..?* /target/.[!.]* /target/*")
+	command := exec.CommandContext(ctx, "docker", "run", "--rm", "-v", volumeName+":/target", "alpine:3.20", "sh", "-c", "rm -rf /target/..?* /target/.[!.]* /target/*") //nolint:gosec
 	output, err := command.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("clear docker volume %q: %w: %s", volumeName, err, string(output))
@@ -60,16 +61,16 @@ func rusticDataProtectPath(localPath string, cfg *config.AgentConfig, rustic *ba
 
 func runComposePGDumpAll(ctx context.Context, serviceDir string, compose composeCommandConfig, serviceName, targetPath string, uploadLog func(string) error) error {
 	if serviceName == "" {
-		return fmt.Errorf("pgdumpall backup is missing service name")
+		return errors.New("pgdumpall backup is missing service name")
 	}
-	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0o750); err != nil {
 		return fmt.Errorf("create pgdump target dir: %w", err)
 	}
-	targetFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
+	targetFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600) //nolint:gosec
 	if err != nil {
 		return fmt.Errorf("create pgdump target file: %w", err)
 	}
-	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "exec", "-T", serviceName, "pg_dumpall")...)
+	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "exec", "-T", serviceName, "pg_dumpall")...) //nolint:gosec
 	command.Dir = serviceDir
 	command.Stdout = targetFile
 	command.Stderr = newCommandLogWriter(uploadLog, false)
@@ -86,13 +87,13 @@ func runComposePGDumpAll(ctx context.Context, serviceDir string, compose compose
 
 func runComposePGImport(ctx context.Context, serviceDir string, compose composeCommandConfig, serviceName, sourcePath string, uploadLog func(string) error) error {
 	if serviceName == "" {
-		return fmt.Errorf("pgimport restore is missing service name")
+		return errors.New("pgimport restore is missing service name")
 	}
-	sourceFile, err := os.Open(sourcePath)
+	sourceFile, err := os.Open(sourcePath) //nolint:gosec
 	if err != nil {
 		return fmt.Errorf("open pgimport source file: %w", err)
 	}
-	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "exec", "-T", serviceName, "psql")...)
+	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "exec", "-T", serviceName, "psql")...) //nolint:gosec
 	command.Dir = serviceDir
 	command.Stdin = sourceFile
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {

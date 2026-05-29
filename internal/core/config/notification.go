@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -90,10 +91,10 @@ func validateAlertmanagerNotifications(cfg *ControllerAlertmanagerNotificationCo
 	}
 	listenPath := cfg.EffectiveListenPath()
 	if !strings.HasPrefix(listenPath, "/") {
-		return fmt.Errorf("controller.notifications.alertmanager.listen_path must start with /")
+		return errors.New("controller.notifications.alertmanager.listen_path must start with /")
 	}
 	if strings.ContainsAny(listenPath, " \t\n\r") {
-		return fmt.Errorf("controller.notifications.alertmanager.listen_path must not contain whitespace")
+		return errors.New("controller.notifications.alertmanager.listen_path must not contain whitespace")
 	}
 	return nil
 }
@@ -112,21 +113,21 @@ func validateSMTPNotifications(cfg *ControllerSMTPNotificationConfig) error {
 		return nil
 	}
 	if strings.TrimSpace(cfg.Host) == "" {
-		return fmt.Errorf("controller.notifications.smtp.host is required")
+		return errors.New("controller.notifications.smtp.host is required")
 	}
 	if cfg.Port <= 0 || cfg.Port > 65535 {
-		return fmt.Errorf("controller.notifications.smtp.port must be between 1 and 65535")
+		return errors.New("controller.notifications.smtp.port must be between 1 and 65535")
 	}
 	switch NormalizeSMTPEncryption(cfg.Encryption) {
 	case SMTPEncryptionNone, SMTPEncryptionSTARTTLS, SMTPEncryptionSSLTLS:
 	default:
-		return fmt.Errorf("controller.notifications.smtp.encryption must be one of none, starttls, or ssl_tls")
+		return errors.New("controller.notifications.smtp.encryption must be one of none, starttls, or ssl_tls")
 	}
 	if strings.TrimSpace(cfg.From) == "" {
-		return fmt.Errorf("controller.notifications.smtp.from is required")
+		return errors.New("controller.notifications.smtp.from is required")
 	}
 	if len(cfg.To) == 0 {
-		return fmt.Errorf("controller.notifications.smtp.to must contain at least one recipient")
+		return errors.New("controller.notifications.smtp.to must contain at least one recipient")
 	}
 	for index, recipient := range cfg.To {
 		if strings.TrimSpace(recipient) == "" {
@@ -150,10 +151,10 @@ func validateTelegramNotifications(cfg *ControllerTelegramNotificationConfig) er
 		return nil
 	}
 	if strings.TrimSpace(cfg.BotToken) == "" {
-		return fmt.Errorf("controller.notifications.telegram.bot_token is required")
+		return errors.New("controller.notifications.telegram.bot_token is required")
 	}
 	if strings.TrimSpace(cfg.ChatID) == "" {
-		return fmt.Errorf("controller.notifications.telegram.chat_id is required")
+		return errors.New("controller.notifications.telegram.chat_id is required")
 	}
 	return nil
 }

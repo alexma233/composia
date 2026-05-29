@@ -21,7 +21,7 @@ func TestRunScheduledTasksPassCreatesBackupTasksFromDefaultOverrideAndNone(t *te
 	createGitRepoWithContent(t, repoDir, map[string]string{
 		"app/composia-meta.yaml": "name: app\nnodes:\n  - main\ndata_protect:\n  data:\n    - name: inherit\n      backup:\n        strategy: files.copy\n        include:\n          - ./inherit\n    - name: override\n      backup:\n        strategy: files.copy\n        include:\n          - ./override\n    - name: disabled\n      backup:\n        strategy: files.copy\n        include:\n          - ./disabled\nbackup:\n  data:\n    - name: inherit\n    - name: override\n      schedule: \"5 2 * * *\"\n    - name: disabled\n      schedule: none\n",
 	})
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
 	}
 
@@ -83,7 +83,7 @@ func TestRunScheduledTasksPassCreatesRepoWideRusticMaintenanceTasks(t *testing.T
 	createGitRepoWithContent(t, repoDir, map[string]string{
 		"rustic/composia-meta.yaml": "name: rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n",
 	})
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
 	}
 
@@ -162,7 +162,7 @@ func TestRunScheduledTasksPassCreatesImageCheckForDueImages(t *testing.T) {
 	createGitRepoWithContent(t, repoDir, map[string]string{
 		"app/composia-meta.yaml": "name: app\nnodes:\n  - main\nupdate:\n  check_schedule: none\n  images:\n    api:\n      image: ghcr.io/example/api\n      check_schedule: \"5 4 * * *\"\n      current:\n        env:\n          file: .env\n          key: API_VERSION\n      discovery:\n        sources:\n          - type: auto\n      filter:\n        type: semver\n    worker:\n      image: ghcr.io/example/worker\n      check_schedule: \"10 4 * * *\"\n      current:\n        env:\n          file: .env\n          key: WORKER_VERSION\n      discovery:\n        sources:\n          - type: auto\n      filter:\n        type: semver\n",
 	})
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
 	}
 
@@ -210,7 +210,7 @@ func TestRunScheduledTasksPassUsesControllerUpdatesDefaultCheckSchedule(t *testi
 	createGitRepoWithContent(t, repoDir, map[string]string{
 		"app/composia-meta.yaml": "name: app\nnodes:\n  - main\nupdate:\n  images:\n    api:\n      image: ghcr.io/example/api\n      current:\n        env:\n          file: .env\n          key: API_VERSION\n      discovery:\n        sources:\n          - type: auto\n      filter:\n        type: semver\n",
 	})
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
 	}
 

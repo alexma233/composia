@@ -13,7 +13,7 @@ type terminalState struct {
 }
 
 func makeTerminalRaw(fd uintptr) (*terminalState, error) {
-	state, err := term.MakeRaw(int(fd))
+	state, err := term.MakeRaw(int(fd)) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
@@ -24,11 +24,11 @@ func restoreTerminal(fd uintptr, state *terminalState) {
 	if state == nil || state.state == nil {
 		return
 	}
-	_ = term.Restore(int(fd), state.state)
+	_ = term.Restore(int(fd), state.state) //nolint:gosec
 }
 
 func terminalSize(fd uintptr) (uint32, uint32, bool) {
-	cols, rows, err := term.GetSize(int(fd))
+	cols, rows, err := term.GetSize(int(fd)) //nolint:gosec
 	if err != nil || rows <= 0 || cols <= 0 || uint64(rows) > math.MaxUint32 || uint64(cols) > math.MaxUint32 {
 		return 0, 0, false
 	}

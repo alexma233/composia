@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -9,7 +10,7 @@ import (
 
 func (application *app) runNetwork(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia network <list|get|remove>")
+		return errors.New("usage: composia network <list|get|remove>")
 	}
 	switch args[0] {
 	case "list":
@@ -79,7 +80,7 @@ func (application *app) runNetworkRemove(args []string) error {
 
 func (application *app) runVolume(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia volume <list|get|remove>")
+		return errors.New("usage: composia volume <list|get|remove>")
 	}
 	switch args[0] {
 	case "list":
@@ -149,7 +150,7 @@ func (application *app) runVolumeRemove(args []string) error {
 
 func (application *app) runImage(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: composia image <list|get|remove>")
+		return errors.New("usage: composia image <list|get|remove>")
 	}
 	switch args[0] {
 	case "list":

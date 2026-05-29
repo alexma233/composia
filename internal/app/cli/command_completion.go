@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -8,7 +9,7 @@ import (
 
 func (application *app) runCompletion(args []string) error {
 	if len(args) != 1 {
-		return fmt.Errorf("usage: composia completion <bash|zsh|fish>")
+		return errors.New("usage: composia completion <bash|zsh|fish>")
 	}
 	commands := completionCommands()
 	switch args[0] {

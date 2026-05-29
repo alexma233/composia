@@ -87,12 +87,12 @@ func (server *taskServer) CreateMigrationRollback(ctx context.Context, req *conn
 		ParamsJSON:      string(paramsJSON),
 		RepoRevision:    detail.Record.RepoRevision,
 		AttemptOfTaskID: detail.Record.TaskID,
-		LogPath:         filepath.Join(server.cfg.LogDir, "tasks", fmt.Sprintf("%s.log", taskID)),
+		LogPath:         filepath.Join(server.cfg.LogDir, "tasks", taskID+".log"),
 	}, store.TaskAdmissionConstraints{RequireInactiveService: true})
 	if err != nil {
 		return nil, connectTaskAdmissionError(err)
 	}
-	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o644); err != nil {
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o600); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
 	}
 	notifyTaskQueue(server.taskQueue)

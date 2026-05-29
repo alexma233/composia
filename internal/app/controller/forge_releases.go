@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -225,7 +226,7 @@ func forgeReleaseRequest(source repo.ImageUpdateDiscoverySource, cfg *config.Con
 	case "github":
 		repoName := strings.TrimSpace(source.Repo)
 		if repoName == "" {
-			return "", nil, fmt.Errorf("github release discovery requires repo")
+			return "", nil, errors.New("github release discovery requires repo")
 		}
 		auth := forgeAuth(updates, "github", source.RepoURL)
 		apiURL := strings.TrimRight(auth.APIURL, "/")
@@ -239,7 +240,7 @@ func forgeReleaseRequest(source repo.ImageUpdateDiscoverySource, cfg *config.Con
 	case "gitlab":
 		project := strings.TrimSpace(source.Project)
 		if project == "" {
-			return "", nil, fmt.Errorf("gitlab release discovery requires project")
+			return "", nil, errors.New("gitlab release discovery requires project")
 		}
 		auth := forgeAuth(updates, "gitlab", source.RepoURL)
 		apiURL := strings.TrimRight(auth.APIURL, "/")
@@ -253,7 +254,7 @@ func forgeReleaseRequest(source repo.ImageUpdateDiscoverySource, cfg *config.Con
 	case "forgejo":
 		repoName := strings.TrimSpace(source.Repo)
 		if repoName == "" {
-			return "", nil, fmt.Errorf("forgejo release discovery requires repo")
+			return "", nil, errors.New("forgejo release discovery requires repo")
 		}
 		auth := forgeAuth(updates, "forgejo", source.RepoURL)
 		apiURL := strings.TrimRight(source.APIURL, "/")
@@ -261,7 +262,7 @@ func forgeReleaseRequest(source repo.ImageUpdateDiscoverySource, cfg *config.Con
 			apiURL = strings.TrimRight(auth.APIURL, "/")
 		}
 		if apiURL == "" {
-			return "", nil, fmt.Errorf("controller.updates.forge_auth.forgejo.api_url is required")
+			return "", nil, errors.New("controller.updates.forge_auth.forgejo.api_url is required")
 		}
 		if auth.Token != "" {
 			headers["Authorization"] = "token " + auth.Token

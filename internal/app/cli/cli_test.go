@@ -508,7 +508,7 @@ func TestConfigSetTokenFileWritesDefaultTokenFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cliTokenPath returned error: %v", err)
 	}
-	content, err := os.ReadFile(tokenPath)
+	content, err := os.ReadFile(tokenPath) //nolint:gosec
 	if err != nil {
 		t.Fatalf("ReadFile token returned error: %v", err)
 	}

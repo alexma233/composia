@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"regexp"
@@ -142,7 +143,7 @@ func loadRusticTaskMeta(serviceDir, fallback string) (rusticTaskMeta, error) {
 
 func runRusticInit(ctx context.Context, serviceDir string, meta rusticTaskMeta, uploadLog func(string) error) error {
 	args := buildRusticComposeRunArgs(meta.Compose, meta.ComposeService, meta.Profile, nil, append([]string{"init"}, meta.InitArgs...)...)
-	command := exec.CommandContext(ctx, "docker", args...)
+	command := exec.CommandContext(ctx, "docker", args...) //nolint:gosec
 	command.Dir = serviceDir
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose run rustic init failed: %w", err)
@@ -161,7 +162,7 @@ func runRusticForget(ctx context.Context, serviceDir string, meta rusticTaskMeta
 	if !params.RepoWide && params.DataName != "" {
 		args = append(args, "--filter-tags", "composia-data:"+params.DataName)
 	}
-	command := exec.CommandContext(ctx, "docker", args...)
+	command := exec.CommandContext(ctx, "docker", args...) //nolint:gosec
 	command.Dir = serviceDir
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose run rustic forget failed: %w", err)
@@ -171,7 +172,7 @@ func runRusticForget(ctx context.Context, serviceDir string, meta rusticTaskMeta
 
 func runRusticPrune(ctx context.Context, serviceDir string, meta rusticTaskMeta, uploadLog func(string) error) error {
 	args := buildRusticComposeRunArgs(meta.Compose, meta.ComposeService, meta.Profile, nil, "prune")
-	command := exec.CommandContext(ctx, "docker", args...)
+	command := exec.CommandContext(ctx, "docker", args...) //nolint:gosec
 	command.Dir = serviceDir
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose run rustic prune failed: %w", err)
@@ -191,7 +192,7 @@ func runRusticBackup(ctx context.Context, rusticDir string, rustic *backupcfg.Ru
 		args = append(args, "--tag", tag)
 	}
 	args = append(args, sourceDir, "--as-path", item.Name)
-	command := exec.CommandContext(ctx, "docker", args...)
+	command := exec.CommandContext(ctx, "docker", args...) //nolint:gosec
 	command.Dir = rusticDir
 	output, err := runCommandWithLiveLogsAndCapture(command, func(output string) error {
 		return uploadTaskLog(ctx, logUploader, output)
@@ -201,7 +202,7 @@ func runRusticBackup(ctx context.Context, rusticDir string, rustic *backupcfg.Ru
 	}
 	matches := rusticSnapshotRegexp.FindStringSubmatch(output)
 	if len(matches) != 2 {
-		return "", fmt.Errorf("could not parse rustic snapshot id from output")
+		return "", errors.New("could not parse rustic snapshot id from output")
 	}
 	return matches[1], nil
 }
@@ -212,7 +213,7 @@ func runRusticRestore(ctx context.Context, rusticDir string, rustic *backupcfg.R
 		return err
 	}
 	args := buildRusticComposeRunArgs(compose, rustic.ComposeService, rustic.Profile, extraVolumes, "restore", artifactRef, targetDir)
-	command := exec.CommandContext(ctx, "docker", args...)
+	command := exec.CommandContext(ctx, "docker", args...) //nolint:gosec
 	command.Dir = rusticDir
 	if err := runCommandWithLiveLogs(command, func(output string) error {
 		return uploadTaskLog(ctx, logUploader, output)

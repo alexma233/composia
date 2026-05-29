@@ -10,10 +10,10 @@ func appendTaskLogRaw(logPath, content string) error {
 	if logPath == "" || content == "" {
 		return nil
 	}
-	if err := os.MkdirAll(filepath.Dir(logPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(logPath), 0o750); err != nil {
 		return fmt.Errorf("create task log directory: %w", err)
 	}
-	file, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	file, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600) //nolint:gosec
 	if err != nil {
 		return fmt.Errorf("open task log %q: %w", logPath, err)
 	}

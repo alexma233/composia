@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -214,7 +215,7 @@ Commands:
 `)
 }
 
-var commandUsages = map[string]string{
+var commandUsages = map[string]string{ //nolint:gosec
 	"system":                    "usage: composia system <status|reload|capabilities>\n",
 	"service":                   "usage: composia service <list|get|workspace|update-candidates|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate>\n",
 	"system status":             "usage: composia system status\n",
@@ -523,7 +524,7 @@ func (application *app) printServiceAction(response *controllerv1.RunServiceActi
 			return err
 		}
 	} else {
-		if err := application.writeKV([][2]string{{"task_count", fmt.Sprintf("%d", len(tasks))}}); err != nil {
+		if err := application.writeKV([][2]string{{"task_count", strconv.Itoa(len(tasks))}}); err != nil {
 			return err
 		}
 		rows := make([][]string, 0, len(tasks))
@@ -631,7 +632,7 @@ func parseHeaderFlagValues(values headerFlag) (map[string]string, error) {
 func parseHeadersJSON(value string) (map[string]string, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
-		return nil, nil
+		return map[string]string{}, nil
 	}
 	var headers map[string]string
 	if err := json.Unmarshal([]byte(value), &headers); err != nil {
@@ -674,13 +675,13 @@ func boolText(value bool) string {
 }
 
 func uintText(value uint32) string {
-	return fmt.Sprintf("%d", value)
+	return strconv.FormatUint(uint64(value), 10)
 }
 
 func uint64Text(value uint64) string {
-	return fmt.Sprintf("%d", value)
+	return strconv.FormatUint(value, 10)
 }
 
 func int64Text(value int64) string {
-	return fmt.Sprintf("%d", value)
+	return strconv.FormatInt(value, 10)
 }

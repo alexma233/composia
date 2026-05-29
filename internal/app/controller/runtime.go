@@ -22,13 +22,13 @@ import (
 )
 
 func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, reload func(context.Context) error) error {
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		return fmt.Errorf("create controller state_dir %q: %w", cfg.StateDir, err)
 	}
-	if err := os.MkdirAll(cfg.LogDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.LogDir, 0o750); err != nil {
 		return fmt.Errorf("create controller log_dir %q: %w", cfg.LogDir, err)
 	}
-	if err := os.MkdirAll(filepath.Join(cfg.LogDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(cfg.LogDir, "tasks"), 0o750); err != nil {
 		return fmt.Errorf("create controller task log_dir %q: %w", filepath.Join(cfg.LogDir, "tasks"), err)
 	}
 	if err := repo.ValidateWorkingTree(cfg.RepoDir); err != nil {

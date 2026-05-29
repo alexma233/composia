@@ -34,7 +34,7 @@ func TestServiceQueryServiceListServices(t *testing.T) {
 	t.Parallel()
 
 	stateDir := filepath.Join(t.TempDir(), "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 
@@ -100,7 +100,7 @@ func TestServiceQueryServiceListServiceWorkspaces(t *testing.T) {
 	})
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	db, err := store.Open(stateDir)
@@ -162,7 +162,7 @@ func TestServiceQueryServiceGetServiceWorkspaceReturnsOneWorkspace(t *testing.T)
 	})
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	db, err := store.Open(stateDir)
@@ -210,7 +210,7 @@ func TestServiceQueryServiceGetServiceReturnsMinimalSummary(t *testing.T) {
 	createGitRepoWithService(t, repoDir, "alpha", "main")
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 	db, err := store.Open(stateDir)
@@ -277,10 +277,10 @@ func TestServiceCommandServiceDeployCreatesPendingTask(t *testing.T) {
 	createGitRepoWithService(t, repoDir, "demo", "main")
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create log dir: %v", err)
 	}
 
@@ -369,18 +369,18 @@ func TestServiceCommandServiceDeployIgnoresUnrelatedInvalidDraft(t *testing.T) {
 	repoDir := filepath.Join(rootDir, "repo")
 	logDir := filepath.Join(rootDir, "logs")
 	createGitRepoWithService(t, repoDir, "demo", "main")
-	if err := os.MkdirAll(filepath.Join(repoDir, "draft"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(repoDir, "draft"), 0o750); err != nil {
 		t.Fatalf("create draft dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoDir, "draft", "composia-meta.yaml"), []byte("name: draft\nnodes:\n  - missing\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoDir, "draft", "composia-meta.yaml"), []byte("name: draft\nnodes:\n  - missing\n"), 0o600); err != nil {
 		t.Fatalf("write invalid draft meta: %v", err)
 	}
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create log dir: %v", err)
 	}
 
@@ -449,10 +449,10 @@ func TestServiceCommandServiceDeployReturnsAllQueuedTasks(t *testing.T) {
 	})
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create log dir: %v", err)
 	}
 
@@ -523,10 +523,10 @@ func TestServiceCommandServiceDeployUsesWebSourceHeader(t *testing.T) {
 	createGitRepoWithService(t, repoDir, "demo", "main")
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create log dir: %v", err)
 	}
 
@@ -604,10 +604,10 @@ func TestServiceCommandServiceDeployUsesOthersSourceHeader(t *testing.T) {
 	createGitRepoWithService(t, repoDir, "demo", "main")
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create log dir: %v", err)
 	}
 
@@ -688,10 +688,10 @@ func TestServiceCommandServiceCaddySyncCreatesPendingTask(t *testing.T) {
 	})
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create log dir: %v", err)
 	}
 
@@ -758,10 +758,10 @@ func TestServiceCommandServiceDeployRejectsOfflineOrDisabledNode(t *testing.T) {
 	createGitRepoWithService(t, repoDir, "demo", "main")
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create log dir: %v", err)
 	}
 
@@ -830,10 +830,10 @@ func TestServiceCommandServiceStopAndRestartCreatePendingTasks(t *testing.T) {
 	createGitRepoWithService(t, repoDir, "demo", "main")
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create log dir: %v", err)
 	}
 
@@ -904,10 +904,10 @@ func TestServiceCommandServiceRejectsConfigInfraRestart(t *testing.T) {
 	})
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create log dir: %v", err)
 	}
 
@@ -963,10 +963,10 @@ func TestServiceCommandServiceUpdateCreatesPendingTask(t *testing.T) {
 	createGitRepoWithService(t, repoDir, "demo", "main")
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create log dir: %v", err)
 	}
 
@@ -1025,10 +1025,10 @@ func TestServiceCommandServiceUpdateWithImageSelectionsReturnsRepoWriteResult(t 
 	})
 
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create log dir: %v", err)
 	}
 
@@ -1104,7 +1104,7 @@ func TestServiceCommandServiceUpdateWithImageSelectionsReturnsRepoWriteResult(t 
 	if response.Msg.GetRepoWrite() == nil || response.Msg.GetRepoWrite().GetCommitId() == "" {
 		t.Fatalf("expected repo write result, got %+v", response.Msg.GetRepoWrite())
 	}
-	updatedEnv, err := os.ReadFile(filepath.Join(repoDir, "demo", ".env"))
+	updatedEnv, err := os.ReadFile(filepath.Join(repoDir, "demo", ".env")) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read updated env file: %v", err)
 	}
@@ -1123,10 +1123,10 @@ func TestServiceCommandServiceUpdateDNSCreatesPendingTaskWithoutOnlineNode(t *te
 	})
 	logDir := filepath.Join(rootDir, "logs")
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create log dir: %v", err)
 	}
 	db, err := store.Open(stateDir)
@@ -1229,10 +1229,10 @@ func TestServiceCommandServiceBackupCreatesPendingTaskWithDefaultDataNames(t *te
 	})
 	logDir := filepath.Join(rootDir, "logs")
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create log dir: %v", err)
 	}
 
@@ -1297,10 +1297,10 @@ func TestServiceCommandServiceMigrateCreatesPendingControllerTask(t *testing.T) 
 	})
 	logDir := filepath.Join(rootDir, "logs")
 	stateDir := filepath.Join(rootDir, "state")
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create log dir: %v", err)
 	}
 
@@ -1459,12 +1459,12 @@ func TestPlanRequestedServiceImageUpdatesRejectsEmptyAllDetected(t *testing.T) {
 
 func createGitRepoWithService(t *testing.T, repoDir, serviceName, nodeID string) {
 	t.Helper()
-	if err := os.MkdirAll(filepath.Join(repoDir, serviceName), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(repoDir, serviceName), 0o750); err != nil {
 		t.Fatalf("create repo directory: %v", err)
 	}
 	metaPath := filepath.Join(repoDir, serviceName, "composia-meta.yaml")
 	content := "name: " + serviceName + "\nnodes:\n  - " + nodeID + "\n"
-	if err := os.WriteFile(metaPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(metaPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write service meta: %v", err)
 	}
 	runGit(t, repoDir, "init")
@@ -1476,10 +1476,10 @@ func createGitRepoWithContent(t *testing.T, repoDir string, files map[string]str
 	t.Helper()
 	for relativePath, content := range files {
 		absolutePath := filepath.Join(repoDir, relativePath)
-		if err := os.MkdirAll(filepath.Dir(absolutePath), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(absolutePath), 0o750); err != nil {
 			t.Fatalf("create directory for %s: %v", relativePath, err)
 		}
-		if err := os.WriteFile(absolutePath, []byte(content), 0o644); err != nil {
+		if err := os.WriteFile(absolutePath, []byte(content), 0o600); err != nil {
 			t.Fatalf("write file %s: %v", relativePath, err)
 		}
 	}
@@ -1491,7 +1491,7 @@ func createGitRepoWithContent(t *testing.T, repoDir string, files map[string]str
 func runGit(t *testing.T, repoDir string, args ...string) {
 	t.Helper()
 	commandArgs := append([]string{"-C", repoDir, "-c", "commit.gpgsign=false"}, args...)
-	output, err := exec.Command("git", commandArgs...).CombinedOutput()
+	output, err := exec.CommandContext(context.Background(), "git", commandArgs...).CombinedOutput() //nolint:gosec
 	if err != nil {
 		t.Fatalf("git %v failed: %v\n%s", args, err, string(output))
 	}

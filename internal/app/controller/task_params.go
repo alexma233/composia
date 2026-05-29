@@ -3,9 +3,10 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"time"
 )
 
 type serviceTaskParams struct {

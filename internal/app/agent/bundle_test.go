@@ -26,20 +26,20 @@ func TestDownloadServiceBundleExtractsIntoRepoDir(t *testing.T) {
 
 	rootDir := t.TempDir()
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.RepoDir, 0o750); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 
 	bundle := buildBundleArchive(t, map[string]string{"demo/composia-meta.yaml": "name: demo\n"})
 	mux := http.NewServeMux()
 	path, handler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "main-token" {
+		if token != "main-token" { //nolint:goconst
 			return "", errString("unexpected token")
 		}
-		return "main", nil
+		return "main", nil //nolint:goconst
 	})))
 	mux.Handle(path, handler)
 	httpServer := httptest.NewServer(mux)
@@ -68,13 +68,13 @@ func TestDownloadServiceBundleReplacesExistingDirectoryAtomically(t *testing.T) 
 
 	rootDir := t.TempDir()
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "demo"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "demo"), 0o750); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "demo", "composia-meta.yaml"), []byte("name: old\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "demo", "composia-meta.yaml"), []byte("name: old\n"), 0o600); err != nil {
 		t.Fatalf("write old file: %v", err)
 	}
 
@@ -108,13 +108,13 @@ func TestDownloadServiceBundlePreservesExistingDirectoryOnInvalidArchive(t *test
 
 	rootDir := t.TempDir()
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "demo"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(cfg.RepoDir, "demo"), 0o750); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "demo", "composia-meta.yaml"), []byte("name: old\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.RepoDir, "demo", "composia-meta.yaml"), []byte("name: old\n"), 0o600); err != nil {
 		t.Fatalf("write old file: %v", err)
 	}
 
@@ -148,10 +148,10 @@ func TestDownloadServiceBundleIgnoresPAXHeaders(t *testing.T) {
 
 	rootDir := t.TempDir()
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.RepoDir, 0o750); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 
@@ -205,10 +205,10 @@ func TestDownloadServiceBundleSendsServiceDirOverride(t *testing.T) {
 
 	rootDir := t.TempDir()
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.RepoDir, 0o750); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 
@@ -239,10 +239,10 @@ func TestDownloadServiceBundleRejectsEscapingRelativeRoot(t *testing.T) {
 
 	rootDir := t.TempDir()
 	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
-	if err := os.MkdirAll(cfg.RepoDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.RepoDir, 0o750); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
-	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		t.Fatalf("create state dir: %v", err)
 	}
 
@@ -272,13 +272,13 @@ func TestLocalServiceRootRejectsEscapingServiceDir(t *testing.T) {
 
 	rootDir := t.TempDir()
 	repoDir := filepath.Join(rootDir, "repo")
-	if err := os.MkdirAll(repoDir, 0o755); err != nil {
+	if err := os.MkdirAll(repoDir, 0o750); err != nil {
 		t.Fatalf("create repo dir: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(rootDir, "outside"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(rootDir, "outside"), 0o750); err != nil {
 		t.Fatalf("create outside dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(rootDir, "outside", "composia-meta.yaml"), []byte("name: outside\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(rootDir, "outside", "composia-meta.yaml"), []byte("name: outside\n"), 0o600); err != nil {
 		t.Fatalf("write outside meta: %v", err)
 	}
 
@@ -418,15 +418,15 @@ func TestRunComposeUpUsesProjectNameAndServiceDir(t *testing.T) {
 	serviceDir := filepath.Join(rootDir, "service")
 	argsFile := filepath.Join(rootDir, "args.txt")
 	pwdFile := filepath.Join(rootDir, "pwd.txt")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
+	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
-	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+	if err := os.MkdirAll(serviceDir, 0o750); err != nil {
 		t.Fatalf("create service dir: %v", err)
 	}
 	dockerPath := filepath.Join(binDir, "docker")
-	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n"
-	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n" //nolint:goconst
+	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {                      //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
@@ -438,14 +438,14 @@ func TestRunComposeUpUsesProjectNameAndServiceDir(t *testing.T) {
 		t.Fatalf("run compose up: %v", err)
 	}
 
-	argsContent, err := os.ReadFile(argsFile)
+	argsContent, err := os.ReadFile(argsFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
 	if string(argsContent) != "compose --project-name demo-project up -d " {
 		t.Fatalf("unexpected docker args %q", string(argsContent))
 	}
-	pwdContent, err := os.ReadFile(pwdFile)
+	pwdContent, err := os.ReadFile(pwdFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read pwd file: %v", err)
 	}
@@ -460,15 +460,15 @@ func TestRunComposeDownUsesProjectNameAndServiceDir(t *testing.T) {
 	serviceDir := filepath.Join(rootDir, "service")
 	argsFile := filepath.Join(rootDir, "args.txt")
 	pwdFile := filepath.Join(rootDir, "pwd.txt")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
+	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
-	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+	if err := os.MkdirAll(serviceDir, 0o750); err != nil {
 		t.Fatalf("create service dir: %v", err)
 	}
 	dockerPath := filepath.Join(binDir, "docker")
 	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\n"
-	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil { //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
@@ -480,14 +480,14 @@ func TestRunComposeDownUsesProjectNameAndServiceDir(t *testing.T) {
 		t.Fatalf("run compose down: %v", err)
 	}
 
-	argsContent, err := os.ReadFile(argsFile)
+	argsContent, err := os.ReadFile(argsFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
 	if string(argsContent) != "compose --project-name demo-project down " {
 		t.Fatalf("unexpected docker args %q", string(argsContent))
 	}
-	pwdContent, err := os.ReadFile(pwdFile)
+	pwdContent, err := os.ReadFile(pwdFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read pwd file: %v", err)
 	}
@@ -503,15 +503,15 @@ func TestRunComposePullUsesProjectNameAndServiceDir(t *testing.T) {
 	argsFile := filepath.Join(rootDir, "args.txt")
 	envFile := filepath.Join(rootDir, "env.txt")
 	pwdFile := filepath.Join(rootDir, "pwd.txt")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
+	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
-	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+	if err := os.MkdirAll(serviceDir, 0o750); err != nil {
 		t.Fatalf("create service dir: %v", err)
 	}
 	dockerPath := filepath.Join(binDir, "docker")
 	script := "#!/bin/sh\npwd > \"$TEST_PWD_FILE\"\nprintf '%s ' \"$@\" > \"$TEST_ARGS_FILE\"\nprintf 'TERM=%s\\nCLICOLOR_FORCE=%s\\nFORCE_COLOR=%s\\nCOMPOSE_ANSI=%s\\nCOMPOSE_STATUS_STDOUT=%s\\nCOMPOSE_PROGRESS=%s\\n' \"$TERM\" \"$CLICOLOR_FORCE\" \"$FORCE_COLOR\" \"$COMPOSE_ANSI\" \"$COMPOSE_STATUS_STDOUT\" \"$COMPOSE_PROGRESS\" > \"$TEST_ENV_FILE\"\n"
-	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil { //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
@@ -524,21 +524,21 @@ func TestRunComposePullUsesProjectNameAndServiceDir(t *testing.T) {
 		t.Fatalf("run compose pull: %v", err)
 	}
 
-	argsContent, err := os.ReadFile(argsFile)
+	argsContent, err := os.ReadFile(argsFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
 	if string(argsContent) != "compose --project-name demo-project pull " {
 		t.Fatalf("unexpected docker args %q", string(argsContent))
 	}
-	pwdContent, err := os.ReadFile(pwdFile)
+	pwdContent, err := os.ReadFile(pwdFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read pwd file: %v", err)
 	}
 	if string(bytes.TrimSpace(pwdContent)) != serviceDir {
 		t.Fatalf("expected docker cwd %q, got %q", serviceDir, string(bytes.TrimSpace(pwdContent)))
 	}
-	envContent, err := os.ReadFile(envFile)
+	envContent, err := os.ReadFile(envFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("read env file: %v", err)
 	}
@@ -560,16 +560,16 @@ func TestRunComposeUpStreamsLogsBeforeCommandExit(t *testing.T) {
 	rootDir := t.TempDir()
 	binDir := filepath.Join(rootDir, "bin")
 	serviceDir := filepath.Join(rootDir, "service")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
+	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
-	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+	if err := os.MkdirAll(serviceDir, 0o750); err != nil {
 		t.Fatalf("create service dir: %v", err)
 	}
 
 	dockerPath := filepath.Join(binDir, "docker")
 	script := "#!/bin/sh\nprintf 'starting compose up\\n'\nsleep 0.3\nprintf 'compose up finished\\n' >&2\n"
-	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
+	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil { //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
@@ -602,10 +602,10 @@ func TestRunComposeUpStreamsLogsBeforeCommandExit(t *testing.T) {
 func TestLoadComposeCommandConfigNormalizesFallbackServiceName(t *testing.T) {
 	rootDir := t.TempDir()
 	serviceDir := filepath.Join(rootDir, "service")
-	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+	if err := os.MkdirAll(serviceDir, 0o750); err != nil {
 		t.Fatalf("create service dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(serviceDir, "composia-meta.yaml"), []byte("name: Renovate\nnodes:\n  - main\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(serviceDir, "composia-meta.yaml"), []byte("name: Renovate\nnodes:\n  - main\n"), 0o600); err != nil {
 		t.Fatalf("write service meta: %v", err)
 	}
 
@@ -627,11 +627,11 @@ func TestLoadComposeCommandConfigNormalizesFallbackServiceName(t *testing.T) {
 func TestLoadComposeCommandConfigLoadsComposeFiles(t *testing.T) {
 	rootDir := t.TempDir()
 	serviceDir := filepath.Join(rootDir, "service")
-	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+	if err := os.MkdirAll(serviceDir, 0o750); err != nil {
 		t.Fatalf("create service dir: %v", err)
 	}
 	meta := "name: demo\nproject_name: demo-stack\ncompose_files:\n  - compose.yaml\n  - compose.prod.yaml\nnodes:\n  - main\n"
-	if err := os.WriteFile(filepath.Join(serviceDir, "composia-meta.yaml"), []byte(meta), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(serviceDir, "composia-meta.yaml"), []byte(meta), 0o600); err != nil {
 		t.Fatalf("write service meta: %v", err)
 	}
 
@@ -647,7 +647,7 @@ func TestLoadComposeCommandConfigLoadsComposeFiles(t *testing.T) {
 	}
 }
 
-type errString string
+type errString string //nolint:errname
 
 func (value errString) Error() string {
 	return string(value)

@@ -1,11 +1,16 @@
 package controller
 
 import (
-	"connectrpc.com/connect"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
+	"sync"
+	"time"
+
+	"connectrpc.com/connect"
+
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	appnotify "forgejo.alexma.top/alexma233/composia/internal/app/notify"
@@ -16,9 +21,6 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"slices"
-	"sync"
-	"time"
 )
 
 type agentReportServer struct {
@@ -212,7 +214,7 @@ func (server *agentReportServer) queueAutoApplyUpdateForImageCheck(ctx context.C
 	if err != nil {
 		return fmt.Errorf("read repo revision for image update auto apply: %w", err)
 	}
-	createdTasks, _, err := serviceServer.runServiceUpdateWithImageSelections(ctx, service, nil, selections, false, nil, baseRevision, fmt.Sprintf("update images for %s", service.Name), task.SourceSchedule, composeRecreateModeParam(task.TypeUpdate, controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_AUTO))
+	createdTasks, _, err := serviceServer.runServiceUpdateWithImageSelections(ctx, service, nil, selections, false, nil, baseRevision, "update images for "+service.Name, task.SourceSchedule, composeRecreateModeParam(task.TypeUpdate, controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_AUTO))
 	if err == nil && len(createdTasks) > 0 {
 		dispatchImageUpdateAppliedNotification(server.notifier, record, createdTasks[0], imageUpdateSelectionNames(selections))
 	}

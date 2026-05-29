@@ -1,5 +1,7 @@
 package store
 
+import "strings"
+
 func appendStringFilterInClause(whereClause string, args []any, expression string, values []string) (string, []any) {
 	return appendStringFilterClause(whereClause, args, expression, values, false)
 }
@@ -25,13 +27,15 @@ func appendStringFilterClause(whereClause string, args []any, expression string,
 		whereClause += ` NOT`
 	}
 	whereClause += ` IN (`
+	var whereClauseSb28 strings.Builder
 	for i, value := range filtered {
 		if i > 0 {
-			whereClause += ", "
+			whereClauseSb28.WriteString(", ")
 		}
-		whereClause += "?"
+		whereClauseSb28.WriteString("?")
 		args = append(args, value)
 	}
+	whereClause += whereClauseSb28.String()
 	whereClause += `)`
 
 	return whereClause, args

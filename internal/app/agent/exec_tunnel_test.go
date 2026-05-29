@@ -39,7 +39,7 @@ func TestExecTunnelSenderSerializesConcurrentSends(t *testing.T) {
 	stream := &recordingExecTunnelStream{}
 	sender := newExecTunnelSender(context.Background(), stream)
 	var wg sync.WaitGroup
-	for i := 0; i < 25; i++ {
+	for range 25 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
