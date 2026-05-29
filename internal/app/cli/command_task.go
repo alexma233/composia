@@ -14,7 +14,7 @@ func (application *app) runTask(args []string) error {
 	switch args[0] {
 	case "list": //nolint:goconst
 		return application.runTaskList(args[1:])
-	case "get":
+	case "get": //nolint:goconst
 		return application.runTaskGet(args[1:])
 	case "logs":
 		return application.runTaskLogs(args[1:])
