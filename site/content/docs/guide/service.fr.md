@@ -74,7 +74,7 @@ infra:
 |-----|------|-------------|
 | `compose_service` | `string` | Nom du service Compose. Par défaut `rustic`. |
 | `profile` | `string` | Nom du profil Rustic. |
-| `data_protect_dir` | `string` | Répertoire utilisé par les workflows de protection des données. |
+| `data_protect_dir` | `string` | Chemin dans le conteneur mappé vers `{StateDir}/data-protect` de l'agent. |
 | `init_args` | `[]string` | Arguments supplémentaires passés à `rustic init`. Les entrées vides sont rejetées. |
 
 Un seul service peut être déclaré comme infrastructure Rustic.
@@ -273,7 +273,7 @@ data_protect:
 |-----|------|----------|-------------|
 | `strategy` | `string` | Oui | `files.copy`, `files.copy_after_stop`, `database.pgdumpall` ou `database.pgimport`. |
 | `service` | `string` | Cond. | Requis pour les stratégies `database.*`. Nom du service Compose. |
-| `include` | `[]string` | Cond. | Requis pour les stratégies `files.*`. |
+| `include` | `[]string` | Cond. | Requis pour les stratégies `files.*`. `./...` ou les chemins contenant `/` sont des chemins de service ; les noms simples sont des volumes Docker. |
 
 ## Sauvegardes
 

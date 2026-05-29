@@ -379,7 +379,7 @@ func TestExecuteBackupTaskRunsRusticAndReportsSnapshot(t *testing.T) {
 		t.Fatalf("read docker args file: %v", err)
 	}
 	argsLog := string(argsContent)
-	if !strings.Contains(argsLog, "compose --project-name infra-rustic -f compose.yaml -f compose.backup.yaml run --rm rustic -P prod backup --host main") {
+	if !strings.Contains(argsLog, "compose --project-name infra-rustic -f compose.yaml -f compose.backup.yaml run --rm -v") || !strings.Contains(argsLog, "rustic -P prod backup --host main") {
 		t.Fatalf("unexpected rustic args %q", string(argsContent))
 	}
 	if !strings.Contains(argsLog, "/data-protect/") {
@@ -514,302 +514,194 @@ func TestExecuteCaddyTasksUseServiceDirForGeneratedFileName(t *testing.T) {
 	}
 }
 
-func TestStageIncludeRejectsPathOutsideServiceRoot(t *testing.T) {
+func TestBuildBackupVolumeFlagsServicePath(t *testing.T) {
 	t.Parallel()
 
 	serviceRoot := t.TempDir()
-	stagingDir := t.TempDir()
-	if err := stageInclude(context.Background(), serviceRoot, stagingDir, "../secrets"); err == nil || !strings.Contains(err.Error(), "must stay within the service root") {
+	sourceDir := filepath.Join(serviceRoot, "volumes", "data")
+	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
+		t.Fatalf("create source dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(sourceDir, "hello.txt"), []byte("hello\n"), 0o644); err != nil {
+		t.Fatalf("write source file: %v", err)
+	}
+
+	item := backupcfg.RuntimeItem{Name: "db", Strategy: "files.copy", Include: []string{"./volumes/data"}}
+	flags, err := buildBackupVolumeFlags(serviceRoot, "/data-protect/backup-xxx", item)
+	if err != nil {
+		t.Fatalf("build backup volume flags: %v", err)
+	}
+	if len(flags) != 2 || flags[0] != "-v" || !strings.HasSuffix(flags[1], ":ro") {
+		t.Fatalf("unexpected flags: %v", flags)
+	}
+	if !strings.Contains(flags[1], sourceDir+":/data-protect/backup-xxx/paths/volumes_data:ro") {
+		t.Fatalf("expected service path bind mount, got %q", flags[1])
+	}
+}
+
+func TestBuildBackupVolumeFlagsDockerVolume(t *testing.T) {
+	t.Parallel()
+
+	item := backupcfg.RuntimeItem{Name: "db", Strategy: "files.copy", Include: []string{"caddy_caddy_data"}}
+	flags, err := buildBackupVolumeFlags(t.TempDir(), "/data-protect/backup-xxx", item)
+	if err != nil {
+		t.Fatalf("build backup volume flags: %v", err)
+	}
+	if len(flags) != 2 || flags[0] != "-v" {
+		t.Fatalf("unexpected flags: %v", flags)
+	}
+	expected := "caddy_caddy_data:/data-protect/backup-xxx/volumes/caddy_caddy_data:ro"
+	if flags[1] != expected {
+		t.Fatalf("expected %q, got %q", expected, flags[1])
+	}
+}
+
+func TestBuildBackupVolumeFlagsRejectsPathOutsideServiceRoot(t *testing.T) {
+	t.Parallel()
+
+	item := backupcfg.RuntimeItem{Name: "db", Strategy: "files.copy", Include: []string{"../secrets"}}
+	_, err := buildBackupVolumeFlags(t.TempDir(), "/data-protect/backup-xxx", item)
+	if err == nil || !strings.Contains(err.Error(), "must stay within the service root") {
 		t.Fatalf("expected service root validation error, got %v", err)
 	}
 }
 
-func TestRestoreIncludeRejectsPathOutsideServiceRoot(t *testing.T) {
+func TestBuildBackupVolumeFlagsRejectsMissingServicePath(t *testing.T) {
+	t.Parallel()
+
+	serviceRoot := t.TempDir()
+	item := backupcfg.RuntimeItem{Name: "db", Strategy: "files.copy", Include: []string{"./missing"}}
+	_, err := buildBackupVolumeFlags(serviceRoot, "/data-protect/backup-xxx", item)
+	if err == nil || !strings.Contains(err.Error(), "does not exist") {
+		t.Fatalf("expected missing service path error, got %v", err)
+	}
+}
+
+func TestPrepareRestoreVolumeFlagsServicePath(t *testing.T) {
 	t.Parallel()
 
 	serviceRoot := t.TempDir()
 	stagingDir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(stagingDir, "paths", sanitizeStagePath("../secrets")), 0o755); err != nil {
-		t.Fatalf("create staged restore source: %v", err)
+	targetDir := filepath.Join(serviceRoot, "volumes", "data")
+	if err := os.MkdirAll(filepath.Join(targetDir, "nested"), 0o755); err != nil {
+		t.Fatalf("create target dir: %v", err)
 	}
-	if err := restoreInclude(context.Background(), serviceRoot, stagingDir, "../secrets"); err == nil || !strings.Contains(err.Error(), "must stay within the service root") {
-		t.Fatalf("expected service root validation error, got %v", err)
+	if err := os.WriteFile(filepath.Join(targetDir, "nested", "old.txt"), []byte("old\n"), 0o644); err != nil {
+		t.Fatalf("write old file: %v", err)
+	}
+
+	item := backupcfg.RestoreItem{Name: "db", Strategy: "files.copy", Include: []string{"./volumes/data"}, ArtifactRef: "aaa999"}
+	flags, err := prepareRestoreVolumeFlags(context.Background(), serviceRoot, stagingDir, "/data-protect/restore-xxx", item)
+	if err != nil {
+		t.Fatalf("prepare restore volume flags: %v", err)
+	}
+	if len(flags) != 2 || flags[0] != "-v" {
+		t.Fatalf("unexpected flags: %v", flags)
+	}
+	expected := targetDir + ":/data-protect/restore-xxx/db/paths/volumes_data"
+	if flags[1] != expected {
+		t.Fatalf("expected %q, got %q", expected, flags[1])
+	}
+	if _, err := os.Stat(filepath.Join(targetDir, "nested", "old.txt")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected old file removed, got %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(stagingDir, "db", "paths")); err != nil {
+		t.Fatalf("expected restore staging path dirs: %v", err)
 	}
 }
 
-func TestStageIncludeUsesDockerTarExportForVolume(t *testing.T) {
-	rootDir := t.TempDir()
-	binDir := filepath.Join(rootDir, "bin")
-	dockerLogFile := filepath.Join(rootDir, "docker.log")
-	volumeSourceDir := filepath.Join(rootDir, "volume-source")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
-		t.Fatalf("create bin dir: %v", err)
-	}
-	if err := os.MkdirAll(filepath.Join(volumeSourceDir, "nested"), 0o755); err != nil {
-		t.Fatalf("create fake volume dir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(volumeSourceDir, "nested", "hello.txt"), []byte("hello from volume\n"), 0o644); err != nil {
-		t.Fatalf("seed fake volume file: %v", err)
-	}
-	dockerPath := filepath.Join(binDir, "docker")
-	script := "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\nif [ \"$1\" = \"volume\" ] && [ \"$2\" = \"inspect\" ]; then\n  printf 'unexpected docker volume inspect\\n' >&2\n  exit 91\nfi\nif [ \"$1\" = \"run\" ] && [ \"$2\" = \"--rm\" ] && [ \"$3\" = \"-v\" ] && [ \"$4\" = \"caddy_caddy_data:/source:ro\" ]; then\n  tar -C \"$TEST_VOLUME_SOURCE_DIR\" -cf - .\n  exit 0\nfi\nprintf 'unexpected docker invocation: %s\\n' \"$*\" >&2\nexit 92\n"
-	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
-		t.Fatalf("write fake docker script: %v", err)
-	}
-	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("TEST_DOCKER_LOG_FILE", dockerLogFile)
-	t.Setenv("TEST_VOLUME_SOURCE_DIR", volumeSourceDir)
+func TestApplyRestoreItemRejectsFilesCopy(t *testing.T) {
+	t.Parallel()
 
-	stagingDir := t.TempDir()
-	if err := stageInclude(context.Background(), t.TempDir(), stagingDir, "caddy_caddy_data"); err != nil {
-		t.Fatalf("stage volume include: %v", err)
-	}
-
-	stagedFile := filepath.Join(stagingDir, "volumes", sanitizeStagePath("caddy_caddy_data"), "nested", "hello.txt")
-	content, err := os.ReadFile(stagedFile)
-	if err != nil {
-		t.Fatalf("read staged file: %v", err)
-	}
-	if string(content) != "hello from volume\n" {
-		t.Fatalf("unexpected staged content %q", string(content))
-	}
-
-	dockerLog, err := os.ReadFile(dockerLogFile)
-	if err != nil {
-		t.Fatalf("read docker log: %v", err)
-	}
-	logText := string(dockerLog)
-	expected := "run --rm -v caddy_caddy_data:/source:ro " + dockerVolumeTarImage + " tar -C /source -cf - ."
-	if !strings.Contains(logText, expected) {
-		t.Fatalf("expected docker tar export command %q, got %q", expected, logText)
-	}
-	if strings.Contains(logText, "volume inspect") {
-		t.Fatalf("expected docker volume inspect to be unused, got %q", logText)
-	}
-	if strings.Contains(logText, "/var/lib/docker/volumes/") {
-		t.Fatalf("expected backup flow to avoid docker mountpoints, got %q", logText)
-	}
-}
-
-func TestRestoreIncludeUsesDockerTarImportForVolume(t *testing.T) {
-	rootDir := t.TempDir()
-	binDir := filepath.Join(rootDir, "bin")
-	dockerLogFile := filepath.Join(rootDir, "docker.log")
-	volumeTargetDir := filepath.Join(rootDir, "volume-target")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
-		t.Fatalf("create bin dir: %v", err)
-	}
-	if err := os.MkdirAll(volumeTargetDir, 0o755); err != nil {
-		t.Fatalf("create fake volume target dir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(volumeTargetDir, "stale.txt"), []byte("stale\n"), 0o644); err != nil {
-		t.Fatalf("seed stale file: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(volumeTargetDir, ".stale"), []byte("hidden stale\n"), 0o644); err != nil {
-		t.Fatalf("seed hidden stale file: %v", err)
-	}
-	dockerPath := filepath.Join(binDir, "docker")
-	script := "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\nif [ \"$1\" = \"volume\" ] && [ \"$2\" = \"inspect\" ]; then\n  printf 'unexpected docker volume inspect\\n' >&2\n  exit 93\nfi\nif [ \"$1\" = \"run\" ] && [ \"$2\" = \"-i\" ] && [ \"$3\" = \"--rm\" ] && [ \"$4\" = \"-v\" ] && [ \"$5\" = \"caddy_caddy_data:/target\" ]; then\n  mkdir -p \"$TEST_VOLUME_TARGET_DIR\"\n  rm -rf \"$TEST_VOLUME_TARGET_DIR\"/..?* \"$TEST_VOLUME_TARGET_DIR\"/.[!.]* \"$TEST_VOLUME_TARGET_DIR\"/*\n  tar -C \"$TEST_VOLUME_TARGET_DIR\" -xf -\n  exit 0\nfi\nprintf 'unexpected docker invocation: %s\\n' \"$*\" >&2\nexit 94\n"
-	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
-		t.Fatalf("write fake docker script: %v", err)
-	}
-	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("TEST_DOCKER_LOG_FILE", dockerLogFile)
-	t.Setenv("TEST_VOLUME_TARGET_DIR", volumeTargetDir)
-
-	stagingDir := t.TempDir()
-	stagedVolumeDir := filepath.Join(stagingDir, "volumes", sanitizeStagePath("caddy_caddy_data"), "nested")
-	if err := os.MkdirAll(stagedVolumeDir, 0o755); err != nil {
-		t.Fatalf("create staged volume dir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(stagedVolumeDir, "hello.txt"), []byte("restored from stage\n"), 0o644); err != nil {
-		t.Fatalf("seed staged volume file: %v", err)
-	}
-
-	if err := restoreInclude(context.Background(), t.TempDir(), stagingDir, "caddy_caddy_data"); err != nil {
-		t.Fatalf("restore volume include: %v", err)
-	}
-
-	restoredContent, err := os.ReadFile(filepath.Join(volumeTargetDir, "nested", "hello.txt"))
-	if err != nil {
-		t.Fatalf("read restored file: %v", err)
-	}
-	if string(restoredContent) != "restored from stage\n" {
-		t.Fatalf("unexpected restored content %q", string(restoredContent))
-	}
-	if _, err := os.Stat(filepath.Join(volumeTargetDir, "stale.txt")); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("expected stale file removed, got stat err=%v", err)
-	}
-	if _, err := os.Stat(filepath.Join(volumeTargetDir, ".stale")); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("expected hidden stale file removed, got stat err=%v", err)
-	}
-
-	dockerLog, err := os.ReadFile(dockerLogFile)
-	if err != nil {
-		t.Fatalf("read docker log: %v", err)
-	}
-	logText := string(dockerLog)
-	expected := "run -i --rm -v caddy_caddy_data:/target " + dockerVolumeTarImage + " sh -c " + dockerVolumeImportCmd
-	if !strings.Contains(logText, expected) {
-		t.Fatalf("expected docker tar import command %q, got %q", expected, logText)
-	}
-	if strings.Contains(logText, "volume inspect") {
-		t.Fatalf("expected docker volume inspect to be unused, got %q", logText)
-	}
-	if strings.Contains(logText, "/var/lib/docker/volumes/") {
-		t.Fatalf("expected restore flow to avoid docker mountpoints, got %q", logText)
-	}
-}
-
-func TestApplyRestoreItemUsesBackupItemPathForVolume(t *testing.T) {
-	rootDir := t.TempDir()
-	binDir := filepath.Join(rootDir, "bin")
-	volumeTargetDir := filepath.Join(rootDir, "volume-target")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
-		t.Fatalf("create bin dir: %v", err)
-	}
-	dockerPath := filepath.Join(binDir, "docker")
-	script := "#!/bin/sh\nif [ \"$1\" = \"run\" ] && [ \"$2\" = \"-i\" ] && [ \"$3\" = \"--rm\" ] && [ \"$4\" = \"-v\" ] && [ \"$5\" = \"test_backup:/target\" ]; then\n  mkdir -p \"$TEST_VOLUME_TARGET_DIR\"\n  tar -C \"$TEST_VOLUME_TARGET_DIR\" -xf -\n  exit 0\nfi\nprintf 'unexpected docker invocation: %s\\n' \"$*\" >&2\nexit 97\n"
-	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
-		t.Fatalf("write fake docker script: %v", err)
-	}
-	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("TEST_VOLUME_TARGET_DIR", volumeTargetDir)
-
-	stagingDir := t.TempDir()
-	stagedVolumeDir := filepath.Join(stagingDir, "mydata", "volumes", sanitizeStagePath("test_backup"))
-	if err := os.MkdirAll(stagedVolumeDir, 0o755); err != nil {
-		t.Fatalf("create staged volume dir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(stagedVolumeDir, "hello.txt"), []byte("restored from rustic as-path\n"), 0o644); err != nil {
-		t.Fatalf("seed staged volume file: %v", err)
-	}
-
-	item := backupcfg.RestoreItem{Name: "mydata", Strategy: "files.copy", Include: []string{"test_backup"}}
-	if err := applyRestoreItem(context.Background(), t.TempDir(), filepath.Join(stagingDir, item.Name), item, nil); err != nil {
-		t.Fatalf("apply restore item: %v", err)
-	}
-
-	content, err := os.ReadFile(filepath.Join(volumeTargetDir, "hello.txt"))
-	if err != nil {
-		t.Fatalf("read restored file: %v", err)
-	}
-	if string(content) != "restored from rustic as-path\n" {
-		t.Fatalf("unexpected restored content %q", string(content))
-	}
-}
-
-func TestApplyRestoreItemStopsComposeForCopyAfterStop(t *testing.T) {
-	rootDir := t.TempDir()
-	binDir := filepath.Join(rootDir, "bin")
-	dockerLogFile := filepath.Join(rootDir, "docker.log")
-	volumeTargetDir := filepath.Join(rootDir, "volume-target")
-	serviceRoot := filepath.Join(rootDir, "repo", "test-backup")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
-		t.Fatalf("create bin dir: %v", err)
-	}
-	if err := os.MkdirAll(serviceRoot, 0o755); err != nil {
-		t.Fatalf("create service root: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(serviceRoot, "composia-meta.yaml"), []byte("name: test-backup\nproject_name: test-backup\nnodes:\n  - main\n"), 0o644); err != nil {
-		t.Fatalf("write service meta: %v", err)
-	}
-	dockerPath := filepath.Join(binDir, "docker")
-	script := "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\nif [ \"$1\" = \"compose\" ]; then\n  exit 0\nfi\nif [ \"$1\" = \"run\" ] && [ \"$2\" = \"-i\" ] && [ \"$3\" = \"--rm\" ] && [ \"$4\" = \"-v\" ] && [ \"$5\" = \"test_backup:/target\" ]; then\n  mkdir -p \"$TEST_VOLUME_TARGET_DIR\"\n  tar -C \"$TEST_VOLUME_TARGET_DIR\" -xf -\n  exit 0\nfi\nprintf 'unexpected docker invocation: %s\\n' \"$*\" >&2\nexit 98\n"
-	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
-		t.Fatalf("write fake docker script: %v", err)
-	}
-	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("TEST_DOCKER_LOG_FILE", dockerLogFile)
-	t.Setenv("TEST_VOLUME_TARGET_DIR", volumeTargetDir)
-
-	stagingDir := t.TempDir()
-	stagedVolumeDir := filepath.Join(stagingDir, "mydata", "volumes", sanitizeStagePath("test_backup"))
-	if err := os.MkdirAll(stagedVolumeDir, 0o755); err != nil {
-		t.Fatalf("create staged volume dir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(stagedVolumeDir, "hello.txt"), []byte("cold restored\n"), 0o644); err != nil {
-		t.Fatalf("seed staged volume file: %v", err)
-	}
-
-	item := backupcfg.RestoreItem{Name: "mydata", Strategy: "files.copy_after_stop", Include: []string{"test_backup"}}
-	if err := applyRestoreItem(context.Background(), serviceRoot, filepath.Join(stagingDir, item.Name), item, nil); err != nil {
-		t.Fatalf("apply cold restore item: %v", err)
-	}
-
-	content, err := os.ReadFile(filepath.Join(volumeTargetDir, "hello.txt"))
-	if err != nil {
-		t.Fatalf("read restored file: %v", err)
-	}
-	if string(content) != "cold restored\n" {
-		t.Fatalf("unexpected restored content %q", string(content))
-	}
-	dockerLog, err := os.ReadFile(dockerLogFile)
-	if err != nil {
-		t.Fatalf("read docker log: %v", err)
-	}
-	logText := string(dockerLog)
-	if !strings.Contains(logText, "compose --project-name test-backup down") || !strings.Contains(logText, "compose --project-name test-backup up -d") {
-		t.Fatalf("expected compose down/up around restore, got %q", logText)
-	}
-}
-
-func TestStageIncludeReturnsErrorWhenDockerTarExportFailsForVolume(t *testing.T) {
-	rootDir := t.TempDir()
-	binDir := filepath.Join(rootDir, "bin")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
-		t.Fatalf("create bin dir: %v", err)
-	}
-	dockerPath := filepath.Join(binDir, "docker")
-	script := "#!/bin/sh\nif [ \"$1\" = \"run\" ] && [ \"$2\" = \"--rm\" ] && [ \"$3\" = \"-v\" ] && [ \"$4\" = \"caddy_caddy_data:/source:ro\" ]; then\n  printf 'export failed\\n' >&2\n  exit 44\nfi\nprintf 'unexpected docker invocation: %s\\n' \"$*\" >&2\nexit 95\n"
-	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
-		t.Fatalf("write fake docker script: %v", err)
-	}
-	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-
-	err := stageInclude(context.Background(), t.TempDir(), t.TempDir(), "caddy_caddy_data")
+	item := backupcfg.RestoreItem{Name: "db", Strategy: "files.copy"}
+	err := applyRestoreItem(context.Background(), t.TempDir(), t.TempDir(), item, nil)
 	if err == nil {
-		t.Fatalf("expected stage volume export to fail")
-	}
-	if !strings.Contains(err.Error(), "docker run volume export failed") {
-		t.Fatalf("expected docker export failure in error, got %v", err)
-	}
-	if !strings.Contains(err.Error(), "export failed") {
-		t.Fatalf("expected docker stderr in error, got %v", err)
+		t.Fatal("expected error for files.copy strategy")
 	}
 }
 
-func TestRestoreIncludeReturnsErrorWhenDockerTarImportFailsForVolume(t *testing.T) {
+func TestPrepareRestoreVolumeFlagsServiceFile(t *testing.T) {
+	t.Parallel()
+
+	serviceRoot := t.TempDir()
+	stagingDir := t.TempDir()
+	targetPath := filepath.Join(serviceRoot, "config", "app.env")
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+		t.Fatalf("create target parent: %v", err)
+	}
+	if err := os.WriteFile(targetPath, []byte("old\n"), 0o640); err != nil {
+		t.Fatalf("write old file: %v", err)
+	}
+
+	item := backupcfg.RestoreItem{Name: "config", Strategy: "files.copy", Include: []string{"./config/app.env"}, ArtifactRef: "aaa999"}
+	flags, err := prepareRestoreVolumeFlags(context.Background(), serviceRoot, stagingDir, "/data-protect/restore-xxx", item)
+	if err != nil {
+		t.Fatalf("prepare restore volume flags: %v", err)
+	}
+	expected := targetPath + ":/data-protect/restore-xxx/config/paths/config_app.env"
+	if len(flags) != 2 || flags[1] != expected {
+		t.Fatalf("expected %q, got %v", expected, flags)
+	}
+	info, err := os.Stat(targetPath)
+	if err != nil {
+		t.Fatalf("expected target file placeholder: %v", err)
+	}
+	if info.IsDir() {
+		t.Fatal("expected target file placeholder, got directory")
+	}
+}
+
+func TestRestoreRuntimeItemDirectMountsItemPath(t *testing.T) {
 	rootDir := t.TempDir()
 	binDir := filepath.Join(rootDir, "bin")
+	dockerLogFile := filepath.Join(rootDir, "docker.log")
 	if err := os.MkdirAll(binDir, 0o755); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
 	dockerPath := filepath.Join(binDir, "docker")
-	script := "#!/bin/sh\nif [ \"$1\" = \"run\" ] && [ \"$2\" = \"-i\" ] && [ \"$3\" = \"--rm\" ] && [ \"$4\" = \"-v\" ] && [ \"$5\" = \"caddy_caddy_data:/target\" ]; then\n  printf 'import failed\\n' >&2\n  exit 45\nfi\nprintf 'unexpected docker invocation: %s\\n' \"$*\" >&2\nexit 96\n"
+	script := "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\nexit 0\n"
 	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil {
 		t.Fatalf("write fake docker script: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("TEST_DOCKER_LOG_FILE", dockerLogFile)
 
-	stagingDir := t.TempDir()
-	stagedVolumeDir := filepath.Join(stagingDir, "volumes", sanitizeStagePath("caddy_caddy_data"))
-	if err := os.MkdirAll(stagedVolumeDir, 0o755); err != nil {
-		t.Fatalf("create staged volume dir: %v", err)
+	cfg := &config.AgentConfig{StateDir: filepath.Join(rootDir, "state")}
+	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+		t.Fatalf("create state dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(stagedVolumeDir, "hello.txt"), []byte("restore me\n"), 0o644); err != nil {
-		t.Fatalf("seed staged file: %v", err)
+	serviceRoot := filepath.Join(rootDir, "repo", "demo")
+	targetDir := filepath.Join(serviceRoot, "config")
+	if err := os.MkdirAll(targetDir, 0o755); err != nil {
+		t.Fatalf("create restore target: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(targetDir, "stale.txt"), []byte("stale\n"), 0o644); err != nil {
+		t.Fatalf("write stale file: %v", err)
+	}
+	rusticRoot := filepath.Join(rootDir, "repo", "backup")
+	if err := os.MkdirAll(rusticRoot, 0o755); err != nil {
+		t.Fatalf("create rustic root: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(rusticRoot, "composia-meta.yaml"), []byte("name: backup\nproject_name: infra-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o644); err != nil {
+		t.Fatalf("write rustic meta: %v", err)
 	}
 
-	err := restoreInclude(context.Background(), t.TempDir(), stagingDir, "caddy_caddy_data")
-	if err == nil {
-		t.Fatalf("expected restore volume import to fail")
+	item := backupcfg.RestoreItem{Name: "config", Strategy: "files.copy", Include: []string{"./config"}, ArtifactRef: "abc123"}
+	rustic := &backupcfg.RusticConfig{ServiceName: "backup", ComposeService: "rustic", DataProtectDir: "/data-protect"}
+	if err := restoreRuntimeItem(context.Background(), cfg, serviceRoot, rusticRoot, "task-restore", item, rustic, nil); err != nil {
+		t.Fatalf("restore runtime item: %v", err)
 	}
-	if !strings.Contains(err.Error(), "docker run volume import failed") {
-		t.Fatalf("expected docker import failure in error, got %v", err)
+
+	if _, err := os.Stat(filepath.Join(targetDir, "stale.txt")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected stale target cleared, got %v", err)
 	}
-	if !strings.Contains(err.Error(), "import failed") {
-		t.Fatalf("expected docker stderr in error, got %v", err)
+	dockerLog, err := os.ReadFile(dockerLogFile)
+	if err != nil {
+		t.Fatalf("read docker log: %v", err)
+	}
+	logText := string(dockerLog)
+	if !strings.Contains(logText, "run --rm -v ") || !strings.Contains(logText, targetDir+":/data-protect/restore-") || !strings.Contains(logText, "/config/paths/config") || !strings.Contains(logText, " rustic restore abc123 /data-protect/restore-") {
+		t.Fatalf("expected direct restore bind mount under item path, got %q", logText)
 	}
 }
 
@@ -885,7 +777,7 @@ func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read docker log: %v", err)
 	}
-	if !strings.Contains(string(dockerLog), "compose --project-name demo -f compose.yaml down") || !strings.Contains(string(dockerLog), "compose --project-name demo -f compose.yaml up -d") || !strings.Contains(string(dockerLog), "compose --project-name infra-rustic -f compose.backup.yaml run --rm rustic backup --host main") {
+	if !strings.Contains(string(dockerLog), "compose --project-name demo -f compose.yaml down") || !strings.Contains(string(dockerLog), "compose --project-name demo -f compose.yaml up -d") || !strings.Contains(string(dockerLog), "compose --project-name infra-rustic -f compose.backup.yaml run --rm -v") || !strings.Contains(string(dockerLog), "rustic backup --host main") {
 		t.Fatalf("expected compose down and up around backup, got %q", string(dockerLog))
 	}
 	if !strings.Contains(string(dockerLog), "/data-protect/") {

@@ -141,7 +141,7 @@ func loadRusticTaskMeta(serviceDir, fallback string) (rusticTaskMeta, error) {
 }
 
 func runRusticInit(ctx context.Context, serviceDir string, meta rusticTaskMeta, uploadLog func(string) error) error {
-	args := buildRusticComposeRunArgs(meta.Compose, meta.ComposeService, meta.Profile, append([]string{"init"}, meta.InitArgs...)...)
+	args := buildRusticComposeRunArgs(meta.Compose, meta.ComposeService, meta.Profile, nil, append([]string{"init"}, meta.InitArgs...)...)
 	command := exec.CommandContext(ctx, "docker", args...)
 	command.Dir = serviceDir
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
@@ -151,7 +151,7 @@ func runRusticInit(ctx context.Context, serviceDir string, meta rusticTaskMeta, 
 }
 
 func runRusticForget(ctx context.Context, serviceDir string, meta rusticTaskMeta, params rusticMaintenanceTaskParams, nodeID string, uploadLog func(string) error) error {
-	args := buildRusticComposeRunArgs(meta.Compose, meta.ComposeService, meta.Profile, "forget")
+	args := buildRusticComposeRunArgs(meta.Compose, meta.ComposeService, meta.Profile, nil, "forget")
 	if !params.RepoWide && nodeID != "" {
 		args = append(args, "--filter-host", nodeID)
 	}
@@ -170,7 +170,7 @@ func runRusticForget(ctx context.Context, serviceDir string, meta rusticTaskMeta
 }
 
 func runRusticPrune(ctx context.Context, serviceDir string, meta rusticTaskMeta, uploadLog func(string) error) error {
-	args := buildRusticComposeRunArgs(meta.Compose, meta.ComposeService, meta.Profile, "prune")
+	args := buildRusticComposeRunArgs(meta.Compose, meta.ComposeService, meta.Profile, nil, "prune")
 	command := exec.CommandContext(ctx, "docker", args...)
 	command.Dir = serviceDir
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
@@ -181,12 +181,12 @@ func runRusticPrune(ctx context.Context, serviceDir string, meta rusticTaskMeta,
 
 var rusticSnapshotRegexp = regexp.MustCompile(`(?m)snapshot\s+([0-9a-fA-F]+)\b[^\n]*\bsaved\.?`)
 
-func runRusticBackup(ctx context.Context, rusticDir string, rustic *backupcfg.RusticConfig, sourceDir string, item backupcfg.RuntimeItem, logUploader *taskLogUploader) (string, error) {
+func runRusticBackup(ctx context.Context, rusticDir string, rustic *backupcfg.RusticConfig, sourceDir string, item backupcfg.RuntimeItem, logUploader *taskLogUploader, extraVolumes []string) (string, error) {
 	compose, _, err := loadComposeCommandConfig(rusticDir, rustic.ServiceName)
 	if err != nil {
 		return "", err
 	}
-	args := buildRusticComposeRunArgs(compose, rustic.ComposeService, rustic.Profile, "backup", "--host", rustic.NodeID)
+	args := buildRusticComposeRunArgs(compose, rustic.ComposeService, rustic.Profile, extraVolumes, "backup", "--host", rustic.NodeID)
 	for _, tag := range buildRusticTags(item.Tags) {
 		args = append(args, "--tag", tag)
 	}
@@ -206,12 +206,12 @@ func runRusticBackup(ctx context.Context, rusticDir string, rustic *backupcfg.Ru
 	return matches[1], nil
 }
 
-func runRusticRestore(ctx context.Context, rusticDir string, rustic *backupcfg.RusticConfig, artifactRef, targetDir string, logUploader *taskLogUploader) error {
+func runRusticRestore(ctx context.Context, rusticDir string, rustic *backupcfg.RusticConfig, artifactRef, targetDir string, logUploader *taskLogUploader, extraVolumes []string) error {
 	compose, _, err := loadComposeCommandConfig(rusticDir, rustic.ServiceName)
 	if err != nil {
 		return err
 	}
-	args := buildRusticComposeRunArgs(compose, rustic.ComposeService, rustic.Profile, "restore", artifactRef, targetDir)
+	args := buildRusticComposeRunArgs(compose, rustic.ComposeService, rustic.Profile, extraVolumes, "restore", artifactRef, targetDir)
 	command := exec.CommandContext(ctx, "docker", args...)
 	command.Dir = rusticDir
 	if err := runCommandWithLiveLogs(command, func(output string) error {

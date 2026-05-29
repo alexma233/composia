@@ -31,8 +31,6 @@ const (
 	taskReportTimeout      = 10 * time.Second
 	taskExecutionTimeout   = 6 * time.Hour
 	taskRetryAfterPollFail = 1 * time.Second
-	dockerVolumeTarImage   = "alpine:3.20"
-	dockerVolumeImportCmd  = "rm -rf /target/..?* /target/.[!.]* /target/* && tar -C /target -xf -"
 	composeRecreateAuto    = "auto"
 	composeRecreateNo      = "no_recreate"
 	composeRecreateForce   = "force_recreate"

@@ -74,7 +74,7 @@ infra:
 |-----|------|-------------|
 | `compose_service` | `string` | Compose service name. Defaults to `rustic`. |
 | `profile` | `string` | Rustic profile name. |
-| `data_protect_dir` | `string` | Directory used by data protection workflows. |
+| `data_protect_dir` | `string` | Container path mapped to the agent's `{StateDir}/data-protect`. |
 | `init_args` | `[]string` | Extra args passed to `rustic init`. Empty entries are rejected. |
 
 Only one service can be declared as Rustic infrastructure.
@@ -273,7 +273,7 @@ data_protect:
 |-----|------|----------|-------------|
 | `strategy` | `string` | Yes | `files.copy`, `files.copy_after_stop`, `database.pgdumpall`, or `database.pgimport`. |
 | `service` | `string` | Cond. | Required for `database.*` strategies. Compose service name. |
-| `include` | `[]string` | Cond. | Required for `files.*` strategies. |
+| `include` | `[]string` | Cond. | Required for `files.*` strategies. Use `./...` or paths containing `/` for service paths; bare names are Docker volume names. |
 
 ## Backups
 

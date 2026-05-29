@@ -74,7 +74,7 @@ infra:
 |-----|------|-------------|
 | `compose_service` | `string` | Compose 服務名稱。預設為 `rustic`。 |
 | `profile` | `string` | Rustic 設定檔名稱。 |
-| `data_protect_dir` | `string` | 資料保護工作流程使用的目錄。 |
+| `data_protect_dir` | `string` | Rustic 容器內對應代理端 `{StateDir}/data-protect` 的路徑。 |
 | `init_args` | `[]string` | 傳遞給 `rustic init` 的額外參數。空白項目會被拒絕。 |
 
 只有一個服務可以宣告為 Rustic 基礎架構。
@@ -273,7 +273,7 @@ data_protect:
 |-----|------|----------|-------------|
 | `strategy` | `string` | 是 | `files.copy`、`files.copy_after_stop`、`database.pgdumpall` 或 `database.pgimport`。 |
 | `service` | `string` | 條件必要 | `database.*` 策略的必要項。Compose 服務名稱。 |
-| `include` | `[]string` | 條件必要 | `files.*` 策略的必要項。 |
+| `include` | `[]string` | 條件必要 | `files.*` 策略的必要項。使用 `./...` 或包含 `/` 的路徑表示服務路徑；裸名表示 Docker 磁碟區名稱。 |
 
 ## 備份
 

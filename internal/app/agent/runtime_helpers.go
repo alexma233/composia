@@ -28,8 +28,10 @@ func buildComposeArgs(config composeCommandConfig, commandArgs ...string) []stri
 	return args
 }
 
-func buildRusticComposeRunArgs(config composeCommandConfig, composeService, profile string, commandArgs ...string) []string {
-	args := buildComposeArgs(config, "run", "--rm", composeService)
+func buildRusticComposeRunArgs(config composeCommandConfig, composeService, profile string, extraRunOpts []string, commandArgs ...string) []string {
+	args := buildComposeArgs(config, "run", "--rm")
+	args = append(args, extraRunOpts...)
+	args = append(args, composeService)
 	if profile != "" {
 		args = append(args, "-P", profile)
 	}

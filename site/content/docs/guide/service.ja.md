@@ -74,7 +74,7 @@ infra:
 |-----|------|-------------|
 | `compose_service` | `string` | Compose サービス名。デフォルトは `rustic`。 |
 | `profile` | `string` | Rustic プロファイル名。 |
-| `data_protect_dir` | `string` | データ保護ワークフローで使用されるディレクトリ。 |
+| `data_protect_dir` | `string` | エージェントの `{StateDir}/data-protect` にマッピングされるコンテナ内パス。 |
 | `init_args` | `[]string` | `rustic init` に渡される追加引数。空のエントリは拒否されます。 |
 
 Rustic インフラストラクチャとして宣言できるサービスは 1 つだけです。
@@ -273,7 +273,7 @@ data_protect:
 |-----|------|----------|-------------|
 | `strategy` | `string` | はい | `files.copy`、`files.copy_after_stop`、`database.pgdumpall`、`database.pgimport`。 |
 | `service` | `string` | 条件付き | `database.*` 戦略で必須。Compose サービス名。 |
-| `include` | `[]string` | 条件付き | `files.*` 戦略で必須。 |
+| `include` | `[]string` | 条件付き | `files.*` 戦略で必須。`./...` または `/` を含むパスはサービスパス、裸の名前は Docker ボリューム名です。 |
 
 ## バックアップ
 

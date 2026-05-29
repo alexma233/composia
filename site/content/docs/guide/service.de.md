@@ -74,7 +74,7 @@ infra:
 |-----|------|-------------|
 | `compose_service` | `string` | Name des Compose-Dienstes. Standardmäßig `rustic`. |
 | `profile` | `string` | Rustic-Profilname. |
-| `data_protect_dir` | `string` | Verzeichnis, das von Datenschutz-Workflows verwendet wird. |
+| `data_protect_dir` | `string` | Container-Pfad, der auf `{StateDir}/data-protect` des Agenten gemappt wird. |
 | `init_args` | `[]string` | Zusätzliche Argumente, die an `rustic init` übergeben werden. Leere Einträge werden abgelehnt. |
 
 Nur ein Dienst kann als Rustic-Infrastruktur deklariert werden.
@@ -273,7 +273,7 @@ data_protect:
 |-----|------|----------|-------------|
 | `strategy` | `string` | Ja | `files.copy`, `files.copy_after_stop`, `database.pgdumpall` oder `database.pgimport`. |
 | `service` | `string` | Bed. | Erforderlich für `database.*`-Strategien. Name des Compose-Dienstes. |
-| `include` | `[]string` | Bed. | Erforderlich für `files.*`-Strategien. |
+| `include` | `[]string` | Bed. | Erforderlich für `files.*`-Strategien. `./...` oder Pfade mit `/` sind Dienstpfade; reine Namen sind Docker-Volume-Namen. |
 
 ## Backups
 

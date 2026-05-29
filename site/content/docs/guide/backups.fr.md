@@ -21,7 +21,7 @@ infra:
     data_protect_dir: /data-protect
 ```
 
-Le service Compose Rustic est un conteneur Docker normal exécutant le binaire `rustic`. Il doit avoir un volume pour le répertoire de protection des données.
+Le service Compose Rustic est un conteneur Docker normal exécutant le binaire `rustic`. Il doit avoir un volume qui mappe `{StateDir}/data-protect` de l'agent vers le chemin défini dans `data_protect_dir`.
 
 ## Configuration du contrôleur
 
@@ -73,10 +73,10 @@ data_protect:
 
 | Stratégie | Rôle |
 |----------|---------|
-| `files.copy` | Copier des fichiers et répertoires. À utiliser pour les données lisibles en direct. |
-| `files.copy_after_stop` | Arrêter le projet Compose, copier les fichiers, redémarrer. À utiliser pour les données qui doivent être figées. |
-| `database.pgdumpall` | Exécuter `pg_dumpall` à l'intérieur du service Compose. Nécessite que `service` soit défini. |
-| `database.pgimport` | Restaurer un dump PostgreSQL via `psql`. Nécessite que `service` soit défini. |
+| `files.copy` | Monte les chemins source en lecture seule dans le conteneur Rustic via bind mount pour la sauvegarde. Pour les données lisibles en direct. |
+| `files.copy_after_stop` | Arrête le projet Compose, monte les chemins source en bind mount, sauvegarde, puis redémarre. Pour les données qui doivent être figées. |
+| `database.pgdumpall` | Exécute `pg_dumpall` à l'intérieur du service Compose. Nécessite que `service` soit défini. |
+| `database.pgimport` | Restaure un dump PostgreSQL via `psql`. Nécessite que `service` soit défini. |
 
 ### Champs d'action de données
 
@@ -84,14 +84,14 @@ data_protect:
 |-----|------|-------------|-------------|
 | `strategy` | `string` | Toutes | Stratégie de sauvegarde ou de restauration. |
 | `service` | `string` | `database.*` | Nom du service Compose. |
-| `include` | `[]string` | `files.*` | Chemins à inclure, relatifs au répertoire du service. Reste à l'intérieur de la racine du service. |
+| `include` | `[]string` | `files.*` | Chemins à inclure. Chemins de service (relatifs à la racine du service, commençant par `./` ou contenant `/`) ou noms de volumes Docker (nom simple sans séparateur de chemin). |
 
 ### Types de chemins d'inclusion
 
 Les chemins peuvent référencer :
 
-- **Chemins de service** : fichiers ou répertoires à l'intérieur du répertoire du service. Copiés directement.
-- **Volumes nommés** : noms de volumes Docker. Sauvegardés en lançant un conteneur temporaire qui monte le volume.
+- **Chemins de service** : fichiers ou répertoires à l'intérieur du répertoire du service. Montés en lecture seule dans le conteneur Rustic via `-v`.
+- **Volumes nommés** : noms de volumes Docker. Montés en lecture seule dans le conteneur Rustic via `-v` (aucun conteneur temporaire nécessaire).
 
 ## Planifications de sauvegarde
 
@@ -124,8 +124,8 @@ Une tâche de sauvegarde exécute ces étapes sur l'agent :
 
 1. **Rendu** : télécharger le bundle de service et le bundle Rustic depuis le contrôleur. Lire `.composia-backup.json` généré par le contrôleur.
 2. **Sauvegarde** : pour chaque élément de données dans la configuration d'exécution :
-   - Préparer les données selon la stratégie de sauvegarde (`files.copy`, `files.copy_after_stop`, `database.pgdumpall`).
-   - Exécuter `docker compose run rustic backup` avec des balises identifiant le service et l'élément de données.
+   - `files.*`: créer un répertoire de staging vide sous `data-protect`, ajouter des bind mounts `-v` pour chaque chemin ou volume inclus, puis exécuter `docker compose run -v ... rustic backup` avec des balises identifiant le service et l'élément de données. Aucune donnée n'est copiée dans le répertoire state de l'agent.
+   - `database.pgdumpall`: exécuter `docker compose exec <service> pg_dumpall`, écrire le dump SQL dans un fichier de staging sous `data-protect`, puis exécuter `docker compose run rustic backup` sur le répertoire de staging.
    - Rapporter le résultat (ID du snapshot) au contrôleur.
 3. La tâche se termine lorsque tous les éléments sont sauvegardés.
 
@@ -143,11 +143,11 @@ Le processus de restauration :
 
 1. **Rendu** : télécharger le bundle de service et le bundle Rustic. Lire `.composia-restore.json`.
 2. **Restauration** : pour chaque élément :
-   - Exécuter `docker compose run rustic restore <snapshot_id> <target_dir>`.
-   - Appliquer les données restaurées selon la stratégie de restauration :
-     - `files.copy` : remplacer les fichiers dans le répertoire du service.
-     - `files.copy_after_stop` : arrêter Compose, remplacer les fichiers, redémarrer Compose.
-     - `database.pgimport` : exécuter `docker compose exec <service> psql` avec le dump SQL restauré.
+   - `files.copy` / `files.copy_after_stop`: nettoyer les cibles de restauration (les cibles doivent exister), créer un répertoire de staging vide sous `data-protect`, monter chaque chemin cible ou volume Docker dans l'arborescence de staging via bind mount, puis exécuter `docker compose run -v ... rustic restore <snapshot_id> <staging_dir>`. Les données restaurées sont écrites directement dans les emplacements cibles — aucune étape de copie post-restauration.
+   - `files.copy_after_stop`: arrête également le projet Compose avant la restauration et le redémarre après.
+   - `database.pgimport`: exécuter `docker compose run rustic restore <snapshot_id>` dans un répertoire de staging, puis exécuter `docker compose exec <service> psql` avec le dump SQL restauré.
+
+Les cibles de restauration pour les chemins de service `files.*` doivent déjà exister sur l'agent (utilisé pour déterminer la sémantique bind-mount fichier/répertoire). Les cibles de volumes Docker sont vidées avant la restauration.
 
 ## Maintenance Rustic
 

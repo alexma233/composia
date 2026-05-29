@@ -21,7 +21,7 @@ infra:
     data_protect_dir: /data-protect
 ```
 
-Rustic compose 服务是一个运行 `rustic` 二进制文件的普通 Docker 容器。它应该有一个用于数据保护目录的卷。
+Rustic compose 服务是一个运行 `rustic` 二进制文件的普通 Docker 容器。它必须有一个卷，将 agent 的 `{StateDir}/data-protect` 映射到 `data_protect_dir` 设置的路径。
 
 ## 控制器配置
 
@@ -73,8 +73,8 @@ data_protect:
 
 | 策略 | 用途 |
 |----------|---------|
-| `files.copy` | 复制文件和目录。用于可实时读取的数据。 |
-| `files.copy_after_stop` | 停止 compose 项目，复制文件，然后重新启动。用于需要静止状态的数据。 |
+| `files.copy` | 将源路径以只读方式 bind-mount 到 Rustic 容器中备份。用于可实时读取的数据。 |
+| `files.copy_after_stop` | 停止 compose 项目，bind-mount 源路径，备份，然后重新启动。用于需要静止状态的数据。 |
 | `database.pgdumpall` | 在 compose 服务内运行 `pg_dumpall`。需要设置 `service`。 |
 | `database.pgimport` | 通过 `psql` 恢复 PostgreSQL 转储。需要设置 `service`。 |
 
@@ -84,14 +84,14 @@ data_protect:
 |-----|------|-------------|-------------|
 | `strategy` | `string` | 全部 | 备份或恢复策略。 |
 | `service` | `string` | `database.*` | Compose 服务名称。 |
-| `include` | `[]string` | `files.*` | 要包含的路径，相对于服务目录。不能超出服务根目录。 |
+| `include` | `[]string` | `files.*` | 要包含的路径。服务路径（相对服务根目录，以 `./` 开头或包含 `/`）或 Docker 卷名（不含路径分隔符的纯名称）。 |
 
 ### 包含路径类型
 
 路径可以引用：
 
-- **服务路径**: 服务目录内的文件或目录，直接复制。
-- **命名卷**: Docker 卷名。通过启动一个挂载该卷的临时容器进行备份。
+- **服务路径**: 服务目录内的文件或目录。通过 `-v` 以只读方式 bind-mount 到 Rustic 容器中。
+- **命名卷**: Docker 卷名。通过 `-v` 以只读方式 bind-mount 到 Rustic 容器中（无需临时容器）。
 
 ## 备份计划
 
@@ -124,8 +124,8 @@ backup:
 
 1. **渲染**: 从控制器下载服务包和 Rustic 包。读取由控制器生成的 `.composia-backup.json`。
 2. **备份**: 对运行时配置中的每个数据项：
-   - 根据备份策略（`files.copy`、`files.copy_after_stop`、`database.pgdumpall`）准备数据。
-   - 运行 `docker compose run rustic backup`，并带上标识服务和数据项的标签。
+   - `files.*`: 在 `data-protect` 下创建空临时目录，为每个 include 路径或卷添加 `-v` bind mount 参数，然后运行 `docker compose run -v ... rustic backup` 并带上标识服务和数据项的标签。数据不会被复制到 agent 的 state 目录中。
+   - `database.pgdumpall`: 运行 `docker compose exec <service> pg_dumpall`，将 SQL 转储写入 `data-protect` 下的暂存文件，然后运行 `docker compose run rustic backup` 备份暂存目录。
    - 将结果（快照 ID）上报给控制器。
 3. 所有项备份完成，任务结束。
 
@@ -143,11 +143,11 @@ composia backup restore <backup-id>
 
 1. **渲染**: 下载服务包和 Rustic 包。读取 `.composia-restore.json`。
 2. **恢复**: 对每个项：
-   - 运行 `docker compose run rustic restore <snapshot_id> <target_dir>`。
-   - 根据恢复策略应用恢复的数据：
-     - `files.copy`: 替换服务目录中的文件。
-     - `files.copy_after_stop`: 停止 compose，替换文件，重启 compose。
-     - `database.pgimport`: 使用恢复的 SQL 转储运行 `docker compose exec <service> psql`。
+   - `files.copy` / `files.copy_after_stop`: 清理恢复目标（目标必须已存在），在 `data-protect` 下创建空临时目录，将每个目标路径或 Docker 卷 bind-mount 到临时目录树中，然后运行 `docker compose run -v ... rustic restore <snapshot_id> <staging_dir>`。恢复的数据直接写入目标位置——无需恢复后的复制步骤。
+   - `files.copy_after_stop`: 额外在恢复前停止 compose 项目，恢复后重新启动。
+   - `database.pgimport`: 运行 `docker compose run rustic restore <snapshot_id>` 恢复到临时目录，然后使用恢复的 SQL 转储运行 `docker compose exec <service> psql`。
+
+`files.*` 策略恢复时，服务路径目标必须先存在于 agent 上（用于确定 bind-mount 的文件/目录语义）。Docker 卷目标会在恢复前被清空。
 
 ## Rustic 维护
 

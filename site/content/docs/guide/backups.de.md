@@ -21,7 +21,7 @@ infra:
     data_protect_dir: /data-protect
 ```
 
-Der Rustic-Compose-Dienst ist ein normaler Docker-Container, der die `rustic`-Binary ausführt. Er sollte ein Volume für das Data-Protect-Verzeichnis haben.
+Der Rustic-Compose-Dienst ist ein normaler Docker-Container, der die `rustic`-Binary ausführt. Er muss ein Volume haben, das `{StateDir}/data-protect` des Agenten auf den in `data_protect_dir` gesetzten Pfad abbildet.
 
 ## Controller-Konfiguration
 
@@ -73,8 +73,8 @@ data_protect:
 
 | Strategie | Zweck |
 |----------|---------|
-| `files.copy` | Kopiert Dateien und Verzeichnisse. Für live-lesbare Daten. |
-| `files.copy_after_stop` | Stoppt das Compose-Projekt, kopiert Dateien, startet neu. Für Daten, die ruhiggestellt werden müssen. |
+| `files.copy` | Bind-mountet Quellpfade read-only in den Rustic-Container für Backup. Für live-lesbare Daten. |
+| `files.copy_after_stop` | Stoppt das Compose-Projekt, bind-mountet Quellpfade, sichert und startet neu. Für Daten, die ruhiggestellt werden müssen. |
 | `database.pgdumpall` | Führt `pg_dumpall` im Compose-Dienst aus. Erfordert, dass `service` gesetzt ist. |
 | `database.pgimport` | Stellt einen PostgreSQL-Dump über `psql` wieder her. Erfordert, dass `service` gesetzt ist. |
 
@@ -84,14 +84,14 @@ data_protect:
 |-----|------|-------------|-------------|
 | `strategy` | `string` | Alle | Backup- oder Restore-Strategie. |
 | `service` | `string` | `database.*` | Name des Compose-Dienstes. |
-| `include` | `[]string` | `files.*` | Pfade zum Einbeziehen, relativ zum Dienstverzeichnis. Bleibt innerhalb des Dienststamms. |
+| `include` | `[]string` | `files.*` | Einzubeziehende Pfade. Dienstpfade (relativ zum Dienststamm, beginnend mit `./` oder mit `/`) oder Docker-Volume-Namen (reiner Name ohne Pfadtrenner). |
 
 ### Include-Pfadtypen
 
 Pfade können sich beziehen auf:
 
-- **Dienstpfade**: Dateien oder Verzeichnisse innerhalb des Dienstverzeichnisses. Direkt kopiert.
-- **Benannte Volumes**: Docker-Volume-Namen. Gesichert durch Starten eines temporären Containers, der das Volume einbindet.
+- **Dienstpfade**: Dateien oder Verzeichnisse innerhalb des Dienstverzeichnisses. Werden per `-v` read-only in den Rustic-Container bind-gemountet.
+- **Benannte Volumes**: Docker-Volume-Namen. Werden per `-v` read-only in den Rustic-Container bind-gemountet (kein temporärer Container nötig).
 
 ## Backup-Zeitpläne
 
@@ -124,8 +124,8 @@ Eine Backup-Aufgabe führt diese Schritte auf dem Agenten aus:
 
 1. **Rendern**: Lädt das Dienstpaket und das Rustic-Paket vom Controller herunter. Liest `.composia-backup.json`, das vom Controller generiert wurde.
 2. **Backup**: Für jedes Datenelement in der Laufzeitkonfiguration:
-   - Stellt die Daten gemäß der Backup-Strategie bereit (`files.copy`, `files.copy_after_stop`, `database.pgdumpall`).
-   - Führt `docker compose run rustic backup` mit Tags aus, die den Dienst und das Datenelement identifizieren.
+   - `files.*`: Erstellt ein leeres Staging-Verzeichnis unter `data-protect`, fügt `-v` Bind-Mounts für jeden Include-Pfad oder jedes Volume hinzu und führt `docker compose run -v ... rustic backup` mit Tags aus, die den Dienst und das Datenelement identifizieren. Keine Daten werden in das Agent-State-Verzeichnis kopiert.
+   - `database.pgdumpall`: Führt `docker compose exec <service> pg_dumpall` aus, schreibt den SQL-Dump in eine Staging-Datei unter `data-protect` und führt dann `docker compose run rustic backup` auf dem Staging-Verzeichnis aus.
    - Meldet das Ergebnis (Snapshot-ID) an den Controller.
 3. Die Aufgabe endet, wenn alle Elemente gesichert sind.
 
@@ -143,11 +143,11 @@ Der Restore-Prozess:
 
 1. **Rendern**: Lädt das Dienstpaket und das Rustic-Paket herunter. Liest `.composia-restore.json`.
 2. **Restore**: Für jedes Element:
-   - Führt `docker compose run rustic restore <snapshot_id> <target_dir>` aus.
-   - Wendet die wiederhergestellten Daten gemäß der Restore-Strategie an:
-     - `files.copy`: Ersetzt Dateien im Dienstverzeichnis.
-     - `files.copy_after_stop`: Stoppt Compose, ersetzt Dateien, startet Compose neu.
-     - `database.pgimport`: Führt `docker compose exec <service> psql` mit dem wiederhergestellten SQL-Dump aus.
+   - `files.copy` / `files.copy_after_stop`: Bereinigt die Restore-Ziele (Ziele müssen existieren), erstellt ein leeres Staging-Verzeichnis unter `data-protect`, bind-mountet jeden Zielpfad oder jedes Docker-Volume in den Staging-Baum und führt dann `docker compose run -v ... rustic restore <snapshot_id> <staging_dir>` aus. Wiederhergestellte Daten werden direkt in die Zielorte geschrieben — kein nachträglicher Kopierschritt.
+   - `files.copy_after_stop`: Stoppt zusätzlich das Compose-Projekt vor dem Restore und startet es danach neu.
+   - `database.pgimport`: Führt `docker compose run rustic restore <snapshot_id>` in ein Staging-Verzeichnis aus und führt dann `docker compose exec <service> psql` mit dem wiederhergestellten SQL-Dump aus.
+
+Restore-Ziele für `files.*`-Dienstpfade müssen auf dem Agenten bereits existieren (wird verwendet, um die Bind-Mount-Semantik für Datei/Verzeichnis zu bestimmen). Docker-Volume-Ziele werden vor dem Restore geleert.
 
 ## Rustic-Wartung
 

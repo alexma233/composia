@@ -171,28 +171,64 @@ func loadRestoreRuntimeConfig(serviceRoot string) (*backupcfg.RestoreConfig, err
 	return &cfg, nil
 }
 
-func backupRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot, rusticRoot, taskID string, item backupcfg.RuntimeItem, rustic *backupcfg.RusticConfig, logUploader *taskLogUploader) (string, time.Time, time.Time, error) {
-	startedAt := time.Now().UTC()
+func backupRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot, rusticRoot, taskID string, item backupcfg.RuntimeItem, rustic *backupcfg.RusticConfig, logUploader *taskLogUploader) (artifactRef string, startedAt time.Time, finishedAt time.Time, retErr error) {
+	startedAt = time.Now().UTC()
 	stagingDir, err := dataProtectStageDir(cfg.StateDir, fmt.Sprintf("backup-%s-%s-", taskID, item.Name))
 	if err != nil {
 		return "", startedAt, time.Time{}, err
 	}
 	defer func() { _ = os.RemoveAll(stagingDir) }()
-	if err := stageBackupItem(ctx, serviceRoot, stagingDir, item, logUploader); err != nil {
-		return "", startedAt, time.Time{}, err
-	}
+
 	rusticSourceDir, err := rusticDataProtectPath(stagingDir, cfg, rustic)
 	if err != nil {
 		return "", startedAt, time.Time{}, err
 	}
-	artifactRef, err := runRusticBackup(ctx, rusticRoot, rustic, rusticSourceDir, item, logUploader)
+
+	if item.Strategy == "files.copy_after_stop" {
+		compose, _, loadErr := loadComposeCommandConfig(serviceRoot, filepath.Base(serviceRoot))
+		if loadErr != nil {
+			return "", startedAt, time.Time{}, loadErr
+		}
+		if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("stopping compose project %s for cold backup item %s\n", compose.ProjectName, item.Name)); err != nil {
+			return "", startedAt, time.Time{}, err
+		}
+		if err := runComposeDown(ctx, serviceRoot, compose, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); err != nil {
+			return "", startedAt, time.Time{}, err
+		}
+		defer func() {
+			if restartErr := runComposeUp(ctx, serviceRoot, compose, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); restartErr != nil {
+				if retErr == nil {
+					retErr = fmt.Errorf("restart compose project after cold backup: %w", restartErr)
+					return
+				}
+				_ = uploadTaskLog(ctx, logUploader, fmt.Sprintf("restart compose project after cold backup failed: %v\n", restartErr))
+			}
+		}()
+	}
+
+	var extraVolumes []string
+	switch item.Strategy {
+	case "files.copy", "files.copy_after_stop":
+		extraVolumes, err = buildBackupVolumeFlags(serviceRoot, rusticSourceDir, item)
+		if err != nil {
+			return "", startedAt, time.Time{}, err
+		}
+	case "database.pgdumpall":
+		if err := stageBackupItem(ctx, serviceRoot, stagingDir, item, logUploader); err != nil {
+			return "", startedAt, time.Time{}, err
+		}
+	default:
+		return "", startedAt, time.Time{}, fmt.Errorf("backup strategy %q is not implemented yet", item.Strategy)
+	}
+
+	artifactRef, err = runRusticBackup(ctx, rusticRoot, rustic, rusticSourceDir, item, logUploader, extraVolumes)
 	if err != nil {
 		return "", startedAt, time.Time{}, err
 	}
 	return artifactRef, startedAt, time.Now().UTC(), nil
 }
 
-func restoreRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot, rusticRoot, taskID string, item backupcfg.RestoreItem, rustic *backupcfg.RusticConfig, logUploader *taskLogUploader) error {
+func restoreRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot, rusticRoot, taskID string, item backupcfg.RestoreItem, rustic *backupcfg.RusticConfig, logUploader *taskLogUploader) (retErr error) {
 	stagingDir, err := dataProtectStageDir(cfg.StateDir, fmt.Sprintf("restore-%s-%s-", taskID, item.Name))
 	if err != nil {
 		return err
@@ -202,19 +238,14 @@ func restoreRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoo
 	if err != nil {
 		return err
 	}
-	if err := runRusticRestore(ctx, rusticRoot, rustic, item.ArtifactRef, rusticTargetDir, logUploader); err != nil {
-		return err
-	}
-	return applyRestoreItem(ctx, serviceRoot, filepath.Join(stagingDir, item.Name), item, logUploader)
-}
 
-func applyRestoreItem(ctx context.Context, serviceRoot, stagingDir string, item backupcfg.RestoreItem, logUploader *taskLogUploader) (retErr error) {
+	var extraVolumes []string
 	switch item.Strategy {
 	case "files.copy", "files.copy_after_stop":
 		if item.Strategy == "files.copy_after_stop" {
-			compose, _, err := loadComposeCommandConfig(serviceRoot, filepath.Base(serviceRoot))
-			if err != nil {
-				return err
+			compose, _, loadErr := loadComposeCommandConfig(serviceRoot, filepath.Base(serviceRoot))
+			if loadErr != nil {
+				return loadErr
 			}
 			if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("stopping compose project %s for cold restore item %s\n", compose.ProjectName, item.Name)); err != nil {
 				return err
@@ -232,12 +263,84 @@ func applyRestoreItem(ctx context.Context, serviceRoot, stagingDir string, item 
 				}
 			}()
 		}
-		for _, include := range item.Include {
-			if err := restoreInclude(ctx, serviceRoot, stagingDir, include); err != nil {
-				return fmt.Errorf("restore item %s include %s: %w", item.Name, include, err)
-			}
+		extraVolumes, err = prepareRestoreVolumeFlags(ctx, serviceRoot, stagingDir, rusticTargetDir, item)
+		if err != nil {
+			return err
+		}
+		if err := runRusticRestore(ctx, rusticRoot, rustic, item.ArtifactRef, rusticTargetDir, logUploader, extraVolumes); err != nil {
+			return err
 		}
 		return nil
+	case "database.pgimport":
+		if err := runRusticRestore(ctx, rusticRoot, rustic, item.ArtifactRef, rusticTargetDir, logUploader, extraVolumes); err != nil {
+			return err
+		}
+		return applyRestoreItem(ctx, serviceRoot, filepath.Join(stagingDir, item.Name), item, logUploader)
+	default:
+		return fmt.Errorf("restore strategy %q is not implemented yet", item.Strategy)
+	}
+}
+
+func prepareRestoreVolumeFlags(ctx context.Context, serviceRoot, stagingDir, containerStagingDir string, item backupcfg.RestoreItem) ([]string, error) {
+	if err := os.MkdirAll(filepath.Join(stagingDir, item.Name, "paths"), 0o755); err != nil {
+		return nil, fmt.Errorf("create direct restore paths dir: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Join(stagingDir, item.Name, "volumes"), 0o755); err != nil {
+		return nil, fmt.Errorf("create direct restore volumes dir: %w", err)
+	}
+
+	var flags []string
+	for _, include := range item.Include {
+		kind, normalized, err := repo.ClassifyDataInclude(include)
+		if err != nil {
+			return nil, err
+		}
+		if kind == repo.DataIncludeKindServicePath {
+			targetPath, err := resolveIncludeServicePath(serviceRoot, normalized)
+			if err != nil {
+				return nil, err
+			}
+			info, err := os.Stat(targetPath)
+			if err != nil {
+				if os.IsNotExist(err) {
+					return nil, fmt.Errorf("restore target %q must exist for direct restore", targetPath)
+				}
+				return nil, fmt.Errorf("stat restore target %q: %w", targetPath, err)
+			}
+			if err := os.RemoveAll(targetPath); err != nil {
+				return nil, fmt.Errorf("clear restore target %q: %w", targetPath, err)
+			}
+			if info.IsDir() {
+				if err := os.MkdirAll(targetPath, info.Mode().Perm()); err != nil {
+					return nil, fmt.Errorf("recreate restore target %q: %w", targetPath, err)
+				}
+			} else {
+				if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+					return nil, fmt.Errorf("create restore target parent %q: %w", filepath.Dir(targetPath), err)
+				}
+				file, err := os.OpenFile(targetPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode().Perm())
+				if err != nil {
+					return nil, fmt.Errorf("recreate restore target file %q: %w", targetPath, err)
+				}
+				if err := file.Close(); err != nil {
+					return nil, fmt.Errorf("close restore target file %q: %w", targetPath, err)
+				}
+			}
+			containerPath := filepath.Join(containerStagingDir, item.Name, "paths", sanitizeStagePath(include))
+			flags = append(flags, "-v", targetPath+":"+containerPath)
+		} else {
+			if err := clearDockerVolume(ctx, normalized); err != nil {
+				return nil, err
+			}
+			containerPath := filepath.Join(containerStagingDir, item.Name, "volumes", sanitizeStagePath(normalized))
+			flags = append(flags, "-v", normalized+":"+containerPath)
+		}
+	}
+	return flags, nil
+}
+
+func applyRestoreItem(ctx context.Context, serviceRoot, stagingDir string, item backupcfg.RestoreItem, logUploader *taskLogUploader) error {
+	switch item.Strategy {
 	case "database.pgimport":
 		compose, _, err := loadComposeCommandConfig(serviceRoot, filepath.Base(serviceRoot))
 		if err != nil {
@@ -250,67 +353,8 @@ func applyRestoreItem(ctx context.Context, serviceRoot, stagingDir string, item 
 	}
 }
 
-func restoreInclude(ctx context.Context, serviceRoot, stagingDir, include string) error {
-	kind, normalized, err := repo.ClassifyDataInclude(include)
-	if err != nil {
-		return err
-	}
-	if kind == repo.DataIncludeKindServicePath {
-		sourcePath := filepath.Join(stagingDir, "paths", sanitizeStagePath(include))
-		targetPath, err := resolveIncludeServicePath(serviceRoot, normalized)
-		if err != nil {
-			return err
-		}
-		return replacePath(sourcePath, targetPath)
-	}
-	return restoreDirToVolume(ctx, filepath.Join(stagingDir, "volumes", sanitizeStagePath(normalized)), normalized)
-}
-
-func replacePath(sourcePath, targetPath string) error {
-	info, err := os.Stat(sourcePath)
-	if err != nil {
-		return fmt.Errorf("stat restore source %q: %w", sourcePath, err)
-	}
-	if err := os.RemoveAll(targetPath); err != nil {
-		return fmt.Errorf("clear restore target %q: %w", targetPath, err)
-	}
-	if info.IsDir() {
-		return copyDir(sourcePath, targetPath)
-	}
-	return copyFile(sourcePath, targetPath, info.Mode())
-}
-
-func stageBackupItem(ctx context.Context, serviceRoot, stagingDir string, item backupcfg.RuntimeItem, logUploader *taskLogUploader) (retErr error) {
+func stageBackupItem(ctx context.Context, serviceRoot, stagingDir string, item backupcfg.RuntimeItem, logUploader *taskLogUploader) error {
 	switch item.Strategy {
-	case "files.copy":
-		for _, include := range item.Include {
-			if err := stageInclude(ctx, serviceRoot, stagingDir, include); err != nil {
-				return fmt.Errorf("stage backup item %s include %s: %w", item.Name, include, err)
-			}
-		}
-		return nil
-	case "files.copy_after_stop":
-		compose, _, err := loadComposeCommandConfig(serviceRoot, filepath.Base(serviceRoot))
-		if err != nil {
-			return err
-		}
-		if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("stopping compose project %s for cold backup item %s\n", compose.ProjectName, item.Name)); err != nil {
-			return err
-		}
-		if err := runComposeDown(ctx, serviceRoot, compose, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); err != nil {
-			return err
-		}
-		defer func() {
-			if restartErr := runComposeUp(ctx, serviceRoot, compose, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); restartErr != nil && retErr == nil {
-				retErr = fmt.Errorf("restart compose project after cold backup: %w", restartErr)
-			}
-		}()
-		for _, include := range item.Include {
-			if err := stageInclude(ctx, serviceRoot, stagingDir, include); err != nil {
-				return fmt.Errorf("stage cold backup item %s include %s: %w", item.Name, include, err)
-			}
-		}
-		return nil
 	case "database.pgdumpall":
 		compose, _, err := loadComposeCommandConfig(serviceRoot, filepath.Base(serviceRoot))
 		if err != nil {
@@ -326,21 +370,6 @@ func stageBackupItem(ctx context.Context, serviceRoot, stagingDir string, item b
 	}
 }
 
-func stageInclude(ctx context.Context, serviceRoot, stagingDir, include string) error {
-	kind, normalized, err := repo.ClassifyDataInclude(include)
-	if err != nil {
-		return err
-	}
-	if kind == repo.DataIncludeKindServicePath {
-		sourcePath, err := resolveIncludeServicePath(serviceRoot, normalized)
-		if err != nil {
-			return err
-		}
-		return copyIntoStage(sourcePath, filepath.Join(stagingDir, "paths", sanitizeStagePath(include)))
-	}
-	return stageVolumeToDir(ctx, filepath.Join(stagingDir, "volumes", sanitizeStagePath(normalized)), normalized)
-}
-
 func resolveIncludeServicePath(serviceRoot, includePath string) (string, error) {
 	serviceRoot = filepath.Clean(serviceRoot)
 	targetPath := filepath.Join(serviceRoot, includePath)
@@ -352,6 +381,34 @@ func resolveIncludeServicePath(serviceRoot, includePath string) (string, error) 
 		return "", fmt.Errorf("include %q must stay within the service root", includePath)
 	}
 	return targetPath, nil
+}
+
+func buildBackupVolumeFlags(serviceRoot, containerStagingDir string, item backupcfg.RuntimeItem) ([]string, error) {
+	var flags []string
+	for _, include := range item.Include {
+		kind, normalized, err := repo.ClassifyDataInclude(include)
+		if err != nil {
+			return nil, err
+		}
+		if kind == repo.DataIncludeKindServicePath {
+			sourcePath, err := resolveIncludeServicePath(serviceRoot, normalized)
+			if err != nil {
+				return nil, err
+			}
+			if _, err := os.Stat(sourcePath); err != nil {
+				if os.IsNotExist(err) {
+					return nil, fmt.Errorf("backup source %q does not exist", sourcePath)
+				}
+				return nil, fmt.Errorf("stat backup source %q: %w", sourcePath, err)
+			}
+			targetPath := filepath.Join(containerStagingDir, "paths", sanitizeStagePath(include))
+			flags = append(flags, "-v", sourcePath+":"+targetPath+":ro")
+		} else {
+			targetPath := filepath.Join(containerStagingDir, "volumes", sanitizeStagePath(normalized))
+			flags = append(flags, "-v", normalized+":"+targetPath+":ro")
+		}
+	}
+	return flags, nil
 }
 
 func sanitizeStagePath(value string) string {

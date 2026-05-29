@@ -21,7 +21,7 @@ infra:
     data_protect_dir: /data-protect
 ```
 
-Rustic compose 服務是一個執行 `rustic` 二進位檔的普通 Docker 容器，應有一個掛載資料保護目錄的磁碟區。
+Rustic compose 服務是一個執行 `rustic` 二進位檔的普通 Docker 容器。它必須有一個磁碟區，將代理端的 `{StateDir}/data-protect` 對應到 `data_protect_dir` 設定的路徑。
 
 ## 控制器設定
 
@@ -73,8 +73,8 @@ data_protect:
 
 | 策略 | 用途 |
 |----------|---------|
-| `files.copy` | 複製檔案與目錄。用於可即時讀取的資料。 |
-| `files.copy_after_stop` | 停止 compose 專案、複製檔案、重新啟動。用於需要靜止狀態的資料。 |
+| `files.copy` | 將來源路徑以唯讀方式 bind-mount 到 Rustic 容器中備份。用於可即時讀取的資料。 |
+| `files.copy_after_stop` | 停止 compose 專案，bind-mount 來源路徑，備份，然後重新啟動。用於需要靜止狀態的資料。 |
 | `database.pgdumpall` | 在 compose 服務內執行 `pg_dumpall`。需要設定 `service`。 |
 | `database.pgimport` | 透過 `psql` 還原 PostgreSQL 傾印。需要設定 `service`。 |
 
@@ -84,14 +84,14 @@ data_protect:
 |-----|------|-------------|-------------|
 | `strategy` | `string` | 全部 | 備份或還原策略。 |
 | `service` | `string` | `database.*` | Compose 服務名稱。 |
-| `include` | `[]string` | `files.*` | 要包含的路徑，相對於服務目錄。保持在服務根目錄內。 |
+| `include` | `[]string` | `files.*` | 要包含的路徑。服務路徑（相對於服務根目錄，以 `./` 開頭或包含 `/`）或 Docker 磁碟區名稱（不含路徑分隔符的純名稱）。 |
 
 ### 包含路徑型別
 
 路徑可以引用：
 
-- **服務路徑**：服務目錄內的檔案或目錄。直接複製。
-- **具名磁碟區**：Docker 磁碟區名稱。透過啟動掛載該磁碟區的臨時容器進行備份。
+- **服務路徑**：服務目錄內的檔案或目錄。透過 `-v` 以唯讀方式 bind-mount 到 Rustic 容器中。
+- **具名磁碟區**：Docker 磁碟區名稱。透過 `-v` 以唯讀方式 bind-mount 到 Rustic 容器中（無需臨時容器）。
 
 ## 備份排程
 
@@ -124,8 +124,8 @@ backup:
 
 1. **渲染**：從控制器下載服務包與 Rustic 包。讀取控制器產生的 `.composia-backup.json`。
 2. **備份**：針對執行時期設定中的每個資料項目：
-   - 根據備份策略（`files.copy`、`files.copy_after_stop`、`database.pgdumpall`）暫存資料。
-   - 執行 `docker compose run rustic backup`，並加上識別服務與資料項目的標籤。
+   - `files.*`: 在 `data-protect` 下建立空暫存目錄，為每個 include 路徑或磁碟區加入 `-v` bind mount 參數，然後執行 `docker compose run -v ... rustic backup` 並加上識別服務與資料項目的標籤。資料不會被複製到代理端的 state 目錄中。
+   - `database.pgdumpall`: 執行 `docker compose exec <service> pg_dumpall`，將 SQL 傾印寫入 `data-protect` 下的暫存檔案，然後執行 `docker compose run rustic backup` 備份暫存目錄。
    - 將結果（快照 ID）回報給控制器。
 3. 所有項目備份完成後，任務結束。
 
@@ -143,11 +143,11 @@ composia backup restore <backup-id>
 
 1. **渲染**：下載服務包與 Rustic 包。讀取 `.composia-restore.json`。
 2. **還原**：針對每個項目：
-   - 執行 `docker compose run rustic restore <snapshot_id> <target_dir>`。
-   - 根據還原策略套用已還原的資料：
-     - `files.copy`：取代服務目錄中的檔案。
-     - `files.copy_after_stop`：停止 compose、取代檔案、重新啟動 compose。
-     - `database.pgimport`：使用還原的 SQL 傾印執行 `docker compose exec <service> psql`。
+   - `files.copy` / `files.copy_after_stop`: 清理還原目標（目標必須已存在），在 `data-protect` 下建立空暫存目錄，將每個目標路徑或 Docker 磁碟區 bind-mount 到暫存目錄樹中，然後執行 `docker compose run -v ... rustic restore <snapshot_id> <staging_dir>`。還原的資料直接寫入目標位置——無需還原後的複製步驟。
+   - `files.copy_after_stop`: 額外在還原前停止 compose 專案，還原後重新啟動。
+   - `database.pgimport`: 執行 `docker compose run rustic restore <snapshot_id>` 還原到暫存目錄，然後使用還原的 SQL 傾印執行 `docker compose exec <service> psql`。
+
+`files.*` 策略還原時，服務路徑目標必須先存在於代理端上（用於判斷 bind-mount 的檔案/目錄語義）。Docker 磁碟區目標會在還原前被清空。
 
 ## Rustic 維護
 
