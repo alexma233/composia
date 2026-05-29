@@ -55,7 +55,7 @@ params:
   analytics:
     umami:
       serverURL: "https://umi.alexma.top"
-      websiteID: "94db1cb1-74f4-4a40-ad6c-962362670409"
+      websiteID: "9c3c0e7d-fff8-4749-acd7-694abb3f7e5e"
   search:
     enable: true
     type: flexsearch
