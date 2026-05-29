@@ -218,19 +218,17 @@ func applyDockerQueryResult(request *agentv1.ReportDockerQueryResultRequest, que
 	if request == nil {
 		return
 	}
-	if len(result.Containers) > 0 || result.TotalCount > 0 {
+	switch query.Query.(type) {
+	case *agentv1.DockerQueryTask_ListContainers:
 		request.Result = &agentv1.ReportDockerQueryResultRequest_ListContainers{ListContainers: &agentv1.ListContainersResponse{Containers: result.Containers, TotalCount: result.TotalCount}}
 		return
-	}
-	if len(result.Networks) > 0 {
+	case *agentv1.DockerQueryTask_ListNetworks:
 		request.Result = &agentv1.ReportDockerQueryResultRequest_ListNetworks{ListNetworks: &agentv1.ListNetworksResponse{Networks: result.Networks, TotalCount: result.TotalCount}}
 		return
-	}
-	if len(result.Volumes) > 0 {
+	case *agentv1.DockerQueryTask_ListVolumes:
 		request.Result = &agentv1.ReportDockerQueryResultRequest_ListVolumes{ListVolumes: &agentv1.ListVolumesResponse{Volumes: result.Volumes, TotalCount: result.TotalCount}}
 		return
-	}
-	if len(result.Images) > 0 {
+	case *agentv1.DockerQueryTask_ListImages:
 		request.Result = &agentv1.ReportDockerQueryResultRequest_ListImages{ListImages: &agentv1.ListImagesResponse{Images: result.Images, TotalCount: result.TotalCount}}
 		return
 	}
