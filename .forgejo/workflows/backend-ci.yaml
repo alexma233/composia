@@ -19,6 +19,7 @@ on:
       - ".goreleaser.yaml"
       - "flake.nix"
       - "flake.lock"
+      - ".golangci.yml"
       - ".forgejo/workflows/backend-ci.yaml"
       - ".forgejo/workflows/canary-agent-build.yaml"
       - ".forgejo/workflows/canary-cli-build.yaml"
@@ -37,6 +38,7 @@ on:
       - "gen/go/**"
       - "scripts/build/**"
       - ".goreleaser.yaml"
+      - ".golangci.yml"
       - "flake.nix"
       - "flake.lock"
       - ".forgejo/workflows/backend-ci.yaml"
@@ -81,11 +83,16 @@ jobs:
         run: go vet ./...
 
       - name: Run backend tests
-        run: go test ./...
+        run: CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./...
+
+      - name: Check test coverage
+        run: |
+          go tool cover -func=coverage.out | tail -1
+          coverage=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}' | sed 's/%//')
+          echo "Total coverage: ${coverage}%"
 
   golangci-lint:
     runs-on: docker-amd64
-    continue-on-error: true
     container:
       image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.3
 
@@ -100,4 +107,17 @@ jobs:
           curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b /tmp/golangci-lint-bin ${{ env.GOLANGCI_LINT_VERSION }}
 
       - name: Run golangci-lint
-        run: /tmp/golangci-lint-bin/golangci-lint run
+        run: /tmp/golangci-lint-bin/golangci-lint run --timeout 5m
+
+  govulncheck:
+    runs-on: docker-amd64
+    container:
+      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.3
+
+    steps:
+      - name: Checkout
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.2
+        uses: https://forgejo.alexma.top/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Run govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
