@@ -422,6 +422,8 @@ message ImageInfo {
   uint32 containers_count = 9;
   // is_dangling reports whether the image is dangling.
   bool is_dangling = 10;
+  // author is the image author metadata, when present.
+  string author = 11;
 }
 
 // ListNodeImagesResponse returns node-scoped image summaries.

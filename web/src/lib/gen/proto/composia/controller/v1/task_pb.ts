@@ -2,18 +2,8 @@
 // @generated from file proto/composia/controller/v1/task.proto (package composia.controller.v1, syntax proto3)
 /* eslint-disable */
 
-import type {
-  GenEnum,
-  GenFile,
-  GenMessage,
-  GenService,
-} from "@bufbuild/protobuf/codegenv2";
-import {
-  enumDesc,
-  fileDesc,
-  messageDesc,
-  serviceDesc,
-} from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
@@ -21,46 +11,40 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file proto/composia/controller/v1/task.proto.
  */
-export const file_proto_composia_controller_v1_task: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "Cidwcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxL3Rhc2sucHJvdG8SFmNvbXBvc2lhLmNvbnRyb2xsZXIudjEicAoSVGFza0FjdGlvblJlc3BvbnNlEg8KB3Rhc2tfaWQYASABKAkSMgoGc3RhdHVzGAIgASgOMiIuY29tcG9zaWEuY29udHJvbGxlci52MS5UYXNrU3RhdHVzEhUKDXJlcG9fcmV2aXNpb24YAyABKAki6QIKEExpc3RUYXNrc1JlcXVlc3QSMgoGc3RhdHVzGAEgAygOMiIuY29tcG9zaWEuY29udHJvbGxlci52MS5UYXNrU3RhdHVzEhQKDHNlcnZpY2VfbmFtZRgCIAMoCRIRCglwYWdlX3NpemUYAyABKA0SDAoEcGFnZRgEIAEoDRIPCgdub2RlX2lkGAUgAygJEi4KBHR5cGUYBiADKA4yIC5jb21wb3NpYS5jb250cm9sbGVyLnYxLlRhc2tUeXBlEjoKDmV4Y2x1ZGVfc3RhdHVzGAcgAygOMiIuY29tcG9zaWEuY29udHJvbGxlci52MS5UYXNrU3RhdHVzEhwKFGV4Y2x1ZGVfc2VydmljZV9uYW1lGAggAygJEhcKD2V4Y2x1ZGVfbm9kZV9pZBgJIAMoCRI2CgxleGNsdWRlX3R5cGUYCiADKA4yIC5jb21wb3NpYS5jb250cm9sbGVyLnYxLlRhc2tUeXBlItkBCgtUYXNrU3VtbWFyeRIPCgd0YXNrX2lkGAEgASgJEi4KBHR5cGUYAiABKA4yIC5jb21wb3NpYS5jb250cm9sbGVyLnYxLlRhc2tUeXBlEjIKBnN0YXR1cxgDIAEoDjIiLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFza1N0YXR1cxIUCgxzZXJ2aWNlX25hbWUYBCABKAkSDwoHbm9kZV9pZBgFIAEoCRIuCgpjcmVhdGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJcChFMaXN0VGFza3NSZXNwb25zZRIyCgV0YXNrcxgBIAMoCzIjLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFza1N1bW1hcnkSEwoLdG90YWxfY291bnQYAiABKA0iIQoOR2V0VGFza1JlcXVlc3QSDwoHdGFza19pZBgBIAEoCSLfAQoPVGFza1N0ZXBTdW1tYXJ5EjcKCXN0ZXBfbmFtZRgBIAEoDjIkLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFza1N0ZXBOYW1lEjIKBnN0YXR1cxgCIAEoDjIiLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFza1N0YXR1cxIuCgpzdGFydGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtmaW5pc2hlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiqQQKD0dldFRhc2tSZXNwb25zZRIPCgd0YXNrX2lkGAEgASgJEi4KBHR5cGUYAiABKA4yIC5jb21wb3NpYS5jb250cm9sbGVyLnYxLlRhc2tUeXBlEjIKBnNvdXJjZRgDIAEoDjIiLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFza1NvdXJjZRIUCgxzZXJ2aWNlX25hbWUYBCABKAkSDwoHbm9kZV9pZBgFIAEoCRIyCgZzdGF0dXMYBiABKA4yIi5jb21wb3NpYS5jb250cm9sbGVyLnYxLlRhc2tTdGF0dXMSLgoKY3JlYXRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKc3RhcnRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLZmluaXNoZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhUKDXJlcG9fcmV2aXNpb24YCiABKAkSFQoNZXJyb3Jfc3VtbWFyeRgLIAEoCRI2CgVzdGVwcxgNIAMoCzInLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFza1N0ZXBTdW1tYXJ5EhQKDHRyaWdnZXJlZF9ieRgOIAEoCRIXCg9yZXN1bHRfcmV2aXNpb24YDyABKAkSGgoSYXR0ZW1wdF9vZl90YXNrX2lkGBAgASgJSgQIDBANIiYKE1RhaWxUYXNrTG9nc1JlcXVlc3QSDwoHdGFza19pZBgBIAEoCSInChRUYWlsVGFza0xvZ3NSZXNwb25zZRIPCgdjb250ZW50GAEgASgJIiYKE1J1blRhc2tBZ2FpblJlcXVlc3QSDwoHdGFza19pZBgBIAEoCSKGAQoeUmVzb2x2ZVRhc2tDb25maXJtYXRpb25SZXF1ZXN0Eg8KB3Rhc2tfaWQYASABKAkSQgoIZGVjaXNpb24YAiABKA4yMC5jb21wb3NpYS5jb250cm9sbGVyLnYxLlRhc2tDb25maXJtYXRpb25EZWNpc2lvbhIPCgdjb21tZW50GAMgASgJIosBCh5DcmVhdGVNaWdyYXRpb25Sb2xsYmFja1JlcXVlc3QSDwoHdGFza19pZBgBIAEoCRIUCgxyb2xsYmFja19kbnMYAiABKAgSFQoNZGVwbG95X3NvdXJjZRgDIAEoCBITCgtzdG9wX3RhcmdldBgEIAEoCBIWCg5jbGVhbnVwX3RhcmdldBgFIAEoCCqmBAoIVGFza1R5cGUSGQoVVEFTS19UWVBFX1VOU1BFQ0lGSUVEEAASFAoQVEFTS19UWVBFX0RFUExPWRABEhIKDlRBU0tfVFlQRV9TVE9QEAISFQoRVEFTS19UWVBFX1JFU1RBUlQQAxIUChBUQVNLX1RZUEVfVVBEQVRFEAQSFAoQVEFTS19UWVBFX0JBQ0tVUBAFEhUKEVRBU0tfVFlQRV9SRVNUT1JFEAYSFQoRVEFTS19UWVBFX01JR1JBVEUQBxIYChRUQVNLX1RZUEVfRE5TX1VQREFURRAIEhgKFFRBU0tfVFlQRV9DQUREWV9TWU5DEAkSGgoWVEFTS19UWVBFX0NBRERZX1JFTE9BRBAKEhkKFVRBU0tfVFlQRV9JTUFHRV9DSEVDSxALEhMKD1RBU0tfVFlQRV9QUlVORRAMEhkKFVRBU0tfVFlQRV9SVVNUSUNfSU5JVBANEhsKF1RBU0tfVFlQRV9SVVNUSUNfRk9SR0VUEA4SGgoWVEFTS19UWVBFX1JVU1RJQ19QUlVORRAPEhoKFlRBU0tfVFlQRV9ET0NLRVJfU1RBUlQQEBIZChVUQVNLX1RZUEVfRE9DS0VSX1NUT1AQERIcChhUQVNLX1RZUEVfRE9DS0VSX1JFU1RBUlQQEhIbChdUQVNLX1RZUEVfRE9DS0VSX1JFTU9WRRATEh4KGlRBU0tfVFlQRV9NSUdSQVRFX1JPTExCQUNLEBQq0AEKClRhc2tTdGF0dXMSGwoXVEFTS19TVEFUVVNfVU5TUEVDSUZJRUQQABIXChNUQVNLX1NUQVRVU19QRU5ESU5HEAESFwoTVEFTS19TVEFUVVNfUlVOTklORxACEiUKIVRBU0tfU1RBVFVTX0FXQUlUSU5HX0NPTkZJUk1BVElPThADEhkKFVRBU0tfU1RBVFVTX1NVQ0NFRURFRBAEEhYKElRBU0tfU1RBVFVTX0ZBSUxFRBAFEhkKFVRBU0tfU1RBVFVTX0NBTkNFTExFRBAGKroBCgpUYXNrU291cmNlEhsKF1RBU0tfU09VUkNFX1VOU1BFQ0lGSUVEEAASEwoPVEFTS19TT1VSQ0VfV0VCEAESEwoPVEFTS19TT1VSQ0VfQ0xJEAISFgoSVEFTS19TT1VSQ0VfT1RIRVJTEAMSGAoUVEFTS19TT1VSQ0VfU0NIRURVTEUQBBIWChJUQVNLX1NPVVJDRV9TWVNURU0QBRIbChdUQVNLX1NPVVJDRV9BVVRPX0RFUExPWRAGKpYFCgxUYXNrU3RlcE5hbWUSHgoaVEFTS19TVEVQX05BTUVfVU5TUEVDSUZJRUQQABIZChVUQVNLX1NURVBfTkFNRV9SRU5ERVIQARIXChNUQVNLX1NURVBfTkFNRV9QVUxMEAISGQoVVEFTS19TVEVQX05BTUVfQkFDS1VQEAMSHwobVEFTS19TVEVQX05BTUVfQ09NUE9TRV9ET1dOEAQSHQoZVEFTS19TVEVQX05BTUVfQ09NUE9TRV9VUBAFEhsKF1RBU0tfU1RFUF9OQU1FX1RSQU5TRkVSEAYSGgoWVEFTS19TVEVQX05BTUVfUkVTVE9SRRAHEh0KGVRBU0tfU1RFUF9OQU1FX0ROU19VUERBVEUQCBIdChlUQVNLX1NURVBfTkFNRV9DQUREWV9TWU5DEAkSHwobVEFTS19TVEVQX05BTUVfQ0FERFlfUkVMT0FEEAoSHgoaVEFTS19TVEVQX05BTUVfSU1BR0VfQ0hFQ0sQCxIXChNUQVNLX1NURVBfTkFNRV9JTklUEAwSGAoUVEFTS19TVEVQX05BTUVfUFJVTkUQDRIoCiRUQVNLX1NURVBfTkFNRV9BV0FJVElOR19DT05GSVJNQVRJT04QDhIfChtUQVNLX1NURVBfTkFNRV9QRVJTSVNUX1JFUE8QDxIbChdUQVNLX1NURVBfTkFNRV9GSU5BTElaRRAQEh8KG1RBU0tfU1RFUF9OQU1FX0RPQ0tFUl9TVEFSVBAREh4KGlRBU0tfU1RFUF9OQU1FX0RPQ0tFUl9TVE9QEBISIQodVEFTS19TVEVQX05BTUVfRE9DS0VSX1JFU1RBUlQQExIgChxUQVNLX1NURVBfTkFNRV9ET0NLRVJfUkVNT1ZFEBQqlQEKGFRhc2tDb25maXJtYXRpb25EZWNpc2lvbhIqCiZUQVNLX0NPTkZJUk1BVElPTl9ERUNJU0lPTl9VTlNQRUNJRklFRBAAEiYKIlRBU0tfQ09ORklSTUFUSU9OX0RFQ0lTSU9OX0FQUFJPVkUQARIlCiFUQVNLX0NPTkZJUk1BVElPTl9ERUNJU0lPTl9SRUpFQ1QQAjKfBQoLVGFza1NlcnZpY2USYAoJTGlzdFRhc2tzEiguY29tcG9zaWEuY29udHJvbGxlci52MS5MaXN0VGFza3NSZXF1ZXN0GikuY29tcG9zaWEuY29udHJvbGxlci52MS5MaXN0VGFza3NSZXNwb25zZRJaCgdHZXRUYXNrEiYuY29tcG9zaWEuY29udHJvbGxlci52MS5HZXRUYXNrUmVxdWVzdBonLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0VGFza1Jlc3BvbnNlEmsKDFRhaWxUYXNrTG9ncxIrLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFpbFRhc2tMb2dzUmVxdWVzdBosLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFpbFRhc2tMb2dzUmVzcG9uc2UwARJnCgxSdW5UYXNrQWdhaW4SKy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlJ1blRhc2tBZ2FpblJlcXVlc3QaKi5jb21wb3NpYS5jb250cm9sbGVyLnYxLlRhc2tBY3Rpb25SZXNwb25zZRJ9ChdSZXNvbHZlVGFza0NvbmZpcm1hdGlvbhI2LmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuUmVzb2x2ZVRhc2tDb25maXJtYXRpb25SZXF1ZXN0GiouY29tcG9zaWEuY29udHJvbGxlci52MS5UYXNrQWN0aW9uUmVzcG9uc2USfQoXQ3JlYXRlTWlncmF0aW9uUm9sbGJhY2sSNi5jb21wb3NpYS5jb250cm9sbGVyLnYxLkNyZWF0ZU1pZ3JhdGlvblJvbGxiYWNrUmVxdWVzdBoqLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFza0FjdGlvblJlc3BvbnNlQlhaVmZvcmdlam8uYWxleG1hLnRvcC9hbGV4bWEyMzMvY29tcG9zaWEvZ2VuL2dvL3Byb3RvL2NvbXBvc2lhL2NvbnRyb2xsZXIvdjE7Y29udHJvbGxlcnYxYgZwcm90bzM",
-    [file_google_protobuf_timestamp],
-  );
+export const file_proto_composia_controller_v1_task: GenFile = /*@__PURE__*/
+  fileDesc("Cidwcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxL3Rhc2sucHJvdG8SFmNvbXBvc2lhLmNvbnRyb2xsZXIudjEicAoSVGFza0FjdGlvblJlc3BvbnNlEg8KB3Rhc2tfaWQYASABKAkSMgoGc3RhdHVzGAIgASgOMiIuY29tcG9zaWEuY29udHJvbGxlci52MS5UYXNrU3RhdHVzEhUKDXJlcG9fcmV2aXNpb24YAyABKAki6QIKEExpc3RUYXNrc1JlcXVlc3QSMgoGc3RhdHVzGAEgAygOMiIuY29tcG9zaWEuY29udHJvbGxlci52MS5UYXNrU3RhdHVzEhQKDHNlcnZpY2VfbmFtZRgCIAMoCRIRCglwYWdlX3NpemUYAyABKA0SDAoEcGFnZRgEIAEoDRIPCgdub2RlX2lkGAUgAygJEi4KBHR5cGUYBiADKA4yIC5jb21wb3NpYS5jb250cm9sbGVyLnYxLlRhc2tUeXBlEjoKDmV4Y2x1ZGVfc3RhdHVzGAcgAygOMiIuY29tcG9zaWEuY29udHJvbGxlci52MS5UYXNrU3RhdHVzEhwKFGV4Y2x1ZGVfc2VydmljZV9uYW1lGAggAygJEhcKD2V4Y2x1ZGVfbm9kZV9pZBgJIAMoCRI2CgxleGNsdWRlX3R5cGUYCiADKA4yIC5jb21wb3NpYS5jb250cm9sbGVyLnYxLlRhc2tUeXBlItkBCgtUYXNrU3VtbWFyeRIPCgd0YXNrX2lkGAEgASgJEi4KBHR5cGUYAiABKA4yIC5jb21wb3NpYS5jb250cm9sbGVyLnYxLlRhc2tUeXBlEjIKBnN0YXR1cxgDIAEoDjIiLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFza1N0YXR1cxIUCgxzZXJ2aWNlX25hbWUYBCABKAkSDwoHbm9kZV9pZBgFIAEoCRIuCgpjcmVhdGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJcChFMaXN0VGFza3NSZXNwb25zZRIyCgV0YXNrcxgBIAMoCzIjLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFza1N1bW1hcnkSEwoLdG90YWxfY291bnQYAiABKA0iIQoOR2V0VGFza1JlcXVlc3QSDwoHdGFza19pZBgBIAEoCSLfAQoPVGFza1N0ZXBTdW1tYXJ5EjcKCXN0ZXBfbmFtZRgBIAEoDjIkLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFza1N0ZXBOYW1lEjIKBnN0YXR1cxgCIAEoDjIiLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFza1N0YXR1cxIuCgpzdGFydGVkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtmaW5pc2hlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiqQQKD0dldFRhc2tSZXNwb25zZRIPCgd0YXNrX2lkGAEgASgJEi4KBHR5cGUYAiABKA4yIC5jb21wb3NpYS5jb250cm9sbGVyLnYxLlRhc2tUeXBlEjIKBnNvdXJjZRgDIAEoDjIiLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFza1NvdXJjZRIUCgxzZXJ2aWNlX25hbWUYBCABKAkSDwoHbm9kZV9pZBgFIAEoCRIyCgZzdGF0dXMYBiABKA4yIi5jb21wb3NpYS5jb250cm9sbGVyLnYxLlRhc2tTdGF0dXMSLgoKY3JlYXRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKc3RhcnRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLZmluaXNoZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhUKDXJlcG9fcmV2aXNpb24YCiABKAkSFQoNZXJyb3Jfc3VtbWFyeRgLIAEoCRI2CgVzdGVwcxgNIAMoCzInLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFza1N0ZXBTdW1tYXJ5EhQKDHRyaWdnZXJlZF9ieRgOIAEoCRIXCg9yZXN1bHRfcmV2aXNpb24YDyABKAkSGgoSYXR0ZW1wdF9vZl90YXNrX2lkGBAgASgJSgQIDBANIiYKE1RhaWxUYXNrTG9nc1JlcXVlc3QSDwoHdGFza19pZBgBIAEoCSInChRUYWlsVGFza0xvZ3NSZXNwb25zZRIPCgdjb250ZW50GAEgASgJIiYKE1J1blRhc2tBZ2FpblJlcXVlc3QSDwoHdGFza19pZBgBIAEoCSKGAQoeUmVzb2x2ZVRhc2tDb25maXJtYXRpb25SZXF1ZXN0Eg8KB3Rhc2tfaWQYASABKAkSQgoIZGVjaXNpb24YAiABKA4yMC5jb21wb3NpYS5jb250cm9sbGVyLnYxLlRhc2tDb25maXJtYXRpb25EZWNpc2lvbhIPCgdjb21tZW50GAMgASgJIosBCh5DcmVhdGVNaWdyYXRpb25Sb2xsYmFja1JlcXVlc3QSDwoHdGFza19pZBgBIAEoCRIUCgxyb2xsYmFja19kbnMYAiABKAgSFQoNZGVwbG95X3NvdXJjZRgDIAEoCBITCgtzdG9wX3RhcmdldBgEIAEoCBIWCg5jbGVhbnVwX3RhcmdldBgFIAEoCCqmBAoIVGFza1R5cGUSGQoVVEFTS19UWVBFX1VOU1BFQ0lGSUVEEAASFAoQVEFTS19UWVBFX0RFUExPWRABEhIKDlRBU0tfVFlQRV9TVE9QEAISFQoRVEFTS19UWVBFX1JFU1RBUlQQAxIUChBUQVNLX1RZUEVfVVBEQVRFEAQSFAoQVEFTS19UWVBFX0JBQ0tVUBAFEhUKEVRBU0tfVFlQRV9SRVNUT1JFEAYSFQoRVEFTS19UWVBFX01JR1JBVEUQBxIYChRUQVNLX1RZUEVfRE5TX1VQREFURRAIEhgKFFRBU0tfVFlQRV9DQUREWV9TWU5DEAkSGgoWVEFTS19UWVBFX0NBRERZX1JFTE9BRBAKEhkKFVRBU0tfVFlQRV9JTUFHRV9DSEVDSxALEhMKD1RBU0tfVFlQRV9QUlVORRAMEhkKFVRBU0tfVFlQRV9SVVNUSUNfSU5JVBANEhsKF1RBU0tfVFlQRV9SVVNUSUNfRk9SR0VUEA4SGgoWVEFTS19UWVBFX1JVU1RJQ19QUlVORRAPEhoKFlRBU0tfVFlQRV9ET0NLRVJfU1RBUlQQEBIZChVUQVNLX1RZUEVfRE9DS0VSX1NUT1AQERIcChhUQVNLX1RZUEVfRE9DS0VSX1JFU1RBUlQQEhIbChdUQVNLX1RZUEVfRE9DS0VSX1JFTU9WRRATEh4KGlRBU0tfVFlQRV9NSUdSQVRFX1JPTExCQUNLEBQq0AEKClRhc2tTdGF0dXMSGwoXVEFTS19TVEFUVVNfVU5TUEVDSUZJRUQQABIXChNUQVNLX1NUQVRVU19QRU5ESU5HEAESFwoTVEFTS19TVEFUVVNfUlVOTklORxACEiUKIVRBU0tfU1RBVFVTX0FXQUlUSU5HX0NPTkZJUk1BVElPThADEhkKFVRBU0tfU1RBVFVTX1NVQ0NFRURFRBAEEhYKElRBU0tfU1RBVFVTX0ZBSUxFRBAFEhkKFVRBU0tfU1RBVFVTX0NBTkNFTExFRBAGKroBCgpUYXNrU291cmNlEhsKF1RBU0tfU09VUkNFX1VOU1BFQ0lGSUVEEAASEwoPVEFTS19TT1VSQ0VfV0VCEAESEwoPVEFTS19TT1VSQ0VfQ0xJEAISFgoSVEFTS19TT1VSQ0VfT1RIRVJTEAMSGAoUVEFTS19TT1VSQ0VfU0NIRURVTEUQBBIWChJUQVNLX1NPVVJDRV9TWVNURU0QBRIbChdUQVNLX1NPVVJDRV9BVVRPX0RFUExPWRAGKpYFCgxUYXNrU3RlcE5hbWUSHgoaVEFTS19TVEVQX05BTUVfVU5TUEVDSUZJRUQQABIZChVUQVNLX1NURVBfTkFNRV9SRU5ERVIQARIXChNUQVNLX1NURVBfTkFNRV9QVUxMEAISGQoVVEFTS19TVEVQX05BTUVfQkFDS1VQEAMSHwobVEFTS19TVEVQX05BTUVfQ09NUE9TRV9ET1dOEAQSHQoZVEFTS19TVEVQX05BTUVfQ09NUE9TRV9VUBAFEhsKF1RBU0tfU1RFUF9OQU1FX1RSQU5TRkVSEAYSGgoWVEFTS19TVEVQX05BTUVfUkVTVE9SRRAHEh0KGVRBU0tfU1RFUF9OQU1FX0ROU19VUERBVEUQCBIdChlUQVNLX1NURVBfTkFNRV9DQUREWV9TWU5DEAkSHwobVEFTS19TVEVQX05BTUVfQ0FERFlfUkVMT0FEEAoSHgoaVEFTS19TVEVQX05BTUVfSU1BR0VfQ0hFQ0sQCxIXChNUQVNLX1NURVBfTkFNRV9JTklUEAwSGAoUVEFTS19TVEVQX05BTUVfUFJVTkUQDRIoCiRUQVNLX1NURVBfTkFNRV9BV0FJVElOR19DT05GSVJNQVRJT04QDhIfChtUQVNLX1NURVBfTkFNRV9QRVJTSVNUX1JFUE8QDxIbChdUQVNLX1NURVBfTkFNRV9GSU5BTElaRRAQEh8KG1RBU0tfU1RFUF9OQU1FX0RPQ0tFUl9TVEFSVBAREh4KGlRBU0tfU1RFUF9OQU1FX0RPQ0tFUl9TVE9QEBISIQodVEFTS19TVEVQX05BTUVfRE9DS0VSX1JFU1RBUlQQExIgChxUQVNLX1NURVBfTkFNRV9ET0NLRVJfUkVNT1ZFEBQqlQEKGFRhc2tDb25maXJtYXRpb25EZWNpc2lvbhIqCiZUQVNLX0NPTkZJUk1BVElPTl9ERUNJU0lPTl9VTlNQRUNJRklFRBAAEiYKIlRBU0tfQ09ORklSTUFUSU9OX0RFQ0lTSU9OX0FQUFJPVkUQARIlCiFUQVNLX0NPTkZJUk1BVElPTl9ERUNJU0lPTl9SRUpFQ1QQAjKfBQoLVGFza1NlcnZpY2USYAoJTGlzdFRhc2tzEiguY29tcG9zaWEuY29udHJvbGxlci52MS5MaXN0VGFza3NSZXF1ZXN0GikuY29tcG9zaWEuY29udHJvbGxlci52MS5MaXN0VGFza3NSZXNwb25zZRJaCgdHZXRUYXNrEiYuY29tcG9zaWEuY29udHJvbGxlci52MS5HZXRUYXNrUmVxdWVzdBonLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0VGFza1Jlc3BvbnNlEmsKDFRhaWxUYXNrTG9ncxIrLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFpbFRhc2tMb2dzUmVxdWVzdBosLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFpbFRhc2tMb2dzUmVzcG9uc2UwARJnCgxSdW5UYXNrQWdhaW4SKy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlJ1blRhc2tBZ2FpblJlcXVlc3QaKi5jb21wb3NpYS5jb250cm9sbGVyLnYxLlRhc2tBY3Rpb25SZXNwb25zZRJ9ChdSZXNvbHZlVGFza0NvbmZpcm1hdGlvbhI2LmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuUmVzb2x2ZVRhc2tDb25maXJtYXRpb25SZXF1ZXN0GiouY29tcG9zaWEuY29udHJvbGxlci52MS5UYXNrQWN0aW9uUmVzcG9uc2USfQoXQ3JlYXRlTWlncmF0aW9uUm9sbGJhY2sSNi5jb21wb3NpYS5jb250cm9sbGVyLnYxLkNyZWF0ZU1pZ3JhdGlvblJvbGxiYWNrUmVxdWVzdBoqLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFza0FjdGlvblJlc3BvbnNlQlhaVmZvcmdlam8uYWxleG1hLnRvcC9hbGV4bWEyMzMvY29tcG9zaWEvZ2VuL2dvL3Byb3RvL2NvbXBvc2lhL2NvbnRyb2xsZXIvdjE7Y29udHJvbGxlcnYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * TaskActionResponse reports the async task created by a command RPC.
  *
  * @generated from message composia.controller.v1.TaskActionResponse
  */
-export type TaskActionResponse =
-  Message<"composia.controller.v1.TaskActionResponse"> & {
-    /**
-     * @generated from field: string task_id = 1;
-     */
-    taskId: string;
+export type TaskActionResponse = Message<"composia.controller.v1.TaskActionResponse"> & {
+  /**
+   * @generated from field: string task_id = 1;
+   */
+  taskId: string;
 
-    /**
-     * status is the initial status of the created task.
-     *
-     * @generated from field: composia.controller.v1.TaskStatus status = 2;
-     */
-    status: TaskStatus;
+  /**
+   * status is the initial status of the created task.
+   *
+   * @generated from field: composia.controller.v1.TaskStatus status = 2;
+   */
+  status: TaskStatus;
 
-    /**
-     * repo_revision is the repo revision associated with the created task.
-     *
-     * @generated from field: string repo_revision = 3;
-     */
-    repoRevision: string;
-  };
+  /**
+   * repo_revision is the repo revision associated with the created task.
+   *
+   * @generated from field: string repo_revision = 3;
+   */
+  repoRevision: string;
+};
 
 /**
  * Describes the message composia.controller.v1.TaskActionResponse.
  * Use `create(TaskActionResponseSchema)` to create a new message.
  */
-export const TaskActionResponseSchema: GenMessage<TaskActionResponse> =
-  /*@__PURE__*/
+export const TaskActionResponseSchema: GenMessage<TaskActionResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_task, 0);
 
 /**
@@ -68,85 +52,83 @@ export const TaskActionResponseSchema: GenMessage<TaskActionResponse> =
  *
  * @generated from message composia.controller.v1.ListTasksRequest
  */
-export type ListTasksRequest =
-  Message<"composia.controller.v1.ListTasksRequest"> & {
-    /**
-     * status includes only tasks matching one of these statuses.
-     *
-     * @generated from field: repeated composia.controller.v1.TaskStatus status = 1;
-     */
-    status: TaskStatus[];
+export type ListTasksRequest = Message<"composia.controller.v1.ListTasksRequest"> & {
+  /**
+   * status includes only tasks matching one of these statuses.
+   *
+   * @generated from field: repeated composia.controller.v1.TaskStatus status = 1;
+   */
+  status: TaskStatus[];
 
-    /**
-     * service_name includes only tasks for these services.
-     *
-     * @generated from field: repeated string service_name = 2;
-     */
-    serviceName: string[];
+  /**
+   * service_name includes only tasks for these services.
+   *
+   * @generated from field: repeated string service_name = 2;
+   */
+  serviceName: string[];
 
-    /**
-     * page_size is the requested page size.
-     *
-     * @generated from field: uint32 page_size = 3;
-     */
-    pageSize: number;
+  /**
+   * page_size is the requested page size.
+   *
+   * @generated from field: uint32 page_size = 3;
+   */
+  pageSize: number;
 
-    /**
-     * page is the 1-based page number.
-     *
-     * @generated from field: uint32 page = 4;
-     */
-    page: number;
+  /**
+   * page is the 1-based page number.
+   *
+   * @generated from field: uint32 page = 4;
+   */
+  page: number;
 
-    /**
-     * node_id includes only tasks for these nodes.
-     *
-     * @generated from field: repeated string node_id = 5;
-     */
-    nodeId: string[];
+  /**
+   * node_id includes only tasks for these nodes.
+   *
+   * @generated from field: repeated string node_id = 5;
+   */
+  nodeId: string[];
 
-    /**
-     * type includes only tasks of these types.
-     *
-     * @generated from field: repeated composia.controller.v1.TaskType type = 6;
-     */
-    type: TaskType[];
+  /**
+   * type includes only tasks of these types.
+   *
+   * @generated from field: repeated composia.controller.v1.TaskType type = 6;
+   */
+  type: TaskType[];
 
-    /**
-     * exclude_status removes tasks matching these statuses.
-     *
-     * @generated from field: repeated composia.controller.v1.TaskStatus exclude_status = 7;
-     */
-    excludeStatus: TaskStatus[];
+  /**
+   * exclude_status removes tasks matching these statuses.
+   *
+   * @generated from field: repeated composia.controller.v1.TaskStatus exclude_status = 7;
+   */
+  excludeStatus: TaskStatus[];
 
-    /**
-     * exclude_service_name removes tasks for these services.
-     *
-     * @generated from field: repeated string exclude_service_name = 8;
-     */
-    excludeServiceName: string[];
+  /**
+   * exclude_service_name removes tasks for these services.
+   *
+   * @generated from field: repeated string exclude_service_name = 8;
+   */
+  excludeServiceName: string[];
 
-    /**
-     * exclude_node_id removes tasks for these nodes.
-     *
-     * @generated from field: repeated string exclude_node_id = 9;
-     */
-    excludeNodeId: string[];
+  /**
+   * exclude_node_id removes tasks for these nodes.
+   *
+   * @generated from field: repeated string exclude_node_id = 9;
+   */
+  excludeNodeId: string[];
 
-    /**
-     * exclude_type removes tasks of these types.
-     *
-     * @generated from field: repeated composia.controller.v1.TaskType exclude_type = 10;
-     */
-    excludeType: TaskType[];
-  };
+  /**
+   * exclude_type removes tasks of these types.
+   *
+   * @generated from field: repeated composia.controller.v1.TaskType exclude_type = 10;
+   */
+  excludeType: TaskType[];
+};
 
 /**
  * Describes the message composia.controller.v1.ListTasksRequest.
  * Use `create(ListTasksRequestSchema)` to create a new message.
  */
-export const ListTasksRequestSchema: GenMessage<ListTasksRequest> =
-  /*@__PURE__*/
+export const ListTasksRequestSchema: GenMessage<ListTasksRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_task, 1);
 
 /**
@@ -196,8 +178,7 @@ export type TaskSummary = Message<"composia.controller.v1.TaskSummary"> & {
  * Describes the message composia.controller.v1.TaskSummary.
  * Use `create(TaskSummarySchema)` to create a new message.
  */
-export const TaskSummarySchema: GenMessage<TaskSummary> =
-  /*@__PURE__*/
+export const TaskSummarySchema: GenMessage<TaskSummary> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_task, 2);
 
 /**
@@ -205,25 +186,23 @@ export const TaskSummarySchema: GenMessage<TaskSummary> =
  *
  * @generated from message composia.controller.v1.ListTasksResponse
  */
-export type ListTasksResponse =
-  Message<"composia.controller.v1.ListTasksResponse"> & {
-    /**
-     * @generated from field: repeated composia.controller.v1.TaskSummary tasks = 1;
-     */
-    tasks: TaskSummary[];
+export type ListTasksResponse = Message<"composia.controller.v1.ListTasksResponse"> & {
+  /**
+   * @generated from field: repeated composia.controller.v1.TaskSummary tasks = 1;
+   */
+  tasks: TaskSummary[];
 
-    /**
-     * @generated from field: uint32 total_count = 2;
-     */
-    totalCount: number;
-  };
+  /**
+   * @generated from field: uint32 total_count = 2;
+   */
+  totalCount: number;
+};
 
 /**
  * Describes the message composia.controller.v1.ListTasksResponse.
  * Use `create(ListTasksResponseSchema)` to create a new message.
  */
-export const ListTasksResponseSchema: GenMessage<ListTasksResponse> =
-  /*@__PURE__*/
+export const ListTasksResponseSchema: GenMessage<ListTasksResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_task, 3);
 
 /**
@@ -231,20 +210,18 @@ export const ListTasksResponseSchema: GenMessage<ListTasksResponse> =
  *
  * @generated from message composia.controller.v1.GetTaskRequest
  */
-export type GetTaskRequest =
-  Message<"composia.controller.v1.GetTaskRequest"> & {
-    /**
-     * @generated from field: string task_id = 1;
-     */
-    taskId: string;
-  };
+export type GetTaskRequest = Message<"composia.controller.v1.GetTaskRequest"> & {
+  /**
+   * @generated from field: string task_id = 1;
+   */
+  taskId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.GetTaskRequest.
  * Use `create(GetTaskRequestSchema)` to create a new message.
  */
-export const GetTaskRequestSchema: GenMessage<GetTaskRequest> =
-  /*@__PURE__*/
+export const GetTaskRequestSchema: GenMessage<GetTaskRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_task, 4);
 
 /**
@@ -252,41 +229,39 @@ export const GetTaskRequestSchema: GenMessage<GetTaskRequest> =
  *
  * @generated from message composia.controller.v1.TaskStepSummary
  */
-export type TaskStepSummary =
-  Message<"composia.controller.v1.TaskStepSummary"> & {
-    /**
-     * @generated from field: composia.controller.v1.TaskStepName step_name = 1;
-     */
-    stepName: TaskStepName;
+export type TaskStepSummary = Message<"composia.controller.v1.TaskStepSummary"> & {
+  /**
+   * @generated from field: composia.controller.v1.TaskStepName step_name = 1;
+   */
+  stepName: TaskStepName;
 
-    /**
-     * status is the latest step status.
-     *
-     * @generated from field: composia.controller.v1.TaskStatus status = 2;
-     */
-    status: TaskStatus;
+  /**
+   * status is the latest step status.
+   *
+   * @generated from field: composia.controller.v1.TaskStatus status = 2;
+   */
+  status: TaskStatus;
 
-    /**
-     * started_at is unset when the step has not started.
-     *
-     * @generated from field: google.protobuf.Timestamp started_at = 3;
-     */
-    startedAt?: Timestamp | undefined;
+  /**
+   * started_at is unset when the step has not started.
+   *
+   * @generated from field: google.protobuf.Timestamp started_at = 3;
+   */
+  startedAt?: Timestamp | undefined;
 
-    /**
-     * finished_at is unset until the step finishes.
-     *
-     * @generated from field: google.protobuf.Timestamp finished_at = 4;
-     */
-    finishedAt?: Timestamp | undefined;
-  };
+  /**
+   * finished_at is unset until the step finishes.
+   *
+   * @generated from field: google.protobuf.Timestamp finished_at = 4;
+   */
+  finishedAt?: Timestamp | undefined;
+};
 
 /**
  * Describes the message composia.controller.v1.TaskStepSummary.
  * Use `create(TaskStepSummarySchema)` to create a new message.
  */
-export const TaskStepSummarySchema: GenMessage<TaskStepSummary> =
-  /*@__PURE__*/
+export const TaskStepSummarySchema: GenMessage<TaskStepSummary> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_task, 5);
 
 /**
@@ -294,112 +269,110 @@ export const TaskStepSummarySchema: GenMessage<TaskStepSummary> =
  *
  * @generated from message composia.controller.v1.GetTaskResponse
  */
-export type GetTaskResponse =
-  Message<"composia.controller.v1.GetTaskResponse"> & {
-    /**
-     * @generated from field: string task_id = 1;
-     */
-    taskId: string;
+export type GetTaskResponse = Message<"composia.controller.v1.GetTaskResponse"> & {
+  /**
+   * @generated from field: string task_id = 1;
+   */
+  taskId: string;
 
-    /**
-     * type identifies the controller task kind.
-     *
-     * @generated from field: composia.controller.v1.TaskType type = 2;
-     */
-    type: TaskType;
+  /**
+   * type identifies the controller task kind.
+   *
+   * @generated from field: composia.controller.v1.TaskType type = 2;
+   */
+  type: TaskType;
 
-    /**
-     * source identifies what triggered the task.
-     *
-     * @generated from field: composia.controller.v1.TaskSource source = 3;
-     */
-    source: TaskSource;
+  /**
+   * source identifies what triggered the task.
+   *
+   * @generated from field: composia.controller.v1.TaskSource source = 3;
+   */
+  source: TaskSource;
 
-    /**
-     * @generated from field: string service_name = 4;
-     */
-    serviceName: string;
+  /**
+   * @generated from field: string service_name = 4;
+   */
+  serviceName: string;
 
-    /**
-     * @generated from field: string node_id = 5;
-     */
-    nodeId: string;
+  /**
+   * @generated from field: string node_id = 5;
+   */
+  nodeId: string;
 
-    /**
-     * status is the latest task status.
-     *
-     * @generated from field: composia.controller.v1.TaskStatus status = 6;
-     */
-    status: TaskStatus;
+  /**
+   * status is the latest task status.
+   *
+   * @generated from field: composia.controller.v1.TaskStatus status = 6;
+   */
+  status: TaskStatus;
 
-    /**
-     * created_at is the task creation timestamp.
-     *
-     * @generated from field: google.protobuf.Timestamp created_at = 7;
-     */
-    createdAt?: Timestamp | undefined;
+  /**
+   * created_at is the task creation timestamp.
+   *
+   * @generated from field: google.protobuf.Timestamp created_at = 7;
+   */
+  createdAt?: Timestamp | undefined;
 
-    /**
-     * started_at is unset until task execution begins.
-     *
-     * @generated from field: google.protobuf.Timestamp started_at = 8;
-     */
-    startedAt?: Timestamp | undefined;
+  /**
+   * started_at is unset until task execution begins.
+   *
+   * @generated from field: google.protobuf.Timestamp started_at = 8;
+   */
+  startedAt?: Timestamp | undefined;
 
-    /**
-     * finished_at is unset until task execution reaches a terminal state.
-     *
-     * @generated from field: google.protobuf.Timestamp finished_at = 9;
-     */
-    finishedAt?: Timestamp | undefined;
+  /**
+   * finished_at is unset until task execution reaches a terminal state.
+   *
+   * @generated from field: google.protobuf.Timestamp finished_at = 9;
+   */
+  finishedAt?: Timestamp | undefined;
 
-    /**
-     * repo_revision is the repo revision used when the task started.
-     *
-     * @generated from field: string repo_revision = 10;
-     */
-    repoRevision: string;
+  /**
+   * repo_revision is the repo revision used when the task started.
+   *
+   * @generated from field: string repo_revision = 10;
+   */
+  repoRevision: string;
 
-    /**
-     * @generated from field: string error_summary = 11;
-     */
-    errorSummary: string;
+  /**
+   * @generated from field: string error_summary = 11;
+   */
+  errorSummary: string;
 
-    /**
-     * steps lists recorded step state snapshots in execution order.
-     *
-     * @generated from field: repeated composia.controller.v1.TaskStepSummary steps = 13;
-     */
-    steps: TaskStepSummary[];
+  /**
+   * steps lists recorded step state snapshots in execution order.
+   *
+   * @generated from field: repeated composia.controller.v1.TaskStepSummary steps = 13;
+   */
+  steps: TaskStepSummary[];
 
-    /**
-     * triggered_by identifies the actor that created the task.
-     *
-     * @generated from field: string triggered_by = 14;
-     */
-    triggeredBy: string;
+  /**
+   * triggered_by identifies the actor that created the task.
+   *
+   * @generated from field: string triggered_by = 14;
+   */
+  triggeredBy: string;
 
-    /**
-     * result_revision is the repo revision produced by the task, when applicable.
-     *
-     * @generated from field: string result_revision = 15;
-     */
-    resultRevision: string;
+  /**
+   * result_revision is the repo revision produced by the task, when applicable.
+   *
+   * @generated from field: string result_revision = 15;
+   */
+  resultRevision: string;
 
-    /**
-     * attempt_of_task_id links this task to the prior task it retried.
-     *
-     * @generated from field: string attempt_of_task_id = 16;
-     */
-    attemptOfTaskId: string;
-  };
+  /**
+   * attempt_of_task_id links this task to the prior task it retried.
+   *
+   * @generated from field: string attempt_of_task_id = 16;
+   */
+  attemptOfTaskId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.GetTaskResponse.
  * Use `create(GetTaskResponseSchema)` to create a new message.
  */
-export const GetTaskResponseSchema: GenMessage<GetTaskResponse> =
-  /*@__PURE__*/
+export const GetTaskResponseSchema: GenMessage<GetTaskResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_task, 6);
 
 /**
@@ -407,20 +380,18 @@ export const GetTaskResponseSchema: GenMessage<GetTaskResponse> =
  *
  * @generated from message composia.controller.v1.TailTaskLogsRequest
  */
-export type TailTaskLogsRequest =
-  Message<"composia.controller.v1.TailTaskLogsRequest"> & {
-    /**
-     * @generated from field: string task_id = 1;
-     */
-    taskId: string;
-  };
+export type TailTaskLogsRequest = Message<"composia.controller.v1.TailTaskLogsRequest"> & {
+  /**
+   * @generated from field: string task_id = 1;
+   */
+  taskId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.TailTaskLogsRequest.
  * Use `create(TailTaskLogsRequestSchema)` to create a new message.
  */
-export const TailTaskLogsRequestSchema: GenMessage<TailTaskLogsRequest> =
-  /*@__PURE__*/
+export const TailTaskLogsRequestSchema: GenMessage<TailTaskLogsRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_task, 7);
 
 /**
@@ -428,20 +399,18 @@ export const TailTaskLogsRequestSchema: GenMessage<TailTaskLogsRequest> =
  *
  * @generated from message composia.controller.v1.TailTaskLogsResponse
  */
-export type TailTaskLogsResponse =
-  Message<"composia.controller.v1.TailTaskLogsResponse"> & {
-    /**
-     * @generated from field: string content = 1;
-     */
-    content: string;
-  };
+export type TailTaskLogsResponse = Message<"composia.controller.v1.TailTaskLogsResponse"> & {
+  /**
+   * @generated from field: string content = 1;
+   */
+  content: string;
+};
 
 /**
  * Describes the message composia.controller.v1.TailTaskLogsResponse.
  * Use `create(TailTaskLogsResponseSchema)` to create a new message.
  */
-export const TailTaskLogsResponseSchema: GenMessage<TailTaskLogsResponse> =
-  /*@__PURE__*/
+export const TailTaskLogsResponseSchema: GenMessage<TailTaskLogsResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_task, 8);
 
 /**
@@ -449,20 +418,18 @@ export const TailTaskLogsResponseSchema: GenMessage<TailTaskLogsResponse> =
  *
  * @generated from message composia.controller.v1.RunTaskAgainRequest
  */
-export type RunTaskAgainRequest =
-  Message<"composia.controller.v1.RunTaskAgainRequest"> & {
-    /**
-     * @generated from field: string task_id = 1;
-     */
-    taskId: string;
-  };
+export type RunTaskAgainRequest = Message<"composia.controller.v1.RunTaskAgainRequest"> & {
+  /**
+   * @generated from field: string task_id = 1;
+   */
+  taskId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.RunTaskAgainRequest.
  * Use `create(RunTaskAgainRequestSchema)` to create a new message.
  */
-export const RunTaskAgainRequestSchema: GenMessage<RunTaskAgainRequest> =
-  /*@__PURE__*/
+export const RunTaskAgainRequestSchema: GenMessage<RunTaskAgainRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_task, 9);
 
 /**
@@ -470,32 +437,30 @@ export const RunTaskAgainRequestSchema: GenMessage<RunTaskAgainRequest> =
  *
  * @generated from message composia.controller.v1.ResolveTaskConfirmationRequest
  */
-export type ResolveTaskConfirmationRequest =
-  Message<"composia.controller.v1.ResolveTaskConfirmationRequest"> & {
-    /**
-     * @generated from field: string task_id = 1;
-     */
-    taskId: string;
+export type ResolveTaskConfirmationRequest = Message<"composia.controller.v1.ResolveTaskConfirmationRequest"> & {
+  /**
+   * @generated from field: string task_id = 1;
+   */
+  taskId: string;
 
-    /**
-     * decision resolves the confirmation gate.
-     *
-     * @generated from field: composia.controller.v1.TaskConfirmationDecision decision = 2;
-     */
-    decision: TaskConfirmationDecision;
+  /**
+   * decision resolves the confirmation gate.
+   *
+   * @generated from field: composia.controller.v1.TaskConfirmationDecision decision = 2;
+   */
+  decision: TaskConfirmationDecision;
 
-    /**
-     * @generated from field: string comment = 3;
-     */
-    comment: string;
-  };
+  /**
+   * @generated from field: string comment = 3;
+   */
+  comment: string;
+};
 
 /**
  * Describes the message composia.controller.v1.ResolveTaskConfirmationRequest.
  * Use `create(ResolveTaskConfirmationRequestSchema)` to create a new message.
  */
-export const ResolveTaskConfirmationRequestSchema: GenMessage<ResolveTaskConfirmationRequest> =
-  /*@__PURE__*/
+export const ResolveTaskConfirmationRequestSchema: GenMessage<ResolveTaskConfirmationRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_task, 10);
 
 /**
@@ -503,50 +468,48 @@ export const ResolveTaskConfirmationRequestSchema: GenMessage<ResolveTaskConfirm
  *
  * @generated from message composia.controller.v1.CreateMigrationRollbackRequest
  */
-export type CreateMigrationRollbackRequest =
-  Message<"composia.controller.v1.CreateMigrationRollbackRequest"> & {
-    /**
-     * task_id identifies the original migrate task.
-     *
-     * @generated from field: string task_id = 1;
-     */
-    taskId: string;
+export type CreateMigrationRollbackRequest = Message<"composia.controller.v1.CreateMigrationRollbackRequest"> & {
+  /**
+   * task_id identifies the original migrate task.
+   *
+   * @generated from field: string task_id = 1;
+   */
+  taskId: string;
 
-    /**
-     * rollback_dns syncs DNS back to the source node.
-     *
-     * @generated from field: bool rollback_dns = 2;
-     */
-    rollbackDns: boolean;
+  /**
+   * rollback_dns syncs DNS back to the source node.
+   *
+   * @generated from field: bool rollback_dns = 2;
+   */
+  rollbackDns: boolean;
 
-    /**
-     * deploy_source starts the service on the source node again.
-     *
-     * @generated from field: bool deploy_source = 3;
-     */
-    deploySource: boolean;
+  /**
+   * deploy_source starts the service on the source node again.
+   *
+   * @generated from field: bool deploy_source = 3;
+   */
+  deploySource: boolean;
 
-    /**
-     * stop_target stops the service on the migration target node.
-     *
-     * @generated from field: bool stop_target = 4;
-     */
-    stopTarget: boolean;
+  /**
+   * stop_target stops the service on the migration target node.
+   *
+   * @generated from field: bool stop_target = 4;
+   */
+  stopTarget: boolean;
 
-    /**
-     * cleanup_target is reserved for a future destructive cleanup workflow.
-     *
-     * @generated from field: bool cleanup_target = 5;
-     */
-    cleanupTarget: boolean;
-  };
+  /**
+   * cleanup_target is reserved for a future destructive cleanup workflow.
+   *
+   * @generated from field: bool cleanup_target = 5;
+   */
+  cleanupTarget: boolean;
+};
 
 /**
  * Describes the message composia.controller.v1.CreateMigrationRollbackRequest.
  * Use `create(CreateMigrationRollbackRequestSchema)` to create a new message.
  */
-export const CreateMigrationRollbackRequestSchema: GenMessage<CreateMigrationRollbackRequest> =
-  /*@__PURE__*/
+export const CreateMigrationRollbackRequestSchema: GenMessage<CreateMigrationRollbackRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_task, 11);
 
 /**
@@ -664,8 +627,7 @@ export enum TaskType {
 /**
  * Describes the enum composia.controller.v1.TaskType.
  */
-export const TaskTypeSchema: GenEnum<TaskType> =
-  /*@__PURE__*/
+export const TaskTypeSchema: GenEnum<TaskType> = /*@__PURE__*/
   enumDesc(file_proto_composia_controller_v1_task, 0);
 
 /**
@@ -713,8 +675,7 @@ export enum TaskStatus {
 /**
  * Describes the enum composia.controller.v1.TaskStatus.
  */
-export const TaskStatusSchema: GenEnum<TaskStatus> =
-  /*@__PURE__*/
+export const TaskStatusSchema: GenEnum<TaskStatus> = /*@__PURE__*/
   enumDesc(file_proto_composia_controller_v1_task, 1);
 
 /**
@@ -762,8 +723,7 @@ export enum TaskSource {
 /**
  * Describes the enum composia.controller.v1.TaskSource.
  */
-export const TaskSourceSchema: GenEnum<TaskSource> =
-  /*@__PURE__*/
+export const TaskSourceSchema: GenEnum<TaskSource> = /*@__PURE__*/
   enumDesc(file_proto_composia_controller_v1_task, 2);
 
 /**
@@ -881,8 +841,7 @@ export enum TaskStepName {
 /**
  * Describes the enum composia.controller.v1.TaskStepName.
  */
-export const TaskStepNameSchema: GenEnum<TaskStepName> =
-  /*@__PURE__*/
+export const TaskStepNameSchema: GenEnum<TaskStepName> = /*@__PURE__*/
   enumDesc(file_proto_composia_controller_v1_task, 3);
 
 /**
@@ -910,8 +869,7 @@ export enum TaskConfirmationDecision {
 /**
  * Describes the enum composia.controller.v1.TaskConfirmationDecision.
  */
-export const TaskConfirmationDecisionSchema: GenEnum<TaskConfirmationDecision> =
-  /*@__PURE__*/
+export const TaskConfirmationDecisionSchema: GenEnum<TaskConfirmationDecision> = /*@__PURE__*/
   enumDesc(file_proto_composia_controller_v1_task, 4);
 
 /**
@@ -929,7 +887,7 @@ export const TaskService: GenService<{
     methodKind: "unary";
     input: typeof ListTasksRequestSchema;
     output: typeof ListTasksResponseSchema;
-  };
+  },
   /**
    * GetTask returns the full detail for one task.
    *
@@ -939,7 +897,7 @@ export const TaskService: GenService<{
     methodKind: "unary";
     input: typeof GetTaskRequestSchema;
     output: typeof GetTaskResponseSchema;
-  };
+  },
   /**
    * TailTaskLogs streams incremental log content for one task.
    *
@@ -949,7 +907,7 @@ export const TaskService: GenService<{
     methodKind: "server_streaming";
     input: typeof TailTaskLogsRequestSchema;
     output: typeof TailTaskLogsResponseSchema;
-  };
+  },
   /**
    * RunTaskAgain starts a new task based on an existing task.
    *
@@ -959,7 +917,7 @@ export const TaskService: GenService<{
     methodKind: "unary";
     input: typeof RunTaskAgainRequestSchema;
     output: typeof TaskActionResponseSchema;
-  };
+  },
   /**
    * ResolveTaskConfirmation resumes or rejects a task waiting for manual confirmation.
    *
@@ -969,7 +927,7 @@ export const TaskService: GenService<{
     methodKind: "unary";
     input: typeof ResolveTaskConfirmationRequestSchema;
     output: typeof TaskActionResponseSchema;
-  };
+  },
   /**
    * CreateMigrationRollback starts a rollback task from a failed or rejected migration.
    *
@@ -979,5 +937,7 @@ export const TaskService: GenService<{
     methodKind: "unary";
     input: typeof CreateMigrationRollbackRequestSchema;
     output: typeof TaskActionResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_proto_composia_controller_v1_task, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_proto_composia_controller_v1_task, 0);
+

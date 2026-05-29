@@ -2,18 +2,8 @@
 // @generated from file proto/composia/controller/v1/service.proto (package composia.controller.v1, syntax proto3)
 /* eslint-disable */
 
-import type {
-  GenEnum,
-  GenFile,
-  GenMessage,
-  GenService,
-} from "@bufbuild/protobuf/codegenv2";
-import {
-  enumDesc,
-  fileDesc,
-  messageDesc,
-  serviceDesc,
-} from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { TaskActionResponse, TaskActionResponseSchema } from "./task_pb";
 import { file_proto_composia_controller_v1_task } from "./task_pb";
 import type { Capability } from "./system_pb";
@@ -25,73 +15,63 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file proto/composia/controller/v1/service.proto.
  */
-export const file_proto_composia_controller_v1_service: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "Cipwcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxL3NlcnZpY2UucHJvdG8SFmNvbXBvc2lhLmNvbnRyb2xsZXIudjEioQEKFlNlcnZpY2VJbnN0YW5jZVN1bW1hcnkSFAoMc2VydmljZV9uYW1lGAEgASgJEg8KB25vZGVfaWQYAiABKAkSFgoOcnVudGltZV9zdGF0dXMYAyABKAkSEgoKdXBkYXRlZF9hdBgEIAEoCRITCgtpc19kZWNsYXJlZBgFIAEoCBIfChdwZW5kaW5nX2RlcGxveV9yZXZpc2lvbhgGIAEoCSKuAQoXU2VydmljZUNvbnRhaW5lclN1bW1hcnkSFAoMY29udGFpbmVyX2lkGAEgASgJEgwKBG5hbWUYAiABKAkSDQoFaW1hZ2UYAyABKAkSDQoFc3RhdGUYBCABKAkSDgoGc3RhdHVzGAUgASgJEg8KB2NyZWF0ZWQYBiABKAkSFwoPY29tcG9zZV9wcm9qZWN0GAcgASgJEhcKD2NvbXBvc2Vfc2VydmljZRgIIAEoCSLlAQoVU2VydmljZUluc3RhbmNlRGV0YWlsEhQKDHNlcnZpY2VfbmFtZRgBIAEoCRIPCgdub2RlX2lkGAIgASgJEhYKDnJ1bnRpbWVfc3RhdHVzGAMgASgJEhIKCnVwZGF0ZWRfYXQYBCABKAkSEwoLaXNfZGVjbGFyZWQYBSABKAgSQwoKY29udGFpbmVycxgGIAMoCzIvLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuU2VydmljZUNvbnRhaW5lclN1bW1hcnkSHwoXcGVuZGluZ19kZXBsb3lfcmV2aXNpb24YByABKAkiqQIKGVNlcnZpY2VBY3Rpb25DYXBhYmlsaXRpZXMSMgoGYmFja3VwGAEgASgLMiIuY29tcG9zaWEuY29udHJvbGxlci52MS5DYXBhYmlsaXR5EjMKB3Jlc3RvcmUYAiABKAsyIi5jb21wb3NpYS5jb250cm9sbGVyLnYxLkNhcGFiaWxpdHkSMwoHbWlncmF0ZRgDIAEoCzIiLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuQ2FwYWJpbGl0eRI2CgpkbnNfdXBkYXRlGAQgASgLMiIuY29tcG9zaWEuY29udHJvbGxlci52MS5DYXBhYmlsaXR5EjYKCmNhZGR5X3N5bmMYBSABKAsyIi5jb21wb3NpYS5jb250cm9sbGVyLnYxLkNhcGFiaWxpdHkiRQoRR2V0U2VydmljZVJlcXVlc3QSFAoMc2VydmljZV9uYW1lGAEgASgJEhoKEmluY2x1ZGVfY29udGFpbmVycxgCIAEoCCKHAgoSR2V0U2VydmljZVJlc3BvbnNlEgwKBG5hbWUYASABKAkSFgoOcnVudGltZV9zdGF0dXMYAiABKAkSEgoKdXBkYXRlZF9hdBgDIAEoCRINCgVub2RlcxgEIAMoCRIPCgdlbmFibGVkGAUgASgIEhEKCWRpcmVjdG9yeRgGIAEoCRJACglpbnN0YW5jZXMYByADKAsyLS5jb21wb3NpYS5jb250cm9sbGVyLnYxLlNlcnZpY2VJbnN0YW5jZURldGFpbBJCCgdhY3Rpb25zGAggASgLMjEuY29tcG9zaWEuY29udHJvbGxlci52MS5TZXJ2aWNlQWN0aW9uQ2FwYWJpbGl0aWVzIowCChdTZXJ2aWNlV29ya3NwYWNlU3VtbWFyeRIOCgZmb2xkZXIYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEhQKDHNlcnZpY2VfbmFtZRgDIAEoCRIQCghoYXNfbWV0YRgEIAEoCBITCgtpc19kZWNsYXJlZBgFIAEoCBIWCg5ydW50aW1lX3N0YXR1cxgGIAEoCRISCgp1cGRhdGVkX2F0GAcgASgJEg0KBW5vZGVzGAggAygJEg8KB2VuYWJsZWQYCSABKAgSQgoHYWN0aW9ucxgKIAEoCzIxLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuU2VydmljZUFjdGlvbkNhcGFiaWxpdGllcyIeChxMaXN0U2VydmljZVdvcmtzcGFjZXNSZXF1ZXN0ImQKHUxpc3RTZXJ2aWNlV29ya3NwYWNlc1Jlc3BvbnNlEkMKCndvcmtzcGFjZXMYASADKAsyLy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlNlcnZpY2VXb3Jrc3BhY2VTdW1tYXJ5IiwKGkdldFNlcnZpY2VXb3Jrc3BhY2VSZXF1ZXN0Eg4KBmZvbGRlchgBIAEoCSJhChtHZXRTZXJ2aWNlV29ya3NwYWNlUmVzcG9uc2USQgoJd29ya3NwYWNlGAEgASgLMi8uY29tcG9zaWEuY29udHJvbGxlci52MS5TZXJ2aWNlV29ya3NwYWNlU3VtbWFyeSIzChtMaXN0U2VydmljZUluc3RhbmNlc1JlcXVlc3QSFAoMc2VydmljZV9uYW1lGAEgASgJImEKHExpc3RTZXJ2aWNlSW5zdGFuY2VzUmVzcG9uc2USQQoJaW5zdGFuY2VzGAEgAygLMi4uY29tcG9zaWEuY29udHJvbGxlci52MS5TZXJ2aWNlSW5zdGFuY2VTdW1tYXJ5Il4KGUdldFNlcnZpY2VJbnN0YW5jZVJlcXVlc3QSFAoMc2VydmljZV9uYW1lGAEgASgJEg8KB25vZGVfaWQYAiABKAkSGgoSaW5jbHVkZV9jb250YWluZXJzGAMgASgIIl0KGkdldFNlcnZpY2VJbnN0YW5jZVJlc3BvbnNlEj8KCGluc3RhbmNlGAEgASgLMi0uY29tcG9zaWEuY29udHJvbGxlci52MS5TZXJ2aWNlSW5zdGFuY2VEZXRhaWwiSwoiR2V0U2VydmljZUltYWdlVXBkYXRlQ2hlY2tzUmVxdWVzdBIUCgxzZXJ2aWNlX25hbWUYASABKAkSDwoHbm9kZV9pZBgCIAEoCSLrAgoeU2VydmljZUltYWdlVXBkYXRlQ2hlY2tTdW1tYXJ5EhQKDHNlcnZpY2VfbmFtZRgBIAEoCRIPCgdub2RlX2lkGAIgASgJEhIKCmltYWdlX25hbWUYAyABKAkSEQoJaW1hZ2VfcmVmGAQgASgJEhMKC3BvbGljeV90eXBlGAUgASgJEhUKDWN1cnJlbnRfdmFsdWUYBiABKAkSEwoLY3VycmVudF90YWcYByABKAkSFgoOY3VycmVudF9kaWdlc3QYCCABKAkSFQoNY2FuZGlkYXRlX3RhZxgJIAEoCRIYChBjYW5kaWRhdGVfZGlnZXN0GAogASgJEhYKDmNhbmRpZGF0ZV90YWdzGAsgAygJEhgKEHVwZGF0ZV9hdmFpbGFibGUYDCABKAgSFAoMY2hlY2tfc3RhdHVzGA0gASgJEhUKDWVycm9yX3N1bW1hcnkYDiABKAkSEgoKY2hlY2tlZF9hdBgPIAEoCSJtCiNHZXRTZXJ2aWNlSW1hZ2VVcGRhdGVDaGVja3NSZXNwb25zZRJGCgZjaGVja3MYASADKAsyNi5jb21wb3NpYS5jb250cm9sbGVyLnYxLlNlcnZpY2VJbWFnZVVwZGF0ZUNoZWNrU3VtbWFyeSKSAQoYUnVuU2VydmljZUFjdGlvblJlc3BvbnNlEjkKBXRhc2tzGAEgAygLMiouY29tcG9zaWEuY29udHJvbGxlci52MS5UYXNrQWN0aW9uUmVzcG9uc2USOwoKcmVwb193cml0ZRgCIAEoCzInLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuUmVwb1dyaXRlUmVzdWx0Il0KFU1pZ3JhdGVTZXJ2aWNlUmVxdWVzdBIUCgxzZXJ2aWNlX25hbWUYASABKAkSFgoOc291cmNlX25vZGVfaWQYAiABKAkSFgoOdGFyZ2V0X25vZGVfaWQYAyABKAkisAMKF1J1blNlcnZpY2VBY3Rpb25SZXF1ZXN0EhQKDHNlcnZpY2VfbmFtZRgBIAEoCRI1CgZhY3Rpb24YAiABKA4yJS5jb21wb3NpYS5jb250cm9sbGVyLnYxLlNlcnZpY2VBY3Rpb24SEAoIbm9kZV9pZHMYAyADKAkSEgoKZGF0YV9uYW1lcxgEIAMoCRJKChVjb21wb3NlX3JlY3JlYXRlX21vZGUYBSABKA4yKy5jb21wb3NpYS5jb250cm9sbGVyLnYxLkNvbXBvc2VSZWNyZWF0ZU1vZGUSQwoNaW1hZ2VfdXBkYXRlcxgGIAMoCzIsLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuSW1hZ2VVcGRhdGVTZWxlY3Rpb24SJgoedXNlX2FsbF9kZXRlY3RlZF9pbWFnZV91cGRhdGVzGAcgASgIEiEKFGJhY2t1cF9iZWZvcmVfdXBkYXRlGAggASgISACIAQESFQoNYmFzZV9yZXZpc2lvbhgJIAEoCRIWCg5jb21taXRfbWVzc2FnZRgKIAEoCUIXChVfYmFja3VwX2JlZm9yZV91cGRhdGUiVAoUSW1hZ2VVcGRhdGVTZWxlY3Rpb24SEgoKaW1hZ2VfbmFtZRgBIAEoCRISCgp0YXJnZXRfdGFnGAIgASgJEhQKDHVzZV9kZXRlY3RlZBgDIAEoCCJOChNMaXN0U2VydmljZXNSZXF1ZXN0EhYKDnJ1bnRpbWVfc3RhdHVzGAEgASgJEhEKCXBhZ2Vfc2l6ZRgCIAEoDRIMCgRwYWdlGAMgASgNIqkBCg5TZXJ2aWNlU3VtbWFyeRIMCgRuYW1lGAEgASgJEhMKC2lzX2RlY2xhcmVkGAIgASgIEhYKDnJ1bnRpbWVfc3RhdHVzGAMgASgJEhIKCnVwZGF0ZWRfYXQYBCABKAkSFgoOaW5zdGFuY2VfY291bnQYBSABKA0SFQoNcnVubmluZ19jb3VudBgGIAEoDRIZChF0YXJnZXRfbm9kZV9jb3VudBgHIAEoDSJlChRMaXN0U2VydmljZXNSZXNwb25zZRI4CghzZXJ2aWNlcxgBIAMoCzImLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuU2VydmljZVN1bW1hcnkSEwoLdG90YWxfY291bnQYAiABKA0q8wEKDVNlcnZpY2VBY3Rpb24SHgoaU0VSVklDRV9BQ1RJT05fVU5TUEVDSUZJRUQQABIZChVTRVJWSUNFX0FDVElPTl9ERVBMT1kQARIZChVTRVJWSUNFX0FDVElPTl9VUERBVEUQAhIXChNTRVJWSUNFX0FDVElPTl9TVE9QEAMSGgoWU0VSVklDRV9BQ1RJT05fUkVTVEFSVBAEEhkKFVNFUlZJQ0VfQUNUSU9OX0JBQ0tVUBAFEh0KGVNFUlZJQ0VfQUNUSU9OX0ROU19VUERBVEUQBhIdChlTRVJWSUNFX0FDVElPTl9DQUREWV9TWU5DEAcqrQEKE0NvbXBvc2VSZWNyZWF0ZU1vZGUSJQohQ09NUE9TRV9SRUNSRUFURV9NT0RFX1VOU1BFQ0lGSUVEEAASHgoaQ09NUE9TRV9SRUNSRUFURV9NT0RFX0FVVE8QARIlCiFDT01QT1NFX1JFQ1JFQVRFX01PREVfTk9fUkVDUkVBVEUQAhIoCiRDT01QT1NFX1JFQ1JFQVRFX01PREVfRk9SQ0VfUkVDUkVBVEUQAzKFBQoTU2VydmljZVF1ZXJ5U2VydmljZRJpCgxMaXN0U2VydmljZXMSKy5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3RTZXJ2aWNlc1JlcXVlc3QaLC5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3RTZXJ2aWNlc1Jlc3BvbnNlEoQBChVMaXN0U2VydmljZVdvcmtzcGFjZXMSNC5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3RTZXJ2aWNlV29ya3NwYWNlc1JlcXVlc3QaNS5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3RTZXJ2aWNlV29ya3NwYWNlc1Jlc3BvbnNlEmMKCkdldFNlcnZpY2USKS5jb21wb3NpYS5jb250cm9sbGVyLnYxLkdldFNlcnZpY2VSZXF1ZXN0GiouY29tcG9zaWEuY29udHJvbGxlci52MS5HZXRTZXJ2aWNlUmVzcG9uc2USfgoTR2V0U2VydmljZVdvcmtzcGFjZRIyLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0U2VydmljZVdvcmtzcGFjZVJlcXVlc3QaMy5jb21wb3NpYS5jb250cm9sbGVyLnYxLkdldFNlcnZpY2VXb3Jrc3BhY2VSZXNwb25zZRKWAQobR2V0U2VydmljZUltYWdlVXBkYXRlQ2hlY2tzEjouY29tcG9zaWEuY29udHJvbGxlci52MS5HZXRTZXJ2aWNlSW1hZ2VVcGRhdGVDaGVja3NSZXF1ZXN0GjsuY29tcG9zaWEuY29udHJvbGxlci52MS5HZXRTZXJ2aWNlSW1hZ2VVcGRhdGVDaGVja3NSZXNwb25zZTL7AQoVU2VydmljZUNvbW1hbmRTZXJ2aWNlEnUKEFJ1blNlcnZpY2VBY3Rpb24SLy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlJ1blNlcnZpY2VBY3Rpb25SZXF1ZXN0GjAuY29tcG9zaWEuY29udHJvbGxlci52MS5SdW5TZXJ2aWNlQWN0aW9uUmVzcG9uc2USawoOTWlncmF0ZVNlcnZpY2USLS5jb21wb3NpYS5jb250cm9sbGVyLnYxLk1pZ3JhdGVTZXJ2aWNlUmVxdWVzdBoqLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFza0FjdGlvblJlc3BvbnNlMpkCChZTZXJ2aWNlSW5zdGFuY2VTZXJ2aWNlEoEBChRMaXN0U2VydmljZUluc3RhbmNlcxIzLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuTGlzdFNlcnZpY2VJbnN0YW5jZXNSZXF1ZXN0GjQuY29tcG9zaWEuY29udHJvbGxlci52MS5MaXN0U2VydmljZUluc3RhbmNlc1Jlc3BvbnNlEnsKEkdldFNlcnZpY2VJbnN0YW5jZRIxLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0U2VydmljZUluc3RhbmNlUmVxdWVzdBoyLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0U2VydmljZUluc3RhbmNlUmVzcG9uc2VCWFpWZm9yZ2Vqby5hbGV4bWEudG9wL2FsZXhtYTIzMy9jb21wb3NpYS9nZW4vZ28vcHJvdG8vY29tcG9zaWEvY29udHJvbGxlci92MTtjb250cm9sbGVydjFiBnByb3RvMw",
-    [
-      file_proto_composia_controller_v1_task,
-      file_proto_composia_controller_v1_system,
-      file_proto_composia_controller_v1_repo,
-    ],
-  );
+export const file_proto_composia_controller_v1_service: GenFile = /*@__PURE__*/
+  fileDesc("Cipwcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxL3NlcnZpY2UucHJvdG8SFmNvbXBvc2lhLmNvbnRyb2xsZXIudjEioQEKFlNlcnZpY2VJbnN0YW5jZVN1bW1hcnkSFAoMc2VydmljZV9uYW1lGAEgASgJEg8KB25vZGVfaWQYAiABKAkSFgoOcnVudGltZV9zdGF0dXMYAyABKAkSEgoKdXBkYXRlZF9hdBgEIAEoCRITCgtpc19kZWNsYXJlZBgFIAEoCBIfChdwZW5kaW5nX2RlcGxveV9yZXZpc2lvbhgGIAEoCSKuAQoXU2VydmljZUNvbnRhaW5lclN1bW1hcnkSFAoMY29udGFpbmVyX2lkGAEgASgJEgwKBG5hbWUYAiABKAkSDQoFaW1hZ2UYAyABKAkSDQoFc3RhdGUYBCABKAkSDgoGc3RhdHVzGAUgASgJEg8KB2NyZWF0ZWQYBiABKAkSFwoPY29tcG9zZV9wcm9qZWN0GAcgASgJEhcKD2NvbXBvc2Vfc2VydmljZRgIIAEoCSLlAQoVU2VydmljZUluc3RhbmNlRGV0YWlsEhQKDHNlcnZpY2VfbmFtZRgBIAEoCRIPCgdub2RlX2lkGAIgASgJEhYKDnJ1bnRpbWVfc3RhdHVzGAMgASgJEhIKCnVwZGF0ZWRfYXQYBCABKAkSEwoLaXNfZGVjbGFyZWQYBSABKAgSQwoKY29udGFpbmVycxgGIAMoCzIvLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuU2VydmljZUNvbnRhaW5lclN1bW1hcnkSHwoXcGVuZGluZ19kZXBsb3lfcmV2aXNpb24YByABKAkiqQIKGVNlcnZpY2VBY3Rpb25DYXBhYmlsaXRpZXMSMgoGYmFja3VwGAEgASgLMiIuY29tcG9zaWEuY29udHJvbGxlci52MS5DYXBhYmlsaXR5EjMKB3Jlc3RvcmUYAiABKAsyIi5jb21wb3NpYS5jb250cm9sbGVyLnYxLkNhcGFiaWxpdHkSMwoHbWlncmF0ZRgDIAEoCzIiLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuQ2FwYWJpbGl0eRI2CgpkbnNfdXBkYXRlGAQgASgLMiIuY29tcG9zaWEuY29udHJvbGxlci52MS5DYXBhYmlsaXR5EjYKCmNhZGR5X3N5bmMYBSABKAsyIi5jb21wb3NpYS5jb250cm9sbGVyLnYxLkNhcGFiaWxpdHkiRQoRR2V0U2VydmljZVJlcXVlc3QSFAoMc2VydmljZV9uYW1lGAEgASgJEhoKEmluY2x1ZGVfY29udGFpbmVycxgCIAEoCCKHAgoSR2V0U2VydmljZVJlc3BvbnNlEgwKBG5hbWUYASABKAkSFgoOcnVudGltZV9zdGF0dXMYAiABKAkSEgoKdXBkYXRlZF9hdBgDIAEoCRINCgVub2RlcxgEIAMoCRIPCgdlbmFibGVkGAUgASgIEhEKCWRpcmVjdG9yeRgGIAEoCRJACglpbnN0YW5jZXMYByADKAsyLS5jb21wb3NpYS5jb250cm9sbGVyLnYxLlNlcnZpY2VJbnN0YW5jZURldGFpbBJCCgdhY3Rpb25zGAggASgLMjEuY29tcG9zaWEuY29udHJvbGxlci52MS5TZXJ2aWNlQWN0aW9uQ2FwYWJpbGl0aWVzIowCChdTZXJ2aWNlV29ya3NwYWNlU3VtbWFyeRIOCgZmb2xkZXIYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEhQKDHNlcnZpY2VfbmFtZRgDIAEoCRIQCghoYXNfbWV0YRgEIAEoCBITCgtpc19kZWNsYXJlZBgFIAEoCBIWCg5ydW50aW1lX3N0YXR1cxgGIAEoCRISCgp1cGRhdGVkX2F0GAcgASgJEg0KBW5vZGVzGAggAygJEg8KB2VuYWJsZWQYCSABKAgSQgoHYWN0aW9ucxgKIAEoCzIxLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuU2VydmljZUFjdGlvbkNhcGFiaWxpdGllcyIeChxMaXN0U2VydmljZVdvcmtzcGFjZXNSZXF1ZXN0ImQKHUxpc3RTZXJ2aWNlV29ya3NwYWNlc1Jlc3BvbnNlEkMKCndvcmtzcGFjZXMYASADKAsyLy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlNlcnZpY2VXb3Jrc3BhY2VTdW1tYXJ5IiwKGkdldFNlcnZpY2VXb3Jrc3BhY2VSZXF1ZXN0Eg4KBmZvbGRlchgBIAEoCSJhChtHZXRTZXJ2aWNlV29ya3NwYWNlUmVzcG9uc2USQgoJd29ya3NwYWNlGAEgASgLMi8uY29tcG9zaWEuY29udHJvbGxlci52MS5TZXJ2aWNlV29ya3NwYWNlU3VtbWFyeSIzChtMaXN0U2VydmljZUluc3RhbmNlc1JlcXVlc3QSFAoMc2VydmljZV9uYW1lGAEgASgJImEKHExpc3RTZXJ2aWNlSW5zdGFuY2VzUmVzcG9uc2USQQoJaW5zdGFuY2VzGAEgAygLMi4uY29tcG9zaWEuY29udHJvbGxlci52MS5TZXJ2aWNlSW5zdGFuY2VTdW1tYXJ5Il4KGUdldFNlcnZpY2VJbnN0YW5jZVJlcXVlc3QSFAoMc2VydmljZV9uYW1lGAEgASgJEg8KB25vZGVfaWQYAiABKAkSGgoSaW5jbHVkZV9jb250YWluZXJzGAMgASgIIl0KGkdldFNlcnZpY2VJbnN0YW5jZVJlc3BvbnNlEj8KCGluc3RhbmNlGAEgASgLMi0uY29tcG9zaWEuY29udHJvbGxlci52MS5TZXJ2aWNlSW5zdGFuY2VEZXRhaWwiSwoiR2V0U2VydmljZUltYWdlVXBkYXRlQ2hlY2tzUmVxdWVzdBIUCgxzZXJ2aWNlX25hbWUYASABKAkSDwoHbm9kZV9pZBgCIAEoCSLrAgoeU2VydmljZUltYWdlVXBkYXRlQ2hlY2tTdW1tYXJ5EhQKDHNlcnZpY2VfbmFtZRgBIAEoCRIPCgdub2RlX2lkGAIgASgJEhIKCmltYWdlX25hbWUYAyABKAkSEQoJaW1hZ2VfcmVmGAQgASgJEhMKC3BvbGljeV90eXBlGAUgASgJEhUKDWN1cnJlbnRfdmFsdWUYBiABKAkSEwoLY3VycmVudF90YWcYByABKAkSFgoOY3VycmVudF9kaWdlc3QYCCABKAkSFQoNY2FuZGlkYXRlX3RhZxgJIAEoCRIYChBjYW5kaWRhdGVfZGlnZXN0GAogASgJEhYKDmNhbmRpZGF0ZV90YWdzGAsgAygJEhgKEHVwZGF0ZV9hdmFpbGFibGUYDCABKAgSFAoMY2hlY2tfc3RhdHVzGA0gASgJEhUKDWVycm9yX3N1bW1hcnkYDiABKAkSEgoKY2hlY2tlZF9hdBgPIAEoCSJtCiNHZXRTZXJ2aWNlSW1hZ2VVcGRhdGVDaGVja3NSZXNwb25zZRJGCgZjaGVja3MYASADKAsyNi5jb21wb3NpYS5jb250cm9sbGVyLnYxLlNlcnZpY2VJbWFnZVVwZGF0ZUNoZWNrU3VtbWFyeSKSAQoYUnVuU2VydmljZUFjdGlvblJlc3BvbnNlEjkKBXRhc2tzGAEgAygLMiouY29tcG9zaWEuY29udHJvbGxlci52MS5UYXNrQWN0aW9uUmVzcG9uc2USOwoKcmVwb193cml0ZRgCIAEoCzInLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuUmVwb1dyaXRlUmVzdWx0Il0KFU1pZ3JhdGVTZXJ2aWNlUmVxdWVzdBIUCgxzZXJ2aWNlX25hbWUYASABKAkSFgoOc291cmNlX25vZGVfaWQYAiABKAkSFgoOdGFyZ2V0X25vZGVfaWQYAyABKAkisAMKF1J1blNlcnZpY2VBY3Rpb25SZXF1ZXN0EhQKDHNlcnZpY2VfbmFtZRgBIAEoCRI1CgZhY3Rpb24YAiABKA4yJS5jb21wb3NpYS5jb250cm9sbGVyLnYxLlNlcnZpY2VBY3Rpb24SEAoIbm9kZV9pZHMYAyADKAkSEgoKZGF0YV9uYW1lcxgEIAMoCRJKChVjb21wb3NlX3JlY3JlYXRlX21vZGUYBSABKA4yKy5jb21wb3NpYS5jb250cm9sbGVyLnYxLkNvbXBvc2VSZWNyZWF0ZU1vZGUSQwoNaW1hZ2VfdXBkYXRlcxgGIAMoCzIsLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuSW1hZ2VVcGRhdGVTZWxlY3Rpb24SJgoedXNlX2FsbF9kZXRlY3RlZF9pbWFnZV91cGRhdGVzGAcgASgIEiEKFGJhY2t1cF9iZWZvcmVfdXBkYXRlGAggASgISACIAQESFQoNYmFzZV9yZXZpc2lvbhgJIAEoCRIWCg5jb21taXRfbWVzc2FnZRgKIAEoCUIXChVfYmFja3VwX2JlZm9yZV91cGRhdGUiVAoUSW1hZ2VVcGRhdGVTZWxlY3Rpb24SEgoKaW1hZ2VfbmFtZRgBIAEoCRISCgp0YXJnZXRfdGFnGAIgASgJEhQKDHVzZV9kZXRlY3RlZBgDIAEoCCJOChNMaXN0U2VydmljZXNSZXF1ZXN0EhYKDnJ1bnRpbWVfc3RhdHVzGAEgASgJEhEKCXBhZ2Vfc2l6ZRgCIAEoDRIMCgRwYWdlGAMgASgNIqkBCg5TZXJ2aWNlU3VtbWFyeRIMCgRuYW1lGAEgASgJEhMKC2lzX2RlY2xhcmVkGAIgASgIEhYKDnJ1bnRpbWVfc3RhdHVzGAMgASgJEhIKCnVwZGF0ZWRfYXQYBCABKAkSFgoOaW5zdGFuY2VfY291bnQYBSABKA0SFQoNcnVubmluZ19jb3VudBgGIAEoDRIZChF0YXJnZXRfbm9kZV9jb3VudBgHIAEoDSJlChRMaXN0U2VydmljZXNSZXNwb25zZRI4CghzZXJ2aWNlcxgBIAMoCzImLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuU2VydmljZVN1bW1hcnkSEwoLdG90YWxfY291bnQYAiABKA0q8wEKDVNlcnZpY2VBY3Rpb24SHgoaU0VSVklDRV9BQ1RJT05fVU5TUEVDSUZJRUQQABIZChVTRVJWSUNFX0FDVElPTl9ERVBMT1kQARIZChVTRVJWSUNFX0FDVElPTl9VUERBVEUQAhIXChNTRVJWSUNFX0FDVElPTl9TVE9QEAMSGgoWU0VSVklDRV9BQ1RJT05fUkVTVEFSVBAEEhkKFVNFUlZJQ0VfQUNUSU9OX0JBQ0tVUBAFEh0KGVNFUlZJQ0VfQUNUSU9OX0ROU19VUERBVEUQBhIdChlTRVJWSUNFX0FDVElPTl9DQUREWV9TWU5DEAcqrQEKE0NvbXBvc2VSZWNyZWF0ZU1vZGUSJQohQ09NUE9TRV9SRUNSRUFURV9NT0RFX1VOU1BFQ0lGSUVEEAASHgoaQ09NUE9TRV9SRUNSRUFURV9NT0RFX0FVVE8QARIlCiFDT01QT1NFX1JFQ1JFQVRFX01PREVfTk9fUkVDUkVBVEUQAhIoCiRDT01QT1NFX1JFQ1JFQVRFX01PREVfRk9SQ0VfUkVDUkVBVEUQAzKFBQoTU2VydmljZVF1ZXJ5U2VydmljZRJpCgxMaXN0U2VydmljZXMSKy5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3RTZXJ2aWNlc1JlcXVlc3QaLC5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3RTZXJ2aWNlc1Jlc3BvbnNlEoQBChVMaXN0U2VydmljZVdvcmtzcGFjZXMSNC5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3RTZXJ2aWNlV29ya3NwYWNlc1JlcXVlc3QaNS5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3RTZXJ2aWNlV29ya3NwYWNlc1Jlc3BvbnNlEmMKCkdldFNlcnZpY2USKS5jb21wb3NpYS5jb250cm9sbGVyLnYxLkdldFNlcnZpY2VSZXF1ZXN0GiouY29tcG9zaWEuY29udHJvbGxlci52MS5HZXRTZXJ2aWNlUmVzcG9uc2USfgoTR2V0U2VydmljZVdvcmtzcGFjZRIyLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0U2VydmljZVdvcmtzcGFjZVJlcXVlc3QaMy5jb21wb3NpYS5jb250cm9sbGVyLnYxLkdldFNlcnZpY2VXb3Jrc3BhY2VSZXNwb25zZRKWAQobR2V0U2VydmljZUltYWdlVXBkYXRlQ2hlY2tzEjouY29tcG9zaWEuY29udHJvbGxlci52MS5HZXRTZXJ2aWNlSW1hZ2VVcGRhdGVDaGVja3NSZXF1ZXN0GjsuY29tcG9zaWEuY29udHJvbGxlci52MS5HZXRTZXJ2aWNlSW1hZ2VVcGRhdGVDaGVja3NSZXNwb25zZTL7AQoVU2VydmljZUNvbW1hbmRTZXJ2aWNlEnUKEFJ1blNlcnZpY2VBY3Rpb24SLy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlJ1blNlcnZpY2VBY3Rpb25SZXF1ZXN0GjAuY29tcG9zaWEuY29udHJvbGxlci52MS5SdW5TZXJ2aWNlQWN0aW9uUmVzcG9uc2USawoOTWlncmF0ZVNlcnZpY2USLS5jb21wb3NpYS5jb250cm9sbGVyLnYxLk1pZ3JhdGVTZXJ2aWNlUmVxdWVzdBoqLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVGFza0FjdGlvblJlc3BvbnNlMpkCChZTZXJ2aWNlSW5zdGFuY2VTZXJ2aWNlEoEBChRMaXN0U2VydmljZUluc3RhbmNlcxIzLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuTGlzdFNlcnZpY2VJbnN0YW5jZXNSZXF1ZXN0GjQuY29tcG9zaWEuY29udHJvbGxlci52MS5MaXN0U2VydmljZUluc3RhbmNlc1Jlc3BvbnNlEnsKEkdldFNlcnZpY2VJbnN0YW5jZRIxLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0U2VydmljZUluc3RhbmNlUmVxdWVzdBoyLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0U2VydmljZUluc3RhbmNlUmVzcG9uc2VCWFpWZm9yZ2Vqby5hbGV4bWEudG9wL2FsZXhtYTIzMy9jb21wb3NpYS9nZW4vZ28vcHJvdG8vY29tcG9zaWEvY29udHJvbGxlci92MTtjb250cm9sbGVydjFiBnByb3RvMw", [file_proto_composia_controller_v1_task, file_proto_composia_controller_v1_system, file_proto_composia_controller_v1_repo]);
 
 /**
  * ServiceInstanceSummary describes one service instance on one node.
  *
  * @generated from message composia.controller.v1.ServiceInstanceSummary
  */
-export type ServiceInstanceSummary =
-  Message<"composia.controller.v1.ServiceInstanceSummary"> & {
-    /**
-     * service_name is the logical service name.
-     *
-     * @generated from field: string service_name = 1;
-     */
-    serviceName: string;
+export type ServiceInstanceSummary = Message<"composia.controller.v1.ServiceInstanceSummary"> & {
+  /**
+   * service_name is the logical service name.
+   *
+   * @generated from field: string service_name = 1;
+   */
+  serviceName: string;
 
-    /**
-     * node_id identifies the node hosting this instance.
-     *
-     * @generated from field: string node_id = 2;
-     */
-    nodeId: string;
+  /**
+   * node_id identifies the node hosting this instance.
+   *
+   * @generated from field: string node_id = 2;
+   */
+  nodeId: string;
 
-    /**
-     * runtime_status is the controller's current status string for this instance.
-     *
-     * @generated from field: string runtime_status = 3;
-     */
-    runtimeStatus: string;
+  /**
+   * runtime_status is the controller's current status string for this instance.
+   *
+   * @generated from field: string runtime_status = 3;
+   */
+  runtimeStatus: string;
 
-    /**
-     * updated_at is the last known status update timestamp string.
-     *
-     * @generated from field: string updated_at = 4;
-     */
-    updatedAt: string;
+  /**
+   * updated_at is the last known status update timestamp string.
+   *
+   * @generated from field: string updated_at = 4;
+   */
+  updatedAt: string;
 
-    /**
-     * is_declared reports whether this instance is part of desired state.
-     *
-     * @generated from field: bool is_declared = 5;
-     */
-    isDeclared: boolean;
+  /**
+   * is_declared reports whether this instance is part of desired state.
+   *
+   * @generated from field: bool is_declared = 5;
+   */
+  isDeclared: boolean;
 
-    /**
-     * pending_deploy_revision is set when a repo change affects this service and a deploy is pending.
-     *
-     * @generated from field: string pending_deploy_revision = 6;
-     */
-    pendingDeployRevision: string;
-  };
+  /**
+   * pending_deploy_revision is set when a repo change affects this service and a deploy is pending.
+   *
+   * @generated from field: string pending_deploy_revision = 6;
+   */
+  pendingDeployRevision: string;
+};
 
 /**
  * Describes the message composia.controller.v1.ServiceInstanceSummary.
  * Use `create(ServiceInstanceSummarySchema)` to create a new message.
  */
-export const ServiceInstanceSummarySchema: GenMessage<ServiceInstanceSummary> =
-  /*@__PURE__*/
+export const ServiceInstanceSummarySchema: GenMessage<ServiceInstanceSummary> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 0);
 
 /**
@@ -99,69 +79,67 @@ export const ServiceInstanceSummarySchema: GenMessage<ServiceInstanceSummary> =
  *
  * @generated from message composia.controller.v1.ServiceContainerSummary
  */
-export type ServiceContainerSummary =
-  Message<"composia.controller.v1.ServiceContainerSummary"> & {
-    /**
-     * container_id is the runtime container ID.
-     *
-     * @generated from field: string container_id = 1;
-     */
-    containerId: string;
+export type ServiceContainerSummary = Message<"composia.controller.v1.ServiceContainerSummary"> & {
+  /**
+   * container_id is the runtime container ID.
+   *
+   * @generated from field: string container_id = 1;
+   */
+  containerId: string;
 
-    /**
-     * name is the runtime container name.
-     *
-     * @generated from field: string name = 2;
-     */
-    name: string;
+  /**
+   * name is the runtime container name.
+   *
+   * @generated from field: string name = 2;
+   */
+  name: string;
 
-    /**
-     * @generated from field: string image = 3;
-     */
-    image: string;
+  /**
+   * @generated from field: string image = 3;
+   */
+  image: string;
 
-    /**
-     * state is the low-level Docker state value.
-     *
-     * @generated from field: string state = 4;
-     */
-    state: string;
+  /**
+   * state is the low-level Docker state value.
+   *
+   * @generated from field: string state = 4;
+   */
+  state: string;
 
-    /**
-     * status is the Docker status string intended for display.
-     *
-     * @generated from field: string status = 5;
-     */
-    status: string;
+  /**
+   * status is the Docker status string intended for display.
+   *
+   * @generated from field: string status = 5;
+   */
+  status: string;
 
-    /**
-     * created is the container creation timestamp string.
-     *
-     * @generated from field: string created = 6;
-     */
-    created: string;
+  /**
+   * created is the container creation timestamp string.
+   *
+   * @generated from field: string created = 6;
+   */
+  created: string;
 
-    /**
-     * compose_project is the Compose project label, when present.
-     *
-     * @generated from field: string compose_project = 7;
-     */
-    composeProject: string;
+  /**
+   * compose_project is the Compose project label, when present.
+   *
+   * @generated from field: string compose_project = 7;
+   */
+  composeProject: string;
 
-    /**
-     * compose_service is the Compose service label, when present.
-     *
-     * @generated from field: string compose_service = 8;
-     */
-    composeService: string;
-  };
+  /**
+   * compose_service is the Compose service label, when present.
+   *
+   * @generated from field: string compose_service = 8;
+   */
+  composeService: string;
+};
 
 /**
  * Describes the message composia.controller.v1.ServiceContainerSummary.
  * Use `create(ServiceContainerSummarySchema)` to create a new message.
  */
-export const ServiceContainerSummarySchema: GenMessage<ServiceContainerSummary> =
-  /*@__PURE__*/
+export const ServiceContainerSummarySchema: GenMessage<ServiceContainerSummary> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 1);
 
 /**
@@ -169,64 +147,62 @@ export const ServiceContainerSummarySchema: GenMessage<ServiceContainerSummary> 
  *
  * @generated from message composia.controller.v1.ServiceInstanceDetail
  */
-export type ServiceInstanceDetail =
-  Message<"composia.controller.v1.ServiceInstanceDetail"> & {
-    /**
-     * service_name is the logical service name.
-     *
-     * @generated from field: string service_name = 1;
-     */
-    serviceName: string;
+export type ServiceInstanceDetail = Message<"composia.controller.v1.ServiceInstanceDetail"> & {
+  /**
+   * service_name is the logical service name.
+   *
+   * @generated from field: string service_name = 1;
+   */
+  serviceName: string;
 
-    /**
-     * node_id identifies the node hosting this instance.
-     *
-     * @generated from field: string node_id = 2;
-     */
-    nodeId: string;
+  /**
+   * node_id identifies the node hosting this instance.
+   *
+   * @generated from field: string node_id = 2;
+   */
+  nodeId: string;
 
-    /**
-     * runtime_status is the controller's current status string for this instance.
-     *
-     * @generated from field: string runtime_status = 3;
-     */
-    runtimeStatus: string;
+  /**
+   * runtime_status is the controller's current status string for this instance.
+   *
+   * @generated from field: string runtime_status = 3;
+   */
+  runtimeStatus: string;
 
-    /**
-     * updated_at is the last known status update timestamp string.
-     *
-     * @generated from field: string updated_at = 4;
-     */
-    updatedAt: string;
+  /**
+   * updated_at is the last known status update timestamp string.
+   *
+   * @generated from field: string updated_at = 4;
+   */
+  updatedAt: string;
 
-    /**
-     * is_declared reports whether this instance is part of desired state.
-     *
-     * @generated from field: bool is_declared = 5;
-     */
-    isDeclared: boolean;
+  /**
+   * is_declared reports whether this instance is part of desired state.
+   *
+   * @generated from field: bool is_declared = 5;
+   */
+  isDeclared: boolean;
 
-    /**
-     * containers lists runtime containers currently associated with the instance.
-     *
-     * @generated from field: repeated composia.controller.v1.ServiceContainerSummary containers = 6;
-     */
-    containers: ServiceContainerSummary[];
+  /**
+   * containers lists runtime containers currently associated with the instance.
+   *
+   * @generated from field: repeated composia.controller.v1.ServiceContainerSummary containers = 6;
+   */
+  containers: ServiceContainerSummary[];
 
-    /**
-     * pending_deploy_revision is set when a repo change affects this service and a deploy is pending.
-     *
-     * @generated from field: string pending_deploy_revision = 7;
-     */
-    pendingDeployRevision: string;
-  };
+  /**
+   * pending_deploy_revision is set when a repo change affects this service and a deploy is pending.
+   *
+   * @generated from field: string pending_deploy_revision = 7;
+   */
+  pendingDeployRevision: string;
+};
 
 /**
  * Describes the message composia.controller.v1.ServiceInstanceDetail.
  * Use `create(ServiceInstanceDetailSchema)` to create a new message.
  */
-export const ServiceInstanceDetailSchema: GenMessage<ServiceInstanceDetail> =
-  /*@__PURE__*/
+export const ServiceInstanceDetailSchema: GenMessage<ServiceInstanceDetail> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 2);
 
 /**
@@ -234,40 +210,38 @@ export const ServiceInstanceDetailSchema: GenMessage<ServiceInstanceDetail> =
  *
  * @generated from message composia.controller.v1.ServiceActionCapabilities
  */
-export type ServiceActionCapabilities =
-  Message<"composia.controller.v1.ServiceActionCapabilities"> & {
-    /**
-     * @generated from field: composia.controller.v1.Capability backup = 1;
-     */
-    backup?: Capability | undefined;
+export type ServiceActionCapabilities = Message<"composia.controller.v1.ServiceActionCapabilities"> & {
+  /**
+   * @generated from field: composia.controller.v1.Capability backup = 1;
+   */
+  backup?: Capability | undefined;
 
-    /**
-     * @generated from field: composia.controller.v1.Capability restore = 2;
-     */
-    restore?: Capability | undefined;
+  /**
+   * @generated from field: composia.controller.v1.Capability restore = 2;
+   */
+  restore?: Capability | undefined;
 
-    /**
-     * @generated from field: composia.controller.v1.Capability migrate = 3;
-     */
-    migrate?: Capability | undefined;
+  /**
+   * @generated from field: composia.controller.v1.Capability migrate = 3;
+   */
+  migrate?: Capability | undefined;
 
-    /**
-     * @generated from field: composia.controller.v1.Capability dns_update = 4;
-     */
-    dnsUpdate?: Capability | undefined;
+  /**
+   * @generated from field: composia.controller.v1.Capability dns_update = 4;
+   */
+  dnsUpdate?: Capability | undefined;
 
-    /**
-     * @generated from field: composia.controller.v1.Capability caddy_sync = 5;
-     */
-    caddySync?: Capability | undefined;
-  };
+  /**
+   * @generated from field: composia.controller.v1.Capability caddy_sync = 5;
+   */
+  caddySync?: Capability | undefined;
+};
 
 /**
  * Describes the message composia.controller.v1.ServiceActionCapabilities.
  * Use `create(ServiceActionCapabilitiesSchema)` to create a new message.
  */
-export const ServiceActionCapabilitiesSchema: GenMessage<ServiceActionCapabilities> =
-  /*@__PURE__*/
+export const ServiceActionCapabilitiesSchema: GenMessage<ServiceActionCapabilities> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 3);
 
 /**
@@ -275,29 +249,27 @@ export const ServiceActionCapabilitiesSchema: GenMessage<ServiceActionCapabiliti
  *
  * @generated from message composia.controller.v1.GetServiceRequest
  */
-export type GetServiceRequest =
-  Message<"composia.controller.v1.GetServiceRequest"> & {
-    /**
-     * service_name is the logical service name.
-     *
-     * @generated from field: string service_name = 1;
-     */
-    serviceName: string;
+export type GetServiceRequest = Message<"composia.controller.v1.GetServiceRequest"> & {
+  /**
+   * service_name is the logical service name.
+   *
+   * @generated from field: string service_name = 1;
+   */
+  serviceName: string;
 
-    /**
-     * include_containers includes per-instance container details when true.
-     *
-     * @generated from field: bool include_containers = 2;
-     */
-    includeContainers: boolean;
-  };
+  /**
+   * include_containers includes per-instance container details when true.
+   *
+   * @generated from field: bool include_containers = 2;
+   */
+  includeContainers: boolean;
+};
 
 /**
  * Describes the message composia.controller.v1.GetServiceRequest.
  * Use `create(GetServiceRequestSchema)` to create a new message.
  */
-export const GetServiceRequestSchema: GenMessage<GetServiceRequest> =
-  /*@__PURE__*/
+export const GetServiceRequestSchema: GenMessage<GetServiceRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 4);
 
 /**
@@ -305,69 +277,67 @@ export const GetServiceRequestSchema: GenMessage<GetServiceRequest> =
  *
  * @generated from message composia.controller.v1.GetServiceResponse
  */
-export type GetServiceResponse =
-  Message<"composia.controller.v1.GetServiceResponse"> & {
-    /**
-     * @generated from field: string name = 1;
-     */
-    name: string;
+export type GetServiceResponse = Message<"composia.controller.v1.GetServiceResponse"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
 
-    /**
-     * runtime_status is the controller's aggregated status string.
-     *
-     * @generated from field: string runtime_status = 2;
-     */
-    runtimeStatus: string;
+  /**
+   * runtime_status is the controller's aggregated status string.
+   *
+   * @generated from field: string runtime_status = 2;
+   */
+  runtimeStatus: string;
 
-    /**
-     * updated_at is the last known status update timestamp string.
-     *
-     * @generated from field: string updated_at = 3;
-     */
-    updatedAt: string;
+  /**
+   * updated_at is the last known status update timestamp string.
+   *
+   * @generated from field: string updated_at = 3;
+   */
+  updatedAt: string;
 
-    /**
-     * nodes lists the declared target nodes for this service.
-     *
-     * @generated from field: repeated string nodes = 4;
-     */
-    nodes: string[];
+  /**
+   * nodes lists the declared target nodes for this service.
+   *
+   * @generated from field: repeated string nodes = 4;
+   */
+  nodes: string[];
 
-    /**
-     * enabled reports the desired-state enabled flag for this service.
-     *
-     * @generated from field: bool enabled = 5;
-     */
-    enabled: boolean;
+  /**
+   * enabled reports the desired-state enabled flag for this service.
+   *
+   * @generated from field: bool enabled = 5;
+   */
+  enabled: boolean;
 
-    /**
-     * directory is the service directory inside the repo.
-     *
-     * @generated from field: string directory = 6;
-     */
-    directory: string;
+  /**
+   * directory is the service directory inside the repo.
+   *
+   * @generated from field: string directory = 6;
+   */
+  directory: string;
 
-    /**
-     * instances lists per-node runtime details known to the controller.
-     *
-     * @generated from field: repeated composia.controller.v1.ServiceInstanceDetail instances = 7;
-     */
-    instances: ServiceInstanceDetail[];
+  /**
+   * instances lists per-node runtime details known to the controller.
+   *
+   * @generated from field: repeated composia.controller.v1.ServiceInstanceDetail instances = 7;
+   */
+  instances: ServiceInstanceDetail[];
 
-    /**
-     * actions describes whether service-scoped actions may currently run.
-     *
-     * @generated from field: composia.controller.v1.ServiceActionCapabilities actions = 8;
-     */
-    actions?: ServiceActionCapabilities | undefined;
-  };
+  /**
+   * actions describes whether service-scoped actions may currently run.
+   *
+   * @generated from field: composia.controller.v1.ServiceActionCapabilities actions = 8;
+   */
+  actions?: ServiceActionCapabilities | undefined;
+};
 
 /**
  * Describes the message composia.controller.v1.GetServiceResponse.
  * Use `create(GetServiceResponseSchema)` to create a new message.
  */
-export const GetServiceResponseSchema: GenMessage<GetServiceResponse> =
-  /*@__PURE__*/
+export const GetServiceResponseSchema: GenMessage<GetServiceResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 5);
 
 /**
@@ -375,85 +345,83 @@ export const GetServiceResponseSchema: GenMessage<GetServiceResponse> =
  *
  * @generated from message composia.controller.v1.ServiceWorkspaceSummary
  */
-export type ServiceWorkspaceSummary =
-  Message<"composia.controller.v1.ServiceWorkspaceSummary"> & {
-    /**
-     * folder is the repo-relative top-level folder name for this workspace.
-     *
-     * @generated from field: string folder = 1;
-     */
-    folder: string;
+export type ServiceWorkspaceSummary = Message<"composia.controller.v1.ServiceWorkspaceSummary"> & {
+  /**
+   * folder is the repo-relative top-level folder name for this workspace.
+   *
+   * @generated from field: string folder = 1;
+   */
+  folder: string;
 
-    /**
-     * display_name is the preferred workspace label for operator-facing lists.
-     *
-     * @generated from field: string display_name = 2;
-     */
-    displayName: string;
+  /**
+   * display_name is the preferred workspace label for operator-facing lists.
+   *
+   * @generated from field: string display_name = 2;
+   */
+  displayName: string;
 
-    /**
-     * service_name is empty until the workspace has a parseable service name.
-     *
-     * @generated from field: string service_name = 3;
-     */
-    serviceName: string;
+  /**
+   * service_name is empty until the workspace has a parseable service name.
+   *
+   * @generated from field: string service_name = 3;
+   */
+  serviceName: string;
 
-    /**
-     * has_meta reports whether composia-meta.yaml exists in the workspace.
-     *
-     * @generated from field: bool has_meta = 4;
-     */
-    hasMeta: boolean;
+  /**
+   * has_meta reports whether composia-meta.yaml exists in the workspace.
+   *
+   * @generated from field: bool has_meta = 4;
+   */
+  hasMeta: boolean;
 
-    /**
-     * is_declared reports whether this workspace currently maps to a declared controller service.
-     *
-     * @generated from field: bool is_declared = 5;
-     */
-    isDeclared: boolean;
+  /**
+   * is_declared reports whether this workspace currently maps to a declared controller service.
+   *
+   * @generated from field: bool is_declared = 5;
+   */
+  isDeclared: boolean;
 
-    /**
-     * runtime_status is the merged controller status or a workspace-local placeholder.
-     *
-     * @generated from field: string runtime_status = 6;
-     */
-    runtimeStatus: string;
+  /**
+   * runtime_status is the merged controller status or a workspace-local placeholder.
+   *
+   * @generated from field: string runtime_status = 6;
+   */
+  runtimeStatus: string;
 
-    /**
-     * updated_at is the last known controller update timestamp string.
-     *
-     * @generated from field: string updated_at = 7;
-     */
-    updatedAt: string;
+  /**
+   * updated_at is the last known controller update timestamp string.
+   *
+   * @generated from field: string updated_at = 7;
+   */
+  updatedAt: string;
 
-    /**
-     * nodes lists declared target nodes when the workspace meta is parseable.
-     *
-     * @generated from field: repeated string nodes = 8;
-     */
-    nodes: string[];
+  /**
+   * nodes lists declared target nodes when the workspace meta is parseable.
+   *
+   * @generated from field: repeated string nodes = 8;
+   */
+  nodes: string[];
 
-    /**
-     * enabled reports the desired-state enabled flag when the workspace meta is parseable.
-     *
-     * @generated from field: bool enabled = 9;
-     */
-    enabled: boolean;
+  /**
+   * enabled reports the desired-state enabled flag when the workspace meta is parseable.
+   *
+   * @generated from field: bool enabled = 9;
+   */
+  enabled: boolean;
 
-    /**
-     * actions describes whether service-scoped actions may currently run.
-     *
-     * @generated from field: composia.controller.v1.ServiceActionCapabilities actions = 10;
-     */
-    actions?: ServiceActionCapabilities | undefined;
-  };
+  /**
+   * actions describes whether service-scoped actions may currently run.
+   *
+   * @generated from field: composia.controller.v1.ServiceActionCapabilities actions = 10;
+   */
+  actions?: ServiceActionCapabilities | undefined;
+};
 
 /**
  * Describes the message composia.controller.v1.ServiceWorkspaceSummary.
  * Use `create(ServiceWorkspaceSummarySchema)` to create a new message.
  */
-export const ServiceWorkspaceSummarySchema: GenMessage<ServiceWorkspaceSummary> =
-  /*@__PURE__*/
+export const ServiceWorkspaceSummarySchema: GenMessage<ServiceWorkspaceSummary> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 6);
 
 /**
@@ -461,15 +429,14 @@ export const ServiceWorkspaceSummarySchema: GenMessage<ServiceWorkspaceSummary> 
  *
  * @generated from message composia.controller.v1.ListServiceWorkspacesRequest
  */
-export type ListServiceWorkspacesRequest =
-  Message<"composia.controller.v1.ListServiceWorkspacesRequest"> & {};
+export type ListServiceWorkspacesRequest = Message<"composia.controller.v1.ListServiceWorkspacesRequest"> & {
+};
 
 /**
  * Describes the message composia.controller.v1.ListServiceWorkspacesRequest.
  * Use `create(ListServiceWorkspacesRequestSchema)` to create a new message.
  */
-export const ListServiceWorkspacesRequestSchema: GenMessage<ListServiceWorkspacesRequest> =
-  /*@__PURE__*/
+export const ListServiceWorkspacesRequestSchema: GenMessage<ListServiceWorkspacesRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 7);
 
 /**
@@ -477,20 +444,18 @@ export const ListServiceWorkspacesRequestSchema: GenMessage<ListServiceWorkspace
  *
  * @generated from message composia.controller.v1.ListServiceWorkspacesResponse
  */
-export type ListServiceWorkspacesResponse =
-  Message<"composia.controller.v1.ListServiceWorkspacesResponse"> & {
-    /**
-     * @generated from field: repeated composia.controller.v1.ServiceWorkspaceSummary workspaces = 1;
-     */
-    workspaces: ServiceWorkspaceSummary[];
-  };
+export type ListServiceWorkspacesResponse = Message<"composia.controller.v1.ListServiceWorkspacesResponse"> & {
+  /**
+   * @generated from field: repeated composia.controller.v1.ServiceWorkspaceSummary workspaces = 1;
+   */
+  workspaces: ServiceWorkspaceSummary[];
+};
 
 /**
  * Describes the message composia.controller.v1.ListServiceWorkspacesResponse.
  * Use `create(ListServiceWorkspacesResponseSchema)` to create a new message.
  */
-export const ListServiceWorkspacesResponseSchema: GenMessage<ListServiceWorkspacesResponse> =
-  /*@__PURE__*/
+export const ListServiceWorkspacesResponseSchema: GenMessage<ListServiceWorkspacesResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 8);
 
 /**
@@ -498,20 +463,18 @@ export const ListServiceWorkspacesResponseSchema: GenMessage<ListServiceWorkspac
  *
  * @generated from message composia.controller.v1.GetServiceWorkspaceRequest
  */
-export type GetServiceWorkspaceRequest =
-  Message<"composia.controller.v1.GetServiceWorkspaceRequest"> & {
-    /**
-     * @generated from field: string folder = 1;
-     */
-    folder: string;
-  };
+export type GetServiceWorkspaceRequest = Message<"composia.controller.v1.GetServiceWorkspaceRequest"> & {
+  /**
+   * @generated from field: string folder = 1;
+   */
+  folder: string;
+};
 
 /**
  * Describes the message composia.controller.v1.GetServiceWorkspaceRequest.
  * Use `create(GetServiceWorkspaceRequestSchema)` to create a new message.
  */
-export const GetServiceWorkspaceRequestSchema: GenMessage<GetServiceWorkspaceRequest> =
-  /*@__PURE__*/
+export const GetServiceWorkspaceRequestSchema: GenMessage<GetServiceWorkspaceRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 9);
 
 /**
@@ -519,20 +482,18 @@ export const GetServiceWorkspaceRequestSchema: GenMessage<GetServiceWorkspaceReq
  *
  * @generated from message composia.controller.v1.GetServiceWorkspaceResponse
  */
-export type GetServiceWorkspaceResponse =
-  Message<"composia.controller.v1.GetServiceWorkspaceResponse"> & {
-    /**
-     * @generated from field: composia.controller.v1.ServiceWorkspaceSummary workspace = 1;
-     */
-    workspace?: ServiceWorkspaceSummary | undefined;
-  };
+export type GetServiceWorkspaceResponse = Message<"composia.controller.v1.GetServiceWorkspaceResponse"> & {
+  /**
+   * @generated from field: composia.controller.v1.ServiceWorkspaceSummary workspace = 1;
+   */
+  workspace?: ServiceWorkspaceSummary | undefined;
+};
 
 /**
  * Describes the message composia.controller.v1.GetServiceWorkspaceResponse.
  * Use `create(GetServiceWorkspaceResponseSchema)` to create a new message.
  */
-export const GetServiceWorkspaceResponseSchema: GenMessage<GetServiceWorkspaceResponse> =
-  /*@__PURE__*/
+export const GetServiceWorkspaceResponseSchema: GenMessage<GetServiceWorkspaceResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 10);
 
 /**
@@ -540,22 +501,20 @@ export const GetServiceWorkspaceResponseSchema: GenMessage<GetServiceWorkspaceRe
  *
  * @generated from message composia.controller.v1.ListServiceInstancesRequest
  */
-export type ListServiceInstancesRequest =
-  Message<"composia.controller.v1.ListServiceInstancesRequest"> & {
-    /**
-     * service_name is the logical service name.
-     *
-     * @generated from field: string service_name = 1;
-     */
-    serviceName: string;
-  };
+export type ListServiceInstancesRequest = Message<"composia.controller.v1.ListServiceInstancesRequest"> & {
+  /**
+   * service_name is the logical service name.
+   *
+   * @generated from field: string service_name = 1;
+   */
+  serviceName: string;
+};
 
 /**
  * Describes the message composia.controller.v1.ListServiceInstancesRequest.
  * Use `create(ListServiceInstancesRequestSchema)` to create a new message.
  */
-export const ListServiceInstancesRequestSchema: GenMessage<ListServiceInstancesRequest> =
-  /*@__PURE__*/
+export const ListServiceInstancesRequestSchema: GenMessage<ListServiceInstancesRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 11);
 
 /**
@@ -563,20 +522,18 @@ export const ListServiceInstancesRequestSchema: GenMessage<ListServiceInstancesR
  *
  * @generated from message composia.controller.v1.ListServiceInstancesResponse
  */
-export type ListServiceInstancesResponse =
-  Message<"composia.controller.v1.ListServiceInstancesResponse"> & {
-    /**
-     * @generated from field: repeated composia.controller.v1.ServiceInstanceSummary instances = 1;
-     */
-    instances: ServiceInstanceSummary[];
-  };
+export type ListServiceInstancesResponse = Message<"composia.controller.v1.ListServiceInstancesResponse"> & {
+  /**
+   * @generated from field: repeated composia.controller.v1.ServiceInstanceSummary instances = 1;
+   */
+  instances: ServiceInstanceSummary[];
+};
 
 /**
  * Describes the message composia.controller.v1.ListServiceInstancesResponse.
  * Use `create(ListServiceInstancesResponseSchema)` to create a new message.
  */
-export const ListServiceInstancesResponseSchema: GenMessage<ListServiceInstancesResponse> =
-  /*@__PURE__*/
+export const ListServiceInstancesResponseSchema: GenMessage<ListServiceInstancesResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 12);
 
 /**
@@ -584,36 +541,34 @@ export const ListServiceInstancesResponseSchema: GenMessage<ListServiceInstances
  *
  * @generated from message composia.controller.v1.GetServiceInstanceRequest
  */
-export type GetServiceInstanceRequest =
-  Message<"composia.controller.v1.GetServiceInstanceRequest"> & {
-    /**
-     * service_name is the logical service name.
-     *
-     * @generated from field: string service_name = 1;
-     */
-    serviceName: string;
+export type GetServiceInstanceRequest = Message<"composia.controller.v1.GetServiceInstanceRequest"> & {
+  /**
+   * service_name is the logical service name.
+   *
+   * @generated from field: string service_name = 1;
+   */
+  serviceName: string;
 
-    /**
-     * node_id identifies the node hosting the requested instance.
-     *
-     * @generated from field: string node_id = 2;
-     */
-    nodeId: string;
+  /**
+   * node_id identifies the node hosting the requested instance.
+   *
+   * @generated from field: string node_id = 2;
+   */
+  nodeId: string;
 
-    /**
-     * include_containers includes instance container details when true.
-     *
-     * @generated from field: bool include_containers = 3;
-     */
-    includeContainers: boolean;
-  };
+  /**
+   * include_containers includes instance container details when true.
+   *
+   * @generated from field: bool include_containers = 3;
+   */
+  includeContainers: boolean;
+};
 
 /**
  * Describes the message composia.controller.v1.GetServiceInstanceRequest.
  * Use `create(GetServiceInstanceRequestSchema)` to create a new message.
  */
-export const GetServiceInstanceRequestSchema: GenMessage<GetServiceInstanceRequest> =
-  /*@__PURE__*/
+export const GetServiceInstanceRequestSchema: GenMessage<GetServiceInstanceRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 13);
 
 /**
@@ -621,23 +576,21 @@ export const GetServiceInstanceRequestSchema: GenMessage<GetServiceInstanceReque
  *
  * @generated from message composia.controller.v1.GetServiceInstanceResponse
  */
-export type GetServiceInstanceResponse =
-  Message<"composia.controller.v1.GetServiceInstanceResponse"> & {
-    /**
-     * instance contains the requested service instance.
-     * The RPC returns NotFound when the requested instance does not exist.
-     *
-     * @generated from field: composia.controller.v1.ServiceInstanceDetail instance = 1;
-     */
-    instance?: ServiceInstanceDetail | undefined;
-  };
+export type GetServiceInstanceResponse = Message<"composia.controller.v1.GetServiceInstanceResponse"> & {
+  /**
+   * instance contains the requested service instance.
+   * The RPC returns NotFound when the requested instance does not exist.
+   *
+   * @generated from field: composia.controller.v1.ServiceInstanceDetail instance = 1;
+   */
+  instance?: ServiceInstanceDetail | undefined;
+};
 
 /**
  * Describes the message composia.controller.v1.GetServiceInstanceResponse.
  * Use `create(GetServiceInstanceResponseSchema)` to create a new message.
  */
-export const GetServiceInstanceResponseSchema: GenMessage<GetServiceInstanceResponse> =
-  /*@__PURE__*/
+export const GetServiceInstanceResponseSchema: GenMessage<GetServiceInstanceResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 14);
 
 /**
@@ -645,25 +598,23 @@ export const GetServiceInstanceResponseSchema: GenMessage<GetServiceInstanceResp
  *
  * @generated from message composia.controller.v1.GetServiceImageUpdateChecksRequest
  */
-export type GetServiceImageUpdateChecksRequest =
-  Message<"composia.controller.v1.GetServiceImageUpdateChecksRequest"> & {
-    /**
-     * @generated from field: string service_name = 1;
-     */
-    serviceName: string;
+export type GetServiceImageUpdateChecksRequest = Message<"composia.controller.v1.GetServiceImageUpdateChecksRequest"> & {
+  /**
+   * @generated from field: string service_name = 1;
+   */
+  serviceName: string;
 
-    /**
-     * @generated from field: string node_id = 2;
-     */
-    nodeId: string;
-  };
+  /**
+   * @generated from field: string node_id = 2;
+   */
+  nodeId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.GetServiceImageUpdateChecksRequest.
  * Use `create(GetServiceImageUpdateChecksRequestSchema)` to create a new message.
  */
-export const GetServiceImageUpdateChecksRequestSchema: GenMessage<GetServiceImageUpdateChecksRequest> =
-  /*@__PURE__*/
+export const GetServiceImageUpdateChecksRequestSchema: GenMessage<GetServiceImageUpdateChecksRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 15);
 
 /**
@@ -671,90 +622,88 @@ export const GetServiceImageUpdateChecksRequestSchema: GenMessage<GetServiceImag
  *
  * @generated from message composia.controller.v1.ServiceImageUpdateCheckSummary
  */
-export type ServiceImageUpdateCheckSummary =
-  Message<"composia.controller.v1.ServiceImageUpdateCheckSummary"> & {
-    /**
-     * @generated from field: string service_name = 1;
-     */
-    serviceName: string;
+export type ServiceImageUpdateCheckSummary = Message<"composia.controller.v1.ServiceImageUpdateCheckSummary"> & {
+  /**
+   * @generated from field: string service_name = 1;
+   */
+  serviceName: string;
 
-    /**
-     * @generated from field: string node_id = 2;
-     */
-    nodeId: string;
+  /**
+   * @generated from field: string node_id = 2;
+   */
+  nodeId: string;
 
-    /**
-     * @generated from field: string image_name = 3;
-     */
-    imageName: string;
+  /**
+   * @generated from field: string image_name = 3;
+   */
+  imageName: string;
 
-    /**
-     * @generated from field: string image_ref = 4;
-     */
-    imageRef: string;
+  /**
+   * @generated from field: string image_ref = 4;
+   */
+  imageRef: string;
 
-    /**
-     * @generated from field: string policy_type = 5;
-     */
-    policyType: string;
+  /**
+   * @generated from field: string policy_type = 5;
+   */
+  policyType: string;
 
-    /**
-     * @generated from field: string current_value = 6;
-     */
-    currentValue: string;
+  /**
+   * @generated from field: string current_value = 6;
+   */
+  currentValue: string;
 
-    /**
-     * @generated from field: string current_tag = 7;
-     */
-    currentTag: string;
+  /**
+   * @generated from field: string current_tag = 7;
+   */
+  currentTag: string;
 
-    /**
-     * @generated from field: string current_digest = 8;
-     */
-    currentDigest: string;
+  /**
+   * @generated from field: string current_digest = 8;
+   */
+  currentDigest: string;
 
-    /**
-     * @generated from field: string candidate_tag = 9;
-     */
-    candidateTag: string;
+  /**
+   * @generated from field: string candidate_tag = 9;
+   */
+  candidateTag: string;
 
-    /**
-     * @generated from field: string candidate_digest = 10;
-     */
-    candidateDigest: string;
+  /**
+   * @generated from field: string candidate_digest = 10;
+   */
+  candidateDigest: string;
 
-    /**
-     * @generated from field: repeated string candidate_tags = 11;
-     */
-    candidateTags: string[];
+  /**
+   * @generated from field: repeated string candidate_tags = 11;
+   */
+  candidateTags: string[];
 
-    /**
-     * @generated from field: bool update_available = 12;
-     */
-    updateAvailable: boolean;
+  /**
+   * @generated from field: bool update_available = 12;
+   */
+  updateAvailable: boolean;
 
-    /**
-     * @generated from field: string check_status = 13;
-     */
-    checkStatus: string;
+  /**
+   * @generated from field: string check_status = 13;
+   */
+  checkStatus: string;
 
-    /**
-     * @generated from field: string error_summary = 14;
-     */
-    errorSummary: string;
+  /**
+   * @generated from field: string error_summary = 14;
+   */
+  errorSummary: string;
 
-    /**
-     * @generated from field: string checked_at = 15;
-     */
-    checkedAt: string;
-  };
+  /**
+   * @generated from field: string checked_at = 15;
+   */
+  checkedAt: string;
+};
 
 /**
  * Describes the message composia.controller.v1.ServiceImageUpdateCheckSummary.
  * Use `create(ServiceImageUpdateCheckSummarySchema)` to create a new message.
  */
-export const ServiceImageUpdateCheckSummarySchema: GenMessage<ServiceImageUpdateCheckSummary> =
-  /*@__PURE__*/
+export const ServiceImageUpdateCheckSummarySchema: GenMessage<ServiceImageUpdateCheckSummary> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 16);
 
 /**
@@ -762,20 +711,18 @@ export const ServiceImageUpdateCheckSummarySchema: GenMessage<ServiceImageUpdate
  *
  * @generated from message composia.controller.v1.GetServiceImageUpdateChecksResponse
  */
-export type GetServiceImageUpdateChecksResponse =
-  Message<"composia.controller.v1.GetServiceImageUpdateChecksResponse"> & {
-    /**
-     * @generated from field: repeated composia.controller.v1.ServiceImageUpdateCheckSummary checks = 1;
-     */
-    checks: ServiceImageUpdateCheckSummary[];
-  };
+export type GetServiceImageUpdateChecksResponse = Message<"composia.controller.v1.GetServiceImageUpdateChecksResponse"> & {
+  /**
+   * @generated from field: repeated composia.controller.v1.ServiceImageUpdateCheckSummary checks = 1;
+   */
+  checks: ServiceImageUpdateCheckSummary[];
+};
 
 /**
  * Describes the message composia.controller.v1.GetServiceImageUpdateChecksResponse.
  * Use `create(GetServiceImageUpdateChecksResponseSchema)` to create a new message.
  */
-export const GetServiceImageUpdateChecksResponseSchema: GenMessage<GetServiceImageUpdateChecksResponse> =
-  /*@__PURE__*/
+export const GetServiceImageUpdateChecksResponseSchema: GenMessage<GetServiceImageUpdateChecksResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 17);
 
 /**
@@ -783,25 +730,23 @@ export const GetServiceImageUpdateChecksResponseSchema: GenMessage<GetServiceIma
  *
  * @generated from message composia.controller.v1.RunServiceActionResponse
  */
-export type RunServiceActionResponse =
-  Message<"composia.controller.v1.RunServiceActionResponse"> & {
-    /**
-     * @generated from field: repeated composia.controller.v1.TaskActionResponse tasks = 1;
-     */
-    tasks: TaskActionResponse[];
+export type RunServiceActionResponse = Message<"composia.controller.v1.RunServiceActionResponse"> & {
+  /**
+   * @generated from field: repeated composia.controller.v1.TaskActionResponse tasks = 1;
+   */
+  tasks: TaskActionResponse[];
 
-    /**
-     * @generated from field: composia.controller.v1.RepoWriteResult repo_write = 2;
-     */
-    repoWrite?: RepoWriteResult | undefined;
-  };
+  /**
+   * @generated from field: composia.controller.v1.RepoWriteResult repo_write = 2;
+   */
+  repoWrite?: RepoWriteResult | undefined;
+};
 
 /**
  * Describes the message composia.controller.v1.RunServiceActionResponse.
  * Use `create(RunServiceActionResponseSchema)` to create a new message.
  */
-export const RunServiceActionResponseSchema: GenMessage<RunServiceActionResponse> =
-  /*@__PURE__*/
+export const RunServiceActionResponseSchema: GenMessage<RunServiceActionResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 18);
 
 /**
@@ -809,34 +754,32 @@ export const RunServiceActionResponseSchema: GenMessage<RunServiceActionResponse
  *
  * @generated from message composia.controller.v1.MigrateServiceRequest
  */
-export type MigrateServiceRequest =
-  Message<"composia.controller.v1.MigrateServiceRequest"> & {
-    /**
-     * @generated from field: string service_name = 1;
-     */
-    serviceName: string;
+export type MigrateServiceRequest = Message<"composia.controller.v1.MigrateServiceRequest"> & {
+  /**
+   * @generated from field: string service_name = 1;
+   */
+  serviceName: string;
 
-    /**
-     * source_node_id identifies the current source node.
-     *
-     * @generated from field: string source_node_id = 2;
-     */
-    sourceNodeId: string;
+  /**
+   * source_node_id identifies the current source node.
+   *
+   * @generated from field: string source_node_id = 2;
+   */
+  sourceNodeId: string;
 
-    /**
-     * target_node_id identifies the destination node.
-     *
-     * @generated from field: string target_node_id = 3;
-     */
-    targetNodeId: string;
-  };
+  /**
+   * target_node_id identifies the destination node.
+   *
+   * @generated from field: string target_node_id = 3;
+   */
+  targetNodeId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.MigrateServiceRequest.
  * Use `create(MigrateServiceRequestSchema)` to create a new message.
  */
-export const MigrateServiceRequestSchema: GenMessage<MigrateServiceRequest> =
-  /*@__PURE__*/
+export const MigrateServiceRequestSchema: GenMessage<MigrateServiceRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 19);
 
 /**
@@ -844,85 +787,83 @@ export const MigrateServiceRequestSchema: GenMessage<MigrateServiceRequest> =
  *
  * @generated from message composia.controller.v1.RunServiceActionRequest
  */
-export type RunServiceActionRequest =
-  Message<"composia.controller.v1.RunServiceActionRequest"> & {
-    /**
-     * service_name is the logical service name.
-     *
-     * @generated from field: string service_name = 1;
-     */
-    serviceName: string;
+export type RunServiceActionRequest = Message<"composia.controller.v1.RunServiceActionRequest"> & {
+  /**
+   * service_name is the logical service name.
+   *
+   * @generated from field: string service_name = 1;
+   */
+  serviceName: string;
 
-    /**
-     * action is the async operation to start.
-     *
-     * @generated from field: composia.controller.v1.ServiceAction action = 2;
-     */
-    action: ServiceAction;
+  /**
+   * action is the async operation to start.
+   *
+   * @generated from field: composia.controller.v1.ServiceAction action = 2;
+   */
+  action: ServiceAction;
 
-    /**
-     * node_ids optionally narrows the action to selected nodes.
-     *
-     * @generated from field: repeated string node_ids = 3;
-     */
-    nodeIds: string[];
+  /**
+   * node_ids optionally narrows the action to selected nodes.
+   *
+   * @generated from field: repeated string node_ids = 3;
+   */
+  nodeIds: string[];
 
-    /**
-     * data_names narrows backup-like actions to selected data entries.
-     *
-     * @generated from field: repeated string data_names = 4;
-     */
-    dataNames: string[];
+  /**
+   * data_names narrows backup-like actions to selected data entries.
+   *
+   * @generated from field: repeated string data_names = 4;
+   */
+  dataNames: string[];
 
-    /**
-     * compose_recreate_mode controls deploy/update container recreation behavior.
-     *
-     * @generated from field: composia.controller.v1.ComposeRecreateMode compose_recreate_mode = 5;
-     */
-    composeRecreateMode: ComposeRecreateMode;
+  /**
+   * compose_recreate_mode controls deploy/update container recreation behavior.
+   *
+   * @generated from field: composia.controller.v1.ComposeRecreateMode compose_recreate_mode = 5;
+   */
+  composeRecreateMode: ComposeRecreateMode;
 
-    /**
-     * image_updates applies selected configured image updates before running update.
-     *
-     * @generated from field: repeated composia.controller.v1.ImageUpdateSelection image_updates = 6;
-     */
-    imageUpdates: ImageUpdateSelection[];
+  /**
+   * image_updates applies selected configured image updates before running update.
+   *
+   * @generated from field: repeated composia.controller.v1.ImageUpdateSelection image_updates = 6;
+   */
+  imageUpdates: ImageUpdateSelection[];
 
-    /**
-     * use_all_detected_image_updates applies every detected image update for the service.
-     *
-     * @generated from field: bool use_all_detected_image_updates = 7;
-     */
-    useAllDetectedImageUpdates: boolean;
+  /**
+   * use_all_detected_image_updates applies every detected image update for the service.
+   *
+   * @generated from field: bool use_all_detected_image_updates = 7;
+   */
+  useAllDetectedImageUpdates: boolean;
 
-    /**
-     * backup_before_update overrides the service config cascade for this request.
-     *
-     * @generated from field: optional bool backup_before_update = 8;
-     */
-    backupBeforeUpdate?: boolean | undefined;
+  /**
+   * backup_before_update overrides the service config cascade for this request.
+   *
+   * @generated from field: optional bool backup_before_update = 8;
+   */
+  backupBeforeUpdate?: boolean | undefined;
 
-    /**
-     * base_revision protects repo-backed image updates against stale HEAD writes.
-     *
-     * @generated from field: string base_revision = 9;
-     */
-    baseRevision: string;
+  /**
+   * base_revision protects repo-backed image updates against stale HEAD writes.
+   *
+   * @generated from field: string base_revision = 9;
+   */
+  baseRevision: string;
 
-    /**
-     * commit_message is used for repo-backed image update commits.
-     *
-     * @generated from field: string commit_message = 10;
-     */
-    commitMessage: string;
-  };
+  /**
+   * commit_message is used for repo-backed image update commits.
+   *
+   * @generated from field: string commit_message = 10;
+   */
+  commitMessage: string;
+};
 
 /**
  * Describes the message composia.controller.v1.RunServiceActionRequest.
  * Use `create(RunServiceActionRequestSchema)` to create a new message.
  */
-export const RunServiceActionRequestSchema: GenMessage<RunServiceActionRequest> =
-  /*@__PURE__*/
+export const RunServiceActionRequestSchema: GenMessage<RunServiceActionRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 20);
 
 /**
@@ -930,30 +871,28 @@ export const RunServiceActionRequestSchema: GenMessage<RunServiceActionRequest> 
  *
  * @generated from message composia.controller.v1.ImageUpdateSelection
  */
-export type ImageUpdateSelection =
-  Message<"composia.controller.v1.ImageUpdateSelection"> & {
-    /**
-     * @generated from field: string image_name = 1;
-     */
-    imageName: string;
+export type ImageUpdateSelection = Message<"composia.controller.v1.ImageUpdateSelection"> & {
+  /**
+   * @generated from field: string image_name = 1;
+   */
+  imageName: string;
 
-    /**
-     * @generated from field: string target_tag = 2;
-     */
-    targetTag: string;
+  /**
+   * @generated from field: string target_tag = 2;
+   */
+  targetTag: string;
 
-    /**
-     * @generated from field: bool use_detected = 3;
-     */
-    useDetected: boolean;
-  };
+  /**
+   * @generated from field: bool use_detected = 3;
+   */
+  useDetected: boolean;
+};
 
 /**
  * Describes the message composia.controller.v1.ImageUpdateSelection.
  * Use `create(ImageUpdateSelectionSchema)` to create a new message.
  */
-export const ImageUpdateSelectionSchema: GenMessage<ImageUpdateSelection> =
-  /*@__PURE__*/
+export const ImageUpdateSelectionSchema: GenMessage<ImageUpdateSelection> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 21);
 
 /**
@@ -961,36 +900,34 @@ export const ImageUpdateSelectionSchema: GenMessage<ImageUpdateSelection> =
  *
  * @generated from message composia.controller.v1.ListServicesRequest
  */
-export type ListServicesRequest =
-  Message<"composia.controller.v1.ListServicesRequest"> & {
-    /**
-     * runtime_status narrows results to one aggregated status string when set.
-     *
-     * @generated from field: string runtime_status = 1;
-     */
-    runtimeStatus: string;
+export type ListServicesRequest = Message<"composia.controller.v1.ListServicesRequest"> & {
+  /**
+   * runtime_status narrows results to one aggregated status string when set.
+   *
+   * @generated from field: string runtime_status = 1;
+   */
+  runtimeStatus: string;
 
-    /**
-     * page_size is the requested page size.
-     *
-     * @generated from field: uint32 page_size = 2;
-     */
-    pageSize: number;
+  /**
+   * page_size is the requested page size.
+   *
+   * @generated from field: uint32 page_size = 2;
+   */
+  pageSize: number;
 
-    /**
-     * page is the 1-based page number.
-     *
-     * @generated from field: uint32 page = 3;
-     */
-    page: number;
-  };
+  /**
+   * page is the 1-based page number.
+   *
+   * @generated from field: uint32 page = 3;
+   */
+  page: number;
+};
 
 /**
  * Describes the message composia.controller.v1.ListServicesRequest.
  * Use `create(ListServicesRequestSchema)` to create a new message.
  */
-export const ListServicesRequestSchema: GenMessage<ListServicesRequest> =
-  /*@__PURE__*/
+export const ListServicesRequestSchema: GenMessage<ListServicesRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 22);
 
 /**
@@ -998,64 +935,62 @@ export const ListServicesRequestSchema: GenMessage<ListServicesRequest> =
  *
  * @generated from message composia.controller.v1.ServiceSummary
  */
-export type ServiceSummary =
-  Message<"composia.controller.v1.ServiceSummary"> & {
-    /**
-     * name is the logical service name.
-     *
-     * @generated from field: string name = 1;
-     */
-    name: string;
+export type ServiceSummary = Message<"composia.controller.v1.ServiceSummary"> & {
+  /**
+   * name is the logical service name.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
 
-    /**
-     * is_declared reports whether the service exists in desired state.
-     *
-     * @generated from field: bool is_declared = 2;
-     */
-    isDeclared: boolean;
+  /**
+   * is_declared reports whether the service exists in desired state.
+   *
+   * @generated from field: bool is_declared = 2;
+   */
+  isDeclared: boolean;
 
-    /**
-     * runtime_status is the controller's aggregated status string.
-     *
-     * @generated from field: string runtime_status = 3;
-     */
-    runtimeStatus: string;
+  /**
+   * runtime_status is the controller's aggregated status string.
+   *
+   * @generated from field: string runtime_status = 3;
+   */
+  runtimeStatus: string;
 
-    /**
-     * updated_at is the last known status update timestamp string.
-     *
-     * @generated from field: string updated_at = 4;
-     */
-    updatedAt: string;
+  /**
+   * updated_at is the last known status update timestamp string.
+   *
+   * @generated from field: string updated_at = 4;
+   */
+  updatedAt: string;
 
-    /**
-     * instance_count is the number of known service instances.
-     *
-     * @generated from field: uint32 instance_count = 5;
-     */
-    instanceCount: number;
+  /**
+   * instance_count is the number of known service instances.
+   *
+   * @generated from field: uint32 instance_count = 5;
+   */
+  instanceCount: number;
 
-    /**
-     * running_count is the number of running service instances.
-     *
-     * @generated from field: uint32 running_count = 6;
-     */
-    runningCount: number;
+  /**
+   * running_count is the number of running service instances.
+   *
+   * @generated from field: uint32 running_count = 6;
+   */
+  runningCount: number;
 
-    /**
-     * target_node_count is the number of declared target nodes.
-     *
-     * @generated from field: uint32 target_node_count = 7;
-     */
-    targetNodeCount: number;
-  };
+  /**
+   * target_node_count is the number of declared target nodes.
+   *
+   * @generated from field: uint32 target_node_count = 7;
+   */
+  targetNodeCount: number;
+};
 
 /**
  * Describes the message composia.controller.v1.ServiceSummary.
  * Use `create(ServiceSummarySchema)` to create a new message.
  */
-export const ServiceSummarySchema: GenMessage<ServiceSummary> =
-  /*@__PURE__*/
+export const ServiceSummarySchema: GenMessage<ServiceSummary> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 23);
 
 /**
@@ -1063,27 +998,25 @@ export const ServiceSummarySchema: GenMessage<ServiceSummary> =
  *
  * @generated from message composia.controller.v1.ListServicesResponse
  */
-export type ListServicesResponse =
-  Message<"composia.controller.v1.ListServicesResponse"> & {
-    /**
-     * @generated from field: repeated composia.controller.v1.ServiceSummary services = 1;
-     */
-    services: ServiceSummary[];
+export type ListServicesResponse = Message<"composia.controller.v1.ListServicesResponse"> & {
+  /**
+   * @generated from field: repeated composia.controller.v1.ServiceSummary services = 1;
+   */
+  services: ServiceSummary[];
 
-    /**
-     * total_count is the total number of matches before pagination.
-     *
-     * @generated from field: uint32 total_count = 2;
-     */
-    totalCount: number;
-  };
+  /**
+   * total_count is the total number of matches before pagination.
+   *
+   * @generated from field: uint32 total_count = 2;
+   */
+  totalCount: number;
+};
 
 /**
  * Describes the message composia.controller.v1.ListServicesResponse.
  * Use `create(ListServicesResponseSchema)` to create a new message.
  */
-export const ListServicesResponseSchema: GenMessage<ListServicesResponse> =
-  /*@__PURE__*/
+export const ListServicesResponseSchema: GenMessage<ListServicesResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_service, 24);
 
 /**
@@ -1152,8 +1085,7 @@ export enum ServiceAction {
 /**
  * Describes the enum composia.controller.v1.ServiceAction.
  */
-export const ServiceActionSchema: GenEnum<ServiceAction> =
-  /*@__PURE__*/
+export const ServiceActionSchema: GenEnum<ServiceAction> = /*@__PURE__*/
   enumDesc(file_proto_composia_controller_v1_service, 0);
 
 /**
@@ -1194,8 +1126,7 @@ export enum ComposeRecreateMode {
 /**
  * Describes the enum composia.controller.v1.ComposeRecreateMode.
  */
-export const ComposeRecreateModeSchema: GenEnum<ComposeRecreateMode> =
-  /*@__PURE__*/
+export const ComposeRecreateModeSchema: GenEnum<ComposeRecreateMode> = /*@__PURE__*/
   enumDesc(file_proto_composia_controller_v1_service, 1);
 
 /**
@@ -1213,7 +1144,7 @@ export const ServiceQueryService: GenService<{
     methodKind: "unary";
     input: typeof ListServicesRequestSchema;
     output: typeof ListServicesResponseSchema;
-  };
+  },
   /**
    * ListServiceWorkspaces returns top-level repo service workspaces with merged controller state.
    *
@@ -1223,7 +1154,7 @@ export const ServiceQueryService: GenService<{
     methodKind: "unary";
     input: typeof ListServiceWorkspacesRequestSchema;
     output: typeof ListServiceWorkspacesResponseSchema;
-  };
+  },
   /**
    * GetService returns the full detail for a single service.
    *
@@ -1233,7 +1164,7 @@ export const ServiceQueryService: GenService<{
     methodKind: "unary";
     input: typeof GetServiceRequestSchema;
     output: typeof GetServiceResponseSchema;
-  };
+  },
   /**
    * GetServiceWorkspace returns one top-level repo service workspace.
    *
@@ -1243,7 +1174,7 @@ export const ServiceQueryService: GenService<{
     methodKind: "unary";
     input: typeof GetServiceWorkspaceRequestSchema;
     output: typeof GetServiceWorkspaceResponseSchema;
-  };
+  },
   /**
    * GetServiceImageUpdateChecks returns latest configured image update checks for one service.
    *
@@ -1253,8 +1184,9 @@ export const ServiceQueryService: GenService<{
     methodKind: "unary";
     input: typeof GetServiceImageUpdateChecksRequestSchema;
     output: typeof GetServiceImageUpdateChecksResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_proto_composia_controller_v1_service, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_proto_composia_controller_v1_service, 0);
 
 /**
  * ServiceCommandService triggers service-level state changes and async actions.
@@ -1271,7 +1203,7 @@ export const ServiceCommandService: GenService<{
     methodKind: "unary";
     input: typeof RunServiceActionRequestSchema;
     output: typeof RunServiceActionResponseSchema;
-  };
+  },
   /**
    * MigrateService starts an async service migration between two nodes.
    *
@@ -1281,8 +1213,9 @@ export const ServiceCommandService: GenService<{
     methodKind: "unary";
     input: typeof MigrateServiceRequestSchema;
     output: typeof TaskActionResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_proto_composia_controller_v1_service, 1);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_proto_composia_controller_v1_service, 1);
 
 /**
  * ServiceInstanceService queries and operates on one concrete service instance.
@@ -1299,7 +1232,7 @@ export const ServiceInstanceService: GenService<{
     methodKind: "unary";
     input: typeof ListServiceInstancesRequestSchema;
     output: typeof ListServiceInstancesResponseSchema;
-  };
+  },
   /**
    * GetServiceInstance returns the detail for one service instance on one node.
    *
@@ -1309,5 +1242,7 @@ export const ServiceInstanceService: GenService<{
     methodKind: "unary";
     input: typeof GetServiceInstanceRequestSchema;
     output: typeof GetServiceInstanceResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_proto_composia_controller_v1_service, 2);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_proto_composia_controller_v1_service, 2);
+

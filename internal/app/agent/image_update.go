@@ -361,7 +361,7 @@ func inspectLocalImageDigest(ctx context.Context, imageRef string) (string, erro
 }
 
 func inspectRemoteImageDigest(ctx context.Context, imageRef string) (string, error) {
-	command := exec.CommandContext(ctx, "docker", "buildx", "imagetools", "inspect", "--format", "{{.Digest}}", imageRef) //nolint:gosec
+	command := exec.CommandContext(ctx, "docker", "buildx", "imagetools", "inspect", "--format", "{{.Manifest.Digest}}", imageRef) //nolint:gosec
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	command.Stdout = &stdout

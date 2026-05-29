@@ -531,7 +531,7 @@ func dockerProtoQueryTask(query dockerAgentQuery) (*agentv1.DockerQueryTask, err
 		if query.Resource != "container" {
 			return nil, fmt.Errorf("unsupported docker logs resource %q", query.Resource)
 		}
-		message.Query = &agentv1.DockerQueryTask_GetContainerLogs{GetContainerLogs: &agentv1.GetContainerLogsRequest{ContainerId: query.ID, Tail: query.Tail, Timestamps: query.Timestamps}}
+		message.Query = &agentv1.DockerQueryTask_ContainerLogs{ContainerLogs: &agentv1.GetContainerLogsRequest{ContainerId: query.ID, Tail: query.Tail, Timestamps: query.Timestamps}}
 	case "exec":
 		if query.Resource != "container" {
 			return nil, fmt.Errorf("unsupported docker exec resource %q", query.Resource)
@@ -565,8 +565,8 @@ func dockerQueryPayloadJSON(req *agentv1.ReportDockerQueryResultRequest) (string
 		return marshalDockerQueryPayload(dockerListResult{Images: controllerImageInfos(result.ListImages.GetImages()), TotalCount: result.ListImages.GetTotalCount()})
 	case *agentv1.ReportDockerQueryResultRequest_InspectImage:
 		return marshalDockerQueryPayload(dockerListResult{RawJSON: result.InspectImage.GetRawJson()})
-	case *agentv1.ReportDockerQueryResultRequest_GetContainerLogs:
-		return marshalDockerQueryPayload(dockerListResult{Content: result.GetContainerLogs.GetContent()})
+	case *agentv1.ReportDockerQueryResultRequest_ContainerLogs:
+		return marshalDockerQueryPayload(dockerListResult{Content: result.ContainerLogs.GetContent()})
 	case *agentv1.ReportDockerQueryResultRequest_RunContainerExec:
 		execResult := result.RunContainerExec
 		return marshalDockerQueryPayload(dockerListResult{Exec: &dockerExecResult{ExitCode: execResult.GetExitCode(), Stdout: execResult.GetStdout(), Stderr: execResult.GetStderr(), TimedOut: execResult.GetTimedOut(), StdoutTruncated: execResult.GetStdoutTruncated(), StderrTruncated: execResult.GetStderrTruncated(), StartedAt: protoTimestampString(execResult.GetStartedAt()), FinishedAt: protoTimestampString(execResult.GetFinishedAt()), Duration: execResult.GetDuration()}})
@@ -641,7 +641,7 @@ func controllerVolumeInfos(values []*agentv1.VolumeInfo) []*controllerv1.VolumeI
 func controllerImageInfos(values []*agentv1.ImageInfo) []*controllerv1.ImageInfo {
 	infos := make([]*controllerv1.ImageInfo, 0, len(values))
 	for _, value := range values {
-		infos = append(infos, &controllerv1.ImageInfo{Id: value.GetId(), RepoTags: append([]string(nil), value.GetRepoTags()...), Size: value.GetSize(), Created: value.GetCreated(), RepoDigests: append([]string(nil), value.GetRepoDigests()...), VirtualSize: value.GetVirtualSize(), Architecture: value.GetArchitecture(), Os: value.GetOs(), ContainersCount: value.GetContainersCount(), IsDangling: value.GetIsDangling()})
+		infos = append(infos, &controllerv1.ImageInfo{Id: value.GetId(), RepoTags: append([]string(nil), value.GetRepoTags()...), Size: value.GetSize(), VirtualSize: value.GetVirtualSize(), Created: value.GetCreated(), RepoDigests: append([]string(nil), value.GetRepoDigests()...), Architecture: value.GetArchitecture(), Os: value.GetOs(), Author: value.GetAuthor(), ContainersCount: value.GetContainersCount(), IsDangling: value.GetIsDangling()})
 	}
 	return infos
 }

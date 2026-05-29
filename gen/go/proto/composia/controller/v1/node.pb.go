@@ -2404,7 +2404,9 @@ type ImageInfo struct {
 	// containers_count is the number of containers using the image.
 	ContainersCount uint32 `protobuf:"varint,9,opt,name=containers_count,json=containersCount,proto3" json:"containers_count,omitempty"`
 	// is_dangling reports whether the image is dangling.
-	IsDangling    bool `protobuf:"varint,10,opt,name=is_dangling,json=isDangling,proto3" json:"is_dangling,omitempty"`
+	IsDangling bool `protobuf:"varint,10,opt,name=is_dangling,json=isDangling,proto3" json:"is_dangling,omitempty"`
+	// author is the image author metadata, when present.
+	Author        string `protobuf:"bytes,11,opt,name=author,proto3" json:"author,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2507,6 +2509,13 @@ func (x *ImageInfo) GetIsDangling() bool {
 		return x.IsDangling
 	}
 	return false
+}
+
+func (x *ImageInfo) GetAuthor() string {
+	if x != nil {
+		return x.Author
+	}
+	return ""
 }
 
 // ListNodeImagesResponse returns node-scoped image summaries.
@@ -2842,7 +2851,7 @@ const file_proto_composia_controller_v1_node_proto_rawDesc = "" +
 	"\x04page\x18\x03 \x01(\rR\x04page\x12\x16\n" +
 	"\x06search\x18\x04 \x01(\tR\x06search\x12\x17\n" +
 	"\asort_by\x18\x05 \x01(\tR\x06sortBy\x12\x1b\n" +
-	"\tsort_desc\x18\x06 \x01(\bR\bsortDesc\"\xac\x02\n" +
+	"\tsort_desc\x18\x06 \x01(\bR\bsortDesc\"\xc4\x02\n" +
 	"\tImageInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\trepo_tags\x18\x02 \x03(\tR\brepoTags\x12\x12\n" +
@@ -2855,7 +2864,8 @@ const file_proto_composia_controller_v1_node_proto_rawDesc = "" +
 	"\x10containers_count\x18\t \x01(\rR\x0fcontainersCount\x12\x1f\n" +
 	"\vis_dangling\x18\n" +
 	" \x01(\bR\n" +
-	"isDangling\"t\n" +
+	"isDangling\x12\x16\n" +
+	"\x06author\x18\v \x01(\tR\x06author\"t\n" +
 	"\x16ListNodeImagesResponse\x129\n" +
 	"\x06images\x18\x01 \x03(\v2!.composia.controller.v1.ImageInfoR\x06images\x12\x1f\n" +
 	"\vtotal_count\x18\x02 \x01(\rR\n" +

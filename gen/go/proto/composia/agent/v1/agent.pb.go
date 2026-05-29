@@ -821,7 +821,7 @@ type DockerQueryTask struct {
 	//	*DockerQueryTask_InspectVolume
 	//	*DockerQueryTask_ListImages
 	//	*DockerQueryTask_InspectImage
-	//	*DockerQueryTask_GetContainerLogs
+	//	*DockerQueryTask_ContainerLogs
 	//	*DockerQueryTask_RunContainerExec
 	Query         isDockerQueryTask_Query `protobuf_oneof:"query"`
 	unknownFields protoimpl.UnknownFields
@@ -951,10 +951,10 @@ func (x *DockerQueryTask) GetInspectImage() *InspectImageRequest {
 	return nil
 }
 
-func (x *DockerQueryTask) GetGetContainerLogs() *GetContainerLogsRequest {
+func (x *DockerQueryTask) GetContainerLogs() *GetContainerLogsRequest {
 	if x != nil {
-		if x, ok := x.Query.(*DockerQueryTask_GetContainerLogs); ok {
-			return x.GetContainerLogs
+		if x, ok := x.Query.(*DockerQueryTask_ContainerLogs); ok {
+			return x.ContainerLogs
 		}
 	}
 	return nil
@@ -1005,8 +1005,8 @@ type DockerQueryTask_InspectImage struct {
 	InspectImage *InspectImageRequest `protobuf:"bytes,10,opt,name=inspect_image,json=inspectImage,proto3,oneof"`
 }
 
-type DockerQueryTask_GetContainerLogs struct {
-	GetContainerLogs *GetContainerLogsRequest `protobuf:"bytes,11,opt,name=get_container_logs,json=getContainerLogs,proto3,oneof"`
+type DockerQueryTask_ContainerLogs struct {
+	ContainerLogs *GetContainerLogsRequest `protobuf:"bytes,11,opt,name=container_logs,json=containerLogs,proto3,oneof"`
 }
 
 type DockerQueryTask_RunContainerExec struct {
@@ -1029,7 +1029,7 @@ func (*DockerQueryTask_ListImages) isDockerQueryTask_Query() {}
 
 func (*DockerQueryTask_InspectImage) isDockerQueryTask_Query() {}
 
-func (*DockerQueryTask_GetContainerLogs) isDockerQueryTask_Query() {}
+func (*DockerQueryTask_ContainerLogs) isDockerQueryTask_Query() {}
 
 func (*DockerQueryTask_RunContainerExec) isDockerQueryTask_Query() {}
 
@@ -2948,7 +2948,7 @@ type ReportDockerQueryResultRequest struct {
 	//	*ReportDockerQueryResultRequest_InspectVolume
 	//	*ReportDockerQueryResultRequest_ListImages
 	//	*ReportDockerQueryResultRequest_InspectImage
-	//	*ReportDockerQueryResultRequest_GetContainerLogs
+	//	*ReportDockerQueryResultRequest_ContainerLogs
 	//	*ReportDockerQueryResultRequest_RunContainerExec
 	Result isReportDockerQueryResultRequest_Result `protobuf_oneof:"result"`
 	// error_message contains the human-readable failure summary when the query fails.
@@ -3082,10 +3082,10 @@ func (x *ReportDockerQueryResultRequest) GetInspectImage() *InspectImageResponse
 	return nil
 }
 
-func (x *ReportDockerQueryResultRequest) GetGetContainerLogs() *GetContainerLogsResponse {
+func (x *ReportDockerQueryResultRequest) GetContainerLogs() *GetContainerLogsResponse {
 	if x != nil {
-		if x, ok := x.Result.(*ReportDockerQueryResultRequest_GetContainerLogs); ok {
-			return x.GetContainerLogs
+		if x, ok := x.Result.(*ReportDockerQueryResultRequest_ContainerLogs); ok {
+			return x.ContainerLogs
 		}
 	}
 	return nil
@@ -3150,8 +3150,8 @@ type ReportDockerQueryResultRequest_InspectImage struct {
 	InspectImage *InspectImageResponse `protobuf:"bytes,10,opt,name=inspect_image,json=inspectImage,proto3,oneof"`
 }
 
-type ReportDockerQueryResultRequest_GetContainerLogs struct {
-	GetContainerLogs *GetContainerLogsResponse `protobuf:"bytes,11,opt,name=get_container_logs,json=getContainerLogs,proto3,oneof"`
+type ReportDockerQueryResultRequest_ContainerLogs struct {
+	ContainerLogs *GetContainerLogsResponse `protobuf:"bytes,11,opt,name=container_logs,json=containerLogs,proto3,oneof"`
 }
 
 type ReportDockerQueryResultRequest_RunContainerExec struct {
@@ -3174,7 +3174,7 @@ func (*ReportDockerQueryResultRequest_ListImages) isReportDockerQueryResultReque
 
 func (*ReportDockerQueryResultRequest_InspectImage) isReportDockerQueryResultRequest_Result() {}
 
-func (*ReportDockerQueryResultRequest_GetContainerLogs) isReportDockerQueryResultRequest_Result() {}
+func (*ReportDockerQueryResultRequest_ContainerLogs) isReportDockerQueryResultRequest_Result() {}
 
 func (*ReportDockerQueryResultRequest_RunContainerExec) isReportDockerQueryResultRequest_Result() {}
 
@@ -5418,7 +5418,7 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"paramsJson\"c\n" +
 	"\x14PullNextTaskResponse\x12\x19\n" +
 	"\bhas_task\x18\x01 \x01(\bR\ahasTask\x120\n" +
-	"\x04task\x18\x02 \x01(\v2\x1c.composia.agent.v1.AgentTaskR\x04task\"\x9b\a\n" +
+	"\x04task\x18\x02 \x01(\v2\x1c.composia.agent.v1.AgentTaskR\x04task\"\x94\a\n" +
 	"\x0fDockerQueryTask\x12\x19\n" +
 	"\bquery_id\x18\x01 \x01(\tR\aqueryId\x12\x17\n" +
 	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12S\n" +
@@ -5431,8 +5431,8 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\vlist_images\x18\t \x01(\v2$.composia.agent.v1.ListImagesRequestH\x00R\n" +
 	"listImages\x12M\n" +
 	"\rinspect_image\x18\n" +
-	" \x01(\v2&.composia.agent.v1.InspectImageRequestH\x00R\finspectImage\x12Z\n" +
-	"\x12get_container_logs\x18\v \x01(\v2*.composia.agent.v1.GetContainerLogsRequestH\x00R\x10getContainerLogs\x12e\n" +
+	" \x01(\v2&.composia.agent.v1.InspectImageRequestH\x00R\finspectImage\x12S\n" +
+	"\x0econtainer_logs\x18\v \x01(\v2*.composia.agent.v1.GetContainerLogsRequestH\x00R\rcontainerLogs\x12e\n" +
 	"\x12run_container_exec\x18\f \x01(\v25.composia.agent.v1.DockerQueryRunContainerExecRequestH\x00R\x10runContainerExecB\a\n" +
 	"\x05query\"5\n" +
 	"\x1aPullNextDockerQueryRequest\x12\x17\n" +
@@ -5585,7 +5585,7 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\x18ReportDockerStatsRequest\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x124\n" +
 	"\x05stats\x18\x02 \x01(\v2\x1e.composia.agent.v1.DockerStatsR\x05stats\"\x1b\n" +
-	"\x19ReportDockerStatsResponse\"\xa2\b\n" +
+	"\x19ReportDockerStatsResponse\"\x9b\b\n" +
 	"\x1eReportDockerQueryResultRequest\x12\x19\n" +
 	"\bquery_id\x18\x01 \x01(\tR\aqueryId\x12\x17\n" +
 	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12T\n" +
@@ -5598,8 +5598,8 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\vlist_images\x18\t \x01(\v2%.composia.agent.v1.ListImagesResponseH\x00R\n" +
 	"listImages\x12N\n" +
 	"\rinspect_image\x18\n" +
-	" \x01(\v2'.composia.agent.v1.InspectImageResponseH\x00R\finspectImage\x12[\n" +
-	"\x12get_container_logs\x18\v \x01(\v2+.composia.agent.v1.GetContainerLogsResponseH\x00R\x10getContainerLogs\x12f\n" +
+	" \x01(\v2'.composia.agent.v1.InspectImageResponseH\x00R\finspectImage\x12T\n" +
+	"\x0econtainer_logs\x18\v \x01(\v2+.composia.agent.v1.GetContainerLogsResponseH\x00R\rcontainerLogs\x12f\n" +
 	"\x12run_container_exec\x18\f \x01(\v26.composia.agent.v1.DockerQueryRunContainerExecResponseH\x00R\x10runContainerExec\x12#\n" +
 	"\rerror_message\x18\r \x01(\tR\ferrorMessage\x12F\n" +
 	"\n" +
@@ -5989,7 +5989,7 @@ var file_proto_composia_agent_v1_agent_proto_depIdxs = []int32{
 	64, // 10: composia.agent.v1.DockerQueryTask.inspect_volume:type_name -> composia.agent.v1.InspectVolumeRequest
 	68, // 11: composia.agent.v1.DockerQueryTask.list_images:type_name -> composia.agent.v1.ListImagesRequest
 	71, // 12: composia.agent.v1.DockerQueryTask.inspect_image:type_name -> composia.agent.v1.InspectImageRequest
-	50, // 13: composia.agent.v1.DockerQueryTask.get_container_logs:type_name -> composia.agent.v1.GetContainerLogsRequest
+	50, // 13: composia.agent.v1.DockerQueryTask.container_logs:type_name -> composia.agent.v1.GetContainerLogsRequest
 	52, // 14: composia.agent.v1.DockerQueryTask.run_container_exec:type_name -> composia.agent.v1.DockerQueryRunContainerExecRequest
 	11, // 15: composia.agent.v1.PullNextDockerQueryResponse.query:type_name -> composia.agent.v1.DockerQueryTask
 	1,  // 16: composia.agent.v1.ReportTaskStateRequest.status:type_name -> composia.agent.v1.AgentTaskStatus
@@ -6015,7 +6015,7 @@ var file_proto_composia_agent_v1_agent_proto_depIdxs = []int32{
 	65, // 36: composia.agent.v1.ReportDockerQueryResultRequest.inspect_volume:type_name -> composia.agent.v1.InspectVolumeResponse
 	70, // 37: composia.agent.v1.ReportDockerQueryResultRequest.list_images:type_name -> composia.agent.v1.ListImagesResponse
 	72, // 38: composia.agent.v1.ReportDockerQueryResultRequest.inspect_image:type_name -> composia.agent.v1.InspectImageResponse
-	51, // 39: composia.agent.v1.ReportDockerQueryResultRequest.get_container_logs:type_name -> composia.agent.v1.GetContainerLogsResponse
+	51, // 39: composia.agent.v1.ReportDockerQueryResultRequest.container_logs:type_name -> composia.agent.v1.GetContainerLogsResponse
 	53, // 40: composia.agent.v1.ReportDockerQueryResultRequest.run_container_exec:type_name -> composia.agent.v1.DockerQueryRunContainerExecResponse
 	3,  // 41: composia.agent.v1.ReportDockerQueryResultRequest.error_code:type_name -> composia.agent.v1.DockerQueryErrorCode
 	75, // 42: composia.agent.v1.ContainerInfo.labels:type_name -> composia.agent.v1.ContainerInfo.LabelsEntry
@@ -6107,7 +6107,7 @@ func file_proto_composia_agent_v1_agent_proto_init() {
 		(*DockerQueryTask_InspectVolume)(nil),
 		(*DockerQueryTask_ListImages)(nil),
 		(*DockerQueryTask_InspectImage)(nil),
-		(*DockerQueryTask_GetContainerLogs)(nil),
+		(*DockerQueryTask_ContainerLogs)(nil),
 		(*DockerQueryTask_RunContainerExec)(nil),
 	}
 	file_proto_composia_agent_v1_agent_proto_msgTypes[34].OneofWrappers = []any{
@@ -6119,7 +6119,7 @@ func file_proto_composia_agent_v1_agent_proto_init() {
 		(*ReportDockerQueryResultRequest_InspectVolume)(nil),
 		(*ReportDockerQueryResultRequest_ListImages)(nil),
 		(*ReportDockerQueryResultRequest_InspectImage)(nil),
-		(*ReportDockerQueryResultRequest_GetContainerLogs)(nil),
+		(*ReportDockerQueryResultRequest_ContainerLogs)(nil),
 		(*ReportDockerQueryResultRequest_RunContainerExec)(nil),
 	}
 	type x struct{}

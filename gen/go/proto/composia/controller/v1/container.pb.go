@@ -9,6 +9,7 @@ package controllerv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -557,8 +558,8 @@ type RunContainerExecResponse struct {
 	TimedOut        bool                   `protobuf:"varint,4,opt,name=timed_out,json=timedOut,proto3" json:"timed_out,omitempty"`
 	StdoutTruncated bool                   `protobuf:"varint,5,opt,name=stdout_truncated,json=stdoutTruncated,proto3" json:"stdout_truncated,omitempty"`
 	StderrTruncated bool                   `protobuf:"varint,6,opt,name=stderr_truncated,json=stderrTruncated,proto3" json:"stderr_truncated,omitempty"`
-	StartedAt       string                 `protobuf:"bytes,7,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	FinishedAt      string                 `protobuf:"bytes,8,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	StartedAt       *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	FinishedAt      *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
 	Duration        string                 `protobuf:"bytes,9,opt,name=duration,proto3" json:"duration,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
@@ -636,18 +637,18 @@ func (x *RunContainerExecResponse) GetStderrTruncated() bool {
 	return false
 }
 
-func (x *RunContainerExecResponse) GetStartedAt() string {
+func (x *RunContainerExecResponse) GetStartedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.StartedAt
 	}
-	return ""
+	return nil
 }
 
-func (x *RunContainerExecResponse) GetFinishedAt() string {
+func (x *RunContainerExecResponse) GetFinishedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.FinishedAt
 	}
-	return ""
+	return nil
 }
 
 func (x *RunContainerExecResponse) GetDuration() string {
@@ -828,7 +829,7 @@ var File_proto_composia_controller_v1_container_proto protoreflect.FileDescripto
 
 const file_proto_composia_controller_v1_container_proto_rawDesc = "" +
 	"\n" +
-	",proto/composia/controller/v1/container.proto\x12\x16composia.controller.v1\x1a'proto/composia/controller/v1/task.proto\"\x98\x01\n" +
+	",proto/composia/controller/v1/container.proto\x12\x16composia.controller.v1\x1a'proto/composia/controller/v1/task.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x98\x01\n" +
 	"\x19RunContainerActionRequest\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12!\n" +
 	"\fcontainer_id\x18\x02 \x01(\tR\vcontainerId\x12?\n" +
@@ -863,17 +864,17 @@ const file_proto_composia_controller_v1_container_proto_rawDesc = "" +
 	"\acommand\x18\x03 \x03(\tR\acommand\x12\x14\n" +
 	"\x05stdin\x18\x04 \x01(\fR\x05stdin\x12'\n" +
 	"\x0ftimeout_seconds\x18\x05 \x01(\rR\x0etimeoutSeconds\x12(\n" +
-	"\x10max_output_bytes\x18\x06 \x01(\x04R\x0emaxOutputBytes\"\xb6\x02\n" +
+	"\x10max_output_bytes\x18\x06 \x01(\x04R\x0emaxOutputBytes\"\xee\x02\n" +
 	"\x18RunContainerExecResponse\x12\x1b\n" +
 	"\texit_code\x18\x01 \x01(\x05R\bexitCode\x12\x16\n" +
 	"\x06stdout\x18\x02 \x01(\tR\x06stdout\x12\x16\n" +
 	"\x06stderr\x18\x03 \x01(\tR\x06stderr\x12\x1b\n" +
 	"\ttimed_out\x18\x04 \x01(\bR\btimedOut\x12)\n" +
 	"\x10stdout_truncated\x18\x05 \x01(\bR\x0fstdoutTruncated\x12)\n" +
-	"\x10stderr_truncated\x18\x06 \x01(\bR\x0fstderrTruncated\x12\x1d\n" +
+	"\x10stderr_truncated\x18\x06 \x01(\bR\x0fstderrTruncated\x129\n" +
 	"\n" +
-	"started_at\x18\a \x01(\tR\tstartedAt\x12\x1f\n" +
-	"\vfinished_at\x18\b \x01(\tR\n" +
+	"started_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12;\n" +
+	"\vfinished_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"finishedAt\x12\x1a\n" +
 	"\bduration\x18\t \x01(\tR\bduration\"N\n" +
 	"\x14RemoveNetworkRequest\x12\x17\n" +
@@ -930,31 +931,34 @@ var file_proto_composia_controller_v1_container_proto_goTypes = []any{
 	(*RemoveNetworkRequest)(nil),      // 9: composia.controller.v1.RemoveNetworkRequest
 	(*RemoveVolumeRequest)(nil),       // 10: composia.controller.v1.RemoveVolumeRequest
 	(*RemoveImageRequest)(nil),        // 11: composia.controller.v1.RemoveImageRequest
-	(*TaskActionResponse)(nil),        // 12: composia.controller.v1.TaskActionResponse
+	(*timestamppb.Timestamp)(nil),     // 12: google.protobuf.Timestamp
+	(*TaskActionResponse)(nil),        // 13: composia.controller.v1.TaskActionResponse
 }
 var file_proto_composia_controller_v1_container_proto_depIdxs = []int32{
 	0,  // 0: composia.controller.v1.RunContainerActionRequest.action:type_name -> composia.controller.v1.ContainerAction
-	1,  // 1: composia.controller.v1.DockerCommandService.RunContainerAction:input_type -> composia.controller.v1.RunContainerActionRequest
-	2,  // 2: composia.controller.v1.DockerCommandService.RemoveContainer:input_type -> composia.controller.v1.RemoveContainerRequest
-	3,  // 3: composia.controller.v1.DockerCommandService.GetContainerLogs:input_type -> composia.controller.v1.GetContainerLogsRequest
-	5,  // 4: composia.controller.v1.DockerCommandService.OpenContainerExec:input_type -> composia.controller.v1.OpenContainerExecRequest
-	7,  // 5: composia.controller.v1.DockerCommandService.RunContainerExec:input_type -> composia.controller.v1.RunContainerExecRequest
-	9,  // 6: composia.controller.v1.DockerCommandService.RemoveNetwork:input_type -> composia.controller.v1.RemoveNetworkRequest
-	10, // 7: composia.controller.v1.DockerCommandService.RemoveVolume:input_type -> composia.controller.v1.RemoveVolumeRequest
-	11, // 8: composia.controller.v1.DockerCommandService.RemoveImage:input_type -> composia.controller.v1.RemoveImageRequest
-	12, // 9: composia.controller.v1.DockerCommandService.RunContainerAction:output_type -> composia.controller.v1.TaskActionResponse
-	12, // 10: composia.controller.v1.DockerCommandService.RemoveContainer:output_type -> composia.controller.v1.TaskActionResponse
-	4,  // 11: composia.controller.v1.DockerCommandService.GetContainerLogs:output_type -> composia.controller.v1.GetContainerLogsResponse
-	6,  // 12: composia.controller.v1.DockerCommandService.OpenContainerExec:output_type -> composia.controller.v1.OpenContainerExecResponse
-	8,  // 13: composia.controller.v1.DockerCommandService.RunContainerExec:output_type -> composia.controller.v1.RunContainerExecResponse
-	12, // 14: composia.controller.v1.DockerCommandService.RemoveNetwork:output_type -> composia.controller.v1.TaskActionResponse
-	12, // 15: composia.controller.v1.DockerCommandService.RemoveVolume:output_type -> composia.controller.v1.TaskActionResponse
-	12, // 16: composia.controller.v1.DockerCommandService.RemoveImage:output_type -> composia.controller.v1.TaskActionResponse
-	9,  // [9:17] is the sub-list for method output_type
-	1,  // [1:9] is the sub-list for method input_type
-	1,  // [1:1] is the sub-list for extension type_name
-	1,  // [1:1] is the sub-list for extension extendee
-	0,  // [0:1] is the sub-list for field type_name
+	12, // 1: composia.controller.v1.RunContainerExecResponse.started_at:type_name -> google.protobuf.Timestamp
+	12, // 2: composia.controller.v1.RunContainerExecResponse.finished_at:type_name -> google.protobuf.Timestamp
+	1,  // 3: composia.controller.v1.DockerCommandService.RunContainerAction:input_type -> composia.controller.v1.RunContainerActionRequest
+	2,  // 4: composia.controller.v1.DockerCommandService.RemoveContainer:input_type -> composia.controller.v1.RemoveContainerRequest
+	3,  // 5: composia.controller.v1.DockerCommandService.GetContainerLogs:input_type -> composia.controller.v1.GetContainerLogsRequest
+	5,  // 6: composia.controller.v1.DockerCommandService.OpenContainerExec:input_type -> composia.controller.v1.OpenContainerExecRequest
+	7,  // 7: composia.controller.v1.DockerCommandService.RunContainerExec:input_type -> composia.controller.v1.RunContainerExecRequest
+	9,  // 8: composia.controller.v1.DockerCommandService.RemoveNetwork:input_type -> composia.controller.v1.RemoveNetworkRequest
+	10, // 9: composia.controller.v1.DockerCommandService.RemoveVolume:input_type -> composia.controller.v1.RemoveVolumeRequest
+	11, // 10: composia.controller.v1.DockerCommandService.RemoveImage:input_type -> composia.controller.v1.RemoveImageRequest
+	13, // 11: composia.controller.v1.DockerCommandService.RunContainerAction:output_type -> composia.controller.v1.TaskActionResponse
+	13, // 12: composia.controller.v1.DockerCommandService.RemoveContainer:output_type -> composia.controller.v1.TaskActionResponse
+	4,  // 13: composia.controller.v1.DockerCommandService.GetContainerLogs:output_type -> composia.controller.v1.GetContainerLogsResponse
+	6,  // 14: composia.controller.v1.DockerCommandService.OpenContainerExec:output_type -> composia.controller.v1.OpenContainerExecResponse
+	8,  // 15: composia.controller.v1.DockerCommandService.RunContainerExec:output_type -> composia.controller.v1.RunContainerExecResponse
+	13, // 16: composia.controller.v1.DockerCommandService.RemoveNetwork:output_type -> composia.controller.v1.TaskActionResponse
+	13, // 17: composia.controller.v1.DockerCommandService.RemoveVolume:output_type -> composia.controller.v1.TaskActionResponse
+	13, // 18: composia.controller.v1.DockerCommandService.RemoveImage:output_type -> composia.controller.v1.TaskActionResponse
+	11, // [11:19] is the sub-list for method output_type
+	3,  // [3:11] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_proto_composia_controller_v1_container_proto_init() }

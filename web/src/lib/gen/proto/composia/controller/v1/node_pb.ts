@@ -2,16 +2,8 @@
 // @generated from file proto/composia/controller/v1/node.proto (package composia.controller.v1, syntax proto3)
 /* eslint-disable */
 
-import type {
-  GenFile,
-  GenMessage,
-  GenService,
-} from "@bufbuild/protobuf/codegenv2";
-import {
-  fileDesc,
-  messageDesc,
-  serviceDesc,
-} from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Capability } from "./system_pb";
 import { file_proto_composia_controller_v1_system } from "./system_pb";
 import type { Message } from "@bufbuild/protobuf";
@@ -19,27 +11,22 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file proto/composia/controller/v1/node.proto.
  */
-export const file_proto_composia_controller_v1_node: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "Cidwcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxL25vZGUucHJvdG8SFmNvbXBvc2lhLmNvbnRyb2xsZXIudjEiEgoQTGlzdE5vZGVzUmVxdWVzdCIhCg5HZXROb2RlUmVxdWVzdBIPCgdub2RlX2lkGAEgASgJIrEBCgtOb2RlU3VtbWFyeRIPCgdub2RlX2lkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRIPCgdlbmFibGVkGAMgASgIEhEKCWlzX29ubGluZRgEIAEoCBIWCg5sYXN0X2hlYXJ0YmVhdBgFIAEoCRI/CgdhY3Rpb25zGAYgASgLMi4uY29tcG9zaWEuY29udHJvbGxlci52MS5Ob2RlQWN0aW9uQ2FwYWJpbGl0aWVzIsoBChZOb2RlQWN0aW9uQ2FwYWJpbGl0aWVzEjYKCmNhZGR5X3N5bmMYASABKAsyIi5jb21wb3NpYS5jb250cm9sbGVyLnYxLkNhcGFiaWxpdHkSOAoMY2FkZHlfcmVsb2FkGAIgASgLMiIuY29tcG9zaWEuY29udHJvbGxlci52MS5DYXBhYmlsaXR5Ej4KEnJ1c3RpY19tYWludGVuYW5jZRgDIAEoCzIiLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuQ2FwYWJpbGl0eSJHChFMaXN0Tm9kZXNSZXNwb25zZRIyCgVub2RlcxgBIAMoCzIjLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuTm9kZVN1bW1hcnkiRAoPR2V0Tm9kZVJlc3BvbnNlEjEKBG5vZGUYASABKAsyIy5jb21wb3NpYS5jb250cm9sbGVyLnYxLk5vZGVTdW1tYXJ5IiwKGUdldE5vZGVEb2NrZXJTdGF0c1JlcXVlc3QSDwoHbm9kZV9pZBgBIAEoCSKDAgoLRG9ja2VyU3RhdHMSGAoQY29udGFpbmVyc190b3RhbBgBIAEoDRIaChJjb250YWluZXJzX3J1bm5pbmcYAiABKA0SGgoSY29udGFpbmVyc19zdG9wcGVkGAMgASgNEhkKEWNvbnRhaW5lcnNfcGF1c2VkGAQgASgNEg4KBmltYWdlcxgFIAEoDRIQCghuZXR3b3JrcxgGIAEoDRIPCgd2b2x1bWVzGAcgASgNEhoKEnZvbHVtZXNfc2l6ZV9ieXRlcxgIIAEoBBIZChFkaXNrc191c2FnZV9ieXRlcxgJIAEoBBIdChVkb2NrZXJfc2VydmVyX3ZlcnNpb24YCiABKAkiUAoaR2V0Tm9kZURvY2tlclN0YXRzUmVzcG9uc2USMgoFc3RhdHMYASABKAsyIy5jb21wb3NpYS5jb250cm9sbGVyLnYxLkRvY2tlclN0YXRzIlgKGVN5bmNOb2RlQ2FkZHlGaWxlc1JlcXVlc3QSDwoHbm9kZV9pZBgBIAEoCRIUCgxzZXJ2aWNlX25hbWUYAiABKAkSFAoMZnVsbF9yZWJ1aWxkGAMgASgIIi0KGlN5bmNOb2RlQ2FkZHlGaWxlc1Jlc3BvbnNlEg8KB3Rhc2tfaWQYASABKAkiKQoWUmVsb2FkTm9kZUNhZGR5UmVxdWVzdBIPCgdub2RlX2lkGAEgASgJIioKF1JlbG9hZE5vZGVDYWRkeVJlc3BvbnNlEg8KB3Rhc2tfaWQYASABKAkiOQoWUHJ1bmVOb2RlRG9ja2VyUmVxdWVzdBIPCgdub2RlX2lkGAEgASgJEg4KBnRhcmdldBgCIAEoCSIqChdQcnVuZU5vZGVEb2NrZXJSZXNwb25zZRIPCgd0YXNrX2lkGAEgASgJIigKFUluaXROb2RlUnVzdGljUmVxdWVzdBIPCgdub2RlX2lkGAEgASgJIikKFkluaXROb2RlUnVzdGljUmVzcG9uc2USDwoHdGFza19pZBgBIAEoCSJTChdGb3JnZXROb2RlUnVzdGljUmVxdWVzdBIPCgdub2RlX2lkGAEgASgJEhQKDHNlcnZpY2VfbmFtZRgCIAEoCRIRCglkYXRhX25hbWUYAyABKAkiKwoYRm9yZ2V0Tm9kZVJ1c3RpY1Jlc3BvbnNlEg8KB3Rhc2tfaWQYASABKAkiUgoWUHJ1bmVOb2RlUnVzdGljUmVxdWVzdBIPCgdub2RlX2lkGAEgASgJEhQKDHNlcnZpY2VfbmFtZRgCIAEoCRIRCglkYXRhX25hbWUYAyABKAkiKgoXUHJ1bmVOb2RlUnVzdGljUmVzcG9uc2USDwoHdGFza19pZBgBIAEoCSKBAQoZTGlzdE5vZGVDb250YWluZXJzUmVxdWVzdBIPCgdub2RlX2lkGAEgASgJEhEKCXBhZ2Vfc2l6ZRgCIAEoDRIMCgRwYWdlGAMgASgNEg4KBnNlYXJjaBgEIAEoCRIPCgdzb3J0X2J5GAUgASgJEhEKCXNvcnRfZGVzYxgGIAEoCCKNAgoNQ29udGFpbmVySW5mbxIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEg0KBWltYWdlGAMgASgJEg0KBXN0YXRlGAQgASgJEg4KBnN0YXR1cxgFIAEoCRIPCgdjcmVhdGVkGAYgASgJEkEKBmxhYmVscxgHIAMoCzIxLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuQ29udGFpbmVySW5mby5MYWJlbHNFbnRyeRINCgVwb3J0cxgIIAMoCRIQCghuZXR3b3JrcxgJIAMoCRIQCghpbWFnZV9pZBgKIAEoCRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBImwKGkxpc3ROb2RlQ29udGFpbmVyc1Jlc3BvbnNlEjkKCmNvbnRhaW5lcnMYASADKAsyJS5jb21wb3NpYS5jb250cm9sbGVyLnYxLkNvbnRhaW5lckluZm8SEwoLdG90YWxfY291bnQYAiABKA0iRAobSW5zcGVjdE5vZGVDb250YWluZXJSZXF1ZXN0Eg8KB25vZGVfaWQYASABKAkSFAoMY29udGFpbmVyX2lkGAIgASgJIjAKHEluc3BlY3ROb2RlQ29udGFpbmVyUmVzcG9uc2USEAoIcmF3X2pzb24YASABKAkifwoXTGlzdE5vZGVOZXR3b3Jrc1JlcXVlc3QSDwoHbm9kZV9pZBgBIAEoCRIRCglwYWdlX3NpemUYAiABKA0SDAoEcGFnZRgDIAEoDRIOCgZzZWFyY2gYBCABKAkSDwoHc29ydF9ieRgFIAEoCRIRCglzb3J0X2Rlc2MYBiABKAgivgIKC05ldHdvcmtJbmZvEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDgoGZHJpdmVyGAMgASgJEg0KBXNjb3BlGAQgASgJEhAKCGludGVybmFsGAUgASgIEhIKCmF0dGFjaGFibGUYBiABKAgSDwoHY3JlYXRlZBgHIAEoCRI/CgZsYWJlbHMYCCADKAsyLy5jb21wb3NpYS5jb250cm9sbGVyLnYxLk5ldHdvcmtJbmZvLkxhYmVsc0VudHJ5Eg4KBnN1Ym5ldBgJIAEoCRIPCgdnYXRld2F5GAogASgJEhgKEGNvbnRhaW5lcnNfY291bnQYCyABKA0SFAoMaXB2Nl9lbmFibGVkGAwgASgIGi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiZgoYTGlzdE5vZGVOZXR3b3Jrc1Jlc3BvbnNlEjUKCG5ldHdvcmtzGAEgAygLMiMuY29tcG9zaWEuY29udHJvbGxlci52MS5OZXR3b3JrSW5mbxITCgt0b3RhbF9jb3VudBgCIAEoDSJAChlJbnNwZWN0Tm9kZU5ldHdvcmtSZXF1ZXN0Eg8KB25vZGVfaWQYASABKAkSEgoKbmV0d29ya19pZBgCIAEoCSIuChpJbnNwZWN0Tm9kZU5ldHdvcmtSZXNwb25zZRIQCghyYXdfanNvbhgBIAEoCSJ+ChZMaXN0Tm9kZVZvbHVtZXNSZXF1ZXN0Eg8KB25vZGVfaWQYASABKAkSEQoJcGFnZV9zaXplGAIgASgNEgwKBHBhZ2UYAyABKA0SDgoGc2VhcmNoGAQgASgJEg8KB3NvcnRfYnkYBSABKAkSEQoJc29ydF9kZXNjGAYgASgIIosCCgpWb2x1bWVJbmZvEgwKBG5hbWUYASABKAkSDgoGZHJpdmVyGAIgASgJEhIKCm1vdW50cG9pbnQYAyABKAkSDQoFc2NvcGUYBCABKAkSDwoHY3JlYXRlZBgFIAEoCRI+CgZsYWJlbHMYBiADKAsyLi5jb21wb3NpYS5jb250cm9sbGVyLnYxLlZvbHVtZUluZm8uTGFiZWxzRW50cnkSEgoKc2l6ZV9ieXRlcxgHIAEoAxIYChBjb250YWluZXJzX2NvdW50GAggASgNEg4KBmluX3VzZRgJIAEoCBotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBImMKF0xpc3ROb2RlVm9sdW1lc1Jlc3BvbnNlEjMKB3ZvbHVtZXMYASADKAsyIi5jb21wb3NpYS5jb250cm9sbGVyLnYxLlZvbHVtZUluZm8SEwoLdG90YWxfY291bnQYAiABKA0iQAoYSW5zcGVjdE5vZGVWb2x1bWVSZXF1ZXN0Eg8KB25vZGVfaWQYASABKAkSEwoLdm9sdW1lX25hbWUYAiABKAkiLQoZSW5zcGVjdE5vZGVWb2x1bWVSZXNwb25zZRIQCghyYXdfanNvbhgBIAEoCSJ9ChVMaXN0Tm9kZUltYWdlc1JlcXVlc3QSDwoHbm9kZV9pZBgBIAEoCRIRCglwYWdlX3NpemUYAiABKA0SDAoEcGFnZRgDIAEoDRIOCgZzZWFyY2gYBCABKAkSDwoHc29ydF9ieRgFIAEoCRIRCglzb3J0X2Rlc2MYBiABKAgixgEKCUltYWdlSW5mbxIKCgJpZBgBIAEoCRIRCglyZXBvX3RhZ3MYAiADKAkSDAoEc2l6ZRgDIAEoAxIPCgdjcmVhdGVkGAQgASgJEhQKDHJlcG9fZGlnZXN0cxgFIAMoCRIUCgx2aXJ0dWFsX3NpemUYBiABKAMSFAoMYXJjaGl0ZWN0dXJlGAcgASgJEgoKAm9zGAggASgJEhgKEGNvbnRhaW5lcnNfY291bnQYCSABKA0SEwoLaXNfZGFuZ2xpbmcYCiABKAgiYAoWTGlzdE5vZGVJbWFnZXNSZXNwb25zZRIxCgZpbWFnZXMYASADKAsyIS5jb21wb3NpYS5jb250cm9sbGVyLnYxLkltYWdlSW5mbxITCgt0b3RhbF9jb3VudBgCIAEoDSI8ChdJbnNwZWN0Tm9kZUltYWdlUmVxdWVzdBIPCgdub2RlX2lkGAEgASgJEhAKCGltYWdlX2lkGAIgASgJIiwKGEluc3BlY3ROb2RlSW1hZ2VSZXNwb25zZRIQCghyYXdfanNvbhgBIAEoCTLNAgoQTm9kZVF1ZXJ5U2VydmljZRJgCglMaXN0Tm9kZXMSKC5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3ROb2Rlc1JlcXVlc3QaKS5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3ROb2Rlc1Jlc3BvbnNlEloKB0dldE5vZGUSJi5jb21wb3NpYS5jb250cm9sbGVyLnYxLkdldE5vZGVSZXF1ZXN0GicuY29tcG9zaWEuY29udHJvbGxlci52MS5HZXROb2RlUmVzcG9uc2USewoSR2V0Tm9kZURvY2tlclN0YXRzEjEuY29tcG9zaWEuY29udHJvbGxlci52MS5HZXROb2RlRG9ja2VyU3RhdHNSZXF1ZXN0GjIuY29tcG9zaWEuY29udHJvbGxlci52MS5HZXROb2RlRG9ja2VyU3RhdHNSZXNwb25zZTLZBQoWTm9kZU1haW50ZW5hbmNlU2VydmljZRJ7ChJTeW5jTm9kZUNhZGR5RmlsZXMSMS5jb21wb3NpYS5jb250cm9sbGVyLnYxLlN5bmNOb2RlQ2FkZHlGaWxlc1JlcXVlc3QaMi5jb21wb3NpYS5jb250cm9sbGVyLnYxLlN5bmNOb2RlQ2FkZHlGaWxlc1Jlc3BvbnNlEnIKD1JlbG9hZE5vZGVDYWRkeRIuLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuUmVsb2FkTm9kZUNhZGR5UmVxdWVzdBovLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuUmVsb2FkTm9kZUNhZGR5UmVzcG9uc2UScgoPUHJ1bmVOb2RlRG9ja2VyEi4uY29tcG9zaWEuY29udHJvbGxlci52MS5QcnVuZU5vZGVEb2NrZXJSZXF1ZXN0Gi8uY29tcG9zaWEuY29udHJvbGxlci52MS5QcnVuZU5vZGVEb2NrZXJSZXNwb25zZRJvCg5Jbml0Tm9kZVJ1c3RpYxItLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuSW5pdE5vZGVSdXN0aWNSZXF1ZXN0Gi4uY29tcG9zaWEuY29udHJvbGxlci52MS5Jbml0Tm9kZVJ1c3RpY1Jlc3BvbnNlEnUKEEZvcmdldE5vZGVSdXN0aWMSLy5jb21wb3NpYS5jb250cm9sbGVyLnYxLkZvcmdldE5vZGVSdXN0aWNSZXF1ZXN0GjAuY29tcG9zaWEuY29udHJvbGxlci52MS5Gb3JnZXROb2RlUnVzdGljUmVzcG9uc2UScgoPUHJ1bmVOb2RlUnVzdGljEi4uY29tcG9zaWEuY29udHJvbGxlci52MS5QcnVuZU5vZGVSdXN0aWNSZXF1ZXN0Gi8uY29tcG9zaWEuY29udHJvbGxlci52MS5QcnVuZU5vZGVSdXN0aWNSZXNwb25zZTLfBwoSRG9ja2VyUXVlcnlTZXJ2aWNlEnsKEkxpc3ROb2RlQ29udGFpbmVycxIxLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuTGlzdE5vZGVDb250YWluZXJzUmVxdWVzdBoyLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuTGlzdE5vZGVDb250YWluZXJzUmVzcG9uc2USgQEKFEluc3BlY3ROb2RlQ29udGFpbmVyEjMuY29tcG9zaWEuY29udHJvbGxlci52MS5JbnNwZWN0Tm9kZUNvbnRhaW5lclJlcXVlc3QaNC5jb21wb3NpYS5jb250cm9sbGVyLnYxLkluc3BlY3ROb2RlQ29udGFpbmVyUmVzcG9uc2USdQoQTGlzdE5vZGVOZXR3b3JrcxIvLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuTGlzdE5vZGVOZXR3b3Jrc1JlcXVlc3QaMC5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3ROb2RlTmV0d29ya3NSZXNwb25zZRJ7ChJJbnNwZWN0Tm9kZU5ldHdvcmsSMS5jb21wb3NpYS5jb250cm9sbGVyLnYxLkluc3BlY3ROb2RlTmV0d29ya1JlcXVlc3QaMi5jb21wb3NpYS5jb250cm9sbGVyLnYxLkluc3BlY3ROb2RlTmV0d29ya1Jlc3BvbnNlEnIKD0xpc3ROb2RlVm9sdW1lcxIuLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuTGlzdE5vZGVWb2x1bWVzUmVxdWVzdBovLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuTGlzdE5vZGVWb2x1bWVzUmVzcG9uc2USeAoRSW5zcGVjdE5vZGVWb2x1bWUSMC5jb21wb3NpYS5jb250cm9sbGVyLnYxLkluc3BlY3ROb2RlVm9sdW1lUmVxdWVzdBoxLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuSW5zcGVjdE5vZGVWb2x1bWVSZXNwb25zZRJvCg5MaXN0Tm9kZUltYWdlcxItLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuTGlzdE5vZGVJbWFnZXNSZXF1ZXN0Gi4uY29tcG9zaWEuY29udHJvbGxlci52MS5MaXN0Tm9kZUltYWdlc1Jlc3BvbnNlEnUKEEluc3BlY3ROb2RlSW1hZ2USLy5jb21wb3NpYS5jb250cm9sbGVyLnYxLkluc3BlY3ROb2RlSW1hZ2VSZXF1ZXN0GjAuY29tcG9zaWEuY29udHJvbGxlci52MS5JbnNwZWN0Tm9kZUltYWdlUmVzcG9uc2VCWFpWZm9yZ2Vqby5hbGV4bWEudG9wL2FsZXhtYTIzMy9jb21wb3NpYS9nZW4vZ28vcHJvdG8vY29tcG9zaWEvY29udHJvbGxlci92MTtjb250cm9sbGVydjFiBnByb3RvMw",
-    [file_proto_composia_controller_v1_system],
-  );
+export const file_proto_composia_controller_v1_node: GenFile = /*@__PURE__*/
+  fileDesc("Cidwcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxL25vZGUucHJvdG8SFmNvbXBvc2lhLmNvbnRyb2xsZXIudjEiEgoQTGlzdE5vZGVzUmVxdWVzdCIhCg5HZXROb2RlUmVxdWVzdBIPCgdub2RlX2lkGAEgASgJIrEBCgtOb2RlU3VtbWFyeRIPCgdub2RlX2lkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRIPCgdlbmFibGVkGAMgASgIEhEKCWlzX29ubGluZRgEIAEoCBIWCg5sYXN0X2hlYXJ0YmVhdBgFIAEoCRI/CgdhY3Rpb25zGAYgASgLMi4uY29tcG9zaWEuY29udHJvbGxlci52MS5Ob2RlQWN0aW9uQ2FwYWJpbGl0aWVzIsoBChZOb2RlQWN0aW9uQ2FwYWJpbGl0aWVzEjYKCmNhZGR5X3N5bmMYASABKAsyIi5jb21wb3NpYS5jb250cm9sbGVyLnYxLkNhcGFiaWxpdHkSOAoMY2FkZHlfcmVsb2FkGAIgASgLMiIuY29tcG9zaWEuY29udHJvbGxlci52MS5DYXBhYmlsaXR5Ej4KEnJ1c3RpY19tYWludGVuYW5jZRgDIAEoCzIiLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuQ2FwYWJpbGl0eSJHChFMaXN0Tm9kZXNSZXNwb25zZRIyCgVub2RlcxgBIAMoCzIjLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuTm9kZVN1bW1hcnkiRAoPR2V0Tm9kZVJlc3BvbnNlEjEKBG5vZGUYASABKAsyIy5jb21wb3NpYS5jb250cm9sbGVyLnYxLk5vZGVTdW1tYXJ5IiwKGUdldE5vZGVEb2NrZXJTdGF0c1JlcXVlc3QSDwoHbm9kZV9pZBgBIAEoCSKDAgoLRG9ja2VyU3RhdHMSGAoQY29udGFpbmVyc190b3RhbBgBIAEoDRIaChJjb250YWluZXJzX3J1bm5pbmcYAiABKA0SGgoSY29udGFpbmVyc19zdG9wcGVkGAMgASgNEhkKEWNvbnRhaW5lcnNfcGF1c2VkGAQgASgNEg4KBmltYWdlcxgFIAEoDRIQCghuZXR3b3JrcxgGIAEoDRIPCgd2b2x1bWVzGAcgASgNEhoKEnZvbHVtZXNfc2l6ZV9ieXRlcxgIIAEoBBIZChFkaXNrc191c2FnZV9ieXRlcxgJIAEoBBIdChVkb2NrZXJfc2VydmVyX3ZlcnNpb24YCiABKAkiUAoaR2V0Tm9kZURvY2tlclN0YXRzUmVzcG9uc2USMgoFc3RhdHMYASABKAsyIy5jb21wb3NpYS5jb250cm9sbGVyLnYxLkRvY2tlclN0YXRzIlgKGVN5bmNOb2RlQ2FkZHlGaWxlc1JlcXVlc3QSDwoHbm9kZV9pZBgBIAEoCRIUCgxzZXJ2aWNlX25hbWUYAiABKAkSFAoMZnVsbF9yZWJ1aWxkGAMgASgIIi0KGlN5bmNOb2RlQ2FkZHlGaWxlc1Jlc3BvbnNlEg8KB3Rhc2tfaWQYASABKAkiKQoWUmVsb2FkTm9kZUNhZGR5UmVxdWVzdBIPCgdub2RlX2lkGAEgASgJIioKF1JlbG9hZE5vZGVDYWRkeVJlc3BvbnNlEg8KB3Rhc2tfaWQYASABKAkiOQoWUHJ1bmVOb2RlRG9ja2VyUmVxdWVzdBIPCgdub2RlX2lkGAEgASgJEg4KBnRhcmdldBgCIAEoCSIqChdQcnVuZU5vZGVEb2NrZXJSZXNwb25zZRIPCgd0YXNrX2lkGAEgASgJIigKFUluaXROb2RlUnVzdGljUmVxdWVzdBIPCgdub2RlX2lkGAEgASgJIikKFkluaXROb2RlUnVzdGljUmVzcG9uc2USDwoHdGFza19pZBgBIAEoCSJTChdGb3JnZXROb2RlUnVzdGljUmVxdWVzdBIPCgdub2RlX2lkGAEgASgJEhQKDHNlcnZpY2VfbmFtZRgCIAEoCRIRCglkYXRhX25hbWUYAyABKAkiKwoYRm9yZ2V0Tm9kZVJ1c3RpY1Jlc3BvbnNlEg8KB3Rhc2tfaWQYASABKAkiUgoWUHJ1bmVOb2RlUnVzdGljUmVxdWVzdBIPCgdub2RlX2lkGAEgASgJEhQKDHNlcnZpY2VfbmFtZRgCIAEoCRIRCglkYXRhX25hbWUYAyABKAkiKgoXUHJ1bmVOb2RlUnVzdGljUmVzcG9uc2USDwoHdGFza19pZBgBIAEoCSKBAQoZTGlzdE5vZGVDb250YWluZXJzUmVxdWVzdBIPCgdub2RlX2lkGAEgASgJEhEKCXBhZ2Vfc2l6ZRgCIAEoDRIMCgRwYWdlGAMgASgNEg4KBnNlYXJjaBgEIAEoCRIPCgdzb3J0X2J5GAUgASgJEhEKCXNvcnRfZGVzYxgGIAEoCCKNAgoNQ29udGFpbmVySW5mbxIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEg0KBWltYWdlGAMgASgJEg0KBXN0YXRlGAQgASgJEg4KBnN0YXR1cxgFIAEoCRIPCgdjcmVhdGVkGAYgASgJEkEKBmxhYmVscxgHIAMoCzIxLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuQ29udGFpbmVySW5mby5MYWJlbHNFbnRyeRINCgVwb3J0cxgIIAMoCRIQCghuZXR3b3JrcxgJIAMoCRIQCghpbWFnZV9pZBgKIAEoCRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBImwKGkxpc3ROb2RlQ29udGFpbmVyc1Jlc3BvbnNlEjkKCmNvbnRhaW5lcnMYASADKAsyJS5jb21wb3NpYS5jb250cm9sbGVyLnYxLkNvbnRhaW5lckluZm8SEwoLdG90YWxfY291bnQYAiABKA0iRAobSW5zcGVjdE5vZGVDb250YWluZXJSZXF1ZXN0Eg8KB25vZGVfaWQYASABKAkSFAoMY29udGFpbmVyX2lkGAIgASgJIjAKHEluc3BlY3ROb2RlQ29udGFpbmVyUmVzcG9uc2USEAoIcmF3X2pzb24YASABKAkifwoXTGlzdE5vZGVOZXR3b3Jrc1JlcXVlc3QSDwoHbm9kZV9pZBgBIAEoCRIRCglwYWdlX3NpemUYAiABKA0SDAoEcGFnZRgDIAEoDRIOCgZzZWFyY2gYBCABKAkSDwoHc29ydF9ieRgFIAEoCRIRCglzb3J0X2Rlc2MYBiABKAgivgIKC05ldHdvcmtJbmZvEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDgoGZHJpdmVyGAMgASgJEg0KBXNjb3BlGAQgASgJEhAKCGludGVybmFsGAUgASgIEhIKCmF0dGFjaGFibGUYBiABKAgSDwoHY3JlYXRlZBgHIAEoCRI/CgZsYWJlbHMYCCADKAsyLy5jb21wb3NpYS5jb250cm9sbGVyLnYxLk5ldHdvcmtJbmZvLkxhYmVsc0VudHJ5Eg4KBnN1Ym5ldBgJIAEoCRIPCgdnYXRld2F5GAogASgJEhgKEGNvbnRhaW5lcnNfY291bnQYCyABKA0SFAoMaXB2Nl9lbmFibGVkGAwgASgIGi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiZgoYTGlzdE5vZGVOZXR3b3Jrc1Jlc3BvbnNlEjUKCG5ldHdvcmtzGAEgAygLMiMuY29tcG9zaWEuY29udHJvbGxlci52MS5OZXR3b3JrSW5mbxITCgt0b3RhbF9jb3VudBgCIAEoDSJAChlJbnNwZWN0Tm9kZU5ldHdvcmtSZXF1ZXN0Eg8KB25vZGVfaWQYASABKAkSEgoKbmV0d29ya19pZBgCIAEoCSIuChpJbnNwZWN0Tm9kZU5ldHdvcmtSZXNwb25zZRIQCghyYXdfanNvbhgBIAEoCSJ+ChZMaXN0Tm9kZVZvbHVtZXNSZXF1ZXN0Eg8KB25vZGVfaWQYASABKAkSEQoJcGFnZV9zaXplGAIgASgNEgwKBHBhZ2UYAyABKA0SDgoGc2VhcmNoGAQgASgJEg8KB3NvcnRfYnkYBSABKAkSEQoJc29ydF9kZXNjGAYgASgIIosCCgpWb2x1bWVJbmZvEgwKBG5hbWUYASABKAkSDgoGZHJpdmVyGAIgASgJEhIKCm1vdW50cG9pbnQYAyABKAkSDQoFc2NvcGUYBCABKAkSDwoHY3JlYXRlZBgFIAEoCRI+CgZsYWJlbHMYBiADKAsyLi5jb21wb3NpYS5jb250cm9sbGVyLnYxLlZvbHVtZUluZm8uTGFiZWxzRW50cnkSEgoKc2l6ZV9ieXRlcxgHIAEoAxIYChBjb250YWluZXJzX2NvdW50GAggASgNEg4KBmluX3VzZRgJIAEoCBotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBImMKF0xpc3ROb2RlVm9sdW1lc1Jlc3BvbnNlEjMKB3ZvbHVtZXMYASADKAsyIi5jb21wb3NpYS5jb250cm9sbGVyLnYxLlZvbHVtZUluZm8SEwoLdG90YWxfY291bnQYAiABKA0iQAoYSW5zcGVjdE5vZGVWb2x1bWVSZXF1ZXN0Eg8KB25vZGVfaWQYASABKAkSEwoLdm9sdW1lX25hbWUYAiABKAkiLQoZSW5zcGVjdE5vZGVWb2x1bWVSZXNwb25zZRIQCghyYXdfanNvbhgBIAEoCSJ9ChVMaXN0Tm9kZUltYWdlc1JlcXVlc3QSDwoHbm9kZV9pZBgBIAEoCRIRCglwYWdlX3NpemUYAiABKA0SDAoEcGFnZRgDIAEoDRIOCgZzZWFyY2gYBCABKAkSDwoHc29ydF9ieRgFIAEoCRIRCglzb3J0X2Rlc2MYBiABKAgi1gEKCUltYWdlSW5mbxIKCgJpZBgBIAEoCRIRCglyZXBvX3RhZ3MYAiADKAkSDAoEc2l6ZRgDIAEoAxIPCgdjcmVhdGVkGAQgASgJEhQKDHJlcG9fZGlnZXN0cxgFIAMoCRIUCgx2aXJ0dWFsX3NpemUYBiABKAMSFAoMYXJjaGl0ZWN0dXJlGAcgASgJEgoKAm9zGAggASgJEhgKEGNvbnRhaW5lcnNfY291bnQYCSABKA0SEwoLaXNfZGFuZ2xpbmcYCiABKAgSDgoGYXV0aG9yGAsgASgJImAKFkxpc3ROb2RlSW1hZ2VzUmVzcG9uc2USMQoGaW1hZ2VzGAEgAygLMiEuY29tcG9zaWEuY29udHJvbGxlci52MS5JbWFnZUluZm8SEwoLdG90YWxfY291bnQYAiABKA0iPAoXSW5zcGVjdE5vZGVJbWFnZVJlcXVlc3QSDwoHbm9kZV9pZBgBIAEoCRIQCghpbWFnZV9pZBgCIAEoCSIsChhJbnNwZWN0Tm9kZUltYWdlUmVzcG9uc2USEAoIcmF3X2pzb24YASABKAkyzQIKEE5vZGVRdWVyeVNlcnZpY2USYAoJTGlzdE5vZGVzEiguY29tcG9zaWEuY29udHJvbGxlci52MS5MaXN0Tm9kZXNSZXF1ZXN0GikuY29tcG9zaWEuY29udHJvbGxlci52MS5MaXN0Tm9kZXNSZXNwb25zZRJaCgdHZXROb2RlEiYuY29tcG9zaWEuY29udHJvbGxlci52MS5HZXROb2RlUmVxdWVzdBonLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0Tm9kZVJlc3BvbnNlEnsKEkdldE5vZGVEb2NrZXJTdGF0cxIxLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0Tm9kZURvY2tlclN0YXRzUmVxdWVzdBoyLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0Tm9kZURvY2tlclN0YXRzUmVzcG9uc2Uy2QUKFk5vZGVNYWludGVuYW5jZVNlcnZpY2USewoSU3luY05vZGVDYWRkeUZpbGVzEjEuY29tcG9zaWEuY29udHJvbGxlci52MS5TeW5jTm9kZUNhZGR5RmlsZXNSZXF1ZXN0GjIuY29tcG9zaWEuY29udHJvbGxlci52MS5TeW5jTm9kZUNhZGR5RmlsZXNSZXNwb25zZRJyCg9SZWxvYWROb2RlQ2FkZHkSLi5jb21wb3NpYS5jb250cm9sbGVyLnYxLlJlbG9hZE5vZGVDYWRkeVJlcXVlc3QaLy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlJlbG9hZE5vZGVDYWRkeVJlc3BvbnNlEnIKD1BydW5lTm9kZURvY2tlchIuLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuUHJ1bmVOb2RlRG9ja2VyUmVxdWVzdBovLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuUHJ1bmVOb2RlRG9ja2VyUmVzcG9uc2USbwoOSW5pdE5vZGVSdXN0aWMSLS5jb21wb3NpYS5jb250cm9sbGVyLnYxLkluaXROb2RlUnVzdGljUmVxdWVzdBouLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuSW5pdE5vZGVSdXN0aWNSZXNwb25zZRJ1ChBGb3JnZXROb2RlUnVzdGljEi8uY29tcG9zaWEuY29udHJvbGxlci52MS5Gb3JnZXROb2RlUnVzdGljUmVxdWVzdBowLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuRm9yZ2V0Tm9kZVJ1c3RpY1Jlc3BvbnNlEnIKD1BydW5lTm9kZVJ1c3RpYxIuLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuUHJ1bmVOb2RlUnVzdGljUmVxdWVzdBovLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuUHJ1bmVOb2RlUnVzdGljUmVzcG9uc2Uy3wcKEkRvY2tlclF1ZXJ5U2VydmljZRJ7ChJMaXN0Tm9kZUNvbnRhaW5lcnMSMS5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3ROb2RlQ29udGFpbmVyc1JlcXVlc3QaMi5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3ROb2RlQ29udGFpbmVyc1Jlc3BvbnNlEoEBChRJbnNwZWN0Tm9kZUNvbnRhaW5lchIzLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuSW5zcGVjdE5vZGVDb250YWluZXJSZXF1ZXN0GjQuY29tcG9zaWEuY29udHJvbGxlci52MS5JbnNwZWN0Tm9kZUNvbnRhaW5lclJlc3BvbnNlEnUKEExpc3ROb2RlTmV0d29ya3MSLy5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3ROb2RlTmV0d29ya3NSZXF1ZXN0GjAuY29tcG9zaWEuY29udHJvbGxlci52MS5MaXN0Tm9kZU5ldHdvcmtzUmVzcG9uc2USewoSSW5zcGVjdE5vZGVOZXR3b3JrEjEuY29tcG9zaWEuY29udHJvbGxlci52MS5JbnNwZWN0Tm9kZU5ldHdvcmtSZXF1ZXN0GjIuY29tcG9zaWEuY29udHJvbGxlci52MS5JbnNwZWN0Tm9kZU5ldHdvcmtSZXNwb25zZRJyCg9MaXN0Tm9kZVZvbHVtZXMSLi5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3ROb2RlVm9sdW1lc1JlcXVlc3QaLy5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3ROb2RlVm9sdW1lc1Jlc3BvbnNlEngKEUluc3BlY3ROb2RlVm9sdW1lEjAuY29tcG9zaWEuY29udHJvbGxlci52MS5JbnNwZWN0Tm9kZVZvbHVtZVJlcXVlc3QaMS5jb21wb3NpYS5jb250cm9sbGVyLnYxLkluc3BlY3ROb2RlVm9sdW1lUmVzcG9uc2USbwoOTGlzdE5vZGVJbWFnZXMSLS5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3ROb2RlSW1hZ2VzUmVxdWVzdBouLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuTGlzdE5vZGVJbWFnZXNSZXNwb25zZRJ1ChBJbnNwZWN0Tm9kZUltYWdlEi8uY29tcG9zaWEuY29udHJvbGxlci52MS5JbnNwZWN0Tm9kZUltYWdlUmVxdWVzdBowLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuSW5zcGVjdE5vZGVJbWFnZVJlc3BvbnNlQlhaVmZvcmdlam8uYWxleG1hLnRvcC9hbGV4bWEyMzMvY29tcG9zaWEvZ2VuL2dvL3Byb3RvL2NvbXBvc2lhL2NvbnRyb2xsZXIvdjE7Y29udHJvbGxlcnYxYgZwcm90bzM", [file_proto_composia_controller_v1_system]);
 
 /**
  * ListNodesRequest requests all configured nodes.
  *
  * @generated from message composia.controller.v1.ListNodesRequest
  */
-export type ListNodesRequest =
-  Message<"composia.controller.v1.ListNodesRequest"> & {};
+export type ListNodesRequest = Message<"composia.controller.v1.ListNodesRequest"> & {
+};
 
 /**
  * Describes the message composia.controller.v1.ListNodesRequest.
  * Use `create(ListNodesRequestSchema)` to create a new message.
  */
-export const ListNodesRequestSchema: GenMessage<ListNodesRequest> =
-  /*@__PURE__*/
+export const ListNodesRequestSchema: GenMessage<ListNodesRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 0);
 
 /**
@@ -47,22 +34,20 @@ export const ListNodesRequestSchema: GenMessage<ListNodesRequest> =
  *
  * @generated from message composia.controller.v1.GetNodeRequest
  */
-export type GetNodeRequest =
-  Message<"composia.controller.v1.GetNodeRequest"> & {
-    /**
-     * node_id is the stable node identifier.
-     *
-     * @generated from field: string node_id = 1;
-     */
-    nodeId: string;
-  };
+export type GetNodeRequest = Message<"composia.controller.v1.GetNodeRequest"> & {
+  /**
+   * node_id is the stable node identifier.
+   *
+   * @generated from field: string node_id = 1;
+   */
+  nodeId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.GetNodeRequest.
  * Use `create(GetNodeRequestSchema)` to create a new message.
  */
-export const GetNodeRequestSchema: GenMessage<GetNodeRequest> =
-  /*@__PURE__*/
+export const GetNodeRequestSchema: GenMessage<GetNodeRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 1);
 
 /**
@@ -118,8 +103,7 @@ export type NodeSummary = Message<"composia.controller.v1.NodeSummary"> & {
  * Describes the message composia.controller.v1.NodeSummary.
  * Use `create(NodeSummarySchema)` to create a new message.
  */
-export const NodeSummarySchema: GenMessage<NodeSummary> =
-  /*@__PURE__*/
+export const NodeSummarySchema: GenMessage<NodeSummary> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 2);
 
 /**
@@ -127,30 +111,28 @@ export const NodeSummarySchema: GenMessage<NodeSummary> =
  *
  * @generated from message composia.controller.v1.NodeActionCapabilities
  */
-export type NodeActionCapabilities =
-  Message<"composia.controller.v1.NodeActionCapabilities"> & {
-    /**
-     * @generated from field: composia.controller.v1.Capability caddy_sync = 1;
-     */
-    caddySync?: Capability | undefined;
+export type NodeActionCapabilities = Message<"composia.controller.v1.NodeActionCapabilities"> & {
+  /**
+   * @generated from field: composia.controller.v1.Capability caddy_sync = 1;
+   */
+  caddySync?: Capability | undefined;
 
-    /**
-     * @generated from field: composia.controller.v1.Capability caddy_reload = 2;
-     */
-    caddyReload?: Capability | undefined;
+  /**
+   * @generated from field: composia.controller.v1.Capability caddy_reload = 2;
+   */
+  caddyReload?: Capability | undefined;
 
-    /**
-     * @generated from field: composia.controller.v1.Capability rustic_maintenance = 3;
-     */
-    rusticMaintenance?: Capability | undefined;
-  };
+  /**
+   * @generated from field: composia.controller.v1.Capability rustic_maintenance = 3;
+   */
+  rusticMaintenance?: Capability | undefined;
+};
 
 /**
  * Describes the message composia.controller.v1.NodeActionCapabilities.
  * Use `create(NodeActionCapabilitiesSchema)` to create a new message.
  */
-export const NodeActionCapabilitiesSchema: GenMessage<NodeActionCapabilities> =
-  /*@__PURE__*/
+export const NodeActionCapabilitiesSchema: GenMessage<NodeActionCapabilities> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 3);
 
 /**
@@ -158,20 +140,18 @@ export const NodeActionCapabilitiesSchema: GenMessage<NodeActionCapabilities> =
  *
  * @generated from message composia.controller.v1.ListNodesResponse
  */
-export type ListNodesResponse =
-  Message<"composia.controller.v1.ListNodesResponse"> & {
-    /**
-     * @generated from field: repeated composia.controller.v1.NodeSummary nodes = 1;
-     */
-    nodes: NodeSummary[];
-  };
+export type ListNodesResponse = Message<"composia.controller.v1.ListNodesResponse"> & {
+  /**
+   * @generated from field: repeated composia.controller.v1.NodeSummary nodes = 1;
+   */
+  nodes: NodeSummary[];
+};
 
 /**
  * Describes the message composia.controller.v1.ListNodesResponse.
  * Use `create(ListNodesResponseSchema)` to create a new message.
  */
-export const ListNodesResponseSchema: GenMessage<ListNodesResponse> =
-  /*@__PURE__*/
+export const ListNodesResponseSchema: GenMessage<ListNodesResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 4);
 
 /**
@@ -179,23 +159,21 @@ export const ListNodesResponseSchema: GenMessage<ListNodesResponse> =
  *
  * @generated from message composia.controller.v1.GetNodeResponse
  */
-export type GetNodeResponse =
-  Message<"composia.controller.v1.GetNodeResponse"> & {
-    /**
-     * node contains the requested configured node.
-     * The RPC returns NotFound when the requested node does not exist.
-     *
-     * @generated from field: composia.controller.v1.NodeSummary node = 1;
-     */
-    node?: NodeSummary | undefined;
-  };
+export type GetNodeResponse = Message<"composia.controller.v1.GetNodeResponse"> & {
+  /**
+   * node contains the requested configured node.
+   * The RPC returns NotFound when the requested node does not exist.
+   *
+   * @generated from field: composia.controller.v1.NodeSummary node = 1;
+   */
+  node?: NodeSummary | undefined;
+};
 
 /**
  * Describes the message composia.controller.v1.GetNodeResponse.
  * Use `create(GetNodeResponseSchema)` to create a new message.
  */
-export const GetNodeResponseSchema: GenMessage<GetNodeResponse> =
-  /*@__PURE__*/
+export const GetNodeResponseSchema: GenMessage<GetNodeResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 5);
 
 /**
@@ -203,22 +181,20 @@ export const GetNodeResponseSchema: GenMessage<GetNodeResponse> =
  *
  * @generated from message composia.controller.v1.GetNodeDockerStatsRequest
  */
-export type GetNodeDockerStatsRequest =
-  Message<"composia.controller.v1.GetNodeDockerStatsRequest"> & {
-    /**
-     * node_id is the stable node identifier.
-     *
-     * @generated from field: string node_id = 1;
-     */
-    nodeId: string;
-  };
+export type GetNodeDockerStatsRequest = Message<"composia.controller.v1.GetNodeDockerStatsRequest"> & {
+  /**
+   * node_id is the stable node identifier.
+   *
+   * @generated from field: string node_id = 1;
+   */
+  nodeId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.GetNodeDockerStatsRequest.
  * Use `create(GetNodeDockerStatsRequestSchema)` to create a new message.
  */
-export const GetNodeDockerStatsRequestSchema: GenMessage<GetNodeDockerStatsRequest> =
-  /*@__PURE__*/
+export const GetNodeDockerStatsRequestSchema: GenMessage<GetNodeDockerStatsRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 6);
 
 /**
@@ -298,8 +274,7 @@ export type DockerStats = Message<"composia.controller.v1.DockerStats"> & {
  * Describes the message composia.controller.v1.DockerStats.
  * Use `create(DockerStatsSchema)` to create a new message.
  */
-export const DockerStatsSchema: GenMessage<DockerStats> =
-  /*@__PURE__*/
+export const DockerStatsSchema: GenMessage<DockerStats> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 7);
 
 /**
@@ -307,20 +282,18 @@ export const DockerStatsSchema: GenMessage<DockerStats> =
  *
  * @generated from message composia.controller.v1.GetNodeDockerStatsResponse
  */
-export type GetNodeDockerStatsResponse =
-  Message<"composia.controller.v1.GetNodeDockerStatsResponse"> & {
-    /**
-     * @generated from field: composia.controller.v1.DockerStats stats = 1;
-     */
-    stats?: DockerStats | undefined;
-  };
+export type GetNodeDockerStatsResponse = Message<"composia.controller.v1.GetNodeDockerStatsResponse"> & {
+  /**
+   * @generated from field: composia.controller.v1.DockerStats stats = 1;
+   */
+  stats?: DockerStats | undefined;
+};
 
 /**
  * Describes the message composia.controller.v1.GetNodeDockerStatsResponse.
  * Use `create(GetNodeDockerStatsResponseSchema)` to create a new message.
  */
-export const GetNodeDockerStatsResponseSchema: GenMessage<GetNodeDockerStatsResponse> =
-  /*@__PURE__*/
+export const GetNodeDockerStatsResponseSchema: GenMessage<GetNodeDockerStatsResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 8);
 
 /**
@@ -328,36 +301,34 @@ export const GetNodeDockerStatsResponseSchema: GenMessage<GetNodeDockerStatsResp
  *
  * @generated from message composia.controller.v1.SyncNodeCaddyFilesRequest
  */
-export type SyncNodeCaddyFilesRequest =
-  Message<"composia.controller.v1.SyncNodeCaddyFilesRequest"> & {
-    /**
-     * node_id is the stable node identifier.
-     *
-     * @generated from field: string node_id = 1;
-     */
-    nodeId: string;
+export type SyncNodeCaddyFilesRequest = Message<"composia.controller.v1.SyncNodeCaddyFilesRequest"> & {
+  /**
+   * node_id is the stable node identifier.
+   *
+   * @generated from field: string node_id = 1;
+   */
+  nodeId: string;
 
-    /**
-     * service_name optionally narrows the sync to one service.
-     *
-     * @generated from field: string service_name = 2;
-     */
-    serviceName: string;
+  /**
+   * service_name optionally narrows the sync to one service.
+   *
+   * @generated from field: string service_name = 2;
+   */
+  serviceName: string;
 
-    /**
-     * full_rebuild forces a full Caddy file rebuild instead of an incremental sync.
-     *
-     * @generated from field: bool full_rebuild = 3;
-     */
-    fullRebuild: boolean;
-  };
+  /**
+   * full_rebuild forces a full Caddy file rebuild instead of an incremental sync.
+   *
+   * @generated from field: bool full_rebuild = 3;
+   */
+  fullRebuild: boolean;
+};
 
 /**
  * Describes the message composia.controller.v1.SyncNodeCaddyFilesRequest.
  * Use `create(SyncNodeCaddyFilesRequestSchema)` to create a new message.
  */
-export const SyncNodeCaddyFilesRequestSchema: GenMessage<SyncNodeCaddyFilesRequest> =
-  /*@__PURE__*/
+export const SyncNodeCaddyFilesRequestSchema: GenMessage<SyncNodeCaddyFilesRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 9);
 
 /**
@@ -365,20 +336,18 @@ export const SyncNodeCaddyFilesRequestSchema: GenMessage<SyncNodeCaddyFilesReque
  *
  * @generated from message composia.controller.v1.SyncNodeCaddyFilesResponse
  */
-export type SyncNodeCaddyFilesResponse =
-  Message<"composia.controller.v1.SyncNodeCaddyFilesResponse"> & {
-    /**
-     * @generated from field: string task_id = 1;
-     */
-    taskId: string;
-  };
+export type SyncNodeCaddyFilesResponse = Message<"composia.controller.v1.SyncNodeCaddyFilesResponse"> & {
+  /**
+   * @generated from field: string task_id = 1;
+   */
+  taskId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.SyncNodeCaddyFilesResponse.
  * Use `create(SyncNodeCaddyFilesResponseSchema)` to create a new message.
  */
-export const SyncNodeCaddyFilesResponseSchema: GenMessage<SyncNodeCaddyFilesResponse> =
-  /*@__PURE__*/
+export const SyncNodeCaddyFilesResponseSchema: GenMessage<SyncNodeCaddyFilesResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 10);
 
 /**
@@ -386,22 +355,20 @@ export const SyncNodeCaddyFilesResponseSchema: GenMessage<SyncNodeCaddyFilesResp
  *
  * @generated from message composia.controller.v1.ReloadNodeCaddyRequest
  */
-export type ReloadNodeCaddyRequest =
-  Message<"composia.controller.v1.ReloadNodeCaddyRequest"> & {
-    /**
-     * node_id is the stable node identifier.
-     *
-     * @generated from field: string node_id = 1;
-     */
-    nodeId: string;
-  };
+export type ReloadNodeCaddyRequest = Message<"composia.controller.v1.ReloadNodeCaddyRequest"> & {
+  /**
+   * node_id is the stable node identifier.
+   *
+   * @generated from field: string node_id = 1;
+   */
+  nodeId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.ReloadNodeCaddyRequest.
  * Use `create(ReloadNodeCaddyRequestSchema)` to create a new message.
  */
-export const ReloadNodeCaddyRequestSchema: GenMessage<ReloadNodeCaddyRequest> =
-  /*@__PURE__*/
+export const ReloadNodeCaddyRequestSchema: GenMessage<ReloadNodeCaddyRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 11);
 
 /**
@@ -409,20 +376,18 @@ export const ReloadNodeCaddyRequestSchema: GenMessage<ReloadNodeCaddyRequest> =
  *
  * @generated from message composia.controller.v1.ReloadNodeCaddyResponse
  */
-export type ReloadNodeCaddyResponse =
-  Message<"composia.controller.v1.ReloadNodeCaddyResponse"> & {
-    /**
-     * @generated from field: string task_id = 1;
-     */
-    taskId: string;
-  };
+export type ReloadNodeCaddyResponse = Message<"composia.controller.v1.ReloadNodeCaddyResponse"> & {
+  /**
+   * @generated from field: string task_id = 1;
+   */
+  taskId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.ReloadNodeCaddyResponse.
  * Use `create(ReloadNodeCaddyResponseSchema)` to create a new message.
  */
-export const ReloadNodeCaddyResponseSchema: GenMessage<ReloadNodeCaddyResponse> =
-  /*@__PURE__*/
+export const ReloadNodeCaddyResponseSchema: GenMessage<ReloadNodeCaddyResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 12);
 
 /**
@@ -430,29 +395,27 @@ export const ReloadNodeCaddyResponseSchema: GenMessage<ReloadNodeCaddyResponse> 
  *
  * @generated from message composia.controller.v1.PruneNodeDockerRequest
  */
-export type PruneNodeDockerRequest =
-  Message<"composia.controller.v1.PruneNodeDockerRequest"> & {
-    /**
-     * node_id is the stable node identifier.
-     *
-     * @generated from field: string node_id = 1;
-     */
-    nodeId: string;
+export type PruneNodeDockerRequest = Message<"composia.controller.v1.PruneNodeDockerRequest"> & {
+  /**
+   * node_id is the stable node identifier.
+   *
+   * @generated from field: string node_id = 1;
+   */
+  nodeId: string;
 
-    /**
-     * target identifies which Docker resource group to prune.
-     *
-     * @generated from field: string target = 2;
-     */
-    target: string;
-  };
+  /**
+   * target identifies which Docker resource group to prune.
+   *
+   * @generated from field: string target = 2;
+   */
+  target: string;
+};
 
 /**
  * Describes the message composia.controller.v1.PruneNodeDockerRequest.
  * Use `create(PruneNodeDockerRequestSchema)` to create a new message.
  */
-export const PruneNodeDockerRequestSchema: GenMessage<PruneNodeDockerRequest> =
-  /*@__PURE__*/
+export const PruneNodeDockerRequestSchema: GenMessage<PruneNodeDockerRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 13);
 
 /**
@@ -460,20 +423,18 @@ export const PruneNodeDockerRequestSchema: GenMessage<PruneNodeDockerRequest> =
  *
  * @generated from message composia.controller.v1.PruneNodeDockerResponse
  */
-export type PruneNodeDockerResponse =
-  Message<"composia.controller.v1.PruneNodeDockerResponse"> & {
-    /**
-     * @generated from field: string task_id = 1;
-     */
-    taskId: string;
-  };
+export type PruneNodeDockerResponse = Message<"composia.controller.v1.PruneNodeDockerResponse"> & {
+  /**
+   * @generated from field: string task_id = 1;
+   */
+  taskId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.PruneNodeDockerResponse.
  * Use `create(PruneNodeDockerResponseSchema)` to create a new message.
  */
-export const PruneNodeDockerResponseSchema: GenMessage<PruneNodeDockerResponse> =
-  /*@__PURE__*/
+export const PruneNodeDockerResponseSchema: GenMessage<PruneNodeDockerResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 14);
 
 /**
@@ -481,22 +442,20 @@ export const PruneNodeDockerResponseSchema: GenMessage<PruneNodeDockerResponse> 
  *
  * @generated from message composia.controller.v1.InitNodeRusticRequest
  */
-export type InitNodeRusticRequest =
-  Message<"composia.controller.v1.InitNodeRusticRequest"> & {
-    /**
-     * node_id is the stable node identifier.
-     *
-     * @generated from field: string node_id = 1;
-     */
-    nodeId: string;
-  };
+export type InitNodeRusticRequest = Message<"composia.controller.v1.InitNodeRusticRequest"> & {
+  /**
+   * node_id is the stable node identifier.
+   *
+   * @generated from field: string node_id = 1;
+   */
+  nodeId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.InitNodeRusticRequest.
  * Use `create(InitNodeRusticRequestSchema)` to create a new message.
  */
-export const InitNodeRusticRequestSchema: GenMessage<InitNodeRusticRequest> =
-  /*@__PURE__*/
+export const InitNodeRusticRequestSchema: GenMessage<InitNodeRusticRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 15);
 
 /**
@@ -504,20 +463,18 @@ export const InitNodeRusticRequestSchema: GenMessage<InitNodeRusticRequest> =
  *
  * @generated from message composia.controller.v1.InitNodeRusticResponse
  */
-export type InitNodeRusticResponse =
-  Message<"composia.controller.v1.InitNodeRusticResponse"> & {
-    /**
-     * @generated from field: string task_id = 1;
-     */
-    taskId: string;
-  };
+export type InitNodeRusticResponse = Message<"composia.controller.v1.InitNodeRusticResponse"> & {
+  /**
+   * @generated from field: string task_id = 1;
+   */
+  taskId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.InitNodeRusticResponse.
  * Use `create(InitNodeRusticResponseSchema)` to create a new message.
  */
-export const InitNodeRusticResponseSchema: GenMessage<InitNodeRusticResponse> =
-  /*@__PURE__*/
+export const InitNodeRusticResponseSchema: GenMessage<InitNodeRusticResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 16);
 
 /**
@@ -525,36 +482,34 @@ export const InitNodeRusticResponseSchema: GenMessage<InitNodeRusticResponse> =
  *
  * @generated from message composia.controller.v1.ForgetNodeRusticRequest
  */
-export type ForgetNodeRusticRequest =
-  Message<"composia.controller.v1.ForgetNodeRusticRequest"> & {
-    /**
-     * node_id is the stable node identifier.
-     *
-     * @generated from field: string node_id = 1;
-     */
-    nodeId: string;
+export type ForgetNodeRusticRequest = Message<"composia.controller.v1.ForgetNodeRusticRequest"> & {
+  /**
+   * node_id is the stable node identifier.
+   *
+   * @generated from field: string node_id = 1;
+   */
+  nodeId: string;
 
-    /**
-     * service_name narrows the operation to one service.
-     *
-     * @generated from field: string service_name = 2;
-     */
-    serviceName: string;
+  /**
+   * service_name narrows the operation to one service.
+   *
+   * @generated from field: string service_name = 2;
+   */
+  serviceName: string;
 
-    /**
-     * data_name narrows the operation to one service data entry.
-     *
-     * @generated from field: string data_name = 3;
-     */
-    dataName: string;
-  };
+  /**
+   * data_name narrows the operation to one service data entry.
+   *
+   * @generated from field: string data_name = 3;
+   */
+  dataName: string;
+};
 
 /**
  * Describes the message composia.controller.v1.ForgetNodeRusticRequest.
  * Use `create(ForgetNodeRusticRequestSchema)` to create a new message.
  */
-export const ForgetNodeRusticRequestSchema: GenMessage<ForgetNodeRusticRequest> =
-  /*@__PURE__*/
+export const ForgetNodeRusticRequestSchema: GenMessage<ForgetNodeRusticRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 17);
 
 /**
@@ -562,20 +517,18 @@ export const ForgetNodeRusticRequestSchema: GenMessage<ForgetNodeRusticRequest> 
  *
  * @generated from message composia.controller.v1.ForgetNodeRusticResponse
  */
-export type ForgetNodeRusticResponse =
-  Message<"composia.controller.v1.ForgetNodeRusticResponse"> & {
-    /**
-     * @generated from field: string task_id = 1;
-     */
-    taskId: string;
-  };
+export type ForgetNodeRusticResponse = Message<"composia.controller.v1.ForgetNodeRusticResponse"> & {
+  /**
+   * @generated from field: string task_id = 1;
+   */
+  taskId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.ForgetNodeRusticResponse.
  * Use `create(ForgetNodeRusticResponseSchema)` to create a new message.
  */
-export const ForgetNodeRusticResponseSchema: GenMessage<ForgetNodeRusticResponse> =
-  /*@__PURE__*/
+export const ForgetNodeRusticResponseSchema: GenMessage<ForgetNodeRusticResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 18);
 
 /**
@@ -583,36 +536,34 @@ export const ForgetNodeRusticResponseSchema: GenMessage<ForgetNodeRusticResponse
  *
  * @generated from message composia.controller.v1.PruneNodeRusticRequest
  */
-export type PruneNodeRusticRequest =
-  Message<"composia.controller.v1.PruneNodeRusticRequest"> & {
-    /**
-     * node_id is the stable node identifier.
-     *
-     * @generated from field: string node_id = 1;
-     */
-    nodeId: string;
+export type PruneNodeRusticRequest = Message<"composia.controller.v1.PruneNodeRusticRequest"> & {
+  /**
+   * node_id is the stable node identifier.
+   *
+   * @generated from field: string node_id = 1;
+   */
+  nodeId: string;
 
-    /**
-     * service_name narrows the operation to one service.
-     *
-     * @generated from field: string service_name = 2;
-     */
-    serviceName: string;
+  /**
+   * service_name narrows the operation to one service.
+   *
+   * @generated from field: string service_name = 2;
+   */
+  serviceName: string;
 
-    /**
-     * data_name narrows the operation to one service data entry.
-     *
-     * @generated from field: string data_name = 3;
-     */
-    dataName: string;
-  };
+  /**
+   * data_name narrows the operation to one service data entry.
+   *
+   * @generated from field: string data_name = 3;
+   */
+  dataName: string;
+};
 
 /**
  * Describes the message composia.controller.v1.PruneNodeRusticRequest.
  * Use `create(PruneNodeRusticRequestSchema)` to create a new message.
  */
-export const PruneNodeRusticRequestSchema: GenMessage<PruneNodeRusticRequest> =
-  /*@__PURE__*/
+export const PruneNodeRusticRequestSchema: GenMessage<PruneNodeRusticRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 19);
 
 /**
@@ -620,20 +571,18 @@ export const PruneNodeRusticRequestSchema: GenMessage<PruneNodeRusticRequest> =
  *
  * @generated from message composia.controller.v1.PruneNodeRusticResponse
  */
-export type PruneNodeRusticResponse =
-  Message<"composia.controller.v1.PruneNodeRusticResponse"> & {
-    /**
-     * @generated from field: string task_id = 1;
-     */
-    taskId: string;
-  };
+export type PruneNodeRusticResponse = Message<"composia.controller.v1.PruneNodeRusticResponse"> & {
+  /**
+   * @generated from field: string task_id = 1;
+   */
+  taskId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.PruneNodeRusticResponse.
  * Use `create(PruneNodeRusticResponseSchema)` to create a new message.
  */
-export const PruneNodeRusticResponseSchema: GenMessage<PruneNodeRusticResponse> =
-  /*@__PURE__*/
+export const PruneNodeRusticResponseSchema: GenMessage<PruneNodeRusticResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 20);
 
 /**
@@ -641,57 +590,55 @@ export const PruneNodeRusticResponseSchema: GenMessage<PruneNodeRusticResponse> 
  *
  * @generated from message composia.controller.v1.ListNodeContainersRequest
  */
-export type ListNodeContainersRequest =
-  Message<"composia.controller.v1.ListNodeContainersRequest"> & {
-    /**
-     * node_id is the stable node identifier.
-     *
-     * @generated from field: string node_id = 1;
-     */
-    nodeId: string;
+export type ListNodeContainersRequest = Message<"composia.controller.v1.ListNodeContainersRequest"> & {
+  /**
+   * node_id is the stable node identifier.
+   *
+   * @generated from field: string node_id = 1;
+   */
+  nodeId: string;
 
-    /**
-     * page_size is the requested page size.
-     *
-     * @generated from field: uint32 page_size = 2;
-     */
-    pageSize: number;
+  /**
+   * page_size is the requested page size.
+   *
+   * @generated from field: uint32 page_size = 2;
+   */
+  pageSize: number;
 
-    /**
-     * page is the 1-based page number.
-     *
-     * @generated from field: uint32 page = 3;
-     */
-    page: number;
+  /**
+   * page is the 1-based page number.
+   *
+   * @generated from field: uint32 page = 3;
+   */
+  page: number;
 
-    /**
-     * search is a case-insensitive substring match across key fields.
-     *
-     * @generated from field: string search = 4;
-     */
-    search: string;
+  /**
+   * search is a case-insensitive substring match across key fields.
+   *
+   * @generated from field: string search = 4;
+   */
+  search: string;
 
-    /**
-     * sort_by identifies the field used to sort results.
-     *
-     * @generated from field: string sort_by = 5;
-     */
-    sortBy: string;
+  /**
+   * sort_by identifies the field used to sort results.
+   *
+   * @generated from field: string sort_by = 5;
+   */
+  sortBy: string;
 
-    /**
-     * sort_desc reverses the sort order when true.
-     *
-     * @generated from field: bool sort_desc = 6;
-     */
-    sortDesc: boolean;
-  };
+  /**
+   * sort_desc reverses the sort order when true.
+   *
+   * @generated from field: bool sort_desc = 6;
+   */
+  sortDesc: boolean;
+};
 
 /**
  * Describes the message composia.controller.v1.ListNodeContainersRequest.
  * Use `create(ListNodeContainersRequestSchema)` to create a new message.
  */
-export const ListNodeContainersRequestSchema: GenMessage<ListNodeContainersRequest> =
-  /*@__PURE__*/
+export const ListNodeContainersRequestSchema: GenMessage<ListNodeContainersRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 21);
 
 /**
@@ -771,8 +718,7 @@ export type ContainerInfo = Message<"composia.controller.v1.ContainerInfo"> & {
  * Describes the message composia.controller.v1.ContainerInfo.
  * Use `create(ContainerInfoSchema)` to create a new message.
  */
-export const ContainerInfoSchema: GenMessage<ContainerInfo> =
-  /*@__PURE__*/
+export const ContainerInfoSchema: GenMessage<ContainerInfo> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 22);
 
 /**
@@ -780,25 +726,23 @@ export const ContainerInfoSchema: GenMessage<ContainerInfo> =
  *
  * @generated from message composia.controller.v1.ListNodeContainersResponse
  */
-export type ListNodeContainersResponse =
-  Message<"composia.controller.v1.ListNodeContainersResponse"> & {
-    /**
-     * @generated from field: repeated composia.controller.v1.ContainerInfo containers = 1;
-     */
-    containers: ContainerInfo[];
+export type ListNodeContainersResponse = Message<"composia.controller.v1.ListNodeContainersResponse"> & {
+  /**
+   * @generated from field: repeated composia.controller.v1.ContainerInfo containers = 1;
+   */
+  containers: ContainerInfo[];
 
-    /**
-     * @generated from field: uint32 total_count = 2;
-     */
-    totalCount: number;
-  };
+  /**
+   * @generated from field: uint32 total_count = 2;
+   */
+  totalCount: number;
+};
 
 /**
  * Describes the message composia.controller.v1.ListNodeContainersResponse.
  * Use `create(ListNodeContainersResponseSchema)` to create a new message.
  */
-export const ListNodeContainersResponseSchema: GenMessage<ListNodeContainersResponse> =
-  /*@__PURE__*/
+export const ListNodeContainersResponseSchema: GenMessage<ListNodeContainersResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 23);
 
 /**
@@ -806,29 +750,27 @@ export const ListNodeContainersResponseSchema: GenMessage<ListNodeContainersResp
  *
  * @generated from message composia.controller.v1.InspectNodeContainerRequest
  */
-export type InspectNodeContainerRequest =
-  Message<"composia.controller.v1.InspectNodeContainerRequest"> & {
-    /**
-     * node_id is the stable node identifier.
-     *
-     * @generated from field: string node_id = 1;
-     */
-    nodeId: string;
+export type InspectNodeContainerRequest = Message<"composia.controller.v1.InspectNodeContainerRequest"> & {
+  /**
+   * node_id is the stable node identifier.
+   *
+   * @generated from field: string node_id = 1;
+   */
+  nodeId: string;
 
-    /**
-     * container_id is the runtime container ID.
-     *
-     * @generated from field: string container_id = 2;
-     */
-    containerId: string;
-  };
+  /**
+   * container_id is the runtime container ID.
+   *
+   * @generated from field: string container_id = 2;
+   */
+  containerId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.InspectNodeContainerRequest.
  * Use `create(InspectNodeContainerRequestSchema)` to create a new message.
  */
-export const InspectNodeContainerRequestSchema: GenMessage<InspectNodeContainerRequest> =
-  /*@__PURE__*/
+export const InspectNodeContainerRequestSchema: GenMessage<InspectNodeContainerRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 24);
 
 /**
@@ -836,20 +778,18 @@ export const InspectNodeContainerRequestSchema: GenMessage<InspectNodeContainerR
  *
  * @generated from message composia.controller.v1.InspectNodeContainerResponse
  */
-export type InspectNodeContainerResponse =
-  Message<"composia.controller.v1.InspectNodeContainerResponse"> & {
-    /**
-     * @generated from field: string raw_json = 1;
-     */
-    rawJson: string;
-  };
+export type InspectNodeContainerResponse = Message<"composia.controller.v1.InspectNodeContainerResponse"> & {
+  /**
+   * @generated from field: string raw_json = 1;
+   */
+  rawJson: string;
+};
 
 /**
  * Describes the message composia.controller.v1.InspectNodeContainerResponse.
  * Use `create(InspectNodeContainerResponseSchema)` to create a new message.
  */
-export const InspectNodeContainerResponseSchema: GenMessage<InspectNodeContainerResponse> =
-  /*@__PURE__*/
+export const InspectNodeContainerResponseSchema: GenMessage<InspectNodeContainerResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 25);
 
 /**
@@ -857,57 +797,55 @@ export const InspectNodeContainerResponseSchema: GenMessage<InspectNodeContainer
  *
  * @generated from message composia.controller.v1.ListNodeNetworksRequest
  */
-export type ListNodeNetworksRequest =
-  Message<"composia.controller.v1.ListNodeNetworksRequest"> & {
-    /**
-     * node_id is the stable node identifier.
-     *
-     * @generated from field: string node_id = 1;
-     */
-    nodeId: string;
+export type ListNodeNetworksRequest = Message<"composia.controller.v1.ListNodeNetworksRequest"> & {
+  /**
+   * node_id is the stable node identifier.
+   *
+   * @generated from field: string node_id = 1;
+   */
+  nodeId: string;
 
-    /**
-     * page_size is the requested page size.
-     *
-     * @generated from field: uint32 page_size = 2;
-     */
-    pageSize: number;
+  /**
+   * page_size is the requested page size.
+   *
+   * @generated from field: uint32 page_size = 2;
+   */
+  pageSize: number;
 
-    /**
-     * page is the 1-based page number.
-     *
-     * @generated from field: uint32 page = 3;
-     */
-    page: number;
+  /**
+   * page is the 1-based page number.
+   *
+   * @generated from field: uint32 page = 3;
+   */
+  page: number;
 
-    /**
-     * search is a case-insensitive substring match across key fields.
-     *
-     * @generated from field: string search = 4;
-     */
-    search: string;
+  /**
+   * search is a case-insensitive substring match across key fields.
+   *
+   * @generated from field: string search = 4;
+   */
+  search: string;
 
-    /**
-     * sort_by identifies the field used to sort results.
-     *
-     * @generated from field: string sort_by = 5;
-     */
-    sortBy: string;
+  /**
+   * sort_by identifies the field used to sort results.
+   *
+   * @generated from field: string sort_by = 5;
+   */
+  sortBy: string;
 
-    /**
-     * sort_desc reverses the sort order when true.
-     *
-     * @generated from field: bool sort_desc = 6;
-     */
-    sortDesc: boolean;
-  };
+  /**
+   * sort_desc reverses the sort order when true.
+   *
+   * @generated from field: bool sort_desc = 6;
+   */
+  sortDesc: boolean;
+};
 
 /**
  * Describes the message composia.controller.v1.ListNodeNetworksRequest.
  * Use `create(ListNodeNetworksRequestSchema)` to create a new message.
  */
-export const ListNodeNetworksRequestSchema: GenMessage<ListNodeNetworksRequest> =
-  /*@__PURE__*/
+export const ListNodeNetworksRequestSchema: GenMessage<ListNodeNetworksRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 26);
 
 /**
@@ -1003,8 +941,7 @@ export type NetworkInfo = Message<"composia.controller.v1.NetworkInfo"> & {
  * Describes the message composia.controller.v1.NetworkInfo.
  * Use `create(NetworkInfoSchema)` to create a new message.
  */
-export const NetworkInfoSchema: GenMessage<NetworkInfo> =
-  /*@__PURE__*/
+export const NetworkInfoSchema: GenMessage<NetworkInfo> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 27);
 
 /**
@@ -1012,25 +949,23 @@ export const NetworkInfoSchema: GenMessage<NetworkInfo> =
  *
  * @generated from message composia.controller.v1.ListNodeNetworksResponse
  */
-export type ListNodeNetworksResponse =
-  Message<"composia.controller.v1.ListNodeNetworksResponse"> & {
-    /**
-     * @generated from field: repeated composia.controller.v1.NetworkInfo networks = 1;
-     */
-    networks: NetworkInfo[];
+export type ListNodeNetworksResponse = Message<"composia.controller.v1.ListNodeNetworksResponse"> & {
+  /**
+   * @generated from field: repeated composia.controller.v1.NetworkInfo networks = 1;
+   */
+  networks: NetworkInfo[];
 
-    /**
-     * @generated from field: uint32 total_count = 2;
-     */
-    totalCount: number;
-  };
+  /**
+   * @generated from field: uint32 total_count = 2;
+   */
+  totalCount: number;
+};
 
 /**
  * Describes the message composia.controller.v1.ListNodeNetworksResponse.
  * Use `create(ListNodeNetworksResponseSchema)` to create a new message.
  */
-export const ListNodeNetworksResponseSchema: GenMessage<ListNodeNetworksResponse> =
-  /*@__PURE__*/
+export const ListNodeNetworksResponseSchema: GenMessage<ListNodeNetworksResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 28);
 
 /**
@@ -1038,29 +973,27 @@ export const ListNodeNetworksResponseSchema: GenMessage<ListNodeNetworksResponse
  *
  * @generated from message composia.controller.v1.InspectNodeNetworkRequest
  */
-export type InspectNodeNetworkRequest =
-  Message<"composia.controller.v1.InspectNodeNetworkRequest"> & {
-    /**
-     * node_id is the stable node identifier.
-     *
-     * @generated from field: string node_id = 1;
-     */
-    nodeId: string;
+export type InspectNodeNetworkRequest = Message<"composia.controller.v1.InspectNodeNetworkRequest"> & {
+  /**
+   * node_id is the stable node identifier.
+   *
+   * @generated from field: string node_id = 1;
+   */
+  nodeId: string;
 
-    /**
-     * network_id is the runtime network ID.
-     *
-     * @generated from field: string network_id = 2;
-     */
-    networkId: string;
-  };
+  /**
+   * network_id is the runtime network ID.
+   *
+   * @generated from field: string network_id = 2;
+   */
+  networkId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.InspectNodeNetworkRequest.
  * Use `create(InspectNodeNetworkRequestSchema)` to create a new message.
  */
-export const InspectNodeNetworkRequestSchema: GenMessage<InspectNodeNetworkRequest> =
-  /*@__PURE__*/
+export const InspectNodeNetworkRequestSchema: GenMessage<InspectNodeNetworkRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 29);
 
 /**
@@ -1068,20 +1001,18 @@ export const InspectNodeNetworkRequestSchema: GenMessage<InspectNodeNetworkReque
  *
  * @generated from message composia.controller.v1.InspectNodeNetworkResponse
  */
-export type InspectNodeNetworkResponse =
-  Message<"composia.controller.v1.InspectNodeNetworkResponse"> & {
-    /**
-     * @generated from field: string raw_json = 1;
-     */
-    rawJson: string;
-  };
+export type InspectNodeNetworkResponse = Message<"composia.controller.v1.InspectNodeNetworkResponse"> & {
+  /**
+   * @generated from field: string raw_json = 1;
+   */
+  rawJson: string;
+};
 
 /**
  * Describes the message composia.controller.v1.InspectNodeNetworkResponse.
  * Use `create(InspectNodeNetworkResponseSchema)` to create a new message.
  */
-export const InspectNodeNetworkResponseSchema: GenMessage<InspectNodeNetworkResponse> =
-  /*@__PURE__*/
+export const InspectNodeNetworkResponseSchema: GenMessage<InspectNodeNetworkResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 30);
 
 /**
@@ -1089,57 +1020,55 @@ export const InspectNodeNetworkResponseSchema: GenMessage<InspectNodeNetworkResp
  *
  * @generated from message composia.controller.v1.ListNodeVolumesRequest
  */
-export type ListNodeVolumesRequest =
-  Message<"composia.controller.v1.ListNodeVolumesRequest"> & {
-    /**
-     * node_id is the stable node identifier.
-     *
-     * @generated from field: string node_id = 1;
-     */
-    nodeId: string;
+export type ListNodeVolumesRequest = Message<"composia.controller.v1.ListNodeVolumesRequest"> & {
+  /**
+   * node_id is the stable node identifier.
+   *
+   * @generated from field: string node_id = 1;
+   */
+  nodeId: string;
 
-    /**
-     * page_size is the requested page size.
-     *
-     * @generated from field: uint32 page_size = 2;
-     */
-    pageSize: number;
+  /**
+   * page_size is the requested page size.
+   *
+   * @generated from field: uint32 page_size = 2;
+   */
+  pageSize: number;
 
-    /**
-     * page is the 1-based page number.
-     *
-     * @generated from field: uint32 page = 3;
-     */
-    page: number;
+  /**
+   * page is the 1-based page number.
+   *
+   * @generated from field: uint32 page = 3;
+   */
+  page: number;
 
-    /**
-     * search is a case-insensitive substring match across key fields.
-     *
-     * @generated from field: string search = 4;
-     */
-    search: string;
+  /**
+   * search is a case-insensitive substring match across key fields.
+   *
+   * @generated from field: string search = 4;
+   */
+  search: string;
 
-    /**
-     * sort_by identifies the field used to sort results.
-     *
-     * @generated from field: string sort_by = 5;
-     */
-    sortBy: string;
+  /**
+   * sort_by identifies the field used to sort results.
+   *
+   * @generated from field: string sort_by = 5;
+   */
+  sortBy: string;
 
-    /**
-     * sort_desc reverses the sort order when true.
-     *
-     * @generated from field: bool sort_desc = 6;
-     */
-    sortDesc: boolean;
-  };
+  /**
+   * sort_desc reverses the sort order when true.
+   *
+   * @generated from field: bool sort_desc = 6;
+   */
+  sortDesc: boolean;
+};
 
 /**
  * Describes the message composia.controller.v1.ListNodeVolumesRequest.
  * Use `create(ListNodeVolumesRequestSchema)` to create a new message.
  */
-export const ListNodeVolumesRequestSchema: GenMessage<ListNodeVolumesRequest> =
-  /*@__PURE__*/
+export const ListNodeVolumesRequestSchema: GenMessage<ListNodeVolumesRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 31);
 
 /**
@@ -1216,8 +1145,7 @@ export type VolumeInfo = Message<"composia.controller.v1.VolumeInfo"> & {
  * Describes the message composia.controller.v1.VolumeInfo.
  * Use `create(VolumeInfoSchema)` to create a new message.
  */
-export const VolumeInfoSchema: GenMessage<VolumeInfo> =
-  /*@__PURE__*/
+export const VolumeInfoSchema: GenMessage<VolumeInfo> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 32);
 
 /**
@@ -1225,25 +1153,23 @@ export const VolumeInfoSchema: GenMessage<VolumeInfo> =
  *
  * @generated from message composia.controller.v1.ListNodeVolumesResponse
  */
-export type ListNodeVolumesResponse =
-  Message<"composia.controller.v1.ListNodeVolumesResponse"> & {
-    /**
-     * @generated from field: repeated composia.controller.v1.VolumeInfo volumes = 1;
-     */
-    volumes: VolumeInfo[];
+export type ListNodeVolumesResponse = Message<"composia.controller.v1.ListNodeVolumesResponse"> & {
+  /**
+   * @generated from field: repeated composia.controller.v1.VolumeInfo volumes = 1;
+   */
+  volumes: VolumeInfo[];
 
-    /**
-     * @generated from field: uint32 total_count = 2;
-     */
-    totalCount: number;
-  };
+  /**
+   * @generated from field: uint32 total_count = 2;
+   */
+  totalCount: number;
+};
 
 /**
  * Describes the message composia.controller.v1.ListNodeVolumesResponse.
  * Use `create(ListNodeVolumesResponseSchema)` to create a new message.
  */
-export const ListNodeVolumesResponseSchema: GenMessage<ListNodeVolumesResponse> =
-  /*@__PURE__*/
+export const ListNodeVolumesResponseSchema: GenMessage<ListNodeVolumesResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 33);
 
 /**
@@ -1251,29 +1177,27 @@ export const ListNodeVolumesResponseSchema: GenMessage<ListNodeVolumesResponse> 
  *
  * @generated from message composia.controller.v1.InspectNodeVolumeRequest
  */
-export type InspectNodeVolumeRequest =
-  Message<"composia.controller.v1.InspectNodeVolumeRequest"> & {
-    /**
-     * node_id is the stable node identifier.
-     *
-     * @generated from field: string node_id = 1;
-     */
-    nodeId: string;
+export type InspectNodeVolumeRequest = Message<"composia.controller.v1.InspectNodeVolumeRequest"> & {
+  /**
+   * node_id is the stable node identifier.
+   *
+   * @generated from field: string node_id = 1;
+   */
+  nodeId: string;
 
-    /**
-     * volume_name is the runtime volume name.
-     *
-     * @generated from field: string volume_name = 2;
-     */
-    volumeName: string;
-  };
+  /**
+   * volume_name is the runtime volume name.
+   *
+   * @generated from field: string volume_name = 2;
+   */
+  volumeName: string;
+};
 
 /**
  * Describes the message composia.controller.v1.InspectNodeVolumeRequest.
  * Use `create(InspectNodeVolumeRequestSchema)` to create a new message.
  */
-export const InspectNodeVolumeRequestSchema: GenMessage<InspectNodeVolumeRequest> =
-  /*@__PURE__*/
+export const InspectNodeVolumeRequestSchema: GenMessage<InspectNodeVolumeRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 34);
 
 /**
@@ -1281,20 +1205,18 @@ export const InspectNodeVolumeRequestSchema: GenMessage<InspectNodeVolumeRequest
  *
  * @generated from message composia.controller.v1.InspectNodeVolumeResponse
  */
-export type InspectNodeVolumeResponse =
-  Message<"composia.controller.v1.InspectNodeVolumeResponse"> & {
-    /**
-     * @generated from field: string raw_json = 1;
-     */
-    rawJson: string;
-  };
+export type InspectNodeVolumeResponse = Message<"composia.controller.v1.InspectNodeVolumeResponse"> & {
+  /**
+   * @generated from field: string raw_json = 1;
+   */
+  rawJson: string;
+};
 
 /**
  * Describes the message composia.controller.v1.InspectNodeVolumeResponse.
  * Use `create(InspectNodeVolumeResponseSchema)` to create a new message.
  */
-export const InspectNodeVolumeResponseSchema: GenMessage<InspectNodeVolumeResponse> =
-  /*@__PURE__*/
+export const InspectNodeVolumeResponseSchema: GenMessage<InspectNodeVolumeResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 35);
 
 /**
@@ -1302,57 +1224,55 @@ export const InspectNodeVolumeResponseSchema: GenMessage<InspectNodeVolumeRespon
  *
  * @generated from message composia.controller.v1.ListNodeImagesRequest
  */
-export type ListNodeImagesRequest =
-  Message<"composia.controller.v1.ListNodeImagesRequest"> & {
-    /**
-     * node_id is the stable node identifier.
-     *
-     * @generated from field: string node_id = 1;
-     */
-    nodeId: string;
+export type ListNodeImagesRequest = Message<"composia.controller.v1.ListNodeImagesRequest"> & {
+  /**
+   * node_id is the stable node identifier.
+   *
+   * @generated from field: string node_id = 1;
+   */
+  nodeId: string;
 
-    /**
-     * page_size is the requested page size.
-     *
-     * @generated from field: uint32 page_size = 2;
-     */
-    pageSize: number;
+  /**
+   * page_size is the requested page size.
+   *
+   * @generated from field: uint32 page_size = 2;
+   */
+  pageSize: number;
 
-    /**
-     * page is the 1-based page number.
-     *
-     * @generated from field: uint32 page = 3;
-     */
-    page: number;
+  /**
+   * page is the 1-based page number.
+   *
+   * @generated from field: uint32 page = 3;
+   */
+  page: number;
 
-    /**
-     * search is a case-insensitive substring match across key fields.
-     *
-     * @generated from field: string search = 4;
-     */
-    search: string;
+  /**
+   * search is a case-insensitive substring match across key fields.
+   *
+   * @generated from field: string search = 4;
+   */
+  search: string;
 
-    /**
-     * sort_by identifies the field used to sort results.
-     *
-     * @generated from field: string sort_by = 5;
-     */
-    sortBy: string;
+  /**
+   * sort_by identifies the field used to sort results.
+   *
+   * @generated from field: string sort_by = 5;
+   */
+  sortBy: string;
 
-    /**
-     * sort_desc reverses the sort order when true.
-     *
-     * @generated from field: bool sort_desc = 6;
-     */
-    sortDesc: boolean;
-  };
+  /**
+   * sort_desc reverses the sort order when true.
+   *
+   * @generated from field: bool sort_desc = 6;
+   */
+  sortDesc: boolean;
+};
 
 /**
  * Describes the message composia.controller.v1.ListNodeImagesRequest.
  * Use `create(ListNodeImagesRequestSchema)` to create a new message.
  */
-export const ListNodeImagesRequestSchema: GenMessage<ListNodeImagesRequest> =
-  /*@__PURE__*/
+export const ListNodeImagesRequestSchema: GenMessage<ListNodeImagesRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 36);
 
 /**
@@ -1428,14 +1348,20 @@ export type ImageInfo = Message<"composia.controller.v1.ImageInfo"> & {
    * @generated from field: bool is_dangling = 10;
    */
   isDangling: boolean;
+
+  /**
+   * author is the image author metadata, when present.
+   *
+   * @generated from field: string author = 11;
+   */
+  author: string;
 };
 
 /**
  * Describes the message composia.controller.v1.ImageInfo.
  * Use `create(ImageInfoSchema)` to create a new message.
  */
-export const ImageInfoSchema: GenMessage<ImageInfo> =
-  /*@__PURE__*/
+export const ImageInfoSchema: GenMessage<ImageInfo> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 37);
 
 /**
@@ -1443,25 +1369,23 @@ export const ImageInfoSchema: GenMessage<ImageInfo> =
  *
  * @generated from message composia.controller.v1.ListNodeImagesResponse
  */
-export type ListNodeImagesResponse =
-  Message<"composia.controller.v1.ListNodeImagesResponse"> & {
-    /**
-     * @generated from field: repeated composia.controller.v1.ImageInfo images = 1;
-     */
-    images: ImageInfo[];
+export type ListNodeImagesResponse = Message<"composia.controller.v1.ListNodeImagesResponse"> & {
+  /**
+   * @generated from field: repeated composia.controller.v1.ImageInfo images = 1;
+   */
+  images: ImageInfo[];
 
-    /**
-     * @generated from field: uint32 total_count = 2;
-     */
-    totalCount: number;
-  };
+  /**
+   * @generated from field: uint32 total_count = 2;
+   */
+  totalCount: number;
+};
 
 /**
  * Describes the message composia.controller.v1.ListNodeImagesResponse.
  * Use `create(ListNodeImagesResponseSchema)` to create a new message.
  */
-export const ListNodeImagesResponseSchema: GenMessage<ListNodeImagesResponse> =
-  /*@__PURE__*/
+export const ListNodeImagesResponseSchema: GenMessage<ListNodeImagesResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 38);
 
 /**
@@ -1469,29 +1393,27 @@ export const ListNodeImagesResponseSchema: GenMessage<ListNodeImagesResponse> =
  *
  * @generated from message composia.controller.v1.InspectNodeImageRequest
  */
-export type InspectNodeImageRequest =
-  Message<"composia.controller.v1.InspectNodeImageRequest"> & {
-    /**
-     * node_id is the stable node identifier.
-     *
-     * @generated from field: string node_id = 1;
-     */
-    nodeId: string;
+export type InspectNodeImageRequest = Message<"composia.controller.v1.InspectNodeImageRequest"> & {
+  /**
+   * node_id is the stable node identifier.
+   *
+   * @generated from field: string node_id = 1;
+   */
+  nodeId: string;
 
-    /**
-     * image_id is the runtime image ID.
-     *
-     * @generated from field: string image_id = 2;
-     */
-    imageId: string;
-  };
+  /**
+   * image_id is the runtime image ID.
+   *
+   * @generated from field: string image_id = 2;
+   */
+  imageId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.InspectNodeImageRequest.
  * Use `create(InspectNodeImageRequestSchema)` to create a new message.
  */
-export const InspectNodeImageRequestSchema: GenMessage<InspectNodeImageRequest> =
-  /*@__PURE__*/
+export const InspectNodeImageRequestSchema: GenMessage<InspectNodeImageRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 39);
 
 /**
@@ -1499,20 +1421,18 @@ export const InspectNodeImageRequestSchema: GenMessage<InspectNodeImageRequest> 
  *
  * @generated from message composia.controller.v1.InspectNodeImageResponse
  */
-export type InspectNodeImageResponse =
-  Message<"composia.controller.v1.InspectNodeImageResponse"> & {
-    /**
-     * @generated from field: string raw_json = 1;
-     */
-    rawJson: string;
-  };
+export type InspectNodeImageResponse = Message<"composia.controller.v1.InspectNodeImageResponse"> & {
+  /**
+   * @generated from field: string raw_json = 1;
+   */
+  rawJson: string;
+};
 
 /**
  * Describes the message composia.controller.v1.InspectNodeImageResponse.
  * Use `create(InspectNodeImageResponseSchema)` to create a new message.
  */
-export const InspectNodeImageResponseSchema: GenMessage<InspectNodeImageResponse> =
-  /*@__PURE__*/
+export const InspectNodeImageResponseSchema: GenMessage<InspectNodeImageResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_node, 40);
 
 /**
@@ -1530,7 +1450,7 @@ export const NodeQueryService: GenService<{
     methodKind: "unary";
     input: typeof ListNodesRequestSchema;
     output: typeof ListNodesResponseSchema;
-  };
+  },
   /**
    * GetNode returns one node by ID.
    *
@@ -1540,7 +1460,7 @@ export const NodeQueryService: GenService<{
     methodKind: "unary";
     input: typeof GetNodeRequestSchema;
     output: typeof GetNodeResponseSchema;
-  };
+  },
   /**
    * GetNodeDockerStats returns the latest Docker stats snapshot for one node.
    *
@@ -1550,8 +1470,9 @@ export const NodeQueryService: GenService<{
     methodKind: "unary";
     input: typeof GetNodeDockerStatsRequestSchema;
     output: typeof GetNodeDockerStatsResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_proto_composia_controller_v1_node, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_proto_composia_controller_v1_node, 0);
 
 /**
  * NodeMaintenanceService triggers async maintenance work on one node.
@@ -1568,7 +1489,7 @@ export const NodeMaintenanceService: GenService<{
     methodKind: "unary";
     input: typeof SyncNodeCaddyFilesRequestSchema;
     output: typeof SyncNodeCaddyFilesResponseSchema;
-  };
+  },
   /**
    * ReloadNodeCaddy starts a task to reload Caddy on one node.
    *
@@ -1578,7 +1499,7 @@ export const NodeMaintenanceService: GenService<{
     methodKind: "unary";
     input: typeof ReloadNodeCaddyRequestSchema;
     output: typeof ReloadNodeCaddyResponseSchema;
-  };
+  },
   /**
    * PruneNodeDocker starts a task to prune Docker resources on one node.
    *
@@ -1588,7 +1509,7 @@ export const NodeMaintenanceService: GenService<{
     methodKind: "unary";
     input: typeof PruneNodeDockerRequestSchema;
     output: typeof PruneNodeDockerResponseSchema;
-  };
+  },
   /**
    * InitNodeRustic starts a task to initialize the Rustic repository on one node.
    *
@@ -1598,7 +1519,7 @@ export const NodeMaintenanceService: GenService<{
     methodKind: "unary";
     input: typeof InitNodeRusticRequestSchema;
     output: typeof InitNodeRusticResponseSchema;
-  };
+  },
   /**
    * ForgetNodeRustic starts a task to forget Rustic snapshots for one node.
    *
@@ -1608,7 +1529,7 @@ export const NodeMaintenanceService: GenService<{
     methodKind: "unary";
     input: typeof ForgetNodeRusticRequestSchema;
     output: typeof ForgetNodeRusticResponseSchema;
-  };
+  },
   /**
    * PruneNodeRustic starts a task to prune Rustic data on one node.
    *
@@ -1618,8 +1539,9 @@ export const NodeMaintenanceService: GenService<{
     methodKind: "unary";
     input: typeof PruneNodeRusticRequestSchema;
     output: typeof PruneNodeRusticResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_proto_composia_controller_v1_node, 1);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_proto_composia_controller_v1_node, 1);
 
 /**
  * DockerQueryService exposes read-only Docker resource queries for one node.
@@ -1636,7 +1558,7 @@ export const DockerQueryService: GenService<{
     methodKind: "unary";
     input: typeof ListNodeContainersRequestSchema;
     output: typeof ListNodeContainersResponseSchema;
-  };
+  },
   /**
    * InspectNodeContainer returns raw Docker inspect JSON for one container.
    *
@@ -1646,7 +1568,7 @@ export const DockerQueryService: GenService<{
     methodKind: "unary";
     input: typeof InspectNodeContainerRequestSchema;
     output: typeof InspectNodeContainerResponseSchema;
-  };
+  },
   /**
    * ListNodeNetworks lists networks on one node.
    *
@@ -1656,7 +1578,7 @@ export const DockerQueryService: GenService<{
     methodKind: "unary";
     input: typeof ListNodeNetworksRequestSchema;
     output: typeof ListNodeNetworksResponseSchema;
-  };
+  },
   /**
    * InspectNodeNetwork returns raw Docker inspect JSON for one network.
    *
@@ -1666,7 +1588,7 @@ export const DockerQueryService: GenService<{
     methodKind: "unary";
     input: typeof InspectNodeNetworkRequestSchema;
     output: typeof InspectNodeNetworkResponseSchema;
-  };
+  },
   /**
    * ListNodeVolumes lists volumes on one node.
    *
@@ -1676,7 +1598,7 @@ export const DockerQueryService: GenService<{
     methodKind: "unary";
     input: typeof ListNodeVolumesRequestSchema;
     output: typeof ListNodeVolumesResponseSchema;
-  };
+  },
   /**
    * InspectNodeVolume returns raw Docker inspect JSON for one volume.
    *
@@ -1686,7 +1608,7 @@ export const DockerQueryService: GenService<{
     methodKind: "unary";
     input: typeof InspectNodeVolumeRequestSchema;
     output: typeof InspectNodeVolumeResponseSchema;
-  };
+  },
   /**
    * ListNodeImages lists images on one node.
    *
@@ -1696,7 +1618,7 @@ export const DockerQueryService: GenService<{
     methodKind: "unary";
     input: typeof ListNodeImagesRequestSchema;
     output: typeof ListNodeImagesResponseSchema;
-  };
+  },
   /**
    * InspectNodeImage returns raw Docker inspect JSON for one image.
    *
@@ -1706,5 +1628,7 @@ export const DockerQueryService: GenService<{
     methodKind: "unary";
     input: typeof InspectNodeImageRequestSchema;
     output: typeof InspectNodeImageResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_proto_composia_controller_v1_node, 2);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_proto_composia_controller_v1_node, 2);
+

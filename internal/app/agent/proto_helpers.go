@@ -251,5 +251,5 @@ func applyDockerQueryResult(request *agentv1.ReportDockerQueryResultRequest, que
 		}
 		return
 	}
-	request.Result = &agentv1.ReportDockerQueryResultRequest_GetContainerLogs{GetContainerLogs: &agentv1.GetContainerLogsResponse{Content: result.Content}}
+	request.Result = &agentv1.ReportDockerQueryResultRequest_ContainerLogs{ContainerLogs: &agentv1.GetContainerLogsResponse{Content: result.Content}}
 }

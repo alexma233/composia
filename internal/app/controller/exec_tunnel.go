@@ -18,6 +18,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -606,8 +607,19 @@ func (server *dockerCommandServer) RunContainerExec(ctx context.Context, req *co
 		TimedOut:        payload.Exec.TimedOut,
 		StdoutTruncated: payload.Exec.StdoutTruncated,
 		StderrTruncated: payload.Exec.StderrTruncated,
-		StartedAt:       payload.Exec.StartedAt,
-		FinishedAt:      payload.Exec.FinishedAt,
+		StartedAt:       protoTimestampFromString(payload.Exec.StartedAt),
+		FinishedAt:      protoTimestampFromString(payload.Exec.FinishedAt),
 		Duration:        payload.Exec.Duration,
 	}), nil
+}
+
+func protoTimestampFromString(value string) *timestamppb.Timestamp {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	parsed, err := time.Parse(time.RFC3339Nano, value)
+	if err != nil {
+		return nil
+	}
+	return timestamppb.New(parsed.UTC())
 }

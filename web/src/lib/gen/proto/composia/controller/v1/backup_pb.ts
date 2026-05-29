@@ -2,16 +2,8 @@
 // @generated from file proto/composia/controller/v1/backup.proto (package composia.controller.v1, syntax proto3)
 /* eslint-disable */
 
-import type {
-  GenFile,
-  GenMessage,
-  GenService,
-} from "@bufbuild/protobuf/codegenv2";
-import {
-  fileDesc,
-  messageDesc,
-  serviceDesc,
-} from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { TaskActionResponseSchema } from "./task_pb";
 import { file_proto_composia_controller_v1_task } from "./task_pb";
 import type { Capability } from "./system_pb";
@@ -21,15 +13,8 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file proto/composia/controller/v1/backup.proto.
  */
-export const file_proto_composia_controller_v1_backup: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "Cilwcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxL2JhY2t1cC5wcm90bxIWY29tcG9zaWEuY29udHJvbGxlci52MSKmAQoNQmFja3VwU3VtbWFyeRIRCgliYWNrdXBfaWQYASABKAkSDwoHdGFza19pZBgCIAEoCRIUCgxzZXJ2aWNlX25hbWUYAyABKAkSEQoJZGF0YV9uYW1lGAQgASgJEg4KBnN0YXR1cxgFIAEoCRISCgpzdGFydGVkX2F0GAYgASgJEhMKC2ZpbmlzaGVkX2F0GAcgASgJEg8KB25vZGVfaWQYCCABKAki6QEKEkxpc3RCYWNrdXBzUmVxdWVzdBIUCgxzZXJ2aWNlX25hbWUYASADKAkSDgoGc3RhdHVzGAIgAygJEhEKCWRhdGFfbmFtZRgDIAMoCRIRCglwYWdlX3NpemUYBCABKA0SDAoEcGFnZRgFIAEoDRIPCgdub2RlX2lkGAYgAygJEhwKFGV4Y2x1ZGVfc2VydmljZV9uYW1lGAcgAygJEhYKDmV4Y2x1ZGVfc3RhdHVzGAggAygJEhkKEWV4Y2x1ZGVfZGF0YV9uYW1lGAkgAygJEhcKD2V4Y2x1ZGVfbm9kZV9pZBgKIAMoCSJiChNMaXN0QmFja3Vwc1Jlc3BvbnNlEjYKB2JhY2t1cHMYASADKAsyJS5jb21wb3NpYS5jb250cm9sbGVyLnYxLkJhY2t1cFN1bW1hcnkSEwoLdG90YWxfY291bnQYAiABKA0iJQoQR2V0QmFja3VwUmVxdWVzdBIRCgliYWNrdXBfaWQYASABKAkimgIKEUdldEJhY2t1cFJlc3BvbnNlEhEKCWJhY2t1cF9pZBgBIAEoCRIPCgd0YXNrX2lkGAIgASgJEhQKDHNlcnZpY2VfbmFtZRgDIAEoCRIRCglkYXRhX25hbWUYBCABKAkSDgoGc3RhdHVzGAUgASgJEhIKCnN0YXJ0ZWRfYXQYBiABKAkSEwoLZmluaXNoZWRfYXQYByABKAkSFAoMYXJ0aWZhY3RfcmVmGAggASgJEhUKDWVycm9yX3N1bW1hcnkYCSABKAkSQQoHYWN0aW9ucxgKIAEoCzIwLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuQmFja3VwQWN0aW9uQ2FwYWJpbGl0aWVzEg8KB25vZGVfaWQYCyABKAkiTwoYQmFja3VwQWN0aW9uQ2FwYWJpbGl0aWVzEjMKB3Jlc3RvcmUYASABKAsyIi5jb21wb3NpYS5jb250cm9sbGVyLnYxLkNhcGFiaWxpdHkiOgoUUmVzdG9yZUJhY2t1cFJlcXVlc3QSEQoJYmFja3VwX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAky3gEKEkJhY2t1cFF1ZXJ5U2VydmljZRJmCgtMaXN0QmFja3VwcxIqLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuTGlzdEJhY2t1cHNSZXF1ZXN0GisuY29tcG9zaWEuY29udHJvbGxlci52MS5MaXN0QmFja3Vwc1Jlc3BvbnNlEmAKCUdldEJhY2t1cBIoLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0QmFja3VwUmVxdWVzdBopLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0QmFja3VwUmVzcG9uc2UygQEKFEJhY2t1cENvbW1hbmRTZXJ2aWNlEmkKDVJlc3RvcmVCYWNrdXASLC5jb21wb3NpYS5jb250cm9sbGVyLnYxLlJlc3RvcmVCYWNrdXBSZXF1ZXN0GiouY29tcG9zaWEuY29udHJvbGxlci52MS5UYXNrQWN0aW9uUmVzcG9uc2VCWFpWZm9yZ2Vqby5hbGV4bWEudG9wL2FsZXhtYTIzMy9jb21wb3NpYS9nZW4vZ28vcHJvdG8vY29tcG9zaWEvY29udHJvbGxlci92MTtjb250cm9sbGVydjFiBnByb3RvMw",
-    [
-      file_proto_composia_controller_v1_task,
-      file_proto_composia_controller_v1_system,
-    ],
-  );
+export const file_proto_composia_controller_v1_backup: GenFile = /*@__PURE__*/
+  fileDesc("Cilwcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxL2JhY2t1cC5wcm90bxIWY29tcG9zaWEuY29udHJvbGxlci52MSKmAQoNQmFja3VwU3VtbWFyeRIRCgliYWNrdXBfaWQYASABKAkSDwoHdGFza19pZBgCIAEoCRIUCgxzZXJ2aWNlX25hbWUYAyABKAkSEQoJZGF0YV9uYW1lGAQgASgJEg4KBnN0YXR1cxgFIAEoCRISCgpzdGFydGVkX2F0GAYgASgJEhMKC2ZpbmlzaGVkX2F0GAcgASgJEg8KB25vZGVfaWQYCCABKAki6QEKEkxpc3RCYWNrdXBzUmVxdWVzdBIUCgxzZXJ2aWNlX25hbWUYASADKAkSDgoGc3RhdHVzGAIgAygJEhEKCWRhdGFfbmFtZRgDIAMoCRIRCglwYWdlX3NpemUYBCABKA0SDAoEcGFnZRgFIAEoDRIPCgdub2RlX2lkGAYgAygJEhwKFGV4Y2x1ZGVfc2VydmljZV9uYW1lGAcgAygJEhYKDmV4Y2x1ZGVfc3RhdHVzGAggAygJEhkKEWV4Y2x1ZGVfZGF0YV9uYW1lGAkgAygJEhcKD2V4Y2x1ZGVfbm9kZV9pZBgKIAMoCSJiChNMaXN0QmFja3Vwc1Jlc3BvbnNlEjYKB2JhY2t1cHMYASADKAsyJS5jb21wb3NpYS5jb250cm9sbGVyLnYxLkJhY2t1cFN1bW1hcnkSEwoLdG90YWxfY291bnQYAiABKA0iJQoQR2V0QmFja3VwUmVxdWVzdBIRCgliYWNrdXBfaWQYASABKAkimgIKEUdldEJhY2t1cFJlc3BvbnNlEhEKCWJhY2t1cF9pZBgBIAEoCRIPCgd0YXNrX2lkGAIgASgJEhQKDHNlcnZpY2VfbmFtZRgDIAEoCRIRCglkYXRhX25hbWUYBCABKAkSDgoGc3RhdHVzGAUgASgJEhIKCnN0YXJ0ZWRfYXQYBiABKAkSEwoLZmluaXNoZWRfYXQYByABKAkSFAoMYXJ0aWZhY3RfcmVmGAggASgJEhUKDWVycm9yX3N1bW1hcnkYCSABKAkSQQoHYWN0aW9ucxgKIAEoCzIwLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuQmFja3VwQWN0aW9uQ2FwYWJpbGl0aWVzEg8KB25vZGVfaWQYCyABKAkiTwoYQmFja3VwQWN0aW9uQ2FwYWJpbGl0aWVzEjMKB3Jlc3RvcmUYASABKAsyIi5jb21wb3NpYS5jb250cm9sbGVyLnYxLkNhcGFiaWxpdHkiOgoUUmVzdG9yZUJhY2t1cFJlcXVlc3QSEQoJYmFja3VwX2lkGAEgASgJEg8KB25vZGVfaWQYAiABKAky3gEKEkJhY2t1cFF1ZXJ5U2VydmljZRJmCgtMaXN0QmFja3VwcxIqLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuTGlzdEJhY2t1cHNSZXF1ZXN0GisuY29tcG9zaWEuY29udHJvbGxlci52MS5MaXN0QmFja3Vwc1Jlc3BvbnNlEmAKCUdldEJhY2t1cBIoLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0QmFja3VwUmVxdWVzdBopLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0QmFja3VwUmVzcG9uc2UygQEKFEJhY2t1cENvbW1hbmRTZXJ2aWNlEmkKDVJlc3RvcmVCYWNrdXASLC5jb21wb3NpYS5jb250cm9sbGVyLnYxLlJlc3RvcmVCYWNrdXBSZXF1ZXN0GiouY29tcG9zaWEuY29udHJvbGxlci52MS5UYXNrQWN0aW9uUmVzcG9uc2VCWFpWZm9yZ2Vqby5hbGV4bWEudG9wL2FsZXhtYTIzMy9jb21wb3NpYS9nZW4vZ28vcHJvdG8vY29tcG9zaWEvY29udHJvbGxlci92MTtjb250cm9sbGVydjFiBnByb3RvMw", [file_proto_composia_controller_v1_task, file_proto_composia_controller_v1_system]);
 
 /**
  * BackupSummary describes one backup record in list results.
@@ -90,8 +75,7 @@ export type BackupSummary = Message<"composia.controller.v1.BackupSummary"> & {
  * Describes the message composia.controller.v1.BackupSummary.
  * Use `create(BackupSummarySchema)` to create a new message.
  */
-export const BackupSummarySchema: GenMessage<BackupSummary> =
-  /*@__PURE__*/
+export const BackupSummarySchema: GenMessage<BackupSummary> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_backup, 0);
 
 /**
@@ -99,85 +83,83 @@ export const BackupSummarySchema: GenMessage<BackupSummary> =
  *
  * @generated from message composia.controller.v1.ListBackupsRequest
  */
-export type ListBackupsRequest =
-  Message<"composia.controller.v1.ListBackupsRequest"> & {
-    /**
-     * service_name includes only backups for these services.
-     *
-     * @generated from field: repeated string service_name = 1;
-     */
-    serviceName: string[];
+export type ListBackupsRequest = Message<"composia.controller.v1.ListBackupsRequest"> & {
+  /**
+   * service_name includes only backups for these services.
+   *
+   * @generated from field: repeated string service_name = 1;
+   */
+  serviceName: string[];
 
-    /**
-     * status includes only backups matching one of these status strings.
-     *
-     * @generated from field: repeated string status = 2;
-     */
-    status: string[];
+  /**
+   * status includes only backups matching one of these status strings.
+   *
+   * @generated from field: repeated string status = 2;
+   */
+  status: string[];
 
-    /**
-     * data_name includes only backups for these service data entries.
-     *
-     * @generated from field: repeated string data_name = 3;
-     */
-    dataName: string[];
+  /**
+   * data_name includes only backups for these service data entries.
+   *
+   * @generated from field: repeated string data_name = 3;
+   */
+  dataName: string[];
 
-    /**
-     * page_size is the requested page size.
-     *
-     * @generated from field: uint32 page_size = 4;
-     */
-    pageSize: number;
+  /**
+   * page_size is the requested page size.
+   *
+   * @generated from field: uint32 page_size = 4;
+   */
+  pageSize: number;
 
-    /**
-     * page is the 1-based page number.
-     *
-     * @generated from field: uint32 page = 5;
-     */
-    page: number;
+  /**
+   * page is the 1-based page number.
+   *
+   * @generated from field: uint32 page = 5;
+   */
+  page: number;
 
-    /**
-     * node_id includes only backups for these source nodes.
-     *
-     * @generated from field: repeated string node_id = 6;
-     */
-    nodeId: string[];
+  /**
+   * node_id includes only backups for these source nodes.
+   *
+   * @generated from field: repeated string node_id = 6;
+   */
+  nodeId: string[];
 
-    /**
-     * exclude_service_name removes backups for these services.
-     *
-     * @generated from field: repeated string exclude_service_name = 7;
-     */
-    excludeServiceName: string[];
+  /**
+   * exclude_service_name removes backups for these services.
+   *
+   * @generated from field: repeated string exclude_service_name = 7;
+   */
+  excludeServiceName: string[];
 
-    /**
-     * exclude_status removes backups matching these status strings.
-     *
-     * @generated from field: repeated string exclude_status = 8;
-     */
-    excludeStatus: string[];
+  /**
+   * exclude_status removes backups matching these status strings.
+   *
+   * @generated from field: repeated string exclude_status = 8;
+   */
+  excludeStatus: string[];
 
-    /**
-     * exclude_data_name removes backups for these service data entries.
-     *
-     * @generated from field: repeated string exclude_data_name = 9;
-     */
-    excludeDataName: string[];
+  /**
+   * exclude_data_name removes backups for these service data entries.
+   *
+   * @generated from field: repeated string exclude_data_name = 9;
+   */
+  excludeDataName: string[];
 
-    /**
-     * exclude_node_id removes backups for these source nodes.
-     *
-     * @generated from field: repeated string exclude_node_id = 10;
-     */
-    excludeNodeId: string[];
-  };
+  /**
+   * exclude_node_id removes backups for these source nodes.
+   *
+   * @generated from field: repeated string exclude_node_id = 10;
+   */
+  excludeNodeId: string[];
+};
 
 /**
  * Describes the message composia.controller.v1.ListBackupsRequest.
  * Use `create(ListBackupsRequestSchema)` to create a new message.
  */
-export const ListBackupsRequestSchema: GenMessage<ListBackupsRequest> =
-  /*@__PURE__*/
+export const ListBackupsRequestSchema: GenMessage<ListBackupsRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_backup, 1);
 
 /**
@@ -185,25 +167,23 @@ export const ListBackupsRequestSchema: GenMessage<ListBackupsRequest> =
  *
  * @generated from message composia.controller.v1.ListBackupsResponse
  */
-export type ListBackupsResponse =
-  Message<"composia.controller.v1.ListBackupsResponse"> & {
-    /**
-     * @generated from field: repeated composia.controller.v1.BackupSummary backups = 1;
-     */
-    backups: BackupSummary[];
+export type ListBackupsResponse = Message<"composia.controller.v1.ListBackupsResponse"> & {
+  /**
+   * @generated from field: repeated composia.controller.v1.BackupSummary backups = 1;
+   */
+  backups: BackupSummary[];
 
-    /**
-     * @generated from field: uint32 total_count = 2;
-     */
-    totalCount: number;
-  };
+  /**
+   * @generated from field: uint32 total_count = 2;
+   */
+  totalCount: number;
+};
 
 /**
  * Describes the message composia.controller.v1.ListBackupsResponse.
  * Use `create(ListBackupsResponseSchema)` to create a new message.
  */
-export const ListBackupsResponseSchema: GenMessage<ListBackupsResponse> =
-  /*@__PURE__*/
+export const ListBackupsResponseSchema: GenMessage<ListBackupsResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_backup, 2);
 
 /**
@@ -211,20 +191,18 @@ export const ListBackupsResponseSchema: GenMessage<ListBackupsResponse> =
  *
  * @generated from message composia.controller.v1.GetBackupRequest
  */
-export type GetBackupRequest =
-  Message<"composia.controller.v1.GetBackupRequest"> & {
-    /**
-     * @generated from field: string backup_id = 1;
-     */
-    backupId: string;
-  };
+export type GetBackupRequest = Message<"composia.controller.v1.GetBackupRequest"> & {
+  /**
+   * @generated from field: string backup_id = 1;
+   */
+  backupId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.GetBackupRequest.
  * Use `create(GetBackupRequestSchema)` to create a new message.
  */
-export const GetBackupRequestSchema: GenMessage<GetBackupRequest> =
-  /*@__PURE__*/
+export const GetBackupRequestSchema: GenMessage<GetBackupRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_backup, 3);
 
 /**
@@ -232,84 +210,82 @@ export const GetBackupRequestSchema: GenMessage<GetBackupRequest> =
  *
  * @generated from message composia.controller.v1.GetBackupResponse
  */
-export type GetBackupResponse =
-  Message<"composia.controller.v1.GetBackupResponse"> & {
-    /**
-     * @generated from field: string backup_id = 1;
-     */
-    backupId: string;
+export type GetBackupResponse = Message<"composia.controller.v1.GetBackupResponse"> & {
+  /**
+   * @generated from field: string backup_id = 1;
+   */
+  backupId: string;
 
-    /**
-     * task_id links the backup record to the originating task.
-     *
-     * @generated from field: string task_id = 2;
-     */
-    taskId: string;
+  /**
+   * task_id links the backup record to the originating task.
+   *
+   * @generated from field: string task_id = 2;
+   */
+  taskId: string;
 
-    /**
-     * @generated from field: string service_name = 3;
-     */
-    serviceName: string;
+  /**
+   * @generated from field: string service_name = 3;
+   */
+  serviceName: string;
 
-    /**
-     * @generated from field: string data_name = 4;
-     */
-    dataName: string;
+  /**
+   * @generated from field: string data_name = 4;
+   */
+  dataName: string;
 
-    /**
-     * status is the latest backup status string.
-     *
-     * @generated from field: string status = 5;
-     */
-    status: string;
+  /**
+   * status is the latest backup status string.
+   *
+   * @generated from field: string status = 5;
+   */
+  status: string;
 
-    /**
-     * started_at is the backup start timestamp string.
-     *
-     * @generated from field: string started_at = 6;
-     */
-    startedAt: string;
+  /**
+   * started_at is the backup start timestamp string.
+   *
+   * @generated from field: string started_at = 6;
+   */
+  startedAt: string;
 
-    /**
-     * finished_at is empty until the backup reaches a terminal state.
-     *
-     * @generated from field: string finished_at = 7;
-     */
-    finishedAt: string;
+  /**
+   * finished_at is empty until the backup reaches a terminal state.
+   *
+   * @generated from field: string finished_at = 7;
+   */
+  finishedAt: string;
 
-    /**
-     * artifact_ref identifies the produced backup artifact, when present.
-     *
-     * @generated from field: string artifact_ref = 8;
-     */
-    artifactRef: string;
+  /**
+   * artifact_ref identifies the produced backup artifact, when present.
+   *
+   * @generated from field: string artifact_ref = 8;
+   */
+  artifactRef: string;
 
-    /**
-     * error_summary contains the failure summary when the backup fails.
-     *
-     * @generated from field: string error_summary = 9;
-     */
-    errorSummary: string;
+  /**
+   * error_summary contains the failure summary when the backup fails.
+   *
+   * @generated from field: string error_summary = 9;
+   */
+  errorSummary: string;
 
-    /**
-     * actions describes whether backup-scoped actions may currently run.
-     *
-     * @generated from field: composia.controller.v1.BackupActionCapabilities actions = 10;
-     */
-    actions?: BackupActionCapabilities | undefined;
+  /**
+   * actions describes whether backup-scoped actions may currently run.
+   *
+   * @generated from field: composia.controller.v1.BackupActionCapabilities actions = 10;
+   */
+  actions?: BackupActionCapabilities | undefined;
 
-    /**
-     * @generated from field: string node_id = 11;
-     */
-    nodeId: string;
-  };
+  /**
+   * @generated from field: string node_id = 11;
+   */
+  nodeId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.GetBackupResponse.
  * Use `create(GetBackupResponseSchema)` to create a new message.
  */
-export const GetBackupResponseSchema: GenMessage<GetBackupResponse> =
-  /*@__PURE__*/
+export const GetBackupResponseSchema: GenMessage<GetBackupResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_backup, 4);
 
 /**
@@ -317,20 +293,18 @@ export const GetBackupResponseSchema: GenMessage<GetBackupResponse> =
  *
  * @generated from message composia.controller.v1.BackupActionCapabilities
  */
-export type BackupActionCapabilities =
-  Message<"composia.controller.v1.BackupActionCapabilities"> & {
-    /**
-     * @generated from field: composia.controller.v1.Capability restore = 1;
-     */
-    restore?: Capability | undefined;
-  };
+export type BackupActionCapabilities = Message<"composia.controller.v1.BackupActionCapabilities"> & {
+  /**
+   * @generated from field: composia.controller.v1.Capability restore = 1;
+   */
+  restore?: Capability | undefined;
+};
 
 /**
  * Describes the message composia.controller.v1.BackupActionCapabilities.
  * Use `create(BackupActionCapabilitiesSchema)` to create a new message.
  */
-export const BackupActionCapabilitiesSchema: GenMessage<BackupActionCapabilities> =
-  /*@__PURE__*/
+export const BackupActionCapabilitiesSchema: GenMessage<BackupActionCapabilities> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_backup, 5);
 
 /**
@@ -338,27 +312,25 @@ export const BackupActionCapabilitiesSchema: GenMessage<BackupActionCapabilities
  *
  * @generated from message composia.controller.v1.RestoreBackupRequest
  */
-export type RestoreBackupRequest =
-  Message<"composia.controller.v1.RestoreBackupRequest"> & {
-    /**
-     * @generated from field: string backup_id = 1;
-     */
-    backupId: string;
+export type RestoreBackupRequest = Message<"composia.controller.v1.RestoreBackupRequest"> & {
+  /**
+   * @generated from field: string backup_id = 1;
+   */
+  backupId: string;
 
-    /**
-     * node_id identifies the destination node for the restore task.
-     *
-     * @generated from field: string node_id = 2;
-     */
-    nodeId: string;
-  };
+  /**
+   * node_id identifies the destination node for the restore task.
+   *
+   * @generated from field: string node_id = 2;
+   */
+  nodeId: string;
+};
 
 /**
  * Describes the message composia.controller.v1.RestoreBackupRequest.
  * Use `create(RestoreBackupRequestSchema)` to create a new message.
  */
-export const RestoreBackupRequestSchema: GenMessage<RestoreBackupRequest> =
-  /*@__PURE__*/
+export const RestoreBackupRequestSchema: GenMessage<RestoreBackupRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_backup, 6);
 
 /**
@@ -376,7 +348,7 @@ export const BackupQueryService: GenService<{
     methodKind: "unary";
     input: typeof ListBackupsRequestSchema;
     output: typeof ListBackupsResponseSchema;
-  };
+  },
   /**
    * GetBackup returns one backup record by ID.
    *
@@ -386,8 +358,9 @@ export const BackupQueryService: GenService<{
     methodKind: "unary";
     input: typeof GetBackupRequestSchema;
     output: typeof GetBackupResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_proto_composia_controller_v1_backup, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_proto_composia_controller_v1_backup, 0);
 
 /**
  * BackupCommandService starts backup-related actions.
@@ -404,5 +377,7 @@ export const BackupCommandService: GenService<{
     methodKind: "unary";
     input: typeof RestoreBackupRequestSchema;
     output: typeof TaskActionResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_proto_composia_controller_v1_backup, 1);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_proto_composia_controller_v1_backup, 1);
+

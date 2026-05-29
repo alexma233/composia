@@ -228,7 +228,7 @@ message DockerQueryTask {
     InspectVolumeRequest inspect_volume = 8;
     ListImagesRequest list_images = 9;
     InspectImageRequest inspect_image = 10;
-    GetContainerLogsRequest get_container_logs = 11;
+    GetContainerLogsRequest container_logs = 11;
     DockerQueryRunContainerExecRequest run_container_exec = 12;
   }
 }
@@ -526,7 +526,7 @@ message ReportDockerQueryResultRequest {
     InspectVolumeResponse inspect_volume = 8;
     ListImagesResponse list_images = 9;
     InspectImageResponse inspect_image = 10;
-    GetContainerLogsResponse get_container_logs = 11;
+    GetContainerLogsResponse container_logs = 11;
     DockerQueryRunContainerExecResponse run_container_exec = 12;
   }
   // error_message contains the human-readable failure summary when the query fails.

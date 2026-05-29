@@ -2,16 +2,8 @@
 // @generated from file proto/composia/controller/v1/secret.proto (package composia.controller.v1, syntax proto3)
 /* eslint-disable */
 
-import type {
-  GenFile,
-  GenMessage,
-  GenService,
-} from "@bufbuild/protobuf/codegenv2";
-import {
-  fileDesc,
-  messageDesc,
-  serviceDesc,
-} from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { RepoWriteResultSchema } from "./repo_pb";
 import { file_proto_composia_controller_v1_repo } from "./repo_pb";
 import type { Message } from "@bufbuild/protobuf";
@@ -19,37 +11,31 @@ import type { Message } from "@bufbuild/protobuf";
 /**
  * Describes the file proto/composia/controller/v1/secret.proto.
  */
-export const file_proto_composia_controller_v1_secret: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "Cilwcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxL3NlY3JldC5wcm90bxIWY29tcG9zaWEuY29udHJvbGxlci52MSI7ChBHZXRTZWNyZXRSZXF1ZXN0EhQKDHNlcnZpY2VfbmFtZRgBIAEoCRIRCglmaWxlX3BhdGgYAiABKAkiTQoRR2V0U2VjcmV0UmVzcG9uc2USFAoMc2VydmljZV9uYW1lGAEgASgJEhEKCWZpbGVfcGF0aBgCIAEoCRIPCgdjb250ZW50GAMgASgJIn4KE1VwZGF0ZVNlY3JldFJlcXVlc3QSFAoMc2VydmljZV9uYW1lGAEgASgJEhEKCWZpbGVfcGF0aBgCIAEoCRIPCgdjb250ZW50GAMgASgJEhUKDWJhc2VfcmV2aXNpb24YBCABKAkSFgoOY29tbWl0X21lc3NhZ2UYBSABKAky1wEKDVNlY3JldFNlcnZpY2USYAoJR2V0U2VjcmV0EiguY29tcG9zaWEuY29udHJvbGxlci52MS5HZXRTZWNyZXRSZXF1ZXN0GikuY29tcG9zaWEuY29udHJvbGxlci52MS5HZXRTZWNyZXRSZXNwb25zZRJkCgxVcGRhdGVTZWNyZXQSKy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlVwZGF0ZVNlY3JldFJlcXVlc3QaJy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlJlcG9Xcml0ZVJlc3VsdEJYWlZmb3JnZWpvLmFsZXhtYS50b3AvYWxleG1hMjMzL2NvbXBvc2lhL2dlbi9nby9wcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxO2NvbnRyb2xsZXJ2MWIGcHJvdG8z",
-    [file_proto_composia_controller_v1_repo],
-  );
+export const file_proto_composia_controller_v1_secret: GenFile = /*@__PURE__*/
+  fileDesc("Cilwcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxL3NlY3JldC5wcm90bxIWY29tcG9zaWEuY29udHJvbGxlci52MSI7ChBHZXRTZWNyZXRSZXF1ZXN0EhQKDHNlcnZpY2VfbmFtZRgBIAEoCRIRCglmaWxlX3BhdGgYAiABKAkiTQoRR2V0U2VjcmV0UmVzcG9uc2USFAoMc2VydmljZV9uYW1lGAEgASgJEhEKCWZpbGVfcGF0aBgCIAEoCRIPCgdjb250ZW50GAMgASgJIn4KE1VwZGF0ZVNlY3JldFJlcXVlc3QSFAoMc2VydmljZV9uYW1lGAEgASgJEhEKCWZpbGVfcGF0aBgCIAEoCRIPCgdjb250ZW50GAMgASgJEhUKDWJhc2VfcmV2aXNpb24YBCABKAkSFgoOY29tbWl0X21lc3NhZ2UYBSABKAky1wEKDVNlY3JldFNlcnZpY2USYAoJR2V0U2VjcmV0EiguY29tcG9zaWEuY29udHJvbGxlci52MS5HZXRTZWNyZXRSZXF1ZXN0GikuY29tcG9zaWEuY29udHJvbGxlci52MS5HZXRTZWNyZXRSZXNwb25zZRJkCgxVcGRhdGVTZWNyZXQSKy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlVwZGF0ZVNlY3JldFJlcXVlc3QaJy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlJlcG9Xcml0ZVJlc3VsdEJYWlZmb3JnZWpvLmFsZXhtYS50b3AvYWxleG1hMjMzL2NvbXBvc2lhL2dlbi9nby9wcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxO2NvbnRyb2xsZXJ2MWIGcHJvdG8z", [file_proto_composia_controller_v1_repo]);
 
 /**
  * GetSecretRequest identifies one decrypted secret file for a service.
  *
  * @generated from message composia.controller.v1.GetSecretRequest
  */
-export type GetSecretRequest =
-  Message<"composia.controller.v1.GetSecretRequest"> & {
-    /**
-     * @generated from field: string service_name = 1;
-     */
-    serviceName: string;
+export type GetSecretRequest = Message<"composia.controller.v1.GetSecretRequest"> & {
+  /**
+   * @generated from field: string service_name = 1;
+   */
+  serviceName: string;
 
-    /**
-     * @generated from field: string file_path = 2;
-     */
-    filePath: string;
-  };
+  /**
+   * @generated from field: string file_path = 2;
+   */
+  filePath: string;
+};
 
 /**
  * Describes the message composia.controller.v1.GetSecretRequest.
  * Use `create(GetSecretRequestSchema)` to create a new message.
  */
-export const GetSecretRequestSchema: GenMessage<GetSecretRequest> =
-  /*@__PURE__*/
+export const GetSecretRequestSchema: GenMessage<GetSecretRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_secret, 0);
 
 /**
@@ -57,30 +43,28 @@ export const GetSecretRequestSchema: GenMessage<GetSecretRequest> =
  *
  * @generated from message composia.controller.v1.GetSecretResponse
  */
-export type GetSecretResponse =
-  Message<"composia.controller.v1.GetSecretResponse"> & {
-    /**
-     * @generated from field: string service_name = 1;
-     */
-    serviceName: string;
+export type GetSecretResponse = Message<"composia.controller.v1.GetSecretResponse"> & {
+  /**
+   * @generated from field: string service_name = 1;
+   */
+  serviceName: string;
 
-    /**
-     * @generated from field: string file_path = 2;
-     */
-    filePath: string;
+  /**
+   * @generated from field: string file_path = 2;
+   */
+  filePath: string;
 
-    /**
-     * @generated from field: string content = 3;
-     */
-    content: string;
-  };
+  /**
+   * @generated from field: string content = 3;
+   */
+  content: string;
+};
 
 /**
  * Describes the message composia.controller.v1.GetSecretResponse.
  * Use `create(GetSecretResponseSchema)` to create a new message.
  */
-export const GetSecretResponseSchema: GenMessage<GetSecretResponse> =
-  /*@__PURE__*/
+export const GetSecretResponseSchema: GenMessage<GetSecretResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_secret, 1);
 
 /**
@@ -88,48 +72,46 @@ export const GetSecretResponseSchema: GenMessage<GetSecretResponse> =
  *
  * @generated from message composia.controller.v1.UpdateSecretRequest
  */
-export type UpdateSecretRequest =
-  Message<"composia.controller.v1.UpdateSecretRequest"> & {
-    /**
-     * @generated from field: string service_name = 1;
-     */
-    serviceName: string;
+export type UpdateSecretRequest = Message<"composia.controller.v1.UpdateSecretRequest"> & {
+  /**
+   * @generated from field: string service_name = 1;
+   */
+  serviceName: string;
 
-    /**
-     * file_path is the repo-relative secret file path for the service.
-     *
-     * @generated from field: string file_path = 2;
-     */
-    filePath: string;
+  /**
+   * file_path is the repo-relative secret file path for the service.
+   *
+   * @generated from field: string file_path = 2;
+   */
+  filePath: string;
 
-    /**
-     * content is the full decrypted secret file content to store.
-     *
-     * @generated from field: string content = 3;
-     */
-    content: string;
+  /**
+   * content is the full decrypted secret file content to store.
+   *
+   * @generated from field: string content = 3;
+   */
+  content: string;
 
-    /**
-     * base_revision protects against writing on top of an unexpected HEAD.
-     *
-     * @generated from field: string base_revision = 4;
-     */
-    baseRevision: string;
+  /**
+   * base_revision protects against writing on top of an unexpected HEAD.
+   *
+   * @generated from field: string base_revision = 4;
+   */
+  baseRevision: string;
 
-    /**
-     * commit_message is used for the generated Git commit.
-     *
-     * @generated from field: string commit_message = 5;
-     */
-    commitMessage: string;
-  };
+  /**
+   * commit_message is used for the generated Git commit.
+   *
+   * @generated from field: string commit_message = 5;
+   */
+  commitMessage: string;
+};
 
 /**
  * Describes the message composia.controller.v1.UpdateSecretRequest.
  * Use `create(UpdateSecretRequestSchema)` to create a new message.
  */
-export const UpdateSecretRequestSchema: GenMessage<UpdateSecretRequest> =
-  /*@__PURE__*/
+export const UpdateSecretRequestSchema: GenMessage<UpdateSecretRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_secret, 2);
 
 /**
@@ -147,7 +129,7 @@ export const SecretService: GenService<{
     methodKind: "unary";
     input: typeof GetSecretRequestSchema;
     output: typeof GetSecretResponseSchema;
-  };
+  },
   /**
    * UpdateSecret writes one secret file and reports the resulting repo sync state.
    *
@@ -157,5 +139,7 @@ export const SecretService: GenService<{
     methodKind: "unary";
     input: typeof UpdateSecretRequestSchema;
     output: typeof RepoWriteResultSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_proto_composia_controller_v1_secret, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_proto_composia_controller_v1_secret, 0);
+

@@ -2,41 +2,29 @@
 // @generated from file proto/composia/controller/v1/repo.proto (package composia.controller.v1, syntax proto3)
 /* eslint-disable */
 
-import type {
-  GenFile,
-  GenMessage,
-  GenService,
-} from "@bufbuild/protobuf/codegenv2";
-import {
-  fileDesc,
-  messageDesc,
-  serviceDesc,
-} from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file proto/composia/controller/v1/repo.proto.
  */
-export const file_proto_composia_controller_v1_repo: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "Cidwcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxL3JlcG8ucHJvdG8SFmNvbXBvc2lhLmNvbnRyb2xsZXIudjEiFAoSR2V0UmVwb0hlYWRSZXF1ZXN0IrcBChNHZXRSZXBvSGVhZFJlc3BvbnNlEhUKDWhlYWRfcmV2aXNpb24YASABKAkSDgoGYnJhbmNoGAIgASgJEhIKCmhhc19yZW1vdGUYAyABKAgSFgoOY2xlYW5fd29ya3RyZWUYBCABKAgSEwoLc3luY19zdGF0dXMYBSABKAkSFwoPbGFzdF9zeW5jX2Vycm9yGAYgASgJEh8KF2xhc3Rfc3VjY2Vzc2Z1bF9wdWxsX2F0GAcgASgJIkkKDVJlcG9GaWxlRW50cnkSDAoEcGF0aBgBIAEoCRIMCgRuYW1lGAIgASgJEg4KBmlzX2RpchgDIAEoCBIMCgRzaXplGAQgASgDIjcKFExpc3RSZXBvRmlsZXNSZXF1ZXN0EgwKBHBhdGgYASABKAkSEQoJcmVjdXJzaXZlGAIgASgIIk8KFUxpc3RSZXBvRmlsZXNSZXNwb25zZRI2CgdlbnRyaWVzGAEgAygLMiUuY29tcG9zaWEuY29udHJvbGxlci52MS5SZXBvRmlsZUVudHJ5IiIKEkdldFJlcG9GaWxlUmVxdWVzdBIMCgRwYXRoGAEgASgJIkIKE0dldFJlcG9GaWxlUmVzcG9uc2USDAoEcGF0aBgBIAEoCRIPCgdjb250ZW50GAIgASgJEgwKBHNpemUYAyABKAMiTQoRUmVwb0NvbW1pdFN1bW1hcnkSEQoJY29tbWl0X2lkGAEgASgJEg8KB3N1YmplY3QYAiABKAkSFAoMY29tbWl0dGVkX2F0GAMgASgJIjsKFkxpc3RSZXBvQ29tbWl0c1JlcXVlc3QSEQoJcGFnZV9zaXplGAEgASgNEg4KBmN1cnNvchgCIAEoCSJqChdMaXN0UmVwb0NvbW1pdHNSZXNwb25zZRI6Cgdjb21taXRzGAEgAygLMikuY29tcG9zaWEuY29udHJvbGxlci52MS5SZXBvQ29tbWl0U3VtbWFyeRITCgtuZXh0X2N1cnNvchgCIAEoCSJCChNSZXBvVmFsaWRhdGlvbkVycm9yEgwKBHBhdGgYASABKAkSDAoEbGluZRgCIAEoDRIPCgdtZXNzYWdlGAMgASgJIhUKE1ZhbGlkYXRlUmVwb1JlcXVlc3QiUwoUVmFsaWRhdGVSZXBvUmVzcG9uc2USOwoGZXJyb3JzGAEgAygLMisuY29tcG9zaWEuY29udHJvbGxlci52MS5SZXBvVmFsaWRhdGlvbkVycm9yImUKFVVwZGF0ZVJlcG9GaWxlUmVxdWVzdBIMCgRwYXRoGAEgASgJEg8KB2NvbnRlbnQYAiABKAkSFQoNYmFzZV9yZXZpc2lvbhgDIAEoCRIWCg5jb21taXRfbWVzc2FnZRgEIAEoCSJuCg9SZXBvV3JpdGVSZXN1bHQSEQoJY29tbWl0X2lkGAEgASgJEhMKC3N5bmNfc3RhdHVzGAIgASgJEhIKCnB1c2hfZXJyb3IYAyABKAkSHwoXbGFzdF9zdWNjZXNzZnVsX3B1bGxfYXQYBCABKAkiWQoaQ3JlYXRlUmVwb0RpcmVjdG9yeVJlcXVlc3QSDAoEcGF0aBgBIAEoCRIVCg1iYXNlX3JldmlzaW9uGAIgASgJEhYKDmNvbW1pdF9tZXNzYWdlGAMgASgJInMKE01vdmVSZXBvUGF0aFJlcXVlc3QSEwoLc291cmNlX3BhdGgYASABKAkSGAoQZGVzdGluYXRpb25fcGF0aBgCIAEoCRIVCg1iYXNlX3JldmlzaW9uGAMgASgJEhYKDmNvbW1pdF9tZXNzYWdlGAQgASgJIlQKFURlbGV0ZVJlcG9QYXRoUmVxdWVzdBIMCgRwYXRoGAEgASgJEhUKDWJhc2VfcmV2aXNpb24YAiABKAkSFgoOY29tbWl0X21lc3NhZ2UYAyABKAkiEQoPU3luY1JlcG9SZXF1ZXN0IogBChBTeW5jUmVwb1Jlc3BvbnNlEhUKDWhlYWRfcmV2aXNpb24YASABKAkSDgoGYnJhbmNoGAIgASgJEhMKC3N5bmNfc3RhdHVzGAMgASgJEhcKD2xhc3Rfc3luY19lcnJvchgEIAEoCRIfChdsYXN0X3N1Y2Nlc3NmdWxfcHVsbF9hdBgFIAEoCTKvBAoQUmVwb1F1ZXJ5U2VydmljZRJmCgtHZXRSZXBvSGVhZBIqLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0UmVwb0hlYWRSZXF1ZXN0GisuY29tcG9zaWEuY29udHJvbGxlci52MS5HZXRSZXBvSGVhZFJlc3BvbnNlEmwKDUxpc3RSZXBvRmlsZXMSLC5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3RSZXBvRmlsZXNSZXF1ZXN0Gi0uY29tcG9zaWEuY29udHJvbGxlci52MS5MaXN0UmVwb0ZpbGVzUmVzcG9uc2USZgoLR2V0UmVwb0ZpbGUSKi5jb21wb3NpYS5jb250cm9sbGVyLnYxLkdldFJlcG9GaWxlUmVxdWVzdBorLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0UmVwb0ZpbGVSZXNwb25zZRJyCg9MaXN0UmVwb0NvbW1pdHMSLi5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3RSZXBvQ29tbWl0c1JlcXVlc3QaLy5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3RSZXBvQ29tbWl0c1Jlc3BvbnNlEmkKDFZhbGlkYXRlUmVwbxIrLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVmFsaWRhdGVSZXBvUmVxdWVzdBosLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVmFsaWRhdGVSZXBvUmVzcG9uc2UyoQQKElJlcG9Db21tYW5kU2VydmljZRJoCg5VcGRhdGVSZXBvRmlsZRItLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVXBkYXRlUmVwb0ZpbGVSZXF1ZXN0GicuY29tcG9zaWEuY29udHJvbGxlci52MS5SZXBvV3JpdGVSZXN1bHQScgoTQ3JlYXRlUmVwb0RpcmVjdG9yeRIyLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuQ3JlYXRlUmVwb0RpcmVjdG9yeVJlcXVlc3QaJy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlJlcG9Xcml0ZVJlc3VsdBJkCgxNb3ZlUmVwb1BhdGgSKy5jb21wb3NpYS5jb250cm9sbGVyLnYxLk1vdmVSZXBvUGF0aFJlcXVlc3QaJy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlJlcG9Xcml0ZVJlc3VsdBJoCg5EZWxldGVSZXBvUGF0aBItLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuRGVsZXRlUmVwb1BhdGhSZXF1ZXN0GicuY29tcG9zaWEuY29udHJvbGxlci52MS5SZXBvV3JpdGVSZXN1bHQSXQoIU3luY1JlcG8SJy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlN5bmNSZXBvUmVxdWVzdBooLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuU3luY1JlcG9SZXNwb25zZUJYWlZmb3JnZWpvLmFsZXhtYS50b3AvYWxleG1hMjMzL2NvbXBvc2lhL2dlbi9nby9wcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxO2NvbnRyb2xsZXJ2MWIGcHJvdG8z",
-  );
+export const file_proto_composia_controller_v1_repo: GenFile = /*@__PURE__*/
+  fileDesc("Cidwcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxL3JlcG8ucHJvdG8SFmNvbXBvc2lhLmNvbnRyb2xsZXIudjEiFAoSR2V0UmVwb0hlYWRSZXF1ZXN0IrcBChNHZXRSZXBvSGVhZFJlc3BvbnNlEhUKDWhlYWRfcmV2aXNpb24YASABKAkSDgoGYnJhbmNoGAIgASgJEhIKCmhhc19yZW1vdGUYAyABKAgSFgoOY2xlYW5fd29ya3RyZWUYBCABKAgSEwoLc3luY19zdGF0dXMYBSABKAkSFwoPbGFzdF9zeW5jX2Vycm9yGAYgASgJEh8KF2xhc3Rfc3VjY2Vzc2Z1bF9wdWxsX2F0GAcgASgJIkkKDVJlcG9GaWxlRW50cnkSDAoEcGF0aBgBIAEoCRIMCgRuYW1lGAIgASgJEg4KBmlzX2RpchgDIAEoCBIMCgRzaXplGAQgASgDIjcKFExpc3RSZXBvRmlsZXNSZXF1ZXN0EgwKBHBhdGgYASABKAkSEQoJcmVjdXJzaXZlGAIgASgIIk8KFUxpc3RSZXBvRmlsZXNSZXNwb25zZRI2CgdlbnRyaWVzGAEgAygLMiUuY29tcG9zaWEuY29udHJvbGxlci52MS5SZXBvRmlsZUVudHJ5IiIKEkdldFJlcG9GaWxlUmVxdWVzdBIMCgRwYXRoGAEgASgJIkIKE0dldFJlcG9GaWxlUmVzcG9uc2USDAoEcGF0aBgBIAEoCRIPCgdjb250ZW50GAIgASgJEgwKBHNpemUYAyABKAMiTQoRUmVwb0NvbW1pdFN1bW1hcnkSEQoJY29tbWl0X2lkGAEgASgJEg8KB3N1YmplY3QYAiABKAkSFAoMY29tbWl0dGVkX2F0GAMgASgJIjsKFkxpc3RSZXBvQ29tbWl0c1JlcXVlc3QSEQoJcGFnZV9zaXplGAEgASgNEg4KBmN1cnNvchgCIAEoCSJqChdMaXN0UmVwb0NvbW1pdHNSZXNwb25zZRI6Cgdjb21taXRzGAEgAygLMikuY29tcG9zaWEuY29udHJvbGxlci52MS5SZXBvQ29tbWl0U3VtbWFyeRITCgtuZXh0X2N1cnNvchgCIAEoCSJCChNSZXBvVmFsaWRhdGlvbkVycm9yEgwKBHBhdGgYASABKAkSDAoEbGluZRgCIAEoDRIPCgdtZXNzYWdlGAMgASgJIhUKE1ZhbGlkYXRlUmVwb1JlcXVlc3QiUwoUVmFsaWRhdGVSZXBvUmVzcG9uc2USOwoGZXJyb3JzGAEgAygLMisuY29tcG9zaWEuY29udHJvbGxlci52MS5SZXBvVmFsaWRhdGlvbkVycm9yImUKFVVwZGF0ZVJlcG9GaWxlUmVxdWVzdBIMCgRwYXRoGAEgASgJEg8KB2NvbnRlbnQYAiABKAkSFQoNYmFzZV9yZXZpc2lvbhgDIAEoCRIWCg5jb21taXRfbWVzc2FnZRgEIAEoCSJuCg9SZXBvV3JpdGVSZXN1bHQSEQoJY29tbWl0X2lkGAEgASgJEhMKC3N5bmNfc3RhdHVzGAIgASgJEhIKCnB1c2hfZXJyb3IYAyABKAkSHwoXbGFzdF9zdWNjZXNzZnVsX3B1bGxfYXQYBCABKAkiWQoaQ3JlYXRlUmVwb0RpcmVjdG9yeVJlcXVlc3QSDAoEcGF0aBgBIAEoCRIVCg1iYXNlX3JldmlzaW9uGAIgASgJEhYKDmNvbW1pdF9tZXNzYWdlGAMgASgJInMKE01vdmVSZXBvUGF0aFJlcXVlc3QSEwoLc291cmNlX3BhdGgYASABKAkSGAoQZGVzdGluYXRpb25fcGF0aBgCIAEoCRIVCg1iYXNlX3JldmlzaW9uGAMgASgJEhYKDmNvbW1pdF9tZXNzYWdlGAQgASgJIlQKFURlbGV0ZVJlcG9QYXRoUmVxdWVzdBIMCgRwYXRoGAEgASgJEhUKDWJhc2VfcmV2aXNpb24YAiABKAkSFgoOY29tbWl0X21lc3NhZ2UYAyABKAkiEQoPU3luY1JlcG9SZXF1ZXN0IogBChBTeW5jUmVwb1Jlc3BvbnNlEhUKDWhlYWRfcmV2aXNpb24YASABKAkSDgoGYnJhbmNoGAIgASgJEhMKC3N5bmNfc3RhdHVzGAMgASgJEhcKD2xhc3Rfc3luY19lcnJvchgEIAEoCRIfChdsYXN0X3N1Y2Nlc3NmdWxfcHVsbF9hdBgFIAEoCTKvBAoQUmVwb1F1ZXJ5U2VydmljZRJmCgtHZXRSZXBvSGVhZBIqLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0UmVwb0hlYWRSZXF1ZXN0GisuY29tcG9zaWEuY29udHJvbGxlci52MS5HZXRSZXBvSGVhZFJlc3BvbnNlEmwKDUxpc3RSZXBvRmlsZXMSLC5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3RSZXBvRmlsZXNSZXF1ZXN0Gi0uY29tcG9zaWEuY29udHJvbGxlci52MS5MaXN0UmVwb0ZpbGVzUmVzcG9uc2USZgoLR2V0UmVwb0ZpbGUSKi5jb21wb3NpYS5jb250cm9sbGVyLnYxLkdldFJlcG9GaWxlUmVxdWVzdBorLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0UmVwb0ZpbGVSZXNwb25zZRJyCg9MaXN0UmVwb0NvbW1pdHMSLi5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3RSZXBvQ29tbWl0c1JlcXVlc3QaLy5jb21wb3NpYS5jb250cm9sbGVyLnYxLkxpc3RSZXBvQ29tbWl0c1Jlc3BvbnNlEmkKDFZhbGlkYXRlUmVwbxIrLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVmFsaWRhdGVSZXBvUmVxdWVzdBosLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVmFsaWRhdGVSZXBvUmVzcG9uc2UyoQQKElJlcG9Db21tYW5kU2VydmljZRJoCg5VcGRhdGVSZXBvRmlsZRItLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuVXBkYXRlUmVwb0ZpbGVSZXF1ZXN0GicuY29tcG9zaWEuY29udHJvbGxlci52MS5SZXBvV3JpdGVSZXN1bHQScgoTQ3JlYXRlUmVwb0RpcmVjdG9yeRIyLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuQ3JlYXRlUmVwb0RpcmVjdG9yeVJlcXVlc3QaJy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlJlcG9Xcml0ZVJlc3VsdBJkCgxNb3ZlUmVwb1BhdGgSKy5jb21wb3NpYS5jb250cm9sbGVyLnYxLk1vdmVSZXBvUGF0aFJlcXVlc3QaJy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlJlcG9Xcml0ZVJlc3VsdBJoCg5EZWxldGVSZXBvUGF0aBItLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuRGVsZXRlUmVwb1BhdGhSZXF1ZXN0GicuY29tcG9zaWEuY29udHJvbGxlci52MS5SZXBvV3JpdGVSZXN1bHQSXQoIU3luY1JlcG8SJy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlN5bmNSZXBvUmVxdWVzdBooLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuU3luY1JlcG9SZXNwb25zZUJYWlZmb3JnZWpvLmFsZXhtYS50b3AvYWxleG1hMjMzL2NvbXBvc2lhL2dlbi9nby9wcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxO2NvbnRyb2xsZXJ2MWIGcHJvdG8z");
 
 /**
  * GetRepoHeadRequest requests the current controller repo state.
  *
  * @generated from message composia.controller.v1.GetRepoHeadRequest
  */
-export type GetRepoHeadRequest =
-  Message<"composia.controller.v1.GetRepoHeadRequest"> & {};
+export type GetRepoHeadRequest = Message<"composia.controller.v1.GetRepoHeadRequest"> & {
+};
 
 /**
  * Describes the message composia.controller.v1.GetRepoHeadRequest.
  * Use `create(GetRepoHeadRequestSchema)` to create a new message.
  */
-export const GetRepoHeadRequestSchema: GenMessage<GetRepoHeadRequest> =
-  /*@__PURE__*/
+export const GetRepoHeadRequestSchema: GenMessage<GetRepoHeadRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 0);
 
 /**
@@ -44,60 +32,58 @@ export const GetRepoHeadRequestSchema: GenMessage<GetRepoHeadRequest> =
  *
  * @generated from message composia.controller.v1.GetRepoHeadResponse
  */
-export type GetRepoHeadResponse =
-  Message<"composia.controller.v1.GetRepoHeadResponse"> & {
-    /**
-     * head_revision is the current HEAD commit ID.
-     *
-     * @generated from field: string head_revision = 1;
-     */
-    headRevision: string;
+export type GetRepoHeadResponse = Message<"composia.controller.v1.GetRepoHeadResponse"> & {
+  /**
+   * head_revision is the current HEAD commit ID.
+   *
+   * @generated from field: string head_revision = 1;
+   */
+  headRevision: string;
 
-    /**
-     * @generated from field: string branch = 2;
-     */
-    branch: string;
+  /**
+   * @generated from field: string branch = 2;
+   */
+  branch: string;
 
-    /**
-     * @generated from field: bool has_remote = 3;
-     */
-    hasRemote: boolean;
+  /**
+   * @generated from field: bool has_remote = 3;
+   */
+  hasRemote: boolean;
 
-    /**
-     * clean_worktree reports whether there are uncommitted local changes.
-     *
-     * @generated from field: bool clean_worktree = 4;
-     */
-    cleanWorktree: boolean;
+  /**
+   * clean_worktree reports whether there are uncommitted local changes.
+   *
+   * @generated from field: bool clean_worktree = 4;
+   */
+  cleanWorktree: boolean;
 
-    /**
-     * sync_status is the controller's repo sync status string.
-     *
-     * @generated from field: string sync_status = 5;
-     */
-    syncStatus: string;
+  /**
+   * sync_status is the controller's repo sync status string.
+   *
+   * @generated from field: string sync_status = 5;
+   */
+  syncStatus: string;
 
-    /**
-     * last_sync_error contains the most recent sync failure, when present.
-     *
-     * @generated from field: string last_sync_error = 6;
-     */
-    lastSyncError: string;
+  /**
+   * last_sync_error contains the most recent sync failure, when present.
+   *
+   * @generated from field: string last_sync_error = 6;
+   */
+  lastSyncError: string;
 
-    /**
-     * last_successful_pull_at is the last successful pull timestamp string.
-     *
-     * @generated from field: string last_successful_pull_at = 7;
-     */
-    lastSuccessfulPullAt: string;
-  };
+  /**
+   * last_successful_pull_at is the last successful pull timestamp string.
+   *
+   * @generated from field: string last_successful_pull_at = 7;
+   */
+  lastSuccessfulPullAt: string;
+};
 
 /**
  * Describes the message composia.controller.v1.GetRepoHeadResponse.
  * Use `create(GetRepoHeadResponseSchema)` to create a new message.
  */
-export const GetRepoHeadResponseSchema: GenMessage<GetRepoHeadResponse> =
-  /*@__PURE__*/
+export const GetRepoHeadResponseSchema: GenMessage<GetRepoHeadResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 1);
 
 /**
@@ -139,8 +125,7 @@ export type RepoFileEntry = Message<"composia.controller.v1.RepoFileEntry"> & {
  * Describes the message composia.controller.v1.RepoFileEntry.
  * Use `create(RepoFileEntrySchema)` to create a new message.
  */
-export const RepoFileEntrySchema: GenMessage<RepoFileEntry> =
-  /*@__PURE__*/
+export const RepoFileEntrySchema: GenMessage<RepoFileEntry> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 2);
 
 /**
@@ -148,29 +133,27 @@ export const RepoFileEntrySchema: GenMessage<RepoFileEntry> =
  *
  * @generated from message composia.controller.v1.ListRepoFilesRequest
  */
-export type ListRepoFilesRequest =
-  Message<"composia.controller.v1.ListRepoFilesRequest"> & {
-    /**
-     * path is repo-relative. An empty path refers to the repo root.
-     *
-     * @generated from field: string path = 1;
-     */
-    path: string;
+export type ListRepoFilesRequest = Message<"composia.controller.v1.ListRepoFilesRequest"> & {
+  /**
+   * path is repo-relative. An empty path refers to the repo root.
+   *
+   * @generated from field: string path = 1;
+   */
+  path: string;
 
-    /**
-     * recursive includes all descendants under path when true.
-     *
-     * @generated from field: bool recursive = 2;
-     */
-    recursive: boolean;
-  };
+  /**
+   * recursive includes all descendants under path when true.
+   *
+   * @generated from field: bool recursive = 2;
+   */
+  recursive: boolean;
+};
 
 /**
  * Describes the message composia.controller.v1.ListRepoFilesRequest.
  * Use `create(ListRepoFilesRequestSchema)` to create a new message.
  */
-export const ListRepoFilesRequestSchema: GenMessage<ListRepoFilesRequest> =
-  /*@__PURE__*/
+export const ListRepoFilesRequestSchema: GenMessage<ListRepoFilesRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 3);
 
 /**
@@ -178,20 +161,18 @@ export const ListRepoFilesRequestSchema: GenMessage<ListRepoFilesRequest> =
  *
  * @generated from message composia.controller.v1.ListRepoFilesResponse
  */
-export type ListRepoFilesResponse =
-  Message<"composia.controller.v1.ListRepoFilesResponse"> & {
-    /**
-     * @generated from field: repeated composia.controller.v1.RepoFileEntry entries = 1;
-     */
-    entries: RepoFileEntry[];
-  };
+export type ListRepoFilesResponse = Message<"composia.controller.v1.ListRepoFilesResponse"> & {
+  /**
+   * @generated from field: repeated composia.controller.v1.RepoFileEntry entries = 1;
+   */
+  entries: RepoFileEntry[];
+};
 
 /**
  * Describes the message composia.controller.v1.ListRepoFilesResponse.
  * Use `create(ListRepoFilesResponseSchema)` to create a new message.
  */
-export const ListRepoFilesResponseSchema: GenMessage<ListRepoFilesResponse> =
-  /*@__PURE__*/
+export const ListRepoFilesResponseSchema: GenMessage<ListRepoFilesResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 4);
 
 /**
@@ -199,20 +180,18 @@ export const ListRepoFilesResponseSchema: GenMessage<ListRepoFilesResponse> =
  *
  * @generated from message composia.controller.v1.GetRepoFileRequest
  */
-export type GetRepoFileRequest =
-  Message<"composia.controller.v1.GetRepoFileRequest"> & {
-    /**
-     * @generated from field: string path = 1;
-     */
-    path: string;
-  };
+export type GetRepoFileRequest = Message<"composia.controller.v1.GetRepoFileRequest"> & {
+  /**
+   * @generated from field: string path = 1;
+   */
+  path: string;
+};
 
 /**
  * Describes the message composia.controller.v1.GetRepoFileRequest.
  * Use `create(GetRepoFileRequestSchema)` to create a new message.
  */
-export const GetRepoFileRequestSchema: GenMessage<GetRepoFileRequest> =
-  /*@__PURE__*/
+export const GetRepoFileRequestSchema: GenMessage<GetRepoFileRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 5);
 
 /**
@@ -220,36 +199,34 @@ export const GetRepoFileRequestSchema: GenMessage<GetRepoFileRequest> =
  *
  * @generated from message composia.controller.v1.GetRepoFileResponse
  */
-export type GetRepoFileResponse =
-  Message<"composia.controller.v1.GetRepoFileResponse"> & {
-    /**
-     * path is the repo-relative path that was read.
-     *
-     * @generated from field: string path = 1;
-     */
-    path: string;
+export type GetRepoFileResponse = Message<"composia.controller.v1.GetRepoFileResponse"> & {
+  /**
+   * path is the repo-relative path that was read.
+   *
+   * @generated from field: string path = 1;
+   */
+  path: string;
 
-    /**
-     * content is the file content as text.
-     *
-     * @generated from field: string content = 2;
-     */
-    content: string;
+  /**
+   * content is the file content as text.
+   *
+   * @generated from field: string content = 2;
+   */
+  content: string;
 
-    /**
-     * size is the file size in bytes.
-     *
-     * @generated from field: int64 size = 3;
-     */
-    size: bigint;
-  };
+  /**
+   * size is the file size in bytes.
+   *
+   * @generated from field: int64 size = 3;
+   */
+  size: bigint;
+};
 
 /**
  * Describes the message composia.controller.v1.GetRepoFileResponse.
  * Use `create(GetRepoFileResponseSchema)` to create a new message.
  */
-export const GetRepoFileResponseSchema: GenMessage<GetRepoFileResponse> =
-  /*@__PURE__*/
+export const GetRepoFileResponseSchema: GenMessage<GetRepoFileResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 6);
 
 /**
@@ -257,34 +234,32 @@ export const GetRepoFileResponseSchema: GenMessage<GetRepoFileResponse> =
  *
  * @generated from message composia.controller.v1.RepoCommitSummary
  */
-export type RepoCommitSummary =
-  Message<"composia.controller.v1.RepoCommitSummary"> & {
-    /**
-     * @generated from field: string commit_id = 1;
-     */
-    commitId: string;
+export type RepoCommitSummary = Message<"composia.controller.v1.RepoCommitSummary"> & {
+  /**
+   * @generated from field: string commit_id = 1;
+   */
+  commitId: string;
 
-    /**
-     * subject is the commit subject line.
-     *
-     * @generated from field: string subject = 2;
-     */
-    subject: string;
+  /**
+   * subject is the commit subject line.
+   *
+   * @generated from field: string subject = 2;
+   */
+  subject: string;
 
-    /**
-     * committed_at is the commit timestamp string.
-     *
-     * @generated from field: string committed_at = 3;
-     */
-    committedAt: string;
-  };
+  /**
+   * committed_at is the commit timestamp string.
+   *
+   * @generated from field: string committed_at = 3;
+   */
+  committedAt: string;
+};
 
 /**
  * Describes the message composia.controller.v1.RepoCommitSummary.
  * Use `create(RepoCommitSummarySchema)` to create a new message.
  */
-export const RepoCommitSummarySchema: GenMessage<RepoCommitSummary> =
-  /*@__PURE__*/
+export const RepoCommitSummarySchema: GenMessage<RepoCommitSummary> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 7);
 
 /**
@@ -292,29 +267,27 @@ export const RepoCommitSummarySchema: GenMessage<RepoCommitSummary> =
  *
  * @generated from message composia.controller.v1.ListRepoCommitsRequest
  */
-export type ListRepoCommitsRequest =
-  Message<"composia.controller.v1.ListRepoCommitsRequest"> & {
-    /**
-     * page_size is the requested page size.
-     *
-     * @generated from field: uint32 page_size = 1;
-     */
-    pageSize: number;
+export type ListRepoCommitsRequest = Message<"composia.controller.v1.ListRepoCommitsRequest"> & {
+  /**
+   * page_size is the requested page size.
+   *
+   * @generated from field: uint32 page_size = 1;
+   */
+  pageSize: number;
 
-    /**
-     * cursor is an opaque pagination cursor from a previous response.
-     *
-     * @generated from field: string cursor = 2;
-     */
-    cursor: string;
-  };
+  /**
+   * cursor is an opaque pagination cursor from a previous response.
+   *
+   * @generated from field: string cursor = 2;
+   */
+  cursor: string;
+};
 
 /**
  * Describes the message composia.controller.v1.ListRepoCommitsRequest.
  * Use `create(ListRepoCommitsRequestSchema)` to create a new message.
  */
-export const ListRepoCommitsRequestSchema: GenMessage<ListRepoCommitsRequest> =
-  /*@__PURE__*/
+export const ListRepoCommitsRequestSchema: GenMessage<ListRepoCommitsRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 8);
 
 /**
@@ -322,27 +295,25 @@ export const ListRepoCommitsRequestSchema: GenMessage<ListRepoCommitsRequest> =
  *
  * @generated from message composia.controller.v1.ListRepoCommitsResponse
  */
-export type ListRepoCommitsResponse =
-  Message<"composia.controller.v1.ListRepoCommitsResponse"> & {
-    /**
-     * @generated from field: repeated composia.controller.v1.RepoCommitSummary commits = 1;
-     */
-    commits: RepoCommitSummary[];
+export type ListRepoCommitsResponse = Message<"composia.controller.v1.ListRepoCommitsResponse"> & {
+  /**
+   * @generated from field: repeated composia.controller.v1.RepoCommitSummary commits = 1;
+   */
+  commits: RepoCommitSummary[];
 
-    /**
-     * next_cursor is empty when there are no more results.
-     *
-     * @generated from field: string next_cursor = 2;
-     */
-    nextCursor: string;
-  };
+  /**
+   * next_cursor is empty when there are no more results.
+   *
+   * @generated from field: string next_cursor = 2;
+   */
+  nextCursor: string;
+};
 
 /**
  * Describes the message composia.controller.v1.ListRepoCommitsResponse.
  * Use `create(ListRepoCommitsResponseSchema)` to create a new message.
  */
-export const ListRepoCommitsResponseSchema: GenMessage<ListRepoCommitsResponse> =
-  /*@__PURE__*/
+export const ListRepoCommitsResponseSchema: GenMessage<ListRepoCommitsResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 9);
 
 /**
@@ -350,36 +321,34 @@ export const ListRepoCommitsResponseSchema: GenMessage<ListRepoCommitsResponse> 
  *
  * @generated from message composia.controller.v1.RepoValidationError
  */
-export type RepoValidationError =
-  Message<"composia.controller.v1.RepoValidationError"> & {
-    /**
-     * path is the repo-relative path where validation failed.
-     *
-     * @generated from field: string path = 1;
-     */
-    path: string;
+export type RepoValidationError = Message<"composia.controller.v1.RepoValidationError"> & {
+  /**
+   * path is the repo-relative path where validation failed.
+   *
+   * @generated from field: string path = 1;
+   */
+  path: string;
 
-    /**
-     * line is the 1-based line number when the error maps to one line.
-     *
-     * @generated from field: uint32 line = 2;
-     */
-    line: number;
+  /**
+   * line is the 1-based line number when the error maps to one line.
+   *
+   * @generated from field: uint32 line = 2;
+   */
+  line: number;
 
-    /**
-     * message is a human-readable validation failure description.
-     *
-     * @generated from field: string message = 3;
-     */
-    message: string;
-  };
+  /**
+   * message is a human-readable validation failure description.
+   *
+   * @generated from field: string message = 3;
+   */
+  message: string;
+};
 
 /**
  * Describes the message composia.controller.v1.RepoValidationError.
  * Use `create(RepoValidationErrorSchema)` to create a new message.
  */
-export const RepoValidationErrorSchema: GenMessage<RepoValidationError> =
-  /*@__PURE__*/
+export const RepoValidationErrorSchema: GenMessage<RepoValidationError> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 10);
 
 /**
@@ -387,15 +356,14 @@ export const RepoValidationErrorSchema: GenMessage<RepoValidationError> =
  *
  * @generated from message composia.controller.v1.ValidateRepoRequest
  */
-export type ValidateRepoRequest =
-  Message<"composia.controller.v1.ValidateRepoRequest"> & {};
+export type ValidateRepoRequest = Message<"composia.controller.v1.ValidateRepoRequest"> & {
+};
 
 /**
  * Describes the message composia.controller.v1.ValidateRepoRequest.
  * Use `create(ValidateRepoRequestSchema)` to create a new message.
  */
-export const ValidateRepoRequestSchema: GenMessage<ValidateRepoRequest> =
-  /*@__PURE__*/
+export const ValidateRepoRequestSchema: GenMessage<ValidateRepoRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 11);
 
 /**
@@ -403,20 +371,18 @@ export const ValidateRepoRequestSchema: GenMessage<ValidateRepoRequest> =
  *
  * @generated from message composia.controller.v1.ValidateRepoResponse
  */
-export type ValidateRepoResponse =
-  Message<"composia.controller.v1.ValidateRepoResponse"> & {
-    /**
-     * @generated from field: repeated composia.controller.v1.RepoValidationError errors = 1;
-     */
-    errors: RepoValidationError[];
-  };
+export type ValidateRepoResponse = Message<"composia.controller.v1.ValidateRepoResponse"> & {
+  /**
+   * @generated from field: repeated composia.controller.v1.RepoValidationError errors = 1;
+   */
+  errors: RepoValidationError[];
+};
 
 /**
  * Describes the message composia.controller.v1.ValidateRepoResponse.
  * Use `create(ValidateRepoResponseSchema)` to create a new message.
  */
-export const ValidateRepoResponseSchema: GenMessage<ValidateRepoResponse> =
-  /*@__PURE__*/
+export const ValidateRepoResponseSchema: GenMessage<ValidateRepoResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 12);
 
 /**
@@ -424,43 +390,41 @@ export const ValidateRepoResponseSchema: GenMessage<ValidateRepoResponse> =
  *
  * @generated from message composia.controller.v1.UpdateRepoFileRequest
  */
-export type UpdateRepoFileRequest =
-  Message<"composia.controller.v1.UpdateRepoFileRequest"> & {
-    /**
-     * path is the repo-relative path to update.
-     *
-     * @generated from field: string path = 1;
-     */
-    path: string;
+export type UpdateRepoFileRequest = Message<"composia.controller.v1.UpdateRepoFileRequest"> & {
+  /**
+   * path is the repo-relative path to update.
+   *
+   * @generated from field: string path = 1;
+   */
+  path: string;
 
-    /**
-     * content is the full replacement file content.
-     *
-     * @generated from field: string content = 2;
-     */
-    content: string;
+  /**
+   * content is the full replacement file content.
+   *
+   * @generated from field: string content = 2;
+   */
+  content: string;
 
-    /**
-     * base_revision protects against writing on top of an unexpected HEAD.
-     *
-     * @generated from field: string base_revision = 3;
-     */
-    baseRevision: string;
+  /**
+   * base_revision protects against writing on top of an unexpected HEAD.
+   *
+   * @generated from field: string base_revision = 3;
+   */
+  baseRevision: string;
 
-    /**
-     * commit_message is used for the generated Git commit.
-     *
-     * @generated from field: string commit_message = 4;
-     */
-    commitMessage: string;
-  };
+  /**
+   * commit_message is used for the generated Git commit.
+   *
+   * @generated from field: string commit_message = 4;
+   */
+  commitMessage: string;
+};
 
 /**
  * Describes the message composia.controller.v1.UpdateRepoFileRequest.
  * Use `create(UpdateRepoFileRequestSchema)` to create a new message.
  */
-export const UpdateRepoFileRequestSchema: GenMessage<UpdateRepoFileRequest> =
-  /*@__PURE__*/
+export const UpdateRepoFileRequestSchema: GenMessage<UpdateRepoFileRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 13);
 
 /**
@@ -468,43 +432,41 @@ export const UpdateRepoFileRequestSchema: GenMessage<UpdateRepoFileRequest> =
  *
  * @generated from message composia.controller.v1.RepoWriteResult
  */
-export type RepoWriteResult =
-  Message<"composia.controller.v1.RepoWriteResult"> & {
-    /**
-     * commit_id is the Git commit created for the write.
-     *
-     * @generated from field: string commit_id = 1;
-     */
-    commitId: string;
+export type RepoWriteResult = Message<"composia.controller.v1.RepoWriteResult"> & {
+  /**
+   * commit_id is the Git commit created for the write.
+   *
+   * @generated from field: string commit_id = 1;
+   */
+  commitId: string;
 
-    /**
-     * sync_status is the repo sync state after the write.
-     *
-     * @generated from field: string sync_status = 2;
-     */
-    syncStatus: string;
+  /**
+   * sync_status is the repo sync state after the write.
+   *
+   * @generated from field: string sync_status = 2;
+   */
+  syncStatus: string;
 
-    /**
-     * push_error contains the last push error when sync_status is failed.
-     *
-     * @generated from field: string push_error = 3;
-     */
-    pushError: string;
+  /**
+   * push_error contains the last push error when sync_status is failed.
+   *
+   * @generated from field: string push_error = 3;
+   */
+  pushError: string;
 
-    /**
-     * last_successful_pull_at is the last successful pull timestamp string.
-     *
-     * @generated from field: string last_successful_pull_at = 4;
-     */
-    lastSuccessfulPullAt: string;
-  };
+  /**
+   * last_successful_pull_at is the last successful pull timestamp string.
+   *
+   * @generated from field: string last_successful_pull_at = 4;
+   */
+  lastSuccessfulPullAt: string;
+};
 
 /**
  * Describes the message composia.controller.v1.RepoWriteResult.
  * Use `create(RepoWriteResultSchema)` to create a new message.
  */
-export const RepoWriteResultSchema: GenMessage<RepoWriteResult> =
-  /*@__PURE__*/
+export const RepoWriteResultSchema: GenMessage<RepoWriteResult> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 14);
 
 /**
@@ -512,36 +474,34 @@ export const RepoWriteResultSchema: GenMessage<RepoWriteResult> =
  *
  * @generated from message composia.controller.v1.CreateRepoDirectoryRequest
  */
-export type CreateRepoDirectoryRequest =
-  Message<"composia.controller.v1.CreateRepoDirectoryRequest"> & {
-    /**
-     * path is the repo-relative directory path to create.
-     *
-     * @generated from field: string path = 1;
-     */
-    path: string;
+export type CreateRepoDirectoryRequest = Message<"composia.controller.v1.CreateRepoDirectoryRequest"> & {
+  /**
+   * path is the repo-relative directory path to create.
+   *
+   * @generated from field: string path = 1;
+   */
+  path: string;
 
-    /**
-     * base_revision protects against writing on top of an unexpected HEAD.
-     *
-     * @generated from field: string base_revision = 2;
-     */
-    baseRevision: string;
+  /**
+   * base_revision protects against writing on top of an unexpected HEAD.
+   *
+   * @generated from field: string base_revision = 2;
+   */
+  baseRevision: string;
 
-    /**
-     * commit_message is used for the generated Git commit.
-     *
-     * @generated from field: string commit_message = 3;
-     */
-    commitMessage: string;
-  };
+  /**
+   * commit_message is used for the generated Git commit.
+   *
+   * @generated from field: string commit_message = 3;
+   */
+  commitMessage: string;
+};
 
 /**
  * Describes the message composia.controller.v1.CreateRepoDirectoryRequest.
  * Use `create(CreateRepoDirectoryRequestSchema)` to create a new message.
  */
-export const CreateRepoDirectoryRequestSchema: GenMessage<CreateRepoDirectoryRequest> =
-  /*@__PURE__*/
+export const CreateRepoDirectoryRequestSchema: GenMessage<CreateRepoDirectoryRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 15);
 
 /**
@@ -549,43 +509,41 @@ export const CreateRepoDirectoryRequestSchema: GenMessage<CreateRepoDirectoryReq
  *
  * @generated from message composia.controller.v1.MoveRepoPathRequest
  */
-export type MoveRepoPathRequest =
-  Message<"composia.controller.v1.MoveRepoPathRequest"> & {
-    /**
-     * source_path is the existing repo-relative path to move.
-     *
-     * @generated from field: string source_path = 1;
-     */
-    sourcePath: string;
+export type MoveRepoPathRequest = Message<"composia.controller.v1.MoveRepoPathRequest"> & {
+  /**
+   * source_path is the existing repo-relative path to move.
+   *
+   * @generated from field: string source_path = 1;
+   */
+  sourcePath: string;
 
-    /**
-     * destination_path is the new repo-relative path.
-     *
-     * @generated from field: string destination_path = 2;
-     */
-    destinationPath: string;
+  /**
+   * destination_path is the new repo-relative path.
+   *
+   * @generated from field: string destination_path = 2;
+   */
+  destinationPath: string;
 
-    /**
-     * base_revision protects against writing on top of an unexpected HEAD.
-     *
-     * @generated from field: string base_revision = 3;
-     */
-    baseRevision: string;
+  /**
+   * base_revision protects against writing on top of an unexpected HEAD.
+   *
+   * @generated from field: string base_revision = 3;
+   */
+  baseRevision: string;
 
-    /**
-     * commit_message is used for the generated Git commit.
-     *
-     * @generated from field: string commit_message = 4;
-     */
-    commitMessage: string;
-  };
+  /**
+   * commit_message is used for the generated Git commit.
+   *
+   * @generated from field: string commit_message = 4;
+   */
+  commitMessage: string;
+};
 
 /**
  * Describes the message composia.controller.v1.MoveRepoPathRequest.
  * Use `create(MoveRepoPathRequestSchema)` to create a new message.
  */
-export const MoveRepoPathRequestSchema: GenMessage<MoveRepoPathRequest> =
-  /*@__PURE__*/
+export const MoveRepoPathRequestSchema: GenMessage<MoveRepoPathRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 16);
 
 /**
@@ -593,36 +551,34 @@ export const MoveRepoPathRequestSchema: GenMessage<MoveRepoPathRequest> =
  *
  * @generated from message composia.controller.v1.DeleteRepoPathRequest
  */
-export type DeleteRepoPathRequest =
-  Message<"composia.controller.v1.DeleteRepoPathRequest"> & {
-    /**
-     * path is the repo-relative path to delete.
-     *
-     * @generated from field: string path = 1;
-     */
-    path: string;
+export type DeleteRepoPathRequest = Message<"composia.controller.v1.DeleteRepoPathRequest"> & {
+  /**
+   * path is the repo-relative path to delete.
+   *
+   * @generated from field: string path = 1;
+   */
+  path: string;
 
-    /**
-     * base_revision protects against writing on top of an unexpected HEAD.
-     *
-     * @generated from field: string base_revision = 2;
-     */
-    baseRevision: string;
+  /**
+   * base_revision protects against writing on top of an unexpected HEAD.
+   *
+   * @generated from field: string base_revision = 2;
+   */
+  baseRevision: string;
 
-    /**
-     * commit_message is used for the generated Git commit.
-     *
-     * @generated from field: string commit_message = 3;
-     */
-    commitMessage: string;
-  };
+  /**
+   * commit_message is used for the generated Git commit.
+   *
+   * @generated from field: string commit_message = 3;
+   */
+  commitMessage: string;
+};
 
 /**
  * Describes the message composia.controller.v1.DeleteRepoPathRequest.
  * Use `create(DeleteRepoPathRequestSchema)` to create a new message.
  */
-export const DeleteRepoPathRequestSchema: GenMessage<DeleteRepoPathRequest> =
-  /*@__PURE__*/
+export const DeleteRepoPathRequestSchema: GenMessage<DeleteRepoPathRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 17);
 
 /**
@@ -630,15 +586,14 @@ export const DeleteRepoPathRequestSchema: GenMessage<DeleteRepoPathRequest> =
  *
  * @generated from message composia.controller.v1.SyncRepoRequest
  */
-export type SyncRepoRequest =
-  Message<"composia.controller.v1.SyncRepoRequest"> & {};
+export type SyncRepoRequest = Message<"composia.controller.v1.SyncRepoRequest"> & {
+};
 
 /**
  * Describes the message composia.controller.v1.SyncRepoRequest.
  * Use `create(SyncRepoRequestSchema)` to create a new message.
  */
-export const SyncRepoRequestSchema: GenMessage<SyncRepoRequest> =
-  /*@__PURE__*/
+export const SyncRepoRequestSchema: GenMessage<SyncRepoRequest> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 18);
 
 /**
@@ -646,50 +601,48 @@ export const SyncRepoRequestSchema: GenMessage<SyncRepoRequest> =
  *
  * @generated from message composia.controller.v1.SyncRepoResponse
  */
-export type SyncRepoResponse =
-  Message<"composia.controller.v1.SyncRepoResponse"> & {
-    /**
-     * head_revision is the current HEAD commit ID after the sync attempt.
-     *
-     * @generated from field: string head_revision = 1;
-     */
-    headRevision: string;
+export type SyncRepoResponse = Message<"composia.controller.v1.SyncRepoResponse"> & {
+  /**
+   * head_revision is the current HEAD commit ID after the sync attempt.
+   *
+   * @generated from field: string head_revision = 1;
+   */
+  headRevision: string;
 
-    /**
-     * branch is the currently checked out branch name.
-     *
-     * @generated from field: string branch = 2;
-     */
-    branch: string;
+  /**
+   * branch is the currently checked out branch name.
+   *
+   * @generated from field: string branch = 2;
+   */
+  branch: string;
 
-    /**
-     * sync_status is the repo sync state after the sync attempt.
-     *
-     * @generated from field: string sync_status = 3;
-     */
-    syncStatus: string;
+  /**
+   * sync_status is the repo sync state after the sync attempt.
+   *
+   * @generated from field: string sync_status = 3;
+   */
+  syncStatus: string;
 
-    /**
-     * last_sync_error contains the most recent sync failure, when present.
-     *
-     * @generated from field: string last_sync_error = 4;
-     */
-    lastSyncError: string;
+  /**
+   * last_sync_error contains the most recent sync failure, when present.
+   *
+   * @generated from field: string last_sync_error = 4;
+   */
+  lastSyncError: string;
 
-    /**
-     * last_successful_pull_at is the last successful pull timestamp string.
-     *
-     * @generated from field: string last_successful_pull_at = 5;
-     */
-    lastSuccessfulPullAt: string;
-  };
+  /**
+   * last_successful_pull_at is the last successful pull timestamp string.
+   *
+   * @generated from field: string last_successful_pull_at = 5;
+   */
+  lastSuccessfulPullAt: string;
+};
 
 /**
  * Describes the message composia.controller.v1.SyncRepoResponse.
  * Use `create(SyncRepoResponseSchema)` to create a new message.
  */
-export const SyncRepoResponseSchema: GenMessage<SyncRepoResponse> =
-  /*@__PURE__*/
+export const SyncRepoResponseSchema: GenMessage<SyncRepoResponse> = /*@__PURE__*/
   messageDesc(file_proto_composia_controller_v1_repo, 19);
 
 /**
@@ -707,7 +660,7 @@ export const RepoQueryService: GenService<{
     methodKind: "unary";
     input: typeof GetRepoHeadRequestSchema;
     output: typeof GetRepoHeadResponseSchema;
-  };
+  },
   /**
    * ListRepoFiles lists direct children for one repo path.
    *
@@ -717,7 +670,7 @@ export const RepoQueryService: GenService<{
     methodKind: "unary";
     input: typeof ListRepoFilesRequestSchema;
     output: typeof ListRepoFilesResponseSchema;
-  };
+  },
   /**
    * GetRepoFile returns the content of one repo file.
    *
@@ -727,7 +680,7 @@ export const RepoQueryService: GenService<{
     methodKind: "unary";
     input: typeof GetRepoFileRequestSchema;
     output: typeof GetRepoFileResponseSchema;
-  };
+  },
   /**
    * ListRepoCommits returns commit history using cursor pagination.
    *
@@ -737,7 +690,7 @@ export const RepoQueryService: GenService<{
     methodKind: "unary";
     input: typeof ListRepoCommitsRequestSchema;
     output: typeof ListRepoCommitsResponseSchema;
-  };
+  },
   /**
    * ValidateRepo runs repo validation and returns structured errors.
    *
@@ -747,8 +700,9 @@ export const RepoQueryService: GenService<{
     methodKind: "unary";
     input: typeof ValidateRepoRequestSchema;
     output: typeof ValidateRepoResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_proto_composia_controller_v1_repo, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_proto_composia_controller_v1_repo, 0);
 
 /**
  * RepoCommandService applies changes to the controller Git repo.
@@ -765,7 +719,7 @@ export const RepoCommandService: GenService<{
     methodKind: "unary";
     input: typeof UpdateRepoFileRequestSchema;
     output: typeof RepoWriteResultSchema;
-  };
+  },
   /**
    * CreateRepoDirectory creates one directory, creates a commit, and reports sync state.
    *
@@ -775,7 +729,7 @@ export const RepoCommandService: GenService<{
     methodKind: "unary";
     input: typeof CreateRepoDirectoryRequestSchema;
     output: typeof RepoWriteResultSchema;
-  };
+  },
   /**
    * MoveRepoPath moves or renames one repo path.
    *
@@ -785,7 +739,7 @@ export const RepoCommandService: GenService<{
     methodKind: "unary";
     input: typeof MoveRepoPathRequestSchema;
     output: typeof RepoWriteResultSchema;
-  };
+  },
   /**
    * DeleteRepoPath deletes one repo path.
    *
@@ -795,7 +749,7 @@ export const RepoCommandService: GenService<{
     methodKind: "unary";
     input: typeof DeleteRepoPathRequestSchema;
     output: typeof RepoWriteResultSchema;
-  };
+  },
   /**
    * SyncRepo pulls or syncs the repo and returns the resulting state snapshot.
    *
@@ -805,5 +759,7 @@ export const RepoCommandService: GenService<{
     methodKind: "unary";
     input: typeof SyncRepoRequestSchema;
     output: typeof SyncRepoResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_proto_composia_controller_v1_repo, 1);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_proto_composia_controller_v1_repo, 1);
+

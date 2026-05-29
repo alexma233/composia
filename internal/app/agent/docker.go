@@ -872,8 +872,8 @@ func executeDockerQuery(ctx context.Context, query *agentv1.DockerQueryTask) (do
 			return dockerTaskResult{}, err
 		}
 		return dockerTaskResult{RawJSON: resp.Msg.GetRawJson()}, nil
-	case *agentv1.DockerQueryTask_GetContainerLogs:
-		content, err := server.collectContainerLogs(ctx, typed.GetContainerLogs.GetContainerId(), typed.GetContainerLogs.GetTail(), typed.GetContainerLogs.GetTimestamps())
+	case *agentv1.DockerQueryTask_ContainerLogs:
+		content, err := server.collectContainerLogs(ctx, typed.ContainerLogs.GetContainerId(), typed.ContainerLogs.GetTail(), typed.ContainerLogs.GetTimestamps())
 		if err != nil {
 			return dockerTaskResult{}, err
 		}
