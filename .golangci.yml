@@ -55,34 +55,10 @@ linters:
       default-signifies-exhaustive: true
     gocritic:
       enabled-checks:
-        - argOrder
-        - badCall
-        - badCond
-        - codegenComment
         - commentedOutCode
-        - defaultCaseOrder
-        - dupArg
-        - dupBranchBody
-        - dupCase
         - emptyStringTest
-        - exitAfterDefer
-        - flagDeref
-        - flagName
-        - ifElseChain
-        - mapKey
-        - newDeref
-        - offBy1
-        - regexpMust
-        - sloppyLen
         - sloppyReassign
         - stringXbytes
-        - switchTrue
-        - typeSwitchVar
-        - underef
-        - unlambda
-        - unslice
-        - valSwap
-        - wrapperFunc
         - yodaStyleExpr
     sloglint:
       no-global: "all"
