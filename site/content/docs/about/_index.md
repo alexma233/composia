@@ -5,3 +5,4 @@ weight: 50
 ---
 
 - [Why Composia?](why-composia/) — design philosophy, comparison with other tools, and who it is for.
+- [Branding](branding/) — icon usage, name guidelines, and license.

@@ -5,3 +5,4 @@ weight: 50
 ---
 
 - [Pourquoi Composia ?](why-composia/) — philosophie de conception, comparaison avec d'autres outils et à qui il s'adresse.
+- [Charte graphique](branding/) — utilisation de l'icône, règles de nommage et licence.
