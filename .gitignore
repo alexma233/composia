@@ -207,6 +207,8 @@ config.local.yaml
 # Hugo
 site/public
 site/.hugo_build.lock
+site/package.json
+site/packages/
 
 # Craft Agents
 events.jsonl
