@@ -1230,8 +1230,8 @@ RunContainerExecResponse returns the completed exec result.
 | timed_out | [bool](#bool) |  |  |
 | stdout_truncated | [bool](#bool) |  |  |
 | stderr_truncated | [bool](#bool) |  |  |
-| started_at | [string](#string) |  |  |
-| finished_at | [string](#string) |  |  |
+| started_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+| finished_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
 | duration | [string](#string) |  |  |
 
 
@@ -1460,6 +1460,7 @@ ImageInfo describes one Docker image for node-scoped list views.
 | os | [string](#string) |  | os is the image operating system string. |
 | containers_count | [uint32](#uint32) |  | containers_count is the number of containers using the image. |
 | is_dangling | [bool](#bool) |  | is_dangling reports whether the image is dangling. |
+| author | [string](#string) |  | author is the image author metadata, when present. |
 
 
 

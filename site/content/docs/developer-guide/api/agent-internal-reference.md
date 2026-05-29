@@ -227,7 +227,7 @@ DockerQueryTask describes one synchronous Docker query assigned to an agent.
 | inspect_volume | [InspectVolumeRequest](#composia-agent-v1-InspectVolumeRequest) |  |  |
 | list_images | [ListImagesRequest](#composia-agent-v1-ListImagesRequest) |  |  |
 | inspect_image | [InspectImageRequest](#composia-agent-v1-InspectImageRequest) |  |  |
-| get_container_logs | [GetContainerLogsRequest](#composia-agent-v1-GetContainerLogsRequest) |  |  |
+| container_logs | [GetContainerLogsRequest](#composia-agent-v1-GetContainerLogsRequest) |  |  |
 | run_container_exec | [DockerQueryRunContainerExecRequest](#composia-agent-v1-DockerQueryRunContainerExecRequest) |  |  |
 
 
@@ -1000,7 +1000,7 @@ ReportDockerQueryResultRequest reports the result of one direct Docker query.
 | inspect_volume | [InspectVolumeResponse](#composia-agent-v1-InspectVolumeResponse) |  |  |
 | list_images | [ListImagesResponse](#composia-agent-v1-ListImagesResponse) |  |  |
 | inspect_image | [InspectImageResponse](#composia-agent-v1-InspectImageResponse) |  |  |
-| get_container_logs | [GetContainerLogsResponse](#composia-agent-v1-GetContainerLogsResponse) |  |  |
+| container_logs | [GetContainerLogsResponse](#composia-agent-v1-GetContainerLogsResponse) |  |  |
 | run_container_exec | [DockerQueryRunContainerExecResponse](#composia-agent-v1-DockerQueryRunContainerExecResponse) |  |  |
 | error_message | [string](#string) |  | error_message contains the human-readable failure summary when the query fails. |
 | error_code | [DockerQueryErrorCode](#composia-agent-v1-DockerQueryErrorCode) |  | error_code carries the normalized failure code when the query fails. |
