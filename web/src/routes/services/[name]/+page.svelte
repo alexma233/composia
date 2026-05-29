@@ -1647,7 +1647,7 @@
     {/if}
 
     <div
-      class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)_420px]"
+      class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)_360px]"
     >
       <Card class="flex min-h-0 min-w-0 flex-col">
         <CardHeader class="section-header border-b">
