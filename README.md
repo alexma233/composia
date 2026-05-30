@@ -4,7 +4,7 @@
   <p><strong>Main Repository</strong></p>
   <p>
     <a href="https://forgejo.alexma.top/alexma233/composia">
-      <img src="https://img.shields.io/gitea/stars/alexma233/composia?gitea_url=https://forgejo.alexma.top&style=for-the-badge&label=AlexMa's%20Forgejo%20Stars" alt="Forgejo Stars" />
+      <img src="https://img.shields.io/badge/AlexMa's%20Forgejo-View%20Repo-blue?style=for-the-badge" alt="AlexMa's Forgejo" />
     </a>
   </p>
 
