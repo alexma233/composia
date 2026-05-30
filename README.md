@@ -93,6 +93,7 @@ Composia can run without Docker. Linux release packages include:
 - `composia` — user-facing CLI
 - `composia-controller` — controller runtime
 - `composia-agent` — agent runtime
+- `composia-controller.service` and `composia-agent.service` — optional systemd units installed inactive by default
 
 Darwin and Windows releases include only the `composia` CLI.
 
@@ -115,7 +116,7 @@ Release packaging is handled by GoReleaser:
 goreleaser release --snapshot --clean
 ```
 
-The release configuration builds pure binary archives for Linux, Darwin, and Windows. Linux releases include `.deb`, `.rpm`, Arch Linux binary packages, and the `composia-bin` AUR package. Nix users can install the Linux package from the flake:
+The release configuration builds pure binary archives for Linux, Darwin, and Windows. Linux releases include `.deb`, `.rpm`, Arch Linux binary packages, and the `composia-bin` AUR package. Linux packages install systemd unit files but do not enable or start services. Nix users can install the Linux package from the flake:
 
 ```bash
 nix profile install git+https://forgejo.alexma.top/alexma233/composia

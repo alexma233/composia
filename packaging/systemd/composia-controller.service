@@ -1,0 +1,14 @@
+[Unit]
+Description=Composia Controller
+Documentation=https://composia.xyz
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/composia-controller
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

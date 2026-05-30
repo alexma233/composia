@@ -15,7 +15,7 @@ Container images already include these tools. Non-container installs must provid
 | Controller | CA certificates, `git`. |
 | Agent | `git`, Docker CLI, Docker Buildx plugin, Docker Compose plugin, access to the Docker daemon. |
 
-The package or archive installs Composia binaries only. It does not install Docker, Docker Compose, or Git for you.
+Linux packages and archives install Composia binaries and optional systemd unit files. They do not install Docker, Docker Compose, or Git for you.
 
 {{< tabs >}}
 
@@ -128,7 +128,7 @@ Download archives from the [Releases page](https://forgejo.alexma.top/alexma233/
 
 | Platform | Artifact pattern | Contents |
 |----------|------------------|----------|
-| Linux | `composia_<version>_linux_<arch>.tar.gz` | `composia`, `composia-controller`, `composia-agent` |
+| Linux | `composia_<version>_linux_<arch>.tar.gz` | `composia`, `composia-controller`, `composia-agent`, systemd unit files |
 | macOS | `composia_<version>_darwin_<arch>.tar.gz` | `composia` |
 | Windows | `composia_<version>_windows_<arch>.zip` | `composia.exe` |
 
@@ -171,42 +171,20 @@ Download `checksums.txt` from the same release and verify the downloaded artifac
 
 ## System services
 
-When running controller or agent outside containers, use your service manager to keep them running.
+Linux packages install inactive systemd units for the controller and agent. The units are not enabled or started automatically.
 
-Example systemd controller unit:
+The packaged units use the default config paths:
 
-```ini {filename="/etc/systemd/system/composia-controller.service"}
-[Unit]
-Description=Composia Controller
-After=network-online.target
-Wants=network-online.target
+| Service | Config path |
+|---------|-------------|
+| `composia-controller.service` | `/etc/composia/controller/config.yaml` |
+| `composia-agent.service` | `/etc/composia/agent/config.yaml` |
 
-[Service]
-Type=simple
-ExecStart=/usr/bin/composia-controller -config /etc/composia/config.yaml
-Restart=on-failure
-RestartSec=5
+After creating the config files, enable the services explicitly:
 
-[Install]
-WantedBy=multi-user.target
+```bash
+sudo systemctl enable --now composia-controller.service
+sudo systemctl enable --now composia-agent.service
 ```
 
-Example systemd agent unit:
-
-```ini {filename="/etc/systemd/system/composia-agent.service"}
-[Unit]
-Description=Composia Agent
-After=network-online.target docker.service
-Wants=network-online.target docker.service
-
-[Service]
-Type=simple
-ExecStart=/usr/bin/composia-agent -config /etc/composia/config.yaml
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Adjust users, groups, config paths, and Docker socket permissions for your environment.
+Linux archives include the same unit files under `packaging/systemd/`. If you install archive binaries under `/usr/local/bin`, edit the unit `ExecStart` paths before enabling them.

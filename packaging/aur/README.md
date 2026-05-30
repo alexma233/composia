@@ -14,3 +14,7 @@ The package installs:
 - `/usr/bin/composia`
 - `/usr/bin/composia-controller`
 - `/usr/bin/composia-agent`
+- `/usr/lib/systemd/system/composia-controller.service`
+- `/usr/lib/systemd/system/composia-agent.service`
+
+The systemd units are installed only. They are not enabled or started automatically.

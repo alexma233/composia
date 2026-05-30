@@ -15,7 +15,7 @@ weight: 30
 | 控制器 | CA 憑證、`git`。 |
 | 代理 | `git`、Docker CLI、Docker Buildx 外掛、Docker Compose 外掛、對 Docker 守護程序的存取。 |
 
-套件或壓縮檔僅安裝 Composia 二進位檔。它不會為您安裝 Docker、Docker Compose 或 Git。
+Linux 套件和壓縮檔會安裝 Composia 二進位檔與可選的 systemd 單元檔。它們不會為您安裝 Docker、Docker Compose 或 Git。
 
 {{< tabs >}}
 
@@ -128,7 +128,7 @@ nixpkgs 套件尚未合併。追蹤上游 PR：[NixOS/nixpkgs#515061](https://gi
 
 | 平台 | 成品模式 | 內容 |
 |----------|------------------|----------|
-| Linux | `composia_<version>_linux_<arch>.tar.gz` | `composia`、`composia-controller`、`composia-agent` |
+| Linux | `composia_<version>_linux_<arch>.tar.gz` | `composia`、`composia-controller`、`composia-agent`、systemd 單元檔 |
 | macOS | `composia_<version>_darwin_<arch>.tar.gz` | `composia` |
 | Windows | `composia_<version>_windows_<arch>.zip` | `composia.exe` |
 
@@ -171,42 +171,20 @@ Expand-Archive composia_<version>_windows_<arch>.zip -DestinationPath .
 
 ## 系統服務
 
-在容器外執行控制器或代理時，使用您的服務管理器來保持它們執行。
+Linux 套件會安裝未啟用的 controller 與 agent systemd 單元。套件不會自動啟用或啟動這些服務。
 
-範例 systemd 控制器單元：
+打包的單元使用預設設定路徑：
 
-```ini {filename="/etc/systemd/system/composia-controller.service"}
-[Unit]
-Description=Composia Controller
-After=network-online.target
-Wants=network-online.target
+| 服務 | 設定路徑 |
+|---------|-------------|
+| `composia-controller.service` | `/etc/composia/controller/config.yaml` |
+| `composia-agent.service` | `/etc/composia/agent/config.yaml` |
 
-[Service]
-Type=simple
-ExecStart=/usr/bin/composia-controller -config /etc/composia/config.yaml
-Restart=on-failure
-RestartSec=5
+建立設定檔後，明確啟用服務：
 
-[Install]
-WantedBy=multi-user.target
+```bash
+sudo systemctl enable --now composia-controller.service
+sudo systemctl enable --now composia-agent.service
 ```
 
-範例 systemd 代理單元：
-
-```ini {filename="/etc/systemd/system/composia-agent.service"}
-[Unit]
-Description=Composia Agent
-After=network-online.target docker.service
-Wants=network-online.target docker.service
-
-[Service]
-Type=simple
-ExecStart=/usr/bin/composia-agent -config /etc/composia/config.yaml
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-```
-
-根據您的環境調整使用者、群組、設定路徑和 Docker socket 權限。
+Linux 壓縮檔也會在 `packaging/systemd/` 下包含同一組單元檔。如果您將壓縮檔中的二進位檔安裝到 `/usr/local/bin`，請先修改單元檔中的 `ExecStart` 路徑再啟用。

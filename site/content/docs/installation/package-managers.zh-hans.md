@@ -15,7 +15,7 @@ weight: 30
 | Controller | CA 证书、`git`。 |
 | Agent | `git`、Docker CLI、Docker Buildx 插件、Docker Compose 插件、Docker 守护进程访问权限。 |
 
-软件包或归档仅安装 Composia 二进制文件。它不会为您安装 Docker、Docker Compose 或 Git。
+Linux 软件包和归档会安装 Composia 二进制文件和可选的 systemd 单元文件。它们不会为您安装 Docker、Docker Compose 或 Git。
 
 {{< tabs >}}
 
@@ -128,7 +128,7 @@ nixpkgs 包尚未合并。请关注上游 PR [NixOS/nixpkgs#515061](https://gith
 
 | 平台 | 产物模式 | 内容 |
 |----------|------------------|----------|
-| Linux | `composia_<version>_linux_<arch>.tar.gz` | `composia`、`composia-controller`、`composia-agent` |
+| Linux | `composia_<version>_linux_<arch>.tar.gz` | `composia`、`composia-controller`、`composia-agent`、systemd 单元文件 |
 | macOS | `composia_<version>_darwin_<arch>.tar.gz` | `composia` |
 | Windows | `composia_<version>_windows_<arch>.zip` | `composia.exe` |
 
@@ -171,42 +171,20 @@ Expand-Archive composia_<version>_windows_<arch>.zip -DestinationPath .
 
 ## 系统服务
 
-在容器外运行控制器或 agent 时，使用您的服务管理器使它们保持运行。
+Linux 软件包会安装未启用的 controller 和 agent systemd 单元。安装包不会自动启用或启动这些服务。
 
-systemd 控制器单元示例：
+打包的单元使用默认配置路径：
 
-```ini {filename="/etc/systemd/system/composia-controller.service"}
-[Unit]
-Description=Composia Controller
-After=network-online.target
-Wants=network-online.target
+| 服务 | 配置路径 |
+|---------|-------------|
+| `composia-controller.service` | `/etc/composia/controller/config.yaml` |
+| `composia-agent.service` | `/etc/composia/agent/config.yaml` |
 
-[Service]
-Type=simple
-ExecStart=/usr/bin/composia-controller -config /etc/composia/config.yaml
-Restart=on-failure
-RestartSec=5
+创建配置文件后，显式启用服务：
 
-[Install]
-WantedBy=multi-user.target
+```bash
+sudo systemctl enable --now composia-controller.service
+sudo systemctl enable --now composia-agent.service
 ```
 
-systemd agent 单元示例：
-
-```ini {filename="/etc/systemd/system/composia-agent.service"}
-[Unit]
-Description=Composia Agent
-After=network-online.target docker.service
-Wants=network-online.target docker.service
-
-[Service]
-Type=simple
-ExecStart=/usr/bin/composia-agent -config /etc/composia/config.yaml
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-```
-
-根据您的环境调整用户、组、配置路径和 Docker 套接字权限。
+Linux 归档也在 `packaging/systemd/` 下包含同一组单元文件。如果您把归档中的二进制安装到 `/usr/local/bin`，请先修改单元文件中的 `ExecStart` 路径再启用。

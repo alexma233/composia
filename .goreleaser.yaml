@@ -119,6 +119,8 @@ archives:
     files:
       - LICENSE
       - README.md
+      - packaging/systemd/composia-agent.service
+      - packaging/systemd/composia-controller.service
 
   - id: darwin-cli
     ids:
@@ -259,6 +261,9 @@ nfpms:
       - archlinux
       - deb
       - rpm
+    scripts:
+      postinstall: packaging/scripts/systemd-daemon-reload.sh
+      postremove: packaging/scripts/systemd-daemon-reload.sh
     contents:
       - src: LICENSE
         dst: /usr/share/licenses/composia/LICENSE
@@ -266,6 +271,14 @@ nfpms:
           mode: 0644
       - src: README.md
         dst: /usr/share/doc/composia/README.md
+        file_info:
+          mode: 0644
+      - src: packaging/systemd/composia-controller.service
+        dst: /usr/lib/systemd/system/composia-controller.service
+        file_info:
+          mode: 0644
+      - src: packaging/systemd/composia-agent.service
+        dst: /usr/lib/systemd/system/composia-agent.service
         file_info:
           mode: 0644
 
@@ -290,6 +303,8 @@ aurs:
       install -Dm755 "./composia" "${pkgdir}/usr/bin/composia"
       install -Dm755 "./composia-controller" "${pkgdir}/usr/bin/composia-controller"
       install -Dm755 "./composia-agent" "${pkgdir}/usr/bin/composia-agent"
+      install -Dm644 "./packaging/systemd/composia-controller.service" "${pkgdir}/usr/lib/systemd/system/composia-controller.service"
+      install -Dm644 "./packaging/systemd/composia-agent.service" "${pkgdir}/usr/lib/systemd/system/composia-agent.service"
       install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/composia-bin/LICENSE"
       install -Dm644 "./README.md" "${pkgdir}/usr/share/doc/composia-bin/README.md"
     commit_msg_template: "Update to {{ .Tag }}"
@@ -333,6 +348,8 @@ aur_sources:
       install -Dm755 composia "${pkgdir}/usr/bin/composia"
       install -Dm755 composia-controller "${pkgdir}/usr/bin/composia-controller"
       install -Dm755 composia-agent "${pkgdir}/usr/bin/composia-agent"
+      install -Dm644 packaging/systemd/composia-controller.service "${pkgdir}/usr/lib/systemd/system/composia-controller.service"
+      install -Dm644 packaging/systemd/composia-agent.service "${pkgdir}/usr/lib/systemd/system/composia-agent.service"
       install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/composia/LICENSE"
       install -Dm644 README.md "${pkgdir}/usr/share/doc/composia/README.md"
     commit_msg_template: "Update to {{ .Tag }}"
@@ -381,5 +398,5 @@ release:
 
     ## Included binaries
 
-    Linux archives and Linux packages include: `composia` (CLI), `composia-controller` and `composia-agent`
+    Linux archives and Linux packages include: `composia` (CLI), `composia-controller`, `composia-agent`, and optional systemd unit files. Packages install the unit files but do not enable or start services.
     Windows and macOS archives include: `composia` (CLI)

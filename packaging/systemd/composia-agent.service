@@ -1,0 +1,14 @@
+[Unit]
+Description=Composia Agent
+Documentation=https://composia.xyz
+After=network-online.target docker.service
+Wants=network-online.target docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/composia-agent
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
