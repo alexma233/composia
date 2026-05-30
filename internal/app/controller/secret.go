@@ -25,23 +25,23 @@ type secretServer struct {
 }
 
 func (server *secretServer) GetSecret(ctx context.Context, req *connect.Request[controllerv1.GetSecretRequest]) (*connect.Response[controllerv1.GetSecretResponse], error) {
-	if req.Msg == nil || req.Msg.GetServiceName() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
-	}
-	if req.Msg.GetFilePath() == "" {
+	if req.Msg == nil || req.Msg.GetFilePath() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("file_path is required"))
+	}
+	if req.Msg.GetServiceDir() == "" && req.Msg.GetServiceName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_dir or service_name is required"))
 	}
 	if server.cfg.Secrets == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("controller secrets are not configured"))
 	}
-	service, filePath, err := server.resolveServiceFilePath(req.Msg.GetServiceName(), req.Msg.GetFilePath())
+	displayName, filePath, err := server.resolveSecretFilePath(req.Msg.GetServiceDir(), req.Msg.GetServiceName(), req.Msg.GetFilePath())
 	if err != nil {
 		return nil, err
 	}
 	secretFile, err := repo.ReadFile(server.cfg.RepoDir, filePath)
 	if err != nil {
 		if errors.Is(err, repo.ErrRepoPathNotFound) {
-			return connect.NewResponse(&controllerv1.GetSecretResponse{ServiceName: service.Name, FilePath: req.Msg.GetFilePath(), Content: ""}), nil
+			return connect.NewResponse(&controllerv1.GetSecretResponse{ServiceName: displayName, FilePath: req.Msg.GetFilePath(), Content: ""}), nil
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -49,15 +49,15 @@ func (server *secretServer) GetSecret(ctx context.Context, req *connect.Request[
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	return connect.NewResponse(&controllerv1.GetSecretResponse{ServiceName: service.Name, FilePath: req.Msg.GetFilePath(), Content: plaintext}), nil
+	return connect.NewResponse(&controllerv1.GetSecretResponse{ServiceName: displayName, FilePath: req.Msg.GetFilePath(), Content: plaintext}), nil
 }
 
 func (server *secretServer) UpdateSecret(ctx context.Context, req *connect.Request[controllerv1.UpdateSecretRequest]) (*connect.Response[controllerv1.RepoWriteResult], error) {
-	if req.Msg == nil || req.Msg.GetServiceName() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
-	}
-	if req.Msg.GetFilePath() == "" {
+	if req.Msg == nil || req.Msg.GetFilePath() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("file_path is required"))
+	}
+	if req.Msg.GetServiceDir() == "" && req.Msg.GetServiceName() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_dir or service_name is required"))
 	}
 	if req.Msg.GetBaseRevision() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base_revision is required"))
@@ -65,7 +65,7 @@ func (server *secretServer) UpdateSecret(ctx context.Context, req *connect.Reque
 	if server.cfg.Secrets == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("controller secrets are not configured"))
 	}
-	service, filePath, err := server.resolveServiceFilePath(req.Msg.GetServiceName(), req.Msg.GetFilePath())
+	displayName, filePath, err := server.resolveSecretFilePath(req.Msg.GetServiceDir(), req.Msg.GetServiceName(), req.Msg.GetFilePath())
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (server *secretServer) UpdateSecret(ctx context.Context, req *connect.Reque
 	repoSrv := &repoCommandServer{db: server.db, cfg: server.cfg, availableNodeIDs: server.availableNodeIDs, repoMu: server.repoMu}
 	commitMessage := req.Msg.GetCommitMessage()
 	if commitMessage == "" {
-		commitMessage = fmt.Sprintf("update encrypted file %s for %s", req.Msg.GetFilePath(), service.Name)
+		commitMessage = fmt.Sprintf("update encrypted file %s for %s", req.Msg.GetFilePath(), displayName)
 	}
 	result, err := repoSrv.runRepoWrite(ctx, req.Msg.GetBaseRevision(), []string{filePath}, func(baseSyncState store.RepoSyncState) (repoWriteResult, error) {
 		return repoSrv.updateRepoFileTransaction(ctx, filePath, string(ciphertext), commitMessage, baseSyncState)
@@ -87,22 +87,34 @@ func (server *secretServer) UpdateSecret(ctx context.Context, req *connect.Reque
 	return connect.NewResponse(repoWriteResultMessage(result)), nil
 }
 
-func (server *secretServer) resolveServiceFilePath(serviceName, filePath string) (*repo.Service, string, error) {
-	service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, serviceName)
-	if err != nil {
-		return nil, "", connect.NewError(connect.CodeNotFound, err)
-	}
-	serviceDir, err := filepath.Rel(server.cfg.RepoDir, service.Directory)
-	if err != nil {
-		return nil, "", connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
-	}
+func (server *secretServer) resolveSecretFilePath(serviceDir, serviceName, filePath string) (string, string, error) {
 	cleanPath := filepath.ToSlash(filepath.Clean(filePath))
 	if strings.HasPrefix(cleanPath, "../") || strings.Contains(cleanPath, "/../") {
-		return nil, "", connect.NewError(connect.CodeInvalidArgument, errors.New("file_path must not escape service directory"))
+		return "", "", connect.NewError(connect.CodeInvalidArgument, errors.New("file_path must not escape service directory"))
 	}
 	if filepath.IsAbs(cleanPath) {
-		return nil, "", connect.NewError(connect.CodeInvalidArgument, errors.New("file_path must be relative"))
+		return "", "", connect.NewError(connect.CodeInvalidArgument, errors.New("file_path must be relative"))
 	}
-	fullPath := filepath.ToSlash(filepath.Join(serviceDir, cleanPath))
-	return &service, fullPath, nil
+	if serviceDir != "" {
+		normalizedDir := filepath.ToSlash(filepath.Clean(serviceDir))
+		if strings.HasPrefix(normalizedDir, "../") || strings.Contains(normalizedDir, "/../") {
+			return "", "", connect.NewError(connect.CodeInvalidArgument, errors.New("service_dir must not escape repo root"))
+		}
+		if filepath.IsAbs(normalizedDir) {
+			return "", "", connect.NewError(connect.CodeInvalidArgument, errors.New("service_dir must be relative"))
+		}
+		fullPath := filepath.ToSlash(filepath.Join(normalizedDir, cleanPath))
+		displayName := filepath.Base(normalizedDir)
+		return displayName, fullPath, nil
+	}
+	service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, serviceName)
+	if err != nil {
+		return "", "", connect.NewError(connect.CodeNotFound, err)
+	}
+	resolvedDir, err := filepath.Rel(server.cfg.RepoDir, service.Directory)
+	if err != nil {
+		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
+	}
+	fullPath := filepath.ToSlash(filepath.Join(resolvedDir, cleanPath))
+	return service.Name, fullPath, nil
 }

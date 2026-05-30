@@ -23,7 +23,6 @@ export const PUT: RequestHandler = async ({ params, request }) => {
     }
 
     const result = await saveServiceWorkspaceFile(
-      workspace.serviceName,
       params.name,
       normalizeServiceRelativePath(payload.path),
       payload.content ?? "",

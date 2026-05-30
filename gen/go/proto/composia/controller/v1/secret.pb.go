@@ -26,6 +26,7 @@ type GetSecretRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	FilePath      string                 `protobuf:"bytes,2,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"`
+	ServiceDir    string                 `protobuf:"bytes,3,opt,name=service_dir,json=serviceDir,proto3" json:"service_dir,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -70,6 +71,13 @@ func (x *GetSecretRequest) GetServiceName() string {
 func (x *GetSecretRequest) GetFilePath() string {
 	if x != nil {
 		return x.FilePath
+	}
+	return ""
+}
+
+func (x *GetSecretRequest) GetServiceDir() string {
+	if x != nil {
+		return x.ServiceDir
 	}
 	return ""
 }
@@ -147,6 +155,7 @@ type UpdateSecretRequest struct {
 	BaseRevision string `protobuf:"bytes,4,opt,name=base_revision,json=baseRevision,proto3" json:"base_revision,omitempty"`
 	// commit_message is used for the generated Git commit.
 	CommitMessage string `protobuf:"bytes,5,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
+	ServiceDir    string `protobuf:"bytes,6,opt,name=service_dir,json=serviceDir,proto3" json:"service_dir,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -216,24 +225,35 @@ func (x *UpdateSecretRequest) GetCommitMessage() string {
 	return ""
 }
 
+func (x *UpdateSecretRequest) GetServiceDir() string {
+	if x != nil {
+		return x.ServiceDir
+	}
+	return ""
+}
+
 var File_proto_composia_controller_v1_secret_proto protoreflect.FileDescriptor
 
 const file_proto_composia_controller_v1_secret_proto_rawDesc = "" +
 	"\n" +
-	")proto/composia/controller/v1/secret.proto\x12\x16composia.controller.v1\x1a'proto/composia/controller/v1/repo.proto\"R\n" +
+	")proto/composia/controller/v1/secret.proto\x12\x16composia.controller.v1\x1a'proto/composia/controller/v1/repo.proto\"s\n" +
 	"\x10GetSecretRequest\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x1b\n" +
-	"\tfile_path\x18\x02 \x01(\tR\bfilePath\"m\n" +
+	"\tfile_path\x18\x02 \x01(\tR\bfilePath\x12\x1f\n" +
+	"\vservice_dir\x18\x03 \x01(\tR\n" +
+	"serviceDir\"m\n" +
 	"\x11GetSecretResponse\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x1b\n" +
 	"\tfile_path\x18\x02 \x01(\tR\bfilePath\x12\x18\n" +
-	"\acontent\x18\x03 \x01(\tR\acontent\"\xbb\x01\n" +
+	"\acontent\x18\x03 \x01(\tR\acontent\"\xdc\x01\n" +
 	"\x13UpdateSecretRequest\x12!\n" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12\x1b\n" +
 	"\tfile_path\x18\x02 \x01(\tR\bfilePath\x12\x18\n" +
 	"\acontent\x18\x03 \x01(\tR\acontent\x12#\n" +
 	"\rbase_revision\x18\x04 \x01(\tR\fbaseRevision\x12%\n" +
-	"\x0ecommit_message\x18\x05 \x01(\tR\rcommitMessage2\xd7\x01\n" +
+	"\x0ecommit_message\x18\x05 \x01(\tR\rcommitMessage\x12\x1f\n" +
+	"\vservice_dir\x18\x06 \x01(\tR\n" +
+	"serviceDir2\xd7\x01\n" +
 	"\rSecretService\x12`\n" +
 	"\tGetSecret\x12(.composia.controller.v1.GetSecretRequest\x1a).composia.controller.v1.GetSecretResponse\x12d\n" +
 	"\fUpdateSecret\x12+.composia.controller.v1.UpdateSecretRequest\x1a'.composia.controller.v1.RepoWriteResultBXZVforgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1b\x06proto3"

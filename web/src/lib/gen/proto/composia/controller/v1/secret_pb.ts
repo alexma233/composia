@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file proto/composia/controller/v1/secret.proto.
  */
 export const file_proto_composia_controller_v1_secret: GenFile = /*@__PURE__*/
-  fileDesc("Cilwcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxL3NlY3JldC5wcm90bxIWY29tcG9zaWEuY29udHJvbGxlci52MSI7ChBHZXRTZWNyZXRSZXF1ZXN0EhQKDHNlcnZpY2VfbmFtZRgBIAEoCRIRCglmaWxlX3BhdGgYAiABKAkiTQoRR2V0U2VjcmV0UmVzcG9uc2USFAoMc2VydmljZV9uYW1lGAEgASgJEhEKCWZpbGVfcGF0aBgCIAEoCRIPCgdjb250ZW50GAMgASgJIn4KE1VwZGF0ZVNlY3JldFJlcXVlc3QSFAoMc2VydmljZV9uYW1lGAEgASgJEhEKCWZpbGVfcGF0aBgCIAEoCRIPCgdjb250ZW50GAMgASgJEhUKDWJhc2VfcmV2aXNpb24YBCABKAkSFgoOY29tbWl0X21lc3NhZ2UYBSABKAky1wEKDVNlY3JldFNlcnZpY2USYAoJR2V0U2VjcmV0EiguY29tcG9zaWEuY29udHJvbGxlci52MS5HZXRTZWNyZXRSZXF1ZXN0GikuY29tcG9zaWEuY29udHJvbGxlci52MS5HZXRTZWNyZXRSZXNwb25zZRJkCgxVcGRhdGVTZWNyZXQSKy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlVwZGF0ZVNlY3JldFJlcXVlc3QaJy5jb21wb3NpYS5jb250cm9sbGVyLnYxLlJlcG9Xcml0ZVJlc3VsdEJYWlZmb3JnZWpvLmFsZXhtYS50b3AvYWxleG1hMjMzL2NvbXBvc2lhL2dlbi9nby9wcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxO2NvbnRyb2xsZXJ2MWIGcHJvdG8z", [file_proto_composia_controller_v1_repo]);
+  fileDesc("Cilwcm90by9jb21wb3NpYS9jb250cm9sbGVyL3YxL3NlY3JldC5wcm90bxIWY29tcG9zaWEuY29udHJvbGxlci52MSJQChBHZXRTZWNyZXRSZXF1ZXN0EhQKDHNlcnZpY2VfbmFtZRgBIAEoCRIRCglmaWxlX3BhdGgYAiABKAkSEwoLc2VydmljZV9kaXIYAyABKAkiTQoRR2V0U2VjcmV0UmVzcG9uc2USFAoMc2VydmljZV9uYW1lGAEgASgJEhEKCWZpbGVfcGF0aBgCIAEoCRIPCgdjb250ZW50GAMgASgJIpMBChNVcGRhdGVTZWNyZXRSZXF1ZXN0EhQKDHNlcnZpY2VfbmFtZRgBIAEoCRIRCglmaWxlX3BhdGgYAiABKAkSDwoHY29udGVudBgDIAEoCRIVCg1iYXNlX3JldmlzaW9uGAQgASgJEhYKDmNvbW1pdF9tZXNzYWdlGAUgASgJEhMKC3NlcnZpY2VfZGlyGAYgASgJMtcBCg1TZWNyZXRTZXJ2aWNlEmAKCUdldFNlY3JldBIoLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0U2VjcmV0UmVxdWVzdBopLmNvbXBvc2lhLmNvbnRyb2xsZXIudjEuR2V0U2VjcmV0UmVzcG9uc2USZAoMVXBkYXRlU2VjcmV0EisuY29tcG9zaWEuY29udHJvbGxlci52MS5VcGRhdGVTZWNyZXRSZXF1ZXN0GicuY29tcG9zaWEuY29udHJvbGxlci52MS5SZXBvV3JpdGVSZXN1bHRCWFpWZm9yZ2Vqby5hbGV4bWEudG9wL2FsZXhtYTIzMy9jb21wb3NpYS9nZW4vZ28vcHJvdG8vY29tcG9zaWEvY29udHJvbGxlci92MTtjb250cm9sbGVydjFiBnByb3RvMw", [file_proto_composia_controller_v1_repo]);
 
 /**
  * GetSecretRequest identifies one decrypted secret file for a service.
@@ -29,6 +29,11 @@ export type GetSecretRequest = Message<"composia.controller.v1.GetSecretRequest"
    * @generated from field: string file_path = 2;
    */
   filePath: string;
+
+  /**
+   * @generated from field: string service_dir = 3;
+   */
+  serviceDir: string;
 };
 
 /**
@@ -105,6 +110,11 @@ export type UpdateSecretRequest = Message<"composia.controller.v1.UpdateSecretRe
    * @generated from field: string commit_message = 5;
    */
   commitMessage: string;
+
+  /**
+   * @generated from field: string service_dir = 6;
+   */
+  serviceDir: string;
 };
 
 /**

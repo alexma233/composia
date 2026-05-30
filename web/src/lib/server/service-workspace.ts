@@ -19,7 +19,6 @@ import {
 
 const ENCRYPTED_FILE_REASON_MESSAGES: Record<string, string> = {
   missing_secrets_config: "Secrets configuration is incomplete.",
-  service_not_declared: "This service is not declared yet.",
 };
 
 export async function loadServiceFileTree(
@@ -35,24 +34,21 @@ export async function loadServiceFileTree(
 }
 
 export async function loadServiceWorkspaceFile(
-  serviceName: string | null,
   serviceDir: string,
   relativePath: string,
 ): Promise<WorkspaceFile> {
   const normalized = normalizeServiceRelativePath(relativePath);
   let content: string;
   if (isEncryptedFilePath(normalized)) {
-    const unavailableReasonCode =
-      await resolveEncryptedFileUnavailableReason(serviceName);
-    if (unavailableReasonCode) {
+    const capabilities = await loadSystemCapabilities();
+    if (!capabilities.global.secrets.enabled) {
       return unavailableEncryptedWorkspaceFile(
         normalized,
-        unavailableReasonCode,
+        capabilities.global.secrets.reasonCode || "missing_secrets_config",
       );
     }
 
-    const declaredServiceName = serviceName as string;
-    const secret = await loadSecret(declaredServiceName, normalized);
+    const secret = await loadSecret(serviceDir, normalized);
     content = secret.content ?? "";
   } else {
     const file = await loadRepoFile(
@@ -68,7 +64,6 @@ export async function loadServiceWorkspaceFile(
 }
 
 export async function saveServiceWorkspaceFile(
-  serviceName: string | null,
   serviceDir: string,
   relativePath: string,
   content: string,
@@ -77,18 +72,16 @@ export async function saveServiceWorkspaceFile(
   const normalized = normalizeServiceRelativePath(relativePath);
   let write: RepoWriteResult;
   if (isEncryptedFilePath(normalized)) {
-    const unavailableReasonCode =
-      await resolveEncryptedFileUnavailableReason(serviceName);
-    if (unavailableReasonCode) {
+    const capabilities = await loadSystemCapabilities();
+    if (!capabilities.global.secrets.enabled) {
       throw new Error(
-        ENCRYPTED_FILE_REASON_MESSAGES[unavailableReasonCode] ??
+        ENCRYPTED_FILE_REASON_MESSAGES[capabilities.global.secrets.reasonCode || "missing_secrets_config"] ??
           "Encrypted file is currently unavailable.",
       );
     }
 
-    const declaredServiceName = serviceName as string;
     write = await updateSecret(
-      declaredServiceName,
+      serviceDir,
       normalized,
       content,
       baseRevision,
@@ -108,21 +101,6 @@ export async function saveServiceWorkspaceFile(
     },
     write,
   };
-}
-
-async function resolveEncryptedFileUnavailableReason(
-  serviceName: string | null,
-) {
-  if (!serviceName) {
-    return "service_not_declared";
-  }
-
-  const capabilities = await loadSystemCapabilities();
-  if (capabilities.global.secrets.enabled) {
-    return null;
-  }
-
-  return capabilities.global.secrets.reasonCode || "missing_secrets_config";
 }
 
 function unavailableEncryptedWorkspaceFile(

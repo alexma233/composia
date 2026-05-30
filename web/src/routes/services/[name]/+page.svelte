@@ -296,9 +296,7 @@
       return "";
     }
 
-    return file.unavailableReasonCode === "service_not_declared"
-      ? $messages.services.files.encryptedUnavailableDeclared
-      : $messages.services.files.encryptedUnavailableMissingSecrets;
+    return $messages.services.files.encryptedUnavailableMissingSecrets;
   }
 
   let migrateSourceNodes = $derived(serviceDetail?.nodes ?? []);

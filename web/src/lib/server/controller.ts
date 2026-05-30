@@ -1364,7 +1364,7 @@ export async function syncRepo(): Promise<RepoSyncResult> {
 }
 
 export async function loadSecret(
-  serviceName: string,
+  serviceDir: string,
   filePath: string,
 ): Promise<SecretEnv> {
   const config = requireControllerConfig();
@@ -1372,12 +1372,12 @@ export async function loadSecret(
     config.baseUrl,
     config.token,
     controllerProcedure("/composia.controller.v1.SecretService/GetSecret"),
-    { serviceName, filePath },
+    { serviceDir, filePath },
   );
 }
 
 export async function updateSecret(
-  serviceName: string,
+  serviceDir: string,
   filePath: string,
   content: string,
   baseRevision: string,
@@ -1388,7 +1388,7 @@ export async function updateSecret(
     config.baseUrl,
     config.token,
     controllerProcedure("/composia.controller.v1.SecretService/UpdateSecret"),
-    { serviceName, filePath, content, baseRevision, commitMessage },
+    { serviceDir, filePath, content, baseRevision, commitMessage },
   );
 }
 

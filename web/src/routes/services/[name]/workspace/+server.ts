@@ -15,7 +15,6 @@ export const GET: RequestHandler = async ({ params, url }) => {
     const normalizedPath = path ? normalizeServiceRelativePath(path) : "";
     const file = normalizedPath
       ? await loadServiceWorkspaceFile(
-          summary.workspace.serviceName || null,
           params.name,
           normalizedPath,
         )
