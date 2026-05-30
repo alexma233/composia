@@ -60,7 +60,7 @@ func TestTaskServiceListTasks(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "access-token" {
+		if token != testAccessToken {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -78,7 +78,7 @@ func TestTaskServiceListTasks(t *testing.T) {
 	client := controllerv1connect.NewTaskServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
-		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")),
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)),
 	)
 
 	response, err := client.ListTasks(ctx, connect.NewRequest(&controllerv1.ListTasksRequest{ServiceName: []string{"alpha"}, PageSize: 1}))
@@ -154,7 +154,7 @@ func TestTaskServiceGetTaskReturnsSteps(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "access-token" {
+		if token != testAccessToken {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -172,7 +172,7 @@ func TestTaskServiceGetTaskReturnsSteps(t *testing.T) {
 	client := controllerv1connect.NewTaskServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
-		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")),
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)),
 	)
 
 	response, err := client.GetTask(ctx, connect.NewRequest(&controllerv1.GetTaskRequest{TaskId: "task-detail"}))
@@ -220,7 +220,7 @@ func TestTaskServiceTailTaskLogsStreamsExistingAndNewContent(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "access-token" {
+		if token != testAccessToken {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -232,7 +232,7 @@ func TestTaskServiceTailTaskLogsStreamsExistingAndNewContent(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
+	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)))
 	streamCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	stream, err := client.TailTaskLogs(streamCtx, connect.NewRequest(&controllerv1.TailTaskLogsRequest{TaskId: "task-log-tail"}))
@@ -289,7 +289,7 @@ func TestTaskServiceRunTaskAgainCreatesNewPendingTask(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "access-token" {
+		if token != testAccessToken {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -301,7 +301,7 @@ func TestTaskServiceRunTaskAgainCreatesNewPendingTask(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
+	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)))
 	response, err := client.RunTaskAgain(ctx, connect.NewRequest(&controllerv1.RunTaskAgainRequest{TaskId: "task-old"}))
 	if err != nil {
 		t.Fatalf("run task again: %v", err)
@@ -350,7 +350,7 @@ func TestTaskServiceRunTaskAgainSupportsBackup(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "access-token" {
+		if token != testAccessToken {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -362,7 +362,7 @@ func TestTaskServiceRunTaskAgainSupportsBackup(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
+	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)))
 	response, err := client.RunTaskAgain(ctx, connect.NewRequest(&controllerv1.RunTaskAgainRequest{TaskId: "task-backup"}))
 	if err != nil {
 		t.Fatalf("rerun backup task: %v", err)
@@ -406,7 +406,7 @@ func TestTaskServiceResolveTaskConfirmationApproveRequeuesMigrateTask(t *testing
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "access-token" {
+		if token != testAccessToken {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -418,7 +418,7 @@ func TestTaskServiceResolveTaskConfirmationApproveRequeuesMigrateTask(t *testing
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
+	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)))
 	response, err := client.ResolveTaskConfirmation(ctx, connect.NewRequest(&controllerv1.ResolveTaskConfirmationRequest{TaskId: "task-migrate", Decision: controllerv1.TaskConfirmationDecision_TASK_CONFIRMATION_DECISION_APPROVE}))
 	if err != nil {
 		t.Fatalf("resolve task confirmation: %v", err)
@@ -469,7 +469,7 @@ func TestTaskServiceResolveTaskConfirmationRejectCancelsMigrateTask(t *testing.T
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "access-token" {
+		if token != testAccessToken {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -481,7 +481,7 @@ func TestTaskServiceResolveTaskConfirmationRejectCancelsMigrateTask(t *testing.T
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
+	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)))
 	response, err := client.ResolveTaskConfirmation(ctx, connect.NewRequest(&controllerv1.ResolveTaskConfirmationRequest{TaskId: "task-migrate-reject", Decision: controllerv1.TaskConfirmationDecision_TASK_CONFIRMATION_DECISION_REJECT}))
 	if err != nil {
 		t.Fatalf("resolve task confirmation: %v", err)
@@ -538,7 +538,7 @@ func TestTaskServiceCreateMigrationRollbackCreatesPendingTask(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "access-token" {
+		if token != testAccessToken {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -550,7 +550,7 @@ func TestTaskServiceCreateMigrationRollbackCreatesPendingTask(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
+	client := controllerv1connect.NewTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)))
 	response, err := client.CreateMigrationRollback(ctx, connect.NewRequest(&controllerv1.CreateMigrationRollbackRequest{TaskId: "task-migrate-cancelled", RollbackDns: true, DeploySource: true, StopTarget: true}))
 	if err != nil {
 		t.Fatalf("create migration rollback: %v", err)

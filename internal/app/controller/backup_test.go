@@ -46,7 +46,7 @@ func TestBackupQueryServiceListAndGetBackup(t *testing.T) {
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "access-token" {
+		if token != testAccessToken {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -57,7 +57,7 @@ func TestBackupQueryServiceListAndGetBackup(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	queryClient := controllerv1connect.NewBackupQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")))
+	queryClient := controllerv1connect.NewBackupQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)))
 	listResponse, err := queryClient.ListBackups(ctx, connect.NewRequest(&controllerv1.ListBackupsRequest{ServiceName: []string{"alpha"}, ExcludeStatus: []string{"failed"}}))
 	if err != nil {
 		t.Fatalf("list backups: %v", err)
@@ -117,7 +117,7 @@ func TestBackupCommandServiceRestoreBackupCreatesPendingRestoreTask(t *testing.T
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "access-token" {
+		if token != testAccessToken {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -137,7 +137,7 @@ func TestBackupCommandServiceRestoreBackupCreatesPendingRestoreTask(t *testing.T
 			return next(ctx, req)
 		}
 	})
-	client := controllerv1connect.NewBackupCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token"), requestInterceptor))
+	client := controllerv1connect.NewBackupCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken), requestInterceptor))
 
 	response, err := client.RestoreBackup(ctx, connect.NewRequest(&controllerv1.RestoreBackupRequest{BackupId: "backup-1", NodeId: "main"}))
 	if err != nil {

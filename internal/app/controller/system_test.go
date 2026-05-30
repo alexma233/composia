@@ -50,7 +50,7 @@ func TestRegisterAccessHandlersKeepsSystemAndServiceBackupCapabilitiesConsistent
 	}
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "access-token" {
+		if token != testAccessToken {
 			return "", assertError("unexpected token")
 		}
 		return "test-client", nil
@@ -78,12 +78,12 @@ func TestRegisterAccessHandlersKeepsSystemAndServiceBackupCapabilitiesConsistent
 	systemClient := controllerv1connect.NewSystemServiceClient(
 		httpServer.Client(),
 		rpcutil.JoinBaseURL(httpServer.URL, rpcutil.ControllerAPIBasePath),
-		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")),
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)),
 	)
 	serviceClient := controllerv1connect.NewServiceQueryServiceClient(
 		httpServer.Client(),
 		rpcutil.JoinBaseURL(httpServer.URL, rpcutil.ControllerAPIBasePath),
-		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")),
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)),
 	)
 
 	configResponse, err := systemClient.GetCurrentConfig(ctx, connect.NewRequest(&controllerv1.GetCurrentConfigRequest{}))

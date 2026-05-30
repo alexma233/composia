@@ -9,6 +9,8 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 )
 
+const testAccessToken = "access-token"
+
 func syncDeclaredServicesForTests(ctx context.Context, db *store.DB, serviceNames ...string) error {
 	declared := make(map[string][]string, len(serviceNames))
 	for _, serviceName := range serviceNames {

@@ -36,7 +36,7 @@ func TestContainerExecRequiresWebOriginHeader(t *testing.T) {
 	execManager.registerTunnel("main")
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "access-token" {
+		if token != testAccessToken {
 			return "", assertError("unexpected token")
 		}
 		return "web-admin", nil
@@ -58,7 +58,7 @@ func TestContainerExecRequiresWebOriginHeader(t *testing.T) {
 	client := controllerv1connect.NewDockerCommandServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
-		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")),
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)),
 	)
 
 	_, err := client.OpenContainerExec(ctx, connect.NewRequest(&controllerv1.OpenContainerExecRequest{NodeId: "main", ContainerId: "ctr"}))
@@ -91,7 +91,7 @@ func TestContainerExecWebsocketRequiresAllowedOriginAndOneTimeToken(t *testing.T
 	execManager.registerTunnel("main")
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "access-token" {
+		if token != testAccessToken {
 			return "", assertError("unexpected token")
 		}
 		return "web-admin", nil
@@ -114,7 +114,7 @@ func TestContainerExecWebsocketRequiresAllowedOriginAndOneTimeToken(t *testing.T
 	client := controllerv1connect.NewDockerCommandServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
-		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")),
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)),
 	)
 
 	req := connect.NewRequest(&controllerv1.OpenContainerExecRequest{NodeId: "main", ContainerId: "ctr"})

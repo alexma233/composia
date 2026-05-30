@@ -37,7 +37,7 @@ func TestDockerCommandServiceGetContainerLogsStreamsThroughAgentTunnel(t *testin
 	defer logManager.unregisterTunnel("main", tunnel)
 
 	interceptor := rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "access-token" { //nolint:goconst
+		if token != testAccessToken {
 			return "", assertError("unexpected token")
 		}
 		return "web-admin", nil
@@ -59,7 +59,7 @@ func TestDockerCommandServiceGetContainerLogsStreamsThroughAgentTunnel(t *testin
 	client := controllerv1connect.NewDockerCommandServiceClient(
 		httpServer.Client(),
 		httpServer.URL,
-		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("access-token")),
+		connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)),
 	)
 
 	agentErrCh := make(chan error, 1)
