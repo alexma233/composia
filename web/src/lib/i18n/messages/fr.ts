@@ -615,6 +615,7 @@ export const fr = {
       mounts: "Montages",
       networks: "Réseaux",
       labels: "Étiquettes",
+      managedByComposia: "Composia",
       environment: "Environnement",
       config: "Configuration",
       network: "Réseau",
