@@ -26,26 +26,29 @@ const (
 type AgentTaskType int32
 
 const (
-	AgentTaskType_AGENT_TASK_TYPE_UNSPECIFIED    AgentTaskType = 0
-	AgentTaskType_AGENT_TASK_TYPE_DEPLOY         AgentTaskType = 1
-	AgentTaskType_AGENT_TASK_TYPE_STOP           AgentTaskType = 2
-	AgentTaskType_AGENT_TASK_TYPE_RESTART        AgentTaskType = 3
-	AgentTaskType_AGENT_TASK_TYPE_UPDATE         AgentTaskType = 4
-	AgentTaskType_AGENT_TASK_TYPE_BACKUP         AgentTaskType = 5
-	AgentTaskType_AGENT_TASK_TYPE_RESTORE        AgentTaskType = 6
-	AgentTaskType_AGENT_TASK_TYPE_MIGRATE        AgentTaskType = 7
-	AgentTaskType_AGENT_TASK_TYPE_DNS_UPDATE     AgentTaskType = 8
-	AgentTaskType_AGENT_TASK_TYPE_CADDY_SYNC     AgentTaskType = 9
-	AgentTaskType_AGENT_TASK_TYPE_CADDY_RELOAD   AgentTaskType = 10
-	AgentTaskType_AGENT_TASK_TYPE_IMAGE_CHECK    AgentTaskType = 11
-	AgentTaskType_AGENT_TASK_TYPE_PRUNE          AgentTaskType = 12
-	AgentTaskType_AGENT_TASK_TYPE_RUSTIC_INIT    AgentTaskType = 13
-	AgentTaskType_AGENT_TASK_TYPE_RUSTIC_FORGET  AgentTaskType = 14
-	AgentTaskType_AGENT_TASK_TYPE_RUSTIC_PRUNE   AgentTaskType = 15
-	AgentTaskType_AGENT_TASK_TYPE_DOCKER_START   AgentTaskType = 16
-	AgentTaskType_AGENT_TASK_TYPE_DOCKER_STOP    AgentTaskType = 17
-	AgentTaskType_AGENT_TASK_TYPE_DOCKER_RESTART AgentTaskType = 18
-	AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE  AgentTaskType = 19
+	AgentTaskType_AGENT_TASK_TYPE_UNSPECIFIED             AgentTaskType = 0
+	AgentTaskType_AGENT_TASK_TYPE_DEPLOY                  AgentTaskType = 1
+	AgentTaskType_AGENT_TASK_TYPE_STOP                    AgentTaskType = 2
+	AgentTaskType_AGENT_TASK_TYPE_RESTART                 AgentTaskType = 3
+	AgentTaskType_AGENT_TASK_TYPE_UPDATE                  AgentTaskType = 4
+	AgentTaskType_AGENT_TASK_TYPE_BACKUP                  AgentTaskType = 5
+	AgentTaskType_AGENT_TASK_TYPE_RESTORE                 AgentTaskType = 6
+	AgentTaskType_AGENT_TASK_TYPE_MIGRATE                 AgentTaskType = 7
+	AgentTaskType_AGENT_TASK_TYPE_DNS_UPDATE              AgentTaskType = 8
+	AgentTaskType_AGENT_TASK_TYPE_CADDY_SYNC              AgentTaskType = 9
+	AgentTaskType_AGENT_TASK_TYPE_CADDY_RELOAD            AgentTaskType = 10
+	AgentTaskType_AGENT_TASK_TYPE_IMAGE_CHECK             AgentTaskType = 11
+	AgentTaskType_AGENT_TASK_TYPE_PRUNE                   AgentTaskType = 12
+	AgentTaskType_AGENT_TASK_TYPE_RUSTIC_INIT             AgentTaskType = 13
+	AgentTaskType_AGENT_TASK_TYPE_RUSTIC_FORGET           AgentTaskType = 14
+	AgentTaskType_AGENT_TASK_TYPE_RUSTIC_PRUNE            AgentTaskType = 15
+	AgentTaskType_AGENT_TASK_TYPE_DOCKER_START            AgentTaskType = 16
+	AgentTaskType_AGENT_TASK_TYPE_DOCKER_STOP             AgentTaskType = 17
+	AgentTaskType_AGENT_TASK_TYPE_DOCKER_RESTART          AgentTaskType = 18
+	AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_CONTAINER AgentTaskType = 20
+	AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_NETWORK   AgentTaskType = 21
+	AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_VOLUME    AgentTaskType = 22
+	AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE     AgentTaskType = 23
 )
 
 // Enum value maps for AgentTaskType.
@@ -70,29 +73,35 @@ var (
 		16: "AGENT_TASK_TYPE_DOCKER_START",
 		17: "AGENT_TASK_TYPE_DOCKER_STOP",
 		18: "AGENT_TASK_TYPE_DOCKER_RESTART",
-		19: "AGENT_TASK_TYPE_DOCKER_REMOVE",
+		20: "AGENT_TASK_TYPE_DOCKER_REMOVE_CONTAINER",
+		21: "AGENT_TASK_TYPE_DOCKER_REMOVE_NETWORK",
+		22: "AGENT_TASK_TYPE_DOCKER_REMOVE_VOLUME",
+		23: "AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE",
 	}
 	AgentTaskType_value = map[string]int32{
-		"AGENT_TASK_TYPE_UNSPECIFIED":    0,
-		"AGENT_TASK_TYPE_DEPLOY":         1,
-		"AGENT_TASK_TYPE_STOP":           2,
-		"AGENT_TASK_TYPE_RESTART":        3,
-		"AGENT_TASK_TYPE_UPDATE":         4,
-		"AGENT_TASK_TYPE_BACKUP":         5,
-		"AGENT_TASK_TYPE_RESTORE":        6,
-		"AGENT_TASK_TYPE_MIGRATE":        7,
-		"AGENT_TASK_TYPE_DNS_UPDATE":     8,
-		"AGENT_TASK_TYPE_CADDY_SYNC":     9,
-		"AGENT_TASK_TYPE_CADDY_RELOAD":   10,
-		"AGENT_TASK_TYPE_IMAGE_CHECK":    11,
-		"AGENT_TASK_TYPE_PRUNE":          12,
-		"AGENT_TASK_TYPE_RUSTIC_INIT":    13,
-		"AGENT_TASK_TYPE_RUSTIC_FORGET":  14,
-		"AGENT_TASK_TYPE_RUSTIC_PRUNE":   15,
-		"AGENT_TASK_TYPE_DOCKER_START":   16,
-		"AGENT_TASK_TYPE_DOCKER_STOP":    17,
-		"AGENT_TASK_TYPE_DOCKER_RESTART": 18,
-		"AGENT_TASK_TYPE_DOCKER_REMOVE":  19,
+		"AGENT_TASK_TYPE_UNSPECIFIED":             0,
+		"AGENT_TASK_TYPE_DEPLOY":                  1,
+		"AGENT_TASK_TYPE_STOP":                    2,
+		"AGENT_TASK_TYPE_RESTART":                 3,
+		"AGENT_TASK_TYPE_UPDATE":                  4,
+		"AGENT_TASK_TYPE_BACKUP":                  5,
+		"AGENT_TASK_TYPE_RESTORE":                 6,
+		"AGENT_TASK_TYPE_MIGRATE":                 7,
+		"AGENT_TASK_TYPE_DNS_UPDATE":              8,
+		"AGENT_TASK_TYPE_CADDY_SYNC":              9,
+		"AGENT_TASK_TYPE_CADDY_RELOAD":            10,
+		"AGENT_TASK_TYPE_IMAGE_CHECK":             11,
+		"AGENT_TASK_TYPE_PRUNE":                   12,
+		"AGENT_TASK_TYPE_RUSTIC_INIT":             13,
+		"AGENT_TASK_TYPE_RUSTIC_FORGET":           14,
+		"AGENT_TASK_TYPE_RUSTIC_PRUNE":            15,
+		"AGENT_TASK_TYPE_DOCKER_START":            16,
+		"AGENT_TASK_TYPE_DOCKER_STOP":             17,
+		"AGENT_TASK_TYPE_DOCKER_RESTART":          18,
+		"AGENT_TASK_TYPE_DOCKER_REMOVE_CONTAINER": 20,
+		"AGENT_TASK_TYPE_DOCKER_REMOVE_NETWORK":   21,
+		"AGENT_TASK_TYPE_DOCKER_REMOVE_VOLUME":    22,
+		"AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE":     23,
 	}
 )
 
@@ -5777,7 +5786,7 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\x12RemoveImageRequest\x12\x19\n" +
 	"\bimage_id\x18\x01 \x01(\tR\aimageId\x12\x14\n" +
 	"\x05force\x18\x02 \x01(\bR\x05force\"\x15\n" +
-	"\x13RemoveImageResponse*\x83\x05\n" +
+	"\x13RemoveImageResponse*\xb0\x06\n" +
 	"\rAgentTaskType\x12\x1f\n" +
 	"\x1bAGENT_TASK_TYPE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16AGENT_TASK_TYPE_DEPLOY\x10\x01\x12\x18\n" +
@@ -5798,8 +5807,11 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\x1cAGENT_TASK_TYPE_RUSTIC_PRUNE\x10\x0f\x12 \n" +
 	"\x1cAGENT_TASK_TYPE_DOCKER_START\x10\x10\x12\x1f\n" +
 	"\x1bAGENT_TASK_TYPE_DOCKER_STOP\x10\x11\x12\"\n" +
-	"\x1eAGENT_TASK_TYPE_DOCKER_RESTART\x10\x12\x12!\n" +
-	"\x1dAGENT_TASK_TYPE_DOCKER_REMOVE\x10\x13*\xff\x01\n" +
+	"\x1eAGENT_TASK_TYPE_DOCKER_RESTART\x10\x12\x12+\n" +
+	"'AGENT_TASK_TYPE_DOCKER_REMOVE_CONTAINER\x10\x14\x12)\n" +
+	"%AGENT_TASK_TYPE_DOCKER_REMOVE_NETWORK\x10\x15\x12(\n" +
+	"$AGENT_TASK_TYPE_DOCKER_REMOVE_VOLUME\x10\x16\x12'\n" +
+	"#AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE\x10\x17\"\x04\b\x13\x10\x13*\x1dAGENT_TASK_TYPE_DOCKER_REMOVE*\xff\x01\n" +
 	"\x0fAgentTaskStatus\x12!\n" +
 	"\x1dAGENT_TASK_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19AGENT_TASK_STATUS_PENDING\x10\x01\x12\x1d\n" +

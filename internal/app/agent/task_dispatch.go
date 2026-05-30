@@ -46,7 +46,13 @@ func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		return executeCaddyReloadTask(ctx, client, cfg, pulledTask, logUploader)
 	case agentv1.AgentTaskType_AGENT_TASK_TYPE_IMAGE_CHECK:
 		return executeImageCheckTask(ctx, bundleClient, client, cfg, pulledTask, logUploader)
-	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_START, agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_STOP, agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_RESTART, agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE:
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_START,
+		agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_STOP,
+		agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_RESTART,
+		agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_CONTAINER,
+		agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_NETWORK,
+		agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_VOLUME,
+		agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE:
 		return executeDockerTask(ctx, client, cfg, pulledTask, logUploader)
 	default:
 		return failTask(ctx, client, pulledTask.GetTaskId(), fmt.Errorf("task type %s is not implemented", pulledTask.GetType().String()))

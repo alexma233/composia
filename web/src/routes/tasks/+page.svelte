@@ -75,7 +75,10 @@
     | "docker_start"
     | "docker_stop"
     | "docker_restart"
-    | "docker_remove";
+    | "docker_remove_container"
+    | "docker_remove_network"
+    | "docker_remove_volume"
+    | "docker_remove_image";
 
   type FilterOption = {
     value: string;
@@ -116,7 +119,10 @@
     "docker_start",
     "docker_stop",
     "docker_restart",
-    "docker_remove",
+    "docker_remove_container",
+    "docker_remove_network",
+    "docker_remove_volume",
+    "docker_remove_image",
   ];
 
   let totalPages = $derived(

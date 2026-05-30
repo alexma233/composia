@@ -415,7 +415,10 @@ export const de = {
       dockerStart: "Container starten",
       dockerStop: "Container stoppen",
       dockerRestart: "Container neustarten",
-      dockerRemove: "Container entfernen",
+      dockerRemoveContainer: "Container entfernen",
+      dockerRemoveNetwork: "Netzwerk entfernen",
+      dockerRemoveVolume: "Volume entfernen",
+      dockerRemoveImage: "Image entfernen",
     },
     filters: {
       allStatuses: "Alle Status",

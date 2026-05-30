@@ -62,7 +62,7 @@ func (server *dockerCommandServer) RemoveContainer(ctx context.Context, req *con
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and container_id are required"))
 	}
 
-	record, err := server.createContainerTask(ctx, req.Header(), req.Msg.GetNodeId(), req.Msg.GetContainerId(), task.TypeDockerRemove, map[string]any{
+	record, err := server.createContainerTask(ctx, req.Header(), req.Msg.GetNodeId(), req.Msg.GetContainerId(), task.TypeDockerRemoveContainer, map[string]any{
 		"action":         "remove",
 		"resource":       "container",
 		"id":             req.Msg.GetContainerId(),
@@ -80,7 +80,7 @@ func (server *dockerCommandServer) RemoveNetwork(ctx context.Context, req *conne
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and network_id are required"))
 	}
 
-	record, err := server.createNodeDockerTask(ctx, req.Header(), req.Msg.GetNodeId(), task.TypeDockerRemove, map[string]any{
+	record, err := server.createNodeDockerTask(ctx, req.Header(), req.Msg.GetNodeId(), task.TypeDockerRemoveNetwork, map[string]any{
 		"action":   "remove",
 		"resource": "network",
 		"id":       req.Msg.GetNetworkId(),
@@ -96,7 +96,7 @@ func (server *dockerCommandServer) RemoveVolume(ctx context.Context, req *connec
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and volume_name are required"))
 	}
 
-	record, err := server.createNodeDockerTask(ctx, req.Header(), req.Msg.GetNodeId(), task.TypeDockerRemove, map[string]any{
+	record, err := server.createNodeDockerTask(ctx, req.Header(), req.Msg.GetNodeId(), task.TypeDockerRemoveVolume, map[string]any{
 		"action":   "remove",
 		"resource": "volume",
 		"id":       req.Msg.GetVolumeName(),
@@ -112,7 +112,7 @@ func (server *dockerCommandServer) RemoveImage(ctx context.Context, req *connect
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id and image_id are required"))
 	}
 
-	record, err := server.createNodeDockerTask(ctx, req.Header(), req.Msg.GetNodeId(), task.TypeDockerRemove, map[string]any{
+	record, err := server.createNodeDockerTask(ctx, req.Header(), req.Msg.GetNodeId(), task.TypeDockerRemoveImage, map[string]any{
 		"action":   "remove",
 		"resource": "image",
 		"id":       req.Msg.GetImageId(),

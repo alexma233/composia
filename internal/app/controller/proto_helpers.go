@@ -47,8 +47,14 @@ func protoTaskType(value task.Type) controllerv1.TaskType {
 		return controllerv1.TaskType_TASK_TYPE_DOCKER_STOP
 	case task.TypeDockerRestart:
 		return controllerv1.TaskType_TASK_TYPE_DOCKER_RESTART
-	case task.TypeDockerRemove:
-		return controllerv1.TaskType_TASK_TYPE_DOCKER_REMOVE
+	case task.TypeDockerRemoveContainer:
+		return controllerv1.TaskType_TASK_TYPE_DOCKER_REMOVE_CONTAINER
+	case task.TypeDockerRemoveNetwork:
+		return controllerv1.TaskType_TASK_TYPE_DOCKER_REMOVE_NETWORK
+	case task.TypeDockerRemoveVolume:
+		return controllerv1.TaskType_TASK_TYPE_DOCKER_REMOVE_VOLUME
+	case task.TypeDockerRemoveImage:
+		return controllerv1.TaskType_TASK_TYPE_DOCKER_REMOVE_IMAGE
 	case task.TypeMigrateRollback:
 		return controllerv1.TaskType_TASK_TYPE_MIGRATE_ROLLBACK
 	default:
@@ -198,8 +204,14 @@ func taskTypeFromProto(value controllerv1.TaskType) (task.Type, bool) {
 		return task.TypeDockerStop, true
 	case controllerv1.TaskType_TASK_TYPE_DOCKER_RESTART:
 		return task.TypeDockerRestart, true
-	case controllerv1.TaskType_TASK_TYPE_DOCKER_REMOVE:
-		return task.TypeDockerRemove, true
+	case controllerv1.TaskType_TASK_TYPE_DOCKER_REMOVE_CONTAINER:
+		return task.TypeDockerRemoveContainer, true
+	case controllerv1.TaskType_TASK_TYPE_DOCKER_REMOVE_NETWORK:
+		return task.TypeDockerRemoveNetwork, true
+	case controllerv1.TaskType_TASK_TYPE_DOCKER_REMOVE_VOLUME:
+		return task.TypeDockerRemoveVolume, true
+	case controllerv1.TaskType_TASK_TYPE_DOCKER_REMOVE_IMAGE:
+		return task.TypeDockerRemoveImage, true
 	case controllerv1.TaskType_TASK_TYPE_MIGRATE_ROLLBACK:
 		return task.TypeMigrateRollback, true
 	default:
@@ -400,8 +412,14 @@ func protoAgentTaskType(value task.Type) agentv1.AgentTaskType {
 		return agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_STOP
 	case task.TypeDockerRestart:
 		return agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_RESTART
-	case task.TypeDockerRemove:
-		return agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE
+	case task.TypeDockerRemoveContainer:
+		return agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_CONTAINER
+	case task.TypeDockerRemoveNetwork:
+		return agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_NETWORK
+	case task.TypeDockerRemoveVolume:
+		return agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_VOLUME
+	case task.TypeDockerRemoveImage:
+		return agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE
 	default:
 		return agentv1.AgentTaskType_AGENT_TASK_TYPE_UNSPECIFIED
 	}

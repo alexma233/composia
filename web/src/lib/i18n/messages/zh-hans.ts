@@ -397,7 +397,10 @@ export const zhHans = {
       dockerStart: "启动容器",
       dockerStop: "停止容器",
       dockerRestart: "重启容器",
-      dockerRemove: "删除容器",
+      dockerRemoveContainer: "删除容器",
+      dockerRemoveNetwork: "删除网络",
+      dockerRemoveVolume: "删除卷",
+      dockerRemoveImage: "删除镜像",
     },
     filters: {
       allStatuses: "所有状态",

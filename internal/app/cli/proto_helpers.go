@@ -106,8 +106,14 @@ func taskTypeFromText(value string) controllerv1.TaskType {
 		return controllerv1.TaskType_TASK_TYPE_DOCKER_STOP
 	case "docker_restart":
 		return controllerv1.TaskType_TASK_TYPE_DOCKER_RESTART
-	case "docker_remove":
-		return controllerv1.TaskType_TASK_TYPE_DOCKER_REMOVE
+	case "docker_remove_container":
+		return controllerv1.TaskType_TASK_TYPE_DOCKER_REMOVE_CONTAINER
+	case "docker_remove_network":
+		return controllerv1.TaskType_TASK_TYPE_DOCKER_REMOVE_NETWORK
+	case "docker_remove_volume":
+		return controllerv1.TaskType_TASK_TYPE_DOCKER_REMOVE_VOLUME
+	case "docker_remove_image":
+		return controllerv1.TaskType_TASK_TYPE_DOCKER_REMOVE_IMAGE
 	default:
 		return controllerv1.TaskType_TASK_TYPE_UNSPECIFIED
 	}

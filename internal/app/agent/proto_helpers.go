@@ -46,8 +46,14 @@ func protoAgentTaskType(value task.Type) agentv1.AgentTaskType {
 		return agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_STOP
 	case task.TypeDockerRestart:
 		return agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_RESTART
-	case task.TypeDockerRemove:
-		return agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE
+	case task.TypeDockerRemoveContainer:
+		return agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_CONTAINER
+	case task.TypeDockerRemoveNetwork:
+		return agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_NETWORK
+	case task.TypeDockerRemoveVolume:
+		return agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_VOLUME
+	case task.TypeDockerRemoveImage:
+		return agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE
 	default:
 		return agentv1.AgentTaskType_AGENT_TASK_TYPE_UNSPECIFIED
 	}

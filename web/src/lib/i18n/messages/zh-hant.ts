@@ -397,7 +397,10 @@ export const zhHant = {
       dockerStart: "啟動容器",
       dockerStop: "停止容器",
       dockerRestart: "重新啟動容器",
-      dockerRemove: "刪除容器",
+      dockerRemoveContainer: "刪除容器",
+      dockerRemoveNetwork: "刪除網路",
+      dockerRemoveVolume: "刪除卷",
+      dockerRemoveImage: "刪除映像",
     },
     filters: {
       allStatuses: "所有狀態",

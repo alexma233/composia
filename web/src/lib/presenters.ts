@@ -93,8 +93,16 @@ export function taskTypeLabel(type: string, messages: Dictionary) {
       return messages.tasks.types.dockerStop;
     case "docker_restart":
       return messages.tasks.types.dockerRestart;
-    case "docker_remove":
-      return messages.tasks.types.dockerRemove;
+    case "docker_remove_container":
+      return messages.tasks.types.dockerRemoveContainer;
+    case "docker_remove_network":
+      return messages.tasks.types.dockerRemoveNetwork;
+    case "docker_remove_volume":
+      return messages.tasks.types.dockerRemoveVolume;
+    case "docker_remove_image":
+      return messages.tasks.types.dockerRemoveImage;
+    case "unspecified":
+      return messages.status.unknown;
     default:
       return type || messages.status.unknown;
   }

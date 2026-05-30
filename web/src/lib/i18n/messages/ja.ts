@@ -416,7 +416,10 @@ export const ja = {
       dockerStart: "コンテナ起動",
       dockerStop: "コンテナ停止",
       dockerRestart: "コンテナ再起動",
-      dockerRemove: "コンテナ削除",
+      dockerRemoveContainer: "コンテナ削除",
+      dockerRemoveNetwork: "ネットワーク削除",
+      dockerRemoveVolume: "ボリューム削除",
+      dockerRemoveImage: "イメージ削除",
     },
     filters: {
       allStatuses: "すべての状態",

@@ -26,27 +26,30 @@ const (
 type TaskType int32
 
 const (
-	TaskType_TASK_TYPE_UNSPECIFIED      TaskType = 0
-	TaskType_TASK_TYPE_DEPLOY           TaskType = 1
-	TaskType_TASK_TYPE_STOP             TaskType = 2
-	TaskType_TASK_TYPE_RESTART          TaskType = 3
-	TaskType_TASK_TYPE_UPDATE           TaskType = 4
-	TaskType_TASK_TYPE_BACKUP           TaskType = 5
-	TaskType_TASK_TYPE_RESTORE          TaskType = 6
-	TaskType_TASK_TYPE_MIGRATE          TaskType = 7
-	TaskType_TASK_TYPE_DNS_UPDATE       TaskType = 8
-	TaskType_TASK_TYPE_CADDY_SYNC       TaskType = 9
-	TaskType_TASK_TYPE_CADDY_RELOAD     TaskType = 10
-	TaskType_TASK_TYPE_IMAGE_CHECK      TaskType = 11
-	TaskType_TASK_TYPE_PRUNE            TaskType = 12
-	TaskType_TASK_TYPE_RUSTIC_INIT      TaskType = 13
-	TaskType_TASK_TYPE_RUSTIC_FORGET    TaskType = 14
-	TaskType_TASK_TYPE_RUSTIC_PRUNE     TaskType = 15
-	TaskType_TASK_TYPE_DOCKER_START     TaskType = 16
-	TaskType_TASK_TYPE_DOCKER_STOP      TaskType = 17
-	TaskType_TASK_TYPE_DOCKER_RESTART   TaskType = 18
-	TaskType_TASK_TYPE_DOCKER_REMOVE    TaskType = 19
-	TaskType_TASK_TYPE_MIGRATE_ROLLBACK TaskType = 20
+	TaskType_TASK_TYPE_UNSPECIFIED             TaskType = 0
+	TaskType_TASK_TYPE_DEPLOY                  TaskType = 1
+	TaskType_TASK_TYPE_STOP                    TaskType = 2
+	TaskType_TASK_TYPE_RESTART                 TaskType = 3
+	TaskType_TASK_TYPE_UPDATE                  TaskType = 4
+	TaskType_TASK_TYPE_BACKUP                  TaskType = 5
+	TaskType_TASK_TYPE_RESTORE                 TaskType = 6
+	TaskType_TASK_TYPE_MIGRATE                 TaskType = 7
+	TaskType_TASK_TYPE_DNS_UPDATE              TaskType = 8
+	TaskType_TASK_TYPE_CADDY_SYNC              TaskType = 9
+	TaskType_TASK_TYPE_CADDY_RELOAD            TaskType = 10
+	TaskType_TASK_TYPE_IMAGE_CHECK             TaskType = 11
+	TaskType_TASK_TYPE_PRUNE                   TaskType = 12
+	TaskType_TASK_TYPE_RUSTIC_INIT             TaskType = 13
+	TaskType_TASK_TYPE_RUSTIC_FORGET           TaskType = 14
+	TaskType_TASK_TYPE_RUSTIC_PRUNE            TaskType = 15
+	TaskType_TASK_TYPE_DOCKER_START            TaskType = 16
+	TaskType_TASK_TYPE_DOCKER_STOP             TaskType = 17
+	TaskType_TASK_TYPE_DOCKER_RESTART          TaskType = 18
+	TaskType_TASK_TYPE_MIGRATE_ROLLBACK        TaskType = 20
+	TaskType_TASK_TYPE_DOCKER_REMOVE_CONTAINER TaskType = 21
+	TaskType_TASK_TYPE_DOCKER_REMOVE_NETWORK   TaskType = 22
+	TaskType_TASK_TYPE_DOCKER_REMOVE_VOLUME    TaskType = 23
+	TaskType_TASK_TYPE_DOCKER_REMOVE_IMAGE     TaskType = 24
 )
 
 // Enum value maps for TaskType.
@@ -71,31 +74,37 @@ var (
 		16: "TASK_TYPE_DOCKER_START",
 		17: "TASK_TYPE_DOCKER_STOP",
 		18: "TASK_TYPE_DOCKER_RESTART",
-		19: "TASK_TYPE_DOCKER_REMOVE",
 		20: "TASK_TYPE_MIGRATE_ROLLBACK",
+		21: "TASK_TYPE_DOCKER_REMOVE_CONTAINER",
+		22: "TASK_TYPE_DOCKER_REMOVE_NETWORK",
+		23: "TASK_TYPE_DOCKER_REMOVE_VOLUME",
+		24: "TASK_TYPE_DOCKER_REMOVE_IMAGE",
 	}
 	TaskType_value = map[string]int32{
-		"TASK_TYPE_UNSPECIFIED":      0,
-		"TASK_TYPE_DEPLOY":           1,
-		"TASK_TYPE_STOP":             2,
-		"TASK_TYPE_RESTART":          3,
-		"TASK_TYPE_UPDATE":           4,
-		"TASK_TYPE_BACKUP":           5,
-		"TASK_TYPE_RESTORE":          6,
-		"TASK_TYPE_MIGRATE":          7,
-		"TASK_TYPE_DNS_UPDATE":       8,
-		"TASK_TYPE_CADDY_SYNC":       9,
-		"TASK_TYPE_CADDY_RELOAD":     10,
-		"TASK_TYPE_IMAGE_CHECK":      11,
-		"TASK_TYPE_PRUNE":            12,
-		"TASK_TYPE_RUSTIC_INIT":      13,
-		"TASK_TYPE_RUSTIC_FORGET":    14,
-		"TASK_TYPE_RUSTIC_PRUNE":     15,
-		"TASK_TYPE_DOCKER_START":     16,
-		"TASK_TYPE_DOCKER_STOP":      17,
-		"TASK_TYPE_DOCKER_RESTART":   18,
-		"TASK_TYPE_DOCKER_REMOVE":    19,
-		"TASK_TYPE_MIGRATE_ROLLBACK": 20,
+		"TASK_TYPE_UNSPECIFIED":             0,
+		"TASK_TYPE_DEPLOY":                  1,
+		"TASK_TYPE_STOP":                    2,
+		"TASK_TYPE_RESTART":                 3,
+		"TASK_TYPE_UPDATE":                  4,
+		"TASK_TYPE_BACKUP":                  5,
+		"TASK_TYPE_RESTORE":                 6,
+		"TASK_TYPE_MIGRATE":                 7,
+		"TASK_TYPE_DNS_UPDATE":              8,
+		"TASK_TYPE_CADDY_SYNC":              9,
+		"TASK_TYPE_CADDY_RELOAD":            10,
+		"TASK_TYPE_IMAGE_CHECK":             11,
+		"TASK_TYPE_PRUNE":                   12,
+		"TASK_TYPE_RUSTIC_INIT":             13,
+		"TASK_TYPE_RUSTIC_FORGET":           14,
+		"TASK_TYPE_RUSTIC_PRUNE":            15,
+		"TASK_TYPE_DOCKER_START":            16,
+		"TASK_TYPE_DOCKER_STOP":             17,
+		"TASK_TYPE_DOCKER_RESTART":          18,
+		"TASK_TYPE_MIGRATE_ROLLBACK":        20,
+		"TASK_TYPE_DOCKER_REMOVE_CONTAINER": 21,
+		"TASK_TYPE_DOCKER_REMOVE_NETWORK":   22,
+		"TASK_TYPE_DOCKER_REMOVE_VOLUME":    23,
+		"TASK_TYPE_DOCKER_REMOVE_IMAGE":     24,
 	}
 )
 
@@ -1377,7 +1386,7 @@ const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	"\rdeploy_source\x18\x03 \x01(\bR\fdeploySource\x12\x1f\n" +
 	"\vstop_target\x18\x04 \x01(\bR\n" +
 	"stopTarget\x12%\n" +
-	"\x0ecleanup_target\x18\x05 \x01(\bR\rcleanupTarget*\xa6\x04\n" +
+	"\x0ecleanup_target\x18\x05 \x01(\bR\rcleanupTarget*\xbb\x05\n" +
 	"\bTaskType\x12\x19\n" +
 	"\x15TASK_TYPE_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10TASK_TYPE_DEPLOY\x10\x01\x12\x12\n" +
@@ -1398,9 +1407,12 @@ const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	"\x16TASK_TYPE_RUSTIC_PRUNE\x10\x0f\x12\x1a\n" +
 	"\x16TASK_TYPE_DOCKER_START\x10\x10\x12\x19\n" +
 	"\x15TASK_TYPE_DOCKER_STOP\x10\x11\x12\x1c\n" +
-	"\x18TASK_TYPE_DOCKER_RESTART\x10\x12\x12\x1b\n" +
-	"\x17TASK_TYPE_DOCKER_REMOVE\x10\x13\x12\x1e\n" +
-	"\x1aTASK_TYPE_MIGRATE_ROLLBACK\x10\x14*\xd0\x01\n" +
+	"\x18TASK_TYPE_DOCKER_RESTART\x10\x12\x12\x1e\n" +
+	"\x1aTASK_TYPE_MIGRATE_ROLLBACK\x10\x14\x12%\n" +
+	"!TASK_TYPE_DOCKER_REMOVE_CONTAINER\x10\x15\x12#\n" +
+	"\x1fTASK_TYPE_DOCKER_REMOVE_NETWORK\x10\x16\x12\"\n" +
+	"\x1eTASK_TYPE_DOCKER_REMOVE_VOLUME\x10\x17\x12!\n" +
+	"\x1dTASK_TYPE_DOCKER_REMOVE_IMAGE\x10\x18\"\x04\b\x13\x10\x13*\x17TASK_TYPE_DOCKER_REMOVE*\xd0\x01\n" +
 	"\n" +
 	"TaskStatus\x12\x1b\n" +
 	"\x17TASK_STATUS_UNSPECIFIED\x10\x00\x12\x17\n" +

@@ -923,7 +923,7 @@ type dockerTaskParams struct {
 
 func executeDockerTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
 	_ = cfg
-	params, err := parseDockerTaskParams(pulledTask.GetParamsJson())
+	params, err := parseDockerTaskParams(pulledTask.GetParamsJson(), pulledTask.GetType())
 	if err != nil {
 		_ = reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusFailed, err.Error())
 		return err
@@ -944,7 +944,7 @@ func executeDockerTask(ctx context.Context, client agentv1connect.AgentReportSer
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
 }
 
-func parseDockerTaskParams(paramsJSON string) (dockerTaskParams, error) {
+func parseDockerTaskParams(paramsJSON string, taskType agentv1.AgentTaskType) (dockerTaskParams, error) {
 	var params dockerTaskParams
 	if paramsJSON == "" {
 		return params, errors.New("docker task params are required")
@@ -952,10 +952,37 @@ func parseDockerTaskParams(paramsJSON string) (dockerTaskParams, error) {
 	if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
 		return params, fmt.Errorf("decode docker task params: %w", err)
 	}
-	if params.Action == "" || params.ID == "" {
-		return params, errors.New("docker task action and id are required")
+	action, resource, ok := dockerTaskActionResource(taskType)
+	if !ok {
+		return params, fmt.Errorf("unsupported docker task type: %s", taskType.String())
+	}
+	params.Action = action
+	params.Resource = resource
+	if params.ID == "" {
+		return params, errors.New("docker task id is required")
 	}
 	return params, nil
+}
+
+func dockerTaskActionResource(taskType agentv1.AgentTaskType) (string, string, bool) {
+	switch taskType {
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_START:
+		return "start", "container", true
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_STOP:
+		return "stop", "container", true
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_RESTART:
+		return "restart", "container", true
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_CONTAINER:
+		return "remove", "container", true
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_NETWORK:
+		return "remove", "network", true
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_VOLUME:
+		return "remove", "volume", true
+	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE:
+		return "remove", "image", true
+	default:
+		return "", "", false
+	}
 }
 
 func dockerTaskStepName(action string) task.StepName {
