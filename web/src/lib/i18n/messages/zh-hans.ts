@@ -192,6 +192,8 @@ export const zhHans = {
     last24Hours: "最近24小时内没有任务",
     lastHeartbeat: "上次心跳",
     updated: "更新于",
+    serviceStatRunning: "{running}/{total} 运行中",
+    nodeStatOnline: "{online}/{total} 在线",
   },
   nodes: {
     title: "节点",

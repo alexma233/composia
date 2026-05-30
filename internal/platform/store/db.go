@@ -273,6 +273,20 @@ func (db *DB) NodeCounts(ctx context.Context) (uint64, uint64, error) {
 	return configured, online, nil
 }
 
+func (db *DB) ServiceCounts(ctx context.Context) (uint64, uint64, error) {
+	var total uint64
+	if err := db.sql.QueryRowContext(ctx, `SELECT COUNT(*) FROM services WHERE is_declared = 1`).Scan(&total); err != nil {
+		return 0, 0, fmt.Errorf("count services: %w", err)
+	}
+
+	var running uint64
+	if err := db.sql.QueryRowContext(ctx, `SELECT COUNT(*) FROM services WHERE is_declared = 1 AND runtime_status = 'running'`).Scan(&running); err != nil {
+		return 0, 0, fmt.Errorf("count running services: %w", err)
+	}
+
+	return total, running, nil
+}
+
 func (db *DB) SyncDeclaredServices(ctx context.Context, services map[string][]string) error {
 	tx, err := db.sql.BeginTx(ctx, nil)
 	if err != nil {

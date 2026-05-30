@@ -203,6 +203,8 @@ export const fr = {
     last24Hours: "Aucune tâche récente dans les dernières 24 heures",
     lastHeartbeat: "Dernier battement",
     updated: "Mis à jour",
+    serviceStatRunning: "{running}/{total} en cours",
+    nodeStatOnline: "{online}/{total} en ligne",
   },
   nodes: {
     title: "Nœuds",

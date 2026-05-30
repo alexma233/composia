@@ -32,6 +32,10 @@ message GetSystemStatusResponse {
   // online_node_count is the number of nodes with a recent heartbeat.
   uint64 online_node_count = 4;
   reserved 5, 6, 7;
+  // service_count is the total number of declared services.
+  uint64 service_count = 8;
+  // running_service_count is the number of declared services with at least one running instance.
+  uint64 running_service_count = 9;
 }
 
 // ReloadControllerConfigRequest requests an in-process controller config reload.

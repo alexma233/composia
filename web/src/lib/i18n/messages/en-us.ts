@@ -204,6 +204,8 @@ export const enUS = {
     last24Hours: "No recent tasks in the last 24 hours",
     lastHeartbeat: "Last heartbeat",
     updated: "Updated",
+    serviceStatRunning: "{running}/{total} running",
+    nodeStatOnline: "{online}/{total} online",
   },
   nodes: {
     title: "Nodes",

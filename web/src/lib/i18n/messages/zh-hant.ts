@@ -192,6 +192,8 @@ export const zhHant = {
     last24Hours: "最近 24 小時內沒有任務",
     lastHeartbeat: "上次心跳",
     updated: "更新於",
+    serviceStatRunning: "{running}/{total} 運行中",
+    nodeStatOnline: "{online}/{total} 在線",
   },
   nodes: {
     title: "節點",

@@ -201,6 +201,8 @@ export const ja = {
     last24Hours: "過去24時間以内にタスクはありません",
     lastHeartbeat: "最終ハートビート",
     updated: "更新日時",
+    serviceStatRunning: "{running}/{total} 実行中",
+    nodeStatOnline: "{online}/{total} オンライン",
   },
   nodes: {
     title: "ノード",

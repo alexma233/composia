@@ -174,6 +174,10 @@ type GetSystemStatusResponse struct {
 	ConfiguredNodeCount uint64 `protobuf:"varint,3,opt,name=configured_node_count,json=configuredNodeCount,proto3" json:"configured_node_count,omitempty"`
 	// online_node_count is the number of nodes with a recent heartbeat.
 	OnlineNodeCount uint64 `protobuf:"varint,4,opt,name=online_node_count,json=onlineNodeCount,proto3" json:"online_node_count,omitempty"`
+	// service_count is the total number of declared services.
+	ServiceCount uint64 `protobuf:"varint,8,opt,name=service_count,json=serviceCount,proto3" json:"service_count,omitempty"`
+	// running_service_count is the number of declared services with at least one running instance.
+	RunningServiceCount uint64 `protobuf:"varint,9,opt,name=running_service_count,json=runningServiceCount,proto3" json:"running_service_count,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -232,6 +236,20 @@ func (x *GetSystemStatusResponse) GetConfiguredNodeCount() uint64 {
 func (x *GetSystemStatusResponse) GetOnlineNodeCount() uint64 {
 	if x != nil {
 		return x.OnlineNodeCount
+	}
+	return 0
+}
+
+func (x *GetSystemStatusResponse) GetServiceCount() uint64 {
+	if x != nil {
+		return x.ServiceCount
+	}
+	return 0
+}
+
+func (x *GetSystemStatusResponse) GetRunningServiceCount() uint64 {
+	if x != nil {
+		return x.RunningServiceCount
 	}
 	return 0
 }

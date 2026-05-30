@@ -66,6 +66,8 @@ func (application *app) printSystemStatus(response *connect.Response[controllerv
 		{"now", now},
 		{"configured_node_count", uint64Text(message.GetConfiguredNodeCount())},
 		{"online_node_count", uint64Text(message.GetOnlineNodeCount())},
+		{"service_count", uint64Text(message.GetServiceCount())},
+		{"running_service_count", uint64Text(message.GetRunningServiceCount())},
 	})
 }
 

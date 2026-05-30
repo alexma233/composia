@@ -28,11 +28,18 @@ func (server *systemServer) GetSystemStatus(ctx context.Context, _ *connect.Requ
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
+	totalServices, runningServices, err := server.db.ServiceCounts(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
 	response := &controllerv1.GetSystemStatusResponse{
 		Version:             version.Value,
 		Now:                 timestamppb.Now(),
 		ConfiguredNodeCount: configured,
 		OnlineNodeCount:     online,
+		ServiceCount:        totalServices,
+		RunningServiceCount: runningServices,
 	}
 	return connect.NewResponse(response), nil
 }

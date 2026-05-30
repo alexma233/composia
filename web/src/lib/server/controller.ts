@@ -52,6 +52,8 @@ export type SystemStatus = {
   version: string;
   configuredNodeCount: number;
   onlineNodeCount: number;
+  serviceCount: number;
+  runningServiceCount: number;
 };
 
 export type GitConfigSummary = {
@@ -615,31 +617,15 @@ export async function loadDashboard(): Promise<DashboardData> {
     throw new Error(config.reason);
   }
 
-  const [system, servicesResult, nodes, tasksResult, allWorkspaces] =
-    await Promise.all([
-      loadSystemStatus(),
-      loadServices(1, 8),
-      loadNodes(),
-      loadTasks(1, 6),
-      loadServiceWorkspaces(),
-    ]);
-
-  const foldersByServiceName = new Map(
-    allWorkspaces
-      .filter((workspace) => workspace.isDeclared && workspace.serviceName)
-      .map((workspace) => [workspace.serviceName, workspace.folder] as const),
-  );
+  const [system, tasksResult] = await Promise.all([
+    loadSystemStatus(),
+    loadTasks(1, 6),
+  ]);
 
   return {
     system,
-    services: servicesResult.items.map((service) => ({
-      ...service,
-      folder:
-        foldersByServiceName.get(service.name) ??
-        service.folder ??
-        service.name,
-    })),
-    nodes,
+    services: [],
+    nodes: [],
     tasks: tasksResult.items,
   };
 }

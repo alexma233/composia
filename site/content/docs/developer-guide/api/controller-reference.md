@@ -712,6 +712,8 @@ GetSystemStatusResponse describes the current controller runtime state.
 | now | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | now is the controller time when the response was generated. |
 | configured_node_count | [uint64](#uint64) |  | configured_node_count is the number of nodes present in config. |
 | online_node_count | [uint64](#uint64) |  | online_node_count is the number of nodes with a recent heartbeat. |
+| service_count | [uint64](#uint64) |  | service_count is the total number of declared services. |
+| running_service_count | [uint64](#uint64) |  | running_service_count is the number of declared services with at least one running instance. |
 
 
 
