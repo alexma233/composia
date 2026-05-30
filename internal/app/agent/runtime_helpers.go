@@ -14,6 +14,8 @@ import (
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 )
 
+const managedContainerLabel = "io.composia.managed=true"
+
 type composeCommandConfig struct {
 	ProjectName string
 	Files       []string
@@ -32,6 +34,7 @@ func buildComposeArgs(config composeCommandConfig, commandArgs ...string) []stri
 func buildRusticComposeRunArgs(config composeCommandConfig, composeService, profile string, extraRunOpts []string, commandArgs ...string) []string {
 	args := buildComposeArgs(config, "run", "--rm")
 	args = append(args, extraRunOpts...)
+	args = append(args, "--label", managedContainerLabel)
 	args = append(args, composeService)
 	if profile != "" {
 		args = append(args, "-P", profile)
@@ -46,6 +49,7 @@ func runComposeUp(ctx context.Context, serviceDir string, compose composeCommand
 
 func runComposeUpWithOptions(ctx context.Context, serviceDir string, compose composeCommandConfig, options composeUpOptions, uploadLog func(string) error) error {
 	args := buildComposeArgs(compose, "up", "-d")
+	args = append(args, "--label", managedContainerLabel)
 	if options.ForceRecreate {
 		args = append(args, "--force-recreate")
 	}
