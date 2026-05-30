@@ -67,7 +67,7 @@ func TestParseDockerTaskParamsInfersRemoveResourceFromTaskType(t *testing.T) {
 		taskType agentv1.AgentTaskType
 		resource string
 	}{
-		{name: "container", taskType: agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_CONTAINER, resource: "container"},
+		{name: "container", taskType: agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_CONTAINER, resource: dockerResourceContainer},
 		{name: "network", taskType: agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_NETWORK, resource: "network"},
 		{name: "volume", taskType: agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_VOLUME, resource: "volume"},
 		{name: "image", taskType: agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE, resource: "image"},
@@ -75,11 +75,11 @@ func TestParseDockerTaskParamsInfersRemoveResourceFromTaskType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			params, err := parseDockerTaskParams(`{"action":"remove","resource":"wrong","id":"resource-id"}`, tt.taskType)
+			params, err := parseDockerTaskParams(`{"action":"`+dockerActionsRemove+`","resource":"wrong","id":"resource-id"}`, tt.taskType)
 			if err != nil {
 				t.Fatalf("parse docker task params: %v", err)
 			}
-			if params.Action != "remove" || params.Resource != tt.resource || params.ID != "resource-id" {
+			if params.Action != dockerActionsRemove || params.Resource != tt.resource || params.ID != "resource-id" {
 				t.Fatalf("unexpected params: %+v", params)
 			}
 		})

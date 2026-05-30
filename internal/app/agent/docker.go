@@ -964,22 +964,31 @@ func parseDockerTaskParams(paramsJSON string, taskType agentv1.AgentTaskType) (d
 	return params, nil
 }
 
+const (
+	dockerActionsRemove  = "remove"
+	dockerActionsStart   = "start"
+	dockerActionsStop    = "stop"
+	dockerActionsRestart = "restart"
+
+	dockerResourceContainer = "container"
+)
+
 func dockerTaskActionResource(taskType agentv1.AgentTaskType) (string, string, bool) {
 	switch taskType {
 	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_START:
-		return "start", "container", true
+		return dockerActionsStart, dockerResourceContainer, true
 	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_STOP:
-		return "stop", "container", true
+		return dockerActionsStop, dockerResourceContainer, true
 	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_RESTART:
-		return "restart", "container", true
+		return dockerActionsRestart, dockerResourceContainer, true
 	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_CONTAINER:
-		return "remove", "container", true
+		return dockerActionsRemove, dockerResourceContainer, true
 	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_NETWORK:
-		return "remove", "network", true
+		return dockerActionsRemove, "network", true
 	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_VOLUME:
-		return "remove", "volume", true
+		return dockerActionsRemove, "volume", true
 	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE:
-		return "remove", "image", true
+		return dockerActionsRemove, "image", true
 	default:
 		return "", "", false
 	}
@@ -987,11 +996,11 @@ func dockerTaskActionResource(taskType agentv1.AgentTaskType) (string, string, b
 
 func dockerTaskStepName(action string) task.StepName {
 	switch action {
-	case "start":
+	case dockerActionsStart:
 		return task.StepDockerStart
-	case "stop":
+	case dockerActionsStop:
 		return task.StepDockerStop
-	case "restart":
+	case dockerActionsRestart:
 		return task.StepDockerRestart
 	default:
 		return task.StepDockerRemove
@@ -1008,15 +1017,15 @@ func runDockerMutation(ctx context.Context, params dockerTaskParams) error {
 	}()
 
 	switch params.Action {
-	case "start":
+	case dockerActionsStart:
 		_, err = server.RunContainerAction(ctx, connect.NewRequest(&agentv1.RunContainerActionRequest{ContainerId: params.ID, Action: agentv1.ContainerAction_CONTAINER_ACTION_START}))
-	case "stop":
+	case dockerActionsStop:
 		_, err = server.RunContainerAction(ctx, connect.NewRequest(&agentv1.RunContainerActionRequest{ContainerId: params.ID, Action: agentv1.ContainerAction_CONTAINER_ACTION_STOP}))
-	case "restart":
+	case dockerActionsRestart:
 		_, err = server.RunContainerAction(ctx, connect.NewRequest(&agentv1.RunContainerActionRequest{ContainerId: params.ID, Action: agentv1.ContainerAction_CONTAINER_ACTION_RESTART}))
-	case "remove":
+	case dockerActionsRemove:
 		switch params.Resource {
-		case "container":
+		case dockerResourceContainer:
 			_, err = server.RemoveContainer(ctx, connect.NewRequest(&agentv1.RemoveContainerRequest{ContainerId: params.ID, Force: params.Force, RemoveVolumes: params.RemoveVolumes}))
 		case "network":
 			_, err = server.RemoveNetwork(ctx, connect.NewRequest(&agentv1.RemoveNetworkRequest{NetworkId: params.ID}))

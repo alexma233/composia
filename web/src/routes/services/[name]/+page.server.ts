@@ -48,10 +48,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
       ? normalizeServiceRelativePath(requestedFile)
       : defaultServiceFilePath(fileTree);
     const initialFile = activeFilePath
-      ? await loadServiceWorkspaceFile(
-          workspace.folder,
-          activeFilePath,
-        )
+      ? await loadServiceWorkspaceFile(workspace.folder, activeFilePath)
       : null;
 
     return {

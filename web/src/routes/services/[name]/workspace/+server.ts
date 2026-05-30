@@ -14,10 +14,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
     const path = url.searchParams.get("path");
     const normalizedPath = path ? normalizeServiceRelativePath(path) : "";
     const file = normalizedPath
-      ? await loadServiceWorkspaceFile(
-          params.name,
-          normalizedPath,
-        )
+      ? await loadServiceWorkspaceFile(params.name, normalizedPath)
       : null;
 
     return json({ ...summary, file });

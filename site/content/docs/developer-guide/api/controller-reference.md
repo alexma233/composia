@@ -534,8 +534,11 @@ TaskType identifies a controller task kind.
 | TASK_TYPE_DOCKER_START | 16 |  |
 | TASK_TYPE_DOCKER_STOP | 17 |  |
 | TASK_TYPE_DOCKER_RESTART | 18 |  |
-| TASK_TYPE_DOCKER_REMOVE | 19 |  |
 | TASK_TYPE_MIGRATE_ROLLBACK | 20 |  |
+| TASK_TYPE_DOCKER_REMOVE_CONTAINER | 21 |  |
+| TASK_TYPE_DOCKER_REMOVE_NETWORK | 22 |  |
+| TASK_TYPE_DOCKER_REMOVE_VOLUME | 23 |  |
+| TASK_TYPE_DOCKER_REMOVE_IMAGE | 24 |  |
 
 
  
@@ -2467,6 +2470,7 @@ GetSecretRequest identifies one decrypted secret file for a service.
 | ----- | ---- | ----- | ----------- |
 | service_name | [string](#string) |  |  |
 | file_path | [string](#string) |  |  |
+| service_dir | [string](#string) |  |  |
 
 
 
@@ -2503,6 +2507,7 @@ UpdateSecretRequest writes one decrypted secret file for a service.
 | content | [string](#string) |  | content is the full decrypted secret file content to store. |
 | base_revision | [string](#string) |  | base_revision protects against writing on top of an unexpected HEAD. |
 | commit_message | [string](#string) |  | commit_message is used for the generated Git commit. |
+| service_dir | [string](#string) |  |  |
 
 
 

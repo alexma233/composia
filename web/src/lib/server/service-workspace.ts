@@ -75,17 +75,13 @@ export async function saveServiceWorkspaceFile(
     const capabilities = await loadSystemCapabilities();
     if (!capabilities.global.secrets.enabled) {
       throw new Error(
-        ENCRYPTED_FILE_REASON_MESSAGES[capabilities.global.secrets.reasonCode || "missing_secrets_config"] ??
-          "Encrypted file is currently unavailable.",
+        ENCRYPTED_FILE_REASON_MESSAGES[
+          capabilities.global.secrets.reasonCode || "missing_secrets_config"
+        ] ?? "Encrypted file is currently unavailable.",
       );
     }
 
-    write = await updateSecret(
-      serviceDir,
-      normalized,
-      content,
-      baseRevision,
-    );
+    write = await updateSecret(serviceDir, normalized, content, baseRevision);
   } else {
     write = await updateRepoFile(
       repoPathForServicePath(serviceDir, normalized),
