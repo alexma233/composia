@@ -91,6 +91,75 @@ func TestPrepareRestoreVolumeFlagsRejectsMissingServicePathTarget(t *testing.T) 
 	}
 }
 
+func TestPrepareRestoreVolumeFlagsClearsDockerVolume(t *testing.T) {
+	logFile := installFakeDocker(t)
+
+	flags, err := prepareRestoreVolumeFlags(context.Background(), t.TempDir(), t.TempDir(), "/stage", backupcfg.RestoreItem{
+		Name:    "data",
+		Include: []string{"app-data"},
+	})
+	if err != nil {
+		t.Fatalf("prepareRestoreVolumeFlags returned error: %v", err)
+	}
+	if strings.TrimSpace(readAgentTestFile(t, logFile)) != "run --rm -v app-data:/target alpine:3.20 sh -c rm -rf /target/..?* /target/.[!.]* /target/*" {
+		t.Fatalf("unexpected docker volume clear command:\n%s", readAgentTestFile(t, logFile))
+	}
+	want := []string{"-v", "app-data:" + filepath.Join("/stage", "data", "volumes", "app-data")}
+	if strings.Join(flags, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("flags = %+v, want %+v", flags, want)
+	}
+}
+
+func TestApplyRestoreItemRunsPGImport(t *testing.T) {
+	rootDir := t.TempDir()
+	serviceRoot := filepath.Join(rootDir, "postgres")
+	stagingDir := filepath.Join(rootDir, "stage")
+	stdinFile := filepath.Join(rootDir, "stdin.sql")
+	logFile := installFakeDockerScript(t, "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\ncat > \"$TEST_STDIN_FILE\"\n")
+	t.Setenv("TEST_STDIN_FILE", stdinFile)
+	writeAgentTestFile(t, filepath.Join(serviceRoot, "composia-meta.yaml"), "name: postgres\nproject_name: infra-postgres\ncompose_files:\n  - compose.yaml\nnodes:\n  - main\n")
+	writeAgentTestFile(t, filepath.Join(stagingDir, "db.sql"), "select 1;\n")
+
+	err := applyRestoreItem(context.Background(), serviceRoot, stagingDir, backupcfg.RestoreItem{Name: "db", Strategy: "database.pgimport", Service: "postgres"}, nil)
+	if err != nil {
+		t.Fatalf("applyRestoreItem returned error: %v", err)
+	}
+	if got := strings.TrimSpace(readAgentTestFile(t, logFile)); got != "compose --project-name infra-postgres -f compose.yaml exec -T postgres psql" {
+		t.Fatalf("docker args = %q", got)
+	}
+	if got := readAgentTestFile(t, stdinFile); got != "select 1;\n" {
+		t.Fatalf("stdin = %q", got)
+	}
+}
+
+func TestStageBackupItemRunsPGDumpAll(t *testing.T) {
+	rootDir := t.TempDir()
+	serviceRoot := filepath.Join(rootDir, "postgres")
+	stagingDir := filepath.Join(rootDir, "stage")
+	logFile := installFakeDockerScript(t, "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\nprintf 'dump sql\n'\n")
+	writeAgentTestFile(t, filepath.Join(serviceRoot, "composia-meta.yaml"), "name: postgres\nproject_name: infra-postgres\ncompose_files:\n  - compose.yaml\nnodes:\n  - main\n")
+
+	err := stageBackupItem(context.Background(), serviceRoot, stagingDir, backupcfg.RuntimeItem{Name: "db", Strategy: "database.pgdumpall", Service: "postgres"}, nil)
+	if err != nil {
+		t.Fatalf("stageBackupItem returned error: %v", err)
+	}
+	if got := strings.TrimSpace(readAgentTestFile(t, logFile)); got != "compose --project-name infra-postgres -f compose.yaml exec -T postgres pg_dumpall" {
+		t.Fatalf("docker args = %q", got)
+	}
+	if got := readAgentTestFile(t, filepath.Join(stagingDir, "db.sql")); got != "dump sql\n" {
+		t.Fatalf("dump = %q", got)
+	}
+}
+
+func TestApplyRestoreItemRejectsUnknownStrategy(t *testing.T) {
+	t.Parallel()
+
+	err := applyRestoreItem(context.Background(), t.TempDir(), t.TempDir(), backupcfg.RestoreItem{Name: "db", Strategy: "unknown"}, nil)
+	if err == nil || !strings.Contains(err.Error(), "not implemented") {
+		t.Fatalf("expected unknown strategy error, got %v", err)
+	}
+}
+
 func writeAgentTestFile(t *testing.T, path, content string) {
 	t.Helper()
 

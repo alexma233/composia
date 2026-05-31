@@ -116,3 +116,85 @@ func TestInspectRemoteImageDigestHandlesNoValue(t *testing.T) {
 		t.Fatalf("docker args = %q", got)
 	}
 }
+
+func TestLoadComposeConfigOutputAndCollectImageObservations(t *testing.T) {
+	serviceDir := t.TempDir()
+	logFile := installFakeDockerScript(t, "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\ncase \"$*\" in\n  *' config --format json')\n    printf '{\"services\":{\"api\":{\"image\":\"ghcr.io/example/api:1.0.0\"},\"worker\":{\"image\":\"ghcr.io/example/worker:2.0.0\"},\"empty\":{\"image\":\"\"}}}'\n    ;;\n  *'image inspect'*'ghcr.io/example/api:1.0.0')\n    printf 'ghcr.io/example/api:1.0.0@sha256:api\\n'\n    ;;\n  *'image inspect'*'ghcr.io/example/worker:2.0.0')\n    printf 'ghcr.io/example/worker:2.0.0@sha256:worker\\n'\n    ;;\n  *)\n    printf 'unexpected args: %s\\n' \"$*\" >&2\n    exit 2\n    ;;\nesac\n")
+
+	compose := composeCommandConfig{ProjectName: "demo", Files: []string{"compose.yaml"}}
+	config, err := loadComposeConfigOutput(t.Context(), serviceDir, compose)
+	if err != nil {
+		t.Fatalf("loadComposeConfigOutput returned error: %v", err)
+	}
+	if len(config.Services) != 3 || config.Services["api"].Image != "ghcr.io/example/api:1.0.0" {
+		t.Fatalf("unexpected compose config: %+v", config)
+	}
+
+	observations, err := collectServiceImageObservations(t.Context(), serviceDir, compose, false)
+	if err != nil {
+		t.Fatalf("collectServiceImageObservations returned error: %v", err)
+	}
+	if len(observations) != 2 {
+		t.Fatalf("expected 2 observations, got %+v", observations)
+	}
+	if observations[0].ComposeService != "api" || observations[0].LocalDigest != "sha256:api" || !observations[0].LocalObserved {
+		t.Fatalf("unexpected api observation: %+v", observations[0])
+	}
+	if observations[1].ComposeService != "worker" || observations[1].LocalDigest != "sha256:worker" || !observations[1].LocalObserved {
+		t.Fatalf("unexpected worker observation: %+v", observations[1])
+	}
+	if got := readAgentTestFile(t, logFile); strings.Count(got, "compose --project-name demo -f compose.yaml config --format json") != 2 {
+		t.Fatalf("expected compose config to run twice, log:\n%s", got)
+	}
+}
+
+func TestInspectLocalImageDigestReturnsEmptyWhenNoRepoDigest(t *testing.T) {
+	installFakeDockerScript(t, "#!/bin/sh\nprintf '\n'\n")
+
+	digest, err := inspectLocalImageDigest(t.Context(), "ghcr.io/example/app:latest")
+	if err != nil {
+		t.Fatalf("inspectLocalImageDigest returned error: %v", err)
+	}
+	if digest != "" {
+		t.Fatalf("digest = %q", digest)
+	}
+}
+
+func TestInspectRemoteImageDigestNormalizesDigest(t *testing.T) {
+	installFakeDockerScript(t, "#!/bin/sh\nprintf 'ghcr.io/example/app:latest@sha256:remote\n'\n")
+
+	digest, err := inspectRemoteImageDigest(t.Context(), "ghcr.io/example/app:latest")
+	if err != nil {
+		t.Fatalf("inspectRemoteImageDigest returned error: %v", err)
+	}
+	if digest != "sha256:remote" {
+		t.Fatalf("digest = %q", digest)
+	}
+}
+
+func TestLoadComposeConfigOutputReportsInvalidJSON(t *testing.T) {
+	installFakeDockerScript(t, "#!/bin/sh\nprintf 'not-json'\n")
+
+	_, err := loadComposeConfigOutput(t.Context(), t.TempDir(), composeCommandConfig{ProjectName: "demo"})
+	if err == nil || !strings.Contains(err.Error(), "decode docker compose config json") {
+		t.Fatalf("expected decode error, got %v", err)
+	}
+}
+
+func TestCollectServiceImageObservationsKeepsLocalDigestError(t *testing.T) {
+	installFakeDockerScript(t, `#!/bin/sh
+case "$*" in
+  *' config --format json') printf '{"services":{"api":{"image":"ghcr.io/example/api:1.0.0"}}}' ;;
+  *'image inspect'*) printf 'inspect failed
+' >&2; exit 7 ;;
+esac
+`)
+
+	observations, err := collectServiceImageObservations(t.Context(), t.TempDir(), composeCommandConfig{ProjectName: "demo"}, false)
+	if err != nil {
+		t.Fatalf("collectServiceImageObservations returned error: %v", err)
+	}
+	if len(observations) != 1 || !strings.Contains(observations[0].ErrorSummary, "local digest") {
+		t.Fatalf("expected local digest error observation, got %+v", observations)
+	}
+}

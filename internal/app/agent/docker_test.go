@@ -1,6 +1,13 @@
 package agent
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	"connectrpc.com/connect"
+	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
+	"forgejo.alexma.top/alexma233/composia/internal/core/task"
+)
 
 func TestPaginateDockerList(t *testing.T) {
 	t.Parallel()
@@ -53,5 +60,88 @@ func TestDockerCompareHelpers(t *testing.T) {
 	}
 	if !dockerSortResult(1, true) || dockerSortResult(1, false) || dockerSortResult(0, true) {
 		t.Fatalf("unexpected dockerSortResult")
+	}
+}
+
+func TestDockerTaskActionResourceCoversAllTaskTypes(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		taskType agentv1.AgentTaskType
+		action   string
+		resource string
+	}{
+		{taskType: agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_START, action: dockerActionsStart, resource: dockerResourceContainer},
+		{taskType: agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_STOP, action: dockerActionsStop, resource: dockerResourceContainer},
+		{taskType: agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_RESTART, action: dockerActionsRestart, resource: dockerResourceContainer},
+		{taskType: agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_CONTAINER, action: dockerActionsRemove, resource: dockerResourceContainer},
+		{taskType: agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_NETWORK, action: dockerActionsRemove, resource: "network"},
+		{taskType: agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_VOLUME, action: dockerActionsRemove, resource: "volume"},
+		{taskType: agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE, action: dockerActionsRemove, resource: "image"},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.taskType.String(), func(t *testing.T) {
+			t.Parallel()
+			action, resource, ok := dockerTaskActionResource(tt.taskType)
+			if !ok || action != tt.action || resource != tt.resource {
+				t.Fatalf("dockerTaskActionResource = %q/%q/%v, want %q/%q/true", action, resource, ok, tt.action, tt.resource)
+			}
+		})
+	}
+	if _, _, ok := dockerTaskActionResource(agentv1.AgentTaskType_AGENT_TASK_TYPE_DEPLOY); ok {
+		t.Fatalf("expected unsupported task type")
+	}
+}
+
+func TestDockerTaskStepName(t *testing.T) {
+	t.Parallel()
+
+	if dockerTaskStepName(dockerActionsStart) != task.StepDockerStart {
+		t.Fatalf("start step mismatch")
+	}
+	if dockerTaskStepName(dockerActionsStop) != task.StepDockerStop {
+		t.Fatalf("stop step mismatch")
+	}
+	if dockerTaskStepName(dockerActionsRestart) != task.StepDockerRestart {
+		t.Fatalf("restart step mismatch")
+	}
+	if dockerTaskStepName(dockerActionsRemove) != task.StepDockerRemove {
+		t.Fatalf("remove step mismatch")
+	}
+}
+
+func TestParseDockerTaskParamsRejectsMissingID(t *testing.T) {
+	t.Parallel()
+
+	_, err := parseDockerTaskParams(`{"id":""}`, agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_START)
+	if err == nil || !strings.Contains(err.Error(), "id is required") {
+		t.Fatalf("expected missing id error, got %v", err)
+	}
+}
+
+func TestDockerQueryErrorCode(t *testing.T) {
+	t.Parallel()
+
+	tests := map[connect.Code]string{
+		connect.CodeInvalidArgument:    "invalid_argument",
+		connect.CodeNotFound:           "not_found",
+		connect.CodeFailedPrecondition: "failed_precondition",
+		connect.CodePermissionDenied:   "permission_denied",
+		connect.CodeDeadlineExceeded:   "deadline_exceeded",
+		connect.CodeUnavailable:        "unavailable",
+		connect.CodeInternal:           "internal",
+	}
+	for code, want := range tests {
+		code, want := code, want
+		t.Run(code.String(), func(t *testing.T) {
+			t.Parallel()
+			if got := dockerQueryErrorCode(connect.NewError(code, nil)); got != want {
+				t.Fatalf("dockerQueryErrorCode = %q, want %q", got, want)
+			}
+		})
+	}
+	if got := dockerQueryErrorCode(nil); got != "internal" {
+		t.Fatalf("nil error code = %q", got)
 	}
 }
