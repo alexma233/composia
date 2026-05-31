@@ -374,6 +374,8 @@ release:
 
     ## Downloads
 
+    See [installation docs](https://composia.xyz/docs/installation/package-managers/) for setup instructions.
+
     | Architecture | Windows | macOS | Debian | Fedora | Arch | Linux Archive | Checksum |
     |---|---|---|---|---|---|---|---|
     | x86-64 (64-bit) | [ZIP]({{ .ReleaseURL }}/{{ .ProjectName }}_{{ .Version }}_windows_amd64.zip) | [tar.gz]({{ .ReleaseURL }}/{{ .ProjectName }}_{{ .Version }}_darwin_amd64.tar.gz) | [deb]({{ .ReleaseURL }}/composia_{{ .Version }}_linux_amd64.deb) | [rpm]({{ .ReleaseURL }}/composia_{{ .Version }}_linux_amd64.rpm) | [pkg.tar.zst]({{ .ReleaseURL }}/composia_{{ .Version }}_linux_amd64.pkg.tar.zst) | [tar.gz]({{ .ReleaseURL }}/{{ .ProjectName }}_{{ .Version }}_linux_amd64.tar.gz) | [checksums.txt]({{ .ReleaseURL }}/checksums.txt) |
@@ -382,21 +384,14 @@ release:
     | x86-32 (32-bit) | [ZIP]({{ .ReleaseURL }}/{{ .ProjectName }}_{{ .Version }}_windows_386.zip) |  | [deb]({{ .ReleaseURL }}/composia_{{ .Version }}_linux_386.deb) | [rpm]({{ .ReleaseURL }}/composia_{{ .Version }}_linux_386.rpm) | [pkg.tar.zst]({{ .ReleaseURL }}/composia_{{ .Version }}_linux_386.pkg.tar.zst) | [tar.gz]({{ .ReleaseURL }}/{{ .ProjectName }}_{{ .Version }}_linux_386.tar.gz) | [checksums.txt]({{ .ReleaseURL }}/checksums.txt) |
     | RISC-V 64-bit |  |  | [deb]({{ .ReleaseURL }}/composia_{{ .Version }}_linux_riscv64.deb) | [rpm]({{ .ReleaseURL }}/composia_{{ .Version }}_linux_riscv64.rpm) | [pkg.tar.zst]({{ .ReleaseURL }}/composia_{{ .Version }}_linux_riscv64.pkg.tar.zst) | [tar.gz]({{ .ReleaseURL }}/{{ .ProjectName }}_{{ .Version }}_linux_riscv64.tar.gz) | [checksums.txt]({{ .ReleaseURL }}/checksums.txt) |
 
-    ## APT repository
-
-    ```bash
-    sudo install -d -m 0755 /etc/apt/keyrings
-    sudo curl https://forgejo.alexma.top/api/packages/alexma233/debian/repository.key \
-      -o /etc/apt/keyrings/composia.asc
-
-    echo "deb [signed-by=/etc/apt/keyrings/composia.asc] https://forgejo.alexma.top/api/packages/alexma233/debian stable main" \
-      | sudo tee /etc/apt/sources.list.d/composia.list
-
-    sudo apt update
-    sudo apt install composia
-    ```
-
     ## Included binaries
 
     Linux archives and Linux packages include: `composia` (CLI), `composia-controller`, `composia-agent`, and optional systemd unit files. Packages install the unit files but do not enable or start services.
     Windows and macOS archives include: `composia` (CLI)
+
+    <details>
+    <summary>Changelog</summary>
+
+  footer: |
+    </details>
+
