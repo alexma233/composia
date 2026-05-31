@@ -23,7 +23,6 @@ func TestSplitRegistryRepository(t *testing.T) {
 		{imageRef: "localhost:5000/example/app", registry: "localhost:5000", repository: "example/app"},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.imageRef, func(t *testing.T) {
 			t.Parallel()
 			registry, repository := splitRegistryRepository(tt.imageRef)

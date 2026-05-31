@@ -41,9 +41,12 @@ func TestCurrentImageUpdateValueFromYAMLPath(t *testing.T) {
 func TestCurrentImageUpdateValueRequiresSource(t *testing.T) {
 	t.Parallel()
 
-	_, _, _, err := currentImageUpdateValue(t.TempDir(), repo.ImageUpdateConfig{})
+	value, tag, digest, err := currentImageUpdateValue(t.TempDir(), repo.ImageUpdateConfig{})
 	if err == nil || !strings.Contains(err.Error(), "current source is required") {
 		t.Fatalf("expected missing source error, got %v", err)
+	}
+	if value != "" || tag != "" || digest != "" {
+		t.Fatalf("expected empty value/tag/digest, got %q/%q/%q", value, tag, digest)
 	}
 }
 

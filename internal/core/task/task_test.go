@@ -16,7 +16,6 @@ func TestIsControllerOwnedType(t *testing.T) {
 	}
 
 	for taskType, want := range tests {
-		taskType, want := taskType, want
 		t.Run(string(taskType), func(t *testing.T) {
 			t.Parallel()
 			if got := IsControllerOwnedType(taskType); got != want {

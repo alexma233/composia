@@ -66,7 +66,6 @@ func TestTaskLabel(t *testing.T) {
 		{want: "unknown"},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.want, func(t *testing.T) {
 			t.Parallel()
 			if got := taskLabel(tt.service, tt.node); got != tt.want {

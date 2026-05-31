@@ -121,7 +121,6 @@ func TestDockerTaskActionResourceCoversAllTaskTypes(t *testing.T) {
 		{taskType: agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE, action: dockerActionsRemove, resource: "image"},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.taskType.String(), func(t *testing.T) {
 			t.Parallel()
 			action, resource, ok := dockerTaskActionResource(tt.taskType)
@@ -174,7 +173,6 @@ func TestDockerQueryErrorCode(t *testing.T) {
 		connect.CodeInternal:           "internal",
 	}
 	for code, want := range tests {
-		code, want := code, want
 		t.Run(code.String(), func(t *testing.T) {
 			t.Parallel()
 			if got := dockerQueryErrorCode(connect.NewError(code, nil)); got != want {

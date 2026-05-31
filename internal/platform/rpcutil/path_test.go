@@ -17,7 +17,6 @@ func TestJoinBaseURL(t *testing.T) {
 		{name: "root path", baseURL: "http://127.0.0.1:7001/", basePath: "/", want: "http://127.0.0.1:7001"},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			if got := JoinBaseURL(tt.baseURL, tt.basePath); got != tt.want {
@@ -42,7 +41,6 @@ func TestPrefixRPCPath(t *testing.T) {
 		{name: "root base", basePath: "/", rpcPath: "/proto.Service/Method", want: "/proto.Service/Method"},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			if got := PrefixRPCPath(tt.basePath, tt.rpcPath); got != tt.want {

@@ -178,8 +178,8 @@ type GetSystemStatusResponse struct {
 	ServiceCount uint64 `protobuf:"varint,8,opt,name=service_count,json=serviceCount,proto3" json:"service_count,omitempty"`
 	// running_service_count is the number of declared services with at least one running instance.
 	RunningServiceCount uint64 `protobuf:"varint,9,opt,name=running_service_count,json=runningServiceCount,proto3" json:"running_service_count,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *GetSystemStatusResponse) Reset() {

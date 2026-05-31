@@ -109,12 +109,12 @@ func TestServerBearerAuthInterceptorRejectsMissingHeader(t *testing.T) {
 	t.Parallel()
 
 	interceptor := NewServerBearerAuthInterceptor(func(string) (string, error) {
-		return "", nil
+		return "", errors.New("unexpected validate call")
 	})
 	req := connect.NewRequest(&emptypb.Empty{})
 	wrapped := interceptor.WrapUnary(func(context.Context, connect.AnyRequest) (connect.AnyResponse, error) {
 		t.Fatalf("next should not be called")
-		return nil, nil
+		return nil, errors.New("next should not be called")
 	})
 
 	_, err := wrapped(context.Background(), req)
@@ -135,7 +135,6 @@ func TestBearerToken(t *testing.T) {
 	}
 
 	for _, header := range []string{"", "Basic token", "Bearer   "} {
-		header := header
 		t.Run(header, func(t *testing.T) {
 			t.Parallel()
 			if _, err := bearerToken(header); err == nil {

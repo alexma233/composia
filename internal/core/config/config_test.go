@@ -744,7 +744,6 @@ func TestValidateNotificationEvents(t *testing.T) {
 		t.Fatalf("expected valid events, got %v", err)
 	}
 	for _, values := range [][]string{{""}, {"unknown"}, {"task_failed", "TASK_FAILED"}} {
-		values := values
 		t.Run(strings.Join(values, ","), func(t *testing.T) {
 			t.Parallel()
 			if err := validateNotificationEvents("notifications.on", values); err == nil {
@@ -761,7 +760,6 @@ func TestValidateNotificationTaskSources(t *testing.T) {
 		t.Fatalf("expected valid task sources, got %v", err)
 	}
 	for _, values := range [][]string{{""}, {"auto_deploy"}, {"web", "WEB"}} {
-		values := values
 		t.Run(strings.Join(values, ","), func(t *testing.T) {
 			t.Parallel()
 			if err := validateNotificationTaskSources("notifications.task_sources", values); err == nil {
@@ -810,7 +808,6 @@ func TestValidateControllerNotifications(t *testing.T) {
 		{Telegram: &ControllerTelegramNotificationConfig{ChatID: "chat"}},
 		{Telegram: &ControllerTelegramNotificationConfig{BotToken: "token"}},
 	} {
-		cfg := cfg
 		t.Run("invalid", func(t *testing.T) {
 			t.Parallel()
 			if err := validateControllerNotifications(cfg); err == nil {

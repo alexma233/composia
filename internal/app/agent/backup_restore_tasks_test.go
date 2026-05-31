@@ -19,12 +19,17 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 )
 
+const (
+	agentTestMainNodeID = "main"
+	agentTestMainToken  = "main-token"
+)
+
 func TestLoadRestoreRuntimeConfig(t *testing.T) {
 	t.Parallel()
 
 	serviceRoot := t.TempDir()
 	writeAgentTestFile(t, filepath.Join(serviceRoot, ".composia-restore.json"), `{
-  "rustic": {"service_dir": "infra/rustic", "node_id": "main"},
+  "rustic": {"service_dir": "infra/rustic", "node_id": "`+agentTestMainNodeID+`"},
   "items": [{"name": "config", "strategy": "files.copy", "artifact_ref": "snap:config"}]
 }`)
 
@@ -182,7 +187,7 @@ func TestExecuteRestoreTaskRestoresFilesCopyItem(t *testing.T) {
 	serviceBundle := buildBundleArchive(t, map[string]string{
 		"app/composia-meta.yaml":     "name: app\nnodes:\n  - main\n",
 		"app/config/old.txt":         "old\n",
-		"app/.composia-restore.json": `{"rustic":{"service_name":"rustic","service_dir":"rustic","compose_service":"rustic","node_id":"main"},"items":[{"name":"config","strategy":"files.copy","include":["./config"],"artifact_ref":"snap-config"}]}`,
+		"app/.composia-restore.json": `{"rustic":{"service_name":"rustic","service_dir":"rustic","compose_service":"rustic","node_id":"` + agentTestMainNodeID + `"},"items":[{"name":"config","strategy":"files.copy","include":["./config"],"artifact_ref":"snap-config"}]}`,
 	})
 	rusticBundle := buildBundleArchive(t, map[string]string{
 		"rustic/composia-meta.yaml": "name: rustic\nproject_name: infra-rustic\ncompose_files:\n  - compose.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n",
@@ -193,10 +198,10 @@ func TestExecuteRestoreTaskRestoresFilesCopyItem(t *testing.T) {
 		"":       {bundle: serviceBundle, serviceName: "app", relativeRoot: "app"},
 		"rustic": {bundle: rusticBundle, serviceName: "rustic", relativeRoot: "rustic"},
 	}}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "main-token" {
+		if token != agentTestMainToken {
 			return "", errors.New("unexpected token")
 		}
-		return "main", nil
+		return agentTestMainNodeID, nil
 	})))
 	bundleMux.Handle(bundlePath, bundleHandler)
 	bundleHTTPServer := httptest.NewServer(bundleMux)
@@ -205,10 +210,10 @@ func TestExecuteRestoreTaskRestoresFilesCopyItem(t *testing.T) {
 	reportServer := &agentExecutionTestReportServer{}
 	reportMux := http.NewServeMux()
 	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(reportServer, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "main-token" {
+		if token != agentTestMainToken {
 			return "", errors.New("unexpected token")
 		}
-		return "main", nil
+		return agentTestMainNodeID, nil
 	})))
 	reportMux.Handle(reportPath, reportHandler)
 	reportHTTPServer := httptest.NewUnstartedServer(reportMux)
@@ -216,11 +221,11 @@ func TestExecuteRestoreTaskRestoresFilesCopyItem(t *testing.T) {
 	reportHTTPServer.StartTLS()
 	defer reportHTTPServer.Close()
 
-	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
-	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(agentTestMainToken)))
+	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(agentTestMainToken)))
 	logUploader := newTaskLogUploader(reportClient, "task-restore")
 	defer func() { _ = logUploader.Close() }()
-	pulledTask := &agentv1.AgentTask{TaskId: "task-restore", Type: protoAgentTaskType(task.TypeRestore), ServiceName: "app", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "app"}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-restore", Type: protoAgentTaskType(task.TypeRestore), ServiceName: "app", NodeId: agentTestMainNodeID, RepoRevision: "deadbeef", ServiceDir: "app"}
 
 	if err := executeRestoreTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("executeRestoreTask returned error: %v", err)

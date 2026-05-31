@@ -8,6 +8,8 @@ import (
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 )
 
+const dockerResourceCommandGet = "get"
+
 func (application *app) runNetwork(args []string) error {
 	if len(args) == 0 {
 		return errors.New("usage: composia network <list|get|remove>")
@@ -15,7 +17,7 @@ func (application *app) runNetwork(args []string) error {
 	switch args[0] {
 	case "list":
 		return application.runNetworkList(args[1:])
-	case "get":
+	case dockerResourceCommandGet:
 		return application.runNetworkGet(args[1:])
 	case "remove":
 		return application.runNetworkRemove(args[1:])
@@ -85,7 +87,7 @@ func (application *app) runVolume(args []string) error {
 	switch args[0] {
 	case "list":
 		return application.runVolumeList(args[1:])
-	case "get":
+	case dockerResourceCommandGet:
 		return application.runVolumeGet(args[1:])
 	case "remove":
 		return application.runVolumeRemove(args[1:])
@@ -155,7 +157,7 @@ func (application *app) runImage(args []string) error {
 	switch args[0] {
 	case "list":
 		return application.runImageList(args[1:])
-	case "get":
+	case dockerResourceCommandGet:
 		return application.runImageGet(args[1:])
 	case "remove":
 		return application.runImageRemove(args[1:])

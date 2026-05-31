@@ -9,6 +9,8 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 )
 
+const testNotAvailable = "n/a"
+
 func TestRenderTaskEvent(t *testing.T) {
 	t.Parallel()
 
@@ -134,16 +136,16 @@ func TestRenderUnsupportedEvent(t *testing.T) {
 func TestFormatHelpers(t *testing.T) {
 	t.Parallel()
 
-	if got := displayString("  "); got != "n/a" {
+	if got := displayString("  "); got != testNotAvailable {
 		t.Fatalf("displayString empty = %q", got)
 	}
 	if got := displayString(" value "); got != "value" {
 		t.Fatalf("displayString value = %q", got)
 	}
-	if got := formatTime(time.Time{}); got != "n/a" {
+	if got := formatTime(time.Time{}); got != testNotAvailable {
 		t.Fatalf("formatTime zero = %q", got)
 	}
-	if got := formatOptionalTime(nil); got != "n/a" {
+	if got := formatOptionalTime(nil); got != testNotAvailable {
 		t.Fatalf("formatOptionalTime nil = %q", got)
 	}
 }

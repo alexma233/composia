@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -96,13 +97,17 @@ func readGzipTarFiles(t *testing.T, data []byte) map[string]string {
 	if err != nil {
 		t.Fatalf("open gzip reader: %v", err)
 	}
-	defer gzipReader.Close()
+	defer func() {
+		if err := gzipReader.Close(); err != nil {
+			t.Fatalf("close gzip reader: %v", err)
+		}
+	}()
 
 	files := map[string]string{}
 	tarReader := tar.NewReader(gzipReader)
 	for {
 		header, err := tarReader.Next()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {

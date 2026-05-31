@@ -6,6 +6,8 @@ import (
 	"sort"
 )
 
+const skillsCommandList = "list"
+
 type cliSkill struct {
 	name        string
 	description string
@@ -91,7 +93,7 @@ func (application *app) runSkills(args []string) error {
 		return errors.New("usage: composia skills <list|show>")
 	}
 	switch args[0] {
-	case "list":
+	case skillsCommandList:
 		return application.runSkillsList(args[1:])
 	case "show":
 		return application.runSkillsShow(args[1:])

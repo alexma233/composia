@@ -19,7 +19,6 @@ func TestIsValidEventType(t *testing.T) {
 		EventAlertmanagerAlert,
 	}
 	for _, eventType := range valid {
-		eventType := eventType
 		t.Run(string(eventType), func(t *testing.T) {
 			t.Parallel()
 			if !IsValidEventType(string(eventType)) {
@@ -29,7 +28,6 @@ func TestIsValidEventType(t *testing.T) {
 	}
 
 	for _, value := range []string{"", "TaskFailed", "task_failed ", "unknown"} {
-		value := value
 		t.Run("invalid_"+value, func(t *testing.T) {
 			t.Parallel()
 			if IsValidEventType(value) {
