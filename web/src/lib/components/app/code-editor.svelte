@@ -1,19 +1,27 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy } from "svelte";
 
-  import { defaultKeymap, indentWithTab } from '@codemirror/commands';
-  import { LanguageDescription } from '@codemirror/language';
-  import { languages } from '@codemirror/language-data';
-  import { lintGutter, linter } from '@codemirror/lint';
-  import { githubDark } from '@fsegurai/codemirror-theme-github-dark';
-  import { githubLight } from '@fsegurai/codemirror-theme-github-light';
-  import { EditorState, Compartment, type Extension } from '@codemirror/state';
-  import { EditorView, keymap, lineNumbers } from '@codemirror/view';
-  import { basicSetup } from 'codemirror';
+  import { defaultKeymap, indentWithTab } from "@codemirror/commands";
+  import { LanguageDescription } from "@codemirror/language";
+  import { languages } from "@codemirror/language-data";
+  import { lintGutter, linter } from "@codemirror/lint";
+  import { githubDark } from "@fsegurai/codemirror-theme-github-dark";
+  import { githubLight } from "@fsegurai/codemirror-theme-github-light";
+  import { EditorState, Compartment, type Extension } from "@codemirror/state";
+  import { EditorView, keymap, lineNumbers } from "@codemirror/view";
+  import { basicSetup } from "codemirror";
 
-  import { composeLinter, isComposeFilePath } from '$lib/codemirror/compose-lint';
-  import { envLinter, isEnvFilePath } from '$lib/codemirror/env-lint';
-  import { observeThemeChange } from '$lib/theme-observer';
+  import {
+    composeLinter,
+    isComposeFilePath,
+  } from "$lib/codemirror/compose-lint";
+  import { envLanguage } from "$lib/codemirror/env-language";
+  import { envLinter, isEnvFilePath } from "$lib/codemirror/env-lint";
+  import {
+    composiaMetaLinter,
+    isComposiaMetaFilePath,
+  } from "$lib/codemirror/meta-lint";
+  import { observeThemeChange } from "$lib/theme-observer";
 
   interface Props {
     value?: string;
@@ -25,8 +33,8 @@
   }
 
   let {
-    value = $bindable(''),
-    path = '',
+    value = $bindable(""),
+    path = "",
     relatedFiles = {},
     readOnly = false,
     onchange,
@@ -44,23 +52,27 @@
   const themeCompartment = new Compartment();
 
   function editorBorderRadius(): string {
-    return getComputedStyle(document.documentElement).getPropertyValue('--radius-xl') || '0.75rem';
+    return (
+      getComputedStyle(document.documentElement).getPropertyValue(
+        "--radius-xl",
+      ) || "0.75rem"
+    );
   }
 
   const editorChromeTheme = EditorView.theme({
-    '&': {
-      height: '100%',
+    "&": {
+      height: "100%",
       borderRadius: editorBorderRadius(),
-      overflow: 'hidden',
+      overflow: "hidden",
     },
-    '&.cm-focused': {
-      outline: 'none',
+    "&.cm-focused": {
+      outline: "none",
     },
-    '.cm-scroller': {
-      overflow: 'auto',
+    ".cm-scroller": {
+      overflow: "auto",
     },
-    '.cm-content': {
-      minHeight: '100%',
+    ".cm-content": {
+      minHeight: "100%",
     },
   });
 
@@ -70,12 +82,12 @@
     indentWithTab,
     ...defaultKeymap,
     {
-      key: 'Mod-s',
+      key: "Mod-s",
       run: () => {
         onsave?.();
         return true;
-      }
-    }
+      },
+    },
   ] as unknown as Parameters<typeof keymap.of>[0];
 
   onMount(() => {
@@ -98,9 +110,9 @@
               onchange?.({ value: update.state.doc.toString() });
             }
           }),
-        ]
+        ],
       }),
-      parent: host
+      parent: host,
     });
 
     void syncLanguage(path);
@@ -126,7 +138,7 @@
       const currentValue = editorView.state.doc.toString();
       if (currentValue !== value) {
         editorView.dispatch({
-          changes: { from: 0, to: currentValue.length, insert: value }
+          changes: { from: 0, to: currentValue.length, insert: value },
         });
       }
     }
@@ -138,14 +150,14 @@
       editorView.dispatch({
         effects: [
           lintCompartment.reconfigure(lintExtension(path)),
-          editableCompartment.reconfigure(EditorView.editable.of(!readOnly))
-        ]
+          editableCompartment.reconfigure(EditorView.editable.of(!readOnly)),
+        ],
       });
     }
   });
 
   function resolveTheme(root: HTMLElement) {
-    return root.classList.contains('dark') ? githubDark : githubLight;
+    return root.classList.contains("dark") ? githubDark : githubLight;
   }
 
   function syncTheme(root: HTMLElement) {
@@ -154,7 +166,7 @@
     }
 
     editorView.dispatch({
-      effects: themeCompartment.reconfigure(resolveTheme(root))
+      effects: themeCompartment.reconfigure(resolveTheme(root)),
     });
   }
 
@@ -164,6 +176,12 @@
     }
 
     const requestId = ++languageLoadRequest;
+
+    if (isEnvFilePath(filePath)) {
+      applyLanguageExtension(requestId, envLanguage.extension);
+      return;
+    }
+
     const description = languageDescriptionForPath(filePath);
 
     if (!description) {
@@ -183,7 +201,10 @@
       })
       .catch((error) => {
         if (import.meta.env.DEV) {
-          console.error(`Failed to load CodeMirror language support for ${filePath}.`, error);
+          console.error(
+            `Failed to load CodeMirror language support for ${filePath}.`,
+            error,
+          );
         }
         applyLanguageExtension(requestId, []);
       });
@@ -195,12 +216,12 @@
     }
 
     editorView.dispatch({
-      effects: languageCompartment.reconfigure(extension)
+      effects: languageCompartment.reconfigure(extension),
     });
   }
 
   function languageDescriptionForPath(filePath: string) {
-    const fileName = filePath.split('/').pop() ?? filePath;
+    const fileName = filePath.split("/").pop() ?? filePath;
     if (!fileName) {
       return null;
     }
@@ -217,8 +238,17 @@
       return [lintGutter(), linter(envLinter())];
     }
 
+    if (isComposiaMetaFilePath(filePath)) {
+      return [lintGutter(), linter(composiaMetaLinter())];
+    }
+
     return [];
   }
 </script>
 
-<div bind:this={host} class="h-full min-h-0 overflow-hidden rounded-xl" role="region" aria-label="Code editor"></div>
+<div
+  bind:this={host}
+  class="h-full min-h-0 overflow-hidden rounded-xl"
+  role="region"
+  aria-label="Code editor"
+></div>

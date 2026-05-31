@@ -1,0 +1,379 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Composia service metadata",
+  "type": "object",
+  "required": ["name", "nodes"],
+  "additionalProperties": false,
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "project_name": { "type": "string" },
+    "compose_files": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/relative_path" },
+      "uniqueItems": true
+    },
+    "enabled": { "type": "boolean" },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "infra": { "$ref": "#/definitions/infra" },
+    "network": { "$ref": "#/definitions/network" },
+    "update": { "$ref": "#/definitions/update" },
+    "data_protect": { "$ref": "#/definitions/data_protect" },
+    "backup": { "$ref": "#/definitions/backup" },
+    "migrate": { "$ref": "#/definitions/migrate" },
+    "auto_deploy": { "type": "boolean" }
+  },
+  "definitions": {
+    "relative_path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!\\.\\.?$)(?!\\./$)(?!\\.\\./)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "infra": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "caddy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "compose_service": { "type": "string" },
+            "config_dir": { "type": "string" }
+          }
+        },
+        "rustic": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "compose_service": { "type": "string" },
+            "profile": { "type": "string" },
+            "data_protect_dir": { "type": "string" },
+            "init_args": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      }
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "caddy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "source": { "$ref": "#/definitions/relative_path" }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": { "enabled": { "const": true } },
+                "required": ["enabled"]
+              },
+              "then": { "required": ["source"] }
+            }
+          ]
+        },
+        "dns": {
+          "type": "object",
+          "required": ["provider", "hostname"],
+          "additionalProperties": false,
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": [
+                "cloudflare",
+                "alidns",
+                "dnspod",
+                "route53",
+                "huaweicloud"
+              ]
+            },
+            "hostname": { "type": "string", "minLength": 1 },
+            "record_type": {
+              "type": "string",
+              "enum": ["", "A", "AAAA", "CNAME"]
+            },
+            "value": { "type": "string" },
+            "proxied": { "type": "boolean" },
+            "ttl": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
+            "comment": { "type": "string" }
+          }
+        }
+      }
+    },
+    "update": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "auto_apply": { "type": "boolean" },
+        "check_schedule": { "type": "string" },
+        "backup_before_update": { "type": "boolean" },
+        "backup_data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "enabled": { "type": "boolean" }
+            }
+          }
+        },
+        "digest_pin": { "type": "boolean" },
+        "discovery_sources": {
+          "type": "object",
+          "propertyNames": { "minLength": 1 },
+          "additionalProperties": {
+            "$ref": "#/definitions/image_update_discovery_object"
+          }
+        },
+        "images": {
+          "type": "object",
+          "propertyNames": { "minLength": 1 },
+          "additionalProperties": {
+            "$ref": "#/definitions/image_update_config"
+          }
+        }
+      }
+    },
+    "image_update_config": {
+      "type": "object",
+      "required": ["image", "current", "discovery"],
+      "additionalProperties": false,
+      "properties": {
+        "image": { "type": "string", "minLength": 1 },
+        "auto_apply": { "type": "boolean" },
+        "check_schedule": { "type": "string" },
+        "backup_before_update": { "type": "boolean" },
+        "digest_pin": { "type": "boolean" },
+        "current": { "$ref": "#/definitions/image_update_current" },
+        "discovery": { "$ref": "#/definitions/image_update_discovery" },
+        "filter": { "$ref": "#/definitions/image_update_filter" }
+      }
+    },
+    "image_update_current": {
+      "type": "object",
+      "additionalProperties": false,
+      "oneOf": [
+        { "required": ["tag"] },
+        { "required": ["env"] },
+        { "required": ["yaml"] }
+      ],
+      "properties": {
+        "tag": { "type": "string", "minLength": 1 },
+        "env": {
+          "type": "object",
+          "required": ["file", "key"],
+          "additionalProperties": false,
+          "properties": {
+            "file": { "$ref": "#/definitions/relative_path" },
+            "key": { "type": "string", "minLength": 1 }
+          }
+        },
+        "yaml": {
+          "type": "object",
+          "required": ["file", "path"],
+          "additionalProperties": false,
+          "properties": {
+            "file": { "$ref": "#/definitions/relative_path" },
+            "path": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "image_update_discovery": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        { "$ref": "#/definitions/image_update_discovery_object" }
+      ]
+    },
+    "image_update_discovery_object": {
+      "type": "object",
+      "required": ["sources"],
+      "additionalProperties": false,
+      "properties": {
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/image_update_discovery_source" }
+        },
+        "combine": { "type": "string", "enum": ["merge", "first_success"] },
+        "include_prerelease": { "type": "boolean" }
+      }
+    },
+    "image_update_discovery_source": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "probe",
+            "registry",
+            "digest",
+            "github",
+            "gitlab",
+            "forgejo"
+          ]
+        },
+        "repo": { "type": "string" },
+        "repo_url": { "type": "string" },
+        "project": { "type": "string" },
+        "api_url": { "type": "string" }
+      }
+    },
+    "image_update_filter": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["semver", "date", "regex", "latest"]
+        },
+        "format": { "type": "string" },
+        "pattern": { "type": "string" },
+        "order": { "type": "string", "enum": ["numeric", "lexicographic"] },
+        "allow": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["patch", "minor", "major"] },
+          "uniqueItems": true
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "date" } },
+            "required": ["type"]
+          },
+          "then": { "required": ["format"] }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "regex" } },
+            "required": ["type"]
+          },
+          "then": { "required": ["pattern", "order"] }
+        }
+      ]
+    },
+    "data_protect": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/data_protect_item" }
+        }
+      }
+    },
+    "data_protect_item": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "backup": { "$ref": "#/definitions/data_action" },
+        "restore": { "$ref": "#/definitions/data_action" }
+      }
+    },
+    "data_action": {
+      "type": "object",
+      "required": ["strategy"],
+      "additionalProperties": false,
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": [
+            "files.copy_after_stop",
+            "files.copy",
+            "database.pgdumpall",
+            "database.pgimport"
+          ]
+        },
+        "service": { "type": "string" },
+        "include": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/relative_path" }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "strategy": { "enum": ["files.copy_after_stop", "files.copy"] }
+            },
+            "required": ["strategy"]
+          },
+          "then": { "required": ["include"] }
+        },
+        {
+          "if": {
+            "properties": {
+              "strategy": {
+                "enum": ["database.pgdumpall", "database.pgimport"]
+              }
+            },
+            "required": ["strategy"]
+          },
+          "then": { "required": ["service"] }
+        }
+      ]
+    },
+    "backup": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "provider": { "type": "string" },
+              "enabled": { "type": "boolean" },
+              "schedule": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "migrate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "enabled": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
