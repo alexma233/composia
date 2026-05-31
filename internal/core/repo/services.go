@@ -3,7 +3,6 @@ package repo
 import (
 	"errors"
 	"fmt"
-	"io/fs"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -23,21 +22,30 @@ const gitDirName = ".git"
 var serviceMetaValidator = validator.New(validator.WithRequiredStructEnabled())
 
 func walkServiceMetaFiles(repoDir string, visit func(path string) error) error {
-	return filepath.WalkDir(repoDir, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
+	entries, err := os.ReadDir(repoDir)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() || entry.Name() == gitDirName {
+			continue
 		}
-		if entry.IsDir() {
-			if entry.Name() == gitDirName {
-				return filepath.SkipDir
+		metaPath := filepath.Join(repoDir, entry.Name(), MetaFileName)
+		info, err := os.Stat(metaPath)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				continue
 			}
-			return nil
+			return err
 		}
-		if entry.Name() != MetaFileName {
-			return nil
+		if info.IsDir() {
+			continue
 		}
-		return visit(path)
-	})
+		if err := visit(metaPath); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type Service struct {

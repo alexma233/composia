@@ -10,7 +10,7 @@ import { requireWorkspace } from "$lib/server/service-workspace-route";
 
 export const GET: RequestHandler = async ({ params }) => {
   try {
-    const workspace = await requireWorkspace(params.name);
+    const workspace = await requireWorkspace(params.folder);
     if (!workspace.isDeclared || !workspace.serviceName) {
       return jsonApiError("SERVICE_NOT_DECLARED", 404);
     }

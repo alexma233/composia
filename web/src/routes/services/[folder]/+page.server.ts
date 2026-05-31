@@ -30,7 +30,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 
   try {
     const [summary, repoHead, services] = await Promise.all([
-      loadServiceWorkspaceSummary(params.name),
+      loadServiceWorkspaceSummary(params.folder),
       loadRepoHead(),
       loadServiceWorkspaces(),
     ]);

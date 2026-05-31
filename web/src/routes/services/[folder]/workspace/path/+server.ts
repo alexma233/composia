@@ -26,13 +26,13 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
     }
 
     const write = await moveServiceWorkspacePath(
-      params.name,
+      params.folder,
       normalizeServiceRelativePath(payload.sourcePath),
       normalizeServiceRelativePath(payload.destinationPath),
       payload.baseRevision,
     );
     const { workspace, fileTree } = await loadServiceWorkspaceFiles(
-      params.name,
+      params.folder,
     );
     return json({ write, workspace, fileTree });
   } catch (error) {
@@ -58,12 +58,12 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
     }
 
     const write = await deleteServiceWorkspacePath(
-      params.name,
+      params.folder,
       normalizeServiceRelativePath(payload.path),
       payload.baseRevision,
     );
     const { workspace, fileTree } = await loadServiceWorkspaceFiles(
-      params.name,
+      params.folder,
     );
     return json({ write, workspace, fileTree });
   } catch (error) {

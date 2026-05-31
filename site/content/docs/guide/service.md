@@ -4,7 +4,7 @@ date: '2026-05-26T00:00:00+08:00'
 weight: 10
 ---
 
-Each service lives in a directory inside the controller repository. A service directory contains `composia-meta.yaml` and one or more Docker Compose files.
+Each service lives in a top-level directory inside the controller repository. A service directory contains `composia-meta.yaml` and one or more Docker Compose files.
 
 Minimal service:
 

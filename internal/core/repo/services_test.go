@@ -133,6 +133,26 @@ func TestDiscoverServicesSkipsServiceWithoutTargetNodes(t *testing.T) {
 	}
 }
 
+func TestDiscoverServicesIgnoresNestedServiceMeta(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	writeFile(t, filepath.Join(repoDir, "apps", "vaultwarden", MetaFileName), "name: vaultwarden\nnodes:\n  - node-1\n")
+	writeFile(t, filepath.Join(repoDir, MetaFileName), "name: root\nnodes:\n  - node-1\n")
+	writeFile(t, filepath.Join(repoDir, "alpha", MetaFileName), "name: alpha\nnodes:\n  - node-1\n")
+
+	services, err := DiscoverServices(repoDir, map[string]struct{}{"node-1": {}})
+	if err != nil {
+		t.Fatalf("discover services: %v", err)
+	}
+	if len(services) != 1 || services[0].Name != "alpha" {
+		t.Fatalf("expected only top-level folder service alpha, got %+v", services)
+	}
+	if _, err := FindService(repoDir, map[string]struct{}{"node-1": {}}, "vaultwarden"); err == nil || !strings.Contains(err.Error(), "not declared") {
+		t.Fatalf("expected nested service to be ignored, got %v", err)
+	}
+}
+
 func TestDiscoverServicesSkipsDuplicateServiceNames(t *testing.T) {
 	t.Parallel()
 

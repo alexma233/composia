@@ -19,7 +19,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
       return jsonApiError("SOURCE_TARGET_NODE_REQUIRED");
     }
 
-    const workspace = await requireDeclaredWorkspace(params.name);
+    const workspace = await requireDeclaredWorkspace(params.folder);
     if (!workspace.actions.migrate.enabled) {
       return jsonCapabilityError(
         workspace.actions.migrate.reasonCode,

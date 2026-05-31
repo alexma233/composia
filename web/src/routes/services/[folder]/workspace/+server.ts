@@ -10,11 +10,11 @@ import { normalizeServiceRelativePath } from "$lib/service-workspace";
 
 export const GET: RequestHandler = async ({ params, url }) => {
   try {
-    const summary = await loadServiceWorkspaceSummary(params.name);
+    const summary = await loadServiceWorkspaceSummary(params.folder);
     const path = url.searchParams.get("path");
     const normalizedPath = path ? normalizeServiceRelativePath(path) : "";
     const file = normalizedPath
-      ? await loadServiceWorkspaceFile(params.name, normalizedPath)
+      ? await loadServiceWorkspaceFile(params.folder, normalizedPath)
       : null;
 
     return json({ ...summary, file });

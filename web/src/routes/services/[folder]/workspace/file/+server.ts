@@ -17,18 +17,18 @@ export const PUT: RequestHandler = async ({ params, request }) => {
       baseRevision?: string;
     };
 
-    const workspace = await requireWorkspace(params.name);
+    const workspace = await requireWorkspace(params.folder);
     if (!payload.path || !payload.baseRevision) {
       return jsonApiError("PATH_REVISION_REQUIRED");
     }
 
     const result = await saveServiceWorkspaceFile(
-      params.name,
+      params.folder,
       normalizeServiceRelativePath(payload.path),
       payload.content ?? "",
       payload.baseRevision,
     );
-    const { fileTree } = await loadServiceWorkspaceFiles(params.name);
+    const { fileTree } = await loadServiceWorkspaceFiles(params.folder);
 
     return json({
       file: result.file,

@@ -4,7 +4,7 @@ date: '2026-05-26T00:00:00+08:00'
 weight: 10
 ---
 
-Chaque service réside dans un répertoire à l'intérieur du dépôt du contrôleur. Un répertoire de service contient `composia-meta.yaml` et un ou plusieurs fichiers Docker Compose.
+Chaque service réside dans un répertoire de premier niveau à l'intérieur du dépôt du contrôleur. Un répertoire de service contient `composia-meta.yaml` et un ou plusieurs fichiers Docker Compose.
 
 Service minimal :
 

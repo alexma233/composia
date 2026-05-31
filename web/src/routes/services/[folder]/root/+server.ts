@@ -20,7 +20,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 
     const nextFolder = normalizeServiceRootFolder(payload.folder ?? "");
     const write = await moveRepoPath(
-      params.name,
+      params.folder,
       nextFolder,
       payload.baseRevision,
     );
@@ -42,7 +42,7 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
       return jsonApiError("BASE_REVISION_REQUIRED");
     }
 
-    const write = await deleteRepoPath(params.name, payload.baseRevision);
+    const write = await deleteRepoPath(params.folder, payload.baseRevision);
     return json({ write, redirectTo: "/services" });
   } catch (error) {
     return jsonControllerError(

@@ -4,7 +4,7 @@ date: '2026-05-26T00:00:00+08:00'
 weight: 10
 ---
 
-每個服務位於控制器存放庫中的一個目錄內。服務目錄包含 `composia-meta.yaml` 和一個或多個 Docker Compose 檔案。
+每個服務位於控制器存放庫中的一個頂層目錄內。服務目錄包含 `composia-meta.yaml` 和一個或多個 Docker Compose 檔案。
 
 最小服務：
 

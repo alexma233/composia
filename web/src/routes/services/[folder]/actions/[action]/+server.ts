@@ -16,7 +16,7 @@ import { requireDeclaredWorkspace } from "$lib/server/service-workspace-route";
 
 export const POST: RequestHandler = async ({ params, request }) => {
   try {
-    const workspace = await requireDeclaredWorkspace(params.name);
+    const workspace = await requireDeclaredWorkspace(params.folder);
 
     if (!isServiceAction(params.action)) {
       return jsonApiError("UNSUPPORTED_SERVICE_ACTION");

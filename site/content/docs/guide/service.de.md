@@ -4,7 +4,7 @@ date: '2026-05-26T00:00:00+08:00'
 weight: 10
 ---
 
-Jeder Dienst befindet sich in einem Verzeichnis innerhalb des Controller-Repositories. Ein Dienstverzeichnis enthält `composia-meta.yaml` und eine oder mehrere Docker-Compose-Dateien.
+Jeder Dienst befindet sich in einem Verzeichnis der obersten Ebene innerhalb des Controller-Repositories. Ein Dienstverzeichnis enthält `composia-meta.yaml` und eine oder mehrere Docker-Compose-Dateien.
 
 Minimaler Dienst:
 
