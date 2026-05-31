@@ -725,3 +725,97 @@ controller:
 		t.Fatalf("expected duplicate resolved token validation error, got %v", err)
 	}
 }
+
+func TestNormalizeSMTPEncryption(t *testing.T) {
+	t.Parallel()
+
+	if got := NormalizeSMTPEncryption("  SSL_TLS "); got != SMTPEncryptionSSLTLS {
+		t.Fatalf("normalized encryption = %q", got)
+	}
+	if got := NormalizeSMTPEncryption(""); got != SMTPEncryptionSTARTTLS {
+		t.Fatalf("default encryption = %q", got)
+	}
+}
+
+func TestValidateNotificationEvents(t *testing.T) {
+	t.Parallel()
+
+	if err := validateNotificationEvents("notifications.on", []string{" task_failed ", "backup_completed"}); err != nil {
+		t.Fatalf("expected valid events, got %v", err)
+	}
+	for _, values := range [][]string{{""}, {"unknown"}, {"task_failed", "TASK_FAILED"}} {
+		values := values
+		t.Run(strings.Join(values, ","), func(t *testing.T) {
+			t.Parallel()
+			if err := validateNotificationEvents("notifications.on", values); err == nil {
+				t.Fatalf("expected invalid events %v to fail", values)
+			}
+		})
+	}
+}
+
+func TestValidateNotificationTaskSources(t *testing.T) {
+	t.Parallel()
+
+	if err := validateNotificationTaskSources("notifications.task_sources", []string{" web ", "schedule"}); err != nil {
+		t.Fatalf("expected valid task sources, got %v", err)
+	}
+	for _, values := range [][]string{{""}, {"auto_deploy"}, {"web", "WEB"}} {
+		values := values
+		t.Run(strings.Join(values, ","), func(t *testing.T) {
+			t.Parallel()
+			if err := validateNotificationTaskSources("notifications.task_sources", values); err == nil {
+				t.Fatalf("expected invalid task sources %v to fail", values)
+			}
+		})
+	}
+}
+
+func TestValidateControllerNotifications(t *testing.T) {
+	t.Parallel()
+
+	if got := (*ControllerAlertmanagerNotificationConfig)(nil).EffectiveListenPath(); got != DefaultAlertmanagerListenPath {
+		t.Fatalf("default alertmanager listen path = %q", got)
+	}
+	valid := &ControllerNotificationsConfig{
+		Alertmanager: &ControllerAlertmanagerNotificationConfig{ListenPath: " /alerts "},
+		SMTP: &ControllerSMTPNotificationConfig{
+			Host:        "smtp.example.com",
+			Port:        587,
+			Encryption:  SMTPEncryptionSTARTTLS,
+			From:        "composia@example.com",
+			To:          []string{"ops@example.com"},
+			On:          []string{"task_failed"},
+			TaskSources: []string{"web"},
+		},
+		Telegram: &ControllerTelegramNotificationConfig{
+			BotToken:    "token",
+			ChatID:      "chat",
+			On:          []string{"backup_failed"},
+			TaskSources: []string{"system"},
+		},
+	}
+	if err := validateControllerNotifications(valid); err != nil {
+		t.Fatalf("expected valid notifications, got %v", err)
+	}
+
+	disabled := false
+	for _, cfg := range []*ControllerNotificationsConfig{
+		{Alertmanager: &ControllerAlertmanagerNotificationConfig{ListenPath: "alerts"}},
+		{Alertmanager: &ControllerAlertmanagerNotificationConfig{ListenPath: "/bad path"}},
+		{SMTP: &ControllerSMTPNotificationConfig{Host: "smtp.example.com", Port: 70000, From: "from", To: []string{"to"}}},
+		{SMTP: &ControllerSMTPNotificationConfig{Host: "smtp.example.com", Port: 587, Encryption: "invalid", From: "from", To: []string{"to"}}},
+		{SMTP: &ControllerSMTPNotificationConfig{Host: "smtp.example.com", Port: 587, From: "from", To: []string{""}}},
+		{SMTP: &ControllerSMTPNotificationConfig{Enabled: &disabled, On: []string{"unknown"}}},
+		{Telegram: &ControllerTelegramNotificationConfig{ChatID: "chat"}},
+		{Telegram: &ControllerTelegramNotificationConfig{BotToken: "token"}},
+	} {
+		cfg := cfg
+		t.Run("invalid", func(t *testing.T) {
+			t.Parallel()
+			if err := validateControllerNotifications(cfg); err == nil {
+				t.Fatalf("expected invalid notifications to fail")
+			}
+		})
+	}
+}
