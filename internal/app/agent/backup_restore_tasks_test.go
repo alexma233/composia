@@ -2,12 +2,21 @@ package agent
 
 import (
 	"context"
+	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"connectrpc.com/connect"
+	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
+	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
 	backupcfg "forgejo.alexma.top/alexma233/composia/internal/core/backup"
+	"forgejo.alexma.top/alexma233/composia/internal/core/config"
+	"forgejo.alexma.top/alexma233/composia/internal/core/task"
+	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 )
 
 func TestLoadRestoreRuntimeConfig(t *testing.T) {
@@ -157,6 +166,75 @@ func TestApplyRestoreItemRejectsUnknownStrategy(t *testing.T) {
 	err := applyRestoreItem(context.Background(), t.TempDir(), t.TempDir(), backupcfg.RestoreItem{Name: "db", Strategy: "unknown"}, nil)
 	if err == nil || !strings.Contains(err.Error(), "not implemented") {
 		t.Fatalf("expected unknown strategy error, got %v", err)
+	}
+}
+
+func TestExecuteRestoreTaskRestoresFilesCopyItem(t *testing.T) {
+	rootDir := t.TempDir()
+	cfg := &config.AgentConfig{RepoDir: filepath.Join(rootDir, "repo"), StateDir: filepath.Join(rootDir, "state")}
+	if err := os.MkdirAll(cfg.RepoDir, 0o750); err != nil {
+		t.Fatalf("create repo dir: %v", err)
+	}
+	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	logFile := installFakeDocker(t)
+	serviceBundle := buildBundleArchive(t, map[string]string{
+		"app/composia-meta.yaml":     "name: app\nnodes:\n  - main\n",
+		"app/config/old.txt":         "old\n",
+		"app/.composia-restore.json": `{"rustic":{"service_name":"rustic","service_dir":"rustic","compose_service":"rustic","node_id":"main"},"items":[{"name":"config","strategy":"files.copy","include":["./config"],"artifact_ref":"snap-config"}]}`,
+	})
+	rusticBundle := buildBundleArchive(t, map[string]string{
+		"rustic/composia-meta.yaml": "name: rustic\nproject_name: infra-rustic\ncompose_files:\n  - compose.yaml\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n",
+	})
+
+	bundleMux := http.NewServeMux()
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{expectedTaskID: "task-restore", bundlesByServiceDir: map[string]bundleTestResponse{
+		"":       {bundle: serviceBundle, serviceName: "app", relativeRoot: "app"},
+		"rustic": {bundle: rusticBundle, serviceName: "rustic", relativeRoot: "rustic"},
+	}}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errors.New("unexpected token")
+		}
+		return "main", nil
+	})))
+	bundleMux.Handle(bundlePath, bundleHandler)
+	bundleHTTPServer := httptest.NewServer(bundleMux)
+	defer bundleHTTPServer.Close()
+
+	reportServer := &agentExecutionTestReportServer{}
+	reportMux := http.NewServeMux()
+	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(reportServer, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "main-token" {
+			return "", errors.New("unexpected token")
+		}
+		return "main", nil
+	})))
+	reportMux.Handle(reportPath, reportHandler)
+	reportHTTPServer := httptest.NewUnstartedServer(reportMux)
+	reportHTTPServer.EnableHTTP2 = true
+	reportHTTPServer.StartTLS()
+	defer reportHTTPServer.Close()
+
+	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	logUploader := newTaskLogUploader(reportClient, "task-restore")
+	defer func() { _ = logUploader.Close() }()
+	pulledTask := &agentv1.AgentTask{TaskId: "task-restore", Type: protoAgentTaskType(task.TypeRestore), ServiceName: "app", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "app"}
+
+	if err := executeRestoreTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
+		t.Fatalf("executeRestoreTask returned error: %v", err)
+	}
+	if got := readAgentTestFile(t, logFile); !strings.Contains(got, "compose --project-name infra-rustic -f compose.yaml run --rm") || !strings.Contains(got, "restore snap-config") {
+		t.Fatalf("docker log missing rustic restore command:\n%s", got)
+	}
+	reportServer.mu.Lock()
+	defer reportServer.mu.Unlock()
+	if reportServer.taskStatus != string(task.StatusSucceeded) {
+		t.Fatalf("task status = %q error=%q", reportServer.taskStatus, reportServer.taskErrorSummary)
+	}
+	if reportServer.stepStatuses[task.StepRender] != string(task.StatusSucceeded) || reportServer.stepStatuses[task.StepRestore] != string(task.StatusSucceeded) {
+		t.Fatalf("unexpected step statuses: %+v", reportServer.stepStatuses)
 	}
 }
 

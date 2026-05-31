@@ -296,6 +296,141 @@ func TestDockerStatsRoundTrip(t *testing.T) {
 	}
 }
 
+func TestDBPathAndSQLAccessors(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+	if db.Path() == "" {
+		t.Fatalf("expected db path")
+	}
+	if db.SQL() == nil {
+		t.Fatalf("expected sql handle")
+	}
+}
+
+func TestListServiceInstancesAndPendingDeploy(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main", "edge"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"app": {"main", "edge"}}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.SetServicePendingDeploy(ctx, "app", []string{"main", "edge"}, "rev-1"); err != nil {
+		t.Fatalf("set service pending deploy: %v", err)
+	}
+	if err := db.SetServiceInstancePendingDeploy(ctx, "app", "main", "rev-main"); err != nil {
+		t.Fatalf("set instance pending deploy: %v", err)
+	}
+	instances, err := db.ListServiceInstances(ctx, "app")
+	if err != nil {
+		t.Fatalf("list service instances: %v", err)
+	}
+	if len(instances) != 2 || instances[0].NodeID != "edge" || instances[0].PendingDeployRevision != "rev-1" || instances[1].NodeID != "main" || instances[1].PendingDeployRevision != "rev-main" {
+		t.Fatalf("unexpected instances: %+v", instances)
+	}
+	if err := db.ClearServiceInstancePendingDeploy(ctx, "app", "main"); err != nil {
+		t.Fatalf("clear instance pending deploy: %v", err)
+	}
+	main, err := db.GetServiceInstanceSnapshot(ctx, "app", "main")
+	if err != nil {
+		t.Fatalf("get main instance: %v", err)
+	}
+	if main.PendingDeployRevision != "" {
+		t.Fatalf("main pending deploy = %q", main.PendingDeployRevision)
+	}
+	if err := db.ClearServicePendingDeploy(ctx, "app"); err != nil {
+		t.Fatalf("clear service pending deploy: %v", err)
+	}
+	edge, err := db.GetServiceInstanceSnapshot(ctx, "app", "edge")
+	if err != nil {
+		t.Fatalf("get edge instance: %v", err)
+	}
+	if edge.PendingDeployRevision != "" {
+		t.Fatalf("edge pending deploy = %q", edge.PendingDeployRevision)
+	}
+}
+
+func TestListAndGetNodeSnapshots(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main", "edge"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	heartbeatAt := time.Date(2026, 5, 31, 4, 5, 0, 0, time.UTC)
+	if err := db.RecordHeartbeat(ctx, NodeHeartbeat{NodeID: "main", HeartbeatAt: heartbeatAt}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
+	nodes, err := db.ListNodeSnapshots(ctx)
+	if err != nil {
+		t.Fatalf("list node snapshots: %v", err)
+	}
+	if len(nodes) != 2 || nodes[0].NodeID != "edge" || nodes[1].NodeID != "main" || !nodes[1].IsOnline {
+		t.Fatalf("unexpected nodes: %+v", nodes)
+	}
+	main, err := db.GetNodeSnapshot(ctx, "main")
+	if err != nil {
+		t.Fatalf("get main node: %v", err)
+	}
+	if main.LastHeartbeat != heartbeatAt.Format(time.RFC3339) {
+		t.Fatalf("heartbeat = %q", main.LastHeartbeat)
+	}
+	if _, err := db.GetNodeSnapshot(ctx, "missing"); err == nil {
+		t.Fatalf("expected missing node error")
+	}
+}
+
+func TestUpsertServiceImageStates(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"app": {"main"}}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	checkedAt := time.Date(2026, 5, 31, 4, 5, 0, 0, time.UTC)
+	if err := db.UpsertServiceImageStates(ctx, []ServiceImageState{{ServiceName: "app", NodeID: "main", ComposeService: "web", ImageRef: "ghcr.io/example/app:1", LocalDigest: "sha256:old", RemoteDigest: "sha256:new", LocalDigestObserved: true, RemoteDigestObserved: true, CheckedAt: checkedAt}}); err != nil {
+		t.Fatalf("upsert image state: %v", err)
+	}
+	row := db.sql.QueryRowContext(ctx, `SELECT update_available, check_status, checked_at FROM service_image_states WHERE service_name = 'app' AND node_id = 'main'`)
+	var updateAvailable bool
+	var checkStatus string
+	var rawCheckedAt string
+	if err := row.Scan(&updateAvailable, &checkStatus, &rawCheckedAt); err != nil {
+		t.Fatalf("scan image state: %v", err)
+	}
+	if !updateAvailable || checkStatus != ImageCheckStatusUnknown || rawCheckedAt != checkedAt.Format(time.RFC3339) {
+		t.Fatalf("unexpected image state update_available=%v status=%q checked_at=%q", updateAvailable, checkStatus, rawCheckedAt)
+	}
+	if err := db.UpsertServiceImageStates(ctx, []ServiceImageState{{ServiceName: "app", NodeID: "main", ComposeService: "web", ImageRef: "ghcr.io/example/app:1", LocalDigest: "sha256:old", RemoteDigest: "sha256:newer", RemoteDigestObserved: true, CheckStatus: ImageCheckStatusOK, CheckedAt: checkedAt.Add(time.Minute)}}); err != nil {
+		t.Fatalf("upsert remote-only image state: %v", err)
+	}
+	row = db.sql.QueryRowContext(ctx, `SELECT local_digest, remote_digest, update_available, check_status FROM service_image_states WHERE service_name = 'app' AND node_id = 'main'`)
+	var localDigest string
+	var remoteDigest string
+	if err := row.Scan(&localDigest, &remoteDigest, &updateAvailable, &checkStatus); err != nil {
+		t.Fatalf("scan updated image state: %v", err)
+	}
+	if localDigest != "sha256:old" || remoteDigest != "sha256:newer" || !updateAvailable || checkStatus != ImageCheckStatusOK {
+		t.Fatalf("unexpected updated image state local=%q remote=%q available=%v status=%q", localDigest, remoteDigest, updateAvailable, checkStatus)
+	}
+}
+
 func TestMigrateSetsSQLiteUserVersion(t *testing.T) {
 	t.Parallel()
 

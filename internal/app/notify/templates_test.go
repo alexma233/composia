@@ -107,6 +107,21 @@ func TestRenderAlertmanagerEventSortsMapBlocks(t *testing.T) {
 	}
 }
 
+func TestRenderNodeEvent(t *testing.T) {
+	t.Parallel()
+
+	subject, body, err := renderEvent(Event{Type: corenotify.EventNodeOffline, OccurredAt: time.Date(2026, 5, 31, 4, 5, 0, 0, time.UTC), Node: &NodeEvent{NodeID: "main", LastHeartbeat: "2026-05-31T04:00:00Z"}})
+	if err != nil {
+		t.Fatalf("renderEvent returned error: %v", err)
+	}
+	if subject != "[composia] node_offline main" {
+		t.Fatalf("subject = %q", subject)
+	}
+	if !strings.Contains(body, "Node: main") || !strings.Contains(body, "Last Heartbeat: 2026-05-31T04:00:00Z") {
+		t.Fatalf("unexpected body:\n%s", body)
+	}
+}
+
 func TestRenderUnsupportedEvent(t *testing.T) {
 	t.Parallel()
 

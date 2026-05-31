@@ -26,6 +26,47 @@ func TestPaginateDockerList(t *testing.T) {
 	}
 }
 
+func TestLimitedBufferTruncatesAndKeepsValidUTF8(t *testing.T) {
+	t.Parallel()
+
+	var buffer limitedBuffer
+	buffer.limit = 5
+	n, err := buffer.Write([]byte("hello world"))
+	if err != nil || n != len("hello world") {
+		t.Fatalf("write = %d/%v", n, err)
+	}
+	if !buffer.truncated || buffer.String() != "hello" {
+		t.Fatalf("buffer = %q truncated=%v", buffer.String(), buffer.truncated)
+	}
+
+	buffer = limitedBuffer{limit: 10}
+	_, _ = buffer.Write([]byte{0xff, 'a'})
+	if buffer.String() != "a" {
+		t.Fatalf("expected invalid utf8 to be dropped, got %q", buffer.String())
+	}
+}
+
+func TestLogChunkWriter(t *testing.T) {
+	t.Parallel()
+
+	var chunks []string
+	writer := logChunkWriter{write: func(value string) error {
+		chunks = append(chunks, value)
+		return nil
+	}}
+	n, err := writer.Write([]byte("hello"))
+	if err != nil || n != 5 {
+		t.Fatalf("write = %d/%v", n, err)
+	}
+	n, err = writer.Write(nil)
+	if err != nil || n != 0 {
+		t.Fatalf("empty write = %d/%v", n, err)
+	}
+	if len(chunks) != 1 || chunks[0] != "hello" {
+		t.Fatalf("chunks = %+v", chunks)
+	}
+}
+
 func TestDockerSearchAndStringHelpers(t *testing.T) {
 	t.Parallel()
 

@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -228,6 +229,135 @@ func TestFetchAndFastForwardUsesGitConfigForAuthHeaders(t *testing.T) {
 	}
 	if !strings.Contains(fetchCommand, "fetch https://example.com/repo.git main") {
 		t.Fatalf("expected fetch command, got %q", fetchCommand)
+	}
+}
+
+func TestCommitPathsAndRevisionHelpers(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	gitRun(t, repoDir, "init")
+	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("hello\n"), 0o600); err != nil {
+		t.Fatalf("write README: %v", err)
+	}
+	gitRun(t, repoDir, "add", ".")
+	gitRun(t, repoDir, "-c", "user.name=Test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "-m", "initial")
+	initialRevision, err := CurrentRevision(repoDir)
+	if err != nil {
+		t.Fatalf("current revision: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(repoDir, "service"), 0o750); err != nil {
+		t.Fatalf("create service dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "service", "compose.yaml"), []byte("services: {}\n"), 0o600); err != nil {
+		t.Fatalf("write compose: %v", err)
+	}
+
+	changed, err := HasPathsChanges(repoDir, "service/compose.yaml")
+	if err != nil {
+		t.Fatalf("has path changes: %v", err)
+	}
+	if !changed {
+		t.Fatalf("expected uncommitted path changes")
+	}
+	commitID, err := CommitPaths(repoDir, []string{"service/compose.yaml"}, "add compose", "Tester", "tester@example.com")
+	if err != nil {
+		t.Fatalf("commit paths: %v", err)
+	}
+	if commitID == "" || commitID == initialRevision {
+		t.Fatalf("unexpected commit id %q initial %q", commitID, initialRevision)
+	}
+	content, err := ReadFileAtRevision(repoDir, commitID, "service/compose.yaml")
+	if err != nil {
+		t.Fatalf("read file at revision: %v", err)
+	}
+	if content != "services: {}\n" {
+		t.Fatalf("content = %q", content)
+	}
+	files, err := ListFilesAtRevision(repoDir, commitID, "service")
+	if err != nil {
+		t.Fatalf("list files at revision: %v", err)
+	}
+	if len(files) != 1 || files[0] != "compose.yaml" {
+		t.Fatalf("files = %+v", files)
+	}
+	changedFiles, err := DiffChangedFiles(repoDir, initialRevision, commitID)
+	if err != nil {
+		t.Fatalf("diff changed files: %v", err)
+	}
+	if len(changedFiles) != 1 || changedFiles[0] != "service/compose.yaml" {
+		t.Fatalf("changed files = %+v", changedFiles)
+	}
+	if _, err := CommitPaths(repoDir, []string{"service/compose.yaml"}, "no changes", "", ""); !errors.Is(err, ErrNoGitChanges) {
+		t.Fatalf("expected ErrNoGitChanges, got %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("updated\n"), 0o600); err != nil {
+		t.Fatalf("update README: %v", err)
+	}
+	changed, err = HasPathChanges(repoDir, "README.md")
+	if err != nil {
+		t.Fatalf("has path changes wrapper: %v", err)
+	}
+	if !changed {
+		t.Fatalf("expected README changes")
+	}
+	if _, err := CommitPath(repoDir, "README.md", "", "", ""); err != nil {
+		t.Fatalf("commit path wrapper: %v", err)
+	}
+}
+
+func TestFindServiceAtRevision(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	gitRun(t, repoDir, "init")
+	if err := os.MkdirAll(filepath.Join(repoDir, "app"), 0o750); err != nil {
+		t.Fatalf("create app dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "app", MetaFileName), []byte("name: app\nnodes:\n  - main\n"), 0o600); err != nil {
+		t.Fatalf("write app meta: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(repoDir, "rustic"), 0o750); err != nil {
+		t.Fatalf("create rustic dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "rustic", MetaFileName), []byte("name: rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o600); err != nil {
+		t.Fatalf("write rustic meta: %v", err)
+	}
+	gitRun(t, repoDir, "add", ".")
+	gitRun(t, repoDir, "-c", "user.name=Test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "-m", "services")
+	revision, err := CurrentRevision(repoDir)
+	if err != nil {
+		t.Fatalf("current revision: %v", err)
+	}
+	available := map[string]struct{}{"main": {}}
+	service, err := FindServiceAtRevision(repoDir, revision, "app", available)
+	if err != nil {
+		t.Fatalf("find service at revision: %v", err)
+	}
+	if service.Name != "app" || service.MetaPath != filepath.Join(repoDir, "app", MetaFileName) {
+		t.Fatalf("unexpected service: %+v", service)
+	}
+	rustic, err := FindRusticInfraServiceAtRevision(repoDir, revision, available)
+	if err != nil {
+		t.Fatalf("find rustic at revision: %v", err)
+	}
+	if rustic.Name != "rustic" {
+		t.Fatalf("rustic = %+v", rustic)
+	}
+	if _, err := FindServiceAtRevision(repoDir, "", "app", available); err == nil || !strings.Contains(err.Error(), "revision is required") {
+		t.Fatalf("expected missing revision error, got %v", err)
+	}
+}
+
+func TestPushCurrentBranchRequiresRemoteAndBranch(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	if err := PushCurrentBranch(repoDir, "", "main", "", ""); err == nil || !strings.Contains(err.Error(), "remote URL") {
+		t.Fatalf("expected remote URL error, got %v", err)
+	}
+	if err := PushCurrentBranch(repoDir, "https://example.com/repo.git", "", "", ""); err == nil || !strings.Contains(err.Error(), "remote branch") {
+		t.Fatalf("expected remote branch error, got %v", err)
 	}
 }
 

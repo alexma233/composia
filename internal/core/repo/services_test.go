@@ -3,6 +3,7 @@ package repo
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -222,6 +223,96 @@ backup:
 	if len(services) != 0 {
 		t.Fatalf("expected invalid scheduled service to be skipped, got %+v", services)
 	}
+}
+
+func TestServiceMetaConvenienceMethods(t *testing.T) {
+	t.Parallel()
+
+	meta := ServiceMeta{Infra: &InfraConfig{Rustic: &InfraRusticConfig{ComposeService: " rusticd ", Profile: " prod ", DataProtectDir: " /data-protect ", InitArgs: []string{" init ", "", " --copy ", "  "}}}, AutoDeploy: boolPtr(true)}
+	if !meta.IsInfra() || !meta.AutoDeployEnabled() {
+		t.Fatalf("expected infra and auto deploy")
+	}
+	if meta.RusticComposeService() != "rusticd" || meta.RusticProfile() != "prod" || meta.RusticDataProtectDir() != "/data-protect" {
+		t.Fatalf("unexpected rustic defaults: service=%q profile=%q dir=%q", meta.RusticComposeService(), meta.RusticProfile(), meta.RusticDataProtectDir())
+	}
+	if !reflect.DeepEqual(meta.RusticInitArgs(), []string{"init", "--copy"}) {
+		t.Fatalf("init args = %+v", meta.RusticInitArgs())
+	}
+	if got := (ServiceMeta{}).RusticComposeService(); got != "rustic" {
+		t.Fatalf("default rustic compose service = %q", got)
+	}
+}
+
+func TestBackupDataNameHelpers(t *testing.T) {
+	t.Parallel()
+
+	service := Service{Name: "app", Meta: ServiceMeta{
+		Backup: &BackupConfig{Data: []BackupItem{{Name: "db"}, {Name: "config"}, {Name: "disabled", Enabled: boolPtr(false)}}},
+		Update: &UpdateConfig{BackupData: []UpdateBackupDataItem{{Name: "config"}, {Name: "db"}, {Name: "disabled", Enabled: boolPtr(false)}}},
+	}}
+	if !reflect.DeepEqual(EnabledBackupDataNames(service), []string{"config", "db"}) {
+		t.Fatalf("enabled backup names = %+v", EnabledBackupDataNames(service))
+	}
+	if !reflect.DeepEqual(EnabledUpdateBackupDataNames(service), []string{"config", "db"}) {
+		t.Fatalf("enabled update backup names = %+v", EnabledUpdateBackupDataNames(service))
+	}
+	validated, err := ValidateRequestedBackupDataNames(service, []string{"db", "db", "config"})
+	if err != nil {
+		t.Fatalf("validate requested backup names: %v", err)
+	}
+	if !reflect.DeepEqual(validated, []string{"config", "db"}) {
+		t.Fatalf("validated names = %+v", validated)
+	}
+}
+
+func TestCaddyHelpers(t *testing.T) {
+	t.Parallel()
+
+	enabled := true
+	service := Service{Meta: ServiceMeta{Network: &NetworkConfig{Caddy: &CaddyConfig{Enabled: &enabled, Source: " ./Caddyfile "}}}}
+	if !CaddyManaged(service) {
+		t.Fatalf("expected caddy managed service")
+	}
+	if source := CaddySource(service); source != "./Caddyfile" {
+		t.Fatalf("caddy source = %q", source)
+	}
+}
+
+func TestAffectedServicesFromChangedFiles(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	writeFile(t, filepath.Join(repoDir, "app", MetaFileName), "name: app\nnodes:\n  - main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./Caddyfile\n")
+	writeFile(t, filepath.Join(repoDir, "app", "Caddyfile"), "app.example.com {}\n")
+	writeFile(t, filepath.Join(repoDir, "other", MetaFileName), "name: other\nnodes:\n  - main\n")
+	names, err := AffectedServicesFromChangedFiles(repoDir, []string{"app/Caddyfile", "other/compose.yaml", "README.md"})
+	if err != nil {
+		t.Fatalf("affected services: %v", err)
+	}
+	if !reflect.DeepEqual(names, []string{"app", "other"}) {
+		t.Fatalf("affected names = %+v", names)
+	}
+}
+
+func TestFindInfraServices(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	writeFile(t, filepath.Join(repoDir, "caddy", MetaFileName), "name: caddy\nnodes:\n  - main\ninfra:\n  caddy: {}\n")
+	writeFile(t, filepath.Join(repoDir, "rustic", MetaFileName), "name: rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n")
+	available := map[string]struct{}{"main": {}}
+	caddy, err := FindCaddyInfraService(repoDir, available)
+	if err != nil || caddy.Name != "caddy" {
+		t.Fatalf("find caddy = %+v err=%v", caddy, err)
+	}
+	rustic, err := FindRusticInfraService(repoDir, available)
+	if err != nil || rustic.Name != "rustic" {
+		t.Fatalf("find rustic = %+v err=%v", rustic, err)
+	}
+}
+
+func boolPtr(value bool) *bool {
+	return &value
 }
 
 func TestDiscoverServicesParsesUpdateImageOverrides(t *testing.T) {

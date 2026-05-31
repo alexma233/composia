@@ -203,3 +203,118 @@ func TestCapturePathRejectsDirectoryContainingSymlink(t *testing.T) {
 		t.Fatalf("expected ErrRepoPathInvalid, got %v", err)
 	}
 }
+
+func TestCreateDirectoryWritesPlaceholder(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	path, err := CreateDirectory(repoDir, "alpha/nested")
+	if err != nil {
+		t.Fatalf("create directory: %v", err)
+	}
+	if path != "alpha/nested" {
+		t.Fatalf("path = %q", path)
+	}
+	if _, err := os.Stat(filepath.Join(repoDir, "alpha", "nested", ".gitkeep")); err != nil {
+		t.Fatalf("expected placeholder: %v", err)
+	}
+	if _, err := CreateDirectory(repoDir, "alpha/nested"); !errors.Is(err, ErrRepoPathAlreadyExists) {
+		t.Fatalf("expected ErrRepoPathAlreadyExists, got %v", err)
+	}
+}
+
+func TestMovePathMovesFileAndRejectsNestedDirectoryMove(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	if _, err := WriteFile(repoDir, "alpha/file.txt", "hello\n"); err != nil {
+		t.Fatalf("write file: %v", err)
+	}
+	from, to, err := MovePath(repoDir, "alpha/file.txt", "bravo/file.txt")
+	if err != nil {
+		t.Fatalf("move file: %v", err)
+	}
+	if from != "alpha/file.txt" || to != "bravo/file.txt" {
+		t.Fatalf("move result = %q -> %q", from, to)
+	}
+	content, err := os.ReadFile(filepath.Join(repoDir, "bravo", "file.txt")) //nolint:gosec
+	if err != nil {
+		t.Fatalf("read moved file: %v", err)
+	}
+	if string(content) != "hello\n" {
+		t.Fatalf("moved content = %q", content)
+	}
+	if err := os.MkdirAll(filepath.Join(repoDir, "dir", "child"), 0o750); err != nil {
+		t.Fatalf("create dir: %v", err)
+	}
+	_, _, err = MovePath(repoDir, "dir", "dir/child/new")
+	if !errors.Is(err, ErrRepoPathInvalid) {
+		t.Fatalf("expected ErrRepoPathInvalid for nested move, got %v", err)
+	}
+}
+
+func TestRestorePathRestoresFileAndMissingSnapshot(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	if _, err := WriteFile(repoDir, "config.txt", "before\n"); err != nil {
+		t.Fatalf("write file: %v", err)
+	}
+	snapshot, err := CapturePath(repoDir, "config.txt")
+	if err != nil {
+		t.Fatalf("capture path: %v", err)
+	}
+	defer func() { _ = CleanupPathSnapshot(snapshot) }()
+	if _, err := WriteFile(repoDir, "config.txt", "after\n"); err != nil {
+		t.Fatalf("rewrite file: %v", err)
+	}
+	if err := RestorePath(repoDir, snapshot); err != nil {
+		t.Fatalf("restore path: %v", err)
+	}
+	content, err := os.ReadFile(filepath.Join(repoDir, "config.txt")) //nolint:gosec
+	if err != nil {
+		t.Fatalf("read restored file: %v", err)
+	}
+	if string(content) != "before\n" {
+		t.Fatalf("restored content = %q", content)
+	}
+
+	missingSnapshot, err := CapturePath(repoDir, "missing.txt")
+	if err != nil {
+		t.Fatalf("capture missing path: %v", err)
+	}
+	if _, err := WriteFile(repoDir, "missing.txt", "created\n"); err != nil {
+		t.Fatalf("write missing replacement: %v", err)
+	}
+	if err := RestorePath(repoDir, missingSnapshot); err != nil {
+		t.Fatalf("restore missing snapshot: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(repoDir, "missing.txt")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected missing.txt to be removed, stat err=%v", err)
+	}
+}
+
+func TestCleanupPathSnapshotRemovesTempDir(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	if _, err := WriteFile(repoDir, "config.txt", "content\n"); err != nil {
+		t.Fatalf("write file: %v", err)
+	}
+	snapshot, err := CapturePath(repoDir, "config.txt")
+	if err != nil {
+		t.Fatalf("capture path: %v", err)
+	}
+	if snapshot.TempDir == "" {
+		t.Fatalf("expected snapshot temp dir")
+	}
+	if err := CleanupPathSnapshot(snapshot); err != nil {
+		t.Fatalf("cleanup snapshot: %v", err)
+	}
+	if _, err := os.Stat(snapshot.TempDir); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected temp dir removal, stat err=%v", err)
+	}
+	if err := CleanupPathSnapshot(PathSnapshot{}); err != nil {
+		t.Fatalf("cleanup empty snapshot: %v", err)
+	}
+}

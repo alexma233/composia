@@ -6,9 +6,30 @@ import (
 	"testing"
 	"time"
 
+	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	corenotify "forgejo.alexma.top/alexma233/composia/internal/core/notify"
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 )
+
+func TestNewNotifierWithNilOrDisabledConfig(t *testing.T) {
+	t.Parallel()
+
+	notifier, err := New(nil)
+	if err != nil {
+		t.Fatalf("New nil returned error: %v", err)
+	}
+	if notifier == nil || len(notifier.routes) != 0 {
+		t.Fatalf("unexpected nil-config notifier: %+v", notifier)
+	}
+	disabled := false
+	notifier, err = New(&config.ControllerNotificationsConfig{SMTP: &config.ControllerSMTPNotificationConfig{Enabled: &disabled}, Telegram: &config.ControllerTelegramNotificationConfig{Enabled: &disabled}})
+	if err != nil {
+		t.Fatalf("New disabled returned error: %v", err)
+	}
+	if len(notifier.routes) != 0 {
+		t.Fatalf("disabled routes = %+v", notifier.routes)
+	}
+}
 
 func TestRouteMatchesEventAndSourceFilters(t *testing.T) {
 	t.Parallel()

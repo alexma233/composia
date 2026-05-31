@@ -125,3 +125,36 @@ func TestBackupNodeIDIsResolvedFromSourceTaskOnWrite(t *testing.T) {
 		t.Fatalf("expected resolved node main, got %q", backup.NodeID)
 	}
 }
+
+func TestListBackupsForTask(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-backups", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "alpha", NodeID: "main", CreatedAt: time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("create task: %v", err)
+	}
+	for _, backup := range []BackupDetail{
+		{BackupID: "backup-db", TaskID: "task-backups", ServiceName: "alpha", DataName: "db", Status: "succeeded", StartedAt: "2026-04-04T12:00:00Z"},
+		{BackupID: "backup-config", TaskID: "task-backups", ServiceName: "alpha", DataName: "config", Status: "succeeded", StartedAt: "2026-04-04T12:00:00Z"},
+	} {
+		if err := db.UpsertBackupRecord(ctx, backup); err != nil {
+			t.Fatalf("insert backup %s: %v", backup.BackupID, err)
+		}
+	}
+	backups, err := db.ListBackupsForTask(ctx, "task-backups")
+	if err != nil {
+		t.Fatalf("list backups for task: %v", err)
+	}
+	if len(backups) != 2 || backups[0].BackupID != "backup-config" || backups[1].BackupID != "backup-db" {
+		t.Fatalf("unexpected backups: %+v", backups)
+	}
+}

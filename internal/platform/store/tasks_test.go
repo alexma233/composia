@@ -621,6 +621,137 @@ func TestUpdateTaskParamsJSONReturnsErrTaskNotFound(t *testing.T) {
 	}
 }
 
+func TestTransitionTaskStatus(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	createdAt := time.Date(2026, 5, 31, 4, 0, 0, 0, time.UTC)
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-transition", Type: task.TypeMigrate, Source: task.SourceCLI, Status: task.StatusAwaitingConfirmation, CreatedAt: createdAt}); err != nil {
+		t.Fatalf("create task: %v", err)
+	}
+	if err := db.TransitionTaskStatus(ctx, "task-transition", task.StatusAwaitingConfirmation, task.StatusPending, "retry"); err != nil {
+		t.Fatalf("transition task status: %v", err)
+	}
+	detail, err := db.GetTask(ctx, "task-transition")
+	if err != nil {
+		t.Fatalf("get task: %v", err)
+	}
+	if detail.Record.Status != task.StatusPending || detail.Record.ErrorSummary != "retry" {
+		t.Fatalf("unexpected transitioned task: %+v", detail.Record)
+	}
+	if err := db.TransitionTaskStatus(ctx, "task-transition", task.StatusAwaitingConfirmation, task.StatusPending, ""); !errors.Is(err, ErrTaskNotFound) {
+		t.Fatalf("expected ErrTaskNotFound for stale from status, got %v", err)
+	}
+}
+
+func TestTaskStepsUpsertListAndGetTask(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	createdAt := time.Date(2026, 5, 31, 4, 0, 0, 0, time.UTC)
+	startedAt := createdAt.Add(time.Minute)
+	finishedAt := startedAt.Add(time.Minute)
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-steps", Type: task.TypeDeploy, Source: task.SourceCLI, CreatedAt: createdAt}); err != nil {
+		t.Fatalf("create task: %v", err)
+	}
+	if err := db.UpsertTaskStep(ctx, task.StepRecord{TaskID: "task-steps", StepName: task.StepRender, Status: task.StatusRunning, StartedAt: &startedAt}); err != nil {
+		t.Fatalf("upsert running step: %v", err)
+	}
+	if err := db.UpsertTaskStep(ctx, task.StepRecord{TaskID: "task-steps", StepName: task.StepRender, Status: task.StatusSucceeded, StartedAt: &startedAt, FinishedAt: &finishedAt}); err != nil {
+		t.Fatalf("upsert succeeded step: %v", err)
+	}
+	if err := db.UpsertTaskStep(ctx, task.StepRecord{TaskID: "task-steps", StepName: task.StepComposeUp, Status: task.StatusPending}); err != nil {
+		t.Fatalf("upsert pending step: %v", err)
+	}
+
+	steps, err := db.ListTaskSteps(ctx, "task-steps")
+	if err != nil {
+		t.Fatalf("list task steps: %v", err)
+	}
+	if len(steps) != 2 || steps[0].StepName != task.StepComposeUp || steps[1].StepName != task.StepRender {
+		t.Fatalf("unexpected step ordering: %+v", steps)
+	}
+	if steps[1].Status != task.StatusSucceeded || steps[1].FinishedAt == nil || !steps[1].FinishedAt.Equal(finishedAt) {
+		t.Fatalf("unexpected updated render step: %+v", steps[1])
+	}
+
+	detail, err := db.GetTask(ctx, "task-steps")
+	if err != nil {
+		t.Fatalf("get task detail: %v", err)
+	}
+	if detail.Record.TaskID != "task-steps" || len(detail.Steps) != 2 {
+		t.Fatalf("unexpected task detail: %+v", detail)
+	}
+	if _, err := db.GetTask(ctx, "missing"); !errors.Is(err, ErrTaskNotFound) {
+		t.Fatalf("expected ErrTaskNotFound, got %v", err)
+	}
+}
+
+func TestHasMatchingTaskInWindow(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	windowStart := time.Date(2026, 5, 31, 4, 5, 0, 0, time.UTC)
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"app": {"main"}}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-window", Type: task.TypeBackup, Source: task.SourceSchedule, ServiceName: "app", NodeID: "main", ParamsJSON: `{"data_names":["data"]}`, CreatedAt: windowStart.Add(30 * time.Second)}); err != nil {
+		t.Fatalf("create task: %v", err)
+	}
+
+	matched, err := db.HasMatchingTaskInWindow(ctx, task.SourceSchedule, task.TypeBackup, "app", "main", `{"data_names":["data"]}`, windowStart)
+	if err != nil {
+		t.Fatalf("has matching task: %v", err)
+	}
+	if !matched {
+		t.Fatalf("expected matching task in window")
+	}
+	matched, err = db.HasMatchingTaskInWindow(ctx, task.SourceSchedule, task.TypeBackup, "app", "main", `{"data_names":["data"]}`, windowStart.Add(time.Minute))
+	if err != nil {
+		t.Fatalf("has matching task next window: %v", err)
+	}
+	if matched {
+		t.Fatalf("did not expect task in next window")
+	}
+}
+
+func TestTaskNodeID(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-node", Type: task.TypeDeploy, Source: task.SourceCLI, NodeID: "main", CreatedAt: time.Date(2026, 5, 31, 4, 0, 0, 0, time.UTC)}); err != nil {
+		t.Fatalf("create task: %v", err)
+	}
+	nodeID, err := db.TaskNodeID(ctx, "task-node")
+	if err != nil {
+		t.Fatalf("task node id: %v", err)
+	}
+	if nodeID != "main" {
+		t.Fatalf("node id = %q", nodeID)
+	}
+	if _, err := db.TaskNodeID(ctx, "missing"); !errors.Is(err, ErrTaskNotFound) {
+		t.Fatalf("expected ErrTaskNotFound, got %v", err)
+	}
+}
+
 func openTestDB(t *testing.T) *DB {
 	t.Helper()
 

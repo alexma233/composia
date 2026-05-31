@@ -242,6 +242,36 @@ controller:
 	}
 }
 
+func TestControllerTokenMaps(t *testing.T) {
+	t.Parallel()
+
+	disabled := false
+	controller := &ControllerConfig{
+		Nodes: []NodeConfig{
+			{ID: "main", Token: "main-token"},
+			{ID: "edge", Token: "edge-token"},
+		},
+		AccessTokens: []AccessTokenConfig{
+			{Name: "admin", Token: "admin-token"},
+			{Name: "disabled", Token: "disabled-token", Enabled: &disabled},
+		},
+	}
+	nodeTokens := controller.NodeTokenMap()
+	if nodeTokens["main-token"] != "main" || nodeTokens["edge-token"] != "edge" {
+		t.Fatalf("node tokens = %+v", nodeTokens)
+	}
+	accessTokens := controller.EnabledAccessTokenMap()
+	if accessTokens["admin-token"] != "admin" {
+		t.Fatalf("access tokens = %+v", accessTokens)
+	}
+	if _, ok := accessTokens["disabled-token"]; ok {
+		t.Fatalf("disabled token should be omitted: %+v", accessTokens)
+	}
+	if !hasNode(controller.Nodes, "main") || hasNode(controller.Nodes, "missing") {
+		t.Fatalf("hasNode returned unexpected result")
+	}
+}
+
 func TestLoadControllerRejectsInvalidUpdatesDefaults(t *testing.T) {
 	t.Parallel()
 
