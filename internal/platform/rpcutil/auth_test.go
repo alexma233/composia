@@ -3,6 +3,7 @@ package rpcutil
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -50,6 +51,60 @@ func TestServerBearerAuthInterceptorAuthenticatesSubject(t *testing.T) {
 	}
 }
 
+func TestStaticBearerAuthInterceptorAddsStreamingClientAuthorizationHeader(t *testing.T) {
+	t.Parallel()
+
+	interceptor := NewStaticBearerAuthInterceptor("secret-token")
+	wrapped := interceptor.WrapStreamingClient(func(context.Context, connect.Spec) connect.StreamingClientConn {
+		return &testStreamingClientConn{requestHeader: make(http.Header)}
+	})
+	conn := wrapped(context.Background(), connect.Spec{})
+
+	if got := conn.RequestHeader().Get("Authorization"); got != "Bearer secret-token" {
+		t.Fatalf("Authorization header = %q", got)
+	}
+}
+
+func TestServerBearerAuthInterceptorAuthenticatesStreamingSubject(t *testing.T) {
+	t.Parallel()
+
+	interceptor := NewServerBearerAuthInterceptor(func(token string) (string, error) {
+		if token != "secret-token" {
+			return "", errors.New("bad token")
+		}
+		return "node-1", nil
+	})
+	conn := &testStreamingHandlerConn{requestHeader: http.Header{"Authorization": []string{"Bearer secret-token"}}}
+	wrapped := interceptor.WrapStreamingHandler(func(ctx context.Context, _ connect.StreamingHandlerConn) error {
+		subject, ok := BearerSubject(ctx)
+		if !ok || subject != "node-1" {
+			t.Fatalf("BearerSubject = %q, %v", subject, ok)
+		}
+		return nil
+	})
+
+	if err := wrapped(context.Background(), conn); err != nil {
+		t.Fatalf("wrapped streaming handler returned error: %v", err)
+	}
+}
+
+func TestServerBearerAuthInterceptorRejectsStreamingMissingHeader(t *testing.T) {
+	t.Parallel()
+
+	interceptor := NewServerBearerAuthInterceptor(func(string) (string, error) {
+		return "", nil
+	})
+	wrapped := interceptor.WrapStreamingHandler(func(context.Context, connect.StreamingHandlerConn) error {
+		t.Fatalf("next should not be called")
+		return nil
+	})
+
+	err := wrapped(context.Background(), &testStreamingHandlerConn{requestHeader: make(http.Header)})
+	if connect.CodeOf(err) != connect.CodeUnauthenticated {
+		t.Fatalf("error code = %v, want unauthenticated, err=%v", connect.CodeOf(err), err)
+	}
+}
+
 func TestServerBearerAuthInterceptorRejectsMissingHeader(t *testing.T) {
 	t.Parallel()
 
@@ -89,3 +144,47 @@ func TestBearerToken(t *testing.T) {
 		})
 	}
 }
+
+type testStreamingClientConn struct {
+	requestHeader   http.Header
+	responseHeader  http.Header
+	responseTrailer http.Header
+}
+
+func (conn *testStreamingClientConn) Spec() connect.Spec { return connect.Spec{} }
+
+func (conn *testStreamingClientConn) Peer() connect.Peer { return connect.Peer{} }
+
+func (conn *testStreamingClientConn) Send(any) error { return nil }
+
+func (conn *testStreamingClientConn) RequestHeader() http.Header { return conn.requestHeader }
+
+func (conn *testStreamingClientConn) CloseRequest() error { return nil }
+
+func (conn *testStreamingClientConn) Receive(any) error { return nil }
+
+func (conn *testStreamingClientConn) ResponseHeader() http.Header { return conn.responseHeader }
+
+func (conn *testStreamingClientConn) ResponseTrailer() http.Header { return conn.responseTrailer }
+
+func (conn *testStreamingClientConn) CloseResponse() error { return nil }
+
+type testStreamingHandlerConn struct {
+	requestHeader   http.Header
+	responseHeader  http.Header
+	responseTrailer http.Header
+}
+
+func (conn *testStreamingHandlerConn) Spec() connect.Spec { return connect.Spec{} }
+
+func (conn *testStreamingHandlerConn) Peer() connect.Peer { return connect.Peer{} }
+
+func (conn *testStreamingHandlerConn) Receive(any) error { return nil }
+
+func (conn *testStreamingHandlerConn) RequestHeader() http.Header { return conn.requestHeader }
+
+func (conn *testStreamingHandlerConn) Send(any) error { return nil }
+
+func (conn *testStreamingHandlerConn) ResponseHeader() http.Header { return conn.responseHeader }
+
+func (conn *testStreamingHandlerConn) ResponseTrailer() http.Header { return conn.responseTrailer }

@@ -2,6 +2,7 @@ package rpcutil
 
 import (
 	"context"
+	"net/http"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -67,5 +68,22 @@ func TestStaticHeadersInterceptorPreservesExistingHeader(t *testing.T) {
 
 	if _, err := wrapped(context.Background(), req); err != nil {
 		t.Fatalf("wrapped unary returned error: %v", err)
+	}
+}
+
+func TestStaticHeadersInterceptorAddsStreamingClientHeaders(t *testing.T) {
+	t.Parallel()
+
+	interceptor, err := NewStaticHeadersInterceptor(map[string]string{"X-Trace-Id": "trace-1"})
+	if err != nil {
+		t.Fatalf("NewStaticHeadersInterceptor returned error: %v", err)
+	}
+	wrapped := interceptor.WrapStreamingClient(func(context.Context, connect.Spec) connect.StreamingClientConn {
+		return &testStreamingClientConn{requestHeader: make(http.Header)}
+	})
+	conn := wrapped(context.Background(), connect.Spec{})
+
+	if got := conn.RequestHeader().Get("X-Trace-Id"); got != "trace-1" {
+		t.Fatalf("X-Trace-Id = %q", got)
 	}
 }
