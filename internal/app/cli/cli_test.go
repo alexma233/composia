@@ -232,10 +232,10 @@ func TestRunUnknownCommandDoesNotRequireControllerConfig(t *testing.T) {
 func TestHelpSubcommandDoesNotRequireControllerConfig(t *testing.T) {
 	var out bytes.Buffer
 	var errOut bytes.Buffer
-	if err := Run(context.Background(), []string{"service", "deploy", "--help"}, &out, &errOut); err != nil {
+	if err := Run(context.Background(), []string{"service", "vaultwarden", "up", "--help"}, &out, &errOut); err != nil {
 		t.Fatalf("Run returned error: %v", err)
 	}
-	if !strings.Contains(out.String(), "usage: composia service deploy") {
+	if !strings.Contains(out.String(), "usage: composia service vaultwarden up") {
 		t.Fatalf("stdout = %q", out.String())
 	}
 	if errOut.Len() != 0 {
@@ -248,18 +248,15 @@ func TestUsageIncludesWaitAndNewCommands(t *testing.T) {
 	PrintUsage(&out)
 	usage := out.String()
 	for _, want := range []string{
-		"system status|reload|capabilities",
-		"task list|get|logs|wait|run-again|approve|reject",
-		"node list|get|tasks|stats|sync-caddy-files|reload-caddy|prune",
-		"service list|get|workspace|update-candidates|deploy|update|stop|restart|backup|dns-update|caddy-sync|migrate",
-		"repo head|files|get|edit|update|mkdir|mv|rm|history|sync|validate",
-		"network list|get|remove",
-		"volume list|get|remove",
-		"image list|get|remove",
-		"rustic init|forget|prune",
-		"container list|get|logs|start|stop|restart|remove|exec",
-		"skills list|show",
-		"completion bash|zsh|fish",
+		"service     List/create services or target one service by name",
+		"task        Inspect task status",
+		"node        Inspect nodes",
+		"container   Low-level container operations",
+		"repo        Low-level repository file operations",
+		"secret      Low-level encrypted file operations",
+		"system      Controller status",
+		"completion  Generate shell completion scripts",
+		"Run 'composia help <command>' for command details.",
 	} {
 		if !strings.Contains(usage, want) {
 			t.Fatalf("usage missing %q:\n%s", want, usage)
@@ -348,9 +345,10 @@ func TestNewCLICommandHelpDoesNotRequireControllerConfig(t *testing.T) {
 		args []string
 		want string
 	}{
-		{[]string{"help", "service", "workspace"}, "usage: composia service workspace <list|get>"},
-		{[]string{"help", "service", "workspace", "list"}, "usage: composia service workspace list"},
-		{[]string{"help", "service", "workspace", "get"}, "usage: composia service workspace get <folder>"},
+		{[]string{"help", "service", "create"}, "usage: composia service create [--message text] <name>"},
+		{[]string{"help", "service", "vaultwarden"}, "usage: composia service vaultwarden [--containers]"},
+		{[]string{"help", "service", "vaultwarden", "edit"}, "usage: composia service vaultwarden edit [--message text] <compose|meta|env|path>"},
+		{[]string{"help", "service", "vaultwarden", "exec"}, "usage: composia service vaultwarden exec [--node node] [--container name] [--no-tty] [command] [args...]"},
 		{[]string{"help", "repo", "mkdir"}, "usage: composia repo mkdir [--message text] <path>"},
 		{[]string{"help", "repo", "mv"}, "usage: composia repo mv [--message text] <source> <destination>"},
 		{[]string{"help", "repo", "rm"}, "usage: composia repo rm [--message text] <path>"},
@@ -552,12 +550,12 @@ func TestConfigUnsetTokenDeletesKeyringToken(t *testing.T) {
 }
 
 func TestServiceActionUsageMatchesAction(t *testing.T) {
-	err := (&app{}).runServiceAction("backup", nil)
+	err := (&app{}).runServiceAction("backup", "vaultwarden", []string{"extra"})
 	if err == nil {
 		t.Fatalf("expected usage error")
 	}
 	message := err.Error()
-	if !strings.Contains(message, "usage: composia service backup") {
+	if !strings.Contains(message, "usage: composia service <service> backup") {
 		t.Fatalf("usage = %q", message)
 	}
 	if strings.Contains(message, "--recreate") || strings.Contains(message, "--image") {

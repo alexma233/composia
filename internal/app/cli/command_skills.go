@@ -24,7 +24,7 @@ description: Use Composia from coding agents with low-token CLI output.
 Rules:
 - Use --terse for normal inspection and mutation commands.
 - Use --json only when exact protobuf field names are required.
-- Prefer service and instance commands for lifecycle operations.
+- Prefer service <name> <action> for lifecycle operations.
 - Use container commands for runtime diagnosis only.
 - Use --wait for mutations when the caller needs completion.
 - Use --follow only when streaming logs is explicitly needed.
@@ -33,7 +33,7 @@ Rules:
 Common commands:
 composia --terse system status
 composia --terse service list
-composia --terse service get <service>
+composia --terse service <service>
 composia --terse instance list <service>
 composia --terse task get <task>
 composia --terse task logs <task>
@@ -55,12 +55,12 @@ Rules:
 - On failure, inspect the task and then read bounded task logs.
 
 Common commands:
-composia --terse service get <service>
-composia --terse service deploy --wait --timeout 10m <service>
-composia --terse service update --wait --timeout 10m <service>
+composia --terse service <service>
+composia --terse service <service> up --wait --timeout 10m
+composia --terse service <service> update --wait --timeout 10m
 composia --terse instance deploy --wait --timeout 10m <service> <node>
-composia --terse service backup --wait --timeout 30m <service>
-composia --terse service migrate --wait --timeout 30m --source <node> --target <node> <service>
+composia --terse service <service> backup --wait --timeout 30m
+composia --terse service <service> migrate --wait --timeout 30m --source <node> --target <node>
 composia --terse task logs <task>
 `,
 	},
