@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Monitor, Moon, Sun } from 'lucide-svelte';
+  import { Monitor, Moon, Sun } from '@lucide/svelte';
 
   import { availableLocales, messages } from '$lib/i18n';
   import {

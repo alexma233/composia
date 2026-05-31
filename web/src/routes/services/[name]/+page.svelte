@@ -18,7 +18,7 @@
     Trash2,
     Upload,
     Wrench,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
 
   import type { PageData } from "./$types";
   import {

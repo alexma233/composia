@@ -68,7 +68,7 @@
     "dequal": "2.0.3",
     "envfile": "7.1.0",
     "filesize": "11.0.17",
-    "lucide-svelte": "1.0.1",
+    "@lucide/svelte": "1.17.0",
     "svelte-sonner": "1.1.1",
     "tailwind-merge": "3.6.0",
     "valibot": "1.4.1",

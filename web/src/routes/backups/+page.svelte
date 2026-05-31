@@ -4,7 +4,7 @@
   import { page } from "$app/stores";
   import { buttonVariants } from "$lib/components/ui/button";
   import { onMount, tick } from "svelte";
-  import { Check, ChevronsUpDown, Filter } from "lucide-svelte";
+  import { Check, ChevronsUpDown, Filter } from "@lucide/svelte";
   import { messages } from "$lib/i18n";
 
   import {

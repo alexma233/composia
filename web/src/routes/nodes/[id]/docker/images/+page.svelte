@@ -34,7 +34,7 @@
   import CopyButton from '$lib/components/app/copy-button.svelte';
   import SortableTableHead from '$lib/components/app/sortable-table-head.svelte';
   import Spinner from '$lib/components/ui/spinner/spinner.svelte';
-  import { Search } from 'lucide-svelte';
+  import { Search } from '@lucide/svelte';
   import { Alert, AlertDescription } from '$lib/components/ui/alert';
   import { messages } from '$lib/i18n';
   import { actionErrorMessage } from '$lib/capabilities';

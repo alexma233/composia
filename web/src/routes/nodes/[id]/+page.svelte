@@ -37,7 +37,7 @@
     DropdownMenuItem,
     DropdownMenuTrigger,
   } from "$lib/components/ui/dropdown-menu";
-  import { ChevronDown } from "lucide-svelte";
+  import { ChevronDown } from "@lucide/svelte";
   import { startPolling } from "$lib/refresh";
   import {
     formatBytes,

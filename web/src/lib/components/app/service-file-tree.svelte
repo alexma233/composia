@@ -5,7 +5,7 @@
     FileText,
     Folder,
     Lock,
-  } from 'lucide-svelte';
+  } from '@lucide/svelte';
 
   import {
     isEncryptedFilePath,

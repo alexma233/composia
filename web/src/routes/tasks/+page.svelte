@@ -5,7 +5,7 @@
   import { buttonVariants } from "$lib/components/ui/button";
   import type { Snippet } from "svelte";
   import { onMount, tick } from "svelte";
-  import { Check, ChevronsUpDown, Filter } from "lucide-svelte";
+  import { Check, ChevronsUpDown, Filter } from "@lucide/svelte";
   import { messages } from "$lib/i18n";
 
   import {

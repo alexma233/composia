@@ -3,7 +3,7 @@
   import { onMount } from 'svelte';
   import type { ActionData, PageData } from './$types';
 
-  import { Plus } from 'lucide-svelte';
+  import { Plus } from '@lucide/svelte';
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';

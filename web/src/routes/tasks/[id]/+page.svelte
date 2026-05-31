@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { RotateCcw } from 'lucide-svelte';
+  import { RotateCcw } from '@lucide/svelte';
   import { toast } from 'svelte-sonner';
   import { goto, invalidateAll } from '$app/navigation';
 
