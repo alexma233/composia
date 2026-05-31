@@ -1,38 +1,32 @@
 # Composia
 
-<div align="center">
-  <p><strong>Main Repository</strong></p>
-  <p>
-    <a href="https://forgejo.alexma.top/alexma233/composia">
-      <img src="https://img.shields.io/badge/AlexMa's%20Forgejo-View%20Repo-blue?style=for-the-badge" alt="AlexMa's Forgejo" />
-    </a>
-  </p>
+<p align="center">
+  <a href="https://forgejo.alexma.top/alexma233/composia">
+    <img src="https://img.shields.io/badge/AlexMa's%20Forgejo-View%20Repo-blue?style=for-the-badge" alt="AlexMa's Forgejo" />
+  </a>
+</p>
 
-  <p>Mirrors</p>
-  <p>
-    <a href="https://codeberg.org/alexma233/composia">
-      <img src="https://img.shields.io/gitea/stars/alexma233/composia?gitea_url=https://codeberg.org&style=flat-square&label=Codeberg%20Stars" alt="Codeberg Stars" />
-    </a>
-    <a href="https://github.com/alexma233/composia">
-      <img src="https://img.shields.io/github/stars/alexma233/composia?style=flat-square&label=GitHub%20Stars" alt="GitHub Stars" />
-    </a>
-    <a href="https://tangled.org/fur.im/composia">
-      <img src="https://img.shields.io/badge/Tangled-View%20Repo-blue?style=flat-square" alt="Tangled" />
-    </a>
-  </p>
+<p align="center">
+  <a href="https://codeberg.org/alexma233/composia">
+    <img src="https://img.shields.io/gitea/stars/alexma233/composia?gitea_url=https://codeberg.org&style=flat-square&label=Codeberg%20Stars" alt="Codeberg Stars" />
+  </a>
+  <a href="https://github.com/alexma233/composia">
+    <img src="https://img.shields.io/github/stars/alexma233/composia?style=flat-square&label=GitHub%20Stars" alt="GitHub Stars" />
+  </a>
+  <a href="https://tangled.org/fur.im/composia">
+    <img src="https://img.shields.io/badge/Tangled-View%20Repo-blue?style=flat-square" alt="Tangled" />
+  </a>
+</p>
 
-  <p>
-    <a href="https://composia.xyz">
-      <strong>📚 Documentation</strong>
-    </a>
-  </p>
-</div>
+<p align="center">
+  <a href="https://composia.xyz"><strong>Documentation</strong></a>
+</p>
 
-Composia is a self-hosted control plane for Docker Compose — define your services as plain files, deploy them to one or many nodes, and get unified visibility across your infrastructure.
+**Your Compose files, everywhere.**
 
-**Unlike PaaS platforms, Composia stays out of your way.** Your configuration lives in standard `docker-compose.yaml` and `composia-meta.yaml` files that you own. The control plane coordinates and reports, but you always retain direct CLI and file-based access to every node.
+A self-hosted orchestration system crafted for power users. Define services in plain text, keep them in Git, stay database-free and lock-in-free. Backups, DNS, reverse proxying, and image updates — all included.
 
-A service definition looks like this:
+Unlike PaaS platforms, Composia stays out of your way. Your configuration lives in standard `docker-compose.yaml` and `composia-meta.yaml` files that you own. The control plane coordinates and reports, but you always retain direct CLI and file-based access to every node.
 
 ```yaml
 # composia-meta.yaml — declare what and where
@@ -51,131 +45,91 @@ services:
       - ./data:/app/data
 ```
 
-See [Why Composia?](https://composia.xyz/docs/about/why-composia/) for how it compares to other tools.
+## Features
+
+- **Multi-node Compose** — deploy services to any node from a simple configuration; works across NAT, firewalls, and CDNs
+- **Standard files, no lock-in** — `docker-compose.yaml` + `composia-meta.yaml` in your own Git repository; open formats, manual control anytime
+- **Web dashboard** — file browsing and editing, live logs, Docker resource views, and interactive terminals; mobile-friendly
+- **CLI and public API** — full-featured CLI ready for automation and AI agents; public APIs for third-party clients
+- **Backup and restore** — automated backups powered by Rustic, with scheduled runs, snapshot management, and on-demand restores
+- **DNS and reverse proxy** — Cloudflare DNS management and Caddy reverse proxying out of the box; auto-sync and reload your Caddyfile
+- **Image update detection** — automatically detect new Docker image tags and apply updates; supports multiple versioning strategies
+- **Built-in notifications** — Email, Telegram, and Alertmanager notifications for task results, backup events, image updates, and node status changes
+- **And more…** — task system, encrypted secrets, automatic deployments, Prometheus metrics, cross-platform support, accessibility
 
 ## Stack
 
-- Backend: Go
-- Frontend: SvelteKit with Bun
-- Runtime: Docker Compose
-- State database: SQLite
-- RPC: ConnectRPC
+| Component  | Technology                  |
+| ---------- | --------------------------- |
+| Backend    | Go                          |
+| Frontend   | SvelteKit (Bun)             |
+| Runtime    | Docker Compose              |
+| State      | SQLite                      |
+| RPC        | ConnectRPC                  |
+| Web UI     | shadcn-svelte               |
 
 ## Quick Start
-
-See the documentation site for installation, configuration, deployment, and operations:
 
 - [Installation](https://composia.xyz/docs/installation/docker-compose/)
 - [Configuration Guide](https://composia.xyz/docs/installation/configuration/)
 - [Development Guide](https://composia.xyz/docs/developer-guide/source-build/)
 - [Why Composia?](https://composia.xyz/docs/about/why-composia/)
 
-## Development
-
-This repository includes `mise.toml` for local tool versions.
-
-For full setup and workflow details, see the [Development Guide](https://composia.xyz/docs/developer-guide/source-build/).
-
-Common local commands:
-
-```bash
-mise install
-mise run dev
-mise run dev:down
-mise run dev:logs
-buf generate --path proto/composia/controller/v1 --path proto/composia/agent/v1/agent.proto
-```
-
-## Binary Builds
-
-Composia can run without Docker. Linux release packages include:
-
-- `composia` — user-facing CLI
-- `composia-controller` — controller runtime
-- `composia-agent` — agent runtime
-- `composia-controller.service` and `composia-agent.service` — optional systemd units installed inactive by default
-
-Darwin and Windows releases include only the `composia` CLI.
-
-Build local binaries for the current platform:
-
-```bash
-sh ./scripts/build/binaries.sh
-```
-
-Cross-build by setting Go target variables:
-
-```bash
-VERSION=v0.1.6 GOOS=linux GOARCH=amd64 sh ./scripts/build/binaries.sh
-VERSION=v0.1.6 GOOS=linux GOARCH=arm GOARM=7 sh ./scripts/build/binaries.sh
-```
-
-Release packaging is handled by GoReleaser:
-
-```bash
-goreleaser release --snapshot --clean
-```
-
-The release configuration builds pure binary archives for Linux, Darwin, and Windows. Linux releases include `.deb`, `.rpm`, Arch Linux binary packages, and the `composia-bin` AUR package. Linux packages install systemd unit files but do not enable or start services. Nix users can install the Linux package from the flake:
-
-```bash
-nix profile install git+https://forgejo.alexma.top/alexma233/composia
-```
-
-An AUR source-build `PKGBUILD` template is available under `packaging/aur/`. The binary AUR package is published by GoReleaser.
-
-Container images are split by runtime role:
-
-```text
-forgejo.alexma.top/alexma233/composia-cli
-forgejo.alexma.top/alexma233/composia-controller
-forgejo.alexma.top/alexma233/composia-agent
-forgejo.alexma.top/alexma233/composia-web
-```
-
 ## Repository Layout
 
 ```text
-cmd/composia/         # user-facing CLI entrypoint
-cmd/composia-agent/   # agent runtime entrypoint
-cmd/composia-controller/ # controller runtime entrypoint
-dev/                  # local development state and local-only config
-gen/go/               # generated protobuf and Connect code
-internal/             # backend packages
-proto/                # protobuf definitions
-web/                  # SvelteKit frontend
+cmd/
+  composia/            user-facing CLI
+  composia-agent/      agent runtime
+  composia-controller/  controller runtime
+dev/                    local development config and state
+gen/go/                 generated protobuf and Connect code
+internal/
+  app/                  application entrypoints
+    agent/              agent server
+    cli/                CLI commands
+    controller/         controller server
+    notify/             notification dispatch
+  core/                 domain logic
+    backup/             backup and restore operations
+    config/             configuration loading
+    notify/             notification event system
+    repo/               git repo and service file management
+    schedule/           cron-based task scheduling
+    task/               task execution engine
+  platform/             infrastructure
+    configpath/         config file resolution
+    rpcutil/            RPC helpers
+    secret/             age encryption and decryption
+    store/              SQLite persistence layer
+  version/              build version
+proto/                  protobuf definitions
+web/                    SvelteKit frontend
+  src/routes/
+    backups/            backup management
+    login/              authentication
+    logout/             session termination
+    nodes/              node management
+    services/           service management
+    settings/           system settings
+    tasks/              task and schedule management
 ```
 
 ## Attributions
 
-- [Dockman](https://github.com/RA341/dockman) - Docker management UI reference for Docker resource list/inspect page patterns (AGPL-3.0)
-- [Twemoji](https://github.com/twitter/twemoji) - the Composia logo is adapted from Twemoji graphics by Twitter, Inc. and other contributors, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-
-<details>
-<summary>Twemoji attribution details</summary>
-
-Source: https://github.com/twitter/twemoji
-
-License: Creative Commons Attribution 4.0 International
-
-License URL: https://creativecommons.org/licenses/by/4.0/
-
-License text: [LICENSES/CC-BY-4.0.txt](LICENSES/CC-BY-4.0.txt)
-
-Changes: pixelated and adapted into the Composia logo, then exported as SVG and favicon assets.
-
-</details>
+- [Dockman](https://github.com/RA341/dockman) — Docker management UI reference for resource list and inspect page patterns (AGPL-3.0)
+- [Twemoji](https://github.com/twitter/twemoji) — the Composia logo is adapted from Twemoji graphics, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 
 ## License
 
-Source code is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See [LICENSE](LICENSE) for details.
+Source code is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See [LICENSE](LICENSE).
 
-Except where otherwise noted, documentation and website content in this repository, including Markdown files and content under `site/content/`, are licensed under [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/). See [LICENSES/CC-BY-4.0.txt](LICENSES/CC-BY-4.0.txt) for the license text.
+Documentation and website content (including Markdown files and `site/content/`) are licensed under [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/). See [LICENSES/CC-BY-4.0.txt](LICENSES/CC-BY-4.0.txt).
+
+When reusing documentation or website content, provide attribution to the Composia project, link to the original repository when reasonably practicable, link to the CC BY 4.0 license, and indicate if changes were made.
+
+The Composia logo and derived site icons are licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) with attribution to Twemoji as described above.
 
 This documentation license does not apply to source code, configuration files, generated files, third-party materials, trademarks, service marks, or project logos except where explicitly stated.
 
-When reusing the documentation or website content, provide attribution to the Composia project, link to the original repository when reasonably practicable, link to the CC BY 4.0 license, and indicate if changes were made.
-
-The Composia logo and derived site icons are licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) and include attribution to Twemoji as described above.
-
-If you require a commercial license for use cases not permitted under AGPL-3.0, please contact the author.
+For commercial licensing outside AGPL-3.0 scope, contact the author.
