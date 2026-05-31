@@ -48,7 +48,7 @@ outputs:
 params:
   description: "A self-hosted orchestration system for managing Compose files across nodes."
   images:
-    - /images/og.png
+    - og.png
 
   theme:
     default: system
