@@ -1,5 +1,6 @@
 baseURL: https://composia.xyz/
 title: Composia
+defaultContentLanguage: en
 enableGitInfo: true
 
 languages:
@@ -29,6 +30,8 @@ languages:
     weight: 6
 
 markup:
+  highlight:
+    noClasses: false
   goldmark:
     renderer:
       unsafe: true
@@ -37,11 +40,25 @@ module:
   imports:
     - path: github.com/imfing/hextra
 
+outputs:
+  home: [html, rss, llms]
+  page: [html, markdown]
+  section: [html, rss, markdown]
+
 params:
+  description: "A self-hosted orchestration system for managing Compose files across nodes."
+  images:
+    - /images/og.png
+
+  theme:
+    default: system
+    displayToggle: true
+
   externalLinkDecoration: true
   displayUpdatedDate: true
   dateFormat: "Jan 2, 2006"
   displayUpdatedAuthor: true
+
   navbar:
     displayLogo: true
     displayTitle: true
@@ -50,20 +67,33 @@ params:
       link: /
       width: 32
       height: 32
+
   imageZoom:
     enable: true
+
   analytics:
     umami:
       serverURL: "https://umi.alexma.top"
       websiteID: "9c3c0e7d-fff8-4749-acd7-694abb3f7e5e"
+
   search:
     enable: true
     type: flexsearch
     flexsearch:
       index: content
+      tokenize: forward
+
   editURL:
     enable: true
     base: "https://forgejo.alexma.top/alexma233/composia/_edit/main"
 
-outputs:
-  home: [html, llms]
+  page:
+    contextMenu:
+      enable: true
+      links:
+        - name: Open in ChatGPT
+          icon: chatgpt
+          url: "https://chatgpt.com/?hints=search&q=I'm looking at this documentation: {url}%0AHelp me understand how to use it."
+        - name: Open in Claude
+          icon: claude
+          url: "https://claude.ai/new?q=I'm looking at this documentation: {url}%0AHelp me understand how to use it."
