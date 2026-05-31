@@ -153,6 +153,149 @@ func TestServiceImageUpdateChecksRoundTrip(t *testing.T) {
 	}
 }
 
+func TestNodeCountsAndMarkOfflineNodesBefore(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main", "worker"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.RecordHeartbeat(ctx, NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 5, 31, 4, 5, 0, 0, time.UTC), AgentVersion: "1.0.0"}); err != nil {
+		t.Fatalf("record main heartbeat: %v", err)
+	}
+	if err := db.RecordHeartbeat(ctx, NodeHeartbeat{NodeID: "worker", HeartbeatAt: time.Date(2026, 5, 31, 4, 0, 0, 0, time.UTC), AgentVersion: "1.0.0"}); err != nil {
+		t.Fatalf("record worker heartbeat: %v", err)
+	}
+
+	configured, online, err := db.NodeCounts(ctx)
+	if err != nil {
+		t.Fatalf("node counts: %v", err)
+	}
+	if configured != 2 || online != 2 {
+		t.Fatalf("counts before offline = configured:%d online:%d", configured, online)
+	}
+
+	if err := db.MarkOfflineNodesBefore(ctx, time.Date(2026, 5, 31, 4, 3, 0, 0, time.UTC)); err != nil {
+		t.Fatalf("mark offline nodes: %v", err)
+	}
+	configured, online, err = db.NodeCounts(ctx)
+	if err != nil {
+		t.Fatalf("node counts after offline: %v", err)
+	}
+	if configured != 2 || online != 1 {
+		t.Fatalf("counts after offline = configured:%d online:%d", configured, online)
+	}
+}
+
+func TestServiceCounts(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "bravo"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.UpdateServiceInstanceRuntimeStatus(ctx, "alpha", "main", ServiceRuntimeRunning, time.Date(2026, 5, 31, 4, 5, 0, 0, time.UTC)); err != nil {
+		t.Fatalf("update alpha status: %v", err)
+	}
+
+	total, running, err := db.ServiceCounts(ctx)
+	if err != nil {
+		t.Fatalf("service counts: %v", err)
+	}
+	if total != 2 || running != 1 {
+		t.Fatalf("service counts = total:%d running:%d", total, running)
+	}
+}
+
+func TestRepoSyncStateRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	state, err := db.GetRepoSyncState(ctx)
+	if err != nil {
+		t.Fatalf("get initial repo sync state: %v", err)
+	}
+	if state != (RepoSyncState{}) {
+		t.Fatalf("expected empty initial repo state, got %+v", state)
+	}
+
+	if err := db.UpsertRepoSyncState(ctx, RepoSyncState{LastSyncError: "pull failed"}); err != nil {
+		t.Fatalf("upsert repo sync state: %v", err)
+	}
+	state, err = db.GetRepoSyncState(ctx)
+	if err != nil {
+		t.Fatalf("get repo sync state: %v", err)
+	}
+	if state.SyncStatus != RepoSyncStatusUnknown || state.LastSyncError != "pull failed" {
+		t.Fatalf("unexpected defaulted repo state: %+v", state)
+	}
+
+	if err := db.UpsertRepoSyncState(ctx, RepoSyncState{SyncStatus: RepoSyncStatusSynced, LastSuccessfulPullAt: "2026-05-31T04:05:00Z"}); err != nil {
+		t.Fatalf("upsert synced repo state: %v", err)
+	}
+	state, err = db.GetRepoSyncState(ctx)
+	if err != nil {
+		t.Fatalf("get synced repo state: %v", err)
+	}
+	if state.SyncStatus != RepoSyncStatusSynced || state.LastSyncError != "" || state.LastSuccessfulPullAt != "2026-05-31T04:05:00Z" {
+		t.Fatalf("unexpected synced repo state: %+v", state)
+	}
+}
+
+func TestDockerStatsRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	reportedAt := time.Date(2026, 5, 31, 4, 5, 0, 0, time.UTC)
+	if err := db.RecordDockerStats(ctx, DockerStats{
+		NodeID:              "main",
+		ContainersTotal:     5,
+		ContainersRunning:   3,
+		ContainersStopped:   2,
+		ContainersPaused:    1,
+		Images:              9,
+		Networks:            4,
+		Volumes:             7,
+		VolumesSizeBytes:    1024,
+		DisksUsageBytes:     2048,
+		DockerServerVersion: "27.0.0",
+		ReportedAt:          reportedAt,
+	}); err != nil {
+		t.Fatalf("record docker stats: %v", err)
+	}
+
+	stats, err := db.GetNodeDockerStats(ctx, "main")
+	if err != nil {
+		t.Fatalf("get docker stats: %v", err)
+	}
+	if stats.NodeID != "main" || stats.ContainersRunning != 3 || stats.VolumesSizeBytes != 1024 || !stats.ReportedAt.Equal(reportedAt) {
+		t.Fatalf("unexpected docker stats: %+v", stats)
+	}
+
+	missing, err := db.GetNodeDockerStats(ctx, "missing")
+	if err != nil {
+		t.Fatalf("get missing docker stats: %v", err)
+	}
+	if missing != (DockerStats{}) {
+		t.Fatalf("expected empty missing docker stats, got %+v", missing)
+	}
+}
+
 func TestMigrateSetsSQLiteUserVersion(t *testing.T) {
 	t.Parallel()
 
