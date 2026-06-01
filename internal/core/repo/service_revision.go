@@ -35,20 +35,38 @@ func FindServiceAtRevision(repoDir, revision, serviceDir string, availableNodeID
 	return service, nil
 }
 
+func ListServiceMetaFilesAtRevision(repoDir, revision string) ([]string, error) {
+	paths, err := ListFilesAtRevision(repoDir, revision, "")
+	if err != nil {
+		return nil, err
+	}
+
+	metaPaths := make([]string, 0)
+	for _, path := range paths {
+		path = filepath.ToSlash(path)
+		if filepath.Base(path) != MetaFileName {
+			continue
+		}
+		dir := filepath.Dir(path)
+		if dir == "." || strings.Contains(dir, "/") {
+			continue
+		}
+		metaPaths = append(metaPaths, path)
+	}
+	return metaPaths, nil
+}
+
 func FindRusticInfraServiceAtRevision(repoDir, revision string, availableNodeIDs map[string]struct{}) (Service, error) {
 	if strings.TrimSpace(revision) == "" {
 		return Service{}, errors.New("rustic infra service revision is required")
 	}
-	services, err := ListFilesAtRevision(repoDir, revision, "")
+	services, err := ListServiceMetaFilesAtRevision(repoDir, revision)
 	if err != nil {
 		return Service{}, err
 	}
 
 	var matched *Service
 	for _, path := range services {
-		if filepath.Base(path) != MetaFileName {
-			continue
-		}
 		content, err := ReadFileAtRevision(repoDir, revision, filepath.ToSlash(path))
 		if err != nil {
 			return Service{}, err

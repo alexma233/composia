@@ -317,6 +317,15 @@ func TestFindServiceAtRevision(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(repoDir, "app", MetaFileName), []byte("name: app\nnodes:\n  - main\n"), 0o600); err != nil {
 		t.Fatalf("write app meta: %v", err)
 	}
+	if err := os.WriteFile(filepath.Join(repoDir, MetaFileName), []byte("name: root-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o600); err != nil {
+		t.Fatalf("write root meta: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(repoDir, "apps", "rustic"), 0o750); err != nil {
+		t.Fatalf("create nested rustic dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "apps", "rustic", MetaFileName), []byte("name: nested-rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n"), 0o600); err != nil {
+		t.Fatalf("write nested rustic meta: %v", err)
+	}
 	if err := os.MkdirAll(filepath.Join(repoDir, "rustic"), 0o750); err != nil {
 		t.Fatalf("create rustic dir: %v", err)
 	}
@@ -328,6 +337,13 @@ func TestFindServiceAtRevision(t *testing.T) {
 	revision, err := CurrentRevision(repoDir)
 	if err != nil {
 		t.Fatalf("current revision: %v", err)
+	}
+	metaFiles, err := ListServiceMetaFilesAtRevision(repoDir, revision)
+	if err != nil {
+		t.Fatalf("list service meta files at revision: %v", err)
+	}
+	if len(metaFiles) != 2 || metaFiles[0] != "app/composia-meta.yaml" || metaFiles[1] != "rustic/composia-meta.yaml" {
+		t.Fatalf("meta files = %+v", metaFiles)
 	}
 	available := map[string]struct{}{"main": {}}
 	service, err := FindServiceAtRevision(repoDir, revision, "app", available)
