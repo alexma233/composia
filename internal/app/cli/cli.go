@@ -101,10 +101,6 @@ func Run(ctx context.Context, args []string, out io.Writer, errOut io.Writer) er
 		application := &app{ctx: ctx, out: out, errOut: errOut, cfg: cfg}
 		return application.runCompletion(rest[1:])
 	}
-	if rest[0] == "skills" {
-		application := &app{ctx: ctx, out: out, errOut: errOut, cfg: cfg}
-		return application.runSkills(rest[1:])
-	}
 	if rest[0] == "config" {
 		application := &app{ctx: ctx, out: out, errOut: errOut, cfg: cfg}
 		return application.runConfig(rest[1:])
@@ -209,7 +205,6 @@ Commands:
   image       Low-level Docker image operations by node
   rustic      Rustic repository maintenance
   config      Configure controller address and access token
-  skills      Show built-in CLI usage guides for agents
   completion  Generate shell completion scripts
   version     Print CLI version
 
@@ -313,9 +308,6 @@ var commandUsages = map[string]string{ //nolint:gosec
 	"secret get":            "usage: composia secret get <service> <file>\n",
 	"secret edit":           "usage: composia secret edit [--message text] <service> <file>\n",
 	"secret update":         "usage: composia secret update --file file [--message text] <service> <file>\n",
-	"skills":                "usage: composia skills <list|show>\n",
-	"skills list":           "usage: composia skills list\n",
-	"skills show":           "usage: composia skills show <skill>\n",
 	"config":                "usage: composia config <get|set|unset|path|setup|set-token|unset-token>\n",
 	"config get":            "usage: composia config get [key]\n",
 	"config set":            "usage: composia config set <addr|token_file|token_keyring> <value>\n",

@@ -580,38 +580,6 @@ func TestCompletionDoesNotRequireControllerConfig(t *testing.T) {
 	}
 }
 
-func TestSkillsDoesNotRequireControllerConfig(t *testing.T) {
-	var out bytes.Buffer
-	var errOut bytes.Buffer
-	if err := Run(context.Background(), []string{"--terse", "skills", "list"}, &out, &errOut); err != nil {
-		t.Fatalf("Run returned error: %v", err)
-	}
-	got := out.String()
-	if !strings.Contains(got, "coding-agent ") {
-		t.Fatalf("skills list missing coding-agent:\n%s", got)
-	}
-	if strings.Contains(got, "SKILL") {
-		t.Fatalf("terse skills list included header:\n%s", got)
-	}
-	if errOut.Len() != 0 {
-		t.Fatalf("stderr = %q", errOut.String())
-	}
-}
-
-func TestSkillsShowDoesNotRequireControllerConfig(t *testing.T) {
-	var out bytes.Buffer
-	var errOut bytes.Buffer
-	if err := Run(context.Background(), []string{"skills", "show", "coding-agent"}, &out, &errOut); err != nil {
-		t.Fatalf("Run returned error: %v", err)
-	}
-	if !strings.Contains(out.String(), "Use --terse") {
-		t.Fatalf("skills show output = %q", out.String())
-	}
-	if errOut.Len() != 0 {
-		t.Fatalf("stderr = %q", errOut.String())
-	}
-}
-
 func TestParseCLIConfig(t *testing.T) {
 	cfg, err := parseCLIConfig(strings.NewReader("addr=https://controller.example\ntoken_keyring=default\n"))
 	if err != nil {
