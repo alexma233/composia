@@ -50,6 +50,7 @@ const (
 	TaskType_TASK_TYPE_DOCKER_REMOVE_NETWORK   TaskType = 22
 	TaskType_TASK_TYPE_DOCKER_REMOVE_VOLUME    TaskType = 23
 	TaskType_TASK_TYPE_DOCKER_REMOVE_IMAGE     TaskType = 24
+	TaskType_TASK_TYPE_CLOUDFLARE_TUNNEL_SYNC  TaskType = 25
 )
 
 // Enum value maps for TaskType.
@@ -79,6 +80,7 @@ var (
 		22: "TASK_TYPE_DOCKER_REMOVE_NETWORK",
 		23: "TASK_TYPE_DOCKER_REMOVE_VOLUME",
 		24: "TASK_TYPE_DOCKER_REMOVE_IMAGE",
+		25: "TASK_TYPE_CLOUDFLARE_TUNNEL_SYNC",
 	}
 	TaskType_value = map[string]int32{
 		"TASK_TYPE_UNSPECIFIED":             0,
@@ -105,6 +107,7 @@ var (
 		"TASK_TYPE_DOCKER_REMOVE_NETWORK":   22,
 		"TASK_TYPE_DOCKER_REMOVE_VOLUME":    23,
 		"TASK_TYPE_DOCKER_REMOVE_IMAGE":     24,
+		"TASK_TYPE_CLOUDFLARE_TUNNEL_SYNC":  25,
 	}
 )
 
@@ -263,27 +266,28 @@ func (TaskSource) EnumDescriptor() ([]byte, []int) {
 type TaskStepName int32
 
 const (
-	TaskStepName_TASK_STEP_NAME_UNSPECIFIED           TaskStepName = 0
-	TaskStepName_TASK_STEP_NAME_RENDER                TaskStepName = 1
-	TaskStepName_TASK_STEP_NAME_PULL                  TaskStepName = 2
-	TaskStepName_TASK_STEP_NAME_BACKUP                TaskStepName = 3
-	TaskStepName_TASK_STEP_NAME_COMPOSE_DOWN          TaskStepName = 4
-	TaskStepName_TASK_STEP_NAME_COMPOSE_UP            TaskStepName = 5
-	TaskStepName_TASK_STEP_NAME_TRANSFER              TaskStepName = 6
-	TaskStepName_TASK_STEP_NAME_RESTORE               TaskStepName = 7
-	TaskStepName_TASK_STEP_NAME_DNS_UPDATE            TaskStepName = 8
-	TaskStepName_TASK_STEP_NAME_CADDY_SYNC            TaskStepName = 9
-	TaskStepName_TASK_STEP_NAME_CADDY_RELOAD          TaskStepName = 10
-	TaskStepName_TASK_STEP_NAME_IMAGE_CHECK           TaskStepName = 11
-	TaskStepName_TASK_STEP_NAME_INIT                  TaskStepName = 12
-	TaskStepName_TASK_STEP_NAME_PRUNE                 TaskStepName = 13
-	TaskStepName_TASK_STEP_NAME_AWAITING_CONFIRMATION TaskStepName = 14
-	TaskStepName_TASK_STEP_NAME_PERSIST_REPO          TaskStepName = 15
-	TaskStepName_TASK_STEP_NAME_FINALIZE              TaskStepName = 16
-	TaskStepName_TASK_STEP_NAME_DOCKER_START          TaskStepName = 17
-	TaskStepName_TASK_STEP_NAME_DOCKER_STOP           TaskStepName = 18
-	TaskStepName_TASK_STEP_NAME_DOCKER_RESTART        TaskStepName = 19
-	TaskStepName_TASK_STEP_NAME_DOCKER_REMOVE         TaskStepName = 20
+	TaskStepName_TASK_STEP_NAME_UNSPECIFIED            TaskStepName = 0
+	TaskStepName_TASK_STEP_NAME_RENDER                 TaskStepName = 1
+	TaskStepName_TASK_STEP_NAME_PULL                   TaskStepName = 2
+	TaskStepName_TASK_STEP_NAME_BACKUP                 TaskStepName = 3
+	TaskStepName_TASK_STEP_NAME_COMPOSE_DOWN           TaskStepName = 4
+	TaskStepName_TASK_STEP_NAME_COMPOSE_UP             TaskStepName = 5
+	TaskStepName_TASK_STEP_NAME_TRANSFER               TaskStepName = 6
+	TaskStepName_TASK_STEP_NAME_RESTORE                TaskStepName = 7
+	TaskStepName_TASK_STEP_NAME_DNS_UPDATE             TaskStepName = 8
+	TaskStepName_TASK_STEP_NAME_CADDY_SYNC             TaskStepName = 9
+	TaskStepName_TASK_STEP_NAME_CADDY_RELOAD           TaskStepName = 10
+	TaskStepName_TASK_STEP_NAME_IMAGE_CHECK            TaskStepName = 11
+	TaskStepName_TASK_STEP_NAME_INIT                   TaskStepName = 12
+	TaskStepName_TASK_STEP_NAME_PRUNE                  TaskStepName = 13
+	TaskStepName_TASK_STEP_NAME_AWAITING_CONFIRMATION  TaskStepName = 14
+	TaskStepName_TASK_STEP_NAME_PERSIST_REPO           TaskStepName = 15
+	TaskStepName_TASK_STEP_NAME_FINALIZE               TaskStepName = 16
+	TaskStepName_TASK_STEP_NAME_DOCKER_START           TaskStepName = 17
+	TaskStepName_TASK_STEP_NAME_DOCKER_STOP            TaskStepName = 18
+	TaskStepName_TASK_STEP_NAME_DOCKER_RESTART         TaskStepName = 19
+	TaskStepName_TASK_STEP_NAME_DOCKER_REMOVE          TaskStepName = 20
+	TaskStepName_TASK_STEP_NAME_CLOUDFLARE_TUNNEL_SYNC TaskStepName = 21
 )
 
 // Enum value maps for TaskStepName.
@@ -310,29 +314,31 @@ var (
 		18: "TASK_STEP_NAME_DOCKER_STOP",
 		19: "TASK_STEP_NAME_DOCKER_RESTART",
 		20: "TASK_STEP_NAME_DOCKER_REMOVE",
+		21: "TASK_STEP_NAME_CLOUDFLARE_TUNNEL_SYNC",
 	}
 	TaskStepName_value = map[string]int32{
-		"TASK_STEP_NAME_UNSPECIFIED":           0,
-		"TASK_STEP_NAME_RENDER":                1,
-		"TASK_STEP_NAME_PULL":                  2,
-		"TASK_STEP_NAME_BACKUP":                3,
-		"TASK_STEP_NAME_COMPOSE_DOWN":          4,
-		"TASK_STEP_NAME_COMPOSE_UP":            5,
-		"TASK_STEP_NAME_TRANSFER":              6,
-		"TASK_STEP_NAME_RESTORE":               7,
-		"TASK_STEP_NAME_DNS_UPDATE":            8,
-		"TASK_STEP_NAME_CADDY_SYNC":            9,
-		"TASK_STEP_NAME_CADDY_RELOAD":          10,
-		"TASK_STEP_NAME_IMAGE_CHECK":           11,
-		"TASK_STEP_NAME_INIT":                  12,
-		"TASK_STEP_NAME_PRUNE":                 13,
-		"TASK_STEP_NAME_AWAITING_CONFIRMATION": 14,
-		"TASK_STEP_NAME_PERSIST_REPO":          15,
-		"TASK_STEP_NAME_FINALIZE":              16,
-		"TASK_STEP_NAME_DOCKER_START":          17,
-		"TASK_STEP_NAME_DOCKER_STOP":           18,
-		"TASK_STEP_NAME_DOCKER_RESTART":        19,
-		"TASK_STEP_NAME_DOCKER_REMOVE":         20,
+		"TASK_STEP_NAME_UNSPECIFIED":            0,
+		"TASK_STEP_NAME_RENDER":                 1,
+		"TASK_STEP_NAME_PULL":                   2,
+		"TASK_STEP_NAME_BACKUP":                 3,
+		"TASK_STEP_NAME_COMPOSE_DOWN":           4,
+		"TASK_STEP_NAME_COMPOSE_UP":             5,
+		"TASK_STEP_NAME_TRANSFER":               6,
+		"TASK_STEP_NAME_RESTORE":                7,
+		"TASK_STEP_NAME_DNS_UPDATE":             8,
+		"TASK_STEP_NAME_CADDY_SYNC":             9,
+		"TASK_STEP_NAME_CADDY_RELOAD":           10,
+		"TASK_STEP_NAME_IMAGE_CHECK":            11,
+		"TASK_STEP_NAME_INIT":                   12,
+		"TASK_STEP_NAME_PRUNE":                  13,
+		"TASK_STEP_NAME_AWAITING_CONFIRMATION":  14,
+		"TASK_STEP_NAME_PERSIST_REPO":           15,
+		"TASK_STEP_NAME_FINALIZE":               16,
+		"TASK_STEP_NAME_DOCKER_START":           17,
+		"TASK_STEP_NAME_DOCKER_STOP":            18,
+		"TASK_STEP_NAME_DOCKER_RESTART":         19,
+		"TASK_STEP_NAME_DOCKER_REMOVE":          20,
+		"TASK_STEP_NAME_CLOUDFLARE_TUNNEL_SYNC": 21,
 	}
 )
 
@@ -1386,7 +1392,7 @@ const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	"\rdeploy_source\x18\x03 \x01(\bR\fdeploySource\x12\x1f\n" +
 	"\vstop_target\x18\x04 \x01(\bR\n" +
 	"stopTarget\x12%\n" +
-	"\x0ecleanup_target\x18\x05 \x01(\bR\rcleanupTarget*\xbb\x05\n" +
+	"\x0ecleanup_target\x18\x05 \x01(\bR\rcleanupTarget*\xe1\x05\n" +
 	"\bTaskType\x12\x19\n" +
 	"\x15TASK_TYPE_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10TASK_TYPE_DEPLOY\x10\x01\x12\x12\n" +
@@ -1412,7 +1418,8 @@ const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	"!TASK_TYPE_DOCKER_REMOVE_CONTAINER\x10\x15\x12#\n" +
 	"\x1fTASK_TYPE_DOCKER_REMOVE_NETWORK\x10\x16\x12\"\n" +
 	"\x1eTASK_TYPE_DOCKER_REMOVE_VOLUME\x10\x17\x12!\n" +
-	"\x1dTASK_TYPE_DOCKER_REMOVE_IMAGE\x10\x18\"\x04\b\x13\x10\x13*\x17TASK_TYPE_DOCKER_REMOVE*\xd0\x01\n" +
+	"\x1dTASK_TYPE_DOCKER_REMOVE_IMAGE\x10\x18\x12$\n" +
+	" TASK_TYPE_CLOUDFLARE_TUNNEL_SYNC\x10\x19\"\x04\b\x13\x10\x13*\x17TASK_TYPE_DOCKER_REMOVE*\xd0\x01\n" +
 	"\n" +
 	"TaskStatus\x12\x1b\n" +
 	"\x17TASK_STATUS_UNSPECIFIED\x10\x00\x12\x17\n" +
@@ -1430,7 +1437,7 @@ const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	"\x12TASK_SOURCE_OTHERS\x10\x03\x12\x18\n" +
 	"\x14TASK_SOURCE_SCHEDULE\x10\x04\x12\x16\n" +
 	"\x12TASK_SOURCE_SYSTEM\x10\x05\x12\x1b\n" +
-	"\x17TASK_SOURCE_AUTO_DEPLOY\x10\x06*\x96\x05\n" +
+	"\x17TASK_SOURCE_AUTO_DEPLOY\x10\x06*\xc1\x05\n" +
 	"\fTaskStepName\x12\x1e\n" +
 	"\x1aTASK_STEP_NAME_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15TASK_STEP_NAME_RENDER\x10\x01\x12\x17\n" +
@@ -1453,7 +1460,8 @@ const file_proto_composia_controller_v1_task_proto_rawDesc = "" +
 	"\x1bTASK_STEP_NAME_DOCKER_START\x10\x11\x12\x1e\n" +
 	"\x1aTASK_STEP_NAME_DOCKER_STOP\x10\x12\x12!\n" +
 	"\x1dTASK_STEP_NAME_DOCKER_RESTART\x10\x13\x12 \n" +
-	"\x1cTASK_STEP_NAME_DOCKER_REMOVE\x10\x14*\x95\x01\n" +
+	"\x1cTASK_STEP_NAME_DOCKER_REMOVE\x10\x14\x12)\n" +
+	"%TASK_STEP_NAME_CLOUDFLARE_TUNNEL_SYNC\x10\x15*\x95\x01\n" +
 	"\x18TaskConfirmationDecision\x12*\n" +
 	"&TASK_CONFIRMATION_DECISION_UNSPECIFIED\x10\x00\x12&\n" +
 	"\"TASK_CONFIRMATION_DECISION_APPROVE\x10\x01\x12%\n" +

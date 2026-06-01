@@ -61,6 +61,13 @@ func resolveControllerInlineOrFileConfig(controller *ControllerConfig) error {
 		}
 		controller.DNS.Cloudflare.APIToken = resolved
 	}
+	if controller.CloudflareTunnel != nil {
+		resolved, err := resolveInlineOrFileValue(controller.CloudflareTunnel.APIToken, controller.CloudflareTunnel.APITokenFile, "controller.cloudflare_tunnel.api_token", false)
+		if err != nil {
+			return err
+		}
+		controller.CloudflareTunnel.APIToken = resolved
+	}
 	if controller.DNS != nil && controller.DNS.AliDNS != nil {
 		if err := resolveAliDNSInlineOrFileConfig(controller.DNS.AliDNS); err != nil {
 			return err

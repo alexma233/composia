@@ -67,6 +67,7 @@
     | "migrate"
     | "migrate_rollback"
     | "dns_update"
+    | "cloudflare_tunnel_sync"
     | "caddy_sync"
     | "caddy_reload"
     | "prune"
@@ -111,6 +112,7 @@
     "migrate",
     "migrate_rollback",
     "dns_update",
+    "cloudflare_tunnel_sync",
     "caddy_sync",
     "caddy_reload",
     "prune",

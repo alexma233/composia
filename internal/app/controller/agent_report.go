@@ -154,12 +154,41 @@ func (server *agentReportServer) queuePostTaskFollowups(ctx context.Context, rec
 		if err := server.queueCaddyReloadForTask(ctx, record); err != nil {
 			return err
 		}
+		if err := server.queueCloudflareTunnelSyncForTask(ctx, record); err != nil {
+			return err
+		}
 		return nil
 	case task.TypeImageCheck:
 		return server.queueAutoApplyUpdateForImageCheck(ctx, record)
 	default:
 		return nil
 	}
+}
+
+func (server *agentReportServer) queueCloudflareTunnelSyncForTask(ctx context.Context, record task.Record) error {
+	if server.cfg == nil || server.cfg.CloudflareTunnel == nil {
+		return nil
+	}
+	params, err := taskParams(record.ParamsJSON)
+	if err != nil {
+		return err
+	}
+	if params.ServiceDir == "" || record.RepoRevision == "" {
+		return nil
+	}
+	service, err := repo.FindServiceAtRevision(server.cfg.RepoDir, record.RepoRevision, params.ServiceDir, server.availableNodeIDs)
+	if err != nil {
+		return fmt.Errorf("load service for post-task cloudflare tunnel sync: %w", err)
+	}
+	if !repo.CloudflareTunnelManaged(service) {
+		return nil
+	}
+	excludedServiceDir := ""
+	if record.Type == task.TypeStop {
+		excludedServiceDir = params.ServiceDir
+	}
+	_, err = createServiceCloudflareTunnelSyncTask(ctx, server.db, server.cfg, server.availableNodeIDs, service.Name, excludedServiceDir, record.Source)
+	return err
 }
 
 func (server *agentReportServer) queueAutoApplyUpdateForImageCheck(ctx context.Context, record task.Record) error {

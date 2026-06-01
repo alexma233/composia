@@ -36,6 +36,7 @@ export type ServiceActionCapabilities = {
   migrate: Capability;
   dnsUpdate: Capability;
   caddySync: Capability;
+  cloudflareTunnelSync: Capability;
 };
 
 export type NodeActionCapabilities = {
@@ -248,7 +249,8 @@ export type ServiceAction =
   | "restart"
   | "backup"
   | "dns_update"
-  | "caddy_sync";
+  | "caddy_sync"
+  | "cloudflare_tunnel_sync";
 
 export type ComposeRecreateMode = "auto" | "no_recreate" | "force_recreate";
 
@@ -512,6 +514,16 @@ function parseServiceActionCapabilities(
       reasonCode?: unknown;
       reason_code?: unknown;
     };
+    cloudflareTunnelSync?: {
+      enabled?: unknown;
+      reasonCode?: unknown;
+      reason_code?: unknown;
+    };
+    cloudflare_tunnel_sync?: {
+      enabled?: unknown;
+      reasonCode?: unknown;
+      reason_code?: unknown;
+    };
   } | null,
 ): ServiceActionCapabilities {
   return {
@@ -520,6 +532,9 @@ function parseServiceActionCapabilities(
     migrate: parseCapability(actions?.migrate),
     dnsUpdate: parseCapability(actions?.dnsUpdate ?? actions?.dns_update),
     caddySync: parseCapability(actions?.caddySync ?? actions?.caddy_sync),
+    cloudflareTunnelSync: parseCapability(
+      actions?.cloudflareTunnelSync ?? actions?.cloudflare_tunnel_sync,
+    ),
   };
 }
 
@@ -2640,6 +2655,8 @@ function toServiceActionEnum(action: ServiceAction): number {
       return 6;
     case "caddy_sync":
       return 7;
+    case "cloudflare_tunnel_sync":
+      return 8;
   }
 }
 

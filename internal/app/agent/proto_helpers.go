@@ -26,6 +26,8 @@ func protoAgentTaskType(value task.Type) agentv1.AgentTaskType {
 		return agentv1.AgentTaskType_AGENT_TASK_TYPE_MIGRATE
 	case task.TypeDNSUpdate:
 		return agentv1.AgentTaskType_AGENT_TASK_TYPE_DNS_UPDATE
+	case task.TypeCloudflareTunnelSync:
+		return agentv1.AgentTaskType_AGENT_TASK_TYPE_CLOUDFLARE_TUNNEL_SYNC
 	case task.TypeCaddySync:
 		return agentv1.AgentTaskType_AGENT_TASK_TYPE_CADDY_SYNC
 	case task.TypeCaddyReload:
@@ -115,6 +117,8 @@ func protoAgentTaskStepName(value task.StepName) agentv1.AgentTaskStepName {
 		return agentv1.AgentTaskStepName_AGENT_TASK_STEP_NAME_RESTORE
 	case task.StepDNSUpdate:
 		return agentv1.AgentTaskStepName_AGENT_TASK_STEP_NAME_DNS_UPDATE
+	case task.StepCloudflareTunnelSync:
+		return agentv1.AgentTaskStepName_AGENT_TASK_STEP_NAME_CLOUDFLARE_TUNNEL_SYNC
 	case task.StepCaddySync:
 		return agentv1.AgentTaskStepName_AGENT_TASK_STEP_NAME_CADDY_SYNC
 	case task.StepCaddyReload:
@@ -162,6 +166,8 @@ func agentTaskStepNameToTask(value agentv1.AgentTaskStepName) task.StepName {
 		return task.StepRestore
 	case agentv1.AgentTaskStepName_AGENT_TASK_STEP_NAME_DNS_UPDATE:
 		return task.StepDNSUpdate
+	case agentv1.AgentTaskStepName_AGENT_TASK_STEP_NAME_CLOUDFLARE_TUNNEL_SYNC:
+		return task.StepCloudflareTunnelSync
 	case agentv1.AgentTaskStepName_AGENT_TASK_STEP_NAME_CADDY_SYNC:
 		return task.StepCaddySync
 	case agentv1.AgentTaskStepName_AGENT_TASK_STEP_NAME_CADDY_RELOAD:

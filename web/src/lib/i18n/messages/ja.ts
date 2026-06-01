@@ -333,6 +333,7 @@ export const ja = {
       backup: "バックアップ",
       dnsUpdate: "DNS 更新",
       syncCaddy: "Caddy ファイルを同期",
+      syncCloudflareTunnel: "Cloudflare Tunnel を同期",
       migrate: {
         title: "インスタンスを移行",
         selectSource: "ソースノードを選択",
@@ -411,6 +412,7 @@ export const ja = {
       migrateRollback: "移行ロールバック",
       dnsUpdate: "DNS 更新",
       caddySync: "Caddy 同期",
+      cloudflareTunnelSync: "Cloudflare Tunnel 同期",
       caddyReload: "Caddy リロード",
       prune: "Docker prune",
       rusticForget: "Rustic forget",

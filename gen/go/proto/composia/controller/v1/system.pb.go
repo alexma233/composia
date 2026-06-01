@@ -26,27 +26,29 @@ const (
 type CapabilityReasonCode int32
 
 const (
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_UNSPECIFIED                  CapabilityReasonCode = 0
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_BACKUP_INTEGRATION   CapabilityReasonCode = 1
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_BACKUP_DEFINITION    CapabilityReasonCode = 2
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_RESTORE_DEFINITION   CapabilityReasonCode = 3
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_MIGRATE_DEFINITION   CapabilityReasonCode = 4
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_DNS_INTEGRATION      CapabilityReasonCode = 5
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_SECRETS_CONFIG       CapabilityReasonCode = 6
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_CADDY_INFRA          CapabilityReasonCode = 7
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_SERVICE_META         CapabilityReasonCode = 8
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_SERVICE_NOT_DECLARED         CapabilityReasonCode = 9
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_SERVICE_DNS_NOT_DECLARED     CapabilityReasonCode = 10
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_SERVICE_NOT_CADDY_MANAGED    CapabilityReasonCode = 11
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_NODE_DISABLED                CapabilityReasonCode = 12
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_NODE_OFFLINE                 CapabilityReasonCode = 13
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_NODE_NOT_ELIGIBLE            CapabilityReasonCode = 14
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_NODE_NOT_RUSTIC_MANAGED      CapabilityReasonCode = 15
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_ELIGIBLE_RUSTIC_NODE CapabilityReasonCode = 16
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_ONLINE_RUSTIC_NODE   CapabilityReasonCode = 17
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_BACKUP_NOT_SUCCEEDED         CapabilityReasonCode = 18
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_BACKUP_ARTIFACT_MISSING      CapabilityReasonCode = 19
-	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_RESTORE_TARGET_NODE  CapabilityReasonCode = 20
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_UNSPECIFIED                           CapabilityReasonCode = 0
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_BACKUP_INTEGRATION            CapabilityReasonCode = 1
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_BACKUP_DEFINITION             CapabilityReasonCode = 2
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_RESTORE_DEFINITION            CapabilityReasonCode = 3
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_MIGRATE_DEFINITION            CapabilityReasonCode = 4
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_DNS_INTEGRATION               CapabilityReasonCode = 5
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_SECRETS_CONFIG                CapabilityReasonCode = 6
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_CADDY_INFRA                   CapabilityReasonCode = 7
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_SERVICE_META                  CapabilityReasonCode = 8
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_SERVICE_NOT_DECLARED                  CapabilityReasonCode = 9
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_SERVICE_DNS_NOT_DECLARED              CapabilityReasonCode = 10
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_SERVICE_NOT_CADDY_MANAGED             CapabilityReasonCode = 11
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_NODE_DISABLED                         CapabilityReasonCode = 12
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_NODE_OFFLINE                          CapabilityReasonCode = 13
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_NODE_NOT_ELIGIBLE                     CapabilityReasonCode = 14
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_NODE_NOT_RUSTIC_MANAGED               CapabilityReasonCode = 15
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_ELIGIBLE_RUSTIC_NODE          CapabilityReasonCode = 16
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_ONLINE_RUSTIC_NODE            CapabilityReasonCode = 17
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_BACKUP_NOT_SUCCEEDED                  CapabilityReasonCode = 18
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_BACKUP_ARTIFACT_MISSING               CapabilityReasonCode = 19
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_RESTORE_TARGET_NODE           CapabilityReasonCode = 20
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_CLOUDFLARE_TUNNEL_INTEGRATION CapabilityReasonCode = 21
+	CapabilityReasonCode_CAPABILITY_REASON_CODE_SERVICE_NOT_CLOUDFLARE_TUNNEL_MANAGED CapabilityReasonCode = 22
 )
 
 // Enum value maps for CapabilityReasonCode.
@@ -73,29 +75,33 @@ var (
 		18: "CAPABILITY_REASON_CODE_BACKUP_NOT_SUCCEEDED",
 		19: "CAPABILITY_REASON_CODE_BACKUP_ARTIFACT_MISSING",
 		20: "CAPABILITY_REASON_CODE_MISSING_RESTORE_TARGET_NODE",
+		21: "CAPABILITY_REASON_CODE_MISSING_CLOUDFLARE_TUNNEL_INTEGRATION",
+		22: "CAPABILITY_REASON_CODE_SERVICE_NOT_CLOUDFLARE_TUNNEL_MANAGED",
 	}
 	CapabilityReasonCode_value = map[string]int32{
-		"CAPABILITY_REASON_CODE_UNSPECIFIED":                  0,
-		"CAPABILITY_REASON_CODE_MISSING_BACKUP_INTEGRATION":   1,
-		"CAPABILITY_REASON_CODE_MISSING_BACKUP_DEFINITION":    2,
-		"CAPABILITY_REASON_CODE_MISSING_RESTORE_DEFINITION":   3,
-		"CAPABILITY_REASON_CODE_MISSING_MIGRATE_DEFINITION":   4,
-		"CAPABILITY_REASON_CODE_MISSING_DNS_INTEGRATION":      5,
-		"CAPABILITY_REASON_CODE_MISSING_SECRETS_CONFIG":       6,
-		"CAPABILITY_REASON_CODE_MISSING_CADDY_INFRA":          7,
-		"CAPABILITY_REASON_CODE_MISSING_SERVICE_META":         8,
-		"CAPABILITY_REASON_CODE_SERVICE_NOT_DECLARED":         9,
-		"CAPABILITY_REASON_CODE_SERVICE_DNS_NOT_DECLARED":     10,
-		"CAPABILITY_REASON_CODE_SERVICE_NOT_CADDY_MANAGED":    11,
-		"CAPABILITY_REASON_CODE_NODE_DISABLED":                12,
-		"CAPABILITY_REASON_CODE_NODE_OFFLINE":                 13,
-		"CAPABILITY_REASON_CODE_NODE_NOT_ELIGIBLE":            14,
-		"CAPABILITY_REASON_CODE_NODE_NOT_RUSTIC_MANAGED":      15,
-		"CAPABILITY_REASON_CODE_MISSING_ELIGIBLE_RUSTIC_NODE": 16,
-		"CAPABILITY_REASON_CODE_MISSING_ONLINE_RUSTIC_NODE":   17,
-		"CAPABILITY_REASON_CODE_BACKUP_NOT_SUCCEEDED":         18,
-		"CAPABILITY_REASON_CODE_BACKUP_ARTIFACT_MISSING":      19,
-		"CAPABILITY_REASON_CODE_MISSING_RESTORE_TARGET_NODE":  20,
+		"CAPABILITY_REASON_CODE_UNSPECIFIED":                           0,
+		"CAPABILITY_REASON_CODE_MISSING_BACKUP_INTEGRATION":            1,
+		"CAPABILITY_REASON_CODE_MISSING_BACKUP_DEFINITION":             2,
+		"CAPABILITY_REASON_CODE_MISSING_RESTORE_DEFINITION":            3,
+		"CAPABILITY_REASON_CODE_MISSING_MIGRATE_DEFINITION":            4,
+		"CAPABILITY_REASON_CODE_MISSING_DNS_INTEGRATION":               5,
+		"CAPABILITY_REASON_CODE_MISSING_SECRETS_CONFIG":                6,
+		"CAPABILITY_REASON_CODE_MISSING_CADDY_INFRA":                   7,
+		"CAPABILITY_REASON_CODE_MISSING_SERVICE_META":                  8,
+		"CAPABILITY_REASON_CODE_SERVICE_NOT_DECLARED":                  9,
+		"CAPABILITY_REASON_CODE_SERVICE_DNS_NOT_DECLARED":              10,
+		"CAPABILITY_REASON_CODE_SERVICE_NOT_CADDY_MANAGED":             11,
+		"CAPABILITY_REASON_CODE_NODE_DISABLED":                         12,
+		"CAPABILITY_REASON_CODE_NODE_OFFLINE":                          13,
+		"CAPABILITY_REASON_CODE_NODE_NOT_ELIGIBLE":                     14,
+		"CAPABILITY_REASON_CODE_NODE_NOT_RUSTIC_MANAGED":               15,
+		"CAPABILITY_REASON_CODE_MISSING_ELIGIBLE_RUSTIC_NODE":          16,
+		"CAPABILITY_REASON_CODE_MISSING_ONLINE_RUSTIC_NODE":            17,
+		"CAPABILITY_REASON_CODE_BACKUP_NOT_SUCCEEDED":                  18,
+		"CAPABILITY_REASON_CODE_BACKUP_ARTIFACT_MISSING":               19,
+		"CAPABILITY_REASON_CODE_MISSING_RESTORE_TARGET_NODE":           20,
+		"CAPABILITY_REASON_CODE_MISSING_CLOUDFLARE_TUNNEL_INTEGRATION": 21,
+		"CAPABILITY_REASON_CODE_SERVICE_NOT_CLOUDFLARE_TUNNEL_MANAGED": 22,
 	}
 )
 
@@ -1077,12 +1083,14 @@ var File_proto_composia_controller_v1_system_proto protoreflect.FileDescriptor
 const file_proto_composia_controller_v1_system_proto_rawDesc = "" +
 	"\n" +
 	")proto/composia/controller/v1/system.proto\x12\x16composia.controller.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x18\n" +
-	"\x16GetSystemStatusRequest\"\xd3\x01\n" +
+	"\x16GetSystemStatusRequest\"\xac\x02\n" +
 	"\x17GetSystemStatusResponse\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12,\n" +
 	"\x03now\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x03now\x122\n" +
 	"\x15configured_node_count\x18\x03 \x01(\x04R\x13configuredNodeCount\x12*\n" +
-	"\x11online_node_count\x18\x04 \x01(\x04R\x0fonlineNodeCountJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\b\"\x1f\n" +
+	"\x11online_node_count\x18\x04 \x01(\x04R\x0fonlineNodeCount\x12#\n" +
+	"\rservice_count\x18\b \x01(\x04R\fserviceCount\x122\n" +
+	"\x15running_service_count\x18\t \x01(\x04R\x13runningServiceCountJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\b\"\x1f\n" +
 	"\x1dReloadControllerConfigRequest\"<\n" +
 	"\x1eReloadControllerConfigResponse\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted\"\x19\n" +
@@ -1138,7 +1146,7 @@ const file_proto_composia_controller_v1_system_proto_rawDesc = "" +
 	"\x14SecretsConfigSummary\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12!\n" +
 	"\fhas_identity\x18\x02 \x01(\bR\vhasIdentity\x12#\n" +
-	"\rhas_recipient\x18\x03 \x01(\bR\fhasRecipient*\xbf\b\n" +
+	"\rhas_recipient\x18\x03 \x01(\bR\fhasRecipient*\xc3\t\n" +
 	"\x14CapabilityReasonCode\x12&\n" +
 	"\"CAPABILITY_REASON_CODE_UNSPECIFIED\x10\x00\x125\n" +
 	"1CAPABILITY_REASON_CODE_MISSING_BACKUP_INTEGRATION\x10\x01\x124\n" +
@@ -1161,7 +1169,9 @@ const file_proto_composia_controller_v1_system_proto_rawDesc = "" +
 	"1CAPABILITY_REASON_CODE_MISSING_ONLINE_RUSTIC_NODE\x10\x11\x12/\n" +
 	"+CAPABILITY_REASON_CODE_BACKUP_NOT_SUCCEEDED\x10\x12\x122\n" +
 	".CAPABILITY_REASON_CODE_BACKUP_ARTIFACT_MISSING\x10\x13\x126\n" +
-	"2CAPABILITY_REASON_CODE_MISSING_RESTORE_TARGET_NODE\x10\x142\xf8\x03\n" +
+	"2CAPABILITY_REASON_CODE_MISSING_RESTORE_TARGET_NODE\x10\x14\x12@\n" +
+	"<CAPABILITY_REASON_CODE_MISSING_CLOUDFLARE_TUNNEL_INTEGRATION\x10\x15\x12@\n" +
+	"<CAPABILITY_REASON_CODE_SERVICE_NOT_CLOUDFLARE_TUNNEL_MANAGED\x10\x162\xf8\x03\n" +
 	"\rSystemService\x12r\n" +
 	"\x0fGetSystemStatus\x12..composia.controller.v1.GetSystemStatusRequest\x1a/.composia.controller.v1.GetSystemStatusResponse\x12\x87\x01\n" +
 	"\x16ReloadControllerConfig\x125.composia.controller.v1.ReloadControllerConfigRequest\x1a6.composia.controller.v1.ReloadControllerConfigResponse\x12u\n" +

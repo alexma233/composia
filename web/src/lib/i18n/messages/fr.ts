@@ -335,6 +335,7 @@ export const fr = {
       backup: "Sauvegarder",
       dnsUpdate: "Mise à jour DNS",
       syncCaddy: "Synchroniser le fichier Caddy",
+      syncCloudflareTunnel: "Synchroniser Cloudflare Tunnel",
       migrate: {
         title: "Migrer l'instance",
         selectSource: "Sélectionner le nœud source",
@@ -413,6 +414,7 @@ export const fr = {
       migrateRollback: "Annulation de migration",
       dnsUpdate: "Mise à jour DNS",
       caddySync: "Synchronisation Caddy",
+      cloudflareTunnelSync: "Synchronisation Cloudflare Tunnel",
       caddyReload: "Rechargement Caddy",
       prune: "Docker prune",
       rusticForget: "Rustic forget",

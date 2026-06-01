@@ -159,6 +159,7 @@ enum AgentTaskType {
   AGENT_TASK_TYPE_DOCKER_REMOVE_NETWORK = 21;
   AGENT_TASK_TYPE_DOCKER_REMOVE_VOLUME = 22;
   AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE = 23;
+  AGENT_TASK_TYPE_CLOUDFLARE_TUNNEL_SYNC = 24;
 }
 
 // AgentTaskStatus identifies a task lifecycle status reported by an agent.
@@ -195,6 +196,7 @@ enum AgentTaskStepName {
   AGENT_TASK_STEP_NAME_DOCKER_STOP = 18;
   AGENT_TASK_STEP_NAME_DOCKER_RESTART = 19;
   AGENT_TASK_STEP_NAME_DOCKER_REMOVE = 20;
+  AGENT_TASK_STEP_NAME_CLOUDFLARE_TUNNEL_SYNC = 21;
 }
 
 // DockerQueryErrorCode identifies the normalized error code for a Docker query.

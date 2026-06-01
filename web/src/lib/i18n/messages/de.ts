@@ -334,6 +334,7 @@ export const de = {
       backup: "Backup",
       dnsUpdate: "DNS-Update",
       syncCaddy: "Caddy-Datei synchronisieren",
+      syncCloudflareTunnel: "Cloudflare Tunnel synchronisieren",
       migrate: {
         title: "Instanz migrieren",
         selectSource: "Quell-Node auswählen",
@@ -410,6 +411,7 @@ export const de = {
       migrateRollback: "Migrations-Rollback",
       dnsUpdate: "DNS-Update",
       caddySync: "Caddy-Sync",
+      cloudflareTunnelSync: "Cloudflare Tunnel-Sync",
       caddyReload: "Caddy-Reload",
       prune: "Docker-Prune",
       rusticForget: "Rustic Forget",

@@ -45,6 +45,15 @@
             "config_dir": { "type": "string" }
           }
         },
+        "cloudflare_tunnel": {
+          "type": "object",
+          "required": ["tunnel"],
+          "additionalProperties": false,
+          "properties": {
+            "tunnel": { "type": "string", "minLength": 1 },
+            "compose_service": { "type": "string" }
+          }
+        },
         "rustic": {
           "type": "object",
           "additionalProperties": false,
@@ -109,6 +118,36 @@
             "proxied": { "type": "boolean" },
             "ttl": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
             "comment": { "type": "string" }
+          }
+        },
+        "cloudflare_tunnel": {
+          "type": "object",
+          "required": ["hostname", "service"],
+          "additionalProperties": false,
+          "properties": {
+            "tunnel": { "type": "string" },
+            "hostname": { "type": "string", "minLength": 1 },
+            "service": { "type": "string", "minLength": 1 },
+            "path": { "type": "string" },
+            "origin_request": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "no_tls_verify": { "type": "boolean" },
+                "http_host_header": { "type": "string" },
+                "origin_server_name": { "type": "string" },
+                "connect_timeout": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                "tls_timeout": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                }
+              }
+            }
           }
         }
       }

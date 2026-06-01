@@ -320,6 +320,7 @@ export const zhHant = {
       backup: "備份",
       dnsUpdate: "DNS 更新",
       syncCaddy: "同步 Caddy 設定",
+      syncCloudflareTunnel: "同步 Cloudflare Tunnel",
       migrate: {
         title: "遷移執行個體",
         selectSource: "選擇來源節點",
@@ -392,6 +393,7 @@ export const zhHant = {
       migrateRollback: "遷移復原",
       dnsUpdate: "DNS 更新",
       caddySync: "Caddy 同步",
+      cloudflareTunnelSync: "Cloudflare Tunnel 同步",
       caddyReload: "Caddy 重載",
       prune: "Docker 清理",
       rusticForget: "Rustic forget",

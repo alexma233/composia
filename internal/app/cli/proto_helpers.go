@@ -86,6 +86,8 @@ func taskTypeFromText(value string) controllerv1.TaskType {
 		return controllerv1.TaskType_TASK_TYPE_MIGRATE_ROLLBACK
 	case "dns_update":
 		return controllerv1.TaskType_TASK_TYPE_DNS_UPDATE
+	case "cloudflare_tunnel_sync":
+		return controllerv1.TaskType_TASK_TYPE_CLOUDFLARE_TUNNEL_SYNC
 	case "caddy_sync":
 		return controllerv1.TaskType_TASK_TYPE_CADDY_SYNC
 	case "caddy_reload":

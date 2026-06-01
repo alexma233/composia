@@ -81,9 +81,10 @@ func (meta ServiceMeta) AutoDeployEnabled() bool {
 }
 
 type InfraConfig struct {
-	Caddy  *InfraCaddyConfig  `yaml:"caddy"`
-	Rustic *InfraRusticConfig `yaml:"rustic"`
-	Config *InfraConfigConfig `yaml:"config"`
+	Caddy            *InfraCaddyConfig            `yaml:"caddy"`
+	Rustic           *InfraRusticConfig           `yaml:"rustic"`
+	Config           *InfraConfigConfig           `yaml:"config"`
+	CloudflareTunnel *InfraCloudflareTunnelConfig `yaml:"cloudflare_tunnel"`
 }
 
 type InfraConfigConfig struct{}
@@ -91,6 +92,11 @@ type InfraConfigConfig struct{}
 type InfraCaddyConfig struct {
 	ComposeService string `yaml:"compose_service"`
 	ConfigDir      string `yaml:"config_dir"`
+}
+
+type InfraCloudflareTunnelConfig struct {
+	Tunnel         string `yaml:"tunnel"`
+	ComposeService string `yaml:"compose_service"`
 }
 
 type InfraRusticConfig struct {
@@ -101,8 +107,9 @@ type InfraRusticConfig struct {
 }
 
 type NetworkConfig struct {
-	Caddy *CaddyConfig `yaml:"caddy"`
-	DNS   *DNSConfig   `yaml:"dns"`
+	Caddy            *CaddyConfig            `yaml:"caddy"`
+	DNS              *DNSConfig              `yaml:"dns"`
+	CloudflareTunnel *CloudflareTunnelConfig `yaml:"cloudflare_tunnel"`
 }
 
 type CaddyConfig struct {
@@ -118,6 +125,22 @@ type DNSConfig struct {
 	Proxied    *bool   `yaml:"proxied"`
 	TTL        *uint32 `yaml:"ttl"`
 	Comment    string  `yaml:"comment"`
+}
+
+type CloudflareTunnelConfig struct {
+	Tunnel        string                         `yaml:"tunnel"`
+	Hostname      string                         `yaml:"hostname"`
+	Service       string                         `yaml:"service"`
+	Path          string                         `yaml:"path"`
+	OriginRequest *CloudflareTunnelOriginRequest `yaml:"origin_request"`
+}
+
+type CloudflareTunnelOriginRequest struct {
+	NoTLSVerify      *bool   `yaml:"no_tls_verify"`
+	HTTPHostHeader   string  `yaml:"http_host_header"`
+	OriginServerName string  `yaml:"origin_server_name"`
+	ConnectTimeout   *uint32 `yaml:"connect_timeout"`
+	TLSTimeout       *uint32 `yaml:"tls_timeout"`
 }
 
 type UpdateConfig struct {
@@ -584,6 +607,9 @@ func validateConfigInfra(path string, meta *ServiceMeta) error {
 	if meta.Infra != nil && meta.Infra.Rustic != nil {
 		return fmt.Errorf("service meta %q: infra.config cannot be combined with infra.rustic because rustic requires docker compose", path)
 	}
+	if meta.Infra != nil && meta.Infra.CloudflareTunnel != nil {
+		return fmt.Errorf("service meta %q: infra.config cannot be combined with infra.cloudflare_tunnel because cloudflared requires docker compose", path)
+	}
 	if meta.DataProtect == nil {
 		return nil
 	}
@@ -636,6 +662,18 @@ func validateNetwork(path string, network *NetworkConfig) error {
 		}
 	}
 
+	if network.CloudflareTunnel != nil {
+		if strings.TrimSpace(network.CloudflareTunnel.Hostname) == "" {
+			return fmt.Errorf("service meta %q: network.cloudflare_tunnel.hostname is required", path)
+		}
+		if strings.TrimSpace(network.CloudflareTunnel.Service) == "" {
+			return fmt.Errorf("service meta %q: network.cloudflare_tunnel.service is required", path)
+		}
+		if strings.TrimSpace(network.CloudflareTunnel.Tunnel) == "" && network.CloudflareTunnel.Tunnel != "" {
+			return fmt.Errorf("service meta %q: network.cloudflare_tunnel.tunnel must not be empty when set", path)
+		}
+	}
+
 	return nil
 }
 
@@ -654,6 +692,14 @@ func validateInfra(path string, infra *InfraConfig) error {
 			if strings.TrimSpace(arg) == "" {
 				return fmt.Errorf("service meta %q: infra.rustic.init_args[%d] must not be empty", path, index)
 			}
+		}
+	}
+	if infra.CloudflareTunnel != nil {
+		if strings.TrimSpace(infra.CloudflareTunnel.Tunnel) == "" {
+			return fmt.Errorf("service meta %q: infra.cloudflare_tunnel.tunnel is required", path)
+		}
+		if strings.TrimSpace(infra.CloudflareTunnel.ComposeService) == "" && infra.CloudflareTunnel.ComposeService != "" {
+			return fmt.Errorf("service meta %q: infra.cloudflare_tunnel.compose_service must not be empty when set", path)
 		}
 	}
 	return nil
@@ -1212,6 +1258,10 @@ func CaddySource(service Service) string {
 		return ""
 	}
 	return strings.TrimSpace(service.Meta.Network.Caddy.Source)
+}
+
+func CloudflareTunnelManaged(service Service) bool {
+	return service.Meta.Network != nil && service.Meta.Network.CloudflareTunnel != nil
 }
 
 func AffectedServicesFromChangedFiles(repoDir string, changedFiles []string) ([]string, error) {

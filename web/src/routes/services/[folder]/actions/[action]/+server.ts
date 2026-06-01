@@ -81,7 +81,7 @@ function parseComposeRecreateMode(
 
 function serviceCapabilityAction(
   action: ServiceAction,
-): "backup" | "dnsUpdate" | "caddySync" | null {
+): "backup" | "dnsUpdate" | "caddySync" | "cloudflareTunnelSync" | null {
   switch (action) {
     case "backup":
       return "backup";
@@ -89,6 +89,8 @@ function serviceCapabilityAction(
       return "dnsUpdate";
     case "caddy_sync":
       return "caddySync";
+    case "cloudflare_tunnel_sync":
+      return "cloudflareTunnelSync";
     default:
       return null;
   }
@@ -102,6 +104,7 @@ function isServiceAction(action: string): action is ServiceAction {
     action === "restart" ||
     action === "backup" ||
     action === "dns_update" ||
-    action === "caddy_sync"
+    action === "caddy_sync" ||
+    action === "cloudflare_tunnel_sync"
   );
 }

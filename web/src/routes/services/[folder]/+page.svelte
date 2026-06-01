@@ -259,6 +259,9 @@
   let caddySyncCapability = $derived(
     serviceActionCapability(workspace?.actions, "caddySync"),
   );
+  let cloudflareTunnelSyncCapability = $derived(
+    serviceActionCapability(workspace?.actions, "cloudflareTunnelSync"),
+  );
   let migrateCapability = $derived(
     serviceActionCapability(workspace?.actions, "migrate"),
   );
@@ -276,6 +279,14 @@
     caddySyncCapability.enabled
       ? ""
       : capabilityReasonMessage(caddySyncCapability.reasonCode, $messages),
+  );
+  let cloudflareTunnelSyncReason = $derived(
+    cloudflareTunnelSyncCapability.enabled
+      ? ""
+      : capabilityReasonMessage(
+          cloudflareTunnelSyncCapability.reasonCode,
+          $messages,
+        ),
   );
   let migrateReason = $derived(
     migrateCapability.enabled
@@ -1042,7 +1053,8 @@
       | "restart"
       | "backup"
       | "dns_update"
-      | "caddy_sync",
+      | "caddy_sync"
+      | "cloudflare_tunnel_sync",
     recreateMode: ComposeRecreateMode = "auto",
   ) {
     if (action === "backup" && !backupCapability.enabled) {
@@ -1055,6 +1067,13 @@
     }
     if (action === "caddy_sync" && !caddySyncCapability.enabled) {
       errorMessage = caddySyncReason;
+      return;
+    }
+    if (
+      action === "cloudflare_tunnel_sync" &&
+      !cloudflareTunnelSyncCapability.enabled
+    ) {
+      errorMessage = cloudflareTunnelSyncReason;
       return;
     }
 
@@ -2273,6 +2292,23 @@
                     >
                       <Copy class="mr-2 size-4" />{$messages.services.operations
                         .syncCaddy}
+                    </Button>
+                  </DisabledReasonTooltip>
+                  <DisabledReasonTooltip
+                    reason={cloudflareTunnelSyncReason}
+                    triggerClass="w-full"
+                  >
+                    <Button
+                      type="button"
+                      variant="outline"
+                      class="w-full"
+                      onclick={() => triggerAction("cloudflare_tunnel_sync")}
+                      disabled={!!actionBusy ||
+                        !workspace?.isDeclared ||
+                        !cloudflareTunnelSyncCapability.enabled}
+                    >
+                      <Upload class="mr-2 size-4" />{$messages.services
+                        .operations.syncCloudflareTunnel}
                     </Button>
                   </DisabledReasonTooltip>
                   <div

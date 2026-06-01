@@ -138,6 +138,44 @@ func createNodeCaddySyncTask(ctx context.Context, db *store.DB, cfg *config.Cont
 	return createdTask, nil
 }
 
+func createServiceCloudflareTunnelSyncTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName, excludedServiceDir string, source task.Source) (task.Record, error) {
+	if serviceName == "" {
+		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
+	}
+	service, err := repo.FindService(cfg.RepoDir, availableNodeIDs, serviceName)
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeNotFound, err)
+	}
+	if !repo.CloudflareTunnelManaged(service) {
+		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not declare network.cloudflare_tunnel", service.Name))
+	}
+	if cfg.CloudflareTunnel == nil {
+		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, errors.New("controller cloudflare_tunnel is not configured"))
+	}
+	repoRevision, err := repo.CurrentRevision(cfg.RepoDir)
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("resolve repo revision: %w", err))
+	}
+	serviceDir, err := filepath.Rel(cfg.RepoDir, service.Directory)
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
+	}
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir, ExcludedServiceDir: excludedServiceDir})
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode task params: %w", err))
+	}
+	triggeredBy, _ := rpcutil.BearerSubject(ctx)
+	taskID := uuid.NewString()
+	createdTask, err := db.CreateTaskIfNoActiveServiceTask(ctx, task.Record{TaskID: taskID, Type: task.TypeCloudflareTunnelSync, Source: source, TriggeredBy: triggeredBy, ServiceName: service.Name, Status: task.StatusPending, ParamsJSON: string(paramsJSON), RepoRevision: repoRevision, LogPath: filepath.Join(cfg.LogDir, "tasks", taskID+".log")})
+	if err != nil {
+		return task.Record{}, connectTaskAdmissionError(err)
+	}
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o600); err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
+	}
+	return createdTask, nil
+}
+
 func chooseRusticMainNode(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, taskType task.Type) (string, error) {
 	rusticService, err := repo.FindRusticInfraService(cfg.RepoDir, availableNodeIDs)
 	if err != nil {

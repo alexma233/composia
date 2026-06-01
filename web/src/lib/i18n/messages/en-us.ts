@@ -334,6 +334,7 @@ export const enUS = {
       backup: "Backup",
       dnsUpdate: "DNS update",
       syncCaddy: "Sync Caddy file",
+      syncCloudflareTunnel: "Sync Cloudflare Tunnel",
       migrate: {
         title: "Migrate instance",
         selectSource: "Select source node",
@@ -410,6 +411,7 @@ export const enUS = {
       migrateRollback: "Migration rollback",
       dnsUpdate: "DNS update",
       caddySync: "Caddy sync",
+      cloudflareTunnelSync: "Cloudflare Tunnel sync",
       caddyReload: "Caddy reload",
       prune: "Docker prune",
       rusticForget: "Rustic forget",

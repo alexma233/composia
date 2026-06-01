@@ -49,6 +49,7 @@ const (
 	AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_NETWORK   AgentTaskType = 21
 	AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_VOLUME    AgentTaskType = 22
 	AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE     AgentTaskType = 23
+	AgentTaskType_AGENT_TASK_TYPE_CLOUDFLARE_TUNNEL_SYNC  AgentTaskType = 24
 )
 
 // Enum value maps for AgentTaskType.
@@ -77,6 +78,7 @@ var (
 		21: "AGENT_TASK_TYPE_DOCKER_REMOVE_NETWORK",
 		22: "AGENT_TASK_TYPE_DOCKER_REMOVE_VOLUME",
 		23: "AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE",
+		24: "AGENT_TASK_TYPE_CLOUDFLARE_TUNNEL_SYNC",
 	}
 	AgentTaskType_value = map[string]int32{
 		"AGENT_TASK_TYPE_UNSPECIFIED":             0,
@@ -102,6 +104,7 @@ var (
 		"AGENT_TASK_TYPE_DOCKER_REMOVE_NETWORK":   21,
 		"AGENT_TASK_TYPE_DOCKER_REMOVE_VOLUME":    22,
 		"AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE":     23,
+		"AGENT_TASK_TYPE_CLOUDFLARE_TUNNEL_SYNC":  24,
 	}
 )
 
@@ -198,27 +201,28 @@ func (AgentTaskStatus) EnumDescriptor() ([]byte, []int) {
 type AgentTaskStepName int32
 
 const (
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_UNSPECIFIED           AgentTaskStepName = 0
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_RENDER                AgentTaskStepName = 1
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_PULL                  AgentTaskStepName = 2
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_BACKUP                AgentTaskStepName = 3
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_COMPOSE_DOWN          AgentTaskStepName = 4
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_COMPOSE_UP            AgentTaskStepName = 5
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_TRANSFER              AgentTaskStepName = 6
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_RESTORE               AgentTaskStepName = 7
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_DNS_UPDATE            AgentTaskStepName = 8
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_CADDY_SYNC            AgentTaskStepName = 9
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_CADDY_RELOAD          AgentTaskStepName = 10
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_IMAGE_CHECK           AgentTaskStepName = 11
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_INIT                  AgentTaskStepName = 12
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_PRUNE                 AgentTaskStepName = 13
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_AWAITING_CONFIRMATION AgentTaskStepName = 14
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_PERSIST_REPO          AgentTaskStepName = 15
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_FINALIZE              AgentTaskStepName = 16
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_DOCKER_START          AgentTaskStepName = 17
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_DOCKER_STOP           AgentTaskStepName = 18
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_DOCKER_RESTART        AgentTaskStepName = 19
-	AgentTaskStepName_AGENT_TASK_STEP_NAME_DOCKER_REMOVE         AgentTaskStepName = 20
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_UNSPECIFIED            AgentTaskStepName = 0
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_RENDER                 AgentTaskStepName = 1
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_PULL                   AgentTaskStepName = 2
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_BACKUP                 AgentTaskStepName = 3
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_COMPOSE_DOWN           AgentTaskStepName = 4
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_COMPOSE_UP             AgentTaskStepName = 5
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_TRANSFER               AgentTaskStepName = 6
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_RESTORE                AgentTaskStepName = 7
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_DNS_UPDATE             AgentTaskStepName = 8
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_CADDY_SYNC             AgentTaskStepName = 9
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_CADDY_RELOAD           AgentTaskStepName = 10
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_IMAGE_CHECK            AgentTaskStepName = 11
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_INIT                   AgentTaskStepName = 12
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_PRUNE                  AgentTaskStepName = 13
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_AWAITING_CONFIRMATION  AgentTaskStepName = 14
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_PERSIST_REPO           AgentTaskStepName = 15
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_FINALIZE               AgentTaskStepName = 16
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_DOCKER_START           AgentTaskStepName = 17
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_DOCKER_STOP            AgentTaskStepName = 18
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_DOCKER_RESTART         AgentTaskStepName = 19
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_DOCKER_REMOVE          AgentTaskStepName = 20
+	AgentTaskStepName_AGENT_TASK_STEP_NAME_CLOUDFLARE_TUNNEL_SYNC AgentTaskStepName = 21
 )
 
 // Enum value maps for AgentTaskStepName.
@@ -245,29 +249,31 @@ var (
 		18: "AGENT_TASK_STEP_NAME_DOCKER_STOP",
 		19: "AGENT_TASK_STEP_NAME_DOCKER_RESTART",
 		20: "AGENT_TASK_STEP_NAME_DOCKER_REMOVE",
+		21: "AGENT_TASK_STEP_NAME_CLOUDFLARE_TUNNEL_SYNC",
 	}
 	AgentTaskStepName_value = map[string]int32{
-		"AGENT_TASK_STEP_NAME_UNSPECIFIED":           0,
-		"AGENT_TASK_STEP_NAME_RENDER":                1,
-		"AGENT_TASK_STEP_NAME_PULL":                  2,
-		"AGENT_TASK_STEP_NAME_BACKUP":                3,
-		"AGENT_TASK_STEP_NAME_COMPOSE_DOWN":          4,
-		"AGENT_TASK_STEP_NAME_COMPOSE_UP":            5,
-		"AGENT_TASK_STEP_NAME_TRANSFER":              6,
-		"AGENT_TASK_STEP_NAME_RESTORE":               7,
-		"AGENT_TASK_STEP_NAME_DNS_UPDATE":            8,
-		"AGENT_TASK_STEP_NAME_CADDY_SYNC":            9,
-		"AGENT_TASK_STEP_NAME_CADDY_RELOAD":          10,
-		"AGENT_TASK_STEP_NAME_IMAGE_CHECK":           11,
-		"AGENT_TASK_STEP_NAME_INIT":                  12,
-		"AGENT_TASK_STEP_NAME_PRUNE":                 13,
-		"AGENT_TASK_STEP_NAME_AWAITING_CONFIRMATION": 14,
-		"AGENT_TASK_STEP_NAME_PERSIST_REPO":          15,
-		"AGENT_TASK_STEP_NAME_FINALIZE":              16,
-		"AGENT_TASK_STEP_NAME_DOCKER_START":          17,
-		"AGENT_TASK_STEP_NAME_DOCKER_STOP":           18,
-		"AGENT_TASK_STEP_NAME_DOCKER_RESTART":        19,
-		"AGENT_TASK_STEP_NAME_DOCKER_REMOVE":         20,
+		"AGENT_TASK_STEP_NAME_UNSPECIFIED":            0,
+		"AGENT_TASK_STEP_NAME_RENDER":                 1,
+		"AGENT_TASK_STEP_NAME_PULL":                   2,
+		"AGENT_TASK_STEP_NAME_BACKUP":                 3,
+		"AGENT_TASK_STEP_NAME_COMPOSE_DOWN":           4,
+		"AGENT_TASK_STEP_NAME_COMPOSE_UP":             5,
+		"AGENT_TASK_STEP_NAME_TRANSFER":               6,
+		"AGENT_TASK_STEP_NAME_RESTORE":                7,
+		"AGENT_TASK_STEP_NAME_DNS_UPDATE":             8,
+		"AGENT_TASK_STEP_NAME_CADDY_SYNC":             9,
+		"AGENT_TASK_STEP_NAME_CADDY_RELOAD":           10,
+		"AGENT_TASK_STEP_NAME_IMAGE_CHECK":            11,
+		"AGENT_TASK_STEP_NAME_INIT":                   12,
+		"AGENT_TASK_STEP_NAME_PRUNE":                  13,
+		"AGENT_TASK_STEP_NAME_AWAITING_CONFIRMATION":  14,
+		"AGENT_TASK_STEP_NAME_PERSIST_REPO":           15,
+		"AGENT_TASK_STEP_NAME_FINALIZE":               16,
+		"AGENT_TASK_STEP_NAME_DOCKER_START":           17,
+		"AGENT_TASK_STEP_NAME_DOCKER_STOP":            18,
+		"AGENT_TASK_STEP_NAME_DOCKER_RESTART":         19,
+		"AGENT_TASK_STEP_NAME_DOCKER_REMOVE":          20,
+		"AGENT_TASK_STEP_NAME_CLOUDFLARE_TUNNEL_SYNC": 21,
 	}
 )
 
@@ -5786,7 +5792,7 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\x12RemoveImageRequest\x12\x19\n" +
 	"\bimage_id\x18\x01 \x01(\tR\aimageId\x12\x14\n" +
 	"\x05force\x18\x02 \x01(\bR\x05force\"\x15\n" +
-	"\x13RemoveImageResponse*\xb0\x06\n" +
+	"\x13RemoveImageResponse*\xdc\x06\n" +
 	"\rAgentTaskType\x12\x1f\n" +
 	"\x1bAGENT_TASK_TYPE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16AGENT_TASK_TYPE_DEPLOY\x10\x01\x12\x18\n" +
@@ -5811,7 +5817,8 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"'AGENT_TASK_TYPE_DOCKER_REMOVE_CONTAINER\x10\x14\x12)\n" +
 	"%AGENT_TASK_TYPE_DOCKER_REMOVE_NETWORK\x10\x15\x12(\n" +
 	"$AGENT_TASK_TYPE_DOCKER_REMOVE_VOLUME\x10\x16\x12'\n" +
-	"#AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE\x10\x17\"\x04\b\x13\x10\x13*\x1dAGENT_TASK_TYPE_DOCKER_REMOVE*\xff\x01\n" +
+	"#AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE\x10\x17\x12*\n" +
+	"&AGENT_TASK_TYPE_CLOUDFLARE_TUNNEL_SYNC\x10\x18\"\x04\b\x13\x10\x13*\x1dAGENT_TASK_TYPE_DOCKER_REMOVE*\xff\x01\n" +
 	"\x0fAgentTaskStatus\x12!\n" +
 	"\x1dAGENT_TASK_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19AGENT_TASK_STATUS_PENDING\x10\x01\x12\x1d\n" +
@@ -5819,7 +5826,7 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"'AGENT_TASK_STATUS_AWAITING_CONFIRMATION\x10\x03\x12\x1f\n" +
 	"\x1bAGENT_TASK_STATUS_SUCCEEDED\x10\x04\x12\x1c\n" +
 	"\x18AGENT_TASK_STATUS_FAILED\x10\x05\x12\x1f\n" +
-	"\x1bAGENT_TASK_STATUS_CANCELLED\x10\x06*\x99\x06\n" +
+	"\x1bAGENT_TASK_STATUS_CANCELLED\x10\x06*\xca\x06\n" +
 	"\x11AgentTaskStepName\x12$\n" +
 	" AGENT_TASK_STEP_NAME_UNSPECIFIED\x10\x00\x12\x1f\n" +
 	"\x1bAGENT_TASK_STEP_NAME_RENDER\x10\x01\x12\x1d\n" +
@@ -5842,7 +5849,8 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"!AGENT_TASK_STEP_NAME_DOCKER_START\x10\x11\x12$\n" +
 	" AGENT_TASK_STEP_NAME_DOCKER_STOP\x10\x12\x12'\n" +
 	"#AGENT_TASK_STEP_NAME_DOCKER_RESTART\x10\x13\x12&\n" +
-	"\"AGENT_TASK_STEP_NAME_DOCKER_REMOVE\x10\x14*\xf2\x02\n" +
+	"\"AGENT_TASK_STEP_NAME_DOCKER_REMOVE\x10\x14\x12/\n" +
+	"+AGENT_TASK_STEP_NAME_CLOUDFLARE_TUNNEL_SYNC\x10\x15*\xf2\x02\n" +
 	"\x14DockerQueryErrorCode\x12'\n" +
 	"#DOCKER_QUERY_ERROR_CODE_UNSPECIFIED\x10\x00\x12,\n" +
 	"(DOCKER_QUERY_ERROR_CODE_INVALID_ARGUMENT\x10\x01\x12%\n" +

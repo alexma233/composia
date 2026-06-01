@@ -22,20 +22,21 @@ type File struct {
 }
 
 type ControllerConfig struct {
-	ListenAddr    string                         `yaml:"listen_addr" validate:"required"`
-	RepoDir       string                         `yaml:"repo_dir" validate:"required"`
-	StateDir      string                         `yaml:"state_dir" validate:"required"`
-	LogDir        string                         `yaml:"log_dir" validate:"required"`
-	Backup        *ControllerBackupConfig        `yaml:"backup"`
-	Git           *ControllerGitConfig           `yaml:"git"`
-	Notifications *ControllerNotificationsConfig `yaml:"notifications"`
-	Nodes         []NodeConfig                   `yaml:"nodes" validate:"required"`
-	AccessTokens  []AccessTokenConfig            `yaml:"access_tokens"`
-	DNS           *ControllerDNSConfig           `yaml:"dns"`
-	Rustic        *ControllerRusticConfig        `yaml:"rustic"`
-	Secrets       *ControllerSecretsConfig       `yaml:"secrets"`
-	Updates       *ControllerUpdatesConfig       `yaml:"updates"`
-	AutoDeploy    *ControllerAutoDeployConfig    `yaml:"auto_deploy"`
+	ListenAddr       string                            `yaml:"listen_addr" validate:"required"`
+	RepoDir          string                            `yaml:"repo_dir" validate:"required"`
+	StateDir         string                            `yaml:"state_dir" validate:"required"`
+	LogDir           string                            `yaml:"log_dir" validate:"required"`
+	Backup           *ControllerBackupConfig           `yaml:"backup"`
+	Git              *ControllerGitConfig              `yaml:"git"`
+	Notifications    *ControllerNotificationsConfig    `yaml:"notifications"`
+	Nodes            []NodeConfig                      `yaml:"nodes" validate:"required"`
+	AccessTokens     []AccessTokenConfig               `yaml:"access_tokens"`
+	DNS              *ControllerDNSConfig              `yaml:"dns"`
+	CloudflareTunnel *ControllerCloudflareTunnelConfig `yaml:"cloudflare_tunnel"`
+	Rustic           *ControllerRusticConfig           `yaml:"rustic"`
+	Secrets          *ControllerSecretsConfig          `yaml:"secrets"`
+	Updates          *ControllerUpdatesConfig          `yaml:"updates"`
+	AutoDeploy       *ControllerAutoDeployConfig       `yaml:"auto_deploy"`
 }
 
 type ControllerAutoDeployConfig struct {
@@ -137,6 +138,24 @@ type CloudflareDNSConfig struct {
 	APIToken     string   `yaml:"api_token"`
 	APITokenFile string   `yaml:"api_token_file"`
 	Zones        []string `yaml:"zones"`
+}
+
+type ControllerCloudflareTunnelConfig struct {
+	AccountID    string                                       `yaml:"account_id"`
+	APIToken     string                                       `yaml:"api_token"`
+	APITokenFile string                                       `yaml:"api_token_file"`
+	Zones        []string                                     `yaml:"zones"`
+	Tunnels      map[string]ControllerCloudflareTunnel        `yaml:"tunnels"`
+	Nodes        map[string]ControllerCloudflareTunnelNodeMap `yaml:"nodes"`
+}
+
+type ControllerCloudflareTunnel struct {
+	TunnelID        string `yaml:"tunnel_id"`
+	FallbackService string `yaml:"fallback_service"`
+}
+
+type ControllerCloudflareTunnelNodeMap struct {
+	Tunnel string `yaml:"tunnel"`
 }
 
 type AliDNSConfig struct {
@@ -336,6 +355,9 @@ func validateController(file *File) error {
 			}
 		}
 	}
+	if err := validateControllerCloudflareTunnel(controller.CloudflareTunnel, seenNodeIDs); err != nil {
+		return err
+	}
 
 	if controller.Backup != nil {
 		if err := schedule.Validate(controller.Backup.DefaultSchedule); err != nil {
@@ -404,6 +426,44 @@ func validateController(file *File) error {
 		}
 	}
 
+	return nil
+}
+
+func validateControllerCloudflareTunnel(cfg *ControllerCloudflareTunnelConfig, configuredNodeIDs map[string]struct{}) error {
+	if cfg == nil {
+		return nil
+	}
+	if strings.TrimSpace(cfg.AccountID) == "" {
+		return errors.New("controller.cloudflare_tunnel.account_id is required")
+	}
+	if strings.TrimSpace(cfg.APIToken) == "" {
+		return errors.New("controller.cloudflare_tunnel.api_token or controller.cloudflare_tunnel.api_token_file is required")
+	}
+	if len(cfg.Tunnels) == 0 {
+		return errors.New("controller.cloudflare_tunnel.tunnels must contain at least one tunnel")
+	}
+	for name, tunnel := range cfg.Tunnels {
+		if strings.TrimSpace(name) == "" {
+			return errors.New("controller.cloudflare_tunnel.tunnels keys must not be empty")
+		}
+		if strings.TrimSpace(tunnel.TunnelID) == "" {
+			return fmt.Errorf("controller.cloudflare_tunnel.tunnels[%q].tunnel_id is required", name)
+		}
+	}
+	for nodeID, mapping := range cfg.Nodes {
+		if strings.TrimSpace(nodeID) == "" {
+			return errors.New("controller.cloudflare_tunnel.nodes keys must not be empty")
+		}
+		if _, exists := configuredNodeIDs[nodeID]; !exists {
+			return fmt.Errorf("controller.cloudflare_tunnel.nodes[%q] must reference a configured controller.nodes entry", nodeID)
+		}
+		if strings.TrimSpace(mapping.Tunnel) == "" {
+			return fmt.Errorf("controller.cloudflare_tunnel.nodes[%q].tunnel is required", nodeID)
+		}
+		if _, exists := cfg.Tunnels[mapping.Tunnel]; !exists {
+			return fmt.Errorf("controller.cloudflare_tunnel.nodes[%q].tunnel references unknown tunnel %q", nodeID, mapping.Tunnel)
+		}
+	}
 	return nil
 }
 

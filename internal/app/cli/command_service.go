@@ -33,7 +33,7 @@ func (application *app) runService(args []string) error {
 		return application.runServiceEdit(serviceName, rest[1:])
 	case "updates":
 		return application.runServiceUpdateCandidates(serviceName, rest[1:])
-	case "up", "down", "update", "restart", "backup", "dns-update", "caddy-sync":
+	case "up", "down", "update", "restart", "backup", "dns-update", "caddy-sync", "cloudflare-tunnel-sync", "tunnel-sync":
 		return application.runServiceAction(rest[0], serviceName, rest[1:])
 	case "migrate":
 		return application.runServiceMigrate(serviceName, rest[1:])
@@ -299,7 +299,11 @@ func (application *app) runServiceAction(actionName string, serviceName string, 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	usage := commandUsageText("service " + actionName)
+	usageActionName := actionName
+	if usageActionName == "cloudflare-tunnel-sync" {
+		usageActionName = "tunnel-sync"
+	}
+	usage := commandUsageText("service " + usageActionName)
 	if err := requireArgs(fs.Args(), 0, usage); err != nil {
 		return err
 	}
@@ -534,6 +538,8 @@ func serviceActionFromName(name string) (controllerv1.ServiceAction, error) {
 		return controllerv1.ServiceAction_SERVICE_ACTION_DNS_UPDATE, nil
 	case "caddy-sync":
 		return controllerv1.ServiceAction_SERVICE_ACTION_CADDY_SYNC, nil
+	case "cloudflare-tunnel-sync", "tunnel-sync":
+		return controllerv1.ServiceAction_SERVICE_ACTION_CLOUDFLARE_TUNNEL_SYNC, nil
 	default:
 		return controllerv1.ServiceAction_SERVICE_ACTION_UNSPECIFIED, fmt.Errorf("unknown service action %q", name)
 	}

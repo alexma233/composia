@@ -12,6 +12,7 @@ import (
 type serviceTaskParams struct {
 	ServiceDir            string                         `json:"service_dir"`
 	ServiceDirs           []string                       `json:"service_dirs,omitempty"`
+	ExcludedServiceDir    string                         `json:"excluded_service_dir,omitempty"`
 	DataNames             []string                       `json:"data_names,omitempty"`
 	ImageNames            []string                       `json:"image_names,omitempty"`
 	SemverAllow           []string                       `json:"semver_allow,omitempty"`

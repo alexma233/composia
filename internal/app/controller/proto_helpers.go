@@ -27,6 +27,8 @@ func protoTaskType(value task.Type) controllerv1.TaskType {
 		return controllerv1.TaskType_TASK_TYPE_MIGRATE
 	case task.TypeDNSUpdate:
 		return controllerv1.TaskType_TASK_TYPE_DNS_UPDATE
+	case task.TypeCloudflareTunnelSync:
+		return controllerv1.TaskType_TASK_TYPE_CLOUDFLARE_TUNNEL_SYNC
 	case task.TypeCaddySync:
 		return controllerv1.TaskType_TASK_TYPE_CADDY_SYNC
 	case task.TypeCaddyReload:
@@ -118,6 +120,8 @@ func protoTaskStepName(value task.StepName) controllerv1.TaskStepName {
 		return controllerv1.TaskStepName_TASK_STEP_NAME_RESTORE
 	case task.StepDNSUpdate:
 		return controllerv1.TaskStepName_TASK_STEP_NAME_DNS_UPDATE
+	case task.StepCloudflareTunnelSync:
+		return controllerv1.TaskStepName_TASK_STEP_NAME_CLOUDFLARE_TUNNEL_SYNC
 	case task.StepCaddySync:
 		return controllerv1.TaskStepName_TASK_STEP_NAME_CADDY_SYNC
 	case task.StepCaddyReload:
@@ -184,6 +188,8 @@ func taskTypeFromProto(value controllerv1.TaskType) (task.Type, bool) {
 		return task.TypeMigrate, true
 	case controllerv1.TaskType_TASK_TYPE_DNS_UPDATE:
 		return task.TypeDNSUpdate, true
+	case controllerv1.TaskType_TASK_TYPE_CLOUDFLARE_TUNNEL_SYNC:
+		return task.TypeCloudflareTunnelSync, true
 	case controllerv1.TaskType_TASK_TYPE_CADDY_SYNC:
 		return task.TypeCaddySync, true
 	case controllerv1.TaskType_TASK_TYPE_CADDY_RELOAD:
@@ -273,6 +279,8 @@ func protoCapabilityReason(value string) controllerv1.CapabilityReasonCode {
 		return controllerv1.CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_MIGRATE_DEFINITION
 	case reasonMissingDNSIntegration:
 		return controllerv1.CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_DNS_INTEGRATION
+	case reasonMissingCloudflareTunnelIntegration:
+		return controllerv1.CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_CLOUDFLARE_TUNNEL_INTEGRATION
 	case reasonMissingSecretsConfig:
 		return controllerv1.CapabilityReasonCode_CAPABILITY_REASON_CODE_MISSING_SECRETS_CONFIG
 	case reasonMissingCaddyInfra:
@@ -285,6 +293,8 @@ func protoCapabilityReason(value string) controllerv1.CapabilityReasonCode {
 		return controllerv1.CapabilityReasonCode_CAPABILITY_REASON_CODE_SERVICE_DNS_NOT_DECLARED
 	case reasonServiceNotCaddyManaged:
 		return controllerv1.CapabilityReasonCode_CAPABILITY_REASON_CODE_SERVICE_NOT_CADDY_MANAGED
+	case reasonServiceNotCloudflareTunnelManaged:
+		return controllerv1.CapabilityReasonCode_CAPABILITY_REASON_CODE_SERVICE_NOT_CLOUDFLARE_TUNNEL_MANAGED
 	case reasonNodeDisabled:
 		return controllerv1.CapabilityReasonCode_CAPABILITY_REASON_CODE_NODE_DISABLED
 	case reasonNodeOffline:
@@ -345,6 +355,8 @@ func taskStepNameFromAgentProto(value agentv1.AgentTaskStepName) (task.StepName,
 		return task.StepRestore, true
 	case agentv1.AgentTaskStepName_AGENT_TASK_STEP_NAME_DNS_UPDATE:
 		return task.StepDNSUpdate, true
+	case agentv1.AgentTaskStepName_AGENT_TASK_STEP_NAME_CLOUDFLARE_TUNNEL_SYNC:
+		return task.StepCloudflareTunnelSync, true
 	case agentv1.AgentTaskStepName_AGENT_TASK_STEP_NAME_CADDY_SYNC:
 		return task.StepCaddySync, true
 	case agentv1.AgentTaskStepName_AGENT_TASK_STEP_NAME_CADDY_RELOAD:
@@ -392,6 +404,8 @@ func protoAgentTaskType(value task.Type) agentv1.AgentTaskType {
 		return agentv1.AgentTaskType_AGENT_TASK_TYPE_MIGRATE
 	case task.TypeDNSUpdate:
 		return agentv1.AgentTaskType_AGENT_TASK_TYPE_DNS_UPDATE
+	case task.TypeCloudflareTunnelSync:
+		return agentv1.AgentTaskType_AGENT_TASK_TYPE_CLOUDFLARE_TUNNEL_SYNC
 	case task.TypeCaddySync:
 		return agentv1.AgentTaskType_AGENT_TASK_TYPE_CADDY_SYNC
 	case task.TypeCaddyReload:

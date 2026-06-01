@@ -239,6 +239,7 @@ var commandUsages = map[string]string{ //nolint:gosec
 	"service backup":        "usage: composia service <service> backup [--detach] [--wait] [--follow] [--timeout duration] [--node node] [--data name]\n",
 	"service dns-update":    "usage: composia service <service> dns-update [--detach] [--wait] [--follow] [--timeout duration] [--node node]\n",
 	"service caddy-sync":    "usage: composia service <service> caddy-sync [--detach] [--wait] [--follow] [--timeout duration] [--node node]\n",
+	"service tunnel-sync":   "usage: composia service <service> tunnel-sync [--detach] [--wait] [--follow] [--timeout duration]\n",
 	"service migrate":       "usage: composia service <service> migrate [--wait] [--follow] [--timeout duration] --source node --target node\n",
 	"service logs":          "usage: composia service <service> logs [--task task] [--node node]\n",
 	"service ps":            "usage: composia service <service> ps\n",
@@ -384,6 +385,10 @@ var commandHelp = map[string]commandHelpInfo{
 		description: "Regenerate and sync Caddy files for a service.",
 		examples:    []string{"composia service vaultwarden caddy-sync"},
 	},
+	"service tunnel-sync": {
+		description: "Sync Cloudflare Tunnel ingress and DNS for a service.",
+		examples:    []string{"composia service vaultwarden tunnel-sync"},
+	},
 	"service migrate": {
 		description: "Migrate a service from one node to another.",
 		examples:    []string{"composia service vaultwarden migrate --from old-node --to new-node"},
@@ -512,7 +517,7 @@ Per-service actions:
 `); err != nil {
 		return err
 	}
-	for _, action := range []string{"edit", "up", "down", "update", "restart", "backup", "dns-update", "caddy-sync", "migrate", "updates", "logs", "ps", "exec"} {
+	for _, action := range []string{"edit", "up", "down", "update", "restart", "backup", "dns-update", "caddy-sync", "tunnel-sync", "migrate", "updates", "logs", "ps", "exec"} {
 		key := "service " + action
 		if _, err := fmt.Fprintf(w, "  %-14s %s\n", action, commandHelp[key].description); err != nil {
 			return err

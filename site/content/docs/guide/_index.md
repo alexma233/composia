@@ -8,6 +8,7 @@ Feature-specific guides covering how to use each Composia capability:
 
 - [Service Configuration](service/) - `composia-meta.yaml`, service targets, network settings, updates, backups, and migration.
 - [DNS](dns/) - DNS provider configuration and automatic record management.
+- [Cloudflare Tunnel](cloudflare-tunnel/) - Cloudflare Tunnel ingress and DNS CNAME management.
 - [Reverse Proxy](reverse-proxy/) - Caddy integration, sync, and reload.
 - [Backups](backups/) - Rustic-powered backup, restore, and maintenance.
 - [Migrate](migrate/) - Move services between nodes with data integrity.

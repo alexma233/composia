@@ -13,6 +13,7 @@ const (
 	TypeRestore               Type = "restore"
 	TypeMigrate               Type = "migrate"
 	TypeDNSUpdate             Type = "dns_update"
+	TypeCloudflareTunnelSync  Type = "cloudflare_tunnel_sync"
 	TypeCaddySync             Type = "caddy_sync"
 	TypeCaddyReload           Type = "caddy_reload"
 	TypeImageCheck            Type = "image_check"
@@ -82,6 +83,7 @@ const (
 	StepTransfer             StepName = "transfer"
 	StepRestore              StepName = "restore"
 	StepDNSUpdate            StepName = "dns_update"
+	StepCloudflareTunnelSync StepName = "cloudflare_tunnel_sync"
 	StepCaddySync            StepName = "caddy_sync"
 	StepCaddyReload          StepName = "caddy_reload"
 	StepImageCheck           StepName = "image_check"
@@ -106,7 +108,7 @@ type StepRecord struct {
 
 func IsControllerOwnedType(taskType Type) bool {
 	switch taskType {
-	case TypeDNSUpdate, TypeMigrate, TypeMigrateRollback:
+	case TypeDNSUpdate, TypeCloudflareTunnelSync, TypeMigrate, TypeMigrateRollback:
 		return true
 	default:
 		return false

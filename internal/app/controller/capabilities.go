@@ -19,12 +19,14 @@ const (
 	reasonMissingRestoreDefinition  = "missing_restore_definition"
 	reasonMissingMigrateDefinition  = "missing_migrate_definition"
 	reasonMissingDNSIntegration     = "missing_dns_integration"
+	reasonMissingCloudflareTunnelIntegration = "missing_cloudflare_tunnel_integration"
 	reasonMissingSecretsConfig      = "missing_secrets_config"
 	reasonMissingCaddyInfra         = "missing_caddy_infra"
 	reasonMissingServiceMeta        = "missing_service_meta"
 	reasonServiceNotDeclared        = "service_not_declared"
 	reasonServiceDNSNotDeclared     = "service_dns_not_declared"
 	reasonServiceNotCaddyManaged    = "service_not_caddy_managed"
+	reasonServiceNotCloudflareTunnelManaged = "service_not_cloudflare_tunnel_managed"
 	reasonNodeDisabled              = "node_disabled"
 	reasonNodeOffline               = "node_offline"
 	reasonNodeNotEligible           = "node_not_eligible"
@@ -62,6 +64,7 @@ func buildDisabledServiceActionCapabilities(reason string) *controllerv1.Service
 		Migrate:   disabledCapability(reason),
 		DnsUpdate: disabledCapability(reason),
 		CaddySync: disabledCapability(reason),
+		CloudflareTunnelSync: disabledCapability(reason),
 	}
 }
 
@@ -72,6 +75,7 @@ func buildServiceActionCapabilities(cfg *config.ControllerConfig, availableNodeI
 		Migrate:   serviceMigrateCapability(cfg, availableNodeIDs, service),
 		DnsUpdate: serviceDNSUpdateCapability(cfg, service),
 		CaddySync: serviceCaddySyncCapability(cfg, snapshotByNodeID, service),
+		CloudflareTunnelSync: serviceCloudflareTunnelSyncCapability(cfg, service),
 	}
 }
 
@@ -122,6 +126,13 @@ func backupIntegrationCapability(cfg *config.ControllerConfig, availableNodeIDs 
 func dnsIntegrationCapability(cfg *config.ControllerConfig) *controllerv1.Capability {
 	if cfg == nil || cfg.DNS == nil || cfg.DNS.Cloudflare == nil || strings.TrimSpace(cfg.DNS.Cloudflare.APIToken) == "" {
 		return disabledCapability(reasonMissingDNSIntegration)
+	}
+	return enabledCapability()
+}
+
+func cloudflareTunnelIntegrationCapability(cfg *config.ControllerConfig) *controllerv1.Capability {
+	if cfg == nil || cfg.CloudflareTunnel == nil || strings.TrimSpace(cfg.CloudflareTunnel.APIToken) == "" || strings.TrimSpace(cfg.CloudflareTunnel.AccountID) == "" || len(cfg.CloudflareTunnel.Tunnels) == 0 {
+		return disabledCapability(reasonMissingCloudflareTunnelIntegration)
 	}
 	return enabledCapability()
 }
@@ -214,6 +225,16 @@ func serviceCaddySyncCapability(cfg *config.ControllerConfig, snapshotByNodeID m
 		return disabledCapability(reasonServiceNotCaddyManaged)
 	}
 	return taskTargetNodesCapability(cfg, snapshotByNodeID, service.TargetNodes, task.TypeCaddySync)
+}
+
+func serviceCloudflareTunnelSyncCapability(cfg *config.ControllerConfig, service repo.Service) *controllerv1.Capability {
+	if !repo.CloudflareTunnelManaged(service) {
+		return disabledCapability(reasonServiceNotCloudflareTunnelManaged)
+	}
+	if capability := cloudflareTunnelIntegrationCapability(cfg); !capability.GetEnabled() {
+		return capability
+	}
+	return enabledCapability()
 }
 
 func backupRestoreCapability(cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, snapshotByNodeID map[string]store.NodeSnapshot, backup store.BackupDetail) *controllerv1.Capability {

@@ -154,7 +154,7 @@ func runControllerTasks(ctx context.Context, executor *controllerTaskExecutor) {
 }
 
 func (executor *controllerTaskExecutor) runNextPendingTask(ctx context.Context) error {
-	for _, taskType := range []task.Type{task.TypeDNSUpdate, task.TypeMigrate, task.TypeMigrateRollback} {
+	for _, taskType := range []task.Type{task.TypeDNSUpdate, task.TypeCloudflareTunnelSync, task.TypeMigrate, task.TypeMigrateRollback} {
 		record, err := executor.db.ClaimNextPendingTaskOfType(ctx, taskType, time.Now().UTC())
 		if errors.Is(err, store.ErrNoPendingTask) {
 			continue
@@ -166,6 +166,8 @@ func (executor *controllerTaskExecutor) runNextPendingTask(ctx context.Context) 
 		switch record.Type {
 		case task.TypeDNSUpdate:
 			return executor.executeDNSUpdateTask(ctx, record)
+		case task.TypeCloudflareTunnelSync:
+			return executor.executeCloudflareTunnelSyncTask(ctx, record)
 		case task.TypeMigrate:
 			return executor.executeMigrateTask(ctx, record)
 		case task.TypeMigrateRollback:

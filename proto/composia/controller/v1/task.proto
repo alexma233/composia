@@ -59,6 +59,7 @@ enum TaskType {
   TASK_TYPE_DOCKER_REMOVE_NETWORK = 22;
   TASK_TYPE_DOCKER_REMOVE_VOLUME = 23;
   TASK_TYPE_DOCKER_REMOVE_IMAGE = 24;
+  TASK_TYPE_CLOUDFLARE_TUNNEL_SYNC = 25;
 }
 
 // TaskStatus identifies a task lifecycle status.
@@ -106,6 +107,7 @@ enum TaskStepName {
   TASK_STEP_NAME_DOCKER_STOP = 18;
   TASK_STEP_NAME_DOCKER_RESTART = 19;
   TASK_STEP_NAME_DOCKER_REMOVE = 20;
+  TASK_STEP_NAME_CLOUDFLARE_TUNNEL_SYNC = 21;
 }
 
 // TaskConfirmationDecision identifies how an operator resolved a confirmation gate.

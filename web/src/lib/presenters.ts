@@ -79,6 +79,8 @@ export function taskTypeLabel(type: string, messages: Dictionary) {
       return messages.tasks.types.dnsUpdate;
     case "caddy_sync":
       return messages.tasks.types.caddySync;
+    case "cloudflare_tunnel_sync":
+      return messages.tasks.types.cloudflareTunnelSync;
     case "caddy_reload":
       return messages.tasks.types.caddyReload;
     case "prune":
