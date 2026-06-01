@@ -32,7 +32,7 @@
             inherit version;
             src = ./.;
 
-            vendorHash = "sha256-LIts6L6jl2ZmHvOBboB9eBIf3VWraaVMca7/s7h65bU=";
+            vendorHash = "sha256-sB4BU+dewyCncBj3eoyKcnjGqB4Jk8/eDY0+4dmZsUk=";
 
             subPackages = [
               "cmd/composia"
@@ -45,6 +45,15 @@
               "-w"
               "-X forgejo.alexma.top/alexma233/composia/internal/version.Value=${version}"
             ];
+
+            postInstall = ''
+              install -Dm644 <($out/bin/composia completion bash) \
+                $out/share/bash-completion/completions/composia
+              install -Dm644 <($out/bin/composia completion zsh) \
+                $out/share/zsh/site-functions/_composia
+              install -Dm644 <($out/bin/composia completion fish) \
+                $out/share/fish/vendor_completions.d/composia.fish
+            '';
 
             meta = {
               description = "Self-hosted Docker Compose control plane and CLI";

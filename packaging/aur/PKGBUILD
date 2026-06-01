@@ -29,6 +29,9 @@ package() {
   install -Dm755 composia "${pkgdir}/usr/bin/composia"
   install -Dm755 composia-controller "${pkgdir}/usr/bin/composia-controller"
   install -Dm755 composia-agent "${pkgdir}/usr/bin/composia-agent"
+  install -Dm644 <(./composia completion bash) "${pkgdir}/usr/share/bash-completion/completions/composia"
+  install -Dm644 <(./composia completion zsh) "${pkgdir}/usr/share/zsh/site-functions/_composia"
+  install -Dm644 <(./composia completion fish) "${pkgdir}/usr/share/fish/vendor_completions.d/composia.fish"
   install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
   install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
 }

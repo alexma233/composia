@@ -18,7 +18,6 @@ import (
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1/controllerv1connect"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
-	"forgejo.alexma.top/alexma233/composia/internal/version"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -75,76 +74,16 @@ type controllerClient struct {
 
 // Run executes the user-facing CLI command surface.
 func Run(ctx context.Context, args []string, out io.Writer, errOut io.Writer) error {
-	cfg, rest, err := parseGlobalFlags(args)
-	if err != nil {
+	root := newRootCommand(ctx, out, errOut)
+	root.SetArgs(args)
+	if err := root.Execute(); err != nil {
+		if strings.Contains(err.Error(), "unknown command") {
+			root.SetOut(errOut)
+			_ = root.Help()
+		}
 		return err
 	}
-	if cfg.help {
-		PrintUsage(out)
-		return nil
-	}
-	if len(rest) == 0 {
-		PrintUsage(errOut)
-		return errors.New("missing command")
-	}
-	if rest[0] == "help" {
-		return PrintCommandUsage(out, rest[1:])
-	}
-	if isHelpArg(rest) {
-		return PrintCommandUsage(out, trimHelpArgs(rest))
-	}
-	if rest[0] == "version" {
-		_, err := fmt.Fprintln(out, version.Value)
-		return err
-	}
-	if rest[0] == "completion" {
-		application := &app{ctx: ctx, out: out, errOut: errOut, cfg: cfg}
-		return application.runCompletion(rest[1:])
-	}
-	if rest[0] == "config" {
-		application := &app{ctx: ctx, out: out, errOut: errOut, cfg: cfg}
-		return application.runConfig(rest[1:])
-	}
-	if !isControllerCommand(rest[0]) {
-		PrintUsage(errOut)
-		return fmt.Errorf("unknown command %q", rest[0])
-	}
-
-	application := &app{ctx: ctx, out: out, errOut: errOut, cfg: cfg}
-	if err := application.configureClient(); err != nil {
-		return err
-	}
-
-	switch rest[0] {
-	case "system":
-		return application.runSystem(rest[1:])
-	case "service":
-		return application.runService(rest[1:])
-	case "instance":
-		return application.runInstance(rest[1:])
-	case "task":
-		return application.runTask(rest[1:])
-	case "backup":
-		return application.runBackup(rest[1:])
-	case "node":
-		return application.runNode(rest[1:])
-	case "container":
-		return application.runContainer(rest[1:])
-	case "network":
-		return application.runNetwork(rest[1:])
-	case "volume":
-		return application.runVolume(rest[1:])
-	case "image":
-		return application.runImage(rest[1:])
-	case "rustic":
-		return application.runRustic(rest[1:])
-	case "repo":
-		return application.runRepo(rest[1:])
-	case "secret":
-		return application.runSecret(rest[1:])
-	default:
-		return fmt.Errorf("unknown command %q", rest[0])
-	}
+	return nil
 }
 
 func isControllerCommand(command string) bool {
@@ -797,6 +736,10 @@ func (values *stringListFlag) Set(value string) error {
 	return nil
 }
 
+func (values *stringListFlag) Type() string {
+	return "stringSlice"
+}
+
 type headerFlag []string
 
 func (values *headerFlag) String() string {
@@ -809,6 +752,10 @@ func (values *headerFlag) Set(value string) error {
 		*values = append(*values, value)
 	}
 	return nil
+}
+
+func (values *headerFlag) Type() string {
+	return "header"
 }
 
 func parseHeaderFlagValues(values headerFlag) (map[string]string, error) {

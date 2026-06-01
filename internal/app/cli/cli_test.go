@@ -211,6 +211,18 @@ func TestRunVersionDoesNotRequireControllerConfig(t *testing.T) {
 	}
 }
 
+func TestRunRejectsInvalidGlobalOutputBeforeLocalCommand(t *testing.T) {
+	var out bytes.Buffer
+	var errOut bytes.Buffer
+	err := Run(context.Background(), []string{"--output", "xml", "version"}, &out, &errOut)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	if !strings.Contains(err.Error(), `unknown output mode "xml"`) {
+		t.Fatalf("error = %v", err)
+	}
+}
+
 func TestRunUnknownCommandDoesNotRequireControllerConfig(t *testing.T) {
 	var out bytes.Buffer
 	var errOut bytes.Buffer
@@ -224,7 +236,7 @@ func TestRunUnknownCommandDoesNotRequireControllerConfig(t *testing.T) {
 	if out.Len() != 0 {
 		t.Fatalf("stdout = %q", out.String())
 	}
-	if !strings.Contains(errOut.String(), "usage: composia") {
+	if !strings.Contains(errOut.String(), "Usage:") || !strings.Contains(errOut.String(), "composia") {
 		t.Fatalf("stderr = %q", errOut.String())
 	}
 }
@@ -349,10 +361,10 @@ func TestNewCLICommandHelpDoesNotRequireControllerConfig(t *testing.T) {
 		{[]string{"help", "service", "vaultwarden"}, "usage: composia service vaultwarden [--containers]"},
 		{[]string{"help", "service", "vaultwarden", "edit"}, "usage: composia service vaultwarden edit [--message text] <compose|meta|env|path>"},
 		{[]string{"help", "service", "vaultwarden", "exec"}, "usage: composia service vaultwarden exec [--node node] [--container name] [--no-tty] [command] [args...]"},
-		{[]string{"help", "repo", "mkdir"}, "usage: composia repo mkdir [--message text] <path>"},
-		{[]string{"help", "repo", "mv"}, "usage: composia repo mv [--message text] <source> <destination>"},
-		{[]string{"help", "repo", "rm"}, "usage: composia repo rm [--message text] <path>"},
-		{[]string{"help", "node", "sync-caddy-files"}, "usage: composia node sync-caddy-files [--wait] [--follow] [--timeout duration] [--service name] [--full-rebuild] <node>"},
+		{[]string{"help", "repo", "mkdir"}, "composia repo mkdir <path> [flags]"},
+		{[]string{"help", "repo", "mv"}, "composia repo mv <source> <destination> [flags]"},
+		{[]string{"help", "repo", "rm"}, "composia repo rm <path> [flags]"},
+		{[]string{"help", "node", "sync-caddy-files"}, "composia node sync-caddy-files <node> [flags]"},
 	} {
 		var out bytes.Buffer
 		var errOut bytes.Buffer
@@ -570,12 +582,29 @@ func TestCompletionDoesNotRequireControllerConfig(t *testing.T) {
 		t.Fatalf("Run returned error: %v", err)
 	}
 	got := out.String()
-	for _, want := range []string{"complete -F _composia_completion composia", "network", "rustic"} {
+	for _, want := range []string{"# bash completion V2 for composia", "__complete"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("completion missing %q:\n%s", want, got)
 		}
 	}
 	if errOut.Len() != 0 {
+		t.Fatalf("stderr = %q", errOut.String())
+	}
+}
+
+func TestCompletionIncludesStaticServiceArgsWithoutControllerConfig(t *testing.T) {
+	var out bytes.Buffer
+	var errOut bytes.Buffer
+	if err := Run(context.Background(), []string{"__complete", "service", ""}, &out, &errOut); err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+	got := out.String()
+	for _, want := range []string{"create", "list"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("completion missing %q:\n%s", want, got)
+		}
+	}
+	if errOut.Len() != 0 && !strings.Contains(errOut.String(), "ShellCompDirectiveNoFileComp") {
 		t.Fatalf("stderr = %q", errOut.String())
 	}
 }

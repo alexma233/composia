@@ -51,6 +51,16 @@ install -m 0755 -vp "_build/composia-agent" "%{buildroot}%{_bindir}/composia-age
 install -m 0755 -vd "%{buildroot}%{_unitdir}"
 install -m 0644 -vp "packaging/systemd/composia-controller.service" "%{buildroot}%{_unitdir}/composia-controller.service"
 install -m 0644 -vp "packaging/systemd/composia-agent.service" "%{buildroot}%{_unitdir}/composia-agent.service"
+install -m 0755 -vd "%{buildroot}%{_datadir}/bash-completion/completions"
+install -m 0755 -vd "%{buildroot}%{_datadir}/zsh/site-functions"
+install -m 0755 -vd "%{buildroot}%{_datadir}/fish/vendor_completions.d"
+"_build/composia" completion bash > "%{buildroot}%{_datadir}/bash-completion/completions/composia"
+"_build/composia" completion zsh > "%{buildroot}%{_datadir}/zsh/site-functions/_composia"
+"_build/composia" completion fish > "%{buildroot}%{_datadir}/fish/vendor_completions.d/composia.fish"
+chmod 0644 \
+    "%{buildroot}%{_datadir}/bash-completion/completions/composia" \
+    "%{buildroot}%{_datadir}/zsh/site-functions/_composia" \
+    "%{buildroot}%{_datadir}/fish/vendor_completions.d/composia.fish"
 
 %posttrans
 if command -v systemctl >/dev/null 2>&1; then
@@ -70,6 +80,9 @@ fi
 %{_bindir}/composia-agent
 %{_unitdir}/composia-controller.service
 %{_unitdir}/composia-agent.service
+%{_datadir}/bash-completion/completions/composia
+%{_datadir}/zsh/site-functions/_composia
+%{_datadir}/fish/vendor_completions.d/composia.fish
 
 %changelog
 * Fri May 01 2026 AlexMa <i@fur.im> - %{version}-1
