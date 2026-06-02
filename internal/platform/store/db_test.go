@@ -453,6 +453,89 @@ func TestMigrateSetsSQLiteUserVersion(t *testing.T) {
 	}
 }
 
+func TestMigrateFromVersionSevenDropsLegacyDockerRemoveTasks(t *testing.T) {
+	t.Parallel()
+
+	stateDir := filepath.Join(t.TempDir(), "state")
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	seedDB, err := Open(stateDir)
+	if err != nil {
+		t.Fatalf("open seed sqlite db: %v", err)
+	}
+	if err := seedDB.Close(); err != nil {
+		t.Fatalf("close seed sqlite db: %v", err)
+	}
+
+	legacySQL, err := sql.Open("sqlite", filepath.Join(stateDir, DatabaseFileName))
+	if err != nil {
+		t.Fatalf("open legacy sqlite db: %v", err)
+	}
+	legacyStatements := []string{
+		`PRAGMA foreign_keys = OFF;`,
+		`CREATE TABLE tasks_legacy (
+			task_id TEXT PRIMARY KEY,
+			type TEXT NOT NULL,
+			source TEXT NOT NULL,
+			triggered_by TEXT,
+			service_name TEXT,
+			node_id TEXT,
+			status TEXT NOT NULL,
+			params_json TEXT,
+			log_path TEXT,
+			repo_revision TEXT,
+			result_revision TEXT,
+			attempt_of_task_id TEXT,
+			created_at TEXT NOT NULL,
+			started_at TEXT,
+			finished_at TEXT,
+			error_summary TEXT
+		);`,
+		`INSERT INTO tasks_legacy SELECT task_id, type, source, triggered_by, service_name, node_id, status, params_json, log_path, repo_revision, result_revision, attempt_of_task_id, created_at, started_at, finished_at, error_summary FROM tasks;`,
+		`DROP TABLE tasks;`,
+		`ALTER TABLE tasks_legacy RENAME TO tasks;`,
+		`INSERT INTO nodes (node_id, is_configured, is_online) VALUES ('main', 1, 0);`,
+		`INSERT INTO services (service_name, is_declared, runtime_status, last_task_id, updated_at) VALUES ('app', 1, 'unknown', 'task-old-remove', '2026-06-02T09:00:00Z');`,
+		`INSERT INTO service_instances (service_name, node_id, is_declared, runtime_status, last_task_id, updated_at) VALUES ('app', 'main', 1, 'unknown', 'task-old-remove', '2026-06-02T09:00:00Z');`,
+		`INSERT INTO tasks (task_id, type, source, service_name, node_id, status, created_at) VALUES ('task-old-remove', 'docker_remove', 'cli', 'app', 'main', 'succeeded', '2026-06-02T09:00:00Z');`,
+		`INSERT INTO task_steps (task_id, step_name, status) VALUES ('task-old-remove', 'docker_remove', 'succeeded');`,
+		`PRAGMA user_version = 7;`,
+		`PRAGMA foreign_keys = ON;`,
+	}
+	for _, statement := range legacyStatements {
+		if _, err := legacySQL.ExecContext(context.Background(), statement); err != nil {
+			_ = legacySQL.Close()
+			t.Fatalf("apply legacy setup statement %q: %v", statement, err)
+		}
+	}
+	if err := legacySQL.Close(); err != nil {
+		t.Fatalf("close legacy sqlite db: %v", err)
+	}
+
+	db, err := Open(stateDir)
+	if err != nil {
+		t.Fatalf("open migrated sqlite db: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	var oldTaskCount int
+	if err := db.sql.QueryRowContext(ctx, `SELECT COUNT(*) FROM tasks WHERE type = 'docker_remove';`).Scan(&oldTaskCount); err != nil {
+		t.Fatalf("count legacy tasks: %v", err)
+	}
+	if oldTaskCount != 0 {
+		t.Fatalf("expected legacy docker_remove tasks to be dropped, got %d", oldTaskCount)
+	}
+	var lastTaskID sql.NullString
+	if err := db.sql.QueryRowContext(ctx, `SELECT last_task_id FROM services WHERE service_name = 'app';`).Scan(&lastTaskID); err != nil {
+		t.Fatalf("read service last_task_id: %v", err)
+	}
+	if lastTaskID.Valid {
+		t.Fatalf("expected service last_task_id to be cleared, got %q", lastTaskID.String)
+	}
+}
+
 func TestMigrateBackfillsBackupNodeIDAndEnforcesInstanceIntegrity(t *testing.T) {
 	t.Parallel()
 
