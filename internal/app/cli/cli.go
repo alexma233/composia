@@ -43,7 +43,6 @@ type globalConfig struct {
 	headers   map[string]string
 	output    outputMode
 	json      bool
-	terse     bool
 	help      bool
 }
 
@@ -127,7 +126,6 @@ Global flags:
   --header string      custom controller header, repeatable as "Name: value"
   --output mode        output mode: human, json, terse (default human)
   --json              print protobuf JSON for unary RPCs
-  --terse             print compact text for coding agents and scripts
 
 Commands:
   service     List/create services or target one service by name
@@ -492,7 +490,6 @@ func parseGlobalFlags(args []string) (globalConfig, []string, error) {
 	fs.Var(&headerValues, "header", `custom controller header as "Name: value"`)
 	output := fs.String("output", string(outputModeHuman), "output mode: human, json, terse")
 	fs.BoolVar(&cfg.json, "json", false, "print JSON")
-	fs.BoolVar(&cfg.terse, "terse", false, "print compact text")
 	fs.BoolVar(&cfg.help, "help", false, "print usage")
 	fs.BoolVar(&cfg.help, "h", false, "print usage")
 	if err := fs.Parse(args); err != nil {
@@ -517,12 +514,8 @@ func parseGlobalFlags(args []string) (globalConfig, []string, error) {
 	if cfg.json {
 		mode = outputModeJSON
 	}
-	if cfg.terse {
-		mode = outputModeTerse
-	}
 	cfg.output = mode
 	cfg.json = mode == outputModeJSON
-	cfg.terse = mode == outputModeTerse
 	return cfg, fs.Args(), nil
 }
 
@@ -684,7 +677,7 @@ func (application *app) isJSONOutput() bool {
 }
 
 func (application *app) isTerseOutput() bool {
-	return application.cfg.output == outputModeTerse || application.cfg.terse
+	return application.cfg.output == outputModeTerse
 }
 
 func newRequest[T any](message *T) *connect.Request[T] {

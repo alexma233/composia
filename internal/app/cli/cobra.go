@@ -74,7 +74,6 @@ func newRootCommand(ctx context.Context, out io.Writer, errOut io.Writer) *cobra
 	flags.Var(&runtime.headerValues, "header", `custom controller header as "Name: value"`)
 	flags.StringVar(&runtime.output, "output", string(outputModeHuman), "output mode: human, json, terse")
 	flags.BoolVar(&runtime.app.cfg.json, "json", false, "print protobuf JSON for unary RPCs")
-	flags.BoolVar(&runtime.app.cfg.terse, "terse", false, "print compact text for coding agents and scripts")
 
 	root.AddCommand(newVersionCommand(out))
 	for _, spec := range cobraCommandSpecs(runtime) {
@@ -332,12 +331,8 @@ func (runtime *cobraRuntime) finalizeGlobalConfig() error {
 	if cfg.json {
 		mode = outputModeJSON
 	}
-	if cfg.terse {
-		mode = outputModeTerse
-	}
 	cfg.output = mode
 	cfg.json = mode == outputModeJSON
-	cfg.terse = mode == outputModeTerse
 	runtime.app.cfg = cfg
 	runtime.finalized = true
 	return nil

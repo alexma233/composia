@@ -43,15 +43,21 @@ func TestParseGlobalFlags(t *testing.T) {
 }
 
 func TestParseGlobalFlagsTerse(t *testing.T) {
-	cfg, rest, err := parseGlobalFlags([]string{"--output", "json", "--terse", "service", "list"})
+	cfg, rest, err := parseGlobalFlags([]string{"--output", "terse", "service", "list"})
 	if err != nil {
 		t.Fatalf("parseGlobalFlags returned error: %v", err)
 	}
-	if cfg.output != outputModeTerse || !cfg.terse || cfg.json {
+	if cfg.output != outputModeTerse || cfg.json {
 		t.Fatalf("cfg = %+v", cfg)
 	}
 	if strings.Join(rest, " ") != "service list" {
 		t.Fatalf("rest = %v", rest)
+	}
+}
+
+func TestParseGlobalFlagsRejectsTerseFlag(t *testing.T) {
+	if _, _, err := parseGlobalFlags([]string{"--terse", "service", "list"}); err == nil {
+		t.Fatalf("expected error")
 	}
 }
 
@@ -180,7 +186,7 @@ func TestWriteTable(t *testing.T) {
 
 func TestAppTerseOutput(t *testing.T) {
 	var out bytes.Buffer
-	application := &app{out: &out, cfg: globalConfig{output: outputModeTerse, terse: true}}
+	application := &app{out: &out, cfg: globalConfig{output: outputModeTerse}}
 	if err := application.writeTable([]string{"NAME", "STATUS"}, [][]string{{"alpha", "running"}}); err != nil {
 		t.Fatalf("writeTable returned error: %v", err)
 	}
@@ -219,6 +225,18 @@ func TestRunRejectsInvalidGlobalOutputBeforeLocalCommand(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 	if !strings.Contains(err.Error(), `unknown output mode "xml"`) {
+		t.Fatalf("error = %v", err)
+	}
+}
+
+func TestRunRejectsTerseFlag(t *testing.T) {
+	var out bytes.Buffer
+	var errOut bytes.Buffer
+	err := Run(context.Background(), []string{"--terse", "version"}, &out, &errOut)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	if !strings.Contains(err.Error(), "--terse") {
 		t.Fatalf("error = %v", err)
 	}
 }
