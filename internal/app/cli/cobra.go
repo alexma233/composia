@@ -116,20 +116,11 @@ func cobraCommandSpecs(runtime *cobraRuntime) []cobraCommandSpec {
 			leafSpec("reload-caddy <node>", "Reload node Caddy", true, (*app).runNodeReloadCaddy, waitFlags, completeNodeIDsArg(runtime)),
 			leafSpec("prune <node>", "Prune Docker resources on a node", true, (*app).runNodePrune, nodePruneFlags, completeNodeIDsArg(runtime)),
 		}),
-		groupSpec("container", "Low-level container operations by node and container ID", true, []cobraCommandSpec{
-			leafSpec("list", "List containers", true, (*app).runContainerList, dockerListFlags, nil),
-			leafSpec("get <container>", "Inspect one container", true, (*app).runContainerGet, nodeFlag, nil),
-			leafSpec("logs <container>", "Stream container logs", true, (*app).runContainerLogs, containerLogsFlags, nil),
-			leafSpec("start <container>", "Start a container", true, func(a *app, args []string) error { return a.runContainerAction("start", args) }, nodeWaitFlags, nil),
-			leafSpec("stop <container>", "Stop a container", true, func(a *app, args []string) error { return a.runContainerAction("stop", args) }, nodeWaitFlags, nil),
-			leafSpec("restart <container>", "Restart a container", true, func(a *app, args []string) error { return a.runContainerAction("restart", args) }, nodeWaitFlags, nil),
-			leafSpec("remove <container>", "Remove a container", true, (*app).runContainerRemove, containerRemoveFlags, nil),
-			leafSpec("exec <container> -- <command> [args...]", "Run a command in a container", true, (*app).runContainerExec, containerExecFlags, nil),
-		}),
+		leafSpec("container <node> <list|get|logs|start|stop|restart|remove|exec>", "Low-level container operations by node and container ID", true, (*app).runContainer, containerFlags, completeNodeIDsArg(runtime)),
 		groupSpec("backup", "List and restore backups", true, []cobraCommandSpec{
 			leafSpec("list", "List backups", true, (*app).runBackupList, backupListFlags, nil),
 			leafSpec("get <backup>", "Show one backup", true, (*app).runBackupGet, nil, nil),
-			leafSpec("restore <backup>", "Restore a backup", true, (*app).runBackupRestore, backupRestoreFlags, nil),
+			leafSpec("restore <node> <backup>", "Restore a backup", true, (*app).runBackupRestore, waitFlags, completeNodeIDsArg(runtime)),
 		}),
 		groupSpec("repo", "Low-level repository file operations", true, []cobraCommandSpec{
 			leafSpec("head", "Show repository HEAD", true, (*app).runRepoHead, nil, nil),
@@ -163,13 +154,9 @@ func cobraCommandSpecs(runtime *cobraRuntime) []cobraCommandSpec {
 			leafSpec("restart <service> <node>", "Restart one service instance", true, func(a *app, args []string) error { return a.runInstanceAction("restart", args) }, waitFlags, completeServiceThenNode(runtime)),
 			leafSpec("backup <service> <node>", "Back up one service instance", true, (*app).runInstanceBackup, instanceBackupFlags, completeServiceThenNode(runtime)),
 		}),
-		dockerResourceCommandSpec("network", "Low-level Docker network operations by node", (*app).runNetworkList, (*app).runNetworkGet, (*app).runNetworkRemove),
-		dockerResourceCommandSpec("volume", "Low-level Docker volume operations by node", (*app).runVolumeList, (*app).runVolumeGet, (*app).runVolumeRemove),
-		groupSpec("image", "Low-level Docker image operations by node", true, []cobraCommandSpec{
-			leafSpec("list", "List images", true, (*app).runImageList, dockerListFlags, nil),
-			leafSpec("get <image>", "Inspect one image", true, (*app).runImageGet, nodeFlag, nil),
-			leafSpec("remove <image>", "Remove an image", true, (*app).runImageRemove, imageRemoveFlags, nil),
-		}),
+		leafSpec("network <node> <list|get|remove>", "Low-level Docker network operations by node", true, (*app).runNetwork, dockerResourceFlags, completeNodeIDsArg(runtime)),
+		leafSpec("volume <node> <list|get|remove>", "Low-level Docker volume operations by node", true, (*app).runVolume, dockerResourceFlags, completeNodeIDsArg(runtime)),
+		leafSpec("image <node> <list|get|remove>", "Low-level Docker image operations by node", true, (*app).runImage, imageFlags, completeNodeIDsArg(runtime)),
 		groupSpec("rustic", "Rustic repository maintenance", true, []cobraCommandSpec{
 			leafSpec("init <node>", "Initialize rustic on a node", true, (*app).runRusticInit, waitFlags, completeNodeIDsArg(runtime)),
 			leafSpec("forget <node>", "Run rustic forget", true, func(a *app, args []string) error { return a.runRusticMaintenance("forget", args) }, rusticMaintenanceFlags, completeNodeIDsArg(runtime)),
@@ -230,14 +217,6 @@ func groupSpec(use string, short string, controller bool, children []cobraComman
 
 func leafSpec(use string, short string, controller bool, run func(*app, []string) error, flags func(*cobra.Command, *cobraRuntime), complete cobraCompletionFunc) cobraCommandSpec {
 	return cobraCommandSpec{use: use, short: short, controller: controller, run: run, flags: flags, complete: complete}
-}
-
-func dockerResourceCommandSpec(name string, short string, list func(*app, []string) error, get func(*app, []string) error, remove func(*app, []string) error) cobraCommandSpec {
-	return groupSpec(name, short, true, []cobraCommandSpec{
-		leafSpec("list", "List "+name+" resources", true, list, dockerListFlags, nil),
-		leafSpec("get <"+name+">", "Inspect one "+name, true, get, nodeFlag, nil),
-		leafSpec("remove <"+name+">", "Remove one "+name, true, remove, nodeWaitFlags, nil),
-	})
 }
 
 func newCobraCommand(runtime *cobraRuntime, spec cobraCommandSpec) *cobra.Command {
@@ -419,6 +398,36 @@ func dockerListFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	addPageCobraFlags(cmd)
 }
 
+func dockerResourceFlags(cmd *cobra.Command, runtime *cobraRuntime) {
+	cmd.Flags().String("search", "", "search text")
+	cmd.Flags().String("sort-by", "", "sort field")
+	cmd.Flags().Bool("desc", false, "sort descending")
+	addPageCobraFlags(cmd)
+	addWaitCobraFlags(cmd)
+}
+
+func imageFlags(cmd *cobra.Command, runtime *cobraRuntime) {
+	dockerResourceFlags(cmd, runtime)
+	cmd.Flags().Bool("force", false, "force remove")
+}
+
+func containerFlags(cmd *cobra.Command, runtime *cobraRuntime) {
+	cmd.Flags().String("search", "", "search text")
+	cmd.Flags().String("sort-by", "", "sort field")
+	cmd.Flags().Bool("desc", false, "sort descending")
+	addPageCobraFlags(cmd)
+	cmd.Flags().String("tail", "100", "number of lines or all")
+	cmd.Flags().Bool("timestamps", false, "include timestamps")
+	addWaitCobraFlags(cmd)
+	cmd.Flags().Bool("force", false, "force remove")
+	cmd.Flags().Bool("volumes", false, "remove anonymous volumes")
+	cmd.Flags().BoolP("tty", "t", false, "attach an interactive terminal")
+	cmd.Flags().String("stdin-file", "", "file to send to stdin; use - for standard input")
+	cmd.Flags().Uint64("max-output", 1024*1024, "maximum bytes per output stream")
+	cmd.Flags().Uint("rows", 24, "terminal rows for --tty")
+	cmd.Flags().Uint("cols", 80, "terminal columns for --tty")
+}
+
 func containerLogsFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	nodeFlag(cmd, runtime)
 	cmd.Flags().String("tail", "100", "number of lines or all")
@@ -450,7 +459,6 @@ func backupListFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	addPageCobraFlags(cmd)
 }
 
-func backupRestoreFlags(cmd *cobra.Command, runtime *cobraRuntime) { nodeWaitFlags(cmd, runtime) }
 func instanceActionFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	addWaitCobraFlags(cmd)
 	cmd.Flags().String("recreate", "auto", "compose recreate mode: auto, no_recreate, force_recreate")

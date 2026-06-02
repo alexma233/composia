@@ -18,30 +18,33 @@ import (
 const managedContainerLabelKey = "io.composia.managed"
 
 func (application *app) runContainer(args []string) error {
-	if len(args) == 0 {
-		return errors.New("usage: composia container <list|get|logs|start|stop|restart|remove|exec>")
+	if len(args) < 2 {
+		return errors.New("usage: composia container <node> <list|get|logs|start|stop|restart|remove|exec>")
 	}
-	switch args[0] {
+	nodeID := strings.TrimSpace(args[0])
+	if nodeID == "" {
+		return errors.New("node is required")
+	}
+	switch args[1] {
 	case "list": //nolint:goconst
-		return application.runContainerList(args[1:])
+		return application.runContainerList(nodeID, args[2:])
 	case "get": //nolint:goconst
-		return application.runContainerGet(args[1:])
+		return application.runContainerGet(nodeID, args[2:])
 	case "logs":
-		return application.runContainerLogs(args[1:])
+		return application.runContainerLogs(nodeID, args[2:])
 	case "start", "stop", "restart":
-		return application.runContainerAction(args[0], args[1:])
+		return application.runContainerAction(nodeID, args[1], args[2:])
 	case "remove":
-		return application.runContainerRemove(args[1:])
+		return application.runContainerRemove(nodeID, args[2:])
 	case "exec":
-		return application.runContainerExec(args[1:])
+		return application.runContainerExec(nodeID, args[2:])
 	default:
-		return fmt.Errorf("unknown container command %q", args[0])
+		return fmt.Errorf("unknown container command %q", args[1])
 	}
 }
 
-func (application *app) runContainerList(args []string) error {
+func (application *app) runContainerList(nodeID string, args []string) error {
 	fs := newCommandFlagSet("container list")
-	nodeID := fs.String("node", "", "node ID")
 	search := fs.String("search", "", "search text")
 	sortBy := fs.String("sort-by", "", "sort field")
 	sortDesc := fs.Bool("desc", false, "sort descending")
@@ -49,19 +52,16 @@ func (application *app) runContainerList(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	usage := "composia container list --node node [--search text] [--sort-by field] [--desc] [--page-size n] [--page n]"
+	usage := "composia container <node> list [--search text] [--sort-by field] [--desc] [--page-size n] [--page n]"
 	if err := requireArgs(fs.Args(), 0, usage); err != nil {
 		return err
-	}
-	if strings.TrimSpace(*nodeID) == "" {
-		return errorsWithUsage("node is required", usage)
 	}
 	pageSize, page, err := pageValues()
 	if err != nil {
 		return err
 	}
 	response, err := application.client.docker.ListNodeContainers(application.ctx, newRequest(&controllerv1.ListNodeContainersRequest{
-		NodeId:   strings.TrimSpace(*nodeID),
+		NodeId:   nodeID,
 		PageSize: pageSize,
 		Page:     page,
 		Search:   *search,
@@ -97,19 +97,15 @@ func (application *app) runContainerList(args []string) error {
 	return application.writeCount("total_count", response.Msg.GetTotalCount())
 }
 
-func (application *app) runContainerGet(args []string) error {
+func (application *app) runContainerGet(nodeID string, args []string) error {
 	fs := newCommandFlagSet("container get")
-	nodeID := fs.String("node", "", "node ID")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := requireArgs(fs.Args(), 1, "composia container get --node node <container>"); err != nil {
+	if err := requireArgs(fs.Args(), 1, "composia container <node> get <container>"); err != nil {
 		return err
 	}
-	if strings.TrimSpace(*nodeID) == "" {
-		return errorsWithUsage("node is required", "composia container get --node node <container>")
-	}
-	response, err := application.client.docker.InspectNodeContainer(application.ctx, newRequest(&controllerv1.InspectNodeContainerRequest{NodeId: strings.TrimSpace(*nodeID), ContainerId: fs.Arg(0)}))
+	response, err := application.client.docker.InspectNodeContainer(application.ctx, newRequest(&controllerv1.InspectNodeContainerRequest{NodeId: nodeID, ContainerId: fs.Arg(0)}))
 	if err != nil {
 		return err
 	}
@@ -120,21 +116,17 @@ func (application *app) runContainerGet(args []string) error {
 	return err
 }
 
-func (application *app) runContainerLogs(args []string) error {
+func (application *app) runContainerLogs(nodeID string, args []string) error {
 	fs := newCommandFlagSet("container logs")
-	nodeID := fs.String("node", "", "node ID")
 	tail := fs.String("tail", "100", "number of lines or all")
 	timestamps := fs.Bool("timestamps", false, "include timestamps")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := requireArgs(fs.Args(), 1, "composia container logs --node node [--tail n|all] [--timestamps] <container>"); err != nil {
+	if err := requireArgs(fs.Args(), 1, "composia container <node> logs [--tail n|all] [--timestamps] <container>"); err != nil {
 		return err
 	}
-	if strings.TrimSpace(*nodeID) == "" {
-		return errorsWithUsage("node is required", "composia container logs --node node [--tail n|all] [--timestamps] <container>")
-	}
-	stream, err := application.client.dockerCommands.GetContainerLogs(application.ctx, newRequest(&controllerv1.GetContainerLogsRequest{NodeId: strings.TrimSpace(*nodeID), ContainerId: fs.Arg(0), Tail: *tail, Timestamps: *timestamps}))
+	stream, err := application.client.dockerCommands.GetContainerLogs(application.ctx, newRequest(&controllerv1.GetContainerLogsRequest{NodeId: nodeID, ContainerId: fs.Arg(0), Tail: *tail, Timestamps: *timestamps}))
 	if err != nil {
 		return err
 	}
@@ -152,57 +144,48 @@ func (application *app) runContainerLogs(args []string) error {
 	return stream.Err()
 }
 
-func (application *app) runContainerAction(actionName string, args []string) error {
+func (application *app) runContainerAction(nodeID string, actionName string, args []string) error {
 	action, err := containerActionFromName(actionName)
 	if err != nil {
 		return err
 	}
 	fs := newCommandFlagSet("container " + actionName)
-	nodeID := fs.String("node", "", "node ID")
 	waitOptions := addWaitFlags(fs)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	usage := fmt.Sprintf("composia container %s [--wait] [--follow] [--timeout duration] --node node <container>", actionName)
+	usage := fmt.Sprintf("composia container <node> %s [--wait] [--follow] [--timeout duration] <container>", actionName)
 	if err := requireArgs(fs.Args(), 1, usage); err != nil {
 		return err
 	}
-	if strings.TrimSpace(*nodeID) == "" {
-		return errorsWithUsage("node is required", usage)
-	}
-	response, err := application.client.dockerCommands.RunContainerAction(application.ctx, newRequest(&controllerv1.RunContainerActionRequest{NodeId: strings.TrimSpace(*nodeID), ContainerId: fs.Arg(0), Action: action}))
+	response, err := application.client.dockerCommands.RunContainerAction(application.ctx, newRequest(&controllerv1.RunContainerActionRequest{NodeId: nodeID, ContainerId: fs.Arg(0), Action: action}))
 	if err != nil {
 		return err
 	}
 	return application.printTaskActionWithWait(response.Msg, waitOptions)
 }
 
-func (application *app) runContainerRemove(args []string) error {
+func (application *app) runContainerRemove(nodeID string, args []string) error {
 	fs := newCommandFlagSet("container remove")
-	nodeID := fs.String("node", "", "node ID")
 	force := fs.Bool("force", false, "force remove")
 	volumes := fs.Bool("volumes", false, "remove anonymous volumes")
 	waitOptions := addWaitFlags(fs)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	usage := "composia container remove [--wait] [--follow] [--timeout duration] --node node [--force] [--volumes] <container>"
+	usage := "composia container <node> remove [--wait] [--follow] [--timeout duration] [--force] [--volumes] <container>"
 	if err := requireArgs(fs.Args(), 1, usage); err != nil {
 		return err
 	}
-	if strings.TrimSpace(*nodeID) == "" {
-		return errorsWithUsage("node is required", usage)
-	}
-	response, err := application.client.dockerCommands.RemoveContainer(application.ctx, newRequest(&controllerv1.RemoveContainerRequest{NodeId: strings.TrimSpace(*nodeID), ContainerId: fs.Arg(0), Force: *force, RemoveVolumes: *volumes}))
+	response, err := application.client.dockerCommands.RemoveContainer(application.ctx, newRequest(&controllerv1.RemoveContainerRequest{NodeId: nodeID, ContainerId: fs.Arg(0), Force: *force, RemoveVolumes: *volumes}))
 	if err != nil {
 		return err
 	}
 	return application.printTaskActionWithWait(response.Msg, waitOptions)
 }
 
-func (application *app) runContainerExec(args []string) error {
+func (application *app) runContainerExec(nodeID string, args []string) error {
 	fs := newCommandFlagSet("container exec")
-	nodeID := fs.String("node", "", "node ID")
 	tty := fs.Bool("tty", false, "attach an interactive terminal")
 	fs.BoolVar(tty, "t", false, "attach an interactive terminal")
 	stdinFile := fs.String("stdin-file", "", "file to send to stdin; use - for standard input")
@@ -213,12 +196,9 @@ func (application *app) runContainerExec(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	usage := "composia container exec [--tty] [--stdin-file file] [--timeout duration] [--max-output bytes] --node node <container> -- <command> [args...]"
+	usage := "composia container <node> exec [--tty] [--stdin-file file] [--timeout duration] [--max-output bytes] <container> <command> [args...]"
 	if len(fs.Args()) < 2 {
 		return fmt.Errorf("usage: %s", usage)
-	}
-	if strings.TrimSpace(*nodeID) == "" {
-		return errorsWithUsage("node is required", usage)
 	}
 	if *tty {
 		if strings.TrimSpace(*stdinFile) != "" {
@@ -232,7 +212,7 @@ func (application *app) runContainerExec(args []string) error {
 		if err != nil {
 			return err
 		}
-		return application.runContainerExecTTY(strings.TrimSpace(*nodeID), fs.Arg(0), fs.Args()[1:], rowCount, colCount)
+		return application.runContainerExecTTY(nodeID, fs.Arg(0), fs.Args()[1:], rowCount, colCount)
 	}
 	stdin, err := readExecStdin(*stdinFile)
 	if err != nil {
@@ -243,7 +223,7 @@ func (application *app) runContainerExec(args []string) error {
 		return err
 	}
 	response, err := application.client.dockerCommands.RunContainerExec(application.ctx, newRequest(&controllerv1.RunContainerExecRequest{
-		NodeId:         strings.TrimSpace(*nodeID),
+		NodeId:         nodeID,
 		ContainerId:    fs.Arg(0),
 		Command:        fs.Args()[1:],
 		Stdin:          stdin,
