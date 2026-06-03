@@ -594,7 +594,6 @@ export const zhHant = {
       mounts: "掛載",
       networks: "網路",
       labels: "標籤",
-      managedByComposia: "Composia",
       environment: "環境變數",
       config: "設定",
       network: "網路",

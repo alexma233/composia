@@ -15,8 +15,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const managedContainerLabelKey = "io.composia.managed"
-
 func (application *app) runContainer(args []string) error {
 	if len(args) < 2 {
 		return errors.New("usage: composia container <node> <list|get|logs|start|stop|restart|remove|exec>")
@@ -76,22 +74,17 @@ func (application *app) runContainerList(nodeID string, args []string) error {
 	}
 	rows := make([][]string, 0, len(response.Msg.GetContainers()))
 	for _, container := range response.Msg.GetContainers() {
-		managed := "-"
-		if container.GetLabels()[managedContainerLabelKey] == "true" {
-			managed = "yes"
-		}
 		rows = append(rows, []string{
 			container.GetId(),
 			container.GetName(),
 			container.GetImage(),
 			container.GetState(),
-			managed,
 			container.GetStatus(),
 			strings.Join(container.GetPorts(), ","),
 			strings.Join(container.GetNetworks(), ","),
 		})
 	}
-	if err := application.writeTable([]string{"CONTAINER", "NAME", "IMAGE", "STATE", "MANAGED", "STATUS", "PORTS", "NETWORKS"}, rows); err != nil {
+	if err := application.writeTable([]string{"CONTAINER", "NAME", "IMAGE", "STATE", "STATUS", "PORTS", "NETWORKS"}, rows); err != nil {
 		return err
 	}
 	return application.writeCount("total_count", response.Msg.GetTotalCount())

@@ -617,7 +617,6 @@ export const ja = {
       mounts: "マウント",
       networks: "ネットワーク",
       labels: "ラベル",
-      managedByComposia: "Composia",
       environment: "環境変数",
       config: "設定",
       network: "ネットワーク",

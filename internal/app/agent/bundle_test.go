@@ -442,7 +442,7 @@ func TestRunComposeUpUsesProjectNameAndServiceDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
-	if string(argsContent) != "compose --project-name demo-project up -d --label io.composia.managed=true " {
+	if string(argsContent) != "compose --project-name demo-project up -d " {
 		t.Fatalf("unexpected docker args %q", string(argsContent))
 	}
 	pwdContent, err := os.ReadFile(pwdFile) //nolint:gosec

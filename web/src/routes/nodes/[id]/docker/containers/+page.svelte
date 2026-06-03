@@ -31,10 +31,10 @@
     type DockerListSortDirection,
   } from '$lib/docker-list-query';
   import {
-    containerStateTone,
-    formatDockerTimestamp,
-    formatShortId,
-  } from '$lib/presenters';
+  containerStateTone,
+  formatDockerTimestamp,
+  formatShortId,
+} from '$lib/presenters';
   import CopyButton from '$lib/components/app/copy-button.svelte';
   import SortableTableHead from '$lib/components/app/sortable-table-head.svelte';
   import Spinner from '$lib/components/ui/spinner/spinner.svelte';
@@ -64,7 +64,6 @@
 
   type DockerContainerSortField = 'name' | 'state' | 'image' | 'created';
 
-  const managedContainerLabelKey = 'io.composia.managed';
   const defaultSortField: DockerContainerSortField = 'name';
 
   let searchQuery = $state('');
@@ -256,10 +255,6 @@
     searchQuery = '';
     currentPage = 1;
   }
-
-  function isManagedByComposia(container: DockerContainerSummary) {
-    return container.labels?.[managedContainerLabelKey] === 'true';
-  }
 </script>
 
 <svelte:head>
@@ -337,19 +332,12 @@
                 <TableRow class="hover:bg-accent/50">
                   <TableCell>
                     <div class="space-y-0.5">
-                        <div class="flex flex-wrap items-center gap-2">
-                          <a
-                            href="/nodes/{data.nodeId}/docker/containers/{encodeURIComponent(container.id)}"
-                            class="font-medium hover:underline"
-                          >
-                            {container.name}
-                          </a>
-                          {#if isManagedByComposia(container)}
-                            <Badge variant="secondary" class="text-xs">
-                              {$messages.docker.containers.managedByComposia}
-                            </Badge>
-                          {/if}
-                        </div>
+                        <a
+                          href="/nodes/{data.nodeId}/docker/containers/{encodeURIComponent(container.id)}"
+                          class="font-medium hover:underline"
+                        >
+                          {container.name}
+                        </a>
                       <div class="flex items-center gap-1.5">
                         <code class="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded">
                           {formatShortId(container.id)}

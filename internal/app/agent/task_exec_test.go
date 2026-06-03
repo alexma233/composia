@@ -94,7 +94,7 @@ func TestRunComposeUpWithForceRecreatePassesFlag(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
-	if string(argsContent) != "compose --project-name demo -f compose.yaml -f compose.override.yaml up -d --label io.composia.managed=true --force-recreate " {
+	if string(argsContent) != "compose --project-name demo -f compose.yaml -f compose.override.yaml up -d --force-recreate " {
 		t.Fatalf("unexpected docker args %q", string(argsContent))
 	}
 }
@@ -1120,7 +1120,7 @@ func TestExecuteRusticForgetTaskRunsComposeRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
-	if got := string(argsContent); got != "compose --project-name infra-rustic -f compose.yaml -f compose.ops.yaml run --rm --label io.composia.managed=true rustic -P prod forget --filter-host main --filter-tags composia-service:demo --filter-tags composia-data:db " {
+	if got := string(argsContent); got != "compose --project-name infra-rustic -f compose.yaml -f compose.ops.yaml run --rm rustic -P prod forget --filter-host main --filter-tags composia-service:demo --filter-tags composia-data:db " {
 		t.Fatalf("unexpected docker args %q", got)
 	}
 	pwdContent, err := os.ReadFile(pwdFile) //nolint:gosec
@@ -1209,7 +1209,7 @@ func TestExecuteRusticPruneTaskRunsComposeRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
-	if got := string(argsContent); got != "compose --project-name infra-rustic -f compose.yaml -f compose.ops.yaml run --rm --label io.composia.managed=true rustic -P prod prune " {
+	if got := string(argsContent); got != "compose --project-name infra-rustic -f compose.yaml -f compose.ops.yaml run --rm rustic -P prod prune " {
 		t.Fatalf("unexpected docker args %q", got)
 	}
 	pwdContent, err := os.ReadFile(pwdFile) //nolint:gosec
@@ -1295,7 +1295,7 @@ func TestExecuteRusticInitTaskRunsComposeRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read args file: %v", err)
 	}
-	if got := string(argsContent); got != "compose --project-name infra-rustic -f compose.yaml -f compose.ops.yaml run --rm --label io.composia.managed=true rustic -P prod init --set-chunker rabin --set-chunk-size 1MiB " {
+	if got := string(argsContent); got != "compose --project-name infra-rustic -f compose.yaml -f compose.ops.yaml run --rm rustic -P prod init --set-chunker rabin --set-chunk-size 1MiB " {
 		t.Fatalf("unexpected docker args %q", got)
 	}
 	pwdContent, err := os.ReadFile(pwdFile) //nolint:gosec

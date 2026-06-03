@@ -594,7 +594,6 @@ export const zhHans = {
       mounts: "挂载",
       networks: "网络",
       labels: "标签",
-      managedByComposia: "Composia",
       environment: "环境变量",
       config: "配置",
       network: "网络",

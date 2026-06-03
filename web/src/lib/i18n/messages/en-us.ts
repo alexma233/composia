@@ -614,7 +614,6 @@ export const enUS = {
       mounts: "Mounts",
       networks: "Networks",
       labels: "Labels",
-      managedByComposia: "Composia",
       environment: "Environment",
       config: "Config",
       network: "Network",
