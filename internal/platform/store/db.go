@@ -17,6 +17,8 @@ const DatabaseFileName = "composia.db"
 
 const sqliteSchemaVersion = 8
 
+const sqliteValidTaskTypeSQLList = "'deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'migrate_rollback', 'dns_update', 'cloudflare_tunnel_sync', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove_container', 'docker_remove_network', 'docker_remove_volume', 'docker_remove_image'"
+
 var ErrServiceNotFound = errors.New("service not found")
 
 type DB struct {
@@ -1132,10 +1134,10 @@ func (db *DB) migrate(ctx context.Context) error {
 		version:            7,
 		disableForeignKeys: true,
 		statements: []string{
-			`DELETE FROM task_steps WHERE task_id IN (SELECT task_id FROM tasks WHERE type = 'docker_remove');`,
-			`UPDATE services SET last_task_id = NULL WHERE last_task_id IN (SELECT task_id FROM tasks WHERE type = 'docker_remove');`,
-			`UPDATE service_instances SET last_task_id = NULL WHERE last_task_id IN (SELECT task_id FROM tasks WHERE type = 'docker_remove');`,
-			`UPDATE tasks SET attempt_of_task_id = NULL WHERE attempt_of_task_id IN (SELECT task_id FROM tasks WHERE type = 'docker_remove');`,
+			fmt.Sprintf(`DELETE FROM task_steps WHERE task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
+			fmt.Sprintf(`UPDATE services SET last_task_id = NULL WHERE last_task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
+			fmt.Sprintf(`UPDATE service_instances SET last_task_id = NULL WHERE last_task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
+			fmt.Sprintf(`UPDATE tasks SET attempt_of_task_id = NULL WHERE attempt_of_task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
 			`CREATE TABLE tasks_v7 (
 			task_id TEXT PRIMARY KEY,
 			type TEXT NOT NULL CHECK (type IN ('deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'migrate_rollback', 'dns_update', 'cloudflare_tunnel_sync', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove_container', 'docker_remove_network', 'docker_remove_volume', 'docker_remove_image')),
@@ -1194,7 +1196,7 @@ func (db *DB) migrate(ctx context.Context) error {
 			finished_at,
 			error_summary
 			FROM tasks
-			WHERE type != 'docker_remove';`,
+			WHERE type IN (` + sqliteValidTaskTypeSQLList + `);`,
 			`DROP TABLE tasks;`,
 			`ALTER TABLE tasks_v7 RENAME TO tasks;`,
 			`CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at DESC);`,
@@ -1212,10 +1214,10 @@ func (db *DB) migrate(ctx context.Context) error {
 		version:            8,
 		disableForeignKeys: true,
 		statements: []string{
-			`DELETE FROM task_steps WHERE task_id IN (SELECT task_id FROM tasks WHERE type = 'docker_remove');`,
-			`UPDATE services SET last_task_id = NULL WHERE last_task_id IN (SELECT task_id FROM tasks WHERE type = 'docker_remove');`,
-			`UPDATE service_instances SET last_task_id = NULL WHERE last_task_id IN (SELECT task_id FROM tasks WHERE type = 'docker_remove');`,
-			`UPDATE tasks SET attempt_of_task_id = NULL WHERE attempt_of_task_id IN (SELECT task_id FROM tasks WHERE type = 'docker_remove');`,
+			fmt.Sprintf(`DELETE FROM task_steps WHERE task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
+			fmt.Sprintf(`UPDATE services SET last_task_id = NULL WHERE last_task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
+			fmt.Sprintf(`UPDATE service_instances SET last_task_id = NULL WHERE last_task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
+			fmt.Sprintf(`UPDATE tasks SET attempt_of_task_id = NULL WHERE attempt_of_task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
 			`CREATE TABLE tasks_v8 (
 			task_id TEXT PRIMARY KEY,
 			type TEXT NOT NULL CHECK (type IN ('deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'migrate_rollback', 'dns_update', 'cloudflare_tunnel_sync', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove_container', 'docker_remove_network', 'docker_remove_volume', 'docker_remove_image')),
@@ -1274,7 +1276,7 @@ func (db *DB) migrate(ctx context.Context) error {
 			finished_at,
 			error_summary
 			FROM tasks
-			WHERE type != 'docker_remove';`,
+			WHERE type IN (` + sqliteValidTaskTypeSQLList + `);`,
 			`DROP TABLE tasks;`,
 			`ALTER TABLE tasks_v8 RENAME TO tasks;`,
 			`CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at DESC);`,

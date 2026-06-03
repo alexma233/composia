@@ -453,7 +453,7 @@ func TestMigrateSetsSQLiteUserVersion(t *testing.T) {
 	}
 }
 
-func TestMigrateFromVersionSevenDropsLegacyDockerRemoveTasks(t *testing.T) {
+func TestMigrateFromVersionSevenDropsUnsupportedTasks(t *testing.T) {
 	t.Parallel()
 
 	stateDir := filepath.Join(t.TempDir(), "state")
@@ -496,10 +496,18 @@ func TestMigrateFromVersionSevenDropsLegacyDockerRemoveTasks(t *testing.T) {
 		`DROP TABLE tasks;`,
 		`ALTER TABLE tasks_legacy RENAME TO tasks;`,
 		`INSERT INTO nodes (node_id, is_configured, is_online) VALUES ('main', 1, 0);`,
-		`INSERT INTO services (service_name, is_declared, runtime_status, last_task_id, updated_at) VALUES ('app', 1, 'unknown', 'task-old-remove', '2026-06-02T09:00:00Z');`,
-		`INSERT INTO service_instances (service_name, node_id, is_declared, runtime_status, last_task_id, updated_at) VALUES ('app', 'main', 1, 'unknown', 'task-old-remove', '2026-06-02T09:00:00Z');`,
-		`INSERT INTO tasks (task_id, type, source, service_name, node_id, status, created_at) VALUES ('task-old-remove', 'docker_remove', 'cli', 'app', 'main', 'succeeded', '2026-06-02T09:00:00Z');`,
-		`INSERT INTO task_steps (task_id, step_name, status) VALUES ('task-old-remove', 'docker_remove', 'succeeded');`,
+		`INSERT INTO services (service_name, is_declared, runtime_status, last_task_id, updated_at) VALUES ('app', 1, 'unknown', 'task-old-list', '2026-06-02T09:00:00Z');`,
+		`INSERT INTO service_instances (service_name, node_id, is_declared, runtime_status, last_task_id, updated_at) VALUES ('app', 'main', 1, 'unknown', 'task-old-inspect', '2026-06-02T09:00:00Z');`,
+		`INSERT INTO tasks (task_id, type, source, service_name, node_id, status, attempt_of_task_id, created_at) VALUES
+			('task-old-remove', 'docker_remove', 'cli', 'app', 'main', 'succeeded', NULL, '2026-06-02T09:00:00Z'),
+			('task-old-list', 'docker_list', 'cli', 'app', 'main', 'succeeded', NULL, '2026-06-02T09:01:00Z'),
+			('task-old-inspect', 'docker_inspect', 'cli', 'app', 'main', 'succeeded', NULL, '2026-06-02T09:02:00Z'),
+			('task-valid', 'deploy', 'cli', 'app', 'main', 'succeeded', 'task-old-remove', '2026-06-02T09:03:00Z');`,
+		`INSERT INTO task_steps (task_id, step_name, status) VALUES
+			('task-old-remove', 'docker_remove', 'succeeded'),
+			('task-old-list', 'docker_list', 'succeeded'),
+			('task-old-inspect', 'docker_inspect', 'succeeded'),
+			('task-valid', 'compose_up', 'succeeded');`,
 		`PRAGMA user_version = 7;`,
 		`PRAGMA foreign_keys = ON;`,
 	}
@@ -520,12 +528,12 @@ func TestMigrateFromVersionSevenDropsLegacyDockerRemoveTasks(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
-	var oldTaskCount int
-	if err := db.sql.QueryRowContext(ctx, `SELECT COUNT(*) FROM tasks WHERE type = 'docker_remove';`).Scan(&oldTaskCount); err != nil {
+	var unsupportedTaskCount int
+	if err := db.sql.QueryRowContext(ctx, `SELECT COUNT(*) FROM tasks WHERE type IN ('docker_remove', 'docker_list', 'docker_inspect');`).Scan(&unsupportedTaskCount); err != nil {
 		t.Fatalf("count legacy tasks: %v", err)
 	}
-	if oldTaskCount != 0 {
-		t.Fatalf("expected legacy docker_remove tasks to be dropped, got %d", oldTaskCount)
+	if unsupportedTaskCount != 0 {
+		t.Fatalf("expected unsupported legacy tasks to be dropped, got %d", unsupportedTaskCount)
 	}
 	var lastTaskID sql.NullString
 	if err := db.sql.QueryRowContext(ctx, `SELECT last_task_id FROM services WHERE service_name = 'app';`).Scan(&lastTaskID); err != nil {
@@ -533,6 +541,19 @@ func TestMigrateFromVersionSevenDropsLegacyDockerRemoveTasks(t *testing.T) {
 	}
 	if lastTaskID.Valid {
 		t.Fatalf("expected service last_task_id to be cleared, got %q", lastTaskID.String)
+	}
+	if err := db.sql.QueryRowContext(ctx, `SELECT last_task_id FROM service_instances WHERE service_name = 'app' AND node_id = 'main';`).Scan(&lastTaskID); err != nil {
+		t.Fatalf("read service instance last_task_id: %v", err)
+	}
+	if lastTaskID.Valid {
+		t.Fatalf("expected service instance last_task_id to be cleared, got %q", lastTaskID.String)
+	}
+	var preservedTaskCount int
+	if err := db.sql.QueryRowContext(ctx, `SELECT COUNT(*) FROM tasks WHERE task_id = 'task-valid' AND type = 'deploy' AND attempt_of_task_id IS NULL;`).Scan(&preservedTaskCount); err != nil {
+		t.Fatalf("count preserved task: %v", err)
+	}
+	if preservedTaskCount != 1 {
+		t.Fatalf("expected valid task to be preserved with cleared attempt_of_task_id, got %d", preservedTaskCount)
 	}
 }
 
