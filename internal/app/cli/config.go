@@ -38,30 +38,6 @@ type keyringBackend struct {
 
 type cliConfig map[string]string
 
-func (application *app) runConfig(args []string) error {
-	if len(args) == 0 {
-		return errors.New("usage: composia config <get|set|unset|path|set-token|unset-token|setup>")
-	}
-	switch args[0] {
-	case "get":
-		return application.runConfigGet(args[1:])
-	case "set":
-		return application.runConfigSet(args[1:])
-	case "unset":
-		return application.runConfigUnset(args[1:])
-	case "path":
-		return application.runConfigPath(args[1:])
-	case "set-token":
-		return application.runConfigSetToken(args[1:])
-	case "unset-token":
-		return application.runConfigUnsetToken(args[1:])
-	case "setup":
-		return application.runConfigSetup(args[1:])
-	default:
-		return fmt.Errorf("unknown config command %q", args[0])
-	}
-}
-
 func (application *app) runConfigGet(args []string) error {
 	if len(args) > 1 {
 		return errors.New("usage: composia config get [key]")

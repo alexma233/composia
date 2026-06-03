@@ -164,6 +164,8 @@ node_modules/
 # Local runtime state
 /bin/
 /state/
+/config/
+/data/
 /repo/
 /agent-repo/
 /dev/logs/

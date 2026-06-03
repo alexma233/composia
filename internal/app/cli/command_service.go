@@ -17,7 +17,7 @@ func (application *app) runService(args []string) error {
 		return errors.New("usage: composia service <list|create|<service> [action]>")
 	}
 	switch args[0] {
-	case "list":
+	case "list": //nolint:goconst
 		return application.runServiceList(args[1:])
 	case "create":
 		return application.runServiceCreate(args[1:])
@@ -101,19 +101,16 @@ func (application *app) runServiceEdit(serviceName string, args []string) error 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := requireArgs(fs.Args(), 1, "composia service <service> edit [--message text] <compose|meta|env|path>"); err != nil {
+	if err := requireArgs(fs.Args(), 1, "composia service <service> edit [--message text] <path>"); err != nil {
 		return err
 	}
 	folder, err := application.resolveServiceFolder(serviceName)
 	if err != nil {
 		return err
 	}
-	filePath, secretFile, err := serviceEditFilePath(fs.Arg(0))
+	filePath, err := normalizeServiceRelativePath(fs.Arg(0))
 	if err != nil {
 		return err
-	}
-	if secretFile {
-		return application.editServiceSecret(folder, filePath, *message)
 	}
 	return application.editServiceRepoFile(folder, filePath, *message)
 }
@@ -239,33 +236,6 @@ func (application *app) editServiceRepoFile(folder string, filePath string, mess
 	return application.printRepoWriteMessage(response.Msg)
 }
 
-func (application *app) editServiceSecret(folder string, filePath string, message string) error {
-	baseRevision, err := application.currentRepoRevision()
-	if err != nil {
-		return err
-	}
-	secret, err := application.client.secrets.GetSecret(application.ctx, newRequest(&controllerv1.GetSecretRequest{ServiceDir: folder, FilePath: filePath}))
-	if err != nil {
-		return err
-	}
-	updatedContent, changed, err := editText(application.ctx, secret.Msg.GetContent(), "composia-secret-*", 0o600)
-	if err != nil {
-		return err
-	}
-	if !changed {
-		_, err := fmt.Fprintln(application.out, "unchanged")
-		return err
-	}
-	if message == "" {
-		message = "update encrypted " + filePath + " for " + folder
-	}
-	response, err := application.client.secrets.UpdateSecret(application.ctx, newRequest(&controllerv1.UpdateSecretRequest{ServiceDir: folder, FilePath: filePath, Content: updatedContent, BaseRevision: baseRevision, CommitMessage: message}))
-	if err != nil {
-		return repoWriteError(err)
-	}
-	return application.printRepoWriteMessage(response.Msg)
-}
-
 func (application *app) runServiceAction(actionName string, serviceName string, args []string) error {
 	action, err := serviceActionFromName(actionName)
 	if err != nil {
@@ -284,7 +254,7 @@ func (application *app) runServiceAction(actionName string, serviceName string, 
 	fs.Var(&nodes, "node", "target node ID; repeat or comma-separate")
 	fs.Var(&dataNames, "data", "data entry name for backup-like actions; repeat or comma-separate")
 	if actionName == "up" || actionName == "update" {
-		fs.StringVar(&recreateMode, "recreate", "auto", "compose recreate mode: auto, no_recreate, force_recreate")
+		fs.StringVar(&recreateMode, "recreate", "auto", "compose recreate mode: auto, never, always")
 	}
 	if actionName == "update" {
 		fs.Var(&imageNames, "image", "configured image update name; repeat or comma-separate")
@@ -594,12 +564,12 @@ func composeRecreateModeFromName(name string) (controllerv1.ComposeRecreateMode,
 	switch strings.ToLower(strings.TrimSpace(name)) {
 	case "", "auto":
 		return controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_AUTO, nil
-	case "no_recreate", "no-recreate", "never":
+	case "never":
 		return controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_NO_RECREATE, nil
-	case "force_recreate", "force-recreate", "always":
+	case "always":
 		return controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_FORCE_RECREATE, nil
 	default:
-		return controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_UNSPECIFIED, fmt.Errorf("unsupported recreate mode %q; expected auto, no_recreate, or force_recreate", name)
+		return controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_UNSPECIFIED, fmt.Errorf("unsupported recreate mode %q; expected auto, never, or always", name)
 	}
 }
 
@@ -678,20 +648,6 @@ func serviceContainerRows(instances []*controllerv1.ServiceInstanceDetail) [][]s
 		}
 	}
 	return rows
-}
-
-func serviceEditFilePath(input string) (string, bool, error) {
-	switch strings.ToLower(strings.TrimSpace(input)) {
-	case "compose", "docker-compose", "docker-compose.yaml", "docker-compose.yml":
-		return "docker-compose.yaml", false, nil
-	case "meta", "composia-meta", "composia-meta.yaml", "composia-meta.yml":
-		return "composia-meta.yaml", false, nil
-	case "env", ".env", ".env.enc":
-		return ".env.enc", true, nil
-	default:
-		path, err := normalizeServiceRelativePath(input)
-		return path, strings.HasSuffix(strings.ToLower(path), ".enc"), err
-	}
 }
 
 func serviceRepoPath(folder string, filePath string) string {

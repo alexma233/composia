@@ -14,28 +14,28 @@ import (
 )
 
 const (
-	reasonMissingBackupIntegration  = "missing_backup_integration"
-	reasonMissingBackupDefinition   = "missing_backup_definition"
-	reasonMissingRestoreDefinition  = "missing_restore_definition"
-	reasonMissingMigrateDefinition  = "missing_migrate_definition"
-	reasonMissingDNSIntegration     = "missing_dns_integration"
+	reasonMissingBackupIntegration           = "missing_backup_integration"
+	reasonMissingBackupDefinition            = "missing_backup_definition"
+	reasonMissingRestoreDefinition           = "missing_restore_definition"
+	reasonMissingMigrateDefinition           = "missing_migrate_definition"
+	reasonMissingDNSIntegration              = "missing_dns_integration"
 	reasonMissingCloudflareTunnelIntegration = "missing_cloudflare_tunnel_integration"
-	reasonMissingSecretsConfig      = "missing_secrets_config"
-	reasonMissingCaddyInfra         = "missing_caddy_infra"
-	reasonMissingServiceMeta        = "missing_service_meta"
-	reasonServiceNotDeclared        = "service_not_declared"
-	reasonServiceDNSNotDeclared     = "service_dns_not_declared"
-	reasonServiceNotCaddyManaged    = "service_not_caddy_managed"
-	reasonServiceNotCloudflareTunnelManaged = "service_not_cloudflare_tunnel_managed"
-	reasonNodeDisabled              = "node_disabled"
-	reasonNodeOffline               = "node_offline"
-	reasonNodeNotEligible           = "node_not_eligible"
-	reasonNodeNotRusticManaged      = "node_not_rustic_managed"
-	reasonMissingEligibleRusticNode = "missing_eligible_rustic_node"
-	reasonMissingOnlineRusticNode   = "missing_online_rustic_node"
-	reasonBackupNotSucceeded        = "backup_not_succeeded"
-	reasonBackupArtifactMissing     = "backup_artifact_missing"
-	reasonMissingRestoreTargetNode  = "missing_restore_target_node"
+	reasonMissingSecretsConfig               = "missing_secrets_config"
+	reasonMissingCaddyInfra                  = "missing_caddy_infra"
+	reasonMissingServiceMeta                 = "missing_service_meta"
+	reasonServiceNotDeclared                 = "service_not_declared"
+	reasonServiceDNSNotDeclared              = "service_dns_not_declared"
+	reasonServiceNotCaddyManaged             = "service_not_caddy_managed"
+	reasonServiceNotCloudflareTunnelManaged  = "service_not_cloudflare_tunnel_managed"
+	reasonNodeDisabled                       = "node_disabled"
+	reasonNodeOffline                        = "node_offline"
+	reasonNodeNotEligible                    = "node_not_eligible"
+	reasonNodeNotRusticManaged               = "node_not_rustic_managed"
+	reasonMissingEligibleRusticNode          = "missing_eligible_rustic_node"
+	reasonMissingOnlineRusticNode            = "missing_online_rustic_node"
+	reasonBackupNotSucceeded                 = "backup_not_succeeded"
+	reasonBackupArtifactMissing              = "backup_artifact_missing"
+	reasonMissingRestoreTargetNode           = "missing_restore_target_node"
 )
 
 func (server *systemServer) GetCapabilities(ctx context.Context, _ *connect.Request[controllerv1.GetCapabilitiesRequest]) (*connect.Response[controllerv1.GetCapabilitiesResponse], error) {
@@ -59,22 +59,22 @@ func buildGlobalCapabilities(cfg *config.ControllerConfig, availableNodeIDs map[
 
 func buildDisabledServiceActionCapabilities(reason string) *controllerv1.ServiceActionCapabilities {
 	return &controllerv1.ServiceActionCapabilities{
-		Backup:    disabledCapability(reason),
-		Restore:   disabledCapability(reason),
-		Migrate:   disabledCapability(reason),
-		DnsUpdate: disabledCapability(reason),
-		CaddySync: disabledCapability(reason),
+		Backup:               disabledCapability(reason),
+		Restore:              disabledCapability(reason),
+		Migrate:              disabledCapability(reason),
+		DnsUpdate:            disabledCapability(reason),
+		CaddySync:            disabledCapability(reason),
 		CloudflareTunnelSync: disabledCapability(reason),
 	}
 }
 
 func buildServiceActionCapabilities(cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, snapshotByNodeID map[string]store.NodeSnapshot, service repo.Service) *controllerv1.ServiceActionCapabilities {
 	return &controllerv1.ServiceActionCapabilities{
-		Backup:    serviceBackupCapability(cfg, availableNodeIDs, snapshotByNodeID, service),
-		Restore:   serviceRestoreCapability(cfg, availableNodeIDs, service),
-		Migrate:   serviceMigrateCapability(cfg, availableNodeIDs, service),
-		DnsUpdate: serviceDNSUpdateCapability(cfg, service),
-		CaddySync: serviceCaddySyncCapability(cfg, snapshotByNodeID, service),
+		Backup:               serviceBackupCapability(cfg, availableNodeIDs, snapshotByNodeID, service),
+		Restore:              serviceRestoreCapability(cfg, availableNodeIDs, service),
+		Migrate:              serviceMigrateCapability(cfg, availableNodeIDs, service),
+		DnsUpdate:            serviceDNSUpdateCapability(cfg, service),
+		CaddySync:            serviceCaddySyncCapability(cfg, snapshotByNodeID, service),
 		CloudflareTunnelSync: serviceCloudflareTunnelSyncCapability(cfg, service),
 	}
 }

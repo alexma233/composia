@@ -21,7 +21,10 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 )
 
-const cloudflareTunnelAPIBaseURL = "https://api.cloudflare.com/client/v4"
+const (
+	cloudflareTunnelAPIBaseURL   = "https://api.cloudflare.com/client/v4"
+	defaultTunnelFallbackService = "http_status:404"
+)
 
 type cloudflareTunnelClient interface {
 	UpdateConfiguration(ctx context.Context, accountID, tunnelID string, ingress []cloudflareTunnelIngress) error
@@ -137,7 +140,6 @@ func syncCloudflareTunnels(ctx context.Context, cfg *config.ControllerConfig, av
 	servicesByTunnel := make(map[string][]desiredCloudflareTunnelService)
 	var excluded *desiredCloudflareTunnelService
 	for _, service := range services {
-		service := service
 		routable, err := cloudflareTunnelServiceIsRoutable(ctx, runtimeStore, service.Service.Name)
 		if err != nil {
 			return err
@@ -303,7 +305,7 @@ func fallbackCloudflareTunnelService(cfg config.ControllerCloudflareTunnel) stri
 	if strings.TrimSpace(cfg.FallbackService) != "" {
 		return strings.TrimSpace(cfg.FallbackService)
 	}
-	return "http_status:404"
+	return defaultTunnelFallbackService
 }
 
 func syncCloudflareTunnelDNS(ctx context.Context, client dnsClient, hostname, tunnelID, logPath string) error {

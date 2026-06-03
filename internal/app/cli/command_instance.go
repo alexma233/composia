@@ -1,30 +1,10 @@
-//nolint:goconst
 package cli
 
 import (
-	"errors"
 	"fmt"
 
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 )
-
-func (application *app) runInstance(args []string) error {
-	if len(args) == 0 {
-		return errors.New("usage: composia instance <list|get|deploy|update|stop|restart|backup>")
-	}
-	switch args[0] {
-	case "list":
-		return application.runInstanceList(args[1:])
-	case "get":
-		return application.runInstanceGet(args[1:])
-	case "deploy", "update", "stop", "restart":
-		return application.runInstanceAction(args[0], args[1:])
-	case "backup":
-		return application.runInstanceBackup(args[1:])
-	default:
-		return fmt.Errorf("unknown instance command %q", args[0])
-	}
-}
 
 func (application *app) runInstanceList(args []string) error {
 	if err := requireArgs(args, 1, "composia instance list <service>"); err != nil {
@@ -80,13 +60,13 @@ func (application *app) runInstanceAction(actionName string, args []string) erro
 	fs := newCommandFlagSet("instance " + actionName)
 	recreateMode := "auto"
 	if actionName == "deploy" || actionName == "update" {
-		fs.StringVar(&recreateMode, "recreate", "auto", "compose recreate mode: auto, no_recreate, force_recreate")
+		fs.StringVar(&recreateMode, "recreate", "auto", "compose recreate mode: auto, never, always")
 	}
 	waitOptions := addWaitFlags(fs)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := requireArgs(fs.Args(), 2, fmt.Sprintf("composia instance %s [--wait] [--follow] [--timeout duration] [--recreate auto|no_recreate|force_recreate] <service> <node>", actionName)); err != nil {
+	if err := requireArgs(fs.Args(), 2, fmt.Sprintf("composia instance %s [--wait] [--follow] [--timeout duration] [--recreate auto|never|always] <service> <node>", actionName)); err != nil {
 		return err
 	}
 	composeRecreateMode, err := composeRecreateModeFromName(recreateMode)

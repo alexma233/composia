@@ -1,27 +1,8 @@
 package cli
 
 import (
-	"errors"
-	"fmt"
-
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 )
-
-func (application *app) runBackup(args []string) error {
-	if len(args) == 0 {
-		return errors.New("usage: composia backup <list|get|restore>")
-	}
-	switch args[0] {
-	case "list": //nolint:goconst
-		return application.runBackupList(args[1:])
-	case "get": //nolint:goconst
-		return application.runBackupGet(args[1:])
-	case "restore":
-		return application.runBackupRestore(args[1:])
-	default:
-		return fmt.Errorf("unknown backup command %q", args[0])
-	}
-}
 
 func (application *app) runBackupList(args []string) error {
 	fs := newCommandFlagSet("backup list")

@@ -138,6 +138,30 @@ func TestServiceActionFromName(t *testing.T) {
 	}
 }
 
+func TestComposeRecreateModeFromNameUsesPublicValues(t *testing.T) {
+	mode, err := composeRecreateModeFromName("never")
+	if err != nil {
+		t.Fatalf("composeRecreateModeFromName returned error: %v", err)
+	}
+	if mode != controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_NO_RECREATE {
+		t.Fatalf("mode = %v", mode)
+	}
+
+	mode, err = composeRecreateModeFromName("always")
+	if err != nil {
+		t.Fatalf("composeRecreateModeFromName returned error: %v", err)
+	}
+	if mode != controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_FORCE_RECREATE {
+		t.Fatalf("mode = %v", mode)
+	}
+
+	for _, value := range []string{"no_recreate", "no-recreate", "force_recreate", "force-recreate"} {
+		if _, err := composeRecreateModeFromName(value); err == nil {
+			t.Fatalf("expected %q to be rejected", value)
+		}
+	}
+}
+
 func TestImageUpdateSelectionsParsesDetectedAndManualUpdates(t *testing.T) {
 	selections, err := imageUpdateSelections([]string{"api"}, []string{"web=2026.05.08"}, true)
 	if err != nil {
@@ -377,7 +401,7 @@ func TestNewCLICommandHelpDoesNotRequireControllerConfig(t *testing.T) {
 	}{
 		{[]string{"help", "service", "create"}, "usage: composia service create [--message text] <name>"},
 		{[]string{"help", "service", "vaultwarden"}, "usage: composia service vaultwarden [--containers]"},
-		{[]string{"help", "service", "vaultwarden", "edit"}, "usage: composia service vaultwarden edit [--message text] <compose|meta|env|path>"},
+		{[]string{"help", "service", "vaultwarden", "edit"}, "usage: composia service vaultwarden edit [--message text] <path>"},
 		{[]string{"help", "service", "vaultwarden", "exec"}, "usage: composia service vaultwarden exec [--node node] [--container name] [--no-tty] [command] [args...]"},
 		{[]string{"help", "repo", "mkdir"}, "composia repo mkdir <path> [flags]"},
 		{[]string{"help", "repo", "mv"}, "composia repo mv <source> <destination> [flags]"},

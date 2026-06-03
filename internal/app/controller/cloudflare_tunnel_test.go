@@ -88,7 +88,7 @@ func TestSyncCloudflareTunnelsWritesRemoteConfigAndDNS(t *testing.T) {
 	if update.ingress[0].OriginRequest == nil || update.ingress[0].OriginRequest.NoTLSVerify == nil || !*update.ingress[0].OriginRequest.NoTLSVerify || update.ingress[0].OriginRequest.HTTPHostHeader != "app.internal" {
 		t.Fatalf("unexpected origin request: %+v", update.ingress[0].OriginRequest)
 	}
-	if update.ingress[1].Service != "http_status:404" {
+	if update.ingress[1].Service != defaultTunnelFallbackService {
 		t.Fatalf("unexpected fallback ingress: %+v", update.ingress[1])
 	}
 	expectedOps := []string{"set example.com. CNAME app 11111111-1111-1111-1111-111111111111.cfargotunnel.com."}
@@ -134,7 +134,7 @@ func TestSyncCloudflareTunnelsIgnoresNonTopLevelServiceMeta(t *testing.T) {
 		t.Fatalf("expected one tunnel update, got %+v", tunnelClient.updates)
 	}
 	ingress := tunnelClient.updates[0].ingress
-	if len(ingress) != 2 || ingress[0].Hostname != "app.example.com" || ingress[0].Service != "http://app:8080" || ingress[1].Service != "http_status:404" {
+	if len(ingress) != 2 || ingress[0].Hostname != "app.example.com" || ingress[0].Service != "http://app:8080" || ingress[1].Service != defaultTunnelFallbackService {
 		t.Fatalf("expected only top-level app ingress and fallback, got %+v", ingress)
 	}
 	expectedOps := []string{"set example.com. CNAME app 11111111-1111-1111-1111-111111111111.cfargotunnel.com."}
@@ -174,7 +174,7 @@ func TestSyncCloudflareTunnelsExcludesStoppedServiceAndDeletesDNS(t *testing.T) 
 	if err := syncCloudflareTunnels(context.Background(), cfg, map[string]struct{}{"main": {}}, tunnelClient, dnsClient, nil, currentRevision(t, repoDir), "app", logPath); err != nil {
 		t.Fatalf("sync cloudflare tunnel: %v", err)
 	}
-	if len(tunnelClient.updates) != 1 || len(tunnelClient.updates[0].ingress) != 1 || tunnelClient.updates[0].ingress[0].Service != "http_status:404" {
+	if len(tunnelClient.updates) != 1 || len(tunnelClient.updates[0].ingress) != 1 || tunnelClient.updates[0].ingress[0].Service != defaultTunnelFallbackService {
 		t.Fatalf("expected only fallback ingress, got %+v", tunnelClient.updates)
 	}
 	expectedOps := []string{"delete example.com. CNAME app"}
@@ -220,7 +220,7 @@ func TestSyncCloudflareTunnelsSkipsServicesWithoutRunningInstances(t *testing.T)
 		t.Fatalf("expected one tunnel update, got %+v", tunnelClient.updates)
 	}
 	ingress := tunnelClient.updates[0].ingress
-	if len(ingress) != 2 || ingress[0].Hostname != "api.example.com" || ingress[1].Service != "http_status:404" {
+	if len(ingress) != 2 || ingress[0].Hostname != "api.example.com" || ingress[1].Service != defaultTunnelFallbackService {
 		t.Fatalf("expected running api ingress and fallback, got %+v", ingress)
 	}
 	expectedOps := []string{"set example.com. CNAME api 11111111-1111-1111-1111-111111111111.cfargotunnel.com."}

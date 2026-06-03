@@ -1,33 +1,10 @@
 package cli
 
 import (
-	"errors"
 	"fmt"
 
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 )
-
-func (application *app) runTask(args []string) error {
-	if len(args) == 0 {
-		return errors.New("usage: composia task <list|get|logs|wait|run-again|approve|reject>")
-	}
-	switch args[0] {
-	case "list": //nolint:goconst
-		return application.runTaskList(args[1:])
-	case "get": //nolint:goconst
-		return application.runTaskGet(args[1:])
-	case "logs":
-		return application.runTaskLogs(args[1:])
-	case "wait":
-		return application.runTaskWait(args[1:])
-	case "run-again":
-		return application.runTaskAgain(args[1:])
-	case "approve", "reject":
-		return application.runTaskResolve(args[0], args[1:])
-	default:
-		return fmt.Errorf("unknown task command %q", args[0])
-	}
-}
 
 func (application *app) runTaskList(args []string) error {
 	fs := newCommandFlagSet("task list")

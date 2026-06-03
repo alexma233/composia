@@ -187,7 +187,7 @@ func serviceCommandSpec(runtime *cobraRuntime) cobraCommandSpec {
 			cmd.Flags().String("message", "", "commit message for create/edit")
 			addNodeStringArrayFlag(cmd, "target node ID; repeat or comma-separate")
 			cmd.Flags().StringArray("data", nil, "data entry name; repeat or comma-separate")
-			cmd.Flags().String("recreate", "auto", "compose recreate mode: auto, no_recreate, force_recreate")
+			cmd.Flags().String("recreate", "auto", "compose recreate mode: auto, never, always")
 			cmd.Flags().StringArray("image", nil, "configured image update name; repeat or comma-separate")
 			cmd.Flags().StringArray("set-image", nil, "configured image update assignment name=tag; repeat or comma-separate")
 			cmd.Flags().Bool("use-detected", false, "apply detected candidate for --image entries")
@@ -243,7 +243,7 @@ func newCobraCommand(runtime *cobraRuntime, spec cobraCommandSpec) *cobra.Comman
 	cmd.DisableFlagParsing = true
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		if isHelpArg(args) {
-			if commandName(spec.use) == "service" {
+			if commandName(spec.use) == "service" { //nolint:goconst
 				return PrintCommandUsage(runtime.out, append([]string{"service"}, trimHelpArgs(args)...))
 			}
 			return cmd.Help()
@@ -334,35 +334,37 @@ func addNodeStringArrayFlag(cmd *cobra.Command, usage string) {
 }
 
 func waitFlags(cmd *cobra.Command, runtime *cobraRuntime) { addWaitCobraFlags(cmd) }
-func nodeFlag(cmd *cobra.Command, runtime *cobraRuntime)  { cmd.Flags().String("node", "", "node ID") }
-func nodeWaitFlags(cmd *cobra.Command, runtime *cobraRuntime) {
-	nodeFlag(cmd, runtime)
-	addWaitCobraFlags(cmd)
-}
 func messageFlag(cmd *cobra.Command, runtime *cobraRuntime) {
 	cmd.Flags().String("message", "", "commit message")
 }
+
 func commentFlag(cmd *cobra.Command, runtime *cobraRuntime) {
 	cmd.Flags().String("comment", "", "operator comment")
 }
+
 func containersFlag(cmd *cobra.Command, runtime *cobraRuntime) {
 	cmd.Flags().Bool("containers", false, "include containers")
 }
+
 func fileMessageFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	cmd.Flags().String("file", "", "file to read; use - for stdin")
 	messageFlag(cmd, runtime)
 }
+
 func repoFilesFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	cmd.Flags().Bool("recursive", false, "include descendants")
 }
+
 func repoEditFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	cmd.Flags().Bool("create", false, "create the file when it does not exist")
 	messageFlag(cmd, runtime)
 }
+
 func repoHistoryFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	cmd.Flags().Uint("page-size", 20, "page size")
 	cmd.Flags().String("cursor", "", "pagination cursor")
 }
+
 func configTokenFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	cmd.Flags().Bool("stdin", false, "read token from stdin")
 	cmd.Flags().Bool("inline", false, "store token inline in CLI config")
@@ -380,22 +382,16 @@ func nodeTasksFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	cmd.Flags().String("status", "", "status filter")
 	addPageCobraFlags(cmd)
 }
+
 func nodeSyncCaddyFilesFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	addWaitCobraFlags(cmd)
 	cmd.Flags().String("service", "", "service name")
 	cmd.Flags().Bool("full-rebuild", false, "rebuild all generated files")
 }
+
 func nodePruneFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	addWaitCobraFlags(cmd)
 	cmd.Flags().String("target", "all", "prune target: all, container, image, network, volume")
-}
-
-func dockerListFlags(cmd *cobra.Command, runtime *cobraRuntime) {
-	nodeFlag(cmd, runtime)
-	cmd.Flags().String("search", "", "search text")
-	cmd.Flags().String("sort-by", "", "sort field")
-	cmd.Flags().Bool("desc", false, "sort descending")
-	addPageCobraFlags(cmd)
 }
 
 func dockerResourceFlags(cmd *cobra.Command, runtime *cobraRuntime) {
@@ -428,30 +424,6 @@ func containerFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	cmd.Flags().Uint("cols", 80, "terminal columns for --tty")
 }
 
-func containerLogsFlags(cmd *cobra.Command, runtime *cobraRuntime) {
-	nodeFlag(cmd, runtime)
-	cmd.Flags().String("tail", "100", "number of lines or all")
-	cmd.Flags().Bool("timestamps", false, "include timestamps")
-}
-func containerRemoveFlags(cmd *cobra.Command, runtime *cobraRuntime) {
-	nodeWaitFlags(cmd, runtime)
-	cmd.Flags().Bool("force", false, "force remove")
-	cmd.Flags().Bool("volumes", false, "remove anonymous volumes")
-}
-func containerExecFlags(cmd *cobra.Command, runtime *cobraRuntime) {
-	nodeFlag(cmd, runtime)
-	cmd.Flags().BoolP("tty", "t", false, "attach an interactive terminal")
-	cmd.Flags().String("stdin-file", "", "file to send to stdin; use - for standard input")
-	cmd.Flags().Duration("timeout", 30*time.Second, "non-interactive exec timeout")
-	cmd.Flags().Uint64("max-output", 1024*1024, "maximum bytes per output stream")
-	cmd.Flags().Uint("rows", 24, "terminal rows for --tty")
-	cmd.Flags().Uint("cols", 80, "terminal columns for --tty")
-}
-func imageRemoveFlags(cmd *cobra.Command, runtime *cobraRuntime) {
-	nodeWaitFlags(cmd, runtime)
-	cmd.Flags().Bool("force", false, "force remove")
-}
-
 func backupListFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	for _, name := range []string{"service", "status", "data", "node", "exclude-service", "exclude-status", "exclude-data", "exclude-node"} {
 		cmd.Flags().StringArray(name, nil, name+" filter; repeat or comma-separate")
@@ -461,12 +433,14 @@ func backupListFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 
 func instanceActionFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	addWaitCobraFlags(cmd)
-	cmd.Flags().String("recreate", "auto", "compose recreate mode: auto, no_recreate, force_recreate")
+	cmd.Flags().String("recreate", "auto", "compose recreate mode: auto, never, always")
 }
+
 func instanceBackupFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	addWaitCobraFlags(cmd)
 	cmd.Flags().StringArray("data", nil, "data entry name; repeat or comma-separate")
 }
+
 func rusticMaintenanceFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	addWaitCobraFlags(cmd)
 	cmd.Flags().String("service", "", "service name")
@@ -480,7 +454,7 @@ func completeServiceArgs(runtime *cobraRuntime) cobraCompletionFunc {
 			values := append([]string{"create", "list"}, runtime.completeServiceNames()...)
 			return filterCompletions(values, toComplete), cobra.ShellCompDirectiveNoFileComp
 		case 1:
-			if args[0] == "create" || args[0] == "list" {
+			if args[0] == "create" || args[0] == "list" { //nolint:goconst
 				return nil, cobra.ShellCompDirectiveNoFileComp
 			}
 			return filterCompletions(serviceActionCompletions(), toComplete), cobra.ShellCompDirectiveNoFileComp

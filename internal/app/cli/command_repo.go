@@ -10,38 +10,6 @@ import (
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 )
 
-func (application *app) runRepo(args []string) error {
-	if len(args) == 0 {
-		return errors.New("usage: composia repo <head|files|get|edit|update|mkdir|mv|rm|history|sync|validate>")
-	}
-	switch args[0] {
-	case "head":
-		return application.runRepoHead(args[1:])
-	case "files":
-		return application.runRepoFiles(args[1:])
-	case "get": //nolint:goconst
-		return application.runRepoGet(args[1:])
-	case "edit":
-		return application.runRepoEdit(args[1:])
-	case "update":
-		return application.runRepoUpdate(args[1:])
-	case "mkdir":
-		return application.runRepoMkdir(args[1:])
-	case "mv":
-		return application.runRepoMove(args[1:])
-	case "rm":
-		return application.runRepoRemove(args[1:])
-	case "history":
-		return application.runRepoHistory(args[1:])
-	case "sync":
-		return application.runRepoSync(args[1:])
-	case "validate":
-		return application.runRepoValidate(args[1:])
-	default:
-		return fmt.Errorf("unknown repo command %q", args[0])
-	}
-}
-
 func (application *app) runRepoMkdir(args []string) error {
 	fs := newCommandFlagSet("repo mkdir")
 	message := fs.String("message", "", "commit message")

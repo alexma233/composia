@@ -1,36 +1,11 @@
 package cli
 
 import (
-	"errors"
 	"fmt"
 
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"google.golang.org/protobuf/proto"
 )
-
-func (application *app) runNode(args []string) error {
-	if len(args) == 0 {
-		return errors.New("usage: composia node <list|get|tasks|stats|sync-caddy-files|reload-caddy|prune>")
-	}
-	switch args[0] {
-	case "list": //nolint:goconst
-		return application.runNodeList(args[1:])
-	case "get": //nolint:goconst
-		return application.runNodeGet(args[1:])
-	case "tasks":
-		return application.runNodeTasks(args[1:])
-	case "stats":
-		return application.runNodeStats(args[1:])
-	case "sync-caddy-files":
-		return application.runNodeSyncCaddyFiles(args[1:])
-	case "reload-caddy":
-		return application.runNodeReloadCaddy(args[1:])
-	case "prune":
-		return application.runNodePrune(args[1:])
-	default:
-		return fmt.Errorf("unknown node command %q", args[0])
-	}
-}
 
 func (application *app) runNodeStats(args []string) error {
 	if err := requireArgs(args, 1, "composia node stats <node>"); err != nil {

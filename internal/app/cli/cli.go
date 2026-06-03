@@ -85,7 +85,7 @@ func Run(ctx context.Context, args []string, out io.Writer, errOut io.Writer) er
 	return nil
 }
 
-func isControllerCommand(command string) bool {
+func isControllerCommand(command string) bool { //nolint:goconst
 	switch command {
 	case "system", "service", "instance", "task", "backup", "node", "container", "network", "volume", "image", "rustic", "repo", "secret", "config":
 		return true
@@ -162,11 +162,11 @@ var commandUsages = map[string]string{ //nolint:gosec
 	"system capabilities":   "usage: composia system capabilities\n",
 	"service list":          "usage: composia service list [--status status] [--page-size n] [--page n]\n",
 	"service create":        "usage: composia service create [--message text] <name>\n",
-	"service edit":          "usage: composia service <service> edit [--message text] <compose|meta|env|path>\n",
+	"service edit":          "usage: composia service <service> edit [--message text] <path>\n",
 	"service updates":       "usage: composia service <service> updates [--node node]\n",
-	"service up":            "usage: composia service <service> up [--detach] [--wait] [--follow] [--timeout duration] [--node node] [--recreate auto|no_recreate|force_recreate]\n",
+	"service up":            "usage: composia service <service> up [--detach] [--wait] [--follow] [--timeout duration] [--node node] [--recreate auto|never|always]\n",
 	"service down":          "usage: composia service <service> down [--detach] [--wait] [--follow] [--timeout duration] [--node node]\n",
-	"service update":        "usage: composia service <service> update [--detach] [--wait] [--follow] [--timeout duration] [--node node] [--image name] [--use-detected] [--all-detected] [--set-image name=tag] [--recreate auto|no_recreate|force_recreate]\n",
+	"service update":        "usage: composia service <service> update [--detach] [--wait] [--follow] [--timeout duration] [--node node] [--image name] [--use-detected] [--all-detected] [--set-image name=tag] [--recreate auto|never|always]\n",
 	"service restart":       "usage: composia service <service> restart [--detach] [--wait] [--follow] [--timeout duration] [--node node]\n",
 	"service backup":        "usage: composia service <service> backup [--detach] [--wait] [--follow] [--timeout duration] [--node node] [--data name]\n",
 	"service dns-update":    "usage: composia service <service> dns-update [--detach] [--wait] [--follow] [--timeout duration] [--node node]\n",
@@ -179,8 +179,8 @@ var commandUsages = map[string]string{ //nolint:gosec
 	"instance":              "usage: composia instance <list|get|deploy|update|stop|restart|backup>\n",
 	"instance list":         "usage: composia instance list <service>\n",
 	"instance get":          "usage: composia instance get [--containers] <service> <node>\n",
-	"instance deploy":       "usage: composia instance deploy [--wait] [--follow] [--timeout duration] [--recreate auto|no_recreate|force_recreate] <service> <node>\n",
-	"instance update":       "usage: composia instance update [--wait] [--follow] [--timeout duration] [--recreate auto|no_recreate|force_recreate] <service> <node>\n",
+	"instance deploy":       "usage: composia instance deploy [--wait] [--follow] [--timeout duration] [--recreate auto|never|always] <service> <node>\n",
+	"instance update":       "usage: composia instance update [--wait] [--follow] [--timeout duration] [--recreate auto|never|always] <service> <node>\n",
 	"instance stop":         "usage: composia instance stop [--wait] [--follow] [--timeout duration] <service> <node>\n",
 	"instance restart":      "usage: composia instance restart [--wait] [--follow] [--timeout duration] <service> <node>\n",
 	"instance backup":       "usage: composia instance backup [--wait] [--follow] [--timeout duration] [--data name] <service> <node>\n",
@@ -265,7 +265,7 @@ var commandHelp = map[string]commandHelpInfo{
 		examples: []string{
 			"composia service create vaultwarden",
 			"composia service vaultwarden",
-			"composia service vaultwarden edit compose",
+			"composia service vaultwarden edit docker-compose.yaml",
 			"composia service vaultwarden up",
 			"composia service vaultwarden exec",
 		},
@@ -283,8 +283,8 @@ var commandHelp = map[string]commandHelpInfo{
 		examples:    []string{"composia service create vaultwarden", "composia service create --message 'create vaultwarden service' vaultwarden"},
 	},
 	"service edit": {
-		description: "Edit a service file in your editor. 'compose' edits docker-compose.yaml, 'meta' edits composia-meta.yaml, and 'env' edits encrypted .env.enc through the secrets service.",
-		examples:    []string{"composia service vaultwarden edit compose", "composia service vaultwarden edit meta", "composia service vaultwarden edit env", "composia service vaultwarden edit caddy/Caddyfile"},
+		description: "Edit a service repo file in your editor. The path is relative to the service directory and is used literally.",
+		examples:    []string{"composia service vaultwarden edit docker-compose.yaml", "composia service vaultwarden edit composia-meta.yaml", "composia service vaultwarden edit caddy/Caddyfile"},
 	},
 	"service up": {
 		description: "Deploy a service. By default this waits for the task and follows task logs; use --detach to return immediately with the task ID.",

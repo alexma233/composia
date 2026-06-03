@@ -1,25 +1,10 @@
 package cli
 
 import (
-	"errors"
 	"fmt"
 
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 )
-
-func (application *app) runRustic(args []string) error {
-	if len(args) == 0 {
-		return errors.New("usage: composia rustic <init|forget|prune>")
-	}
-	switch args[0] {
-	case "init":
-		return application.runRusticInit(args[1:])
-	case "forget", "prune":
-		return application.runRusticMaintenance(args[0], args[1:])
-	default:
-		return fmt.Errorf("unknown rustic command %q", args[0])
-	}
-}
 
 func (application *app) runRusticInit(args []string) error {
 	fs := newCommandFlagSet("rustic init")
