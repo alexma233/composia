@@ -4,7 +4,7 @@ set -eu
 ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-OUTPUT_DIR="${COMPOSIA_COMPLETIONS_DIR:-dist/completions}"
+OUTPUT_DIR="${COMPOSIA_COMPLETIONS_DIR:-.temp/composia/completions}"
 mkdir -p "$OUTPUT_DIR"
 
 go run ./cmd/composia completion bash > "${OUTPUT_DIR}/composia.bash"
