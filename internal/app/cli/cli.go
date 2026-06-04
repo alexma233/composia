@@ -26,6 +26,7 @@ const (
 	envControllerAddr    = "COMPOSIA_CONTROLLER_ADDR"
 	envAccessToken       = "COMPOSIA_ACCESS_TOKEN"
 	envControllerHeaders = "COMPOSIA_CONTROLLER_HEADERS"
+	serviceCommandName   = "service"
 )
 
 type outputMode string
@@ -85,9 +86,9 @@ func Run(ctx context.Context, args []string, out io.Writer, errOut io.Writer) er
 	return nil
 }
 
-func isControllerCommand(command string) bool { //nolint:goconst
+func isControllerCommand(command string) bool {
 	switch command {
-	case "system", "service", "instance", "task", "backup", "node", "container", "network", "volume", "image", "rustic", "repo", "secret", "config":
+	case "system", serviceCommandName, "instance", "task", "backup", "node", "container", "network", "volume", "image", "rustic", "repo", "secret", "config":
 		return true
 	default:
 		return false
