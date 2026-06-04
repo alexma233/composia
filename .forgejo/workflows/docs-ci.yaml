@@ -23,7 +23,7 @@ jobs:
   check-api-docs:
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.3
+      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.4
 
     steps:
       - name: Checkout
