@@ -87,13 +87,21 @@
     },
     {
       "matchManagers": [
-        "custom.regex"
+        "github-actions"
       ],
       "matchPackageNames": [
         "forgejo.alexma.top/alexma233/ci-images-bun-wrangler",
         "forgejo.alexma.top/alexma233/ci-images-hugo-wrangler",
         "forgejo.alexma.top/alexma233/ci-images-go-node",
-        "forgejo.alexma.top/alexma233/ci-image-go-releaser",
+        "forgejo.alexma.top/alexma233/ci-image-go-releaser"
+      ],
+      "groupName": "tooling updates"
+    },
+    {
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchPackageNames": [
         "github.com/air-verse/air"
       ],
       "groupName": "tooling updates"
@@ -115,17 +123,6 @@
     {
       "customType": "regex",
       "managerFilePatterns": [
-        "/(^|/)\\.forgejo/workflows/.+\\.ya?ml$/",
-        "/^dev/docker-compose\\.dev\\.yaml$/"
-      ],
-      "matchStrings": [
-        "image:\\s+(?<depName>oven/bun):(?<currentValue>[^\\s@]+)"
-      ],
-      "datasourceTemplate": "docker"
-    },
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
         "/^scripts\\/docs\\/generate-proto-docs\\.sh$/"
       ],
       "matchStrings": [
@@ -142,16 +139,6 @@
       "matchStrings": [
         "\\s*# renovate: datasource=(?<datasource>git-refs) depName=(?<depName>[^\\s]+) packageName=(?<packageName>[^\\s]+) currentValue=(?<currentValue>[^\\s]+)\\n\\s*uses:\\s+https://forgejo\\.alexma\\.top/[^@\\s]+@(?<currentDigest>[a-f0-9]{40})"
       ]
-    },
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/(^|/)\\.forgejo\\/workflows\\/.+\\.ya?ml$/"
-      ],
-      "matchStrings": [
-        "\\s*container:\\s*\\n\\s*image:\\s+(?<depName>forgejo\\.alexma\\.top\\/alexma233\\\/(?:ci-images-bun-wrangler|ci-images-hugo-wrangler|ci-images-go-node|ci-image-go-releaser)):(?<currentValue>[^\\s]+)"
-      ],
-      "datasourceTemplate": "docker"
     },
     {
       "customType": "regex",
