@@ -34,6 +34,7 @@
   import {
     Table,
     TableBody,
+    TableCaption,
     TableHead,
     TableHeader,
     TableRow,
@@ -954,6 +955,7 @@
     <CardContent>
       {#if data.backups.length}
         <Table>
+          <TableCaption class="sr-only">{$messages.backups.tableCaption}</TableCaption>
           <TableHeader>
             <TableRow>
               <TableHead>{$messages.backups.backup}</TableHead>

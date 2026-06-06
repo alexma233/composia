@@ -7,7 +7,7 @@
   import { Badge } from '$lib/components/ui/badge';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { startPolling } from '$lib/refresh';
-  import { Table, TableBody, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
+  import { Table, TableBody, TableCaption, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { messages } from '$lib/i18n';
   import NodeRow from '$lib/components/app/node-row.svelte';
 
@@ -49,6 +49,7 @@
     <CardContent>
       {#if data.nodes.length}
         <Table>
+          <TableCaption class="sr-only">{$messages.nodes.tableCaption}</TableCaption>
           <TableHeader>
             <TableRow>
               <TableHead>{$messages.nodes.node}</TableHead>

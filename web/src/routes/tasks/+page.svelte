@@ -37,6 +37,7 @@
   import {
     Table,
     TableBody,
+    TableCaption,
     TableHead,
     TableHeader,
     TableRow,
@@ -977,6 +978,7 @@
     <CardContent>
       {#if data.tasks.length}
         <Table>
+          <TableCaption class="sr-only">{$messages.tasks.tableCaption}</TableCaption>
           <TableHeader>
             <TableRow>
               <TableHead>{$messages.nav.tasks}</TableHead>

@@ -111,6 +111,14 @@ export const fr = {
     for: "pour",
     on: "sur",
     na: "N/D",
+    skipToContent: "Aller au contenu principal",
+    goToNextPage: "Aller à la page suivante",
+    goToPreviousPage: "Aller à la page précédente",
+    morePages: "Plus de pages",
+    dialogClose: "Fermer la boîte de dialogue",
+    searchInputLabel: "Rechercher",
+    codeEditor: "Éditeur de code",
+    terminal: "Terminal",
   },
   capabilities: {
     unavailableTitle: "Actions indisponibles",
@@ -209,6 +217,7 @@ export const fr = {
   nodes: {
     title: "Nœuds",
     node: "Nœud",
+    tableCaption: "Liste des nœuds",
     pageDescription:
       "Afficher tous les nœuds avec leur statut en ligne et les capacités de gestion Docker.",
     status: "Statut",
@@ -258,6 +267,7 @@ export const fr = {
     title: "Services",
     service: "Service",
     folder: "Dossier",
+    tableCaption: "Liste des services",
     status: "Statut",
     createService: "Créer un service",
     folderName: "Nom du dossier",
@@ -399,7 +409,8 @@ export const fr = {
     title: "Tâches",
     pageTitle: "Tâches - Composia",
     pageDescription:
-      "Afficher et filtrer l'historique des tâches avec pagination et suivi du statut.",
+      "View and filter task history with pagination and status tracking.",
+    tableCaption: "Liste des tâches",
     taskHistory: "Historique des tâches",
     noTasks: "Aucune tâche chargée",
     noTasksForFilter: "Aucune tâche ne correspond au filtre sélectionné",
@@ -509,6 +520,7 @@ export const fr = {
     pageTitle: "Sauvegardes - Composia",
     pageDescription:
       "Parcourir les enregistrements de sauvegarde et restaurer les données vers les nœuds cibles.",
+    tableCaption: "Liste des sauvegardes",
     backup: "Sauvegarde",
     dataName: "Nom des données",
     noBackups: "Aucune sauvegarde chargée",
@@ -606,6 +618,7 @@ export const fr = {
     containers: {
       title: "Conteneurs",
       titleOnNode: "Conteneurs sur {nodeId}",
+      tableCaption: "Liste des conteneurs Docker",
       info: "Info",
       logsLabel: "Journaux",
       terminalLabel: "Terminal",
@@ -736,6 +749,7 @@ export const fr = {
     images: {
       title: "Images",
       titleOnNode: "Images sur {nodeId}",
+      tableCaption: "Liste des images Docker",
       id: "ID",
       repository: "Dépôt",
       tag: "Tag",
@@ -775,6 +789,7 @@ export const fr = {
     networks: {
       title: "Réseaux",
       titleOnNode: "Réseaux sur {nodeId}",
+      tableCaption: "Liste des réseaux Docker",
       id: "ID",
       name: "Nom",
       driver: "Driver",
@@ -817,6 +832,7 @@ export const fr = {
     volumes: {
       title: "Volumes",
       titleOnNode: "Volumes sur {nodeId}",
+      tableCaption: "Liste des volumes Docker",
       name: "Nom",
       driver: "Driver",
       scope: "Portée",

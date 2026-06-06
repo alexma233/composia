@@ -111,6 +111,14 @@ export const ja = {
     for: "対象",
     on: "対象ノード",
     na: "N/A",
+    skipToContent: "メインコンテンツへスキップ",
+    goToNextPage: "次のページへ",
+    goToPreviousPage: "前のページへ",
+    morePages: "さらにページがあります",
+    dialogClose: "ダイアログを閉じる",
+    searchInputLabel: "検索",
+    codeEditor: "コードエディター",
+    terminal: "ターミナル",
   },
   capabilities: {
     unavailableTitle: "利用不可の操作",
@@ -207,6 +215,7 @@ export const ja = {
   nodes: {
     title: "ノード",
     node: "ノード",
+    tableCaption: "ノード一覧",
     pageDescription:
       "すべてのノードをオンライン状態と Docker 管理機能とともに表示します。",
     status: "状態",
@@ -256,6 +265,7 @@ export const ja = {
     title: "サービス",
     service: "サービス",
     folder: "フォルダー",
+    tableCaption: "サービス一覧",
     status: "状態",
     createService: "サービスを作成",
     folderName: "フォルダー名",
@@ -397,7 +407,8 @@ export const ja = {
     title: "タスク",
     pageTitle: "タスク - Composia",
     pageDescription:
-      "ページネーションと状態追跡付きでタスク履歴を表示・フィルタリングします。",
+      "View and filter task history with pagination and status tracking.",
+    tableCaption: "タスク一覧",
     taskHistory: "タスク履歴",
     noTasks: "タスクが読み込まれていません",
     noTasksForFilter: "選択したフィルターに一致するタスクはありません",
@@ -506,6 +517,7 @@ export const ja = {
     pageTitle: "バックアップ - Composia",
     pageDescription:
       "バックアップレコードを閲覧し、データをターゲットノードに復元します。",
+    tableCaption: "バックアップ一覧",
     backup: "バックアップ",
     dataName: "データ名",
     noBackups: "バックアップが読み込まれていません",
@@ -604,6 +616,7 @@ export const ja = {
     containers: {
       title: "コンテナ",
       titleOnNode: "ノード {nodeId} のコンテナ",
+      tableCaption: "Docker コンテナ一覧",
       info: "情報",
       logsLabel: "ログ",
       terminalLabel: "ターミナル",
@@ -733,6 +746,7 @@ export const ja = {
     images: {
       title: "イメージ",
       titleOnNode: "ノード {nodeId} のイメージ",
+      tableCaption: "Docker イメージ一覧",
       id: "ID",
       repository: "リポジトリ",
       tag: "タグ",
@@ -771,6 +785,7 @@ export const ja = {
     networks: {
       title: "ネットワーク",
       titleOnNode: "ノード {nodeId} のネットワーク",
+      tableCaption: "Docker ネットワーク一覧",
       id: "ID",
       name: "名前",
       driver: "ドライバー",
@@ -813,6 +828,7 @@ export const ja = {
     volumes: {
       title: "ボリューム",
       titleOnNode: "ノード {nodeId} のボリューム",
+      tableCaption: "Docker ボリューム一覧",
       name: "名前",
       driver: "ドライバー",
       scope: "スコープ",

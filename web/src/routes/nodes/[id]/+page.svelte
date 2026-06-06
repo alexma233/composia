@@ -46,7 +46,7 @@
   } from "$lib/presenters";
   import { messages } from "$lib/i18n";
   import TaskRow from "$lib/components/app/task-row.svelte";
-  import { Table, TableBody, TableHead, TableHeader, TableRow } from "$lib/components/ui/table";
+  import { Table, TableBody, TableCaption, TableHead, TableHeader, TableRow } from "$lib/components/ui/table";
 
   interface Props {
     data: PageData;
@@ -514,6 +514,7 @@
       <CardContent>
         {#if data.tasks.length}
           <Table>
+            <TableCaption class="sr-only">{$messages.tasks.tableCaption}</TableCaption>
             <TableHeader>
               <TableRow>
                 <TableHead>{$messages.common.type}</TableHead>

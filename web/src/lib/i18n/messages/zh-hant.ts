@@ -109,6 +109,14 @@ export const zhHant = {
     for: "用於",
     on: "在",
     na: "無",
+    skipToContent: "跳到主內容",
+    goToNextPage: "前往下一頁",
+    goToPreviousPage: "前往上一頁",
+    morePages: "更多頁面",
+    dialogClose: "關閉對話框",
+    searchInputLabel: "搜尋",
+    codeEditor: "程式碼編輯器",
+    terminal: "終端",
   },
   capabilities: {
     unavailableTitle: "目前無法使用的操作",
@@ -198,6 +206,7 @@ export const zhHant = {
   nodes: {
     title: "節點",
     node: "節點",
+    tableCaption: "節點清單",
     pageDescription: "檢視所有節點，包含線上狀態和 Docker 管理能力。",
     status: "狀態",
     lastHeartbeat: "上次心跳",
@@ -246,6 +255,7 @@ export const zhHant = {
     service: "服務",
     folder: "目錄",
     status: "狀態",
+    tableCaption: "服務清單",
     createService: "建立服務",
     folderName: "目錄名稱",
     noMeta: "no meta",
@@ -379,6 +389,7 @@ export const zhHant = {
     title: "任務",
     pageTitle: "任務 - Composia",
     pageDescription: "檢視和篩選帶分頁和狀態追蹤的任務歷史。",
+    tableCaption: "任務清單",
     taskHistory: "任務歷史",
     noTasks: "暫無任務資料",
     noTasksForFilter: "目前篩選條件下沒有任務",
@@ -484,6 +495,7 @@ export const zhHant = {
     title: "備份",
     pageTitle: "備份 - Composia",
     pageDescription: "瀏覽備份記錄並將資料還原到目標節點。",
+    tableCaption: "備份清單",
     backup: "備份",
     dataName: "資料名稱",
     noBackups: "暫無備份資料",
@@ -581,6 +593,7 @@ export const zhHant = {
     containers: {
       title: "容器",
       titleOnNode: "節點 {nodeId} 上的容器",
+      tableCaption: "Docker 容器清單",
       info: "資訊",
       logsLabel: "日誌",
       terminalLabel: "終端機",
@@ -709,6 +722,7 @@ export const zhHant = {
     images: {
       title: "映像檔",
       titleOnNode: "節點 {nodeId} 上的映像檔",
+      tableCaption: "Docker 映像檔清單",
       id: "ID",
       repository: "儲存庫",
       tag: "標籤",
@@ -746,6 +760,7 @@ export const zhHant = {
     networks: {
       title: "網路",
       titleOnNode: "節點 {nodeId} 上的網路",
+      tableCaption: "Docker 網路清單",
       id: "ID",
       name: "名稱",
       driver: "驅動程式",
@@ -787,6 +802,7 @@ export const zhHant = {
     volumes: {
       title: "卷",
       titleOnNode: "節點 {nodeId} 上的卷",
+      tableCaption: "Docker 卷清單",
       name: "名稱",
       driver: "驅動程式",
       scope: "範圍",

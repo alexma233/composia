@@ -22,6 +22,7 @@
     isComposiaMetaFilePath,
   } from "$lib/codemirror/meta-lint";
   import { observeThemeChange } from "$lib/theme-observer";
+  import { messages } from "$lib/i18n";
 
   interface Props {
     value?: string;
@@ -250,5 +251,5 @@
   bind:this={host}
   class="h-full min-h-0 overflow-hidden rounded-xl"
   role="region"
-  aria-label="Code editor"
+  aria-label={$messages.common.codeEditor}
 ></div>

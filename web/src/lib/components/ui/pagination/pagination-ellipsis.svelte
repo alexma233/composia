@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { HTMLAttributes } from "svelte/elements";
 	import { cn, type WithElementRef, type WithoutChildren } from "$lib/utils.js";
+	import { messages } from "$lib/i18n";
 	import MoreHorizontalIcon from '@lucide/svelte/icons/more-horizontal';
 
 	let {
@@ -17,5 +18,5 @@
 	{...restProps}
 >
 	<MoreHorizontalIcon aria-hidden="true" />
-	<span class="sr-only">More pages</span>
+	<span class="sr-only">{$messages.common.morePages}</span>
 </span>

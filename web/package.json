@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --fail-on-warnings --tsconfig ./tsconfig.json",
+    "check:a11y": "svelte-kit sync && svelte-check --fail-on-warnings --tsconfig ./tsconfig.json",
     "format": "prettier --check .",
     "format:write": "prettier --write ."
   },

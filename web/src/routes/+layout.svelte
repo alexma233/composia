@@ -64,6 +64,12 @@
   <Toaster />
   <TooltipProvider />
   {#if !isLoginPage}
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:no-underline"
+    >
+      {$messages.common.skipToContent}
+    </a>
     <header
       class="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
     >
@@ -118,7 +124,7 @@
     </header>
   {/if}
 
-  <main>
+  <main id="main-content">
     {@render children?.()}
   </main>
 </div>

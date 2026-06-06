@@ -4,7 +4,7 @@
   import { toast } from 'svelte-sonner';
   import type { PageData } from './$types';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
-  import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
+  import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { Badge } from '$lib/components/ui/badge';
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
@@ -282,8 +282,10 @@
 
         <div class="flex items-center gap-3">
           <div class="relative flex-1 max-w-sm">
+            <label class="sr-only" for="container-search">{$messages.docker.containers.searchPlaceholder}</label>
             <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              id="container-search"
               type="text"
               placeholder={$messages.docker.containers.searchPlaceholder}
               aria-label={$messages.docker.containers.searchPlaceholder}
@@ -316,6 +318,7 @@
           </div>
         {:else if containers.length > 0}
           <Table>
+            <TableCaption class="sr-only">{$messages.docker.containers.tableCaption}</TableCaption>
             <TableHeader>
               <TableRow>
                 <SortableTableHead field="name" label={$messages.common.name} {sortField} {sortDirection} onSort={handleSort} class="w-[30%]" />
@@ -347,7 +350,7 @@
                       {#if container.labels && Object.keys(container.labels).length > 0}
                         <div class="flex flex-wrap gap-1">
                           {#each Object.entries(container.labels).slice(0, 2) as [key, value]}
-                            <span class="text-xs text-muted-foreground bg-muted/50 px-1 rounded" title="{key}={value}">
+                            <span class="text-xs text-muted-foreground bg-muted/50 px-1 rounded" aria-label="{key}={value}" title="{key}={value}">
                               {key}
                             </span>
                           {/each}

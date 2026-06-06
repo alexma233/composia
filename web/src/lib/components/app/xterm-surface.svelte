@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
 
+  import { messages } from '$lib/i18n';
   import { observeThemeChange } from '$lib/theme-observer';
 
   type DataHandler = (data: string) => void;
@@ -186,5 +187,5 @@
 </script>
 
 <div class={`terminal-surface ${heightClass}`}>
-  <div bind:this={host} class="h-full w-full bg-background px-3 py-2 text-foreground" aria-label="Terminal"></div>
+  <div bind:this={host} class="h-full w-full bg-background px-3 py-2 text-foreground" aria-label={$messages.common.terminal}></div>
 </div>

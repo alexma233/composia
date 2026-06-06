@@ -109,6 +109,14 @@ export const zhHans = {
     for: "用于",
     on: "在",
     na: "无",
+    skipToContent: "跳到主内容",
+    goToNextPage: "转到下一页",
+    goToPreviousPage: "转到上一页",
+    morePages: "更多页面",
+    dialogClose: "关闭对话框",
+    searchInputLabel: "搜索",
+    codeEditor: "代码编辑器",
+    terminal: "终端",
   },
   capabilities: {
     unavailableTitle: "当前不可用的操作",
@@ -198,6 +206,7 @@ export const zhHans = {
   nodes: {
     title: "节点",
     node: "节点",
+    tableCaption: "节点列表",
     pageDescription: "查看所有节点，包括在线状态和 Docker 管理能力。",
     status: "状态",
     lastHeartbeat: "上次心跳",
@@ -244,8 +253,9 @@ export const zhHans = {
   services: {
     title: "服务",
     service: "服务",
-    folder: "目录",
+    folder: "文件夹",
     status: "状态",
+    tableCaption: "服务列表",
     createService: "创建服务",
     folderName: "目录名称",
     noMeta: "no meta",
@@ -378,7 +388,9 @@ export const zhHans = {
   tasks: {
     title: "任务",
     pageTitle: "任务 - Composia",
-    pageDescription: "查看和筛选带分页和状态跟踪的任务历史。",
+    pageDescription:
+      "查看和筛选任务记录，支持分页和状态追踪。",
+    tableCaption: "任务列表",
     taskHistory: "任务历史",
     noTasks: "暂无任务数据",
     noTasksForFilter: "当前筛选条件下没有任务",
@@ -484,6 +496,7 @@ export const zhHans = {
     title: "备份",
     pageTitle: "备份 - Composia",
     pageDescription: "浏览备份记录并将数据恢复到目标节点。",
+    tableCaption: "备份列表",
     backup: "备份",
     dataName: "数据名称",
     noBackups: "暂无备份数据",
@@ -581,6 +594,7 @@ export const zhHans = {
     containers: {
       title: "容器",
       titleOnNode: "节点 {nodeId} 上的容器",
+      tableCaption: "Docker 容器列表",
       info: "信息",
       logsLabel: "日志",
       terminalLabel: "终端",
@@ -709,6 +723,7 @@ export const zhHans = {
     images: {
       title: "镜像",
       titleOnNode: "节点 {nodeId} 上的镜像",
+      tableCaption: "Docker 镜像列表",
       id: "ID",
       repository: "仓库",
       tag: "标签",
@@ -746,6 +761,7 @@ export const zhHans = {
     networks: {
       title: "网络",
       titleOnNode: "节点 {nodeId} 上的网络",
+      tableCaption: "Docker 网络列表",
       id: "ID",
       name: "名称",
       driver: "驱动",
@@ -787,6 +803,7 @@ export const zhHans = {
     volumes: {
       title: "卷",
       titleOnNode: "节点 {nodeId} 上的卷",
+      tableCaption: "Docker 卷列表",
       name: "名称",
       driver: "驱动",
       scope: "范围",

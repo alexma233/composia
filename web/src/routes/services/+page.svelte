@@ -12,7 +12,7 @@
   import { Input } from '$lib/components/ui/input';
   import { startPolling } from '$lib/refresh';
   import * as Popover from '$lib/components/ui/popover';
-  import { Table, TableBody, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
+  import { Table, TableBody, TableCaption, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { messages } from '$lib/i18n';
   import ServiceRow from '$lib/components/app/service-row.svelte';
 
@@ -97,6 +97,7 @@
     <CardContent>
       {#if data.services.length}
         <Table>
+          <TableCaption class="sr-only">{$messages.services.tableCaption}</TableCaption>
           <TableHeader>
             <TableRow>
               <TableHead>{$messages.services.service}</TableHead>

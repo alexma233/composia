@@ -2,6 +2,7 @@
 	import type { ComponentProps } from "svelte";
 	import { cn } from "$lib/utils.js";
 	import { PaginationLink } from "./index.js";
+	import { messages } from "$lib/i18n";
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 
 	type PaginationNextProps = ComponentProps<typeof PaginationLink>;
@@ -10,11 +11,11 @@
 </script>
 
 <PaginationLink
-	aria-label="Go to next page"
+	aria-label={$messages.common.goToNextPage}
 	size="default"
 	class={cn("pr-1.5!", className)}
 	{...restProps}
 >
-	<span class="cn-pagination-next-text hidden sm:block">Next</span>
+	<span class="cn-pagination-next-text hidden sm:block">{$messages.common.next}</span>
 	<ChevronRightIcon data-icon="inline-end" />
 </PaginationLink>

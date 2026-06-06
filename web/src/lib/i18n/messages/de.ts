@@ -110,6 +110,14 @@ export const de = {
     for: "für",
     on: "auf",
     na: "N/V",
+    skipToContent: "Zum Hauptinhalt springen",
+    goToNextPage: "Zur nächsten Seite",
+    goToPreviousPage: "Zur vorherigen Seite",
+    morePages: "Weitere Seiten",
+    dialogClose: "Dialog schließen",
+    searchInputLabel: "Suchen",
+    codeEditor: "Code-Editor",
+    terminal: "Terminal",
   },
   capabilities: {
     unavailableTitle: "Nicht verfügbare Aktionen",
@@ -206,6 +214,7 @@ export const de = {
   nodes: {
     title: "Nodes",
     node: "Node",
+    tableCaption: "Node-Liste",
     pageDescription:
       "Alle Nodes mit Online-Status und Docker-Verwaltungsfunktionen anzeigen.",
     status: "Status",
@@ -255,6 +264,7 @@ export const de = {
     title: "Dienste",
     service: "Dienst",
     folder: "Ordner",
+    tableCaption: "Dienst-Liste",
     status: "Status",
     createService: "Dienst erstellen",
     folderName: "Ordnername",
@@ -396,7 +406,8 @@ export const de = {
     title: "Tasks",
     pageTitle: "Tasks - Composia",
     pageDescription:
-      "Task-Verlauf mit Paginierung und Statusverfolgung anzeigen und filtern.",
+      "View and filter task history with pagination and status tracking.",
+    tableCaption: "Task-Liste",
     taskHistory: "Task-Verlauf",
     noTasks: "Keine Tasks geladen",
     noTasksForFilter: "Keine Tasks entsprechen dem ausgewählten Filter",
@@ -505,6 +516,7 @@ export const de = {
     pageTitle: "Backups - Composia",
     pageDescription:
       "Backup-Einträge durchsuchen und Daten auf Ziel-Nodes wiederherstellen.",
+    tableCaption: "Backup-Liste",
     backup: "Backup",
     dataName: "Datenname",
     noBackups: "Keine Backups geladen",
@@ -602,6 +614,7 @@ export const de = {
     containers: {
       title: "Container",
       titleOnNode: "Container auf {nodeId}",
+      tableCaption: "Docker Container-Liste",
       info: "Info",
       logsLabel: "Logs",
       terminalLabel: "Terminal",
@@ -732,6 +745,7 @@ export const de = {
     images: {
       title: "Images",
       titleOnNode: "Images auf {nodeId}",
+      tableCaption: "Docker Image-Liste",
       id: "ID",
       repository: "Repository",
       tag: "Tag",
@@ -770,6 +784,7 @@ export const de = {
     networks: {
       title: "Networks",
       titleOnNode: "Networks auf {nodeId}",
+      tableCaption: "Docker Network-Liste",
       id: "ID",
       name: "Name",
       driver: "Treiber",
@@ -812,6 +827,7 @@ export const de = {
     volumes: {
       title: "Volumes",
       titleOnNode: "Volumes auf {nodeId}",
+      tableCaption: "Docker Volume-Liste",
       name: "Name",
       driver: "Treiber",
       scope: "Scope",

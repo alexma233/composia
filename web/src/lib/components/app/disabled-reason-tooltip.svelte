@@ -16,7 +16,7 @@
   <Tooltip.Root>
     <Tooltip.Trigger>
       {#snippet child({ props })}
-        <span class={triggerClass} {...props}>
+        <span class={triggerClass} role="button" aria-disabled="true" tabindex="0" {...props}>
           {@render children?.()}
         </span>
       {/snippet}
