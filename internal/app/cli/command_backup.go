@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"fmt"
+
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 )
 
@@ -106,11 +108,15 @@ func (application *app) runBackupGet(args []string) error {
 
 func (application *app) runBackupRestore(args []string) error {
 	fs := newCommandFlagSet("backup restore")
+	yes := addYesFlag(fs)
 	waitOptions := addWaitFlags(fs)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := requireArgs(fs.Args(), 2, "composia backup restore [--wait] [--follow] [--timeout duration] <node> <backup>"); err != nil {
+	if err := requireArgs(fs.Args(), 2, "composia backup restore [--yes] [--wait] [--follow] [--timeout duration] <node> <backup>"); err != nil {
+		return err
+	}
+	if err := application.confirmDestructive(fmt.Sprintf("This will restore backup %q onto node %q.", fs.Arg(1), fs.Arg(0)), yes); err != nil {
 		return err
 	}
 	response, err := application.client.backupCommands.RestoreBackup(application.ctx, newRequest(&controllerv1.RestoreBackupRequest{BackupId: fs.Arg(1), NodeId: fs.Arg(0)}))

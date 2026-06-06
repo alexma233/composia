@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -18,6 +19,7 @@ import (
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1/controllerv1connect"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
+	"golang.org/x/term"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -196,7 +198,7 @@ var commandUsages = map[string]string{ //nolint:gosec
 	"backup":                "usage: composia backup <list|get|restore>\n",
 	"backup list":           "usage: composia backup list [--service name] [--status status] [--data name]\n",
 	"backup get":            "usage: composia backup get <backup>\n",
-	"backup restore":        "usage: composia backup restore [--wait] [--follow] [--timeout duration] <node> <backup>\n",
+	"backup restore":        "usage: composia backup restore [--yes] [--wait] [--follow] [--timeout duration] <node> <backup>\n",
 	"node":                  "usage: composia node <list|get|tasks|stats|sync-caddy-files|reload-caddy|prune>\n",
 	"node list":             "usage: composia node list\n",
 	"node get":              "usage: composia node get <node>\n",
@@ -204,7 +206,7 @@ var commandUsages = map[string]string{ //nolint:gosec
 	"node stats":            "usage: composia node stats <node>\n",
 	"node sync-caddy-files": "usage: composia node sync-caddy-files [--wait] [--follow] [--timeout duration] [--service name] [--full-rebuild] <node>\n",
 	"node reload-caddy":     "usage: composia node reload-caddy [--wait] [--follow] [--timeout duration] <node>\n",
-	"node prune":            "usage: composia node prune [--wait] [--follow] [--timeout duration] [--target all|container|image|network|volume] <node>\n",
+	"node prune":            "usage: composia node prune [--yes] [--wait] [--follow] [--timeout duration] [--target all|container|image|network|volume] <node>\n",
 	"container":             "usage: composia container <node> <list|get|logs|start|stop|restart|remove|exec>\n",
 	"container list":        "usage: composia container <node> list [--search text] [--sort-by field] [--desc] [--page-size n] [--page n]\n",
 	"container get":         "usage: composia container <node> get <container>\n",
@@ -212,20 +214,20 @@ var commandUsages = map[string]string{ //nolint:gosec
 	"container start":       "usage: composia container <node> start [--wait] [--follow] [--timeout duration] <container>\n",
 	"container stop":        "usage: composia container <node> stop [--wait] [--follow] [--timeout duration] <container>\n",
 	"container restart":     "usage: composia container <node> restart [--wait] [--follow] [--timeout duration] <container>\n",
-	"container remove":      "usage: composia container <node> remove [--wait] [--follow] [--timeout duration] [--force] [--volumes] <container>\n",
+	"container remove":      "usage: composia container <node> remove [--yes] [--wait] [--follow] [--timeout duration] [--force] [--volumes] <container>\n",
 	"container exec":        "usage: composia container <node> exec [--tty] [--stdin-file file] [--timeout duration] [--max-output bytes] <container> <command> [args...]\n",
 	"network":               "usage: composia network <node> <list|get|remove>\n",
 	"network list":          "usage: composia network <node> list [--search text] [--sort-by field] [--desc] [--page-size n] [--page n]\n",
 	"network get":           "usage: composia network <node> get <network>\n",
-	"network remove":        "usage: composia network <node> remove [--wait] [--follow] [--timeout duration] <network>\n",
+	"network remove":        "usage: composia network <node> remove [--yes] [--wait] [--follow] [--timeout duration] <network>\n",
 	"volume":                "usage: composia volume <node> <list|get|remove>\n",
 	"volume list":           "usage: composia volume <node> list [--search text] [--sort-by field] [--desc] [--page-size n] [--page n]\n",
 	"volume get":            "usage: composia volume <node> get <volume>\n",
-	"volume remove":         "usage: composia volume <node> remove [--wait] [--follow] [--timeout duration] <volume>\n",
+	"volume remove":         "usage: composia volume <node> remove [--yes] [--wait] [--follow] [--timeout duration] <volume>\n",
 	"image":                 "usage: composia image <node> <list|get|remove>\n",
 	"image list":            "usage: composia image <node> list [--search text] [--sort-by field] [--desc] [--page-size n] [--page n]\n",
 	"image get":             "usage: composia image <node> get <image>\n",
-	"image remove":          "usage: composia image <node> remove [--wait] [--follow] [--timeout duration] [--force] <image>\n",
+	"image remove":          "usage: composia image <node> remove [--yes] [--wait] [--follow] [--timeout duration] [--force] <image>\n",
 	"rustic":                "usage: composia rustic <init|forget|prune>\n",
 	"rustic init":           "usage: composia rustic init [--wait] [--follow] [--timeout duration] <node>\n",
 	"rustic forget":         "usage: composia rustic forget [--wait] [--follow] [--timeout duration] [--service name] [--data name] <node>\n",
@@ -237,8 +239,8 @@ var commandUsages = map[string]string{ //nolint:gosec
 	"repo edit":             "usage: composia repo edit [--create] [--message text] <path>\n",
 	"repo update":           "usage: composia repo update --file file [--message text] <path>\n",
 	"repo mkdir":            "usage: composia repo mkdir [--message text] <path>\n",
-	"repo mv":               "usage: composia repo mv [--message text] <source> <destination>\n",
-	"repo rm":               "usage: composia repo rm [--message text] <path>\n",
+	"repo mv":               "usage: composia repo mv [--yes] [--message text] <source> <destination>\n",
+	"repo rm":               "usage: composia repo rm [--yes] [--message text] <path>\n",
 	"repo history":          "usage: composia repo history [--page-size n] [--cursor cursor]\n",
 	"repo sync":             "usage: composia repo sync\n",
 	"repo validate":         "usage: composia repo validate\n",
@@ -819,4 +821,27 @@ func uint64Text(value uint64) string {
 
 func int64Text(value int64) string {
 	return strconv.FormatInt(value, 10)
+}
+
+func addYesFlag(fs *flag.FlagSet) *bool {
+	return fs.Bool("yes", false, "skip confirmation prompt")
+}
+
+func (application *app) confirmDestructive(warn string, yes *bool) error {
+	if yes != nil && *yes {
+		return nil
+	}
+	fmt.Fprintf(application.errOut, "%s\n\nContinue? [y/N]: ", warn)
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		return errors.New("stdin is not a terminal; use --yes to skip confirmation")
+	}
+	reader := bufio.NewReader(os.Stdin)
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return fmt.Errorf("read confirmation: %w", err)
+	}
+	if strings.ToLower(strings.TrimSpace(response)) != "y" {
+		return errors.New("operation cancelled")
+	}
+	return nil
 }

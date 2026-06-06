@@ -161,11 +161,15 @@ func (application *app) runNodeSyncCaddyFiles(args []string) error {
 func (application *app) runNodePrune(args []string) error {
 	fs := newCommandFlagSet("node prune")
 	target := fs.String("target", "all", "Docker prune target")
+	yes := addYesFlag(fs)
 	waitOptions := addWaitFlags(fs)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := requireArgs(fs.Args(), 1, "composia node prune [--wait] [--follow] [--timeout duration] [--target all|container|image|network|volume] <node>"); err != nil {
+	if err := requireArgs(fs.Args(), 1, "composia node prune [--yes] [--wait] [--follow] [--timeout duration] [--target all|container|image|network|volume] <node>"); err != nil {
+		return err
+	}
+	if err := application.confirmDestructive(fmt.Sprintf("This will prune %s Docker resources on node %q.", *target, fs.Arg(0)), yes); err != nil {
 		return err
 	}
 	response, err := application.client.nodeCommands.PruneNodeDocker(application.ctx, newRequest(&controllerv1.PruneNodeDockerRequest{NodeId: fs.Arg(0), Target: *target}))

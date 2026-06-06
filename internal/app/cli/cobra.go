@@ -333,9 +333,13 @@ func addNodeStringArrayFlag(cmd *cobra.Command, usage string) {
 	cmd.Flags().StringArray("node", nil, usage)
 }
 
-func waitFlags(cmd *cobra.Command, runtime *cobraRuntime) { addWaitCobraFlags(cmd) }
+func waitFlags(cmd *cobra.Command, runtime *cobraRuntime) {
+	addWaitCobraFlags(cmd)
+	cmd.Flags().BoolP("yes", "y", false, "skip confirmation prompt")
+}
 func messageFlag(cmd *cobra.Command, runtime *cobraRuntime) {
 	cmd.Flags().String("message", "", "commit message")
+	cmd.Flags().BoolP("yes", "y", false, "skip confirmation prompt")
 }
 
 func commentFlag(cmd *cobra.Command, runtime *cobraRuntime) {
@@ -392,6 +396,7 @@ func nodeSyncCaddyFilesFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 func nodePruneFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	addWaitCobraFlags(cmd)
 	cmd.Flags().String("target", "all", "prune target: all, container, image, network, volume")
+	cmd.Flags().BoolP("yes", "y", false, "skip confirmation prompt")
 }
 
 func dockerResourceFlags(cmd *cobra.Command, runtime *cobraRuntime) {
@@ -400,6 +405,7 @@ func dockerResourceFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	cmd.Flags().Bool("desc", false, "sort descending")
 	addPageCobraFlags(cmd)
 	addWaitCobraFlags(cmd)
+	cmd.Flags().BoolP("yes", "y", false, "skip confirmation prompt")
 }
 
 func imageFlags(cmd *cobra.Command, runtime *cobraRuntime) {
@@ -417,6 +423,7 @@ func containerFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	addWaitCobraFlags(cmd)
 	cmd.Flags().Bool("force", false, "force remove")
 	cmd.Flags().Bool("volumes", false, "remove anonymous volumes")
+	cmd.Flags().BoolP("yes", "y", false, "skip confirmation prompt")
 	cmd.Flags().BoolP("tty", "t", false, "attach an interactive terminal")
 	cmd.Flags().String("stdin-file", "", "file to send to stdin; use - for standard input")
 	cmd.Flags().Uint64("max-output", 1024*1024, "maximum bytes per output stream")

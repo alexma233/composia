@@ -73,8 +73,11 @@ func (application *app) runNetworkGet(nodeID string, args []string) error {
 }
 
 func (application *app) runNetworkRemove(nodeID string, args []string) error {
-	id, waitOptions, err := parseDockerResourceRemoveFlags("network remove", args, "composia network <node> remove [--wait] [--follow] [--timeout duration] <network>")
+	id, yes, waitOptions, err := parseDockerResourceRemoveFlags("network remove", args, "composia network <node> remove [--yes] [--wait] [--follow] [--timeout duration] <network>")
 	if err != nil {
+		return err
+	}
+	if err := application.confirmDestructive(fmt.Sprintf("This will remove network %q on node %q.", id, nodeID), yes); err != nil {
 		return err
 	}
 	response, err := application.client.dockerCommands.RemoveNetwork(application.ctx, newRequest(&controllerv1.RemoveNetworkRequest{NodeId: nodeID, NetworkId: id}))
@@ -147,8 +150,11 @@ func (application *app) runVolumeGet(nodeID string, args []string) error {
 }
 
 func (application *app) runVolumeRemove(nodeID string, args []string) error {
-	id, waitOptions, err := parseDockerResourceRemoveFlags("volume remove", args, "composia volume <node> remove [--wait] [--follow] [--timeout duration] <volume>")
+	id, yes, waitOptions, err := parseDockerResourceRemoveFlags("volume remove", args, "composia volume <node> remove [--yes] [--wait] [--follow] [--timeout duration] <volume>")
 	if err != nil {
+		return err
+	}
+	if err := application.confirmDestructive(fmt.Sprintf("This will remove volume %q on node %q.", id, nodeID), yes); err != nil {
 		return err
 	}
 	response, err := application.client.dockerCommands.RemoveVolume(application.ctx, newRequest(&controllerv1.RemoveVolumeRequest{NodeId: nodeID, VolumeName: id}))
@@ -223,12 +229,16 @@ func (application *app) runImageGet(nodeID string, args []string) error {
 func (application *app) runImageRemove(nodeID string, args []string) error {
 	fs := newCommandFlagSet("image remove")
 	force := fs.Bool("force", false, "force remove")
+	yes := addYesFlag(fs)
 	waitOptions := addWaitFlags(fs)
-	usage := "composia image <node> remove [--wait] [--follow] [--timeout duration] [--force] <image>"
+	usage := "composia image <node> remove [--yes] [--wait] [--follow] [--timeout duration] [--force] <image>"
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if err := requireArgs(fs.Args(), 1, usage); err != nil {
+		return err
+	}
+	if err := application.confirmDestructive(fmt.Sprintf("This will remove image %q on node %q.", fs.Arg(0), nodeID), yes); err != nil {
 		return err
 	}
 	response, err := application.client.dockerCommands.RemoveImage(application.ctx, newRequest(&controllerv1.RemoveImageRequest{NodeId: nodeID, ImageId: fs.Arg(0), Force: *force}))
@@ -264,14 +274,15 @@ func parseDockerResourceGetFlags(name string, args []string, usage string) (stri
 	return fs.Arg(0), nil
 }
 
-func parseDockerResourceRemoveFlags(name string, args []string, usage string) (string, waitOptions, error) {
+func parseDockerResourceRemoveFlags(name string, args []string, usage string) (string, *bool, waitOptions, error) {
 	fs := newCommandFlagSet(name)
+	yes := addYesFlag(fs)
 	waitOptions := addWaitFlags(fs)
 	if err := fs.Parse(args); err != nil {
-		return "", waitOptions, err
+		return "", nil, waitOptions, err
 	}
 	if err := requireArgs(fs.Args(), 1, usage); err != nil {
-		return "", waitOptions, err
+		return "", nil, waitOptions, err
 	}
-	return fs.Arg(0), waitOptions, nil
+	return fs.Arg(0), yes, waitOptions, nil
 }

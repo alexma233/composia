@@ -162,12 +162,16 @@ func (application *app) runContainerRemove(nodeID string, args []string) error {
 	fs := newCommandFlagSet("container remove")
 	force := fs.Bool("force", false, "force remove")
 	volumes := fs.Bool("volumes", false, "remove anonymous volumes")
+	yes := addYesFlag(fs)
 	waitOptions := addWaitFlags(fs)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	usage := "composia container <node> remove [--wait] [--follow] [--timeout duration] [--force] [--volumes] <container>"
+	usage := "composia container <node> remove [--yes] [--wait] [--follow] [--timeout duration] [--force] [--volumes] <container>"
 	if err := requireArgs(fs.Args(), 1, usage); err != nil {
+		return err
+	}
+	if err := application.confirmDestructive(fmt.Sprintf("This will remove container %q on node %q.", fs.Arg(0), nodeID), yes); err != nil {
 		return err
 	}
 	response, err := application.client.dockerCommands.RemoveContainer(application.ctx, newRequest(&controllerv1.RemoveContainerRequest{NodeId: nodeID, ContainerId: fs.Arg(0), Force: *force, RemoveVolumes: *volumes}))

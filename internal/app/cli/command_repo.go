@@ -33,10 +33,14 @@ func (application *app) runRepoMkdir(args []string) error {
 func (application *app) runRepoMove(args []string) error {
 	fs := newCommandFlagSet("repo mv")
 	message := fs.String("message", "", "commit message")
+	yes := addYesFlag(fs)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := requireArgs(fs.Args(), 2, "composia repo mv [--message text] <source> <destination>"); err != nil {
+	if err := requireArgs(fs.Args(), 2, "composia repo mv [--yes] [--message text] <source> <destination>"); err != nil {
+		return err
+	}
+	if err := application.confirmDestructive(fmt.Sprintf("This will move repository path %q to %q.", fs.Arg(0), fs.Arg(1)), yes); err != nil {
 		return err
 	}
 	baseRevision, err := application.currentRepoRevision()
@@ -53,10 +57,14 @@ func (application *app) runRepoMove(args []string) error {
 func (application *app) runRepoRemove(args []string) error {
 	fs := newCommandFlagSet("repo rm")
 	message := fs.String("message", "", "commit message")
+	yes := addYesFlag(fs)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := requireArgs(fs.Args(), 1, "composia repo rm [--message text] <path>"); err != nil {
+	if err := requireArgs(fs.Args(), 1, "composia repo rm [--yes] [--message text] <path>"); err != nil {
+		return err
+	}
+	if err := application.confirmDestructive(fmt.Sprintf("This will permanently delete repository path %q.", fs.Arg(0)), yes); err != nil {
 		return err
 	}
 	baseRevision, err := application.currentRepoRevision()
