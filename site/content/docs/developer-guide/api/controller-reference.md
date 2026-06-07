@@ -505,6 +505,7 @@ TaskStepName identifies one recorded task step.
 | TASK_STEP_NAME_DOCKER_STOP | 18 |  |
 | TASK_STEP_NAME_DOCKER_RESTART | 19 |  |
 | TASK_STEP_NAME_DOCKER_REMOVE | 20 |  |
+| TASK_STEP_NAME_CLOUDFLARE_TUNNEL_SYNC | 21 |  |
 
 
 
@@ -539,6 +540,7 @@ TaskType identifies a controller task kind.
 | TASK_TYPE_DOCKER_REMOVE_NETWORK | 22 |  |
 | TASK_TYPE_DOCKER_REMOVE_VOLUME | 23 |  |
 | TASK_TYPE_DOCKER_REMOVE_IMAGE | 24 |  |
+| TASK_TYPE_CLOUDFLARE_TUNNEL_SYNC | 25 |  |
 
 
  
@@ -849,6 +851,8 @@ CapabilityReasonCode explains why a capability is disabled.
 | CAPABILITY_REASON_CODE_BACKUP_NOT_SUCCEEDED | 18 |  |
 | CAPABILITY_REASON_CODE_BACKUP_ARTIFACT_MISSING | 19 |  |
 | CAPABILITY_REASON_CODE_MISSING_RESTORE_TARGET_NODE | 20 |  |
+| CAPABILITY_REASON_CODE_MISSING_CLOUDFLARE_TUNNEL_INTEGRATION | 21 |  |
+| CAPABILITY_REASON_CODE_SERVICE_NOT_CLOUDFLARE_TUNNEL_MANAGED | 22 |  |
 
 
  
@@ -2849,6 +2853,7 @@ ServiceActionCapabilities describes whether service-scoped actions may run.
 | migrate | [Capability](#composia-controller-v1-Capability) |  |  |
 | dns_update | [Capability](#composia-controller-v1-Capability) |  |  |
 | caddy_sync | [Capability](#composia-controller-v1-Capability) |  |  |
+| cloudflare_tunnel_sync | [Capability](#composia-controller-v1-Capability) |  |  |
 
 
 
@@ -3023,6 +3028,7 @@ ServiceAction identifies an async action that targets a service.
 | SERVICE_ACTION_BACKUP | 5 | SERVICE_ACTION_BACKUP triggers a backup task. |
 | SERVICE_ACTION_DNS_UPDATE | 6 | SERVICE_ACTION_DNS_UPDATE refreshes DNS records for the service. |
 | SERVICE_ACTION_CADDY_SYNC | 7 | SERVICE_ACTION_CADDY_SYNC syncs related Caddy configuration. |
+| SERVICE_ACTION_CLOUDFLARE_TUNNEL_SYNC | 8 | SERVICE_ACTION_CLOUDFLARE_TUNNEL_SYNC syncs related Cloudflare Tunnel configuration. |
 
 
  
