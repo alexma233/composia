@@ -69,20 +69,20 @@ FROM alpine:3.23@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a50
 
 WORKDIR /app
 
-RUN apk add --no-cache ca-certificates git
+RUN apk add --no-cache ca-certificates git tini
 COPY --from=controller-builder /out/composia-controller /usr/local/bin/composia-controller
 
 USER 65532:65532
-ENTRYPOINT ["/usr/local/bin/composia-controller"]
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/composia-controller"]
 CMD ["-config", "/app/config.yaml"]
 
 FROM alpine:3.23@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11 AS agent
 
 WORKDIR /app
 
-RUN apk add --no-cache ca-certificates docker-cli docker-cli-buildx docker-cli-compose git
+RUN apk add --no-cache ca-certificates docker-cli docker-cli-buildx docker-cli-compose git tini
 COPY --from=agent-builder /out/composia-agent /usr/local/bin/composia-agent
 
 USER 65532:65532
-ENTRYPOINT ["/usr/local/bin/composia-agent"]
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/composia-agent"]
 CMD ["-config", "/app/config.yaml"]
