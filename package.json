@@ -10,6 +10,7 @@
     "web:build": "bun run --cwd web build",
     "web:preview": "bun run --cwd web preview",
     "web:check": "bun run --cwd web check",
+    "web:e2e": "bun run --cwd web e2e",
     "web:format": "bun run --cwd web format",
     "web:format:write": "bun run --cwd web format:write",
     "docs:api:generate": "sh ./scripts/docs/generate-proto-docs.sh",

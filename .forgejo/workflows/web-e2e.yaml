@@ -1,0 +1,99 @@
+name: Web E2E
+
+on:
+  pull_request:
+    paths:
+      - "package.json"
+      - "bun.lock"
+      - "go.mod"
+      - "go.sum"
+      - "cmd/**"
+      - "internal/**"
+      - "proto/**"
+      - "gen/go/**"
+      - "web/**"
+      - "dev/docker-compose.e2e.yaml"
+      - ".forgejo/workflows/web-e2e.yaml"
+  push:
+    branches: ["main"]
+    paths:
+      - "package.json"
+      - "bun.lock"
+      - "go.mod"
+      - "go.sum"
+      - "cmd/**"
+      - "internal/**"
+      - "proto/**"
+      - "gen/go/**"
+      - "web/**"
+      - "dev/docker-compose.e2e.yaml"
+      - ".forgejo/workflows/web-e2e.yaml"
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: docker-amd64-dind
+    container:
+      image: ghcr.io/catthehacker/ubuntu:act-latest
+
+    steps:
+      - name: Checkout
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.3
+        uses: https://forgejo.alexma.top/actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+
+      - name: Verify Docker access
+        run: |
+          docker version
+          docker compose version
+
+      - name: Install Bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: bunx playwright install --with-deps chromium
+
+      - name: Start real backend services
+        run: docker compose -f dev/docker-compose.e2e.yaml up -d --build controller-dev agent-dev
+
+      - name: Wait for controller
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl -fsS \
+              -H 'Authorization: Bearer dev-admin-token' \
+              -H 'Connect-Protocol-Version: 1' \
+              -H 'Content-Type: application/json' \
+              -H 'X-Composia-Source: web-e2e' \
+              --data '{}' \
+              http://dind:7001/api/controller/composia.controller.v1.SystemService/GetSystemStatus >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose -f dev/docker-compose.e2e.yaml logs --no-color controller-dev agent-dev
+          exit 1
+
+      - name: Run web e2e
+        env:
+          WEB_CONTROLLER_ADDR: http://dind:7001
+          WEB_BROWSER_CONTROLLER_ADDR: http://dind:7001
+          WEB_CONTROLLER_ACCESS_TOKEN: dev-admin-token
+          WEB_LOGIN_USERNAME: admin
+          WEB_LOGIN_PASSWORD_HASH: $argon2id$v=19$m=65536,t=3,p=4$/wh05hbH5ipiT42CK+GxVA$2unNmHbsRe5ZkFgIkHNekBGk6KH+79sZAPB9qmRrUlQ
+          WEB_SESSION_SECRET: e2e-session-secret
+          ORIGIN: http://127.0.0.1:4173
+          HOST: 127.0.0.1
+          PORT: "4173"
+        run: bun run web:e2e
+
+      - name: Show backend logs
+        if: always()
+        run: docker compose -f dev/docker-compose.e2e.yaml logs --no-color controller-dev agent-dev
+
+      - name: Stop backend services
+        if: always()
+        run: docker compose -f dev/docker-compose.e2e.yaml down -v

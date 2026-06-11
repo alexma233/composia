@@ -199,6 +199,8 @@ bun.lockb
 web/.svelte-kit/
 web/build/
 web/.vercel/
+web/playwright-report/
+web/test-results/
 
 # Editors and local files
 .idea/
