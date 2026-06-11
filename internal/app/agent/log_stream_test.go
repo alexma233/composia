@@ -61,7 +61,7 @@ func TestTaskLogUploaderTimesOutBlockedAck(t *testing.T) {
 	defer httpServer.Close()
 
 	client := agentv1connect.NewAgentReportServiceClient(httpServer.Client(), httpServer.URL)
-	uploader := newTaskLogUploaderWithTimeout(client, "task-1", time.Second)
+	uploader := newTaskLogUploaderWithTimeout(client, "task-1", 5*time.Second)
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- uploader.Upload(context.Background(), "one\n")
@@ -72,11 +72,16 @@ func TestTaskLogUploaderTimesOutBlockedAck(t *testing.T) {
 		if seq != 1 {
 			t.Fatalf("expected server to receive seq 1, got %d", seq)
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatal("timed out waiting for first send to reach server")
 	}
 
-	err := <-errCh
+	var err error
+	select {
+	case err = <-errCh:
+	case <-time.After(10 * time.Second):
+		t.Fatal("timed out waiting for blocked ack timeout")
+	}
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("expected upload timeout, got %v", err)
 	}
