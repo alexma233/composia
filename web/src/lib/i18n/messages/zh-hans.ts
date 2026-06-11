@@ -388,8 +388,7 @@ export const zhHans = {
   tasks: {
     title: "任务",
     pageTitle: "任务 - Composia",
-    pageDescription:
-      "查看和筛选任务记录，支持分页和状态追踪。",
+    pageDescription: "查看和筛选任务记录，支持分页和状态追踪。",
     tableCaption: "任务列表",
     taskHistory: "任务历史",
     noTasks: "暂无任务数据",

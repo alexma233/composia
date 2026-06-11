@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"connectrpc.com/connect"
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
@@ -831,8 +832,10 @@ func (application *app) confirmDestructive(warn string, yes *bool) error {
 	if yes != nil && *yes {
 		return nil
 	}
-	fmt.Fprintf(application.errOut, "%s\n\nContinue? [y/N]: ", warn)
-	if !term.IsTerminal(int(os.Stdin.Fd())) {
+	if _, err := fmt.Fprintf(application.errOut, "%s\n\nContinue? [y/N]: ", warn); err != nil {
+		return fmt.Errorf("write confirmation prompt: %w", err)
+	}
+	if !term.IsTerminal(syscall.Stdin) {
 		return errors.New("stdin is not a terminal; use --yes to skip confirmation")
 	}
 	reader := bufio.NewReader(os.Stdin)

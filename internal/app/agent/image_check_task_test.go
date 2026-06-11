@@ -24,10 +24,10 @@ func TestExecuteImageCheckTaskSkipsConfigInfraService(t *testing.T) {
 
 	bundleMux := http.NewServeMux()
 	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(bundleTestServer{bundle: bundle, expectedTaskID: "task-image-check", responseServiceName: "host-service", responseRelativeRoot: "host-service"}, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "main-token" {
+		if token != agentTestMainToken {
 			return "", errors.New("unexpected token")
 		}
-		return "main", nil
+		return agentTestMainNodeID, nil
 	})))
 	bundleMux.Handle(bundlePath, bundleHandler)
 	bundleHTTPServer := httptest.NewServer(bundleMux)
@@ -36,10 +36,10 @@ func TestExecuteImageCheckTaskSkipsConfigInfraService(t *testing.T) {
 	reportServer := &agentExecutionTestReportServer{}
 	reportMux := http.NewServeMux()
 	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(reportServer, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "main-token" {
+		if token != agentTestMainToken {
 			return "", errors.New("unexpected token")
 		}
-		return "main", nil
+		return agentTestMainNodeID, nil
 	})))
 	reportMux.Handle(reportPath, reportHandler)
 	reportHTTPServer := httptest.NewUnstartedServer(reportMux)
@@ -47,11 +47,11 @@ func TestExecuteImageCheckTaskSkipsConfigInfraService(t *testing.T) {
 	reportHTTPServer.StartTLS()
 	defer reportHTTPServer.Close()
 
-	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
-	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(agentTestMainToken)))
+	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(agentTestMainToken)))
 	logUploader := newTaskLogUploader(reportClient, "task-image-check")
 	defer func() { _ = logUploader.Close() }()
-	pulledTask := &agentv1.AgentTask{TaskId: "task-image-check", Type: protoAgentTaskType(task.TypeImageCheck), ServiceName: "host-service", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "host-service"}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-image-check", Type: protoAgentTaskType(task.TypeImageCheck), ServiceName: "host-service", NodeId: agentTestMainNodeID, RepoRevision: "deadbeef", ServiceDir: "host-service"}
 
 	if err := executeImageCheckTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("executeImageCheckTask returned error: %v", err)

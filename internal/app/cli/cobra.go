@@ -337,6 +337,7 @@ func waitFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	addWaitCobraFlags(cmd)
 	cmd.Flags().BoolP("yes", "y", false, "skip confirmation prompt")
 }
+
 func messageFlag(cmd *cobra.Command, runtime *cobraRuntime) {
 	cmd.Flags().String("message", "", "commit message")
 	cmd.Flags().BoolP("yes", "y", false, "skip confirmation prompt")

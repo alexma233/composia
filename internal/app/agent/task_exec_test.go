@@ -143,10 +143,10 @@ func TestExecuteDeployTaskSkipsComposeForConfigInfraService(t *testing.T) {
 
 	reportMux := http.NewServeMux()
 	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(reportServer, connect.WithInterceptors(rpcutil.NewServerBearerAuthInterceptor(func(token string) (string, error) {
-		if token != "main-token" {
+		if token != agentTestMainToken {
 			return "", errString("unexpected token")
 		}
-		return "main", nil
+		return agentTestMainNodeID, nil
 	})))
 	reportMux.Handle(reportPath, reportHandler)
 	reportHTTPServer := httptest.NewUnstartedServer(reportMux)
@@ -154,12 +154,12 @@ func TestExecuteDeployTaskSkipsComposeForConfigInfraService(t *testing.T) {
 	reportHTTPServer.StartTLS()
 	defer reportHTTPServer.Close()
 
-	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
-	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
+	bundleClient := agentv1connect.NewBundleServiceClient(bundleHTTPServer.Client(), bundleHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(agentTestMainToken)))
+	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(agentTestMainToken)))
 	logUploader := newTaskLogUploader(reportClient, "task-config")
 	defer func() { _ = logUploader.Close() }()
 
-	pulledTask := &agentv1.AgentTask{TaskId: "task-config", Type: protoAgentTaskType(task.TypeDeploy), ServiceName: "host-service", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "host-service"}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-config", Type: protoAgentTaskType(task.TypeDeploy), ServiceName: "host-service", NodeId: agentTestMainNodeID, RepoRevision: "deadbeef", ServiceDir: "host-service"}
 	if err := executeDeployTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute infra.config deploy task: %v", err)
 	}
