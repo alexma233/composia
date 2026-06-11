@@ -9,6 +9,9 @@ test("dashboard loads through the real controller", async ({ page }) => {
 
   await expect(page).toHaveURL("/");
   await expect(page.locator('[role="alert"]')).toHaveCount(0);
-  await expect(page.locator('a[href="/services"]')).toBeVisible();
-  await expect(page.locator('a[href="/nodes"]')).toBeVisible();
+
+  const summaryCards = page.locator(".grid.gap-4.sm\\:grid-cols-2");
+
+  await expect(summaryCards.locator('a[href="/services"]')).toBeVisible();
+  await expect(summaryCards.locator('a[href="/nodes"]')).toBeVisible();
 });
