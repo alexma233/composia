@@ -3,10 +3,11 @@ services:
     build:
       context: ..
       target: controller
-    command:
+    entrypoint:
       - sh
       - -eu
       - -c
+    command:
       - |
         mkdir -p /tmp/repo-controller /tmp/state-controller /tmp/logs
         if [ ! -d /tmp/repo-controller/.git ]; then
@@ -34,7 +35,7 @@ services:
           repo_dir: "/tmp/repo-agent"
           state_dir: "/tmp/state-agent"
         EOF
-        exec /usr/local/bin/composia-controller -config /tmp/composia-e2e.yaml
+        exec /sbin/tini -- /usr/local/bin/composia-controller -config /tmp/composia-e2e.yaml
     ports:
       - "7001:7001"
     networks:
@@ -51,10 +52,11 @@ services:
       DOCKER_HOST: tcp://host.docker.internal:2375
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    command:
+    entrypoint:
       - sh
       - -eu
       - -c
+    command:
       - |
         mkdir -p /tmp/repo-agent /tmp/state-agent
         cat > /tmp/composia-e2e.yaml <<'EOF'
@@ -79,7 +81,7 @@ services:
           repo_dir: "/tmp/repo-agent"
           state_dir: "/tmp/state-agent"
         EOF
-        exec /usr/local/bin/composia-agent -config /tmp/composia-e2e.yaml
+        exec /sbin/tini -- /usr/local/bin/composia-agent -config /tmp/composia-e2e.yaml
     networks:
       - composia-e2e
 
