@@ -36,13 +36,16 @@ type cobraCommandSpec struct {
 
 type cobraCompletionFunc func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective)
 
-func newRootCommand(ctx context.Context, out io.Writer, errOut io.Writer) *cobra.Command {
+func newRootCommand(ctx context.Context, out io.Writer, errOut io.Writer, cfg globalConfig) *cobra.Command {
+	if cfg.output == "" {
+		cfg.output = outputModeHuman
+	}
 	runtime := &cobraRuntime{
 		ctx:    ctx,
 		out:    out,
 		errOut: errOut,
-		app:    &app{ctx: ctx, out: out, errOut: errOut, cfg: globalConfig{output: outputModeHuman}},
-		output: string(outputModeHuman),
+		app:    &app{ctx: ctx, out: out, errOut: errOut, cfg: cfg},
+		output: string(cfg.output),
 	}
 
 	root := &cobra.Command{
@@ -68,12 +71,12 @@ func newRootCommand(ctx context.Context, out io.Writer, errOut io.Writer) *cobra
 	root.SetHelpCommand(newHelpCommand(root, out))
 
 	flags := root.PersistentFlags()
-	flags.StringVar(&runtime.app.cfg.addr, "addr", "", "controller base URL")
-	flags.StringVar(&runtime.app.cfg.token, "token", "", "controller access token")
-	flags.StringVar(&runtime.app.cfg.tokenFile, "token-file", "", "controller access token file")
+	flags.StringVar(&runtime.app.cfg.addr, "addr", cfg.addr, "controller base URL")
+	flags.StringVar(&runtime.app.cfg.token, "token", cfg.token, "controller access token")
+	flags.StringVar(&runtime.app.cfg.tokenFile, "token-file", cfg.tokenFile, "controller access token file")
 	flags.Var(&runtime.headerValues, "header", `custom controller header as "Name: value"`)
-	flags.StringVar(&runtime.output, "output", string(outputModeHuman), "output mode: human, json, terse")
-	flags.BoolVar(&runtime.app.cfg.json, "json", false, "print protobuf JSON for unary RPCs")
+	flags.StringVar(&runtime.output, "output", string(cfg.output), "output mode: human, json, terse")
+	flags.BoolVar(&runtime.app.cfg.json, "json", cfg.json, "print protobuf JSON for unary RPCs")
 
 	root.AddCommand(newVersionCommand(out))
 	for _, spec := range cobraCommandSpecs(runtime) {
@@ -298,7 +301,10 @@ func (runtime *cobraRuntime) finalizeGlobalConfig() error {
 	if err != nil {
 		return err
 	}
-	cfg.headers = headers
+	cfg.headers, err = mergeStaticHeaders(cfg.headers, headers)
+	if err != nil {
+		return err
+	}
 	mode := outputMode(strings.TrimSpace(runtime.output))
 	switch mode {
 	case "", outputModeHuman:

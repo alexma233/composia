@@ -454,7 +454,7 @@ func TestCLIConfigPathUsesXDGCLIConfig(t *testing.T) {
 	}
 }
 
-func TestConfigureClientUsesConfigBeforeEnv(t *testing.T) {
+func TestConfigureClientUsesEnvBeforeConfig(t *testing.T) {
 	configHome := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", configHome)
 	t.Setenv(envControllerAddr, "https://env-controller.example")
@@ -473,19 +473,18 @@ func TestConfigureClientUsesConfigBeforeEnv(t *testing.T) {
 	if err := application.configureClient(); err != nil {
 		t.Fatalf("configureClient returned error: %v", err)
 	}
-	if application.cfg.addr != "https://config-controller.example" {
+	if application.cfg.addr != "https://env-controller.example" {
 		t.Fatalf("addr = %q", application.cfg.addr)
 	}
-	if application.cfg.token != "config-token" {
+	if application.cfg.token != "env-token" {
 		t.Fatalf("token = %q", application.cfg.token)
 	}
 }
 
-func TestConfigureClientReadsConfigKeyringBeforeEnv(t *testing.T) {
+func TestConfigureClientReadsConfigKeyringWhenEnvAbsent(t *testing.T) {
 	configHome := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", configHome)
 	t.Setenv(envControllerAddr, "https://env-controller.example")
-	t.Setenv(envAccessToken, "env-token")
 	secrets := stubCLIKeyring(t)
 	secrets[cliKeyringAccount("default")] = "keyring-token"
 	if err := saveCLIConfig(cliConfig{cliConfigKeyAddr: "https://config-controller.example", cliConfigKeyTokenKeyring: defaultCLIKeyringName}); err != nil {
@@ -497,6 +496,21 @@ func TestConfigureClientReadsConfigKeyringBeforeEnv(t *testing.T) {
 	}
 	if application.cfg.token != "keyring-token" {
 		t.Fatalf("token = %q", application.cfg.token)
+	}
+}
+
+func TestRunParsesLeadingGlobalFlagsForLeafCommands(t *testing.T) {
+	configHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+	t.Setenv(envAccessToken, "env-token")
+	var out bytes.Buffer
+	var errOut bytes.Buffer
+	err := Run(context.Background(), []string{"--addr", "http://127.0.0.1:1", "service", "list"}, &out, &errOut)
+	if err == nil {
+		t.Fatalf("expected connection error")
+	}
+	if strings.Contains(err.Error(), `unknown action "http://127.0.0.1:1"`) {
+		t.Fatalf("leading --addr was parsed as service args: %v", err)
 	}
 }
 

@@ -286,6 +286,14 @@ func (application *app) runContainerExecTTY(nodeID, containerID string, command 
 		defer func() { _ = dialResponse.Body.Close() }()
 	}
 	if err != nil {
+		if dialResponse != nil {
+			body, _ := io.ReadAll(io.LimitReader(dialResponse.Body, 4096))
+			bodyText := strings.TrimSpace(string(body))
+			if bodyText != "" {
+				return fmt.Errorf("attach container exec websocket: %w: %s: %s", err, dialResponse.Status, bodyText)
+			}
+			return fmt.Errorf("attach container exec websocket: %w: %s", err, dialResponse.Status)
+		}
 		return fmt.Errorf("attach container exec websocket: %w", err)
 	}
 	defer func() { _ = conn.Close() }()

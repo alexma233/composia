@@ -77,8 +77,12 @@ type controllerClient struct {
 
 // Run executes the user-facing CLI command surface.
 func Run(ctx context.Context, args []string, out io.Writer, errOut io.Writer) error {
-	root := newRootCommand(ctx, out, errOut)
-	root.SetArgs(args)
+	cfg, rest, err := parseGlobalFlags(args)
+	if err != nil {
+		return err
+	}
+	root := newRootCommand(ctx, out, errOut, cfg)
+	root.SetArgs(rest)
 	if err := root.Execute(); err != nil {
 		if strings.Contains(err.Error(), "unknown command") {
 			root.SetOut(errOut)
@@ -486,6 +490,14 @@ func immediateChildCommandKeys(key string) []string {
 func parseGlobalFlags(args []string) (globalConfig, []string, error) {
 	cfg := globalConfig{output: outputModeHuman}
 	var headerValues headerFlag
+	for _, arg := range args {
+		if !strings.HasPrefix(arg, "-") {
+			break
+		}
+		if arg == "--terse" {
+			return globalConfig{}, nil, errors.New("--terse was removed; use --output terse")
+		}
+	}
 	fs := flag.NewFlagSet("composia", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	fs.StringVar(&cfg.addr, "addr", "", "controller base URL")
@@ -536,10 +548,10 @@ func (application *app) configureClient() error {
 		return err
 	}
 	if cfg.addr == "" {
-		cfg.addr = localConfig[cliConfigKeyAddr]
+		cfg.addr = os.Getenv(envControllerAddr)
 	}
 	if cfg.addr == "" {
-		cfg.addr = os.Getenv(envControllerAddr)
+		cfg.addr = localConfig[cliConfigKeyAddr]
 	}
 	envHeaders, err := parseHeadersJSON(os.Getenv(envControllerHeaders))
 	if err != nil {
@@ -555,6 +567,9 @@ func (application *app) configureClient() error {
 			return fmt.Errorf("read token file %q: %w", cfg.tokenFile, err)
 		}
 		cfg.token = strings.TrimSpace(string(content))
+	}
+	if cfg.token == "" {
+		cfg.token = os.Getenv(envAccessToken)
 	}
 	if cfg.token == "" && cfg.tokenFile == "" {
 		cfg.token = localConfig[cliConfigKeyToken]
@@ -575,9 +590,6 @@ func (application *app) configureClient() error {
 			return fmt.Errorf("read token file %q: %w", cfg.tokenFile, err)
 		}
 		cfg.token = strings.TrimSpace(string(content))
-	}
-	if cfg.token == "" {
-		cfg.token = os.Getenv(envAccessToken)
 	}
 	if strings.TrimSpace(cfg.addr) == "" {
 		path, pathErr := cliConfigPath()
