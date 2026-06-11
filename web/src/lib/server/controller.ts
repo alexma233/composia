@@ -340,6 +340,7 @@ export type DashboardData = {
   services: ServiceSummary[];
   nodes: NodeSummary[];
   tasks: TaskSummary[];
+  backups: BackupSummary[];
 };
 
 export function controllerConfig() {
@@ -632,9 +633,10 @@ export async function loadDashboard(): Promise<DashboardData> {
     throw new Error(config.reason);
   }
 
-  const [system, tasksResult] = await Promise.all([
+  const [system, tasksResult, backupsResult] = await Promise.all([
     loadSystemStatus(),
     loadTasks(1, 6),
+    loadBackups(1, 6),
   ]);
 
   return {
@@ -642,6 +644,7 @@ export async function loadDashboard(): Promise<DashboardData> {
     services: [],
     nodes: [],
     tasks: tasksResult.items,
+    backups: backupsResult.items,
   };
 }
 

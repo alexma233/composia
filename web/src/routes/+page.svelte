@@ -8,10 +8,8 @@
   import { Badge } from '$lib/components/ui/badge';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { startPolling } from '$lib/refresh';
-  import {
-    isTaskRecent,
-  } from "$lib/presenters";
   import { messages } from '$lib/i18n';
+  import BackupCard from '$lib/components/app/backup-card.svelte';
   import TaskCard from '$lib/components/app/task-card.svelte';
 
   interface Props {
@@ -26,12 +24,15 @@
   let onlineNodeCount = $derived(data.dashboard?.system.onlineNodeCount ?? 0);
   let configuredNodeCount = $derived(data.dashboard?.system.configuredNodeCount ?? 0);
 
-	let recentTasks = $derived((data.dashboard?.tasks ?? [])
-		.filter((t) => isTaskRecent(t.createdAt))
-		.slice(0, 6));
+	let recentTasks = $derived((data.dashboard?.tasks ?? []).slice(0, 6));
+	let recentBackups = $derived((data.dashboard?.backups ?? []).slice(0, 6));
 
   function totalTaskCount() {
     return 'totalTaskCount' in data ? data.totalTaskCount : 0;
+  }
+
+  function totalBackupCount() {
+    return 'totalBackupCount' in data ? data.totalBackupCount : 0;
   }
 
   onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
@@ -98,26 +99,50 @@
       </a>
     </div>
 
-    <Card>
-      <CardHeader>
-        <div class="flex items-center justify-between gap-3">
-          <CardTitle class="section-title" level="2">
-            <a class="hover:text-foreground/80 transition-colors" href="/tasks">{$messages.dashboard.tasks}</a>
-          </CardTitle>
-          <Badge variant="outline">{totalTaskCount()}</Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div class="space-y-3">
-          {#if recentTasks.length}
-            {#each recentTasks as task}
-              <TaskCard {task} showService />
-            {/each}
-          {:else}
-            <div class="empty-state">{$messages.dashboard.last24Hours}</div>
-          {/if}
-        </div>
-      </CardContent>
-    </Card>
+    <div class="grid gap-4 lg:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <div class="flex items-center justify-between gap-3">
+            <CardTitle class="section-title" level="2">
+              <a class="hover:text-foreground/80 transition-colors" href="/tasks">{$messages.dashboard.tasks}</a>
+            </CardTitle>
+            <Badge variant="outline">{totalTaskCount()}</Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div class="space-y-3">
+            {#if recentTasks.length}
+              {#each recentTasks as task}
+                <TaskCard {task} showService />
+              {/each}
+            {:else}
+              <div class="empty-state">{$messages.tasks.noTasks}</div>
+            {/if}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div class="flex items-center justify-between gap-3">
+            <CardTitle class="section-title" level="2">
+              <a class="hover:text-foreground/80 transition-colors" href="/backups">{$messages.nav.backups}</a>
+            </CardTitle>
+            <Badge variant="outline">{totalBackupCount()}</Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div class="space-y-3">
+            {#if recentBackups.length}
+              {#each recentBackups as backup}
+                <BackupCard {backup} />
+              {/each}
+            {:else}
+              <div class="empty-state">{$messages.backups.noBackups}</div>
+            {/if}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   </div>
 </div>
