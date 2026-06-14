@@ -3,7 +3,7 @@
 # =============================================================================
 services:
   init-repo-controller:
-    image: alpine/git:v2.52.0
+    image: alpine/git:v2.54.0
     working_dir: /data/repo-controller
     entrypoint:
       - sh
