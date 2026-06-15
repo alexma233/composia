@@ -1,0 +1,83 @@
+name: CLI E2E
+
+on:
+  pull_request:
+    paths:
+      - "go.mod"
+      - "go.sum"
+      - "cmd/**"
+      - "internal/**"
+      - "proto/**"
+      - "gen/go/**"
+      - "test/e2e/**"
+      - "dev/docker-compose.e2e.yaml"
+      - ".forgejo/workflows/cli-e2e.yaml"
+  push:
+    branches: ["main"]
+    paths:
+      - "go.mod"
+      - "go.sum"
+      - "cmd/**"
+      - "internal/**"
+      - "proto/**"
+      - "gen/go/**"
+      - "test/e2e/**"
+      - "dev/docker-compose.e2e.yaml"
+      - ".forgejo/workflows/cli-e2e.yaml"
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: docker-amd64-dind
+    container:
+      image: ghcr.io/catthehacker/ubuntu:act-latest
+
+    steps:
+      - name: Checkout
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v6.0.3
+        uses: https://forgejo.alexma.top/actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+
+      - name: Verify Docker access
+        run: |
+          docker version
+          docker compose version
+
+      - name: Install Go
+        # renovate: datasource=git-refs depName=actions/setup-go packageName=https://forgejo.alexma.top/actions/setup-go currentValue=v6.1.0
+        uses: https://forgejo.alexma.top/actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version-file: go.mod
+
+      - name: Start real backend services
+        run: docker compose -f dev/docker-compose.e2e.yaml up -d --build controller-dev agent-dev
+
+      - name: Wait for controller
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl -fsS \
+              -H 'Authorization: Bearer dev-admin-token' \
+              -H 'Connect-Protocol-Version: 1' \
+              -H 'Content-Type: application/json' \
+              -H 'X-Composia-Source: cli-e2e' \
+              --data '{}' \
+              http://dind:7001/api/controller/composia.controller.v1.SystemService/GetSystemStatus >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose -f dev/docker-compose.e2e.yaml logs --no-color controller-dev agent-dev
+          exit 1
+
+      - name: Run CLI e2e
+        env:
+          COMPOSIA_E2E_CONTROLLER_ADDR: http://dind:7001
+          COMPOSIA_E2E_ACCESS_TOKEN: dev-admin-token
+        run: go test -tags=e2e ./test/e2e
+
+      - name: Show backend logs
+        if: always()
+        run: docker compose -f dev/docker-compose.e2e.yaml logs --no-color controller-dev agent-dev
+
+      - name: Stop backend services
+        if: always()
+        run: docker compose -f dev/docker-compose.e2e.yaml down -v
