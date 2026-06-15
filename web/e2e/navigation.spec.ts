@@ -32,7 +32,7 @@ test("node details link to the docker containers page", async ({ page }) => {
   await page.goto("/nodes");
 
   await expectHeading(page, "Nodes");
-  await page.getByRole("link", { name: "Main" }).click();
+  await page.getByRole("link", { name: "Main", exact: true }).click();
 
   await expect(page).toHaveURL("/nodes/main");
   await expectHeading(page, "Main");
