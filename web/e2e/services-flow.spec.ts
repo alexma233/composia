@@ -10,7 +10,7 @@ async function createService(page: Page, folder: string) {
   await expectHeading(page, "Services");
   await page.getByRole("button", { name: "Create service" }).click();
   await page.getByLabel("Folder name").fill(folder);
-  await page.getByRole("button", { name: "Create" }).click();
+  await page.getByRole("button", { name: "Create", exact: true }).click();
 
   await expect(page).toHaveURL(`/services/${folder}`);
 }
