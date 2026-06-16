@@ -13,6 +13,26 @@ services:
         if [ ! -d /tmp/repo-controller/.git ]; then
           git init /tmp/repo-controller
         fi
+        git -C /tmp/repo-controller config user.email "web-e2e@composia.local"
+        git -C /tmp/repo-controller config user.name "Composia Web E2E"
+        mkdir -p /tmp/repo-controller/host-service
+        cat > /tmp/repo-controller/README.md <<'EOF'
+        # Composia web e2e fixture
+        EOF
+        cat > /tmp/repo-controller/host-service/composia-meta.yaml <<'EOF'
+        name: host-service
+        nodes:
+          - main
+        infra:
+          config: {}
+        EOF
+        cat > /tmp/repo-controller/host-service/docker-compose.yaml <<'EOF'
+        # infra.config services do not need docker compose for this fixture
+        EOF
+        if [ -n "$(git -C /tmp/repo-controller status --short)" ]; then
+          git -C /tmp/repo-controller add .
+          git -C /tmp/repo-controller commit -m "Seed web e2e repo"
+        fi
         cat > /tmp/composia-e2e.yaml <<'EOF'
         controller:
           listen_addr: ":7001"
