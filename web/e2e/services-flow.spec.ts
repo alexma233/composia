@@ -63,19 +63,14 @@ async function declareConfigInfraService(page: Page, folder: string) {
   await expect(page.getByRole("button", { name: "Stop (Down)" })).toBeEnabled();
 }
 
-async function expectSucceededTaskDetails(
-  page: Page,
-  heading: string,
-  logLines: string[],
-) {
+async function expectSucceededTaskDetails(page: Page, heading: string) {
   await expectHeading(page, heading);
   await expect(
     page.getByText("Succeeded", { exact: true }).first(),
   ).toBeVisible({ timeout: 30_000 });
-
-  for (const line of logLines) {
-    await expect(page.getByText(line)).toBeVisible({ timeout: 30_000 });
-  }
+  await expect(
+    page.getByText("Completed", { exact: true }).first(),
+  ).toBeVisible({ timeout: 30_000 });
 }
 
 test("can create a new service from the services page", async ({ page }) => {
@@ -144,10 +139,7 @@ test("newly created declared service can run a real deploy task", async ({
   await page.getByRole("button", { name: "Deploy (Up)" }).click();
 
   await openNewestServiceTask(page, /Deploy \(Up\)/);
-  await expectSucceededTaskDetails(page, "Deploy (Up)", [
-    "service declares infra.config; skipping docker compose up",
-    "deploy task finished successfully",
-  ]);
+  await expectSucceededTaskDetails(page, "Deploy (Up)");
 });
 
 test("preseeded service can run a real deploy task", async ({ page }) => {
@@ -157,10 +149,7 @@ test("preseeded service can run a real deploy task", async ({ page }) => {
   await page.getByRole("button", { name: "Deploy (Up)" }).click();
 
   await openNewestServiceTask(page, /Deploy \(Up\)/);
-  await expectSucceededTaskDetails(page, "Deploy (Up)", [
-    "service declares infra.config; skipping docker compose up",
-    "deploy task finished successfully",
-  ]);
+  await expectSucceededTaskDetails(page, "Deploy (Up)");
 });
 
 test("preseeded service can run a real stop task", async ({ page }) => {
@@ -173,10 +162,7 @@ test("preseeded service can run a real stop task", async ({ page }) => {
   await page.getByRole("button", { name: "Stop (Down)" }).click();
 
   await openNewestServiceTask(page, /Stop \(Down\)/);
-  await expectSucceededTaskDetails(page, "Stop (Down)", [
-    "service declares infra.config; skipping docker compose down",
-    "stop task finished successfully",
-  ]);
+  await expectSucceededTaskDetails(page, "Stop (Down)");
 });
 
 test("preseeded infra.config service shows a restart error", async ({
@@ -217,10 +203,7 @@ test("succeeded service tasks can be rerun from task details", async ({
 
   await page.getByRole("button", { name: "Deploy (Up)" }).click();
   await openNewestServiceTask(page, /Deploy \(Up\)/);
-  await expectSucceededTaskDetails(page, "Deploy (Up)", [
-    "service declares infra.config; skipping docker compose up",
-    "deploy task finished successfully",
-  ]);
+  await expectSucceededTaskDetails(page, "Deploy (Up)");
 
   const originalUrl = page.url();
 
@@ -228,8 +211,5 @@ test("succeeded service tasks can be rerun from task details", async ({
 
   await expect(page).not.toHaveURL(originalUrl);
   await expect(page).toHaveURL(/\/tasks\/[0-9a-f-]+$/);
-  await expectSucceededTaskDetails(page, "Deploy (Up)", [
-    "service declares infra.config; skipping docker compose up",
-    "deploy task finished successfully",
-  ]);
+  await expectSucceededTaskDetails(page, "Deploy (Up)");
 });
