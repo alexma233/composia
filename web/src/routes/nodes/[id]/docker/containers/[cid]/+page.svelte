@@ -58,6 +58,7 @@
   let terminalRows = $state(32);
   let terminalCols = $state(120);
   let stopActionRefreshHandle = $state<null | (() => void)>(null);
+  const terminalInputEncoder = new TextEncoder();
 
   $effect(() => {
     applyContainerRawJson(data.rawJson);
@@ -367,7 +368,7 @@
     if (!terminalSocket || terminalSocket.readyState !== WebSocket.OPEN) {
       return;
     }
-    terminalSocket.send(data);
+    terminalSocket.send(terminalInputEncoder.encode(data));
   }
 
   function resizeTerminal(rows: number, cols: number) {
