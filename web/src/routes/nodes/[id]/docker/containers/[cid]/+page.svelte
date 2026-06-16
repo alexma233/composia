@@ -23,7 +23,7 @@
   import { Badge, type BadgeVariant } from "$lib/components/ui/badge";
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
-  import XtermSurface from "$lib/components/app/xterm-surface.svelte";
+  import TerminalSurface from "$lib/components/app/terminal-surface.svelte";
   import { messages } from "$lib/i18n";
   import { actionErrorMessage } from "$lib/capabilities";
   import {
@@ -780,7 +780,7 @@
                     </Alert>
                   {/if}
 
-                  <XtermSurface
+                  <TerminalSurface
                     active={activeTab === "logs"}
                     content={logsState === "connecting" && !logs
                       ? $messages.common.loadingWithDots
@@ -837,7 +837,7 @@
                     </Alert>
                   {/if}
 
-                  <XtermSurface
+                  <TerminalSurface
                     active={activeTab === "terminal"}
                     content={terminalOutput}
                     emptyText={terminalConnecting

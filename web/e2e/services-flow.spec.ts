@@ -71,6 +71,14 @@ async function expectSucceededTaskDetails(page: Page, heading: string) {
   await expect(
     page.getByText("Completed", { exact: true }).first(),
   ).toBeVisible({ timeout: 30_000 });
+  await expectTaskTerminalReady(page);
+}
+
+async function expectTaskTerminalReady(page: Page) {
+  const terminal = page.getByLabel("Terminal");
+
+  await expect(terminal).toHaveClass(/wterm/, { timeout: 30_000 });
+  await expect(terminal.locator(".term-row").first()).toBeVisible();
 }
 
 test("can create a new service from the services page", async ({ page }) => {

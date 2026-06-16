@@ -8,7 +8,7 @@
   import { messages } from '$lib/i18n';
   import { actionErrorMessage } from '$lib/capabilities';
 
-  import XtermSurface from '$lib/components/app/xterm-surface.svelte';
+  import TerminalSurface from '$lib/components/app/terminal-surface.svelte';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
@@ -443,7 +443,7 @@
           </Alert>
         {/if}
 
-				<XtermSurface
+				<TerminalSurface
           active={true}
           content={logContent}
           emptyText={$messages.tasks.waitingForOutput}
