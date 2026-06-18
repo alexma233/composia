@@ -17,8 +17,8 @@ require (
 	github.com/libdns/libdns v1.1.1
 	github.com/libdns/route53 v1.6.2
 	github.com/libdns/tencentcloud v1.4.3
-	github.com/moby/moby/api v1.54.2
-	github.com/moby/moby/client v0.4.1
+	github.com/moby/moby/api v1.55.0
+	github.com/moby/moby/client v0.5.0
 	github.com/otiai10/copy v1.14.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/robfig/cron/v3 v3.0.1
