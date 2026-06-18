@@ -23,7 +23,7 @@
     "@lucide/svelte": "1.21.0",
     "@playwright/test": "1.61.0",
     "@sveltejs/adapter-auto": "7.0.1",
-    "@sveltejs/adapter-node": "5.5.4",
+    "@sveltejs/adapter-node": "5.5.5",
     "@sveltejs/kit": "2.65.2",
     "@sveltejs/vite-plugin-svelte": "7.1.2",
     "@tailwindcss/vite": "4.3.1",
