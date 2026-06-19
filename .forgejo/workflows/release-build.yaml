@@ -108,7 +108,6 @@ jobs:
             dist/copr-rpmbuild/SRPMS/*.src.rpm
 
   docker-web:
-    runs-on: docker-amd64-dind
     uses: ./.forgejo/workflows/reusable-docker-publish.yaml
     secrets: inherit
     with:
