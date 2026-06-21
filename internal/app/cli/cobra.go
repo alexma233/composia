@@ -152,9 +152,9 @@ func cobraCommandSpecs(runtime *cobraRuntime) []cobraCommandSpec {
 			leafSpec("list <service>", "List service instances", true, (*app).runInstanceList, nil, completeServiceFirstArg(runtime)),
 			leafSpec("get <service> <node>", "Show one service instance", true, (*app).runInstanceGet, containersFlag, completeServiceThenNode(runtime)),
 			leafSpec("deploy <service> <node>", "Deploy one service instance", true, func(a *app, args []string) error { return a.runInstanceAction("deploy", args) }, instanceActionFlags, completeServiceThenNode(runtime)),
-			leafSpec("update <service> <node>", "Update one service instance", true, func(a *app, args []string) error { return a.runInstanceAction("update", args) }, instanceActionFlags, completeServiceThenNode(runtime)),
+			leafSpec("update <service> <node>", "Update one service instance", true, func(a *app, args []string) error { return a.runInstanceAction(actionUpdate, args) }, instanceActionFlags, completeServiceThenNode(runtime)),
 			leafSpec("stop <service> <node>", "Stop one service instance", true, func(a *app, args []string) error { return a.runInstanceAction("stop", args) }, waitFlags, completeServiceThenNode(runtime)),
-			leafSpec("restart <service> <node>", "Restart one service instance", true, func(a *app, args []string) error { return a.runInstanceAction("restart", args) }, waitFlags, completeServiceThenNode(runtime)),
+			leafSpec("restart <service> <node>", "Restart one service instance", true, func(a *app, args []string) error { return a.runInstanceAction(actionRestart, args) }, waitFlags, completeServiceThenNode(runtime)),
 			leafSpec("backup <service> <node>", "Back up one service instance", true, (*app).runInstanceBackup, instanceBackupFlags, completeServiceThenNode(runtime)),
 		}),
 		leafSpec("network <node> <list|get|remove>", "Low-level Docker network operations by node", true, (*app).runNetwork, dockerResourceFlags, completeNodeIDsArg(runtime)),
@@ -526,7 +526,7 @@ func completeConfigKeys(cmd *cobra.Command, args []string, toComplete string) ([
 }
 
 func serviceActionCompletions() []string {
-	return []string{"backup", "caddy-sync", "dns-update", "down", "edit", "exec", "logs", "migrate", "ps", "restart", "tunnel-sync", "update", "updates", "up"}
+	return []string{"backup", "caddy-sync", "dns-update", "down", "edit", "exec", "logs", "migrate", "ps", actionRestart, "tunnel-sync", actionUpdate, "updates", "up"}
 }
 
 func filterCompletions(values []string, prefix string) []string {

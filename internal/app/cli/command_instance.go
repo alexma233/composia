@@ -59,7 +59,7 @@ func (application *app) runInstanceAction(actionName string, args []string) erro
 	}
 	fs := newCommandFlagSet("instance " + actionName)
 	recreateMode := "auto"
-	if actionName == "deploy" || actionName == "update" {
+	if actionName == "deploy" || actionName == actionUpdate {
 		fs.StringVar(&recreateMode, "recreate", "auto", "compose recreate mode: auto, never, always")
 	}
 	waitOptions := addWaitFlags(fs)

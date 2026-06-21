@@ -30,7 +30,7 @@ func (application *app) runContainer(args []string) error {
 		return application.runContainerGet(nodeID, args[2:])
 	case "logs":
 		return application.runContainerLogs(nodeID, args[2:])
-	case "start", "stop", "restart":
+	case "start", "stop", actionRestart:
 		return application.runContainerAction(nodeID, args[1], args[2:])
 	case "remove":
 		return application.runContainerRemove(nodeID, args[2:])
@@ -473,7 +473,7 @@ func containerActionFromName(name string) (controllerv1.ContainerAction, error) 
 		return controllerv1.ContainerAction_CONTAINER_ACTION_START, nil
 	case "stop":
 		return controllerv1.ContainerAction_CONTAINER_ACTION_STOP, nil
-	case "restart":
+	case actionRestart:
 		return controllerv1.ContainerAction_CONTAINER_ACTION_RESTART, nil
 	default:
 		return controllerv1.ContainerAction_CONTAINER_ACTION_UNSPECIFIED, fmt.Errorf("unknown container action %q", name)

@@ -30,6 +30,8 @@ const (
 	envAccessToken       = "COMPOSIA_ACCESS_TOKEN"
 	envControllerHeaders = "COMPOSIA_CONTROLLER_HEADERS"
 	serviceCommandName   = "service"
+	actionUpdate         = "update"
+	actionRestart        = "restart"
 )
 
 type outputMode string
@@ -454,7 +456,7 @@ Per-service actions:
 `); err != nil {
 		return err
 	}
-	for _, action := range []string{"edit", "up", "down", "update", "restart", "backup", "dns-update", "caddy-sync", "tunnel-sync", "migrate", "updates", "logs", "ps", "exec"} {
+	for _, action := range []string{"edit", "up", "down", actionUpdate, actionRestart, "backup", "dns-update", "caddy-sync", "tunnel-sync", "migrate", "updates", "logs", "ps", "exec"} {
 		key := "service " + action
 		if _, err := fmt.Fprintf(w, "  %-14s %s\n", action, commandHelp[key].description); err != nil {
 			return err

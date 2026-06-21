@@ -72,9 +72,9 @@ func taskTypeFromText(value string) controllerv1.TaskType {
 		return controllerv1.TaskType_TASK_TYPE_DEPLOY
 	case "stop":
 		return controllerv1.TaskType_TASK_TYPE_STOP
-	case "restart":
+	case actionRestart:
 		return controllerv1.TaskType_TASK_TYPE_RESTART
-	case "update":
+	case actionUpdate:
 		return controllerv1.TaskType_TASK_TYPE_UPDATE
 	case "backup":
 		return controllerv1.TaskType_TASK_TYPE_BACKUP

@@ -185,7 +185,7 @@ func TestImageUpdateSelectionsRejectsDuplicateUpdates(t *testing.T) {
 }
 
 func TestContainerActionFromName(t *testing.T) {
-	action, err := containerActionFromName("restart")
+	action, err := containerActionFromName(actionRestart)
 	if err != nil {
 		t.Fatalf("containerActionFromName returned error: %v", err)
 	}

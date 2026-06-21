@@ -33,7 +33,7 @@ func (application *app) runService(args []string) error {
 		return application.runServiceEdit(serviceName, rest[1:])
 	case "updates":
 		return application.runServiceUpdateCandidates(serviceName, rest[1:])
-	case "up", "down", "update", "restart", "backup", "dns-update", "caddy-sync", "cloudflare-tunnel-sync", "tunnel-sync":
+	case "up", "down", actionUpdate, actionRestart, "backup", "dns-update", "caddy-sync", "cloudflare-tunnel-sync", "tunnel-sync":
 		return application.runServiceAction(rest[0], serviceName, rest[1:])
 	case "migrate":
 		return application.runServiceMigrate(serviceName, rest[1:])
@@ -253,10 +253,10 @@ func (application *app) runServiceAction(actionName string, serviceName string, 
 	skipBackupBeforeUpdate := false
 	fs.Var(&nodes, "node", "target node ID; repeat or comma-separate")
 	fs.Var(&dataNames, "data", "data entry name for backup-like actions; repeat or comma-separate")
-	if actionName == "up" || actionName == "update" {
+	if actionName == "up" || actionName == actionUpdate {
 		fs.StringVar(&recreateMode, "recreate", "auto", "compose recreate mode: auto, never, always")
 	}
-	if actionName == "update" {
+	if actionName == actionUpdate {
 		fs.Var(&imageNames, "image", "configured image update name; repeat or comma-separate")
 		fs.Var(&setImages, "set-image", "configured image update assignment name=tag; repeat or comma-separate")
 		fs.BoolVar(&useDetectedImages, "use-detected", false, "apply detected candidate for --image entries")
@@ -295,7 +295,7 @@ func (application *app) runServiceAction(actionName string, serviceName string, 
 		return err
 	}
 	var backupBeforeUpdate *bool
-	if actionName == "update" {
+	if actionName == actionUpdate {
 		switch {
 		case forceBackupBeforeUpdate:
 			backupBeforeUpdate = boolPtr(true)
@@ -496,11 +496,11 @@ func serviceActionFromName(name string) (controllerv1.ServiceAction, error) {
 	switch name {
 	case "up", "deploy":
 		return controllerv1.ServiceAction_SERVICE_ACTION_DEPLOY, nil
-	case "update":
+	case actionUpdate:
 		return controllerv1.ServiceAction_SERVICE_ACTION_UPDATE, nil
 	case "down", "stop":
 		return controllerv1.ServiceAction_SERVICE_ACTION_STOP, nil
-	case "restart":
+	case actionRestart:
 		return controllerv1.ServiceAction_SERVICE_ACTION_RESTART, nil
 	case "backup":
 		return controllerv1.ServiceAction_SERVICE_ACTION_BACKUP, nil
