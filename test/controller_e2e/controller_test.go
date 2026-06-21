@@ -26,14 +26,20 @@ const (
 )
 
 type controllerClients struct {
-	system         controllerv1connect.SystemServiceClient
-	nodeQuery      controllerv1connect.NodeQueryServiceClient
-	repoQuery      controllerv1connect.RepoQueryServiceClient
-	repoCommand    controllerv1connect.RepoCommandServiceClient
-	serviceQuery   controllerv1connect.ServiceQueryServiceClient
-	serviceCommand controllerv1connect.ServiceCommandServiceClient
-	serviceInst    controllerv1connect.ServiceInstanceServiceClient
-	task           controllerv1connect.TaskServiceClient
+	system          controllerv1connect.SystemServiceClient
+	nodeQuery       controllerv1connect.NodeQueryServiceClient
+	nodeMaintenance controllerv1connect.NodeMaintenanceServiceClient
+	dockerQuery     controllerv1connect.DockerQueryServiceClient
+	dockerCommand   controllerv1connect.DockerCommandServiceClient
+	repoQuery       controllerv1connect.RepoQueryServiceClient
+	repoCommand     controllerv1connect.RepoCommandServiceClient
+	serviceQuery    controllerv1connect.ServiceQueryServiceClient
+	serviceCommand  controllerv1connect.ServiceCommandServiceClient
+	serviceInst     controllerv1connect.ServiceInstanceServiceClient
+	task            controllerv1connect.TaskServiceClient
+	backupQuery     controllerv1connect.BackupQueryServiceClient
+	backupCommand   controllerv1connect.BackupCommandServiceClient
+	secret          controllerv1connect.SecretServiceClient
 }
 
 func TestControllerE2EAuth(t *testing.T) {
@@ -113,6 +119,15 @@ func TestControllerE2ESystemAndNodes(t *testing.T) {
 
 	_, err = clients.nodeQuery.GetNode(ctx, connect.NewRequest(&controllerv1.GetNodeRequest{NodeId: "missing-node"}))
 	assertConnectCode(t, err, connect.CodeNotFound)
+
+	reload, err := clients.system.ReloadControllerConfig(ctx, connect.NewRequest(&controllerv1.ReloadControllerConfigRequest{}))
+	if err != nil {
+		t.Fatalf("reload controller config: %v", err)
+	}
+	if !reload.Msg.GetAccepted() {
+		t.Fatalf("expected controller reload to be accepted")
+	}
+	waitForController(t, clients)
 }
 
 func TestControllerE2ERepoAndServices(t *testing.T) {
@@ -160,6 +175,15 @@ func TestControllerE2ERepoAndServices(t *testing.T) {
 		t.Fatalf("expected seeded repo commit history")
 	}
 
+	_, err = clients.repoCommand.SyncRepo(ctx, connect.NewRequest(&controllerv1.SyncRepoRequest{}))
+	assertConnectCode(t, err, connect.CodeFailedPrecondition)
+
+	_, err = clients.repoQuery.GetRepoFile(ctx, connect.NewRequest(&controllerv1.GetRepoFileRequest{Path: "missing/file.txt"}))
+	assertConnectCode(t, err, connect.CodeNotFound)
+
+	_, err = clients.repoQuery.GetRepoFile(ctx, connect.NewRequest(&controllerv1.GetRepoFileRequest{Path: "../outside"}))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
 	workspaces, err := clients.serviceQuery.ListServiceWorkspaces(ctx, connect.NewRequest(&controllerv1.ListServiceWorkspacesRequest{}))
 	if err != nil {
 		t.Fatalf("list service workspaces: %v", err)
@@ -167,6 +191,17 @@ func TestControllerE2ERepoAndServices(t *testing.T) {
 	if !hasWorkspace(workspaces.Msg.GetWorkspaces(), "host-service", testServiceName) {
 		t.Fatalf("expected host-service workspace")
 	}
+
+	workspace, err := clients.serviceQuery.GetServiceWorkspace(ctx, connect.NewRequest(&controllerv1.GetServiceWorkspaceRequest{Folder: "host-service"}))
+	if err != nil {
+		t.Fatalf("get service workspace: %v", err)
+	}
+	if workspace.Msg.GetWorkspace().GetServiceName() != testServiceName {
+		t.Fatalf("workspace service name = %q, want %q", workspace.Msg.GetWorkspace().GetServiceName(), testServiceName)
+	}
+
+	_, err = clients.serviceQuery.GetServiceWorkspace(ctx, connect.NewRequest(&controllerv1.GetServiceWorkspaceRequest{Folder: "missing-workspace"}))
+	assertConnectCode(t, err, connect.CodeNotFound)
 
 	services, err := clients.serviceQuery.ListServices(ctx, connect.NewRequest(&controllerv1.ListServicesRequest{PageSize: 10, Page: 1}))
 	if err != nil {
@@ -184,6 +219,14 @@ func TestControllerE2ERepoAndServices(t *testing.T) {
 		t.Fatalf("unexpected service detail: %+v", service.Msg)
 	}
 
+	imageChecks, err := clients.serviceQuery.GetServiceImageUpdateChecks(ctx, connect.NewRequest(&controllerv1.GetServiceImageUpdateChecksRequest{ServiceName: testServiceName}))
+	if err != nil {
+		t.Fatalf("get service image update checks: %v", err)
+	}
+	if len(imageChecks.Msg.GetChecks()) != 0 {
+		t.Fatalf("expected no image update checks in fixture, got %d", len(imageChecks.Msg.GetChecks()))
+	}
+
 	instances, err := clients.serviceInst.ListServiceInstances(ctx, connect.NewRequest(&controllerv1.ListServiceInstancesRequest{ServiceName: testServiceName}))
 	if err != nil {
 		t.Fatalf("list service instances: %v", err)
@@ -192,8 +235,22 @@ func TestControllerE2ERepoAndServices(t *testing.T) {
 		t.Fatalf("expected %s instance on %s", testServiceName, testNodeID)
 	}
 
+	instance, err := clients.serviceInst.GetServiceInstance(ctx, connect.NewRequest(&controllerv1.GetServiceInstanceRequest{ServiceName: testServiceName, NodeId: testNodeID}))
+	if err != nil {
+		t.Fatalf("get service instance: %v", err)
+	}
+	if instance.Msg.GetInstance().GetServiceName() != testServiceName || instance.Msg.GetInstance().GetNodeId() != testNodeID {
+		t.Fatalf("unexpected service instance: %+v", instance.Msg.GetInstance())
+	}
+
+	_, err = clients.serviceInst.GetServiceInstance(ctx, connect.NewRequest(&controllerv1.GetServiceInstanceRequest{ServiceName: testServiceName, NodeId: "missing-node"}))
+	assertConnectCode(t, err, connect.CodeNotFound)
+
 	_, err = clients.serviceQuery.GetService(ctx, connect.NewRequest(&controllerv1.GetServiceRequest{ServiceName: "missing-service"}))
 	assertConnectCode(t, err, connect.CodeNotFound)
+
+	_, err = clients.serviceCommand.MigrateService(ctx, connect.NewRequest(&controllerv1.MigrateServiceRequest{ServiceName: testServiceName, SourceNodeId: testNodeID, TargetNodeId: testNodeID}))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
 }
 
 func TestControllerE2ERepoWrites(t *testing.T) {
@@ -274,6 +331,158 @@ func TestControllerE2ERepoWrites(t *testing.T) {
 	assertConnectCode(t, err, connect.CodeNotFound)
 }
 
+func TestControllerE2EFeatureContracts(t *testing.T) {
+	ctx := testContext(t)
+	clients := newControllerClients()
+	waitForController(t, clients)
+
+	backups, err := clients.backupQuery.ListBackups(ctx, connect.NewRequest(&controllerv1.ListBackupsRequest{PageSize: 10, Page: 1}))
+	if err != nil {
+		t.Fatalf("list backups: %v", err)
+	}
+	if backups.Msg.GetTotalCount() < uint32(len(backups.Msg.GetBackups())) {
+		t.Fatalf("backup total_count = %d, returned %d", backups.Msg.GetTotalCount(), len(backups.Msg.GetBackups()))
+	}
+
+	_, err = clients.backupQuery.GetBackup(ctx, connect.NewRequest(&controllerv1.GetBackupRequest{BackupId: "missing-backup"}))
+	assertConnectCode(t, err, connect.CodeNotFound)
+
+	_, err = clients.backupCommand.RestoreBackup(ctx, connect.NewRequest(&controllerv1.RestoreBackupRequest{BackupId: "missing-backup", NodeId: testNodeID}))
+	assertConnectCode(t, err, connect.CodeNotFound)
+
+	_, err = clients.secret.GetSecret(ctx, connect.NewRequest(&controllerv1.GetSecretRequest{ServiceName: testServiceName, FilePath: ".env"}))
+	assertConnectCode(t, err, connect.CodeFailedPrecondition)
+
+	_, err = clients.secret.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{ServiceName: testServiceName, FilePath: ".env", Content: "A=B\n", BaseRevision: repoHead(t, ctx, clients).GetHeadRevision()}))
+	assertConnectCode(t, err, connect.CodeFailedPrecondition)
+
+	stats, err := clients.nodeQuery.GetNodeDockerStats(ctx, connect.NewRequest(&controllerv1.GetNodeDockerStatsRequest{NodeId: testNodeID}))
+	if err != nil {
+		t.Fatalf("get node docker stats: %v", err)
+	}
+	if stats.Msg.GetStats() == nil {
+		t.Fatalf("expected docker stats message")
+	}
+
+	_, err = clients.nodeMaintenance.ReloadNodeCaddy(ctx, sourceRequest(&controllerv1.ReloadNodeCaddyRequest{NodeId: testNodeID}, "web"))
+	assertConnectCode(t, err, connect.CodeFailedPrecondition)
+
+	_, err = clients.nodeMaintenance.SyncNodeCaddyFiles(ctx, sourceRequest(&controllerv1.SyncNodeCaddyFilesRequest{NodeId: testNodeID, ServiceName: testServiceName}, "web"))
+	assertConnectCode(t, err, connect.CodeFailedPrecondition)
+
+	_, err = clients.nodeMaintenance.InitNodeRustic(ctx, sourceRequest(&controllerv1.InitNodeRusticRequest{NodeId: testNodeID}, "web"))
+	assertConnectCode(t, err, connect.CodeFailedPrecondition)
+
+	_, err = clients.nodeMaintenance.ForgetNodeRustic(ctx, sourceRequest(&controllerv1.ForgetNodeRusticRequest{NodeId: testNodeID, ServiceName: testServiceName, DataName: "data"}, "web"))
+	assertConnectCode(t, err, connect.CodeFailedPrecondition)
+
+	_, err = clients.nodeMaintenance.PruneNodeRustic(ctx, sourceRequest(&controllerv1.PruneNodeRusticRequest{NodeId: testNodeID, ServiceName: testServiceName, DataName: "data"}, "web"))
+	assertConnectCode(t, err, connect.CodeFailedPrecondition)
+
+	_, err = clients.nodeMaintenance.PruneNodeDocker(ctx, sourceRequest(&controllerv1.PruneNodeDockerRequest{}, "web"))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	_, err = clients.dockerCommand.RunContainerAction(ctx, sourceRequest(&controllerv1.RunContainerActionRequest{NodeId: testNodeID, ContainerId: "container"}, "web"))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	_, err = clients.dockerCommand.RemoveContainer(ctx, sourceRequest(&controllerv1.RemoveContainerRequest{NodeId: testNodeID}, "web"))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	logStream, err := clients.dockerCommand.GetContainerLogs(ctx, connect.NewRequest(&controllerv1.GetContainerLogsRequest{NodeId: testNodeID}))
+	assertStreamConnectCode(t, logStream, err, connect.CodeInvalidArgument)
+
+	_, err = clients.dockerCommand.OpenContainerExec(ctx, connect.NewRequest(&controllerv1.OpenContainerExecRequest{NodeId: testNodeID, ContainerId: "container"}))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	_, err = clients.dockerCommand.RunContainerExec(ctx, connect.NewRequest(&controllerv1.RunContainerExecRequest{NodeId: testNodeID, ContainerId: "container"}))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	_, err = clients.dockerCommand.RemoveNetwork(ctx, sourceRequest(&controllerv1.RemoveNetworkRequest{NodeId: testNodeID}, "web"))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	_, err = clients.dockerCommand.RemoveVolume(ctx, sourceRequest(&controllerv1.RemoveVolumeRequest{NodeId: testNodeID}, "web"))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	_, err = clients.dockerCommand.RemoveImage(ctx, sourceRequest(&controllerv1.RemoveImageRequest{NodeId: testNodeID}, "web"))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+}
+
+func TestControllerE2EDockerQueriesAndExec(t *testing.T) {
+	ctx := testContext(t)
+	clients := newControllerClients()
+	waitForController(t, clients)
+	waitForNodeOnline(t, ctx, clients, testNodeID)
+
+	containers := listContainers(t, ctx, clients)
+	container := chooseExecContainer(t, containers)
+
+	containerInspect, err := clients.dockerQuery.InspectNodeContainer(ctx, connect.NewRequest(&controllerv1.InspectNodeContainerRequest{NodeId: testNodeID, ContainerId: container.GetId()}))
+	if err != nil {
+		t.Fatalf("inspect node container: %v", err)
+	}
+	if !strings.Contains(containerInspect.Msg.GetRawJson(), shortID(container.GetId())) && !strings.Contains(containerInspect.Msg.GetRawJson(), container.GetName()) {
+		t.Fatalf("unexpected container inspect payload")
+	}
+
+	networks, err := clients.dockerQuery.ListNodeNetworks(ctx, connect.NewRequest(&controllerv1.ListNodeNetworksRequest{NodeId: testNodeID, PageSize: 10, Page: 1}))
+	if err != nil {
+		t.Fatalf("list node networks: %v", err)
+	}
+	if networks.Msg.GetTotalCount() == 0 || len(networks.Msg.GetNetworks()) == 0 {
+		t.Fatalf("expected at least one docker network")
+	}
+	networkInspect, err := clients.dockerQuery.InspectNodeNetwork(ctx, connect.NewRequest(&controllerv1.InspectNodeNetworkRequest{NodeId: testNodeID, NetworkId: networks.Msg.GetNetworks()[0].GetId()}))
+	if err != nil {
+		t.Fatalf("inspect node network: %v", err)
+	}
+	if strings.TrimSpace(networkInspect.Msg.GetRawJson()) == "" {
+		t.Fatalf("expected network inspect JSON")
+	}
+
+	volumes, err := clients.dockerQuery.ListNodeVolumes(ctx, connect.NewRequest(&controllerv1.ListNodeVolumesRequest{NodeId: testNodeID, PageSize: 10, Page: 1}))
+	if err != nil {
+		t.Fatalf("list node volumes: %v", err)
+	}
+	if len(volumes.Msg.GetVolumes()) > 0 {
+		volumeInspect, err := clients.dockerQuery.InspectNodeVolume(ctx, connect.NewRequest(&controllerv1.InspectNodeVolumeRequest{NodeId: testNodeID, VolumeName: volumes.Msg.GetVolumes()[0].GetName()}))
+		if err != nil {
+			t.Fatalf("inspect node volume: %v", err)
+		}
+		if strings.TrimSpace(volumeInspect.Msg.GetRawJson()) == "" {
+			t.Fatalf("expected volume inspect JSON")
+		}
+	}
+
+	images, err := clients.dockerQuery.ListNodeImages(ctx, connect.NewRequest(&controllerv1.ListNodeImagesRequest{NodeId: testNodeID, PageSize: 10, Page: 1}))
+	if err != nil {
+		t.Fatalf("list node images: %v", err)
+	}
+	if images.Msg.GetTotalCount() == 0 || len(images.Msg.GetImages()) == 0 {
+		t.Fatalf("expected at least one docker image")
+	}
+	imageInspect, err := clients.dockerQuery.InspectNodeImage(ctx, connect.NewRequest(&controllerv1.InspectNodeImageRequest{NodeId: testNodeID, ImageId: images.Msg.GetImages()[0].GetId()}))
+	if err != nil {
+		t.Fatalf("inspect node image: %v", err)
+	}
+	if strings.TrimSpace(imageInspect.Msg.GetRawJson()) == "" {
+		t.Fatalf("expected image inspect JSON")
+	}
+
+	execResult, err := clients.dockerCommand.RunContainerExec(ctx, connect.NewRequest(&controllerv1.RunContainerExecRequest{
+		NodeId:         testNodeID,
+		ContainerId:    container.GetId(),
+		Command:        []string{"/bin/sh", "-c", "printf composia-controller-e2e"},
+		TimeoutSeconds: 10,
+		MaxOutputBytes: 1024,
+	}))
+	if err != nil {
+		t.Fatalf("run container exec: %v", err)
+	}
+	if execResult.Msg.GetExitCode() != 0 || execResult.Msg.GetStdout() != "composia-controller-e2e" {
+		t.Fatalf("unexpected exec result: exit=%d stdout=%q stderr=%q", execResult.Msg.GetExitCode(), execResult.Msg.GetStdout(), execResult.Msg.GetStderr())
+	}
+}
+
 func TestControllerE2ETasks(t *testing.T) {
 	ctx := testContext(t)
 	clients := newControllerClients()
@@ -313,6 +522,17 @@ func TestControllerE2ETasks(t *testing.T) {
 		t.Fatalf("expected deploy task steps")
 	}
 
+	logChunk := firstTaskLogChunk(t, ctx, clients, taskID)
+	if strings.TrimSpace(logChunk) == "" {
+		t.Fatalf("expected non-empty task log chunk")
+	}
+
+	_, err = clients.task.ResolveTaskConfirmation(ctx, sourceRequest(&controllerv1.ResolveTaskConfirmationRequest{TaskId: taskID, Decision: controllerv1.TaskConfirmationDecision_TASK_CONFIRMATION_DECISION_APPROVE}, "web"))
+	assertConnectCode(t, err, connect.CodeFailedPrecondition)
+
+	_, err = clients.task.CreateMigrationRollback(ctx, sourceRequest(&controllerv1.CreateMigrationRollbackRequest{TaskId: taskID, DeploySource: true}, "web"))
+	assertConnectCode(t, err, connect.CodeFailedPrecondition)
+
 	filtered, err := clients.task.ListTasks(ctx, connect.NewRequest(&controllerv1.ListTasksRequest{
 		Status:      []controllerv1.TaskStatus{controllerv1.TaskStatus_TASK_STATUS_SUCCEEDED},
 		ServiceName: []string{testServiceName},
@@ -348,14 +568,20 @@ func newControllerClients() controllerClients {
 	baseURL := controllerAPIBaseURL()
 	opts := []connect.ClientOption{connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(accessToken()))}
 	return controllerClients{
-		system:         controllerv1connect.NewSystemServiceClient(http.DefaultClient, baseURL, opts...),
-		nodeQuery:      controllerv1connect.NewNodeQueryServiceClient(http.DefaultClient, baseURL, opts...),
-		repoQuery:      controllerv1connect.NewRepoQueryServiceClient(http.DefaultClient, baseURL, opts...),
-		repoCommand:    controllerv1connect.NewRepoCommandServiceClient(http.DefaultClient, baseURL, opts...),
-		serviceQuery:   controllerv1connect.NewServiceQueryServiceClient(http.DefaultClient, baseURL, opts...),
-		serviceCommand: controllerv1connect.NewServiceCommandServiceClient(http.DefaultClient, baseURL, opts...),
-		serviceInst:    controllerv1connect.NewServiceInstanceServiceClient(http.DefaultClient, baseURL, opts...),
-		task:           controllerv1connect.NewTaskServiceClient(http.DefaultClient, baseURL, opts...),
+		system:          controllerv1connect.NewSystemServiceClient(http.DefaultClient, baseURL, opts...),
+		nodeQuery:       controllerv1connect.NewNodeQueryServiceClient(http.DefaultClient, baseURL, opts...),
+		nodeMaintenance: controllerv1connect.NewNodeMaintenanceServiceClient(http.DefaultClient, baseURL, opts...),
+		dockerQuery:     controllerv1connect.NewDockerQueryServiceClient(http.DefaultClient, baseURL, opts...),
+		dockerCommand:   controllerv1connect.NewDockerCommandServiceClient(http.DefaultClient, baseURL, opts...),
+		repoQuery:       controllerv1connect.NewRepoQueryServiceClient(http.DefaultClient, baseURL, opts...),
+		repoCommand:     controllerv1connect.NewRepoCommandServiceClient(http.DefaultClient, baseURL, opts...),
+		serviceQuery:    controllerv1connect.NewServiceQueryServiceClient(http.DefaultClient, baseURL, opts...),
+		serviceCommand:  controllerv1connect.NewServiceCommandServiceClient(http.DefaultClient, baseURL, opts...),
+		serviceInst:     controllerv1connect.NewServiceInstanceServiceClient(http.DefaultClient, baseURL, opts...),
+		task:            controllerv1connect.NewTaskServiceClient(http.DefaultClient, baseURL, opts...),
+		backupQuery:     controllerv1connect.NewBackupQueryServiceClient(http.DefaultClient, baseURL, opts...),
+		backupCommand:   controllerv1connect.NewBackupCommandServiceClient(http.DefaultClient, baseURL, opts...),
+		secret:          controllerv1connect.NewSecretServiceClient(http.DefaultClient, baseURL, opts...),
 	}
 }
 
@@ -432,10 +658,90 @@ func waitForTaskStatus(t *testing.T, ctx context.Context, clients controllerClie
 	return nil
 }
 
+func firstTaskLogChunk(t *testing.T, ctx context.Context, clients controllerClients, taskID string) string {
+	t.Helper()
+	streamCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	stream, err := clients.task.TailTaskLogs(streamCtx, connect.NewRequest(&controllerv1.TailTaskLogsRequest{TaskId: taskID}))
+	if err != nil {
+		t.Fatalf("tail task logs: %v", err)
+	}
+	defer func() { _ = stream.Close() }()
+	if !stream.Receive() {
+		t.Fatalf("expected task log chunk, got err=%v", stream.Err())
+	}
+	return stream.Msg().GetContent()
+}
+
+func waitForNodeOnline(t *testing.T, ctx context.Context, clients controllerClients, nodeID string) {
+	t.Helper()
+	deadline := time.Now().Add(60 * time.Second)
+	for time.Now().Before(deadline) {
+		resp, err := clients.nodeQuery.GetNode(ctx, connect.NewRequest(&controllerv1.GetNodeRequest{NodeId: nodeID}))
+		if err != nil {
+			t.Fatalf("get node while waiting online: %v", err)
+		}
+		if resp.Msg.GetNode().GetIsOnline() {
+			return
+		}
+		time.Sleep(1 * time.Second)
+	}
+	t.Fatalf("node %q did not become online", nodeID)
+}
+
+func listContainers(t *testing.T, ctx context.Context, clients controllerClients) []*controllerv1.ContainerInfo {
+	t.Helper()
+	resp, err := clients.dockerQuery.ListNodeContainers(ctx, connect.NewRequest(&controllerv1.ListNodeContainersRequest{NodeId: testNodeID, PageSize: 50, Page: 1}))
+	if err != nil {
+		t.Fatalf("list node containers: %v", err)
+	}
+	if resp.Msg.GetTotalCount() == 0 || len(resp.Msg.GetContainers()) == 0 {
+		t.Fatalf("expected at least one docker container")
+	}
+	return resp.Msg.GetContainers()
+}
+
+func chooseExecContainer(t *testing.T, containers []*controllerv1.ContainerInfo) *controllerv1.ContainerInfo {
+	t.Helper()
+	for _, container := range containers {
+		name := container.GetName()
+		if container.GetState() == "running" && (strings.Contains(name, "controller-dev") || strings.Contains(name, "agent-dev")) {
+			return container
+		}
+	}
+	for _, container := range containers {
+		if container.GetState() == "running" {
+			return container
+		}
+	}
+	t.Fatalf("expected at least one running container")
+	return nil
+}
+
+func shortID(id string) string {
+	if len(id) < 12 {
+		return id
+	}
+	return id[:12]
+}
+
 func sourceRequest[T any](msg *T, source string) *connect.Request[T] {
 	req := connect.NewRequest(msg)
 	req.Header().Set("X-Composia-Source", source)
 	return req
+}
+
+func assertStreamConnectCode[T any](t *testing.T, stream *connect.ServerStreamForClient[T], err error, code connect.Code) {
+	t.Helper()
+	if err != nil {
+		assertConnectCode(t, err, code)
+		return
+	}
+	defer func() { _ = stream.Close() }()
+	if stream.Receive() {
+		t.Fatalf("expected stream connect code %s, got message", code)
+	}
+	assertConnectCode(t, stream.Err(), code)
 }
 
 func assertConnectCode(t *testing.T, err error, code connect.Code) {
