@@ -8,7 +8,7 @@ import (
 	"connectrpc.com/connect"
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
-	"github.com/cenkalti/backoff/v5"
+	"github.com/cenkalti/backoff/v6"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
