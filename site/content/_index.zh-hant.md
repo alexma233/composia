@@ -17,7 +17,7 @@ layout: hextra-home
 
 <div class="hx:mb-12">
 {{< hextra/hero-subtitle >}}
-  為進階使用者打造的自託管協調系統。&nbsp;<br class="hx:sm:block hx:hidden" />以純文字定義服務、存放在 Git 中、無需資料庫且無鎖定。&nbsp;<br class="hx:sm:block hx:hidden" />備份、DNS、反向代理與映像檔更新——全部內建。
+  為進階使用者打造的自託管協調系統。以純文字定義服務、存放在 Git 中、所有設定都以檔案為基礎且無鎖定。
 {{< /hextra/hero-subtitle >}}
 </div>
 
@@ -40,7 +40,7 @@ layout: hextra-home
 
 {{< hextra/feature-card
   title="標準檔案，無鎖定"
-  subtitle="docker-compose.yaml + composia-meta.yaml，存放在您的 Git 存放庫中。開放格式、無資料庫儲存、隨時手動控制。"
+  subtitle="docker-compose.yaml + composia-meta.yaml，存放在您的 Git 存放庫中。開放格式，所有設定都以檔案為基礎，隨時手動控制。"
   icon="lock-open"
   style="background: radial-gradient(ellipse at 50% 80%,rgba(16,185,129,0.1),hsla(0,0%,100%,0));"
 >}}

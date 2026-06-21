@@ -17,7 +17,7 @@ layout: hextra-home
 
 <div class="hx:mb-12">
 {{< hextra/hero-subtitle >}}
-  Ein selbst gehostetes Orchestrierungssystem für Power-User.&nbsp;<br class="hx:sm:block hx:hidden" />Definiere Dienste als Klartext, verwalte sie in Git, bleib datenbankfrei und ohne Lock-in.&nbsp;<br class="hx:sm:block hx:hidden" />Backups, DNS, Reverse-Proxying und Image-Updates — alles inklusive.
+  Ein selbst gehostetes Orchestrierungssystem für Power-User. Definiere Dienste als Klartext, verwalte sie in Git, mit vollständig dateibasierter Konfiguration und ohne Lock-in.
 {{< /hextra/hero-subtitle >}}
 </div>
 
@@ -40,7 +40,7 @@ layout: hextra-home
 
 {{< hextra/feature-card
   title="Standard-Dateien, kein Lock-in"
-  subtitle="docker-compose.yaml + composia-meta.yaml, gespeichert in deinem Git-Repository. Offene Formate, datenbankfreie Speicherung, manuelle Kontrolle jederzeit."
+  subtitle="docker-compose.yaml + composia-meta.yaml, gespeichert in deinem Git-Repository. Offene Formate, vollständig dateibasierte Konfiguration, manuelle Kontrolle jederzeit."
   icon="lock-open"
   style="background: radial-gradient(ellipse at 50% 80%,rgba(16,185,129,0.1),hsla(0,0%,100%,0));"
 >}}

@@ -28,9 +28,9 @@ Composia verfolgt den entgegengesetzten Ansatz. Es arbeitet mit deinen bestehend
 
 ## Design-Entscheidungen
 
-### Datenbankfrei
+### Dateibasierte Konfiguration
 
-Composia verwendet SQLite für den Laufzeitzustand und Git für die Sollzustand-Konfiguration. Es gibt kein PostgreSQL, kein MySQL, keine externe Datenbankabhängigkeit.
+Composia verwendet SQLite für den Laufzeitzustand und Git für die Sollzustand-Konfiguration. Die gesamte Konfiguration bleibt dateibasiert, es gibt kein PostgreSQL, kein MySQL, keine externe Datenbankabhängigkeit.
 
 Sichere deine gesamte Composia-Installation, indem du dein Git-Repository und die SQLite-Datenbankdatei sicherst. Stelle sie auf einer neuen Maschine wieder her und du bist wieder online. Keine Datenbankmigrationen, keine Verbindungspools, kein separater Datenbankserver.
 
@@ -80,4 +80,4 @@ Composia ist für Power-User und Operations-Teams gebaut, die:
 - Klartext-Konfiguration in Git dem Durchklicken eines Webformulars vorziehen.
 - Automatisierung (Backups, DNS, Updates) wünschen, aber ihre Compose-Dateien nicht einer Plattform übergeben wollen.
 - Eine CLI benötigen, die sie skripten und integrieren können, nicht nur eine Browser-UI.
-- Datenbankfreie, Lock-in-freie und abhängigkeitsarme Infrastruktur schätzen.
+- Dateibasierte Konfiguration, Lock-in-freie und abhängigkeitsarme Infrastruktur schätzen.

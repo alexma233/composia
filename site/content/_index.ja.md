@@ -17,7 +17,7 @@ layout: hextra-home
 
 <div class="hx:mb-12">
 {{< hextra/hero-subtitle >}}
-  パワーユーザーのために作られたセルフホスト型オーケストレーションシステム。&nbsp;<br class="hx:sm:block hx:hidden" />サービスをプレーンテキストで定義し、Git で管理、データベース不要・ロックイン不要。&nbsp;<br class="hx:sm:block hx:hidden" />バックアップ、DNS、リバースプロキシ、イメージ更新 — すべて標準装備。
+  パワーユーザーのために作られたセルフホスト型オーケストレーションシステム。サービスをプレーンテキストで定義し、Git で管理、すべての設定をファイルベースで管理し、ロックイン不要。
 {{< /hextra/hero-subtitle >}}
 </div>
 
@@ -40,7 +40,7 @@ layout: hextra-home
 
 {{< hextra/feature-card
   title="標準ファイル、ロックインなし"
-  subtitle="Git リポジトリに保存する docker-compose.yaml + composia-meta.yaml。オープンフォーマット、データベースフリーストレージ、いつでも手動操作可能。"
+  subtitle="Git リポジトリに保存する docker-compose.yaml + composia-meta.yaml。オープンフォーマット、すべての設定をファイルベースで管理し、いつでも手動操作可能。"
   icon="lock-open"
   style="background: radial-gradient(ellipse at 50% 80%,rgba(16,185,129,0.1),hsla(0,0%,100%,0));"
 >}}

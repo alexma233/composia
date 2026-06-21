@@ -17,7 +17,7 @@ layout: hextra-home
 
 <div class="hx:mb-12">
 {{< hextra/hero-subtitle >}}
-  Un système d'orchestration auto-hébergé conçu pour les utilisateurs expérimentés.&nbsp;<br class="hx:sm:block hx:hidden" />Définissez les services en texte brut, versionnez-les avec Git, sans base de données et sans dépendance propriétaire.&nbsp;<br class="hx:sm:block hx:hidden" />Sauvegardes, DNS, reverse proxy et mises à jour d'images — tout inclus.
+  Un système d'orchestration auto-hébergé conçu pour les utilisateurs expérimentés. Définissez les services en texte brut, versionnez-les avec Git, avec toute la configuration basée sur des fichiers et sans dépendance propriétaire.
 {{< /hextra/hero-subtitle >}}
 </div>
 
@@ -40,7 +40,7 @@ layout: hextra-home
 
 {{< hextra/feature-card
   title="Fichiers standards, sans dépendance"
-  subtitle="docker-compose.yaml + composia-meta.yaml, stockés dans votre dépôt Git. Formats ouverts, stockage sans base de données, contrôle manuel à tout moment."
+  subtitle="docker-compose.yaml + composia-meta.yaml, stockés dans votre dépôt Git. Formats ouverts, toute la configuration basée sur des fichiers, contrôle manuel à tout moment."
   icon="lock-open"
   style="background: radial-gradient(ellipse at 50% 80%,rgba(16,185,129,0.1),hsla(0,0%,100%,0));"
 >}}

@@ -17,7 +17,7 @@ layout: hextra-home
 
 <div class="hx:mb-12">
 {{< hextra/hero-subtitle >}}
-  A self-hosted orchestration system crafted for power users.&nbsp;<br class="hx:sm:block hx:hidden" />Define services in plain text, keep them in Git, stay database-free and lock-in-free.&nbsp;<br class="hx:sm:block hx:hidden" />Backups, DNS, reverse proxying, and image updates — all included.
+  A self-hosted orchestration system crafted for power users. Define services in plain text, keep them in Git, with all configuration file-based and lock-in-free.
 {{< /hextra/hero-subtitle >}}
 </div>
 
@@ -40,7 +40,7 @@ layout: hextra-home
 
 {{< hextra/feature-card
   title="Standard files, no lock-in"
-  subtitle="docker-compose.yaml + composia-meta.yaml, stored in your Git repository. Open formats, database-free storage, manual control anytime."
+  subtitle="docker-compose.yaml + composia-meta.yaml, stored in your Git repository. Open formats, with all configuration file-based, manual control anytime."
   icon="lock-open"
   style="background: radial-gradient(ellipse at 50% 80%,rgba(16,185,129,0.1),hsla(0,0%,100%,0));"
 >}}

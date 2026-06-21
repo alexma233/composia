@@ -28,9 +28,9 @@ Composia adopte l'approche inverse. Il fonctionne avec vos fichiers Compose exis
 
 ## Choix de conception
 
-### Sans base de données
+### Configuration basée sur des fichiers
 
-Composia utilise SQLite pour l'état d'exécution et Git pour la configuration de l'état désiré. Il n'y a pas de PostgreSQL, pas de MySQL, pas de dépendance à une base de données externe.
+Composia utilise SQLite pour l'état d'exécution et Git pour la configuration de l'état désiré. Toute la configuration reste basée sur des fichiers, sans PostgreSQL, sans MySQL et sans dépendance à une base de données externe.
 
 Sauvegardez l'intégralité de votre installation Composia en sauvegardant votre dépôt Git et le fichier de base de données SQLite. Restaurez-les sur une nouvelle machine et vous êtes de nouveau en ligne. Pas de migrations de base de données, pas de pools de connexion, pas de serveur de base de données séparé.
 
@@ -80,4 +80,4 @@ Composia est conçu pour les utilisateurs expérimentés et les équipes d'explo
 - Préfèrent la configuration en texte brut dans Git plutôt que de cliquer dans un formulaire web.
 - Veulent de l'automatisation (sauvegardes, DNS, mises à jour) mais refusent de confier leurs fichiers Compose à une plateforme.
 - Ont besoin d'une CLI qu'ils peuvent scripter et intégrer, pas seulement une interface navigateur.
-- Apprécient une infrastructure sans base de données, sans dépendance propriétaire et à faibles dépendances.
+- Apprécient une configuration basée sur des fichiers, sans dépendance propriétaire et à faibles dépendances.

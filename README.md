@@ -24,7 +24,7 @@
 
 **Your Compose files, everywhere.**
 
-A self-hosted orchestration system crafted for power users. Define services in plain text, keep them in Git, stay database-free and lock-in-free. Backups, DNS, reverse proxying, and image updates — all included.
+A self-hosted orchestration system crafted for power users. Define services in plain text, keep them in Git, with all configuration file-based and lock-in-free. Backups, DNS, reverse proxying, and image updates — all included.
 
 Unlike PaaS platforms, Composia stays out of your way. Your configuration lives in standard `docker-compose.yaml` and `composia-meta.yaml` files that you own. The control plane coordinates and reports, but you always retain direct CLI and file-based access to every node.
 

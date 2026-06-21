@@ -28,9 +28,9 @@ Composia takes the opposite approach. It works with your existing Compose files 
 
 ## Design decisions
 
-### Database-free
+### File-based configuration
 
-Composia uses SQLite for runtime state and Git for desired-state configuration. There is no PostgreSQL, no MySQL, no external database dependency.
+Composia uses SQLite for runtime state and Git for desired-state configuration. All configuration stays file-based, and there is no PostgreSQL, no MySQL, no external database dependency.
 
 Back up your entire Composia installation by backing up your Git repository and the SQLite database file. Restore them to a new machine and you are back online. No database migrations, no connection pools, no separate database server.
 
@@ -80,4 +80,4 @@ Composia is built for power users and operations teams who:
 - Prefer plain-text configuration in Git over clicking through a web form.
 - Want automation (backups, DNS, updates) but refuse to hand their Compose files to a platform.
 - Need a CLI they can script and integrate, not just a browser UI.
-- Value database-free, lock-in-free, and low-dependency infrastructure.
+- Value file-based configuration, lock-in-free, and low-dependency infrastructure.
