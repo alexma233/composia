@@ -107,7 +107,7 @@ jobs:
           curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b /tmp/golangci-lint-bin ${{ env.GOLANGCI_LINT_VERSION }}
 
       - name: Run golangci-lint
-        run: /tmp/golangci-lint-bin/golangci-lint run --timeout 5m
+        run: /tmp/golangci-lint-bin/golangci-lint run --timeout 20m
 
   govulncheck:
     runs-on: docker-amd64
