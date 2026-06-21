@@ -276,7 +276,9 @@
   }
 
   .terminal-surface .wterm {
-    --term-font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace;
+    --term-font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono,
+      monospace;
     --term-font-size: 12px;
     --term-line-height: 1.45;
     box-shadow: none;
