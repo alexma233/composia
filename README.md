@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./branding/icon/svg/64px.svg" alt="Composia logo" width="96" />
+</p>
+
 # Composia
 
 <p align="center">
