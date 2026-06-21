@@ -1,8 +1,8 @@
+<h1 align="center">Composia</h1>
+
 <p align="center">
   <img src="./branding/icon/svg/64px.svg" alt="Composia logo" width="96" />
 </p>
-
-# Composia
 
 <p align="center">
   <a href="https://forgejo.alexma.top/alexma233/composia">
