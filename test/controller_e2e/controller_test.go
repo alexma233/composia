@@ -429,6 +429,97 @@ func TestControllerE2ERepoContractsAndValidation(t *testing.T) {
 	cleanupWorkspace = false
 }
 
+func TestControllerE2ESecrets(t *testing.T) {
+	ctx := testContext(t)
+	clients := newControllerClients()
+	waitForController(t, clients)
+
+	const secretFilePath = ".secret.env.enc"
+	const initialContent = "TOKEN=controller-e2e-before\n"
+	const updatedContent = "TOKEN=controller-e2e-after\n"
+
+	secret, err := clients.secret.GetSecret(ctx, connect.NewRequest(&controllerv1.GetSecretRequest{ServiceName: testServiceName, FilePath: secretFilePath}))
+	if err != nil {
+		t.Fatalf("get configured secret: %v", err)
+	}
+	if secret.Msg.GetServiceName() != testServiceName || secret.Msg.GetFilePath() != secretFilePath || secret.Msg.GetContent() != initialContent {
+		t.Fatalf("unexpected secret response: %+v", secret.Msg)
+	}
+
+	_, err = clients.secret.GetSecret(ctx, connect.NewRequest(&controllerv1.GetSecretRequest{ServiceName: testServiceName, FilePath: "../outside.env.enc"}))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	_, err = clients.secret.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{ServiceName: testServiceName, FilePath: secretFilePath, Content: updatedContent}))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	head := repoHead(t, ctx, clients)
+	_, err = clients.secret.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{ServiceName: testServiceName, FilePath: "/outside.env.enc", Content: updatedContent, BaseRevision: head.GetHeadRevision()}))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	workspace := fmt.Sprintf("controller-e2e-secret-base-%d", time.Now().UnixNano())
+	created, err := clients.repoCommand.CreateRepoDirectory(ctx, connect.NewRequest(&controllerv1.CreateRepoDirectoryRequest{
+		Path:          workspace,
+		BaseRevision:  head.GetHeadRevision(),
+		CommitMessage: "Create secret base revision marker",
+	}))
+	if err != nil {
+		t.Fatalf("create secret base revision marker: %v", err)
+	}
+	defer cleanupRepoPath(t, ctx, clients, workspace)
+
+	_, err = clients.secret.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{
+		ServiceName:   testServiceName,
+		FilePath:      secretFilePath,
+		Content:       updatedContent,
+		BaseRevision:  head.GetHeadRevision(),
+		CommitMessage: "Stale controller e2e secret update",
+	}))
+	assertConnectCode(t, err, connect.CodeFailedPrecondition)
+
+	updated, err := clients.secret.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{
+		ServiceName:   testServiceName,
+		FilePath:      secretFilePath,
+		Content:       updatedContent,
+		BaseRevision:  created.Msg.GetCommitId(),
+		CommitMessage: "Update controller e2e secret",
+	}))
+	if err != nil {
+		t.Fatalf("update configured secret: %v", err)
+	}
+	if updated.Msg.GetCommitId() == "" {
+		t.Fatalf("expected secret update commit id")
+	}
+	defer func() {
+		head := repoHead(t, ctx, clients)
+		_, err := clients.secret.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{
+			ServiceName:   testServiceName,
+			FilePath:      secretFilePath,
+			Content:       initialContent,
+			BaseRevision:  head.GetHeadRevision(),
+			CommitMessage: "Restore controller e2e secret",
+		}))
+		if err != nil {
+			t.Logf("restore controller e2e secret: %v", err)
+		}
+	}()
+
+	secret, err = clients.secret.GetSecret(ctx, connect.NewRequest(&controllerv1.GetSecretRequest{ServiceName: testServiceName, FilePath: secretFilePath}))
+	if err != nil {
+		t.Fatalf("get updated secret: %v", err)
+	}
+	if secret.Msg.GetContent() != updatedContent {
+		t.Fatalf("updated secret content = %q, want %q", secret.Msg.GetContent(), updatedContent)
+	}
+
+	file, err := clients.repoQuery.GetRepoFile(ctx, connect.NewRequest(&controllerv1.GetRepoFileRequest{Path: "host-service/" + secretFilePath}))
+	if err != nil {
+		t.Fatalf("get encrypted secret file: %v", err)
+	}
+	if strings.Contains(file.Msg.GetContent(), updatedContent) {
+		t.Fatalf("expected encrypted secret file not to contain plaintext")
+	}
+}
+
 func TestControllerE2EFeatureContracts(t *testing.T) {
 	ctx := testContext(t)
 	clients := newControllerClients()
@@ -447,12 +538,6 @@ func TestControllerE2EFeatureContracts(t *testing.T) {
 
 	_, err = clients.backupCommand.RestoreBackup(ctx, connect.NewRequest(&controllerv1.RestoreBackupRequest{BackupId: "missing-backup", NodeId: testNodeID}))
 	assertConnectCode(t, err, connect.CodeNotFound)
-
-	_, err = clients.secret.GetSecret(ctx, connect.NewRequest(&controllerv1.GetSecretRequest{ServiceName: testServiceName, FilePath: ".env"}))
-	assertConnectCode(t, err, connect.CodeFailedPrecondition)
-
-	_, err = clients.secret.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{ServiceName: testServiceName, FilePath: ".env", Content: "A=B\n", BaseRevision: repoHead(t, ctx, clients).GetHeadRevision()}))
-	assertConnectCode(t, err, connect.CodeFailedPrecondition)
 
 	_, err = clients.task.GetTask(ctx, connect.NewRequest(&controllerv1.GetTaskRequest{}))
 	assertConnectCode(t, err, connect.CodeInvalidArgument)

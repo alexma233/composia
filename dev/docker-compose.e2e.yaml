@@ -9,7 +9,13 @@ services:
       - -c
     command:
       - |
-        mkdir -p /tmp/repo-controller /tmp/state-controller /tmp/logs
+        mkdir -p /tmp/repo-controller /tmp/state-controller /tmp/logs /tmp/secrets
+        cat > /tmp/secrets/age.key <<'EOF'
+        AGE-SECRET-KEY-1KTAWUUQUUMF6FTXQZ8R2EAHHS2PCMMMTNHZFE20UULV27XFURL3S9D40AT
+        EOF
+        cat > /tmp/secrets/age.recipients <<'EOF'
+        age1wdc28dv5vcjz8yewrzemr0xmyhz6jvgan4s2mrzvd0f9sh6rm9rqhgkkkf
+        EOF
         if [ ! -d /tmp/repo-controller/.git ]; then
           git init /tmp/repo-controller
         fi
@@ -29,6 +35,15 @@ services:
         cat > /tmp/repo-controller/host-service/docker-compose.yaml <<'EOF'
         # infra.config services do not need docker compose for this fixture
         EOF
+        cat > /tmp/repo-controller/host-service/.secret.env.enc <<'EOF'
+        -----BEGIN AGE ENCRYPTED FILE-----
+        YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBZMHBJYXFmYk4yV0RkK05C
+        MXFTQWdtSGEwNGU4Y2tvWVE2U01ZOU92OGlFCkZPdkxSeEdDMVJCNHRyTUVlRTlD
+        QTNYdXJlZGFyNm9zZ05BaEhjUndvS1kKLS0tICtnS0dyVmE0cU1URnRtNnZZQ0xM
+        YnltUzVURWFsL2lEcWcrKzgyNW8zNHcKHTmcXdjNLWFhpOQH7en17M6IdPbXvosi
+        cHzPaVi1VKe2BxooNSVhLFaAgo/ZhmgMfr3CYeeYIJrpS+nz
+        -----END AGE ENCRYPTED FILE-----
+        EOF
         if [ -n "$(git -C /tmp/repo-controller status --short)" ]; then
           git -C /tmp/repo-controller add .
           git -C /tmp/repo-controller commit -m "Seed web e2e repo"
@@ -43,6 +58,11 @@ services:
             - name: "web"
               token: "dev-admin-token"
               enabled: true
+          secrets:
+            provider: "age"
+            identity_file: "/tmp/secrets/age.key"
+            recipient_file: "/tmp/secrets/age.recipients"
+            armor: true
           nodes:
             - id: "main"
               display_name: "Main"
