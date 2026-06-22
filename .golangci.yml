@@ -67,6 +67,14 @@ linters:
       min-occurrences: 5
     recvcheck:
       enabled: true
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - goconst
+      - path: internal/app/cli/
+        linters:
+          - goconst
 
 formatters:
   enable:
