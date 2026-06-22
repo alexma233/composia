@@ -211,6 +211,22 @@ func TestControllerE2ERepoAndServices(t *testing.T) {
 		t.Fatalf("expected service list to include %q", testServiceName)
 	}
 
+	servicePage, err := clients.serviceQuery.ListServices(ctx, connect.NewRequest(&controllerv1.ListServicesRequest{PageSize: 1, Page: 1}))
+	if err != nil {
+		t.Fatalf("list paged services: %v", err)
+	}
+	if servicePage.Msg.GetTotalCount() == 0 || len(servicePage.Msg.GetServices()) > 1 {
+		t.Fatalf("unexpected paged service response: total=%d len=%d", servicePage.Msg.GetTotalCount(), len(servicePage.Msg.GetServices()))
+	}
+
+	missingStatusServices, err := clients.serviceQuery.ListServices(ctx, connect.NewRequest(&controllerv1.ListServicesRequest{RuntimeStatus: "controller-e2e-missing-status", PageSize: 10, Page: 1}))
+	if err != nil {
+		t.Fatalf("list services by missing status: %v", err)
+	}
+	if missingStatusServices.Msg.GetTotalCount() != 0 || len(missingStatusServices.Msg.GetServices()) != 0 {
+		t.Fatalf("expected missing status service filter to return no services")
+	}
+
 	service, err := clients.serviceQuery.GetService(ctx, connect.NewRequest(&controllerv1.GetServiceRequest{ServiceName: testServiceName}))
 	if err != nil {
 		t.Fatalf("get service: %v", err)
@@ -331,6 +347,88 @@ func TestControllerE2ERepoWrites(t *testing.T) {
 	assertConnectCode(t, err, connect.CodeNotFound)
 }
 
+func TestControllerE2ERepoContractsAndValidation(t *testing.T) {
+	ctx := testContext(t)
+	clients := newControllerClients()
+	waitForController(t, clients)
+
+	recursive, err := clients.repoQuery.ListRepoFiles(ctx, connect.NewRequest(&controllerv1.ListRepoFilesRequest{Recursive: true}))
+	if err != nil {
+		t.Fatalf("list recursive repo files: %v", err)
+	}
+	if !hasRepoEntryPath(recursive.Msg.GetEntries(), "host-service/composia-meta.yaml", false) {
+		t.Fatalf("expected recursive repo listing to include host-service/composia-meta.yaml")
+	}
+
+	_, err = clients.repoQuery.ListRepoFiles(ctx, connect.NewRequest(&controllerv1.ListRepoFilesRequest{Path: "host-service/composia-meta.yaml"}))
+	assertConnectCode(t, err, connect.CodeNotFound)
+
+	_, err = clients.repoQuery.GetRepoFile(ctx, connect.NewRequest(&controllerv1.GetRepoFileRequest{}))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	baseRevision := repoHead(t, ctx, clients).GetHeadRevision()
+	_, err = clients.repoCommand.CreateRepoDirectory(ctx, connect.NewRequest(&controllerv1.CreateRepoDirectoryRequest{Path: "host-service", BaseRevision: baseRevision, CommitMessage: "Create existing controller e2e directory"}))
+	assertConnectCode(t, err, connect.CodeFailedPrecondition)
+
+	_, err = clients.repoCommand.UpdateRepoFile(ctx, connect.NewRequest(&controllerv1.UpdateRepoFileRequest{Path: "host-service", Content: "not a file", BaseRevision: baseRevision, CommitMessage: "Write directory as file"}))
+	assertConnectCode(t, err, connect.CodeFailedPrecondition)
+
+	_, err = clients.repoCommand.MoveRepoPath(ctx, connect.NewRequest(&controllerv1.MoveRepoPathRequest{SourcePath: "missing-source", DestinationPath: "missing-destination", BaseRevision: baseRevision, CommitMessage: "Move missing controller e2e path"}))
+	assertConnectCode(t, err, connect.CodeFailedPrecondition)
+
+	_, err = clients.repoCommand.DeleteRepoPath(ctx, connect.NewRequest(&controllerv1.DeleteRepoPathRequest{Path: "missing-delete", BaseRevision: baseRevision, CommitMessage: "Delete missing controller e2e path"}))
+	assertConnectCode(t, err, connect.CodeFailedPrecondition)
+
+	workspace := fmt.Sprintf("controller-e2e-invalid-%d", time.Now().UnixNano())
+	cleanupWorkspace := true
+	defer func() {
+		if cleanupWorkspace {
+			cleanupRepoPath(t, ctx, clients, workspace)
+		}
+	}()
+
+	created, err := clients.repoCommand.CreateRepoDirectory(ctx, connect.NewRequest(&controllerv1.CreateRepoDirectoryRequest{
+		Path:          workspace,
+		BaseRevision:  baseRevision,
+		CommitMessage: "Create invalid controller e2e workspace",
+	}))
+	if err != nil {
+		t.Fatalf("create invalid repo workspace: %v", err)
+	}
+
+	invalidMetaPath := workspace + "/composia-meta.yaml"
+	updated, err := clients.repoCommand.UpdateRepoFile(ctx, connect.NewRequest(&controllerv1.UpdateRepoFileRequest{
+		Path:          invalidMetaPath,
+		Content:       "name: controller-e2e-invalid\nnodes:\n  - missing-node\n",
+		BaseRevision:  created.Msg.GetCommitId(),
+		CommitMessage: "Write invalid controller e2e metadata",
+	}))
+	if err != nil {
+		t.Fatalf("write invalid repo metadata: %v", err)
+	}
+
+	validation, err := clients.repoQuery.ValidateRepo(ctx, connect.NewRequest(&controllerv1.ValidateRepoRequest{}))
+	if err != nil {
+		t.Fatalf("validate invalid repo: %v", err)
+	}
+	if !hasValidationErrorPath(validation.Msg.GetErrors(), invalidMetaPath) {
+		t.Fatalf("expected validation error for %s, got %+v", invalidMetaPath, validation.Msg.GetErrors())
+	}
+
+	deleted, err := clients.repoCommand.DeleteRepoPath(ctx, connect.NewRequest(&controllerv1.DeleteRepoPathRequest{
+		Path:          workspace,
+		BaseRevision:  updated.Msg.GetCommitId(),
+		CommitMessage: "Delete invalid controller e2e workspace",
+	}))
+	if err != nil {
+		t.Fatalf("delete invalid repo workspace: %v", err)
+	}
+	if deleted.Msg.GetCommitId() == "" {
+		t.Fatalf("expected invalid workspace delete commit id")
+	}
+	cleanupWorkspace = false
+}
+
 func TestControllerE2EFeatureContracts(t *testing.T) {
 	ctx := testContext(t)
 	clients := newControllerClients()
@@ -356,6 +454,42 @@ func TestControllerE2EFeatureContracts(t *testing.T) {
 	_, err = clients.secret.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{ServiceName: testServiceName, FilePath: ".env", Content: "A=B\n", BaseRevision: repoHead(t, ctx, clients).GetHeadRevision()}))
 	assertConnectCode(t, err, connect.CodeFailedPrecondition)
 
+	_, err = clients.task.GetTask(ctx, connect.NewRequest(&controllerv1.GetTaskRequest{}))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	_, err = clients.task.GetTask(ctx, connect.NewRequest(&controllerv1.GetTaskRequest{TaskId: "missing-task"}))
+	assertConnectCode(t, err, connect.CodeNotFound)
+
+	taskLogStream, err := clients.task.TailTaskLogs(ctx, connect.NewRequest(&controllerv1.TailTaskLogsRequest{TaskId: "missing-task"}))
+	assertStreamConnectCode(t, taskLogStream, err, connect.CodeNotFound)
+
+	_, err = clients.task.RunTaskAgain(ctx, sourceRequest(&controllerv1.RunTaskAgainRequest{}, "web"))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	_, err = clients.task.RunTaskAgain(ctx, sourceRequest(&controllerv1.RunTaskAgainRequest{TaskId: "missing-task"}, "web"))
+	assertConnectCode(t, err, connect.CodeNotFound)
+
+	_, err = clients.task.ResolveTaskConfirmation(ctx, sourceRequest(&controllerv1.ResolveTaskConfirmationRequest{TaskId: "missing-task"}, "web"))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	_, err = clients.task.ResolveTaskConfirmation(ctx, sourceRequest(&controllerv1.ResolveTaskConfirmationRequest{TaskId: "missing-task", Decision: controllerv1.TaskConfirmationDecision_TASK_CONFIRMATION_DECISION_APPROVE}, "web"))
+	assertConnectCode(t, err, connect.CodeNotFound)
+
+	_, err = clients.serviceCommand.RunServiceAction(ctx, sourceRequest(&controllerv1.RunServiceActionRequest{}, "web"))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	_, err = clients.serviceCommand.RunServiceAction(ctx, sourceRequest(&controllerv1.RunServiceActionRequest{ServiceName: "missing-service", Action: controllerv1.ServiceAction_SERVICE_ACTION_DEPLOY}, "web"))
+	assertConnectCode(t, err, connect.CodeNotFound)
+
+	_, err = clients.serviceCommand.RunServiceAction(ctx, sourceRequest(&controllerv1.RunServiceActionRequest{ServiceName: testServiceName}, "web"))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	_, err = clients.serviceCommand.RunServiceAction(ctx, sourceRequest(&controllerv1.RunServiceActionRequest{ServiceName: testServiceName, Action: controllerv1.ServiceAction_SERVICE_ACTION_DNS_UPDATE}, "web"))
+	assertConnectCode(t, err, connect.CodeFailedPrecondition)
+
+	_, err = clients.serviceCommand.MigrateService(ctx, sourceRequest(&controllerv1.MigrateServiceRequest{ServiceName: "missing-service", SourceNodeId: testNodeID, TargetNodeId: "other-node"}, "web"))
+	assertConnectCode(t, err, connect.CodeNotFound)
+
 	stats, err := clients.nodeQuery.GetNodeDockerStats(ctx, connect.NewRequest(&controllerv1.GetNodeDockerStatsRequest{NodeId: testNodeID}))
 	if err != nil {
 		t.Fatalf("get node docker stats: %v", err)
@@ -380,6 +514,18 @@ func TestControllerE2EFeatureContracts(t *testing.T) {
 	assertConnectCode(t, err, connect.CodeFailedPrecondition)
 
 	_, err = clients.nodeMaintenance.PruneNodeDocker(ctx, sourceRequest(&controllerv1.PruneNodeDockerRequest{}, "web"))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	_, err = clients.nodeQuery.GetNodeDockerStats(ctx, connect.NewRequest(&controllerv1.GetNodeDockerStatsRequest{}))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	_, err = clients.dockerQuery.ListNodeContainers(ctx, connect.NewRequest(&controllerv1.ListNodeContainersRequest{}))
+	assertConnectCode(t, err, connect.CodeInvalidArgument)
+
+	_, err = clients.dockerQuery.ListNodeContainers(ctx, connect.NewRequest(&controllerv1.ListNodeContainersRequest{NodeId: "missing-node"}))
+	assertConnectCode(t, err, connect.CodeFailedPrecondition)
+
+	_, err = clients.dockerQuery.InspectNodeContainer(ctx, connect.NewRequest(&controllerv1.InspectNodeContainerRequest{NodeId: testNodeID}))
 	assertConnectCode(t, err, connect.CodeInvalidArgument)
 
 	_, err = clients.dockerCommand.RunContainerAction(ctx, sourceRequest(&controllerv1.RunContainerActionRequest{NodeId: testNodeID, ContainerId: "container"}, "web"))
@@ -415,6 +561,22 @@ func TestControllerE2EDockerQueriesAndExec(t *testing.T) {
 
 	containers := listContainers(t, ctx, clients)
 	container := chooseExecContainer(t, containers)
+
+	pagedContainers, err := clients.dockerQuery.ListNodeContainers(ctx, connect.NewRequest(&controllerv1.ListNodeContainersRequest{NodeId: testNodeID, PageSize: 1, Page: 1}))
+	if err != nil {
+		t.Fatalf("list paged node containers: %v", err)
+	}
+	if pagedContainers.Msg.GetTotalCount() == 0 || len(pagedContainers.Msg.GetContainers()) != 1 {
+		t.Fatalf("expected one paged container with non-zero total, got total=%d len=%d", pagedContainers.Msg.GetTotalCount(), len(pagedContainers.Msg.GetContainers()))
+	}
+
+	searchedContainers, err := clients.dockerQuery.ListNodeContainers(ctx, connect.NewRequest(&controllerv1.ListNodeContainersRequest{NodeId: testNodeID, PageSize: 10, Page: 1, Search: container.GetName()}))
+	if err != nil {
+		t.Fatalf("search node containers: %v", err)
+	}
+	if !hasContainerInfo(searchedContainers.Msg.GetContainers(), container.GetId()) {
+		t.Fatalf("expected container search for %q to include %q", container.GetName(), container.GetId())
+	}
 
 	containerInspect, err := clients.dockerQuery.InspectNodeContainer(ctx, connect.NewRequest(&controllerv1.InspectNodeContainerRequest{NodeId: testNodeID, ContainerId: container.GetId()}))
 	if err != nil {
@@ -481,6 +643,40 @@ func TestControllerE2EDockerQueriesAndExec(t *testing.T) {
 	if execResult.Msg.GetExitCode() != 0 || execResult.Msg.GetStdout() != "composia-controller-e2e" {
 		t.Fatalf("unexpected exec result: exit=%d stdout=%q stderr=%q", execResult.Msg.GetExitCode(), execResult.Msg.GetStdout(), execResult.Msg.GetStderr())
 	}
+
+	stdinResult, err := clients.dockerCommand.RunContainerExec(ctx, connect.NewRequest(&controllerv1.RunContainerExecRequest{
+		NodeId:         testNodeID,
+		ContainerId:    container.GetId(),
+		Command:        []string{"/bin/sh", "-c", "cat"},
+		Stdin:          []byte("stdin-through-exec"),
+		TimeoutSeconds: 10,
+		MaxOutputBytes: 1024,
+	}))
+	if err != nil {
+		t.Fatalf("run container exec with stdin: %v", err)
+	}
+	if stdinResult.Msg.GetExitCode() != 0 || stdinResult.Msg.GetStdout() != "stdin-through-exec" {
+		t.Fatalf("unexpected stdin exec result: exit=%d stdout=%q stderr=%q", stdinResult.Msg.GetExitCode(), stdinResult.Msg.GetStdout(), stdinResult.Msg.GetStderr())
+	}
+
+	truncatedResult, err := clients.dockerCommand.RunContainerExec(ctx, connect.NewRequest(&controllerv1.RunContainerExecRequest{
+		NodeId:         testNodeID,
+		ContainerId:    container.GetId(),
+		Command:        []string{"/bin/sh", "-c", "printf 1234567890"},
+		TimeoutSeconds: 10,
+		MaxOutputBytes: 4,
+	}))
+	if err != nil {
+		t.Fatalf("run truncated container exec: %v", err)
+	}
+	if truncatedResult.Msg.GetExitCode() != 0 || truncatedResult.Msg.GetStdout() != "1234" || !truncatedResult.Msg.GetStdoutTruncated() {
+		t.Fatalf("unexpected truncated exec result: exit=%d stdout=%q truncated=%t", truncatedResult.Msg.GetExitCode(), truncatedResult.Msg.GetStdout(), truncatedResult.Msg.GetStdoutTruncated())
+	}
+
+	containerLogChunk := firstContainerLogChunk(t, ctx, clients, container.GetId())
+	if strings.TrimSpace(containerLogChunk) == "" {
+		t.Fatalf("expected non-empty container log chunk")
+	}
 }
 
 func TestControllerE2ETasks(t *testing.T) {
@@ -545,6 +741,20 @@ func TestControllerE2ETasks(t *testing.T) {
 	}
 	if !hasTaskSummary(filtered.Msg.GetTasks(), taskID) {
 		t.Fatalf("expected filtered tasks to include %q", taskID)
+	}
+
+	excluded, err := clients.task.ListTasks(ctx, connect.NewRequest(&controllerv1.ListTasksRequest{
+		ExcludeStatus:      []controllerv1.TaskStatus{controllerv1.TaskStatus_TASK_STATUS_SUCCEEDED},
+		ExcludeServiceName: []string{"not-" + testServiceName},
+		ExcludeType:        []controllerv1.TaskType{controllerv1.TaskType_TASK_TYPE_RESTART},
+		PageSize:           20,
+		Page:               1,
+	}))
+	if err != nil {
+		t.Fatalf("list excluded tasks: %v", err)
+	}
+	if hasTaskSummary(excluded.Msg.GetTasks(), taskID) {
+		t.Fatalf("expected exclude_status to remove succeeded task %q", taskID)
 	}
 
 	rerun, err := clients.task.RunTaskAgain(ctx, sourceRequest(&controllerv1.RunTaskAgainRequest{TaskId: taskID}, "cli"))
@@ -633,6 +843,27 @@ func repoHead(t *testing.T, ctx context.Context, clients controllerClients) *con
 	return head.Msg
 }
 
+func cleanupRepoPath(t *testing.T, ctx context.Context, clients controllerClients, path string) {
+	t.Helper()
+	head, err := clients.repoQuery.GetRepoHead(ctx, connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))
+	if err != nil {
+		t.Logf("cleanup get repo head for %q: %v", path, err)
+		return
+	}
+	_, err = clients.repoCommand.DeleteRepoPath(ctx, connect.NewRequest(&controllerv1.DeleteRepoPathRequest{
+		Path:          path,
+		BaseRevision:  head.Msg.GetHeadRevision(),
+		CommitMessage: "Cleanup controller e2e workspace",
+	}))
+	if err == nil {
+		return
+	}
+	if code := connect.CodeOf(err); code == connect.CodeFailedPrecondition || code == connect.CodeNotFound {
+		return
+	}
+	t.Logf("cleanup delete repo path %q: %v", path, err)
+}
+
 func waitForTaskStatus(t *testing.T, ctx context.Context, clients controllerClients, taskID string, want controllerv1.TaskStatus) *controllerv1.GetTaskResponse {
 	t.Helper()
 	deadline := time.Now().Add(60 * time.Second)
@@ -669,6 +900,21 @@ func firstTaskLogChunk(t *testing.T, ctx context.Context, clients controllerClie
 	defer func() { _ = stream.Close() }()
 	if !stream.Receive() {
 		t.Fatalf("expected task log chunk, got err=%v", stream.Err())
+	}
+	return stream.Msg().GetContent()
+}
+
+func firstContainerLogChunk(t *testing.T, ctx context.Context, clients controllerClients, containerID string) string {
+	t.Helper()
+	streamCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	stream, err := clients.dockerCommand.GetContainerLogs(streamCtx, connect.NewRequest(&controllerv1.GetContainerLogsRequest{NodeId: testNodeID, ContainerId: containerID, Tail: "20"}))
+	if err != nil {
+		t.Fatalf("get container logs: %v", err)
+	}
+	defer func() { _ = stream.Close() }()
+	if !stream.Receive() {
+		t.Fatalf("expected container log chunk, got err=%v", stream.Err())
 	}
 	return stream.Msg().GetContent()
 }
@@ -799,6 +1045,24 @@ func hasRepoEntry(entries []*controllerv1.RepoFileEntry, name string, isDir bool
 	return false
 }
 
+func hasRepoEntryPath(entries []*controllerv1.RepoFileEntry, path string, isDir bool) bool {
+	for _, entry := range entries {
+		if entry.GetPath() == path && entry.GetIsDir() == isDir {
+			return true
+		}
+	}
+	return false
+}
+
+func hasValidationErrorPath(errors []*controllerv1.RepoValidationError, path string) bool {
+	for _, validationError := range errors {
+		if validationError.GetPath() == path {
+			return true
+		}
+	}
+	return false
+}
+
 func hasWorkspace(workspaces []*controllerv1.ServiceWorkspaceSummary, folder, serviceName string) bool {
 	for _, workspace := range workspaces {
 		if workspace.GetFolder() == folder && workspace.GetServiceName() == serviceName && workspace.GetIsDeclared() {
@@ -820,6 +1084,15 @@ func hasServiceSummary(services []*controllerv1.ServiceSummary, name string) boo
 func hasServiceInstance(instances []*controllerv1.ServiceInstanceSummary, serviceName, nodeID string) bool {
 	for _, instance := range instances {
 		if instance.GetServiceName() == serviceName && instance.GetNodeId() == nodeID && instance.GetIsDeclared() {
+			return true
+		}
+	}
+	return false
+}
+
+func hasContainerInfo(containers []*controllerv1.ContainerInfo, containerID string) bool {
+	for _, container := range containers {
+		if container.GetId() == containerID {
 			return true
 		}
 	}
