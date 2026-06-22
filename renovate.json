@@ -90,7 +90,11 @@
         "github-actions"
       ],
       "matchPackageNames": [
+        "forgejo.alexma.top/alexma233/ci-images-bun",
         "forgejo.alexma.top/alexma233/ci-images-bun-wrangler",
+        "forgejo.alexma.top/alexma233/ci-images-go-node-docker",
+        "forgejo.alexma.top/alexma233/ci-images-go-node-docs",
+        "forgejo.alexma.top/alexma233/ci-images-go-node-lint",
         "forgejo.alexma.top/alexma233/ci-images-hugo-wrangler",
         "forgejo.alexma.top/alexma233/ci-images-go-node",
         "forgejo.alexma.top/alexma233/ci-image-go-releaser"

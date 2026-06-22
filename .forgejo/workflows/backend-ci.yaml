@@ -1,8 +1,5 @@
 name: Backend CI
 
-env:
-  GOLANGCI_LINT_VERSION: v2.11.4
-
 on:
   pull_request:
     paths:
@@ -94,25 +91,20 @@ jobs:
   golangci-lint:
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.4
+      image: forgejo.alexma.top/alexma233/ci-images-go-node-lint:1.26.4
 
     steps:
       - name: Checkout
         # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v7.0.0
         uses: https://forgejo.alexma.top/actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
 
-      - name: Install golangci-lint
-        run: |
-          mkdir -p /tmp/golangci-lint-bin
-          curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b /tmp/golangci-lint-bin ${{ env.GOLANGCI_LINT_VERSION }}
-
       - name: Run golangci-lint
-        run: /tmp/golangci-lint-bin/golangci-lint run --timeout 20m
+        run: golangci-lint run --timeout 20m
 
   govulncheck:
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.4
+      image: forgejo.alexma.top/alexma233/ci-images-go-node-lint:1.26.4
 
     steps:
       - name: Checkout
@@ -122,4 +114,4 @@ jobs:
       - name: Run govulncheck
         env:
           GOSUMDB: sum.golang.google.cn
-        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+        run: govulncheck ./...
