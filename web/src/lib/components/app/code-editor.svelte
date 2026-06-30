@@ -227,7 +227,11 @@
       return null;
     }
 
-    return LanguageDescription.matchFilename(languages, fileName);
+    // CodeMirror packages can be duplicated by the lockfile, so normalize the
+    // language-data type to the public LanguageDescription API used here.
+    const languageDescriptions = languages as unknown as readonly LanguageDescription[];
+
+    return LanguageDescription.matchFilename(languageDescriptions, fileName);
   }
 
   function lintExtension(filePath: string) {
