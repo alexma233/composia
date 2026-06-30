@@ -36,7 +36,7 @@
         "date-fns": "4.4.0",
         "dequal": "2.0.3",
         "envfile": "7.1.0",
-        "filesize": "11.0.17",
+        "filesize": "11.0.19",
         "svelte-sonner": "1.1.1",
         "tailwind-merge": "3.6.0",
         "valibot": "1.4.2",
@@ -373,7 +373,7 @@
 
     "fdir": ["fdir@6.5.0", "", { "peerDependencies": { "picomatch": "^3 || ^4" }, "optionalPeers": ["picomatch"] }, "sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg=="],
 
-    "filesize": ["filesize@11.0.17", "", {}, "sha512-oHLTvMLw6imZUl1se/RBQrFlyy50nXce4sU7yGR6Qc0JgCwqnfiFsAnEwotdGmfKLD7SArGUk2/5STU0k8LOBQ=="],
+    "filesize": ["filesize@11.0.19", "", {}, "sha512-9Q2itINBvCHwFw9v5X7czZm855yAiFIYlnugrh7+8tYO4ITHZMzV91m35q2FngL9hoZwwjSTQACFF/W52OzJZQ=="],
 
     "fsevents": ["fsevents@2.3.3", "", { "os": "darwin" }, "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw=="],
 
