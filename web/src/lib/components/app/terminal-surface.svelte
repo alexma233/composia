@@ -3,6 +3,7 @@
 
   import { messages } from '$lib/i18n';
   import { observeThemeChange } from '$lib/theme-observer';
+  import { patchGhosttyCore, type TerminalThemeColors } from '$lib/wterm/ghostty-core-patch';
 
   type DataHandler = (data: string) => void;
   type ResizeHandler = (rows: number, cols: number) => void;
@@ -30,6 +31,8 @@
   let host = $state<HTMLDivElement | null>(null);
 
   const TERMINAL_RESET = '\x1bc\x1b[3J\x1b[H\x1b[2J';
+  const LIGHT_THEME_COLORS: TerminalThemeColors = { background: 0xffffff, foreground: 0x24292f };
+  const DARK_THEME_COLORS: TerminalThemeColors = { background: 0x0d1117, foreground: 0xc9d1d9 };
 
   let terminal: import('@wterm/dom').WTerm | null = null;
   let disconnectThemeObserver: (() => void) | null = null;
@@ -82,14 +85,23 @@
     });
   }
 
+  function isDarkTheme() {
+    return document.documentElement.classList.contains('dark');
+  }
+
+  function currentThemeColors(): TerminalThemeColors {
+    return isDarkTheme() ? DARK_THEME_COLORS : LIGHT_THEME_COLORS;
+  }
+
   function applyTheme(isDark?: boolean) {
     if (!terminal) {
       return;
     }
 
-    const dark = isDark ?? document.documentElement.classList.contains('dark');
+    const dark = isDark ?? isDarkTheme();
     terminal.element.classList.toggle('theme-composia-dark', dark);
     terminal.element.classList.toggle('theme-composia-light', !dark);
+    terminal.element.classList.toggle('theme-light', !dark);
   }
 
   function disableReadOnlyInput() {
@@ -128,6 +140,7 @@
         return;
       }
 
+      patchGhosttyCore(core, currentThemeColors);
       terminal = new WTerm(host, {
         autoResize: true,
         core,

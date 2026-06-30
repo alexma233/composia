@@ -272,7 +272,7 @@
   }
 
   .terminal-surface {
-    @apply overflow-hidden rounded-lg border bg-background;
+    @apply min-w-0 max-w-full overflow-hidden rounded-lg border bg-background;
   }
 
   .terminal-surface .wterm {
@@ -281,10 +281,6 @@
       monospace;
     --term-font-size: 12px;
     --term-line-height: 1.45;
-    box-shadow: none;
-  }
-
-  .terminal-surface .wterm.theme-composia-light {
     --term-bg: #ffffff;
     --term-fg: #24292f;
     --term-cursor: #0969da;
@@ -295,7 +291,7 @@
     --term-color-4: #0969da;
     --term-color-5: #8250df;
     --term-color-6: #1b7c83;
-    --term-color-7: #57606a;
+    --term-color-7: #d0d7de;
     --term-color-8: #6e7781;
     --term-color-9: #a40e26;
     --term-color-10: #1a7f37;
@@ -303,9 +299,26 @@
     --term-color-12: #0550ae;
     --term-color-13: #6639ba;
     --term-color-14: #3192aa;
-    --term-color-15: #24292f;
+    --term-color-15: #57606a;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    box-shadow: none;
+    -webkit-overflow-scrolling: touch;
   }
 
+  .terminal-surface .term-grid {
+    min-height: 100%;
+    contain: layout style;
+    will-change: auto;
+  }
+
+  .dark .terminal-surface .wterm,
   .terminal-surface .wterm.theme-composia-dark {
     --term-bg: #0d1117;
     --term-fg: #c9d1d9;
@@ -326,6 +339,14 @@
     --term-color-13: #d2a8ff;
     --term-color-14: #56d4dd;
     --term-color-15: #f0f6fc;
+  }
+
+  @media (max-width: 640px) {
+    .terminal-surface .wterm {
+      --term-font-size: 11px;
+      --term-line-height: 1.4;
+      padding: 0.5rem;
+    }
   }
 
   .muted-action {
