@@ -582,8 +582,8 @@ func (server *dockerCommandServer) RunContainerExec(ctx context.Context, req *co
 	}
 	timeout := time.Duration(req.Msg.GetTimeoutSeconds()) * time.Second
 	result, err := executeDockerAgentQuery(ctx, server.db, server.cfg, server.dockerQueries, req.Msg.GetNodeId(), dockerAgentQuery{
-		Action:    "exec",
-		Resource:  "container",
+		Action:    dockerActionExec,
+		Resource:  dockerResourceContainer,
 		ID:        req.Msg.GetContainerId(),
 		Command:   append([]string(nil), req.Msg.GetCommand()...),
 		Stdin:     append([]byte(nil), req.Msg.GetStdin()...),

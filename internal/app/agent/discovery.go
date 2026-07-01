@@ -21,10 +21,10 @@ func discoverImageUpdateTags(ctx context.Context, imageRef, currentTag string, d
 		}
 		return mergeImageUpdateTags(injectedCandidates, base), nil
 	}
-	if len(discovery.Sources) == 1 && strings.TrimSpace(discovery.Sources[0].Type) == "auto" {
+	if len(discovery.Sources) == 1 && strings.TrimSpace(discovery.Sources[0].Type) == imageUpdateDiscoveryAuto {
 		return discoverMergedImageUpdateTags(ctx, imageRef, currentTag, autoDiscoverySources(discovery.Sources[0]), filter)
 	}
-	if discovery.Combine == "merge" {
+	if discovery.Combine == imageUpdateDiscoveryMerge {
 		return discoverMergedImageUpdateTags(ctx, imageRef, currentTag, discovery.Sources, filter)
 	}
 	for index, source := range discovery.Sources {
@@ -47,7 +47,7 @@ func discoverImageUpdateTags(ctx context.Context, imageRef, currentTag string, d
 
 func isAgentExternalDiscoverySource(sourceType string) bool {
 	switch sourceType {
-	case "github", "gitlab", "forgejo":
+	case imageUpdateDiscoveryGitHub, imageUpdateDiscoveryGitLab, imageUpdateDiscoveryForgejo:
 		return true
 	default:
 		return false
@@ -87,10 +87,10 @@ func discoverMergedImageUpdateTags(ctx context.Context, imageRef, currentTag str
 
 func discoverImageUpdateTagsFromSource(ctx context.Context, imageRef, currentTag string, source repo.ImageUpdateDiscoverySource, filter *repo.ImageUpdateFilter) ([]string, error) {
 	switch source.Type {
-	case "auto":
+	case imageUpdateDiscoveryAuto:
 		return discoverMergedImageUpdateTags(ctx, imageRef, currentTag, autoDiscoverySources(source), filter)
-	case "probe":
-		if filter == nil || filter.Type != "semver" {
+	case imageUpdateDiscoveryProbe:
+		if filter == nil || filter.Type != imageUpdateFilterSemver {
 			return nil, nil
 		}
 		candidate, found, err := probeSemverImageTag(ctx, imageRef, currentTag, filter)
@@ -98,9 +98,9 @@ func discoverImageUpdateTagsFromSource(ctx context.Context, imageRef, currentTag
 			return nil, err
 		}
 		return []string{candidate}, nil
-	case "registry", "":
+	case imageUpdateDiscoveryRegistry, "":
 		return listRegistryTags(ctx, imageRef)
-	case "github", "gitlab", "forgejo":
+	case imageUpdateDiscoveryGitHub, imageUpdateDiscoveryGitLab, imageUpdateDiscoveryForgejo:
 		return nil, nil
 	default:
 		return nil, fmt.Errorf("unsupported image update discovery source %q", source.Type)
@@ -108,7 +108,7 @@ func discoverImageUpdateTagsFromSource(ctx context.Context, imageRef, currentTag
 }
 
 func autoDiscoverySources(source repo.ImageUpdateDiscoverySource) []repo.ImageUpdateDiscoverySource {
-	return []repo.ImageUpdateDiscoverySource{{Type: "probe"}, {Type: "registry"}}
+	return []repo.ImageUpdateDiscoverySource{{Type: imageUpdateDiscoveryProbe}, {Type: imageUpdateDiscoveryRegistry}}
 }
 
 func probeSemverImageTag(ctx context.Context, imageRef, current string, filter *repo.ImageUpdateFilter) (string, bool, error) {
@@ -152,14 +152,14 @@ func probeSemverImageTagWithExists(ctx context.Context, imageRef, current string
 		version, err := newSimpleSemver(major, minor, highestPatch)
 		return version, err == nil, err
 	}
-	if _, ok := allowed["patch"]; ok {
+	if _, ok := allowed[semverUpdatePatch]; ok {
 		version, found, err := probePatch(currentVersion.Major, currentVersion.Minor, currentVersion.Patch+1)
 		if err != nil {
 			return "", false, err
 		}
 		consider(version, found)
 	}
-	if _, ok := allowed["minor"]; ok {
+	if _, ok := allowed[semverUpdateMinor]; ok {
 		highestMinor, found, err := probeContiguousSemverComponent(ctx, currentVersion.Minor+1, func(minor int) (bool, error) {
 			return exists(ctx, imageRef, fmt.Sprintf("%s%d.%d.0", prefix, currentVersion.Major, minor))
 		})
@@ -174,7 +174,7 @@ func probeSemverImageTagWithExists(ctx context.Context, imageRef, current string
 			consider(version, found)
 		}
 	}
-	if _, ok := allowed["major"]; ok {
+	if _, ok := allowed[semverUpdateMajor]; ok {
 		highestMajor, found, err := probeContiguousSemverComponent(ctx, currentVersion.Major+1, func(major int) (bool, error) {
 			return exists(ctx, imageRef, fmt.Sprintf("%s%d.0.0", prefix, major))
 		})

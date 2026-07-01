@@ -82,7 +82,7 @@ func listServiceInstanceContainers(ctx context.Context, dockerQuery *dockerQuery
 	if dockerQuery == nil {
 		return nil, nil
 	}
-	result, err := dockerQuery.executeDockerListQuery(ctx, sourceHeader(source), nodeID, "containers", 0, 0, "", "", false)
+	result, err := dockerQuery.executeDockerListQuery(ctx, sourceHeader(source), nodeID, dockerResourceContainers, 0, 0, "", "", false)
 	if err != nil {
 		return nil, err
 	}

@@ -20,7 +20,7 @@ func candidateImageTags(current string, tags []string, filter *repo.ImageUpdateF
 	current = strings.TrimSpace(current)
 	candidates := make([]string, 0, len(tags))
 	switch filter.Type {
-	case "semver":
+	case imageUpdateFilterSemver:
 		currentVersion, ok := parseSimpleSemver(current)
 		if !ok {
 			return nil
@@ -151,7 +151,7 @@ func (version simpleSemver) greaterThan(other simpleSemver) bool { return versio
 
 func semverAllowedUpdates(allow []string) map[string]struct{} {
 	if len(allow) == 0 {
-		allow = []string{"patch", "minor"}
+		allow = []string{semverUpdatePatch, semverUpdateMinor}
 	}
 	allowed := make(map[string]struct{}, len(allow))
 	for _, item := range allow {
@@ -161,11 +161,11 @@ func semverAllowedUpdates(allow []string) map[string]struct{} {
 }
 
 func semverUpdateAllowed(current, candidate simpleSemver, allowed map[string]struct{}) bool {
-	updateType := "patch"
+	updateType := semverUpdatePatch
 	if candidate.Major != current.Major {
-		updateType = "major"
+		updateType = semverUpdateMajor
 	} else if candidate.Minor != current.Minor {
-		updateType = "minor"
+		updateType = semverUpdateMinor
 	}
 	_, ok := allowed[updateType]
 	return ok

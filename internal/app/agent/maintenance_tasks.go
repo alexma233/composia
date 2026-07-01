@@ -44,21 +44,21 @@ func runDockerPrune(ctx context.Context, target string, uploadLog func(string) e
 	case "all":
 		return runDockerPruneAll(ctx, uploadLog)
 	case "containers":
-		args = []string{"container", "prune", "-f"}
+		args = []string{dockerResourceContainer, dockerCommandPrune, "-f"}
 	case "networks":
-		args = []string{"network", "prune", "-f"}
+		args = []string{dockerResourceNetwork, dockerCommandPrune, "-f"}
 	case "images":
-		args = []string{"image", "prune", "-f"}
+		args = []string{dockerResourceImage, dockerCommandPrune, "-f"}
 	case "images_all":
-		args = []string{"image", "prune", "-a", "-f"}
+		args = []string{dockerResourceImage, dockerCommandPrune, "-a", "-f"}
 	case "volumes":
-		args = []string{"volume", "prune", "-f"}
+		args = []string{dockerResourceVolume, dockerCommandPrune, "-f"}
 	case "system_all":
-		args = []string{"system", "prune", "-a", "-f"}
+		args = []string{"system", dockerCommandPrune, "-a", "-f"}
 	case "system_all_volumes":
-		args = []string{"system", "prune", "-a", "--volumes", "-f"}
+		args = []string{"system", dockerCommandPrune, "-a", "--volumes", "-f"}
 	case "builder":
-		args = []string{"builder", "prune", "-f"}
+		args = []string{"builder", dockerCommandPrune, "-f"}
 	default:
 		return fmt.Errorf("unknown prune target: %q", target)
 	}

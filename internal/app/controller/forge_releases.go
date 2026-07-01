@@ -56,7 +56,7 @@ func collectForgeImageCandidates(ctx context.Context, cfg *config.ControllerConf
 
 func collectForgeCandidatesForDiscovery(ctx context.Context, cfg *config.ControllerConfig, discovery repo.ImageUpdateDiscovery) ([]string, map[string][]string, error) {
 	includePrerelease := discovery.IncludePrerelease != nil && *discovery.IncludePrerelease
-	if len(discovery.Sources) == 1 && strings.TrimSpace(discovery.Sources[0].Type) == "auto" {
+	if len(discovery.Sources) == 1 && strings.TrimSpace(discovery.Sources[0].Type) == imageUpdateDiscoveryAuto {
 		autoSource := discovery.Sources[0]
 		if strings.TrimSpace(autoSource.RepoURL) == "" {
 			return nil, nil, nil
@@ -68,7 +68,7 @@ func collectForgeCandidatesForDiscovery(ctx context.Context, cfg *config.Control
 		candidates, err := fetchForgeReleaseTags(ctx, cfg, source, includePrerelease)
 		return candidates, nil, err
 	}
-	if discovery.Combine == "merge" {
+	if discovery.Combine == imageUpdateDiscoveryMerge {
 		candidates, err := mergeForgeCandidateGroups(ctx, cfg, discovery.Sources, includePrerelease)
 		return candidates, nil, err
 	}
@@ -107,11 +107,11 @@ func forgeSourceFromRepoURL(rawURL string) (repo.ImageUpdateDiscoverySource, boo
 	fullProject := strings.Join(parts, "/")
 	switch host {
 	case "github.com":
-		return repo.ImageUpdateDiscoverySource{Type: "github", Repo: repoPath, RepoURL: rawURL}, true, nil
+		return repo.ImageUpdateDiscoverySource{Type: imageUpdateDiscoveryGitHub, Repo: repoPath, RepoURL: rawURL}, true, nil
 	case "gitlab.com":
-		return repo.ImageUpdateDiscoverySource{Type: "gitlab", Project: fullProject, RepoURL: rawURL}, true, nil
+		return repo.ImageUpdateDiscoverySource{Type: imageUpdateDiscoveryGitLab, Project: fullProject, RepoURL: rawURL}, true, nil
 	case "codeberg.org":
-		return repo.ImageUpdateDiscoverySource{Type: "forgejo", Repo: repoPath, RepoURL: rawURL, APIURL: "https://codeberg.org/api/v1"}, true, nil
+		return repo.ImageUpdateDiscoverySource{Type: imageUpdateDiscoveryForgejo, Repo: repoPath, RepoURL: rawURL, APIURL: "https://codeberg.org/api/v1"}, true, nil
 	default:
 		return repo.ImageUpdateDiscoverySource{}, false, nil
 	}
@@ -145,7 +145,7 @@ func mergeForgeCandidateGroups(ctx context.Context, cfg *config.ControllerConfig
 
 func isForgeDiscoverySource(sourceType string) bool {
 	switch sourceType {
-	case "github", "gitlab", "forgejo":
+	case imageUpdateDiscoveryGitHub, imageUpdateDiscoveryGitLab, imageUpdateDiscoveryForgejo:
 		return true
 	default:
 		return false
@@ -223,12 +223,12 @@ func forgeReleaseRequest(source repo.ImageUpdateDiscoverySource, cfg *config.Con
 		updates = cfg.Updates
 	}
 	switch source.Type {
-	case "github":
+	case imageUpdateDiscoveryGitHub:
 		repoName := strings.TrimSpace(source.Repo)
 		if repoName == "" {
 			return "", nil, errors.New("github release discovery requires repo")
 		}
-		auth := forgeAuth(updates, "github", source.RepoURL)
+		auth := forgeAuth(updates, imageUpdateDiscoveryGitHub, source.RepoURL)
 		apiURL := strings.TrimRight(auth.APIURL, "/")
 		if apiURL == "" {
 			apiURL = "https://api.github.com"
@@ -237,12 +237,12 @@ func forgeReleaseRequest(source repo.ImageUpdateDiscoverySource, cfg *config.Con
 			headers["Authorization"] = "Bearer " + auth.Token
 		}
 		return apiURL + "/repos/" + strings.Trim(repoName, "/") + "/releases?per_page=100", headers, nil
-	case "gitlab":
+	case imageUpdateDiscoveryGitLab:
 		project := strings.TrimSpace(source.Project)
 		if project == "" {
 			return "", nil, errors.New("gitlab release discovery requires project")
 		}
-		auth := forgeAuth(updates, "gitlab", source.RepoURL)
+		auth := forgeAuth(updates, imageUpdateDiscoveryGitLab, source.RepoURL)
 		apiURL := strings.TrimRight(auth.APIURL, "/")
 		if apiURL == "" {
 			apiURL = "https://gitlab.com/api/v4"
@@ -251,12 +251,12 @@ func forgeReleaseRequest(source repo.ImageUpdateDiscoverySource, cfg *config.Con
 			headers["PRIVATE-TOKEN"] = auth.Token
 		}
 		return apiURL + "/projects/" + url.PathEscape(project) + "/releases?per_page=100", headers, nil
-	case "forgejo":
+	case imageUpdateDiscoveryForgejo:
 		repoName := strings.TrimSpace(source.Repo)
 		if repoName == "" {
 			return "", nil, errors.New("forgejo release discovery requires repo")
 		}
-		auth := forgeAuth(updates, "forgejo", source.RepoURL)
+		auth := forgeAuth(updates, imageUpdateDiscoveryForgejo, source.RepoURL)
 		apiURL := strings.TrimRight(source.APIURL, "/")
 		if apiURL == "" {
 			apiURL = strings.TrimRight(auth.APIURL, "/")
@@ -279,11 +279,11 @@ func forgeAuth(updates *config.ControllerUpdatesConfig, sourceType, repoURL stri
 	}
 	var auths config.ForgeAuthConfigs
 	switch sourceType {
-	case "github":
+	case imageUpdateDiscoveryGitHub:
 		auths = updates.ForgeAuth.GitHub
-	case "gitlab":
+	case imageUpdateDiscoveryGitLab:
 		auths = updates.ForgeAuth.GitLab
-	case "forgejo":
+	case imageUpdateDiscoveryForgejo:
 		auths = updates.ForgeAuth.Forgejo
 	}
 	if len(auths) == 0 {

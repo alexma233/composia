@@ -323,7 +323,7 @@ func syncCloudflareTunnelDNS(ctx context.Context, client dnsClient, hostname, tu
 	if _, err := client.SetRecords(ctx, zone, []libdns.Record{libdns.CNAME{Name: relativeName, Target: target}}); err != nil {
 		return err
 	}
-	return client.ApplyRecordOptions(ctx, zone, fqdn, "CNAME", dnsRecordOptions{Proxied: &proxied, Comment: "Managed by Composia Cloudflare Tunnel"})
+	return client.ApplyRecordOptions(ctx, zone, fqdn, dnsRecordTypeCNAME, dnsRecordOptions{Proxied: &proxied, Comment: "Managed by Composia Cloudflare Tunnel"})
 }
 
 func deleteCloudflareTunnelDNS(ctx context.Context, client dnsClient, hostname, tunnelID, logPath string) error {
@@ -335,7 +335,7 @@ func deleteCloudflareTunnelDNS(ctx context.Context, client dnsClient, hostname, 
 	if err := appendTaskLogRaw(logPath, fmt.Sprintf("deleting Cloudflare Tunnel CNAME hostname=%s target=%s.cfargotunnel.com\n", fqdn, tunnelID)); err != nil {
 		return err
 	}
-	_, err = client.DeleteRecords(ctx, zone, []libdns.Record{libdns.RR{Name: libdns.RelativeName(fqdn, zone), Type: "CNAME"}})
+	_, err = client.DeleteRecords(ctx, zone, []libdns.Record{libdns.RR{Name: libdns.RelativeName(fqdn, zone), Type: dnsRecordTypeCNAME}})
 	return err
 }
 

@@ -334,7 +334,7 @@ func (s *dockerServer) ListContainers(ctx context.Context, req *connect.Request[
 		switch req.Msg.GetSortBy() {
 		case "state":
 			compare = stringCompare(left.GetState(), right.GetState())
-		case "image":
+		case dockerResourceImage:
 			compare = stringCompare(left.GetImage(), right.GetImage())
 		case "created":
 			compare = stringCompare(left.GetCreated(), right.GetCreated())
@@ -969,8 +969,6 @@ const (
 	dockerActionsStart   = "start"
 	dockerActionsStop    = "stop"
 	dockerActionsRestart = "restart"
-
-	dockerResourceContainer = "container"
 )
 
 func dockerTaskActionResource(taskType agentv1.AgentTaskType) (string, string, bool) {
@@ -984,11 +982,11 @@ func dockerTaskActionResource(taskType agentv1.AgentTaskType) (string, string, b
 	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_CONTAINER:
 		return dockerActionsRemove, dockerResourceContainer, true
 	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_NETWORK:
-		return dockerActionsRemove, "network", true
+		return dockerActionsRemove, dockerResourceNetwork, true
 	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_VOLUME:
-		return dockerActionsRemove, "volume", true
+		return dockerActionsRemove, dockerResourceVolume, true
 	case agentv1.AgentTaskType_AGENT_TASK_TYPE_DOCKER_REMOVE_IMAGE:
-		return dockerActionsRemove, "image", true
+		return dockerActionsRemove, dockerResourceImage, true
 	default:
 		return "", "", false
 	}
@@ -1027,11 +1025,11 @@ func runDockerMutation(ctx context.Context, params dockerTaskParams) error {
 		switch params.Resource {
 		case dockerResourceContainer:
 			_, err = server.RemoveContainer(ctx, connect.NewRequest(&agentv1.RemoveContainerRequest{ContainerId: params.ID, Force: params.Force, RemoveVolumes: params.RemoveVolumes}))
-		case "network":
+		case dockerResourceNetwork:
 			_, err = server.RemoveNetwork(ctx, connect.NewRequest(&agentv1.RemoveNetworkRequest{NetworkId: params.ID}))
-		case "volume":
+		case dockerResourceVolume:
 			_, err = server.RemoveVolume(ctx, connect.NewRequest(&agentv1.RemoveVolumeRequest{VolumeName: params.ID}))
-		case "image":
+		case dockerResourceImage:
 			_, err = server.RemoveImage(ctx, connect.NewRequest(&agentv1.RemoveImageRequest{ImageId: params.ID, Force: params.Force}))
 		default:
 			return fmt.Errorf("unknown docker resource for remove: %s", params.Resource)

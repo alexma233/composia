@@ -121,7 +121,7 @@ func buildBackupRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeID
 		if _, ok := selected[data.Name]; !ok || data.Backup == nil {
 			continue
 		}
-		provider := "rustic"
+		provider := backupProviderRustic
 		for _, backupItem := range service.Meta.Backup.Data {
 			if backupItem.Name == data.Name {
 				if backupItem.Provider != "" {
@@ -130,7 +130,7 @@ func buildBackupRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeID
 				break
 			}
 		}
-		if provider != "rustic" {
+		if provider != backupProviderRustic {
 			return "", fmt.Errorf("backup provider %q is not implemented", provider)
 		}
 		items = append(items, backupcfg.RuntimeItem{Name: data.Name, Strategy: data.Backup.Strategy, Service: data.Backup.Service, Include: append([]string(nil), data.Backup.Include...), Provider: provider, Tags: []string{"composia-service:" + serviceName, "composia-data:" + data.Name}})
@@ -179,7 +179,7 @@ func buildRestoreRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeI
 			Strategy:    data.Restore.Strategy,
 			Service:     data.Restore.Service,
 			Include:     append([]string(nil), data.Restore.Include...),
-			Provider:    "rustic",
+			Provider:    backupProviderRustic,
 			ArtifactRef: artifactRef,
 		})
 	}

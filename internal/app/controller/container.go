@@ -39,18 +39,18 @@ func (server *dockerCommandServer) RunContainerAction(ctx context.Context, req *
 	switch req.Msg.GetAction() {
 	case controllerv1.ContainerAction_CONTAINER_ACTION_START:
 		taskType = task.TypeDockerStart
-		action = "start"
+		action = dockerActionStart
 	case controllerv1.ContainerAction_CONTAINER_ACTION_STOP:
 		taskType = task.TypeDockerStop
-		action = "stop"
+		action = dockerActionStop
 	case controllerv1.ContainerAction_CONTAINER_ACTION_RESTART:
 		taskType = task.TypeDockerRestart
-		action = "restart"
+		action = dockerActionRestart
 	default:
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("action is required"))
 	}
 
-	record, err := server.createContainerTask(ctx, req.Header(), req.Msg.GetNodeId(), req.Msg.GetContainerId(), taskType, map[string]any{"action": action, "resource": "container", "id": req.Msg.GetContainerId()})
+	record, err := server.createContainerTask(ctx, req.Header(), req.Msg.GetNodeId(), req.Msg.GetContainerId(), taskType, map[string]any{dockerParamAction: action, dockerParamResource: dockerResourceContainer, dockerParamID: req.Msg.GetContainerId()})
 	if err != nil {
 		return nil, err
 	}
@@ -63,11 +63,11 @@ func (server *dockerCommandServer) RemoveContainer(ctx context.Context, req *con
 	}
 
 	record, err := server.createContainerTask(ctx, req.Header(), req.Msg.GetNodeId(), req.Msg.GetContainerId(), task.TypeDockerRemoveContainer, map[string]any{
-		"action":         "remove",
-		"resource":       "container",
-		"id":             req.Msg.GetContainerId(),
-		"force":          req.Msg.GetForce(),
-		"remove_volumes": req.Msg.GetRemoveVolumes(),
+		dockerParamAction:   dockerActionRemove,
+		dockerParamResource: dockerResourceContainer,
+		dockerParamID:       req.Msg.GetContainerId(),
+		"force":             req.Msg.GetForce(),
+		"remove_volumes":    req.Msg.GetRemoveVolumes(),
 	})
 	if err != nil {
 		return nil, err
@@ -81,9 +81,9 @@ func (server *dockerCommandServer) RemoveNetwork(ctx context.Context, req *conne
 	}
 
 	record, err := server.createNodeDockerTask(ctx, req.Header(), req.Msg.GetNodeId(), task.TypeDockerRemoveNetwork, map[string]any{
-		"action":   "remove",
-		"resource": "network",
-		"id":       req.Msg.GetNetworkId(),
+		dockerParamAction:   dockerActionRemove,
+		dockerParamResource: dockerResourceNetwork,
+		dockerParamID:       req.Msg.GetNetworkId(),
 	})
 	if err != nil {
 		return nil, err
@@ -97,9 +97,9 @@ func (server *dockerCommandServer) RemoveVolume(ctx context.Context, req *connec
 	}
 
 	record, err := server.createNodeDockerTask(ctx, req.Header(), req.Msg.GetNodeId(), task.TypeDockerRemoveVolume, map[string]any{
-		"action":   "remove",
-		"resource": "volume",
-		"id":       req.Msg.GetVolumeName(),
+		dockerParamAction:   dockerActionRemove,
+		dockerParamResource: dockerResourceVolume,
+		dockerParamID:       req.Msg.GetVolumeName(),
 	})
 	if err != nil {
 		return nil, err
@@ -113,10 +113,10 @@ func (server *dockerCommandServer) RemoveImage(ctx context.Context, req *connect
 	}
 
 	record, err := server.createNodeDockerTask(ctx, req.Header(), req.Msg.GetNodeId(), task.TypeDockerRemoveImage, map[string]any{
-		"action":   "remove",
-		"resource": "image",
-		"id":       req.Msg.GetImageId(),
-		"force":    req.Msg.GetForce(),
+		dockerParamAction:   dockerActionRemove,
+		dockerParamResource: dockerResourceImage,
+		dockerParamID:       req.Msg.GetImageId(),
+		"force":             req.Msg.GetForce(),
 	})
 	if err != nil {
 		return nil, err

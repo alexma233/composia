@@ -32,7 +32,7 @@ import (
 
 const cloudflareAPIBaseURL = "https://api.cloudflare.com/client/v4"
 
-var managedDNSRecordTypes = []string{"A", "AAAA", "CNAME"}
+var managedDNSRecordTypes = []string{dnsRecordTypeA, dnsRecordTypeAAAA, dnsRecordTypeCNAME}
 
 type dnsProviderFactory interface {
 	ForService(cfg *config.ControllerConfig, provider string) (dnsClient, error)
@@ -324,20 +324,20 @@ func desiredDNSRecordSetsForValue(relativeName string, ttl time.Duration, record
 	recordSets := make(map[string][]libdns.Record)
 	if addr, err := netip.ParseAddr(value); err == nil {
 		switch recordType {
-		case "", "A", "AAAA":
+		case "", dnsRecordTypeA, dnsRecordTypeAAAA:
 			if addr.Is4() {
-				if recordType == "AAAA" {
+				if recordType == dnsRecordTypeAAAA {
 					return nil, errors.New("record_type AAAA requires an IPv6 value")
 				}
-				recordSets["A"] = []libdns.Record{libdns.Address{Name: relativeName, TTL: ttl, IP: addr}}
+				recordSets[dnsRecordTypeA] = []libdns.Record{libdns.Address{Name: relativeName, TTL: ttl, IP: addr}}
 				return recordSets, nil
 			}
-			if recordType == "A" {
+			if recordType == dnsRecordTypeA {
 				return nil, errors.New("record_type A requires an IPv4 value")
 			}
-			recordSets["AAAA"] = []libdns.Record{libdns.Address{Name: relativeName, TTL: ttl, IP: addr}}
+			recordSets[dnsRecordTypeAAAA] = []libdns.Record{libdns.Address{Name: relativeName, TTL: ttl, IP: addr}}
 			return recordSets, nil
-		case "CNAME":
+		case dnsRecordTypeCNAME:
 			return nil, errors.New("record_type CNAME requires a hostname value")
 		default:
 			return nil, fmt.Errorf("unsupported dns record_type %q", recordType)
@@ -346,10 +346,10 @@ func desiredDNSRecordSetsForValue(relativeName string, ttl time.Duration, record
 
 	target := ensureTrailingDot(value)
 	switch recordType {
-	case "", "CNAME":
-		recordSets["CNAME"] = []libdns.Record{libdns.CNAME{Name: relativeName, TTL: ttl, Target: target}}
+	case "", dnsRecordTypeCNAME:
+		recordSets[dnsRecordTypeCNAME] = []libdns.Record{libdns.CNAME{Name: relativeName, TTL: ttl, Target: target}}
 		return recordSets, nil
-	case "A", "AAAA":
+	case dnsRecordTypeA, dnsRecordTypeAAAA:
 		return nil, fmt.Errorf("record_type %s requires an IP value", recordType)
 	default:
 		return nil, fmt.Errorf("unsupported dns record_type %q", recordType)
@@ -365,20 +365,20 @@ func desiredDNSRecordSetsForNode(relativeName string, ttl time.Duration, recordT
 			if err != nil {
 				return nil, fmt.Errorf("node %q public_ipv4 is invalid: %w", node.ID, err)
 			}
-			recordSets["A"] = []libdns.Record{libdns.Address{Name: relativeName, TTL: ttl, IP: addr}}
+			recordSets[dnsRecordTypeA] = []libdns.Record{libdns.Address{Name: relativeName, TTL: ttl, IP: addr}}
 		}
 		if node.PublicIPv6 != "" {
 			addr, err := netip.ParseAddr(node.PublicIPv6)
 			if err != nil {
 				return nil, fmt.Errorf("node %q public_ipv6 is invalid: %w", node.ID, err)
 			}
-			recordSets["AAAA"] = []libdns.Record{libdns.Address{Name: relativeName, TTL: ttl, IP: addr}}
+			recordSets[dnsRecordTypeAAAA] = []libdns.Record{libdns.Address{Name: relativeName, TTL: ttl, IP: addr}}
 		}
 		if len(recordSets) == 0 {
 			return nil, fmt.Errorf("service node %q does not have a public IPv4 or IPv6 address", node.ID)
 		}
 		return recordSets, nil
-	case "A":
+	case dnsRecordTypeA:
 		if node.PublicIPv4 == "" {
 			return nil, fmt.Errorf("service node %q does not have public_ipv4", node.ID)
 		}
@@ -386,9 +386,9 @@ func desiredDNSRecordSetsForNode(relativeName string, ttl time.Duration, recordT
 		if err != nil {
 			return nil, fmt.Errorf("node %q public_ipv4 is invalid: %w", node.ID, err)
 		}
-		recordSets["A"] = []libdns.Record{libdns.Address{Name: relativeName, TTL: ttl, IP: addr}}
+		recordSets[dnsRecordTypeA] = []libdns.Record{libdns.Address{Name: relativeName, TTL: ttl, IP: addr}}
 		return recordSets, nil
-	case "AAAA":
+	case dnsRecordTypeAAAA:
 		if node.PublicIPv6 == "" {
 			return nil, fmt.Errorf("service node %q does not have public_ipv6", node.ID)
 		}
@@ -396,9 +396,9 @@ func desiredDNSRecordSetsForNode(relativeName string, ttl time.Duration, recordT
 		if err != nil {
 			return nil, fmt.Errorf("node %q public_ipv6 is invalid: %w", node.ID, err)
 		}
-		recordSets["AAAA"] = []libdns.Record{libdns.Address{Name: relativeName, TTL: ttl, IP: addr}}
+		recordSets[dnsRecordTypeAAAA] = []libdns.Record{libdns.Address{Name: relativeName, TTL: ttl, IP: addr}}
 		return recordSets, nil
-	case "CNAME":
+	case dnsRecordTypeCNAME:
 		return nil, errors.New("record_type CNAME requires an explicit value")
 	default:
 		return nil, fmt.Errorf("unsupported dns record_type %q", recordType)

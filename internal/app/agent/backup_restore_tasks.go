@@ -185,7 +185,7 @@ func backupRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot
 		return "", startedAt, time.Time{}, err
 	}
 
-	if item.Strategy == "files.copy_after_stop" {
+	if item.Strategy == backupStrategyFilesCopyAfterStop {
 		compose, _, loadErr := loadComposeCommandConfig(serviceRoot, filepath.Base(serviceRoot))
 		if loadErr != nil {
 			return "", startedAt, time.Time{}, loadErr
@@ -209,12 +209,12 @@ func backupRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot
 
 	var extraVolumes []string
 	switch item.Strategy {
-	case "files.copy", "files.copy_after_stop":
+	case backupStrategyFilesCopy, backupStrategyFilesCopyAfterStop:
 		extraVolumes, err = buildBackupVolumeFlags(serviceRoot, rusticSourceDir, item)
 		if err != nil {
 			return "", startedAt, time.Time{}, err
 		}
-	case "database.pgdumpall":
+	case backupStrategyPostgresDumpAll:
 		if err := stageBackupItem(ctx, serviceRoot, stagingDir, item, logUploader); err != nil {
 			return "", startedAt, time.Time{}, err
 		}
@@ -242,8 +242,8 @@ func restoreRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoo
 
 	var extraVolumes []string
 	switch item.Strategy {
-	case "files.copy", "files.copy_after_stop":
-		if item.Strategy == "files.copy_after_stop" {
+	case backupStrategyFilesCopy, backupStrategyFilesCopyAfterStop:
+		if item.Strategy == backupStrategyFilesCopyAfterStop {
 			compose, _, loadErr := loadComposeCommandConfig(serviceRoot, filepath.Base(serviceRoot))
 			if loadErr != nil {
 				return loadErr
@@ -356,7 +356,7 @@ func applyRestoreItem(ctx context.Context, serviceRoot, stagingDir string, item 
 
 func stageBackupItem(ctx context.Context, serviceRoot, stagingDir string, item backupcfg.RuntimeItem, logUploader *taskLogUploader) error {
 	switch item.Strategy {
-	case "database.pgdumpall":
+	case backupStrategyPostgresDumpAll:
 		compose, _, err := loadComposeCommandConfig(serviceRoot, filepath.Base(serviceRoot))
 		if err != nil {
 			return err

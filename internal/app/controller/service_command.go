@@ -146,13 +146,13 @@ func composeRecreateModeParam(taskType task.Type, mode controllerv1.ComposeRecre
 	}
 	switch mode {
 	case controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_NO_RECREATE:
-		return "no_recreate"
+		return composeRecreateNo
 	case controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_FORCE_RECREATE:
-		return "force_recreate"
+		return composeRecreateForce
 	case controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_AUTO, controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_UNSPECIFIED:
-		return "auto"
+		return composeRecreateAuto
 	default:
-		return "auto"
+		return composeRecreateAuto
 	}
 }
 

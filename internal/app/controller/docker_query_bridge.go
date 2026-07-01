@@ -440,7 +440,7 @@ func executeDockerAgentQuery(ctx context.Context, db *store.DB, cfg *config.Cont
 func (server *dockerQueryServer) executeDockerListQuery(ctx context.Context, header http.Header, nodeID, resource string, page, pageSize uint32, search, sortBy string, sortDesc bool) (*dockerListResult, error) {
 	_ = header
 	result, err := executeDockerAgentQuery(ctx, server.db, server.cfg, server.dockerQueries, nodeID, dockerAgentQuery{
-		Action:   "list",
+		Action:   dockerActionList,
 		Resource: resource,
 		Page:     page,
 		PageSize: pageSize,
@@ -461,7 +461,7 @@ func (server *dockerQueryServer) executeDockerListQuery(ctx context.Context, hea
 func (server *dockerQueryServer) executeDockerInspectQuery(ctx context.Context, header http.Header, nodeID, resource, id string) (*dockerListResult, error) {
 	_ = header
 	result, err := executeDockerAgentQuery(ctx, server.db, server.cfg, server.dockerQueries, nodeID, dockerAgentQuery{
-		Action:   "inspect",
+		Action:   dockerActionInspect,
 		Resource: resource,
 		ID:       id,
 	})
@@ -501,39 +501,39 @@ func dockerQueryConnectCode(value string) connect.Code {
 func dockerProtoQueryTask(query dockerAgentQuery) (*agentv1.DockerQueryTask, error) {
 	message := &agentv1.DockerQueryTask{QueryId: query.QueryID, NodeId: query.NodeID}
 	switch query.Action {
-	case "list":
+	case dockerActionList:
 		switch query.Resource {
-		case "containers":
+		case dockerResourceContainers:
 			message.Query = &agentv1.DockerQueryTask_ListContainers{ListContainers: &agentv1.ListContainersRequest{PageSize: query.PageSize, Page: query.Page, Search: query.Search, SortBy: query.SortBy, SortDesc: query.SortDesc}}
-		case "networks":
+		case dockerResourceNetworks:
 			message.Query = &agentv1.DockerQueryTask_ListNetworks{ListNetworks: &agentv1.ListNetworksRequest{PageSize: query.PageSize, Page: query.Page, Search: query.Search, SortBy: query.SortBy, SortDesc: query.SortDesc}}
-		case "volumes":
+		case dockerResourceVolumes:
 			message.Query = &agentv1.DockerQueryTask_ListVolumes{ListVolumes: &agentv1.ListVolumesRequest{PageSize: query.PageSize, Page: query.Page, Search: query.Search, SortBy: query.SortBy, SortDesc: query.SortDesc}}
-		case "images":
+		case dockerResourceImages:
 			message.Query = &agentv1.DockerQueryTask_ListImages{ListImages: &agentv1.ListImagesRequest{PageSize: query.PageSize, Page: query.Page, Search: query.Search, SortBy: query.SortBy, SortDesc: query.SortDesc}}
 		default:
 			return nil, fmt.Errorf("unsupported docker list resource %q", query.Resource)
 		}
-	case "inspect":
+	case dockerActionInspect:
 		switch query.Resource {
-		case "container":
+		case dockerResourceContainer:
 			message.Query = &agentv1.DockerQueryTask_InspectContainer{InspectContainer: &agentv1.InspectContainerRequest{ContainerId: query.ID}}
-		case "network":
+		case dockerResourceNetwork:
 			message.Query = &agentv1.DockerQueryTask_InspectNetwork{InspectNetwork: &agentv1.InspectNetworkRequest{NetworkId: query.ID}}
-		case "volume":
+		case dockerResourceVolume:
 			message.Query = &agentv1.DockerQueryTask_InspectVolume{InspectVolume: &agentv1.InspectVolumeRequest{VolumeName: query.ID}}
-		case "image":
+		case dockerResourceImage:
 			message.Query = &agentv1.DockerQueryTask_InspectImage{InspectImage: &agentv1.InspectImageRequest{ImageId: query.ID}}
 		default:
 			return nil, fmt.Errorf("unsupported docker inspect resource %q", query.Resource)
 		}
-	case "logs":
-		if query.Resource != "container" {
+	case dockerActionLogs:
+		if query.Resource != dockerResourceContainer {
 			return nil, fmt.Errorf("unsupported docker logs resource %q", query.Resource)
 		}
 		message.Query = &agentv1.DockerQueryTask_ContainerLogs{ContainerLogs: &agentv1.GetContainerLogsRequest{ContainerId: query.ID, Tail: query.Tail, Timestamps: query.Timestamps}}
-	case "exec":
-		if query.Resource != "container" {
+	case dockerActionExec:
+		if query.Resource != dockerResourceContainer {
 			return nil, fmt.Errorf("unsupported docker exec resource %q", query.Resource)
 		}
 		timeoutSeconds := uint32(0)

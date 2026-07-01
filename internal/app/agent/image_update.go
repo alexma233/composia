@@ -109,7 +109,7 @@ func reportServiceImageUpdateChecks(ctx context.Context, client agentv1connect.A
 	checks := make([]*agentv1.ServiceImageUpdateCheck, 0, len(imageNames))
 	for _, imageName := range imageNames {
 		image := serviceMeta.Update.Images[imageName]
-		if image.Filter != nil && image.Filter.Type == "semver" && len(image.Filter.Allow) == 0 && len(params.SemverAllow) > 0 {
+		if image.Filter != nil && image.Filter.Type == imageUpdateFilterSemver && len(image.Filter.Allow) == 0 && len(params.SemverAllow) > 0 {
 			image.Filter.Allow = append([]string(nil), params.SemverAllow...)
 		}
 		checks = append(checks, collectServiceImageUpdateCheck(ctx, serviceDir, imageName, image, serviceMeta.Update.DiscoverySources, params.ForgeCandidates[imageName], params.ForgeCandidateSources[imageName]))
@@ -130,7 +130,7 @@ func reportServiceImageUpdateChecks(ctx context.Context, client agentv1connect.A
 }
 
 func collectServiceImageUpdateCheck(ctx context.Context, serviceDir, imageName string, image repo.ImageUpdateConfig, discoverySources map[string]repo.ImageUpdateDiscovery, injectedCandidates []string, injectedSourceCandidates map[string][]string) *agentv1.ServiceImageUpdateCheck {
-	policyType := "digest"
+	policyType := imageUpdatePolicyDigest
 	if image.Filter != nil {
 		policyType = image.Filter.Type
 	}
@@ -349,7 +349,7 @@ func loadComposeConfigOutput(ctx context.Context, serviceDir string, compose com
 }
 
 func inspectLocalImageDigest(ctx context.Context, imageRef string) (string, error) {
-	command := exec.CommandContext(ctx, "docker", "image", "inspect", "--format", "{{range .RepoDigests}}{{println .}}{{end}}", imageRef) //nolint:gosec
+	command := exec.CommandContext(ctx, "docker", dockerResourceImage, "inspect", "--format", "{{range .RepoDigests}}{{println .}}{{end}}", imageRef) //nolint:gosec
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	command.Stdout = &stdout
