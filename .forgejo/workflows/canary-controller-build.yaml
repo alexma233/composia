@@ -40,20 +40,20 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Docker Buildx
-        # renovate: datasource=git-refs depName=actions/docker-setup-buildx-action packageName=https://forgejo.alexma.top/actions/docker-setup-buildx-action currentValue=v4.1.0
-        uses: https://forgejo.alexma.top/actions/docker-setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5
+        # renovate: datasource=git-refs depName=actions/docker-setup-buildx-action packageName=https://forgejo.alexma.top/actions/docker-setup-buildx-action currentValue=v4.2.0
+        uses: https://forgejo.alexma.top/actions/docker-setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
 
       - name: Login to Forgejo Registry
-        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.2.0
-        uses: https://forgejo.alexma.top/actions/docker-login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee
+        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.3.0
+        uses: https://forgejo.alexma.top/actions/docker-login-action@c99871dec2022cc055c062a10cc1a1310835ceb4
         with:
           registry: forgejo.alexma.top
           username: ${{ secrets.OCI_IMAGES_FORGEJO_USERNAME }}
           password: ${{ secrets.OCI_IMAGES_FORGEJO_TOKEN }}
 
       - name: Login to GHCR
-        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.2.0
-        uses: https://forgejo.alexma.top/actions/docker-login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee
+        # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.3.0
+        uses: https://forgejo.alexma.top/actions/docker-login-action@c99871dec2022cc055c062a10cc1a1310835ceb4
         with:
           registry: ghcr.io
           username: ${{ secrets.OCI_IMAGES_GHCR_USERNAME }}
