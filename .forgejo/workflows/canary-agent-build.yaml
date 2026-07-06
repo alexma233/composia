@@ -28,7 +28,7 @@ jobs:
   binary-agent:
     runs-on: docker-amd64-dind
     container:
-      image: forgejo.alexma.top/alexma233/ci-image-go-releaser:2.16.0
+      image: forgejo.alexma.top/alexma233/ci-image-go-releaser:2.17.0
     steps:
       - name: Checkout
         # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v7.0.0
