@@ -3,6 +3,10 @@ go = "1.26.4"
 bun = "1.3.14"
 buf = "1.71.0"
 
+[tasks."setup"]
+description = "Prepare local development files"
+run = "sh scripts/dev/setup.sh"
+
 [tasks."web"]
 description = "Start the Web dev server"
 run = "bun run web:dev"
@@ -24,25 +28,77 @@ description = "Run the second agent locally"
 run = "go run ./cmd/composia-agent -config ./dev/config.agent.yaml"
 
 [tasks."dev"]
-description = "Start the fully containerized dev stack"
-run = "env UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml up --build"
+description = "Start the app dev stack"
+run = "sh scripts/dev/setup.sh && env UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml up --build controller-dev agent-dev web-dev"
+
+[tasks."dev:docs"]
+description = "Start the docs dev server in the dev stack"
+run = "sh scripts/dev/setup.sh && env UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml --profile docs up --build docs-dev"
+
+[tasks."dev:all"]
+description = "Start the app and docs dev stack"
+run = "sh scripts/dev/setup.sh && env UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml --profile docs up --build"
 
 [tasks."dev:down"]
-description = "Stop the fully containerized dev stack"
-run = "env UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml down"
+description = "Stop the dev stack"
+run = "env UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml --profile docs down"
 
 [tasks."dev:logs"]
-description = "Follow logs from the dev stack"
-run = "env UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml logs -f"
+description = "Follow logs from the app dev stack"
+run = "env UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml logs -f controller-dev agent-dev web-dev"
+
+[tasks."dev:logs:all"]
+description = "Follow logs from the app and docs dev stack"
+run = "env UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml --profile docs logs -f"
 
 [tasks."dev:selinux"]
-description = "Start the dev stack with SELinux override"
-run = "env UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml -f dev/docker-compose.dev.selinux.override.yaml up --build"
+description = "Start the app dev stack with SELinux override"
+run = "sh scripts/dev/setup.sh && env UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml -f dev/docker-compose.dev.selinux.override.yaml up --build controller-dev agent-dev web-dev"
+
+[tasks."dev:docs:selinux"]
+description = "Start the docs dev server with SELinux override"
+run = "sh scripts/dev/setup.sh && env UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml -f dev/docker-compose.dev.selinux.override.yaml --profile docs up --build docs-dev"
+
+[tasks."dev:all:selinux"]
+description = "Start the app and docs dev stack with SELinux override"
+run = "sh scripts/dev/setup.sh && env UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml -f dev/docker-compose.dev.selinux.override.yaml --profile docs up --build"
 
 [tasks."dev:down:selinux"]
 description = "Stop the SELinux dev stack"
-run = "env UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml -f dev/docker-compose.dev.selinux.override.yaml down"
+run = "env UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml -f dev/docker-compose.dev.selinux.override.yaml --profile docs down"
 
 [tasks."dev:logs:selinux"]
-description = "Follow logs from the SELinux dev stack"
-run = "env UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml -f dev/docker-compose.dev.selinux.override.yaml logs -f"
+description = "Follow logs from the app SELinux dev stack"
+run = "env UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml -f dev/docker-compose.dev.selinux.override.yaml logs -f controller-dev agent-dev web-dev"
+
+[tasks."dev:logs:all:selinux"]
+description = "Follow logs from the app and docs SELinux dev stack"
+run = "env UID=$(id -u) GID=$(id -g) docker compose -f dev/docker-compose.dev.yaml -f dev/docker-compose.dev.selinux.override.yaml --profile docs logs -f"
+
+[tasks."check"]
+description = "Run the local pre-commit check suite"
+run = "sh scripts/dev/check.sh"
+
+[tasks."check:full"]
+description = "Run slower backend checks"
+run = "CGO_ENABLED=1 go test -race -coverprofile=coverage.out ./... && golangci-lint run --timeout 20m && govulncheck ./..."
+
+[tasks."gen"]
+description = "Generate protobuf code and API docs"
+run = "sh scripts/dev/gen.sh"
+
+[tasks."e2e"]
+description = "Run CLI, controller, and web e2e tests"
+run = "sh scripts/dev/e2e.sh"
+
+[tasks."e2e:cli"]
+description = "Run CLI e2e tests"
+run = "go test -tags=e2e ./test/e2e"
+
+[tasks."e2e:controller"]
+description = "Run controller e2e tests"
+run = "go test -tags=e2e ./test/controller_e2e"
+
+[tasks."e2e:web"]
+description = "Run web e2e tests"
+run = "bun run web:e2e"

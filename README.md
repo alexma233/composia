@@ -79,6 +79,25 @@ services:
 - [Development Guide](https://composia.xyz/docs/developer-guide/source-build/)
 - [Why Composia?](https://composia.xyz/docs/about/why-composia/)
 
+## Development
+
+```bash
+mise install
+mise run setup
+mise run dev
+```
+
+Common local tasks:
+
+```bash
+mise run dev:docs   # docs only
+mise run dev:all    # app + docs
+mise run check      # local pre-commit checks
+mise run check:full # slower race/lint/vulnerability checks
+mise run gen        # protobuf code + API docs
+mise run e2e        # CLI, controller, and web e2e tests
+```
+
 ## Repository Layout
 
 ```text

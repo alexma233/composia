@@ -171,9 +171,11 @@ node_modules/
 /dev/logs/
 /dev/state-controller/
 /dev/state-agent/
+/dev/state-agent-node-2/
 /dev/repo-controller/
 /dev/repo-agent/
 /dev/repo-agent-node-2/
+/dev/*-token.txt
 /dev/config.controller.yaml
 /dev/config.agent.yaml
 /dev/config.controller.container.yaml
