@@ -3,10 +3,8 @@
   import { page } from '$app/stores';
   import { toast } from 'svelte-sonner';
   import type { PageData } from './$types';
-  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
   import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
   import { Badge } from '$lib/components/ui/badge';
-  import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
   import {
     Dialog,
@@ -17,15 +15,6 @@
     DialogOverlay,
     DialogTitle,
   } from '$lib/components/ui/dialog';
-  import {
-    Pagination,
-    PaginationContent,
-    PaginationEllipsis,
-    PaginationItem,
-    PaginationLink,
-    PaginationNextButton,
-    PaginationPrevButton,
-  } from '$lib/components/ui/pagination';
   import {
     buildDockerListPageUrl,
     debouncedDockerListSearchState,
@@ -38,14 +27,13 @@
   formatShortId,
 } from '$lib/presenters';
   import CopyButton from '$lib/components/app/copy-button.svelte';
+  import DockerListShell from '$lib/components/app/docker-list-shell.svelte';
   import SortableTableHead from '$lib/components/app/sortable-table-head.svelte';
-  import Spinner from '$lib/components/ui/spinner/spinner.svelte';
-  import { Search } from '@lucide/svelte';
-  import { Alert, AlertDescription } from '$lib/components/ui/alert';
+  import { actionErrorMessage } from '$lib/capabilities';
   import { getMessages } from '$lib/i18n';
 
   const messages = getMessages();
-  import { actionErrorMessage } from '$lib/capabilities';
+
   interface Props {
     data: PageData;
   }
@@ -299,71 +287,45 @@
 
 <div class="page-shell">
   <div class="page-stack">
-		<Card>
-			<CardHeader>
-        <div class="page-header">
-          <div class="page-heading">
-            <CardTitle class="page-title" level="1">{$messages.docker.containers.title}</CardTitle>
-            <p class="page-description">
-              {$messages.docker.containers.titleOnNode.replace('{nodeId}', data.nodeId)}
-              {#if !loading}
-                <Badge variant="outline" class="ml-2">{data.totalCount}</Badge>
-              {/if}
-            </p>
-          </div>
-          <a href="/nodes/{data.nodeId}" class="text-sm text-muted-foreground transition-colors hover:text-foreground">
-            {$messages.common.back}
-          </a>
-        </div>
-
-        <div class="flex items-center gap-3">
-          <div class="relative flex-1 max-w-sm">
-            <label class="sr-only" for="container-search">{$messages.docker.containers.searchPlaceholder}</label>
-            <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="container-search"
-              type="text"
-              placeholder={$messages.docker.containers.searchPlaceholder}
-              aria-label={$messages.docker.containers.searchPlaceholder}
-              class="pl-9"
-              bind:value={searchQuery}
-              oninput={handleSearchInput}
-            />
-          </div>
-          {#if searchQuery}
-            <Button variant="ghost" size="sm" onclick={clearSearch}>
-              {$messages.common.cancel}
-            </Button>
-          {/if}
-          <Button variant="outline" size="sm" onclick={() => void refreshContainers()} disabled={loading || !data.ready}>
-            {#if loading}{$messages.common.loading}...{:else}{$messages.common.refresh}{/if}
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent aria-busy={loading || refreshing}>
-        {#if loadError}
-          <Alert variant="destructive">
-            <AlertDescription>{loadError}</AlertDescription>
-          </Alert>
-        {:else if loading}
-          <div class="flex min-h-[320px] items-center justify-center" role="status" aria-live="polite">
-            <div class="flex items-center gap-3 text-sm text-muted-foreground">
-              <Spinner />
-              <span>{$messages.common.loading} {$messages.docker.containers.title}...</span>
-            </div>
-          </div>
-        {:else if containers.length > 0}
+    <DockerListShell
+      title={$messages.docker.containers.title}
+      subtitle={$messages.docker.containers.titleOnNode.replace('{nodeId}', data.nodeId)}
+      backHref={`/nodes/${data.nodeId}`}
+      backLabel={$messages.common.back}
+      totalCount={data.totalCount}
+      pageSize={data.pageSize}
+      itemCount={containers.length}
+      {totalPages}
+      ready={data.ready}
+      {loading}
+      error={loadError}
+      searchId="container-search"
+      searchPlaceholder={$messages.docker.containers.searchPlaceholder}
+      loadingText={`${$messages.common.loading} ${$messages.docker.containers.title}...`}
+      emptyText={$messages.docker.containers.noContainers}
+      noResultsText={$messages.common.noData}
+      countSummary={data.totalCount > containers.length
+        ? $messages.docker.containers.countSummary
+            .replace('{shown}', String(containers.length))
+            .replace('{total}', String(data.totalCount))
+        : undefined}
+      bind:searchQuery
+      bind:currentPage
+      onSearchInput={handleSearchInput}
+      onClearSearch={clearSearch}
+      onRefresh={refreshContainers}
+    >
           <Table>
             <TableCaption class="sr-only">{$messages.docker.containers.tableCaption}</TableCaption>
             <TableHeader>
               <TableRow>
-                <SortableTableHead field="name" label={$messages.common.name} {sortField} {sortDirection} onSort={handleSort} class="w-[30%]" />
-                <SortableTableHead field="state" label={$messages.docker.containers.state} {sortField} {sortDirection} onSort={handleSort} class="w-[10%]" />
-                <SortableTableHead field="image" label={$messages.docker.containers.image} {sortField} {sortDirection} onSort={handleSort} class="w-[20%]" />
-                <TableHead class="w-[15%]">{$messages.docker.containers.ports}</TableHead>
-                <TableHead class="w-[15%]">{$messages.docker.containers.networks}</TableHead>
-                <SortableTableHead field="created" label={$messages.common.created} {sortField} {sortDirection} onSort={handleSort} class="w-[12%]" />
-                <TableHead class="w-[10%]">{$messages.common.actions}</TableHead>
+                <SortableTableHead field="name" label={$messages.common.name} {sortField} {sortDirection} onSort={handleSort} />
+                <SortableTableHead field="state" label={$messages.docker.containers.state} {sortField} {sortDirection} onSort={handleSort} />
+                <SortableTableHead field="image" label={$messages.docker.containers.image} {sortField} {sortDirection} onSort={handleSort} />
+                <TableHead>{$messages.docker.containers.ports}</TableHead>
+                <TableHead>{$messages.docker.containers.networks}</TableHead>
+                <SortableTableHead field="created" label={$messages.common.created} {sortField} {sortDirection} onSort={handleSort} />
+                <TableHead>{$messages.common.actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -489,50 +451,7 @@
               {/each}
             </TableBody>
           </Table>
-          {#if data.totalCount > containers.length}
-            <div class="mt-3 text-xs text-muted-foreground text-center">
-              {$messages.docker.containers.countSummary.replace('{shown}', String(containers.length)).replace('{total}', String(data.totalCount))}
-            </div>
-          {/if}
-
-          {#if totalPages > 1}
-            <div class="mt-6">
-              <Pagination count={data.totalCount} perPage={data.pageSize} bind:page={currentPage}>
-                {#snippet children({ pages, currentPage })}
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevButton />
-                    </PaginationItem>
-
-                    {#each pages as page (page.key)}
-                      {#if page.type === 'ellipsis'}
-                        <PaginationItem>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      {:else}
-                        <PaginationItem>
-                          <PaginationLink {page} isActive={currentPage === page.value} />
-                        </PaginationItem>
-                      {/if}
-                    {/each}
-
-                    <PaginationItem>
-                      <PaginationNextButton />
-                    </PaginationItem>
-                  </PaginationContent>
-                {/snippet}
-              </Pagination>
-            </div>
-          {/if}
-        {:else if searchQuery}
-          <div class="empty-state">
-            {$messages.common.noData}
-          </div>
-        {:else}
-          <div class="empty-state">{$messages.docker.containers.noContainers}</div>
-        {/if}
-      </CardContent>
-    </Card>
+    </DockerListShell>
 
     <Dialog bind:open={removeDialogOpen}>
       <DialogOverlay />
