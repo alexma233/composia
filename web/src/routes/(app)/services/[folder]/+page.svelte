@@ -136,6 +136,7 @@
   let showRename = $state(false);
   let renamePath = $state("");
   let showDeleteDialog = $state(false);
+  let showServiceDeleteDialog = $state(false);
   let showServiceRename = $state(false);
   let renameServiceFolder = $state("");
   let advancedOperationsOpen = $state(false);
@@ -1310,15 +1311,7 @@
   }
 
   async function deleteServiceRoot() {
-    if (
-      !workspace?.folder ||
-      !confirm(
-        $messages.services.files.deleteServiceFolderConfirm.replace(
-          "{name}",
-          workspace.folder,
-        ),
-      )
-    ) {
+    if (!workspace?.folder) {
       return;
     }
 
@@ -2372,7 +2365,7 @@
                     type="button"
                     variant="outline"
                     class="w-full border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    onclick={deleteServiceRoot}
+                    onclick={() => (showServiceDeleteDialog = true)}
                     disabled={saving}
                   >
                     <Trash2 class="mr-2 size-4" />{$messages.services.operations
@@ -2468,6 +2461,38 @@
         </Card>
       </section>
     </div>
+
+    <Dialog bind:open={showServiceDeleteDialog}>
+      <DialogOverlay />
+      <DialogContent class="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{$messages.services.operations.deleteService}</DialogTitle>
+          <DialogDescription>
+            {$messages.services.files.deleteServiceFolderConfirm.replace(
+              "{name}",
+              workspace?.folder ?? "",
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onclick={() => (showServiceDeleteDialog = false)}
+            >{$messages.common.cancel}</Button
+          >
+          <Button
+            type="button"
+            variant="destructive"
+            onclick={() => {
+              showServiceDeleteDialog = false;
+              void deleteServiceRoot();
+            }}
+            disabled={saving || !workspace?.folder}>{$messages.common.delete}</Button
+          >
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <Dialog bind:open={showDeleteDialog}>
       <DialogOverlay />
