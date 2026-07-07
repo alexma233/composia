@@ -3,7 +3,6 @@
   import { goto, invalidate } from "$app/navigation";
   import { page } from "$app/stores";
   import { buttonVariants } from "$lib/components/ui/button";
-  import type { Snippet } from "svelte";
   import { onMount, tick } from "svelte";
   import { Check, ChevronsUpDown, Filter } from "@lucide/svelte";
   import { getMessages } from "$lib/i18n";
@@ -53,7 +52,6 @@
   import TaskRow from "$lib/components/app/task-row.svelte";
   interface Props {
     data: PageData;
-    children?: Snippet;
   }
 
   type TaskStatusFilter =

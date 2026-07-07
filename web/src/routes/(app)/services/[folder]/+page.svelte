@@ -1558,7 +1558,10 @@
                 {$messages.services.instances.pendingDeploy}
               </p>
               <p class="text-xs text-muted-foreground mt-0.5">
-                commit {pendingDeployInstance.pendingDeployRevision.slice(0, 8)}
+                {$messages.services.instances.pendingDeployCommit.replace(
+                  "{revision}",
+                  pendingDeployInstance.pendingDeployRevision.slice(0, 8),
+                )}
               </p>
             </div>
           {/if}

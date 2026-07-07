@@ -285,10 +285,6 @@
     @apply text-base font-semibold tracking-tight;
   }
 
-  .section-description {
-    @apply text-sm leading-6 text-muted-foreground;
-  }
-
   .page-meta {
     @apply text-sm text-muted-foreground;
   }
@@ -305,16 +301,8 @@
     @apply text-xs font-medium text-muted-foreground;
   }
 
-  .metric-value {
-    @apply mt-2 text-3xl font-semibold tracking-tight;
-  }
-
   .empty-state {
     @apply rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-sm text-muted-foreground;
-  }
-
-  .surface-subtle {
-    @apply bg-muted/30 dark:bg-muted/20;
   }
 
   .metric-card {
@@ -327,10 +315,6 @@
 
   .list-row {
     @apply block rounded-lg border bg-background px-4 py-3 transition-colors hover:bg-accent/60;
-  }
-
-  .list-row-compact {
-    @apply rounded-lg border bg-background px-3 py-3 text-sm;
   }
 
   .stat-link {
@@ -440,10 +424,6 @@
     }
   }
 
-  .muted-action {
-    @apply text-xs text-muted-foreground transition-colors hover:text-foreground;
-  }
-
   .toolbar-surface {
     @apply rounded-lg border bg-background p-2;
   }
@@ -461,14 +441,6 @@
     @apply grid gap-3 md:grid-cols-2 xl:grid-cols-4;
   }
 
-  .summary-strip {
-    @apply grid gap-3 sm:grid-cols-2 xl:grid-cols-5;
-  }
-
-  .summary-item {
-    @apply rounded-lg border bg-background px-4 py-3;
-  }
-
   .nav-pill {
     @apply inline-flex h-8 shrink-0 items-center justify-center rounded-md border px-3 text-xs font-medium transition-colors sm:h-9 sm:text-sm;
   }
@@ -479,17 +451,5 @@
 
   .nav-pill-inactive {
     @apply text-muted-foreground hover:bg-accent/80 hover:text-accent-foreground;
-  }
-
-  .kv-grid {
-    @apply grid gap-3 text-sm text-muted-foreground;
-  }
-
-  .kv-grid dt {
-    @apply text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground;
-  }
-
-  .kv-grid dd {
-    @apply mt-1 text-sm text-foreground;
   }
 }

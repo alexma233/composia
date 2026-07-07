@@ -2,7 +2,6 @@
   import { invalidate } from '$app/navigation';
   import { onMount } from 'svelte';
   import type { PageData } from './$types';
-  import type { Snippet } from 'svelte';
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
@@ -15,7 +14,6 @@
   import TaskCard from '$lib/components/app/task-card.svelte';
   interface Props {
     data: PageData;
-    children?: Snippet;
   }
 
 	let { data }: Props = $props();
