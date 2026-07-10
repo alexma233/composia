@@ -35,7 +35,7 @@ jobs:
     runs-on: docker-amd64-dind
     container:
       # renovate: datasource=docker depName=forgejo.alexma.top/alexma233/ci-images-go-node-docker-bun-chromium versioning=docker
-      image: forgejo.alexma.top/alexma233/ci-images-go-node-docker-bun-chromium:1.26.4
+      image: forgejo.alexma.top/alexma233/ci-images-go-node-docker-bun-chromium:1.26.5
 
     steps:
       - name: Checkout
