@@ -48,7 +48,7 @@ jobs:
   gofmt:
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.4
+      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.5@sha256:87cae2783441a1ae864b6b703656d765dc2284eb7ead0a58757d5f6043647353
 
     steps:
       - name: Checkout
@@ -66,7 +66,7 @@ jobs:
   build-test:
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.4
+      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.5@sha256:87cae2783441a1ae864b6b703656d765dc2284eb7ead0a58757d5f6043647353
 
     steps:
       - name: Checkout
@@ -91,7 +91,7 @@ jobs:
   golangci-lint:
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-go-node-lint:1.26.4
+      image: forgejo.alexma.top/alexma233/ci-images-go-node-lint:1.26@sha256:9e79c477d92fd3f2c8382216d8e04d8a0e7f22fb7939131d923206e442650735
 
     steps:
       - name: Checkout
@@ -104,7 +104,7 @@ jobs:
   govulncheck:
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-go-node-lint:1.26.4
+      image: forgejo.alexma.top/alexma233/ci-images-go-node-lint:1.26@sha256:9e79c477d92fd3f2c8382216d8e04d8a0e7f22fb7939131d923206e442650735
 
     steps:
       - name: Checkout
