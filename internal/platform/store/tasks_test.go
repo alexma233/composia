@@ -41,7 +41,7 @@ func TestClaimNextPendingTaskReturnsOldestPendingTask(t *testing.T) {
 	}
 }
 
-func TestClaimNextPendingTaskForNodeHonorsNodeAndGlobalRunningTask(t *testing.T) {
+func TestClaimNextPendingTaskForNodeAllowsDifferentNodesToRun(t *testing.T) {
 	t.Parallel()
 
 	db := openTestDB(t)
@@ -67,13 +67,16 @@ func TestClaimNextPendingTaskForNodeHonorsNodeAndGlobalRunningTask(t *testing.T)
 		t.Fatalf("expected task-main, got %q", claimed.TaskID)
 	}
 
-	_, err = db.ClaimNextPendingTaskForNode(ctx, "node-2", createdAt.Add(3*time.Minute))
-	if !errors.Is(err, ErrNoPendingTask) {
-		t.Fatalf("expected ErrNoPendingTask while another task is running, got %v", err)
+	claimed, err = db.ClaimNextPendingTaskForNode(ctx, "node-2", createdAt.Add(3*time.Minute))
+	if err != nil {
+		t.Fatalf("claim node-2 task: %v", err)
+	}
+	if claimed.TaskID != "task-node-2" {
+		t.Fatalf("expected task-node-2, got %q", claimed.TaskID)
 	}
 }
 
-func TestClaimNextPendingTaskForNodeIsGloballySerialized(t *testing.T) {
+func TestClaimNextPendingTaskForNodeClaimsDifferentNodesConcurrently(t *testing.T) {
 	t.Parallel()
 
 	db := openTestDB(t)
@@ -111,20 +114,39 @@ func TestClaimNextPendingTaskForNodeIsGloballySerialized(t *testing.T) {
 	wg.Wait()
 	close(results)
 
-	successCount := 0
-	noPendingCount := 0
+	claimed := make(map[string]struct{}, 2)
 	for result := range results {
-		switch {
-		case result.err == nil:
-			successCount++
-		case errors.Is(result.err, ErrNoPendingTask):
-			noPendingCount++
-		default:
+		if result.err != nil {
 			t.Fatalf("unexpected claim error: %v", result.err)
 		}
+		claimed[result.taskID] = struct{}{}
 	}
-	if successCount != 1 || noPendingCount != 1 {
-		t.Fatalf("expected one success and one ErrNoPendingTask, got success=%d no_pending=%d", successCount, noPendingCount)
+	if len(claimed) != 2 {
+		t.Fatalf("expected both node tasks to be claimed, got %+v", claimed)
+	}
+}
+
+func TestClaimNextPendingTaskOfTypeAllowsControllerTaskWhileNodeTaskRuns(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	createdAt := time.Date(2026, 4, 4, 10, 0, 0, 0, time.UTC)
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-node", Type: task.TypeDeploy, Source: task.SourceCLI, Status: task.StatusRunning, CreatedAt: createdAt}); err != nil {
+		t.Fatalf("create running node task: %v", err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-dns", Type: task.TypeDNSUpdate, Source: task.SourceSystem, CreatedAt: createdAt.Add(time.Minute)}); err != nil {
+		t.Fatalf("create controller task: %v", err)
+	}
+
+	claimed, err := db.ClaimNextPendingTaskOfType(ctx, task.TypeDNSUpdate, createdAt.Add(2*time.Minute))
+	if err != nil {
+		t.Fatalf("claim controller task: %v", err)
+	}
+	if claimed.TaskID != "task-dns" {
+		t.Fatalf("expected task-dns, got %q", claimed.TaskID)
 	}
 }
 

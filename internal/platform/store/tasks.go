@@ -313,10 +313,6 @@ func (db *DB) ClaimNextPendingTaskForNode(ctx context.Context, nodeID string, st
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	if err := ensureNoRunningTask(ctx, tx); err != nil {
-		return task.Record{}, err
-	}
-
 	record, err := claimNextPendingTaskForNode(ctx, tx, nodeID, startedAt)
 	if err != nil {
 		return task.Record{}, err
@@ -337,10 +333,6 @@ func (db *DB) ClaimNextPendingTaskOfType(ctx context.Context, taskType task.Type
 		return task.Record{}, fmt.Errorf("begin claim task transaction: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-
-	if err := ensureNoRunningTask(ctx, tx); err != nil {
-		return task.Record{}, err
-	}
 
 	record, err := claimNextPendingTaskOfType(ctx, tx, taskType, startedAt)
 	if err != nil {
@@ -387,17 +379,6 @@ func claimNextPendingTaskOfType(ctx context.Context, tx *sql.Tx, taskType task.T
 		ORDER BY created_at ASC, task_id ASC
 		LIMIT 1
 	`, string(task.StatusPending), string(taskType))
-}
-
-func ensureNoRunningTask(ctx context.Context, tx *sql.Tx) error {
-	var runningCount int
-	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM tasks WHERE status = ?`, string(task.StatusRunning)).Scan(&runningCount); err != nil {
-		return fmt.Errorf("count running tasks: %w", err)
-	}
-	if runningCount > 0 {
-		return ErrNoPendingTask
-	}
-	return nil
 }
 
 func claimPendingTaskByQuery(ctx context.Context, tx *sql.Tx, startedAt time.Time, queryLabel, query string, args ...any) (task.Record, error) {

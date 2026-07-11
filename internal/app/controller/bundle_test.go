@@ -57,7 +57,7 @@ func TestBundleServiceStreamsTaskBundle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal deploy task params: %v", err)
 	}
-	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-bundle", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", RepoRevision: revision, ParamsJSON: string(paramsJSON), CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-bundle", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", Status: task.StatusRunning, RepoRevision: revision, ParamsJSON: string(paramsJSON), CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
 		t.Fatalf("create task: %v", err)
 	}
 
@@ -100,6 +100,29 @@ func TestBundleServiceStreamsTaskBundle(t *testing.T) {
 	if !entries["demo/composia-meta.yaml"] || !entries["demo/docker-compose.yaml"] {
 		t.Fatalf("missing expected bundle entries: %+v", entries)
 	}
+
+	unauthorized, err := client.GetServiceBundle(ctx, connect.NewRequest(&agentv1.GetServiceBundleRequest{TaskId: "task-bundle", ServiceDir: "other"}))
+	if err == nil {
+		for unauthorized.Receive() {
+		}
+		err = unauthorized.Err()
+	}
+	if connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Fatalf("expected unauthorized service_dir to be denied, got %v", err)
+	}
+
+	if err := db.CompleteTask(ctx, "task-bundle", task.StatusSucceeded, time.Now().UTC(), ""); err != nil {
+		t.Fatalf("complete task: %v", err)
+	}
+	notRunning, err := client.GetServiceBundle(ctx, connect.NewRequest(&agentv1.GetServiceBundleRequest{TaskId: "task-bundle"}))
+	if err == nil {
+		for notRunning.Receive() {
+		}
+		err = notRunning.Err()
+	}
+	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Fatalf("expected completed task bundle to be rejected, got %v", err)
+	}
 }
 
 func TestBundleServiceStreamsCaddySyncBundleWithSingleServiceDir(t *testing.T) {
@@ -130,7 +153,7 @@ func TestBundleServiceStreamsCaddySyncBundleWithSingleServiceDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal caddy sync task params: %v", err)
 	}
-	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-caddy-bundle", Type: task.TypeCaddySync, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", RepoRevision: revision, ParamsJSON: string(paramsJSON), CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-caddy-bundle", Type: task.TypeCaddySync, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", Status: task.StatusRunning, RepoRevision: revision, ParamsJSON: string(paramsJSON), CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
 		t.Fatalf("create caddy sync task: %v", err)
 	}
 
@@ -205,7 +228,7 @@ func TestBundleServiceStreamsRequestedServiceDirOverride(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal caddy sync task params: %v", err)
 	}
-	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-caddy-full-bundle", Type: task.TypeCaddySync, Source: task.SourceCLI, ServiceName: "", NodeID: "main", RepoRevision: revision, ParamsJSON: string(paramsJSON), CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-caddy-full-bundle", Type: task.TypeCaddySync, Source: task.SourceCLI, ServiceName: "", NodeID: "main", Status: task.StatusRunning, RepoRevision: revision, ParamsJSON: string(paramsJSON), CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
 		t.Fatalf("create caddy sync task: %v", err)
 	}
 
@@ -284,7 +307,7 @@ func TestBundleServiceInjectsDecryptedSecretEnv(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal deploy task params: %v", err)
 	}
-	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-secret-bundle", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", RepoRevision: revision, ParamsJSON: string(paramsJSON), CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-secret-bundle", Type: task.TypeDeploy, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", Status: task.StatusRunning, RepoRevision: revision, ParamsJSON: string(paramsJSON), CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
 		t.Fatalf("create task: %v", err)
 	}
 
@@ -350,7 +373,7 @@ func TestBundleServiceInjectsBackupRuntimeConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal backup task params: %v", err)
 	}
-	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-backup-bundle", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", RepoRevision: revision, ParamsJSON: string(paramsJSON), CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-backup-bundle", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", Status: task.StatusRunning, RepoRevision: revision, ParamsJSON: string(paramsJSON), CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
 		t.Fatalf("create backup task: %v", err)
 	}
 
@@ -431,7 +454,7 @@ func TestBundleServiceServiceOverrideSkipsBackupRuntimePayload(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal backup task params: %v", err)
 	}
-	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-backup-override", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", RepoRevision: revision, ParamsJSON: string(paramsJSON), CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-backup-override", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", Status: task.StatusRunning, RepoRevision: revision, ParamsJSON: string(paramsJSON), CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
 		t.Fatalf("create backup task: %v", err)
 	}
 
@@ -442,7 +465,7 @@ func TestBundleServiceServiceOverrideSkipsBackupRuntimePayload(t *testing.T) {
 		return "main", nil
 	})
 	mux := http.NewServeMux()
-	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(&bundleServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Secrets: secretsCfg}}, connect.WithInterceptors(interceptor))
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(&bundleServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Secrets: secretsCfg, Nodes: []config.NodeConfig{{ID: "main"}}}}, connect.WithInterceptors(interceptor))
 	mux.Handle(bundlePath, bundleHandler)
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
@@ -506,7 +529,7 @@ func TestBundleServiceInjectsBackupRuntimeConfigFromTaskRevision(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal backup task params: %v", err)
 	}
-	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-backup-revision-bundle", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", RepoRevision: revision, ParamsJSON: string(paramsJSON), CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "task-backup-revision-bundle", Type: task.TypeBackup, Source: task.SourceCLI, ServiceName: "demo", NodeID: "main", Status: task.StatusRunning, RepoRevision: revision, ParamsJSON: string(paramsJSON), CreatedAt: time.Date(2026, 4, 4, 18, 0, 0, 0, time.UTC)}); err != nil {
 		t.Fatalf("create backup task: %v", err)
 	}
 
