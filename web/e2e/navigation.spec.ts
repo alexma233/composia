@@ -44,7 +44,9 @@ test("node details link to the docker containers page", async ({ page }) => {
   await expect(page.getByLabel("Search containers...")).toBeVisible();
 });
 
-test("mobile navigation keeps every destination reachable", async ({ page }) => {
+test("mobile navigation keeps every destination reachable", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
   await expect(page.locator("[data-app-ready]")).toHaveCount(1);
@@ -62,13 +64,17 @@ test("mobile navigation keeps every destination reachable", async ({ page }) => 
   await expect
     .poll(() =>
       page.evaluate(
-        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
       ),
     )
     .toBe(true);
 });
 
-test("interactive controls hydrate without nested targets", async ({ page }) => {
+test("interactive controls hydrate without nested targets", async ({
+  page,
+}) => {
   const hydrationWarnings: string[] = [];
   page.on("console", (message) => {
     if (message.text().includes("hydration_mismatch")) {
@@ -104,5 +110,49 @@ test("interactive controls hydrate without nested targets", async ({ page }) => 
 
 test("service editor has an accessible name", async ({ page }) => {
   await page.goto("/services/host-service");
-  await expect(page.getByRole("textbox", { name: "Code editor" })).toBeVisible();
+  await expect(
+    page.getByRole("textbox", { name: "Code editor" }),
+  ).toBeVisible();
+});
+
+test("terminal runtime loads only after opening the terminal", async ({
+  page,
+}) => {
+  const terminalRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("ghostty") || request.url().endsWith(".wasm")) {
+      terminalRequests.push(request.url());
+    }
+  });
+
+  await page.goto("/nodes/main/docker/containers");
+  await page
+    .locator('a[href^="/nodes/main/docker/containers/"]')
+    .first()
+    .click();
+  await expect(page.getByRole("tab", { name: "Info" })).toBeVisible();
+  expect(terminalRequests).toEqual([]);
+
+  await page.getByRole("tab", { name: "Terminal" }).click();
+  await expect.poll(() => terminalRequests.length).toBeGreaterThan(0);
+});
+
+test("locale persists through SSR reloads", async ({ page }) => {
+  await page.goto("/settings");
+  await page.evaluate(() => localStorage.removeItem("composia.locale"));
+  await page.context().addCookies([
+    {
+      name: "composia.locale",
+      value: "zh-Hans",
+      url: new URL(page.url()).origin,
+    },
+  ]);
+  await page.reload();
+  await expectHeading(page, "设置");
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hans");
+
+  await page.getByRole("button", { name: "Français" }).click();
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+  await expectHeading(page, "Paramètres");
 });

@@ -1,7 +1,9 @@
 <script lang="ts">
   import { Monitor, Moon, Sun } from '@lucide/svelte';
 
-  import { availableLocales, messages } from '$lib/i18n';
+  import { availableLocales, getMessages } from '$lib/i18n';
+
+  const messages = getMessages();
   import {
     accentColor,
     accentMetadata,
@@ -15,7 +17,6 @@
     type ThemeMode
   } from '$lib/preferences';
   import { Button } from '$lib/components/ui/button';
-
   const themeOptions: Array<{ value: ThemeMode; icon: typeof Sun; labelKey: 'light' | 'dark' | 'system' }> = [
     { value: 'light', icon: Sun, labelKey: 'light' },
     { value: 'dark', icon: Moon, labelKey: 'dark' },

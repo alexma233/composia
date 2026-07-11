@@ -1,9 +1,10 @@
 <script lang="ts">
   import { Badge } from '$lib/components/ui/badge';
-  import { messages } from '$lib/i18n';
+  import { getMessages } from '$lib/i18n';
+
+  const messages = getMessages();
   import { formatTimestamp, runtimeStatusLabel, runtimeStatusTone } from '$lib/presenters';
   import type { ServiceSummary } from '$lib/server/controller';
-
   interface Props {
     service: ServiceSummary;
   }

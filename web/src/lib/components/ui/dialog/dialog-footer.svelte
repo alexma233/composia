@@ -3,8 +3,9 @@
 	import type { HTMLAttributes } from "svelte/elements";
 	import { Dialog as DialogPrimitive } from "bits-ui";
 	import { Button } from "$lib/components/ui/button/index.js";
-	import { messages } from "$lib/i18n";
+	import { getMessages } from "$lib/i18n";
 
+  const messages = getMessages();
 	let {
 		ref = $bindable(null),
 		class: className,

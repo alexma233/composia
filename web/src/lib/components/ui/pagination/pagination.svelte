@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { Pagination as PaginationPrimitive } from "bits-ui";
-	import { messages } from "$lib/i18n";
+	import { getMessages } from "$lib/i18n";
+
+  const messages = getMessages();
 
 	import { cn } from "$lib/utils.js";
-
 	let {
 		ref = $bindable(null),
 		class: className,

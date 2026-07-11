@@ -2,8 +2,9 @@
   import { Copy, Check } from '@lucide/svelte';
   import { Button } from '$lib/components/ui/button';
   import * as Tooltip from '$lib/components/ui/tooltip';
-  import { messages } from '$lib/i18n';
+  import { getMessages } from '$lib/i18n';
 
+  const messages = getMessages();
   interface Props {
     text: string;
     label?: string;

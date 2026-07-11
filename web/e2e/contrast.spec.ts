@@ -15,7 +15,9 @@ const routes = [
   "/settings",
 ];
 
-async function addSemanticContrastProbes(page: import("@playwright/test").Page) {
+async function addSemanticContrastProbes(
+  page: import("@playwright/test").Page,
+) {
   await page.evaluate(() => {
     const probe = document.createElement("div");
     probe.dataset.contrastProbe = "";
@@ -70,15 +72,17 @@ for (const theme of themes) {
           .withRules(["color-contrast"])
           .analyze();
 
-        expect.soft(
-          violations.flatMap((violation) =>
-            violation.nodes.map((node) => ({
-              rule: violation.id,
-              target: node.target,
-            })),
-          ),
-          `${theme}/${accent} ${route}`,
-        ).toEqual([]);
+        expect
+          .soft(
+            violations.flatMap((violation) =>
+              violation.nodes.map((node) => ({
+                rule: violation.id,
+                target: node.target,
+              })),
+            ),
+            `${theme}/${accent} ${route}`,
+          )
+          .toEqual([]);
       }
     });
   }

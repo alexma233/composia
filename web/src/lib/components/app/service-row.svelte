@@ -1,10 +1,11 @@
 <script lang="ts">
   import { Badge } from '$lib/components/ui/badge';
   import { TableCell, TableRow } from '$lib/components/ui/table';
-  import { messages } from '$lib/i18n';
+  import { getMessages } from '$lib/i18n';
+
+  const messages = getMessages();
   import { formatTimestamp, runtimeStatusLabel, runtimeStatusTone } from '$lib/presenters';
   import type { ServiceWorkspaceSummary } from '$lib/server/controller';
-
   interface Props {
     service: ServiceWorkspaceSummary;
   }

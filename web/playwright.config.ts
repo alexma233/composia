@@ -9,6 +9,9 @@ export default defineConfig({
   reporter: process.env.CI ? "list" : "html",
   use: {
     baseURL,
+    launchOptions: {
+      executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+    },
     trace: "on-first-retry",
   },
   webServer: {

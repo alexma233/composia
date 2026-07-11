@@ -56,5 +56,5 @@ jobs:
       - name: Run web unit tests
         run: bun run web:test
 
-      - name: Build web
-        run: bun run web:build
+      - name: Build web and enforce bundle budgets
+        run: bun run web:check:bundle

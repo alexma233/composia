@@ -1,10 +1,11 @@
 <script lang="ts">
   import { Badge } from '$lib/components/ui/badge';
   import { TableCell, TableRow } from '$lib/components/ui/table';
-  import { messages } from '$lib/i18n';
+  import { getMessages } from '$lib/i18n';
+
+  const messages = getMessages();
   import { formatTimestamp, taskStatusLabel, taskStatusTone } from '$lib/presenters';
   import type { BackupSummary } from '$lib/server/controller';
-
   interface Props {
     backup: BackupSummary;
   }

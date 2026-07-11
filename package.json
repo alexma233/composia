@@ -8,6 +8,7 @@
   "scripts": {
     "web:dev": "bun run --cwd web dev",
     "web:build": "bun run --cwd web build",
+    "web:check:bundle": "bun run --cwd web check:bundle",
     "web:preview": "bun run --cwd web preview",
     "web:check": "bun run --cwd web check",
     "web:test": "bun run --cwd web test",

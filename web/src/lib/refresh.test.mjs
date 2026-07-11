@@ -13,9 +13,12 @@ test("polling skips work while the document is hidden", async () => {
   });
 
   let ticks = 0;
-  const stop = startPolling(() => {
-    ticks += 1;
-  }, { intervalMs: 5, runImmediately: true });
+  const stop = startPolling(
+    () => {
+      ticks += 1;
+    },
+    { intervalMs: 5, runImmediately: true },
+  );
 
   await new Promise((resolve) => setTimeout(resolve, 20));
   stop();

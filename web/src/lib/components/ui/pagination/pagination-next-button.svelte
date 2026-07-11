@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { Pagination as PaginationPrimitive } from "bits-ui";
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
-	import { messages } from "$lib/i18n";
+	import { getMessages } from "$lib/i18n";
+
+  const messages = getMessages();
 	import { cn } from "$lib/utils.js";
 	import { buttonVariants } from "../button/index.js";
-
 	let {
 		ref = $bindable(null),
 		class: className,

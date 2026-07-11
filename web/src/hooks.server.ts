@@ -5,10 +5,12 @@ import { redirect } from "@sveltejs/kit";
 import { readSessionToken, sessionCookie } from "$lib/server/session";
 
 import { jsonApiError } from "$lib/server/controller-route";
+import { normalizeLocale } from "$lib/i18n/locales";
 
 const publicRoutes = new Set(["/login"]);
 
 export const handle: Handle = async ({ event, resolve }) => {
+  const locale = normalizeLocale(event.cookies.get("composia.locale"));
   const user = readSessionToken(event.cookies.get(sessionCookie()));
   event.locals.user = user;
 
@@ -28,7 +30,10 @@ export const handle: Handle = async ({ event, resolve }) => {
     throw redirect(303, event.url.searchParams.get("next") || "/");
   }
 
-  return resolve(event);
+  return resolve(event, {
+    transformPageChunk: ({ html }) =>
+      html.replace('<html lang="en"', `<html lang="${locale}"`),
+  });
 };
 
 function isPublicPath(pathname: string) {

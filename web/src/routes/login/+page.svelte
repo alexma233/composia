@@ -1,7 +1,9 @@
 <script lang="ts">
   import type { ActionData, PageData } from "./$types";
 
-  import { messages } from "$lib/i18n";
+  import { getMessages } from "$lib/i18n";
+
+  const messages = getMessages();
   import { Alert, AlertDescription, AlertTitle } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
   import {
@@ -13,7 +15,6 @@
   } from "$lib/components/ui/card";
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
-
   interface Props {
     data: PageData;
     form?: ActionData;

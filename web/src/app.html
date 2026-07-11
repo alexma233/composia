@@ -10,8 +10,6 @@
     <script>
       (() => {
         const root = document.documentElement;
-        const locale =
-          window.localStorage.getItem("composia.locale") ?? "en-US";
         const themeMode =
           window.localStorage.getItem("composia.theme-mode") ?? "system";
         const accent =
@@ -21,7 +19,6 @@
         ).matches;
         const resolvedTheme =
           themeMode === "system" ? (prefersDark ? "dark" : "light") : themeMode;
-        root.lang = locale;
         root.dataset.themeMode = themeMode;
         root.dataset.accent = accent;
         root.classList.toggle("dark", resolvedTheme === "dark");

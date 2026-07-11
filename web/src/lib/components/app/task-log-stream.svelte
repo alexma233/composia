@@ -3,8 +3,9 @@
   import { onDestroy } from 'svelte';
 
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
-  import { messages } from '$lib/i18n';
+  import { getMessages } from '$lib/i18n';
 
+  const messages = getMessages();
   interface Props {
     taskId?: string;
   }

@@ -22,8 +22,9 @@
     isComposiaMetaFilePath,
   } from "$lib/codemirror/meta-lint";
   import { observeThemeChange } from "$lib/theme-observer";
-  import { messages } from "$lib/i18n";
+  import { getMessages } from "$lib/i18n";
 
+  const messages = getMessages();
   interface Props {
     value?: string;
     path?: string;

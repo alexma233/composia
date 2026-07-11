@@ -3,9 +3,8 @@ import { writable, type Unsubscriber } from "svelte/store";
 import {
   availableLocales,
   defaultLocale,
-  setLocale,
   type Locale,
-} from "$lib/i18n";
+} from "$lib/i18n/locales";
 
 export const availableThemeModes = ["system", "light", "dark"] as const;
 export const availableAccentColors = [
@@ -111,12 +110,13 @@ function applyAccentColor(accent: AccentColor) {
   window.localStorage.setItem(storageKeys.accentColor, accent);
 }
 
-function applyLocale(locale: Locale) {
+function applyLocale(locale: Locale, setLocale: (locale: Locale) => void) {
   if (typeof document === "undefined") {
     return;
   }
   document.documentElement.lang = locale;
   window.localStorage.setItem(storageKeys.locale, locale);
+  document.cookie = `composia.locale=${encodeURIComponent(locale)}; Path=/; Max-Age=31536000; SameSite=Lax`;
   setLocale(locale);
 }
 
@@ -132,14 +132,16 @@ export function setPreferredLocale(nextLocale: Locale) {
   preferredLocale.set(nextLocale);
 }
 
-export function initializePreferences() {
+export function initializePreferences(setLocale: (locale: Locale) => void) {
   const storedThemeMode = normalizeThemeMode(
     readStoredValue(storageKeys.themeMode),
   );
   const storedAccentColor = normalizeAccentColor(
     readStoredValue(storageKeys.accentColor),
   );
-  const storedLocale = normalizeLocale(readStoredValue(storageKeys.locale));
+  const storedLocale = normalizeLocale(
+    readStoredValue(storageKeys.locale) ?? document.documentElement.lang,
+  );
 
   themeMode.set(storedThemeMode);
   accentColor.set(storedAccentColor);
@@ -148,7 +150,7 @@ export function initializePreferences() {
   const unsubscribers: Unsubscriber[] = [
     themeMode.subscribe((mode) => applyThemeMode(mode)),
     accentColor.subscribe((accent) => applyAccentColor(accent)),
-    preferredLocale.subscribe((locale) => applyLocale(locale)),
+    preferredLocale.subscribe((locale) => applyLocale(locale, setLocale)),
   ];
 
   const media =

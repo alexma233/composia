@@ -1,0 +1,2515 @@
+<script lang="ts">
+  import { goto } from "$app/navigation";
+  import { onMount } from "svelte";
+  import {
+    Check,
+    ChevronDown,
+    ChevronsUpDown,
+    Columns2,
+    Copy,
+    FilePlus,
+    FolderPlus,
+    Lock,
+    Pencil,
+    Play,
+    RefreshCcw,
+    Save,
+    Square,
+    Trash2,
+    Upload,
+    Wrench,
+  } from "@lucide/svelte";
+
+  import type { PageData } from "./$types";
+  import {
+    actionErrorMessage,
+    capabilityReasonMessage,
+    serviceActionCapability,
+  } from "$lib/capabilities";
+  import DisabledReasonButton from "$lib/components/app/disabled-reason-button.svelte";
+  import { getMessages } from "$lib/i18n";
+
+  const messages = getMessages();
+
+  import ServiceFileTree from "$lib/components/app/service-file-tree.svelte";
+  import BackupCard from "$lib/components/app/backup-card.svelte";
+  import TaskCard from "$lib/components/app/task-card.svelte";
+  import {
+    Alert,
+    AlertDescription,
+    AlertTitle,
+  } from "$lib/components/ui/alert";
+  import { Badge } from "$lib/components/ui/badge";
+  import { Button, buttonVariants } from "$lib/components/ui/button";
+  import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+  } from "$lib/components/ui/card";
+  import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+  } from "$lib/components/ui/collapsible";
+  import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogOverlay,
+    DialogTitle,
+  } from "$lib/components/ui/dialog";
+  import * as Command from "$lib/components/ui/command";
+  import { Input } from "$lib/components/ui/input";
+  import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+  } from "$lib/components/ui/dropdown-menu";
+  import * as Popover from "$lib/components/ui/popover";
+  import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+  } from "$lib/components/ui/select";
+  import { toast } from "svelte-sonner";
+  import {
+    isTaskRecent,
+    runtimeStatusLabel,
+    runtimeStatusTone,
+  } from "$lib/presenters";
+  import type {
+    BackupSummary,
+    ComposeRecreateMode,
+    ImageUpdateCheckSummary,
+    ImageUpdateSelection,
+    RepoWriteResult,
+    ServiceActionResult,
+    ServiceInstanceDetail,
+    TaskActionResult,
+    TaskSummary,
+  } from "$lib/server/controller";
+  import type { ServiceFileNode, WorkspaceFile } from "$lib/service-workspace";
+  import {
+    findNode,
+    isEncryptedFilePath,
+    normalizeServiceRelativePath,
+  } from "$lib/service-workspace";
+  import { startPolling } from "$lib/refresh";
+  import { cn } from "$lib/utils";
+  let { data }: { data: PageData } = $props();
+
+  type EditorTab = WorkspaceFile & {
+    savedContent: string;
+    dirty: boolean;
+  };
+
+  let fileTree = $state<ServiceFileNode[]>([]);
+  let collapsedPaths = $state(new Set<string>());
+  let selectedNodePath = $state("");
+  let openTabs = $state<EditorTab[]>([]);
+  let activePath = $state("");
+  let secondaryPath = $state("");
+  let splitEnabled = $state(false);
+  let focusedPane = $state<"primary" | "secondary">("primary");
+  let headRevision = $state("");
+  let syncStatus = $state("");
+  let syncError = $state("");
+  let lastSuccessfulPullAt = $state("");
+  let tasks = $state<TaskSummary[]>([]);
+  let backups = $state<BackupSummary[]>([]);
+  let actionBusy = $state("");
+  let saving = $state(false);
+  let errorMessage = $state("");
+  let showNewFile = $state(false);
+  let newFilePath = $state("");
+  let showNewFolder = $state(false);
+  let newFolderPath = $state("");
+  let showRename = $state(false);
+  let renamePath = $state("");
+  let showDeleteDialog = $state(false);
+  let showServiceRename = $state(false);
+  let renameServiceFolder = $state("");
+  let advancedOperationsOpen = $state(false);
+  let imageUpdateChecks = $state<ImageUpdateCheckSummary[]>([]);
+  let imageUpdateSelections = $state<Record<string, boolean>>({});
+  let applyAllDetectedImages = $state(false);
+  let setImageInput = $state("");
+  let workspace = $state<PageData["workspace"]>(null);
+  let serviceDetail = $state<PageData["serviceDetail"]>(null);
+  let nodeContainers = $state<NonNullable<PageData["nodeContainers"]>>([]);
+  let instanceLoadState = $state<
+    Record<string, "idle" | "loading" | "loaded" | "error">
+  >({});
+  let instanceLoadError = $state<Record<string, string>>({});
+  let stopActionRefreshHandle = $state<null | (() => void)>(null);
+  let migrateSourceNode = $state("");
+  let migrateTargetNode = $state("");
+  let selectedInstanceNode = $state("__all__");
+  let deployRecreateMode = $state<ComposeRecreateMode>("auto");
+  let updateRecreateMode = $state<ComposeRecreateMode>("auto");
+  let updateBackupMode = $state<"default" | "force_on" | "force_off">(
+    "default",
+  );
+  let serviceSwitchOpen = $state(false);
+  let fileTreeIconTheme = $state<"light" | "dark">("dark");
+  let CodeEditor = $state<
+    typeof import("$lib/components/app/code-editor.svelte").default | null
+  >(null);
+
+  type ServiceSummaryStatePayload = {
+    workspace?: PageData["workspace"];
+    tasks?: TaskSummary[];
+    backups?: BackupSummary[];
+    serviceDetail?: PageData["serviceDetail"];
+    imageUpdateChecks?: ImageUpdateCheckSummary[];
+  };
+
+  $effect(() => {
+    fileTree = data.fileTree;
+    openTabs = data.initialFile ? [createTab(data.initialFile)] : [];
+    selectedNodePath = data.initialFile?.path ?? "";
+    activePath = data.initialFile?.path ?? "";
+    secondaryPath = "";
+    splitEnabled = false;
+    focusedPane = "primary";
+    headRevision = data.repoHead?.headRevision ?? "";
+    syncStatus = data.repoHead?.syncStatus ?? "";
+    syncError = data.repoHead?.lastSyncError ?? "";
+    lastSuccessfulPullAt = data.repoHead?.lastSuccessfulPullAt ?? "";
+    errorMessage = data.error ?? "";
+    renameServiceFolder = data.workspace?.folder ?? "";
+    resetServiceSummaryState({
+      workspace: data.workspace,
+      tasks: data.tasks,
+      backups: data.backups,
+      serviceDetail: data.serviceDetail,
+      imageUpdateChecks: data.imageUpdateChecks ?? [],
+    });
+    migrateSourceNode = data.serviceDetail?.nodes?.[0] ?? "";
+    migrateTargetNode = "";
+    selectedInstanceNode = "__all__";
+  });
+
+  function resetServiceSummaryState(payload: ServiceSummaryStatePayload) {
+    const instances = (payload.serviceDetail?.instances ?? []) as NonNullable<
+      PageData["nodeContainers"]
+    >;
+
+    workspace = payload.workspace ?? null;
+    tasks = payload.tasks ?? [];
+    backups = payload.backups ?? [];
+    serviceDetail = payload.serviceDetail ?? null;
+    imageUpdateChecks = payload.imageUpdateChecks ?? [];
+    nodeContainers = instances;
+    instanceLoadState = Object.fromEntries(
+      instances.map((instance) => [
+        instance.nodeId,
+        instance.containers.length > 0 ? "loaded" : "idle",
+      ]),
+    ) as Record<string, "idle" | "loading" | "loaded" | "error">;
+    instanceLoadError = {};
+  }
+
+  function createTab(file: WorkspaceFile): EditorTab {
+    return {
+      ...file,
+      savedContent: file.content,
+      dirty: false,
+    };
+  }
+
+  let activeTab = $derived(
+    openTabs.find((tab) => tab.path === activePath) ?? null,
+  );
+  let secondaryTab = $derived(
+    openTabs.find((tab) => tab.path === secondaryPath) ?? null,
+  );
+  let focusedPath = $derived(
+    focusedPane === "secondary" && splitEnabled ? secondaryPath : activePath,
+  );
+  let focusedTab = $derived(
+    openTabs.find((tab) => tab.path === focusedPath) ?? null,
+  );
+  let editorRelatedFiles = $derived(
+    Object.fromEntries(openTabs.map((tab) => [tab.path, tab.content])),
+  );
+  let canSave = $derived(
+    Boolean(focusedTab && focusedTab.dirty && !focusedTab.readOnly && !saving),
+  );
+  let selectedNode = $derived(
+    selectedNodePath ? findNode(fileTree, selectedNodePath) : null,
+  );
+  let recentTasks = $derived(
+    tasks.filter((task) => isTaskRecent(task.createdAt)).slice(0, 4),
+  );
+  let workspaceNodesLabel = $derived(
+    workspace?.nodes?.length ? workspace.nodes.join(", ") : "",
+  );
+  let backupCapability = $derived(
+    serviceActionCapability(workspace?.actions, "backup"),
+  );
+  let dnsUpdateCapability = $derived(
+    serviceActionCapability(workspace?.actions, "dnsUpdate"),
+  );
+  let caddySyncCapability = $derived(
+    serviceActionCapability(workspace?.actions, "caddySync"),
+  );
+  let cloudflareTunnelSyncCapability = $derived(
+    serviceActionCapability(workspace?.actions, "cloudflareTunnelSync"),
+  );
+  let migrateCapability = $derived(
+    serviceActionCapability(workspace?.actions, "migrate"),
+  );
+  let backupReason = $derived(
+    backupCapability.enabled
+      ? ""
+      : capabilityReasonMessage(backupCapability.reasonCode, $messages),
+  );
+  let dnsUpdateReason = $derived(
+    dnsUpdateCapability.enabled
+      ? ""
+      : capabilityReasonMessage(dnsUpdateCapability.reasonCode, $messages),
+  );
+  let caddySyncReason = $derived(
+    caddySyncCapability.enabled
+      ? ""
+      : capabilityReasonMessage(caddySyncCapability.reasonCode, $messages),
+  );
+  let cloudflareTunnelSyncReason = $derived(
+    cloudflareTunnelSyncCapability.enabled
+      ? ""
+      : capabilityReasonMessage(
+          cloudflareTunnelSyncCapability.reasonCode,
+          $messages,
+        ),
+  );
+  let migrateReason = $derived(
+    migrateCapability.enabled
+      ? ""
+      : capabilityReasonMessage(migrateCapability.reasonCode, $messages),
+  );
+
+  function fileUnavailableReason(file: WorkspaceFile | null) {
+    if (!file?.unavailableReasonCode) {
+      return "";
+    }
+
+    return capabilityReasonMessage(file.unavailableReasonCode, $messages);
+  }
+
+  function fileUnavailableDescription(file: WorkspaceFile | null) {
+    if (!file || !isEncryptedFilePath(file.path)) {
+      return "";
+    }
+
+    return $messages.services.files.encryptedUnavailableMissingSecrets;
+  }
+
+  let migrateSourceNodes = $derived(serviceDetail?.nodes ?? []);
+  let hasMultipleInstanceNodes = $derived(nodeContainers.length > 1);
+  let pendingDeployInstance = $derived(
+    nodeContainers.find(
+      (instance) => instance.pendingDeployRevision !== "",
+    ) ?? null,
+  );
+  let selectedInstanceEntry = $derived(
+    nodeContainers.find(
+      (instance) => instance.nodeId === selectedInstanceNode,
+    ) ?? null,
+  );
+  let visibleNodeContainers = $derived(
+    !hasMultipleInstanceNodes || selectedInstanceNode === "__all__"
+      ? nodeContainers
+      : nodeContainers.filter(
+          (instance) => instance.nodeId === selectedInstanceNode,
+        ),
+  );
+  let serviceOptions = $derived(
+    data.services.map((service) => ({
+      value: service.folder,
+      label: service.displayName,
+      secondary: service.folder,
+    })),
+  );
+  let deployRecreateLabel = $derived(recreateModeLabel(deployRecreateMode));
+  let updateOptionsLabel = $derived.by(() => {
+    const recreateLabel = recreateModeLabel(updateRecreateMode);
+    if (updateBackupMode === "default") {
+      return recreateLabel;
+    }
+    return `${recreateLabel} · ${backupModeTriggerLabel(updateBackupMode)}`;
+  });
+
+  function applyServiceSummaryState(payload: ServiceSummaryStatePayload) {
+    workspace = payload.workspace ?? workspace;
+    tasks = payload.tasks ?? tasks;
+    backups = payload.backups ?? backups;
+    serviceDetail = payload.serviceDetail ?? serviceDetail;
+    imageUpdateChecks = payload.imageUpdateChecks ?? imageUpdateChecks;
+
+    if (payload.serviceDetail?.instances) {
+      const existingByNode = new Map(
+        nodeContainers.map((instance) => [instance.nodeId, instance] as const),
+      );
+      const nextLoadState: Record<
+        string,
+        "idle" | "loading" | "loaded" | "error"
+      > = {};
+      const nextLoadError: Record<string, string> = {};
+
+      nodeContainers = payload.serviceDetail.instances.map((instance) => {
+        const existing = existingByNode.get(instance.nodeId);
+        const hasFreshContainers = instance.containers.length > 0;
+        const changed =
+          existing &&
+          (existing.runtimeStatus !== instance.runtimeStatus ||
+            existing.updatedAt !== instance.updatedAt ||
+            existing.isDeclared !== instance.isDeclared);
+
+        if (!existing || changed || hasFreshContainers) {
+          nextLoadState[instance.nodeId] = hasFreshContainers
+            ? "loaded"
+            : "idle";
+          return instance;
+        }
+
+        nextLoadState[instance.nodeId] =
+          instanceLoadState[instance.nodeId] ?? "idle";
+        if (nextLoadState[instance.nodeId] === "error") {
+          nextLoadError[instance.nodeId] =
+            instanceLoadError[instance.nodeId] ?? "";
+        }
+
+        return {
+          ...instance,
+          containers: existing.containers,
+        };
+      }) as NonNullable<PageData["nodeContainers"]>;
+
+      instanceLoadState = nextLoadState;
+      instanceLoadError = nextLoadError;
+    }
+
+    if (
+      selectedInstanceNode !== "__all__" &&
+      !nodeContainers.some(
+        (instance) => instance.nodeId === selectedInstanceNode,
+      )
+    ) {
+      selectedInstanceNode = "__all__";
+    }
+  }
+
+  async function loadInstanceContainers(nodeId: string, force = false) {
+    if (!workspace?.folder || !workspace.serviceName) {
+      return;
+    }
+    const currentState = instanceLoadState[nodeId] ?? "idle";
+    if (!force && (currentState === "loading" || currentState === "loaded")) {
+      return;
+    }
+
+    instanceLoadState = { ...instanceLoadState, [nodeId]: "loading" };
+    instanceLoadError = { ...instanceLoadError, [nodeId]: "" };
+
+    try {
+      const response = await fetch(
+        `/services/${workspace.folder}/instances/${encodeURIComponent(nodeId)}`,
+      );
+      const payload = (await response.json()) as {
+        instance?: ServiceInstanceDetail;
+        error?: string;
+      };
+      if (!response.ok || !payload.instance) {
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.instances.loadFailed,
+          ),
+        );
+      }
+
+      nodeContainers = nodeContainers.map((instance) =>
+        instance.nodeId === nodeId ? payload.instance! : instance,
+      ) as NonNullable<PageData["nodeContainers"]>;
+      instanceLoadState = { ...instanceLoadState, [nodeId]: "loaded" };
+      instanceLoadError = { ...instanceLoadError, [nodeId]: "" };
+      errorMessage = "";
+    } catch (loadError) {
+      const message =
+        loadError instanceof Error
+          ? loadError.message
+          : $messages.services.instances.loadFailed;
+      instanceLoadState = { ...instanceLoadState, [nodeId]: "error" };
+      instanceLoadError = { ...instanceLoadError, [nodeId]: message };
+      errorMessage = message;
+    }
+  }
+
+  $effect(() => {
+    const nodesToLoad = visibleNodeContainers
+      .filter(
+        (instance) => (instanceLoadState[instance.nodeId] ?? "idle") === "idle",
+      )
+      .map((instance) => instance.nodeId);
+
+    if (nodesToLoad.length === 0) {
+      return;
+    }
+
+    for (const nodeId of nodesToLoad) {
+      void loadInstanceContainers(nodeId);
+    }
+  });
+
+  async function openFile(path: string) {
+    try {
+      const normalized = normalizeServiceRelativePath(path);
+      const existing = openTabs.find((tab) => tab.path === normalized);
+      const targetPane =
+        splitEnabled && focusedPane === "secondary" ? "secondary" : "primary";
+      if (existing) {
+        selectedNodePath = normalized;
+        if (targetPane === "secondary" && normalized !== activePath) {
+          secondaryPath = normalized;
+        } else {
+          activePath = normalized;
+        }
+        return;
+      }
+
+      const response = await fetch(
+        `/services/${workspace?.folder}/workspace?path=${encodeURIComponent(normalized)}`,
+      );
+      const payload = await response.json();
+      if (!response.ok) {
+        errorMessage = actionErrorMessage(
+          payload,
+          $messages,
+          $messages.services.files.openFileFailed,
+        );
+        return;
+      }
+
+      openTabs = [...openTabs, createTab(payload.file as WorkspaceFile)];
+      selectedNodePath = normalized;
+      if (targetPane === "secondary" && normalized !== activePath) {
+        secondaryPath = normalized;
+      } else {
+        activePath = normalized;
+      }
+      errorMessage = "";
+    } catch (openError) {
+      errorMessage =
+        openError instanceof Error
+          ? openError.message
+          : $messages.services.files.openFileFailed;
+    }
+  }
+
+  function closeTab(path: string) {
+    const nextTabs = openTabs.filter((tab) => tab.path !== path);
+    openTabs = nextTabs;
+    if (activePath === path) {
+      activePath = nextTabs[nextTabs.length - 1]?.path ?? "";
+    }
+    if (secondaryPath === path) {
+      secondaryPath =
+        nextTabs.find((tab) => tab.path !== activePath)?.path ?? "";
+    }
+    if (activePath && secondaryPath === activePath) {
+      secondaryPath =
+        nextTabs.find((tab) => tab.path !== activePath)?.path ?? "";
+    }
+  }
+
+  function selectNode(path: string) {
+    selectedNodePath = path;
+    showRename = false;
+    if (path) {
+      renamePath = path;
+    }
+  }
+
+  function updateTab(path: string, content: string) {
+    openTabs = openTabs.map((tab) =>
+      tab.path === path
+        ? {
+            ...tab,
+            content,
+            dirty: content !== tab.savedContent,
+          }
+        : tab,
+    );
+  }
+
+  async function saveTab(path: string) {
+    const tab = openTabs.find((item) => item.path === path) ?? null;
+    if (!tab || !headRevision || tab.readOnly) {
+      return;
+    }
+
+    saving = true;
+    errorMessage = "";
+
+    try {
+      const response = await fetch(
+        `/services/${workspace?.folder}/workspace/file`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            path: tab.path,
+            content: tab.content,
+            baseRevision: headRevision,
+          }),
+        },
+      );
+      const payload = (await response.json()) as {
+        error?: string;
+        file?: WorkspaceFile;
+        write?: RepoWriteResult;
+        workspace?: PageData["workspace"];
+      };
+      if (!response.ok || !payload.file || !payload.write) {
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.files.saveFileFailed,
+          ),
+        );
+      }
+
+      headRevision = payload.write.commitId;
+      syncStatus = payload.write.syncStatus;
+      syncError = payload.write.pushError;
+      lastSuccessfulPullAt = payload.write.lastSuccessfulPullAt;
+      openTabs = openTabs.map((item) =>
+        item.path === tab.path
+          ? {
+              ...item,
+              content: payload.file?.content ?? item.content,
+              savedContent: payload.file?.content ?? item.content,
+              dirty: false,
+              size: payload.file?.size ?? item.size,
+            }
+          : item,
+      );
+      toast.success($messages.services.files.saved.replace("{path}", tab.path));
+    } catch (saveError) {
+      errorMessage =
+        saveError instanceof Error
+          ? saveError.message
+          : $messages.services.files.saveFileFailed;
+    } finally {
+      saving = false;
+    }
+  }
+
+  async function saveCurrentTab() {
+    if (!focusedPath) {
+      return;
+    }
+
+    await saveTab(focusedPath);
+  }
+
+  function toggleSplitEditor() {
+    if (splitEnabled) {
+      splitEnabled = false;
+      secondaryPath = "";
+      focusedPane = "primary";
+      return;
+    }
+
+    splitEnabled = true;
+    secondaryPath = openTabs.find((tab) => tab.path !== activePath)?.path ?? "";
+  }
+
+  function openInSecondary(path: string) {
+    if (path === activePath) {
+      return;
+    }
+
+    splitEnabled = true;
+    secondaryPath = path;
+    focusedPane = "secondary";
+  }
+
+  function focusPane(pane: "primary" | "secondary") {
+    focusedPane = pane;
+  }
+
+  function resolveAlternatePath(paths: string[], excludedPath: string) {
+    return paths.find((path) => path !== excludedPath) ?? "";
+  }
+
+  async function createFile() {
+    if (!newFilePath.trim()) {
+      return;
+    }
+
+    try {
+      const normalized = normalizeServiceRelativePath(newFilePath);
+      const targetPane =
+        splitEnabled && focusedPane === "secondary" ? "secondary" : "primary";
+      if (openTabs.some((tab) => tab.path === normalized)) {
+        if (targetPane === "secondary" && normalized !== activePath) {
+          secondaryPath = normalized;
+        } else {
+          activePath = normalized;
+        }
+        showNewFile = false;
+        newFilePath = "";
+        return;
+      }
+
+      saving = true;
+      errorMessage = "";
+
+      const response = await fetch(
+        `/services/${workspace?.folder}/workspace/file`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            path: normalized,
+            content: "",
+            baseRevision: headRevision,
+          }),
+        },
+      );
+      const payload = (await response.json()) as {
+        error?: string;
+        file?: WorkspaceFile;
+        write?: RepoWriteResult;
+        workspace?: PageData["workspace"];
+        fileTree?: ServiceFileNode[];
+      };
+      if (!response.ok || !payload.file || !payload.write) {
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.files.createFileFailed,
+          ),
+        );
+      }
+
+      applyFsMutation({
+        write: payload.write,
+        workspace: payload.workspace,
+        fileTree: payload.fileTree,
+      });
+      openTabs = [...openTabs, createTab(payload.file)];
+      selectedNodePath = normalized;
+      if (targetPane === "secondary" && normalized !== activePath) {
+        secondaryPath = normalized;
+      } else {
+        activePath = normalized;
+      }
+      showNewFile = false;
+      newFilePath = "";
+      toast.success(
+        $messages.services.fileCreated.replace("{path}", normalized),
+      );
+    } catch (createError) {
+      errorMessage =
+        createError instanceof Error
+          ? createError.message
+          : $messages.services.files.createFileFailed;
+    } finally {
+      saving = false;
+    }
+  }
+
+  async function createDirectory() {
+    if (!newFolderPath.trim()) {
+      return;
+    }
+
+    saving = true;
+    errorMessage = "";
+
+    try {
+      const normalized = normalizeServiceRelativePath(newFolderPath);
+      const response = await fetch(
+        `/services/${workspace?.folder}/workspace/directories`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            path: normalized,
+            baseRevision: headRevision,
+          }),
+        },
+      );
+      const payload = await response.json();
+      if (!response.ok || !payload.write) {
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.files.createFolderFailed,
+          ),
+        );
+      }
+
+      applyFsMutation(payload);
+      selectedNodePath = normalized;
+      showNewFolder = false;
+      newFolderPath = "";
+      toast.success(
+        $messages.services.folderCreated.replace("{path}", normalized),
+      );
+    } catch (directoryError) {
+      errorMessage =
+        directoryError instanceof Error
+          ? directoryError.message
+          : $messages.services.files.createFolderFailed;
+    } finally {
+      saving = false;
+    }
+  }
+
+  async function renameNode() {
+    if (!selectedNodePath || !renamePath.trim()) {
+      return;
+    }
+
+    saving = true;
+    errorMessage = "";
+
+    try {
+      const destination = normalizeServiceRelativePath(renamePath);
+      const response = await fetch(
+        `/services/${workspace?.folder}/workspace/path`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sourcePath: selectedNodePath,
+            destinationPath: destination,
+            baseRevision: headRevision,
+          }),
+        },
+      );
+      const payload = await response.json();
+      if (!response.ok || !payload.write) {
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.files.renameFailed,
+          ),
+        );
+      }
+
+      applyFsMutation(payload);
+      openTabs = openTabs.map((tab) => {
+        if (
+          tab.path === selectedNodePath ||
+          tab.path.startsWith(`${selectedNodePath}/`)
+        ) {
+          const nextPath =
+            destination + tab.path.slice(selectedNodePath.length);
+          return { ...tab, path: nextPath };
+        }
+        return tab;
+      });
+      if (
+        activePath === selectedNodePath ||
+        activePath.startsWith(`${selectedNodePath}/`)
+      ) {
+        activePath = destination + activePath.slice(selectedNodePath.length);
+      }
+      if (
+        secondaryPath === selectedNodePath ||
+        secondaryPath.startsWith(`${selectedNodePath}/`)
+      ) {
+        secondaryPath =
+          destination + secondaryPath.slice(selectedNodePath.length);
+      }
+      selectedNodePath = destination;
+      renamePath = destination;
+      showRename = false;
+      toast.success(
+        $messages.services.pathRenamed.replace("{path}", destination),
+      );
+    } catch (renameError) {
+      errorMessage =
+        renameError instanceof Error
+          ? renameError.message
+          : $messages.services.files.renameFailed;
+    } finally {
+      saving = false;
+    }
+  }
+
+  async function deleteNode() {
+    if (
+      !selectedNodePath ||
+      !confirm(
+        $messages.services.files.deleteFileConfirm
+          .replace(
+            "{type}",
+            selectedNode?.isDir
+              ? $messages.common.folder
+              : $messages.common.file,
+          )
+          .replace("{path}", selectedNodePath),
+      )
+    ) {
+      return;
+    }
+
+    saving = true;
+    errorMessage = "";
+
+    try {
+      const deletedPath = selectedNodePath;
+      const response = await fetch(
+        `/services/${workspace?.folder}/workspace/path`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            path: deletedPath,
+            baseRevision: headRevision,
+          }),
+        },
+      );
+      const payload = await response.json();
+      if (!response.ok || !payload.write) {
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.files.deleteFailed,
+          ),
+        );
+      }
+
+      applyFsMutation(payload);
+      const nextTabs = openTabs.filter(
+        (tab) =>
+          tab.path !== deletedPath && !tab.path.startsWith(`${deletedPath}/`),
+      );
+      openTabs = nextTabs;
+      if (
+        activePath === deletedPath ||
+        activePath.startsWith(`${deletedPath}/`)
+      ) {
+        activePath = nextTabs[0]?.path ?? "";
+      }
+      if (
+        secondaryPath === deletedPath ||
+        secondaryPath.startsWith(`${deletedPath}/`)
+      ) {
+        secondaryPath = resolveAlternatePath(
+          nextTabs.map((tab) => tab.path),
+          activePath,
+        );
+      }
+      if (secondaryPath === activePath) {
+        secondaryPath = resolveAlternatePath(
+          nextTabs.map((tab) => tab.path),
+          activePath,
+        );
+      }
+      selectedNodePath = "";
+      showRename = false;
+      toast.success(
+        $messages.services.pathDeleted.replace("{path}", deletedPath),
+      );
+    } catch (deleteError) {
+      errorMessage =
+        deleteError instanceof Error
+          ? deleteError.message
+          : $messages.services.files.deleteFailed;
+    } finally {
+      saving = false;
+    }
+  }
+
+  function applyFsMutation(payload: {
+    write: RepoWriteResult;
+    workspace?: PageData["workspace"];
+    fileTree?: ServiceFileNode[];
+  }) {
+    headRevision = payload.write.commitId;
+    syncStatus = payload.write.syncStatus;
+    syncError = payload.write.pushError;
+    lastSuccessfulPullAt = payload.write.lastSuccessfulPullAt;
+    workspace = payload.workspace ?? workspace;
+    fileTree = payload.fileTree ?? fileTree;
+  }
+
+  async function refreshServiceSummary() {
+    const response = await fetch(`/services/${workspace?.folder}/workspace`);
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(
+        actionErrorMessage(
+          payload,
+          $messages,
+          $messages.services.refreshFailed,
+        ),
+      );
+    }
+
+    applyServiceSummaryState(payload as ServiceSummaryStatePayload);
+
+    return payload as ServiceSummaryStatePayload;
+  }
+
+  function startActionRefresh(taskId: string) {
+    startActionRefreshForTasks([taskId]);
+  }
+
+  function startActionRefreshForTasks(taskIds: string[]) {
+    stopActionRefresh();
+
+    const pendingTaskIds = taskIds.filter((taskId) => taskId);
+    if (pendingTaskIds.length === 0) {
+      return;
+    }
+
+    stopActionRefreshHandle = startPolling(
+      async () => {
+        const payload = await refreshServiceSummary();
+        for (const taskId of pendingTaskIds) {
+          const task = (payload.tasks ?? []).find((entry) => entry.taskId === taskId);
+          if (!task || !isTerminalTaskStatus(task.status)) {
+            return true;
+          }
+        }
+
+        return false;
+      },
+      {
+        intervalMs: 2500,
+        errorIntervalMs: 4000,
+        initialDelayMs: 1200,
+      },
+    );
+  }
+
+  function stopActionRefresh() {
+    stopActionRefreshHandle?.();
+    stopActionRefreshHandle = null;
+  }
+
+  function syncFileTreeIconTheme(root: HTMLElement) {
+    fileTreeIconTheme = root.classList.contains("dark") ? "dark" : "light";
+  }
+
+  onMount(() => {
+    void import("$lib/components/app/code-editor.svelte").then(
+      ({ default: component }) => (CodeEditor = component),
+    );
+    const root = document.documentElement;
+    syncFileTreeIconTheme(root);
+
+    const themeObserver = new MutationObserver(() => {
+      syncFileTreeIconTheme(root);
+    });
+    themeObserver.observe(root, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    const stopAutoRefresh = startPolling(
+      async () => {
+        await refreshServiceSummary();
+      },
+      {
+        intervalMs: 5000,
+      },
+    );
+
+    return () => {
+      themeObserver.disconnect();
+      stopAutoRefresh();
+      stopActionRefresh();
+    };
+  });
+
+  function isTerminalTaskStatus(status: string) {
+    return (
+      status === "succeeded" || status === "failed" || status === "cancelled"
+    );
+  }
+
+  async function triggerAction(
+    action:
+      | "deploy"
+      | "update"
+      | "stop"
+      | "restart"
+      | "backup"
+      | "dns_update"
+      | "caddy_sync"
+      | "cloudflare_tunnel_sync",
+    recreateMode: ComposeRecreateMode = "auto",
+  ) {
+    if (action === "backup" && !backupCapability.enabled) {
+      errorMessage = backupReason;
+      return;
+    }
+    if (action === "dns_update" && !dnsUpdateCapability.enabled) {
+      errorMessage = dnsUpdateReason;
+      return;
+    }
+    if (action === "caddy_sync" && !caddySyncCapability.enabled) {
+      errorMessage = caddySyncReason;
+      return;
+    }
+    if (
+      action === "cloudflare_tunnel_sync" &&
+      !cloudflareTunnelSyncCapability.enabled
+    ) {
+      errorMessage = cloudflareTunnelSyncReason;
+      return;
+    }
+
+    actionBusy = action;
+    errorMessage = "";
+
+    try {
+      const body: Record<string, unknown> = {
+        recreateMode,
+      };
+
+      if (action === "update") {
+        if (updateBackupMode !== "default") {
+          body.backupBeforeUpdate = updateBackupMode === "force_on";
+        }
+        const imageUpdates: ImageUpdateSelection[] = [];
+
+        if (applyAllDetectedImages) {
+          body.useAllDetectedImageUpdates = true;
+        } else {
+          for (const check of imageUpdateChecks) {
+            if (imageUpdateSelections[check.imageName]) {
+              imageUpdates.push({
+                imageName: check.imageName,
+                useDetected: true,
+              });
+            }
+          }
+        }
+
+        const trimmed = setImageInput.trim();
+        if (trimmed) {
+          const [imageName, ...tagParts] = trimmed.split("=");
+          const targetTag = tagParts.join("=");
+          if (imageName.trim() && targetTag.trim()) {
+            imageUpdates.push({
+              imageName: imageName.trim(),
+              targetTag: targetTag.trim(),
+            });
+          }
+        }
+
+        if (imageUpdates.length > 0) {
+          body.imageUpdates = imageUpdates;
+        }
+        if (imageUpdates.length > 0 || applyAllDetectedImages) {
+          body.baseRevision = headRevision;
+          body.commitMessage = buildImageUpdateCommitMessage(
+            workspace?.serviceName ?? workspace?.folder ?? "service",
+          );
+        }
+      }
+
+      const response = await fetch(
+        `/services/${workspace?.folder}/actions/${action}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
+      const payload = (await response.json()) as ServiceActionResult & {
+        error?: string;
+        reasonCode?: string;
+      };
+      if (!response.ok || (payload.tasks ?? []).length === 0) {
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.actions.runFailed.replace("{action}", action),
+          ),
+        );
+      }
+
+      const createdTasks: TaskSummary[] = (payload.tasks ?? []).map((entry) => ({
+        taskId: entry.taskId,
+        type: action,
+        status: entry.status,
+        serviceName: workspace?.serviceName ?? "",
+        nodeId: "",
+        createdAt: new Date().toISOString(),
+      }));
+      tasks = [...createdTasks, ...tasks].slice(0, 12);
+      if (createdTasks.length === 1) {
+        toast.success(
+          $messages.services.actionQueued
+            .replace("{action}", action)
+            .replace("{taskId}", createdTasks[0].taskId),
+        );
+      } else {
+        toast.success(
+          $messages.services.actionQueuedMany
+            .replace("{action}", action)
+            .replace("{count}", String(createdTasks.length)),
+        );
+      }
+      startActionRefreshForTasks(createdTasks.map((entry) => entry.taskId));
+    } catch (actionError) {
+      errorMessage =
+        actionError instanceof Error
+          ? actionError.message
+          : $messages.services.actions.runFailed.replace("{action}", action);
+    } finally {
+      actionBusy = "";
+    }
+  }
+
+  function recreateModeLabel(mode: ComposeRecreateMode) {
+    switch (mode) {
+      case "no_recreate":
+        return $messages.services.operations.recreate.noRecreate;
+      case "force_recreate":
+        return $messages.services.operations.recreate.forceRecreate;
+      case "auto":
+      default:
+        return $messages.services.operations.recreate.auto;
+    }
+  }
+
+  function backupModeTriggerLabel(mode: "default" | "force_on" | "force_off") {
+    switch (mode) {
+      case "force_on":
+        return $messages.services.operations.backupBeforeUpdate.triggerForceOn;
+      case "force_off":
+        return $messages.services.operations.backupBeforeUpdate.triggerForceOff;
+      case "default":
+      default:
+        return $messages.services.operations.backupBeforeUpdate.default;
+    }
+  }
+
+  async function triggerMigrate() {
+    if (
+      !workspace?.isDeclared ||
+      !workspace?.serviceName ||
+      !migrateSourceNode ||
+      !migrateTargetNode.trim()
+    ) {
+      errorMessage = $messages.services.actions.selectSourceAndTarget;
+      return;
+    }
+    if (!migrateCapability.enabled) {
+      errorMessage = migrateReason;
+      return;
+    }
+    actionBusy = "migrate";
+    errorMessage = "";
+
+    try {
+      const response = await fetch(
+        `/services/${workspace.folder}/actions/migrate`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sourceNodeId: migrateSourceNode,
+            targetNodeId: migrateTargetNode.trim(),
+          }),
+        },
+      );
+      const payload = (await response.json()) as TaskActionResult & {
+        error?: string;
+        reasonCode?: string;
+      };
+      if (!response.ok || !payload.taskId) {
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.actions.migrateFailed,
+          ),
+        );
+      }
+      const newTask: TaskSummary = {
+        taskId: payload.taskId,
+        type: "migrate",
+        status: payload.status,
+        serviceName: workspace.serviceName,
+        nodeId: migrateSourceNode,
+        createdAt: new Date().toISOString(),
+      };
+      tasks = [newTask, ...tasks].slice(0, 12);
+      toast.success(
+        $messages.services.migrateQueued.replace("{taskId}", payload.taskId),
+      );
+      startActionRefresh(payload.taskId);
+    } catch (actionError) {
+      errorMessage =
+        actionError instanceof Error
+          ? actionError.message
+          : $messages.services.actions.migrateFailed;
+    } finally {
+      actionBusy = "";
+    }
+  }
+
+  function buildImageUpdateCommitMessage(serviceName: string) {
+    return `update images for ${serviceName}`;
+  }
+
+  async function renameServiceRoot() {
+    if (!renameServiceFolder.trim()) {
+      return;
+    }
+
+    saving = true;
+    errorMessage = "";
+
+    try {
+      const response = await fetch(`/services/${workspace?.folder}/root`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          folder: renameServiceFolder,
+          baseRevision: headRevision,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.redirectTo) {
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.files.renameServiceFolderFailed,
+          ),
+        );
+      }
+
+      window.location.href = payload.redirectTo;
+    } catch (renameError) {
+      errorMessage =
+        renameError instanceof Error
+          ? renameError.message
+          : $messages.services.files.renameServiceFolderFailed;
+      saving = false;
+    }
+  }
+
+  async function deleteServiceRoot() {
+    if (
+      !workspace?.folder ||
+      !confirm(
+        $messages.services.files.deleteServiceFolderConfirm.replace(
+          "{name}",
+          workspace.folder,
+        ),
+      )
+    ) {
+      return;
+    }
+
+    saving = true;
+    errorMessage = "";
+
+    try {
+      const response = await fetch(`/services/${workspace.folder}/root`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          baseRevision: headRevision,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.redirectTo) {
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.services.files.deleteServiceFolderFailed,
+          ),
+        );
+      }
+
+      window.location.href = payload.redirectTo;
+    } catch (deleteError) {
+      errorMessage =
+        deleteError instanceof Error
+          ? deleteError.message
+          : $messages.services.files.deleteServiceFolderFailed;
+      saving = false;
+    }
+  }
+
+  function toggleDirectory(path: string) {
+    const next = new Set(collapsedPaths);
+    if (next.has(path)) {
+      next.delete(path);
+    } else {
+      next.add(path);
+    }
+    collapsedPaths = next;
+  }
+
+  async function selectService(folder: string) {
+    serviceSwitchOpen = false;
+    if (!folder || folder === workspace?.folder) {
+      return;
+    }
+    await goto(`/services/${encodeURIComponent(folder)}`);
+  }
+</script>
+
+<svelte:head>
+  <title
+    >{workspace?.displayName ?? $messages.services.title} - {$messages.app
+      .name}</title
+  >
+</svelte:head>
+
+<div
+  class="page-shell-workbench flex min-h-[calc(100vh-72px)] flex-col"
+  aria-busy={Boolean(actionBusy) || saving}
+>
+  <div class="page-stack flex min-h-0 flex-1 flex-col">
+    <Card>
+      <CardHeader class="gap-3 py-4">
+        <div class="page-header">
+          <div class="page-heading">
+            <CardTitle class="page-title" level="1">
+              <Popover.Root bind:open={serviceSwitchOpen}>
+                <Popover.Trigger class="inline-flex">
+                  {#snippet child({ props })}
+                    <button
+                      type="button"
+                      class="flex items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground"
+                      {...props}
+                    >
+                      <span
+                        class="min-w-0 truncate font-semibold text-foreground"
+                      >
+                        {workspace?.displayName ??
+                          $messages.services.selectService}
+                      </span>
+                      <ChevronsUpDown class="size-4 shrink-0 opacity-50" />
+                    </button>
+                  {/snippet}
+                </Popover.Trigger>
+                <Popover.Content
+                  class="w-[min(92vw,28rem)] p-0"
+                  align="start"
+                  sideOffset={8}
+                >
+                  <Command.Root>
+                    <Command.Input
+                      placeholder={$messages.services.searchServicePlaceholder}
+                    />
+                    <Command.List>
+                      <Command.Empty
+                        >{$messages.services.noServicesFound}</Command.Empty
+                      >
+                      <Command.Group>
+                        {#each serviceOptions as service (service.value)}
+                          <Command.Item
+                            value={`${service.label} ${service.secondary}`}
+                            onSelect={() => {
+                              void selectService(service.value);
+                            }}
+                          >
+                            <div class="min-w-0">
+                              <div class="truncate">{service.label}</div>
+                              <div
+                                class="truncate text-xs text-muted-foreground"
+                              >
+                                {service.secondary}
+                              </div>
+                            </div>
+                            <Check
+                              class={cn(
+                                "ml-auto size-4",
+                                service.value !== workspace?.folder &&
+                                  "text-transparent",
+                              )}
+                            />
+                          </Command.Item>
+                        {/each}
+                      </Command.Group>
+                    </Command.List>
+                  </Command.Root>
+                </Popover.Content>
+              </Popover.Root>
+            </CardTitle>
+            <p class="page-meta">
+              {workspace?.folder ?? $messages.common.na}
+            </p>
+          </div>
+          <Badge
+            variant={runtimeStatusTone(workspace?.runtimeStatus ?? "unknown")}
+          >
+            {runtimeStatusLabel(workspace?.runtimeStatus ?? "", $messages)}
+          </Badge>
+        </div>
+
+        <div
+          class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground"
+        >
+          <div class="flex items-center gap-1.5">
+            <span>{$messages.nodes.node}</span>
+            <span class="font-medium text-foreground"
+              >{workspaceNodesLabel || $messages.common.na}</span
+            >
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span>{$messages.settings.repoSync.revision}</span>
+            <span class="font-medium text-foreground"
+              >{headRevision
+                ? headRevision.slice(0, 12)
+                : $messages.common.na}</span
+            >
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span>{$messages.services.syncStatus}</span>
+            <span class="font-medium text-foreground"
+              >{syncStatus || $messages.status.unknown}</span
+            >
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span>{$messages.services.lastPull}</span>
+            <span class="font-medium text-foreground"
+              >{lastSuccessfulPullAt || $messages.common.never}</span
+            >
+          </div>
+        </div>
+
+        {#if syncError}
+          <Alert variant="destructive">
+            <AlertTitle>{$messages.error.syncFailed}</AlertTitle>
+            <AlertDescription>{syncError}</AlertDescription>
+          </Alert>
+        {/if}
+
+        {#if errorMessage}
+          <Alert variant="destructive">
+            <AlertTitle>{$messages.error.workspaceError}</AlertTitle>
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        {/if}
+      </CardHeader>
+    </Card>
+
+    {#if (nodeContainers ?? []).length > 0}
+      <Card>
+        <CardHeader class="gap-3">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle class="section-title" level="2"
+                >{$messages.services.instances.title}</CardTitle
+              >
+              <div class="text-sm text-muted-foreground">
+                {$messages.services.containersByNode}
+              </div>
+            </div>
+
+            {#if hasMultipleInstanceNodes}
+              <Select type="single" bind:value={selectedInstanceNode as any}>
+                <SelectTrigger
+                  class="w-[240px]"
+                  aria-label={$messages.services.instances.title}
+                >
+                  {#if selectedInstanceNode === "__all__"}
+                    <span>{$messages.services.allNodes}</span>
+                  {:else}
+                    <span>
+                      {selectedInstanceNode}
+                      {#if selectedInstanceEntry}
+                        · {runtimeStatusLabel(
+                          selectedInstanceEntry.runtimeStatus,
+                          $messages,
+                        )}
+                      {/if}
+                    </span>
+                  {/if}
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__"
+                    >{$messages.services.allNodes}</SelectItem
+                  >
+                  {#each nodeContainers ?? [] as instance}
+                    <SelectItem value={instance.nodeId}>
+                      {instance.nodeId} · {runtimeStatusLabel(
+                        instance.runtimeStatus,
+                        $messages,
+                      )}
+                    </SelectItem>
+                  {/each}
+                </SelectContent>
+              </Select>
+            {/if}
+          </div>
+          {#if pendingDeployInstance}
+            <div class="mt-2 rounded-md border border-warning-foreground/30 bg-warning px-3 py-2">
+              <p class="text-sm font-medium text-warning-foreground">
+                {$messages.services.instances.pendingDeploy}
+              </p>
+              <p class="text-xs text-muted-foreground mt-0.5">
+                commit {pendingDeployInstance.pendingDeployRevision.slice(0, 8)}
+              </p>
+            </div>
+          {/if}
+        </CardHeader>
+        <CardContent class="space-y-4">
+          {#each visibleNodeContainers as instance, index}
+            <section class="space-y-3">
+              {#if hasMultipleInstanceNodes && selectedInstanceNode === "__all__"}
+                <div class="relative flex items-center justify-center">
+                  <div class="absolute inset-x-0 h-px bg-border/70"></div>
+                  <div
+                    class="relative flex items-center gap-2 bg-card px-3 text-sm font-medium text-foreground"
+                  >
+                    <span>{instance.nodeId}</span>
+                    <Badge variant={runtimeStatusTone(instance.runtimeStatus)}
+                      >{runtimeStatusLabel(
+                        instance.runtimeStatus,
+                        $messages,
+                      )}</Badge
+                    >
+                    {#if instance.pendingDeployRevision}
+                      <Badge variant="warning"
+                        >{$messages.services.instances.pendingDeploy}</Badge
+                      >
+                    {/if}
+                  </div>
+                  <div class="h-px flex-1 bg-border/70"></div>
+                </div>
+              {/if}
+
+              {#if instanceLoadState[instance.nodeId] === "loading"}
+                <div
+                  class="rounded-lg border border-dashed border-border/70 px-3 py-4 text-sm text-muted-foreground"
+                >
+                  {$messages.common.loadingWithDots}
+                </div>
+              {:else if instanceLoadState[instance.nodeId] === "error"}
+                <div
+                  class="rounded-lg border border-dashed border-border/70 px-3 py-4 text-sm text-muted-foreground"
+                >
+                  <div>
+                    {instanceLoadError[instance.nodeId] ||
+                      $messages.error.loadFailed}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    class="mt-3"
+                    onclick={() =>
+                      loadInstanceContainers(instance.nodeId, true)}
+                  >
+                    <RefreshCcw class="mr-2 size-4" />{$messages.common.refresh}
+                  </Button>
+                </div>
+              {:else if instance.containers.length > 0}
+                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {#each instance.containers as container}
+                    <a
+                      href="/nodes/{instance.nodeId}/docker/containers/{encodeURIComponent(
+                        container.containerId,
+                      )}"
+                      class="block rounded-md border border-border/60 bg-background px-3 py-2 transition-colors hover:bg-accent/40"
+                    >
+                      <div class="flex items-center justify-between gap-2">
+                        <div class="font-medium">{container.name}</div>
+                        <Badge variant={runtimeStatusTone(container.state)}
+                          >{runtimeStatusLabel(
+                            container.state,
+                            $messages,
+                          )}</Badge
+                        >
+                      </div>
+                      <div class="mt-1 text-xs text-muted-foreground">
+                        {container.image}
+                      </div>
+                      <div class="mt-1 text-xs text-muted-foreground">
+                        {container.composeProject}/{container.composeService}
+                      </div>
+                    </a>
+                  {/each}
+                </div>
+              {:else}
+                <div
+                  class="rounded-lg border border-dashed border-border/70 px-3 py-4 text-sm text-muted-foreground"
+                >
+                  {$messages.services.noContainersOnNode}
+                </div>
+              {/if}
+            </section>
+          {/each}
+        </CardContent>
+      </Card>
+    {/if}
+
+    <div
+      class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)_360px]"
+    >
+      <Card class="flex min-h-0 min-w-0 flex-col">
+        <CardHeader class="section-header border-b">
+          <CardTitle class="section-title" level="2"
+            >{$messages.services.files.title}</CardTitle
+          >
+          <div class="flex flex-wrap items-center gap-2">
+            <Popover.Root bind:open={showNewFile}>
+              <Popover.Trigger class="inline-flex">
+                {#snippet child({ props: triggerProps })}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    {...triggerProps}
+                  >
+                    <FilePlus class="mr-2 size-4" />{$messages.common.newFile}
+                  </Button>
+                {/snippet}
+              </Popover.Trigger>
+              <Popover.Content class="w-80" sideOffset={8}>
+                <div class="space-y-3">
+                  <Input
+                    bind:value={newFilePath}
+                    placeholder={$messages.services.files
+                      .newFilePathPlaceholder}
+                    aria-label={$messages.common.newFile}
+                  />
+                  <div class="flex items-center justify-between gap-3">
+                    <p class="text-xs text-muted-foreground">
+                      {$messages.common.parentsAutoCreated}
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onclick={createFile}
+                      disabled={saving}>{$messages.common.create}</Button
+                    >
+                  </div>
+                </div>
+              </Popover.Content>
+            </Popover.Root>
+
+            <Popover.Root bind:open={showNewFolder}>
+              <Popover.Trigger class="inline-flex">
+                {#snippet child({ props: triggerProps })}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    {...triggerProps}
+                  >
+                    <FolderPlus class="mr-2 size-4" />{$messages.common
+                      .newFolder}
+                  </Button>
+                {/snippet}
+              </Popover.Trigger>
+              <Popover.Content class="w-80" sideOffset={8}>
+                <div class="space-y-3">
+                  <Input
+                    bind:value={newFolderPath}
+                    placeholder={$messages.services.files
+                      .newFolderPathPlaceholder}
+                    aria-label={$messages.common.newFolder}
+                  />
+                  <div class="flex items-center justify-between gap-3">
+                    <p class="text-xs text-muted-foreground">
+                      {$messages.common.trackedWithGitkeep}
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onclick={createDirectory}
+                      disabled={saving}>{$messages.common.create}</Button
+                    >
+                  </div>
+                </div>
+              </Popover.Content>
+            </Popover.Root>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onclick={() => {
+                showRename = !showRename;
+                renamePath = selectedNodePath;
+              }}
+              disabled={!selectedNodePath || saving}
+            >
+              <Pencil class="mr-2 size-4" />{$messages.common.rename}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onclick={() => (showDeleteDialog = true)}
+              disabled={!selectedNodePath || saving}
+            >
+              <Trash2 class="mr-2 size-4" />{$messages.common.delete}
+            </Button>
+          </div>
+        </CardHeader>
+
+        {#if showRename}
+          <div class="border-b px-4 py-3 text-sm">
+            <div class="space-y-3">
+              <Input
+                bind:value={renamePath}
+                placeholder={$messages.services.files.newFilePlaceholder}
+                aria-label={$messages.common.rename}
+              />
+              <div class="flex justify-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  onclick={renameNode}
+                  disabled={!selectedNodePath || saving}
+                  >{$messages.common.apply}</Button
+                >
+              </div>
+            </div>
+          </div>
+        {/if}
+
+        <div class="min-h-0 flex-1 overflow-auto px-2 py-3">
+          <ServiceFileTree
+            nodes={fileTree}
+            {activePath}
+            selectedPath={selectedNodePath}
+            {collapsedPaths}
+            iconTheme={fileTreeIconTheme}
+            onOpenFile={openFile}
+            onSelectNode={selectNode}
+            onToggle={toggleDirectory}
+          />
+        </div>
+      </Card>
+
+      <Card class="flex min-h-0 min-w-0 flex-col">
+        <CardHeader class="border-b">
+          <div class="section-header">
+            <CardTitle class="section-title" level="2"
+              >{$messages.services.files.editor}</CardTitle
+            >
+            <div class="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onclick={toggleSplitEditor}
+              >
+                <Columns2 class="mr-2 size-4" />
+                {splitEnabled
+                  ? $messages.services.files.singleView
+                  : $messages.services.files.splitView}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onclick={saveCurrentTab}
+                disabled={!canSave}
+              >
+                <Save class="mr-2 size-4" />
+                {$messages.common.save}
+              </Button>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            {#each openTabs as tab}
+              <div
+                class="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-sm"
+                class:bg-secondary={tab.path === activePath ||
+                  (splitEnabled && tab.path === secondaryPath)}
+              >
+                <button
+                  type="button"
+                  class="max-w-48 truncate"
+                  onclick={() => {
+                    activePath = tab.path;
+                    focusPane("primary");
+                  }}
+                >
+                  {tab.path}
+                  {#if tab.dirty}*{/if}
+                </button>
+                {#if splitEnabled && tab.path !== activePath}
+                  <button
+                    type="button"
+                    class="text-xs text-muted-foreground hover:text-foreground"
+                    onclick={() => openInSecondary(tab.path)}
+                    title={$messages.services.files.openInSplit}
+                  >
+                    <Columns2 class="size-3.5" />
+                  </button>
+                {/if}
+                <button
+                  type="button"
+                  class="text-xs text-muted-foreground hover:text-foreground"
+                  aria-label={$messages.common.close}
+                  onclick={() => closeTab(tab.path)}>x</button
+                >
+              </div>
+            {/each}
+          </div>
+        </CardHeader>
+
+        {#if activeTab || (splitEnabled && secondaryTab)}
+          <div class="grid min-h-0 flex-1" class:grid-cols-2={splitEnabled}>
+            <div
+              class="flex min-h-0 min-w-0 flex-col overflow-hidden"
+              class:border-r={splitEnabled}
+              onfocusin={() => focusPane("primary")}
+            >
+              <div
+                class="flex items-center justify-between border-b px-3 py-2 text-xs text-muted-foreground"
+              >
+                <span class="truncate">{activeTab?.path ?? ""}</span>
+              </div>
+              {#if activeTab}
+                <div class="min-h-0 flex-1">
+                  {#key `primary:${activePath}`}
+                    {#if activeTab.unavailableReasonCode}
+                      <div
+                        class="flex h-full items-center justify-center px-6 py-8"
+                      >
+                        <div
+                          class="max-w-md rounded-xl border border-dashed border-border/70 bg-muted/20 p-6 text-center"
+                        >
+                          <div
+                            class="mx-auto mb-4 inline-flex size-10 items-center justify-center rounded-full bg-background text-muted-foreground"
+                          >
+                            <Lock class="size-5" />
+                          </div>
+                          <div class="text-sm font-medium">
+                            {$messages.services.files.encryptedUnavailableTitle}
+                          </div>
+                          <div class="mt-2 text-sm text-muted-foreground">
+                            {fileUnavailableReason(activeTab)}
+                          </div>
+                          <div class="mt-2 text-sm text-muted-foreground">
+                            {fileUnavailableDescription(activeTab)}
+                          </div>
+                        </div>
+                      </div>
+                    {:else}
+                      {#if CodeEditor}
+                        <CodeEditor
+                          path={activeTab.path}
+                          value={activeTab.content}
+                          relatedFiles={editorRelatedFiles}
+                          readOnly={activeTab.readOnly}
+                          onchange={({ value }) =>
+                            updateTab(activeTab.path, value)}
+                          onsave={() => saveTab(activeTab.path)}
+                        />
+                      {:else}
+                        <div class="empty-state">{$messages.common.loadingWithDots}</div>
+                      {/if}
+                    {/if}
+                  {/key}
+                </div>
+              {:else}
+                <div
+                  class="flex min-h-0 flex-1 items-center justify-center text-sm text-muted-foreground"
+                >
+                  {$messages.services.files.openFileToEdit}
+                </div>
+              {/if}
+            </div>
+
+            {#if splitEnabled}
+              <div
+                class="flex min-h-0 min-w-0 flex-col overflow-hidden"
+                onfocusin={() => focusPane("secondary")}
+              >
+                <div
+                  class="flex items-center justify-between border-b px-3 py-2 text-xs text-muted-foreground"
+                >
+                  <span class="truncate">{secondaryTab?.path ?? ""}</span>
+                </div>
+                {#if secondaryTab}
+                  <div class="min-h-0 flex-1">
+                    {#key `secondary:${secondaryPath}`}
+                      {#if secondaryTab.unavailableReasonCode}
+                        <div
+                          class="flex h-full items-center justify-center px-6 py-8"
+                        >
+                          <div
+                            class="max-w-md rounded-xl border border-dashed border-border/70 bg-muted/20 p-6 text-center"
+                          >
+                            <div
+                              class="mx-auto mb-4 inline-flex size-10 items-center justify-center rounded-full bg-background text-muted-foreground"
+                            >
+                              <Lock class="size-5" />
+                            </div>
+                            <div class="text-sm font-medium">
+                              {$messages.services.files
+                                .encryptedUnavailableTitle}
+                            </div>
+                            <div class="mt-2 text-sm text-muted-foreground">
+                              {fileUnavailableReason(secondaryTab)}
+                            </div>
+                            <div class="mt-2 text-sm text-muted-foreground">
+                              {fileUnavailableDescription(secondaryTab)}
+                            </div>
+                          </div>
+                        </div>
+                      {:else}
+                        {#if CodeEditor}
+                          <CodeEditor
+                            path={secondaryTab.path}
+                            value={secondaryTab.content}
+                            relatedFiles={editorRelatedFiles}
+                            readOnly={secondaryTab.readOnly}
+                            onchange={({ value }) =>
+                              updateTab(secondaryTab.path, value)}
+                            onsave={() => saveTab(secondaryTab.path)}
+                          />
+                        {:else}
+                          <div class="empty-state">{$messages.common.loadingWithDots}</div>
+                        {/if}
+                      {/if}
+                    {/key}
+                  </div>
+                {:else}
+                  <div
+                    class="flex min-h-0 flex-1 items-center justify-center text-sm text-muted-foreground"
+                  >
+                    {$messages.services.files.openFileToEditSplit}
+                  </div>
+                {/if}
+              </div>
+            {/if}
+          </div>
+        {:else}
+          <div
+            class="flex min-h-0 flex-1 items-center justify-center text-sm text-muted-foreground"
+          >
+            {$messages.services.files.openFileToEdit}
+          </div>
+        {/if}
+      </Card>
+
+      <section
+        class="grid min-h-0 min-w-0 gap-4 xl:col-span-2 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] 2xl:col-span-1 2xl:grid-cols-1"
+      >
+        <Card class="xl:col-span-2 2xl:col-span-1">
+          <CardHeader class="section-header">
+            <CardTitle class="section-title" level="2"
+              >{$messages.services.operations.title}</CardTitle
+            >
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <div class="grid gap-2">
+              <div class="flex">
+                <Button
+                  type="button"
+                  class="rounded-r-none border-r-0 flex-1 shrink min-w-0 justify-center"
+                  onclick={() => triggerAction("deploy", deployRecreateMode)}
+                  disabled={!!actionBusy || !workspace?.isDeclared}
+                >
+                  <Play class="mr-2 size-4 shrink-0" /><span class="truncate"
+                    >{$messages.services.operations.deploy}</span
+                  >
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    class={cn(
+                      buttonVariants(),
+                      "rounded-l-none border-l-0 gap-1 px-3 shrink-0",
+                    )}
+                    aria-label={$messages.services.operations.recreate.label}
+                    disabled={!!actionBusy || !workspace?.isDeclared}
+                  >
+                    <span class="max-w-32 truncate text-xs"
+                      >{deployRecreateLabel}</span
+                    >
+                    <ChevronDown class="size-4 shrink-0" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuLabel
+                      >{$messages.services.operations.recreate
+                        .label}</DropdownMenuLabel
+                    >
+                    <DropdownMenuRadioGroup bind:value={deployRecreateMode}>
+                      <DropdownMenuRadioItem value="auto">
+                        {$messages.services.operations.recreate.auto}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="no_recreate">
+                        {$messages.services.operations.recreate.noRecreate}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="force_recreate">
+                        {$messages.services.operations.recreate.forceRecreate}
+                      </DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div class="flex">
+                <Button
+                  type="button"
+                  variant="outline"
+                  class="rounded-r-none border-r-0 flex-1 shrink min-w-0 justify-center"
+                  onclick={() => triggerAction("update", updateRecreateMode)}
+                  disabled={!!actionBusy || !workspace?.isDeclared}
+                >
+                  <Upload class="mr-2 size-4 shrink-0" /><span class="truncate"
+                    >{$messages.services.operations.update}</span
+                  >
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    class={cn(
+                      buttonVariants({ variant: "outline" }),
+                      "rounded-l-none border-l-0 gap-1 px-3 shrink-0",
+                    )}
+                    aria-label={$messages.services.operations.update}
+                    disabled={!!actionBusy || !workspace?.isDeclared}
+                  >
+                    <span class="max-w-40 truncate text-xs"
+                      >{updateOptionsLabel}</span
+                    >
+                    <ChevronDown class="size-4 shrink-0" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuLabel
+                      >{$messages.services.operations.recreate
+                        .label}</DropdownMenuLabel
+                    >
+                    <DropdownMenuRadioGroup bind:value={updateRecreateMode}>
+                      <DropdownMenuRadioItem value="auto">
+                        {$messages.services.operations.recreate.auto}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="no_recreate">
+                        {$messages.services.operations.recreate.noRecreate}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="force_recreate">
+                        {$messages.services.operations.recreate.forceRecreate}
+                      </DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel
+                      >{$messages.services.operations.backupBeforeUpdate
+                        .label}</DropdownMenuLabel
+                    >
+                    <DropdownMenuRadioGroup bind:value={updateBackupMode}>
+                      <DropdownMenuRadioItem value="default">
+                        {$messages.services.operations.backupBeforeUpdate
+                          .default}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="force_on">
+                        {$messages.services.operations.backupBeforeUpdate
+                          .forceOn}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="force_off">
+                        {$messages.services.operations.backupBeforeUpdate
+                          .forceOff}
+                      </DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div
+                class="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-3"
+              >
+                <div class="text-xs font-medium">
+                  {$messages.services.imageUpdates.title}
+                </div>
+                {#if imageUpdateChecks.length === 0}
+                  <div class="text-xs text-muted-foreground">
+                    {$messages.services.imageUpdates.noChecks}
+                  </div>
+                {:else}
+                  <label class="flex items-center gap-2 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      bind:checked={applyAllDetectedImages}
+                      class="size-3.5 accent-foreground"
+                    />
+                    {$messages.services.imageUpdates.applyAllDetected}
+                  </label>
+                  {#if !applyAllDetectedImages}
+                    <div class="space-y-1.5 max-h-48 overflow-y-auto">
+                      {#each imageUpdateChecks as check (check.imageName)}
+                        {#if check.updateAvailable && check.policyType !== "digest"}
+                          <label
+                            class="flex items-center gap-2 text-xs cursor-pointer py-0.5"
+                          >
+                            <input
+                              type="checkbox"
+                              bind:checked={
+                                imageUpdateSelections[check.imageName]
+                              }
+                              class="size-3.5 accent-foreground"
+                            />
+                            <span class="text-muted-foreground">
+                              <span class="font-medium text-foreground"
+                                >{check.imageName}</span
+                              >
+                              &#8239;{check.policyType}&#8239;
+                              {check.currentTag} &#8594; {check.candidateTag}
+                            </span>
+                          </label>
+                        {:else if check.policyType === "digest" && check.updateAvailable}
+                          <div class="text-xs text-muted-foreground py-0.5">
+                            <span class="font-medium text-foreground"
+                              >{check.imageName}</span
+                            >
+                            &#8239;mutable&#8239;
+                            {check.currentTag}
+                            {#if check.currentDigest !== check.candidateDigest}
+                              &#8594; new digest
+                            {/if}
+                            <span
+                              class="ml-1 text-success-foreground"
+                            >
+                              ({$messages.services.imageUpdates
+                                .updateAvailable})
+                            </span>
+                          </div>
+                        {:else}
+                          <div class="text-xs text-muted-foreground py-0.5">
+                            <span class="font-medium text-foreground"
+                              >{check.imageName}</span
+                            >
+                            &#8239;{check.policyType}&#8239;
+                            {check.currentTag}
+                          </div>
+                        {/if}
+                      {/each}
+                    </div>
+                  {/if}
+                  <div class="grid gap-1.5">
+                    <input
+                      type="text"
+                      bind:value={setImageInput}
+                      placeholder={$messages.services.imageUpdates
+                        .imageTagPlaceholder}
+                      class="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm placeholder:text-muted-foreground"
+                    />
+                  </div>
+                {/if}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                class="w-full"
+                onclick={() => triggerAction("restart")}
+                disabled={!!actionBusy || !workspace?.isDeclared}
+              >
+                <RefreshCcw class="mr-2 size-4" />{$messages.services.operations
+                  .restart}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                class="w-full"
+                onclick={() => triggerAction("stop")}
+                disabled={!!actionBusy || !workspace?.isDeclared}
+              >
+                <Square class="mr-2 size-4" />{$messages.services.operations
+                  .stop}
+              </Button>
+            </div>
+
+            <Collapsible bind:open={advancedOperationsOpen}>
+              <CollapsibleTrigger
+                class="group flex w-full items-center gap-3 py-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <div
+                  class="h-px flex-1 bg-border/70 transition-colors group-hover:bg-border"
+                ></div>
+                <span
+                  >{advancedOperationsOpen
+                    ? $messages.services.collapse
+                    : $messages.services.expand}</span
+                >
+                <div
+                  class="h-px flex-1 bg-border/70 transition-colors group-hover:bg-border"
+                ></div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div class="grid gap-2 pt-3">
+                  <DisabledReasonButton
+                    reason={backupReason}
+                    triggerClass="w-full"
+                    type="button"
+                    variant="outline"
+                    class="w-full"
+                    onclick={() => triggerAction("backup")}
+                    disabled={!!actionBusy ||
+                      !workspace?.isDeclared ||
+                      !backupCapability.enabled}
+                  >
+                    <Wrench class="mr-2 size-4" />{$messages.services.operations
+                      .backup}
+                  </DisabledReasonButton>
+                  <DisabledReasonButton
+                    reason={dnsUpdateReason}
+                    triggerClass="w-full"
+                    type="button"
+                    variant="outline"
+                    class="w-full"
+                    onclick={() => triggerAction("dns_update")}
+                    disabled={!!actionBusy ||
+                      !workspace?.isDeclared ||
+                      !dnsUpdateCapability.enabled}
+                  >
+                    <Upload class="mr-2 size-4" />{$messages.services.operations
+                      .dnsUpdate}
+                  </DisabledReasonButton>
+                  <DisabledReasonButton
+                    reason={caddySyncReason}
+                    triggerClass="w-full"
+                    type="button"
+                    variant="outline"
+                    class="w-full"
+                    onclick={() => triggerAction("caddy_sync")}
+                    disabled={!!actionBusy ||
+                      !workspace?.isDeclared ||
+                      !(workspace?.nodes?.length ?? 0) ||
+                      !caddySyncCapability.enabled}
+                  >
+                    <Copy class="mr-2 size-4" />{$messages.services.operations
+                      .syncCaddy}
+                  </DisabledReasonButton>
+                  <DisabledReasonButton
+                    reason={cloudflareTunnelSyncReason}
+                    triggerClass="w-full"
+                    type="button"
+                    variant="outline"
+                    class="w-full"
+                    onclick={() => triggerAction("cloudflare_tunnel_sync")}
+                    disabled={!!actionBusy ||
+                      !workspace?.isDeclared ||
+                      !cloudflareTunnelSyncCapability.enabled}
+                  >
+                    <Upload class="mr-2 size-4" />{$messages.services.operations
+                      .syncCloudflareTunnel}
+                  </DisabledReasonButton>
+                  <div
+                    class="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3"
+                  >
+                    <div class="text-sm font-medium">
+                      {$messages.services.operations.migrate.title}
+                    </div>
+                    <Select type="single" bind:value={migrateSourceNode as any}>
+                      <SelectTrigger
+                        aria-label={$messages.services.operations.migrate
+                          .selectSource}
+                      >
+                        <span
+                          >{migrateSourceNode ||
+                            $messages.services.operations.migrate
+                              .selectSource}</span
+                        >
+                      </SelectTrigger>
+                      <SelectContent>
+                        {#each migrateSourceNodes as nodeId}
+                          <SelectItem value={nodeId}>{nodeId}</SelectItem>
+                        {/each}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      bind:value={migrateTargetNode}
+                      placeholder={$messages.services.operations.migrate
+                        .targetNodeId}
+                      aria-label={$messages.services.operations.migrate
+                        .targetNodeId}
+                    />
+                    <DisabledReasonButton
+                      reason={migrateReason}
+                      triggerClass="w-full"
+                      type="button"
+                      variant="outline"
+                      class="w-full"
+                      onclick={triggerMigrate}
+                      disabled={!!actionBusy ||
+                        !workspace?.isDeclared ||
+                        !migrateSourceNode ||
+                        !migrateTargetNode.trim() ||
+                        !migrateCapability.enabled}
+                    >
+                      <RefreshCcw class="mr-2 size-4" />{$messages.services
+                        .operations.migrate.migrate}
+                    </DisabledReasonButton>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    class="w-full"
+                    onclick={() => {
+                      showServiceRename = !showServiceRename;
+                      renameServiceFolder = workspace?.folder ?? "";
+                    }}
+                    disabled={saving}
+                  >
+                    <Pencil class="mr-2 size-4" />{$messages.services.operations
+                      .renameFolder}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    class="w-full border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onclick={deleteServiceRoot}
+                    disabled={saving}
+                  >
+                    <Trash2 class="mr-2 size-4" />{$messages.services.operations
+                      .deleteService}
+                  </Button>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {#if showServiceRename}
+              <div class="space-y-3 border-t pt-4">
+                <Input
+                  bind:value={renameServiceFolder}
+                  placeholder={$messages.services.files
+                    .newServiceFolderPlaceholder}
+                  aria-label={$messages.services.operations.renameFolder}
+                />
+                <div class="flex justify-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onclick={renameServiceRoot}
+                    disabled={saving}>{$messages.common.apply}</Button
+                  >
+                </div>
+              </div>
+            {/if}
+
+            {#if !workspace?.hasMeta}
+              <div class="empty-state px-3 py-4">
+                {$messages.services.addMetaToDeclare}
+              </div>
+            {:else if !workspace?.isDeclared}
+              <div class="empty-state px-3 py-4">
+                {$messages.services.fixMetaUntilAccepted}
+              </div>
+            {/if}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader class="section-header">
+            <div class="section-heading">
+              <CardTitle class="section-title" level="2">
+                {#if workspace?.serviceName}
+                  <a
+                    class="hover:text-foreground/80 transition-colors"
+                    href={`/tasks?serviceName=${encodeURIComponent(workspace.serviceName)}`}
+                  >
+                    {$messages.services.recentTasks}
+                  </a>
+                {:else}
+                  {$messages.services.recentTasks}
+                {/if}
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent class="space-y-3">
+            {#each recentTasks as task}
+              <TaskCard {task} showService={false} />
+            {/each}
+            {#if !recentTasks.length}
+              <div class="empty-state px-3 py-6">{$messages.tasks.noTasks}</div>
+            {/if}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle class="section-title" level="2">
+              {#if workspace?.serviceName}
+                <a
+                  class="hover:text-foreground/80 transition-colors"
+                  href={`/backups?serviceName=${encodeURIComponent(workspace.serviceName)}`}
+                >
+                  {$messages.services.recentBackups}
+                </a>
+              {:else}
+                {$messages.services.recentBackups}
+              {/if}
+            </CardTitle>
+          </CardHeader>
+          <CardContent class="space-y-3">
+            {#each backups.slice(0, 6) as backup}
+              <BackupCard {backup} />
+            {/each}
+            {#if !backups.length}
+              <div class="empty-state px-3 py-6">
+                {$messages.backups.noBackups}
+              </div>
+            {/if}
+          </CardContent>
+        </Card>
+      </section>
+    </div>
+
+    <Dialog bind:open={showDeleteDialog}>
+      <DialogOverlay />
+      <DialogContent class="max-w-sm">
+        <DialogHeader>
+          <DialogTitle
+            >{$messages.common.delete}
+            {selectedNode?.isDir
+              ? $messages.common.folder
+              : $messages.common.file}?</DialogTitle
+          >
+          <DialogDescription>
+            {selectedNode?.isDir
+              ? $messages.services.deleteFolderConfirm
+              : $messages.services.deleteFileConfirm}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onclick={() => (showDeleteDialog = false)}
+            >{$messages.common.cancel}</Button
+          >
+          <Button
+            type="button"
+            variant="destructive"
+            onclick={() => {
+              showDeleteDialog = false;
+              deleteNode();
+            }}
+            disabled={saving}>{$messages.common.delete}</Button
+          >
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </div>
+</div>

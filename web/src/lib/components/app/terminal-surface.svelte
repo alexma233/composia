@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
 
-  import { messages } from '$lib/i18n';
+  import { getMessages } from '$lib/i18n';
+
+  const messages = getMessages();
   import { observeThemeChange } from '$lib/theme-observer';
   import { patchGhosttyCore, type TerminalThemeColors } from '$lib/wterm/ghostty-core-patch';
 
@@ -127,7 +129,8 @@
     async function setup() {
       const [{ WTerm }, { GhosttyCore }] = await Promise.all([
         import('@wterm/dom'),
-        import('@wterm/ghostty')
+        import('@wterm/ghostty'),
+        import('@wterm/dom/css')
       ]);
       if (disposed || !host) {
         return;

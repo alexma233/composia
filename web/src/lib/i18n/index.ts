@@ -1,59 +1,63 @@
-import { derived, writable } from "svelte/store";
+import { getContext, setContext } from "svelte";
+import { writable } from "svelte/store";
 
-import { de } from "$lib/i18n/messages/de";
-import { enUS, type Dictionary } from "$lib/i18n/messages/en-us";
-import { fr } from "$lib/i18n/messages/fr";
-import { ja } from "$lib/i18n/messages/ja";
-import { zhHans } from "$lib/i18n/messages/zh-hans";
-import { zhHant } from "$lib/i18n/messages/zh-hant";
+import type { Dictionary } from "$lib/i18n/messages/en-us";
+import {
+  availableLocales,
+  defaultLocale,
+  normalizeLocale,
+  type Locale,
+} from "$lib/i18n/locales";
 
-export const availableLocales = [
-  "en-US",
-  "zh-Hans",
-  "zh-Hant",
-  "ja",
-  "de",
-  "fr",
-] as const;
-
-export type Locale = (typeof availableLocales)[number];
-
-export const defaultLocale: Locale = "en-US";
-
+export { availableLocales, defaultLocale, normalizeLocale, type Locale };
 export type { Dictionary };
 
-const dictionaries: Record<Locale, any> = {
-  "en-US": enUS,
-  "zh-Hans": zhHans,
-  "zh-Hant": zhHant,
-  ja: ja,
-  de: de,
-  fr: fr,
+const dictionaryLoaders: Record<Locale, () => Promise<Dictionary>> = {
+  "en-US": () => import("$lib/i18n/messages/en-us").then(({ enUS }) => enUS),
+  "zh-Hans": () =>
+    import("$lib/i18n/messages/zh-hans").then(({ zhHans }) => zhHans),
+  "zh-Hant": () =>
+    import("$lib/i18n/messages/zh-hant").then(({ zhHant }) => zhHant),
+  ja: () => import("$lib/i18n/messages/ja").then(({ ja }) => ja),
+  de: () => import("$lib/i18n/messages/de").then(({ de }) => de),
+  fr: () => import("$lib/i18n/messages/fr").then(({ fr }) => fr),
 };
 
-function normalizeLocale(value: string | null | undefined): Locale {
-  if (!value) {
-    return defaultLocale;
-  }
-  const match = availableLocales.find(
-    (locale) => locale.toLowerCase() === value.toLowerCase(),
-  );
-  return match ?? defaultLocale;
+const contextKey = Symbol("composia-i18n");
+
+type I18nContext = {
+  messages: ReturnType<typeof writable<Dictionary>>;
+  setLocale: (locale: string) => Promise<void>;
+};
+
+export async function loadDictionary(locale: Locale) {
+  return dictionaryLoaders[locale]();
 }
 
-const initialLocale = normalizeLocale(
-  typeof document === "undefined"
-    ? defaultLocale
-    : document.documentElement.lang,
-);
+export function createI18nContext(locale: Locale, dictionary: Dictionary) {
+  const messages = writable(dictionary);
+  let requestId = 0;
 
-export const locale = writable<Locale>(initialLocale);
+  const context: I18nContext = {
+    messages,
+    async setLocale(value) {
+      const nextLocale = normalizeLocale(value);
+      const currentRequest = ++requestId;
+      const nextDictionary = await loadDictionary(nextLocale);
+      if (currentRequest === requestId) {
+        messages.set(nextDictionary);
+      }
+    },
+  };
 
-export const messages = derived<typeof locale, Dictionary>(
-  locale,
-  ($locale) => dictionaries[$locale] ?? dictionaries[defaultLocale],
-);
+  setContext(contextKey, context);
+  return context;
+}
 
-export function setLocale(nextLocale: string) {
-  locale.set(normalizeLocale(nextLocale));
+export function getMessages() {
+  const context = getContext<I18nContext>(contextKey);
+  if (!context) {
+    throw new Error("The i18n context is not initialized.");
+  }
+  return context.messages;
 }
