@@ -9,7 +9,7 @@ jobs:
   binary-packages:
     runs-on: docker-amd64-dind
     container:
-      image: forgejo.alexma.top/alexma233/ci-image-go-releaser:2.17.0
+      image: forgejo.alexma.top/alexma233/ci-images-go-releaser:2.17.0
     env:
       PATH: /usr/local/go/bin:/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     steps:

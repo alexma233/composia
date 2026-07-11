@@ -97,7 +97,7 @@
         "forgejo.alexma.top/alexma233/ci-images-go-node-lint",
         "forgejo.alexma.top/alexma233/ci-images-hugo-wrangler",
         "forgejo.alexma.top/alexma233/ci-images-go-node",
-        "forgejo.alexma.top/alexma233/ci-image-go-releaser"
+        "forgejo.alexma.top/alexma233/ci-images-go-releaser"
       ],
       "groupName": "tooling updates"
     },
