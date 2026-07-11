@@ -9,7 +9,8 @@ import {
   loadSystemStatus,
 } from "$lib/server/controller";
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ depends }) => {
+  depends("app:settings");
   const config = controllerConfig();
   if (!config.ready) {
     return {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invalidateAll } from "$app/navigation";
+  import { invalidate } from "$app/navigation";
   import type { PageData, ActionData } from "./$types";
   import { enhance } from "$app/forms";
   import { onMount } from "svelte";
@@ -8,7 +8,7 @@
     capabilityReasonMessage,
     nodeActionCapability,
   } from "$lib/capabilities";
-  import DisabledReasonTooltip from "$lib/components/app/disabled-reason-tooltip.svelte";
+  import DisabledReasonButton from "$lib/components/app/disabled-reason-button.svelte";
   import {
     Alert,
     AlertDescription,
@@ -94,7 +94,9 @@
       : (form?.error ?? ""),
   );
 
-  onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
+  onMount(() =>
+    startPolling(() => invalidate("app:node-detail"), { intervalMs: 5000 }),
+  );
 
   function pruneLabel(target: PruneTarget) {
     switch (target) {
@@ -322,26 +324,24 @@
             {#if data.node?.isOnline}
               <div class="flex flex-wrap gap-2">
                 <form method="POST" action="?/syncCaddyFiles" use:enhance>
-                  <DisabledReasonTooltip reason={caddySyncReason}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      type="submit"
-                      disabled={!caddySyncCapability.enabled}
-                      >{$messages.nodes.docker.rebuildCaddy}</Button
-                    >
-                  </DisabledReasonTooltip>
+                  <DisabledReasonButton
+                    reason={caddySyncReason}
+                    variant="outline"
+                    size="sm"
+                    type="submit"
+                    disabled={!caddySyncCapability.enabled}
+                    >{$messages.nodes.docker.rebuildCaddy}</DisabledReasonButton
+                  >
                 </form>
                 <form method="POST" action="?/reloadCaddy" use:enhance>
-                  <DisabledReasonTooltip reason={caddyReloadReason}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      type="submit"
-                      disabled={!caddyReloadCapability.enabled}
-                      >{$messages.nodes.docker.reloadCaddy}</Button
-                    >
-                  </DisabledReasonTooltip>
+                  <DisabledReasonButton
+                    reason={caddyReloadReason}
+                    variant="outline"
+                    size="sm"
+                    type="submit"
+                    disabled={!caddyReloadCapability.enabled}
+                    >{$messages.nodes.docker.reloadCaddy}</DisabledReasonButton
+                  >
                 </form>
                 <Button
                   variant="outline"
@@ -365,14 +365,18 @@
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        type="button"
-                        class="rounded-l-none px-2"
-                      >
-                        <ChevronDown class="size-4" />
-                      </Button>
+                      {#snippet child({ props })}
+                        <Button
+                          {...props}
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                          class="rounded-l-none px-2"
+                          aria-label={`${pruneLabel(imagePruneTarget)} — ${$messages.nodes.docker.prune.menuLabel}`}
+                        >
+                          <ChevronDown class="size-4" aria-hidden="true" />
+                        </Button>
+                      {/snippet}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                       <DropdownMenuItem
@@ -420,14 +424,18 @@
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        type="button"
-                        class="rounded-l-none px-2"
-                      >
-                        <ChevronDown class="size-4" />
-                      </Button>
+                      {#snippet child({ props })}
+                        <Button
+                          {...props}
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                          class="rounded-l-none px-2"
+                          aria-label={`${pruneLabel(systemPruneTarget)} — ${$messages.nodes.docker.prune.menuLabel}`}
+                        >
+                          <ChevronDown class="size-4" aria-hidden="true" />
+                        </Button>
+                      {/snippet}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                       <DropdownMenuItem

@@ -21,7 +21,8 @@ const backupStatuses = [
   "cancelled",
 ] as const;
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ depends, url }) => {
+  depends("app:backups");
   const config = controllerConfig();
   if (!config.ready) {
     return {

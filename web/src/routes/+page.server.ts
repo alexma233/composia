@@ -7,7 +7,8 @@ import {
   loadTasks,
 } from "$lib/server/controller";
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ depends }) => {
+  depends("app:dashboard");
   const config = controllerConfig();
   if (!config.ready) {
     return {

@@ -9,7 +9,8 @@ import { controllerConfig, listNodeNetworks } from "$lib/server/controller";
 const networkSortFields = ["name", "driver", "created"] as const;
 const defaultNetworkSortField = "name";
 
-export const load: PageServerLoad = async ({ params, url }) => {
+export const load: PageServerLoad = async ({ depends, params, url }) => {
+  depends("app:docker-networks");
   const config = controllerConfig();
   const query = parseDockerListPageQuery(
     url,

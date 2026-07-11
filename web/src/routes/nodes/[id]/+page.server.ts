@@ -10,7 +10,8 @@ import {
   syncNodeCaddyFiles,
 } from "$lib/server/controller";
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ depends, params }) => {
+  depends("app:node-detail");
   const config = controllerConfig();
   if (!config.ready) {
     return {

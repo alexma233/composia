@@ -10,6 +10,7 @@
     "web:build": "bun run --cwd web build",
     "web:preview": "bun run --cwd web preview",
     "web:check": "bun run --cwd web check",
+    "web:test": "bun run --cwd web test",
     "web:e2e": "bun run --cwd web e2e",
     "cli:e2e": "go test -tags=e2e ./test/e2e",
     "controller:e2e": "go test -tags=e2e ./test/controller_e2e",

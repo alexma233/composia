@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invalidateAll } from '$app/navigation';
+  import { invalidate } from '$app/navigation';
   import { onMount } from 'svelte';
   import type { ActionData, PageData } from './$types';
 
@@ -30,7 +30,7 @@
     newFolder = form?.folder ?? '';
   });
 
-  onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
+  onMount(() => startPolling(() => invalidate('app:services'), { intervalMs: 5000 }));
 </script>
 
 <svelte:head>

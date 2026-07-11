@@ -11,7 +11,8 @@ import {
 import { normalizeServiceRelativePath } from "$lib/service-workspace";
 import { loadServiceWorkspaces } from "$lib/server/service-index";
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ depends }) => {
+  depends("app:services");
   const config = controllerConfig();
   if (!config.ready) {
     return { ready: false, error: config.reason, services: [], repoHead: null };

@@ -16,7 +16,7 @@
     AlertDescription,
     AlertTitle,
   } from "$lib/components/ui/alert";
-  import DisabledReasonTooltip from "$lib/components/app/disabled-reason-tooltip.svelte";
+  import DisabledReasonButton from "$lib/components/app/disabled-reason-button.svelte";
   import { Badge } from "$lib/components/ui/badge";
   import { Button } from "$lib/components/ui/button";
   import {
@@ -152,7 +152,7 @@
   <title>{$messages.backups.detailsTitle} - {$messages.app.name}</title>
 </svelte:head>
 
-<div class="page-shell">
+<div class="page-shell" aria-busy={restoring}>
   <div class="page-stack">
     <Card>
       <CardHeader>
@@ -236,21 +236,20 @@
                 {$messages.backups.targetNode}
               </div>
             </div>
-            <DisabledReasonTooltip reason={restoreReason}>
-              <Button
-                type="button"
-                onclick={openRestoreDialog}
-                disabled={restoring ||
-                  !targetNodeId ||
-                  data.backup.status !== "succeeded" ||
-                  !data.backup.artifactRef ||
-                  !restoreCapability.enabled}
-              >
-                {restoring
-                  ? $messages.backups.restoring
-                  : $messages.backups.restore}
-              </Button>
-            </DisabledReasonTooltip>
+            <DisabledReasonButton
+              reason={restoreReason}
+              type="button"
+              onclick={openRestoreDialog}
+              disabled={restoring ||
+                !targetNodeId ||
+                data.backup.status !== "succeeded" ||
+                !data.backup.artifactRef ||
+                !restoreCapability.enabled}
+            >
+              {restoring
+                ? $messages.backups.restoring
+                : $messages.backups.restore}
+            </DisabledReasonButton>
           </div>
 
           <div class="space-y-2">

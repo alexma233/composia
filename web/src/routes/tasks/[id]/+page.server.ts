@@ -2,7 +2,8 @@ import type { PageServerLoad } from "./$types";
 
 import { controllerConfig, loadTaskDetail } from "$lib/server/controller";
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ depends, params }) => {
+  depends("app:task-detail");
   const config = controllerConfig();
   if (!config.ready) {
     return { ready: false, error: config.reason, task: null };

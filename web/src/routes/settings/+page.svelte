@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invalidateAll } from "$app/navigation";
+  import { invalidate } from "$app/navigation";
   import { RefreshCw } from "@lucide/svelte";
   import { onMount } from "svelte";
   import { toast } from "svelte-sonner";
@@ -171,7 +171,10 @@
 
       reloadAccepted = payload.accepted ?? false;
       toast.success($messages.settings.controller.reloadAccepted);
-      await invalidateAll();
+      await Promise.all([
+        invalidate("app:settings"),
+        invalidate("app:capabilities"),
+      ]);
     } catch (error) {
       reloadControllerError =
         error instanceof Error
@@ -242,14 +245,17 @@
     globalCapability(data.capabilities?.global, "rusticMaintenance"),
   );
 
-  onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
+  onMount(() => startPolling(() => invalidate("app:settings"), { intervalMs: 5000 }));
 </script>
 
 <svelte:head>
   <title>{$messages.settings.title} - {$messages.app.name}</title>
 </svelte:head>
 
-<div class="page-shell">
+<div
+  class="page-shell"
+  aria-busy={syncing || reloadingController || Boolean(rusticBusy) || loadingPage}
+>
   <Card class="mb-6">
     <CardHeader>
       <div class="page-header">
@@ -645,4 +651,3 @@
     </section>
   </div>
 </div>
-

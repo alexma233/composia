@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invalidateAll } from '$app/navigation';
+  import { invalidate } from '$app/navigation';
   import { onMount } from 'svelte';
   import type { PageData } from './$types';
   import type { Snippet } from 'svelte';
@@ -35,7 +35,7 @@
     return 'totalBackupCount' in data ? data.totalBackupCount : 0;
   }
 
-  onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
+  onMount(() => startPolling(() => invalidate('app:dashboard'), { intervalMs: 5000 }));
 </script>
 
 <svelte:head>

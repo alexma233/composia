@@ -9,7 +9,8 @@ import { controllerConfig, listNodeContainers } from "$lib/server/controller";
 const containerSortFields = ["name", "state", "image", "created"] as const;
 const defaultContainerSortField = "name";
 
-export const load: PageServerLoad = async ({ params, url }) => {
+export const load: PageServerLoad = async ({ depends, params, url }) => {
+  depends("app:docker-containers");
   const config = controllerConfig();
   const query = parseDockerListPageQuery(
     url,

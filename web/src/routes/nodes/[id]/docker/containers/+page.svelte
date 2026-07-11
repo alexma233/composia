@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { goto, invalidateAll } from '$app/navigation';
+  import { goto, invalidate } from '$app/navigation';
   import { page } from '$app/stores';
   import { toast } from 'svelte-sonner';
   import type { PageData } from './$types';
@@ -142,7 +142,7 @@
 
     refreshing = true;
     try {
-      await invalidateAll();
+      await invalidate('app:docker-containers');
     } finally {
       refreshing = false;
     }
@@ -304,13 +304,13 @@
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent aria-busy={loading || refreshing}>
         {#if loadError}
           <Alert variant="destructive">
             <AlertDescription>{loadError}</AlertDescription>
           </Alert>
         {:else if loading}
-          <div class="flex min-h-[320px] items-center justify-center">
+          <div class="flex min-h-[320px] items-center justify-center" role="status" aria-live="polite">
             <div class="flex items-center gap-3 text-sm text-muted-foreground">
               <Spinner />
               <span>{$messages.common.loading} {$messages.docker.containers.title}...</span>

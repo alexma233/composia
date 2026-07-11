@@ -9,7 +9,8 @@ import { controllerConfig, listNodeVolumes } from "$lib/server/controller";
 const volumeSortFields = ["name", "driver", "created"] as const;
 const defaultVolumeSortField = "name";
 
-export const load: PageServerLoad = async ({ params, url }) => {
+export const load: PageServerLoad = async ({ depends, params, url }) => {
+  depends("app:docker-volumes");
   const config = controllerConfig();
   const query = parseDockerListPageQuery(
     url,

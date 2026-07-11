@@ -2,7 +2,8 @@ import type { PageServerLoad } from "./$types";
 
 import { controllerConfig, loadNodes } from "$lib/server/controller";
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ depends }) => {
+  depends("app:nodes");
   const config = controllerConfig();
   if (!config.ready) {
     return { ready: false, error: config.reason, nodes: [] };

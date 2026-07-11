@@ -21,7 +21,8 @@ export async function login(page: Page, destination = "/") {
     await submitLoginForm(page);
   }
 
-  await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
+  await expect(page).not.toHaveURL(/\/login(?:\?|$)/, { timeout: 15_000 });
+  await expect(page.locator("[data-app-ready]")).toHaveCount(1);
 }
 
 export async function expectHeading(page: Page, name: string) {

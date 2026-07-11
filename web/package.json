@@ -7,6 +7,7 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "bun test src",
     "e2e": "playwright test",
     "check": "svelte-kit sync && svelte-check --fail-on-warnings --tsconfig ./tsconfig.json",
     "check:a11y": "svelte-kit sync && svelte-check --fail-on-warnings --tsconfig ./tsconfig.json",

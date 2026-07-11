@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invalidateAll } from '$app/navigation';
+  import { invalidate } from '$app/navigation';
   import { onMount } from 'svelte';
   import type { PageData } from './$types';
 
@@ -17,7 +17,7 @@
 
   let { data }: Props = $props();
 
-  onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
+  onMount(() => startPolling(() => invalidate('app:nodes'), { intervalMs: 5000 }));
 </script>
 
 <svelte:head>

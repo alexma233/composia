@@ -21,7 +21,8 @@ const taskStatuses = [
   "cancelled",
 ] as const;
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ depends, url }) => {
+  depends("app:tasks");
   const config = controllerConfig();
   if (!config.ready) {
     return {

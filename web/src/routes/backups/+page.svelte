@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { PageData } from "./$types";
-  import { goto, invalidateAll } from "$app/navigation";
+  import { goto, invalidate } from "$app/navigation";
   import { page } from "$app/stores";
   import { buttonVariants } from "$lib/components/ui/button";
   import { onMount, tick } from "svelte";
@@ -193,7 +193,7 @@
     excludedDataNames = [...data.excludeDataName];
   });
 
-  onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
+  onMount(() => startPolling(() => invalidate("app:backups"), { intervalMs: 5000 }));
 
   function statusLabel(status: BackupStatusFilter): string {
     return taskStatusLabel(status, $messages);

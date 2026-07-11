@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { goto, invalidateAll } from "$app/navigation";
+  import { goto } from "$app/navigation";
   import { onMount } from "svelte";
   import {
     Check,
@@ -26,7 +26,7 @@
     capabilityReasonMessage,
     serviceActionCapability,
   } from "$lib/capabilities";
-  import DisabledReasonTooltip from "$lib/components/app/disabled-reason-tooltip.svelte";
+  import DisabledReasonButton from "$lib/components/app/disabled-reason-button.svelte";
   import { messages } from "$lib/i18n";
 
   import CodeEditor from "$lib/components/app/code-editor.svelte";
@@ -1374,7 +1374,6 @@
       return;
     }
     await goto(`/services/${encodeURIComponent(folder)}`);
-    await invalidateAll();
   }
 </script>
 
@@ -1385,7 +1384,10 @@
   >
 </svelte:head>
 
-<div class="page-shell-workbench flex min-h-[calc(100vh-72px)] flex-col">
+<div
+  class="page-shell-workbench flex min-h-[calc(100vh-72px)] flex-col"
+  aria-busy={Boolean(actionBusy) || saving}
+>
   <div class="page-stack flex min-h-0 flex-1 flex-col">
     <Card>
       <CardHeader class="gap-3 py-4">
@@ -2242,75 +2244,63 @@
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div class="grid gap-2 pt-3">
-                  <DisabledReasonTooltip
+                  <DisabledReasonButton
                     reason={backupReason}
                     triggerClass="w-full"
+                    type="button"
+                    variant="outline"
+                    class="w-full"
+                    onclick={() => triggerAction("backup")}
+                    disabled={!!actionBusy ||
+                      !workspace?.isDeclared ||
+                      !backupCapability.enabled}
                   >
-                    <Button
-                      type="button"
-                      variant="outline"
-                      class="w-full"
-                      onclick={() => triggerAction("backup")}
-                      disabled={!!actionBusy ||
-                        !workspace?.isDeclared ||
-                        !backupCapability.enabled}
-                    >
-                      <Wrench class="mr-2 size-4" />{$messages.services
-                        .operations.backup}
-                    </Button>
-                  </DisabledReasonTooltip>
-                  <DisabledReasonTooltip
+                    <Wrench class="mr-2 size-4" />{$messages.services.operations
+                      .backup}
+                  </DisabledReasonButton>
+                  <DisabledReasonButton
                     reason={dnsUpdateReason}
                     triggerClass="w-full"
+                    type="button"
+                    variant="outline"
+                    class="w-full"
+                    onclick={() => triggerAction("dns_update")}
+                    disabled={!!actionBusy ||
+                      !workspace?.isDeclared ||
+                      !dnsUpdateCapability.enabled}
                   >
-                    <Button
-                      type="button"
-                      variant="outline"
-                      class="w-full"
-                      onclick={() => triggerAction("dns_update")}
-                      disabled={!!actionBusy ||
-                        !workspace?.isDeclared ||
-                        !dnsUpdateCapability.enabled}
-                    >
-                      <Upload class="mr-2 size-4" />{$messages.services
-                        .operations.dnsUpdate}
-                    </Button>
-                  </DisabledReasonTooltip>
-                  <DisabledReasonTooltip
+                    <Upload class="mr-2 size-4" />{$messages.services.operations
+                      .dnsUpdate}
+                  </DisabledReasonButton>
+                  <DisabledReasonButton
                     reason={caddySyncReason}
                     triggerClass="w-full"
+                    type="button"
+                    variant="outline"
+                    class="w-full"
+                    onclick={() => triggerAction("caddy_sync")}
+                    disabled={!!actionBusy ||
+                      !workspace?.isDeclared ||
+                      !(workspace?.nodes?.length ?? 0) ||
+                      !caddySyncCapability.enabled}
                   >
-                    <Button
-                      type="button"
-                      variant="outline"
-                      class="w-full"
-                      onclick={() => triggerAction("caddy_sync")}
-                      disabled={!!actionBusy ||
-                        !workspace?.isDeclared ||
-                        !(workspace?.nodes?.length ?? 0) ||
-                        !caddySyncCapability.enabled}
-                    >
-                      <Copy class="mr-2 size-4" />{$messages.services.operations
-                        .syncCaddy}
-                    </Button>
-                  </DisabledReasonTooltip>
-                  <DisabledReasonTooltip
+                    <Copy class="mr-2 size-4" />{$messages.services.operations
+                      .syncCaddy}
+                  </DisabledReasonButton>
+                  <DisabledReasonButton
                     reason={cloudflareTunnelSyncReason}
                     triggerClass="w-full"
+                    type="button"
+                    variant="outline"
+                    class="w-full"
+                    onclick={() => triggerAction("cloudflare_tunnel_sync")}
+                    disabled={!!actionBusy ||
+                      !workspace?.isDeclared ||
+                      !cloudflareTunnelSyncCapability.enabled}
                   >
-                    <Button
-                      type="button"
-                      variant="outline"
-                      class="w-full"
-                      onclick={() => triggerAction("cloudflare_tunnel_sync")}
-                      disabled={!!actionBusy ||
-                        !workspace?.isDeclared ||
-                        !cloudflareTunnelSyncCapability.enabled}
-                    >
-                      <Upload class="mr-2 size-4" />{$messages.services
-                        .operations.syncCloudflareTunnel}
-                    </Button>
-                  </DisabledReasonTooltip>
+                    <Upload class="mr-2 size-4" />{$messages.services.operations
+                      .syncCloudflareTunnel}
+                  </DisabledReasonButton>
                   <div
                     class="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3"
                   >
@@ -2341,25 +2331,22 @@
                       aria-label={$messages.services.operations.migrate
                         .targetNodeId}
                     />
-                    <DisabledReasonTooltip
+                    <DisabledReasonButton
                       reason={migrateReason}
                       triggerClass="w-full"
+                      type="button"
+                      variant="outline"
+                      class="w-full"
+                      onclick={triggerMigrate}
+                      disabled={!!actionBusy ||
+                        !workspace?.isDeclared ||
+                        !migrateSourceNode ||
+                        !migrateTargetNode.trim() ||
+                        !migrateCapability.enabled}
                     >
-                      <Button
-                        type="button"
-                        variant="outline"
-                        class="w-full"
-                        onclick={triggerMigrate}
-                        disabled={!!actionBusy ||
-                          !workspace?.isDeclared ||
-                          !migrateSourceNode ||
-                          !migrateTargetNode.trim() ||
-                          !migrateCapability.enabled}
-                      >
-                        <RefreshCcw class="mr-2 size-4" />{$messages.services
-                          .operations.migrate.migrate}
-                      </Button>
-                    </DisabledReasonTooltip>
+                      <RefreshCcw class="mr-2 size-4" />{$messages.services
+                        .operations.migrate.migrate}
+                    </DisabledReasonButton>
                   </div>
                   <Button
                     type="button"

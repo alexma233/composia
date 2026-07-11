@@ -2,7 +2,7 @@
   import { onDestroy } from 'svelte';
   import { RotateCcw } from '@lucide/svelte';
   import { toast } from 'svelte-sonner';
-  import { goto, invalidateAll } from '$app/navigation';
+  import { goto, invalidate } from '$app/navigation';
 
   import type { PageData } from './$types';
   import { messages } from '$lib/i18n';
@@ -78,7 +78,7 @@
   function startTaskRefresh(taskId: string) {
     stopTaskRefresh();
     taskRefreshTaskId = taskId;
-    stopTaskRefreshHandle = startPolling(() => invalidateAll(), {
+    stopTaskRefreshHandle = startPolling(() => invalidate('app:task-detail'), {
       intervalMs: 2500,
       errorIntervalMs: 4000,
       initialDelayMs: 1200,
@@ -176,7 +176,7 @@
       } else {
         toast.success($messages.tasks.cancelledWithTaskId.replace('{taskId}', payload.taskId.slice(0, 12)));
       }
-      goto(`/tasks/${payload.taskId}`, { invalidateAll: true });
+      goto(`/tasks/${payload.taskId}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : $messages.tasks.resolveConfirmationFailed);
     } finally {

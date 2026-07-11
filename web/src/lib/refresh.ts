@@ -38,6 +38,11 @@ export function startPolling(
       return;
     }
 
+    if (typeof document !== "undefined" && document.hidden) {
+      schedule(options.intervalMs);
+      return;
+    }
+
     try {
       const shouldContinue = await tick();
       if (shouldContinue === false) {

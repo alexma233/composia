@@ -4,37 +4,21 @@ import {
   controllerConfig,
   loadSystemCapabilities,
 } from "$lib/server/controller";
-import { loadServiceWorkspaces } from "$lib/server/service-index";
 
-export const load: LayoutServerLoad = async ({ locals }) => {
+export const load: LayoutServerLoad = async ({ depends, locals }) => {
+  depends("app:capabilities");
   const config = controllerConfig();
   if (!config.ready) {
     return {
       capabilities: null,
       user: locals.user,
-      navServices: [],
-      navError: config.reason,
     };
   }
 
-  const [navServicesResult, capabilitiesResult] = await Promise.allSettled([
-    loadServiceWorkspaces(),
-    loadSystemCapabilities(),
-  ]);
+  const capabilities = await loadSystemCapabilities().catch(() => null);
 
   return {
-    capabilities:
-      capabilitiesResult.status === "fulfilled"
-        ? capabilitiesResult.value
-        : null,
+    capabilities,
     user: locals.user,
-    navServices:
-      navServicesResult.status === "fulfilled" ? navServicesResult.value : [],
-    navError:
-      navServicesResult.status === "fulfilled"
-        ? null
-        : navServicesResult.reason instanceof Error
-          ? navServicesResult.reason.message
-          : "Failed to load navigation services.",
   };
 };

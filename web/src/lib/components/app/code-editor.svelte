@@ -51,6 +51,7 @@
   const editableCompartment = new Compartment();
   const lintCompartment = new Compartment();
   const themeCompartment = new Compartment();
+  const accessibilityCompartment = new Compartment();
 
   function editorBorderRadius(): string {
     return (
@@ -106,6 +107,11 @@
           languageCompartment.of([]),
           lintCompartment.of(lintExtension(path)),
           editableCompartment.of(EditorView.editable.of(!readOnly)),
+          accessibilityCompartment.of(
+            EditorView.contentAttributes.of({
+              "aria-label": $messages.common.codeEditor,
+            }),
+          ),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               onchange?.({ value: update.state.doc.toString() });
@@ -153,6 +159,18 @@
           lintCompartment.reconfigure(lintExtension(path)),
           editableCompartment.reconfigure(EditorView.editable.of(!readOnly)),
         ],
+      });
+    }
+  });
+
+  $effect(() => {
+    if (editorView) {
+      editorView.dispatch({
+        effects: accessibilityCompartment.reconfigure(
+          EditorView.contentAttributes.of({
+            "aria-label": $messages.common.codeEditor,
+          }),
+        ),
       });
     }
   });

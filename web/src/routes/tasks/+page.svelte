@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { PageData } from "./$types";
-  import { goto, invalidateAll } from "$app/navigation";
+  import { goto, invalidate } from "$app/navigation";
   import { page } from "$app/stores";
   import { buttonVariants } from "$lib/components/ui/button";
   import type { Snippet } from "svelte";
@@ -229,7 +229,7 @@
     excludedTypes = [...data.excludeType] as TaskTypeFilter[];
   });
 
-  onMount(() => startPolling(() => invalidateAll(), { intervalMs: 5000 }));
+  onMount(() => startPolling(() => invalidate("app:tasks"), { intervalMs: 5000 }));
 
   function statusLabel(status: TaskStatusFilter): string {
     return taskStatusLabel(status, $messages);

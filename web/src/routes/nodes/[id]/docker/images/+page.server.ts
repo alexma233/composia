@@ -9,7 +9,8 @@ import { controllerConfig, listNodeImages } from "$lib/server/controller";
 const imageSortFields = ["name", "size", "created"] as const;
 const defaultImageSortField = "name";
 
-export const load: PageServerLoad = async ({ params, url }) => {
+export const load: PageServerLoad = async ({ depends, params, url }) => {
+  depends("app:docker-images");
   const config = controllerConfig();
   const query = parseDockerListPageQuery(
     url,

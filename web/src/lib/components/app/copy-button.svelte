@@ -24,19 +24,22 @@
 
 <Tooltip.Root>
   <Tooltip.Trigger>
-    <Button
-      variant="ghost"
-      size="icon"
-      onclick={handleCopy}
-      class="h-6 w-6 text-muted-foreground hover:text-foreground"
-    >
-      {#if copied}
-        <Check class="h-3.5 w-3.5 text-success-foreground" aria-hidden="true" />
-      {:else}
-        <Copy class="h-3.5 w-3.5" aria-hidden="true" />
-      {/if}
-      <span class="sr-only">{label}</span>
-    </Button>
+    {#snippet child({ props })}
+      <Button
+        {...props}
+        variant="ghost"
+        size="icon"
+        onclick={handleCopy}
+        aria-label={copied ? $messages.common.copied : label}
+        class="h-6 w-6 text-muted-foreground hover:text-foreground"
+      >
+        {#if copied}
+          <Check class="h-3.5 w-3.5 text-success-foreground" aria-hidden="true" />
+        {:else}
+          <Copy class="h-3.5 w-3.5" aria-hidden="true" />
+        {/if}
+      </Button>
+    {/snippet}
   </Tooltip.Trigger>
   <Tooltip.Content>
     <p>{copied ? $messages.common.copied : label}</p>
