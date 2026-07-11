@@ -1562,8 +1562,8 @@
             {/if}
           </div>
           {#if pendingDeployInstance}
-            <div class="mt-2 rounded-md border border-yellow-600/40 bg-yellow-500/10 px-3 py-2">
-              <p class="text-sm font-medium text-yellow-600 dark:text-yellow-400">
+            <div class="mt-2 rounded-md border border-warning-foreground/30 bg-warning px-3 py-2">
+              <p class="text-sm font-medium text-warning-foreground">
                 {$messages.services.instances.pendingDeploy}
               </p>
               <p class="text-xs text-muted-foreground mt-0.5">
@@ -1589,7 +1589,7 @@
                       )}</Badge
                     >
                     {#if instance.pendingDeployRevision}
-                      <Badge variant="outline" class="border-yellow-600/40 text-yellow-600 dark:text-yellow-400"
+                      <Badge variant="warning"
                         >{$messages.services.instances.pendingDeploy}</Badge
                       >
                     {/if}
@@ -2173,7 +2173,7 @@
                               &#8594; new digest
                             {/if}
                             <span
-                              class="text-green-600 dark:text-green-400 ml-1"
+                              class="ml-1 text-success-foreground"
                             >
                               ({$messages.services.imageUpdates
                                 .updateAvailable})

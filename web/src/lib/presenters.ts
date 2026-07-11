@@ -24,11 +24,11 @@ export function formatTimestamp(value: string) {
 export function taskStatusTone(status: string): BadgeVariant {
   switch (status) {
     case "running":
-      return "outline";
+      return "info";
     case "awaiting_confirmation":
-      return "outline";
+      return "warning";
     case "succeeded":
-      return "default";
+      return "success";
     case "pending":
       return "secondary";
     case "failed":
@@ -137,9 +137,12 @@ export function runtimeStatusLabel(status: string, messages: Dictionary) {
 export function runtimeStatusTone(status: string): BadgeVariant {
   switch (status) {
     case "running":
-      return "default";
+      return "info";
+    case "succeeded":
+      return "success";
     case "stopped":
       return "secondary";
+    case "failed":
     case "error":
       return "destructive";
     default:
@@ -148,17 +151,17 @@ export function runtimeStatusTone(status: string): BadgeVariant {
 }
 
 export function onlineStatusTone(isOnline: boolean): BadgeVariant {
-  return isOnline ? "default" : "secondary";
+  return isOnline ? "success" : "secondary";
 }
 
 export function containerStateTone(state: string): BadgeVariant {
   const s = (state || "").toLowerCase();
-  if (s === "running") return "default";
-  if (s === "created" || s === "starting") return "outline";
+  if (s === "running") return "success";
+  if (s === "created" || s === "starting") return "info";
   if (s === "paused") return "secondary";
-  if (s === "restarting" || s === "unhealthy") return "outline";
+  if (s === "restarting" || s === "unhealthy") return "warning";
   if (s === "exited" || s === "dead" || s === "removing") return "destructive";
-  return "default";
+  return "secondary";
 }
 
 export function isTaskRecent(createdAt: string): boolean {
