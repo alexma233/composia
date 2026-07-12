@@ -50,6 +50,7 @@ type agentExecTunnel struct {
 }
 
 type execSession struct {
+	mu               sync.Mutex
 	id               string
 	nodeID           string
 	containerID      string
@@ -196,7 +197,7 @@ func (manager *execTunnelManager) sendToSessionNode(sessionID string, message *a
 func (manager *execTunnelManager) sessionTargetLocked(sessionID string) (execTunnelTarget, error) {
 	manager.sweepExpiredSessionsLocked(time.Now().UTC())
 	session := manager.sessions[sessionID]
-	if session == nil || session.closed {
+	if session == nil || session.isClosed() {
 		return execTunnelTarget{}, fmt.Errorf("session %q is closed", sessionID)
 	}
 	tunnel := manager.tunnels[session.nodeID]
@@ -211,9 +212,7 @@ func (manager *execTunnelManager) deliverFromAgent(message *agentv1.OpenExecTunn
 	if session == nil {
 		return
 	}
-	select {
-	case session.incoming <- message:
-	default:
+	if !session.deliver(message) {
 		manager.closeSession(message.GetSessionId())
 	}
 }
@@ -280,16 +279,15 @@ func (manager *execTunnelManager) closeSession(sessionID string) {
 
 func (manager *execTunnelManager) closeSessionLocked(sessionID string) {
 	session := manager.sessions[sessionID]
-	if session == nil || session.closed {
+	if session == nil || session.isClosed() {
 		return
 	}
-	session.closed = true
+	session.close()
 	session.browserAttaching = false
 	if session.attachToken != "" {
 		delete(manager.attachTokens, session.attachToken)
 		session.attachToken = ""
 	}
-	close(session.incoming)
 	delete(manager.sessions, sessionID)
 	if tunnel := manager.tunnels[session.nodeID]; tunnel != nil {
 		select {
@@ -297,6 +295,36 @@ func (manager *execTunnelManager) closeSessionLocked(sessionID string) {
 		default:
 		}
 	}
+}
+
+func (session *execSession) deliver(message *agentv1.OpenExecTunnelRequest) bool {
+	session.mu.Lock()
+	defer session.mu.Unlock()
+	if session.closed {
+		return false
+	}
+	select {
+	case session.incoming <- message:
+		return true
+	default:
+		return false
+	}
+}
+
+func (session *execSession) close() {
+	session.mu.Lock()
+	defer session.mu.Unlock()
+	if session.closed {
+		return
+	}
+	session.closed = true
+	close(session.incoming)
+}
+
+func (session *execSession) isClosed() bool {
+	session.mu.Lock()
+	defer session.mu.Unlock()
+	return session.closed
 }
 
 func (manager *execTunnelManager) handleWebsocket(w http.ResponseWriter, r *http.Request) {

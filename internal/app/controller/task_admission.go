@@ -21,7 +21,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func createNodeCaddyReloadTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, nodeID string, source task.Source) (task.Record, error) {
+func createNodeCaddyReloadTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, nodeID string, source task.Source, dedupeKeys ...string) (task.Record, error) {
 	if nodeID == "" {
 		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
@@ -42,6 +42,10 @@ func createNodeCaddyReloadTask(ctx context.Context, db *store.DB, cfg *config.Co
 	}
 	triggeredBy, _ := rpcutil.BearerSubject(ctx)
 	taskID := uuid.NewString()
+	dedupeKey := ""
+	if len(dedupeKeys) > 0 {
+		dedupeKey = dedupeKeys[0]
+	}
 	createdTask, err := db.CreateTaskIfNoActiveServiceInstanceTask(ctx, task.Record{
 		TaskID:      taskID,
 		Type:        task.TypeCaddyReload,
@@ -52,8 +56,18 @@ func createNodeCaddyReloadTask(ctx context.Context, db *store.DB, cfg *config.Co
 		Status:      task.StatusPending,
 		ParamsJSON:  string(paramsJSON),
 		LogPath:     filepath.Join(cfg.LogDir, "tasks", taskID+".log"),
+		DedupeKey:   dedupeKey,
 	})
 	if err != nil {
+		if dedupeKey != "" {
+			if existing, lookupErr := db.GetTaskByDedupeKey(ctx, dedupeKey); lookupErr == nil {
+				return existing, nil
+			}
+		}
+		var duplicate store.DuplicateTaskError
+		if errors.As(err, &duplicate) {
+			return db.GetTaskByDedupeKey(ctx, duplicate.DedupeKey)
+		}
 		return task.Record{}, connectTaskAdmissionError(err)
 	}
 	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o600); err != nil {
@@ -138,7 +152,7 @@ func createNodeCaddySyncTask(ctx context.Context, db *store.DB, cfg *config.Cont
 	return createdTask, nil
 }
 
-func createServiceCloudflareTunnelSyncTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName, excludedServiceDir string, source task.Source) (task.Record, error) {
+func createServiceCloudflareTunnelSyncTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, serviceName, excludedServiceDir string, source task.Source, dedupeKeys ...string) (task.Record, error) {
 	if serviceName == "" {
 		return task.Record{}, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
@@ -166,8 +180,21 @@ func createServiceCloudflareTunnelSyncTask(ctx context.Context, db *store.DB, cf
 	}
 	triggeredBy, _ := rpcutil.BearerSubject(ctx)
 	taskID := uuid.NewString()
-	createdTask, err := db.CreateTaskIfNoActiveServiceTask(ctx, task.Record{TaskID: taskID, Type: task.TypeCloudflareTunnelSync, Source: source, TriggeredBy: triggeredBy, ServiceName: service.Name, Status: task.StatusPending, ParamsJSON: string(paramsJSON), RepoRevision: repoRevision, LogPath: filepath.Join(cfg.LogDir, "tasks", taskID+".log")})
+	dedupeKey := ""
+	if len(dedupeKeys) > 0 {
+		dedupeKey = dedupeKeys[0]
+	}
+	createdTask, err := db.CreateTaskIfNoActiveServiceTask(ctx, task.Record{TaskID: taskID, Type: task.TypeCloudflareTunnelSync, Source: source, TriggeredBy: triggeredBy, ServiceName: service.Name, Status: task.StatusPending, ParamsJSON: string(paramsJSON), RepoRevision: repoRevision, LogPath: filepath.Join(cfg.LogDir, "tasks", taskID+".log"), DedupeKey: dedupeKey})
 	if err != nil {
+		if dedupeKey != "" {
+			if existing, lookupErr := db.GetTaskByDedupeKey(ctx, dedupeKey); lookupErr == nil {
+				return existing, nil
+			}
+		}
+		var duplicate store.DuplicateTaskError
+		if errors.As(err, &duplicate) {
+			return db.GetTaskByDedupeKey(ctx, duplicate.DedupeKey)
+		}
 		return task.Record{}, connectTaskAdmissionError(err)
 	}
 	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o600); err != nil {

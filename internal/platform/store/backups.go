@@ -9,7 +9,10 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 )
 
-var ErrBackupNotFound = errors.New("backup not found")
+var (
+	ErrBackupNotFound       = errors.New("backup not found")
+	ErrBackupResultConflict = errors.New("backup result conflicts with the persisted result")
+)
 
 type BackupSummary struct {
 	BackupID    string
@@ -87,6 +90,32 @@ func (db *DB) UpsertBackupRecord(ctx context.Context, detail BackupDetail) error
 		return fmt.Errorf("upsert backup record %q: %w", detail.BackupID, err)
 	}
 	return nil
+}
+
+func (db *DB) InsertBackupResult(ctx context.Context, detail BackupDetail) (bool, error) {
+	result, err := db.sql.ExecContext(ctx, `
+		INSERT INTO backups (backup_id, task_id, service_name, node_id, data_name, status, started_at, finished_at, artifact_ref, error_summary)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(backup_id) DO NOTHING
+	`, detail.BackupID, detail.TaskID, detail.ServiceName, detail.NodeID, detail.DataName, detail.Status, detail.StartedAt, nullableString(detail.FinishedAt), nullableString(detail.ArtifactRef), nullableString(detail.ErrorSummary))
+	if err != nil {
+		return false, fmt.Errorf("insert backup result %q: %w", detail.BackupID, err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("read inserted backup result rows: %w", err)
+	}
+	if affected == 1 {
+		return true, nil
+	}
+	existing, err := db.GetBackup(ctx, detail.BackupID)
+	if err != nil {
+		return false, err
+	}
+	if existing.TaskID == detail.TaskID && existing.ServiceName == detail.ServiceName && existing.NodeID == detail.NodeID && existing.DataName == detail.DataName && existing.Status == detail.Status && existing.StartedAt == detail.StartedAt && existing.FinishedAt == detail.FinishedAt && existing.ArtifactRef == detail.ArtifactRef && existing.ErrorSummary == detail.ErrorSummary {
+		return false, nil
+	}
+	return false, ErrBackupResultConflict
 }
 
 func (db *DB) ListBackups(

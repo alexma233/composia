@@ -10,6 +10,7 @@ weight: 10
 
 - [proto/composia/controller/v1/task.proto](#proto_composia_controller_v1_task-proto)
     - [CreateMigrationRollbackRequest](#composia-controller-v1-CreateMigrationRollbackRequest)
+    - [FailLostTaskExecutionRequest](#composia-controller-v1-FailLostTaskExecutionRequest)
     - [GetTaskRequest](#composia-controller-v1-GetTaskRequest)
     - [GetTaskResponse](#composia-controller-v1-GetTaskResponse)
     - [ListTasksRequest](#composia-controller-v1-ListTasksRequest)
@@ -227,6 +228,22 @@ CreateMigrationRollbackRequest selects safe recovery actions for one migration t
 
 
 
+<a name="composia-controller-v1-FailLostTaskExecutionRequest"></a>
+
+### FailLostTaskExecutionRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| task_id | [string](#string) |  |  |
+| error_summary | [string](#string) |  |  |
+
+
+
+
+
+
 <a name="composia-controller-v1-GetTaskRequest"></a>
 
 ### GetTaskRequest
@@ -265,6 +282,8 @@ GetTaskResponse describes one task, including step state and log metadata.
 | triggered_by | [string](#string) |  | triggered_by identifies the actor that created the task. |
 | result_revision | [string](#string) |  | result_revision is the repo revision produced by the task, when applicable. |
 | attempt_of_task_id | [string](#string) |  | attempt_of_task_id links this task to the prior task it retried. |
+| execution_state | [string](#string) |  | execution_state exposes offered, accepted, lease_lost, or completed for agent tasks. |
+| lease_expires_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
 
 
 
@@ -559,6 +578,7 @@ TaskService exposes task queries, log streaming, retry operations, and confirmat
 | GetTask | [GetTaskRequest](#composia-controller-v1-GetTaskRequest) | [GetTaskResponse](#composia-controller-v1-GetTaskResponse) | GetTask returns the full detail for one task. |
 | TailTaskLogs | [TailTaskLogsRequest](#composia-controller-v1-TailTaskLogsRequest) | [TailTaskLogsResponse](#composia-controller-v1-TailTaskLogsResponse) stream | TailTaskLogs streams incremental log content for one task. |
 | RunTaskAgain | [RunTaskAgainRequest](#composia-controller-v1-RunTaskAgainRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | RunTaskAgain starts a new task based on an existing task. |
+| FailLostTaskExecution | [FailLostTaskExecutionRequest](#composia-controller-v1-FailLostTaskExecutionRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | FailLostTaskExecution resolves a lease-lost task after an operator verifies its outcome. |
 | ResolveTaskConfirmation | [ResolveTaskConfirmationRequest](#composia-controller-v1-ResolveTaskConfirmationRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | ResolveTaskConfirmation resumes or rejects a task waiting for manual confirmation. |
 | CreateMigrationRollback | [CreateMigrationRollbackRequest](#composia-controller-v1-CreateMigrationRollbackRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | CreateMigrationRollback starts a rollback task from a failed or rejected migration. |
 

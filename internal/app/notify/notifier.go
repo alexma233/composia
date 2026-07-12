@@ -2,6 +2,7 @@ package notify
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -62,31 +63,36 @@ func New(cfg *config.ControllerNotificationsConfig) (*Notifier, error) {
 }
 
 func (notifier *Notifier) Dispatch(event Event) {
+	go func() {
+		if err := notifier.Send(context.Background(), event); err != nil {
+			log.Printf("notification failed for %s: %v", event.Type, err)
+		}
+	}()
+}
+
+func (notifier *Notifier) Send(ctx context.Context, event Event) error {
 	if notifier == nil || len(notifier.routes) == 0 {
-		return
+		return nil
 	}
 	if event.OccurredAt.IsZero() {
 		event.OccurredAt = time.Now().UTC()
 	}
-	go notifier.dispatch(event)
-}
-
-func (notifier *Notifier) dispatch(event Event) {
 	subject, body, err := renderEvent(event)
 	if err != nil {
-		log.Printf("notification render failed for %s: %v", event.Type, err)
-		return
+		return fmt.Errorf("render notification %s: %w", event.Type, err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), dispatchTimeout)
+	ctx, cancel := context.WithTimeout(ctx, dispatchTimeout)
 	defer cancel()
+	var sendErrors []error
 	for _, route := range notifier.routes {
 		if !route.matches(event) {
 			continue
 		}
 		if err := route.sender.Send(ctx, subject, body); err != nil {
-			log.Printf("notification via %s failed for %s: %v", route.name, event.Type, err)
+			sendErrors = append(sendErrors, fmt.Errorf("send notification via %s: %w", route.name, err))
 		}
 	}
+	return errors.Join(sendErrors...)
 }
 
 func (route route) matches(event Event) bool {

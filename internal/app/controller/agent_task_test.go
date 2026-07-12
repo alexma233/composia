@@ -75,7 +75,8 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	})
 
 	mux := http.NewServeMux()
-	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(&agentReportServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}, logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: newTaskQueueNotifier(), taskResults: newTaskResultNotifier()}, connect.WithInterceptors(interceptor))
+	reportServer := &agentReportServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}, logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: newTaskQueueNotifier(), taskResults: newTaskResultNotifier()}
+	reportPath, reportHandler := agentv1connect.NewAgentReportServiceHandler(reportServer, connect.WithInterceptors(interceptor))
 	mux.Handle(reportPath, reportHandler)
 	taskPath, taskHandler := agentv1connect.NewAgentTaskServiceHandler(&agentTaskServer{db: db}, connect.WithInterceptors(interceptor))
 	mux.Handle(taskPath, taskHandler)
@@ -87,7 +88,7 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	taskClient := agentv1connect.NewAgentTaskServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	reportClient := agentv1connect.NewAgentReportServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 
-	pulled, err := taskClient.PullNextTask(ctx, connect.NewRequest(&agentv1.PullNextTaskRequest{NodeId: "main"}))
+	pulled, err := taskClient.PullNextTask(ctx, connect.NewRequest(&agentv1.PullNextTaskRequest{NodeId: "main", ExecutionProtocol: 1}))
 	if err != nil {
 		t.Fatalf("pull next task: %v", err)
 	}
@@ -97,14 +98,18 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	if pulled.Msg.GetTask().GetServiceDir() == "" {
 		t.Fatalf("expected pulled task to include service_dir")
 	}
+	executionID := pulled.Msg.GetTask().GetExecutionId()
+	if _, err := taskClient.AcknowledgeTask(ctx, connect.NewRequest(&agentv1.AcknowledgeTaskRequest{TaskId: "task-remote", ExecutionId: executionID})); err != nil {
+		t.Fatalf("acknowledge task: %v", err)
+	}
 
 	startedAt := timestamppb.New(time.Date(2026, 4, 4, 17, 1, 0, 0, time.UTC))
 	finishedAt := timestamppb.New(time.Date(2026, 4, 4, 17, 2, 0, 0, time.UTC))
-	if _, err := reportClient.ReportTaskStepState(ctx, connect.NewRequest(&agentv1.ReportTaskStepStateRequest{TaskId: "task-remote", StepName: agentv1.AgentTaskStepName_AGENT_TASK_STEP_NAME_RENDER, Status: agentv1.AgentTaskStatus_AGENT_TASK_STATUS_SUCCEEDED, StartedAt: startedAt, FinishedAt: finishedAt})); err != nil {
+	if _, err := reportClient.ReportTaskStepState(ctx, connect.NewRequest(&agentv1.ReportTaskStepStateRequest{TaskId: "task-remote", ExecutionId: executionID, StepName: agentv1.AgentTaskStepName_AGENT_TASK_STEP_NAME_RENDER, Status: agentv1.AgentTaskStatus_AGENT_TASK_STATUS_SUCCEEDED, StartedAt: startedAt, FinishedAt: finishedAt})); err != nil {
 		t.Fatalf("report task step state: %v", err)
 	}
 	logStream := reportClient.UploadTaskLogs(ctx)
-	if err := logStream.Send(&agentv1.UploadTaskLogsRequest{TaskId: "task-remote", Seq: 1, SentAt: finishedAt, Content: "hello from agent\n"}); err != nil {
+	if err := logStream.Send(&agentv1.UploadTaskLogsRequest{TaskId: "task-remote", ExecutionId: executionID, Seq: 1, SentAt: finishedAt, Content: "hello from agent\n"}); err != nil {
 		t.Fatalf("send task logs: %v", err)
 	}
 	logAck, err := logStream.Receive()
@@ -120,8 +125,9 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	if err := logStream.CloseResponse(); err != nil {
 		t.Fatalf("close log response: %v", err)
 	}
+	reportServer.logState = &taskLogAckState{confirmedBy: make(map[string]uint64)}
 	replayStream := reportClient.UploadTaskLogs(ctx)
-	if err := replayStream.Send(&agentv1.UploadTaskLogsRequest{TaskId: "task-remote", Seq: 1, SentAt: finishedAt, Content: "hello from agent\n"}); err != nil {
+	if err := replayStream.Send(&agentv1.UploadTaskLogsRequest{TaskId: "task-remote", ExecutionId: executionID, Seq: 1, SentAt: finishedAt, Content: "hello from agent\n"}); err != nil {
 		t.Fatalf("send replayed task logs: %v", err)
 	}
 	replayAck, err := replayStream.Receive()
@@ -131,7 +137,7 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	if replayAck.GetLastConfirmedSeq() != 1 {
 		t.Fatalf("expected replay ack seq 1, got %d", replayAck.GetLastConfirmedSeq())
 	}
-	if err := replayStream.Send(&agentv1.UploadTaskLogsRequest{TaskId: "task-remote", Seq: 2, SentAt: finishedAt, Content: "second line\n"}); err != nil {
+	if err := replayStream.Send(&agentv1.UploadTaskLogsRequest{TaskId: "task-remote", ExecutionId: executionID, Seq: 2, SentAt: finishedAt, Content: "second line\n"}); err != nil {
 		t.Fatalf("send second task log: %v", err)
 	}
 	secondAck, err := replayStream.Receive()
@@ -147,11 +153,21 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	if err := replayStream.CloseResponse(); err != nil {
 		t.Fatalf("close replay response: %v", err)
 	}
-	if _, err := reportClient.ReportTaskState(ctx, connect.NewRequest(&agentv1.ReportTaskStateRequest{TaskId: "task-remote", Status: agentv1.AgentTaskStatus_AGENT_TASK_STATUS_SUCCEEDED, FinishedAt: finishedAt})); err != nil {
+	if _, err := reportClient.ReportServiceInstanceStatus(ctx, connect.NewRequest(&agentv1.ReportServiceInstanceStatusRequest{ServiceName: "demo", NodeId: "main", TaskId: "task-remote", ExecutionId: executionID, RuntimeStatus: store.ServiceRuntimeRunning, ReportedAt: finishedAt})); err != nil {
+		t.Fatalf("report service instance status: %v", err)
+	}
+	if _, err := reportClient.ReportTaskState(ctx, connect.NewRequest(&agentv1.ReportTaskStateRequest{TaskId: "task-remote", ExecutionId: executionID, Status: agentv1.AgentTaskStatus_AGENT_TASK_STATUS_SUCCEEDED, FinishedAt: finishedAt})); err != nil {
 		t.Fatalf("report task state: %v", err)
 	}
-	if _, err := reportClient.ReportServiceInstanceStatus(ctx, connect.NewRequest(&agentv1.ReportServiceInstanceStatusRequest{ServiceName: "demo", NodeId: "main", RuntimeStatus: store.ServiceRuntimeRunning, ReportedAt: finishedAt})); err != nil {
-		t.Fatalf("report service instance status: %v", err)
+	event, err := db.NextTaskOutboxEvent(ctx, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("read task outbox: %v", err)
+	}
+	if err := reportServer.processTaskOutboxEvent(ctx, event); err != nil {
+		t.Fatalf("process task outbox: %v", err)
+	}
+	if err := reportServer.processTaskOutboxEvent(ctx, event); err != nil {
+		t.Fatalf("reprocess task outbox idempotently: %v", err)
 	}
 
 	detail, err := db.GetTask(ctx, "task-remote")
@@ -290,7 +306,7 @@ func TestAgentPullNextTaskLongPollWaitsForNewTask(t *testing.T) {
 	responseCh := make(chan *agentv1.PullNextTaskResponse, 1)
 	errCh := make(chan error, 1)
 	go func() {
-		response, err := taskClient.PullNextTask(pullCtx, connect.NewRequest(&agentv1.PullNextTaskRequest{NodeId: "main"}))
+		response, err := taskClient.PullNextTask(pullCtx, connect.NewRequest(&agentv1.PullNextTaskRequest{NodeId: "main", ExecutionProtocol: 1}))
 		if err != nil {
 			errCh <- err
 			return
@@ -329,7 +345,7 @@ func TestAgentPullNextTaskLongPollWaitsForNewTask(t *testing.T) {
 	}
 }
 
-func TestAgentPullNextTaskLongPollWakesWhenRunningTaskCompletes(t *testing.T) {
+func TestAgentPullNextTaskDoesNotWaitForAnotherNodeTask(t *testing.T) {
 	t.Parallel()
 
 	db := openControllerTestDB(t)
@@ -395,7 +411,7 @@ func TestAgentPullNextTaskLongPollWakesWhenRunningTaskCompletes(t *testing.T) {
 	responseCh := make(chan *agentv1.PullNextTaskResponse, 1)
 	errCh := make(chan error, 1)
 	go func() {
-		response, err := taskClient.PullNextTask(pullCtx, connect.NewRequest(&agentv1.PullNextTaskRequest{NodeId: "node-2"}))
+		response, err := taskClient.PullNextTask(pullCtx, connect.NewRequest(&agentv1.PullNextTaskRequest{NodeId: "node-2", ExecutionProtocol: 1}))
 		if err != nil {
 			errCh <- err
 			return
@@ -403,25 +419,15 @@ func TestAgentPullNextTaskLongPollWakesWhenRunningTaskCompletes(t *testing.T) {
 		responseCh <- response.Msg
 	}()
 
-	waitForTaskQueueSubscriber(t, notifier)
-	if err := db.CompleteTask(ctx, "task-running", task.StatusSucceeded, time.Date(2026, 4, 5, 11, 2, 0, 0, time.UTC), ""); err != nil {
-		t.Fatalf("complete running task: %v", err)
-	}
-	notifiedAt := time.Now()
-	notifier.Notify()
-
 	select {
 	case err := <-errCh:
 		t.Fatalf("pull next task: %v", err)
 	case response := <-responseCh:
-		if elapsed := time.Since(notifiedAt); elapsed >= 650*time.Millisecond {
-			t.Fatalf("expected notifier wake-up before retry fallback, got %v", elapsed)
-		}
 		if !response.GetHasTask() || response.GetTask().GetTaskId() != "task-pending" {
-			t.Fatalf("unexpected response after running task completion: %+v", response)
+			t.Fatalf("unexpected response while another node task is running: %+v", response)
 		}
 	case <-time.After(time.Second):
-		t.Fatalf("timed out waiting for pending task after completion")
+		t.Fatalf("timed out waiting for pending task")
 	}
 }
 

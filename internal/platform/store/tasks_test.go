@@ -59,7 +59,7 @@ func TestClaimNextPendingTaskForNodeAllowsDifferentNodesToRun(t *testing.T) {
 		t.Fatalf("create node-2 task: %v", err)
 	}
 
-	claimed, err := db.ClaimNextPendingTaskForNode(ctx, "main", createdAt.Add(2*time.Minute))
+	claimed, err := db.ClaimNextPendingTaskForNode(ctx, "main", createdAt.Add(2*time.Minute), createdAt.Add(3*time.Minute))
 	if err != nil {
 		t.Fatalf("claim main task: %v", err)
 	}
@@ -67,7 +67,7 @@ func TestClaimNextPendingTaskForNodeAllowsDifferentNodesToRun(t *testing.T) {
 		t.Fatalf("expected task-main, got %q", claimed.TaskID)
 	}
 
-	claimed, err = db.ClaimNextPendingTaskForNode(ctx, "node-2", createdAt.Add(3*time.Minute))
+	claimed, err = db.ClaimNextPendingTaskForNode(ctx, "node-2", createdAt.Add(3*time.Minute), createdAt.Add(4*time.Minute))
 	if err != nil {
 		t.Fatalf("claim node-2 task: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestClaimNextPendingTaskForNodeClaimsDifferentNodesConcurrently(t *testing.
 		go func(nodeID string) {
 			defer wg.Done()
 			<-start
-			record, err := db.ClaimNextPendingTaskForNode(ctx, nodeID, createdAt.Add(2*time.Minute))
+			record, err := db.ClaimNextPendingTaskForNode(ctx, nodeID, createdAt.Add(2*time.Minute), createdAt.Add(3*time.Minute))
 			results <- claimResult{taskID: record.TaskID, err: err}
 		}(nodeID)
 	}
@@ -159,149 +159,6 @@ func TestClaimNextPendingTaskReturnsErrNoPendingTask(t *testing.T) {
 	_, err := db.ClaimNextPendingTask(context.Background(), time.Now().UTC())
 	if !errors.Is(err, ErrNoPendingTask) {
 		t.Fatalf("expected ErrNoPendingTask, got %v", err)
-	}
-}
-
-func TestRecoverRunningTasksMarksRunningRowsFailed(t *testing.T) {
-	t.Parallel()
-
-	db := openTestDB(t)
-	defer func() { _ = db.Close() }()
-
-	ctx := context.Background()
-	startedAt := time.Date(2026, 4, 4, 11, 0, 0, 0, time.UTC)
-	if _, err := db.CreateTask(ctx, task.Record{
-		TaskID:    "task-running",
-		Type:      task.TypeDeploy,
-		Source:    task.SourceSystem,
-		Status:    task.StatusRunning,
-		CreatedAt: startedAt.Add(-1 * time.Minute),
-		StartedAt: &startedAt,
-	}); err != nil {
-		t.Fatalf("create running task: %v", err)
-	}
-
-	recoveredAt := startedAt.Add(10 * time.Minute)
-	affected, err := db.RecoverRunningTasks(ctx, recoveredAt)
-	if err != nil {
-		t.Fatalf("recover running tasks: %v", err)
-	}
-	if affected != 1 {
-		t.Fatalf("expected 1 recovered task, got %d", affected)
-	}
-
-	row := db.sql.QueryRowContext(ctx, `SELECT status, finished_at, error_summary FROM tasks WHERE task_id = 'task-running'`)
-	var status string
-	var finishedAt string
-	var errorSummary string
-	if err := row.Scan(&status, &finishedAt, &errorSummary); err != nil {
-		t.Fatalf("scan recovered task: %v", err)
-	}
-	if status != string(task.StatusFailed) {
-		t.Fatalf("expected failed status, got %q", status)
-	}
-	if finishedAt != recoveredAt.Format(time.RFC3339) {
-		t.Fatalf("expected finished_at %q, got %q", recoveredAt.Format(time.RFC3339), finishedAt)
-	}
-	if errorSummary != "controller restarted during task execution" {
-		t.Fatalf("unexpected error summary %q", errorSummary)
-	}
-}
-
-func TestRecoverRunningTasksUpdatesServiceSummaries(t *testing.T) {
-	t.Parallel()
-
-	db := openTestDB(t)
-	defer func() { _ = db.Close() }()
-
-	ctx := context.Background()
-	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
-		t.Fatalf("sync configured nodes: %v", err)
-	}
-	if err := db.SyncDeclaredServices(ctx, map[string][]string{"alpha": {"main"}}); err != nil {
-		t.Fatalf("sync declared services: %v", err)
-	}
-	startedAt := time.Date(2026, 4, 4, 11, 0, 0, 0, time.UTC)
-	if _, err := db.CreateTask(ctx, task.Record{
-		TaskID:      "task-running-service",
-		Type:        task.TypeDeploy,
-		Source:      task.SourceSystem,
-		ServiceName: "alpha",
-		NodeID:      "main",
-		Status:      task.StatusRunning,
-		CreatedAt:   startedAt.Add(-1 * time.Minute),
-		StartedAt:   &startedAt,
-	}); err != nil {
-		t.Fatalf("create running service task: %v", err)
-	}
-
-	recoveredAt := startedAt.Add(10 * time.Minute)
-	affected, err := db.RecoverRunningTasks(ctx, recoveredAt)
-	if err != nil {
-		t.Fatalf("recover running tasks: %v", err)
-	}
-	if affected != 1 {
-		t.Fatalf("expected 1 recovered task, got %d", affected)
-	}
-
-	instance, err := db.GetServiceInstanceSnapshot(ctx, "alpha", "main")
-	if err != nil {
-		t.Fatalf("get instance snapshot: %v", err)
-	}
-	if instance.LastTaskID != "task-running-service" || instance.UpdatedAt != recoveredAt.Format(time.RFC3339) {
-		t.Fatalf("unexpected instance summary: %+v", instance)
-	}
-	row := db.sql.QueryRowContext(ctx, `SELECT last_task_id, updated_at FROM services WHERE service_name = 'alpha'`)
-	var lastTaskID string
-	var updatedAt string
-	if err := row.Scan(&lastTaskID, &updatedAt); err != nil {
-		t.Fatalf("scan service summary: %v", err)
-	}
-	if lastTaskID != "task-running-service" || updatedAt != recoveredAt.Format(time.RFC3339) {
-		t.Fatalf("unexpected service summary last_task_id=%q updated_at=%q", lastTaskID, updatedAt)
-	}
-}
-
-func TestRecoverRunningTasksLeavesAwaitingConfirmationUntouched(t *testing.T) {
-	t.Parallel()
-
-	db := openTestDB(t)
-	defer func() { _ = db.Close() }()
-
-	ctx := context.Background()
-	createdAt := time.Date(2026, 4, 4, 11, 0, 0, 0, time.UTC)
-	finishedAt := createdAt.Add(2 * time.Minute)
-	if _, err := db.CreateTask(ctx, task.Record{
-		TaskID:     "task-awaiting",
-		Type:       task.TypeMigrate,
-		Source:     task.SourceSystem,
-		Status:     task.StatusAwaitingConfirmation,
-		CreatedAt:  createdAt,
-		FinishedAt: &finishedAt,
-	}); err != nil {
-		t.Fatalf("create awaiting task: %v", err)
-	}
-
-	recoveredAt := createdAt.Add(10 * time.Minute)
-	affected, err := db.RecoverRunningTasks(ctx, recoveredAt)
-	if err != nil {
-		t.Fatalf("recover running tasks: %v", err)
-	}
-	if affected != 0 {
-		t.Fatalf("expected 0 recovered tasks, got %d", affected)
-	}
-
-	row := db.sql.QueryRowContext(ctx, `SELECT status, finished_at FROM tasks WHERE task_id = 'task-awaiting'`)
-	var status string
-	var persistedFinishedAt string
-	if err := row.Scan(&status, &persistedFinishedAt); err != nil {
-		t.Fatalf("scan awaiting task: %v", err)
-	}
-	if status != string(task.StatusAwaitingConfirmation) {
-		t.Fatalf("expected awaiting_confirmation status, got %q", status)
-	}
-	if persistedFinishedAt != finishedAt.Format(time.RFC3339) {
-		t.Fatalf("expected finished_at %q, got %q", finishedAt.Format(time.RFC3339), persistedFinishedAt)
 	}
 }
 

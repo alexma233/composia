@@ -9,6 +9,7 @@ const (
 	offlineSweepInterval  = 15 * time.Second
 	pullNextTaskMaxWait   = 25 * time.Second
 	pullNextTaskRetryWait = 500 * time.Millisecond
+	taskExecutionLease    = 60 * time.Second
 
 	backupProviderRustic = "rustic"
 

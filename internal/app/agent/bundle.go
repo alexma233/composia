@@ -26,7 +26,7 @@ type bundleResult struct {
 }
 
 func downloadServiceBundle(ctx context.Context, client agentv1connect.BundleServiceClient, cfg *config.AgentConfig, taskID, serviceDir string) (*bundleResult, error) {
-	stream, err := client.GetServiceBundle(ctx, connect.NewRequest(&agentv1.GetServiceBundleRequest{TaskId: taskID, ServiceDir: serviceDir}))
+	stream, err := client.GetServiceBundle(ctx, connect.NewRequest(&agentv1.GetServiceBundleRequest{TaskId: taskID, ServiceDir: serviceDir, ExecutionId: taskExecutionID(ctx)}))
 	if err != nil {
 		return nil, fmt.Errorf("get service bundle: %w", err)
 	}

@@ -15,7 +15,7 @@ import (
 
 const DatabaseFileName = "composia.db"
 
-const sqliteSchemaVersion = 8
+const sqliteSchemaVersion = 11
 
 const sqliteValidTaskTypeSQLList = "'deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'migrate_rollback', 'dns_update', 'cloudflare_tunnel_sync', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove_container', 'docker_remove_network', 'docker_remove_volume', 'docker_remove_image'"
 
@@ -1290,6 +1290,55 @@ func (db *DB) migrate(ctx context.Context) error {
 			"CREATE TRIGGER IF NOT EXISTS trg_tasks_validate_insert BEFORE INSERT ON tasks FOR EACH ROW BEGIN SELECT RAISE(ABORT, 'invalid task type') WHERE NEW.type NOT IN ('deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'migrate_rollback', 'dns_update', 'cloudflare_tunnel_sync', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove_container', 'docker_remove_network', 'docker_remove_volume', 'docker_remove_image'); SELECT RAISE(ABORT, 'invalid task source') WHERE NEW.source NOT IN ('web', 'cli', 'others', 'schedule', 'system', 'auto_deploy'); SELECT RAISE(ABORT, 'invalid task status') WHERE NEW.status NOT IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled'); SELECT RAISE(ABORT, 'invalid task params_json') WHERE NEW.params_json IS NOT NULL AND json_valid(NEW.params_json) = 0; END;",
 			"CREATE TRIGGER IF NOT EXISTS trg_tasks_validate_update BEFORE UPDATE OF type, source, status, params_json ON tasks FOR EACH ROW BEGIN SELECT RAISE(ABORT, 'invalid task type') WHERE NEW.type NOT IN ('deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'migrate_rollback', 'dns_update', 'cloudflare_tunnel_sync', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove_container', 'docker_remove_network', 'docker_remove_volume', 'docker_remove_image'); SELECT RAISE(ABORT, 'invalid task source') WHERE NEW.source NOT IN ('web', 'cli', 'others', 'schedule', 'system', 'auto_deploy'); SELECT RAISE(ABORT, 'invalid task status') WHERE NEW.status NOT IN ('pending', 'running', 'awaiting_confirmation', 'succeeded', 'failed', 'cancelled'); SELECT RAISE(ABORT, 'invalid task params_json') WHERE NEW.params_json IS NOT NULL AND json_valid(NEW.params_json) = 0; END;",
 		},
+	}, {
+		version: 9,
+		statements: []string{
+			`ALTER TABLE tasks ADD COLUMN dedupe_key TEXT;`,
+			`ALTER TABLE tasks ADD COLUMN execution_id TEXT;`,
+			`ALTER TABLE tasks ADD COLUMN execution_state TEXT;`,
+			`ALTER TABLE tasks ADD COLUMN lease_expires_at TEXT;`,
+			`ALTER TABLE tasks ADD COLUMN execution_accepted_at TEXT;`,
+			`ALTER TABLE tasks ADD COLUMN execution_heartbeat_at TEXT;`,
+			`CREATE INDEX IF NOT EXISTS idx_tasks_execution_lease ON tasks(execution_state, lease_expires_at) WHERE execution_id IS NOT NULL;`,
+			`CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_dedupe_key ON tasks(dedupe_key) WHERE dedupe_key IS NOT NULL;`,
+			`DROP INDEX IF EXISTS idx_tasks_active_service_instance;`,
+			`CREATE UNIQUE INDEX idx_tasks_active_service_instance ON tasks(service_name, node_id) WHERE service_name IS NOT NULL AND node_id IS NOT NULL AND type IN ('deploy', 'update', 'stop', 'restart', 'backup', 'restore', 'dns_update', 'caddy_sync', 'caddy_reload', 'image_check') AND status IN ('pending', 'running', 'awaiting_confirmation');`,
+			`CREATE TABLE IF NOT EXISTS task_outbox (
+				event_id TEXT PRIMARY KEY,
+				task_id TEXT NOT NULL,
+				event_type TEXT NOT NULL,
+				attempts INTEGER NOT NULL DEFAULT 0,
+				next_attempt_at TEXT NOT NULL,
+				last_error TEXT,
+				created_at TEXT NOT NULL,
+				processed_at TEXT,
+				UNIQUE(task_id, event_type),
+				FOREIGN KEY (task_id) REFERENCES tasks(task_id)
+			);`,
+			`CREATE INDEX IF NOT EXISTS idx_task_outbox_pending ON task_outbox(processed_at, next_attempt_at);`,
+		},
+	}, {
+		version: 10,
+		statements: []string{
+			`UPDATE service_instances
+			 SET runtime_status = 'error', updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+			     last_task_id = (SELECT task_id FROM tasks WHERE tasks.service_name = service_instances.service_name AND tasks.node_id = service_instances.node_id AND tasks.status = 'running' AND tasks.execution_id IS NULL ORDER BY created_at DESC LIMIT 1)
+			 WHERE EXISTS (SELECT 1 FROM tasks WHERE tasks.service_name = service_instances.service_name AND tasks.node_id = service_instances.node_id AND tasks.status = 'running' AND tasks.execution_id IS NULL AND tasks.type IN ('deploy', 'update', 'stop', 'restart'));`,
+			`UPDATE services
+			 SET runtime_status = CASE WHEN EXISTS (SELECT 1 FROM service_instances WHERE service_instances.service_name = services.service_name AND service_instances.runtime_status = 'error') THEN 'error' ELSE runtime_status END,
+			     updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+			     last_task_id = (SELECT task_id FROM tasks WHERE tasks.service_name = services.service_name AND tasks.status = 'running' AND tasks.execution_id IS NULL ORDER BY created_at DESC LIMIT 1)
+			 WHERE EXISTS (SELECT 1 FROM tasks WHERE tasks.service_name = services.service_name AND tasks.status = 'running' AND tasks.execution_id IS NULL);`,
+			`UPDATE task_steps SET status = 'failed', finished_at = COALESCE(finished_at, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) WHERE status = 'running' AND task_id IN (SELECT task_id FROM tasks WHERE status = 'running' AND execution_id IS NULL);`,
+			`UPDATE tasks SET status = 'failed', finished_at = COALESCE(finished_at, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')), error_summary = 'task was running before the durable execution protocol upgrade; outcome requires reconciliation' WHERE status = 'running' AND execution_id IS NULL;`,
+			`ALTER TABLE task_outbox ADD COLUMN followups_completed_at TEXT;`,
+			`ALTER TABLE task_outbox ADD COLUMN notification_dispatched_at TEXT;`,
+		},
+	}, {
+		version: 11,
+		statements: []string{
+			`ALTER TABLE tasks ADD COLUMN log_confirmed_seq INTEGER NOT NULL DEFAULT 0;`,
+		},
 	}}
 
 	tx, err := db.sql.BeginTx(ctx, nil)
@@ -1359,7 +1408,7 @@ func sqliteUserVersion(ctx context.Context, tx *sql.Tx) (int, error) {
 
 func applySQLiteMigrationStatement(ctx context.Context, tx *sql.Tx, statement string) error {
 	if _, err := tx.ExecContext(ctx, statement); err != nil {
-		if (statement == `ALTER TABLE backups ADD COLUMN node_id TEXT;` || statement == `ALTER TABLE service_instances ADD COLUMN pending_deploy_revision TEXT;`) && isDuplicateColumnError(err) {
+		if (statement == `ALTER TABLE backups ADD COLUMN node_id TEXT;` || statement == `ALTER TABLE service_instances ADD COLUMN pending_deploy_revision TEXT;` || strings.HasPrefix(statement, `ALTER TABLE tasks ADD COLUMN `) || strings.HasPrefix(statement, `ALTER TABLE task_outbox ADD COLUMN `)) && isDuplicateColumnError(err) {
 			return nil
 		}
 		return fmt.Errorf("apply sqlite schema statement: %w", err)

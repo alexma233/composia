@@ -38,6 +38,10 @@ service AgentReportService {
 service AgentTaskService {
   // PullNextTask returns the next available task for the requesting node.
   rpc PullNextTask(PullNextTaskRequest) returns (PullNextTaskResponse);
+  // AcknowledgeTask confirms that the agent durably accepted an offered task.
+  rpc AcknowledgeTask(AcknowledgeTaskRequest) returns (AcknowledgeTaskResponse);
+  // RenewTaskLease extends an accepted task execution lease.
+  rpc RenewTaskLease(RenewTaskLeaseRequest) returns (RenewTaskLeaseResponse);
   // PullNextDockerQuery returns the next in-memory Docker query for the requesting node.
   rpc PullNextDockerQuery(PullNextDockerQueryRequest) returns (PullNextDockerQueryResponse);
 }
@@ -110,6 +114,8 @@ message HeartbeatResponse {
 message PullNextTaskRequest {
   // node_id is the stable node identifier.
   string node_id = 1;
+  // execution_protocol must be 1; legacy agents are not allowed to execute leased tasks.
+  uint32 execution_protocol = 2;
 }
 
 // AgentTask describes one executable task assigned to an agent.
@@ -130,6 +136,28 @@ message AgentTask {
   repeated string data_names = 7;
   // params_json stores task-type-specific JSON parameters.
   string params_json = 8;
+  // execution_id identifies this specific delivery and rejects stale reports.
+  string execution_id = 9;
+  // lease_expires_at is the controller deadline for acknowledging or renewing this execution.
+  google.protobuf.Timestamp lease_expires_at = 10;
+}
+
+message AcknowledgeTaskRequest {
+  string task_id = 1;
+  string execution_id = 2;
+}
+
+message AcknowledgeTaskResponse {
+  google.protobuf.Timestamp lease_expires_at = 1;
+}
+
+message RenewTaskLeaseRequest {
+  string task_id = 1;
+  string execution_id = 2;
+}
+
+message RenewTaskLeaseResponse {
+  google.protobuf.Timestamp lease_expires_at = 1;
 }
 
 // AgentTaskType identifies one executable task kind.
@@ -264,6 +292,8 @@ message ReportTaskStateRequest {
   string error_summary = 3;
   // finished_at is set when the task reaches a terminal state.
   google.protobuf.Timestamp finished_at = 4;
+  // execution_id binds the terminal report to the current task delivery.
+  string execution_id = 5;
 }
 
 // ReportTaskStateResponse acknowledges a task state update.
@@ -281,6 +311,7 @@ message ReportTaskStepStateRequest {
   google.protobuf.Timestamp started_at = 4;
   // finished_at is set when the step reaches a terminal state.
   google.protobuf.Timestamp finished_at = 5;
+  string execution_id = 6;
 }
 
 // ReportTaskStepStateResponse acknowledges a task step state update.
@@ -296,6 +327,7 @@ message UploadTaskLogsRequest {
   google.protobuf.Timestamp sent_at = 3;
   // content is the incremental log payload.
   string content = 4;
+  string execution_id = 5;
 }
 
 // UploadTaskLogsResponse acknowledges received task log chunks.
@@ -394,6 +426,7 @@ message ReportBackupResultRequest {
   string artifact_ref = 8;
   // error_summary contains the failure summary when the backup fails.
   string error_summary = 9;
+  string execution_id = 10;
 }
 
 // ReportBackupResultResponse acknowledges a backup result update.
@@ -409,6 +442,8 @@ message ReportServiceInstanceStatusRequest {
   string runtime_status = 3;
   // reported_at is the time when the status snapshot was observed.
   google.protobuf.Timestamp reported_at = 4;
+  string task_id = 5;
+  string execution_id = 6;
 }
 
 // ReportServiceInstanceStatusResponse acknowledges a service status update.
@@ -432,6 +467,8 @@ message ReportServiceImageStatesRequest {
   string node_id = 2;
   repeated ServiceImageState images = 3;
   google.protobuf.Timestamp reported_at = 4;
+  string task_id = 5;
+  string execution_id = 6;
 }
 
 // ReportServiceImageStatesResponse acknowledges image state updates.
@@ -459,6 +496,8 @@ message ReportServiceImageUpdateChecksRequest {
   string node_id = 2;
   repeated ServiceImageUpdateCheck checks = 3;
   google.protobuf.Timestamp reported_at = 4;
+  string task_id = 5;
+  string execution_id = 6;
 }
 
 // ReportServiceImageUpdateChecksResponse acknowledges image update check results.
@@ -470,6 +509,7 @@ message GetServiceBundleRequest {
   string task_id = 1;
   // service_dir overrides the task service directory for multi-service bundle consumers.
   string service_dir = 2;
+  string execution_id = 3;
 }
 
 // GetServiceBundleResponse carries one binary chunk from a task bundle stream.

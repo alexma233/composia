@@ -107,6 +107,22 @@ func (application *app) runTaskAgain(args []string) error {
 	return application.printTaskActionWithWait(response.Msg, waitOptions)
 }
 
+func (application *app) runTaskFailLost(args []string) error {
+	fs := newCommandFlagSet("task fail-lost")
+	errorSummary := fs.String("error-summary", "", "operator reconciliation summary")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if err := requireArgs(fs.Args(), 1, "composia task fail-lost [--error-summary text] <task>"); err != nil {
+		return err
+	}
+	response, err := application.client.tasks.FailLostTaskExecution(application.ctx, newRequest(&controllerv1.FailLostTaskExecutionRequest{TaskId: fs.Arg(0), ErrorSummary: *errorSummary}))
+	if err != nil {
+		return err
+	}
+	return application.printTaskAction(response.Msg)
+}
+
 func (application *app) runTaskWait(args []string) error {
 	fs := newCommandFlagSet("task wait")
 	waitOptions := addWaitFlags(fs)
@@ -144,6 +160,8 @@ func (application *app) printTaskDetail(task *controllerv1.GetTaskResponse) erro
 		{"service_name", task.GetServiceName()},
 		{"node_id", task.GetNodeId()},
 		{"status", taskStatusText(task.GetStatus())},
+		{"execution_state", task.GetExecutionState()},
+		{"lease_expires_at", formatProtoTimestamp(task.GetLeaseExpiresAt())},
 		{"created_at", formatProtoTimestamp(task.GetCreatedAt())},
 		{"started_at", formatProtoTimestamp(task.GetStartedAt())},
 		{"finished_at", formatProtoTimestamp(task.GetFinishedAt())},

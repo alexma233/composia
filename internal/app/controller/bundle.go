@@ -16,6 +16,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
+	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 )
 
@@ -30,6 +31,10 @@ func (server *bundleServer) GetServiceBundle(ctx context.Context, req *connect.R
 	}
 	if err := ensureTaskNodeMatch(ctx, server.db, req.Msg.GetTaskId()); err != nil {
 		return err
+	}
+	nodeID, _ := rpcutil.BearerSubject(ctx)
+	if _, err := server.db.ValidateTaskExecution(ctx, req.Msg.GetTaskId(), req.Msg.GetExecutionId(), nodeID); err != nil {
+		return connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
 	detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())

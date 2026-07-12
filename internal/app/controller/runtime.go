@@ -65,7 +65,7 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 	if err := db.MarkOfflineNodesBefore(runtimeCtx, time.Now().Add(-heartbeatOfflineAfter)); err != nil {
 		return err
 	}
-	if _, err := db.RecoverRunningTasks(runtimeCtx, time.Now().UTC()); err != nil {
+	if _, _, err := db.SweepExpiredTaskExecutions(runtimeCtx, time.Now().UTC()); err != nil {
 		return err
 	}
 	repoMu := &sync.Mutex{}
@@ -78,6 +78,8 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 	if err != nil {
 		return fmt.Errorf("initialize notifications: %w", err)
 	}
+	reportServer := &agentReportServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, logState: &taskLogAckState{confirmedBy: make(map[string]uint64)}, taskQueue: taskQueue, taskResults: taskResults, dockerQueries: dockerQueries, execManager: execManager, logManager: logManager, repoMu: repoMu, notifier: notifier}
+	startBackground(func() { runTaskOutbox(runtimeCtx, reportServer) })
 
 	services, err := repo.DiscoverServices(cfg.RepoDir, availableNodeIDs)
 	if err != nil {
@@ -132,6 +134,7 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 	}
 
 	startBackground(func() { sweepOfflineNodes(runtimeCtx, db, notifier) })
+	startBackground(func() { sweepTaskExecutionLeases(runtimeCtx, db, taskQueue) })
 	startBackground(func() { autoPullRepo(runtimeCtx, cfg, db, availableNodeIDs, repoMu, taskQueue) })
 	startBackground(func() { runScheduledTasks(runtimeCtx, db, cfg, availableNodeIDs, taskQueue, repoMu) })
 	startBackground(func() {
@@ -149,6 +152,29 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 		return fmt.Errorf("run controller server: %w", err)
 	}
 	return nil
+}
+
+func sweepTaskExecutionLeases(ctx context.Context, db *store.DB, taskQueue *taskQueueNotifier) {
+	ticker := time.NewTicker(offlineSweepInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			requeued, lost, err := db.SweepExpiredTaskExecutions(ctx, time.Now().UTC())
+			if err != nil {
+				log.Printf("task execution sweep failed: %v", err)
+				continue
+			}
+			if requeued > 0 {
+				notifyTaskQueue(taskQueue)
+			}
+			if lost > 0 {
+				log.Printf("task execution leases lost: count=%d", lost)
+			}
+		}
+	}
 }
 
 func sweepOfflineNodes(ctx context.Context, db *store.DB, notifier *appnotify.Notifier) {

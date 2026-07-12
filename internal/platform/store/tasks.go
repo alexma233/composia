@@ -13,8 +13,10 @@ import (
 )
 
 var (
-	ErrNoPendingTask = errors.New("no pending task")
-	ErrTaskNotFound  = errors.New("task not found")
+	ErrNoPendingTask         = errors.New("no pending task")
+	ErrTaskNotFound          = errors.New("task not found")
+	ErrTaskExecutionMismatch = errors.New("task execution does not match")
+	ErrTaskExecutionConflict = errors.New("task execution result conflicts with the persisted result")
 )
 
 type ActiveServiceTaskError struct {
@@ -28,6 +30,12 @@ func (err ActiveServiceTaskError) Error() string {
 type ActiveServiceInstanceTaskError struct {
 	ServiceName string
 	NodeID      string
+}
+
+type DuplicateTaskError struct{ DedupeKey string }
+
+func (err DuplicateTaskError) Error() string {
+	return fmt.Sprintf("task with dedupe key %q already exists", err.DedupeKey)
 }
 
 func (err ActiveServiceInstanceTaskError) Error() string {
@@ -239,9 +247,10 @@ func insertTaskRecord(ctx context.Context, execer sqlTaskExecer, record task.Rec
 			created_at,
 			started_at,
 			finished_at,
-			error_summary
+			error_summary,
+			dedupe_key
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
 		record.TaskID,
 		string(record.Type),
@@ -259,8 +268,12 @@ func insertTaskRecord(ctx context.Context, execer sqlTaskExecer, record task.Rec
 		nullableTime(record.StartedAt),
 		nullableTime(record.FinishedAt),
 		nullableString(record.ErrorSummary),
+		nullableString(record.DedupeKey),
 	)
 	if err != nil {
+		if record.DedupeKey != "" && strings.Contains(strings.ToLower(err.Error()), "tasks.dedupe_key") {
+			return DuplicateTaskError{DedupeKey: record.DedupeKey}
+		}
 		if isSQLiteUniqueConstraintError(err) {
 			switch {
 			case record.ServiceName != "" && record.NodeID != "":
@@ -272,6 +285,22 @@ func insertTaskRecord(ctx context.Context, execer sqlTaskExecer, record task.Rec
 		return fmt.Errorf("create task %q: %w", record.TaskID, err)
 	}
 	return nil
+}
+
+func (db *DB) GetTaskByDedupeKey(ctx context.Context, dedupeKey string) (task.Record, error) {
+	var taskID string
+	if err := db.sql.QueryRowContext(ctx, `SELECT task_id FROM tasks WHERE dedupe_key = ?`, dedupeKey).Scan(&taskID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return task.Record{}, ErrTaskNotFound
+		}
+		return task.Record{}, fmt.Errorf("get task by dedupe key %q: %w", dedupeKey, err)
+	}
+	detail, err := db.GetTask(ctx, taskID)
+	if err != nil {
+		return task.Record{}, err
+	}
+	detail.Record.DedupeKey = dedupeKey
+	return detail.Record, nil
 }
 
 func isSQLiteUniqueConstraintError(err error) bool {
@@ -303,7 +332,7 @@ func (db *DB) ClaimNextPendingTask(ctx context.Context, startedAt time.Time) (ta
 	return record, nil
 }
 
-func (db *DB) ClaimNextPendingTaskForNode(ctx context.Context, nodeID string, startedAt time.Time) (task.Record, error) {
+func (db *DB) ClaimNextPendingTaskForNode(ctx context.Context, nodeID string, startedAt, leaseExpiresAt time.Time) (task.Record, error) {
 	db.claimMu.Lock()
 	defer db.claimMu.Unlock()
 
@@ -313,7 +342,7 @@ func (db *DB) ClaimNextPendingTaskForNode(ctx context.Context, nodeID string, st
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	record, err := claimNextPendingTaskForNode(ctx, tx, nodeID, startedAt)
+	record, err := claimNextPendingTaskForNode(ctx, tx, nodeID, startedAt, leaseExpiresAt)
 	if err != nil {
 		return task.Record{}, err
 	}
@@ -357,8 +386,8 @@ func claimNextPendingTask(ctx context.Context, tx *sql.Tx, startedAt time.Time) 
 	`, string(task.StatusPending))
 }
 
-func claimNextPendingTaskForNode(ctx context.Context, tx *sql.Tx, nodeID string, startedAt time.Time) (task.Record, error) {
-	return claimPendingTaskByQuery(ctx, tx, startedAt, fmt.Sprintf("query next pending task for node %q", nodeID), `
+func claimNextPendingTaskForNode(ctx context.Context, tx *sql.Tx, nodeID string, startedAt, leaseExpiresAt time.Time) (task.Record, error) {
+	row := tx.QueryRowContext(ctx, `
 		SELECT task_id, type, source, COALESCE(triggered_by, ''), COALESCE(service_name, ''), COALESCE(node_id, ''),
 		       status, COALESCE(params_json, ''), COALESCE(log_path, ''), COALESCE(repo_revision, ''),
 		       COALESCE(result_revision, ''), COALESCE(attempt_of_task_id, ''), created_at
@@ -367,6 +396,37 @@ func claimNextPendingTaskForNode(ctx context.Context, tx *sql.Tx, nodeID string,
 		ORDER BY created_at ASC, task_id ASC
 		LIMIT 1
 	`, string(task.StatusPending), nodeID, string(task.TypeDNSUpdate), string(task.TypeMigrate))
+	record, createdAt, err := scanPendingTaskRecord(row)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return task.Record{}, ErrNoPendingTask
+		}
+		return task.Record{}, fmt.Errorf("query next pending task for node %q: %w", nodeID, err)
+	}
+	executionID := uuid.NewString()
+	updated, err := tx.ExecContext(ctx, `
+		UPDATE tasks
+		SET status = ?, started_at = COALESCE(started_at, ?), execution_id = ?, execution_state = ?,
+		    lease_expires_at = ?, execution_accepted_at = NULL, execution_heartbeat_at = NULL
+		WHERE task_id = ? AND status = ?
+	`, string(task.StatusRunning), startedAt.UTC().Format(time.RFC3339), executionID, string(task.ExecutionOffered), leaseExpiresAt.UTC().Format(time.RFC3339), record.TaskID, string(task.StatusPending))
+	if err != nil {
+		return task.Record{}, fmt.Errorf("offer task %q: %w", record.TaskID, err)
+	}
+	affected, err := updated.RowsAffected()
+	if err != nil {
+		return task.Record{}, fmt.Errorf("read offered task rows affected: %w", err)
+	}
+	if affected == 0 {
+		return task.Record{}, ErrNoPendingTask
+	}
+	record.CreatedAt = createdAt.UTC()
+	record.Status = task.StatusRunning
+	record.StartedAt = timePtr(startedAt.UTC())
+	record.ExecutionID = executionID
+	record.ExecutionState = task.ExecutionOffered
+	record.LeaseExpiresAt = timePtr(leaseExpiresAt.UTC())
+	return record, nil
 }
 
 func claimNextPendingTaskOfType(ctx context.Context, tx *sql.Tx, taskType task.Type, startedAt time.Time) (task.Record, error) {
@@ -520,9 +580,11 @@ func (db *DB) CompleteTask(ctx context.Context, taskID string, status task.Statu
 
 	result, err := tx.ExecContext(ctx, `
 		UPDATE tasks
-		SET status = ?, finished_at = ?, error_summary = ?
+		SET status = ?, finished_at = ?, error_summary = ?,
+		    execution_state = CASE WHEN execution_id IS NULL THEN execution_state ELSE ? END,
+		    lease_expires_at = NULL
 		WHERE task_id = ? AND status IN (?, ?, ?)
-	`, string(status), finishedAt.UTC().Format(time.RFC3339), nullableString(errorSummary), taskID, string(task.StatusPending), string(task.StatusRunning), string(task.StatusAwaitingConfirmation))
+	`, string(status), finishedAt.UTC().Format(time.RFC3339), nullableString(errorSummary), string(task.ExecutionCompleted), taskID, string(task.StatusPending), string(task.StatusRunning), string(task.StatusAwaitingConfirmation))
 	if err != nil {
 		return fmt.Errorf("complete task %q: %w", taskID, err)
 	}
@@ -536,68 +598,248 @@ func (db *DB) CompleteTask(ctx context.Context, taskID string, status task.Statu
 	if err := updateServiceFromCompletedTask(ctx, tx, taskID, status, finishedAt); err != nil {
 		return err
 	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE task_steps SET status = ?, finished_at = COALESCE(finished_at, ?)
+		WHERE task_id = ? AND status = ?
+	`, string(status), finishedAt.UTC().Format(time.RFC3339), taskID, string(task.StatusRunning)); err != nil {
+		return fmt.Errorf("finalize running steps for task %q: %w", taskID, err)
+	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit complete task transaction: %w", err)
 	}
 	return nil
 }
 
-func (db *DB) RecoverRunningTasks(ctx context.Context, finishedAt time.Time) (int64, error) {
-	tx, err := db.sql.BeginTx(ctx, nil)
-	if err != nil {
-		return 0, fmt.Errorf("begin recover running tasks transaction: %w", err)
+func updateRuntimeFromAgentTask(ctx context.Context, tx *sql.Tx, taskID string, status task.Status, updatedAt time.Time) error {
+	var taskType task.Type
+	var serviceName, nodeID string
+	if err := tx.QueryRowContext(ctx, `SELECT type, COALESCE(service_name, ''), COALESCE(node_id, '') FROM tasks WHERE task_id = ?`, taskID).Scan(&taskType, &serviceName, &nodeID); err != nil {
+		return err
 	}
-	defer func() { _ = tx.Rollback() }()
-
-	rows, err := tx.QueryContext(ctx, `SELECT task_id FROM tasks WHERE status = ? ORDER BY created_at ASC, task_id ASC`, string(task.StatusRunning))
-	if err != nil {
-		return 0, fmt.Errorf("list running tasks to recover: %w", err)
+	if serviceName == "" || nodeID == "" {
+		return nil
 	}
-	defer func() { _ = rows.Close() }()
-	runningTaskIDs := make([]string, 0)
-	for rows.Next() {
-		var taskID string
-		if err := rows.Scan(&taskID); err != nil {
-			return 0, fmt.Errorf("scan running task to recover: %w", err)
+	if taskType != task.TypeDeploy && taskType != task.TypeUpdate && taskType != task.TypeStop && taskType != task.TypeRestart {
+		return nil
+	}
+	runtimeStatus := ""
+	switch status {
+	case task.StatusFailed:
+		runtimeStatus = ServiceRuntimeError
+	case task.StatusSucceeded:
+		if taskType == task.TypeStop {
+			runtimeStatus = ServiceRuntimeStopped
+		} else {
+			runtimeStatus = ServiceRuntimeRunning
 		}
-		runningTaskIDs = append(runningTaskIDs, taskID)
+	case task.StatusCancelled, task.StatusPending, task.StatusRunning, task.StatusAwaitingConfirmation:
+		return nil
 	}
-	if err := rows.Err(); err != nil {
-		return 0, fmt.Errorf("iterate running tasks to recover: %w", err)
+	if runtimeStatus == "" {
+		return nil
 	}
-	if err := rows.Close(); err != nil {
-		return 0, fmt.Errorf("close running tasks recovery rows: %w", err)
+	if _, err := tx.ExecContext(ctx, `UPDATE service_instances SET runtime_status = ?, updated_at = ? WHERE service_name = ? AND node_id = ?`, runtimeStatus, updatedAt.UTC().Format(time.RFC3339), serviceName, nodeID); err != nil {
+		return fmt.Errorf("update completed task runtime status: %w", err)
 	}
+	return refreshServiceAggregateStatusTx(ctx, tx, serviceName)
+}
 
-	result, err := tx.ExecContext(ctx, `
+func (db *DB) AcknowledgeTaskExecution(ctx context.Context, taskID, executionID string, acceptedAt, leaseExpiresAt time.Time) error {
+	result, err := db.sql.ExecContext(ctx, `
 		UPDATE tasks
-		SET status = ?, finished_at = ?, error_summary = ?
-		WHERE status = ?
-	`,
-		string(task.StatusFailed),
-		finishedAt.UTC().Format(time.RFC3339),
-		"controller restarted during task execution",
-		string(task.StatusRunning),
-	)
+		SET execution_state = ?, execution_accepted_at = COALESCE(execution_accepted_at, ?),
+		    execution_heartbeat_at = ?, lease_expires_at = ?
+		WHERE task_id = ? AND execution_id = ? AND status = ?
+		  AND (execution_state = ? OR (execution_state = ? AND lease_expires_at >= ?))
+	`, string(task.ExecutionAccepted), acceptedAt.UTC().Format(time.RFC3339), acceptedAt.UTC().Format(time.RFC3339), leaseExpiresAt.UTC().Format(time.RFC3339), taskID, executionID, string(task.StatusRunning), string(task.ExecutionAccepted), string(task.ExecutionOffered), acceptedAt.UTC().Format(time.RFC3339))
 	if err != nil {
-		return 0, fmt.Errorf("recover running tasks: %w", err)
+		return fmt.Errorf("acknowledge task execution %q: %w", taskID, err)
 	}
 	affected, err := result.RowsAffected()
 	if err != nil {
-		return 0, fmt.Errorf("read recovered running task count: %w", err)
+		return fmt.Errorf("read acknowledged task rows affected: %w", err)
 	}
-	if affected != int64(len(runningTaskIDs)) {
-		return 0, fmt.Errorf("recover running tasks affected %d rows, expected %d", affected, len(runningTaskIDs))
+	if affected == 0 {
+		return ErrTaskExecutionMismatch
 	}
-	for _, taskID := range runningTaskIDs {
-		if err := updateServiceFromCompletedTask(ctx, tx, taskID, task.StatusFailed, finishedAt); err != nil {
-			return 0, err
+	return nil
+}
+
+func (db *DB) RenewTaskExecution(ctx context.Context, taskID, executionID string, renewedAt, leaseExpiresAt time.Time) error {
+	result, err := db.sql.ExecContext(ctx, `
+		UPDATE tasks SET execution_state = ?, execution_heartbeat_at = ?, lease_expires_at = ?
+		WHERE task_id = ? AND execution_id = ? AND status = ? AND execution_state IN (?, ?)
+	`, string(task.ExecutionAccepted), renewedAt.UTC().Format(time.RFC3339), leaseExpiresAt.UTC().Format(time.RFC3339), taskID, executionID, string(task.StatusRunning), string(task.ExecutionAccepted), string(task.ExecutionLeaseLost))
+	if err != nil {
+		return fmt.Errorf("renew task execution %q: %w", taskID, err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read renewed task rows affected: %w", err)
+	}
+	if affected == 0 {
+		return ErrTaskExecutionMismatch
+	}
+	return nil
+}
+
+func (db *DB) ValidateTaskExecution(ctx context.Context, taskID, executionID, nodeID string) (task.Record, error) {
+	detail, err := db.GetTask(ctx, taskID)
+	if err != nil {
+		return task.Record{}, err
+	}
+	record := detail.Record
+	if executionID == "" && record.ExecutionID == "" && record.NodeID == nodeID && record.Status == task.StatusRunning {
+		return record, nil
+	}
+	if executionID == "" || record.ExecutionID != executionID || record.NodeID != nodeID || record.Status != task.StatusRunning {
+		return task.Record{}, ErrTaskExecutionMismatch
+	}
+	switch record.ExecutionState {
+	case task.ExecutionAccepted, task.ExecutionLeaseLost:
+		return record, nil
+	default:
+		return task.Record{}, ErrTaskExecutionMismatch
+	}
+}
+
+func (db *DB) CompleteTaskExecution(ctx context.Context, taskID, executionID string, status task.Status, finishedAt time.Time, errorSummary string) error {
+	if status != task.StatusSucceeded && status != task.StatusFailed && status != task.StatusCancelled {
+		return fmt.Errorf("invalid terminal task status %q", status)
+	}
+	if executionID == "" {
+		detail, err := db.GetTask(ctx, taskID)
+		if err != nil {
+			return err
 		}
+		if detail.Record.ExecutionID != "" {
+			return ErrTaskExecutionMismatch
+		}
+		return db.CompleteTask(ctx, taskID, status, finishedAt, errorSummary)
+	}
+	tx, err := db.sql.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin complete task execution transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	var currentStatus, currentExecutionID, currentExecutionState, currentErrorSummary string
+	if err := tx.QueryRowContext(ctx, `SELECT status, COALESCE(execution_id, ''), COALESCE(execution_state, ''), COALESCE(error_summary, '') FROM tasks WHERE task_id = ?`, taskID).Scan(&currentStatus, &currentExecutionID, &currentExecutionState, &currentErrorSummary); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrTaskNotFound
+		}
+		return fmt.Errorf("read task execution %q: %w", taskID, err)
+	}
+	if currentExecutionID != executionID || executionID == "" {
+		return ErrTaskExecutionMismatch
+	}
+	if task.Status(currentStatus) != task.StatusRunning {
+		if task.Status(currentStatus) == status && currentErrorSummary == errorSummary {
+			return nil
+		}
+		return ErrTaskExecutionConflict
+	}
+	if task.ExecutionState(currentExecutionState) != task.ExecutionAccepted && task.ExecutionState(currentExecutionState) != task.ExecutionLeaseLost {
+		return ErrTaskExecutionMismatch
+	}
+	result, err := tx.ExecContext(ctx, `
+		UPDATE tasks
+		SET status = ?, finished_at = ?, error_summary = ?, execution_state = ?, lease_expires_at = NULL
+		WHERE task_id = ? AND execution_id = ? AND status = ?
+	`, string(status), finishedAt.UTC().Format(time.RFC3339), nullableString(errorSummary), string(task.ExecutionCompleted), taskID, executionID, string(task.StatusRunning))
+	if err != nil {
+		return fmt.Errorf("complete task execution %q: %w", taskID, err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read completed task execution rows affected: %w", err)
+	}
+	if affected == 0 {
+		return ErrTaskExecutionConflict
+	}
+	if err := updateServiceFromCompletedTask(ctx, tx, taskID, status, finishedAt); err != nil {
+		return err
+	}
+	if err := updateRuntimeFromAgentTask(ctx, tx, taskID, status, finishedAt); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE task_steps SET status = ?, finished_at = COALESCE(finished_at, ?)
+		WHERE task_id = ? AND status = ?
+	`, string(status), finishedAt.UTC().Format(time.RFC3339), taskID, string(task.StatusRunning)); err != nil {
+		return fmt.Errorf("finalize running steps for task %q: %w", taskID, err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO task_outbox (event_id, task_id, event_type, next_attempt_at, created_at)
+		VALUES (?, ?, 'task_completed', ?, ?)
+		ON CONFLICT(task_id, event_type) DO NOTHING
+	`, uuid.NewString(), taskID, finishedAt.UTC().Format(time.RFC3339), finishedAt.UTC().Format(time.RFC3339)); err != nil {
+		return fmt.Errorf("enqueue completed task %q: %w", taskID, err)
 	}
 	if err := tx.Commit(); err != nil {
-		return 0, fmt.Errorf("commit recover running tasks transaction: %w", err)
+		return fmt.Errorf("commit completed task execution %q: %w", taskID, err)
 	}
-	return affected, nil
+	return nil
+}
+
+func (db *DB) SweepExpiredTaskExecutions(ctx context.Context, now time.Time) (int64, int64, error) {
+	tx, err := db.sql.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, 0, fmt.Errorf("begin task execution sweep: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	requeued, err := tx.ExecContext(ctx, `
+		UPDATE tasks SET status = ?, started_at = NULL, execution_id = NULL, execution_state = NULL,
+		    lease_expires_at = NULL, execution_accepted_at = NULL, execution_heartbeat_at = NULL
+		WHERE status = ? AND execution_state = ? AND lease_expires_at < ?
+	`, string(task.StatusPending), string(task.StatusRunning), string(task.ExecutionOffered), now.UTC().Format(time.RFC3339))
+	if err != nil {
+		return 0, 0, fmt.Errorf("requeue expired task offers: %w", err)
+	}
+	lost, err := tx.ExecContext(ctx, `
+		UPDATE tasks SET execution_state = ?
+		WHERE status = ? AND execution_state = ? AND lease_expires_at < ?
+	`, string(task.ExecutionLeaseLost), string(task.StatusRunning), string(task.ExecutionAccepted), now.UTC().Format(time.RFC3339))
+	if err != nil {
+		return 0, 0, fmt.Errorf("mark expired task leases lost: %w", err)
+	}
+	requeuedCount, _ := requeued.RowsAffected()
+	lostCount, _ := lost.RowsAffected()
+	if err := tx.Commit(); err != nil {
+		return 0, 0, fmt.Errorf("commit task execution sweep: %w", err)
+	}
+	return requeuedCount, lostCount, nil
+}
+
+func (db *DB) FailLostTaskExecution(ctx context.Context, taskID string, finishedAt time.Time, errorSummary string) error {
+	tx, err := db.sql.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin fail lost task execution: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	result, err := tx.ExecContext(ctx, `
+		UPDATE tasks SET status = ?, finished_at = ?, error_summary = ?, execution_state = ?, lease_expires_at = NULL
+		WHERE task_id = ? AND status = ? AND execution_state = ?
+	`, string(task.StatusFailed), finishedAt.UTC().Format(time.RFC3339), errorSummary, string(task.ExecutionCompleted), taskID, string(task.StatusRunning), string(task.ExecutionLeaseLost))
+	if err != nil {
+		return fmt.Errorf("fail lost task execution %q: %w", taskID, err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read failed lost task rows affected: %w", err)
+	}
+	if affected == 0 {
+		return ErrTaskExecutionMismatch
+	}
+	if err := updateServiceFromCompletedTask(ctx, tx, taskID, task.StatusFailed, finishedAt); err != nil {
+		return err
+	}
+	if err := updateRuntimeFromAgentTask(ctx, tx, taskID, task.StatusFailed, finishedAt); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE task_steps SET status = ?, finished_at = COALESCE(finished_at, ?) WHERE task_id = ? AND status = ?`, string(task.StatusFailed), finishedAt.UTC().Format(time.RFC3339), taskID, string(task.StatusRunning)); err != nil {
+		return fmt.Errorf("fail running task steps: %w", err)
+	}
+	return tx.Commit()
 }
 
 func (db *DB) HasActiveServiceTask(ctx context.Context, serviceName string) (bool, error) {
@@ -829,7 +1071,29 @@ func (db *DB) UpsertTaskStep(ctx context.Context, step task.StepRecord) error {
 		return errors.New("task step status is required")
 	}
 
-	_, err := db.sql.ExecContext(ctx, `
+	tx, err := db.sql.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin task step upsert: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	var current string
+	err = tx.QueryRowContext(ctx, `SELECT status FROM task_steps WHERE task_id = ? AND step_name = ?`, step.TaskID, string(step.StepName)).Scan(&current)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("read task step %q for task %q: %w", step.StepName, step.TaskID, err)
+	}
+	if err == nil {
+		currentStatus := task.Status(current)
+		if isTerminalStatus(currentStatus) {
+			if currentStatus == step.Status {
+				return nil
+			}
+			return ErrTaskExecutionConflict
+		}
+		if currentStatus == task.StatusRunning && step.Status == task.StatusPending {
+			return ErrTaskExecutionConflict
+		}
+	}
+	_, err = tx.ExecContext(ctx, `
 		INSERT INTO task_steps (task_id, step_name, status, started_at, finished_at)
 		VALUES (?, ?, ?, ?, ?)
 		ON CONFLICT(task_id, step_name) DO UPDATE SET
@@ -846,7 +1110,11 @@ func (db *DB) UpsertTaskStep(ctx context.Context, step task.StepRecord) error {
 	if err != nil {
 		return fmt.Errorf("upsert task step %q for task %q: %w", step.StepName, step.TaskID, err)
 	}
-	return nil
+	return tx.Commit()
+}
+
+func isTerminalStatus(status task.Status) bool {
+	return status == task.StatusSucceeded || status == task.StatusFailed || status == task.StatusCancelled
 }
 
 func (db *DB) getTaskRecord(ctx context.Context, taskID string) (task.Record, error) {
@@ -854,7 +1122,9 @@ func (db *DB) getTaskRecord(ctx context.Context, taskID string) (task.Record, er
 		SELECT task_id, type, source, COALESCE(triggered_by, ''), COALESCE(service_name, ''), COALESCE(node_id, ''),
 		       status, COALESCE(params_json, ''), COALESCE(log_path, ''), COALESCE(repo_revision, ''),
 		       COALESCE(result_revision, ''), COALESCE(attempt_of_task_id, ''), created_at,
-		       COALESCE(started_at, ''), COALESCE(finished_at, ''), COALESCE(error_summary, '')
+		       COALESCE(started_at, ''), COALESCE(finished_at, ''), COALESCE(error_summary, ''),
+		       COALESCE(execution_id, ''), COALESCE(execution_state, ''), COALESCE(lease_expires_at, ''),
+		       COALESCE(execution_accepted_at, ''), COALESCE(execution_heartbeat_at, '')
 		FROM tasks
 		WHERE task_id = ?
 	`, taskID)
@@ -866,6 +1136,7 @@ func (db *DB) getTaskRecord(ctx context.Context, taskID string) (task.Record, er
 	var createdAt string
 	var startedAt string
 	var finishedAt string
+	var leaseExpiresAt, executionAcceptedAt, executionHeartbeatAt string
 	if err := row.Scan(
 		&record.TaskID,
 		&rawType,
@@ -883,6 +1154,11 @@ func (db *DB) getTaskRecord(ctx context.Context, taskID string) (task.Record, er
 		&startedAt,
 		&finishedAt,
 		&record.ErrorSummary,
+		&record.ExecutionID,
+		&record.ExecutionState,
+		&leaseExpiresAt,
+		&executionAcceptedAt,
+		&executionHeartbeatAt,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return task.Record{}, ErrTaskNotFound
@@ -909,6 +1185,18 @@ func (db *DB) getTaskRecord(ctx context.Context, taskID string) (task.Record, er
 	}
 	record.StartedAt = parsedStartedAt
 	record.FinishedAt = parsedFinishedAt
+	record.LeaseExpiresAt, err = parseNullableRFC3339(leaseExpiresAt, fmt.Sprintf("task %q lease_expires_at", taskID))
+	if err != nil {
+		return task.Record{}, err
+	}
+	record.ExecutionAcceptedAt, err = parseNullableRFC3339(executionAcceptedAt, fmt.Sprintf("task %q execution_accepted_at", taskID))
+	if err != nil {
+		return task.Record{}, err
+	}
+	record.ExecutionHeartbeatAt, err = parseNullableRFC3339(executionHeartbeatAt, fmt.Sprintf("task %q execution_heartbeat_at", taskID))
+	if err != nil {
+		return task.Record{}, err
+	}
 	return record, nil
 }
 

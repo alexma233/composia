@@ -339,10 +339,13 @@ func reportDockerStats(ctx context.Context, client agentv1connect.AgentReportSer
 }
 
 func pollAndRunTask(pollCtx, taskCtx context.Context, taskClient agentv1connect.AgentTaskServiceClient, bundleClient agentv1connect.BundleServiceClient, reportClient agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig) error {
+	if err := recoverTaskExecution(pollCtx, cfg, taskClient, reportClient); err != nil {
+		return err
+	}
 	callCtx, cancel := context.WithTimeout(pollCtx, pullNextTaskTimeout)
 	defer cancel()
 
-	response, err := taskClient.PullNextTask(callCtx, connect.NewRequest(&agentv1.PullNextTaskRequest{NodeId: cfg.NodeID}))
+	response, err := taskClient.PullNextTask(callCtx, connect.NewRequest(&agentv1.PullNextTaskRequest{NodeId: cfg.NodeID, ExecutionProtocol: 1}))
 	if err != nil {
 		return fmt.Errorf("pull next task: %w", err)
 	}
@@ -351,9 +354,33 @@ func pollAndRunTask(pollCtx, taskCtx context.Context, taskClient agentv1connect.
 	}
 
 	pulledTask := response.Msg.GetTask()
+	if pulledTask.GetExecutionId() == "" {
+		return errors.New("controller returned a task without execution_id")
+	}
+	statePath := taskExecutionStatePath(cfg.StateDir)
+	state := persistedTaskExecution{TaskID: pulledTask.GetTaskId(), ExecutionID: pulledTask.GetExecutionId()}
+	if err := persistTaskExecution(statePath, state); err != nil {
+		return err
+	}
+	if err := acknowledgeTaskExecution(pollCtx, taskClient, state.TaskID, state.ExecutionID); err != nil {
+		if isRejectedTaskExecution(err) {
+			if removeErr := removeTaskExecutionState(statePath); removeErr != nil {
+				return fmt.Errorf("discard rejected task execution: %w", removeErr)
+			}
+		}
+		return err
+	}
+	state.Acknowledged = true
+	if err := persistTaskExecution(statePath, state); err != nil {
+		return err
+	}
+	runtime := &taskExecutionRuntime{path: statePath, state: state}
+	executionCtx, cancelExecution := context.WithCancel(withTaskExecution(taskCtx, runtime))
+	defer cancelExecution()
+	go renewTaskLease(executionCtx, taskClient, state.TaskID, state.ExecutionID)
 	startedAt := time.Now()
 	log.Printf("agent accepted task: task_id=%s type=%s service=%s node=%s repo_revision=%s", pulledTask.GetTaskId(), pulledTask.GetType(), pulledTask.GetServiceName(), pulledTask.GetNodeId(), pulledTask.GetRepoRevision())
-	err = executePulledTaskWithTimeout(taskCtx, bundleClient, reportClient, cfg, pulledTask, taskExecutionTimeout)
+	err = executePulledTaskWithTimeout(executionCtx, bundleClient, reportClient, cfg, pulledTask, taskExecutionTimeout)
 	duration := time.Since(startedAt).Round(time.Millisecond)
 	if err != nil {
 		log.Printf("agent task failed: task_id=%s type=%s service=%s node=%s duration=%s error=%v", pulledTask.GetTaskId(), pulledTask.GetType(), pulledTask.GetServiceName(), pulledTask.GetNodeId(), duration, err)
@@ -383,7 +410,7 @@ func executePulledTaskWithTimeout(ctx context.Context, bundleClient agentv1conne
 	if taskTimedOut {
 		failureSummary = fmt.Sprintf("task exceeded execution timeout of %s", timeout)
 	}
-	reportCtx, reportCancel := context.WithTimeout(context.Background(), taskReportTimeout)
+	reportCtx, reportCancel := context.WithTimeout(context.WithoutCancel(ctx), taskReportTimeout)
 	defer reportCancel()
 	if reportErr := reportTaskCompletion(reportCtx, client, pulledTask.GetTaskId(), task.StatusFailed, failureSummary); reportErr != nil {
 		return fmt.Errorf("%w (report failed: %w)", err, reportErr)

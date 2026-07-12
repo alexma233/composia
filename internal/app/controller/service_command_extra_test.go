@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"context"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -99,5 +101,30 @@ func TestApplyImageCurrentUpdateRejectsMissingSource(t *testing.T) {
 	_, err := applyImageCurrentUpdate("content", repo.ImageUpdateCurrent{}, "ghcr.io/example/app", "1.2.3")
 	if err == nil || !strings.Contains(err.Error(), "current must specify env or yaml") {
 		t.Fatalf("expected current source error, got %v", err)
+	}
+}
+
+func TestApplyPlannedServiceImageUpdatesAcceptsPersistedRetry(t *testing.T) {
+	t.Parallel()
+	repoDir := filepath.Join(t.TempDir(), "repo")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\nupdate:\n  images:\n    api:\n      image: ghcr.io/example/api\n      digest_pin: false\n      current:\n        env:\n          file: .env\n          key: API_VERSION\n      discovery:\n        sources:\n          - type: auto\n      filter:\n        type: semver\n",
+		"demo/.env":               "API_VERSION=1.3.0\n",
+	})
+	service, err := repo.FindService(repoDir, map[string]struct{}{"main": {}}, "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	revision, err := repo.CurrentRevision(repoDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := &serviceCommandServer{cfg: &config.ControllerConfig{RepoDir: repoDir}, availableNodeIDs: map[string]struct{}{"main": {}}}
+	result, err := server.applyPlannedServiceImageUpdates(context.Background(), service, []plannedImageUpdate{{ImageName: "api", Tag: "1.3.0", RepoBacked: true}}, revision, "retry image update", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result == nil || result.CommitID != "" {
+		t.Fatalf("expected an idempotent no-op result, got %+v", result)
 	}
 }

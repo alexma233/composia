@@ -453,6 +453,73 @@ func TestMigrateSetsSQLiteUserVersion(t *testing.T) {
 	}
 }
 
+func TestMigrateVersionNineFailsLegacyRunningExecutions(t *testing.T) {
+	t.Parallel()
+	stateDir := filepath.Join(t.TempDir(), "state")
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	db, err := Open(stateDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"alpha": {"main"}}); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 7, 12, 5, 0, 0, 0, time.UTC)
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "legacy-running", Type: task.TypeDeploy, Source: task.SourceSystem, ServiceName: "alpha", NodeID: "main", Status: task.StatusRunning, CreatedAt: now}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.UpsertTaskStep(ctx, task.StepRecord{TaskID: "legacy-running", StepName: task.StepComposeUp, Status: task.StatusRunning}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "durable-running", Type: task.TypePrune, Source: task.SourceSystem, NodeID: "main", Status: task.StatusRunning, CreatedAt: now.Add(time.Minute)}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.sql.ExecContext(ctx, `UPDATE tasks SET execution_id = 'execution-1', execution_state = 'accepted', lease_expires_at = '2026-07-12T05:10:00Z' WHERE task_id = 'durable-running'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.sql.ExecContext(ctx, `PRAGMA user_version = 9`); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	db, err = Open(stateDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = db.Close() }()
+	detail, err := db.GetTask(ctx, "legacy-running")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if detail.Record.Status != task.StatusFailed || detail.Record.FinishedAt == nil || detail.Record.ErrorSummary == "" {
+		t.Fatalf("legacy task was not reconciled: %+v", detail.Record)
+	}
+	if len(detail.Steps) != 1 || detail.Steps[0].Status != task.StatusFailed {
+		t.Fatalf("legacy steps were not reconciled: %+v", detail.Steps)
+	}
+	instance, err := db.GetServiceInstanceSnapshot(ctx, "alpha", "main")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if instance.RuntimeStatus != ServiceRuntimeError || instance.LastTaskID != "legacy-running" {
+		t.Fatalf("legacy runtime was not reconciled: %+v", instance)
+	}
+	durable, err := db.GetTask(ctx, "durable-running")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if durable.Record.Status != task.StatusRunning || durable.Record.ExecutionState != task.ExecutionAccepted {
+		t.Fatalf("durable execution should survive migration: %+v", durable.Record)
+	}
+}
+
 func TestMigrateFromVersionSevenDropsUnsupportedTasks(t *testing.T) {
 	t.Parallel()
 

@@ -44,7 +44,7 @@ func executeTaskStep(ctx context.Context, client agentv1connect.AgentReportServi
 	finishedAt := timestamppb.Now()
 	if err := reportTaskStepStateWithTimeout(ctx, client, &agentv1.ReportTaskStepStateRequest{TaskId: taskID, StepName: protoAgentTaskStepName(stepName), Status: protoAgentTaskStatus(task.StatusSucceeded), StartedAt: startedAt, FinishedAt: finishedAt}, taskReportTimeout); err != nil {
 		logStepFailed(err)
-		return fmt.Errorf("report succeeded step %s: %w", stepName, err)
+		log.Printf("agent task step succeeded but its status report failed: task_id=%s step=%s error=%v", taskID, stepName, err)
 	}
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("step %s succeeded\n", stepName)); err != nil {
 		logStepFailed(err)
@@ -59,15 +59,26 @@ func reportTaskCompletion(ctx context.Context, client agentv1connect.AgentReport
 }
 
 func reportTaskCompletionWithTimeout(ctx context.Context, client agentv1connect.AgentReportServiceClient, taskID string, status task.Status, errorSummary string, timeout time.Duration) error {
+	finishedAt := time.Now().UTC()
+	if runtime := taskExecutionFromContext(ctx); runtime != nil {
+		if err := runtime.storeCompletion(completion{Status: status, ErrorSummary: errorSummary, FinishedAt: finishedAt}); err != nil {
+			return err
+		}
+	}
 	callCtx := ctx
 	var cancel context.CancelFunc
 	if timeout > 0 {
 		callCtx, cancel = context.WithTimeout(ctx, timeout)
 		defer cancel()
 	}
-	_, err := client.ReportTaskState(callCtx, connect.NewRequest(&agentv1.ReportTaskStateRequest{TaskId: taskID, Status: protoAgentTaskStatus(status), ErrorSummary: errorSummary, FinishedAt: timestamppb.Now()}))
+	_, err := client.ReportTaskState(callCtx, connect.NewRequest(&agentv1.ReportTaskStateRequest{TaskId: taskID, ExecutionId: taskExecutionID(ctx), Status: protoAgentTaskStatus(status), ErrorSummary: errorSummary, FinishedAt: timestamppb.New(finishedAt)}))
 	if err != nil {
 		return fmt.Errorf("report task completion: %w", err)
+	}
+	if runtime := taskExecutionFromContext(ctx); runtime != nil {
+		if err := runtime.clear(); err != nil {
+			return fmt.Errorf("clear task execution state: %w", err)
+		}
 	}
 	return nil
 }
@@ -79,6 +90,7 @@ func reportTaskStepStateWithTimeout(ctx context.Context, client agentv1connect.A
 		callCtx, cancel = context.WithTimeout(ctx, timeout)
 		defer cancel()
 	}
+	request.ExecutionId = taskExecutionID(ctx)
 	_, err := client.ReportTaskStepState(callCtx, connect.NewRequest(request))
 	if err != nil {
 		return err
@@ -101,25 +113,40 @@ func uploadTaskLog(ctx context.Context, logUploader *taskLogUploader, content st
 		return nil
 	}
 	if err := logUploader.Upload(ctx, content); err != nil {
-		return fmt.Errorf("upload task logs: %w", err)
+		log.Printf("upload task logs failed: %v", err)
 	}
 	return nil
 }
 
 func reportBackupResult(ctx context.Context, client agentv1connect.AgentReportServiceClient, taskID, serviceName, dataName, artifactRef string, status task.Status, startedAt, finishedAt time.Time, errorSummary string) error {
-	_, err := client.ReportBackupResult(ctx, connect.NewRequest(&agentv1.ReportBackupResultRequest{
-		BackupId:     fmt.Sprintf("%s-%s", taskID, dataName),
-		TaskId:       taskID,
-		ServiceName:  serviceName,
-		DataName:     dataName,
-		Status:       string(status),
-		StartedAt:    timestamppb.New(startedAt),
-		FinishedAt:   timestamppb.New(finishedAt),
-		ArtifactRef:  artifactRef,
-		ErrorSummary: errorSummary,
-	}))
-	if err != nil {
-		return fmt.Errorf("report backup result: %w", err)
+	result := persistedBackupResult{ServiceName: serviceName, DataName: dataName, ArtifactRef: artifactRef, Status: status, StartedAt: startedAt, FinishedAt: finishedAt, ErrorSummary: errorSummary}
+	runtime := taskExecutionFromContext(ctx)
+	if runtime != nil {
+		if err := runtime.storeBackupResult(result); err != nil {
+			return err
+		}
 	}
-	return nil
+	for {
+		err := sendPersistedBackupResult(ctx, client, taskID, taskExecutionID(ctx), result)
+		if err == nil {
+			if runtime != nil {
+				return runtime.removeFirstBackupResult()
+			}
+			return nil
+		}
+		timer := time.NewTimer(500 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return fmt.Errorf("report backup result: %w", err)
+		case <-timer.C:
+		}
+	}
+}
+
+func sendPersistedBackupResult(ctx context.Context, client agentv1connect.AgentReportServiceClient, taskID, executionID string, result persistedBackupResult) error {
+	callCtx, cancel := context.WithTimeout(ctx, taskReportTimeout)
+	defer cancel()
+	_, err := client.ReportBackupResult(callCtx, connect.NewRequest(&agentv1.ReportBackupResultRequest{TaskId: taskID, ServiceName: result.ServiceName, DataName: result.DataName, Status: string(result.Status), StartedAt: timestamppb.New(result.StartedAt), FinishedAt: timestamppb.New(result.FinishedAt), ArtifactRef: result.ArtifactRef, ErrorSummary: result.ErrorSummary, ExecutionId: executionID}))
+	return err
 }

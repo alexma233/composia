@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -318,9 +319,11 @@ func reportServiceStatus(ctx context.Context, client agentv1connect.AgentReportS
 		NodeId:        cfg.NodeID,
 		RuntimeStatus: runtimeStatus,
 		ReportedAt:    timestamppb.Now(),
+		TaskId:        taskExecutionTaskID(ctx),
+		ExecutionId:   taskExecutionID(ctx),
 	}))
 	if err != nil {
-		return fmt.Errorf("report service instance status: %w", err)
+		log.Printf("report service instance status failed: service=%s status=%s error=%v", serviceName, runtimeStatus, err)
 	}
 	return nil
 }

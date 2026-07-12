@@ -12,7 +12,7 @@ import (
 )
 
 func executePulledTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask) error {
-	logUploader := newTaskLogUploader(client, pulledTask.GetTaskId())
+	logUploader := newTaskLogUploader(client, pulledTask.GetTaskId(), pulledTask.GetExecutionId())
 	defer func() {
 		if err := logUploader.Close(); err != nil {
 			log.Printf("close task log uploader: %v", err)

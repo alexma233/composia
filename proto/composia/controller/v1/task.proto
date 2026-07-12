@@ -16,6 +16,8 @@ service TaskService {
   rpc TailTaskLogs(TailTaskLogsRequest) returns (stream TailTaskLogsResponse);
   // RunTaskAgain starts a new task based on an existing task.
   rpc RunTaskAgain(RunTaskAgainRequest) returns (TaskActionResponse);
+  // FailLostTaskExecution resolves a lease-lost task after an operator verifies its outcome.
+  rpc FailLostTaskExecution(FailLostTaskExecutionRequest) returns (TaskActionResponse);
   // ResolveTaskConfirmation resumes or rejects a task waiting for manual confirmation.
   rpc ResolveTaskConfirmation(ResolveTaskConfirmationRequest) returns (TaskActionResponse);
   // CreateMigrationRollback starts a rollback task from a failed or rejected migration.
@@ -205,6 +207,14 @@ message GetTaskResponse {
   string result_revision = 15;
   // attempt_of_task_id links this task to the prior task it retried.
   string attempt_of_task_id = 16;
+  // execution_state exposes offered, accepted, lease_lost, or completed for agent tasks.
+  string execution_state = 17;
+  google.protobuf.Timestamp lease_expires_at = 18;
+}
+
+message FailLostTaskExecutionRequest {
+  string task_id = 1;
+  string error_summary = 2;
 }
 
 // TailTaskLogsRequest identifies the task log stream to follow.

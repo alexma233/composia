@@ -74,6 +74,8 @@ func reportServiceImageStates(ctx context.Context, client agentv1connect.AgentRe
 		NodeId:      pulledTask.GetNodeId(),
 		Images:      images,
 		ReportedAt:  timestamppb.Now(),
+		TaskId:      pulledTask.GetTaskId(),
+		ExecutionId: taskExecutionID(ctx),
 	}))
 	if err != nil {
 		return fmt.Errorf("report service image states: %w", err)
@@ -122,6 +124,8 @@ func reportServiceImageUpdateChecks(ctx context.Context, client agentv1connect.A
 		NodeId:      pulledTask.GetNodeId(),
 		Checks:      checks,
 		ReportedAt:  timestamppb.Now(),
+		TaskId:      pulledTask.GetTaskId(),
+		ExecutionId: taskExecutionID(ctx),
 	}))
 	if err != nil {
 		return fmt.Errorf("report service image update checks: %w", err)

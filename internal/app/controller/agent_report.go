@@ -52,9 +52,6 @@ func (server *agentReportServer) Heartbeat(ctx context.Context, req *connect.Req
 	previousSnapshot, hadPreviousSnapshot := snapshotIfExists(ctx, server.db, req.Msg.GetNodeId())
 
 	heartbeatAt := time.Now().UTC()
-	if sentAt := req.Msg.GetSentAt(); sentAt != nil {
-		heartbeatAt = sentAt.AsTime().UTC()
-	}
 
 	err := server.db.RecordHeartbeat(ctx, store.NodeHeartbeat{
 		NodeID:              req.Msg.GetNodeId(),
@@ -120,29 +117,41 @@ func (server *agentReportServer) ReportTaskState(ctx context.Context, req *conne
 	if err := ensureTaskNodeMatch(ctx, server.db, req.Msg.GetTaskId()); err != nil {
 		return nil, err
 	}
-
 	finishedAt := time.Now().UTC()
-	if req.Msg.GetFinishedAt() != nil {
-		finishedAt = req.Msg.GetFinishedAt().AsTime().UTC()
-	}
-	if err := server.db.CompleteTask(ctx, req.Msg.GetTaskId(), status, finishedAt, req.Msg.GetErrorSummary()); err != nil {
+	if err := server.db.CompleteTaskExecution(ctx, req.Msg.GetTaskId(), req.Msg.GetExecutionId(), status, finishedAt, req.Msg.GetErrorSummary()); err != nil {
+		if errors.Is(err, store.ErrTaskExecutionMismatch) || errors.Is(err, store.ErrTaskExecutionConflict) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+	if req.Msg.GetExecutionId() == "" {
+		detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		if err := server.queuePostTaskFollowups(ctx, detail.Record); err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		if eventType, ok := taskEventTypeForStatus(detail.Record.Status); ok {
+			dispatchTaskRecordNotification(server.notifier, eventType, detail.Record)
+		}
 	}
 	logControllerReceivedTaskState(ctx, server.db, req.Msg.GetTaskId(), status, req.Msg.GetErrorSummary())
-	if err := server.queuePostTaskFollowups(ctx, detail.Record); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	if eventType, ok := taskEventTypeForStatus(detail.Record.Status); ok {
-		dispatchTaskRecordNotification(server.notifier, eventType, detail.Record)
-	}
 	server.resetTaskLogAck(req.Msg.GetTaskId())
 	server.taskResults.Notify(req.Msg.GetTaskId())
 	notifyTaskQueue(server.taskQueue)
 	return connect.NewResponse(&agentv1.ReportTaskStateResponse{}), nil
+}
+
+func (server *agentReportServer) ensureCurrentTaskExecution(ctx context.Context, taskID, executionID string) error {
+	nodeID, ok := rpcutil.BearerSubject(ctx)
+	if !ok || nodeID == "" {
+		return connect.NewError(connect.CodeUnauthenticated, errors.New("missing bearer subject"))
+	}
+	if _, err := server.db.ValidateTaskExecution(ctx, taskID, executionID, nodeID); err != nil {
+		return connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	return nil
 }
 
 func (server *agentReportServer) queuePostTaskFollowups(ctx context.Context, record task.Record) error {
@@ -187,7 +196,7 @@ func (server *agentReportServer) queueCloudflareTunnelSyncForTask(ctx context.Co
 	if record.Type == task.TypeStop {
 		excludedServiceDir = params.ServiceDir
 	}
-	_, err = createServiceCloudflareTunnelSyncTask(ctx, server.db, server.cfg, server.availableNodeIDs, service.Name, excludedServiceDir, record.Source)
+	_, err = createServiceCloudflareTunnelSyncTask(ctx, server.db, server.cfg, server.availableNodeIDs, service.Name, excludedServiceDir, record.Source, "post:"+record.TaskID+":cloudflare-tunnel-sync")
 	return err
 }
 
@@ -243,11 +252,37 @@ func (server *agentReportServer) queueAutoApplyUpdateForImageCheck(ctx context.C
 	if err != nil {
 		return fmt.Errorf("read repo revision for image update auto apply: %w", err)
 	}
-	createdTasks, _, err := serviceServer.runServiceUpdateWithImageSelections(ctx, service, nil, selections, false, nil, baseRevision, "update images for "+service.Name, task.SourceSchedule, composeRecreateModeParam(task.TypeUpdate, controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_AUTO))
-	if err == nil && len(createdTasks) > 0 {
-		dispatchImageUpdateAppliedNotification(server.notifier, record, createdTasks[0], imageUpdateSelectionNames(selections))
+	createdTasks, _, err := serviceServer.runServiceUpdateWithImageSelections(ctx, service, nil, selections, false, nil, baseRevision, "update images for "+service.Name, task.SourceSchedule, composeRecreateModeParam(task.TypeUpdate, controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_AUTO), "post:"+record.TaskID+":image-auto-apply")
+	if err != nil {
+		return err
 	}
-	return err
+	if len(createdTasks) == 0 {
+		return nil
+	}
+	return server.db.EnqueueTaskOutboxEvent(ctx, record.TaskID, "image_update_applied", time.Now().UTC())
+}
+
+func (server *agentReportServer) persistedImageUpdateApplied(ctx context.Context, record task.Record) (task.Record, []string, error) {
+	params, err := taskParams(record.ParamsJSON)
+	if err != nil {
+		return task.Record{}, nil, err
+	}
+	service, err := repo.FindServiceAtRevision(server.cfg.RepoDir, record.RepoRevision, params.ServiceDir, server.availableNodeIDs)
+	if err != nil {
+		return task.Record{}, nil, err
+	}
+	for _, nodeID := range service.TargetNodes {
+		updateRecord, lookupErr := server.db.GetTaskByDedupeKey(ctx, "post:"+record.TaskID+":image-auto-apply:"+nodeID)
+		if lookupErr != nil {
+			continue
+		}
+		updateParams, paramsErr := taskParams(updateRecord.ParamsJSON)
+		if paramsErr != nil {
+			return task.Record{}, nil, paramsErr
+		}
+		return updateRecord, updateParams.ImageNames, nil
+	}
+	return task.Record{}, nil, fmt.Errorf("find persisted image auto-apply task for %q", record.TaskID)
 }
 
 func (server *agentReportServer) queueCaddyReloadForTask(ctx context.Context, record task.Record) error {
@@ -268,7 +303,7 @@ func (server *agentReportServer) queueCaddyReloadForTask(ctx context.Context, re
 	if !repo.CaddyManaged(service) {
 		return nil
 	}
-	if _, err := createNodeCaddyReloadTask(ctx, server.db, server.cfg, server.availableNodeIDs, record.NodeID, record.Source); err != nil {
+	if _, err := createNodeCaddyReloadTask(ctx, server.db, server.cfg, server.availableNodeIDs, record.NodeID, record.Source, "post:"+record.TaskID+":caddy-reload:"+record.NodeID); err != nil {
 		return err
 	}
 	return nil
@@ -287,6 +322,9 @@ func (server *agentReportServer) ReportTaskStepState(ctx context.Context, req *c
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("status is required"))
 	}
 	if err := ensureTaskNodeMatch(ctx, server.db, req.Msg.GetTaskId()); err != nil {
+		return nil, err
+	}
+	if err := server.ensureCurrentTaskExecution(ctx, req.Msg.GetTaskId(), req.Msg.GetExecutionId()); err != nil {
 		return nil, err
 	}
 
@@ -308,9 +346,6 @@ func (server *agentReportServer) ReportBackupResult(ctx context.Context, req *co
 	if req.Msg.GetTaskId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
 	}
-	if req.Msg.GetBackupId() == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("backup_id is required"))
-	}
 	if req.Msg.GetDataName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("data_name is required"))
 	}
@@ -320,22 +355,40 @@ func (server *agentReportServer) ReportBackupResult(ctx context.Context, req *co
 	if err := ensureTaskNodeMatch(ctx, server.db, req.Msg.GetTaskId()); err != nil {
 		return nil, err
 	}
+	if err := server.ensureCurrentTaskExecution(ctx, req.Msg.GetTaskId(), req.Msg.GetExecutionId()); err != nil {
+		return nil, err
+	}
 	taskDetail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	startedAt := time.Now().UTC().Format(time.RFC3339)
-	if req.Msg.GetStartedAt() != nil {
-		startedAt = req.Msg.GetStartedAt().AsTime().UTC().Format(time.RFC3339)
+	if taskDetail.Record.Type != task.TypeBackup {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("task is not a backup task"))
 	}
-	finishedAt := ""
-	if req.Msg.GetFinishedAt() != nil {
-		finishedAt = req.Msg.GetFinishedAt().AsTime().UTC().Format(time.RFC3339)
+	params, err := taskParams(taskDetail.Record.ParamsJSON)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if !slices.Contains(params.DataNames, req.Msg.GetDataName()) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("data_name is not selected by the backup task"))
+	}
+	if req.Msg.GetServiceName() != "" && req.Msg.GetServiceName() != taskDetail.Record.ServiceName {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name does not match task"))
+	}
+	if req.Msg.GetStatus() != string(task.StatusSucceeded) && req.Msg.GetStatus() != string(task.StatusFailed) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("backup status must be succeeded or failed"))
+	}
+	if req.Msg.GetStatus() == string(task.StatusSucceeded) && req.Msg.GetArtifactRef() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("artifact_ref is required for a successful backup"))
+	}
+	startedAt, finishedAt, err := backupResultTimes(req.Msg.GetStartedAt(), req.Msg.GetFinishedAt())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	backupDetail := store.BackupDetail{
-		BackupID:     req.Msg.GetBackupId(),
+		BackupID:     req.Msg.GetTaskId() + ":" + req.Msg.GetDataName(),
 		TaskID:       req.Msg.GetTaskId(),
-		ServiceName:  req.Msg.GetServiceName(),
+		ServiceName:  taskDetail.Record.ServiceName,
 		NodeID:       taskDetail.Record.NodeID,
 		DataName:     req.Msg.GetDataName(),
 		Status:       req.Msg.GetStatus(),
@@ -344,13 +397,37 @@ func (server *agentReportServer) ReportBackupResult(ctx context.Context, req *co
 		ArtifactRef:  req.Msg.GetArtifactRef(),
 		ErrorSummary: req.Msg.GetErrorSummary(),
 	}
-	if err := server.db.UpsertBackupRecord(ctx, backupDetail); err != nil {
+	created, err := server.db.InsertBackupResult(ctx, backupDetail)
+	if errors.Is(err, store.ErrBackupResultConflict) {
+		return nil, connect.NewError(connect.CodeAlreadyExists, err)
+	}
+	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	if eventType, ok := backupEventTypeForStatus(req.Msg.GetStatus()); ok {
-		dispatchBackupNotification(server.notifier, eventType, taskDetail.Record.Source, backupDetail)
+	if created {
+		if eventType, ok := backupEventTypeForStatus(req.Msg.GetStatus()); ok {
+			dispatchBackupNotification(server.notifier, eventType, taskDetail.Record.Source, backupDetail)
+		}
 	}
 	return connect.NewResponse(&agentv1.ReportBackupResultResponse{}), nil
+}
+
+func backupResultTimes(startedAt, finishedAt *timestamppb.Timestamp) (string, string, error) {
+	if startedAt == nil || finishedAt == nil {
+		return "", "", errors.New("started_at and finished_at are required")
+	}
+	if err := startedAt.CheckValid(); err != nil {
+		return "", "", fmt.Errorf("started_at is invalid: %w", err)
+	}
+	if err := finishedAt.CheckValid(); err != nil {
+		return "", "", fmt.Errorf("finished_at is invalid: %w", err)
+	}
+	started := startedAt.AsTime().UTC()
+	finished := finishedAt.AsTime().UTC()
+	if finished.Before(started) {
+		return "", "", errors.New("finished_at must not be before started_at")
+	}
+	return started.Format(time.RFC3339Nano), finished.Format(time.RFC3339Nano), nil
 }
 
 func (server *agentReportServer) ReportServiceInstanceStatus(ctx context.Context, req *connect.Request[agentv1.ReportServiceInstanceStatusRequest]) (*connect.Response[agentv1.ReportServiceInstanceStatusResponse], error) {
@@ -368,11 +445,23 @@ func (server *agentReportServer) ReportServiceInstanceStatus(ctx context.Context
 	if !ok || authenticatedNodeID != req.Msg.GetNodeId() {
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("node_id does not match bearer token"))
 	}
+	if req.Msg.GetTaskId() == "" || req.Msg.GetExecutionId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id and execution_id are required"))
+	}
+	{
+		if err := server.ensureCurrentTaskExecution(ctx, req.Msg.GetTaskId(), req.Msg.GetExecutionId()); err != nil {
+			return nil, err
+		}
+		detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		if detail.Record.ServiceName != req.Msg.GetServiceName() {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name does not match task"))
+		}
+	}
 
 	reportedAt := time.Now().UTC()
-	if req.Msg.GetReportedAt() != nil {
-		reportedAt = req.Msg.GetReportedAt().AsTime().UTC()
-	}
 	if err := server.db.UpdateServiceInstanceRuntimeStatus(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId(), req.Msg.GetRuntimeStatus(), reportedAt); err != nil {
 		if errors.Is(err, store.ErrServiceNotFound) {
 			return nil, connect.NewError(connect.CodeNotFound, err)
@@ -393,10 +482,22 @@ func (server *agentReportServer) ReportServiceImageStates(ctx context.Context, r
 	if !ok || authenticatedNodeID != req.Msg.GetNodeId() {
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("node_id does not match bearer token"))
 	}
-	reportedAt := time.Now().UTC()
-	if req.Msg.GetReportedAt() != nil {
-		reportedAt = req.Msg.GetReportedAt().AsTime().UTC()
+	if req.Msg.GetTaskId() == "" || req.Msg.GetExecutionId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id and execution_id are required"))
 	}
+	{
+		if err := server.ensureCurrentTaskExecution(ctx, req.Msg.GetTaskId(), req.Msg.GetExecutionId()); err != nil {
+			return nil, err
+		}
+		detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		if detail.Record.ServiceName != req.Msg.GetServiceName() {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name does not match task"))
+		}
+	}
+	reportedAt := time.Now().UTC()
 	states := make([]store.ServiceImageState, 0, len(req.Msg.GetImages()))
 	for _, image := range req.Msg.GetImages() {
 		if image.GetComposeService() == "" {
@@ -447,10 +548,22 @@ func (server *agentReportServer) ReportServiceImageUpdateChecks(ctx context.Cont
 	if !ok || authenticatedNodeID != req.Msg.GetNodeId() {
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("node_id does not match bearer token"))
 	}
-	reportedAt := time.Now().UTC()
-	if req.Msg.GetReportedAt() != nil {
-		reportedAt = req.Msg.GetReportedAt().AsTime().UTC()
+	if req.Msg.GetTaskId() == "" || req.Msg.GetExecutionId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id and execution_id are required"))
 	}
+	{
+		if err := server.ensureCurrentTaskExecution(ctx, req.Msg.GetTaskId(), req.Msg.GetExecutionId()); err != nil {
+			return nil, err
+		}
+		detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		if detail.Record.ServiceName != req.Msg.GetServiceName() {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name does not match task"))
+		}
+	}
+	reportedAt := time.Now().UTC()
 	previousChecks, err := server.db.LatestServiceImageUpdateChecks(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)

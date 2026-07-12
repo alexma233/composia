@@ -97,6 +97,8 @@ func (server *taskServer) GetTask(ctx context.Context, req *connect.Request[cont
 		TriggeredBy:     detail.Record.TriggeredBy,
 		ResultRevision:  detail.Record.ResultRevision,
 		AttemptOfTaskId: detail.Record.AttemptOfTaskID,
+		ExecutionState:  string(detail.Record.ExecutionState),
+		LeaseExpiresAt:  protoNullableTaskTime(detail.Record.LeaseExpiresAt),
 		Steps:           make([]*controllerv1.TaskStepSummary, 0, len(detail.Steps)),
 	}
 	for _, step := range detail.Steps {
@@ -109,6 +111,36 @@ func (server *taskServer) GetTask(ctx context.Context, req *connect.Request[cont
 	}
 
 	return connect.NewResponse(response), nil
+}
+
+func (server *taskServer) FailLostTaskExecution(ctx context.Context, req *connect.Request[controllerv1.FailLostTaskExecutionRequest]) (*connect.Response[controllerv1.TaskActionResponse], error) {
+	if req.Msg == nil || req.Msg.GetTaskId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
+	}
+	detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	if detail.Record.Status != task.StatusRunning || detail.Record.ExecutionState != task.ExecutionLeaseLost {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("task execution lease is not lost"))
+	}
+	summary := strings.TrimSpace(req.Msg.GetErrorSummary())
+	if summary == "" {
+		summary = "task execution lease was lost; outcome requires reconciliation"
+	}
+	finishedAt := time.Now().UTC()
+	if err := server.db.FailLostTaskExecution(ctx, detail.Record.TaskID, finishedAt, summary); err != nil {
+		if errors.Is(err, store.ErrTaskExecutionMismatch) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	detail.Record.Status = task.StatusFailed
+	detail.Record.ErrorSummary = summary
+	detail.Record.FinishedAt = &finishedAt
+	notifyTaskResult(server.taskResults, detail.Record.TaskID)
+	dispatchTaskRecordNotification(server.notifier, corenotify.EventTaskFailed, detail.Record)
+	return connect.NewResponse(taskActionResponse(detail.Record)), nil
 }
 
 func (server *taskServer) TailTaskLogs(ctx context.Context, req *connect.Request[controllerv1.TailTaskLogsRequest], stream *connect.ServerStream[controllerv1.TailTaskLogsResponse]) error {

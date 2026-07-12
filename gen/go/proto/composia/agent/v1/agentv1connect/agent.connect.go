@@ -78,6 +78,12 @@ const (
 	// AgentTaskServicePullNextTaskProcedure is the fully-qualified name of the AgentTaskService's
 	// PullNextTask RPC.
 	AgentTaskServicePullNextTaskProcedure = "/composia.agent.v1.AgentTaskService/PullNextTask"
+	// AgentTaskServiceAcknowledgeTaskProcedure is the fully-qualified name of the AgentTaskService's
+	// AcknowledgeTask RPC.
+	AgentTaskServiceAcknowledgeTaskProcedure = "/composia.agent.v1.AgentTaskService/AcknowledgeTask"
+	// AgentTaskServiceRenewTaskLeaseProcedure is the fully-qualified name of the AgentTaskService's
+	// RenewTaskLease RPC.
+	AgentTaskServiceRenewTaskLeaseProcedure = "/composia.agent.v1.AgentTaskService/RenewTaskLease"
 	// AgentTaskServicePullNextDockerQueryProcedure is the fully-qualified name of the
 	// AgentTaskService's PullNextDockerQuery RPC.
 	AgentTaskServicePullNextDockerQueryProcedure = "/composia.agent.v1.AgentTaskService/PullNextDockerQuery"
@@ -515,6 +521,10 @@ func (UnimplementedAgentReportServiceHandler) OpenContainerLogTunnel(context.Con
 type AgentTaskServiceClient interface {
 	// PullNextTask returns the next available task for the requesting node.
 	PullNextTask(context.Context, *connect.Request[v1.PullNextTaskRequest]) (*connect.Response[v1.PullNextTaskResponse], error)
+	// AcknowledgeTask confirms that the agent durably accepted an offered task.
+	AcknowledgeTask(context.Context, *connect.Request[v1.AcknowledgeTaskRequest]) (*connect.Response[v1.AcknowledgeTaskResponse], error)
+	// RenewTaskLease extends an accepted task execution lease.
+	RenewTaskLease(context.Context, *connect.Request[v1.RenewTaskLeaseRequest]) (*connect.Response[v1.RenewTaskLeaseResponse], error)
 	// PullNextDockerQuery returns the next in-memory Docker query for the requesting node.
 	PullNextDockerQuery(context.Context, *connect.Request[v1.PullNextDockerQueryRequest]) (*connect.Response[v1.PullNextDockerQueryResponse], error)
 }
@@ -536,6 +546,18 @@ func NewAgentTaskServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(agentTaskServiceMethods.ByName("PullNextTask")),
 			connect.WithClientOptions(opts...),
 		),
+		acknowledgeTask: connect.NewClient[v1.AcknowledgeTaskRequest, v1.AcknowledgeTaskResponse](
+			httpClient,
+			baseURL+AgentTaskServiceAcknowledgeTaskProcedure,
+			connect.WithSchema(agentTaskServiceMethods.ByName("AcknowledgeTask")),
+			connect.WithClientOptions(opts...),
+		),
+		renewTaskLease: connect.NewClient[v1.RenewTaskLeaseRequest, v1.RenewTaskLeaseResponse](
+			httpClient,
+			baseURL+AgentTaskServiceRenewTaskLeaseProcedure,
+			connect.WithSchema(agentTaskServiceMethods.ByName("RenewTaskLease")),
+			connect.WithClientOptions(opts...),
+		),
 		pullNextDockerQuery: connect.NewClient[v1.PullNextDockerQueryRequest, v1.PullNextDockerQueryResponse](
 			httpClient,
 			baseURL+AgentTaskServicePullNextDockerQueryProcedure,
@@ -548,12 +570,24 @@ func NewAgentTaskServiceClient(httpClient connect.HTTPClient, baseURL string, op
 // agentTaskServiceClient implements AgentTaskServiceClient.
 type agentTaskServiceClient struct {
 	pullNextTask        *connect.Client[v1.PullNextTaskRequest, v1.PullNextTaskResponse]
+	acknowledgeTask     *connect.Client[v1.AcknowledgeTaskRequest, v1.AcknowledgeTaskResponse]
+	renewTaskLease      *connect.Client[v1.RenewTaskLeaseRequest, v1.RenewTaskLeaseResponse]
 	pullNextDockerQuery *connect.Client[v1.PullNextDockerQueryRequest, v1.PullNextDockerQueryResponse]
 }
 
 // PullNextTask calls composia.agent.v1.AgentTaskService.PullNextTask.
 func (c *agentTaskServiceClient) PullNextTask(ctx context.Context, req *connect.Request[v1.PullNextTaskRequest]) (*connect.Response[v1.PullNextTaskResponse], error) {
 	return c.pullNextTask.CallUnary(ctx, req)
+}
+
+// AcknowledgeTask calls composia.agent.v1.AgentTaskService.AcknowledgeTask.
+func (c *agentTaskServiceClient) AcknowledgeTask(ctx context.Context, req *connect.Request[v1.AcknowledgeTaskRequest]) (*connect.Response[v1.AcknowledgeTaskResponse], error) {
+	return c.acknowledgeTask.CallUnary(ctx, req)
+}
+
+// RenewTaskLease calls composia.agent.v1.AgentTaskService.RenewTaskLease.
+func (c *agentTaskServiceClient) RenewTaskLease(ctx context.Context, req *connect.Request[v1.RenewTaskLeaseRequest]) (*connect.Response[v1.RenewTaskLeaseResponse], error) {
+	return c.renewTaskLease.CallUnary(ctx, req)
 }
 
 // PullNextDockerQuery calls composia.agent.v1.AgentTaskService.PullNextDockerQuery.
@@ -565,6 +599,10 @@ func (c *agentTaskServiceClient) PullNextDockerQuery(ctx context.Context, req *c
 type AgentTaskServiceHandler interface {
 	// PullNextTask returns the next available task for the requesting node.
 	PullNextTask(context.Context, *connect.Request[v1.PullNextTaskRequest]) (*connect.Response[v1.PullNextTaskResponse], error)
+	// AcknowledgeTask confirms that the agent durably accepted an offered task.
+	AcknowledgeTask(context.Context, *connect.Request[v1.AcknowledgeTaskRequest]) (*connect.Response[v1.AcknowledgeTaskResponse], error)
+	// RenewTaskLease extends an accepted task execution lease.
+	RenewTaskLease(context.Context, *connect.Request[v1.RenewTaskLeaseRequest]) (*connect.Response[v1.RenewTaskLeaseResponse], error)
 	// PullNextDockerQuery returns the next in-memory Docker query for the requesting node.
 	PullNextDockerQuery(context.Context, *connect.Request[v1.PullNextDockerQueryRequest]) (*connect.Response[v1.PullNextDockerQueryResponse], error)
 }
@@ -582,6 +620,18 @@ func NewAgentTaskServiceHandler(svc AgentTaskServiceHandler, opts ...connect.Han
 		connect.WithSchema(agentTaskServiceMethods.ByName("PullNextTask")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentTaskServiceAcknowledgeTaskHandler := connect.NewUnaryHandler(
+		AgentTaskServiceAcknowledgeTaskProcedure,
+		svc.AcknowledgeTask,
+		connect.WithSchema(agentTaskServiceMethods.ByName("AcknowledgeTask")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentTaskServiceRenewTaskLeaseHandler := connect.NewUnaryHandler(
+		AgentTaskServiceRenewTaskLeaseProcedure,
+		svc.RenewTaskLease,
+		connect.WithSchema(agentTaskServiceMethods.ByName("RenewTaskLease")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agentTaskServicePullNextDockerQueryHandler := connect.NewUnaryHandler(
 		AgentTaskServicePullNextDockerQueryProcedure,
 		svc.PullNextDockerQuery,
@@ -592,6 +642,10 @@ func NewAgentTaskServiceHandler(svc AgentTaskServiceHandler, opts ...connect.Han
 		switch r.URL.Path {
 		case AgentTaskServicePullNextTaskProcedure:
 			agentTaskServicePullNextTaskHandler.ServeHTTP(w, r)
+		case AgentTaskServiceAcknowledgeTaskProcedure:
+			agentTaskServiceAcknowledgeTaskHandler.ServeHTTP(w, r)
+		case AgentTaskServiceRenewTaskLeaseProcedure:
+			agentTaskServiceRenewTaskLeaseHandler.ServeHTTP(w, r)
 		case AgentTaskServicePullNextDockerQueryProcedure:
 			agentTaskServicePullNextDockerQueryHandler.ServeHTTP(w, r)
 		default:
@@ -605,6 +659,14 @@ type UnimplementedAgentTaskServiceHandler struct{}
 
 func (UnimplementedAgentTaskServiceHandler) PullNextTask(context.Context, *connect.Request[v1.PullNextTaskRequest]) (*connect.Response[v1.PullNextTaskResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentTaskService.PullNextTask is not implemented"))
+}
+
+func (UnimplementedAgentTaskServiceHandler) AcknowledgeTask(context.Context, *connect.Request[v1.AcknowledgeTaskRequest]) (*connect.Response[v1.AcknowledgeTaskResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentTaskService.AcknowledgeTask is not implemented"))
+}
+
+func (UnimplementedAgentTaskServiceHandler) RenewTaskLease(context.Context, *connect.Request[v1.RenewTaskLeaseRequest]) (*connect.Response[v1.RenewTaskLeaseResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentTaskService.RenewTaskLease is not implemented"))
 }
 
 func (UnimplementedAgentTaskServiceHandler) PullNextDockerQuery(context.Context, *connect.Request[v1.PullNextDockerQueryRequest]) (*connect.Response[v1.PullNextDockerQueryResponse], error) {

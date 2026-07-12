@@ -43,6 +43,9 @@ const (
 	// TaskServiceRunTaskAgainProcedure is the fully-qualified name of the TaskService's RunTaskAgain
 	// RPC.
 	TaskServiceRunTaskAgainProcedure = "/composia.controller.v1.TaskService/RunTaskAgain"
+	// TaskServiceFailLostTaskExecutionProcedure is the fully-qualified name of the TaskService's
+	// FailLostTaskExecution RPC.
+	TaskServiceFailLostTaskExecutionProcedure = "/composia.controller.v1.TaskService/FailLostTaskExecution"
 	// TaskServiceResolveTaskConfirmationProcedure is the fully-qualified name of the TaskService's
 	// ResolveTaskConfirmation RPC.
 	TaskServiceResolveTaskConfirmationProcedure = "/composia.controller.v1.TaskService/ResolveTaskConfirmation"
@@ -61,6 +64,8 @@ type TaskServiceClient interface {
 	TailTaskLogs(context.Context, *connect.Request[v1.TailTaskLogsRequest]) (*connect.ServerStreamForClient[v1.TailTaskLogsResponse], error)
 	// RunTaskAgain starts a new task based on an existing task.
 	RunTaskAgain(context.Context, *connect.Request[v1.RunTaskAgainRequest]) (*connect.Response[v1.TaskActionResponse], error)
+	// FailLostTaskExecution resolves a lease-lost task after an operator verifies its outcome.
+	FailLostTaskExecution(context.Context, *connect.Request[v1.FailLostTaskExecutionRequest]) (*connect.Response[v1.TaskActionResponse], error)
 	// ResolveTaskConfirmation resumes or rejects a task waiting for manual confirmation.
 	ResolveTaskConfirmation(context.Context, *connect.Request[v1.ResolveTaskConfirmationRequest]) (*connect.Response[v1.TaskActionResponse], error)
 	// CreateMigrationRollback starts a rollback task from a failed or rejected migration.
@@ -102,6 +107,12 @@ func NewTaskServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(taskServiceMethods.ByName("RunTaskAgain")),
 			connect.WithClientOptions(opts...),
 		),
+		failLostTaskExecution: connect.NewClient[v1.FailLostTaskExecutionRequest, v1.TaskActionResponse](
+			httpClient,
+			baseURL+TaskServiceFailLostTaskExecutionProcedure,
+			connect.WithSchema(taskServiceMethods.ByName("FailLostTaskExecution")),
+			connect.WithClientOptions(opts...),
+		),
 		resolveTaskConfirmation: connect.NewClient[v1.ResolveTaskConfirmationRequest, v1.TaskActionResponse](
 			httpClient,
 			baseURL+TaskServiceResolveTaskConfirmationProcedure,
@@ -123,6 +134,7 @@ type taskServiceClient struct {
 	getTask                 *connect.Client[v1.GetTaskRequest, v1.GetTaskResponse]
 	tailTaskLogs            *connect.Client[v1.TailTaskLogsRequest, v1.TailTaskLogsResponse]
 	runTaskAgain            *connect.Client[v1.RunTaskAgainRequest, v1.TaskActionResponse]
+	failLostTaskExecution   *connect.Client[v1.FailLostTaskExecutionRequest, v1.TaskActionResponse]
 	resolveTaskConfirmation *connect.Client[v1.ResolveTaskConfirmationRequest, v1.TaskActionResponse]
 	createMigrationRollback *connect.Client[v1.CreateMigrationRollbackRequest, v1.TaskActionResponse]
 }
@@ -147,6 +159,11 @@ func (c *taskServiceClient) RunTaskAgain(ctx context.Context, req *connect.Reque
 	return c.runTaskAgain.CallUnary(ctx, req)
 }
 
+// FailLostTaskExecution calls composia.controller.v1.TaskService.FailLostTaskExecution.
+func (c *taskServiceClient) FailLostTaskExecution(ctx context.Context, req *connect.Request[v1.FailLostTaskExecutionRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return c.failLostTaskExecution.CallUnary(ctx, req)
+}
+
 // ResolveTaskConfirmation calls composia.controller.v1.TaskService.ResolveTaskConfirmation.
 func (c *taskServiceClient) ResolveTaskConfirmation(ctx context.Context, req *connect.Request[v1.ResolveTaskConfirmationRequest]) (*connect.Response[v1.TaskActionResponse], error) {
 	return c.resolveTaskConfirmation.CallUnary(ctx, req)
@@ -167,6 +184,8 @@ type TaskServiceHandler interface {
 	TailTaskLogs(context.Context, *connect.Request[v1.TailTaskLogsRequest], *connect.ServerStream[v1.TailTaskLogsResponse]) error
 	// RunTaskAgain starts a new task based on an existing task.
 	RunTaskAgain(context.Context, *connect.Request[v1.RunTaskAgainRequest]) (*connect.Response[v1.TaskActionResponse], error)
+	// FailLostTaskExecution resolves a lease-lost task after an operator verifies its outcome.
+	FailLostTaskExecution(context.Context, *connect.Request[v1.FailLostTaskExecutionRequest]) (*connect.Response[v1.TaskActionResponse], error)
 	// ResolveTaskConfirmation resumes or rejects a task waiting for manual confirmation.
 	ResolveTaskConfirmation(context.Context, *connect.Request[v1.ResolveTaskConfirmationRequest]) (*connect.Response[v1.TaskActionResponse], error)
 	// CreateMigrationRollback starts a rollback task from a failed or rejected migration.
@@ -204,6 +223,12 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(taskServiceMethods.ByName("RunTaskAgain")),
 		connect.WithHandlerOptions(opts...),
 	)
+	taskServiceFailLostTaskExecutionHandler := connect.NewUnaryHandler(
+		TaskServiceFailLostTaskExecutionProcedure,
+		svc.FailLostTaskExecution,
+		connect.WithSchema(taskServiceMethods.ByName("FailLostTaskExecution")),
+		connect.WithHandlerOptions(opts...),
+	)
 	taskServiceResolveTaskConfirmationHandler := connect.NewUnaryHandler(
 		TaskServiceResolveTaskConfirmationProcedure,
 		svc.ResolveTaskConfirmation,
@@ -226,6 +251,8 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 			taskServiceTailTaskLogsHandler.ServeHTTP(w, r)
 		case TaskServiceRunTaskAgainProcedure:
 			taskServiceRunTaskAgainHandler.ServeHTTP(w, r)
+		case TaskServiceFailLostTaskExecutionProcedure:
+			taskServiceFailLostTaskExecutionHandler.ServeHTTP(w, r)
 		case TaskServiceResolveTaskConfirmationProcedure:
 			taskServiceResolveTaskConfirmationHandler.ServeHTTP(w, r)
 		case TaskServiceCreateMigrationRollbackProcedure:
@@ -253,6 +280,10 @@ func (UnimplementedTaskServiceHandler) TailTaskLogs(context.Context, *connect.Re
 
 func (UnimplementedTaskServiceHandler) RunTaskAgain(context.Context, *connect.Request[v1.RunTaskAgainRequest]) (*connect.Response[v1.TaskActionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.TaskService.RunTaskAgain is not implemented"))
+}
+
+func (UnimplementedTaskServiceHandler) FailLostTaskExecution(context.Context, *connect.Request[v1.FailLostTaskExecutionRequest]) (*connect.Response[v1.TaskActionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.controller.v1.TaskService.FailLostTaskExecution is not implemented"))
 }
 
 func (UnimplementedTaskServiceHandler) ResolveTaskConfirmation(context.Context, *connect.Request[v1.ResolveTaskConfirmationRequest]) (*connect.Response[v1.TaskActionResponse], error) {

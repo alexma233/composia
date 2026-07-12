@@ -1333,8 +1333,13 @@ func TestExecutePulledTaskWithTimeoutMarksTimedOutTaskFailed(t *testing.T) {
 	defer reportHTTPServer.Close()
 
 	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
-	pulledTask := &agentv1.AgentTask{TaskId: "task-timeout", Type: protoAgentTaskType(task.TypePrune), NodeId: "main", ParamsJson: `{"target":"images_all"}`}
-	err := executePulledTaskWithTimeout(context.Background(), nil, reportClient, &config.AgentConfig{}, pulledTask, time.Second)
+	pulledTask := &agentv1.AgentTask{TaskId: "task-timeout", ExecutionId: "execution-timeout", Type: protoAgentTaskType(task.TypePrune), NodeId: "main", ParamsJson: `{"target":"images_all"}`}
+	statePath := taskExecutionStatePath(t.TempDir())
+	runtime := &taskExecutionRuntime{path: statePath, state: persistedTaskExecution{TaskID: pulledTask.GetTaskId(), ExecutionID: pulledTask.GetExecutionId(), Acknowledged: true}}
+	if err := persistTaskExecution(statePath, runtime.state); err != nil {
+		t.Fatal(err)
+	}
+	err := executePulledTaskWithTimeout(withTaskExecution(context.Background(), runtime), nil, reportClient, &config.AgentConfig{}, pulledTask, time.Second)
 	if err == nil || !strings.Contains(err.Error(), "task exceeded execution timeout") {
 		t.Fatalf("expected timeout error, got %v", err)
 	}
@@ -1344,6 +1349,9 @@ func TestExecutePulledTaskWithTimeoutMarksTimedOutTaskFailed(t *testing.T) {
 	if reportServer.taskStatus != string(task.StatusFailed) {
 		t.Fatalf("expected failed task status, got %q", reportServer.taskStatus)
 	}
+	if reportServer.taskExecutionID != pulledTask.GetExecutionId() {
+		t.Fatalf("expected execution_id %q, got %q", pulledTask.GetExecutionId(), reportServer.taskExecutionID)
+	}
 	if !strings.Contains(reportServer.taskErrorSummary, "task exceeded execution timeout") {
 		t.Fatalf("expected timeout error summary, got %q", reportServer.taskErrorSummary)
 	}
@@ -1352,7 +1360,7 @@ func TestExecutePulledTaskWithTimeoutMarksTimedOutTaskFailed(t *testing.T) {
 	}
 }
 
-func TestExecutePulledTaskWithTimeoutMarksExecutionErrorFailed(t *testing.T) {
+func TestExecutePulledTaskWithTimeoutDoesNotFailForLogTransportErrors(t *testing.T) {
 	t.Parallel()
 
 	reportServer := &agentExecutionTestReportServer{wrongLogAckTaskID: true}
@@ -1372,17 +1380,14 @@ func TestExecutePulledTaskWithTimeoutMarksExecutionErrorFailed(t *testing.T) {
 	reportClient := agentv1connect.NewAgentReportServiceClient(reportHTTPServer.Client(), reportHTTPServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
 	pulledTask := &agentv1.AgentTask{TaskId: "task-error", Type: protoAgentTaskType(task.TypePrune), NodeId: "main", ParamsJson: `{"target":"images_all"}`}
 	err := executePulledTaskWithTimeout(context.Background(), nil, reportClient, &config.AgentConfig{}, pulledTask, time.Hour)
-	if err == nil || !strings.Contains(err.Error(), "unexpected log ack task_id") {
-		t.Fatalf("expected log ack task id error, got %v", err)
+	if err != nil {
+		t.Fatalf("expected log transport error to be non-fatal, got %v", err)
 	}
 
 	reportServer.mu.Lock()
 	defer reportServer.mu.Unlock()
-	if reportServer.taskStatus != string(task.StatusFailed) {
-		t.Fatalf("expected failed task status, got %q", reportServer.taskStatus)
-	}
-	if !strings.Contains(reportServer.taskErrorSummary, "unexpected log ack task_id") {
-		t.Fatalf("expected execution error summary, got %q", reportServer.taskErrorSummary)
+	if reportServer.taskStatus != string(task.StatusSucceeded) {
+		t.Fatalf("expected succeeded task status, got %q", reportServer.taskStatus)
 	}
 }
 
@@ -1438,6 +1443,7 @@ type agentExecutionTestReportServer struct {
 	agentv1connect.UnimplementedAgentReportServiceHandler
 	mu                 sync.Mutex
 	taskStatus         string
+	taskExecutionID    string
 	taskErrorSummary   string
 	runtimeStatus      string
 	stepStatuses       map[task.StepName]string
@@ -1464,6 +1470,7 @@ func (server *agentExecutionTestReportServer) ReportTaskState(ctx context.Contex
 	server.mu.Lock()
 	defer server.mu.Unlock()
 	server.taskStatus = agentTaskStatusText(req.Msg.GetStatus())
+	server.taskExecutionID = req.Msg.GetExecutionId()
 	server.taskErrorSummary = req.Msg.GetErrorSummary()
 	return connect.NewResponse(&agentv1.ReportTaskStateResponse{}), nil
 }

@@ -9,6 +9,8 @@ weight: 10
 ## Table of Contents
 
 - [proto/composia/agent/v1/agent.proto](#proto_composia_agent_v1_agent-proto)
+    - [AcknowledgeTaskRequest](#composia-agent-v1-AcknowledgeTaskRequest)
+    - [AcknowledgeTaskResponse](#composia-agent-v1-AcknowledgeTaskResponse)
     - [AgentTask](#composia-agent-v1-AgentTask)
     - [ContainerInfo](#composia-agent-v1-ContainerInfo)
     - [ContainerInfo.LabelsEntry](#composia-agent-v1-ContainerInfo-LabelsEntry)
@@ -58,6 +60,8 @@ weight: 10
     - [RemoveNetworkResponse](#composia-agent-v1-RemoveNetworkResponse)
     - [RemoveVolumeRequest](#composia-agent-v1-RemoveVolumeRequest)
     - [RemoveVolumeResponse](#composia-agent-v1-RemoveVolumeResponse)
+    - [RenewTaskLeaseRequest](#composia-agent-v1-RenewTaskLeaseRequest)
+    - [RenewTaskLeaseResponse](#composia-agent-v1-RenewTaskLeaseResponse)
     - [ReportBackupResultRequest](#composia-agent-v1-ReportBackupResultRequest)
     - [ReportBackupResultResponse](#composia-agent-v1-ReportBackupResultResponse)
     - [ReportDockerQueryResultRequest](#composia-agent-v1-ReportDockerQueryResultRequest)
@@ -105,6 +109,37 @@ weight: 10
 
 
 
+<a name="composia-agent-v1-AcknowledgeTaskRequest"></a>
+
+### AcknowledgeTaskRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| task_id | [string](#string) |  |  |
+| execution_id | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="composia-agent-v1-AcknowledgeTaskResponse"></a>
+
+### AcknowledgeTaskResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| lease_expires_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+
+
+
+
+
+
 <a name="composia-agent-v1-AgentTask"></a>
 
 ### AgentTask
@@ -121,6 +156,8 @@ AgentTask describes one executable task assigned to an agent.
 | service_dir | [string](#string) |  | service_dir is the task service directory path within the bundle. |
 | data_names | [string](#string) | repeated | data_names lists selected data entries for backup-like tasks. |
 | params_json | [string](#string) |  | params_json stores task-type-specific JSON parameters. |
+| execution_id | [string](#string) |  | execution_id identifies this specific delivery and rejects stale reports. |
+| lease_expires_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | lease_expires_at is the controller deadline for acknowledging or renewing this execution. |
 
 
 
@@ -301,6 +338,7 @@ GetServiceBundleRequest identifies the task whose bundle should be streamed.
 | ----- | ---- | ----- | ----------- |
 | task_id | [string](#string) |  | task_id is the controller task ID whose bundle should be streamed. |
 | service_dir | [string](#string) |  | service_dir overrides the task service directory for multi-service bundle consumers. |
+| execution_id | [string](#string) |  |  |
 
 
 
@@ -824,6 +862,7 @@ PullNextTaskRequest identifies the node that is requesting work.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | node_id | [string](#string) |  | node_id is the stable node identifier. |
+| execution_protocol | [uint32](#uint32) |  | execution_protocol must be 1; legacy agents are not allowed to execute leased tasks. |
 
 
 
@@ -949,6 +988,37 @@ RemoveVolumeResponse acknowledges one local volume deletion request.
 
 
 
+<a name="composia-agent-v1-RenewTaskLeaseRequest"></a>
+
+### RenewTaskLeaseRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| task_id | [string](#string) |  |  |
+| execution_id | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="composia-agent-v1-RenewTaskLeaseResponse"></a>
+
+### RenewTaskLeaseResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| lease_expires_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+
+
+
+
+
+
 <a name="composia-agent-v1-ReportBackupResultRequest"></a>
 
 ### ReportBackupResultRequest
@@ -966,6 +1036,7 @@ ReportBackupResultRequest reports the result of one backup execution.
 | finished_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | finished_at is set when the backup reaches a terminal state. |
 | artifact_ref | [string](#string) |  | artifact_ref identifies the produced backup artifact, when present. |
 | error_summary | [string](#string) |  | error_summary contains the failure summary when the backup fails. |
+| execution_id | [string](#string) |  |  |
 
 
 
@@ -1058,6 +1129,8 @@ ReportServiceImageStatesRequest reports image digests observed by one agent.
 | node_id | [string](#string) |  |  |
 | images | [ServiceImageState](#composia-agent-v1-ServiceImageState) | repeated |  |
 | reported_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+| task_id | [string](#string) |  |  |
+| execution_id | [string](#string) |  |  |
 
 
 
@@ -1086,6 +1159,8 @@ ReportServiceImageUpdateChecksRequest reports candidate image updates observed b
 | node_id | [string](#string) |  |  |
 | checks | [ServiceImageUpdateCheck](#composia-agent-v1-ServiceImageUpdateCheck) | repeated |  |
 | reported_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+| task_id | [string](#string) |  |  |
+| execution_id | [string](#string) |  |  |
 
 
 
@@ -1114,6 +1189,8 @@ ReportServiceInstanceStatusRequest reports one service instance runtime snapshot
 | node_id | [string](#string) |  | node_id is the stable node identifier. |
 | runtime_status | [string](#string) |  | runtime_status is the latest instance status string observed by the agent. |
 | reported_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | reported_at is the time when the status snapshot was observed. |
+| task_id | [string](#string) |  |  |
+| execution_id | [string](#string) |  |  |
 
 
 
@@ -1142,6 +1219,7 @@ ReportTaskStateRequest reports the latest task-level state from an agent.
 | status | [AgentTaskStatus](#composia-agent-v1-AgentTaskStatus) |  | status is the latest task status observed by the agent. |
 | error_summary | [string](#string) |  | error_summary contains the task failure summary when the task fails. |
 | finished_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | finished_at is set when the task reaches a terminal state. |
+| execution_id | [string](#string) |  | execution_id binds the terminal report to the current task delivery. |
 
 
 
@@ -1171,6 +1249,7 @@ ReportTaskStepStateRequest reports the latest task step state from an agent.
 | status | [AgentTaskStatus](#composia-agent-v1-AgentTaskStatus) |  | status is the latest step status observed by the agent. |
 | started_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | started_at is set when the step begins. |
 | finished_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | finished_at is set when the step reaches a terminal state. |
+| execution_id | [string](#string) |  |  |
 
 
 
@@ -1273,6 +1352,7 @@ UploadTaskLogsRequest carries one ordered log chunk for a task.
 | seq | [uint64](#uint64) |  | seq is a monotonically increasing sequence number per task log stream. |
 | sent_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | sent_at is the agent time when this log chunk was sent. |
 | content | [string](#string) |  | content is the incremental log payload. |
+| execution_id | [string](#string) |  |  |
 
 
 
@@ -1484,6 +1564,8 @@ AgentTaskService lets an agent pull work assigned to its node.
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
 | PullNextTask | [PullNextTaskRequest](#composia-agent-v1-PullNextTaskRequest) | [PullNextTaskResponse](#composia-agent-v1-PullNextTaskResponse) | PullNextTask returns the next available task for the requesting node. |
+| AcknowledgeTask | [AcknowledgeTaskRequest](#composia-agent-v1-AcknowledgeTaskRequest) | [AcknowledgeTaskResponse](#composia-agent-v1-AcknowledgeTaskResponse) | AcknowledgeTask confirms that the agent durably accepted an offered task. |
+| RenewTaskLease | [RenewTaskLeaseRequest](#composia-agent-v1-RenewTaskLeaseRequest) | [RenewTaskLeaseResponse](#composia-agent-v1-RenewTaskLeaseResponse) | RenewTaskLease extends an accepted task execution lease. |
 | PullNextDockerQuery | [PullNextDockerQueryRequest](#composia-agent-v1-PullNextDockerQueryRequest) | [PullNextDockerQueryResponse](#composia-agent-v1-PullNextDockerQueryResponse) | PullNextDockerQuery returns the next in-memory Docker query for the requesting node. |
 
 

@@ -15,7 +15,15 @@ func dispatchTaskRecordNotification(notifier *appnotify.Notifier, eventType core
 	if notifier == nil {
 		return
 	}
-	notifier.Dispatch(appnotify.Event{
+	notifier.Dispatch(taskRecordNotificationEvent(eventType, record))
+}
+
+func sendTaskRecordNotification(ctx context.Context, notifier *appnotify.Notifier, eventType corenotify.EventType, record task.Record) error {
+	return notifier.Send(ctx, taskRecordNotificationEvent(eventType, record))
+}
+
+func taskRecordNotificationEvent(eventType corenotify.EventType, record task.Record) appnotify.Event {
+	return appnotify.Event{
 		Type:       eventType,
 		OccurredAt: derefTaskTime(record.FinishedAt, record.StartedAt),
 		Source:     record.Source,
@@ -30,7 +38,7 @@ func dispatchTaskRecordNotification(notifier *appnotify.Notifier, eventType core
 			StartedAt:    record.StartedAt,
 			FinishedAt:   record.FinishedAt,
 		},
-	})
+	}
 }
 
 func dispatchBackupNotification(notifier *appnotify.Notifier, eventType corenotify.EventType, source task.Source, detail store.BackupDetail) {
@@ -75,11 +83,12 @@ func dispatchImageUpdateAvailableNotification(notifier *appnotify.Notifier, sour
 	})
 }
 
-func dispatchImageUpdateAppliedNotification(notifier *appnotify.Notifier, sourceRecord, updateRecord task.Record, imageNames []string) {
-	if notifier == nil {
-		return
-	}
-	notifier.Dispatch(appnotify.Event{
+func sendImageUpdateAppliedNotification(ctx context.Context, notifier *appnotify.Notifier, sourceRecord, updateRecord task.Record, imageNames []string) error {
+	return notifier.Send(ctx, imageUpdateAppliedNotificationEvent(sourceRecord, updateRecord, imageNames))
+}
+
+func imageUpdateAppliedNotificationEvent(sourceRecord, updateRecord task.Record, imageNames []string) appnotify.Event {
+	return appnotify.Event{
 		Type:       corenotify.EventImageUpdateApplied,
 		OccurredAt: updateRecord.CreatedAt,
 		Source:     sourceRecord.Source,
@@ -90,7 +99,7 @@ func dispatchImageUpdateAppliedNotification(notifier *appnotify.Notifier, source
 			NodeID:           sourceRecord.NodeID,
 			SelectedImageIDs: append([]string(nil), imageNames...),
 		},
-	})
+	}
 }
 
 func dispatchNodeNotification(notifier *appnotify.Notifier, eventType corenotify.EventType, snapshot store.NodeSnapshot) {

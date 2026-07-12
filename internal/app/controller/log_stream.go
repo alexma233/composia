@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"sync"
 
@@ -18,8 +17,9 @@ type taskLogAckState struct {
 }
 
 type taskLogUploadSession struct {
-	taskID  string
-	logPath string
+	taskID      string
+	executionID string
+	logPath     string
 }
 
 func (server *agentReportServer) UploadTaskLogs(ctx context.Context, stream *connect.BidiStream[agentv1.UploadTaskLogsRequest, agentv1.UploadTaskLogsResponse]) error {
@@ -39,11 +39,11 @@ func (server *agentReportServer) UploadTaskLogs(ctx context.Context, stream *con
 		if message.GetSeq() == 0 {
 			return connect.NewError(connect.CodeInvalidArgument, errors.New("seq must be greater than 0"))
 		}
-		if err := server.bindTaskLogUploadSession(ctx, session, message.GetTaskId()); err != nil {
+		if err := server.bindTaskLogUploadSession(ctx, session, message.GetTaskId(), message.GetExecutionId()); err != nil {
 			return err
 		}
 
-		confirmedSeq, err := server.applyTaskLogUpload(session, message)
+		confirmedSeq, err := server.applyTaskLogUpload(ctx, session, message)
 		if err != nil {
 			return err
 		}
@@ -54,7 +54,7 @@ func (server *agentReportServer) UploadTaskLogs(ctx context.Context, stream *con
 	}
 }
 
-func (server *agentReportServer) bindTaskLogUploadSession(ctx context.Context, session *taskLogUploadSession, taskID string) error {
+func (server *agentReportServer) bindTaskLogUploadSession(ctx context.Context, session *taskLogUploadSession, taskID, executionID string) error {
 	if session.taskID == "" {
 		if err := ensureTaskNodeMatch(ctx, server.db, taskID); err != nil {
 			return err
@@ -66,49 +66,53 @@ func (server *agentReportServer) bindTaskLogUploadSession(ctx context.Context, s
 			}
 			return connect.NewError(connect.CodeInternal, err)
 		}
+		if err := server.ensureCurrentTaskExecution(ctx, taskID, executionID); err != nil {
+			return err
+		}
 		session.taskID = taskID
+		session.executionID = executionID
 		session.logPath = detail.Record.LogPath
 		return nil
 	}
-	if taskID != session.taskID {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("all log events in one stream must use the same task_id"))
+	if taskID != session.taskID || executionID != session.executionID {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("all log events in one stream must use the same task_id and execution_id"))
 	}
 	return nil
 }
 
-func (server *agentReportServer) applyTaskLogUpload(session *taskLogUploadSession, message *agentv1.UploadTaskLogsRequest) (uint64, error) {
-	confirmedSeq := server.confirmedTaskLogSeq(session.taskID)
+func (server *agentReportServer) applyTaskLogUpload(ctx context.Context, session *taskLogUploadSession, message *agentv1.UploadTaskLogsRequest) (uint64, error) {
+	state := server.taskLogState()
+	state.mu.Lock()
+	defer state.mu.Unlock()
+	confirmedSeq, ok := state.confirmedBy[session.taskID]
+	if !ok {
+		var err error
+		confirmedSeq, err = server.db.TaskLogConfirmedSeq(ctx, session.taskID)
+		if err != nil {
+			return 0, connect.NewError(connect.CodeInternal, err)
+		}
+		state.confirmedBy[session.taskID] = confirmedSeq
+	}
 	switch {
 	case message.GetSeq() <= confirmedSeq:
 		return confirmedSeq, nil
 	case message.GetSeq() != confirmedSeq+1:
-		return 0, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("log seq %d is ahead of expected next seq %d", message.GetSeq(), confirmedSeq+1))
+		return confirmedSeq, nil
 	}
 
 	if err := appendTaskLogRaw(session.logPath, message.GetContent()); err != nil {
 		return 0, connect.NewError(connect.CodeInternal, err)
 	}
 	confirmedSeq = message.GetSeq()
-	server.setConfirmedTaskLogSeq(session.taskID, confirmedSeq)
+	if err := server.db.SetTaskLogConfirmedSeq(ctx, session.taskID, confirmedSeq); err != nil {
+		return 0, connect.NewError(connect.CodeInternal, err)
+	}
+	state.confirmedBy[session.taskID] = confirmedSeq
 	return confirmedSeq, nil
 }
 
 func taskLogAckResponse(taskID string, confirmedSeq uint64) *agentv1.UploadTaskLogsResponse {
 	return &agentv1.UploadTaskLogsResponse{TaskId: taskID, LastConfirmedSeq: confirmedSeq}
-}
-
-func (server *agentReportServer) confirmedTaskLogSeq(taskID string) uint64 {
-	state := server.taskLogState()
-	state.mu.Lock()
-	defer state.mu.Unlock()
-	return state.confirmedBy[taskID]
-}
-
-func (server *agentReportServer) setConfirmedTaskLogSeq(taskID string, seq uint64) {
-	state := server.taskLogState()
-	state.mu.Lock()
-	defer state.mu.Unlock()
-	state.confirmedBy[taskID] = seq
 }
 
 func (server *agentReportServer) resetTaskLogAck(taskID string) {

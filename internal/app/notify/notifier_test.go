@@ -2,6 +2,7 @@ package notify
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -95,7 +96,7 @@ func TestNotifierDispatchSendsMatchingRoutes(t *testing.T) {
 		},
 	}}
 
-	notifier.dispatch(Event{
+	if err := notifier.Send(context.Background(), Event{
 		Type:       corenotify.EventTaskFailed,
 		OccurredAt: time.Date(2026, 5, 31, 4, 5, 0, 0, time.UTC),
 		Source:     task.SourceCLI,
@@ -106,7 +107,9 @@ func TestNotifierDispatchSendsMatchingRoutes(t *testing.T) {
 			ServiceName: "web",
 			NodeID:      "main",
 		},
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	if matchingSender.calls != 1 {
 		t.Fatalf("matching sender calls = %d", matchingSender.calls)
@@ -119,15 +122,26 @@ func TestNotifierDispatchSendsMatchingRoutes(t *testing.T) {
 	}
 }
 
+func TestNotifierSendReturnsDeliveryFailure(t *testing.T) {
+	t.Parallel()
+	sender := &recordingSender{err: errors.New("delivery failed")}
+	notifier := &Notifier{routes: []route{{name: "test", sender: sender}}}
+	err := notifier.Send(context.Background(), Event{Type: corenotify.EventTaskFailed, Task: &TaskEvent{TaskID: "task-1"}})
+	if err == nil || !strings.Contains(err.Error(), "delivery failed") {
+		t.Fatalf("expected delivery failure, got %v", err)
+	}
+}
+
 type recordingSender struct {
 	calls   int
 	subject string
 	body    string
+	err     error
 }
 
 func (sender *recordingSender) Send(_ context.Context, subject, body string) error {
 	sender.calls++
 	sender.subject = subject
 	sender.body = body
-	return nil
+	return sender.err
 }

@@ -20,6 +20,7 @@ const (
 type taskLogUploader struct {
 	client           agentv1connect.AgentReportServiceClient
 	taskID           string
+	executionID      string
 	timeout          time.Duration
 	nextSeq          uint64
 	lastConfirmedSeq uint64
@@ -28,8 +29,12 @@ type taskLogUploader struct {
 	retryBackOff     *backoff.ExponentialBackOff
 }
 
-func newTaskLogUploader(client agentv1connect.AgentReportServiceClient, taskID string) *taskLogUploader {
-	return newTaskLogUploaderWithTimeout(client, taskID, taskReportTimeout)
+func newTaskLogUploader(client agentv1connect.AgentReportServiceClient, taskID string, executionID ...string) *taskLogUploader {
+	uploader := newTaskLogUploaderWithTimeout(client, taskID, taskReportTimeout)
+	if len(executionID) > 0 {
+		uploader.executionID = executionID[0]
+	}
+	return uploader
 }
 
 func newTaskLogUploaderWithTimeout(client agentv1connect.AgentReportServiceClient, taskID string, timeout time.Duration) *taskLogUploader {
@@ -61,13 +66,18 @@ func (uploader *taskLogUploader) Upload(ctx context.Context, content string) err
 		defer cancel()
 	}
 	uploader.pending = append(uploader.pending, &agentv1.UploadTaskLogsRequest{
-		TaskId:  uploader.taskID,
-		Seq:     uploader.nextSeq,
-		SentAt:  timestamppb.Now(),
-		Content: content,
+		TaskId:      uploader.taskID,
+		ExecutionId: uploader.executionID,
+		Seq:         uploader.nextSeq,
+		SentAt:      timestamppb.Now(),
+		Content:     content,
 	})
 	uploader.nextSeq++
-	return uploader.flush(uploadCtx)
+	if err := uploader.flush(uploadCtx); err != nil {
+		uploader.abandonPending()
+		return err
+	}
+	return nil
 }
 
 func (uploader *taskLogUploader) Close() error {
@@ -130,26 +140,32 @@ func (uploader *taskLogUploader) sendPendingLog(ctx context.Context, current *ag
 		}
 		return false, nil
 	}
-	if err := uploader.applyAck(current, ack); err != nil {
+	confirmed, err := uploader.applyAck(current, ack)
+	if err != nil {
 		return false, err
 	}
 	uploader.retryBackOff.Reset()
-	return true, nil
+	return confirmed, nil
 }
 
-func (uploader *taskLogUploader) applyAck(current *agentv1.UploadTaskLogsRequest, ack *agentv1.UploadTaskLogsResponse) error {
+func (uploader *taskLogUploader) applyAck(current *agentv1.UploadTaskLogsRequest, ack *agentv1.UploadTaskLogsResponse) (bool, error) {
 	if ack.GetTaskId() != "" && ack.GetTaskId() != uploader.taskID {
-		return fmt.Errorf("unexpected log ack task_id %q", ack.GetTaskId())
+		return false, fmt.Errorf("unexpected log ack task_id %q", ack.GetTaskId())
 	}
 	if ack.GetLastConfirmedSeq() < uploader.lastConfirmedSeq {
-		return fmt.Errorf("log ack moved backwards from %d to %d", uploader.lastConfirmedSeq, ack.GetLastConfirmedSeq())
+		uploader.lastConfirmedSeq = ack.GetLastConfirmedSeq()
+		for index, entry := range uploader.pending {
+			entry.Seq = uploader.lastConfirmedSeq + uint64(index) + 1
+		}
+		uploader.nextSeq = uploader.lastConfirmedSeq + uint64(len(uploader.pending)) + 1
+		return false, nil
 	}
 	uploader.lastConfirmedSeq = ack.GetLastConfirmedSeq()
 	uploader.dropConfirmed()
 	if uploader.lastConfirmedSeq < current.GetSeq() {
-		return fmt.Errorf("controller acked seq %d while waiting for %d", uploader.lastConfirmedSeq, current.GetSeq())
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 func (uploader *taskLogUploader) dropConfirmed() {
@@ -160,4 +176,10 @@ func (uploader *taskLogUploader) dropConfirmed() {
 		}
 	}
 	uploader.pending = keep
+}
+
+func (uploader *taskLogUploader) abandonPending() {
+	_ = uploader.Close()
+	uploader.pending = nil
+	uploader.nextSeq = uploader.lastConfirmedSeq + 1
 }

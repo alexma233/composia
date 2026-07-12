@@ -85,11 +85,40 @@ func TestTaskLogUploaderTimesOutBlockedAck(t *testing.T) {
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("expected upload timeout, got %v", err)
 	}
+	if len(uploader.pending) != 0 {
+		t.Fatalf("expected failed best-effort logs to be discarded, got %d pending entries", len(uploader.pending))
+	}
 	if err := uploader.Close(); err != nil {
 		t.Fatalf("close uploader after timeout: %v", err)
 	}
 	if server.confirmedSeq != 1 {
 		t.Fatalf("expected first send to reach server before timeout, got confirmed seq %d", server.confirmedSeq)
+	}
+}
+
+func TestTaskLogUploaderRenegotiatesControllerSequence(t *testing.T) {
+	t.Parallel()
+	server := &logUploadTestServer{}
+	mux := http.NewServeMux()
+	path, handler := agentv1connect.NewAgentReportServiceHandler(server)
+	mux.Handle(path, handler)
+	httpServer := httptest.NewUnstartedServer(mux)
+	httpServer.EnableHTTP2 = true
+	httpServer.StartTLS()
+	defer httpServer.Close()
+
+	client := agentv1connect.NewAgentReportServiceClient(httpServer.Client(), httpServer.URL)
+	uploader := newTaskLogUploader(client, "task-1")
+	uploader.lastConfirmedSeq = 5
+	uploader.nextSeq = 6
+	if err := uploader.Upload(context.Background(), "after restart\n"); err != nil {
+		t.Fatal(err)
+	}
+	if err := uploader.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if server.contents != "after restart\n" || server.confirmedSeq != 1 || uploader.lastConfirmedSeq != 1 {
+		t.Fatalf("sequence was not renegotiated: server_seq=%d agent_seq=%d content=%q", server.confirmedSeq, uploader.lastConfirmedSeq, server.contents)
 	}
 }
 

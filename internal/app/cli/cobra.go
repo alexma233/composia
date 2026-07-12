@@ -107,6 +107,7 @@ func cobraCommandSpecs(runtime *cobraRuntime) []cobraCommandSpec {
 			leafSpec("logs <task>", "Stream task logs", true, (*app).runTaskLogs, nil, completeTaskIDs(runtime)),
 			leafSpec("wait <task>", "Wait for a task", true, (*app).runTaskWait, waitFlags, completeTaskIDs(runtime)),
 			leafSpec("run-again <task>", "Run a task again", true, (*app).runTaskAgain, waitFlags, completeTaskIDs(runtime)),
+			leafSpec("fail-lost <task>", "Fail a lease-lost task after reconciliation", true, (*app).runTaskFailLost, errorSummaryFlag, completeTaskIDs(runtime)),
 			leafSpec("approve <task>", "Approve a task confirmation", true, func(a *app, args []string) error { return a.runTaskResolve("approve", args) }, commentFlag, completeTaskIDs(runtime)),
 			leafSpec("reject <task>", "Reject a task confirmation", true, func(a *app, args []string) error { return a.runTaskResolve("reject", args) }, commentFlag, completeTaskIDs(runtime)),
 		}),
@@ -351,6 +352,10 @@ func messageFlag(cmd *cobra.Command, runtime *cobraRuntime) {
 
 func commentFlag(cmd *cobra.Command, runtime *cobraRuntime) {
 	cmd.Flags().String("comment", "", "operator comment")
+}
+
+func errorSummaryFlag(cmd *cobra.Command, _ *cobraRuntime) {
+	cmd.Flags().String("error-summary", "", "operator reconciliation summary")
 }
 
 func containersFlag(cmd *cobra.Command, runtime *cobraRuntime) {

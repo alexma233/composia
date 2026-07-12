@@ -53,23 +53,38 @@ const (
 	SourceAutoDeploy Source = "auto_deploy"
 )
 
+type ExecutionState string
+
+const (
+	ExecutionOffered   ExecutionState = "offered"
+	ExecutionAccepted  ExecutionState = "accepted"
+	ExecutionLeaseLost ExecutionState = "lease_lost"
+	ExecutionCompleted ExecutionState = "completed"
+)
+
 type Record struct {
-	TaskID          string
-	Type            Type
-	Source          Source
-	TriggeredBy     string
-	ServiceName     string
-	NodeID          string
-	Status          Status
-	ParamsJSON      string
-	LogPath         string
-	RepoRevision    string
-	ResultRevision  string
-	AttemptOfTaskID string
-	CreatedAt       time.Time
-	StartedAt       *time.Time
-	FinishedAt      *time.Time
-	ErrorSummary    string
+	TaskID               string
+	Type                 Type
+	Source               Source
+	TriggeredBy          string
+	ServiceName          string
+	NodeID               string
+	Status               Status
+	ParamsJSON           string
+	LogPath              string
+	RepoRevision         string
+	ResultRevision       string
+	AttemptOfTaskID      string
+	CreatedAt            time.Time
+	StartedAt            *time.Time
+	FinishedAt           *time.Time
+	ErrorSummary         string
+	ExecutionID          string
+	ExecutionState       ExecutionState
+	LeaseExpiresAt       *time.Time
+	ExecutionAcceptedAt  *time.Time
+	ExecutionHeartbeatAt *time.Time
+	DedupeKey            string
 }
 
 type StepName string

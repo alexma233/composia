@@ -18,6 +18,23 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+func TestExecSessionDeliverAndCloseAreConcurrentSafe(t *testing.T) {
+	t.Parallel()
+	for range 100 {
+		manager := newExecTunnelManager()
+		session := &execSession{id: "session", nodeID: "main", incoming: make(chan *agentv1.OpenExecTunnelRequest, 1)}
+		manager.sessions[session.id] = session
+		done := make(chan struct{}, 2)
+		go func() {
+			manager.deliverFromAgent(&agentv1.OpenExecTunnelRequest{SessionId: session.id, Kind: execKindOutput})
+			done <- struct{}{}
+		}()
+		go func() { manager.closeSession(session.id); done <- struct{}{} }()
+		<-done
+		<-done
+	}
+}
+
 func TestContainerExecRequiresWebOriginHeader(t *testing.T) {
 	t.Parallel()
 
