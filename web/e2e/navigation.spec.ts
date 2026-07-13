@@ -139,6 +139,7 @@ test("terminal runtime loads only after opening the terminal", async ({
 
 test("locale persists through SSR reloads", async ({ page }) => {
   await page.goto("/settings");
+  await expect(page.locator("[data-app-ready]")).toHaveCount(1);
   await page.evaluate(() => localStorage.removeItem("composia.locale"));
   await page.context().addCookies([
     {
