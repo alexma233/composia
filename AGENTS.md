@@ -50,7 +50,7 @@ Ask before proceeding if any of the following is true:
 ## UI Component Library
 
 - Web UI **MUST** use `shadcn-svelte` components (located in `web/src/lib/components/ui/`).
-- Add new components with: `cd web && bunx shadcn-svelte@latest add <component-name>`
+- Add new components with: `cd web && deno run -A npm:shadcn-svelte@latest add <component-name>`
 
 ## Svelte 5 Syntax Requirements
 

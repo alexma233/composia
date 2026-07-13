@@ -1,4 +1,4 @@
-import adapter from "svelte-adapter-bun";
+import adapter from "@deno/svelte-adapter";
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {

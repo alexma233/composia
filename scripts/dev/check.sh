@@ -15,7 +15,8 @@ go build ./...
 go vet ./...
 go test ./...
 
-bun install --frozen-lockfile
-bun run web:format
-bun run web:check
-bun run web:build
+deno install --frozen
+deno task web:format
+deno task web:check
+deno task web:test
+deno task web:build

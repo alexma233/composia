@@ -1,0 +1,19 @@
+{
+  "nodeModulesDir": "auto",
+  "tasks": {
+    "web:dev": "deno task --cwd web dev",
+    "web:build": "deno task --cwd web build",
+    "web:check:bundle": "deno task --cwd web check:bundle",
+    "web:preview": "deno task --cwd web preview",
+    "web:check": "deno task --cwd web check",
+    "web:test": "deno task --cwd web test",
+    "web:e2e": "deno task --cwd web e2e",
+    "web:format": "deno task --cwd web format",
+    "web:format:write": "deno task --cwd web format:write",
+    "cli:e2e": "go test -tags=e2e ./test/e2e",
+    "controller:e2e": "go test -tags=e2e ./test/controller_e2e",
+    "docs:api:generate": "sh ./scripts/docs/generate-proto-docs.sh",
+    "docs:dev": "hugo serve --port 5174 -s site",
+    "docs:build": "hugo --minify -s site"
+  }
+}

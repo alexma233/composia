@@ -4,7 +4,8 @@ on:
   pull_request:
     paths:
       - "package.json"
-      - "bun.lock"
+      - "deno.json"
+      - "deno.lock"
       - "go.mod"
       - "go.sum"
       - "cmd/**"
@@ -18,7 +19,8 @@ on:
     branches: ["main"]
     paths:
       - "package.json"
-      - "bun.lock"
+      - "deno.json"
+      - "deno.lock"
       - "go.mod"
       - "go.sum"
       - "cmd/**"
@@ -34,8 +36,7 @@ jobs:
   e2e:
     runs-on: docker-amd64-dind
     container:
-      # renovate: datasource=docker depName=forgejo.alexma.top/alexma233/ci-images-go-node-docker-bun-chromium versioning=docker
-      image: forgejo.alexma.top/alexma233/ci-images-go-node-docker-bun-chromium:1.26.5
+      image: forgejo-registry-raw.alexma.top/alexma233/ci-images-go-node-docker-deno-chromium:1.26@sha256:a9259c9bed781f912eaf0d049051a5701a013e94fae7e79de051961f3f4cb4bc
 
     steps:
       - name: Checkout
@@ -48,7 +49,7 @@ jobs:
           docker compose version
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: deno install --frozen
 
       - name: Start real backend services
         run: docker compose -f dev/docker-compose.e2e.yaml up -d --build controller-dev agent-dev
@@ -81,7 +82,7 @@ jobs:
           ORIGIN: http://127.0.0.1:4173
           HOST: 127.0.0.1
           PORT: "4173"
-        run: bun run web:e2e
+        run: deno task web:e2e
 
       - name: Show backend logs
         if: always()

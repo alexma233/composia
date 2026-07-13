@@ -5,7 +5,8 @@ on:
     branches: ["main"]
     paths:
       - "package.json"
-      - "bun.lock"
+      - "deno.json"
+      - "deno.lock"
       - "web/**"
       - ".forgejo/workflows/canary-web-build.yaml"
       - ".forgejo/workflows/reusable-docker-publish.yaml"

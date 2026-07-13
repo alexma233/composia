@@ -66,7 +66,7 @@ services:
 | Component  | Technology                  |
 | ---------- | --------------------------- |
 | Backend    | Go                          |
-| Frontend   | SvelteKit (Bun)             |
+| Frontend   | SvelteKit (Deno)            |
 | Runtime    | Docker Compose              |
 | State      | SQLite                      |
 | RPC        | ConnectRPC                  |

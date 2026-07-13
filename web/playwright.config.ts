@@ -15,7 +15,7 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: `bun run build && bun run preview -- --host ${host} --port ${port}`,
+    command: `deno task build && deno task preview -- --host ${host} --port ${port}`,
     reuseExistingServer: !process.env.CI,
     timeout: 600_000,
     url: baseURL,

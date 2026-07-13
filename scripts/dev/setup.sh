@@ -105,6 +105,9 @@ ensure_age_files() {
 
 mkdir -p \
   "$DEV_DIR/logs" \
+  "$DEV_DIR/.deno-cache-user" \
+  "$DEV_DIR/.node_modules-user" \
+  "$DEV_DIR/.web-node_modules-user" \
   "$DEV_DIR/repo-agent" \
   "$DEV_DIR/repo-agent-node-2" \
   "$DEV_DIR/repo-controller" \
@@ -120,6 +123,8 @@ controller_token=$(read_first_line "$DEV_DIR/controller-access-token.txt")
 main_agent_token=$(read_first_line "$DEV_DIR/main-agent-token.txt")
 
 copy_if_missing "$DEV_DIR/.env.example" "$DEV_DIR/.env"
+replace_placeholder "$DEV_DIR/.env" "DEV_BUN_CACHE_DIR" "DEV_DENO_CACHE_DIR"
+replace_placeholder "$DEV_DIR/.env" "./.bun-cache-user" "./.deno-cache-user"
 replace_placeholder "$DEV_DIR/.env" "$CONTROLLER_TOKEN_PLACEHOLDER" "$controller_token"
 
 copy_if_missing "$DEV_DIR/config.controller.container.yaml.example" "$DEV_DIR/config.controller.container.yaml"

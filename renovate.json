@@ -62,10 +62,10 @@
     },
     {
       "matchPackageNames": [
-        "bun",
-        "oven/bun"
+        "deno",
+        "denoland/deno"
       ],
-      "groupName": "bun runtime updates"
+      "groupName": "deno runtime updates"
     },
     {
       "matchManagers": [
@@ -90,8 +90,8 @@
         "github-actions"
       ],
       "matchPackageNames": [
-        "forgejo.alexma.top/alexma233/ci-images-bun",
-        "forgejo.alexma.top/alexma233/ci-images-bun-wrangler",
+        "forgejo.alexma.top/alexma233/ci-images-deno",
+        "forgejo-registry-raw.alexma.top/alexma233/ci-images-go-node-docker-deno-chromium",
         "forgejo.alexma.top/alexma233/ci-images-go-node-docker",
         "forgejo.alexma.top/alexma233/ci-images-go-node-docs",
         "forgejo.alexma.top/alexma233/ci-images-go-node-lint",
@@ -115,14 +115,16 @@
     {
       "customType": "regex",
       "managerFilePatterns": [
-        "/(^|/)package\\.json$/"
+        "/^mise\\.toml$/"
       ],
       "matchStrings": [
-        "\\\"packageManager\\\"\\s*:\\s*\\\"bun@(?<currentValue>[^\\\"]+)\\\""
+        "deno\\s*=\\s*\\\"(?<currentValue>[^\\\"]+)\\\""
       ],
-      "depNameTemplate": "bun",
-      "datasourceTemplate": "npm",
-      "versioningTemplate": "npm"
+      "depNameTemplate": "deno",
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "denoland/deno",
+      "extractVersionTemplate": "^v(?<version>.*)$",
+      "versioningTemplate": "semver"
     },
     {
       "customType": "regex",

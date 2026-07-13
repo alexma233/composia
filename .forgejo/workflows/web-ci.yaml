@@ -4,7 +4,8 @@ on:
   pull_request:
     paths:
       - "package.json"
-      - "bun.lock"
+      - "deno.json"
+      - "deno.lock"
       - "buf.gen.yaml"
       - "proto/**"
       - "web/**"
@@ -13,7 +14,8 @@ on:
     branches: ["main"]
     paths:
       - "package.json"
-      - "bun.lock"
+      - "deno.json"
+      - "deno.lock"
       - "buf.gen.yaml"
       - "proto/**"
       - "web/**"
@@ -24,7 +26,7 @@ jobs:
   format:
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-bun:1.3.14@sha256:71b1c5b4c82d7e0aef7dc7c2ff315e3d66510b84e42557d922d40fb0104bde7e
+      image: forgejo.alexma.top/alexma233/ci-images-deno:2.9.2@sha256:a3462e85354bb3c465f5c46f583a67a606c2499255b12fd094afc81e534578ee
 
     steps:
       - name: Checkout
@@ -32,15 +34,15 @@ jobs:
         uses: https://forgejo.alexma.top/actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
 
       - name: Install web dependencies
-        run: bun install --frozen-lockfile
+        run: deno install --frozen
 
       - name: Run web format checks
-        run: bun run web:format
+        run: deno task web:format
 
   build:
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-bun:1.3.14@sha256:71b1c5b4c82d7e0aef7dc7c2ff315e3d66510b84e42557d922d40fb0104bde7e
+      image: forgejo.alexma.top/alexma233/ci-images-deno:2.9.2@sha256:a3462e85354bb3c465f5c46f583a67a606c2499255b12fd094afc81e534578ee
 
     steps:
       - name: Checkout
@@ -48,13 +50,13 @@ jobs:
         uses: https://forgejo.alexma.top/actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
 
       - name: Install web dependencies
-        run: bun install --frozen-lockfile
+        run: deno install --frozen
 
       - name: Run web type checks
-        run: bun run web:check
+        run: deno task web:check
 
       - name: Run web unit tests
-        run: bun run web:test
+        run: deno task web:test
 
       - name: Build web and enforce bundle budgets
-        run: bun run web:check:bundle
+        run: deno task web:check:bundle

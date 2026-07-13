@@ -1,8 +1,8 @@
-import { expect, test } from "bun:test";
+import { assertEquals } from "jsr:@std/assert@1.0.19/equals";
 
 import { startPolling } from "./refresh.ts";
 
-test("polling skips work while the document is hidden", async () => {
+Deno.test("polling skips work while the document is hidden", async () => {
   const documentDescriptor = Object.getOwnPropertyDescriptor(
     globalThis,
     "document",
@@ -28,5 +28,5 @@ test("polling skips work while the document is hidden", async () => {
   } else {
     Reflect.deleteProperty(globalThis, "document");
   }
-  expect(ticks).toBe(0);
+  assertEquals(ticks, 0);
 });

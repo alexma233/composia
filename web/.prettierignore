@@ -1,4 +1,5 @@
 /.svelte-kit
+/.deno-deploy
 /build
 /playwright-report
 /test-results

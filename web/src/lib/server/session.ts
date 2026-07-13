@@ -1,7 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { verify } from "argon2";
 
 import { env } from "$env/dynamic/private";
+
+import { verifyArgon2 } from "$lib/server/argon2";
 
 const sessionCookieName = "composia_session";
 const sessionDurationMs = 1000 * 60 * 60 * 24 * 14;
@@ -53,7 +54,7 @@ export async function authenticate(
     return null;
   }
 
-  const passwordMatches = await verify(config.passwordHash, password);
+  const passwordMatches = await verifyArgon2(config.passwordHash, password);
   if (!passwordMatches) {
     return null;
   }

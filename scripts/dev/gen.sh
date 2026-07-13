@@ -24,7 +24,7 @@ if ! command -v protoc-gen-connect-go >/dev/null 2>&1; then
   GOBIN="$GOBIN_DIR" go install "connectrpc.com/connect/cmd/protoc-gen-connect-go@$CONNECT_VERSION"
 fi
 
-bun install --frozen-lockfile
+deno install --frozen
 
 PATH="$GOBIN_DIR:$ROOT_DIR/node_modules/.bin:$ROOT_DIR/web/node_modules/.bin:$PATH" buf generate
 PATH="$GOBIN_DIR:$PATH" sh scripts/docs/generate-proto-docs.sh

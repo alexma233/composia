@@ -14,8 +14,8 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-bun install --frozen-lockfile
-bunx playwright install chromium
+deno install --frozen
+deno run -A npm:playwright@1.61.1 install chromium
 
 docker compose -f "$COMPOSE_FILE" up -d --build controller-dev agent-dev
 
@@ -55,4 +55,4 @@ WEB_SESSION_SECRET="e2e-session-secret" \
 ORIGIN="http://127.0.0.1:4173" \
 HOST="127.0.0.1" \
 PORT="4173" \
-bun run web:e2e
+deno task web:e2e

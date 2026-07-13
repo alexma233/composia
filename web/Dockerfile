@@ -1,31 +1,31 @@
 # syntax=docker/dockerfile:1.25@sha256:0adf442eae370b6087e08edc7c50b552d80ddf261576f4ebd6421006b2461f12
-FROM --platform=$BUILDPLATFORM oven/bun:1.3.14@sha256:e10577f0db68676a7024391c6e5cb4b879ebd17188ab750cf10024a6d700e5c4 AS deps
+FROM --platform=$BUILDPLATFORM denoland/deno:2.9.2@sha256:69a9f3033e3f381770452648b1cbf4ae96ea409f7ef24f30afeff3d380705f62 AS deps
 
 WORKDIR /src
 
-COPY package.json bun.lock ./
+COPY deno.json deno.lock package.json ./
 COPY web/package.json ./web/package.json
 
-RUN --mount=type=cache,target=/root/.bun/install/cache \
-    bun install --frozen-lockfile
+RUN --mount=type=cache,id=composia-web-deno-deps-v2,target=/deno-dir,sharing=locked \
+    deno install --frozen
 
 FROM deps AS builder
 
 COPY web ./web
 
-RUN bun --bun run --cwd web build
+RUN deno task web:build
 
-FROM oven/bun:1.3.14@sha256:e10577f0db68676a7024391c6e5cb4b879ebd17188ab750cf10024a6d700e5c4 AS prod-deps
+FROM denoland/deno:2.9.2@sha256:69a9f3033e3f381770452648b1cbf4ae96ea409f7ef24f30afeff3d380705f62 AS prod-deps
 
 WORKDIR /app
 
-COPY package.json bun.lock ./
+COPY deno.json deno.lock package.json ./
 COPY web/package.json ./web/package.json
 
-RUN --mount=type=cache,target=/root/.bun/install/cache \
-    bun install --frozen-lockfile --production --filter @composia/web
+RUN --mount=type=cache,id=composia-web-deno-prod-v2,target=/deno-dir,sharing=locked \
+    deno install --frozen --prod
 
-FROM oven/bun:1.3.14@sha256:e10577f0db68676a7024391c6e5cb4b879ebd17188ab750cf10024a6d700e5c4 AS final
+FROM denoland/deno:distroless-2.9.2@sha256:04cb192ac7445056d009530fbd228fb15fa42fbd29d38c95bbd099b8b902ec7a AS final
 
 WORKDIR /app
 
@@ -37,10 +37,13 @@ COPY --from=prod-deps /app/package.json ./package.json
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=prod-deps /app/web/package.json ./web/package.json
 COPY --from=prod-deps /app/web/node_modules ./web/node_modules
-COPY --from=builder /src/web/build ./web/build
+COPY --from=builder /src/web/.deno-deploy ./web/.deno-deploy
+COPY --from=builder /src/web/server.mjs ./web/server.mjs
 
 WORKDIR /app/web
 
 EXPOSE 3000
 
-CMD ["bun", "build/index.js"]
+USER 65532:65532
+
+CMD ["run", "--allow-env", "--allow-net", "--allow-read=/app", "--no-prompt", "server.mjs"]

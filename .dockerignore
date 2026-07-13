@@ -17,13 +17,13 @@ repo-agent-node-2
 logs
 dev/.go-mod-cache
 dev/.go-build-cache
-dev/.bun-cache-user
+dev/.deno-cache-user
 dev/.node_modules-user
 dev/.web-node_modules-user
 dev/go-mod-cache
 dev/go-build-cache
-dev/bun-cache
-dev/bun-cache-user
+dev/deno-cache
+dev/deno-cache-user
 dev/node_modules
 dev/node_modules-user
 dev/web-node_modules
