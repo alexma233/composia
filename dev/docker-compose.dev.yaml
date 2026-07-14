@@ -85,7 +85,7 @@ services:
       - composia-dev
 
   docs-dev:
-    image: forgejo.alexma.top/alexma233/ci-images-hugo-wrangler:0.164.0@sha256:9cc76062b8d75851a8d0aa2cc82bdd6a396615f22066946c815fe31490a7e1b8
+    image: forgejo.alexma.top/alexma233/ci-images-hugo-wrangler:0.164.0@sha256:223c5fb468fca4b632fe5e09020c18b48e225aa356c4d7ac83ec1ff81a3a1d90
     user: "${UID}:${GID}"
     profiles:
       - docs
