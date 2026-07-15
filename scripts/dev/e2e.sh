@@ -6,7 +6,7 @@ ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 cd "$ROOT_DIR"
 
 COMPOSE_FILE="dev/docker-compose.e2e.yaml"
-CONTROLLER_ADDR="http://127.0.0.1:7001"
+CONTROLLER_HOST="${COMPOSIA_E2E_CONTROLLER_HOST:-127.0.0.1}"
 ACCESS_TOKEN="dev-admin-token"
 SUITE="${1:-all}"
 
@@ -19,9 +19,14 @@ case "$SUITE" in
 esac
 
 cleanup() {
+  status=$?
+  if [ "$status" -ne 0 ]; then
+    docker compose -f "$COMPOSE_FILE" logs --no-color controller-dev agent-dev || true
+  fi
   docker compose -f "$COMPOSE_FILE" down -v
+  exit "$status"
 }
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
 
 if [ "$SUITE" = "all" ] || [ "$SUITE" = "web" ]; then
   deno install --frozen
@@ -29,6 +34,9 @@ if [ "$SUITE" = "all" ] || [ "$SUITE" = "web" ]; then
 fi
 
 docker compose -f "$COMPOSE_FILE" up -d --build controller-dev agent-dev
+
+CONTROLLER_PORT=$(docker compose -f "$COMPOSE_FILE" port controller-dev 7001 | awk -F: 'END { print $NF }')
+CONTROLLER_ADDR="http://$CONTROLLER_HOST:$CONTROLLER_PORT"
 
 for attempt in $(seq 1 60); do
   if curl -fsS \
@@ -42,7 +50,6 @@ for attempt in $(seq 1 60); do
   fi
 
   if [ "$attempt" = "60" ]; then
-    docker compose -f "$COMPOSE_FILE" logs --no-color controller-dev agent-dev
     exit 1
   fi
 

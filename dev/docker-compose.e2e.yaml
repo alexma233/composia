@@ -126,7 +126,8 @@ services:
         EOF
         exec /sbin/tini -- /usr/local/bin/composia-controller -config /tmp/composia-e2e.yaml
     ports:
-      - "7001:7001"
+      - target: 7001
+        published: "${COMPOSIA_E2E_CONTROLLER_PORT:-7001}"
     networks:
       - composia-e2e
 
