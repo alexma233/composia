@@ -538,7 +538,7 @@ export const ja = {
     selectTargetNode: "ターゲットノードを選択",
     restoreConfirmTitle: "復元を確認",
     restoreWarning:
-      "この復元により、ノード {nodeId} 上の同名のファイル、ディレクトリ、または Docker ボリュームが上書きされる可能性があります。",
+      "この復元は、バックアップデータを復元する前にノード {nodeId} 上の一致するファイル、ディレクトリ、または Docker ボリュームを消去します。",
     noArtifact:
       "このバックアップにはアーティファクト参照が記録されていません。",
     filters: {
@@ -613,6 +613,12 @@ export const ja = {
       lastTask: "最後のタスク",
       started: "Rustic {action} を開始しました",
       failedToStart: "Rustic {action} の開始に失敗しました。",
+      confirmTitle: "Rustic メンテナンスを確認",
+      confirmAction: "メンテナンスを実行",
+      forgetWarning:
+        "Rustic forget は保持ポリシーに従ってスナップショットを削除します。この操作は元に戻せません。",
+      pruneWarning:
+        "Rustic prune は参照されていないリポジトリデータを削除します。この操作は元に戻せません。",
     },
   },
   docker: {

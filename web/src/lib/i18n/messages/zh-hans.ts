@@ -516,7 +516,7 @@ export const zhHans = {
     selectTargetNode: "选择目标节点",
     restoreConfirmTitle: "确认恢复",
     restoreWarning:
-      "该恢复可能覆盖节点 {nodeId} 上同名的文件、目录或 Docker volume。",
+      "此恢复会先清空节点 {nodeId} 上匹配的文件、目录或 Docker volume，然后恢复备份数据。",
     noArtifact: "此备份没有记录 Artifact Ref。",
     filters: {
       allDataNames: "所有数据名称",
@@ -590,6 +590,10 @@ export const zhHans = {
       lastTask: "上次任务",
       started: "Rustic {action} 已启动",
       failedToStart: "启动 Rustic {action} 失败。",
+      confirmTitle: "确认 Rustic 维护",
+      confirmAction: "运行维护",
+      forgetWarning: "Rustic forget 会按保留策略删除快照。此操作无法撤销。",
+      pruneWarning: "Rustic prune 会删除未引用的仓库数据。此操作无法撤销。",
     },
   },
   docker: {

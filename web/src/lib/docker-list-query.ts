@@ -1,4 +1,5 @@
 export const dockerListPageSize = 20;
+export const dockerSearchDebounceMs = 300;
 
 export type DockerListSortDirection = "asc" | "desc";
 

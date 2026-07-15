@@ -536,7 +536,7 @@ export const enUS = {
     selectTargetNode: "Select target node",
     restoreConfirmTitle: "Confirm restore",
     restoreWarning:
-      "This restore may overwrite files, directories, or Docker volumes with the same names on node {nodeId}.",
+      "This restore clears matching files, directories, or Docker volumes on node {nodeId} before restoring backup data.",
     noArtifact: "No Artifact Ref recorded for this backup.",
     filters: {
       allDataNames: "All data names",
@@ -610,6 +610,12 @@ export const enUS = {
       lastTask: "Last task",
       started: "Rustic {action} started",
       failedToStart: "Failed to start rustic {action}.",
+      confirmTitle: "Confirm Rustic maintenance",
+      confirmAction: "Run maintenance",
+      forgetWarning:
+        "Rustic forget removes snapshots according to retention policy. This cannot be undone.",
+      pruneWarning:
+        "Rustic prune deletes unreferenced repository data. This cannot be undone.",
     },
   },
   docker: {

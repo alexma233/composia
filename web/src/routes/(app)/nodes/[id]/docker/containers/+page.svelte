@@ -28,6 +28,7 @@
   } from '$lib/components/ui/pagination';
   import {
     buildDockerListPageUrl,
+    dockerSearchDebounceMs,
     type DockerListSortDirection,
   } from '$lib/docker-list-query';
   import {
@@ -68,6 +69,8 @@
   const defaultSortField: DockerContainerSortField = 'name';
 
   let searchQuery = $state('');
+  let debouncedSearchQuery = $state('');
+  let searchDebounceTimer = $state<ReturnType<typeof setTimeout> | null>(null);
   let sortField = $state<DockerContainerSortField>(defaultSortField);
   let sortDirection = $state<DockerListSortDirection>('asc');
   let currentPage = $state(1);
@@ -89,6 +92,7 @@
     refreshing = false;
     currentPage = data.page;
     searchQuery = data.search;
+    debouncedSearchQuery = data.search;
     sortField = data.sortBy as DockerContainerSortField;
     sortDirection = data.sortDirection as DockerListSortDirection;
   });
@@ -100,7 +104,7 @@
 
     if (
       currentPage === data.page &&
-      searchQuery === data.search &&
+      debouncedSearchQuery === data.search &&
       sortField === data.sortBy &&
       sortDirection === data.sortDirection
     ) {
@@ -108,11 +112,11 @@
     }
 
     refreshing = true;
-    void goto(pageUrl(currentPage, searchQuery, sortField, sortDirection), {
+    void goto(pageUrl(currentPage, debouncedSearchQuery, sortField, sortDirection), {
       keepFocus: true,
       noScroll: true,
       replaceState:
-        searchQuery !== data.search ||
+        debouncedSearchQuery !== data.search ||
         sortField !== data.sortBy ||
         sortDirection !== data.sortDirection,
     });
@@ -169,8 +173,8 @@
     }
   }
 
-  function isActionBusy(containerId: string, action: 'start' | 'stop' | 'restart') {
-    return actionBusyId === `${containerId}:${action}`;
+  function isActionBusy(containerId: string) {
+    return actionBusyId.startsWith(`${containerId}:`);
   }
 
   function openRemoveDialog(container: DockerContainerSummary) {
@@ -238,7 +242,16 @@
       : $messages.common.delete,
   );
 
+  function flushSearchDebounce() {
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = null;
+    }
+    debouncedSearchQuery = searchQuery;
+  }
+
   function handleSort(field: string) {
+    flushSearchDebounce();
     if (sortField === field) {
       sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
@@ -250,11 +263,17 @@
 
   function handleSearchInput() {
     currentPage = 1;
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      debouncedSearchQuery = searchQuery;
+      searchDebounceTimer = null;
+    }, dockerSearchDebounceMs);
   }
 
   function clearSearch() {
     searchQuery = '';
     currentPage = 1;
+    flushSearchDebounce();
   }
 </script>
 
@@ -420,7 +439,7 @@
                         variant="outline"
                         size="sm"
                         onclick={() => void queueContainerAction(container.id, 'start')}
-                        disabled={isActionBusy(container.id, 'start') || container.state.toLowerCase() === 'running'}
+                        disabled={isActionBusy(container.id) || container.state.toLowerCase() === 'running'}
                       >
                         {$messages.docker.containers.actions.start}
                       </Button>
@@ -428,7 +447,7 @@
                         variant="outline"
                         size="sm"
                         onclick={() => void queueContainerAction(container.id, 'stop')}
-                        disabled={isActionBusy(container.id, 'stop') || container.state.toLowerCase() !== 'running'}
+                        disabled={isActionBusy(container.id) || container.state.toLowerCase() !== 'running'}
                       >
                         {$messages.docker.containers.actions.stop}
                       </Button>
@@ -436,7 +455,7 @@
                         variant="outline"
                         size="sm"
                         onclick={() => void queueContainerAction(container.id, 'restart')}
-                        disabled={isActionBusy(container.id, 'restart')}
+                        disabled={isActionBusy(container.id)}
                       >
                         {$messages.docker.containers.actions.restart}
                       </Button>
@@ -444,7 +463,7 @@
                         variant="destructive"
                         size="sm"
                         onclick={() => openRemoveDialog(container)}
-                        disabled={removeBusyId === container.id}
+                        disabled={isActionBusy(container.id) || removeBusyId === container.id}
                       >
                         {$messages.docker.containers.actions.remove}
                       </Button>

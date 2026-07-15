@@ -541,7 +541,7 @@ export const fr = {
     selectTargetNode: "Sélectionner le nœud cible",
     restoreConfirmTitle: "Confirmer la restauration",
     restoreWarning:
-      "Cette restauration peut écraser des fichiers, répertoires ou volumes Docker portant les mêmes noms sur le nœud {nodeId}.",
+      "Cette restauration efface les fichiers, répertoires ou volumes Docker correspondants sur le nœud {nodeId} avant de restaurer les données sauvegardées.",
     noArtifact: "Aucune réf. artefact enregistrée pour cette sauvegarde.",
     filters: {
       allDataNames: "Tous les noms de données",
@@ -615,6 +615,12 @@ export const fr = {
       lastTask: "Dernière tâche",
       started: "Rustic {action} démarré",
       failedToStart: "Échec du démarrage de rustic {action}.",
+      confirmTitle: "Confirmer la maintenance Rustic",
+      confirmAction: "Exécuter la maintenance",
+      forgetWarning:
+        "Rustic forget supprime les instantanés selon la politique de rétention. Cette action est irréversible.",
+      pruneWarning:
+        "Rustic prune supprime les données de dépôt non référencées. Cette action est irréversible.",
     },
   },
   docker: {

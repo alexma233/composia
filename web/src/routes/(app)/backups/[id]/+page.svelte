@@ -62,9 +62,7 @@
   );
   let defaultRestoreNodeId = $derived(
     eligibleRestoreNodes.find((node) => node.nodeId === data.backup?.nodeId)
-      ?.nodeId ??
-      eligibleRestoreNodes[0]?.nodeId ??
-      "",
+      ?.nodeId ?? "",
   );
   let restoreWarning = $derived(
     $messages.backups.restoreWarning.replace("{nodeId}", targetNodeId || "-"),

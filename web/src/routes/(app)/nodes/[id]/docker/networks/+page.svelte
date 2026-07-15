@@ -28,6 +28,7 @@
   } from '$lib/components/ui/pagination';
   import {
     buildDockerListPageUrl,
+    dockerSearchDebounceMs,
     type DockerListSortDirection,
   } from '$lib/docker-list-query';
   import { formatDockerTimestamp, formatShortId } from '$lib/presenters';
@@ -66,6 +67,8 @@
   const defaultSortField: DockerNetworkSortField = 'name';
 
   let searchQuery = $state('');
+  let debouncedSearchQuery = $state('');
+  let searchDebounceTimer = $state<ReturnType<typeof setTimeout> | null>(null);
   let sortField = $state<DockerNetworkSortField>(defaultSortField);
   let sortDirection = $state<DockerListSortDirection>('asc');
   let currentPage = $state(1);
@@ -86,6 +89,7 @@
     refreshing = false;
     currentPage = data.page;
     searchQuery = data.search;
+    debouncedSearchQuery = data.search;
     sortField = data.sortBy as DockerNetworkSortField;
     sortDirection = data.sortDirection as DockerListSortDirection;
   });
@@ -97,7 +101,7 @@
 
     if (
       currentPage === data.page &&
-      searchQuery === data.search &&
+      debouncedSearchQuery === data.search &&
       sortField === data.sortBy &&
       sortDirection === data.sortDirection
     ) {
@@ -105,11 +109,11 @@
     }
 
     refreshing = true;
-    void goto(pageUrl(currentPage, searchQuery, sortField, sortDirection), {
+    void goto(pageUrl(currentPage, debouncedSearchQuery, sortField, sortDirection), {
       keepFocus: true,
       noScroll: true,
       replaceState:
-        searchQuery !== data.search ||
+        debouncedSearchQuery !== data.search ||
         sortField !== data.sortBy ||
         sortDirection !== data.sortDirection,
     });
@@ -195,7 +199,16 @@
     return 'outline';
   }
 
+  function flushSearchDebounce() {
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = null;
+    }
+    debouncedSearchQuery = searchQuery;
+  }
+
   function handleSort(field: string) {
+    flushSearchDebounce();
     if (sortField === field) {
       sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
@@ -207,11 +220,17 @@
 
   function handleSearchInput() {
     currentPage = 1;
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      debouncedSearchQuery = searchQuery;
+      searchDebounceTimer = null;
+    }, dockerSearchDebounceMs);
   }
 
   function clearSearch() {
     searchQuery = '';
     currentPage = 1;
+    flushSearchDebounce();
   }
 </script>
 

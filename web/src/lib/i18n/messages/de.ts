@@ -537,7 +537,7 @@ export const de = {
     selectTargetNode: "Ziel-Node auswählen",
     restoreConfirmTitle: "Restore bestätigen",
     restoreWarning:
-      "Diese Wiederherstellung kann Dateien, Verzeichnisse oder Docker-Volumes mit denselben Namen auf Node {nodeId} überschreiben.",
+      "Diese Wiederherstellung löscht passende Dateien, Verzeichnisse oder Docker-Volumes auf Node {nodeId}, bevor Backup-Daten wiederhergestellt werden.",
     noArtifact: "Keine Artifact-Ref für dieses Backup aufgezeichnet.",
     filters: {
       allDataNames: "Alle Datennamen",
@@ -611,6 +611,12 @@ export const de = {
       lastTask: "Letzter Task",
       started: "Rustic {action} gestartet",
       failedToStart: "Starten von Rustic {action} fehlgeschlagen.",
+      confirmTitle: "Rustic-Wartung bestätigen",
+      confirmAction: "Wartung ausführen",
+      forgetWarning:
+        "Rustic forget entfernt Snapshots gemäß Aufbewahrungsrichtlinie. Dies kann nicht rückgängig gemacht werden.",
+      pruneWarning:
+        "Rustic prune löscht nicht referenzierte Repository-Daten. Dies kann nicht rückgängig gemacht werden.",
     },
   },
   docker: {

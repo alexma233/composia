@@ -96,7 +96,9 @@
     </CardHeader>
 
     <CardContent>
-      {#if data.services.length}
+      {#if data.error}
+        <!-- Load failure is already rendered in the header. -->
+      {:else if data.services.length}
         <Table>
           <TableCaption class="sr-only">{$messages.services.tableCaption}</TableCaption>
           <TableHeader>
