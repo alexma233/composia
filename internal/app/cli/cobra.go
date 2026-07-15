@@ -252,6 +252,11 @@ func newCobraCommand(runtime *cobraRuntime, spec cobraCommandSpec) *cobra.Comman
 			}
 			return cmd.Help()
 		}
+		var err error
+		args, err = runtime.applyLeafGlobalFlags(args)
+		if err != nil {
+			return err
+		}
 		if err := runtime.finalizeGlobalConfig(); err != nil {
 			return err
 		}
@@ -268,6 +273,58 @@ func newCobraCommand(runtime *cobraRuntime, spec cobraCommandSpec) *cobra.Comman
 func commandName(use string) string {
 	name, _, _ := strings.Cut(use, " ")
 	return name
+}
+
+func (runtime *cobraRuntime) applyLeafGlobalFlags(args []string) ([]string, error) {
+	filtered := make([]string, 0, len(args))
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if arg == "--" {
+			filtered = append(filtered, args[i:]...)
+			break
+		}
+		name, value, hasValue := strings.Cut(arg, "=")
+		switch name {
+		case "--addr", "--token", "--token-file", "--output", "--header":
+			if !hasValue {
+				if i+1 >= len(args) {
+					return nil, fmt.Errorf("%s requires a value", name)
+				}
+				i++
+				value = args[i]
+			}
+			switch name {
+			case "--addr":
+				runtime.app.cfg.addr = value
+			case "--token":
+				runtime.app.cfg.token = value
+			case "--token-file":
+				runtime.app.cfg.tokenFile = value
+			case "--output":
+				runtime.output = value
+			case "--header":
+				if err := runtime.headerValues.Set(value); err != nil {
+					return nil, err
+				}
+			}
+		case "--json":
+			jsonValue := "true"
+			if hasValue {
+				jsonValue = value
+			}
+			switch strings.ToLower(strings.TrimSpace(jsonValue)) {
+			case "1", "t", "true", "y", "yes":
+				runtime.app.cfg.json = true
+			case "0", "f", "false", "n", "no":
+				runtime.app.cfg.json = false
+			default:
+				return nil, fmt.Errorf("invalid boolean value %q for --json", jsonValue)
+			}
+		default:
+			filtered = append(filtered, arg)
+		}
+	}
+	return filtered, nil
 }
 
 func newHelpCommand(root *cobra.Command, out io.Writer) *cobra.Command {
@@ -464,6 +521,7 @@ func rusticMaintenanceFlags(cmd *cobra.Command, runtime *cobraRuntime) {
 	addWaitCobraFlags(cmd)
 	cmd.Flags().String("service", "", "service name")
 	cmd.Flags().String("data", "", "data entry name")
+	cmd.Flags().BoolP("yes", "y", false, "skip confirmation prompt")
 }
 
 func completeServiceArgs(runtime *cobraRuntime) cobraCompletionFunc {

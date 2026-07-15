@@ -5,6 +5,7 @@ package e2e
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -48,6 +49,63 @@ func TestCLIConnectsToRealController(t *testing.T) {
 	nodesJSON := decodeJSON(t, nodes.stdout)
 	if !hasNodeID(nodesJSON, "main") {
 		t.Fatalf("expected node list to include main, got:\n%s", nodes.stdout)
+	}
+}
+
+func TestCLISafeRepoCRUDAndInvalidToken(t *testing.T) {
+	bin := buildCLI(t)
+	env := cliEnv(t)
+
+	waitForController(t, bin, env)
+
+	badEnv := replaceEnv(env, "COMPOSIA_ACCESS_TOKEN", "invalid-token")
+	invalid := runCLI(t, bin, badEnv, "system", "status")
+	if invalid.err == nil {
+		t.Fatalf("system status with invalid token succeeded")
+	}
+	if code := exitCode(invalid.err); code == 0 {
+		t.Fatalf("invalid token exit code = 0, stderr:\n%s", invalid.stderr)
+	}
+	if invalid.stdout != "" {
+		t.Fatalf("invalid token stdout = %q", invalid.stdout)
+	}
+	if !strings.Contains(strings.ToLower(invalid.stderr), "unauthenticated") {
+		t.Fatalf("invalid token stderr missing unauthenticated error:\n%s", invalid.stderr)
+	}
+
+	root := fmt.Sprintf("cli-e2e-%d", time.Now().UnixNano())
+	contentPath := filepath.Join(t.TempDir(), "hello.txt")
+	if err := os.WriteFile(contentPath, []byte("hello from cli e2e\n"), 0o600); err != nil {
+		t.Fatalf("write content file: %v", err)
+	}
+
+	for _, step := range []struct {
+		name string
+		args []string
+	}{
+		{"mkdir", []string{"repo", "mkdir", "--message", "cli e2e mkdir", root}},
+		{"update", []string{"repo", "update", "--file", contentPath, "--message", "cli e2e update", root + "/hello.txt"}},
+		{"mv", []string{"repo", "mv", "--yes", "--message", "cli e2e mv", root + "/hello.txt", root + "/renamed.txt"}},
+	} {
+		result := runCLI(t, bin, env, step.args...)
+		if result.err != nil {
+			t.Fatalf("repo %s failed: %v\nstdout:\n%s\nstderr:\n%s", step.name, result.err, result.stdout, result.stderr)
+		}
+	}
+
+	got := runCLI(t, bin, env, "repo", "get", root+"/renamed.txt")
+	if got.err != nil || got.stdout != "hello from cli e2e\n" {
+		t.Fatalf("repo get failed: %v\nstdout:\n%s\nstderr:\n%s", got.err, got.stdout, got.stderr)
+	}
+
+	files := runCLI(t, bin, env, "repo", "files", "--recursive", root)
+	if files.err != nil || !strings.Contains(files.stdout, root+"/renamed.txt") {
+		t.Fatalf("repo files failed: %v\nstdout:\n%s\nstderr:\n%s", files.err, files.stdout, files.stderr)
+	}
+
+	removed := runCLI(t, bin, env, "repo", "rm", "--yes", "--message", "cli e2e rm", root)
+	if removed.err != nil {
+		t.Fatalf("repo rm failed: %v\nstdout:\n%s\nstderr:\n%s", removed.err, removed.stdout, removed.stderr)
 	}
 }
 
@@ -159,4 +217,24 @@ func hasNodeID(input map[string]any, nodeID string) bool {
 		}
 	}
 	return false
+}
+
+func replaceEnv(env []string, key, value string) []string {
+	prefix := key + "="
+	replaced := append([]string(nil), env...)
+	for i, item := range replaced {
+		if strings.HasPrefix(item, prefix) {
+			replaced[i] = prefix + value
+			return replaced
+		}
+	}
+	return append(replaced, prefix+value)
+}
+
+func exitCode(err error) int {
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		return exitErr.ExitCode()
+	}
+	return -1
 }

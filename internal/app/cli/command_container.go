@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -219,7 +220,9 @@ func (application *app) runContainerExec(nodeID string, args []string) error {
 	if err != nil {
 		return err
 	}
-	response, err := application.client.dockerCommands.RunContainerExec(application.ctx, newRequest(&controllerv1.RunContainerExecRequest{
+	ctx, cancel := context.WithTimeout(application.ctx, localExecWaitTimeout(*timeout))
+	defer cancel()
+	response, err := application.client.dockerCommands.RunContainerExec(ctx, newRequest(&controllerv1.RunContainerExecRequest{
 		NodeId:         nodeID,
 		ContainerId:    fs.Arg(0),
 		Command:        fs.Args()[1:],
@@ -425,7 +428,7 @@ func readExecStdin(path string) ([]byte, error) {
 
 func durationSeconds(duration time.Duration) (uint32, error) {
 	if duration <= 0 {
-		return 0, nil
+		return 0, errors.New("timeout must be greater than 0")
 	}
 	seconds := duration / time.Second
 	if duration%time.Second != 0 {
@@ -435,6 +438,10 @@ func durationSeconds(duration time.Duration) (uint32, error) {
 		return 0, fmt.Errorf("timeout exceeds maximum uint32 seconds value %d", uint64(^uint32(0)))
 	}
 	return uint32(seconds), nil
+}
+
+func localExecWaitTimeout(remoteTimeout time.Duration) time.Duration {
+	return remoteTimeout + 10*time.Second
 }
 
 func controllerOrigin(addr string) (string, error) {

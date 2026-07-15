@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"slices"
@@ -435,7 +436,9 @@ func (application *app) runServiceExec(serviceName string, args []string) error 
 	if err != nil {
 		return err
 	}
-	response, err := application.client.dockerCommands.RunContainerExec(application.ctx, newRequest(&controllerv1.RunContainerExecRequest{NodeId: target.nodeID, ContainerId: target.containerID, Command: command, TimeoutSeconds: timeoutSeconds, MaxOutputBytes: *maxOutput}))
+	ctx, cancel := context.WithTimeout(application.ctx, localExecWaitTimeout(*timeout))
+	defer cancel()
+	response, err := application.client.dockerCommands.RunContainerExec(ctx, newRequest(&controllerv1.RunContainerExecRequest{NodeId: target.nodeID, ContainerId: target.containerID, Command: command, TimeoutSeconds: timeoutSeconds, MaxOutputBytes: *maxOutput}))
 	if err != nil {
 		return err
 	}
