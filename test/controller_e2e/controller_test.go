@@ -1036,16 +1036,11 @@ func chooseExecContainer(t *testing.T, containers []*controllerv1.ContainerInfo)
 	t.Helper()
 	for _, container := range containers {
 		name := container.GetName()
-		if container.GetState() == "running" && (strings.Contains(name, "controller-dev") || strings.Contains(name, "agent-dev")) {
+		if container.GetState() == "running" && strings.Contains(name, "composia-e2e-exec") {
 			return container
 		}
 	}
-	for _, container := range containers {
-		if container.GetState() == "running" {
-			return container
-		}
-	}
-	t.Fatalf("expected at least one running container")
+	t.Fatalf("expected running composia-e2e-exec fixture container")
 	return nil
 }
 

@@ -38,29 +38,12 @@ func executePruneTask(ctx context.Context, client agentv1connect.AgentReportServ
 }
 
 func runDockerPrune(ctx context.Context, target string, uploadLog func(string) error) error {
-	var args []string
-
-	switch target {
-	case "all":
+	args, isAll, err := dockerPruneArgs(target)
+	if err != nil {
+		return err
+	}
+	if isAll {
 		return runDockerPruneAll(ctx, uploadLog)
-	case "containers":
-		args = []string{dockerResourceContainer, dockerCommandPrune, "-f"}
-	case "networks":
-		args = []string{dockerResourceNetwork, dockerCommandPrune, "-f"}
-	case "images":
-		args = []string{dockerResourceImage, dockerCommandPrune, "-f"}
-	case "images_all":
-		args = []string{dockerResourceImage, dockerCommandPrune, "-a", "-f"}
-	case "volumes":
-		args = []string{dockerResourceVolume, dockerCommandPrune, "-f"}
-	case "system_all":
-		args = []string{"system", dockerCommandPrune, "-a", "-f"}
-	case "system_all_volumes":
-		args = []string{"system", dockerCommandPrune, "-a", "--volumes", "-f"}
-	case "builder":
-		args = []string{"builder", dockerCommandPrune, "-f"}
-	default:
-		return fmt.Errorf("unknown prune target: %q", target)
 	}
 
 	cmd := exec.CommandContext(ctx, "docker", args...) //nolint:gosec
@@ -68,6 +51,31 @@ func runDockerPrune(ctx context.Context, target string, uploadLog func(string) e
 		return fmt.Errorf("docker %s prune failed: %w", target, err)
 	}
 	return nil
+}
+
+func dockerPruneArgs(target string) ([]string, bool, error) {
+	switch target {
+	case "all":
+		return nil, true, nil
+	case "containers":
+		return []string{dockerResourceContainer, dockerCommandPrune, "-f"}, false, nil
+	case "networks":
+		return []string{dockerResourceNetwork, dockerCommandPrune, "-f"}, false, nil
+	case "images":
+		return []string{dockerResourceImage, dockerCommandPrune, "-f"}, false, nil
+	case "images_all":
+		return []string{dockerResourceImage, dockerCommandPrune, "-a", "-f"}, false, nil
+	case "volumes":
+		return []string{dockerResourceVolume, dockerCommandPrune, "-f"}, false, nil
+	case "system_all":
+		return []string{"system", dockerCommandPrune, "-a", "-f"}, false, nil
+	case "system_all_volumes":
+		return []string{"system", dockerCommandPrune, "-a", "--volumes", "-f"}, false, nil
+	case "builder":
+		return []string{"builder", dockerCommandPrune, "-f"}, false, nil
+	default:
+		return nil, false, fmt.Errorf("unknown prune target: %q", target)
+	}
 }
 
 func runDockerPruneAll(ctx context.Context, uploadLog func(string) error) error {

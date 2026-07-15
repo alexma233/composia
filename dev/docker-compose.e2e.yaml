@@ -1,4 +1,53 @@
+name: composia-e2e
+
 services:
+  docker-dev:
+    image: docker:29-dind
+    privileged: true
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    command:
+      - --host=tcp://0.0.0.0:2375
+      - --host=unix:///var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "docker", "info"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    networks:
+      - composia-e2e
+
+  docker-fixture:
+    image: docker:29-cli
+    depends_on:
+      docker-dev:
+        condition: service_healthy
+    environment:
+      DOCKER_HOST: tcp://docker-dev:2375
+    command:
+      - sh
+      - -eu
+      - -c
+      - |
+        docker network create composia-e2e-fixture >/dev/null 2>&1 || true
+        docker volume create composia-e2e-fixture >/dev/null
+        tar \
+          --exclude=dev \
+          --exclude=proc \
+          --exclude=sys \
+          --exclude=run \
+          --exclude=tmp \
+          -C / -c . | docker import - composia-e2e-fixture:latest >/dev/null
+        docker rm -f composia-e2e-exec >/dev/null 2>&1 || true
+        docker run -d \
+          --name composia-e2e-exec \
+          --network composia-e2e-fixture \
+          -v composia-e2e-fixture:/data \
+          composia-e2e-fixture:latest \
+          /bin/sh -c 'while true; do echo composia-e2e-fixture; sleep 30; done' >/dev/null
+    networks:
+      - composia-e2e
+
   controller-dev:
     build:
       context: ..
@@ -88,10 +137,10 @@ services:
     depends_on:
       controller-dev:
         condition: service_started
+      docker-fixture:
+        condition: service_completed_successfully
     environment:
-      DOCKER_HOST: tcp://host.docker.internal:2375
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      DOCKER_HOST: tcp://docker-dev:2375
     entrypoint:
       - sh
       - -eu

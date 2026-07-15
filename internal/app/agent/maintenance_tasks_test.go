@@ -9,34 +9,34 @@ import (
 )
 
 func TestRunDockerPruneBuildsTargetCommand(t *testing.T) {
-	logFile := installFakeDocker(t)
-	if err := runDockerPrune(context.Background(), "images_all", func(string) error { return nil }); err != nil {
-		t.Fatalf("runDockerPrune returned error: %v", err)
+	args, isAll, err := dockerPruneArgs("images_all")
+	if err != nil {
+		t.Fatalf("dockerPruneArgs returned error: %v", err)
 	}
-	if got := strings.TrimSpace(readAgentTestFile(t, logFile)); got != "image prune -a -f" {
+	if isAll {
+		t.Fatalf("images_all must not expand to all")
+	}
+	if got := strings.Join(args, " "); got != "image prune -a -f" {
 		t.Fatalf("docker args = %q", got)
 	}
 }
 
 func TestRunDockerPruneAllRunsEachTarget(t *testing.T) {
-	logFile := installFakeDocker(t)
-	var logs strings.Builder
-	if err := runDockerPrune(context.Background(), "all", func(output string) error {
-		_, writeErr := logs.WriteString(output)
-		return writeErr
-	}); err != nil {
-		t.Fatalf("runDockerPrune all returned error: %v", err)
+	args, isAll, err := dockerPruneArgs("all")
+	if err != nil {
+		t.Fatalf("dockerPruneArgs all returned error: %v", err)
+	}
+	if !isAll || args != nil {
+		t.Fatalf("all = args %v isAll %t, want nil true", args, isAll)
 	}
 
-	for _, want := range []string{"pruning containers...", "pruning networks...", "pruning images...", "pruning volumes...", "pruning builder..."} {
-		if !strings.Contains(logs.String(), want) {
-			t.Fatalf("logs missing %q:\n%s", want, logs.String())
+	for _, target := range []string{"containers", "networks", "images", "volumes", "builder"} {
+		args, isAll, err := dockerPruneArgs(target)
+		if err != nil {
+			t.Fatalf("dockerPruneArgs %q: %v", target, err)
 		}
-	}
-	got := readAgentTestFile(t, logFile)
-	for _, want := range []string{"container prune -f", "network prune -f", "image prune -f", "volume prune -f", "builder prune -f"} {
-		if !strings.Contains(got, want) {
-			t.Fatalf("docker log missing %q:\n%s", want, got)
+		if isAll || len(args) == 0 {
+			t.Fatalf("dockerPruneArgs %q = args %v isAll %t", target, args, isAll)
 		}
 	}
 }

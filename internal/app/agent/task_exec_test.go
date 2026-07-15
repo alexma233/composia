@@ -1361,7 +1361,7 @@ func TestExecutePulledTaskWithTimeoutMarksTimedOutTaskFailed(t *testing.T) {
 }
 
 func TestExecutePulledTaskWithTimeoutDoesNotFailForLogTransportErrors(t *testing.T) {
-	t.Parallel()
+	installFakeDocker(t)
 
 	reportServer := &agentExecutionTestReportServer{wrongLogAckTaskID: true}
 	reportMux := http.NewServeMux()

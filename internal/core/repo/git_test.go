@@ -192,7 +192,12 @@ func TestFetchAndFastForwardUsesGitConfigForAuthHeaders(t *testing.T) {
 	spyDir := t.TempDir()
 	logPath := filepath.Join(spyDir, "git-invocations.log")
 	spyPath := filepath.Join(spyDir, "git")
-	spyScript := "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"" + logPath + "\"\nfor arg in \"$@\"; do\n  if [ \"$arg\" = \"fetch\" ]; then\n    echo 'forced fetch failure' >&2\n    exit 1\n  fi\ndone\nexec /usr/bin/git \"$@\"\n"
+	realGit, err := exec.LookPath("git")
+	if err != nil {
+		t.Fatalf("find git: %v", err)
+	}
+	t.Setenv("TEST_REAL_GIT", realGit)
+	spyScript := "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"" + logPath + "\"\nfor arg in \"$@\"; do\n  if [ \"$arg\" = \"fetch\" ]; then\n    echo 'forced fetch failure' >&2\n    exit 1\n  fi\ndone\nexec \"$TEST_REAL_GIT\" \"$@\"\n"
 	if err := os.WriteFile(spyPath, []byte(spyScript), 0o755); err != nil { //nolint:gosec
 		t.Fatalf("write git spy: %v", err)
 	}
