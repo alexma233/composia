@@ -2,10 +2,12 @@ import { env } from "$env/dynamic/private";
 import { readFileSync } from "node:fs";
 
 import {
-  controllerRpcDeadline,
-  controllerRpcHeaders,
+  ControllerRpcError,
+  controllerRpcCall,
 } from "$lib/server/controller-rpc";
 import { currentRequestSignal } from "$lib/server/request-context";
+
+export { ControllerRpcError };
 
 type RpcRequest = Record<string, unknown>;
 
@@ -2014,25 +2016,6 @@ export type DockerListQuery = {
   sortDesc?: boolean;
 };
 
-export class ControllerRpcError extends Error {
-  readonly status: number;
-  readonly code: string | null;
-  readonly procedure: string;
-
-  constructor(options: {
-    message: string;
-    status: number;
-    code?: string | null;
-    procedure: string;
-  }) {
-    super(options.message);
-    this.name = "ControllerRpcError";
-    this.status = options.status;
-    this.code = options.code ?? null;
-    this.procedure = options.procedure;
-  }
-}
-
 export function controllerErrorStatus(error: unknown, fallback = 500): number {
   if (error instanceof ControllerRpcError) {
     return error.status;
@@ -2700,75 +2683,13 @@ async function rpcCall<T>(
   body: RpcRequest,
   extraHeaders: Record<string, string> = {},
 ): Promise<T> {
-  const deadline = controllerRpcDeadline(currentRequestSignal());
-  let response: Response;
-  try {
-    response = await fetch(`${baseUrl}${procedure}`, {
-      method: "POST",
-      headers: controllerRpcHeaders(
-        token,
-        parseControllerHeaders(),
-        extraHeaders,
-      ),
-      body: JSON.stringify(body),
-      signal: deadline.signal,
-    });
-  } catch (error) {
-    if (deadline.timedOut()) {
-      throw new ControllerRpcError({
-        message: `Controller RPC ${procedure} timed out.`,
-        status: 504,
-        code: "DEADLINE_EXCEEDED",
-        procedure,
-      });
-    }
-    throw error;
-  } finally {
-    deadline.cancel();
-  }
-
-  if (!response.ok) {
-    throw await controllerRpcErrorFromResponse(response, procedure);
-  }
-
-  return (await response.json()) as T;
-}
-
-async function controllerRpcErrorFromResponse(
-  response: Response,
-  procedure: string,
-): Promise<ControllerRpcError> {
-  const text = await response.text();
-  const fallbackMessage = `Controller RPC ${procedure} failed.`;
-  let message = fallbackMessage;
-  let code: string | null = null;
-
-  if (text) {
-    try {
-      const parsed = JSON.parse(text) as {
-        code?: unknown;
-        message?: unknown;
-        error?: unknown;
-      };
-      if (typeof parsed.code === "string") {
-        code = parsed.code;
-      }
-      if (typeof parsed.message === "string" && parsed.message.trim()) {
-        message = parsed.message;
-      } else if (typeof parsed.error === "string" && parsed.error.trim()) {
-        message = parsed.error;
-      } else {
-        message = text;
-      }
-    } catch {
-      message = text;
-    }
-  }
-
-  return new ControllerRpcError({
-    message,
-    status: response.status,
-    code,
+  return controllerRpcCall<T>({
+    baseUrl,
+    token,
     procedure,
+    body,
+    controllerHeaders: parseControllerHeaders(),
+    extraHeaders,
+    requestSignal: currentRequestSignal(),
   });
 }

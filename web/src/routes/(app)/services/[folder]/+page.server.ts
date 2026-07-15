@@ -7,9 +7,11 @@ import {
   normalizeServiceRelativePath,
 } from "$lib/service-workspace";
 import { loadServiceWorkspaceFile } from "$lib/server/service-workspace";
+import { setDecryptedSecretResponseHeaders } from "$lib/server/secret-response";
 import { loadServiceWorkspaceSummary } from "$lib/server/service-workspace-route";
+import { isEncryptedFilePath } from "$lib/service-workspace";
 
-export const load: PageServerLoad = async ({ params, url }) => {
+export const load: PageServerLoad = async ({ params, setHeaders, url }) => {
   const config = controllerConfig();
   if (!config.ready) {
     return {
@@ -50,6 +52,10 @@ export const load: PageServerLoad = async ({ params, url }) => {
     const initialFile = activeFilePath
       ? await loadServiceWorkspaceFile(workspace.folder, activeFilePath)
       : null;
+    setDecryptedSecretResponseHeaders(
+      setHeaders,
+      Boolean(activeFilePath && isEncryptedFilePath(activeFilePath)),
+    );
 
     return {
       ready: true,

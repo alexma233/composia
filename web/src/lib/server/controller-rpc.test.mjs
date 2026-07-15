@@ -1,6 +1,8 @@
-import { assert, assertEquals } from "jsr:@std/assert@1.0.19";
+import { assert, assertEquals, assertRejects } from "jsr:@std/assert@1.0.19";
 
 import {
+  ControllerRpcError,
+  controllerRpcCall,
   controllerRpcDeadline,
   controllerRpcHeaders,
 } from "./controller-rpc.ts";
@@ -43,3 +45,50 @@ Deno.test("aborts unary controller RPCs at the shared deadline", async () => {
   assert(deadline.timedOut());
   deadline.cancel();
 });
+
+Deno.test(
+  "keeps unary controller RPC deadline active while parsing the response body",
+  async () => {
+    const originalFetch = globalThis.fetch;
+    let safetyTimeout;
+
+    globalThis.fetch = (_input, init) => {
+      const signal = init?.signal;
+      const body = new ReadableStream({
+        start(controller) {
+          signal?.addEventListener(
+            "abort",
+            () => controller.error(signal.reason),
+            { once: true },
+          );
+          safetyTimeout = setTimeout(
+            () => controller.error(new Error("body read was not aborted")),
+            100,
+          );
+        },
+      });
+      return Promise.resolve(new Response(body));
+    };
+
+    try {
+      const error = await assertRejects(
+        () =>
+          controllerRpcCall({
+            baseUrl: "https://controller.test",
+            token: "token",
+            procedure: "/slow",
+            body: {},
+            controllerHeaders: {},
+            timeoutMs: 1,
+          }),
+        ControllerRpcError,
+      );
+
+      assertEquals(error.status, 504);
+      assertEquals(error.code, "DEADLINE_EXCEEDED");
+    } finally {
+      clearTimeout(safetyTimeout);
+      globalThis.fetch = originalFetch;
+    }
+  },
+);
