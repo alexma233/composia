@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -268,6 +269,90 @@ func TestMigrationDeletesBackupsForDroppedTaskTypesAndChecksForeignKeys(t *testi
 	if err := checkSQLiteForeignKeys(ctx, db.sql); err != nil {
 		t.Fatalf("foreign key check failed: %v", err)
 	}
+}
+
+func TestMigrationDeletesOrphanedBackupTaskReferencesFromV7AndV8Plus(t *testing.T) {
+	t.Parallel()
+
+	for _, version := range []int{7, 8, 11} {
+		version := version
+		t.Run(fmt.Sprintf("v%d", version), func(t *testing.T) {
+			t.Parallel()
+
+			stateDir := seedDBWithOrphanedBackupAtVersion(t, version)
+			db, err := Open(stateDir)
+			if err != nil {
+				t.Fatalf("migrate sqlite db: %v", err)
+			}
+			defer func() { _ = db.Close() }()
+
+			ctx := context.Background()
+			var orphanCount int
+			if err := db.sql.QueryRowContext(ctx, `SELECT COUNT(*) FROM backups WHERE task_id = 'missing-task'`).Scan(&orphanCount); err != nil {
+				t.Fatalf("count orphaned backups: %v", err)
+			}
+			if orphanCount != 0 {
+				t.Fatalf("expected orphaned backup to be deleted, got %d", orphanCount)
+			}
+			var validCount int
+			if err := db.sql.QueryRowContext(ctx, `SELECT COUNT(*) FROM backups WHERE backup_id = 'valid-backup'`).Scan(&validCount); err != nil {
+				t.Fatalf("count valid backups: %v", err)
+			}
+			if validCount != 1 {
+				t.Fatalf("expected valid backup to survive, got %d", validCount)
+			}
+			if err := checkSQLiteForeignKeys(ctx, db.sql); err != nil {
+				t.Fatalf("foreign key check failed: %v", err)
+			}
+		})
+	}
+}
+
+func seedDBWithOrphanedBackupAtVersion(t *testing.T, version int) string {
+	t.Helper()
+
+	stateDir := filepath.Join(t.TempDir(), "state")
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	db, err := Open(stateDir)
+	if err != nil {
+		t.Fatalf("open seed sqlite db: %v", err)
+	}
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{storeTestMainNodeID}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"alpha": {storeTestMainNodeID}}); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	createdAt := time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)
+	if _, err := db.CreateTask(ctx, task.Record{TaskID: "valid-task", Type: task.TypeBackup, Source: task.SourceSystem, ServiceName: "alpha", NodeID: storeTestMainNodeID, Status: task.StatusSucceeded, CreatedAt: createdAt}); err != nil {
+		t.Fatalf("create valid task: %v", err)
+	}
+	if err := db.UpsertBackupRecord(ctx, BackupDetail{BackupID: "valid-backup", TaskID: "valid-task", ServiceName: "alpha", NodeID: storeTestMainNodeID, DataName: "data", Status: "succeeded", StartedAt: createdAt.Format(time.RFC3339)}); err != nil {
+		t.Fatalf("insert valid backup: %v", err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatalf("close seed sqlite db: %v", err)
+	}
+
+	rawDB, err := sql.Open("sqlite", filepath.Join(stateDir, DatabaseFileName))
+	if err != nil {
+		t.Fatalf("open raw sqlite db: %v", err)
+	}
+	defer func() { _ = rawDB.Close() }()
+	for _, statement := range []string{
+		`PRAGMA foreign_keys = OFF;`,
+		`INSERT INTO backups (backup_id, task_id, service_name, node_id, data_name, status, started_at) VALUES ('orphan-backup', 'missing-task', 'alpha', 'main', 'data', 'succeeded', '2026-04-04T12:05:00Z');`,
+		fmt.Sprintf(`PRAGMA user_version = %d;`, version),
+		`PRAGMA foreign_keys = ON;`,
+	} {
+		if _, err := rawDB.ExecContext(ctx, statement); err != nil {
+			t.Fatalf("execute fixture statement %q: %v", statement, err)
+		}
+	}
+	return stateDir
 }
 
 func TestRepoSyncStateRoundTrip(t *testing.T) {

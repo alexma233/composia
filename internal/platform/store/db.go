@@ -15,7 +15,7 @@ import (
 
 const DatabaseFileName = "composia.db"
 
-const sqliteSchemaVersion = 11
+const sqliteSchemaVersion = 12
 
 const sqliteValidTaskTypeSQLList = "'deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'migrate_rollback', 'dns_update', 'cloudflare_tunnel_sync', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove_container', 'docker_remove_network', 'docker_remove_volume', 'docker_remove_image'"
 
@@ -1136,6 +1136,7 @@ func (db *DB) migrate(ctx context.Context) error {
 		statements: []string{
 			fmt.Sprintf(`DELETE FROM task_steps WHERE task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
 			fmt.Sprintf(`DELETE FROM backups WHERE task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
+			`DELETE FROM backups WHERE NOT EXISTS (SELECT 1 FROM tasks WHERE tasks.task_id = backups.task_id);`,
 			fmt.Sprintf(`UPDATE services SET last_task_id = NULL WHERE last_task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
 			fmt.Sprintf(`UPDATE service_instances SET last_task_id = NULL WHERE last_task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
 			fmt.Sprintf(`UPDATE tasks SET attempt_of_task_id = NULL WHERE attempt_of_task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
@@ -1217,6 +1218,7 @@ func (db *DB) migrate(ctx context.Context) error {
 		statements: []string{
 			fmt.Sprintf(`DELETE FROM task_steps WHERE task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
 			fmt.Sprintf(`DELETE FROM backups WHERE task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
+			`DELETE FROM backups WHERE NOT EXISTS (SELECT 1 FROM tasks WHERE tasks.task_id = backups.task_id);`,
 			fmt.Sprintf(`UPDATE services SET last_task_id = NULL WHERE last_task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
 			fmt.Sprintf(`UPDATE service_instances SET last_task_id = NULL WHERE last_task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
 			fmt.Sprintf(`UPDATE tasks SET attempt_of_task_id = NULL WHERE attempt_of_task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
@@ -1340,6 +1342,12 @@ func (db *DB) migrate(ctx context.Context) error {
 		version: 11,
 		statements: []string{
 			`ALTER TABLE tasks ADD COLUMN log_confirmed_seq INTEGER NOT NULL DEFAULT 0;`,
+		},
+	}, {
+		version:            12,
+		disableForeignKeys: true,
+		statements: []string{
+			`DELETE FROM backups WHERE NOT EXISTS (SELECT 1 FROM tasks WHERE tasks.task_id = backups.task_id);`,
 		},
 	}}
 
