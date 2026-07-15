@@ -242,6 +242,7 @@ func TestCommitPathsAndRevisionHelpers(t *testing.T) {
 
 	repoDir := t.TempDir()
 	gitRun(t, repoDir, "init")
+	gitRun(t, repoDir, "config", "commit.gpgsign", "false")
 	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("hello\n"), 0o600); err != nil {
 		t.Fatalf("write README: %v", err)
 	}
@@ -308,6 +309,64 @@ func TestCommitPathsAndRevisionHelpers(t *testing.T) {
 	}
 	if _, err := CommitPath(repoDir, "README.md", "", "", ""); err != nil {
 		t.Fatalf("commit path wrapper: %v", err)
+	}
+}
+
+func TestCommitPathsScopesCommitAndRestoresIndexOnError(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	gitRun(t, repoDir, "init")
+	gitRun(t, repoDir, "config", "commit.gpgsign", "false")
+	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("hello\n"), 0o600); err != nil {
+		t.Fatalf("write README: %v", err)
+	}
+	gitRun(t, repoDir, "add", ".")
+	gitRun(t, repoDir, "-c", "user.name=Test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "-m", "initial")
+	initialRevision, err := CurrentRevision(repoDir)
+	if err != nil {
+		t.Fatalf("current revision: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("staged\n"), 0o600); err != nil {
+		t.Fatalf("update README: %v", err)
+	}
+	gitRun(t, repoDir, "add", "README.md")
+	if _, err := CommitPaths(repoDir, []string{"missing.txt"}, "missing", "Tester", "tester@example.com"); err == nil {
+		t.Fatalf("expected missing path commit to fail")
+	}
+	cached, err := gitOutput(repoDir, "diff", "--cached", "--name-only")
+	if err != nil {
+		t.Fatalf("read cached diff: %v", err)
+	}
+	if strings.TrimSpace(cached) != "README.md" {
+		t.Fatalf("expected README.md to stay staged after failed scoped commit, got %q", cached)
+	}
+
+	serviceDir := filepath.Join(repoDir, "-service")
+	if err := os.MkdirAll(serviceDir, 0o750); err != nil {
+		t.Fatalf("create option-like service dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(serviceDir, "compose.yaml"), []byte("services: {}\n"), 0o600); err != nil {
+		t.Fatalf("write compose: %v", err)
+	}
+	commitID, err := CommitPaths(repoDir, []string{"-service/compose.yaml"}, "add option path", "Tester", "tester@example.com")
+	if err != nil {
+		t.Fatalf("commit option-like path: %v", err)
+	}
+	changedFiles, err := DiffChangedFiles(repoDir, initialRevision, commitID)
+	if err != nil {
+		t.Fatalf("diff changed files: %v", err)
+	}
+	if len(changedFiles) != 1 || changedFiles[0] != "-service/compose.yaml" {
+		t.Fatalf("scoped commit changed files = %+v", changedFiles)
+	}
+	cached, err = gitOutput(repoDir, "diff", "--cached", "--name-only")
+	if err != nil {
+		t.Fatalf("read cached diff after commit: %v", err)
+	}
+	if strings.TrimSpace(cached) != "README.md" {
+		t.Fatalf("expected unrelated README.md to remain staged, got %q", cached)
 	}
 }
 

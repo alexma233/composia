@@ -155,6 +155,16 @@ func CommitPaths(repoDir string, relativePaths []string, message, authorName, au
 	if len(relativePaths) == 0 {
 		return "", errors.New("at least one repo path is required")
 	}
+	indexTree, err := gitOutput(repoDir, "write-tree")
+	if err != nil {
+		return "", fmt.Errorf("snapshot git index: %w", err)
+	}
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			_ = gitCommand(repoDir, nil, "read-tree", strings.TrimSpace(indexTree))
+		}
+	}()
 	addArgs := make([]string, 0, 3+len(relativePaths))
 	addArgs = append(addArgs, "add", "-A", "--")
 	addArgs = append(addArgs, relativePaths...)
@@ -171,9 +181,13 @@ func CommitPaths(repoDir string, relativePaths []string, message, authorName, au
 	if message == "" {
 		message = "update " + relativePaths[0]
 	}
-	if err := gitCommandWithOptions(repoDir, gitAuthorEnv(authorName, authorEmail), []string{"commit.gpgsign=false"}, "commit", "-m", message); err != nil {
+	commitArgs := make([]string, 0, 5+len(relativePaths))
+	commitArgs = append(commitArgs, "commit", "--only", "-m", message, "--")
+	commitArgs = append(commitArgs, relativePaths...)
+	if err := gitCommand(repoDir, gitAuthorEnv(authorName, authorEmail), commitArgs...); err != nil {
 		return "", fmt.Errorf("commit repo paths %q: %w", strings.Join(relativePaths, ", "), err)
 	}
+	succeeded = true
 	commitID, err := CurrentRevision(repoDir)
 	if err != nil {
 		return "", err

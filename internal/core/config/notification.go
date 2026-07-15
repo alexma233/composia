@@ -194,7 +194,7 @@ func validateNotificationTaskSources(path string, values []string) error {
 		}
 		source := task.Source(normalized)
 		switch source {
-		case task.SourceWeb, task.SourceCLI, task.SourceOthers, task.SourceSchedule, task.SourceSystem:
+		case task.SourceWeb, task.SourceCLI, task.SourceOthers, task.SourceSchedule, task.SourceSystem, task.SourceAutoDeploy:
 		default:
 			return fmt.Errorf("%s[%q] is not a supported task source", path, normalized)
 		}

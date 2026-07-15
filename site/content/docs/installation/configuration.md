@@ -385,7 +385,7 @@ Each forge auth entry supports:
 | `from` | `string` | Yes | Sender address. |
 | `to` | `[]string` | Yes | Recipient list. |
 | `on` | `[]string` | No | Notification event filters. |
-| `task_sources` | `[]string` | No | Task source filters: `web`, `cli`, `others`, `schedule`, `system`. |
+| `task_sources` | `[]string` | No | Task source filters: `web`, `cli`, `others`, `schedule`, `system`, `auto_deploy`. |
 
 ### `notifications.telegram`
 

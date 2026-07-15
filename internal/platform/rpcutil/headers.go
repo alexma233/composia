@@ -45,7 +45,11 @@ func NormalizeStaticHeaders(headers map[string]string) (map[string]string, error
 		if _, reserved := reservedStaticHeaderNames[strings.ToLower(name)]; reserved {
 			return nil, fmt.Errorf("custom header %q is reserved", name)
 		}
-		normalized[http.CanonicalHeaderKey(name)] = value
+		canonicalName := http.CanonicalHeaderKey(name)
+		if _, exists := normalized[canonicalName]; exists {
+			return nil, fmt.Errorf("custom header %q is duplicated", canonicalName)
+		}
+		normalized[canonicalName] = value
 	}
 	return normalized, nil
 }

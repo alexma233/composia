@@ -1135,6 +1135,7 @@ func (db *DB) migrate(ctx context.Context) error {
 		disableForeignKeys: true,
 		statements: []string{
 			fmt.Sprintf(`DELETE FROM task_steps WHERE task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
+			fmt.Sprintf(`DELETE FROM backups WHERE task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
 			fmt.Sprintf(`UPDATE services SET last_task_id = NULL WHERE last_task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
 			fmt.Sprintf(`UPDATE service_instances SET last_task_id = NULL WHERE last_task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
 			fmt.Sprintf(`UPDATE tasks SET attempt_of_task_id = NULL WHERE attempt_of_task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
@@ -1215,6 +1216,7 @@ func (db *DB) migrate(ctx context.Context) error {
 		disableForeignKeys: true,
 		statements: []string{
 			fmt.Sprintf(`DELETE FROM task_steps WHERE task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
+			fmt.Sprintf(`DELETE FROM backups WHERE task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
 			fmt.Sprintf(`UPDATE services SET last_task_id = NULL WHERE last_task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
 			fmt.Sprintf(`UPDATE service_instances SET last_task_id = NULL WHERE last_task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
 			fmt.Sprintf(`UPDATE tasks SET attempt_of_task_id = NULL WHERE attempt_of_task_id IN (SELECT task_id FROM tasks WHERE type NOT IN (%s));`, sqliteValidTaskTypeSQLList),
@@ -1382,6 +1384,9 @@ func (db *DB) migrate(ctx context.Context) error {
 			if _, err := db.sql.ExecContext(ctx, `PRAGMA foreign_keys = ON;`); err != nil {
 				return fmt.Errorf("enable sqlite foreign keys: %w", err)
 			}
+			if err := checkSQLiteForeignKeys(ctx, db.sql); err != nil {
+				return fmt.Errorf("sqlite migration %d foreign key check: %w", migration.version, err)
+			}
 			tx, err = db.sql.BeginTx(ctx, nil)
 			if err != nil {
 				return fmt.Errorf("begin sqlite migration after schema rebuild: %w", err)
@@ -1391,6 +1396,28 @@ func (db *DB) migrate(ctx context.Context) error {
 
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit sqlite migration: %w", err)
+	}
+	return nil
+}
+
+func checkSQLiteForeignKeys(ctx context.Context, db *sql.DB) error {
+	rows, err := db.QueryContext(ctx, `PRAGMA foreign_key_check;`)
+	if err != nil {
+		return fmt.Errorf("run foreign_key_check: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	if rows.Next() {
+		var table string
+		var rowID int64
+		var parent string
+		var fkID int64
+		if err := rows.Scan(&table, &rowID, &parent, &fkID); err != nil {
+			return fmt.Errorf("read foreign_key_check result: %w", err)
+		}
+		return fmt.Errorf("%s rowid %d references missing %s foreign key %d", table, rowID, parent, fkID)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("read foreign_key_check results: %w", err)
 	}
 	return nil
 }

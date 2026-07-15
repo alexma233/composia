@@ -139,7 +139,6 @@ func (server *taskServer) FailLostTaskExecution(ctx context.Context, req *connec
 	detail.Record.ErrorSummary = summary
 	detail.Record.FinishedAt = &finishedAt
 	notifyTaskResult(server.taskResults, detail.Record.TaskID)
-	dispatchTaskRecordNotification(server.notifier, corenotify.EventTaskFailed, detail.Record)
 	return connect.NewResponse(taskActionResponse(detail.Record)), nil
 }
 

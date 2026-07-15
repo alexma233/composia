@@ -38,6 +38,45 @@ agent:
 	}
 }
 
+func TestLoadControllerRejectsPhysicallySharedRepoDir(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	repoDir := filepath.Join(root, "repo")
+	if err := os.Mkdir(repoDir, 0o750); err != nil {
+		t.Fatalf("create repo dir: %v", err)
+	}
+	aliasDir := filepath.Join(root, "repo-alias")
+	if err := os.Symlink(repoDir, aliasDir); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	configPath := filepath.Join(root, "config.yaml")
+	content := strings.TrimSpace(`
+controller:
+  listen_addr: ":8080"
+  repo_dir: "`+repoDir+`"
+  state_dir: "`+filepath.Join(root, "state-controller")+`"
+  log_dir: "`+filepath.Join(root, "logs")+`"
+  nodes:
+    - id: "main"
+      token: "main-token"
+
+agent:
+  node_id: "main"
+  token: "main-token"
+  repo_dir: "`+aliasDir+`"
+  state_dir: "`+filepath.Join(root, "state-agent")+`"
+`) + "\n"
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	_, err := LoadController(configPath)
+	if err == nil || !strings.Contains(err.Error(), "must not use the same path") {
+		t.Fatalf("expected physical repo_dir validation error, got %v", err)
+	}
+}
+
 func TestLoadAgentRejectsUnknownField(t *testing.T) {
 	t.Parallel()
 
@@ -756,10 +795,10 @@ func TestValidateNotificationEvents(t *testing.T) {
 func TestValidateNotificationTaskSources(t *testing.T) {
 	t.Parallel()
 
-	if err := validateNotificationTaskSources("notifications.task_sources", []string{" web ", "schedule"}); err != nil {
+	if err := validateNotificationTaskSources("notifications.task_sources", []string{" web ", "schedule", "auto_deploy"}); err != nil {
 		t.Fatalf("expected valid task sources, got %v", err)
 	}
-	for _, values := range [][]string{{""}, {"auto_deploy"}, {"web", "WEB"}} {
+	for _, values := range [][]string{{""}, {"unknown"}, {"web", "WEB"}} {
 		t.Run(strings.Join(values, ","), func(t *testing.T) {
 			t.Parallel()
 			if err := validateNotificationTaskSources("notifications.task_sources", values); err == nil {

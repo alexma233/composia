@@ -216,4 +216,11 @@ func TestFailLostTaskExecutionUpdatesRuntimeAndSteps(t *testing.T) {
 	if len(detail.Steps) != 1 || detail.Steps[0].Status != task.StatusFailed {
 		t.Fatalf("expected failed step: %+v", detail.Steps)
 	}
+	event, err := db.NextTaskOutboxEvent(ctx, now.Add(4*time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if event.TaskID != offered.TaskID || event.EventType != "task_completed" {
+		t.Fatalf("unexpected outbox event: %+v", event)
+	}
 }

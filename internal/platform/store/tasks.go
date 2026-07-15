@@ -839,6 +839,13 @@ func (db *DB) FailLostTaskExecution(ctx context.Context, taskID string, finished
 	if _, err := tx.ExecContext(ctx, `UPDATE task_steps SET status = ?, finished_at = COALESCE(finished_at, ?) WHERE task_id = ? AND status = ?`, string(task.StatusFailed), finishedAt.UTC().Format(time.RFC3339), taskID, string(task.StatusRunning)); err != nil {
 		return fmt.Errorf("fail running task steps: %w", err)
 	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO task_outbox (event_id, task_id, event_type, next_attempt_at, created_at)
+		VALUES (?, ?, 'task_completed', ?, ?)
+		ON CONFLICT(task_id, event_type) DO NOTHING
+	`, uuid.NewString(), taskID, finishedAt.UTC().Format(time.RFC3339), finishedAt.UTC().Format(time.RFC3339)); err != nil {
+		return fmt.Errorf("enqueue failed lost task %q: %w", taskID, err)
+	}
 	return tx.Commit()
 }
 

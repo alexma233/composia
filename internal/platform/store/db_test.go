@@ -213,6 +213,63 @@ func TestServiceCounts(t *testing.T) {
 	}
 }
 
+func TestMigrationDeletesBackupsForDroppedTaskTypesAndChecksForeignKeys(t *testing.T) {
+	t.Parallel()
+
+	stateDir := filepath.Join(t.TempDir(), "state")
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+	rawDB, err := sql.Open("sqlite", filepath.Join(stateDir, DatabaseFileName))
+	if err != nil {
+		t.Fatalf("open raw sqlite db: %v", err)
+	}
+	ctx := context.Background()
+	statements := []string{
+		`PRAGMA foreign_keys = ON;`,
+		`CREATE TABLE nodes (node_id TEXT PRIMARY KEY, is_configured INTEGER NOT NULL, is_online INTEGER NOT NULL, last_heartbeat TEXT, agent_version TEXT, docker_server_version TEXT, disk_total_bytes INTEGER, disk_free_bytes INTEGER);`,
+		`CREATE TABLE services (service_name TEXT PRIMARY KEY, is_declared INTEGER NOT NULL, runtime_status TEXT NOT NULL, last_task_id TEXT, updated_at TEXT NOT NULL, FOREIGN KEY (last_task_id) REFERENCES tasks(task_id));`,
+		`CREATE TABLE service_instances (service_name TEXT NOT NULL, node_id TEXT NOT NULL, is_declared INTEGER NOT NULL, runtime_status TEXT NOT NULL, last_task_id TEXT, updated_at TEXT NOT NULL, pending_deploy_revision TEXT, PRIMARY KEY (service_name, node_id), FOREIGN KEY (service_name) REFERENCES services(service_name), FOREIGN KEY (node_id) REFERENCES nodes(node_id), FOREIGN KEY (last_task_id) REFERENCES tasks(task_id));`,
+		`CREATE TABLE tasks (task_id TEXT PRIMARY KEY, type TEXT NOT NULL, source TEXT NOT NULL, triggered_by TEXT, service_name TEXT, node_id TEXT, status TEXT NOT NULL, params_json TEXT, log_path TEXT, repo_revision TEXT, result_revision TEXT, attempt_of_task_id TEXT, created_at TEXT NOT NULL, started_at TEXT, finished_at TEXT, error_summary TEXT, FOREIGN KEY (service_name) REFERENCES services(service_name), FOREIGN KEY (node_id) REFERENCES nodes(node_id), FOREIGN KEY (service_name, node_id) REFERENCES service_instances(service_name, node_id), FOREIGN KEY (attempt_of_task_id) REFERENCES tasks(task_id));`,
+		`CREATE TABLE task_steps (task_id TEXT NOT NULL, step_name TEXT NOT NULL, status TEXT NOT NULL, started_at TEXT, finished_at TEXT, PRIMARY KEY (task_id, step_name), FOREIGN KEY (task_id) REFERENCES tasks(task_id));`,
+		`CREATE TABLE backups (backup_id TEXT PRIMARY KEY, task_id TEXT NOT NULL, service_name TEXT NOT NULL, node_id TEXT NOT NULL, data_name TEXT NOT NULL, status TEXT NOT NULL, started_at TEXT NOT NULL, finished_at TEXT, artifact_ref TEXT, error_summary TEXT, FOREIGN KEY (task_id) REFERENCES tasks(task_id), FOREIGN KEY (service_name) REFERENCES services(service_name), FOREIGN KEY (service_name, node_id) REFERENCES service_instances(service_name, node_id), FOREIGN KEY (node_id) REFERENCES nodes(node_id));`,
+		`CREATE TABLE repo_state (singleton_id INTEGER PRIMARY KEY CHECK (singleton_id = 1), sync_status TEXT NOT NULL, last_sync_error TEXT, last_successful_pull_at TEXT);`,
+		`INSERT INTO nodes (node_id, is_configured, is_online) VALUES ('main', 1, 1);`,
+		`INSERT INTO services (service_name, is_declared, runtime_status, updated_at) VALUES ('alpha', 1, 'running', '2026-01-01T00:00:00Z');`,
+		`INSERT INTO service_instances (service_name, node_id, is_declared, runtime_status, updated_at) VALUES ('alpha', 'main', 1, 'running', '2026-01-01T00:00:00Z');`,
+		`INSERT INTO tasks (task_id, type, source, service_name, node_id, status, created_at) VALUES ('valid-task', 'backup', 'system', 'alpha', 'main', 'succeeded', '2026-01-01T00:00:00Z');`,
+		`INSERT INTO tasks (task_id, type, source, service_name, node_id, status, created_at) VALUES ('bad-task', 'old_type', 'system', 'alpha', 'main', 'succeeded', '2026-01-01T00:00:00Z');`,
+		`INSERT INTO backups (backup_id, task_id, service_name, node_id, data_name, status, started_at) VALUES ('valid-backup', 'valid-task', 'alpha', 'main', 'data', 'succeeded', '2026-01-01T00:00:00Z');`,
+		`INSERT INTO backups (backup_id, task_id, service_name, node_id, data_name, status, started_at) VALUES ('bad-backup', 'bad-task', 'alpha', 'main', 'data', 'succeeded', '2026-01-01T00:00:00Z');`,
+		`PRAGMA user_version = 6;`,
+	}
+	for _, statement := range statements {
+		if _, err := rawDB.ExecContext(ctx, statement); err != nil {
+			t.Fatalf("execute fixture statement %q: %v", statement, err)
+		}
+	}
+	if err := rawDB.Close(); err != nil {
+		t.Fatalf("close raw sqlite db: %v", err)
+	}
+
+	db, err := Open(stateDir)
+	if err != nil {
+		t.Fatalf("migrate sqlite db: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	var backupCount int
+	if err := db.sql.QueryRowContext(ctx, `SELECT COUNT(*) FROM backups WHERE task_id = 'bad-task'`).Scan(&backupCount); err != nil {
+		t.Fatalf("count bad backups: %v", err)
+	}
+	if backupCount != 0 {
+		t.Fatalf("expected bad backup to be deleted, got %d", backupCount)
+	}
+	if err := checkSQLiteForeignKeys(ctx, db.sql); err != nil {
+		t.Fatalf("foreign key check failed: %v", err)
+	}
+}
+
 func TestRepoSyncStateRoundTrip(t *testing.T) {
 	t.Parallel()
 

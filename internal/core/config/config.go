@@ -579,9 +579,19 @@ func samePath(left, right string) bool {
 	if left == "" || right == "" {
 		return false
 	}
-	leftClean := filepath.Clean(left)
-	rightClean := filepath.Clean(right)
-	return leftClean == rightClean
+	return physicalPath(left) == physicalPath(right)
+}
+
+func physicalPath(path string) string {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		absPath = path
+	}
+	resolvedPath, err := filepath.EvalSymlinks(absPath)
+	if err != nil {
+		return filepath.Clean(absPath)
+	}
+	return filepath.Clean(resolvedPath)
 }
 
 func (controller *ControllerConfig) NodeTokenMap() map[string]string {
