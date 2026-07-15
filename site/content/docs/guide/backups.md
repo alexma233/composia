@@ -163,8 +163,8 @@ Trigger maintenance from the web UI or CLI:
 
 ```bash
 composia rustic init --wait --follow main
-composia rustic forget --service my-app --data uploads --wait --follow main
-composia rustic prune --wait --follow main
+composia rustic forget --service my-app --data uploads --yes --wait --follow main
+composia rustic prune --yes --wait --follow main
 ```
 
 Use `--wait --follow` when you want the CLI to wait for the maintenance task and stream logs.
