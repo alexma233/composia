@@ -8,14 +8,25 @@ cd "$ROOT_DIR"
 COMPOSE_FILE="dev/docker-compose.e2e.yaml"
 CONTROLLER_ADDR="http://127.0.0.1:7001"
 ACCESS_TOKEN="dev-admin-token"
+SUITE="${1:-all}"
+
+case "$SUITE" in
+  all | cli | controller | web) ;;
+  *)
+    echo "usage: $0 [all|cli|controller|web]" >&2
+    exit 2
+    ;;
+esac
 
 cleanup() {
   docker compose -f "$COMPOSE_FILE" down -v
 }
 trap cleanup EXIT INT TERM
 
-deno install --frozen
-deno run -A npm:playwright@1.61.1 install chromium
+if [ "$SUITE" = "all" ] || [ "$SUITE" = "web" ]; then
+  deno install --frozen
+  deno run -A npm:playwright@1.61.1 install chromium
+fi
 
 docker compose -f "$COMPOSE_FILE" up -d --build controller-dev agent-dev
 
@@ -38,21 +49,27 @@ for attempt in $(seq 1 60); do
   sleep 2
 done
 
-COMPOSIA_E2E_CONTROLLER_ADDR="$CONTROLLER_ADDR" \
-COMPOSIA_E2E_ACCESS_TOKEN="$ACCESS_TOKEN" \
-go test -tags=e2e ./test/e2e
+if [ "$SUITE" = "all" ] || [ "$SUITE" = "cli" ]; then
+  COMPOSIA_E2E_CONTROLLER_ADDR="$CONTROLLER_ADDR" \
+  COMPOSIA_E2E_ACCESS_TOKEN="$ACCESS_TOKEN" \
+  go test -tags=e2e ./test/e2e
+fi
 
-COMPOSIA_E2E_CONTROLLER_ADDR="$CONTROLLER_ADDR" \
-COMPOSIA_E2E_ACCESS_TOKEN="$ACCESS_TOKEN" \
-go test -tags=e2e ./test/controller_e2e
+if [ "$SUITE" = "all" ] || [ "$SUITE" = "controller" ]; then
+  COMPOSIA_E2E_CONTROLLER_ADDR="$CONTROLLER_ADDR" \
+  COMPOSIA_E2E_ACCESS_TOKEN="$ACCESS_TOKEN" \
+  go test -tags=e2e ./test/controller_e2e
+fi
 
-WEB_CONTROLLER_ADDR="$CONTROLLER_ADDR" \
-WEB_BROWSER_CONTROLLER_ADDR="$CONTROLLER_ADDR" \
-WEB_CONTROLLER_ACCESS_TOKEN="$ACCESS_TOKEN" \
-WEB_LOGIN_USERNAME="admin" \
-WEB_LOGIN_PASSWORD_HASH='$argon2id$v=19$m=65536,t=3,p=4$/wh05hbH5ipiT42CK+GxVA$2unNmHbsRe5ZkFgIkHNekBGk6KH+79sZAPB9qmRrUlQ' \
-WEB_SESSION_SECRET="e2e-session-secret" \
-ORIGIN="http://127.0.0.1:4173" \
-HOST="127.0.0.1" \
-PORT="4173" \
-deno task web:e2e
+if [ "$SUITE" = "all" ] || [ "$SUITE" = "web" ]; then
+  WEB_CONTROLLER_ADDR="$CONTROLLER_ADDR" \
+  WEB_BROWSER_CONTROLLER_ADDR="$CONTROLLER_ADDR" \
+  WEB_CONTROLLER_ACCESS_TOKEN="$ACCESS_TOKEN" \
+  WEB_LOGIN_USERNAME="admin" \
+  WEB_LOGIN_PASSWORD_HASH='$argon2id$v=19$m=65536,t=3,p=4$/wh05hbH5ipiT42CK+GxVA$2unNmHbsRe5ZkFgIkHNekBGk6KH+79sZAPB9qmRrUlQ' \
+  WEB_SESSION_SECRET="e2e-session-secret" \
+  ORIGIN="http://127.0.0.1:4173" \
+  HOST="127.0.0.1" \
+  PORT="4173" \
+  deno task web:e2e
+fi

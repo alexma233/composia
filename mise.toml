@@ -93,12 +93,12 @@ run = "sh scripts/dev/e2e.sh"
 
 [tasks."e2e:cli"]
 description = "Run CLI e2e tests"
-run = "go test -tags=e2e ./test/e2e"
+run = "sh scripts/dev/e2e.sh cli"
 
 [tasks."e2e:controller"]
 description = "Run controller e2e tests"
-run = "go test -tags=e2e ./test/controller_e2e"
+run = "sh scripts/dev/e2e.sh controller"
 
 [tasks."e2e:web"]
 description = "Run web e2e tests"
-run = "deno task web:e2e"
+run = "sh scripts/dev/e2e.sh web"
