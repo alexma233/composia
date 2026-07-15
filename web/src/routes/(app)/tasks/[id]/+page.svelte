@@ -6,6 +6,7 @@
 
   import type { PageData } from './$types';
   import { getMessages } from '$lib/i18n';
+  import { logLiveMode } from '$lib/log-accessibility';
 
   const messages = getMessages();
   import { actionErrorMessage } from '$lib/capabilities';
@@ -502,7 +503,7 @@
           role="log"
           tabindex="0"
           aria-label={$messages.tasks.accessibleLogLabel}
-          aria-live={logState === 'streaming' ? 'polite' : 'off'}
+          aria-live={logLiveMode(logState, accessibleLogChunks.length > 0)}
           aria-relevant="additions text"
           aria-atomic="false"
         >{#if accessibleLogChunks.length}{#each accessibleLogChunks as chunk}{chunk}{/each}{:else}{$messages.tasks.waitingForOutput}{/if}</pre>

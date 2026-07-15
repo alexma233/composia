@@ -74,8 +74,12 @@ export function taskTypeLabel(type: string, messages: Dictionary) {
       return messages.tasks.types.cloudflareTunnelSync;
     case "caddy_reload":
       return messages.tasks.types.caddyReload;
+    case "image_check":
+      return messages.tasks.types.imageCheck;
     case "prune":
       return messages.tasks.types.prune;
+    case "rustic_init":
+      return messages.tasks.types.rusticInit;
     case "rustic_forget":
       return messages.tasks.types.rusticForget;
     case "rustic_prune":
