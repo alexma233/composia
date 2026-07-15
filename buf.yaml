@@ -1,5 +1,21 @@
 version: v1
 
+build:
+  excludes:
+    - dev/.go-mod-cache
+    - dev/.go-build-cache
+    - dev/.deno-cache-user
+    - dev/.node_modules-user
+    - dev/.web-node_modules-user
+    - dev/go-mod-cache
+    - dev/go-build-cache
+    - dev/deno-cache
+    - dev/deno-cache-user
+    - dev/node_modules
+    - dev/node_modules-user
+    - dev/web-node_modules
+    - dev/web-node_modules-user
+
 lint:
   use:
     - STANDARD

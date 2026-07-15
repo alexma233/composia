@@ -11,7 +11,9 @@ COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download
 
-COPY . .
+COPY gen ./gen
+COPY internal ./internal
+COPY cmd ./cmd
 
 FROM backend-builder-base AS cli-builder
 ARG TARGETOS

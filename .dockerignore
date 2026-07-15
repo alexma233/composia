@@ -31,3 +31,25 @@ dev/web-node_modules-user
 .DS_Store
 .idea
 .vscode
+# Local secrets and runtime state must never enter Docker build contexts.
+.env
+.env.*.local
+config.local.yaml
+config.json
+/config/
+/data/
+/audit/
+/dev/logs/
+/dev/state-controller/
+/dev/state-agent/
+/dev/state-agent-node-2/
+/dev/repo-controller/
+/dev/repo-agent/
+/dev/repo-agent-node-2/
+/dev/*-token.txt
+/dev/config.controller.yaml
+/dev/config.agent.yaml
+/dev/config.controller.container.yaml
+/dev/age-identity.key
+/dev/age-recipients.txt
+/dev/.env

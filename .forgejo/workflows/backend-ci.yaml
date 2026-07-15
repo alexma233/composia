@@ -12,6 +12,10 @@ on:
       - "go.sum"
       - "proto/**"
       - "gen/go/**"
+      - "web/src/lib/gen/**"
+      - "buf.yaml"
+      - "buf.gen.yaml"
+      - "scripts/dev/check-generated.sh"
       - "scripts/build/**"
       - ".goreleaser.yaml"
       - "flake.nix"
@@ -33,6 +37,10 @@ on:
       - "go.sum"
       - "proto/**"
       - "gen/go/**"
+      - "web/src/lib/gen/**"
+      - "buf.yaml"
+      - "buf.gen.yaml"
+      - "scripts/dev/check-generated.sh"
       - "scripts/build/**"
       - ".goreleaser.yaml"
       - ".golangci.yml"
@@ -62,6 +70,35 @@ jobs:
             printf 'Unformatted Go files:\n%s\n' "$unformatted"
             exit 1
           fi
+
+  generated-drift:
+    runs-on: docker-amd64
+    container:
+      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.5@sha256:87cae2783441a1ae864b6b703656d765dc2284eb7ead0a58757d5f6043647353
+
+    steps:
+      - name: Checkout
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v7.0.0
+        uses: https://forgejo.alexma.top/actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Check generated protobuf drift
+        run: scripts/dev/check-generated.sh
+
+  nix-build:
+    runs-on: docker-amd64-dind
+    container:
+      image: forgejo.alexma.top/alexma233/ci-images-go-node-docker:1.26@sha256:1bd01281b668e118e4bee4da655dc7084d996089484ddf4e23cec2ed3d1cc96a
+
+    steps:
+      - name: Checkout
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v7.0.0
+        uses: https://forgejo.alexma.top/actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Build Nix package
+        run: >-
+          docker run --rm -v "$PWD:/src:ro" -w /src
+          nixos/nix:2.34.2@sha256:cf42be9911411150ed246632633e846ee185384d97c9a8a27e8ca15ab3a7a48f
+          nix --extra-experimental-features 'nix-command flakes' build 'path:/src#composia' --no-link
 
   build-test:
     runs-on: docker-amd64
