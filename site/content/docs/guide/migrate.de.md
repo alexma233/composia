@@ -47,7 +47,7 @@ migrate:
 **CLI:**
 
 ```bash
-composia service migrate my-app --to edge-1
+composia service my-app migrate --source main --target edge-1 --wait --follow --timeout 30m
 ```
 
 ## Migrationsschritte
@@ -70,23 +70,19 @@ composia service migrate my-app --to edge-1
 
 ## Rollback
 
-Wenn eine Migration fehlschlägt oder abgelehnt wird, löse eine Rollback-Aufgabe über die Web-UI oder CLI aus. Die Rollback-Aufgabe unterstützt diese Wiederherstellungsaktionen:
+State rollback is currently available in the Web UI only. Open the migration task details, choose the recovery actions that match the failed step, and start rollback there.
 
-| Aktion | Beschreibung |
+| Action | Description |
 |--------|-------------|
-| `deploy_source` | Deploye den Dienst erneut auf dem ursprünglichen Quell-Node. |
-| `stop_target` | Stoppe und bereinige den Dienst auf dem Ziel-Node. |
-| `rollback_dns` | Synchronisiere DNS-Records zurück zum Quell-Node. |
+| `deploy_source` | Redeploy the service on the original source node. |
+| `stop_target` | Stop and clean up the service on the target node. |
+| `rollback_dns` | Sync DNS records back to the source node. |
 
-Wähle die Aktionen, die zum fehlgeschlagenen Schritt passen. Wenn die Migration beispielsweise fehlschlug, nachdem das Ziel deployed wurde, aber DNS noch nicht aktualisiert wurde, benötigst du möglicherweise nur `stop_target` und `deploy_source`.
-
-**CLI:**
+The CLI does not have a `task rollback` command yet. You can still inspect and follow the migration task with:
 
 ```bash
-composia task rollback <task-id> --deploy-source --stop-target --rollback-dns
+composia task wait <task-id> --follow --timeout 30m
 ```
-
-Lasse Flags für Aktionen weg, die du nicht benötigst.
 
 ## Siehe auch
 

@@ -38,8 +38,10 @@ Der Host-Pfad und der Container-Pfad müssen identisch sein. Der Agent ruft den 
 Verwende denselben absoluten Pfad auf beiden Seiten, zum Beispiel:
 
 ```bash
-COMPOSIA_AGENT_REPO_DIR=/srv/composia/repo-agent
+COMPOSIA_AGENT_REPO_DIR=/data/repo-agent
 ```
+
+Set `agent.repo_dir` in `config.yaml` to the same absolute path.
 
 ## Grundlegende `config.yaml`
 
@@ -72,7 +74,15 @@ Setze `WEB_CONTROLLER_ACCESS_TOKEN` in `.env` auf denselben Wert wie `controller
 
 ## Web-Passwort
 
-`WEB_LOGIN_PASSWORD_HASH` muss ein Argon2-Passwort-Hash sein. Verwende ein Argon2-fähiges Passwort-Hashing-Tool und füge den vollständigen kodierten Hash in `.env` ein.
+`WEB_LOGIN_PASSWORD_HASH` must be an Argon2id PHC hash. Generate it from a hidden prompt so the plaintext password is not written to shell history:
+
+```bash
+read -r -s -p 'Web password: ' COMPOSIA_WEB_PASSWORD; echo
+printf '%s' "$COMPOSIA_WEB_PASSWORD" | docker run --rm -i -e NODE_NO_WARNINGS=1 node:24-alpine node -e 'const {randomBytes}=require("node:crypto");let p="";process.stdin.setEncoding("utf8");process.stdin.on("data",c=>p+=c);process.stdin.on("end",async()=>{const salt=randomBytes(16);const key=await crypto.subtle.importKey("raw-secret",Buffer.from(p),"Argon2id",false,["deriveBits"]);const bits=await crypto.subtle.deriveBits({name:"Argon2id",memory:65536,passes:3,parallelism:1,nonce:salt},key,256);const b64=b=>Buffer.from(b).toString("base64").replace(/=+$/g,"");console.log(`$argon2id$v=19$m=65536,t=3,p=1$${b64(salt)}$${b64(bits)}`);})'
+unset COMPOSIA_WEB_PASSWORD
+```
+
+Paste the full `$argon2id$...` output into `.env`. The command uses Docker to run Node.js 24, so it does not require a local Node.js install.
 
 Generiere `WEB_SESSION_SECRET` mit einem beliebigen kryptografisch sicheren Zufallsgenerator, zum Beispiel:
 

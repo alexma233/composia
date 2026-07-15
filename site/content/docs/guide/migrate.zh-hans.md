@@ -47,7 +47,7 @@ migrate:
 **CLI：**
 
 ```bash
-composia service migrate my-app --to edge-1
+composia service my-app migrate --source main --target edge-1 --wait --follow --timeout 30m
 ```
 
 ## 迁移步骤
@@ -68,25 +68,21 @@ composia service migrate my-app --to edge-1
 - 源实例在数据传输前会停止以保证一致性。
 - 对于数据库，请使用导出策略（`database.pgdumpall` / `database.pgimport`）。
 
-## 回滚
+## Rollback
 
-当迁移失败或被拒绝时，通过 Web UI 或 CLI 触发回滚任务。回滚任务支持以下恢复操作：
+State rollback is currently available in the Web UI only. Open the migration task details, choose the recovery actions that match the failed step, and start rollback there.
 
-| 操作 | 描述 |
+| Action | Description |
 |--------|-------------|
-| `deploy_source` | 在原始源节点上重新部署服务。 |
-| `stop_target` | 停止并清理目标节点上的服务。 |
-| `rollback_dns` | 将 DNS 记录同步回源节点。 |
+| `deploy_source` | Redeploy the service on the original source node. |
+| `stop_target` | Stop and clean up the service on the target node. |
+| `rollback_dns` | Sync DNS records back to the source node. |
 
-选择与失败步骤匹配的操作。例如，如果迁移在目标节点部署完成后但 DNS 尚未更新时失败，您可能只需要 `stop_target` 和 `deploy_source`。
-
-**CLI：**
+The CLI does not have a `task rollback` command yet. You can still inspect and follow the migration task with:
 
 ```bash
-composia task rollback <task-id> --deploy-source --stop-target --rollback-dns
+composia task wait <task-id> --follow --timeout 30m
 ```
-
-省略您不需要的选项标记。
 
 ## 另请参阅
 

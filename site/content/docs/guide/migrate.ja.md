@@ -47,7 +47,7 @@ migrate:
 **CLI:**
 
 ```bash
-composia service migrate my-app --to edge-1
+composia service my-app migrate --source main --target edge-1 --wait --follow --timeout 30m
 ```
 
 ## 移行手順
@@ -68,25 +68,21 @@ composia service migrate my-app --to edge-1
 - 整合性を確保するため、データ転送前にソースインスタンスが停止されます。
 - データベースの場合はエクスポート戦略（`database.pgdumpall` / `database.pgimport`）を使用してください。
 
-## ロールバック
+## Rollback
 
-移行が失敗したか拒否された場合、Web UI または CLI からロールバックタスクをトリガーします。ロールバックタスクは以下の復旧アクションをサポートします:
+State rollback is currently available in the Web UI only. Open the migration task details, choose the recovery actions that match the failed step, and start rollback there.
 
-| アクション | 説明 |
+| Action | Description |
 |--------|-------------|
-| `deploy_source` | 元のソースノードにサービスを再デプロイします。 |
-| `stop_target` | ターゲットノード上のサービスを停止してクリーンアップします。 |
-| `rollback_dns` | DNS レコードをソースノードに戻します。 |
+| `deploy_source` | Redeploy the service on the original source node. |
+| `stop_target` | Stop and clean up the service on the target node. |
+| `rollback_dns` | Sync DNS records back to the source node. |
 
-失敗したステップに一致するアクションを選択します。例えば、ターゲットがデプロイされた後に移行が失敗したが DNS がまだ更新されていない場合、`stop_target` と `deploy_source` だけが必要になるかもしれません。
-
-**CLI:**
+The CLI does not have a `task rollback` command yet. You can still inspect and follow the migration task with:
 
 ```bash
-composia task rollback <task-id> --deploy-source --stop-target --rollback-dns
+composia task wait <task-id> --follow --timeout 30m
 ```
-
-必要のないアクションのフラグは省略します。
 
 ## 関連項目
 

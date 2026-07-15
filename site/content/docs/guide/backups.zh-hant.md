@@ -136,8 +136,10 @@ backup:
 透過 Web UI 從備份頁面觸發還原，或使用 CLI：
 
 ```bash
-composia backup restore <backup-id>
+composia backup restore main <backup-id> --wait --follow --timeout 30m
 ```
+
+The first argument is the target node. Use `--wait --follow` to block until the restore finishes and stream task logs.
 
 還原流程：
 
@@ -160,10 +162,12 @@ composia backup restore <backup-id>
 從 Web UI 或 CLI 觸發維護：
 
 ```bash
-composia node init-rustic main
-composia node forget-rustic main
-composia node prune-rustic main
+composia rustic init main --yes --wait --follow
+composia rustic forget main --service my-app --data uploads --wait --follow
+composia rustic prune main --wait --follow
 ```
+
+Use `--wait --follow` when you want the CLI to wait for the maintenance task and stream logs.
 
 ## 參見
 
