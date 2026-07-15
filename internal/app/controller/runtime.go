@@ -141,7 +141,10 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 		<-runtimeCtx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_ = server.Shutdown(shutdownCtx)
+		if server.Shutdown(shutdownCtx) != nil {
+			// Active streams must disconnect before the replacement runtime starts.
+			_ = server.Close()
+		}
 	})
 
 	log.Printf("composia controller parsed %d declared services", len(services))
