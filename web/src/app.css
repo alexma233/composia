@@ -345,6 +345,27 @@
     @apply min-w-0 max-w-full overflow-hidden rounded-lg border bg-background;
   }
 
+  .task-log-accessible {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: pre;
+  }
+
+  .task-log-accessible:focus {
+    @apply mb-3 block rounded-lg border bg-background p-3 font-mono text-xs outline-none ring-2 ring-ring ring-offset-2;
+    position: static;
+    width: auto;
+    height: 12rem;
+    margin-top: 0;
+    overflow: auto;
+    clip: auto;
+    white-space: pre-wrap;
+  }
+
   .terminal-surface .wterm {
     --term-font-family:
       ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono,

@@ -44,7 +44,7 @@ export function taskStatusLabel(status: string, messages: Dictionary) {
     case "cancelled":
       return messages.status.cancelled;
     default:
-      return status || messages.status.unknown;
+      return messages.status.unknown;
   }
 }
 
@@ -97,7 +97,58 @@ export function taskTypeLabel(type: string, messages: Dictionary) {
     case "unspecified":
       return messages.status.unknown;
     default:
-      return type || messages.status.unknown;
+      return messages.status.unknown;
+  }
+}
+
+export function taskStepNameLabel(stepName: string, messages: Dictionary) {
+  switch (stepName) {
+    case "render":
+      return messages.tasks.steps.render;
+    case "pull":
+      return messages.tasks.steps.pull;
+    case "backup":
+      return messages.tasks.steps.backup;
+    case "compose_down":
+      return messages.tasks.steps.composeDown;
+    case "compose_up":
+      return messages.tasks.steps.composeUp;
+    case "transfer":
+      return messages.tasks.steps.transfer;
+    case "restore":
+      return messages.tasks.steps.restore;
+    case "dns_update":
+      return messages.tasks.steps.dnsUpdate;
+    case "caddy_sync":
+      return messages.tasks.steps.caddySync;
+    case "caddy_reload":
+      return messages.tasks.steps.caddyReload;
+    case "image_check":
+      return messages.tasks.steps.imageCheck;
+    case "init":
+      return messages.tasks.steps.init;
+    case "prune":
+      return messages.tasks.steps.prune;
+    case "awaiting_confirmation":
+      return messages.tasks.steps.awaitingConfirmation;
+    case "persist_repo":
+      return messages.tasks.steps.persistRepo;
+    case "finalize":
+      return messages.tasks.steps.finalize;
+    case "docker_start":
+      return messages.tasks.steps.dockerStart;
+    case "docker_stop":
+      return messages.tasks.steps.dockerStop;
+    case "docker_restart":
+      return messages.tasks.steps.dockerRestart;
+    case "docker_remove":
+      return messages.tasks.steps.dockerRemove;
+    case "cloudflare_tunnel_sync":
+      return messages.tasks.steps.cloudflareTunnelSync;
+    case "unspecified":
+      return messages.tasks.steps.unspecified;
+    default:
+      return messages.tasks.steps.unspecified;
   }
 }
 
