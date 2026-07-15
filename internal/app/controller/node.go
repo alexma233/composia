@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"connectrpc.com/connect"
 
@@ -124,9 +125,9 @@ func (server *nodeMaintenanceServer) PruneNodeDocker(ctx context.Context, req *c
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
 
-	target := req.Msg.GetTarget()
-	if target == "" {
-		target = "all"
+	target, err := validateDockerPruneTarget(req.Msg.GetTarget())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	snapshot, err := server.db.GetNodeSnapshot(ctx, req.Msg.GetNodeId())
@@ -222,6 +223,18 @@ func (server *nodeMaintenanceServer) ForgetNodeRustic(ctx context.Context, req *
 	}
 	notifyTaskQueue(server.taskQueue)
 	return connect.NewResponse(&controllerv1.ForgetNodeRusticResponse{TaskId: createdTask.TaskID}), nil
+}
+
+func validateDockerPruneTarget(target string) (string, error) {
+	if strings.TrimSpace(target) == "" {
+		return "", errors.New("target is required")
+	}
+	switch target {
+	case "all", "containers", "networks", "images", "images_all", "volumes", "builder":
+		return target, nil
+	default:
+		return "", fmt.Errorf("unknown prune target: %q", target)
+	}
 }
 
 func nodeSummary(node config.NodeConfig, snapshot store.NodeSnapshot) *controllerv1.NodeSummary {

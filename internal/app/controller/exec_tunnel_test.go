@@ -211,6 +211,36 @@ func TestExecTunnelManagerExpiresUnusedAttachToken(t *testing.T) {
 	}
 }
 
+func TestExecTunnelManagerActivelyExpiresUnusedAttachToken(t *testing.T) {
+	t.Parallel()
+
+	manager := newExecTunnelManager()
+	manager.registerTunnel("main")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go manager.runSessionSweeper(ctx, 10*time.Millisecond)
+
+	session, err := manager.openSession("main", "ctr", []string{"/bin/sh"}, 24, 80, "https://web.example.test", "web-admin")
+	if err != nil {
+		t.Fatalf("open session: %v", err)
+	}
+	manager.mu.Lock()
+	session.attachExpiresAt = time.Now().UTC().Add(-time.Second)
+	manager.mu.Unlock()
+
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		manager.mu.Lock()
+		_, ok := manager.sessions[session.id]
+		manager.mu.Unlock()
+		if !ok {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatal("expected sweeper to remove expired session")
+}
+
 func TestExecTunnelManagerDoesNotBlockWhenAgentQueueIsFull(t *testing.T) {
 	t.Parallel()
 

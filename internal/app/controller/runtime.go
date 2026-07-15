@@ -74,6 +74,7 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 	dockerQueries := newDockerQueryBroker()
 	execManager := newExecTunnelManager()
 	logManager := newContainerLogTunnelManager()
+	startBackground(func() { execManager.runSessionSweeper(runtimeCtx, execSessionSweepInterval) })
 	notifier, err := appnotify.New(cfg.Notifications)
 	if err != nil {
 		return fmt.Errorf("initialize notifications: %w", err)

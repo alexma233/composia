@@ -10,9 +10,12 @@ import (
 	"net/smtp"
 	"strconv"
 	"strings"
+	"time"
 
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 )
+
+const smtpIOTimeout = 30 * time.Second
 
 type smtpSender struct {
 	host       string
@@ -22,6 +25,12 @@ type smtpSender struct {
 	password   string
 	from       string
 	to         []string
+}
+
+type smtpBoundedConn struct {
+	net.Conn
+	ctx     context.Context
+	timeout time.Duration
 }
 
 func newSMTPSender(cfg *config.ControllerSMTPNotificationConfig) (sender, error) {
@@ -88,6 +97,7 @@ func (sender *smtpSender) connect(ctx context.Context, address string) (*smtp.Cl
 		if err != nil {
 			return nil, fmt.Errorf("dial smtp tls %q: %w", address, err)
 		}
+		conn = boundSMTPConn(ctx, conn)
 		client, err := smtp.NewClient(conn, sender.host)
 		if err != nil {
 			_ = conn.Close()
@@ -100,6 +110,7 @@ func (sender *smtpSender) connect(ctx context.Context, address string) (*smtp.Cl
 	if err != nil {
 		return nil, fmt.Errorf("dial smtp %q: %w", address, err)
 	}
+	conn = boundSMTPConn(ctx, conn)
 	client, err := smtp.NewClient(conn, sender.host)
 	if err != nil {
 		_ = conn.Close()
@@ -117,6 +128,28 @@ func (sender *smtpSender) connect(ctx context.Context, address string) (*smtp.Cl
 		return nil, fmt.Errorf("smtp starttls: %w", err)
 	}
 	return client, nil
+}
+
+func boundSMTPConn(ctx context.Context, conn net.Conn) net.Conn {
+	return &smtpBoundedConn{Conn: conn, ctx: ctx, timeout: smtpIOTimeout}
+}
+
+func (conn *smtpBoundedConn) Read(payload []byte) (int, error) {
+	conn.setDeadline()
+	return conn.Conn.Read(payload)
+}
+
+func (conn *smtpBoundedConn) Write(payload []byte) (int, error) {
+	conn.setDeadline()
+	return conn.Conn.Write(payload)
+}
+
+func (conn *smtpBoundedConn) setDeadline() {
+	deadline := time.Now().Add(conn.timeout)
+	if ctxDeadline, ok := conn.ctx.Deadline(); ok && ctxDeadline.Before(deadline) {
+		deadline = ctxDeadline
+	}
+	_ = conn.Conn.SetDeadline(deadline)
 }
 
 func buildSMTPMessage(from string, to []string, subject, body string) string {

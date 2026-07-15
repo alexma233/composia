@@ -62,6 +62,50 @@ func TestBuildSMTPMessage(t *testing.T) {
 	}
 }
 
+func TestSMTPSenderSendBoundsPostConnectIOWithContext(t *testing.T) {
+	listener, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen smtp: %v", err)
+	}
+	defer func() { _ = listener.Close() }()
+	accepted := make(chan struct{})
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer func() { _ = conn.Close() }()
+		close(accepted)
+		_, _ = conn.Write([]byte("220 fake smtp\r\n"))
+		time.Sleep(time.Second)
+	}()
+
+	host, portText, err := net.SplitHostPort(listener.Addr().String())
+	if err != nil {
+		t.Fatalf("split host port: %v", err)
+	}
+	port, err := strconv.Atoi(portText)
+	if err != nil {
+		t.Fatalf("parse port: %v", err)
+	}
+	sender := &smtpSender{host: host, port: port, encryption: config.SMTPEncryptionNone, from: "composia@example.com", to: []string{"ops@example.com"}}
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	started := time.Now()
+	err = sender.Send(ctx, "Subject", "Body")
+	if err == nil {
+		t.Fatal("expected stalled smtp server to fail")
+	}
+	if elapsed := time.Since(started); elapsed > 500*time.Millisecond {
+		t.Fatalf("smtp send was not bounded by context: %s", elapsed)
+	}
+	select {
+	case <-accepted:
+	default:
+		t.Fatal("smtp server did not accept connection")
+	}
+}
+
 func TestSMTPSenderSendUsesSMTPEnvelopeAndMessage(t *testing.T) {
 	listener, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "127.0.0.1:0")
 	if err != nil {

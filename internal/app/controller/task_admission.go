@@ -245,8 +245,8 @@ func createNodeRusticMaintenanceTask(ctx context.Context, db *store.DB, cfg *con
 	if err != nil {
 		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
-	if !slices.Contains(rusticService.TargetNodes, nodeID) {
-		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("rustic infra service is not declared on node %q", nodeID))
+	if err := validateRusticServiceTargetNode(rusticService, nodeID); err != nil {
+		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 	serviceDir, err := filepath.Rel(cfg.RepoDir, rusticService.Directory)
 	if err != nil {
@@ -283,6 +283,13 @@ func createNodeRusticMaintenanceTask(ctx context.Context, db *store.DB, cfg *con
 		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
 	}
 	return createdTask, nil
+}
+
+func validateRusticServiceTargetNode(rusticService repo.Service, nodeID string) error {
+	if !slices.Contains(rusticService.TargetNodes, nodeID) {
+		return fmt.Errorf("rustic infra service is not declared on node %q", nodeID)
+	}
+	return nil
 }
 
 func connectTaskAdmissionError(err error) error {

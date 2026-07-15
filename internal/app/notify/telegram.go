@@ -51,27 +51,39 @@ func (sender *telegramSender) Send(ctx context.Context, subject, body string) er
 	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", sender.botToken)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
 	if err != nil {
-		return fmt.Errorf("create telegram request: %w", err)
+		return sender.redactedErrorf("create telegram request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := sender.client.Do(req)
 	if err != nil {
-		return fmt.Errorf("send telegram request: %w", err)
+		return sender.redactedErrorf("send telegram request: %v", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("read telegram response: %w", err)
+		return sender.redactedErrorf("read telegram response: %v", err)
 	}
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return fmt.Errorf("telegram send failed with status %d: %s", resp.StatusCode, strings.TrimSpace(string(responseBody)))
+		return sender.redactedErrorf("telegram send failed with status %d: %s", resp.StatusCode, strings.TrimSpace(string(responseBody)))
 	}
 	var response telegramSendMessageResponse
 	if err := json.Unmarshal(responseBody, &response); err != nil {
-		return fmt.Errorf("decode telegram response: %w", err)
+		return sender.redactedErrorf("decode telegram response: %v", err)
 	}
 	if !response.OK {
-		return fmt.Errorf("telegram send rejected: %s", strings.TrimSpace(response.Description))
+		return sender.redactedErrorf("telegram send rejected: %s", strings.TrimSpace(response.Description))
 	}
 	return nil
+}
+
+func (sender *telegramSender) redactedErrorf(format string, args ...any) error {
+	return errors.New(redactTelegramToken(fmt.Sprintf(format, args...), sender.botToken))
+}
+
+func redactTelegramToken(text, token string) string {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return text
+	}
+	return strings.ReplaceAll(text, token, "[REDACTED]")
 }

@@ -19,7 +19,8 @@ func TestRunScheduledTasksPassCreatesBackupTasksFromDefaultOverrideAndNone(t *te
 	repoDir := filepath.Join(rootDir, "repo")
 	logDir := filepath.Join(rootDir, "logs")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"app/composia-meta.yaml": "name: app\nnodes:\n  - main\ndata_protect:\n  data:\n    - name: inherit\n      backup:\n        strategy: files.copy\n        include:\n          - ./inherit\n    - name: override\n      backup:\n        strategy: files.copy\n        include:\n          - ./override\n    - name: disabled\n      backup:\n        strategy: files.copy\n        include:\n          - ./disabled\nbackup:\n  data:\n    - name: inherit\n    - name: override\n      schedule: \"5 2 * * *\"\n    - name: disabled\n      schedule: none\n",
+		"app/composia-meta.yaml":    "name: app\nnodes:\n  - main\ndata_protect:\n  data:\n    - name: inherit\n      backup:\n        strategy: files.copy\n        include:\n          - ./inherit\n    - name: override\n      backup:\n        strategy: files.copy\n        include:\n          - ./override\n    - name: disabled\n      backup:\n        strategy: files.copy\n        include:\n          - ./disabled\nbackup:\n  data:\n    - name: inherit\n    - name: override\n      schedule: \"5 2 * * *\"\n    - name: disabled\n      schedule: none\n",
+		"rustic/composia-meta.yaml": "name: rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n",
 	})
 	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
@@ -31,7 +32,7 @@ func TestRunScheduledTasksPassCreatesBackupTasksFromDefaultOverrideAndNone(t *te
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
 		t.Fatalf("sync configured nodes: %v", err)
 	}
-	if err := syncDeclaredServicesForTests(ctx, db, "app"); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "app", "rustic"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Date(2026, 4, 9, 2, 5, 0, 0, time.UTC)}); err != nil {

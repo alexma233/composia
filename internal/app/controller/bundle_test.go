@@ -413,6 +413,26 @@ func TestBundleServiceInjectsBackupRuntimeConfig(t *testing.T) {
 	}
 }
 
+func TestBuildBackupRuntimePayloadRejectsNodeWithoutRusticInfra(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"demo/composia-meta.yaml":   "name: demo\nnodes:\n  - edge\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\nbackup:\n  data:\n    - name: config\n",
+		"backup/composia-meta.yaml": "name: backup\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n",
+	})
+	revision, err := repo.CurrentRevision(repoDir)
+	if err != nil {
+		t.Fatalf("read current revision: %v", err)
+	}
+
+	_, err = buildBackupRuntimePayload(&config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}, {ID: "edge"}}}, "demo", "edge", revision, serviceTaskParams{ServiceDir: "demo", DataNames: []string{"config"}})
+	if err == nil || !strings.Contains(err.Error(), "rustic infra service") {
+		t.Fatalf("expected rustic target validation error, got %v", err)
+	}
+}
+
 func TestBundleServiceServiceOverrideSkipsBackupRuntimePayload(t *testing.T) {
 	t.Parallel()
 

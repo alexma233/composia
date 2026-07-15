@@ -55,6 +55,23 @@ func TestTelegramSenderSendPostsJSON(t *testing.T) {
 	}
 }
 
+func TestTelegramSenderSendRedactsTokenFromErrors(t *testing.T) {
+	t.Parallel()
+
+	token := "123456:secret-token"
+	sender := &telegramSender{botToken: token, chatID: "chat", client: &http.Client{Transport: errorRoundTripper{err: io.ErrUnexpectedEOF}}}
+	err := sender.Send(context.Background(), "Subject", "Body")
+	if err == nil {
+		t.Fatal("expected telegram send error")
+	}
+	if strings.Contains(err.Error(), token) {
+		t.Fatalf("telegram error leaked token: %v", err)
+	}
+	if !strings.Contains(err.Error(), "[REDACTED]") {
+		t.Fatalf("telegram error did not include redaction marker: %v", err)
+	}
+}
+
 func TestTelegramSenderSendHandlesRejectedResponse(t *testing.T) {
 	t.Parallel()
 
@@ -64,6 +81,23 @@ func TestTelegramSenderSendHandlesRejectedResponse(t *testing.T) {
 		t.Fatalf("expected rejected response error, got %v", err)
 	}
 }
+
+type errorRoundTripper struct {
+	err error
+}
+
+func (transport errorRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	return nil, &urlError{text: req.URL.String(), err: transport.err}
+}
+
+type urlError struct {
+	text string
+	err  error
+}
+
+func (err *urlError) Error() string { return "post " + err.text + ": " + err.err.Error() }
+
+func (err *urlError) Unwrap() error { return err.err }
 
 type recordingRoundTripper struct {
 	status      int

@@ -429,6 +429,21 @@ func TestNodeMaintenanceServicePruneNodeDockerCreatesTaskLogAndNotifiesQueue(t *
 	}
 }
 
+func TestNodeMaintenanceServicePruneNodeDockerRejectsMissingOrUnknownTarget(t *testing.T) {
+	t.Parallel()
+
+	server := &nodeMaintenanceServer{}
+	for _, target := range []string{"", "   ", "image", "../../images"} {
+		_, err := server.PruneNodeDocker(context.Background(), connect.NewRequest(&controllerv1.PruneNodeDockerRequest{NodeId: "main", Target: target}))
+		if err == nil {
+			t.Fatalf("expected prune target %q to fail", target)
+		}
+		if connect.CodeOf(err) != connect.CodeInvalidArgument {
+			t.Fatalf("expected invalid argument for target %q, got %v", target, err)
+		}
+	}
+}
+
 func TestNodeMaintenanceServicePruneNodeRusticCreatesRusticPruneTask(t *testing.T) {
 	t.Parallel()
 

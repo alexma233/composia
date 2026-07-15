@@ -110,12 +110,12 @@ func (tunnel *execTunnelClient) handleStartMessage(ctx context.Context, sender *
 	}
 	sessions.set(session)
 	if err := sender.send(&agentv1.OpenExecTunnelRequest{SessionId: session.id, Kind: execKindReady}); err != nil {
-		sessions.delete(session.id)
+		sessions.deleteIfCurrent(session)
 		closeRunningExecSession(session)
 		return err
 	}
 	go pumpExecOutput(ctx, sender, session, func() {
-		sessions.delete(session.id)
+		sessions.deleteIfCurrent(session)
 	})
 	return nil
 }
@@ -155,13 +155,18 @@ func (sessions *runningExecSessions) get(sessionID string) *runningExecSession {
 func (sessions *runningExecSessions) set(session *runningExecSession) {
 	sessions.mu.Lock()
 	defer sessions.mu.Unlock()
+	if current := sessions.sessions[session.id]; current != nil && current != session {
+		closeRunningExecSession(current)
+	}
 	sessions.sessions[session.id] = session
 }
 
-func (sessions *runningExecSessions) delete(sessionID string) {
+func (sessions *runningExecSessions) deleteIfCurrent(session *runningExecSession) {
 	sessions.mu.Lock()
 	defer sessions.mu.Unlock()
-	delete(sessions.sessions, sessionID)
+	if sessions.sessions[session.id] == session {
+		delete(sessions.sessions, session.id)
+	}
 }
 
 func (sessions *runningExecSessions) take(sessionID string) *runningExecSession {

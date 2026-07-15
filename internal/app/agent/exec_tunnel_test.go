@@ -33,6 +33,24 @@ func (stream *recordingExecTunnelStream) Send(message *agentv1.OpenExecTunnelReq
 	return nil
 }
 
+func TestRunningExecSessionsDeleteIsInstanceSafe(t *testing.T) {
+	t.Parallel()
+
+	sessions := &runningExecSessions{sessions: make(map[string]*runningExecSession)}
+	oldSession := &runningExecSession{id: "session"}
+	newSession := &runningExecSession{id: "session"}
+	sessions.sessions["session"] = newSession
+
+	sessions.deleteIfCurrent(oldSession)
+	if got := sessions.get("session"); got != newSession {
+		t.Fatalf("stale cleanup removed current session: %+v", got)
+	}
+	sessions.deleteIfCurrent(newSession)
+	if got := sessions.get("session"); got != nil {
+		t.Fatalf("current cleanup left session: %+v", got)
+	}
+}
+
 func TestExecTunnelSenderSerializesConcurrentSends(t *testing.T) {
 	t.Parallel()
 
