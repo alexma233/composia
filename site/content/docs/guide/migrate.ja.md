@@ -81,7 +81,7 @@ State rollback is currently available in the Web UI only. Open the migration tas
 The CLI does not have a `task rollback` command yet. You can still inspect and follow the migration task with:
 
 ```bash
-composia task wait <task-id> --follow --timeout 30m
+composia task wait --follow --timeout 30m <task-id>
 ```
 
 ## 関連項目

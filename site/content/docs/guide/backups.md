@@ -136,7 +136,7 @@ Backup artifacts are identified by Rustic snapshot IDs. Tags include `composia-s
 Trigger a restore through the web UI from the backups page or via CLI:
 
 ```bash
-composia backup restore main <backup-id> --wait --follow --timeout 30m
+composia backup restore --wait --follow --timeout 30m main <backup-id>
 ```
 
 The first argument is the target node. Use `--wait --follow` to block until the restore finishes and stream task logs.
@@ -162,9 +162,9 @@ Maintenance tasks use the Rustic infrastructure service:
 Trigger maintenance from the web UI or CLI:
 
 ```bash
-composia rustic init main --yes --wait --follow
-composia rustic forget main --service my-app --data uploads --wait --follow
-composia rustic prune main --wait --follow
+composia rustic init --wait --follow main
+composia rustic forget --service my-app --data uploads --wait --follow main
+composia rustic prune --wait --follow main
 ```
 
 Use `--wait --follow` when you want the CLI to wait for the maintenance task and stream logs.
