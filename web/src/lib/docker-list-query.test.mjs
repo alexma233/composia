@@ -2,6 +2,7 @@ import { assertEquals } from "jsr:@std/assert@1.0.19/equals";
 
 import {
   buildDockerListPageUrl,
+  debouncedDockerListSearchState,
   dockerSearchDebounceMs,
 } from "./docker-list-query.ts";
 
@@ -22,5 +23,16 @@ Deno.test(
       ),
       "/nodes/n1/docker/containers?search=redis",
     );
+  },
+);
+
+Deno.test(
+  "Docker list debounced search resets page with applied search",
+  () => {
+    assertEquals(debouncedDockerListSearchState("redis", ""), {
+      page: 1,
+      search: "redis",
+    });
+    assertEquals(debouncedDockerListSearchState("redis", "redis"), null);
   },
 );

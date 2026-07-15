@@ -11,6 +11,22 @@ export type DockerListPageQuery<SortField extends string> = {
   sortDesc: boolean;
 };
 
+export type DockerListDebouncedSearchState = {
+  page: 1;
+  search: string;
+};
+
+export function debouncedDockerListSearchState(
+  search: string,
+  debouncedSearch: string,
+): DockerListDebouncedSearchState | null {
+  if (search === debouncedSearch) {
+    return null;
+  }
+
+  return { page: 1, search };
+}
+
 export function parseDockerListPageQuery<SortField extends string>(
   url: URL,
   allowedSortFields: readonly SortField[],

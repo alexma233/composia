@@ -28,6 +28,7 @@
   } from '$lib/components/ui/pagination';
   import {
     buildDockerListPageUrl,
+    debouncedDockerListSearchState,
     dockerSearchDebounceMs,
     type DockerListSortDirection,
   } from '$lib/docker-list-query';
@@ -222,10 +223,13 @@
   }
 
   function handleSearchInput() {
-    currentPage = 1;
     if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
     searchDebounceTimer = setTimeout(() => {
-      debouncedSearchQuery = searchQuery;
+      const nextSearch = debouncedDockerListSearchState(searchQuery, debouncedSearchQuery);
+      if (nextSearch) {
+        currentPage = nextSearch.page;
+        debouncedSearchQuery = nextSearch.search;
+      }
       searchDebounceTimer = null;
     }, dockerSearchDebounceMs);
   }
