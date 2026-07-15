@@ -160,15 +160,16 @@ func (tunnel *containerLogTunnelClient) handleStartMessage(ctx context.Context, 
 		return
 	}
 	sessionCtx, cancel := context.WithCancel(ctx)
-	sessions.set(&runningContainerLogSession{id: message.GetSessionId(), cancel: cancel})
+	session := &runningContainerLogSession{id: message.GetSessionId(), cancel: cancel}
+	sessions.set(session)
 	go func() {
 		defer cancel()
-		tunnel.streamContainerLogs(sessionCtx, sendCh, sessions, message)
+		tunnel.streamContainerLogs(sessionCtx, sendCh, sessions, session, message)
 	}()
 }
 
-func (tunnel *containerLogTunnelClient) streamContainerLogs(ctx context.Context, sendCh chan<- *agentv1.OpenContainerLogTunnelRequest, sessions *runningContainerLogSessions, message *agentv1.OpenContainerLogTunnelResponse) {
-	defer sessions.delete(message.GetSessionId())
+func (tunnel *containerLogTunnelClient) streamContainerLogs(ctx context.Context, sendCh chan<- *agentv1.OpenContainerLogTunnelRequest, sessions *runningContainerLogSessions, session *runningContainerLogSession, message *agentv1.OpenContainerLogTunnelResponse) {
+	defer sessions.deleteIfCurrent(session)
 	server, err := newDockerServer()
 	if err != nil {
 		tunnel.sendError(ctx, sendCh, message.GetSessionId(), err)
@@ -223,10 +224,12 @@ func (sessions *runningContainerLogSessions) set(session *runningContainerLogSes
 	sessions.sessions[session.id] = session
 }
 
-func (sessions *runningContainerLogSessions) delete(sessionID string) {
+func (sessions *runningContainerLogSessions) deleteIfCurrent(session *runningContainerLogSession) {
 	sessions.mu.Lock()
 	defer sessions.mu.Unlock()
-	delete(sessions.sessions, sessionID)
+	if sessions.sessions[session.id] == session {
+		delete(sessions.sessions, session.id)
+	}
 }
 
 func (sessions *runningContainerLogSessions) cancel(sessionID string) {

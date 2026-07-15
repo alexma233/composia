@@ -327,7 +327,10 @@ func TestTaskServiceRunTaskAgainSupportsBackup(t *testing.T) {
 	rootDir := t.TempDir()
 	repoDir := filepath.Join(rootDir, "repo")
 	logDir := filepath.Join(rootDir, "logs")
-	createGitRepoWithService(t, repoDir, "alpha", "main")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"alpha/composia-meta.yaml":  "name: alpha\nnodes:\n  - main\n",
+		"rustic/composia-meta.yaml": "name: rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n",
+	})
 	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
 		t.Fatalf("create task log dir: %v", err)
 	}
@@ -336,7 +339,7 @@ func TestTaskServiceRunTaskAgainSupportsBackup(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
-	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "rustic"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {

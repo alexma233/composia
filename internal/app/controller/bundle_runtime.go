@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	backupcfg "forgejo.alexma.top/alexma233/composia/internal/core/backup"
@@ -108,6 +107,9 @@ func buildBackupRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeID
 	if err != nil {
 		return "", err
 	}
+	if err := validateRusticServiceTargetNode(rusticService, nodeID); err != nil {
+		return "", err
+	}
 	rusticServiceDir, err := filepath.Rel(cfg.RepoDir, rusticService.Directory)
 	if err != nil {
 		return "", fmt.Errorf("resolve rustic service directory: %w", err)
@@ -154,8 +156,8 @@ func buildRestoreRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeI
 	if err != nil {
 		return "", err
 	}
-	if !slices.Contains(rusticService.TargetNodes, nodeID) {
-		return "", fmt.Errorf("rustic infra service is not declared on node %q", nodeID)
+	if err := validateRusticServiceTargetNode(rusticService, nodeID); err != nil {
+		return "", err
 	}
 	rusticServiceDir, err := filepath.Rel(cfg.RepoDir, rusticService.Directory)
 	if err != nil {

@@ -663,6 +663,17 @@ func (server *serviceCommandServer) createServiceTasksWithOptions(ctx context.Co
 	if len(targetNodeIDs) == 0 {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not have any target nodes", serviceName))
 	}
+	if taskType == task.TypeBackup {
+		rusticService, err := repo.FindRusticInfraService(server.cfg.RepoDir, server.availableNodeIDs)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		for _, nodeID := range targetNodeIDs {
+			if err := validateRusticServiceTargetNode(rusticService, nodeID); err != nil {
+				return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+			}
+		}
+	}
 	if taskType == task.TypeImageCheck && options.ForgeCandidates == nil {
 		forgeCandidates, forgeCandidateSources, err := collectForgeImageCandidates(ctx, server.cfg, service, options.ImageNames)
 		if err != nil {

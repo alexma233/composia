@@ -32,8 +32,9 @@ const (
 	execKindError  = "error"
 	execKindClosed = "closed"
 
-	execAttachTokenTTL  = time.Minute
-	execWebOriginHeader = "X-Composia-Web-Origin"
+	execAttachTokenTTL       = time.Minute
+	execSessionSweepInterval = time.Second
+	execWebOriginHeader      = "X-Composia-Web-Origin"
 )
 
 type execTunnelManager struct {
@@ -126,6 +127,25 @@ func (manager *execTunnelManager) unregisterTunnel(nodeID string, tunnel *agentE
 			manager.closeSessionLocked(session.id)
 		}
 	}
+}
+
+func (manager *execTunnelManager) runSessionSweeper(ctx context.Context, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case now := <-ticker.C:
+			manager.sweepExpiredSessions(now.UTC())
+		}
+	}
+}
+
+func (manager *execTunnelManager) sweepExpiredSessions(now time.Time) {
+	manager.mu.Lock()
+	defer manager.mu.Unlock()
+	manager.sweepExpiredSessionsLocked(now)
 }
 
 func (manager *execTunnelManager) hasTunnel(nodeID string) bool {

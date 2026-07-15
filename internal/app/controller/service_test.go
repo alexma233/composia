@@ -1225,7 +1225,8 @@ func TestServiceCommandServiceBackupCreatesPendingTaskWithDefaultDataNames(t *te
 	rootDir := t.TempDir()
 	repoDir := filepath.Join(rootDir, "repo")
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"alpha/composia-meta.yaml": "name: alpha\nnodes:\n  - main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\n    - name: db\n      backup:\n        strategy: files.copy\n        include:\n          - ./db\nbackup:\n  data:\n    - name: config\n    - name: db\n      enabled: false\n",
+		"alpha/composia-meta.yaml":  "name: alpha\nnodes:\n  - main\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\n    - name: db\n      backup:\n        strategy: files.copy\n        include:\n          - ./db\nbackup:\n  data:\n    - name: config\n    - name: db\n      enabled: false\n",
+		"rustic/composia-meta.yaml": "name: rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n",
 	})
 	logDir := filepath.Join(rootDir, "logs")
 	stateDir := filepath.Join(rootDir, "state")
@@ -1243,7 +1244,7 @@ func TestServiceCommandServiceBackupCreatesPendingTaskWithDefaultDataNames(t *te
 	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
-	if err := syncDeclaredServicesForTests(ctx, db, "alpha"); err != nil {
+	if err := syncDeclaredServicesForTests(ctx, db, "alpha", "rustic"); err != nil {
 		t.Fatalf("sync declared services: %v", err)
 	}
 	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
@@ -1284,6 +1285,41 @@ func TestServiceCommandServiceBackupCreatesPendingTaskWithDefaultDataNames(t *te
 	params := mustTaskParams(t, detail.Record.ParamsJSON)
 	if len(params.DataNames) != 1 || params.DataNames[0] != "config" {
 		t.Fatalf("unexpected backup task params: %+v", params)
+	}
+}
+
+func TestServiceCommandServiceBackupRejectsNodeWithoutRusticInfra(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"alpha/composia-meta.yaml":  "name: alpha\nnodes:\n  - main\n  - edge\ndata_protect:\n  data:\n    - name: config\n      backup:\n        strategy: files.copy\n        include:\n          - ./config\nbackup:\n  data:\n    - name: config\n",
+		"rustic/composia-meta.yaml": "name: rustic\nnodes:\n  - main\ninfra:\n  rustic:\n    compose_service: rustic\n",
+	})
+	logDir := filepath.Join(rootDir, "logs")
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
+		t.Fatalf("create log dir: %v", err)
+	}
+	db := openControllerTestDB(t)
+	defer func() { _ = db.Close() }()
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main", "edge"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	for _, nodeID := range []string{"main", "edge"} {
+		if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: nodeID, HeartbeatAt: time.Date(2026, 4, 4, 13, 0, 0, 0, time.UTC)}); err != nil {
+			t.Fatalf("record heartbeat for %s: %v", nodeID, err)
+		}
+	}
+
+	server := &serviceCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}, {ID: "edge"}}}, availableNodeIDs: map[string]struct{}{"main": {}, "edge": {}}}
+	_, err := server.createServiceTasksWithOptions(ctx, "alpha", []string{"edge"}, task.TypeBackup, []string{"config"}, serviceTaskCreateOptions{Source: task.SourceCLI})
+	if err == nil {
+		t.Fatal("expected backup on node without rustic infra to fail")
+	}
+	if connect.CodeOf(err) != connect.CodeFailedPrecondition || !strings.Contains(err.Error(), "rustic infra service") {
+		t.Fatalf("expected rustic target validation error, got %v", err)
 	}
 }
 
