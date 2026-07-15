@@ -83,6 +83,7 @@ export const ja = {
     previous: "前へ",
     submit: "送信",
     copy: "コピー",
+    clipboardFailed: "クリップボードにコピーできませんでした。",
     copied: "コピーしました！",
     download: "ダウンロード",
     upload: "アップロード",
@@ -109,6 +110,7 @@ export const ja = {
     options: "オプション",
     loadingWithDots: "読み込み中...",
     for: "対象",
+    to: "から",
     on: "対象ノード",
     na: "N/A",
     skipToContent: "メインコンテンツへスキップ",
@@ -311,6 +313,7 @@ export const ja = {
       newFolderPathPlaceholder: "config/snippets",
       newFilePlaceholder: "new/path.yaml",
       newServiceFolderPlaceholder: "new-service-folder",
+      encryptedFile: "暗号化ファイル",
       encryptedUnavailableTitle: "暗号化ファイルは利用できません",
       encryptedUnavailableMissingSecrets:
         "エディターで暗号化ファイルを開く前に、Secrets サポートを設定してください。",

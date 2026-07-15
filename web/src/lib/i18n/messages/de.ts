@@ -82,6 +82,7 @@ export const de = {
     previous: "Vorherige",
     submit: "Absenden",
     copy: "Kopieren",
+    clipboardFailed: "Kopieren in die Zwischenablage fehlgeschlagen.",
     copied: "Kopiert!",
     download: "Herunterladen",
     upload: "Hochladen",
@@ -108,6 +109,7 @@ export const de = {
     options: "Optionen",
     loadingWithDots: "Laden...",
     for: "für",
+    to: "bis",
     on: "auf",
     na: "N/V",
     skipToContent: "Zum Hauptinhalt springen",
@@ -312,6 +314,7 @@ export const de = {
       newFolderPathPlaceholder: "config/snippets",
       newFilePlaceholder: "neuer/pfad.yaml",
       newServiceFolderPlaceholder: "neuer-dienst-ordner",
+      encryptedFile: "Verschlüsselte Datei",
       encryptedUnavailableTitle: "Verschlüsselte Datei nicht verfügbar",
       encryptedUnavailableMissingSecrets:
         "Secrets-Unterstützung konfigurieren, bevor verschlüsselte Dateien im Editor geöffnet werden.",

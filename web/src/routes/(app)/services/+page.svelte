@@ -67,7 +67,7 @@
                     <input type="hidden" name="baseRevision" value={data.repoHead.headRevision} />
                     <div class="grid gap-2">
                       <label for="folder" class="text-sm font-medium">{$messages.services.folderName}</label>
-                      <Input id="folder" name="folder" bind:value={newFolder} placeholder="my-service" />
+                      <Input id="folder" name="folder" bind:value={newFolder} placeholder={$messages.services.files.newServiceFolderPlaceholder} />
                     </div>
                     {#if form?.error}
                       <Alert variant="destructive">

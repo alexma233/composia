@@ -88,6 +88,7 @@ export const enUS = {
     previous: "Previous",
     submit: "Submit",
     copy: "Copy",
+    clipboardFailed: "Failed to copy to clipboard.",
     copied: "Copied!",
     download: "Download",
     upload: "Upload",
@@ -114,6 +115,7 @@ export const enUS = {
     options: "Options",
     loadingWithDots: "Loading...",
     for: "for",
+    to: "to",
     on: "on",
     na: "N/A",
     skipToContent: "Skip to main content",
@@ -312,6 +314,7 @@ export const enUS = {
       newFolderPathPlaceholder: "config/snippets",
       newFilePlaceholder: "new/path.yaml",
       newServiceFolderPlaceholder: "new-service-folder",
+      encryptedFile: "Encrypted file",
       encryptedUnavailableTitle: "Encrypted file is unavailable",
       encryptedUnavailableMissingSecrets:
         "Configure secrets support before opening encrypted files in the editor.",

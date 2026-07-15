@@ -420,7 +420,7 @@
                 <Badge variant={taskStatusTone(step.status)}>{taskStatusLabel(step.status, $messages)}</Badge>
               </div>
               <div class="mt-2 text-sm text-muted-foreground">
-                {formatTimestamp(step.startedAt)} to {formatTimestamp(step.finishedAt)}
+                {formatTimestamp(step.startedAt)} {$messages.common.to} {formatTimestamp(step.finishedAt)}
               </div>
             </div>
           {/each}

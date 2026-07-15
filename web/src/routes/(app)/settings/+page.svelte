@@ -61,15 +61,11 @@
 
   const getInitialCommits = () => data.initialCommits;
   let perPage = 10;
-  let pages = $state<CommitPage[]>([
-    {
-      commits: getInitialCommits()?.commits ?? [],
-      nextCursor: getInitialCommits()?.nextCursor ?? "",
-    },
-  ]);
+  let pages = $state<CommitPage[]>([commitPageFrom(getInitialCommits())]);
   let currentPage = $state(1);
   let loadingPage = $state(false);
   let pageError = $state("");
+  let commitPageSignature = $state(commitPageKey(getInitialCommits()));
 
   let hasMore = $derived(!!pages[pages.length - 1]?.nextCursor);
   let count = $derived(Math.max(perPage, (pages.length + (hasMore ? 1 : 0)) * perPage));
@@ -77,10 +73,32 @@
   let hasCommits = $derived(currentCommits.length > 0 || pages[0].commits.length > 0);
 
   $effect(() => {
+    const nextSignature = commitPageKey(data.initialCommits);
+    if (nextSignature === commitPageSignature) return;
+    commitPageSignature = nextSignature;
+    pages = [commitPageFrom(data.initialCommits)];
+    currentPage = 1;
+    pageError = "";
+  });
+
+  $effect(() => {
     const targetIndex = currentPage - 1;
     if (targetIndex < pages.length || targetIndex !== pages.length) return;
     fetchNextPage();
   });
+
+  function commitPageFrom(page: PageData["initialCommits"]): CommitPage {
+    return {
+      commits: page?.commits ?? [],
+      nextCursor: page?.nextCursor ?? "",
+    };
+  }
+
+  function commitPageKey(page: PageData["initialCommits"]) {
+    return `${page?.nextCursor ?? ""}:${(page?.commits ?? [])
+      .map((commit) => commit.commitId)
+      .join(",")}`;
+  }
 
   async function fetchNextPage() {
     const lastPage = pages[pages.length - 1];
@@ -136,6 +154,7 @@
         lastSyncError: payload.lastSyncError,
         lastSuccessfulPullAt: payload.lastSuccessfulPullAt,
       };
+      await invalidate("app:settings");
       toast.success($messages.settings.repoSync.syncedSuccessfully);
     } catch (error) {
       syncError =

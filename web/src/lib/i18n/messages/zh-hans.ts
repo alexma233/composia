@@ -81,6 +81,7 @@ export const zhHans = {
     previous: "上一步",
     submit: "提交",
     copy: "复制",
+    clipboardFailed: "复制到剪贴板失败。",
     copied: "已复制！",
     download: "下载",
     upload: "上传",
@@ -107,6 +108,7 @@ export const zhHans = {
     options: "选项",
     loadingWithDots: "加载中...",
     for: "用于",
+    to: "到",
     on: "在",
     na: "无",
     skipToContent: "跳到主内容",
@@ -306,6 +308,7 @@ export const zhHans = {
       newFolderPathPlaceholder: "config/片段",
       newFilePlaceholder: "新/路径.yaml",
       newServiceFolderPlaceholder: "新服务文件夹",
+      encryptedFile: "加密文件",
     },
     operations: {
       title: "操作",

@@ -11,7 +11,10 @@
     isEncryptedFilePath,
     type ServiceFileNode,
   } from '$lib/service-workspace';
+  import { getMessages } from '$lib/i18n';
   import ServiceFileTree from './service-file-tree.svelte';
+
+  const messages = getMessages();
 
   interface Props {
     nodes?: ServiceFileNode[];
@@ -111,6 +114,7 @@
         {/if}
       {:else}
         {@const iconName = nodeIconName(node)}
+        {@const encrypted = isEncryptedFilePath(node.path)}
         <button
           type="button"
           class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent/60"
@@ -132,9 +136,10 @@
                 class="size-4 shrink-0"
                 decoding="async"
               />
-              {#if isEncryptedFilePath(node.path)}
+              {#if encrypted}
                 <span
                   class="absolute -right-1 -bottom-1 inline-flex size-2.5 items-center justify-center rounded-full bg-background text-foreground"
+                  aria-hidden="true"
                 >
                   <Lock class="size-2" />
                 </span>
@@ -143,9 +148,10 @@
           {:else}
             <span class="relative inline-flex size-4 shrink-0 items-center justify-center">
               <FileText class="size-4" />
-              {#if isEncryptedFilePath(node.path)}
+              {#if encrypted}
                 <span
                   class="absolute -right-1 -bottom-1 inline-flex size-2.5 items-center justify-center rounded-full bg-background text-foreground"
+                  aria-hidden="true"
                 >
                   <Lock class="size-2" />
                 </span>
@@ -153,6 +159,9 @@
             </span>
           {/if}
           <span class="truncate">{node.name}</span>
+          {#if encrypted}
+            <span class="sr-only">{$messages.services.files.encryptedFile}</span>
+          {/if}
         </button>
       {/if}
     </div>

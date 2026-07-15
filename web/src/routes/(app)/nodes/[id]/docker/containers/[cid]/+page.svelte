@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
+  import { page } from "$app/stores";
+  import { onMount, untrack } from "svelte";
   import { toast } from "svelte-sonner";
   import type { PageData } from "./$types";
   import {
@@ -41,9 +43,23 @@
 
   let { data }: Props = $props();
 
+  const containerTabs = [
+    "info",
+    "logs",
+    "terminal",
+    "config",
+    "env",
+    "network",
+    "volumes",
+    "labels",
+    "raw",
+  ] as const;
+
+  type ContainerTab = (typeof containerTabs)[number];
+
   let containerData = $state<any>(null);
   let parseError = $state<string | null>(null);
-  let activeTab = $state("info");
+  let activeTab = $state<ContainerTab>("info");
   let logs = $state("");
   let logsState = $state("idle");
   let logsError = $state("");
@@ -83,14 +99,14 @@
     }
   }
 
-  function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text);
+  function normalizeContainerTab(value: string | null | undefined): ContainerTab {
+    return containerTabs.includes(value as ContainerTab)
+      ? (value as ContainerTab)
+      : "info";
   }
 
   function formatDate(timestamp: string): string {
-    if (!timestamp) return "-";
-    const date = new Date(timestamp);
-    return date.toLocaleString();
+    return formatTimestamp(timestamp);
   }
 
   function actionLabel(action: "start" | "stop" | "restart"): string {
@@ -384,7 +400,7 @@
   }
 
   onMount(() => {
-    activeTab = data.initialTab ?? "info";
+    activeTab = normalizeContainerTab(data.initialTab);
     if (activeTab === "logs") {
       void startLogStream();
     }
@@ -396,6 +412,24 @@
   });
 
   $effect(() => {
+    const urlTab = normalizeContainerTab($page.url.searchParams.get("tab"));
+    if (urlTab !== untrack(() => activeTab)) {
+      activeTab = urlTab;
+    }
+  });
+
+  $effect(() => {
+    const urlTab = normalizeContainerTab($page.url.searchParams.get("tab"));
+    if (activeTab !== urlTab) {
+      const url = new URL($page.url);
+      url.searchParams.set("tab", activeTab);
+      void goto(`${url.pathname}${url.search}${url.hash}`, {
+        keepFocus: true,
+        noScroll: true,
+        replaceState: true,
+      });
+    }
+
     if (
       activeTab === "logs" &&
       !logs &&
