@@ -30,6 +30,8 @@ var cliKeyring = keyringBackend{
 	Delete: keyring.Delete,
 }
 
+var saveCLIConfigFunc = saveCLIConfig
+
 type keyringBackend struct {
 	Get    func(service, user string) (string, error)
 	Set    func(service, user, password string) error
@@ -218,8 +220,8 @@ func (application *app) runConfigSetup(args []string) error {
 	if err := saveConfigTokenToConfig(cfg, token, storage); err != nil {
 		return err
 	}
-	if err := saveCLIConfig(cfg); err != nil {
-		return err
+	if err := saveCLIConfigFunc(cfg); err != nil {
+		return rollbackNewTokenBackend(previousTokenFile, cfg[cliConfigKeyTokenFile], previousTokenKeyring, cfg[cliConfigKeyTokenKeyring], err)
 	}
 	if err := cleanupPreviousTokenBackend(previousTokenFile, cfg[cliConfigKeyTokenFile], previousTokenKeyring, cfg[cliConfigKeyTokenKeyring]); err != nil {
 		return err
@@ -238,8 +240,8 @@ func (application *app) saveConfigToken(token string, storage cliTokenStorage) e
 	if err := saveConfigTokenToConfig(cfg, token, storage); err != nil {
 		return err
 	}
-	if err := saveCLIConfig(cfg); err != nil {
-		return err
+	if err := saveCLIConfigFunc(cfg); err != nil {
+		return rollbackNewTokenBackend(previousTokenFile, cfg[cliConfigKeyTokenFile], previousTokenKeyring, cfg[cliConfigKeyTokenKeyring], err)
 	}
 	if err := cleanupPreviousTokenBackend(previousTokenFile, cfg[cliConfigKeyTokenFile], previousTokenKeyring, cfg[cliConfigKeyTokenKeyring]); err != nil {
 		return err
@@ -403,6 +405,26 @@ func writePrivateFile(path string, content []byte) error {
 		return err
 	}
 	return os.Rename(tmpPath, path)
+}
+
+func rollbackNewTokenBackend(previousFile, currentFile, previousKeyring, currentKeyring string, saveErr error) error {
+	if currentFile != "" && currentFile != previousFile {
+		defaultTokenPath, err := cliTokenPath()
+		if err != nil {
+			return saveErr
+		}
+		if currentFile == defaultTokenPath {
+			if err := os.Remove(currentFile); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("%w; additionally failed to roll back CLI token file %q: %v", saveErr, currentFile, err)
+			}
+		}
+	}
+	if currentKeyring != "" && currentKeyring != previousKeyring {
+		if err := deleteCLIKeyringToken(currentKeyring); err != nil && !errors.Is(err, keyring.ErrNotFound) {
+			return fmt.Errorf("%w; additionally failed to roll back CLI token from system keyring: %v", saveErr, err)
+		}
+	}
+	return saveErr
 }
 
 func cleanupPreviousTokenBackend(previousFile, currentFile, previousKeyring, currentKeyring string) error {

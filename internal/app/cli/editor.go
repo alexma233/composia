@@ -60,14 +60,22 @@ func splitEditorCommand(editor string) ([]string, error) {
 	var parts []string
 	var current strings.Builder
 	var quote rune
-	escaped := false
-	for _, r := range editor {
+	runes := []rune(editor)
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
 		switch {
-		case escaped:
-			current.WriteRune(r)
-			escaped = false
-		case r == '\\':
-			escaped = true
+		case r == '\\' && quote != '\'':
+			if i+1 >= len(runes) {
+				current.WriteRune('\\')
+				continue
+			}
+			next := runes[i+1]
+			if quote == '"' && next != '"' && next != '\\' && !isEditorCommandSpace(next) {
+				current.WriteRune('\\')
+				continue
+			}
+			current.WriteRune(next)
+			i++
 		case quote != 0:
 			if r == quote {
 				quote = 0
@@ -76,7 +84,7 @@ func splitEditorCommand(editor string) ([]string, error) {
 			}
 		case r == '\'' || r == '"':
 			quote = r
-		case r == ' ' || r == '\t' || r == '\n' || r == '\r':
+		case isEditorCommandSpace(r):
 			if current.Len() > 0 {
 				parts = append(parts, current.String())
 				current.Reset()
@@ -84,9 +92,6 @@ func splitEditorCommand(editor string) ([]string, error) {
 		default:
 			current.WriteRune(r)
 		}
-	}
-	if escaped {
-		current.WriteRune('\\')
 	}
 	if quote != 0 {
 		return nil, fmt.Errorf("parse editor command %q: unterminated quote", editor)
@@ -98,6 +103,10 @@ func splitEditorCommand(editor string) ([]string, error) {
 		return nil, errors.New("editor command is empty")
 	}
 	return parts, nil
+}
+
+func isEditorCommandSpace(r rune) bool {
+	return r == ' ' || r == '\t' || r == '\n' || r == '\r'
 }
 
 func chooseEditor() string {

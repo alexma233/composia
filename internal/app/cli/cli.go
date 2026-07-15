@@ -838,7 +838,9 @@ func int64Text(value int64) string {
 }
 
 func addYesFlag(fs *flag.FlagSet) *bool {
-	return fs.Bool("yes", false, "skip confirmation prompt")
+	yes := fs.Bool("yes", false, "skip confirmation prompt")
+	fs.BoolVar(yes, "y", false, "skip confirmation prompt")
+	return yes
 }
 
 func (application *app) confirmDestructive(warn string, yes *bool) error {
