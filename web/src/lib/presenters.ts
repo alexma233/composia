@@ -2,12 +2,14 @@ import type { BadgeVariant } from "$lib/components/ui/badge";
 
 import type { Dictionary } from "$lib/i18n";
 
-export function formatTimestamp(value: string) {
+export function formatTimestamp(value: string, locale = currentLocale()) {
   if (!value) {
     return "-";
   }
   const parsed = parseTimestamp(value);
-  return parsed ? parsed.toLocaleString() : value;
+  return parsed
+    ? new Intl.DateTimeFormat(locale, dateTimeFormat).format(parsed)
+    : value;
 }
 
 export function taskStatusTone(status: string): BadgeVariant {
@@ -158,13 +160,16 @@ export function isTaskRecent(createdAt: string): boolean {
   return parsed ? parsed.getTime() > Date.now() - 86_400_000 : false;
 }
 
-export function formatDuration(startedAt: string): string {
+export function formatDuration(
+  startedAt: string,
+  locale = currentLocale(),
+): string {
   if (!startedAt) return "-";
   const start = parseTimestamp(startedAt);
-  return start ? formatDistance(start, new Date()) : "-";
+  return start ? formatDistance(start, new Date(), locale) : "-";
 }
 
-export function formatBytes(bytes: number) {
+export function formatBytes(bytes: number, locale = currentLocale()) {
   const value = Math.max(0, bytes || 0);
   const units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
   const unitIndex = Math.min(
@@ -172,7 +177,7 @@ export function formatBytes(bytes: number) {
     units.length - 1,
   );
   const amount = value / 1024 ** unitIndex;
-  return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(amount)} ${units[unitIndex]}`;
+  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(amount)} ${units[unitIndex]}`;
 }
 
 export function formatShortId(value: string, length = 12) {
@@ -192,7 +197,10 @@ export function parseJsonList(rawJson: string) {
   return Array.isArray(parsed) ? parsed[0] : parsed;
 }
 
-export function formatDockerTimestamp(timestamp: string) {
+export function formatDockerTimestamp(
+  timestamp: string,
+  locale = currentLocale(),
+) {
   if (!timestamp) {
     return "-";
   }
@@ -202,9 +210,22 @@ export function formatDockerTimestamp(timestamp: string) {
     return timestamp;
   }
 
-  return parsed.getTime() > Date.now()
-    ? "just now"
-    : `${formatDistance(parsed, new Date())} ago`;
+  return formatRelativeTime(parsed, new Date(), locale);
+}
+
+const dateTimeFormat: Intl.DateTimeFormatOptions = {
+  dateStyle: "medium",
+  timeStyle: "medium",
+};
+
+function currentLocale() {
+  if (typeof document !== "undefined" && document.documentElement.lang) {
+    return document.documentElement.lang;
+  }
+  if (typeof navigator !== "undefined") {
+    return navigator.languages?.[0] ?? navigator.language;
+  }
+  return "en-US";
 }
 
 function parseTimestamp(value: string): Date | null {
@@ -217,12 +238,34 @@ function parseDockerTimestamp(value: string): Date | null {
   return parseTimestamp(cleaned.replace(" ", "T"));
 }
 
-function formatDistance(from: Date, to: Date) {
+function formatDistance(from: Date, to: Date, locale: string) {
+  const [amount, unit] = elapsedUnit(from, to);
+  return new Intl.NumberFormat(locale, {
+    style: "unit",
+    unit,
+    unitDisplay: "long",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function formatRelativeTime(from: Date, to: Date, locale: string) {
+  const [amount, unit] = elapsedUnit(from, to);
+  const sign = from.getTime() > to.getTime() ? amount : -amount;
+  return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
+    sign,
+    unit,
+  );
+}
+
+function elapsedUnit(
+  from: Date,
+  to: Date,
+): [number, Intl.RelativeTimeFormatUnit] {
   const seconds = Math.max(
     0,
-    Math.floor((to.getTime() - from.getTime()) / 1000),
+    Math.floor(Math.abs(to.getTime() - from.getTime()) / 1000),
   );
-  const units: Array<[number, string]> = [
+  const units: Array<[number, Intl.RelativeTimeFormatUnit]> = [
     [31_536_000, "year"],
     [2_592_000, "month"],
     [604_800, "week"],
@@ -232,6 +275,5 @@ function formatDistance(from: Date, to: Date) {
     [1, "second"],
   ];
   const [size, unit] = units.find(([size]) => seconds >= size) ?? units.at(-1)!;
-  const amount = Math.floor(seconds / size);
-  return `${amount} ${unit}${amount === 1 ? "" : "s"}`;
+  return [Math.floor(seconds / size), unit];
 }

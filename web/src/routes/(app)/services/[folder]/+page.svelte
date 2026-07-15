@@ -857,19 +857,7 @@
   }
 
   async function deleteNode() {
-    if (
-      !selectedNodePath ||
-      !confirm(
-        $messages.services.files.deleteFileConfirm
-          .replace(
-            "{type}",
-            selectedNode?.isDir
-              ? $messages.common.folder
-              : $messages.common.file,
-          )
-          .replace("{path}", selectedNodePath),
-      )
-    ) {
+    if (!selectedNodePath) {
       return;
     }
 
@@ -1823,6 +1811,7 @@
                 type="button"
                 variant="outline"
                 size="sm"
+                class="hidden md:inline-flex"
                 onclick={toggleSplitEditor}
               >
                 <Columns2 class="mr-2 size-4" />
@@ -1874,7 +1863,9 @@
                   type="button"
                   class="text-xs text-muted-foreground hover:text-foreground"
                   aria-label={$messages.common.close}
-                  onclick={() => closeTab(tab.path)}>x</button
+                  title={$messages.common.close}
+                  onclick={() => closeTab(tab.path)}
+                  ><span aria-hidden="true">×</span></button
                 >
               </div>
             {/each}
@@ -1882,10 +1873,10 @@
         </CardHeader>
 
         {#if activeTab || (splitEnabled && secondaryTab)}
-          <div class="grid min-h-0 flex-1" class:grid-cols-2={splitEnabled}>
+          <div class="grid min-h-0 flex-1" class:md:grid-cols-2={splitEnabled}>
             <div
               class="flex min-h-0 min-w-0 flex-col overflow-hidden"
-              class:border-r={splitEnabled}
+              class:md:border-r={splitEnabled}
               onfocusin={() => focusPane("primary")}
             >
               <div

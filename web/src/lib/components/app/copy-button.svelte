@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Copy, Check } from '@lucide/svelte';
+  import { toast } from 'svelte-sonner';
   import { Button } from '$lib/components/ui/button';
   import * as Tooltip from '$lib/components/ui/tooltip';
   import { getMessages } from '$lib/i18n';
@@ -16,10 +17,15 @@
 
   let copied = $state(false);
 
-  function handleCopy() {
-    navigator.clipboard.writeText(text);
-    copied = true;
-    setTimeout(() => (copied = false), 2000);
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      copied = true;
+      setTimeout(() => (copied = false), 2000);
+    } catch {
+      copied = false;
+      toast.error($messages.common.clipboardFailed);
+    }
   }
 </script>
 

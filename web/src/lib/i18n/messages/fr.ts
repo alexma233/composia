@@ -83,6 +83,7 @@ export const fr = {
     previous: "Précédent",
     submit: "Envoyer",
     copy: "Copier",
+    clipboardFailed: "Échec de la copie dans le presse-papiers.",
     copied: "Copié !",
     download: "Télécharger",
     upload: "Téléverser",
@@ -109,6 +110,7 @@ export const fr = {
     options: "Options",
     loadingWithDots: "Chargement...",
     for: "pour",
+    to: "à",
     on: "sur",
     na: "N/D",
     skipToContent: "Aller au contenu principal",
@@ -313,6 +315,7 @@ export const fr = {
       newFolderPathPlaceholder: "config/snippets",
       newFilePlaceholder: "nouveau/chemin.yaml",
       newServiceFolderPlaceholder: "nouveau-dossier-service",
+      encryptedFile: "Fichier chiffré",
       encryptedUnavailableTitle: "Fichier chiffré indisponible",
       encryptedUnavailableMissingSecrets:
         "Configurez le support des secrets avant d'ouvrir des fichiers chiffrés dans l'éditeur.",

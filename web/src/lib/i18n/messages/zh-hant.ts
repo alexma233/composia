@@ -81,6 +81,7 @@ export const zhHant = {
     previous: "上一步",
     submit: "提交",
     copy: "複製",
+    clipboardFailed: "複製到剪貼簿失敗。",
     copied: "已複製！",
     download: "下載",
     upload: "上傳",
@@ -107,6 +108,7 @@ export const zhHant = {
     options: "選項",
     loadingWithDots: "載入中...",
     for: "用於",
+    to: "到",
     on: "在",
     na: "無",
     skipToContent: "跳到主內容",
@@ -306,6 +308,7 @@ export const zhHant = {
       newFolderPathPlaceholder: "config/片段",
       newFilePlaceholder: "新/路徑.yaml",
       newServiceFolderPlaceholder: "新服務資料夾",
+      encryptedFile: "加密檔案",
     },
     operations: {
       title: "操作",
