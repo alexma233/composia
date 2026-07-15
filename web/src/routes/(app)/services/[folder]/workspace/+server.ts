@@ -6,7 +6,11 @@ import {
   loadServiceWorkspaceSummary,
 } from "$lib/server/service-workspace-route";
 import { loadServiceWorkspaceFile } from "$lib/server/service-workspace";
-import { normalizeServiceRelativePath } from "$lib/service-workspace";
+import { decryptedSecretResponseInit } from "$lib/server/secret-response";
+import {
+  isEncryptedFilePath,
+  normalizeServiceRelativePath,
+} from "$lib/service-workspace";
 
 export const GET: RequestHandler = async ({ params, url }) => {
   try {
@@ -17,7 +21,12 @@ export const GET: RequestHandler = async ({ params, url }) => {
       ? await loadServiceWorkspaceFile(params.folder, normalizedPath)
       : null;
 
-    return json({ ...summary, file });
+    return json(
+      { ...summary, file },
+      decryptedSecretResponseInit(
+        Boolean(normalizedPath && isEncryptedFilePath(normalizedPath)),
+      ),
+    );
   } catch (error) {
     if (error instanceof Response) {
       return error;

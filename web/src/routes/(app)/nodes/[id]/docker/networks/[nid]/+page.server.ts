@@ -1,5 +1,7 @@
 import type { PageServerLoad } from "./$types";
 
+import { svelteKitRouteParam } from "$lib/server/docker-route";
+
 import { controllerConfig, inspectNodeNetwork } from "$lib/server/controller";
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -9,7 +11,7 @@ export const load: PageServerLoad = async ({ params }) => {
       ready: false,
       error: config.reason,
       nodeId: params.id,
-      networkId: decodeURIComponent(params.nid),
+      networkId: svelteKitRouteParam(params.nid),
       rawJson: null,
     };
   }
@@ -17,13 +19,13 @@ export const load: PageServerLoad = async ({ params }) => {
   try {
     const rawJson = await inspectNodeNetwork(
       params.id,
-      decodeURIComponent(params.nid),
+      svelteKitRouteParam(params.nid),
     );
     return {
       ready: true,
       error: null,
       nodeId: params.id,
-      networkId: decodeURIComponent(params.nid),
+      networkId: svelteKitRouteParam(params.nid),
       rawJson,
     };
   } catch (error) {
@@ -32,7 +34,7 @@ export const load: PageServerLoad = async ({ params }) => {
       error:
         error instanceof Error ? error.message : "Failed to inspect network",
       nodeId: params.id,
-      networkId: decodeURIComponent(params.nid),
+      networkId: svelteKitRouteParam(params.nid),
       rawJson: null,
     };
   }

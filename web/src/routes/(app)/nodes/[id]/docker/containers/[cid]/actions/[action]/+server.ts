@@ -1,6 +1,8 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
+import { svelteKitRouteParam } from "$lib/server/docker-route";
+
 import {
   controllerConfig,
   runContainerAction,
@@ -25,7 +27,7 @@ export const POST: RequestHandler = async ({ params }) => {
     return json(
       await runContainerAction(
         params.id,
-        decodeURIComponent(params.cid),
+        svelteKitRouteParam(params.cid),
         params.action,
       ),
     );

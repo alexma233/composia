@@ -9,6 +9,10 @@ Deno.test("verifies an existing Argon2 PHC hash", async () => {
   assert(await verifyArgon2(adminHash, "admin"));
 });
 
+Deno.test("rejects the wrong Argon2 password", async () => {
+  assert(!(await verifyArgon2(adminHash, "wrong-password")));
+});
+
 Deno.test("rejects malformed Argon2 hashes", async () => {
   await assertRejects(() => verifyArgon2("not-a-phc-hash", "admin"));
 });

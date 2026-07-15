@@ -3,6 +3,11 @@ import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 
 import {
+  LoginRequestBodyTooLargeError,
+  readLimitedLoginFormData,
+  sanitizeLoginRedirect,
+} from "$lib/server/login";
+import {
   authConfig,
   authenticate,
   createSessionToken,
@@ -12,7 +17,7 @@ import {
 export const load: PageServerLoad = async ({ url }) => {
   const config = authConfig();
   return {
-    next: sanitizeNext(url.searchParams.get("next")),
+    next: sanitizeLoginRedirect(url.searchParams.get("next")),
     ready: config.ready,
     error: config.ready ? null : config.reason,
   };
@@ -25,10 +30,19 @@ export const actions: Actions = {
       return fail(500, { invalid: false, error: config.reason });
     }
 
-    const formData = await request.formData();
+    let formData: FormData;
+    try {
+      formData = await readLimitedLoginFormData(request);
+    } catch (error) {
+      if (error instanceof LoginRequestBodyTooLargeError) {
+        return fail(413, { invalid: false, error: null });
+      }
+      throw error;
+    }
+
     const username = String(formData.get("username") ?? "");
     const password = String(formData.get("password") ?? "");
-    const next = sanitizeNext(
+    const next = sanitizeLoginRedirect(
       String(formData.get("next") ?? url.searchParams.get("next") ?? "/"),
     );
 
@@ -51,10 +65,3 @@ export const actions: Actions = {
     throw redirect(303, next);
   },
 };
-
-function sanitizeNext(value: string | null) {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) {
-    return "/";
-  }
-  return value;
-}

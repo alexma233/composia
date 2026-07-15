@@ -1,6 +1,12 @@
 import { env } from "$env/dynamic/private";
 import { readFileSync } from "node:fs";
 
+import {
+  controllerRpcDeadline,
+  controllerRpcHeaders,
+} from "$lib/server/controller-rpc";
+import { currentRequestSignal } from "$lib/server/request-context";
+
 type RpcRequest = Record<string, unknown>;
 
 const controllerRpcBasePath = "/api/controller";
@@ -376,6 +382,7 @@ export function controllerConfig() {
 const reservedControllerHeaderNames = new Set([
   "authorization",
   "connect-protocol-version",
+  "connect-timeout-ms",
   "content-type",
 ]);
 
@@ -2693,19 +2700,32 @@ async function rpcCall<T>(
   body: RpcRequest,
   extraHeaders: Record<string, string> = {},
 ): Promise<T> {
-  const controllerHeaders = parseControllerHeaders();
-  const response = await fetch(`${baseUrl}${procedure}`, {
-    method: "POST",
-    headers: {
-      ...controllerHeaders,
-      Authorization: `Bearer ${token}`,
-      "Connect-Protocol-Version": "1",
-      "Content-Type": "application/json",
-      "X-Composia-Source": "web",
-      ...extraHeaders,
-    },
-    body: JSON.stringify(body),
-  });
+  const deadline = controllerRpcDeadline(currentRequestSignal());
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}${procedure}`, {
+      method: "POST",
+      headers: controllerRpcHeaders(
+        token,
+        parseControllerHeaders(),
+        extraHeaders,
+      ),
+      body: JSON.stringify(body),
+      signal: deadline.signal,
+    });
+  } catch (error) {
+    if (deadline.timedOut()) {
+      throw new ControllerRpcError({
+        message: `Controller RPC ${procedure} timed out.`,
+        status: 504,
+        code: "DEADLINE_EXCEEDED",
+        procedure,
+      });
+    }
+    throw error;
+  } finally {
+    deadline.cancel();
+  }
 
   if (!response.ok) {
     throw await controllerRpcErrorFromResponse(response, procedure);

@@ -1,5 +1,7 @@
 import type { PageServerLoad } from "./$types";
 
+import { svelteKitRouteParam } from "$lib/server/docker-route";
+
 import { controllerConfig, inspectNodeImage } from "$lib/server/controller";
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -9,7 +11,7 @@ export const load: PageServerLoad = async ({ params }) => {
       ready: false,
       error: config.reason,
       nodeId: params.id,
-      imageId: decodeURIComponent(params.img),
+      imageId: svelteKitRouteParam(params.img),
       rawJson: null,
     };
   }
@@ -17,13 +19,13 @@ export const load: PageServerLoad = async ({ params }) => {
   try {
     const rawJson = await inspectNodeImage(
       params.id,
-      decodeURIComponent(params.img),
+      svelteKitRouteParam(params.img),
     );
     return {
       ready: true,
       error: null,
       nodeId: params.id,
-      imageId: decodeURIComponent(params.img),
+      imageId: svelteKitRouteParam(params.img),
       rawJson,
     };
   } catch (error) {
@@ -31,7 +33,7 @@ export const load: PageServerLoad = async ({ params }) => {
       ready: true,
       error: error instanceof Error ? error.message : "Failed to inspect image",
       nodeId: params.id,
-      imageId: decodeURIComponent(params.img),
+      imageId: svelteKitRouteParam(params.img),
       rawJson: null,
     };
   }
