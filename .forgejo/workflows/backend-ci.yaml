@@ -74,7 +74,7 @@ jobs:
   generated-drift:
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-go-node:1.26.5@sha256:87cae2783441a1ae864b6b703656d765dc2284eb7ead0a58757d5f6043647353
+      image: forgejo-registry-raw.alexma.top/alexma233/ci-images-go-node-docker-deno-chromium:1.26@sha256:a9259c9bed781f912eaf0d049051a5701a013e94fae7e79de051961f3f4cb4bc
 
     steps:
       - name: Checkout

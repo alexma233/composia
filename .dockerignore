@@ -32,6 +32,9 @@ dev/web-node_modules-user
 .idea
 .vscode
 # Local secrets and runtime state must never enter Docker build contexts.
+/.pi-subagents/
+/scripts/deploy/
+/AUDIT_REMEDIATION_PLAN.md
 .env
 .env.*.local
 config.local.yaml
