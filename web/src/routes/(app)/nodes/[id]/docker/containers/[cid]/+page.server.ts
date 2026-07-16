@@ -1,5 +1,7 @@
 import type { PageServerLoad } from "./$types";
 
+import { svelteKitRouteParam } from "$lib/server/docker-route";
+
 import { controllerConfig, inspectNodeContainer } from "$lib/server/controller";
 
 export const load: PageServerLoad = async ({ params, url }) => {
@@ -9,7 +11,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
       ready: false,
       error: config.reason,
       nodeId: params.id,
-      containerId: decodeURIComponent(params.cid),
+      containerId: svelteKitRouteParam(params.cid),
       initialTab: url.searchParams.get("tab") ?? "info",
       rawJson: null,
     };
@@ -18,13 +20,13 @@ export const load: PageServerLoad = async ({ params, url }) => {
   try {
     const rawJson = await inspectNodeContainer(
       params.id,
-      decodeURIComponent(params.cid),
+      svelteKitRouteParam(params.cid),
     );
     return {
       ready: true,
       error: null,
       nodeId: params.id,
-      containerId: decodeURIComponent(params.cid),
+      containerId: svelteKitRouteParam(params.cid),
       initialTab: url.searchParams.get("tab") ?? "info",
       rawJson,
     };
@@ -34,7 +36,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
       error:
         error instanceof Error ? error.message : "Failed to inspect container",
       nodeId: params.id,
-      containerId: decodeURIComponent(params.cid),
+      containerId: svelteKitRouteParam(params.cid),
       initialTab: url.searchParams.get("tab") ?? "info",
       rawJson: null,
     };

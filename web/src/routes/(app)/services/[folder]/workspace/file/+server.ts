@@ -7,7 +7,11 @@ import {
 } from "$lib/server/service-workspace-route";
 import { saveServiceWorkspaceFile } from "$lib/server/service-workspace";
 import { jsonApiError } from "$lib/server/controller-route";
-import { normalizeServiceRelativePath } from "$lib/service-workspace";
+import { decryptedSecretResponseInit } from "$lib/server/secret-response";
+import {
+  isEncryptedFilePath,
+  normalizeServiceRelativePath,
+} from "$lib/service-workspace";
 
 export const PUT: RequestHandler = async ({ params, request }) => {
   try {
@@ -22,20 +26,24 @@ export const PUT: RequestHandler = async ({ params, request }) => {
       return jsonApiError("PATH_REVISION_REQUIRED");
     }
 
+    const path = normalizeServiceRelativePath(payload.path);
     const result = await saveServiceWorkspaceFile(
       params.folder,
-      normalizeServiceRelativePath(payload.path),
+      path,
       payload.content ?? "",
       payload.baseRevision,
     );
     const { fileTree } = await loadServiceWorkspaceFiles(params.folder);
 
-    return json({
-      file: result.file,
-      write: result.write,
-      workspace,
-      fileTree,
-    });
+    return json(
+      {
+        file: result.file,
+        write: result.write,
+        workspace,
+        fileTree,
+      },
+      decryptedSecretResponseInit(isEncryptedFilePath(path)),
+    );
   } catch (error) {
     return json(
       {

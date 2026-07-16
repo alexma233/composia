@@ -5,11 +5,21 @@ import { redirect } from "@sveltejs/kit";
 import { readSessionToken, sessionCookie } from "$lib/server/session";
 
 import { jsonApiError } from "$lib/server/controller-route";
+import {
+  loginRequestBodySizeStatus,
+  sanitizeLoginRedirect,
+} from "$lib/server/login";
+import { withRequestSignal } from "$lib/server/request-context";
 import { normalizeLocale } from "$lib/i18n/locales";
 
 const publicRoutes = new Set(["/login"]);
 
 export const handle: Handle = async ({ event, resolve }) => {
+  const oversizedLoginStatus = loginRequestBodySizeStatus(event.request);
+  if (oversizedLoginStatus) {
+    return new Response(null, { status: oversizedLoginStatus });
+  }
+
   const locale = normalizeLocale(event.cookies.get("composia.locale"));
   const user = readSessionToken(event.cookies.get(sessionCookie()));
   event.locals.user = user;
@@ -27,13 +37,18 @@ export const handle: Handle = async ({ event, resolve }) => {
   }
 
   if (user && pathname === "/login") {
-    throw redirect(303, event.url.searchParams.get("next") || "/");
+    throw redirect(
+      303,
+      sanitizeLoginRedirect(event.url.searchParams.get("next")),
+    );
   }
 
-  return resolve(event, {
-    transformPageChunk: ({ html }) =>
-      html.replace('<html lang="en"', `<html lang="${locale}"`),
-  });
+  return withRequestSignal(event.request.signal, () =>
+    resolve(event, {
+      transformPageChunk: ({ html }) =>
+        html.replace('<html lang="en"', `<html lang="${locale}"`),
+    }),
+  );
 };
 
 function isPublicPath(pathname: string) {

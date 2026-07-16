@@ -1,5 +1,7 @@
 import type { PageServerLoad } from "./$types";
 
+import { svelteKitRouteParam } from "$lib/server/docker-route";
+
 import { controllerConfig, inspectNodeVolume } from "$lib/server/controller";
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -9,7 +11,7 @@ export const load: PageServerLoad = async ({ params }) => {
       ready: false,
       error: config.reason,
       nodeId: params.id,
-      volumeName: decodeURIComponent(params.vol),
+      volumeName: svelteKitRouteParam(params.vol),
       rawJson: null,
     };
   }
@@ -17,13 +19,13 @@ export const load: PageServerLoad = async ({ params }) => {
   try {
     const rawJson = await inspectNodeVolume(
       params.id,
-      decodeURIComponent(params.vol),
+      svelteKitRouteParam(params.vol),
     );
     return {
       ready: true,
       error: null,
       nodeId: params.id,
-      volumeName: decodeURIComponent(params.vol),
+      volumeName: svelteKitRouteParam(params.vol),
       rawJson,
     };
   } catch (error) {
@@ -32,7 +34,7 @@ export const load: PageServerLoad = async ({ params }) => {
       error:
         error instanceof Error ? error.message : "Failed to inspect volume",
       nodeId: params.id,
-      volumeName: decodeURIComponent(params.vol),
+      volumeName: svelteKitRouteParam(params.vol),
       rawJson: null,
     };
   }

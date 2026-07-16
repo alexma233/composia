@@ -2,8 +2,11 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
 import { controllerConfig, controllerProcedure } from "$lib/server/controller";
+import {
+  dockerConnectHeaders,
+  svelteKitRouteParam,
+} from "$lib/server/docker-route";
 
-const connectProtocolVersion = "1";
 const connectStreamFlagCompressed = 0x01;
 const connectStreamFlagEnd = 0x02;
 
@@ -28,15 +31,10 @@ export const GET: RequestHandler = async ({ params, url }) => {
           `${config.baseUrl}${controllerProcedure("/composia.controller.v1.DockerCommandService/GetContainerLogs")}`,
           {
             method: "POST",
-            headers: {
-              Authorization: `Bearer ${config.token}`,
-              "Connect-Protocol-Version": connectProtocolVersion,
-              "Content-Type": "application/connect+json",
-              "X-Composia-Source": "web",
-            },
+            headers: dockerConnectHeaders(config.token, config.headers),
             body: encodeConnectStreamMessage({
               nodeId: params.id,
-              containerId: decodeURIComponent(params.cid),
+              containerId: svelteKitRouteParam(params.cid),
               tail: url.searchParams.get("tail") ?? "200",
               timestamps: url.searchParams.get("timestamps") === "true",
             }),

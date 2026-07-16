@@ -2,6 +2,8 @@ import { json } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
 import type { RequestHandler } from "./$types";
 
+import { svelteKitRouteParam } from "$lib/server/docker-route";
+
 import { controllerConfig, openContainerExec } from "$lib/server/controller";
 import { jsonControllerError } from "$lib/server/controller-route";
 
@@ -19,7 +21,7 @@ export const POST: RequestHandler = async ({ params, request, url }) => {
     };
     const session = await openContainerExec(
       params.id,
-      decodeURIComponent(params.cid),
+      svelteKitRouteParam(params.cid),
       payload.command ?? [],
       payload.rows ?? 24,
       payload.cols ?? 80,

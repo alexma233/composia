@@ -1,6 +1,8 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
+import { svelteKitRouteParam } from "$lib/server/docker-route";
+
 import { controllerConfig, inspectNodeContainer } from "$lib/server/controller";
 import { jsonControllerError } from "$lib/server/controller-route";
 
@@ -13,7 +15,7 @@ export const GET: RequestHandler = async ({ params }) => {
   try {
     const rawJson = await inspectNodeContainer(
       params.id,
-      decodeURIComponent(params.cid),
+      svelteKitRouteParam(params.cid),
     );
     return json({ rawJson });
   } catch (error) {
