@@ -14,6 +14,9 @@ services:
 
   init-perms-controller:
     image: alpine:3.24
+    depends_on:
+      init-repo-controller:
+        condition: service_completed_successfully
     entrypoint:
       - sh
       - -ec

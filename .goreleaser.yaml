@@ -386,7 +386,7 @@ release:
     owner: alexma233
     name: composia
 
-  prerelease: true
+  prerelease: auto
   mode: replace
 
   header: |

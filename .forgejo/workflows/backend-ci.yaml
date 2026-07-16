@@ -12,6 +12,10 @@ on:
       - "go.sum"
       - "proto/**"
       - "gen/go/**"
+      - "web/src/lib/gen/**"
+      - "buf.yaml"
+      - "buf.gen.yaml"
+      - "scripts/dev/check-generated.sh"
       - "scripts/build/**"
       - ".goreleaser.yaml"
       - "flake.nix"
@@ -33,6 +37,10 @@ on:
       - "go.sum"
       - "proto/**"
       - "gen/go/**"
+      - "web/src/lib/gen/**"
+      - "buf.yaml"
+      - "buf.gen.yaml"
+      - "scripts/dev/check-generated.sh"
       - "scripts/build/**"
       - ".goreleaser.yaml"
       - ".golangci.yml"
@@ -62,6 +70,32 @@ jobs:
             printf 'Unformatted Go files:\n%s\n' "$unformatted"
             exit 1
           fi
+
+  generated-drift:
+    runs-on: docker-amd64
+    container:
+      image: forgejo-registry-raw.alexma.top/alexma233/ci-images-go-node-docker-deno-chromium:1.26@sha256:a9259c9bed781f912eaf0d049051a5701a013e94fae7e79de051961f3f4cb4bc
+
+    steps:
+      - name: Checkout
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v7.0.0
+        uses: https://forgejo.alexma.top/actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Check generated protobuf drift
+        run: scripts/dev/check-generated.sh
+
+  nix-build:
+    runs-on: docker-amd64
+    container:
+      image: ghcr.io/joschi/forgejo-nix:latest@sha256:082480fa291ead6a19973ee3dc308a81e128cc3c1d82cd58a707e494d662febb
+
+    steps:
+      - name: Checkout
+        # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v7.0.0
+        uses: https://forgejo.alexma.top/actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Build Nix package
+        run: nix build .#composia --no-link
 
   build-test:
     runs-on: docker-amd64

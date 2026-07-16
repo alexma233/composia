@@ -12,7 +12,7 @@ export default defineConfig({
     launchOptions: {
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
     },
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
   },
   webServer: {
     command: `deno task build && deno task preview --host ${host} --port ${port}`,
