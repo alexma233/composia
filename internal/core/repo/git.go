@@ -184,7 +184,8 @@ func CommitPaths(repoDir string, relativePaths []string, message, authorName, au
 	commitArgs := make([]string, 0, 5+len(relativePaths))
 	commitArgs = append(commitArgs, "commit", "--only", "-m", message, "--")
 	commitArgs = append(commitArgs, relativePaths...)
-	if err := gitCommand(repoDir, gitAuthorEnv(authorName, authorEmail), commitArgs...); err != nil {
+	// Service repository commits are machine-generated and intentionally unsigned.
+	if err := gitCommandWithOptions(repoDir, gitAuthorEnv(authorName, authorEmail), []string{"commit.gpgsign=false"}, commitArgs...); err != nil {
 		return "", fmt.Errorf("commit repo paths %q: %w", strings.Join(relativePaths, ", "), err)
 	}
 	succeeded = true

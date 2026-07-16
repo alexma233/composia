@@ -242,7 +242,6 @@ func TestCommitPathsAndRevisionHelpers(t *testing.T) {
 
 	repoDir := t.TempDir()
 	gitRun(t, repoDir, "init")
-	gitRun(t, repoDir, "config", "commit.gpgsign", "false")
 	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("hello\n"), 0o600); err != nil {
 		t.Fatalf("write README: %v", err)
 	}
@@ -309,43 +308,6 @@ func TestCommitPathsAndRevisionHelpers(t *testing.T) {
 	}
 	if _, err := CommitPath(repoDir, "README.md", "", "", ""); err != nil {
 		t.Fatalf("commit path wrapper: %v", err)
-	}
-}
-
-func TestCommitPathsHonorsConfiguredCommitSigning(t *testing.T) {
-	repoDir := t.TempDir()
-	gitRun(t, repoDir, "init")
-	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("hello\n"), 0o600); err != nil {
-		t.Fatalf("write README: %v", err)
-	}
-	gitRun(t, repoDir, "add", ".")
-	gitRun(t, repoDir, "-c", "user.name=Test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "-m", "initial")
-
-	spyDir := t.TempDir()
-	logPath := filepath.Join(spyDir, "signer.log")
-	fakeSigner := filepath.Join(spyDir, "fake-gpg")
-	script := "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"" + logPath + "\"\necho 'fake signer invoked' >&2\nexit 1\n"
-	if err := os.WriteFile(fakeSigner, []byte(script), 0o755); err != nil { //nolint:gosec
-		t.Fatalf("write fake signer: %v", err)
-	}
-	gitRun(t, repoDir, "config", "commit.gpgsign", "true")
-	gitRun(t, repoDir, "config", "gpg.format", "openpgp")
-	gitRun(t, repoDir, "config", "gpg.program", fakeSigner)
-	gitRun(t, repoDir, "config", "user.signingkey", "test@example.com")
-
-	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("signed\n"), 0o600); err != nil {
-		t.Fatalf("update README: %v", err)
-	}
-	_, err := CommitPaths(repoDir, []string{"README.md"}, "signed change", "Tester", "tester@example.com")
-	if err == nil {
-		t.Fatal("expected configured signer failure")
-	}
-	log, err := os.ReadFile(logPath) //nolint:gosec
-	if err != nil {
-		t.Fatalf("read signer log: %v", err)
-	}
-	if strings.TrimSpace(string(log)) == "" {
-		t.Fatal("expected fake signer to be invoked")
 	}
 }
 
