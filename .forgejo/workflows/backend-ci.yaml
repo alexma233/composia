@@ -85,9 +85,9 @@ jobs:
         run: scripts/dev/check-generated.sh
 
   nix-build:
-    runs-on: docker-amd64-dind
+    runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-go-node-docker:1.26@sha256:1bd01281b668e118e4bee4da655dc7084d996089484ddf4e23cec2ed3d1cc96a
+      image: ghcr.io/joschi/forgejo-nix:latest@sha256:082480fa291ead6a19973ee3dc308a81e128cc3c1d82cd58a707e494d662febb
 
     steps:
       - name: Checkout
@@ -95,10 +95,7 @@ jobs:
         uses: https://forgejo.alexma.top/actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
 
       - name: Build Nix package
-        run: |
-          tar -cf - . | docker run --rm -i \
-            nixos/nix:2.34.2@sha256:cf42be9911411150ed246632633e846ee185384d97c9a8a27e8ca15ab3a7a48f \
-            sh -c "mkdir /src && tar -xf - -C /src && nix --extra-experimental-features 'nix-command flakes' build 'path:/src#composia' --no-link"
+        run: nix build .#composia --no-link
 
   build-test:
     runs-on: docker-amd64
