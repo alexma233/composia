@@ -234,10 +234,22 @@
     await runRusticAction(action);
   }
 
+  function rusticActionLabel(action: "init" | "forget" | "prune") {
+    switch (action) {
+      case "init":
+        return $messages.settings.rustic.init;
+      case "forget":
+        return $messages.settings.rustic.forget;
+      case "prune":
+        return $messages.settings.rustic.prune;
+    }
+  }
+
   async function runRusticAction(action: "init" | "forget" | "prune") {
     rusticBusy = action;
     rusticError = "";
     rusticTaskId = "";
+    const actionLabel = rusticActionLabel(action);
 
     try {
       const response = await fetch(`/settings/${action}`, {
@@ -255,20 +267,20 @@
           actionErrorMessage(
             payload,
             $messages,
-            $messages.settings.rustic.failedToStart.replace("{action}", action),
+            $messages.settings.rustic.failedToStart.replace("{action}", actionLabel),
           ),
         );
       }
 
       rusticTaskId = payload.taskId ?? "";
       toast.success(
-        $messages.settings.rustic.started.replace("{action}", action),
+        $messages.settings.rustic.started.replace("{action}", actionLabel),
       );
     } catch (error) {
       rusticError =
         error instanceof Error
           ? error.message
-          : $messages.settings.rustic.failedToStart.replace("{action}", action);
+          : $messages.settings.rustic.failedToStart.replace("{action}", actionLabel);
     } finally {
       rusticBusy = "";
     }

@@ -6,6 +6,7 @@
 
   import type { PageData } from './$types';
   import { getMessages } from '$lib/i18n';
+  import { logLiveMode } from '$lib/log-accessibility';
 
   const messages = getMessages();
   import { actionErrorMessage } from '$lib/capabilities';
@@ -18,7 +19,7 @@
   import * as Dialog from '$lib/components/ui/dialog';
   import { Label } from '$lib/components/ui/label';
   import { startPolling } from '$lib/refresh';
-  import { formatTimestamp, taskStatusLabel, taskStatusTone, taskTypeLabel } from '$lib/presenters';
+  import { formatTimestamp, taskStatusLabel, taskStatusTone, taskStepNameLabel, taskTypeLabel } from '$lib/presenters';
   interface Props {
     data: PageData;
   }
@@ -26,6 +27,7 @@
   let { data }: Props = $props();
 
   let logContent = $state('');
+  let accessibleLogChunks = $state<string[]>([]);
   let logState = $state('idle');
   let logError = $state('');
   let logStreamTaskId = $state('');
@@ -39,6 +41,8 @@
   let stopTarget = $state(false);
   let stopTaskRefreshHandle: null | (() => void) = null;
   let taskRefreshTaskId = '';
+  let pendingAccessibleLogChunk = '';
+  let logAccessibilityTimer: ReturnType<typeof setTimeout> | null = null;
 
   function isTerminalStatus(status: string): boolean {
     return status === 'succeeded' || status === 'failed' || status === 'cancelled';
@@ -59,6 +63,40 @@
       default:
         return state;
     }
+  }
+
+  function appendLogContent(chunk: string) {
+    logContent += chunk;
+    queueAccessibleLogUpdate(chunk);
+  }
+
+  function queueAccessibleLogUpdate(chunk: string) {
+    pendingAccessibleLogChunk += chunk;
+    if (logAccessibilityTimer) {
+      return;
+    }
+
+    logAccessibilityTimer = setTimeout(flushAccessibleLogUpdate, 1000);
+  }
+
+  function flushAccessibleLogUpdate() {
+    if (logAccessibilityTimer) {
+      clearTimeout(logAccessibilityTimer);
+      logAccessibilityTimer = null;
+    }
+    if (pendingAccessibleLogChunk) {
+      accessibleLogChunks = [...accessibleLogChunks, pendingAccessibleLogChunk];
+      pendingAccessibleLogChunk = '';
+    }
+  }
+
+  function resetAccessibleLog() {
+    if (logAccessibilityTimer) {
+      clearTimeout(logAccessibilityTimer);
+      logAccessibilityTimer = null;
+    }
+    pendingAccessibleLogChunk = '';
+    accessibleLogChunks = [];
   }
 
   $effect(() => {
@@ -235,11 +273,13 @@
     logContent = '';
     logError = '';
     logState = 'idle';
+    resetAccessibleLog();
   });
 
   onDestroy(() => {
     stopTaskRefresh();
     stopLogStream();
+    resetAccessibleLog();
   });
 
   async function startLogStream(taskId: string) {
@@ -251,6 +291,7 @@
     logContent = '';
     logError = '';
     logState = 'connecting';
+    resetAccessibleLog();
 
     try {
       const response = await fetch(`/tasks/${taskId}/logs`, {
@@ -269,24 +310,33 @@
           break;
         }
         if (value) {
-          logContent += decoder.decode(value, { stream: true });
+          appendLogContent(decoder.decode(value, { stream: true }));
         }
       }
       const trailing = decoder.decode();
       if (trailing) {
-        logContent += trailing;
+        appendLogContent(trailing);
       }
+      flushAccessibleLogUpdate();
       logState = 'completed';
     } catch (error) {
       if (controller.signal.aborted) {
         return;
       }
+      flushAccessibleLogUpdate();
       logState = 'failed';
       logError = error instanceof Error ? error.message : $messages.error.logStreamFailed;
     } finally {
       if (logStreamController === controller) {
         logStreamController = null;
       }
+    }
+  }
+
+  function retryLogStream() {
+    const taskId = data.task?.taskId ?? logStreamTaskId;
+    if (taskId) {
+      void startLogStream(taskId);
     }
   }
 
@@ -416,7 +466,7 @@
           {#each data.task?.steps ?? [] as step}
             <div class="inset-card">
               <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="text-sm font-medium">{step.stepName}</div>
+                <div class="text-sm font-medium">{taskStepNameLabel(step.stepName, $messages)}</div>
                 <Badge variant={taskStatusTone(step.status)}>{taskStatusLabel(step.status, $messages)}</Badge>
               </div>
               <div class="mt-2 text-sm text-muted-foreground">
@@ -441,8 +491,22 @@
           <Alert variant="destructive">
             <AlertTitle>{$messages.error.logStreamFailed}</AlertTitle>
             <AlertDescription>{logError}</AlertDescription>
+            <Button type="button" variant="outline" size="sm" class="mt-3" onclick={retryLogStream}>
+              {$messages.tasks.retryLogStream}
+            </Button>
           </Alert>
         {/if}
+
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -- Focusable read-only logs let keyboard users inspect streamed output. -->
+        <pre
+          class="task-log-accessible"
+          role="log"
+          tabindex="0"
+          aria-label={$messages.tasks.accessibleLogLabel}
+          aria-live={logLiveMode(logState, accessibleLogChunks.length > 0)}
+          aria-relevant="additions text"
+          aria-atomic="false"
+        >{#if accessibleLogChunks.length}{#each accessibleLogChunks as chunk}{chunk}{/each}{:else}{$messages.tasks.waitingForOutput}{/if}</pre>
 
         <TerminalSurface
           active

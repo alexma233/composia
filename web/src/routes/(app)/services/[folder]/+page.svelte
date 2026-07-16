@@ -84,6 +84,7 @@
     isTaskRecent,
     runtimeStatusLabel,
     runtimeStatusTone,
+    taskTypeLabel,
   } from "$lib/presenters";
   import type {
     BackupSummary,
@@ -1051,6 +1052,7 @@
       | "cloudflare_tunnel_sync",
     recreateMode: ComposeRecreateMode = "auto",
   ) {
+    const actionLabel = taskTypeLabel(action, $messages);
     if (action === "backup" && !backupCapability.enabled) {
       errorMessage = backupReason;
       return;
@@ -1138,7 +1140,7 @@
           actionErrorMessage(
             payload,
             $messages,
-            $messages.services.actions.runFailed.replace("{action}", action),
+            $messages.services.actions.runFailed.replace("{action}", actionLabel),
           ),
         );
       }
@@ -1155,13 +1157,13 @@
       if (createdTasks.length === 1) {
         toast.success(
           $messages.services.actionQueued
-            .replace("{action}", action)
+            .replace("{action}", actionLabel)
             .replace("{taskId}", createdTasks[0].taskId),
         );
       } else {
         toast.success(
           $messages.services.actionQueuedMany
-            .replace("{action}", action)
+            .replace("{action}", actionLabel)
             .replace("{count}", String(createdTasks.length)),
         );
       }
@@ -1170,7 +1172,7 @@
       errorMessage =
         actionError instanceof Error
           ? actionError.message
-          : $messages.services.actions.runFailed.replace("{action}", action);
+          : $messages.services.actions.runFailed.replace("{action}", actionLabel);
     } finally {
       actionBusy = "";
     }

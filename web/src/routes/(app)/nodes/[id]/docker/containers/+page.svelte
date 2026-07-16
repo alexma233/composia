@@ -154,8 +154,20 @@
     }
   }
 
+  function actionLabel(action: 'start' | 'stop' | 'restart') {
+    switch (action) {
+      case 'start':
+        return $messages.docker.containers.start;
+      case 'stop':
+        return $messages.docker.containers.stop;
+      case 'restart':
+        return $messages.docker.containers.restart;
+    }
+  }
+
   async function queueContainerAction(containerId: string, action: 'start' | 'stop' | 'restart') {
     actionBusyId = `${containerId}:${action}`;
+    const label = actionLabel(action);
     try {
       const response = await fetch(`/nodes/${encodeURIComponent(data.nodeId)}/docker/containers/${encodeURIComponent(containerId)}/actions/${action}`, {
         method: 'POST',
@@ -163,12 +175,12 @@
       });
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(actionErrorMessage(payload, $messages, $messages.docker.containers.actionFailed.replace('{action}', action)));
+        throw new Error(actionErrorMessage(payload, $messages, $messages.docker.containers.actionFailed.replace('{action}', label)));
       }
-      toast.success($messages.docker.containers.actionQueued.replace('{action}', action).replace('{taskId}', payload.taskId?.slice(0, 12) ?? 'task'));
+      toast.success($messages.docker.containers.actionQueued.replace('{action}', label).replace('{taskId}', payload.taskId?.slice(0, 12) ?? 'task'));
       await refreshContainers();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : $messages.docker.containers.actionFailed.replace('{action}', action));
+      toast.error(error instanceof Error ? error.message : $messages.docker.containers.actionFailed.replace('{action}', label));
     } finally {
       actionBusyId = '';
     }

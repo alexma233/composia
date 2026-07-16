@@ -6,9 +6,6 @@ import composeSchema from "$lib/schemas/compose-spec.json";
 import { collectEnvDefinitions, isEnvFilePath } from "$lib/codemirror/env-lint";
 import { yamlSchemaDiagnostics } from "$lib/codemirror/yaml-schema-lint";
 
-const COMPOSE_SCHEMA_SOURCE_URL =
-  "https://github.com/compose-spec/compose-spec/blob/main/schema/compose-spec.json";
-
 const composeFilePattern = /^(docker-)?compose(?:\.[^.]+)?\.ya?ml$/i;
 const interpolationPattern =
   /\$\{([A-Za-z_][A-Za-z0-9_]*)(?:(:-|-|:\?|\?|:\+|\+)([^}]*))?\}/g;
@@ -18,10 +15,6 @@ const validator = createComposeValidator();
 export function isComposeFilePath(filePath: string): boolean {
   const name = filePath.split("/").pop() ?? filePath;
   return composeFilePattern.test(name);
-}
-
-export function composeSchemaSourceUrl(): string {
-  return COMPOSE_SCHEMA_SOURCE_URL;
 }
 
 export function composeLinter(
