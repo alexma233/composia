@@ -20,6 +20,15 @@
   } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
   import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogOverlay,
+    DialogTitle,
+  } from "$lib/components/ui/dialog";
+  import {
     Card,
     CardContent,
     CardHeader,
@@ -47,6 +56,8 @@
   let rusticBusy = $state<"init" | "forget" | "prune" | "">("");
   let rusticError = $state("");
   let rusticTaskId = $state("");
+  let rusticConfirmOpen = $state(false);
+  let rusticConfirmAction = $state<"forget" | "prune" | null>(null);
   let syncResult = $state<{
     headRevision?: string;
     syncStatus?: string;
@@ -205,6 +216,24 @@
     }
   }
 
+  function confirmRusticAction(action: "forget" | "prune") {
+    if (rusticBusy) return;
+    rusticConfirmAction = action;
+    rusticConfirmOpen = true;
+  }
+
+  function closeRusticConfirm() {
+    rusticConfirmOpen = false;
+    rusticConfirmAction = null;
+  }
+
+  async function runConfirmedRusticAction() {
+    const action = rusticConfirmAction;
+    if (!action) return;
+    closeRusticConfirm();
+    await runRusticAction(action);
+  }
+
   async function runRusticAction(action: "init" | "forget" | "prune") {
     rusticBusy = action;
     rusticError = "";
@@ -353,9 +382,9 @@
                 </Button>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="destructive"
                   size="sm"
-                  onclick={() => runRusticAction("forget")}
+                  onclick={() => confirmRusticAction("forget")}
                   disabled={rusticBusy !== ""}
                 >
                   {rusticBusy === "forget"
@@ -364,9 +393,9 @@
                 </Button>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="destructive"
                   size="sm"
-                  onclick={() => runRusticAction("prune")}
+                  onclick={() => confirmRusticAction("prune")}
                   disabled={rusticBusy !== ""}
                 >
                   {rusticBusy === "prune"
@@ -410,11 +439,45 @@
               <div class="metric-label">
                 {$messages.settings.rustic.lastTask}
               </div>
-              <div class="mt-2 break-all text-sm text-foreground">
+              <a
+                class="mt-2 block break-all text-sm text-foreground hover:text-primary"
+                href={`/tasks/${rusticTaskId}`}
+              >
                 {rusticTaskId}
-              </div>
+              </a>
             </div>
           {/if}
+
+          <Dialog bind:open={rusticConfirmOpen}>
+            <DialogOverlay />
+            <DialogContent class="max-w-md">
+              <DialogHeader>
+                <DialogTitle>{$messages.settings.rustic.confirmTitle}</DialogTitle>
+                <DialogDescription>
+                  {rusticConfirmAction === "forget"
+                    ? $messages.settings.rustic.forgetWarning
+                    : $messages.settings.rustic.pruneWarning}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onclick={closeRusticConfirm}
+                >
+                  {$messages.common.cancel}
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onclick={runConfirmedRusticAction}
+                  disabled={rusticBusy !== ""}
+                >
+                  {$messages.settings.rustic.confirmAction}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
 

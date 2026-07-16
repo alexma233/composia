@@ -45,7 +45,11 @@
     TableRow,
   } from "$lib/components/ui/table";
   import { cn } from "$lib/utils";
-  import { buildFilterPageUrl, filterValuesEqual } from "$lib/filter-query";
+  import {
+    buildFilterPageUrl,
+    filterQuerySignature,
+    filterValuesEqual,
+  } from "$lib/filter-query";
   import TaskRow from "$lib/components/app/task-row.svelte";
   interface Props {
     data: PageData;
@@ -157,6 +161,7 @@
   let serviceTriggerRef = $state<HTMLButtonElement | null>(null);
   let nodeTriggerRef = $state<HTMLButtonElement | null>(null);
   let typeTriggerRef = $state<HTMLButtonElement | null>(null);
+  let appliedDataFilterSignature = $state("");
 
   const activeFilterCount = $derived(
     [
@@ -219,6 +224,12 @@
   );
 
   $effect(() => {
+    const nextSignature = dataFilterSignature();
+    if (nextSignature === appliedDataFilterSignature) {
+      return;
+    }
+
+    appliedDataFilterSignature = nextSignature;
     currentPage = data.page;
     currentStatuses = [...data.status] as TaskStatusFilter[];
     excludedStatuses = [...data.excludeStatus] as TaskStatusFilter[];
@@ -425,6 +436,19 @@
     return mode === "include"
       ? $messages.tasks.filters.include
       : $messages.tasks.filters.exclude;
+  }
+
+  function dataFilterSignature(): string {
+    return filterQuerySignature(data.page, {
+      status: data.status,
+      excludeStatus: data.excludeStatus,
+      serviceName: data.serviceName,
+      excludeServiceName: data.excludeServiceName,
+      nodeId: data.nodeId,
+      excludeNodeId: data.excludeNodeId,
+      type: data.type,
+      excludeType: data.excludeType,
+    });
   }
 
   function pageUrl(
@@ -977,7 +1001,9 @@
     </CardHeader>
 
     <CardContent>
-      {#if data.tasks.length}
+      {#if data.error}
+        <!-- Load failure is already rendered in the header. -->
+      {:else if data.tasks.length}
         <Table>
           <TableCaption class="sr-only">{$messages.tasks.tableCaption}</TableCaption>
           <TableHeader>

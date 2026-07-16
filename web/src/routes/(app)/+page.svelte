@@ -116,7 +116,7 @@
               {#each recentTasks as task}
                 <TaskCard {task} showService />
               {/each}
-            {:else}
+            {:else if !data.error}
               <div class="empty-state">{$messages.tasks.noTasks}</div>
             {/if}
           </div>
@@ -138,7 +138,7 @@
               {#each recentBackups as backup}
                 <BackupCard {backup} />
               {/each}
-            {:else}
+            {:else if !data.error}
               <div class="empty-state">{$messages.backups.noBackups}</div>
             {/if}
           </div>

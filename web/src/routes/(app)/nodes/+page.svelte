@@ -48,7 +48,9 @@
     </CardHeader>
 
     <CardContent>
-      {#if data.nodes.length}
+      {#if data.error}
+        <!-- Load failure is already rendered in the header. -->
+      {:else if data.nodes.length}
         <Table>
           <TableCaption class="sr-only">{$messages.nodes.tableCaption}</TableCaption>
           <TableHeader>

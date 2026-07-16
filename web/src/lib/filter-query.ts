@@ -33,6 +33,22 @@ export function buildFilterPageUrl(
   page: number,
   filters: QueryFilterValues,
 ): string {
+  const params = buildFilterSearchParams(page, filters);
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
+}
+
+export function filterQuerySignature(
+  page: number,
+  filters: QueryFilterValues,
+): string {
+  return buildFilterSearchParams(page, filters).toString();
+}
+
+function buildFilterSearchParams(
+  page: number,
+  filters: QueryFilterValues,
+): URLSearchParams {
   const params = new URLSearchParams();
   if (page > 1) {
     params.set("page", page.toString());
@@ -44,8 +60,7 @@ export function buildFilterPageUrl(
     }
   }
 
-  const query = params.toString();
-  return query ? `${path}?${query}` : path;
+  return params;
 }
 
 export function filterValuesEqual(

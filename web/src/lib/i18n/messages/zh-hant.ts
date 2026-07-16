@@ -516,7 +516,7 @@ export const zhHant = {
     selectTargetNode: "選擇目標節點",
     restoreConfirmTitle: "確認還原",
     restoreWarning:
-      "該還原可能覆蓋節點 {nodeId} 上同名的檔案、目錄或 Docker volume。",
+      "此還原會先清除節點 {nodeId} 上相符的檔案、目錄或 Docker volume，然後還原備份資料。",
     noArtifact: "此備份沒有記錄 Artifact Ref。",
     filters: {
       allDataNames: "所有資料名稱",
@@ -590,6 +590,10 @@ export const zhHant = {
       lastTask: "上次任務",
       started: "Rustic {action} 已啟動",
       failedToStart: "啟動 Rustic {action} 失敗。",
+      confirmTitle: "確認 Rustic 維護",
+      confirmAction: "執行維護",
+      forgetWarning: "Rustic forget 會依保留策略刪除快照。此操作無法復原。",
+      pruneWarning: "Rustic prune 會刪除未引用的儲存庫資料。此操作無法復原。",
     },
   },
   docker: {

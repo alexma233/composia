@@ -1,4 +1,5 @@
 export const dockerListPageSize = 20;
+export const dockerSearchDebounceMs = 300;
 
 export type DockerListSortDirection = "asc" | "desc";
 
@@ -9,6 +10,22 @@ export type DockerListPageQuery<SortField extends string> = {
   sortDirection: DockerListSortDirection;
   sortDesc: boolean;
 };
+
+export type DockerListDebouncedSearchState = {
+  page: 1;
+  search: string;
+};
+
+export function debouncedDockerListSearchState(
+  search: string,
+  debouncedSearch: string,
+): DockerListDebouncedSearchState | null {
+  if (search === debouncedSearch) {
+    return null;
+  }
+
+  return { page: 1, search };
+}
 
 export function parseDockerListPageQuery<SortField extends string>(
   url: URL,

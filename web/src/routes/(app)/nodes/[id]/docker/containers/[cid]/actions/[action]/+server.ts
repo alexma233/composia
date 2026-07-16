@@ -8,6 +8,7 @@ import {
   runContainerAction,
   type ContainerAction,
 } from "$lib/server/controller";
+import { serializeContainerAction } from "$lib/server/container-action-queue";
 import { jsonControllerError } from "$lib/server/controller-route";
 
 export const POST: RequestHandler = async ({ params }) => {
@@ -24,11 +25,11 @@ export const POST: RequestHandler = async ({ params }) => {
       );
     }
 
+    const action = params.action;
+    const containerId = svelteKitRouteParam(params.cid);
     return json(
-      await runContainerAction(
-        params.id,
-        svelteKitRouteParam(params.cid),
-        params.action,
+      await serializeContainerAction(`${params.id}:${containerId}`, () =>
+        runContainerAction(params.id, containerId, action),
       ),
     );
   } catch (error) {
