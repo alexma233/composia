@@ -30,6 +30,15 @@ func TestNormalizeStaticHeadersRejectsReservedHeader(t *testing.T) {
 	}
 }
 
+func TestNormalizeStaticHeadersRejectsCanonicalDuplicates(t *testing.T) {
+	t.Parallel()
+
+	_, err := NormalizeStaticHeaders(map[string]string{"x-trace-id": "one", "X-Trace-Id": "two"})
+	if err == nil {
+		t.Fatalf("expected duplicate header error")
+	}
+}
+
 func TestStaticHeadersInterceptorAddsMissingHeaders(t *testing.T) {
 	t.Parallel()
 
