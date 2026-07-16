@@ -46,6 +46,16 @@ async function expectOpaqueFocusRing(page: import("@playwright/test").Page) {
   expect.soft(colors.ring).toBe(colors.token);
 }
 
+async function waitForHydratedPage(page: import("@playwright/test").Page) {
+  await expect(page.locator("[data-app-ready]")).toHaveCount(1);
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }),
+  );
+}
+
 for (const theme of themes) {
   for (const accent of accents) {
     test(`${theme}/${accent} meets color contrast requirements`, async ({
@@ -62,6 +72,7 @@ for (const theme of themes) {
 
       for (const route of routes) {
         await page.goto(route);
+        await waitForHydratedPage(page);
         if (route === "/") {
           await addSemanticContrastProbes(page);
         }
