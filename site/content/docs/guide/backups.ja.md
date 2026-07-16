@@ -136,8 +136,10 @@ backup:
 Web UI のバックアップページから、または CLI でリストアをトリガーします:
 
 ```bash
-composia backup restore <backup-id>
+composia backup restore --wait --follow --timeout 30m main <backup-id>
 ```
+
+The first argument is the target node. Use `--wait --follow` to block until the restore finishes and stream task logs.
 
 リストアプロセス:
 
@@ -160,10 +162,12 @@ composia backup restore <backup-id>
 Web UI または CLI からメンテナンスをトリガーします:
 
 ```bash
-composia node init-rustic main
-composia node forget-rustic main
-composia node prune-rustic main
+composia rustic init --wait --follow main
+composia rustic forget --service my-app --data uploads --yes --wait --follow main
+composia rustic prune --yes --wait --follow main
 ```
+
+Use `--wait --follow` when you want the CLI to wait for the maintenance task and stream logs.
 
 ## 関連項目
 

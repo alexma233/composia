@@ -136,8 +136,10 @@ Backup-Artefakte werden durch Rustic-Snapshot-IDs identifiziert. Tags enthalten 
 Löse ein Restore über die Web-UI auf der Backups-Seite oder per CLI aus:
 
 ```bash
-composia backup restore <backup-id>
+composia backup restore --wait --follow --timeout 30m main <backup-id>
 ```
+
+The first argument is the target node. Use `--wait --follow` to block until the restore finishes and stream task logs.
 
 Der Restore-Prozess:
 
@@ -160,10 +162,12 @@ Wartungsaufgaben verwenden den Rustic-Infrastrukturdienst:
 Löse Wartungsaufgaben über die Web-UI oder CLI aus:
 
 ```bash
-composia node init-rustic main
-composia node forget-rustic main
-composia node prune-rustic main
+composia rustic init --wait --follow main
+composia rustic forget --service my-app --data uploads --yes --wait --follow main
+composia rustic prune --yes --wait --follow main
 ```
+
+Use `--wait --follow` when you want the CLI to wait for the maintenance task and stream logs.
 
 ## Siehe auch
 

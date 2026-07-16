@@ -180,6 +180,53 @@ Die paketierten Units verwenden die Standard-Konfigurationspfade:
 | `composia-controller.service` | `/etc/composia/controller/config.yaml` |
 | `composia-agent.service` | `/etc/composia/agent/config.yaml` |
 
+The packaged units use the default config paths, run as root as shipped, and do not create config files, data directories, or Git repositories for you. Bootstrap them before enabling services:
+
+```bash
+sudo install -d -m 0755 /etc/composia/controller /etc/composia/agent
+sudo install -d -m 0750 \
+  /var/lib/composia/controller/repo \
+  /var/lib/composia/controller/state \
+  /var/lib/composia/controller/logs \
+  /var/lib/composia/agent/repo \
+  /var/lib/composia/agent/state
+sudo chown -R root:root /etc/composia /var/lib/composia
+sudo git -C /var/lib/composia/controller/repo init
+sudo git -C /var/lib/composia/agent/repo init
+```
+
+Use matching paths in the two config files:
+
+```yaml {filename="/etc/composia/controller/config.yaml"}
+controller:
+  repo_dir: "/var/lib/composia/controller/repo"
+  state_dir: "/var/lib/composia/controller/state"
+  log_dir: "/var/lib/composia/controller/logs"
+```
+
+```yaml {filename="/etc/composia/agent/config.yaml"}
+agent:
+  repo_dir: "/var/lib/composia/agent/repo"
+  state_dir: "/var/lib/composia/agent/state"
+```
+
+Verify ownership, write access, and Git initialization:
+
+```bash
+stat -c '%U:%G %a %n' \
+  /var/lib/composia/controller/repo \
+  /var/lib/composia/controller/state \
+  /var/lib/composia/controller/logs \
+  /var/lib/composia/agent/repo \
+  /var/lib/composia/agent/state
+sudo test -w /var/lib/composia/controller/repo
+sudo test -w /var/lib/composia/agent/repo
+sudo git -C /var/lib/composia/controller/repo rev-parse --is-inside-work-tree
+sudo git -C /var/lib/composia/agent/repo rev-parse --is-inside-work-tree
+```
+
+If you add a systemd drop-in with `User=`, chown these paths to that service user instead.
+
 Nachdem du die Konfigurationsdateien erstellt hast, aktiviere die Dienste explizit:
 
 ```bash
