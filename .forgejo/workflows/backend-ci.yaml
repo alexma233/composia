@@ -95,10 +95,10 @@ jobs:
         uses: https://forgejo.alexma.top/actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
 
       - name: Build Nix package
-        run: >-
-          docker run --rm -v "$PWD:/src:ro" -w /src
-          nixos/nix:2.34.2@sha256:cf42be9911411150ed246632633e846ee185384d97c9a8a27e8ca15ab3a7a48f
-          nix --extra-experimental-features 'nix-command flakes' build 'path:/src#composia' --no-link
+        run: |
+          tar -cf - . | docker run --rm -i \
+            nixos/nix:2.34.2@sha256:cf42be9911411150ed246632633e846ee185384d97c9a8a27e8ca15ab3a7a48f \
+            sh -c "mkdir /src && tar -xf - -C /src && nix --extra-experimental-features 'nix-command flakes' build 'path:/src#composia' --no-link"
 
   build-test:
     runs-on: docker-amd64
