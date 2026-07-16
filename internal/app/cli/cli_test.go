@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -731,4 +732,230 @@ func TestRepoWriteErrorAddsConflictHint(t *testing.T) {
 	if !strings.Contains(got, "repo changed while preparing this write") {
 		t.Fatalf("error = %q", got)
 	}
+}
+
+func TestSaveCLIConfigReplacesExistingWorldReadableFileWithPrivateMode(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("mode bits are not portable on Windows")
+	}
+	configHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+	path, err := cliConfigPath()
+	if err != nil {
+		t.Fatalf("cliConfigPath returned error: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	if err := os.WriteFile(path, []byte("addr=https://old.example\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile config returned error: %v", err)
+	}
+	if err := saveCLIConfig(cliConfig{cliConfigKeyAddr: "https://new.example"}); err != nil {
+		t.Fatalf("saveCLIConfig returned error: %v", err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("Stat config returned error: %v", err)
+	}
+	if got := info.Mode().Perm(); got != 0o600 {
+		t.Fatalf("config mode = %v, want 0600", got)
+	}
+}
+
+func TestConfigSetTokenFileReplacesExistingWorldReadableTokenWithPrivateMode(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("mode bits are not portable on Windows")
+	}
+	configHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+	tokenPath, err := cliTokenPath()
+	if err != nil {
+		t.Fatalf("cliTokenPath returned error: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(tokenPath), 0o700); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	if err := os.WriteFile(tokenPath, []byte("old\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile token returned error: %v", err)
+	}
+	stdin := replaceStdin(t, "secret-token\n")
+	defer stdin()
+	if err := (&app{out: &bytes.Buffer{}}).runConfigSetToken([]string{"--stdin", "--file"}); err != nil {
+		t.Fatalf("runConfigSetToken returned error: %v", err)
+	}
+	info, err := os.Stat(tokenPath)
+	if err != nil {
+		t.Fatalf("Stat token returned error: %v", err)
+	}
+	if got := info.Mode().Perm(); got != 0o600 {
+		t.Fatalf("token mode = %v, want 0600", got)
+	}
+}
+
+func TestConfigSetTokenCleansPreviousDefaultBackends(t *testing.T) {
+	configHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+	secrets := stubCLIKeyring(t)
+	tokenPath, err := cliTokenPath()
+	if err != nil {
+		t.Fatalf("cliTokenPath returned error: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(tokenPath), 0o700); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	if err := os.WriteFile(tokenPath, []byte("file-token\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile token returned error: %v", err)
+	}
+	if err := saveCLIConfig(cliConfig{cliConfigKeyTokenFile: tokenPath}); err != nil {
+		t.Fatalf("saveCLIConfig returned error: %v", err)
+	}
+	application := &app{out: &bytes.Buffer{}}
+	if err := application.saveConfigToken("keyring-token", cliTokenStorageKeyring); err != nil {
+		t.Fatalf("saveConfigToken keyring returned error: %v", err)
+	}
+	if _, err := os.Stat(tokenPath); !os.IsNotExist(err) {
+		t.Fatalf("default token file still exists, stat err=%v", err)
+	}
+	if secrets[cliKeyringAccount(defaultCLIKeyringName)] != "keyring-token" {
+		t.Fatalf("keyring token = %q", secrets[cliKeyringAccount(defaultCLIKeyringName)])
+	}
+	if err := application.saveConfigToken("inline-token", cliTokenStorageInline); err != nil {
+		t.Fatalf("saveConfigToken inline returned error: %v", err)
+	}
+	if _, ok := secrets[cliKeyringAccount(defaultCLIKeyringName)]; ok {
+		t.Fatalf("previous keyring token was not deleted")
+	}
+}
+
+func TestConfigSetTokenRollsBackNewKeyringWhenConfigSaveFails(t *testing.T) {
+	configHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+	secrets := stubCLIKeyring(t)
+	if err := saveCLIConfig(cliConfig{cliConfigKeyToken: "old-inline"}); err != nil {
+		t.Fatalf("saveCLIConfig returned error: %v", err)
+	}
+	failSaveCLIConfig(t, errors.New("save failed"))
+	err := (&app{out: &bytes.Buffer{}}).saveConfigToken("new-keyring", cliTokenStorageKeyring)
+	if err == nil || !strings.Contains(err.Error(), "save failed") {
+		t.Fatalf("expected save error, got %v", err)
+	}
+	if _, ok := secrets[cliKeyringAccount(defaultCLIKeyringName)]; ok {
+		t.Fatalf("new keyring token was not rolled back")
+	}
+	cfg := mustLoadCLIConfig(t)
+	if cfg[cliConfigKeyToken] != "old-inline" || cfg[cliConfigKeyTokenKeyring] != "" {
+		t.Fatalf("cfg = %+v", cfg)
+	}
+}
+
+func TestConfigSetTokenRollsBackNewFileWhenConfigSaveFails(t *testing.T) {
+	configHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+	if err := saveCLIConfig(cliConfig{cliConfigKeyToken: "old-inline"}); err != nil {
+		t.Fatalf("saveCLIConfig returned error: %v", err)
+	}
+	tokenPath, err := cliTokenPath()
+	if err != nil {
+		t.Fatalf("cliTokenPath returned error: %v", err)
+	}
+	failSaveCLIConfig(t, errors.New("save failed"))
+	err = (&app{out: &bytes.Buffer{}}).saveConfigToken("new-file", cliTokenStorageFile)
+	if err == nil || !strings.Contains(err.Error(), "save failed") {
+		t.Fatalf("expected save error, got %v", err)
+	}
+	if _, err := os.Stat(tokenPath); !os.IsNotExist(err) {
+		t.Fatalf("new token file was not rolled back, stat err=%v", err)
+	}
+	cfg := mustLoadCLIConfig(t)
+	if cfg[cliConfigKeyToken] != "old-inline" || cfg[cliConfigKeyTokenFile] != "" {
+		t.Fatalf("cfg = %+v", cfg)
+	}
+}
+
+func failSaveCLIConfig(t *testing.T, err error) {
+	t.Helper()
+	old := saveCLIConfigFunc
+	saveCLIConfigFunc = func(cliConfig) error { return err }
+	t.Cleanup(func() { saveCLIConfigFunc = old })
+}
+
+func TestDurationSecondsRejectsNonPositiveTimeout(t *testing.T) {
+	for _, timeout := range []time.Duration{0, -time.Second} {
+		if _, err := durationSeconds(timeout); err == nil || !strings.Contains(err.Error(), "greater than 0") {
+			t.Fatalf("durationSeconds(%s) error = %v", timeout, err)
+		}
+	}
+	if got := localExecWaitTimeout(time.Second); got != 11*time.Second {
+		t.Fatalf("localExecWaitTimeout = %s", got)
+	}
+}
+
+func TestRunParsesPersistentGlobalFlagsAfterLeafCommand(t *testing.T) {
+	var out bytes.Buffer
+	var errOut bytes.Buffer
+	err := Run(context.Background(), []string{"service", "list", "--addr", "http://127.0.0.1:1", "--token", "secret", "--output", "json"}, &out, &errOut)
+	if err == nil {
+		t.Fatalf("expected connection error")
+	}
+	if strings.Contains(err.Error(), "flag provided but not defined") || strings.Contains(err.Error(), "controller access token is required") {
+		t.Fatalf("persistent flags were not parsed: %v", err)
+	}
+}
+
+func TestRunAcceptsShortYesFlagOnLeafStdlibParser(t *testing.T) {
+	var out bytes.Buffer
+	var errOut bytes.Buffer
+	err := Run(context.Background(), []string{"rustic", "forget", "-y", "main", "--addr", "http://127.0.0.1:1", "--token", "secret"}, &out, &errOut)
+	if err == nil {
+		t.Fatalf("expected connection error")
+	}
+	for _, unexpected := range []string{"flag provided but not defined", "use --yes", "usage:"} {
+		if strings.Contains(err.Error(), unexpected) {
+			t.Fatalf("-y was not accepted on command path: %v", err)
+		}
+	}
+}
+
+func TestRusticMaintenanceRequiresDestructiveConfirmation(t *testing.T) {
+	var errOut bytes.Buffer
+	application := &app{errOut: &errOut}
+	err := application.runRusticMaintenance("forget", []string{"main"})
+	if err == nil || !strings.Contains(err.Error(), "use --yes") {
+		t.Fatalf("expected confirmation error, got %v", err)
+	}
+	if !strings.Contains(errOut.String(), "This will run rustic forget") {
+		t.Fatalf("stderr = %q", errOut.String())
+	}
+}
+
+func TestSplitEditorCommand(t *testing.T) {
+	cases := []struct {
+		editor string
+		want   string
+	}{
+		{`code --wait "my profile"`, "code|--wait|my profile"},
+		{`"C:\Program Files\Notepad++\notepad++.exe" --wait`, `C:\Program Files\Notepad++\notepad++.exe|--wait`},
+		{`code file\ name "my \"profile\""`, `code|file name|my "profile"`},
+	}
+	for _, tc := range cases {
+		parts, err := splitEditorCommand(tc.editor)
+		if err != nil {
+			t.Fatalf("splitEditorCommand(%q) returned error: %v", tc.editor, err)
+		}
+		if got := strings.Join(parts, "|"); got != tc.want {
+			t.Fatalf("splitEditorCommand(%q) = %q, want %q", tc.editor, got, tc.want)
+		}
+	}
+	if _, err := splitEditorCommand(`code "unterminated`); err == nil {
+		t.Fatalf("expected unterminated quote error")
+	}
+}
+
+func mustLoadCLIConfig(t *testing.T) cliConfig {
+	t.Helper()
+	cfg, err := loadCLIConfig()
+	if err != nil {
+		t.Fatalf("loadCLIConfig returned error: %v", err)
+	}
+	return cfg
 }

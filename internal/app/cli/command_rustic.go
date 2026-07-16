@@ -26,12 +26,16 @@ func (application *app) runRusticMaintenance(action string, args []string) error
 	fs := newCommandFlagSet("rustic " + action)
 	serviceName := fs.String("service", "", "service name")
 	dataName := fs.String("data", "", "data entry name")
+	yes := addYesFlag(fs)
 	waitOptions := addWaitFlags(fs)
-	usage := fmt.Sprintf("composia rustic %s [--wait] [--follow] [--timeout duration] [--service name] [--data name] <node>", action)
+	usage := fmt.Sprintf("composia rustic %s [--yes] [--wait] [--follow] [--timeout duration] [--service name] [--data name] <node>", action)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if err := requireArgs(fs.Args(), 1, usage); err != nil {
+		return err
+	}
+	if err := application.confirmDestructive(fmt.Sprintf("This will run rustic %s on node %q.", action, fs.Arg(0)), yes); err != nil {
 		return err
 	}
 	if action == "forget" {

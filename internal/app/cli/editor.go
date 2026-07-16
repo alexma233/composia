@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -41,7 +42,11 @@ func editText(ctx context.Context, initialContent string, pattern string, mode o
 
 func runEditor(ctx context.Context, path string) error {
 	editor := chooseEditor()
-	cmd := exec.CommandContext(ctx, "sh", "-c", editor+" \"$1\"", "composia-editor", path) //nolint:gosec
+	parts, err := splitEditorCommand(editor)
+	if err != nil {
+		return err
+	}
+	cmd := exec.CommandContext(ctx, parts[0], append(parts[1:], path)...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -49,6 +54,59 @@ func runEditor(ctx context.Context, path string) error {
 		return fmt.Errorf("run editor %q: %w", editor, err)
 	}
 	return nil
+}
+
+func splitEditorCommand(editor string) ([]string, error) {
+	var parts []string
+	var current strings.Builder
+	var quote rune
+	runes := []rune(editor)
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+		switch {
+		case r == '\\' && quote != '\'':
+			if i+1 >= len(runes) {
+				current.WriteRune('\\')
+				continue
+			}
+			next := runes[i+1]
+			if quote == '"' && next != '"' && next != '\\' && !isEditorCommandSpace(next) {
+				current.WriteRune('\\')
+				continue
+			}
+			current.WriteRune(next)
+			i++
+		case quote != 0:
+			if r == quote {
+				quote = 0
+			} else {
+				current.WriteRune(r)
+			}
+		case r == '\'' || r == '"':
+			quote = r
+		case isEditorCommandSpace(r):
+			if current.Len() > 0 {
+				parts = append(parts, current.String())
+				current.Reset()
+			}
+		default:
+			current.WriteRune(r)
+		}
+	}
+	if quote != 0 {
+		return nil, fmt.Errorf("parse editor command %q: unterminated quote", editor)
+	}
+	if current.Len() > 0 {
+		parts = append(parts, current.String())
+	}
+	if len(parts) == 0 {
+		return nil, errors.New("editor command is empty")
+	}
+	return parts, nil
+}
+
+func isEditorCommandSpace(r rune) bool {
+	return r == ' ' || r == '\t' || r == '\n' || r == '\r'
 }
 
 func chooseEditor() string {

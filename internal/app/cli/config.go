@@ -30,6 +30,8 @@ var cliKeyring = keyringBackend{
 	Delete: keyring.Delete,
 }
 
+var saveCLIConfigFunc = saveCLIConfig
+
 type keyringBackend struct {
 	Get    func(service, user string) (string, error)
 	Set    func(service, user, password string) error
@@ -82,6 +84,8 @@ func (application *app) runConfigSet(args []string) error {
 	if err != nil {
 		return err
 	}
+	previousTokenFile := cfg[cliConfigKeyTokenFile]
+	previousTokenKeyring := cfg[cliConfigKeyTokenKeyring]
 	cfg[args[0]] = args[1]
 	if args[0] == cliConfigKeyTokenFile {
 		delete(cfg, cliConfigKeyToken)
@@ -92,6 +96,9 @@ func (application *app) runConfigSet(args []string) error {
 		delete(cfg, cliConfigKeyTokenFile)
 	}
 	if err := saveCLIConfig(cfg); err != nil {
+		return err
+	}
+	if err := cleanupPreviousTokenBackend(previousTokenFile, cfg[cliConfigKeyTokenFile], previousTokenKeyring, cfg[cliConfigKeyTokenKeyring]); err != nil {
 		return err
 	}
 	_, err = fmt.Fprintln(application.out, "updated")
@@ -208,10 +215,15 @@ func (application *app) runConfigSetup(args []string) error {
 	if err != nil {
 		return err
 	}
+	previousTokenFile := cfg[cliConfigKeyTokenFile]
+	previousTokenKeyring := cfg[cliConfigKeyTokenKeyring]
 	if err := saveConfigTokenToConfig(cfg, token, storage); err != nil {
 		return err
 	}
-	if err := saveCLIConfig(cfg); err != nil {
+	if err := saveCLIConfigFunc(cfg); err != nil {
+		return rollbackNewTokenBackend(previousTokenFile, cfg[cliConfigKeyTokenFile], previousTokenKeyring, cfg[cliConfigKeyTokenKeyring], err)
+	}
+	if err := cleanupPreviousTokenBackend(previousTokenFile, cfg[cliConfigKeyTokenFile], previousTokenKeyring, cfg[cliConfigKeyTokenKeyring]); err != nil {
 		return err
 	}
 	_, err = fmt.Fprintln(application.out, "updated")
@@ -223,10 +235,15 @@ func (application *app) saveConfigToken(token string, storage cliTokenStorage) e
 	if err != nil {
 		return err
 	}
+	previousTokenFile := cfg[cliConfigKeyTokenFile]
+	previousTokenKeyring := cfg[cliConfigKeyTokenKeyring]
 	if err := saveConfigTokenToConfig(cfg, token, storage); err != nil {
 		return err
 	}
-	if err := saveCLIConfig(cfg); err != nil {
+	if err := saveCLIConfigFunc(cfg); err != nil {
+		return rollbackNewTokenBackend(previousTokenFile, cfg[cliConfigKeyTokenFile], previousTokenKeyring, cfg[cliConfigKeyTokenKeyring], err)
+	}
+	if err := cleanupPreviousTokenBackend(previousTokenFile, cfg[cliConfigKeyTokenFile], previousTokenKeyring, cfg[cliConfigKeyTokenKeyring]); err != nil {
 		return err
 	}
 	_, err = fmt.Fprintln(application.out, "updated")
@@ -273,7 +290,7 @@ func saveConfigTokenToConfig(cfg cliConfig, token string, storage cliTokenStorag
 		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 			return fmt.Errorf("create CLI config directory: %w", err)
 		}
-		if err := os.WriteFile(path, []byte(token+"\n"), 0o600); err != nil {
+		if err := writePrivateFile(path, []byte(token+"\n")); err != nil {
 			return fmt.Errorf("write CLI token file %q: %w", path, err)
 		}
 		cfg[cliConfigKeyTokenFile] = path
@@ -366,7 +383,68 @@ func saveCLIConfig(cfg cliConfig) error {
 		b.WriteString(cfg[key])
 		b.WriteString("\n")
 	}
-	return os.WriteFile(path, []byte(b.String()), 0o600)
+	return writePrivateFile(path, []byte(b.String()))
+}
+
+func writePrivateFile(path string, content []byte) error {
+	tmp, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+"-*")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	defer func() { _ = os.Remove(tmpPath) }()
+	if err := tmp.Chmod(0o600); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if _, err := tmp.Write(content); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpPath, path)
+}
+
+func rollbackNewTokenBackend(previousFile, currentFile, previousKeyring, currentKeyring string, saveErr error) error {
+	if currentFile != "" && currentFile != previousFile {
+		defaultTokenPath, err := cliTokenPath()
+		if err != nil {
+			return saveErr
+		}
+		if currentFile == defaultTokenPath {
+			if err := os.Remove(currentFile); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("%w; additionally failed to roll back CLI token file %q: %v", saveErr, currentFile, err)
+			}
+		}
+	}
+	if currentKeyring != "" && currentKeyring != previousKeyring {
+		if err := deleteCLIKeyringToken(currentKeyring); err != nil && !errors.Is(err, keyring.ErrNotFound) {
+			return fmt.Errorf("%w; additionally failed to roll back CLI token from system keyring: %v", saveErr, err)
+		}
+	}
+	return saveErr
+}
+
+func cleanupPreviousTokenBackend(previousFile, currentFile, previousKeyring, currentKeyring string) error {
+	if previousFile != "" && previousFile != currentFile {
+		defaultTokenPath, err := cliTokenPath()
+		if err != nil {
+			return err
+		}
+		if previousFile == defaultTokenPath {
+			if err := os.Remove(previousFile); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("remove previous CLI token file %q: %w", previousFile, err)
+			}
+		}
+	}
+	if previousKeyring != "" && previousKeyring != currentKeyring {
+		if err := deleteCLIKeyringToken(previousKeyring); err != nil && !errors.Is(err, keyring.ErrNotFound) {
+			return fmt.Errorf("delete previous CLI token from system keyring: %w", err)
+		}
+	}
+	return nil
 }
 
 func cliConfigPath() (string, error) {
