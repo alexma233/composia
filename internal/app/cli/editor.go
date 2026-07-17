@@ -46,7 +46,7 @@ func runEditor(ctx context.Context, path string) error {
 	if err != nil {
 		return err
 	}
-	cmd := exec.CommandContext(ctx, parts[0], append(parts[1:], path)...)
+	cmd := exec.CommandContext(ctx, parts[0], append(parts[1:], path)...) //nolint:gosec // EDITOR is intentionally user-controlled.
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

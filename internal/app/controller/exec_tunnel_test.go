@@ -194,7 +194,7 @@ func TestExecTunnelManagerExpiresUnusedAttachToken(t *testing.T) {
 	manager := newExecTunnelManager()
 	manager.registerTunnel("main")
 
-	session, err := manager.openSession("main", "ctr", []string{"/bin/sh"}, 24, 80, "https://web.example.test", "web-admin")
+	session, err := manager.openSession("main", "ctr", []string{defaultExecShell}, 24, 80, "https://web.example.test", "web-admin")
 	if err != nil {
 		t.Fatalf("open session: %v", err)
 	}
@@ -220,7 +220,7 @@ func TestExecTunnelManagerActivelyExpiresUnusedAttachToken(t *testing.T) {
 	defer cancel()
 	go manager.runSessionSweeper(ctx, 10*time.Millisecond)
 
-	session, err := manager.openSession("main", "ctr", []string{"/bin/sh"}, 24, 80, "https://web.example.test", "web-admin")
+	session, err := manager.openSession("main", "ctr", []string{defaultExecShell}, 24, 80, "https://web.example.test", "web-admin")
 	if err != nil {
 		t.Fatalf("open session: %v", err)
 	}
@@ -252,7 +252,7 @@ func TestExecTunnelManagerDoesNotBlockWhenAgentQueueIsFull(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		_, err := manager.openSession("main", "ctr", []string{"/bin/sh"}, 24, 80, "https://web.example.test", "web-admin")
+		_, err := manager.openSession("main", "ctr", []string{defaultExecShell}, 24, 80, "https://web.example.test", "web-admin")
 		done <- err
 	}()
 
@@ -281,7 +281,7 @@ func TestExecTunnelManagerOldTunnelUnregisterDoesNotCloseNewSessions(t *testing.
 		t.Fatal("expected old tunnel send channel to be closed")
 	}
 
-	session, err := manager.openSession("main", "ctr", []string{"/bin/sh"}, 24, 80, "https://web.example.test", "web-admin")
+	session, err := manager.openSession("main", "ctr", []string{defaultExecShell}, 24, 80, "https://web.example.test", "web-admin")
 	if err != nil {
 		t.Fatalf("open session on new tunnel: %v", err)
 	}

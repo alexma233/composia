@@ -149,7 +149,7 @@ func (conn *smtpBoundedConn) setDeadline() {
 	if ctxDeadline, ok := conn.ctx.Deadline(); ok && ctxDeadline.Before(deadline) {
 		deadline = ctxDeadline
 	}
-	_ = conn.Conn.SetDeadline(deadline)
+	_ = conn.SetDeadline(deadline)
 }
 
 func buildSMTPMessage(from string, to []string, subject, body string) string {

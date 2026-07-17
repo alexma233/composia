@@ -35,6 +35,7 @@ const (
 	execAttachTokenTTL       = time.Minute
 	execSessionSweepInterval = time.Second
 	execWebOriginHeader      = "X-Composia-Web-Origin"
+	defaultExecShell         = "/bin/sh"
 )
 
 type execTunnelManager struct {
@@ -612,7 +613,7 @@ func (server *dockerCommandServer) OpenContainerExec(ctx context.Context, req *c
 	}
 	command := req.Msg.GetCommand()
 	if len(command) == 0 {
-		command = []string{"/bin/sh"}
+		command = []string{defaultExecShell}
 	}
 	session, err := server.openExecSession(ctx, req.Msg.GetNodeId(), req.Msg.GetContainerId(), command, req.Msg.GetRows(), req.Msg.GetCols())
 	if err != nil {

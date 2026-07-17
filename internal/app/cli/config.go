@@ -415,13 +415,13 @@ func rollbackNewTokenBackend(previousFile, currentFile, previousKeyring, current
 		}
 		if currentFile == defaultTokenPath {
 			if err := os.Remove(currentFile); err != nil && !os.IsNotExist(err) {
-				return fmt.Errorf("%w; additionally failed to roll back CLI token file %q: %v", saveErr, currentFile, err)
+				return fmt.Errorf("%w; additionally failed to roll back CLI token file %q: %w", saveErr, currentFile, err)
 			}
 		}
 	}
 	if currentKeyring != "" && currentKeyring != previousKeyring {
 		if err := deleteCLIKeyringToken(currentKeyring); err != nil && !errors.Is(err, keyring.ErrNotFound) {
-			return fmt.Errorf("%w; additionally failed to roll back CLI token from system keyring: %v", saveErr, err)
+			return fmt.Errorf("%w; additionally failed to roll back CLI token from system keyring: %w", saveErr, err)
 		}
 	}
 	return saveErr

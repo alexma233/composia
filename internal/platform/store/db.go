@@ -17,6 +17,8 @@ const DatabaseFileName = "composia.db"
 
 const sqliteSchemaVersion = 12
 
+const sqliteForeignKeysOn = `PRAGMA foreign_keys = ON;`
+
 const sqliteValidTaskTypeSQLList = "'deploy', 'stop', 'restart', 'update', 'backup', 'restore', 'migrate', 'migrate_rollback', 'dns_update', 'cloudflare_tunnel_sync', 'caddy_sync', 'caddy_reload', 'image_check', 'prune', 'rustic_init', 'rustic_forget', 'rustic_prune', 'docker_start', 'docker_stop', 'docker_restart', 'docker_remove_container', 'docker_remove_network', 'docker_remove_volume', 'docker_remove_image'"
 
 var ErrServiceNotFound = errors.New("service not found")
@@ -160,7 +162,7 @@ func Open(stateDir string) (*DB, error) {
 	sqlDB.SetMaxIdleConns(1)
 
 	for _, pragma := range []string{
-		`PRAGMA foreign_keys = ON;`,
+		sqliteForeignKeysOn,
 		`PRAGMA journal_mode = WAL;`,
 		`PRAGMA busy_timeout = 5000;`,
 	} {
@@ -1389,7 +1391,7 @@ func (db *DB) migrate(ctx context.Context) error {
 			if err := tx.Commit(); err != nil {
 				return fmt.Errorf("commit sqlite migration %d: %w", migration.version, err)
 			}
-			if _, err := db.sql.ExecContext(ctx, `PRAGMA foreign_keys = ON;`); err != nil {
+			if _, err := db.sql.ExecContext(ctx, sqliteForeignKeysOn); err != nil {
 				return fmt.Errorf("enable sqlite foreign keys: %w", err)
 			}
 			if err := checkSQLiteForeignKeys(ctx, db.sql); err != nil {

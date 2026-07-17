@@ -227,7 +227,7 @@ func TestMigrationDeletesBackupsForDroppedTaskTypesAndChecksForeignKeys(t *testi
 	}
 	ctx := context.Background()
 	statements := []string{
-		`PRAGMA foreign_keys = ON;`,
+		sqliteForeignKeysOn,
 		`CREATE TABLE nodes (node_id TEXT PRIMARY KEY, is_configured INTEGER NOT NULL, is_online INTEGER NOT NULL, last_heartbeat TEXT, agent_version TEXT, docker_server_version TEXT, disk_total_bytes INTEGER, disk_free_bytes INTEGER);`,
 		`CREATE TABLE services (service_name TEXT PRIMARY KEY, is_declared INTEGER NOT NULL, runtime_status TEXT NOT NULL, last_task_id TEXT, updated_at TEXT NOT NULL, FOREIGN KEY (last_task_id) REFERENCES tasks(task_id));`,
 		`CREATE TABLE service_instances (service_name TEXT NOT NULL, node_id TEXT NOT NULL, is_declared INTEGER NOT NULL, runtime_status TEXT NOT NULL, last_task_id TEXT, updated_at TEXT NOT NULL, pending_deploy_revision TEXT, PRIMARY KEY (service_name, node_id), FOREIGN KEY (service_name) REFERENCES services(service_name), FOREIGN KEY (node_id) REFERENCES nodes(node_id), FOREIGN KEY (last_task_id) REFERENCES tasks(task_id));`,
@@ -275,7 +275,6 @@ func TestMigrationDeletesOrphanedBackupTaskReferencesFromV7AndV8Plus(t *testing.
 	t.Parallel()
 
 	for _, version := range []int{7, 8, 11} {
-		version := version
 		t.Run(fmt.Sprintf("v%d", version), func(t *testing.T) {
 			t.Parallel()
 
@@ -346,7 +345,7 @@ func seedDBWithOrphanedBackupAtVersion(t *testing.T, version int) string {
 		`PRAGMA foreign_keys = OFF;`,
 		`INSERT INTO backups (backup_id, task_id, service_name, node_id, data_name, status, started_at) VALUES ('orphan-backup', 'missing-task', 'alpha', 'main', 'data', 'succeeded', '2026-04-04T12:05:00Z');`,
 		fmt.Sprintf(`PRAGMA user_version = %d;`, version),
-		`PRAGMA foreign_keys = ON;`,
+		sqliteForeignKeysOn,
 	} {
 		if _, err := rawDB.ExecContext(ctx, statement); err != nil {
 			t.Fatalf("execute fixture statement %q: %v", statement, err)
@@ -718,7 +717,7 @@ func TestMigrateFromVersionSevenDropsUnsupportedTasks(t *testing.T) {
 			('task-old-inspect', 'docker_inspect', 'succeeded'),
 			('task-valid', 'compose_up', 'succeeded');`,
 		`PRAGMA user_version = 7;`,
-		`PRAGMA foreign_keys = ON;`,
+		sqliteForeignKeysOn,
 	}
 	for _, statement := range legacyStatements {
 		if _, err := legacySQL.ExecContext(context.Background(), statement); err != nil {
@@ -799,7 +798,7 @@ func TestMigrateBackfillsBackupNodeIDAndEnforcesInstanceIntegrity(t *testing.T) 
 			error_summary TEXT
 		);`,
 		`PRAGMA user_version = 2;`,
-		`PRAGMA foreign_keys = ON;`,
+		sqliteForeignKeysOn,
 	} {
 		if _, err := legacySQL.ExecContext(context.Background(), statement); err != nil {
 			_ = legacySQL.Close()

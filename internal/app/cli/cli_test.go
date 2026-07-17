@@ -747,7 +747,7 @@ func TestSaveCLIConfigReplacesExistingWorldReadableFileWithPrivateMode(t *testin
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		t.Fatalf("MkdirAll returned error: %v", err)
 	}
-	if err := os.WriteFile(path, []byte("addr=https://old.example\n"), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte("addr=https://old.example\n"), 0o644); err != nil { //nolint:gosec // fixture verifies insecure files are rewritten.
 		t.Fatalf("WriteFile config returned error: %v", err)
 	}
 	if err := saveCLIConfig(cliConfig{cliConfigKeyAddr: "https://new.example"}); err != nil {
@@ -775,7 +775,7 @@ func TestConfigSetTokenFileReplacesExistingWorldReadableTokenWithPrivateMode(t *
 	if err := os.MkdirAll(filepath.Dir(tokenPath), 0o700); err != nil {
 		t.Fatalf("MkdirAll returned error: %v", err)
 	}
-	if err := os.WriteFile(tokenPath, []byte("old\n"), 0o644); err != nil {
+	if err := os.WriteFile(tokenPath, []byte("old\n"), 0o644); err != nil { //nolint:gosec // fixture verifies insecure files are rewritten.
 		t.Fatalf("WriteFile token returned error: %v", err)
 	}
 	stdin := replaceStdin(t, "secret-token\n")
