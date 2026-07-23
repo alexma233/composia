@@ -40,7 +40,7 @@
     "npm:prettier-plugin-svelte@4.1.1": "4.1.1_prettier@3.9.5_svelte@5.56.4",
     "npm:prettier@3.9.5": "3.9.5",
     "npm:shadcn-svelte@1.4.2": "1.4.2_svelte@5.56.4",
-    "npm:svelte-check@4.7.2": "4.7.2_svelte@5.56.4_typescript@6.0.3",
+    "npm:svelte-check@4.7.3": "4.7.3_svelte@5.56.4_typescript@6.0.3",
     "npm:svelte-sonner@1.1.1": "1.1.1_svelte@5.56.4",
     "npm:svelte@5.56.4": "5.56.4",
     "npm:tailwind-merge@3.6.0": "3.6.0",
@@ -1361,8 +1361,8 @@
         "inline-style-parser"
       ]
     },
-    "svelte-check@4.7.2_svelte@5.56.4_typescript@6.0.3": {
-      "integrity": "sha512-GoS4XJdGswlq0rIT1vtFLzJY1bvHtY37McY9H9Gkm1Ggw/ICdZYn8J/Z8Yi0BEL0i3R4+jtaWVePjyppMlij/A==",
+    "svelte-check@4.7.3_svelte@5.56.4_typescript@6.0.3": {
+      "integrity": "sha512-DHdTCGX62R0fCxBEaT+USdASAnoaRBaaNczkRJl0K7o3WyoCeVUbVxo6fKqpOll/B+WMWCsiFK0eFrJSNBKZIg==",
       "dependencies": [
         "@jridgewell/trace-mapping",
         "@sveltejs/load-config",
@@ -1571,7 +1571,7 @@
             "npm:prettier-plugin-svelte@4.1.1",
             "npm:prettier@3.9.5",
             "npm:shadcn-svelte@1.4.2",
-            "npm:svelte-check@4.7.2",
+            "npm:svelte-check@4.7.3",
             "npm:svelte-sonner@1.1.1",
             "npm:svelte@5.56.4",
             "npm:tailwind-merge@3.6.0",
