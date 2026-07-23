@@ -6,7 +6,7 @@ require (
 	connectrpc.com/connect v1.20.0
 	filippo.io/age v1.3.1
 	github.com/Masterminds/semver/v3 v3.5.0
-	github.com/cenkalti/backoff/v6 v6.0.1
+	github.com/cenkalti/backoff/v7 v7.0.0
 	github.com/cenkalti/backoff/v7 v7.0.0
 	github.com/cyphar/filepath-securejoin v0.7.0
 	github.com/go-playground/validator/v10 v10.30.3
