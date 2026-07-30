@@ -37,8 +37,8 @@
     "npm:envfile@7.1.0": "7.1.0",
     "npm:mode-watcher@1.1.0": "1.1.0_svelte@5.56.8",
     "npm:playwright@1.61.1": "1.61.1",
-    "npm:prettier-plugin-svelte@4.1.1": "4.1.1_prettier@3.9.5_svelte@5.56.8",
-    "npm:prettier@3.9.5": "3.9.5",
+    "npm:prettier-plugin-svelte@4.1.1": "4.1.1_prettier@3.9.6_svelte@5.56.8",
+    "npm:prettier@3.9.6": "3.9.6",
     "npm:shadcn-svelte@1.4.2": "1.4.2_svelte@5.56.8",
     "npm:svelte-check@4.7.4": "4.7.4_svelte@5.56.8_typescript@6.0.3",
     "npm:svelte-sonner@1.1.1": "1.1.1_svelte@5.56.8",
@@ -1248,15 +1248,15 @@
         "source-map-js"
       ]
     },
-    "prettier-plugin-svelte@4.1.1_prettier@3.9.5_svelte@5.56.8": {
+    "prettier-plugin-svelte@4.1.1_prettier@3.9.6_svelte@5.56.8": {
       "integrity": "sha512-wXvbXMjSvb4C9ENWTHXyd+ihakKCsJ6rJhLP6/8HFNj4GkZr48jqL9PoKsl2sk7SyCZRTnJ7O2TTowUpOxP/KA==",
       "dependencies": [
         "prettier",
         "svelte"
       ]
     },
-    "prettier@3.9.5": {
-      "integrity": "sha512-/FVl766LpUfB5vXgCYOYa0MeV/441Ia99AeICQIQFTY/Nw0roZwULcXpku5i1/m5kt/baz+s4Zogspd839HSMg==",
+    "prettier@3.9.6": {
+      "integrity": "sha512-OpN0zzVdiaiAhxpuuj5efpIS4sY9j7bY6uR5mnj5yPzGkdkjNKSJeUThPb60Jw29QuAZgA4o+/iB49kFiaBX6g==",
       "bin": true
     },
     "readdirp@4.1.2": {
@@ -1572,7 +1572,7 @@
             "npm:envfile@7.1.0",
             "npm:mode-watcher@1.1.0",
             "npm:prettier-plugin-svelte@4.1.1",
-            "npm:prettier@3.9.5",
+            "npm:prettier@3.9.6",
             "npm:shadcn-svelte@1.4.2",
             "npm:svelte-check@4.7.4",
             "npm:svelte-sonner@1.1.1",
