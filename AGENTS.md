@@ -34,7 +34,6 @@
 - Keep early milestones narrow and end-to-end.
 - Assume technical users. No excessive fault-tolerance or defensive UX unless explicitly required.
 - Breaking changes are acceptable if they simplify the system.
-- NEVER bypass GPG signing.
 - Reuse existing i18n keys/namespaces before adding new ones.
 
 ## When To Ask The User
