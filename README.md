@@ -24,6 +24,8 @@
 
 <p align="center">
   <a href="https://composia.xyz"><strong>Documentation</strong></a>
+  ·
+  <a href="https://t.me/composia"><strong>Telegram Group</strong></a>
 </p>
 
 **Your Compose files, everywhere.**
@@ -78,6 +80,12 @@ services:
 - [Configuration Guide](https://composia.xyz/docs/installation/configuration/)
 - [Development Guide](https://composia.xyz/docs/developer-guide/source-build/)
 - [Why Composia?](https://composia.xyz/docs/about/why-composia/)
+
+## Community and Support
+
+- Join the [Telegram group](https://t.me/composia).
+- Report bugs and feature requests in [Forgejo Issues](https://forgejo.alexma.top/alexma233/composia/issues).
+- Send any question, including security vulnerabilities, to [support@composia.xyz](mailto:support@composia.xyz).
 
 ## Development
 

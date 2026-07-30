@@ -25,6 +25,7 @@ layout: hextra-home
 {{< hextra/hero-button text="Démarrage rapide" link="docs" >}}
 {{< hextra/hero-button text="Dépôt" link="https://forgejo.alexma.top/alexma233/composia" style="background-color: transparent; border: 1px solid var(--tw-prose-headings); color: var(--tw-prose-headings);" >}}
 {{< hextra/hero-button text="Pourquoi Composia" link="docs/about/why-composia" style="background-color: transparent; border: 1px solid var(--tw-prose-headings); color: var(--tw-prose-headings);" >}}
+{{< hextra/hero-button text="Aide" link="help-me" style="background-color: transparent; border: 1px solid var(--tw-prose-headings); color: var(--tw-prose-headings);" >}}
 </div>
 
 <div class="hx:mt-6"></div>
