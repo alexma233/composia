@@ -1,6 +1,6 @@
 [tools]
 go = "1.26.5"
-buf = "1.71.0"
+buf = "1.72.0"
 deno = "2.9.4"
 
 [tasks."setup"]
