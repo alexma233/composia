@@ -105,6 +105,38 @@ func TestReadFileReturnsContentAndSize(t *testing.T) {
 	}
 }
 
+func TestWriteFileRejectsEncryptedRuntimePair(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	if _, err := WriteFile(repoDir, "config/.env", "plain"); err != nil {
+		t.Fatalf("write plain file: %v", err)
+	}
+	if _, err := WriteFile(repoDir, "config/.env.enc", "ciphertext"); !errors.Is(err, ErrEncryptedFileConflict) {
+		t.Fatalf("encrypted pair error = %v", err)
+	}
+}
+
+func TestWriteFileRejectsEncryptedRuntimeParentPair(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	if _, err := WriteFile(repoDir, "config.enc", "ciphertext"); err != nil {
+		t.Fatalf("write encrypted parent: %v", err)
+	}
+	if _, err := WriteFile(repoDir, "config/file", "plain"); !errors.Is(err, ErrEncryptedFileConflict) {
+		t.Fatalf("encrypted parent pair error = %v", err)
+	}
+
+	otherRepoDir := t.TempDir()
+	if _, err := WriteFile(otherRepoDir, "config/file", "plain"); err != nil {
+		t.Fatalf("write nested plain file: %v", err)
+	}
+	if _, err := WriteFile(otherRepoDir, "config.enc", "ciphertext"); !errors.Is(err, ErrEncryptedFileConflict) {
+		t.Fatalf("encrypted runtime directory error = %v", err)
+	}
+}
+
 func TestResolveRepoPathRejectsTraversal(t *testing.T) {
 	t.Parallel()
 

@@ -216,6 +216,15 @@ func ListFilesAtRevision(repoDir, revision, relativePath string) ([]string, erro
 	return lines, nil
 }
 
+func ValidateEncryptedFileCollisionsAtRevision(repoDir, revision string) error {
+	revision = strings.TrimSpace(revision)
+	paths, err := ListFilesAtRevision(repoDir, revision, "")
+	if err != nil {
+		return err
+	}
+	return ValidateEncryptedFilePaths(paths)
+}
+
 func DiffChangedFiles(repoDir, oldRevision, newRevision string) ([]string, error) {
 	output, err := gitOutput(repoDir, "diff", "--name-only", oldRevision, newRevision)
 	if err != nil {
@@ -237,6 +246,13 @@ func FetchAndFastForward(repoDir, remoteURL, branch, authUsername, authToken str
 	}
 	if _, err := gitOutputWithOptions(repoDir, nil, gitRemoteConfig(remoteURL, authUsername, authToken), "fetch", remoteURL, branch); err != nil {
 		return fmt.Errorf("fetch remote branch %q: %w", branch, err)
+	}
+	fetchedRevision, err := gitOutput(repoDir, "rev-parse", "FETCH_HEAD")
+	if err != nil {
+		return fmt.Errorf("resolve fetched revision: %w", err)
+	}
+	if err := ValidateEncryptedFileCollisionsAtRevision(repoDir, strings.TrimSpace(fetchedRevision)); err != nil {
+		return fmt.Errorf("reject fetched repository: %w", err)
 	}
 	if err := gitCommand(repoDir, nil, "merge", "--ff-only", "FETCH_HEAD"); err != nil {
 		return fmt.Errorf("fast-forward to fetched HEAD: %w", err)

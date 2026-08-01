@@ -292,7 +292,7 @@ func prepareRestoreVolumeFlags(ctx context.Context, serviceRoot, stagingDir, con
 
 	var flags []string
 	for _, include := range item.Include {
-		kind, normalized, err := repo.ClassifyDataInclude(include)
+		kind, normalized, err := runtimeDataInclude(include)
 		if err != nil {
 			return nil, err
 		}
@@ -327,7 +327,7 @@ func prepareRestoreVolumeFlags(ctx context.Context, serviceRoot, stagingDir, con
 					return nil, fmt.Errorf("close restore target file %q: %w", targetPath, err)
 				}
 			}
-			containerPath := filepath.Join(containerStagingDir, item.Name, "paths", sanitizeStagePath(include))
+			containerPath := filepath.Join(containerStagingDir, item.Name, "paths", sanitizeStagePath(normalized))
 			flags = append(flags, "-v", targetPath+":"+containerPath)
 		} else {
 			if err := clearDockerVolume(ctx, normalized); err != nil {
@@ -387,7 +387,7 @@ func resolveIncludeServicePath(serviceRoot, includePath string) (string, error) 
 func buildBackupVolumeFlags(serviceRoot, containerStagingDir string, item backupcfg.RuntimeItem) ([]string, error) {
 	var flags []string
 	for _, include := range item.Include {
-		kind, normalized, err := repo.ClassifyDataInclude(include)
+		kind, normalized, err := runtimeDataInclude(include)
 		if err != nil {
 			return nil, err
 		}
@@ -402,7 +402,7 @@ func buildBackupVolumeFlags(serviceRoot, containerStagingDir string, item backup
 				}
 				return nil, fmt.Errorf("stat backup source %q: %w", sourcePath, err)
 			}
-			targetPath := filepath.Join(containerStagingDir, "paths", sanitizeStagePath(include))
+			targetPath := filepath.Join(containerStagingDir, "paths", sanitizeStagePath(normalized))
 			flags = append(flags, "-v", sourcePath+":"+targetPath+":ro")
 		} else {
 			targetPath := filepath.Join(containerStagingDir, "volumes", sanitizeStagePath(normalized))
@@ -415,4 +415,12 @@ func buildBackupVolumeFlags(serviceRoot, containerStagingDir string, item backup
 func sanitizeStagePath(value string) string {
 	replacer := strings.NewReplacer("/", "_", `\\`, "_", ":", "_")
 	return replacer.Replace(strings.TrimPrefix(strings.TrimPrefix(value, "./"), "/"))
+}
+
+func runtimeDataInclude(include string) (repo.DataIncludeKind, string, error) {
+	kind, normalized, err := repo.ClassifyDataInclude(include)
+	if err == nil && kind == repo.DataIncludeKindServicePath {
+		normalized = repo.RuntimeFilePath(normalized)
+	}
+	return kind, normalized, err
 }

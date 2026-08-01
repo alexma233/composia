@@ -630,7 +630,7 @@ func TestLoadComposeCommandConfigLoadsComposeFiles(t *testing.T) {
 	if err := os.MkdirAll(serviceDir, 0o750); err != nil {
 		t.Fatalf("create service dir: %v", err)
 	}
-	meta := "name: demo\nproject_name: demo-stack\ncompose_files:\n  - compose.yaml\n  - compose.prod.yaml\nnodes:\n  - main\n"
+	meta := "name: demo\nproject_name: demo-stack\ncompose_files:\n  - compose.yaml.enc\n  - compose.prod.yaml\nnodes:\n  - main\n"
 	if err := os.WriteFile(filepath.Join(serviceDir, "composia-meta.yaml"), []byte(meta), 0o600); err != nil {
 		t.Fatalf("write service meta: %v", err)
 	}

@@ -7,10 +7,8 @@ import {
   loadRepoEntries,
   loadRepoFile,
   loadSystemCapabilities,
-  loadSecret,
   moveRepoPath,
   updateRepoFile,
-  updateSecret,
 } from "$lib/server/controller";
 import {
   isEncryptedFilePath,
@@ -38,7 +36,6 @@ export async function loadServiceWorkspaceFile(
   relativePath: string,
 ): Promise<WorkspaceFile> {
   const normalized = normalizeServiceRelativePath(relativePath);
-  let content: string;
   if (isEncryptedFilePath(normalized)) {
     const capabilities = await loadSystemCapabilities();
     if (!capabilities.global.secrets.enabled) {
@@ -47,15 +44,11 @@ export async function loadServiceWorkspaceFile(
         capabilities.global.secrets.reasonCode || "missing_secrets_config",
       );
     }
-
-    const secret = await loadSecret(serviceDir, normalized);
-    content = secret.content ?? "";
-  } else {
-    const file = await loadRepoFile(
-      repoPathForServicePath(serviceDir, normalized),
-    );
-    content = file.content ?? "";
   }
+  const file = await loadRepoFile(
+    repoPathForServicePath(serviceDir, normalized),
+  );
+  const content = file.content ?? "";
   return {
     path: normalized,
     content,
@@ -70,7 +63,6 @@ export async function saveServiceWorkspaceFile(
   baseRevision: string,
 ): Promise<{ file: WorkspaceFile; write: RepoWriteResult }> {
   const normalized = normalizeServiceRelativePath(relativePath);
-  let write: RepoWriteResult;
   if (isEncryptedFilePath(normalized)) {
     const capabilities = await loadSystemCapabilities();
     if (!capabilities.global.secrets.enabled) {
@@ -80,15 +72,12 @@ export async function saveServiceWorkspaceFile(
         ] ?? "Encrypted file is currently unavailable.",
       );
     }
-
-    write = await updateSecret(serviceDir, normalized, content, baseRevision);
-  } else {
-    write = await updateRepoFile(
-      repoPathForServicePath(serviceDir, normalized),
-      content,
-      baseRevision,
-    );
   }
+  const write = await updateRepoFile(
+    repoPathForServicePath(serviceDir, normalized),
+    content,
+    baseRevision,
+  );
   return {
     file: {
       path: normalized,

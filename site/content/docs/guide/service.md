@@ -33,7 +33,7 @@ With the default behavior, Composia looks for `docker-compose.yaml` in the same 
 | `migrate` | `object` | No | Migration-enabled protected data. |
 | `auto_deploy` | `bool` | No | Auto-deploy this service after repository changes. |
 
-`compose_files` entries must be relative paths, must stay inside the service directory, and must not be duplicated.
+`compose_files` entries must be relative paths, must stay inside the service directory, and must not be duplicated. All file references in `composia-meta.yaml` use repository filenames. An encrypted reference therefore includes `.enc`; Composia removes that suffix after decryption when the agent accesses the runtime file. References inside Compose files, Caddyfiles, scripts, and other native formats use the runtime filename without `.enc`.
 
 ## Infrastructure services
 

@@ -90,6 +90,37 @@ func TestStreamServiceBundleWithExtrasRejectsUnsafeExtraPath(t *testing.T) {
 	}
 }
 
+func TestStreamServiceBundleWithExtrasReplacesEncryptedFile(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	gitRun(t, repoDir, "init")
+	if err := os.MkdirAll(filepath.Join(repoDir, "app"), 0o750); err != nil {
+		t.Fatalf("create service dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoDir, "app", ".env.enc"), []byte("ciphertext"), 0o600); err != nil {
+		t.Fatalf("write encrypted file: %v", err)
+	}
+	gitRun(t, repoDir, "add", ".")
+	gitRun(t, repoDir, "-c", "user.name=Test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "-m", "service")
+	revision, err := CurrentRevision(repoDir)
+	if err != nil {
+		t.Fatalf("current revision: %v", err)
+	}
+
+	var bundle bytes.Buffer
+	if err := StreamServiceBundleWithExtras(context.Background(), repoDir, revision, "app", map[string]string{"app/.env": "plaintext"}, &bundle); err != nil {
+		t.Fatalf("stream bundle: %v", err)
+	}
+	files := readGzipTarFiles(t, bundle.Bytes())
+	if files["app/.env"] != "plaintext" {
+		t.Fatalf("runtime file = %q", files["app/.env"])
+	}
+	if _, exists := files["app/.env.enc"]; exists {
+		t.Fatal("encrypted file remained in runtime bundle")
+	}
+}
+
 func readGzipTarFiles(t *testing.T, data []byte) map[string]string {
 	t.Helper()
 

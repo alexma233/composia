@@ -224,3 +224,6 @@ sources/
 statuses/
 sessions/
 .claude-plugin/
+
+# PI sub-agents
+.pi-subagents/

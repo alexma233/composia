@@ -73,7 +73,6 @@ type controllerClient struct {
 	dockerCommands  controllerv1connect.DockerCommandServiceClient
 	repos           controllerv1connect.RepoQueryServiceClient
 	repoCommands    controllerv1connect.RepoCommandServiceClient
-	secrets         controllerv1connect.SecretServiceClient
 }
 
 // Run executes the user-facing CLI command surface.
@@ -96,7 +95,7 @@ func Run(ctx context.Context, args []string, out io.Writer, errOut io.Writer) er
 
 func isControllerCommand(command string) bool {
 	switch command {
-	case "system", serviceCommandName, "instance", "task", "backup", "node", "container", "network", "volume", "image", "rustic", "repo", "secret", "config":
+	case "system", serviceCommandName, "instance", "task", "backup", "node", "container", "network", "volume", "image", "rustic", "repo", "config":
 		return true
 	default:
 		return false
@@ -143,7 +142,6 @@ Commands:
   container   Low-level container operations by node and container ID
   backup      List and restore backups
   repo        Low-level repository file operations
-  secret      Low-level encrypted file operations
   system      Controller status, reload, and capability checks
   instance    Low-level service instance operations by service and node
   network     Low-level Docker network operations by node
@@ -250,10 +248,6 @@ var commandUsages = map[string]string{ //nolint:gosec
 	"repo history":          "usage: composia repo history [--page-size n] [--cursor cursor]\n",
 	"repo sync":             "usage: composia repo sync\n",
 	"repo validate":         "usage: composia repo validate\n",
-	"secret":                "usage: composia secret <get|edit|update>\n",
-	"secret get":            "usage: composia secret get <service> <file>\n",
-	"secret edit":           "usage: composia secret edit [--message text] <service> <file>\n",
-	"secret update":         "usage: composia secret update --file file [--message text] <service> <file>\n",
 	"config":                "usage: composia config <get|set|unset|path|setup|set-token|unset-token>\n",
 	"config get":            "usage: composia config get [key]\n",
 	"config set":            "usage: composia config set <addr|token_file|token_keyring> <value>\n",
@@ -629,7 +623,6 @@ func (application *app) configureClient() error {
 		dockerCommands:  controllerv1connect.NewDockerCommandServiceClient(httpClient, baseURL, auth),
 		repos:           controllerv1connect.NewRepoQueryServiceClient(httpClient, baseURL, auth),
 		repoCommands:    controllerv1connect.NewRepoCommandServiceClient(httpClient, baseURL, auth),
-		secrets:         controllerv1connect.NewSecretServiceClient(httpClient, baseURL, auth),
 	}
 	return nil
 }

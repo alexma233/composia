@@ -15,6 +15,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
 	backupcfg "forgejo.alexma.top/alexma233/composia/internal/core/backup"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
+	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 )
@@ -162,6 +163,17 @@ func TestStageBackupItemRunsPGDumpAll(t *testing.T) {
 	}
 	if got := readAgentTestFile(t, filepath.Join(stagingDir, "db.sql")); got != "dump sql\n" {
 		t.Fatalf("dump = %q", got)
+	}
+}
+
+func TestRuntimeDataIncludeOnlyStripsServicePaths(t *testing.T) {
+	kind, path, err := runtimeDataInclude("./config.env.enc")
+	if err != nil || kind != repo.DataIncludeKindServicePath || path != "config.env" {
+		t.Fatalf("service include = %q/%q/%v", kind, path, err)
+	}
+	kind, path, err = runtimeDataInclude("config.env.enc")
+	if err != nil || kind != repo.DataIncludeKindDockerVolume || path != "config.env.enc" {
+		t.Fatalf("volume include = %q/%q/%v", kind, path, err)
 	}
 }
 

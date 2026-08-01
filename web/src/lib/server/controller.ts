@@ -337,12 +337,6 @@ export type RepoCommitSummary = {
   committedAt: string;
 };
 
-export type SecretEnv = {
-  serviceName: string;
-  filePath: string;
-  content: string;
-};
-
 export type DashboardData = {
   system: SystemStatus;
   services: ServiceSummary[];
@@ -1373,35 +1367,6 @@ export async function syncRepo(): Promise<RepoSyncResult> {
     config.token,
     controllerProcedure("/composia.controller.v1.RepoCommandService/SyncRepo"),
     {},
-  );
-}
-
-export async function loadSecret(
-  serviceDir: string,
-  filePath: string,
-): Promise<SecretEnv> {
-  const config = requireControllerConfig();
-  return rpcCall<SecretEnv>(
-    config.baseUrl,
-    config.token,
-    controllerProcedure("/composia.controller.v1.SecretService/GetSecret"),
-    { serviceDir, filePath },
-  );
-}
-
-export async function updateSecret(
-  serviceDir: string,
-  filePath: string,
-  content: string,
-  baseRevision: string,
-  commitMessage = "",
-): Promise<RepoWriteResult> {
-  const config = requireControllerConfig();
-  return rpcCall<RepoWriteResult>(
-    config.baseUrl,
-    config.token,
-    controllerProcedure("/composia.controller.v1.SecretService/UpdateSecret"),
-    { serviceDir, filePath, content, baseRevision, commitMessage },
   );
 }
 

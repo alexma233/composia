@@ -18,6 +18,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
+	secretutil "forgejo.alexma.top/alexma233/composia/internal/platform/secret"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 )
 
@@ -1019,9 +1020,14 @@ func TestServiceCommandServiceUpdateWithImageSelectionsReturnsRepoWriteResult(t 
 	rootDir := t.TempDir()
 	repoDir := filepath.Join(rootDir, "repo")
 	logDir := filepath.Join(rootDir, "logs")
+	secretsCfg := writeAgeTestConfig(t, rootDir)
+	encryptedEnv, err := secretutil.Encrypt("API_VERSION=1.2.3\n", secretsCfg)
+	if err != nil {
+		t.Fatalf("encrypt env file: %v", err)
+	}
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\nupdate:\n  images:\n    api:\n      image: ghcr.io/example/api\n      current:\n        env:\n          file: .env\n          key: API_VERSION\n      discovery:\n        sources:\n          - type: auto\n      filter:\n        type: semver\n",
-		"demo/.env":               "API_VERSION=1.2.3\n",
+		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\nupdate:\n  images:\n    api:\n      image: ghcr.io/example/api\n      current:\n        env:\n          file: .env.enc\n          key: API_VERSION\n      discovery:\n        sources:\n          - type: auto\n      filter:\n        type: semver\n",
+		"demo/.env.enc":           string(encryptedEnv),
 	})
 
 	stateDir := filepath.Join(rootDir, "state")
@@ -1078,7 +1084,7 @@ func TestServiceCommandServiceUpdateWithImageSelectionsReturnsRepoWriteResult(t 
 		return "test-client", nil
 	})
 	path, handler := controllerv1connect.NewServiceCommandServiceHandler(
-		&serviceCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}}, availableNodeIDs: map[string]struct{}{"main": {}}},
+		&serviceCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}, Secrets: secretsCfg}, availableNodeIDs: map[string]struct{}{"main": {}}},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -1104,12 +1110,12 @@ func TestServiceCommandServiceUpdateWithImageSelectionsReturnsRepoWriteResult(t 
 	if response.Msg.GetRepoWrite() == nil || response.Msg.GetRepoWrite().GetCommitId() == "" {
 		t.Fatalf("expected repo write result, got %+v", response.Msg.GetRepoWrite())
 	}
-	updatedEnv, err := os.ReadFile(filepath.Join(repoDir, "demo", ".env")) //nolint:gosec
+	updatedEnv, err := secretutil.DecryptFile(filepath.Join(repoDir, "demo", ".env.enc"), secretsCfg)
 	if err != nil {
 		t.Fatalf("read updated env file: %v", err)
 	}
-	if string(updatedEnv) != "API_VERSION=1.3.0@sha256:new\n" {
-		t.Fatalf("unexpected updated env file:\n%s", string(updatedEnv))
+	if updatedEnv != "API_VERSION=1.3.0@sha256:new\n" {
+		t.Fatalf("unexpected updated env file:\n%s", updatedEnv)
 	}
 }
 

@@ -73,7 +73,7 @@ type RepoQueryServiceClient interface {
 	GetRepoHead(context.Context, *connect.Request[v1.GetRepoHeadRequest]) (*connect.Response[v1.GetRepoHeadResponse], error)
 	// ListRepoFiles lists direct children for one repo path.
 	ListRepoFiles(context.Context, *connect.Request[v1.ListRepoFilesRequest]) (*connect.Response[v1.ListRepoFilesResponse], error)
-	// GetRepoFile returns the content of one repo file.
+	// GetRepoFile returns plaintext for .enc files and stored content for other files.
 	GetRepoFile(context.Context, *connect.Request[v1.GetRepoFileRequest]) (*connect.Response[v1.GetRepoFileResponse], error)
 	// ListRepoCommits returns commit history using cursor pagination.
 	ListRepoCommits(context.Context, *connect.Request[v1.ListRepoCommitsRequest]) (*connect.Response[v1.ListRepoCommitsResponse], error)
@@ -166,7 +166,7 @@ type RepoQueryServiceHandler interface {
 	GetRepoHead(context.Context, *connect.Request[v1.GetRepoHeadRequest]) (*connect.Response[v1.GetRepoHeadResponse], error)
 	// ListRepoFiles lists direct children for one repo path.
 	ListRepoFiles(context.Context, *connect.Request[v1.ListRepoFilesRequest]) (*connect.Response[v1.ListRepoFilesResponse], error)
-	// GetRepoFile returns the content of one repo file.
+	// GetRepoFile returns plaintext for .enc files and stored content for other files.
 	GetRepoFile(context.Context, *connect.Request[v1.GetRepoFileRequest]) (*connect.Response[v1.GetRepoFileResponse], error)
 	// ListRepoCommits returns commit history using cursor pagination.
 	ListRepoCommits(context.Context, *connect.Request[v1.ListRepoCommitsRequest]) (*connect.Response[v1.ListRepoCommitsResponse], error)
@@ -254,7 +254,7 @@ func (UnimplementedRepoQueryServiceHandler) ValidateRepo(context.Context, *conne
 
 // RepoCommandServiceClient is a client for the composia.controller.v1.RepoCommandService service.
 type RepoCommandServiceClient interface {
-	// UpdateRepoFile writes one file, creates a commit, and reports sync state.
+	// UpdateRepoFile encrypts plaintext for .enc files, writes one file, creates a commit, and reports sync state.
 	UpdateRepoFile(context.Context, *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.RepoWriteResult], error)
 	// CreateRepoDirectory creates one directory, creates a commit, and reports sync state.
 	CreateRepoDirectory(context.Context, *connect.Request[v1.CreateRepoDirectoryRequest]) (*connect.Response[v1.RepoWriteResult], error)
@@ -347,7 +347,7 @@ func (c *repoCommandServiceClient) SyncRepo(ctx context.Context, req *connect.Re
 // RepoCommandServiceHandler is an implementation of the composia.controller.v1.RepoCommandService
 // service.
 type RepoCommandServiceHandler interface {
-	// UpdateRepoFile writes one file, creates a commit, and reports sync state.
+	// UpdateRepoFile encrypts plaintext for .enc files, writes one file, creates a commit, and reports sync state.
 	UpdateRepoFile(context.Context, *connect.Request[v1.UpdateRepoFileRequest]) (*connect.Response[v1.RepoWriteResult], error)
 	// CreateRepoDirectory creates one directory, creates a commit, and reports sync state.
 	CreateRepoDirectory(context.Context, *connect.Request[v1.CreateRepoDirectoryRequest]) (*connect.Response[v1.RepoWriteResult], error)

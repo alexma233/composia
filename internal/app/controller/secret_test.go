@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
@@ -21,7 +22,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 )
 
-func TestSecretServiceGetAndUpdateServiceSecretEnv(t *testing.T) {
+func TestRepoServicesDecryptAndEncryptFiles(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -63,25 +64,29 @@ func TestSecretServiceGetAndUpdateServiceSecretEnv(t *testing.T) {
 		return "test-client", nil
 	})
 	repoMu := &sync.Mutex{}
-	path, handler := controllerv1connect.NewSecretServiceHandler(
-		&secretServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}, Secrets: secretsCfg}, availableNodeIDs: map[string]struct{}{"main": {}}, repoMu: repoMu},
-		connect.WithInterceptors(interceptor),
-	)
+	cfg := &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}, Secrets: secretsCfg}
+	queryPath, queryHandler := controllerv1connect.NewRepoQueryServiceHandler(&repoQueryServer{db: db, cfg: cfg, availableNodeIDs: map[string]struct{}{"main": {}}, repoMu: repoMu}, connect.WithInterceptors(interceptor))
+	commandPath, commandHandler := controllerv1connect.NewRepoCommandServiceHandler(&repoCommandServer{db: db, cfg: cfg, availableNodeIDs: map[string]struct{}{"main": {}}, repoMu: repoMu}, connect.WithInterceptors(interceptor))
 	mux := http.NewServeMux()
-	mux.Handle(path, handler)
+	mux.Handle(queryPath, queryHandler)
+	mux.Handle(commandPath, commandHandler)
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewSecretServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)))
-	getResp, err := client.GetSecret(ctx, connect.NewRequest(&controllerv1.GetSecretRequest{ServiceName: "alpha", FilePath: ".secret.env.enc"}))
+	queryClient := controllerv1connect.NewRepoQueryServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)))
+	commandClient := controllerv1connect.NewRepoCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)))
+	getResp, err := queryClient.GetRepoFile(ctx, connect.NewRequest(&controllerv1.GetRepoFileRequest{Path: "alpha/.secret.env.enc"}))
 	if err != nil {
 		t.Fatalf("get secret: %v", err)
 	}
 	if getResp.Msg.GetContent() != "TOKEN=before\n" {
 		t.Fatalf("unexpected decrypted content %q", getResp.Msg.GetContent())
 	}
+	if getResp.Header().Get("Cache-Control") != "private, no-store" {
+		t.Fatalf("unexpected encrypted response cache policy %q", getResp.Header().Get("Cache-Control"))
+	}
 	headRevision := mustCurrentRevision(t, repoDir)
-	updateResp, err := client.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{ServiceName: "alpha", FilePath: ".secret.env.enc", Content: "TOKEN=after\n", BaseRevision: headRevision}))
+	updateResp, err := commandClient.UpdateRepoFile(ctx, connect.NewRequest(&controllerv1.UpdateRepoFileRequest{Path: "alpha/.secret.env.enc", Content: "TOKEN=after\n", BaseRevision: headRevision}))
 	if err != nil {
 		t.Fatalf("update service secret env: %v", err)
 	}
@@ -98,12 +103,39 @@ func TestSecretServiceGetAndUpdateServiceSecretEnv(t *testing.T) {
 	if plaintext != "TOKEN=after\n" {
 		t.Fatalf("unexpected updated plaintext %q", plaintext)
 	}
+	stored, err := os.ReadFile(filepath.Join(repoDir, "alpha", ".secret.env.enc")) //nolint:gosec
+	if err != nil || strings.Contains(string(stored), "TOKEN=after") {
+		t.Fatalf("repo file contains plaintext: %v", err)
+	}
 	if _, err := os.Stat(filepath.Join(repoDir, "alpha", ".secret.env")); !os.IsNotExist(err) {
 		t.Fatalf("expected no plaintext secret in repo worktree, got err=%v", err)
 	}
 }
 
-func TestSecretServiceUpdateSecretWithoutRecipientFile(t *testing.T) {
+func TestRepoServicesRequireSecretsConfigForEncryptedFiles(t *testing.T) {
+	t.Parallel()
+
+	repoDir := filepath.Join(t.TempDir(), "repo")
+	createGitRepoWithContent(t, repoDir, map[string]string{"secret.enc": "ciphertext"})
+	cfg := &config.ControllerConfig{RepoDir: repoDir}
+	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{cfg: cfg})
+	commandClient := newRepoCommandServiceClient(t, &repoCommandServer{cfg: cfg, repoMu: &sync.Mutex{}})
+
+	_, err := queryClient.GetRepoFile(context.Background(), connect.NewRequest(&controllerv1.GetRepoFileRequest{Path: "secret.enc"}))
+	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Fatalf("encrypted read error = %v", err)
+	}
+	_, err = commandClient.UpdateRepoFile(context.Background(), connect.NewRequest(&controllerv1.UpdateRepoFileRequest{Path: "secret.enc", Content: "plain", BaseRevision: mustCurrentRevision(t, repoDir)}))
+	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Fatalf("encrypted write error = %v", err)
+	}
+	_, err = commandClient.UpdateRepoFile(context.Background(), connect.NewRequest(&controllerv1.UpdateRepoFileRequest{Path: "secret.enc/.", Content: "plain", BaseRevision: mustCurrentRevision(t, repoDir)}))
+	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Fatalf("normalized encrypted write error = %v", err)
+	}
+}
+
+func TestRepoCommandEncryptsWithoutRecipientFile(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -145,8 +177,8 @@ func TestSecretServiceUpdateSecretWithoutRecipientFile(t *testing.T) {
 		return "test-client", nil
 	})
 	repoMu := &sync.Mutex{}
-	path, handler := controllerv1connect.NewSecretServiceHandler(
-		&secretServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}, Secrets: secretsCfg}, availableNodeIDs: map[string]struct{}{"main": {}}, repoMu: repoMu},
+	path, handler := controllerv1connect.NewRepoCommandServiceHandler(
+		&repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: logDir, Nodes: []config.NodeConfig{{ID: "main"}}, Secrets: secretsCfg}, availableNodeIDs: map[string]struct{}{"main": {}}, repoMu: repoMu},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -154,8 +186,8 @@ func TestSecretServiceUpdateSecretWithoutRecipientFile(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewSecretServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)))
-	updateResp, err := client.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{ServiceName: "alpha", FilePath: ".secret.env.enc", Content: "TOKEN=after\n", BaseRevision: mustCurrentRevision(t, repoDir)}))
+	client := controllerv1connect.NewRepoCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)))
+	updateResp, err := client.UpdateRepoFile(ctx, connect.NewRequest(&controllerv1.UpdateRepoFileRequest{Path: "alpha/.secret.env.enc", Content: "TOKEN=after\n", BaseRevision: mustCurrentRevision(t, repoDir)}))
 	if err != nil {
 		t.Fatalf("update service secret env without recipient file: %v", err)
 	}
@@ -171,7 +203,7 @@ func TestSecretServiceUpdateSecretWithoutRecipientFile(t *testing.T) {
 	}
 }
 
-func TestSecretServiceUpdateRejectsActiveServiceTask(t *testing.T) {
+func TestRepoCommandEncryptedUpdateRejectsActiveServiceTask(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -202,8 +234,8 @@ func TestSecretServiceUpdateRejectsActiveServiceTask(t *testing.T) {
 		return "test-client", nil
 	})
 	repoMu := &sync.Mutex{}
-	path, handler := controllerv1connect.NewSecretServiceHandler(
-		&secretServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}, Secrets: secretsCfg}, availableNodeIDs: map[string]struct{}{"main": {}}, repoMu: repoMu},
+	path, handler := controllerv1connect.NewRepoCommandServiceHandler(
+		&repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}, Secrets: secretsCfg}, availableNodeIDs: map[string]struct{}{"main": {}}, repoMu: repoMu},
 		connect.WithInterceptors(interceptor),
 	)
 	mux := http.NewServeMux()
@@ -211,8 +243,8 @@ func TestSecretServiceUpdateRejectsActiveServiceTask(t *testing.T) {
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
 
-	client := controllerv1connect.NewSecretServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)))
-	_, err = client.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{ServiceName: "alpha", FilePath: ".secret.env.enc", Content: "TOKEN=x\n", BaseRevision: mustCurrentRevision(t, repoDir)}))
+	client := controllerv1connect.NewRepoCommandServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor(testAccessToken)))
+	_, err = client.UpdateRepoFile(ctx, connect.NewRequest(&controllerv1.UpdateRepoFileRequest{Path: "alpha/.secret.env.enc", Content: "TOKEN=x\n", BaseRevision: mustCurrentRevision(t, repoDir)}))
 	if err == nil {
 		t.Fatalf("expected active task conflict")
 	}

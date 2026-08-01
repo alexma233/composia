@@ -157,13 +157,6 @@ weight: 10
     - [RepoCommandService](#composia-controller-v1-RepoCommandService)
     - [RepoQueryService](#composia-controller-v1-RepoQueryService)
   
-- [proto/composia/controller/v1/secret.proto](#proto_composia_controller_v1_secret-proto)
-    - [GetSecretRequest](#composia-controller-v1-GetSecretRequest)
-    - [GetSecretResponse](#composia-controller-v1-GetSecretResponse)
-    - [UpdateSecretRequest](#composia-controller-v1-UpdateSecretRequest)
-  
-    - [SecretService](#composia-controller-v1-SecretService)
-  
 - [proto/composia/controller/v1/service.proto](#proto_composia_controller_v1_service-proto)
     - [GetServiceImageUpdateChecksRequest](#composia-controller-v1-GetServiceImageUpdateChecksRequest)
     - [GetServiceImageUpdateChecksResponse](#composia-controller-v1-GetServiceImageUpdateChecksResponse)
@@ -2174,14 +2167,14 @@ GetRepoFileRequest addresses one repo-relative file path.
 <a name="composia-controller-v1-GetRepoFileResponse"></a>
 
 ### GetRepoFileResponse
-GetRepoFileResponse returns a repo file and its text content.
+GetRepoFileResponse returns a repo file and its API-visible text content.
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | path | [string](#string) |  | path is the repo-relative path that was read. |
-| content | [string](#string) |  | content is the file content as text. |
-| size | [int64](#int64) |  | size is the file size in bytes. |
+| content | [string](#string) |  | content is decrypted plaintext for .enc files and stored text for other files. |
+| size | [int64](#int64) |  | size is the byte length of content. ListRepoFiles reports stored sizes instead. |
 
 
 
@@ -2408,7 +2401,7 @@ UpdateRepoFileRequest writes one file at a repo-relative path.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | path | [string](#string) |  | path is the repo-relative path to update. |
-| content | [string](#string) |  | content is the full replacement file content. |
+| content | [string](#string) |  | content is plaintext for .enc files and stored text for other files. |
 | base_revision | [string](#string) |  | base_revision protects against writing on top of an unexpected HEAD. |
 | commit_message | [string](#string) |  | commit_message is used for the generated Git commit. |
 
@@ -2455,7 +2448,7 @@ RepoCommandService applies changes to the controller Git repo.
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| UpdateRepoFile | [UpdateRepoFileRequest](#composia-controller-v1-UpdateRepoFileRequest) | [RepoWriteResult](#composia-controller-v1-RepoWriteResult) | UpdateRepoFile writes one file, creates a commit, and reports sync state. |
+| UpdateRepoFile | [UpdateRepoFileRequest](#composia-controller-v1-UpdateRepoFileRequest) | [RepoWriteResult](#composia-controller-v1-RepoWriteResult) | UpdateRepoFile encrypts plaintext for .enc files, writes one file, creates a commit, and reports sync state. |
 | CreateRepoDirectory | [CreateRepoDirectoryRequest](#composia-controller-v1-CreateRepoDirectoryRequest) | [RepoWriteResult](#composia-controller-v1-RepoWriteResult) | CreateRepoDirectory creates one directory, creates a commit, and reports sync state. |
 | MoveRepoPath | [MoveRepoPathRequest](#composia-controller-v1-MoveRepoPathRequest) | [RepoWriteResult](#composia-controller-v1-RepoWriteResult) | MoveRepoPath moves or renames one repo path. |
 | DeleteRepoPath | [DeleteRepoPathRequest](#composia-controller-v1-DeleteRepoPathRequest) | [RepoWriteResult](#composia-controller-v1-RepoWriteResult) | DeleteRepoPath deletes one repo path. |
@@ -2471,90 +2464,9 @@ RepoQueryService exposes read-only views of the controller Git repo.
 | ----------- | ------------ | ------------- | ------------|
 | GetRepoHead | [GetRepoHeadRequest](#composia-controller-v1-GetRepoHeadRequest) | [GetRepoHeadResponse](#composia-controller-v1-GetRepoHeadResponse) | GetRepoHead returns current HEAD and sync metadata. |
 | ListRepoFiles | [ListRepoFilesRequest](#composia-controller-v1-ListRepoFilesRequest) | [ListRepoFilesResponse](#composia-controller-v1-ListRepoFilesResponse) | ListRepoFiles lists direct children for one repo path. |
-| GetRepoFile | [GetRepoFileRequest](#composia-controller-v1-GetRepoFileRequest) | [GetRepoFileResponse](#composia-controller-v1-GetRepoFileResponse) | GetRepoFile returns the content of one repo file. |
+| GetRepoFile | [GetRepoFileRequest](#composia-controller-v1-GetRepoFileRequest) | [GetRepoFileResponse](#composia-controller-v1-GetRepoFileResponse) | GetRepoFile returns plaintext for .enc files and stored content for other files. |
 | ListRepoCommits | [ListRepoCommitsRequest](#composia-controller-v1-ListRepoCommitsRequest) | [ListRepoCommitsResponse](#composia-controller-v1-ListRepoCommitsResponse) | ListRepoCommits returns commit history using cursor pagination. |
 | ValidateRepo | [ValidateRepoRequest](#composia-controller-v1-ValidateRepoRequest) | [ValidateRepoResponse](#composia-controller-v1-ValidateRepoResponse) | ValidateRepo runs repo validation and returns structured errors. |
-
- 
-
-
-
-<a name="proto_composia_controller_v1_secret-proto"></a>
-<p align="right"><a href="#top">Top</a></p>
-
-## proto/composia/controller/v1/secret.proto
-
-
-
-<a name="composia-controller-v1-GetSecretRequest"></a>
-
-### GetSecretRequest
-GetSecretRequest identifies one decrypted secret file for a service.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| service_name | [string](#string) |  |  |
-| file_path | [string](#string) |  |  |
-| service_dir | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="composia-controller-v1-GetSecretResponse"></a>
-
-### GetSecretResponse
-GetSecretResponse returns one decrypted secret file.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| service_name | [string](#string) |  |  |
-| file_path | [string](#string) |  |  |
-| content | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="composia-controller-v1-UpdateSecretRequest"></a>
-
-### UpdateSecretRequest
-UpdateSecretRequest writes one decrypted secret file for a service.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| service_name | [string](#string) |  |  |
-| file_path | [string](#string) |  | file_path is the repo-relative secret file path for the service. |
-| content | [string](#string) |  | content is the full decrypted secret file content to store. |
-| base_revision | [string](#string) |  | base_revision protects against writing on top of an unexpected HEAD. |
-| commit_message | [string](#string) |  | commit_message is used for the generated Git commit. |
-| service_dir | [string](#string) |  |  |
-
-
-
-
-
- 
-
- 
-
- 
-
-
-<a name="composia-controller-v1-SecretService"></a>
-
-### SecretService
-SecretService reads and updates encrypted secret files stored in the repo.
-
-| Method Name | Request Type | Response Type | Description |
-| ----------- | ------------ | ------------- | ------------|
-| GetSecret | [GetSecretRequest](#composia-controller-v1-GetSecretRequest) | [GetSecretResponse](#composia-controller-v1-GetSecretResponse) | GetSecret returns the decrypted content for one service secret file. |
-| UpdateSecret | [UpdateSecretRequest](#composia-controller-v1-UpdateSecretRequest) | [RepoWriteResult](#composia-controller-v1-RepoWriteResult) | UpdateSecret writes one secret file and reports the resulting repo sync state. |
 
  
 

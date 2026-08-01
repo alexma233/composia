@@ -9,6 +9,7 @@ import (
 	"io"
 	"os/exec"
 	"path"
+	"slices"
 	"strings"
 )
 
@@ -17,6 +18,14 @@ func StreamServiceBundle(ctx context.Context, repoDir, revision, serviceDir stri
 }
 
 func StreamServiceBundleWithExtras(ctx context.Context, repoDir, revision, serviceDir string, extras map[string]string, writer io.Writer) error {
+	normalizedExtras := make(map[string]string, len(extras))
+	for name, content := range extras {
+		extraPath, err := normalizeBundleExtraPath(name)
+		if err != nil {
+			return err
+		}
+		normalizedExtras[extraPath] = content
+	}
 	commandCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	command := exec.CommandContext(commandCtx, "git", "-C", repoDir, "archive", "--format=tar", revision, serviceDir) //nolint:gosec
@@ -49,6 +58,23 @@ func StreamServiceBundleWithExtras(ctx context.Context, repoDir, revision, servi
 			waitAfterError()
 			return fmt.Errorf("stream git archive entry: %w", err)
 		}
+		if header.Typeflag == tar.TypeReg && IsEncryptedFilePath(header.Name) {
+			if _, replaced := normalizedExtras[RuntimeFilePath(header.Name)]; replaced {
+				if _, err := io.Copy(io.Discard, tarReader); err != nil {
+					_ = tarWriter.Close()
+					_ = gzipWriter.Close()
+					waitAfterError()
+					return fmt.Errorf("skip encrypted bundle file %q: %w", header.Name, err)
+				}
+				continue
+			}
+		}
+		if _, replaced := normalizedExtras[header.Name]; replaced {
+			_ = tarWriter.Close()
+			_ = gzipWriter.Close()
+			waitAfterError()
+			return fmt.Errorf("bundle file %q conflicts with an injected runtime file", header.Name)
+		}
 		clonedHeader := *header
 		if err := tarWriter.WriteHeader(&clonedHeader); err != nil {
 			_ = tarWriter.Close()
@@ -65,14 +91,13 @@ func StreamServiceBundleWithExtras(ctx context.Context, repoDir, revision, servi
 			}
 		}
 	}
-	for name, content := range extras {
-		extraPath, err := normalizeBundleExtraPath(name)
-		if err != nil {
-			_ = tarWriter.Close()
-			_ = gzipWriter.Close()
-			waitAfterError()
-			return err
-		}
+	extraPaths := make([]string, 0, len(normalizedExtras))
+	for name := range normalizedExtras {
+		extraPaths = append(extraPaths, name)
+	}
+	slices.Sort(extraPaths)
+	for _, extraPath := range extraPaths {
+		content := normalizedExtras[extraPath]
 		body := []byte(content)
 		header := &tar.Header{Name: extraPath, Mode: 0o600, Size: int64(len(body))}
 		if err := tarWriter.WriteHeader(header); err != nil {

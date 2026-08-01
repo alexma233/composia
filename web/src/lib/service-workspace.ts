@@ -18,7 +18,7 @@ export type WorkspaceFile = {
 };
 
 export function isEncryptedFilePath(path: string) {
-  return path.toLowerCase().endsWith(".enc");
+  return path.endsWith(".enc");
 }
 
 export function encryptedFileSourcePath(path: string) {

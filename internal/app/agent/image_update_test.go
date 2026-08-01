@@ -14,7 +14,7 @@ func TestCurrentImageUpdateValueFromEnvFile(t *testing.T) {
 	serviceDir := t.TempDir()
 	writeAgentTestFile(t, filepath.Join(serviceDir, ".env"), "# comment\nAPP_IMAGE='1.2.3@sha256:abc'\n")
 
-	value, tag, digest, err := currentImageUpdateValue(serviceDir, repo.ImageUpdateConfig{Current: repo.ImageUpdateCurrent{Env: &repo.ImageUpdateCurrentEnv{File: ".env", Key: "APP_IMAGE"}}})
+	value, tag, digest, err := currentImageUpdateValue(serviceDir, repo.ImageUpdateConfig{Current: repo.ImageUpdateCurrent{Env: &repo.ImageUpdateCurrentEnv{File: ".env.enc", Key: "APP_IMAGE"}}})
 	if err != nil {
 		t.Fatalf("currentImageUpdateValue returned error: %v", err)
 	}
@@ -29,7 +29,7 @@ func TestCurrentImageUpdateValueFromYAMLPath(t *testing.T) {
 	serviceDir := t.TempDir()
 	writeAgentTestFile(t, filepath.Join(serviceDir, "compose.yaml"), "services:\n  web:\n    image: ghcr.io/example/web:2.0.0@sha256:def\n")
 
-	value, tag, digest, err := currentImageUpdateValue(serviceDir, repo.ImageUpdateConfig{Current: repo.ImageUpdateCurrent{YAML: &repo.ImageUpdateCurrentYAML{File: "compose.yaml", Path: "services.web.image"}}})
+	value, tag, digest, err := currentImageUpdateValue(serviceDir, repo.ImageUpdateConfig{Current: repo.ImageUpdateCurrent{YAML: &repo.ImageUpdateCurrentYAML{File: "compose.yaml.enc", Path: "services.web.image"}}})
 	if err != nil {
 		t.Fatalf("currentImageUpdateValue returned error: %v", err)
 	}

@@ -374,14 +374,14 @@ func (x *GetRepoFileRequest) GetPath() string {
 	return ""
 }
 
-// GetRepoFileResponse returns a repo file and its text content.
+// GetRepoFileResponse returns a repo file and its API-visible text content.
 type GetRepoFileResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// path is the repo-relative path that was read.
 	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	// content is the file content as text.
+	// content is decrypted plaintext for .enc files and stored text for other files.
 	Content string `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
-	// size is the file size in bytes.
+	// size is the byte length of content. ListRepoFiles reports stored sizes instead.
 	Size          int64 `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -761,7 +761,7 @@ type UpdateRepoFileRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// path is the repo-relative path to update.
 	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	// content is the full replacement file content.
+	// content is plaintext for .enc files and stored text for other files.
 	Content string `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
 	// base_revision protects against writing on top of an unexpected HEAD.
 	BaseRevision string `protobuf:"bytes,3,opt,name=base_revision,json=baseRevision,proto3" json:"base_revision,omitempty"`

@@ -104,12 +104,6 @@ func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db
 	)
 	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, repoCommandPath, repoCommandHandler)
 
-	secretPath, secretHandler := controllerv1connect.NewSecretServiceHandler(
-		&secretServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: repoMu},
-		connect.WithInterceptors(interceptor),
-	)
-	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, secretPath, secretHandler)
-
 	backupSvc := &backupServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, taskQueue: taskQueue}
 	backupQueryPath, backupQueryHandler := controllerv1connect.NewBackupQueryServiceHandler(
 		backupSvc,

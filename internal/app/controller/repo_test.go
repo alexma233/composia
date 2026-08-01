@@ -136,6 +136,25 @@ func TestRepoQueryServiceListRepoFilesAndGetRepoFile(t *testing.T) {
 	}
 }
 
+func TestRepoCommandRejectsEncryptedStorageBoundaryChanges(t *testing.T) {
+	server := &repoCommandServer{}
+	_, err := server.MoveRepoPath(context.Background(), connect.NewRequest(&controllerv1.MoveRepoPathRequest{
+		SourcePath:      "secret.env",
+		DestinationPath: "secret.env.enc",
+		BaseRevision:    "revision",
+	}))
+	if connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Fatalf("cross-boundary move error = %v", err)
+	}
+	_, err = server.CreateRepoDirectory(context.Background(), connect.NewRequest(&controllerv1.CreateRepoDirectoryRequest{
+		Path:         "secrets.enc/nested",
+		BaseRevision: "revision",
+	}))
+	if connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Fatalf("encrypted directory error = %v", err)
+	}
+}
+
 func TestRepoCommandServiceSyncRepoFastForwardsConfiguredRemote(t *testing.T) {
 	t.Parallel()
 

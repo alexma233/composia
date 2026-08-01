@@ -362,7 +362,11 @@ func (server *serviceCommandServer) applyPlannedServiceImageUpdates(ctx context.
 			if err != nil {
 				return repoWriteResult{}, mapRepoMutationError(err)
 			}
-			contents[path] = file.Content
+			content, err := repoFileContent(server.cfg, path, file.Content)
+			if err != nil {
+				return repoWriteResult{}, connect.NewError(connect.CodeFailedPrecondition, err)
+			}
+			contents[path] = content
 		}
 		changed := false
 		for _, update := range planned {
@@ -399,7 +403,11 @@ func (server *serviceCommandServer) applyPlannedServiceImageUpdates(ctx context.
 				return repoWriteResult{}, mapRepoMutationError(err)
 			}
 			writtenSnapshots[path] = current.Content
-			if _, err := repo.WriteFile(server.cfg.RepoDir, path, previous); err != nil {
+			stored, err := storedRepoFileContent(server.cfg, path, previous)
+			if err != nil {
+				return repoWriteResult{}, connect.NewError(connect.CodeFailedPrecondition, err)
+			}
+			if _, err := repo.WriteFile(server.cfg.RepoDir, path, stored); err != nil {
 				return repoWriteResult{}, mapRepoMutationError(err)
 			}
 		}

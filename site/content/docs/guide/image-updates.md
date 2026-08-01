@@ -120,7 +120,7 @@ current:
     key: APP_VERSION
 ```
 
-The `file` path is relative to the service directory. Composia reads the file, looks for `KEY=VALUE` lines, and extracts the value.
+The `file` path is relative to the service directory and uses the repository filename. For an encrypted source, specify `.env.enc`; Composia reads `.env` after decrypting it on the agent and re-encrypts controller-side updates into `.env.enc`.
 
 **YAML file:**
 

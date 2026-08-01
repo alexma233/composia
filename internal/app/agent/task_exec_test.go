@@ -514,6 +514,18 @@ func TestExecuteCaddyTasksUseServiceDirForGeneratedFileName(t *testing.T) {
 	}
 }
 
+func TestResolveServiceCaddySourcePathUsesRuntimeFileName(t *testing.T) {
+	serviceRoot := t.TempDir()
+	got, err := resolveServiceCaddySourcePath(serviceRoot, "config/Caddyfile.enc")
+	if err != nil {
+		t.Fatalf("resolve encrypted caddy source: %v", err)
+	}
+	want := filepath.Join(serviceRoot, "config", "Caddyfile")
+	if got != want {
+		t.Fatalf("caddy source = %q, want %q", got, want)
+	}
+}
+
 func TestBuildBackupVolumeFlagsServicePath(t *testing.T) {
 	t.Parallel()
 

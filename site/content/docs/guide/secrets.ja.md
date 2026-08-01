@@ -55,28 +55,30 @@ my-app/
 
 1. リポジトリ内のサービスディレクトリから暗号化ファイルを読み取ります。
 2. age 秘密鍵を使用して各ファイルを復号します。
-3. 復号されたコンテンツを `.composia-secret.env` としてサービスバンドルに注入します。
+3. `.enc` 接尾辞を削除し、復号した内容を実行時ファイル名で注入します。たとえば `.secret.env.enc` は `.secret.env` になります。
 
 バンドルはエージェントレポート接続を通じてエージェントにストリーミングされます。エージェントはバンドルをディスクに書き込み、`docker compose up` を続行します。復号されたシークレット環境は、エージェントが秘密鍵を見ることなく Compose サービスから利用可能になります。
+
+`composia-meta.yaml` のファイル参照には `.env.enc` のようなリポジトリ名を使用し、Composia が実行時の利用前に `.env` へ変換します。Compose ファイル、Caddyfile、スクリプト内では実行時名 `.env` を直接使用します。
 
 ## CLI の使用
 
 暗号化シークレットファイルの書き込み:
 
 ```bash
-composia secret update my-app .secret.env.enc --file ./local-plain.env
+composia service my-app edit .secret.env.enc
 ```
 
 シークレットファイルの読み取りと復号:
 
 ```bash
-composia secret get my-app .secret.env.enc
+composia repo get my-app/.secret.env.enc
 ```
 
 シークレットのインプレース編集（エディタが開きます）:
 
 ```bash
-composia secret edit my-app .secret.env.enc
+composia repo update --file ./local-plain.env my-app/.secret.env.enc
 ```
 
 すべてのシークレット書き込み操作には、同時変更との競合を防ぐためのベースリビジョンチェックが含まれます。
@@ -93,6 +95,6 @@ composia secret edit my-app .secret.env.enc
 
 ## エラー条件
 
-- **シークレット未設定**: `controller.secrets` が設定されていない場合、`GetSecret` と `UpdateSecret` は `FailedPrecondition` を返します。
-- **ファイルが見つからない**: `GetSecret` はファイルが存在しない場合、エラーではなく空のコンテンツレスポンスを返します。これによりクライアントはファイル不在と復号失敗を区別できます。
-- **ベースリビジョン競合**: `UpdateSecret` はリポジトリ HEAD に対して CAS（compare-and-swap）を使用します。最後の読み取り以降にリポジトリが変更された場合、書き込みはリビジョン競合で失敗します。
+- **シークレット未設定**: `.enc` への Repo アクセスは `FailedPrecondition` を返します。
+- **ファイルが見つからない**: `GetRepoFile` は `NotFound` を返します。
+- **ベースリビジョン競合**: `UpdateRepoFile` は CAS でリポジトリ HEAD を保護します。

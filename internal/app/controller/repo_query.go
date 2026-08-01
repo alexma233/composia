@@ -91,12 +91,27 @@ func (server *repoQueryServer) GetRepoFile(_ context.Context, req *connect.Reque
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
 	}
-	response := &controllerv1.GetRepoFileResponse{
-		Path:    file.Path,
-		Content: file.Content,
-		Size:    file.Size,
+	content, err := repoFileContent(server.cfg, file.Path, file.Content)
+	if err != nil {
+		if errors.Is(err, errSecretsNotConfigured) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		if errors.Is(err, errInvalidEncryptedPath) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		}
+		return nil, connect.NewError(connect.CodeDataLoss, err)
 	}
-	return connect.NewResponse(response), nil
+	response := connect.NewResponse(&controllerv1.GetRepoFileResponse{
+		Path:    file.Path,
+		Content: content,
+		Size:    int64(len(content)),
+	})
+	if repo.IsEncryptedFilePath(file.Path) {
+		response.Header().Set("Cache-Control", "private, no-store")
+		response.Header().Set("Pragma", "no-cache")
+		response.Header().Set("Expires", "0")
+	}
+	return response, nil
 }
 
 func (server *repoQueryServer) ListRepoCommits(_ context.Context, req *connect.Request[controllerv1.ListRepoCommitsRequest]) (*connect.Response[controllerv1.ListRepoCommitsResponse], error) {

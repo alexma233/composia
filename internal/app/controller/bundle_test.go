@@ -68,7 +68,7 @@ func TestBundleServiceStreamsTaskBundle(t *testing.T) {
 		return "main", nil
 	})
 	mux := http.NewServeMux()
-	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(&bundleServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}}, connect.WithInterceptors(interceptor))
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(&bundleServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}}}, connect.WithInterceptors(interceptor))
 	mux.Handle(bundlePath, bundleHandler)
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
@@ -164,7 +164,7 @@ func TestBundleServiceStreamsCaddySyncBundleWithSingleServiceDir(t *testing.T) {
 		return "main", nil
 	})
 	mux := http.NewServeMux()
-	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(&bundleServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}}, connect.WithInterceptors(interceptor))
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(&bundleServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}}}, connect.WithInterceptors(interceptor))
 	mux.Handle(bundlePath, bundleHandler)
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
@@ -195,6 +195,75 @@ func TestBundleServiceStreamsCaddySyncBundleWithSingleServiceDir(t *testing.T) {
 	entries := untarGzContents(t, archive.Bytes())
 	if entries["demo/demo.caddy"] == "" {
 		t.Fatalf("expected caddy source file in bundle, got %+v", entries)
+	}
+}
+
+func TestBundleExtraFilesForCaddySyncOnlyDecryptsCaddySource(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	secretsCfg := writeAgeTestConfig(t, rootDir)
+	caddyCiphertext, err := secretutil.Encrypt("demo.example.com { reverse_proxy 127.0.0.1:8080 }\n", secretsCfg)
+	if err != nil {
+		t.Fatalf("encrypt caddy source: %v", err)
+	}
+	secretCiphertext, err := secretutil.Encrypt("TOKEN=secret\n", secretsCfg)
+	if err != nil {
+		t.Fatalf("encrypt secret env: %v", err)
+	}
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy.enc\n",
+		"demo/demo.caddy.enc":     string(caddyCiphertext),
+		"demo/.secret.env.enc":    string(secretCiphertext),
+	})
+	revision, err := repo.CurrentRevision(repoDir)
+	if err != nil {
+		t.Fatalf("read current revision: %v", err)
+	}
+
+	extraFiles, err := bundleExtraFiles(
+		&config.ControllerConfig{RepoDir: repoDir, Secrets: secretsCfg, Nodes: []config.NodeConfig{{ID: "main"}}},
+		task.Record{Type: task.TypeCaddySync, RepoRevision: revision},
+		serviceTaskParams{ServiceDir: "demo"},
+		false,
+	)
+	if err != nil {
+		t.Fatalf("build caddy sync extra files: %v", err)
+	}
+	if extraFiles["demo/demo.caddy"] != "demo.example.com { reverse_proxy 127.0.0.1:8080 }\n" {
+		t.Fatalf("expected decrypted caddy source, got %+v", extraFiles)
+	}
+	if _, ok := extraFiles["demo/.secret.env"]; ok {
+		t.Fatalf("caddy sync must not decrypt unrelated secrets: %+v", extraFiles)
+	}
+}
+
+func TestBundleExtraFilesForCaddySyncIgnoresUnreferencedEncryptedFilesWithoutSecrets(t *testing.T) {
+	t.Parallel()
+
+	repoDir := filepath.Join(t.TempDir(), "repo")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
+		"demo/demo.caddy":         "demo.example.com { reverse_proxy 127.0.0.1:8080 }\n",
+		"demo/.secret.env.enc":    "ciphertext\n",
+	})
+	revision, err := repo.CurrentRevision(repoDir)
+	if err != nil {
+		t.Fatalf("read current revision: %v", err)
+	}
+
+	extraFiles, err := bundleExtraFiles(
+		&config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}},
+		task.Record{Type: task.TypeCaddySync, RepoRevision: revision},
+		serviceTaskParams{ServiceDir: "demo"},
+		false,
+	)
+	if err != nil {
+		t.Fatalf("build caddy sync extra files without secrets config: %v", err)
+	}
+	if len(extraFiles) != 0 {
+		t.Fatalf("expected no caddy sync extra files, got %+v", extraFiles)
 	}
 }
 
@@ -239,7 +308,7 @@ func TestBundleServiceStreamsRequestedServiceDirOverride(t *testing.T) {
 		return "main", nil
 	})
 	mux := http.NewServeMux()
-	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(&bundleServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}}, connect.WithInterceptors(interceptor))
+	bundlePath, bundleHandler := agentv1connect.NewBundleServiceHandler(&bundleServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}}}, connect.WithInterceptors(interceptor))
 	mux.Handle(bundlePath, bundleHandler)
 	httpServer := httptest.NewServer(mux)
 	defer httpServer.Close()
@@ -341,8 +410,8 @@ func TestBundleServiceInjectsDecryptedSecretEnv(t *testing.T) {
 	if entries["demo/.secret.env"] != "TOKEN=secret\n" {
 		t.Fatalf("expected decrypted secret env in bundle, got %q", entries["demo/.secret.env"])
 	}
-	if _, ok := entries["demo/.secret.env.enc"]; !ok {
-		t.Fatalf("expected encrypted secret env to remain in bundle entries")
+	if _, ok := entries["demo/.secret.env.enc"]; ok {
+		t.Fatalf("encrypted secret env must not remain in bundle entries")
 	}
 }
 

@@ -55,28 +55,30 @@ Pendant l'étape de rendu d'une tâche de déploiement ou de mise à jour, le co
 
 1. Lit les fichiers chiffrés depuis le répertoire du service dans le dépôt.
 2. Déchiffre chaque fichier en utilisant la clé privée age.
-3. Injecte le contenu déchiffré dans le bundle de service sous forme de `.composia-secret.env`.
+3. Supprime le suffixe `.enc` et injecte le contenu déchiffré sous son nom d'exécution. Par exemple, `.secret.env.enc` devient `.secret.env`.
 
 Le bundle est transmis à l'agent via la connexion de rapport de l'agent. L'agent écrit le bundle sur disque et procède à `docker compose up`. L'environnement de secret déchiffré est disponible pour les services Compose sans que l'agent ne voie jamais la clé privée.
+
+Les références de fichiers dans `composia-meta.yaml` utilisent les noms du dépôt, comme `.env.enc` ; Composia les convertit en `.env` avant l'utilisation à l'exécution. Les fichiers Compose, Caddyfiles et scripts utilisent directement le nom d'exécution `.env`.
 
 ## Utilisation de la CLI
 
 Écrire un fichier de secret chiffré :
 
 ```bash
-composia secret update my-app .secret.env.enc --file ./local-plain.env
+composia service my-app edit .secret.env.enc
 ```
 
 Lire et déchiffrer un fichier de secret :
 
 ```bash
-composia secret get my-app .secret.env.enc
+composia repo get my-app/.secret.env.enc
 ```
 
 Modifier un secret sur place (ouvre votre éditeur) :
 
 ```bash
-composia secret edit my-app .secret.env.enc
+composia repo update --file ./local-plain.env my-app/.secret.env.enc
 ```
 
 Toutes les opérations d'écriture de secrets incluent une vérification de révision de base pour éviter les conflits avec des modifications concurrentes.
@@ -93,6 +95,6 @@ Le contrôleur localise le service, résout le chemin du fichier relativement au
 
 ## Conditions d'erreur
 
-- **Secrets non configurés** : `GetSecret` et `UpdateSecret` retournent `FailedPrecondition` lorsque `controller.secrets` n'est pas défini.
-- **Fichier introuvable** : `GetSecret` retourne une réponse avec un contenu vide plutôt qu'une erreur lorsque le fichier n'existe pas. Cela permet aux clients de distinguer les fichiers manquants des échecs de déchiffrement.
-- **Conflit de révision de base** : `UpdateSecret` utilise CAS (compare-and-swap) par rapport à HEAD du dépôt. Si le dépôt a changé depuis la dernière lecture, l'écriture échoue avec un conflit de révision.
+- **Secrets non configurés** : les accès Repo aux fichiers `.enc` retournent `FailedPrecondition`.
+- **Fichier introuvable** : `GetRepoFile` retourne `NotFound`.
+- **Conflit de révision de base** : `UpdateRepoFile` protège HEAD avec CAS.

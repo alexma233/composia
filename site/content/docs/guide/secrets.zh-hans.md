@@ -55,28 +55,30 @@ my-app/
 
 1. 从仓库中的服务目录读取加密文件。
 2. 使用 age 私钥解密每个文件。
-3. 将解密后的内容作为 `.composia-secret.env` 注入服务包。
+3. 去掉 `.enc` 后缀，并以运行时文件名注入解密内容。例如，`.secret.env.enc` 会变成 `.secret.env`。
 
 服务包通过 agent 报告连接流式传输到 agent。Agent 将包写入磁盘并继续执行 `docker compose up`。解密后的密钥环境变量可供 Compose 服务使用，而 agent 永远不会看到私钥。
+
+`composia-meta.yaml` 中的文件引用使用仓库文件名，例如 `.env.enc`；Composia 在运行时使用前将其转换为 `.env`。Compose、Caddyfile、脚本等原生文件内部直接填写运行时文件名 `.env`。
 
 ## CLI 用法
 
 写入加密的密钥文件：
 
 ```bash
-composia secret update my-app .secret.env.enc --file ./local-plain.env
+composia service my-app edit .secret.env.enc
 ```
 
 读取并解密密钥文件：
 
 ```bash
-composia secret get my-app .secret.env.enc
+composia repo get my-app/.secret.env.enc
 ```
 
 就地编辑密钥（打开编辑器）：
 
 ```bash
-composia secret edit my-app .secret.env.enc
+composia repo update --file ./local-plain.env my-app/.secret.env.enc
 ```
 
 所有密钥写入操作都包含基准版本检查，以防止与并发更改冲突。
@@ -93,6 +95,6 @@ composia secret edit my-app .secret.env.enc
 
 ## 错误情况
 
-- **密钥未配置**: 当 `controller.secrets` 未设置时，`GetSecret` 和 `UpdateSecret` 返回 `FailedPrecondition`。
-- **文件未找到**: 当文件不存在时，`GetSecret` 返回空内容响应而非错误。这使客户端能区分文件缺失和解密失败。
-- **基准版本冲突**: `UpdateSecret` 使用 CAS（比较并交换）机制针对仓库 HEAD。如果自上次读取以来仓库发生了变化，写入将因版本冲突而失败。
+- **密钥未配置**：当 `controller.secrets` 未设置时，Repo API 对 `.enc` 文件的读写返回 `FailedPrecondition`。
+- **文件未找到**：`GetRepoFile` 返回 `NotFound`。
+- **基准版本冲突**：`UpdateRepoFile` 使用 CAS（比较并交换）保护仓库 HEAD。

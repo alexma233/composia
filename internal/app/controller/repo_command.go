@@ -83,8 +83,12 @@ func (server *repoCommandServer) UpdateRepoFile(ctx context.Context, req *connec
 	if req.Msg.GetBaseRevision() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base_revision is required"))
 	}
-	result, err := server.runRepoWrite(ctx, req.Msg.GetBaseRevision(), []string{req.Msg.GetPath()}, func(baseSyncState store.RepoSyncState) (repoWriteResult, error) {
-		return server.updateRepoFileTransaction(ctx, req.Msg.GetPath(), req.Msg.GetContent(), req.Msg.GetCommitMessage(), baseSyncState)
+	path, err := repo.NormalizePath(req.Msg.GetPath())
+	if err != nil || path == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, repo.ErrRepoPathInvalid)
+	}
+	result, err := server.runRepoWrite(ctx, req.Msg.GetBaseRevision(), []string{path}, func(baseSyncState store.RepoSyncState) (repoWriteResult, error) {
+		return server.updateRepoFileTransaction(ctx, path, req.Msg.GetContent(), req.Msg.GetCommitMessage(), baseSyncState)
 	})
 	if err != nil {
 		return nil, err
@@ -99,8 +103,15 @@ func (server *repoCommandServer) CreateRepoDirectory(ctx context.Context, req *c
 	if req.Msg.GetBaseRevision() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base_revision is required"))
 	}
-	result, err := server.runRepoWrite(ctx, req.Msg.GetBaseRevision(), []string{req.Msg.GetPath()}, func(baseSyncState store.RepoSyncState) (repoWriteResult, error) {
-		return server.createRepoDirectoryTransaction(ctx, req.Msg.GetPath(), req.Msg.GetCommitMessage(), baseSyncState)
+	path, err := repo.NormalizePath(req.Msg.GetPath())
+	if err != nil || path == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, repo.ErrRepoPathInvalid)
+	}
+	if repo.IsEncryptedFilePath(path) || repo.HasEncryptedParent(path) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("directories must not use the .enc suffix"))
+	}
+	result, err := server.runRepoWrite(ctx, req.Msg.GetBaseRevision(), []string{path}, func(baseSyncState store.RepoSyncState) (repoWriteResult, error) {
+		return server.createRepoDirectoryTransaction(ctx, path, req.Msg.GetCommitMessage(), baseSyncState)
 	})
 	if err != nil {
 		return nil, err
@@ -115,8 +126,22 @@ func (server *repoCommandServer) MoveRepoPath(ctx context.Context, req *connect.
 	if req.Msg.GetBaseRevision() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base_revision is required"))
 	}
-	result, err := server.runRepoWrite(ctx, req.Msg.GetBaseRevision(), []string{req.Msg.GetSourcePath(), req.Msg.GetDestinationPath()}, func(baseSyncState store.RepoSyncState) (repoWriteResult, error) {
-		return server.moveRepoPathTransaction(ctx, req.Msg.GetSourcePath(), req.Msg.GetDestinationPath(), req.Msg.GetCommitMessage(), baseSyncState)
+	sourcePath, sourceErr := repo.NormalizePath(req.Msg.GetSourcePath())
+	destinationPath, destinationErr := repo.NormalizePath(req.Msg.GetDestinationPath())
+	if sourceErr != nil || destinationErr != nil || sourcePath == "" || destinationPath == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, repo.ErrRepoPathInvalid)
+	}
+	if repo.HasEncryptedParent(sourcePath) || repo.HasEncryptedParent(destinationPath) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errInvalidEncryptedPath)
+	}
+	if repo.IsEncryptedFilePath(sourcePath) != repo.IsEncryptedFilePath(destinationPath) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("moves must not cross the .enc storage boundary"))
+	}
+	if repo.IsEncryptedFilePath(sourcePath) && (!repo.IsValidEncryptedFilePath(sourcePath) || !repo.IsValidEncryptedFilePath(destinationPath)) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errInvalidEncryptedPath)
+	}
+	result, err := server.runRepoWrite(ctx, req.Msg.GetBaseRevision(), []string{sourcePath, destinationPath}, func(baseSyncState store.RepoSyncState) (repoWriteResult, error) {
+		return server.moveRepoPathTransaction(ctx, sourcePath, destinationPath, req.Msg.GetCommitMessage(), baseSyncState)
 	})
 	if err != nil {
 		return nil, err
@@ -363,6 +388,16 @@ func pathHitsServiceDir(targetPath, serviceDir string) bool {
 }
 
 func (server *repoCommandServer) updateRepoFileTransaction(ctx context.Context, relativePath, content, commitMessage string, baseSyncState store.RepoSyncState) (_ repoWriteResult, retErr error) {
+	storedContent, err := storedRepoFileContent(server.cfg, relativePath, content)
+	if err != nil {
+		if errors.Is(err, errSecretsNotConfigured) {
+			return repoWriteResult{}, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		if errors.Is(err, errInvalidEncryptedPath) {
+			return repoWriteResult{}, connect.NewError(connect.CodeInvalidArgument, err)
+		}
+		return repoWriteResult{}, connect.NewError(connect.CodeInternal, err)
+	}
 	previous, readErr := repo.ReadFile(server.cfg.RepoDir, relativePath)
 	fileExisted := readErr == nil
 	committed := false
@@ -376,11 +411,13 @@ func (server *repoCommandServer) updateRepoFileTransaction(ctx context.Context, 
 			return repoWriteResult{}, connect.NewError(connect.CodeInternal, readErr)
 		}
 	}
-	writtenPath, err := repo.WriteFile(server.cfg.RepoDir, relativePath, content)
+	writtenPath, err := repo.WriteFile(server.cfg.RepoDir, relativePath, storedContent)
 	if err != nil {
 		switch {
 		case errors.Is(err, repo.ErrRepoPathInvalid), errors.Is(err, repo.ErrRepoPathProtected):
 			return repoWriteResult{}, connect.NewError(connect.CodeInvalidArgument, err)
+		case errors.Is(err, repo.ErrEncryptedFileConflict):
+			return repoWriteResult{}, connect.NewError(connect.CodeFailedPrecondition, err)
 		default:
 			return repoWriteResult{}, connect.NewError(connect.CodeInternal, err)
 		}
@@ -583,6 +620,8 @@ func mapRepoMutationError(err error) error {
 	switch {
 	case errors.Is(err, repo.ErrRepoPathInvalid), errors.Is(err, repo.ErrRepoPathProtected):
 		return connect.NewError(connect.CodeInvalidArgument, err)
+	case errors.Is(err, repo.ErrEncryptedFileConflict):
+		return connect.NewError(connect.CodeFailedPrecondition, err)
 	case errors.Is(err, repo.ErrRepoPathNotFound), errors.Is(err, repo.ErrRepoPathAlreadyExists), errors.Is(err, repo.ErrRepoPathNotFile), errors.Is(err, repo.ErrRepoPathNotDirectory):
 		return connect.NewError(connect.CodeFailedPrecondition, err)
 	default:

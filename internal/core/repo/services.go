@@ -645,6 +645,9 @@ func validateNetwork(path string, network *NetworkConfig) error {
 	if network.Caddy != nil && boolValue(network.Caddy.Enabled, false) && network.Caddy.Source == "" {
 		return fmt.Errorf("service meta %q: network.caddy.source is required when caddy is enabled", path)
 	}
+	if network.Caddy != nil && IsEncryptedFilePath(strings.TrimSpace(network.Caddy.Source)) && !IsValidEncryptedFilePath(strings.TrimSpace(network.Caddy.Source)) {
+		return fmt.Errorf("service meta %q: network.caddy.source must name a file before .enc", path)
+	}
 
 	if network.DNS != nil {
 		switch network.DNS.Provider {
@@ -718,6 +721,7 @@ func (meta ServiceMeta) NormalizedComposeFiles() ([]string, error) {
 	}
 	normalized := make([]string, 0, len(meta.ComposeFiles))
 	seen := make(map[string]struct{}, len(meta.ComposeFiles))
+	seenRuntime := make(map[string]struct{}, len(meta.ComposeFiles))
 	for index, file := range meta.ComposeFiles {
 		trimmed := strings.TrimSpace(file)
 		if trimmed == "" {
@@ -730,10 +734,18 @@ func (meta ServiceMeta) NormalizedComposeFiles() ([]string, error) {
 		if cleaned == "." || cleaned == ".." || strings.HasPrefix(cleaned, ".."+string(filepath.Separator)) {
 			return nil, fmt.Errorf("compose_files[%d] must stay within the service directory", index)
 		}
+		if IsEncryptedFilePath(cleaned) && !IsValidEncryptedFilePath(cleaned) {
+			return nil, fmt.Errorf("compose_files[%d] must name a file before .enc", index)
+		}
 		if _, exists := seen[cleaned]; exists {
 			return nil, fmt.Errorf("compose_files[%d] duplicates %q", index, cleaned)
 		}
+		runtimePath := RuntimeFilePath(cleaned)
+		if _, exists := seenRuntime[runtimePath]; exists {
+			return nil, fmt.Errorf("compose_files[%d] duplicates runtime path %q", index, runtimePath)
+		}
 		seen[cleaned] = struct{}{}
+		seenRuntime[runtimePath] = struct{}{}
 		normalized = append(normalized, cleaned)
 	}
 	return normalized, nil
@@ -919,6 +931,9 @@ func validateImageUpdateCurrentFile(fieldPrefix, file string) error {
 	cleaned := filepath.Clean(file)
 	if cleaned == "." || cleaned == ".." || strings.HasPrefix(cleaned, ".."+string(filepath.Separator)) {
 		return fmt.Errorf("%s must stay within the service directory", fieldPrefix)
+	}
+	if IsEncryptedFilePath(cleaned) && !IsValidEncryptedFilePath(cleaned) {
+		return fmt.Errorf("%s must name a file before .enc", fieldPrefix)
 	}
 	return nil
 }

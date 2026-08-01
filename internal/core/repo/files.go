@@ -206,6 +206,12 @@ func WriteFile(repoDir, relativePath, content string) (string, error) {
 	if normalizedPath == gitDirName || strings.HasPrefix(normalizedPath, gitDirName+"/") {
 		return "", ErrRepoPathProtected
 	}
+	if HasEncryptedParent(normalizedPath) || (IsEncryptedFilePath(normalizedPath) && !IsValidEncryptedFilePath(normalizedPath)) {
+		return "", ErrRepoPathInvalid
+	}
+	if err := rejectEncryptedFileConflict(repoDir, normalizedPath); err != nil {
+		return "", err
+	}
 	if err := rejectSymlinkPath(repoDir, normalizedPath, true); err != nil {
 		return "", err
 	}
@@ -233,6 +239,12 @@ func CreateDirectory(repoDir, relativePath string) (string, error) {
 	}
 	if normalizedPath == gitDirName || strings.HasPrefix(normalizedPath, gitDirName+"/") {
 		return "", ErrRepoPathProtected
+	}
+	if HasEncryptedParent(normalizedPath) || IsEncryptedFilePath(normalizedPath) {
+		return "", ErrRepoPathInvalid
+	}
+	if err := rejectEncryptedFileConflict(repoDir, normalizedPath); err != nil {
+		return "", err
 	}
 	if err := rejectSymlinkPath(repoDir, normalizedPath, true); err != nil {
 		return "", err
@@ -297,6 +309,9 @@ func MovePath(repoDir, sourcePath, destinationPath string) (string, string, erro
 		if pathValue == ".git" || strings.HasPrefix(pathValue, ".git/") {
 			return "", "", ErrRepoPathProtected
 		}
+		if HasEncryptedParent(pathValue) || (IsEncryptedFilePath(pathValue) && !IsValidEncryptedFilePath(pathValue)) {
+			return "", "", ErrRepoPathInvalid
+		}
 	}
 	if err := rejectSymlinkPath(repoDir, normalizedSourcePath, false); err != nil {
 		return "", "", err
@@ -311,10 +326,16 @@ func MovePath(repoDir, sourcePath, destinationPath string) (string, string, erro
 		}
 		return "", "", fmt.Errorf("stat repo source path %q: %w", normalizedSourcePath, err)
 	}
+	if info.IsDir() && (IsEncryptedFilePath(normalizedSourcePath) || IsEncryptedFilePath(normalizedDestinationPath)) {
+		return "", "", ErrRepoPathInvalid
+	}
 	if _, err := os.Lstat(absDestinationPath); err == nil {
 		return "", "", ErrRepoPathAlreadyExists
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return "", "", fmt.Errorf("stat repo destination path %q: %w", normalizedDestinationPath, err)
+	}
+	if err := rejectEncryptedMoveConflict(repoDir, normalizedSourcePath, normalizedDestinationPath); err != nil {
+		return "", "", err
 	}
 	if info.IsDir() && strings.HasPrefix(normalizedDestinationPath+"/", normalizedSourcePath+"/") {
 		return "", "", ErrRepoPathInvalid
@@ -326,6 +347,116 @@ func MovePath(repoDir, sourcePath, destinationPath string) (string, string, erro
 		return "", "", fmt.Errorf("move repo path %q to %q: %w", normalizedSourcePath, normalizedDestinationPath, err)
 	}
 	return filepath.ToSlash(normalizedSourcePath), filepath.ToSlash(normalizedDestinationPath), nil
+}
+
+func rejectEncryptedFileConflict(repoDir, relativePath string) error {
+	if !IsValidEncryptedFilePath(relativePath) && !isPlainRuntimePath(relativePath) {
+		return nil
+	}
+	conflicts := []string{encryptedSiblingPath(relativePath)}
+	if !IsEncryptedFilePath(relativePath) {
+		for parent := filepath.Dir(relativePath); parent != "." && parent != string(filepath.Separator); parent = filepath.Dir(parent) {
+			conflicts = append(conflicts, parent+encryptedFileSuffix)
+		}
+	}
+	for _, conflict := range conflicts {
+		if conflict == "" {
+			continue
+		}
+		if _, err := os.Lstat(filepath.Join(repoDir, filepath.FromSlash(conflict))); err == nil {
+			return fmt.Errorf("%w: %q and %q", ErrEncryptedFileConflict, relativePath, conflict)
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("check encrypted file conflict for %q: %w", relativePath, err)
+		}
+	}
+	return nil
+}
+
+func rejectEncryptedMoveConflict(repoDir, sourcePath, destinationPath string) error {
+	if !IsValidEncryptedFilePath(destinationPath) && !isPlainRuntimePath(destinationPath) {
+		return nil
+	}
+	sibling := encryptedSiblingPath(destinationPath)
+	if sibling == "" {
+		return nil
+	}
+	if _, err := os.Lstat(filepath.Join(repoDir, filepath.FromSlash(sibling))); err == nil {
+		if sibling == sourcePath {
+			return nil
+		}
+		return fmt.Errorf("%w: %q and %q", ErrEncryptedFileConflict, destinationPath, sibling)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("check encrypted move conflict for %q: %w", destinationPath, err)
+	}
+
+	// A directory move can create a conflict below the destination even when
+	// the destination entry itself does not exist.
+	var paths []string
+	if err := filepath.WalkDir(repoDir, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		relative, err := filepath.Rel(repoDir, path)
+		if err != nil {
+			return err
+		}
+		relative = filepath.ToSlash(relative)
+		if relative == ".git" {
+			return filepath.SkipDir
+		}
+		if relative == sourcePath || strings.HasPrefix(relative, sourcePath+"/") {
+			if entry.IsDir() {
+				return nil
+			}
+			return nil
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		paths = append(paths, relative)
+		return nil
+	}); err != nil {
+		return fmt.Errorf("scan encrypted move destination %q: %w", destinationPath, err)
+	}
+	if err := filepath.WalkDir(filepath.Join(repoDir, filepath.FromSlash(sourcePath)), func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		relative, err := filepath.Rel(repoDir, path)
+		if err != nil {
+			return err
+		}
+		relative = filepath.ToSlash(relative)
+		if relative == sourcePath {
+			paths = append(paths, destinationPath)
+		} else {
+			paths = append(paths, filepath.ToSlash(filepath.Join(destinationPath, strings.TrimPrefix(relative, sourcePath+"/"))))
+		}
+		return nil
+	}); err != nil {
+		return fmt.Errorf("scan encrypted move source %q: %w", sourcePath, err)
+	}
+	if err := ValidateEncryptedFilePaths(paths); err != nil {
+		return err
+	}
+	return nil
+}
+
+func isPlainRuntimePath(path string) bool {
+	return path != "" && !IsEncryptedFilePath(path) && filepath.Base(path) != ".enc"
+}
+
+func encryptedSiblingPath(path string) string {
+	if IsEncryptedFilePath(path) {
+		if !IsValidEncryptedFilePath(path) {
+			return ""
+		}
+		return RuntimeFilePath(path)
+	}
+	return path + encryptedFileSuffix
 }
 
 func CapturePath(repoDir, relativePath string) (PathSnapshot, error) {
@@ -529,17 +660,10 @@ func rejectSymlinkPath(repoDir, normalizedPath string, _ bool) error {
 }
 
 func resolveRepoPath(repoDir, relativePath string) (string, string, error) {
-	relativePath = filepath.Clean(strings.TrimSpace(relativePath))
-	if relativePath == "." {
-		relativePath = ""
-	}
-	if relativePath != "" {
-		if filepath.IsAbs(relativePath) {
-			return "", "", ErrRepoPathInvalid
-		}
-		if relativePath == ".." || strings.HasPrefix(relativePath, ".."+string(filepath.Separator)) {
-			return "", "", ErrRepoPathInvalid
-		}
+	var err error
+	relativePath, err = NormalizePath(relativePath)
+	if err != nil {
+		return "", "", err
 	}
 
 	absRepoDir, err := filepath.Abs(repoDir)

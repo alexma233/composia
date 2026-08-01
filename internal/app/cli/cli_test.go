@@ -94,9 +94,9 @@ func TestStringListFlag(t *testing.T) {
 	}
 }
 
-func TestIsControllerCommandIncludesSecret(t *testing.T) {
-	if !isControllerCommand("secret") {
-		t.Fatalf("secret command is not recognized")
+func TestIsControllerCommandExcludesRemovedSecretCommand(t *testing.T) {
+	if isControllerCommand("secret") {
+		t.Fatalf("secret command is still recognized")
 	}
 	for _, command := range []string{"network", "volume", "image", "rustic"} {
 		if !isControllerCommand(command) {
@@ -308,7 +308,6 @@ func TestUsageIncludesWaitAndNewCommands(t *testing.T) {
 		"node        Inspect nodes",
 		"container   Low-level container operations",
 		"repo        Low-level repository file operations",
-		"secret      Low-level encrypted file operations",
 		"system      Controller status",
 		"completion  Generate shell completion scripts",
 		"Run 'composia help <command>' for command details.",

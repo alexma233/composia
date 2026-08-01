@@ -19,18 +19,21 @@ func bundleExtraFiles(cfg *config.ControllerConfig, record task.Record, params s
 	if params.ServiceDir == "" {
 		return extraFiles, nil
 	}
+	encFiles, err := bundleEncryptedFiles(cfg, record, params.ServiceDir)
+	if err != nil {
+		return nil, err
+	}
+	if len(encFiles) > 0 && cfg.Secrets == nil {
+		return nil, errSecretsNotConfigured
+	}
 	if cfg.Secrets != nil {
-		encFiles, err := listEncryptedFiles(cfg.RepoDir, record.RepoRevision, params.ServiceDir)
-		if err != nil {
-			return nil, err
-		}
 		for _, encFile := range encFiles {
 			fullPath := filepath.ToSlash(filepath.Join(params.ServiceDir, encFile))
 			decrypted, err := decryptFileAtRevision(cfg, record.RepoRevision, fullPath)
 			if err != nil {
 				return nil, err
 			}
-			decryptedPath := strings.TrimSuffix(encFile, ".enc")
+			decryptedPath := repo.RuntimeFilePath(encFile)
 			extraFiles[filepath.ToSlash(filepath.Join(params.ServiceDir, decryptedPath))] = decrypted
 		}
 	}
@@ -58,6 +61,41 @@ func bundleExtraFiles(cfg *config.ControllerConfig, record task.Record, params s
 	return extraFiles, nil
 }
 
+func bundleEncryptedFiles(cfg *config.ControllerConfig, record task.Record, serviceDir string) ([]string, error) {
+	if record.Type != task.TypeCaddySync {
+		return listEncryptedFiles(cfg.RepoDir, record.RepoRevision, serviceDir)
+	}
+	encFiles, err := listEncryptedFiles(cfg.RepoDir, record.RepoRevision, serviceDir)
+	if err != nil {
+		return nil, err
+	}
+	service, err := repo.FindServiceAtRevision(cfg.RepoDir, record.RepoRevision, serviceDir, configuredNodeIDs(cfg))
+	if err != nil {
+		return nil, err
+	}
+	caddySource := strings.TrimSpace(repo.CaddySource(service))
+	normalizedSource, err := repo.NormalizePath(caddySource)
+	if err != nil {
+		if repo.IsEncryptedFilePath(caddySource) {
+			return nil, errInvalidEncryptedPath
+		}
+		return nil, nil
+	}
+	if !repo.IsEncryptedFilePath(normalizedSource) {
+		return nil, nil
+	}
+	if normalizedSource == "" || repo.HasEncryptedParent(normalizedSource) || !repo.IsValidEncryptedFilePath(normalizedSource) {
+		return nil, errInvalidEncryptedPath
+	}
+	caddySource = filepath.ToSlash(normalizedSource)
+	for _, encFile := range encFiles {
+		if encFile == caddySource {
+			return []string{encFile}, nil
+		}
+	}
+	return nil, nil
+}
+
 func listEncryptedFiles(repoDir, revision, serviceDir string) ([]string, error) {
 	files, err := repo.ListFilesAtRevision(repoDir, revision, serviceDir)
 	if err != nil {
@@ -68,7 +106,10 @@ func listEncryptedFiles(repoDir, revision, serviceDir string) ([]string, error) 
 	}
 	var encFiles []string
 	for _, f := range files {
-		if strings.HasSuffix(f, ".enc") {
+		if repo.IsEncryptedFilePath(f) {
+			if !repo.IsValidEncryptedFilePath(f) {
+				return nil, fmt.Errorf("invalid encrypted file path %q", f)
+			}
 			encFiles = append(encFiles, f)
 		}
 	}

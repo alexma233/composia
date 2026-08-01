@@ -10,7 +10,7 @@ service RepoQueryService {
   rpc GetRepoHead(GetRepoHeadRequest) returns (GetRepoHeadResponse);
   // ListRepoFiles lists direct children for one repo path.
   rpc ListRepoFiles(ListRepoFilesRequest) returns (ListRepoFilesResponse);
-  // GetRepoFile returns the content of one repo file.
+  // GetRepoFile returns plaintext for .enc files and stored content for other files.
   rpc GetRepoFile(GetRepoFileRequest) returns (GetRepoFileResponse);
   // ListRepoCommits returns commit history using cursor pagination.
   rpc ListRepoCommits(ListRepoCommitsRequest) returns (ListRepoCommitsResponse);
@@ -20,7 +20,7 @@ service RepoQueryService {
 
 // RepoCommandService applies changes to the controller Git repo.
 service RepoCommandService {
-  // UpdateRepoFile writes one file, creates a commit, and reports sync state.
+  // UpdateRepoFile encrypts plaintext for .enc files, writes one file, creates a commit, and reports sync state.
   rpc UpdateRepoFile(UpdateRepoFileRequest) returns (RepoWriteResult);
   // CreateRepoDirectory creates one directory, creates a commit, and reports sync state.
   rpc CreateRepoDirectory(CreateRepoDirectoryRequest) returns (RepoWriteResult);
@@ -81,13 +81,13 @@ message GetRepoFileRequest {
   string path = 1;
 }
 
-// GetRepoFileResponse returns a repo file and its text content.
+// GetRepoFileResponse returns a repo file and its API-visible text content.
 message GetRepoFileResponse {
   // path is the repo-relative path that was read.
   string path = 1;
-  // content is the file content as text.
+  // content is decrypted plaintext for .enc files and stored text for other files.
   string content = 2;
-  // size is the file size in bytes.
+  // size is the byte length of content. ListRepoFiles reports stored sizes instead.
   int64 size = 3;
 }
 
@@ -137,7 +137,7 @@ message ValidateRepoResponse {
 message UpdateRepoFileRequest {
   // path is the repo-relative path to update.
   string path = 1;
-  // content is the full replacement file content.
+  // content is plaintext for .enc files and stored text for other files.
   string content = 2;
   // base_revision protects against writing on top of an unexpected HEAD.
   string base_revision = 3;

@@ -152,5 +152,8 @@ func loadComposeCommandConfig(serviceDir, fallback string) (composeCommandConfig
 	if err != nil {
 		return composeCommandConfig{}, repo.ServiceMeta{}, fmt.Errorf("service meta %q: %w", metaPath, err)
 	}
+	for index := range composeFiles {
+		composeFiles[index] = repo.RuntimeFilePath(composeFiles[index])
+	}
 	return composeCommandConfig{ProjectName: repo.ComposeProjectName(meta.ProjectName, fallback), Files: composeFiles}, meta, nil
 }

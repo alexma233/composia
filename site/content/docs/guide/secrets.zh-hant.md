@@ -55,28 +55,30 @@ my-app/
 
 1. 從存放庫中的服務目錄讀取加密檔案。
 2. 使用 age 私鑰解密每個檔案。
-3. 將解密後的內容作為 `.composia-secret.env` 注入服務包。
+3. 移除 `.enc` 副檔名，並以執行階段檔名注入解密內容。例如，`.secret.env.enc` 會成為 `.secret.env`。
 
 服務包透過代理回報連線以串流方式傳送給代理。代理將服務包寫入磁碟，然後執行 `docker compose up`。解密的密鑰環境可供 Compose 服務使用，而代理從未見過私鑰。
+
+`composia-meta.yaml` 中的檔案引用使用存放庫檔名，例如 `.env.enc`；Composia 在執行階段使用前將其轉換為 `.env`。Compose、Caddyfile、指令碼等原生檔案內部直接填寫執行階段檔名 `.env`。
 
 ## CLI 使用
 
 寫入加密密鑰檔案：
 
 ```bash
-composia secret update my-app .secret.env.enc --file ./local-plain.env
+composia service my-app edit .secret.env.enc
 ```
 
 讀取並解密一個密鑰檔案：
 
 ```bash
-composia secret get my-app .secret.env.enc
+composia repo get my-app/.secret.env.enc
 ```
 
 原地編輯密鑰（開啟您的編輯器）：
 
 ```bash
-composia secret edit my-app .secret.env.enc
+composia repo update --file ./local-plain.env my-app/.secret.env.enc
 ```
 
 所有密鑰寫入操作都包含基礎修訂版本檢查，以防止與並行變更發生衝突。
@@ -93,6 +95,6 @@ composia secret edit my-app .secret.env.enc
 
 ## 錯誤狀況
 
-- **密鑰未設定**：當 `controller.secrets` 未設定時，`GetSecret` 和 `UpdateSecret` 返回 `FailedPrecondition`。
-- **檔案不存在**：當檔案不存在時，`GetSecret` 返回空的內容回應而非錯誤。這讓客戶端能夠區分遺失檔案和解密失敗。
-- **基礎修訂版本衝突**：`UpdateSecret` 對存放庫 HEAD 使用 CAS（比較並交換）機制。如果存放庫自上次讀取後已變更，寫入會因修訂版本衝突而失敗。
+- **密鑰未設定**：當 `controller.secrets` 未設定時，Repo API 對 `.enc` 檔案的讀寫返回 `FailedPrecondition`。
+- **檔案不存在**：`GetRepoFile` 返回 `NotFound`。
+- **基礎修訂版本衝突**：`UpdateRepoFile` 使用 CAS（比較並交換）保護存放庫 HEAD。

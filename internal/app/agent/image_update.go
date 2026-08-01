@@ -206,10 +206,11 @@ func currentImageUpdateValue(serviceDir string, image repo.ImageUpdateConfig) (s
 	} else {
 		currentFile = image.Current.YAML.File
 	}
-	path := filepath.Join(serviceDir, filepath.FromSlash(currentFile))
+	runtimeFile := repo.RuntimeFilePath(currentFile)
+	path := filepath.Join(serviceDir, filepath.FromSlash(runtimeFile))
 	content, err := os.ReadFile(path) //nolint:gosec
 	if err != nil {
-		return "", "", "", fmt.Errorf("read image update current %q: %w", currentFile, err)
+		return "", "", "", fmt.Errorf("read image update current %q: %w", runtimeFile, err)
 	}
 	if image.Current.Env != nil {
 		value, err := envFileValue(string(content), image.Current.Env.Key)

@@ -117,6 +117,17 @@ network:
 	}
 }
 
+func TestNormalizedComposeFilesRejectsRuntimeCollisions(t *testing.T) {
+	_, err := (ServiceMeta{ComposeFiles: []string{"compose.yaml", "compose.yaml.enc"}}).NormalizedComposeFiles()
+	if err == nil || !strings.Contains(err.Error(), "runtime path") {
+		t.Fatalf("runtime collision error = %v", err)
+	}
+	_, err = (ServiceMeta{ComposeFiles: []string{".enc"}}).NormalizedComposeFiles()
+	if err == nil {
+		t.Fatal("bare .enc compose file was accepted")
+	}
+}
+
 func TestDiscoverServicesSkipsServiceWithoutTargetNodes(t *testing.T) {
 	t.Parallel()
 

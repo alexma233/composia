@@ -230,7 +230,7 @@ func caddyGeneratedFileName(serviceDir string) (string, error) {
 }
 
 func resolveServiceCaddySourcePath(serviceRoot, source string) (string, error) {
-	cleanSource := filepath.Clean(strings.TrimSpace(source))
+	cleanSource := filepath.Clean(repo.RuntimeFilePath(strings.TrimSpace(source)))
 	if cleanSource == "." || cleanSource == "" {
 		return "", errors.New("network.caddy.source must not be empty")
 	}

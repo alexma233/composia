@@ -163,6 +163,28 @@ func TestGitRemoteConfigUsesBearerTokenWithoutUsername(t *testing.T) {
 	}
 }
 
+func TestValidateEncryptedFileCollisionsAtRevision(t *testing.T) {
+	repoDir := t.TempDir()
+	gitRun(t, repoDir, "init")
+	if err := os.MkdirAll(filepath.Join(repoDir, "app"), 0o750); err != nil {
+		t.Fatalf("create app: %v", err)
+	}
+	for _, name := range []string{"app/.env", "app/.env.enc"} {
+		if err := os.WriteFile(filepath.Join(repoDir, name), []byte("content\n"), 0o600); err != nil {
+			t.Fatalf("write %s: %v", name, err)
+		}
+	}
+	gitRun(t, repoDir, "add", ".")
+	gitRun(t, repoDir, "-c", "user.name=Test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "-m", "invalid pair")
+	revision, err := gitOutput(repoDir, "rev-parse", "HEAD")
+	if err != nil {
+		t.Fatalf("resolve revision: %v", err)
+	}
+	if err := ValidateEncryptedFileCollisionsAtRevision(repoDir, revision); !errors.Is(err, ErrEncryptedFileConflict) {
+		t.Fatalf("revision collision error = %v", err)
+	}
+}
+
 func TestGitRemoteConfigUsesBasicAuthWhenUsernameConfigured(t *testing.T) {
 	t.Parallel()
 

@@ -39,7 +39,6 @@ type controllerClients struct {
 	task            controllerv1connect.TaskServiceClient
 	backupQuery     controllerv1connect.BackupQueryServiceClient
 	backupCommand   controllerv1connect.BackupCommandServiceClient
-	secret          controllerv1connect.SecretServiceClient
 }
 
 func TestControllerE2EAuth(t *testing.T) {
@@ -434,26 +433,26 @@ func TestControllerE2ESecrets(t *testing.T) {
 	clients := newControllerClients()
 	waitForController(t, clients)
 
-	const secretFilePath = ".secret.env.enc"
+	const secretFilePath = "host-service/.secret.env.enc"
 	const initialContent = "TOKEN=controller-e2e-before\n"
 	const updatedContent = "TOKEN=controller-e2e-after\n"
 
-	secret, err := clients.secret.GetSecret(ctx, connect.NewRequest(&controllerv1.GetSecretRequest{ServiceName: testServiceName, FilePath: secretFilePath}))
+	secret, err := clients.repoQuery.GetRepoFile(ctx, connect.NewRequest(&controllerv1.GetRepoFileRequest{Path: secretFilePath}))
 	if err != nil {
 		t.Fatalf("get configured secret: %v", err)
 	}
-	if secret.Msg.GetServiceName() != testServiceName || secret.Msg.GetFilePath() != secretFilePath || secret.Msg.GetContent() != initialContent {
+	if secret.Msg.GetPath() != secretFilePath || secret.Msg.GetContent() != initialContent {
 		t.Fatalf("unexpected secret response: %+v", secret.Msg)
 	}
 
-	_, err = clients.secret.GetSecret(ctx, connect.NewRequest(&controllerv1.GetSecretRequest{ServiceName: testServiceName, FilePath: "../outside.env.enc"}))
+	_, err = clients.repoQuery.GetRepoFile(ctx, connect.NewRequest(&controllerv1.GetRepoFileRequest{Path: "../outside.env.enc"}))
 	assertConnectCode(t, err, connect.CodeInvalidArgument)
 
-	_, err = clients.secret.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{ServiceName: testServiceName, FilePath: secretFilePath, Content: updatedContent}))
+	_, err = clients.repoCommand.UpdateRepoFile(ctx, connect.NewRequest(&controllerv1.UpdateRepoFileRequest{Path: secretFilePath, Content: updatedContent}))
 	assertConnectCode(t, err, connect.CodeInvalidArgument)
 
 	head := repoHead(t, ctx, clients)
-	_, err = clients.secret.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{ServiceName: testServiceName, FilePath: "/outside.env.enc", Content: updatedContent, BaseRevision: head.GetHeadRevision()}))
+	_, err = clients.repoCommand.UpdateRepoFile(ctx, connect.NewRequest(&controllerv1.UpdateRepoFileRequest{Path: "/outside.env.enc", Content: updatedContent, BaseRevision: head.GetHeadRevision()}))
 	assertConnectCode(t, err, connect.CodeInvalidArgument)
 
 	workspace := fmt.Sprintf("controller-e2e-secret-base-%d", time.Now().UnixNano())
@@ -467,18 +466,16 @@ func TestControllerE2ESecrets(t *testing.T) {
 	}
 	defer cleanupRepoPath(t, ctx, clients, workspace)
 
-	_, err = clients.secret.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{
-		ServiceName:   testServiceName,
-		FilePath:      secretFilePath,
+	_, err = clients.repoCommand.UpdateRepoFile(ctx, connect.NewRequest(&controllerv1.UpdateRepoFileRequest{
+		Path:          secretFilePath,
 		Content:       updatedContent,
 		BaseRevision:  head.GetHeadRevision(),
 		CommitMessage: "Stale controller e2e secret update",
 	}))
 	assertConnectCode(t, err, connect.CodeFailedPrecondition)
 
-	updated, err := clients.secret.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{
-		ServiceName:   testServiceName,
-		FilePath:      secretFilePath,
+	updated, err := clients.repoCommand.UpdateRepoFile(ctx, connect.NewRequest(&controllerv1.UpdateRepoFileRequest{
+		Path:          secretFilePath,
 		Content:       updatedContent,
 		BaseRevision:  created.Msg.GetCommitId(),
 		CommitMessage: "Update controller e2e secret",
@@ -491,9 +488,8 @@ func TestControllerE2ESecrets(t *testing.T) {
 	}
 	defer func() {
 		head := repoHead(t, ctx, clients)
-		_, err := clients.secret.UpdateSecret(ctx, connect.NewRequest(&controllerv1.UpdateSecretRequest{
-			ServiceName:   testServiceName,
-			FilePath:      secretFilePath,
+		_, err := clients.repoCommand.UpdateRepoFile(ctx, connect.NewRequest(&controllerv1.UpdateRepoFileRequest{
+			Path:          secretFilePath,
 			Content:       initialContent,
 			BaseRevision:  head.GetHeadRevision(),
 			CommitMessage: "Restore controller e2e secret",
@@ -503,20 +499,12 @@ func TestControllerE2ESecrets(t *testing.T) {
 		}
 	}()
 
-	secret, err = clients.secret.GetSecret(ctx, connect.NewRequest(&controllerv1.GetSecretRequest{ServiceName: testServiceName, FilePath: secretFilePath}))
+	secret, err = clients.repoQuery.GetRepoFile(ctx, connect.NewRequest(&controllerv1.GetRepoFileRequest{Path: secretFilePath}))
 	if err != nil {
 		t.Fatalf("get updated secret: %v", err)
 	}
 	if secret.Msg.GetContent() != updatedContent {
 		t.Fatalf("updated secret content = %q, want %q", secret.Msg.GetContent(), updatedContent)
-	}
-
-	file, err := clients.repoQuery.GetRepoFile(ctx, connect.NewRequest(&controllerv1.GetRepoFileRequest{Path: "host-service/" + secretFilePath}))
-	if err != nil {
-		t.Fatalf("get encrypted secret file: %v", err)
-	}
-	if strings.Contains(file.Msg.GetContent(), updatedContent) {
-		t.Fatalf("expected encrypted secret file not to contain plaintext")
 	}
 }
 
@@ -876,7 +864,6 @@ func newControllerClients() controllerClients {
 		task:            controllerv1connect.NewTaskServiceClient(http.DefaultClient, baseURL, opts...),
 		backupQuery:     controllerv1connect.NewBackupQueryServiceClient(http.DefaultClient, baseURL, opts...),
 		backupCommand:   controllerv1connect.NewBackupCommandServiceClient(http.DefaultClient, baseURL, opts...),
-		secret:          controllerv1connect.NewSecretServiceClient(http.DefaultClient, baseURL, opts...),
 	}
 }
 

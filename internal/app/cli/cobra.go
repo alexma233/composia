@@ -139,11 +139,6 @@ func cobraCommandSpecs(runtime *cobraRuntime) []cobraCommandSpec {
 			leafSpec("sync", "Sync repository remote", true, (*app).runRepoSync, nil, nil),
 			leafSpec("validate", "Validate repository files", true, (*app).runRepoValidate, nil, nil),
 		}),
-		groupSpec("secret", "Low-level encrypted file operations", true, []cobraCommandSpec{
-			leafSpec("get <service> <file>", "Print a decrypted secret file", true, (*app).runSecretGet, nil, completeServiceFirstArg(runtime)),
-			leafSpec("edit <service> <file>", "Edit a decrypted secret file", true, (*app).runSecretEdit, messageFlag, completeServiceFirstArg(runtime)),
-			leafSpec("update <service> <file>", "Update an encrypted secret file", true, (*app).runSecretUpdate, fileMessageFlags, completeServiceFirstArg(runtime)),
-		}),
 		groupSpec("system", "Controller status, reload, and capability checks", true, []cobraCommandSpec{
 			leafSpec("status", "Show controller status", true, func(a *app, args []string) error { return a.runSystem(append([]string{"status"}, args...)) }, nil, nil),
 			leafSpec("reload", "Reload controller config", true, func(a *app, args []string) error { return a.runSystem(append([]string{"reload"}, args...)) }, nil, nil),

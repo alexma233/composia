@@ -34,6 +34,9 @@ func ClassifyDataInclude(include string) (DataIncludeKind, string, error) {
 		return "", "", fmt.Errorf("include %q must stay within the service root", include)
 	}
 	if strings.HasPrefix(trimmed, "./") || strings.Contains(trimmed, "/") {
+		if IsEncryptedFilePath(clean) && !IsValidEncryptedFilePath(clean) {
+			return "", "", fmt.Errorf("include %q must name a file before .enc", include)
+		}
 		return DataIncludeKindServicePath, clean, nil
 	}
 	return DataIncludeKindDockerVolume, trimmed, nil

@@ -47,7 +47,7 @@ my-app/
 └── .secret.env.enc        (encrypted with age)
 ```
 
-The controller encrypts plaintext on write and decrypts on read. The repository contains only ciphertext. Secrets never appear as plaintext in the repo, in task logs, or in transit to agents.
+The repository filename, including `.enc`, is the canonical name used by the file tree, Repo API, CLI, and `composia-meta.yaml`. `GetRepoFile` returns plaintext for `.enc` files, and `UpdateRepoFile` accepts plaintext and encrypts it before committing. The repository contains only ciphertext.
 
 ## How secrets reach agents
 
@@ -55,44 +55,49 @@ During the render step of a deploy or update task, the controller:
 
 1. Reads encrypted files from the service directory in the repo.
 2. Decrypts each file using the age private key.
-3. Injects the decrypted content into the service bundle as `.composia-secret.env`.
+3. Removes the `.enc` suffix and injects the decrypted content under its runtime filename. For example, `.secret.env.enc` becomes `.secret.env`.
 
-The bundle is streamed to the agent over the agent report connection. The agent writes the bundle to disk and proceeds with `docker compose up`. The decrypted secret environment is available to the Compose services without the agent ever seeing the private key.
+Encrypted repository files are omitted from the runtime bundle. The bundle is streamed to the agent over the agent report connection. The agent writes the decrypted runtime files to disk and proceeds with `docker compose up` without ever receiving the private key.
+
+File references in `composia-meta.yaml` use repository names such as `.env.enc`; Composia converts them to runtime names before use. References inside native files such as Compose files, Caddyfiles, and scripts use the runtime name `.env` because those files are interpreted by their native tools.
 
 ## CLI usage
 
-Write an encrypted secret file:
+Create or edit an encrypted file relative to a service directory:
 
 ```bash
-composia secret update my-app .secret.env.enc --file ./local-plain.env
+composia service my-app edit .secret.env.enc
 ```
 
-Read and decrypt a secret file:
+Read and decrypt it through the Repo API:
 
 ```bash
-composia secret get my-app .secret.env.enc
+composia repo get my-app/.secret.env.enc
 ```
 
-Edit a secret in place (opens your editor):
+Replace it from a local plaintext file:
 
 ```bash
-composia secret edit my-app .secret.env.enc
+composia repo update --file ./local-plain.env my-app/.secret.env.enc
 ```
 
-All secret write operations include a base revision check to prevent conflicts with concurrent changes.
+All Repo write operations include a base revision check to prevent conflicts with concurrent changes.
 
 ## File path rules
 
-Secret file paths must:
+Encrypted file paths must:
 
-- Be relative to the service directory (not absolute).
+- Be repository-relative when using Repo commands, or service-relative when using `service edit`.
 - Not contain path traversal sequences like `../`.
-- Point to a file inside the service directory.
+- Point to a file; `.enc` is reserved and cannot be used by a directory path segment.
 
-The controller locates the service, resolves the file path relative to the service directory, and operates on the repo file.
+The `.enc` suffix is exact and case-sensitive. Directories cannot use it, and moves cannot cross between `.enc` and non-`.enc` names.
+
+A file and its encrypted counterpart cannot coexist in the repository: for example, `.env` and `.env.enc` are mutually exclusive.
 
 ## Error conditions
 
-- **Secrets not configured**: `GetSecret` and `UpdateSecret` return `FailedPrecondition` when `controller.secrets` is not set.
-- **File not found**: `GetSecret` returns an empty content response rather than an error when the file does not exist. This lets clients distinguish between missing files and decryption failures.
-- **Base revision conflict**: `UpdateSecret` uses CAS (compare-and-swap) against the repo HEAD. If the repo changed since the last read, the write fails with a revision conflict.
+- **Secrets not configured**: Repo reads and writes for `.enc` files return `FailedPrecondition` when `controller.secrets` is not set.
+- **File not found**: `GetRepoFile` returns `NotFound`.
+- **Invalid ciphertext**: `GetRepoFile` returns `DataLoss` when an `.enc` file cannot be decrypted.
+- **Base revision conflict**: `UpdateRepoFile` uses CAS (compare-and-swap) against the repo HEAD. If the repo changed since the last read, the write fails with a revision conflict.

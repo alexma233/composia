@@ -55,28 +55,30 @@ Während des Render-Schritts einer Deploy- oder Update-Aufgabe:
 
 1. Liest der Controller verschlüsselte Dateien aus dem Dienstverzeichnis im Repo.
 2. Entschlüsselt jede Datei mit dem privaten Age-Schlüssel.
-3. Injiziert den entschlüsselten Inhalt als `.composia-secret.env` in das Dienstpaket.
+3. Entfernt die Endung `.enc` und fügt den entschlüsselten Inhalt unter dem Laufzeitnamen ein. `.secret.env.enc` wird beispielsweise zu `.secret.env`.
 
 Das Paket wird über die Agent-Report-Verbindung an den Agenten gestreamt. Der Agent schreibt das Paket auf die Festplatte und fährt mit `docker compose up` fort. Die entschlüsselte Secret-Umgebung steht den Compose-Diensten zur Verfügung, ohne dass der Agent jemals den privaten Schlüssel sieht.
+
+Dateiverweise in `composia-meta.yaml` verwenden Repository-Namen wie `.env.enc`; Composia wandelt sie vor der Laufzeitnutzung in `.env` um. Native Compose-Dateien, Caddyfiles und Skripte verwenden direkt den Laufzeitnamen `.env`.
 
 ## CLI-Nutzung
 
 Schreibe eine verschlüsselte Secret-Datei:
 
 ```bash
-composia secret update my-app .secret.env.enc --file ./local-plain.env
+composia service my-app edit .secret.env.enc
 ```
 
 Lese und entschlüssele eine Secret-Datei:
 
 ```bash
-composia secret get my-app .secret.env.enc
+composia repo get my-app/.secret.env.enc
 ```
 
 Bearbeite ein Secret direkt (öffnet deinen Editor):
 
 ```bash
-composia secret edit my-app .secret.env.enc
+composia repo update --file ./local-plain.env my-app/.secret.env.enc
 ```
 
 Alle Secret-Schreiboperationen beinhalten eine Basis-Revisionsprüfung, um Konflikte mit gleichzeitigen Änderungen zu verhindern.
@@ -93,6 +95,6 @@ Der Controller lokalisiert den Dienst, löst den Dateipfad relativ zum Dienstver
 
 ## Fehlerbedingungen
 
-- **Secrets nicht konfiguriert**: `GetSecret` und `UpdateSecret` geben `FailedPrecondition` zurück, wenn `controller.secrets` nicht gesetzt ist.
-- **Datei nicht gefunden**: `GetSecret` gibt eine leere Inhaltsantwort statt eines Fehlers zurück, wenn die Datei nicht existiert. Dies ermöglicht Clients, zwischen fehlenden Dateien und Entschlüsselungsfehlern zu unterscheiden.
-- **Basis-Revisionskonflikt**: `UpdateSecret` verwendet CAS (Compare-and-Swap) gegen den Repo-HEAD. Wenn sich das Repo seit dem letzten Lesen geändert hat, schlägt das Schreiben mit einem Revisionskonflikt fehl.
+- **Secrets nicht konfiguriert**: Repo-Zugriffe auf `.enc` geben `FailedPrecondition` zurück.
+- **Datei nicht gefunden**: `GetRepoFile` gibt `NotFound` zurück.
+- **Basis-Revisionskonflikt**: `UpdateRepoFile` schützt den Repo-HEAD mit CAS.

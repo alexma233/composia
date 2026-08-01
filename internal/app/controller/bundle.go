@@ -59,6 +59,9 @@ func (server *bundleServer) GetServiceBundle(ctx context.Context, req *connect.R
 	}
 	extraFiles, err := bundleExtraFiles(server.cfg, detail.Record, params, params.ServiceDir == requestedServiceDir)
 	if err != nil {
+		if errors.Is(err, errSecretsNotConfigured) {
+			return connect.NewError(connect.CodeFailedPrecondition, err)
+		}
 		return connect.NewError(connect.CodeInternal, err)
 	}
 
