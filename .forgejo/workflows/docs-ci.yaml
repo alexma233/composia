@@ -51,7 +51,8 @@ jobs:
       - name: Checkout
         # renovate: datasource=git-refs depName=actions/checkout packageName=https://forgejo.alexma.top/actions/checkout currentValue=v7.0.0
         uses: https://forgejo.alexma.top/actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
-
+        with:
+          fetch-depth: 0
       - name: Download Hugo modules
         working-directory: site
         run: |
