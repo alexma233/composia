@@ -42,7 +42,7 @@ jobs:
         # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.4.0
         uses: https://forgejo.alexma.top/actions/docker-login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0
         with:
-          registry: forgejo.alexma.top
+          registry: forgejo-registry-raw.alexma.top
           username: ${{ secrets.OCI_IMAGES_FORGEJO_USERNAME }}
           password: ${{ secrets.OCI_IMAGES_FORGEJO_TOKEN }}
 

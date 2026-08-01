@@ -34,7 +34,7 @@ on:
         type: boolean
 
 env:
-  REGISTRY_HOST: forgejo.alexma.top
+  REGISTRY_HOST: forgejo-registry-raw.alexma.top
 
 jobs:
   publish:

@@ -27,7 +27,7 @@ jobs:
         # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.4.0
         uses: https://forgejo.alexma.top/actions/docker-login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0
         with:
-          registry: forgejo.alexma.top
+          registry: forgejo-registry-raw.alexma.top
           username: ${{ secrets.OCI_IMAGES_FORGEJO_USERNAME }}
           password: ${{ secrets.OCI_IMAGES_FORGEJO_TOKEN }}
 
@@ -115,7 +115,7 @@ jobs:
       target: final
       platforms: linux/amd64,linux/arm64
       images: |
-        forgejo.alexma.top/alexma233/composia-web
+        forgejo-registry-raw.alexma.top/alexma233/composia-web
         ghcr.io/alexma233/composia-web
         alexma233/composia-web
       tags: |
@@ -127,6 +127,6 @@ jobs:
         org.opencontainers.image.documentation=https://composia.xyz
         org.opencontainers.image.vendor=alexma233
         org.opencontainers.image.ref.name=${{ github.ref_name }}
-      cache_ref: forgejo.alexma.top/alexma233/composia-web:buildcache
+      cache_ref: forgejo-registry-raw.alexma.top/alexma233/composia-web:buildcache
       latest: true
       login_dockerhub: true

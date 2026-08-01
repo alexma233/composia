@@ -166,7 +166,7 @@ dockers_v2:
       - composia-linux
     dockerfile: Dockerfile.goreleaser
     images:
-      - forgejo.alexma.top/alexma233/composia-cli
+      - forgejo-registry-raw.alexma.top/alexma233/composia-cli
       - ghcr.io/alexma233/composia-cli
       - '{{ if not (index .Env "COMPOSIA_CANARY_TARGET") }}alexma233/composia-cli{{ end }}'
     tags: &docker_release_tags
@@ -197,7 +197,7 @@ dockers_v2:
       - composia-controller-linux
     dockerfile: Dockerfile.goreleaser
     images:
-      - forgejo.alexma.top/alexma233/composia-controller
+      - forgejo-registry-raw.alexma.top/alexma233/composia-controller
       - ghcr.io/alexma233/composia-controller
       - '{{ if not (index .Env "COMPOSIA_CANARY_TARGET") }}alexma233/composia-controller{{ end }}'
     tags: *docker_release_tags
@@ -219,7 +219,7 @@ dockers_v2:
       - composia-agent-linux
     dockerfile: Dockerfile.goreleaser
     images:
-      - forgejo.alexma.top/alexma233/composia-agent
+      - forgejo-registry-raw.alexma.top/alexma233/composia-agent
       - ghcr.io/alexma233/composia-agent
       - '{{ if not (index .Env "COMPOSIA_CANARY_TARGET") }}alexma233/composia-agent{{ end }}'
     tags: *docker_release_tags
