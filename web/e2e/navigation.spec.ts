@@ -115,26 +115,19 @@ test("service editor has an accessible name", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("terminal runtime loads only after opening the terminal", async ({
+test("terminal initializes only after opening the terminal", async ({
   page,
 }) => {
-  const terminalRequests: string[] = [];
-  page.on("request", (request) => {
-    if (request.url().includes("ghostty") || request.url().endsWith(".wasm")) {
-      terminalRequests.push(request.url());
-    }
-  });
-
   await page.goto("/nodes/main/docker/containers");
   await page
     .locator('a[href^="/nodes/main/docker/containers/"]')
     .first()
     .click();
   await expect(page.getByRole("tab", { name: "Info" })).toBeVisible();
-  expect(terminalRequests).toEqual([]);
+  await expect(page.locator(".wterm")).toHaveCount(0);
 
   await page.getByRole("tab", { name: "Terminal" }).click();
-  await expect.poll(() => terminalRequests.length).toBeGreaterThan(0);
+  await expect(page.locator(".wterm")).toBeVisible();
 });
 
 test("locale persists through SSR reloads", async ({ page }) => {

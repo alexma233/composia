@@ -82,7 +82,6 @@ const initialEntries = dependencies([
 for (const pattern of [
   "src/lib/components/app/code-editor.svelte",
   "@wterm+dom",
-  "@wterm+ghostty",
   "src/lib/i18n/messages/",
 ]) {
   if ([...initialEntries].some((entry) => entry.includes(pattern))) {

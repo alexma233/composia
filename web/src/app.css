@@ -6,6 +6,12 @@
 
 :root {
   --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --code-font-family: "JetBrains Mono", Consolas, monospace;
+  --code-font-size: 14px;
+  --code-line-height: 1.6;
+  --code-background: #ffffff;
+  --code-foreground: #24292e;
+  --code-cursor: #24292e;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -51,6 +57,9 @@
 }
 
 .dark {
+  --code-background: #0d1117;
+  --code-foreground: #c9d1d9;
+  --code-cursor: #ffffff;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -351,30 +360,28 @@
   }
 
   .terminal-surface .wterm {
-    --term-font-family:
-      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono,
-      monospace;
-    --term-font-size: 12px;
-    --term-line-height: 1.45;
-    --term-bg: #ffffff;
-    --term-fg: #24292f;
-    --term-cursor: #0969da;
-    --term-color-0: #24292f;
-    --term-color-1: #cf222e;
-    --term-color-2: #116329;
-    --term-color-3: #4d2d00;
-    --term-color-4: #0969da;
-    --term-color-5: #8250df;
-    --term-color-6: #1b7c83;
-    --term-color-7: #d0d7de;
-    --term-color-8: #6e7781;
-    --term-color-9: #a40e26;
-    --term-color-10: #1a7f37;
-    --term-color-11: #9a6700;
-    --term-color-12: #0550ae;
-    --term-color-13: #6639ba;
-    --term-color-14: #3192aa;
-    --term-color-15: #57606a;
+    --term-font-family: var(--code-font-family);
+    --term-font-size: var(--code-font-size);
+    --term-line-height: var(--code-line-height);
+    --term-bg: var(--code-background);
+    --term-fg: var(--code-foreground);
+    --term-cursor: var(--code-cursor);
+    --term-color-0: #3e3e3e;
+    --term-color-1: #970b16;
+    --term-color-2: #07962a;
+    --term-color-3: #c5bb94;
+    --term-color-4: #003e8a;
+    --term-color-5: #e94691;
+    --term-color-6: #7cc4df;
+    --term-color-7: #b2b2b2;
+    --term-color-8: #666666;
+    --term-color-9: #de0000;
+    --term-color-10: #7ac895;
+    --term-color-11: #d7b600;
+    --term-color-12: #2e6cba;
+    --term-color-13: #f29592;
+    --term-color-14: #00c7cb;
+    --term-color-15: #ffffff;
     box-sizing: border-box;
     width: 100%;
     height: 100%;
@@ -393,35 +400,23 @@
     will-change: auto;
   }
 
-  .dark .terminal-surface .wterm,
-  .terminal-surface .wterm.theme-composia-dark {
-    --term-bg: #0d1117;
-    --term-fg: #c9d1d9;
-    --term-cursor: #58a6ff;
-    --term-color-0: #484f58;
-    --term-color-1: #ff7b72;
-    --term-color-2: #7ee787;
-    --term-color-3: #d29922;
-    --term-color-4: #58a6ff;
-    --term-color-5: #bc8cff;
-    --term-color-6: #39c5cf;
-    --term-color-7: #b1bac4;
-    --term-color-8: #6e7681;
-    --term-color-9: #ffa198;
+  .dark .terminal-surface .wterm {
+    --term-color-0: #000000;
+    --term-color-1: #f78166;
+    --term-color-2: #56d364;
+    --term-color-3: #e3b341;
+    --term-color-4: #6ca4f8;
+    --term-color-5: #db61a2;
+    --term-color-6: #2b7489;
+    --term-color-7: #ffffff;
+    --term-color-8: #4d4d4d;
+    --term-color-9: #f78166;
     --term-color-10: #56d364;
     --term-color-11: #e3b341;
-    --term-color-12: #79c0ff;
-    --term-color-13: #d2a8ff;
-    --term-color-14: #56d4dd;
-    --term-color-15: #f0f6fc;
-  }
-
-  @media (max-width: 640px) {
-    .terminal-surface .wterm {
-      --term-font-size: 11px;
-      --term-line-height: 1.4;
-      padding: 0.5rem;
-    }
+    --term-color-12: #6ca4f8;
+    --term-color-13: #db61a2;
+    --term-color-14: #2b7489;
+    --term-color-15: #ffffff;
   }
 
   .toolbar-surface {

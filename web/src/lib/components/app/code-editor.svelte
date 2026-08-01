@@ -67,6 +67,10 @@
       height: "100%",
       borderRadius: editorBorderRadius(),
       overflow: "hidden",
+      color: "var(--code-foreground)",
+      backgroundColor: "var(--code-background)",
+      fontFamily: "var(--code-font-family)",
+      fontSize: "var(--code-font-size)",
     },
     "&.cm-focused": {
       outline: "none",
@@ -76,6 +80,10 @@
     },
     ".cm-content": {
       minHeight: "100%",
+      lineHeight: "var(--code-line-height)",
+    },
+    ".cm-cursor, .cm-dropCursor": {
+      borderLeftColor: "var(--code-cursor)",
     },
   });
 
@@ -248,7 +256,8 @@
 
     // CodeMirror packages can be duplicated by the lockfile, so normalize the
     // language-data type to the public LanguageDescription API used here.
-    const languageDescriptions = languages as unknown as readonly LanguageDescription[];
+    const languageDescriptions =
+      languages as unknown as readonly LanguageDescription[];
 
     return LanguageDescription.matchFilename(languageDescriptions, fileName);
   }

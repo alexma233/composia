@@ -1,11 +1,9 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount } from "svelte";
 
-  import { getMessages } from '$lib/i18n';
+  import { getMessages } from "$lib/i18n";
 
   const messages = getMessages();
-  import { observeThemeChange } from '$lib/theme-observer';
-  import { patchGhosttyCore, type TerminalThemeColors } from '$lib/wterm/ghostty-core-patch';
 
   type DataHandler = (data: string) => void;
   type ResizeHandler = (rows: number, cols: number) => void;
@@ -22,27 +20,24 @@
 
   let {
     active = false,
-    content = '',
-    emptyText = '',
-    heightClass = 'h-[360px]',
+    content = "",
+    emptyText = "",
+    heightClass = "h-[360px]",
     interactive = false,
     onData,
-    onResize
+    onResize,
   }: Props = $props();
 
   let host = $state<HTMLDivElement | null>(null);
 
-  const TERMINAL_RESET = '\x1bc\x1b[3J\x1b[H\x1b[2J';
-  const LIGHT_THEME_COLORS: TerminalThemeColors = { background: 0xffffff, foreground: 0x24292f };
-  const DARK_THEME_COLORS: TerminalThemeColors = { background: 0x0d1117, foreground: 0xc9d1d9 };
+  const TERMINAL_RESET = "\x1bc\x1b[3J\x1b[H\x1b[2J";
 
-  let terminal: import('@wterm/dom').WTerm | null = null;
-  let disconnectThemeObserver: (() => void) | null = null;
+  let terminal: import("@wterm/dom").WTerm | null = null;
   let scrollScheduled = false;
-  let renderedText = '';
+  let renderedText = "";
 
   function normalizeTerminalText(value: string): string {
-    return value.replace(/\r?\n/g, '\r\n');
+    return value.replace(/\r?\n/g, "\r\n");
   }
 
   function currentText(): string {
@@ -59,7 +54,11 @@
       return;
     }
 
-    const canAppend = !force && content !== '' && renderedText !== '' && nextText.startsWith(renderedText);
+    const canAppend =
+      !force &&
+      content !== "" &&
+      renderedText !== "" &&
+      nextText.startsWith(renderedText);
     if (canAppend) {
       terminal.write(nextText.slice(renderedText.length));
     } else {
@@ -87,32 +86,13 @@
     });
   }
 
-  function isDarkTheme() {
-    return document.documentElement.classList.contains('dark');
-  }
-
-  function currentThemeColors(): TerminalThemeColors {
-    return isDarkTheme() ? DARK_THEME_COLORS : LIGHT_THEME_COLORS;
-  }
-
-  function applyTheme(isDark?: boolean) {
-    if (!terminal) {
-      return;
-    }
-
-    const dark = isDark ?? isDarkTheme();
-    terminal.element.classList.toggle('theme-composia-dark', dark);
-    terminal.element.classList.toggle('theme-composia-light', !dark);
-    terminal.element.classList.toggle('theme-light', !dark);
-  }
-
   function disableReadOnlyInput() {
     if (interactive || !host) {
       return;
     }
 
-    const input = host.querySelector('textarea');
-    input?.setAttribute('tabindex', '-1');
+    const input = host.querySelector("textarea");
+    input?.setAttribute("tabindex", "-1");
     if (input instanceof HTMLTextAreaElement) {
       input.blur();
     }
@@ -127,32 +107,22 @@
     };
 
     async function setup() {
-      const [{ WTerm }, { GhosttyCore }] = await Promise.all([
-        import('@wterm/dom'),
-        import('@wterm/ghostty'),
-        import('@wterm/dom/css')
+      const [{ WTerm }] = await Promise.all([
+        import("@wterm/dom"),
+        import("@wterm/dom/css"),
       ]);
       if (disposed || !host) {
         return;
       }
 
-      const core = await GhosttyCore.load({
-        scrollbackLimit: interactive ? 5000 : 20000
-      });
-      if (disposed || !host) {
-        return;
-      }
-
-      patchGhosttyCore(core, currentThemeColors);
       terminal = new WTerm(host, {
         autoResize: true,
-        core,
         cursorBlink: interactive,
         onData: interactive ? (data) => onData?.(data) : () => {},
-        onResize: (cols, rows) => onResize?.(rows, cols)
+        onResize: (cols, rows) => onResize?.(rows, cols),
       });
 
-      host.addEventListener('click', stopReadOnlyFocus, { capture: true });
+      host.addEventListener("click", stopReadOnlyFocus, { capture: true });
       await terminal.init();
       if (disposed) {
         terminal.destroy();
@@ -160,24 +130,19 @@
         return;
       }
 
-      applyTheme();
       disableReadOnlyInput();
       syncTerminal(true);
-
-      disconnectThemeObserver = observeThemeChange((isDark) => applyTheme(isDark));
     }
 
     void setup();
 
     return () => {
       disposed = true;
-      disconnectThemeObserver?.();
-      host?.removeEventListener('click', stopReadOnlyFocus, { capture: true });
+      host?.removeEventListener("click", stopReadOnlyFocus, { capture: true });
       terminal?.destroy();
-      disconnectThemeObserver = null;
       terminal = null;
       scrollScheduled = false;
-      renderedText = '';
+      renderedText = "";
     };
   });
 
@@ -195,5 +160,9 @@
 </script>
 
 <div class={`terminal-surface ${heightClass}`}>
-  <div bind:this={host} class="h-full w-full" aria-label={$messages.common.terminal}></div>
+  <div
+    bind:this={host}
+    class="h-full w-full"
+    aria-label={$messages.common.terminal}
+  ></div>
 </div>
