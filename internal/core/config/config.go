@@ -37,6 +37,11 @@ type ControllerConfig struct {
 	Secrets          *ControllerSecretsConfig          `yaml:"secrets"`
 	Updates          *ControllerUpdatesConfig          `yaml:"updates"`
 	AutoDeploy       *ControllerAutoDeployConfig       `yaml:"auto_deploy"`
+	RemoteConfig     *ControllerRemoteConfig           `yaml:"remote_config"`
+}
+
+type ControllerRemoteConfig struct {
+	Enabled bool `yaml:"enabled"`
 }
 
 type ControllerAutoDeployConfig struct {

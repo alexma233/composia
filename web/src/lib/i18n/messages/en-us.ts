@@ -593,6 +593,17 @@ export const enUS = {
       reloading: "Reloading...",
       reloadAccepted: "Controller config reload accepted.",
       reloadFailed: "Failed to reload controller config.",
+      editConfig: "Edit config",
+      editingConfig: "Loading config...",
+      savingConfig: "Saving config...",
+      saveConfig: "Save config",
+      configEditorTitle: "Edit controller config",
+      configEditorDescription:
+        "Only the whitelisted, non-secret fields are editable.",
+      configEditorSaved: "Controller config saved; reload queued.",
+      configEditorFailed: "Controller config edit failed.",
+      configEditorLoadFailed: "Failed to load editable controller config.",
+      configEditorSaveFailed: "Failed to save controller config.",
     },
     repoSync: {
       title: "Repo sync",

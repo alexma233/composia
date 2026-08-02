@@ -2,8 +2,11 @@ package controller
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 
 	"connectrpc.com/connect"
@@ -21,21 +24,35 @@ func Run(ctx context.Context, configPath string) error {
 	if err != nil {
 		return err
 	}
-	reloadRequests := make(chan reloadRequest)
+	activeRaw, err := os.ReadFile(configPath) //nolint:gosec // The path is the configured controller config.
+	if err != nil {
+		return fmt.Errorf("read controller config: %w", err)
+	}
+	reloadRequests := make(chan reloadRequest, 1)
 	stopReloadSignals := watchControllerReloadSignals(ctx, reloadRequests)
 	defer stopReloadSignals()
 
 	for {
 		runtimeCtx, cancelRuntime := context.WithCancel(ctx)
 		runtimeDone := make(chan error, 1)
+		runtimeReady := make(chan error, 1)
 		go func() {
-			runtimeDone <- runControllerRuntime(runtimeCtx, cfg, func(reloadCtx context.Context) error {
+			runtimeDone <- runControllerRuntime(runtimeCtx, cfg, configPath, func(reloadCtx context.Context) error {
 				return requestControllerReload(reloadCtx, reloadRequests)
-			})
+			}, func(reloadCtx context.Context, revision string) error {
+				return requestControllerReloadRevision(reloadCtx, reloadRequests, revision)
+			}, runtimeReady)
 		}()
+		if err, done := waitControllerRuntimeReady(ctx, runtimeReady, runtimeDone); err != nil {
+			cancelRuntime()
+			if !done {
+				<-runtimeDone
+			}
+			return err
+		}
 
-		reloadAccepted := false
-		for !reloadAccepted {
+		runtimeActive := true
+		for runtimeActive {
 			select {
 			case <-ctx.Done():
 				cancelRuntime()
@@ -47,21 +64,118 @@ func Run(ctx context.Context, configPath string) error {
 				cancelRuntime()
 				return err
 			case request := <-reloadRequests:
-				nextCfg, err := loadReloadControllerConfig(configPath, cfg)
-				request.respond(err)
-				if err != nil {
-					log.Printf("controller config reload rejected: %v", err)
+				currentRaw, readErr := os.ReadFile(configPath) //nolint:gosec // The path is the configured controller config.
+				if readErr != nil {
+					err := fmt.Errorf("read controller config: %w", readErr)
+					if request.expectedRevision != "" {
+						cancelRuntime()
+						<-runtimeDone
+						return err
+					}
+					request.respond(err)
 					continue
 				}
+				if request.expectedRevision != "" && configRevision(currentRaw) != request.expectedRevision {
+					err := errors.New("controller config changed before reload")
+					request.respond(err)
+					log.Printf("controller config reload skipped: %v", err)
+					continue
+				}
+				nextCfg, err := loadReloadControllerConfig(configPath, cfg)
+				if err != nil {
+					if rollbackErr := rollbackQueuedControllerConfig(configPath, request, currentRaw, activeRaw, err); rollbackErr != nil {
+						cancelRuntime()
+						<-runtimeDone
+						return rollbackErr
+					}
+					continue
+				}
+				latestRaw, readErr := os.ReadFile(configPath) //nolint:gosec // The path is the configured controller config.
+				if readErr != nil {
+					err := fmt.Errorf("read controller config before reload: %w", readErr)
+					if rollbackErr := rollbackQueuedControllerConfig(configPath, request, currentRaw, activeRaw, err); rollbackErr != nil {
+						cancelRuntime()
+						<-runtimeDone
+						return rollbackErr
+					}
+					continue
+				}
+				if configRevision(latestRaw) != configRevision(currentRaw) {
+					err := errors.New("controller config changed while reload was being prepared")
+					request.respond(err)
+					log.Printf("controller config reload skipped: %v", err)
+					continue
+				}
+				currentRaw = latestRaw
 				cancelRuntime()
 				if err := <-runtimeDone; err != nil {
+					request.respond(err)
 					return err
 				}
+
+				nextCtx, cancelNext := context.WithCancel(ctx)
+				nextDone := make(chan error, 1)
+				nextReady := make(chan error, 1)
+				go func() {
+					nextDone <- runControllerRuntime(nextCtx, nextCfg, configPath, func(reloadCtx context.Context) error {
+						return requestControllerReload(reloadCtx, reloadRequests)
+					}, func(reloadCtx context.Context, revision string) error {
+						return requestControllerReloadRevision(reloadCtx, reloadRequests, revision)
+					}, nextReady)
+				}()
+				if readyErr, done := waitControllerRuntimeReady(ctx, nextReady, nextDone); readyErr != nil {
+					cancelNext()
+					if !done {
+						<-nextDone
+					}
+					restoreErr := restoreControllerConfigIfCurrent(configPath, configRevision(currentRaw), activeRaw)
+					if restoreErr != nil {
+						request.respond(fmt.Errorf("new controller runtime failed: %v; restore failed: %w", readyErr, restoreErr))
+						return fmt.Errorf("new controller runtime failed: %v; restore failed: %w", readyErr, restoreErr)
+					}
+					log.Printf("controller config reload rejected: %v", readyErr)
+					request.respond(readyErr)
+					runtimeActive = false
+					break
+				}
 				cfg = nextCfg
-				reloadAccepted = true
+				activeRaw = currentRaw
+				cancelRuntime = cancelNext
+				runtimeDone = nextDone
+				runtimeActive = true
 				log.Printf("controller config reloaded")
+				request.respond(nil)
 			}
 		}
+	}
+}
+
+func rollbackQueuedControllerConfig(configPath string, request reloadRequest, candidateRaw, activeRaw []byte, cause error) error {
+	if request.expectedRevision == "" {
+		request.respond(cause)
+		log.Printf("controller config reload rejected: %v", cause)
+		return nil
+	}
+	if err := restoreControllerConfigIfCurrent(configPath, configRevision(candidateRaw), activeRaw); err != nil {
+		request.respond(fmt.Errorf("controller config reload rejected: %v; restore failed: %w", cause, err))
+		return fmt.Errorf("controller config reload rejected: %v; restore failed: %w", cause, err)
+	}
+	request.respond(cause)
+	log.Printf("controller config reload rejected and previous config restored: %v", cause)
+	return nil
+}
+
+func waitControllerRuntimeReady(ctx context.Context, ready <-chan error, done <-chan error) (error, bool) {
+	select {
+	case err := <-ready:
+		return err, false
+	case err := <-done:
+		if err == nil {
+			return fmt.Errorf("controller runtime stopped before becoming ready"), true
+		}
+		return err, true
+	case <-ctx.Done():
+		return ctx.Err(), false
 	}
 }
 
@@ -85,12 +199,18 @@ func registerAgentHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db 
 	mountRPCHandler(mux, rpcutil.AgentAPIBasePath, bundlePath, bundleHandler)
 }
 
-func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db *store.DB, interceptor connect.Interceptor, availableNodeIDs map[string]struct{}, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, dockerQueries *dockerQueryBroker, execManager *execTunnelManager, logManager *containerLogTunnelManager, repoMu *sync.Mutex, reload func(context.Context) error, notifier *appnotify.Notifier) {
+func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, configPath string, db *store.DB, interceptor connect.Interceptor, availableNodeIDs map[string]struct{}, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, dockerQueries *dockerQueryBroker, execManager *execTunnelManager, logManager *containerLogTunnelManager, repoMu *sync.Mutex, reload func(context.Context) error, reloadRevision func(context.Context, string) error, notifier *appnotify.Notifier) {
 	systemPath, systemHandler := controllerv1connect.NewSystemServiceHandler(
 		&systemServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, reload: reload},
 		connect.WithInterceptors(interceptor),
 	)
 	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, systemPath, systemHandler)
+
+	configPathHandler, configHandler := controllerv1connect.NewControllerConfigServiceHandler(
+		&controllerConfigEditor{configPath: configPath, cfg: cfg, reload: reload, reloadRevision: reloadRevision},
+		connect.WithInterceptors(interceptor),
+	)
+	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, configPathHandler, configHandler)
 
 	repoQueryPath, repoQueryHandler := controllerv1connect.NewRepoQueryServiceHandler(
 		&repoQueryServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: repoMu},

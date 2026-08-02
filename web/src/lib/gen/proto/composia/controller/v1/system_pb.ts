@@ -639,7 +639,7 @@ export const CapabilityReasonCodeSchema: GenEnum<CapabilityReasonCode> = /*@__PU
   enumDesc(file_proto_composia_controller_v1_system, 0);
 
 /**
- * SystemService exposes read-only controller status and config summary data.
+ * SystemService exposes controller status and redacted config data.
  *
  * @generated from service composia.controller.v1.SystemService
  */

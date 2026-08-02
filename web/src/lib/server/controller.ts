@@ -95,6 +95,11 @@ export type CurrentConfig = {
   accessTokens: AccessTokenSummary[];
 };
 
+export type EditableControllerConfig = {
+  yaml: string;
+  revision: string;
+};
+
 export type ServiceSummary = {
   name: string;
   folder?: string;
@@ -750,6 +755,38 @@ export async function reloadControllerConfig(): Promise<{ accepted: boolean }> {
     ),
     {},
   );
+}
+
+export async function loadEditableControllerConfig(): Promise<EditableControllerConfig> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{
+    yaml?: string;
+    revision?: string;
+  }>(
+    config.baseUrl,
+    config.token,
+    controllerProcedure(
+      "/composia.controller.v1.ControllerConfigService/GetEditableConfig",
+    ),
+    {},
+  );
+  return { yaml: response.yaml ?? "", revision: response.revision ?? "" };
+}
+
+export async function updateEditableControllerConfig(
+  yaml: string,
+  baseRevision: string,
+): Promise<{ revision: string }> {
+  const config = requireControllerConfig();
+  const response = await rpcCall<{ revision?: string }>(
+    config.baseUrl,
+    config.token,
+    controllerProcedure(
+      "/composia.controller.v1.ControllerConfigService/UpdateEditableConfig",
+    ),
+    { yaml, baseRevision },
+  );
+  return { revision: response.revision ?? "" };
 }
 
 export async function loadSystemCapabilities(): Promise<SystemCapabilities> {

@@ -10,7 +10,8 @@ import (
 )
 
 type reloadRequest struct {
-	reply chan error
+	reply            chan error
+	expectedRevision string
 }
 
 func (request reloadRequest) respond(err error) {
@@ -21,8 +22,25 @@ func (request reloadRequest) respond(err error) {
 }
 
 func requestControllerReload(ctx context.Context, requests chan<- reloadRequest) error {
+	return requestControllerReloadRevision(ctx, requests, "")
+}
+
+func requestControllerReloadRevision(ctx context.Context, requests chan<- reloadRequest, expectedRevision string) error {
+	// Live RPCs must return before the runtime shuts down; waiting here would make shutdown wait on this handler.
+	request := reloadRequest{expectedRevision: expectedRevision}
+	select {
+	case requests <- request:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return errors.New("controller config reload is already queued")
+	}
+}
+
+func requestControllerReloadAndWait(ctx context.Context, requests chan<- reloadRequest, expectedRevision string) error {
 	reply := make(chan error, 1)
-	request := reloadRequest{reply: reply}
+	request := reloadRequest{reply: reply, expectedRevision: expectedRevision}
 	select {
 	case requests <- request:
 	case <-ctx.Done():

@@ -139,10 +139,13 @@ func cobraCommandSpecs(runtime *cobraRuntime) []cobraCommandSpec {
 			leafSpec("sync", "Sync repository remote", true, (*app).runRepoSync, nil, nil),
 			leafSpec("validate", "Validate repository files", true, (*app).runRepoValidate, nil, nil),
 		}),
-		groupSpec("system", "Controller status, reload, and capability checks", true, []cobraCommandSpec{
+		groupSpec("system", "Controller status, config editing, reload, and capability checks", true, []cobraCommandSpec{
 			leafSpec("status", "Show controller status", true, func(a *app, args []string) error { return a.runSystem(append([]string{"status"}, args...)) }, nil, nil),
 			leafSpec("reload", "Reload controller config", true, func(a *app, args []string) error { return a.runSystem(append([]string{"reload"}, args...)) }, nil, nil),
 			leafSpec("capabilities", "Show controller capabilities", true, func(a *app, args []string) error { return a.runSystem(append([]string{"capabilities"}, args...)) }, nil, nil),
+			groupSpec("config", "Edit the whitelist-only controller config", true, []cobraCommandSpec{
+				leafSpec("edit", "Edit the whitelist-only controller config", true, func(a *app, args []string) error { return a.runSystem(append([]string{"config", "edit"}, args...)) }, nil, nil),
+			}),
 		}),
 		groupSpec("instance", "Low-level service instance operations by service and node", true, []cobraCommandSpec{
 			leafSpec("list <service>", "List service instances", true, (*app).runInstanceList, nil, completeServiceFirstArg(runtime)),

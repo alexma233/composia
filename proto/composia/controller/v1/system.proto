@@ -6,7 +6,7 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
 
-// SystemService exposes read-only controller status and config summary data.
+// SystemService exposes controller status and redacted config data.
 service SystemService {
   // GetSystemStatus returns the current controller status and node counts.
   rpc GetSystemStatus(GetSystemStatusRequest) returns (GetSystemStatusResponse);

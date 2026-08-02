@@ -594,6 +594,21 @@ export const de = {
       reloading: "Wird neu geladen...",
       reloadAccepted: "Controller-Konfiguration neu geladen.",
       reloadFailed: "Neuladen der Controller-Konfiguration fehlgeschlagen.",
+      editConfig: "Konfiguration bearbeiten",
+      editingConfig: "Konfiguration wird geladen...",
+      savingConfig: "Konfiguration wird gespeichert...",
+      saveConfig: "Konfiguration speichern",
+      configEditorTitle: "Controller-Konfiguration bearbeiten",
+      configEditorDescription:
+        "Nur nicht geheime Felder auf der Whitelist können bearbeitet werden.",
+      configEditorSaved:
+        "Controller-Konfiguration gespeichert; Neuladen eingereiht.",
+      configEditorFailed:
+        "Bearbeitung der Controller-Konfiguration fehlgeschlagen.",
+      configEditorLoadFailed:
+        "Bearbeitbare Controller-Konfiguration konnte nicht geladen werden.",
+      configEditorSaveFailed:
+        "Controller-Konfiguration konnte nicht gespeichert werden.",
     },
     repoSync: {
       title: "Repo-Sync",

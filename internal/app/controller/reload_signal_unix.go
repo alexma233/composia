@@ -19,7 +19,7 @@ func watchControllerReloadSignals(ctx context.Context, requests chan<- reloadReq
 			case <-ctx.Done():
 				return
 			case <-signals:
-				if err := requestControllerReload(ctx, requests); err != nil {
+				if err := requestControllerReloadAndWait(ctx, requests, ""); err != nil {
 					log.Printf("controller config reload failed: %v", err)
 				}
 			}

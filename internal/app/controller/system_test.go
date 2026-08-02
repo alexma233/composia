@@ -60,6 +60,7 @@ func TestRegisterAccessHandlersKeepsSystemAndServiceBackupCapabilitiesConsistent
 	registerAccessHandlers(
 		mux,
 		&config.ControllerConfig{RepoDir: repoDir, StateDir: stateDir, LogDir: filepath.Join(rootDir, "logs"), Nodes: []config.NodeConfig{{ID: "main"}}},
+		"",
 		db,
 		interceptor,
 		availableNodeIDs,
@@ -69,6 +70,7 @@ func TestRegisterAccessHandlersKeepsSystemAndServiceBackupCapabilitiesConsistent
 		nil,
 		nil,
 		&sync.Mutex{},
+		nil,
 		nil,
 		nil,
 	)

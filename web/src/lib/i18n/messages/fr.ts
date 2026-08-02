@@ -598,6 +598,21 @@ export const fr = {
       reloading: "Rechargement...",
       reloadAccepted: "Rechargement de la configuration du contrôleur accepté.",
       reloadFailed: "Échec du rechargement de la configuration du contrôleur.",
+      editConfig: "Modifier la configuration",
+      editingConfig: "Chargement de la configuration...",
+      savingConfig: "Enregistrement de la configuration...",
+      saveConfig: "Enregistrer la configuration",
+      configEditorTitle: "Modifier la configuration du contrôleur",
+      configEditorDescription:
+        "Seuls les champs non sensibles de la liste blanche sont modifiables.",
+      configEditorSaved:
+        "Configuration du contrôleur enregistrée ; rechargement mis en file.",
+      configEditorFailed:
+        "Échec de la modification de la configuration du contrôleur.",
+      configEditorLoadFailed:
+        "Échec du chargement de la configuration modifiable du contrôleur.",
+      configEditorSaveFailed:
+        "Échec de l’enregistrement de la configuration du contrôleur.",
     },
     repoSync: {
       title: "Synchronisation du dépôt",

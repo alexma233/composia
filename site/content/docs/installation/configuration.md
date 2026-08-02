@@ -28,6 +28,10 @@ When the same config file contains both sections, the local agent is treated as 
 - `controller.nodes` must include an entry with `id: main`.
 - `controller.repo_dir` and `agent.repo_dir` must not be the same path.
 
+Set `controller.remote_config.enabled` to `true` only when you want the authenticated CLI and Web UI to edit the whitelist-only controller configuration projection. The controller configuration directory must be writable by the controller process; the default Docker Compose deployment mounts it writable for this opt-in feature.
+
+The editor exposes a fake YAML document, not the full configuration. Omitted editable fields keep their current values, while unknown fields, YAML aliases, merge keys, node additions/removals, and all secret or credential fields are rejected. Updates use a file revision and an atomic replacement; a successful response means the new configuration passed validation and its controller runtime reload was queued. If the replacement runtime cannot become ready, the controller restores the previous configuration.
+
 ## Full config template
 
 This template shows every supported installation-level key. It is a shape reference, not a copy-paste default. Remove sections you do not use, remove empty list items, and use either inline values or `_file` values for each secret-like field.
@@ -38,6 +42,10 @@ controller:
   repo_dir: "/data/repo-controller"
   state_dir: "/data/state-controller"
   log_dir: "/data/logs"
+
+  # The Web UI and CLI fake-YAML editor is disabled unless explicitly enabled.
+  remote_config:
+    enabled: false
 
   access_tokens:
     - name: "web"
@@ -260,6 +268,7 @@ secrets:
 | `secrets` | `object` | Age encryption settings. |
 | `updates` | `object` | Image update defaults and forge API auth. |
 | `auto_deploy` | `object` | Global auto-deploy toggles. |
+| `remote_config` | `object` | Opt-in access to edit the whitelist-only controller config projection remotely. |
 
 ### `nodes[]`
 

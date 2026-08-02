@@ -12,6 +12,7 @@
   const messages = getMessages();
 
   import { startPolling } from "$lib/refresh";
+  import CodeEditor from "$lib/components/app/code-editor.svelte";
   import ThemeControls from "$lib/components/app/theme-controls.svelte";
   import {
     Alert,
@@ -61,9 +62,34 @@
   let reloadingController = $state(false);
   let reloadControllerError = $state("");
   let reloadAccepted = $state<boolean | null>(null);
+  let editableConfigOpen = $state(false);
+  let editableConfigYaml = $state("");
+  let editableConfigRevision = $state("");
+  let editableConfigBusy = $state(false);
+  let editableConfigAvailable = $state(false);
+  let editableConfigError = $state("");
   let rusticBusy = $state<"init" | "forget" | "prune" | "">("");
   let rusticError = $state("");
   let rusticTaskId = $state("");
+
+  type EditableConfigErrorPayload = { errorCode?: string };
+
+  function editableConfigErrorMessage(
+    payload: EditableConfigErrorPayload,
+    fallback: string,
+  ): string {
+    switch (payload.errorCode) {
+      case "CONTROLLER_CONFIG_LOAD_FAILED":
+        return $messages.settings.controller.configEditorLoadFailed;
+      case "CONTROLLER_CONFIG_SAVE_FAILED":
+        return $messages.settings.controller.configEditorSaveFailed;
+      case "CONTROLLER_CONFIG_INVALID_REQUEST":
+      case "CONTROLLER_CONFIG_INVALID_ORIGIN":
+        return $messages.settings.controller.configEditorFailed;
+      default:
+        return fallback;
+    }
+  }
   let rusticConfirmOpen = $state(false);
   let rusticConfirmAction = $state<"forget" | "prune" | null>(null);
   let syncResult = $state<{
@@ -266,6 +292,70 @@
     }
   }
 
+  async function openEditableControllerConfig() {
+    editableConfigBusy = true;
+    editableConfigError = "";
+    try {
+      const response = await fetch("/settings/controller-config");
+      const payload = (await response.json()) as {
+        yaml?: string;
+        revision?: string;
+        errorCode?: string;
+      };
+      if (!response.ok) {
+        editableConfigError = editableConfigErrorMessage(
+          payload,
+          $messages.settings.controller.configEditorLoadFailed,
+        );
+        return;
+      }
+      editableConfigYaml = payload.yaml ?? "";
+      editableConfigRevision = payload.revision ?? "";
+      editableConfigOpen = true;
+    } catch {
+      editableConfigError = $messages.settings.controller.configEditorLoadFailed;
+    } finally {
+      editableConfigBusy = false;
+    }
+  }
+
+  async function saveEditableControllerConfig() {
+    editableConfigBusy = true;
+    editableConfigError = "";
+    try {
+      const response = await fetch("/settings/controller-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          yaml: editableConfigYaml,
+          revision: editableConfigRevision,
+        }),
+      });
+      const payload = (await response.json()) as {
+        revision?: string;
+        errorCode?: string;
+      };
+      if (!response.ok) {
+        editableConfigError = editableConfigErrorMessage(
+          payload,
+          $messages.settings.controller.configEditorSaveFailed,
+        );
+        return;
+      }
+      editableConfigRevision = payload.revision ?? editableConfigRevision;
+      editableConfigOpen = false;
+      toast.success($messages.settings.controller.configEditorSaved);
+      await Promise.all([
+        invalidate("app:settings"),
+        invalidate("app:capabilities"),
+      ]);
+    } catch {
+      editableConfigError = $messages.settings.controller.configEditorSaveFailed;
+    } finally {
+      editableConfigBusy = false;
+    }
+  }
+
   function confirmRusticAction(action: "forget" | "prune") {
     if (rusticBusy) return;
     rusticConfirmAction = action;
@@ -356,7 +446,16 @@
     globalCapability(data.capabilities?.global, "rusticMaintenance"),
   );
 
-  onMount(() => startPolling(() => invalidate("app:settings"), { intervalMs: 5000 }));
+  onMount(() => {
+    void fetch("/settings/controller-config")
+      .then((response) => {
+        editableConfigAvailable = response.ok;
+      })
+      .catch(() => {
+        editableConfigAvailable = false;
+      });
+    return startPolling(() => invalidate("app:settings"), { intervalMs: 5000 });
+  });
 </script>
 
 <svelte:head>
@@ -425,7 +524,27 @@
                 ? $messages.settings.repoSync.syncing
                 : $messages.settings.repoSync.syncRepo}
             </Button>
+            {#if editableConfigAvailable}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onclick={openEditableControllerConfig}
+                disabled={editableConfigBusy}
+              >
+                {editableConfigBusy
+                  ? $messages.settings.controller.editingConfig
+                  : $messages.settings.controller.editConfig}
+              </Button>
+            {/if}
           </div>
+
+          {#if editableConfigError}
+            <Alert variant="destructive">
+              <AlertTitle>{$messages.settings.controller.configEditorFailed}</AlertTitle>
+              <AlertDescription>{editableConfigError}</AlertDescription>
+            </Alert>
+          {/if}
 
           {#if rusticMaintenanceCapability.enabled}
             <div class="space-y-2">
@@ -536,6 +655,50 @@
                   disabled={rusticBusy !== ""}
                 >
                   {$messages.settings.rustic.confirmAction}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog bind:open={editableConfigOpen}>
+            <DialogOverlay />
+            <DialogContent class="flex h-[80vh] max-w-5xl flex-col">
+              <DialogHeader>
+                <DialogTitle>{$messages.settings.controller.configEditorTitle}</DialogTitle>
+                <DialogDescription>
+                  {$messages.settings.controller.configEditorDescription}
+                </DialogDescription>
+              </DialogHeader>
+              <div class="min-h-0 flex-1">
+                <CodeEditor
+                  value={editableConfigYaml}
+                  path="controller-config.yaml"
+                  onchange={({ value }) => (editableConfigYaml = value)}
+                />
+              </div>
+              {#if editableConfigError}
+                <Alert variant="destructive">
+                  <AlertTitle>{$messages.settings.controller.configEditorFailed}</AlertTitle>
+                  <AlertDescription>{editableConfigError}</AlertDescription>
+                </Alert>
+              {/if}
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onclick={() => (editableConfigOpen = false)}
+                  disabled={editableConfigBusy}
+                >
+                  {$messages.common.cancel}
+                </Button>
+                <Button
+                  type="button"
+                  onclick={saveEditableControllerConfig}
+                  disabled={editableConfigBusy}
+                >
+                  {editableConfigBusy
+                    ? $messages.settings.controller.savingConfig
+                    : $messages.settings.controller.saveConfig}
                 </Button>
               </DialogFooter>
             </DialogContent>

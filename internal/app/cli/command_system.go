@@ -11,7 +11,7 @@ import (
 
 func (application *app) runSystem(args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: composia system <status|reload|capabilities>")
+		return errors.New("usage: composia system <status|config edit|reload|capabilities>")
 	}
 	switch args[0] {
 	case "status":
@@ -50,9 +50,36 @@ func (application *app) runSystem(args []string) error {
 			return application.printMessage(response.Msg)
 		}
 		return application.printSystemCapabilities(response.Msg)
+	case "config":
+		if len(args) != 2 || args[1] != "edit" {
+			return errors.New("usage: composia system config edit")
+		}
+		return application.runControllerConfigEdit()
 	default:
 		return fmt.Errorf("unknown system command %q", args[0])
 	}
+}
+
+func (application *app) runControllerConfigEdit() error {
+	response, err := application.client.controllerConfig.GetEditableConfig(application.ctx, newRequest(&controllerv1.GetEditableConfigRequest{}))
+	if err != nil {
+		return err
+	}
+	updated, changed, err := editText(application.ctx, response.Msg.GetYaml(), ".composia-controller-config-*.yaml", 0o600)
+	if err != nil {
+		return err
+	}
+	if !changed {
+		return nil
+	}
+	result, err := application.client.controllerConfig.UpdateEditableConfig(application.ctx, newRequest(&controllerv1.UpdateEditableConfigRequest{Yaml: updated, BaseRevision: response.Msg.GetRevision()}))
+	if err != nil {
+		return err
+	}
+	if application.isJSONOutput() {
+		return application.printMessage(result.Msg)
+	}
+	return application.writeKV([][2]string{{"revision", result.Msg.GetRevision()}})
 }
 
 func (application *app) printSystemStatus(response *connect.Response[controllerv1.GetSystemStatusResponse]) error {

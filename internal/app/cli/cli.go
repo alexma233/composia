@@ -60,19 +60,20 @@ type app struct {
 }
 
 type controllerClient struct {
-	system          controllerv1connect.SystemServiceClient
-	services        controllerv1connect.ServiceQueryServiceClient
-	serviceCommands controllerv1connect.ServiceCommandServiceClient
-	instances       controllerv1connect.ServiceInstanceServiceClient
-	tasks           controllerv1connect.TaskServiceClient
-	backupQueries   controllerv1connect.BackupQueryServiceClient
-	backupCommands  controllerv1connect.BackupCommandServiceClient
-	nodes           controllerv1connect.NodeQueryServiceClient
-	nodeCommands    controllerv1connect.NodeMaintenanceServiceClient
-	docker          controllerv1connect.DockerQueryServiceClient
-	dockerCommands  controllerv1connect.DockerCommandServiceClient
-	repos           controllerv1connect.RepoQueryServiceClient
-	repoCommands    controllerv1connect.RepoCommandServiceClient
+	system           controllerv1connect.SystemServiceClient
+	controllerConfig controllerv1connect.ControllerConfigServiceClient
+	services         controllerv1connect.ServiceQueryServiceClient
+	serviceCommands  controllerv1connect.ServiceCommandServiceClient
+	instances        controllerv1connect.ServiceInstanceServiceClient
+	tasks            controllerv1connect.TaskServiceClient
+	backupQueries    controllerv1connect.BackupQueryServiceClient
+	backupCommands   controllerv1connect.BackupCommandServiceClient
+	nodes            controllerv1connect.NodeQueryServiceClient
+	nodeCommands     controllerv1connect.NodeMaintenanceServiceClient
+	docker           controllerv1connect.DockerQueryServiceClient
+	dockerCommands   controllerv1connect.DockerCommandServiceClient
+	repos            controllerv1connect.RepoQueryServiceClient
+	repoCommands     controllerv1connect.RepoCommandServiceClient
 }
 
 // Run executes the user-facing CLI command surface.
@@ -142,7 +143,7 @@ Commands:
   container   Low-level container operations by node and container ID
   backup      List and restore backups
   repo        Low-level repository file operations
-  system      Controller status, reload, and capability checks
+  system      Controller status, config editing, reload, and capability checks
   instance    Low-level service instance operations by service and node
   network     Low-level Docker network operations by node
   volume      Low-level Docker volume operations by node
@@ -162,11 +163,12 @@ type commandHelpInfo struct {
 }
 
 var commandUsages = map[string]string{ //nolint:gosec
-	"system":                "usage: composia system <status|reload|capabilities>\n",
+	"system":                "usage: composia system <status|config edit|reload|capabilities>\n",
 	"service":               "usage: composia service <list|create|<service> [action]>\n",
 	"system status":         "usage: composia system status\n",
 	"system reload":         "usage: composia system reload\n",
 	"system capabilities":   "usage: composia system capabilities\n",
+	"system config edit":    "usage: composia system config edit\n",
 	"service list":          "usage: composia service list [--status status] [--page-size n] [--page n]\n",
 	"service create":        "usage: composia service create [--message text] <name>\n",
 	"service edit":          "usage: composia service <service> edit [--message text] <path>\n",
@@ -610,19 +612,20 @@ func (application *app) configureClient() error {
 	httpClient := http.DefaultClient
 	application.cfg = cfg
 	application.client = &controllerClient{
-		system:          controllerv1connect.NewSystemServiceClient(httpClient, baseURL, auth),
-		services:        controllerv1connect.NewServiceQueryServiceClient(httpClient, baseURL, auth),
-		serviceCommands: controllerv1connect.NewServiceCommandServiceClient(httpClient, baseURL, auth),
-		instances:       controllerv1connect.NewServiceInstanceServiceClient(httpClient, baseURL, auth),
-		tasks:           controllerv1connect.NewTaskServiceClient(httpClient, baseURL, auth),
-		backupQueries:   controllerv1connect.NewBackupQueryServiceClient(httpClient, baseURL, auth),
-		backupCommands:  controllerv1connect.NewBackupCommandServiceClient(httpClient, baseURL, auth),
-		nodes:           controllerv1connect.NewNodeQueryServiceClient(httpClient, baseURL, auth),
-		nodeCommands:    controllerv1connect.NewNodeMaintenanceServiceClient(httpClient, baseURL, auth),
-		docker:          controllerv1connect.NewDockerQueryServiceClient(httpClient, baseURL, auth),
-		dockerCommands:  controllerv1connect.NewDockerCommandServiceClient(httpClient, baseURL, auth),
-		repos:           controllerv1connect.NewRepoQueryServiceClient(httpClient, baseURL, auth),
-		repoCommands:    controllerv1connect.NewRepoCommandServiceClient(httpClient, baseURL, auth),
+		system:           controllerv1connect.NewSystemServiceClient(httpClient, baseURL, auth),
+		controllerConfig: controllerv1connect.NewControllerConfigServiceClient(httpClient, baseURL, auth),
+		services:         controllerv1connect.NewServiceQueryServiceClient(httpClient, baseURL, auth),
+		serviceCommands:  controllerv1connect.NewServiceCommandServiceClient(httpClient, baseURL, auth),
+		instances:        controllerv1connect.NewServiceInstanceServiceClient(httpClient, baseURL, auth),
+		tasks:            controllerv1connect.NewTaskServiceClient(httpClient, baseURL, auth),
+		backupQueries:    controllerv1connect.NewBackupQueryServiceClient(httpClient, baseURL, auth),
+		backupCommands:   controllerv1connect.NewBackupCommandServiceClient(httpClient, baseURL, auth),
+		nodes:            controllerv1connect.NewNodeQueryServiceClient(httpClient, baseURL, auth),
+		nodeCommands:     controllerv1connect.NewNodeMaintenanceServiceClient(httpClient, baseURL, auth),
+		docker:           controllerv1connect.NewDockerQueryServiceClient(httpClient, baseURL, auth),
+		dockerCommands:   controllerv1connect.NewDockerCommandServiceClient(httpClient, baseURL, auth),
+		repos:            controllerv1connect.NewRepoQueryServiceClient(httpClient, baseURL, auth),
+		repoCommands:     controllerv1connect.NewRepoCommandServiceClient(httpClient, baseURL, auth),
 	}
 	return nil
 }

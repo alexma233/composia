@@ -82,6 +82,14 @@ weight: 10
   
     - [DockerCommandService](#composia-controller-v1-DockerCommandService)
   
+- [proto/composia/controller/v1/controller_config.proto](#proto_composia_controller_v1_controller_config-proto)
+    - [GetEditableConfigRequest](#composia-controller-v1-GetEditableConfigRequest)
+    - [GetEditableConfigResponse](#composia-controller-v1-GetEditableConfigResponse)
+    - [UpdateEditableConfigRequest](#composia-controller-v1-UpdateEditableConfigRequest)
+    - [UpdateEditableConfigResponse](#composia-controller-v1-UpdateEditableConfigResponse)
+
+    - [ControllerConfigService](#composia-controller-v1-ControllerConfigService)
+
 - [proto/composia/controller/v1/node.proto](#proto_composia_controller_v1_node-proto)
     - [ContainerInfo](#composia-controller-v1-ContainerInfo)
     - [ContainerInfo.LabelsEntry](#composia-controller-v1-ContainerInfo-LabelsEntry)
@@ -876,7 +884,7 @@ CapabilityReasonCode explains why a capability is disabled.
 <a name="composia-controller-v1-SystemService"></a>
 
 ### SystemService
-SystemService exposes read-only controller status and config summary data.
+SystemService exposes controller status and redacted config data.
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
@@ -1298,6 +1306,90 @@ DockerCommandService exposes node-scoped Docker command entrypoints.
 | RemoveImage | [RemoveImageRequest](#composia-controller-v1-RemoveImageRequest) | [TaskActionResponse](#composia-controller-v1-TaskActionResponse) | RemoveImage starts an async deletion for one image on one node. |
 
  
+
+
+
+<a name="proto_composia_controller_v1_controller_config-proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## proto/composia/controller/v1/controller_config.proto
+
+
+
+<a name="composia-controller-v1-GetEditableConfigRequest"></a>
+
+### GetEditableConfigRequest
+
+
+
+
+
+
+
+<a name="composia-controller-v1-GetEditableConfigResponse"></a>
+
+### GetEditableConfigResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| yaml | [string](#string) |  |  |
+| revision | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="composia-controller-v1-UpdateEditableConfigRequest"></a>
+
+### UpdateEditableConfigRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| yaml | [string](#string) |  |  |
+| base_revision | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="composia-controller-v1-UpdateEditableConfigResponse"></a>
+
+### UpdateEditableConfigResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| revision | [string](#string) |  |  |
+
+
+
+
+
+
+
+
+
+
+
+
+<a name="composia-controller-v1-ControllerConfigService"></a>
+
+### ControllerConfigService
+ControllerConfigService edits the explicitly opt-in, non-secret controller config projection.
+
+| Method Name | Request Type | Response Type | Description |
+| ----------- | ------------ | ------------- | ------------|
+| GetEditableConfig | [GetEditableConfigRequest](#composia-controller-v1-GetEditableConfigRequest) | [GetEditableConfigResponse](#composia-controller-v1-GetEditableConfigResponse) | GetEditableConfig returns the current whitelist-only YAML projection. |
+| UpdateEditableConfig | [UpdateEditableConfigRequest](#composia-controller-v1-UpdateEditableConfigRequest) | [UpdateEditableConfigResponse](#composia-controller-v1-UpdateEditableConfigResponse) | UpdateEditableConfig validates, atomically applies, and queues a controller runtime reload. |
+
+
 
 
 

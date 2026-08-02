@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package composia.controller.v1;
+
+option go_package = "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1;controllerv1";
+
+// ControllerConfigService edits the explicitly opt-in, non-secret controller config projection.
+service ControllerConfigService {
+  // GetEditableConfig returns the current whitelist-only YAML projection.
+  rpc GetEditableConfig(GetEditableConfigRequest) returns (GetEditableConfigResponse);
+  // UpdateEditableConfig validates, atomically applies, and queues a controller runtime reload.
+  rpc UpdateEditableConfig(UpdateEditableConfigRequest) returns (UpdateEditableConfigResponse);
+}
+
+message GetEditableConfigRequest {}
+
+message GetEditableConfigResponse {
+  string yaml = 1;
+  string revision = 2;
+}
+
+message UpdateEditableConfigRequest {
+  string yaml = 1;
+  string base_revision = 2;
+}
+
+message UpdateEditableConfigResponse {
+  string revision = 1;
+}

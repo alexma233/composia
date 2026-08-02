@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -21,7 +22,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 )
 
-func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, reload func(context.Context) error) error {
+func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, configPath string, reload func(context.Context) error, reloadRevision func(context.Context, string) error, ready chan<- error) error {
 	if err := os.MkdirAll(cfg.StateDir, 0o750); err != nil {
 		return fmt.Errorf("create controller state_dir %q: %w", cfg.StateDir, err)
 	}
@@ -118,7 +119,7 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 		return name, nil
 	})
 	registerAgentHandlers(mux, cfg, db, agentInterceptor, taskQueue, taskResults, dockerQueries, execManager, logManager, repoMu, notifier)
-	registerAccessHandlers(mux, cfg, db, accessInterceptor, availableNodeIDs, taskQueue, taskResults, dockerQueries, execManager, logManager, repoMu, reload, notifier)
+	registerAccessHandlers(mux, cfg, configPath, db, accessInterceptor, availableNodeIDs, taskQueue, taskResults, dockerQueries, execManager, logManager, repoMu, reload, reloadRevision, notifier)
 	registerMetricsHandler(mux, db, accessTokens, controllerStartedAt)
 	registerAlertmanagerHandler(mux, cfg.Notifications, notifier)
 	mux.HandleFunc(rpcutil.ControllerExecWSPath, execManager.handleWebsocket)
@@ -150,7 +151,14 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, rel
 
 	log.Printf("composia controller parsed %d declared services", len(services))
 	log.Printf("composia controller listening on %s", cfg.ListenAddr)
-	err = server.ListenAndServe()
+	listener, err := net.Listen("tcp", cfg.ListenAddr)
+	if err != nil {
+		ready <- fmt.Errorf("listen on %s: %w", cfg.ListenAddr, err)
+		cancelRuntime()
+		return fmt.Errorf("listen on %s: %w", cfg.ListenAddr, err)
+	}
+	ready <- nil
+	err = server.Serve(listener)
 	cancelRuntime()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("run controller server: %w", err)

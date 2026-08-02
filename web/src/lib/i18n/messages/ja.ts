@@ -596,6 +596,19 @@ export const ja = {
       reloading: "再読み込み中...",
       reloadAccepted: "コントローラー設定の再読み込みが受け付けられました。",
       reloadFailed: "コントローラー設定の再読み込みに失敗しました。",
+      editConfig: "設定を編集",
+      editingConfig: "設定を読み込み中...",
+      savingConfig: "設定を保存中...",
+      saveConfig: "設定を保存",
+      configEditorTitle: "コントローラー設定を編集",
+      configEditorDescription:
+        "ホワイトリスト内の非機密フィールドのみ編集できます。",
+      configEditorSaved:
+        "コントローラー設定を保存し、再読み込みをキューに追加しました。",
+      configEditorFailed: "コントローラー設定の編集に失敗しました。",
+      configEditorLoadFailed:
+        "編集可能なコントローラー設定の読み込みに失敗しました。",
+      configEditorSaveFailed: "コントローラー設定の保存に失敗しました。",
     },
     repoSync: {
       title: "リポジトリ同期",
