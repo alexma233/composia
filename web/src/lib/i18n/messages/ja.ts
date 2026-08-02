@@ -610,6 +610,7 @@ export const ja = {
       syncedSuccessfully: "リポジトリの同期に成功しました",
       head: "HEAD",
       commitHistory: "コミット履歴",
+      pageSize: "1ページあたりのコミット数",
       noCommits: "コミットが見つかりません。",
       loadMore: "さらに読み込む",
       loadingCommits: "読み込み中...",

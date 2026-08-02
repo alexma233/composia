@@ -587,6 +587,7 @@ export const zhHant = {
       syncedSuccessfully: "儲存庫同步成功",
       head: "HEAD",
       commitHistory: "提交歷史",
+      pageSize: "每頁提交數",
       noCommits: "暫無提交記錄。",
       loadMore: "載入更多",
       loadingCommits: "載入中...",

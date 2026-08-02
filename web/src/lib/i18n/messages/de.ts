@@ -608,6 +608,7 @@ export const de = {
       syncedSuccessfully: "Repo erfolgreich synchronisiert",
       head: "HEAD",
       commitHistory: "Commit-Verlauf",
+      pageSize: "Commits pro Seite",
       noCommits: "Keine Commits gefunden.",
       loadMore: "Mehr laden",
       loadingCommits: "Laden...",

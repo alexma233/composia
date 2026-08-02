@@ -612,6 +612,7 @@ export const fr = {
       syncedSuccessfully: "Dépôt synchronisé avec succès",
       head: "HEAD",
       commitHistory: "Historique des commits",
+      pageSize: "Commits par page",
       noCommits: "Aucun commit trouvé.",
       loadMore: "Charger plus",
       loadingCommits: "Chargement...",

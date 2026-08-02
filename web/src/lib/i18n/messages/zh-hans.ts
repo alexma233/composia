@@ -587,6 +587,7 @@ export const zhHans = {
       syncedSuccessfully: "仓库同步成功",
       head: "HEAD",
       commitHistory: "提交历史",
+      pageSize: "每页提交数",
       noCommits: "暂无提交记录。",
       loadMore: "加载更多",
       loadingCommits: "加载中...",

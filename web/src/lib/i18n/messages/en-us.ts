@@ -607,6 +607,7 @@ export const enUS = {
       syncedSuccessfully: "Repo synced successfully",
       head: "HEAD",
       commitHistory: "Commit history",
+      pageSize: "Commits per page",
       noCommits: "No commits found.",
       loadMore: "Load more",
       loadingCommits: "Loading...",

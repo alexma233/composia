@@ -37,11 +37,19 @@
   import {
     Pagination,
     PaginationContent,
+    PaginationEllipsis,
     PaginationItem,
     PaginationLink,
     PaginationPrevButton,
     PaginationNextButton,
   } from "$lib/components/ui/pagination";
+  import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+  } from "$lib/components/ui/select";
+  import { Skeleton } from "$lib/components/ui/skeleton";
   interface Props {
     data: PageData;
   }
@@ -70,8 +78,9 @@
     nextCursor: string;
   };
 
+  const pageSizeOptions = [10, 20, 50, 100] as const;
   const getInitialCommits = () => data.initialCommits;
-  let perPage = 10;
+  let perPage = $state(10);
   let pages = $state<CommitPage[]>([commitPageFrom(getInitialCommits())]);
   let currentPage = $state(1);
   let loadingPage = $state(false);
@@ -81,7 +90,12 @@
   let hasMore = $derived(!!pages[pages.length - 1]?.nextCursor);
   let count = $derived(Math.max(perPage, (pages.length + (hasMore ? 1 : 0)) * perPage));
   let currentCommits = $derived(pages[currentPage - 1]?.commits ?? []);
-  let hasCommits = $derived(currentCommits.length > 0 || pages[0].commits.length > 0);
+  let hasCommits = $derived(
+    currentCommits.length > 0 ||
+      (pages[0]?.commits.length ?? 0) > 0 ||
+      loadingPage ||
+      !!pageError,
+  );
 
   $effect(() => {
     const nextSignature = commitPageKey(data.initialCommits);
@@ -141,6 +155,42 @@
     } finally {
       loadingPage = false;
     }
+  }
+
+  async function fetchFirstPage(pageSize: number) {
+    loadingPage = true;
+    pageError = "";
+    currentPage = 1;
+    pages = [{ commits: [], nextCursor: "" }];
+
+    try {
+      const params = new URLSearchParams({ pageSize: String(pageSize) });
+      const response = await fetch(`/settings/commits?${params}`);
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          actionErrorMessage(payload, $messages, $messages.settings.repoSync.commitFailed),
+        );
+      }
+
+      pages = [{ commits: payload.commits ?? [], nextCursor: payload.nextCursor ?? "" }];
+    } catch (error) {
+      pageError =
+        error instanceof Error
+          ? error.message
+          : $messages.settings.repoSync.commitFailed;
+    } finally {
+      loadingPage = false;
+    }
+  }
+
+  function changePageSize(value: string) {
+    const nextPageSize = Number(value);
+    if (!pageSizeOptions.includes(nextPageSize as (typeof pageSizeOptions)[number])) return;
+    if (nextPageSize === perPage) return;
+
+    perPage = nextPageSize;
+    void fetchFirstPage(nextPageSize);
   }
 
   async function syncRepo() {
@@ -643,10 +693,35 @@
       {#if hasCommits}
         <Card>
           <CardHeader class="section-header">
-            <div class="section-heading">
-              <CardTitle class="section-title" level="2"
-                >{$messages.settings.repoSync.commitHistory}</CardTitle
-              >
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="section-heading">
+                <CardTitle class="section-title" level="2"
+                  >{$messages.settings.repoSync.commitHistory}</CardTitle
+                >
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-muted-foreground">
+                  {$messages.settings.repoSync.pageSize}
+                </span>
+                <Select
+                  type="single"
+                  value={String(perPage)}
+                  onValueChange={changePageSize}
+                  disabled={loadingPage}
+                >
+                  <SelectTrigger
+                    class="w-[4.5rem]"
+                    aria-label={$messages.settings.repoSync.pageSize}
+                  >
+                    {perPage}
+                  </SelectTrigger>
+                  <SelectContent>
+                    {#each pageSizeOptions as option}
+                      <SelectItem value={String(option)}>{option}</SelectItem>
+                    {/each}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardHeader>
           <CardContent class="space-y-4">
@@ -657,7 +732,23 @@
               </Alert>
             {/if}
 
-            {#if currentCommits.length > 0}
+            {#if loadingPage}
+              <div
+                class="space-y-3"
+                aria-busy="true"
+                aria-label={$messages.settings.repoSync.loadingCommits}
+              >
+                {#each Array(perPage) as _}
+                  <div class="space-y-2 border-b border-border pb-3 last:border-b-0 last:pb-0">
+                    <div class="flex items-start justify-between gap-2">
+                      <Skeleton class="h-4 w-2/3" />
+                      <Skeleton class="h-4 w-24" />
+                    </div>
+                    <Skeleton class="h-4 w-4/5" />
+                  </div>
+                {/each}
+              </div>
+            {:else if currentCommits.length > 0}
               <div class="space-y-3">
                 {#each currentCommits as commit}
                   <div class="border-b border-border pb-3 last:border-b-0 last:pb-0">
@@ -677,25 +768,32 @@
 
             {#if pages.length > 1 || hasMore}
               <Pagination {count} {perPage} bind:page={currentPage}>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevButton disabled={loadingPage} />
-                  </PaginationItem>
-                  {#each pages as _, i}
-                    {@const pageNum = i + 1}
+                {#snippet children({ pages: paginationPages, currentPage })}
+                  <PaginationContent>
                     <PaginationItem>
-                      <PaginationLink
-                        page={{ value: pageNum, type: "page" }}
-                        isActive={pageNum === currentPage}
-                      >
-                        {pageNum}
-                      </PaginationLink>
+                      <PaginationPrevButton disabled={loadingPage} />
                     </PaginationItem>
-                  {/each}
-                  <PaginationItem>
-                    <PaginationNextButton disabled={!hasMore || loadingPage} />
-                  </PaginationItem>
-                </PaginationContent>
+
+                    {#each paginationPages as page (page.key)}
+                      {#if page.type === "ellipsis"}
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      {:else}
+                        <PaginationItem>
+                          <PaginationLink
+                            {page}
+                            isActive={currentPage === page.value}
+                          />
+                        </PaginationItem>
+                      {/if}
+                    {/each}
+
+                    <PaginationItem>
+                      <PaginationNextButton disabled={!hasMore || loadingPage} />
+                    </PaginationItem>
+                  </PaginationContent>
+                {/snippet}
               </Pagination>
             {/if}
           </CardContent>
