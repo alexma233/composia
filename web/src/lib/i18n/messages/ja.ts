@@ -766,6 +766,8 @@ export const ja = {
       },
       terminal: {
         title: "ターミナル",
+        shell: "シェル",
+        custom: "カスタム",
         command: "コマンド",
         connecting: "接続中...",
         placeholder: "コマンドを入力...",

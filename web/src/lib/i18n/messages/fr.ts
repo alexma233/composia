@@ -769,6 +769,8 @@ export const fr = {
       },
       terminal: {
         title: "Terminal",
+        shell: "Shell",
+        custom: "Personnalisé",
         command: "Commande",
         connecting: "Connexion...",
         placeholder: "Saisir une commande...",

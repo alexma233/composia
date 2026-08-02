@@ -25,6 +25,7 @@
   import { Badge, type BadgeVariant } from "$lib/components/ui/badge";
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
+  import * as Select from "$lib/components/ui/select";
   import TerminalSurface from "$lib/components/app/terminal-surface.svelte";
   import { getMessages } from "$lib/i18n";
 
@@ -66,7 +67,11 @@
   let logTail = $state("200");
   let logStreamController = $state<AbortController | null>(null);
   let actionBusy = $state("");
-  let terminalCommand = $state("/bin/sh");
+  const terminalShellOptions = ["sh", "bash", "ash", "dash", "zsh", "fish"] as const;
+  type TerminalShell = (typeof terminalShellOptions)[number] | "custom";
+
+  let terminalShell = $state<TerminalShell>("sh");
+  let terminalCustomCommand = $state("");
   let terminalConnecting = $state(false);
   let terminalError = $state("");
   let terminalOutput = $state("");
@@ -311,8 +316,10 @@
     terminalOutput = "";
     disconnectTerminal();
     try {
-      const command = terminalCommand.trim()
-        ? terminalCommand.trim().split(/\s+/)
+      const commandText =
+        terminalShell === "custom" ? terminalCustomCommand.trim() : terminalShell;
+      const command = commandText
+        ? commandText.split(/\s+/)
         : [];
       const response = await fetch(
         `/nodes/${encodeURIComponent(data.nodeId)}/docker/containers/${encodeURIComponent(data.containerId)}/exec`,
@@ -843,18 +850,40 @@
                 </CardHeader>
                 <CardContent class="space-y-4">
                   <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <Input
-                      bind:value={terminalCommand}
-                      placeholder={$messages.docker.containers.terminal
-                        .placeholder}
-                      aria-label={$messages.docker.containers.terminal
-                        .placeholder}
-                      class="w-full sm:min-w-[220px] sm:flex-1"
-                    />
+                    <Select.Root type="single" bind:value={terminalShell}>
+                      <Select.Trigger
+                        class="w-full sm:w-40"
+                        aria-label={$messages.docker.containers.terminal.shell}
+                      >
+                        {terminalShell === "custom"
+                          ? $messages.docker.containers.terminal.custom
+                          : terminalShell}
+                      </Select.Trigger>
+                      <Select.Content>
+                        {#each terminalShellOptions as shell}
+                          <Select.Item value={shell}>{shell}</Select.Item>
+                        {/each}
+                        <Select.Item value="custom">
+                          {$messages.docker.containers.terminal.custom}
+                        </Select.Item>
+                      </Select.Content>
+                    </Select.Root>
+                    {#if terminalShell === "custom"}
+                      <Input
+                        bind:value={terminalCustomCommand}
+                        placeholder={$messages.docker.containers.terminal
+                          .placeholder}
+                        aria-label={$messages.docker.containers.terminal
+                          .placeholder}
+                        class="w-full sm:min-w-[220px] sm:flex-1"
+                      />
+                    {/if}
                     <Button
                       class="w-full sm:w-auto"
                       onclick={() => void connectTerminal()}
-                      disabled={terminalConnecting}
+                      disabled={terminalConnecting ||
+                        (terminalShell === "custom" &&
+                          !terminalCustomCommand.trim())}
                     >
                       {terminalSocket
                         ? $messages.docker.containers.terminal.reconnect

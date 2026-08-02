@@ -741,6 +741,8 @@ export const zhHans = {
       },
       terminal: {
         title: "终端",
+        shell: "Shell",
+        custom: "自定义",
         command: "命令",
         connecting: "连接中...",
         placeholder: "输入命令...",

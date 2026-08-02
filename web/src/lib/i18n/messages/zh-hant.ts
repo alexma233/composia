@@ -741,6 +741,8 @@ export const zhHant = {
       },
       terminal: {
         title: "終端機",
+        shell: "Shell",
+        custom: "自訂",
         command: "指令",
         connecting: "連線中...",
         placeholder: "輸入指令...",

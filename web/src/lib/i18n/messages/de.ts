@@ -765,6 +765,8 @@ export const de = {
       },
       terminal: {
         title: "Terminal",
+        shell: "Shell",
+        custom: "Benutzerdefiniert",
         command: "Befehl",
         connecting: "Verbinde...",
         placeholder: "Befehl eingeben...",

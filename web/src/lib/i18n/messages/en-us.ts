@@ -763,6 +763,8 @@ export const enUS = {
       },
       terminal: {
         title: "Terminal",
+        shell: "Shell",
+        custom: "Custom",
         command: "Command",
         connecting: "Connecting...",
         placeholder: "Enter command...",
