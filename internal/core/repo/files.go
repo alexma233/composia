@@ -272,7 +272,7 @@ func DeletePath(repoDir, relativePath string) (string, error) {
 	if normalizedPath == "" {
 		return "", ErrRepoPathInvalid
 	}
-	if normalizedPath == ".git" || strings.HasPrefix(normalizedPath, ".git/") {
+	if normalizedPath == gitDirName || strings.HasPrefix(normalizedPath, gitDirName+"/") {
 		return "", ErrRepoPathProtected
 	}
 	if err := rejectSymlinkPath(repoDir, normalizedPath, false); err != nil {

@@ -87,9 +87,9 @@ weight: 10
     - [GetEditableConfigResponse](#composia-controller-v1-GetEditableConfigResponse)
     - [UpdateEditableConfigRequest](#composia-controller-v1-UpdateEditableConfigRequest)
     - [UpdateEditableConfigResponse](#composia-controller-v1-UpdateEditableConfigResponse)
-
+  
     - [ControllerConfigService](#composia-controller-v1-ControllerConfigService)
-
+  
 - [proto/composia/controller/v1/node.proto](#proto_composia_controller_v1_node-proto)
     - [ContainerInfo](#composia-controller-v1-ContainerInfo)
     - [ContainerInfo.LabelsEntry](#composia-controller-v1-ContainerInfo-LabelsEntry)
@@ -1372,11 +1372,11 @@ DockerCommandService exposes node-scoped Docker command entrypoints.
 
 
 
+ 
 
+ 
 
-
-
-
+ 
 
 
 <a name="composia-controller-v1-ControllerConfigService"></a>
@@ -1389,7 +1389,7 @@ ControllerConfigService edits the explicitly opt-in, non-secret controller confi
 | GetEditableConfig | [GetEditableConfigRequest](#composia-controller-v1-GetEditableConfigRequest) | [GetEditableConfigResponse](#composia-controller-v1-GetEditableConfigResponse) | GetEditableConfig returns the current whitelist-only YAML projection. |
 | UpdateEditableConfig | [UpdateEditableConfigRequest](#composia-controller-v1-UpdateEditableConfigRequest) | [UpdateEditableConfigResponse](#composia-controller-v1-UpdateEditableConfigResponse) | UpdateEditableConfig validates, atomically applies, and queues a controller runtime reload. |
 
-
+ 
 
 
 

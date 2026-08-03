@@ -10,6 +10,7 @@ import (
 )
 
 var errSecretsNotConfigured = errors.New("controller secrets are not configured")
+
 var errInvalidEncryptedPath = errors.New(".enc is reserved for encrypted files")
 
 func repoFileContent(cfg *config.ControllerConfig, path, stored string) (string, error) {

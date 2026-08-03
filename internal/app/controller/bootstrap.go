@@ -130,8 +130,8 @@ func Run(ctx context.Context, configPath string) error {
 					}
 					restoreErr := restoreControllerConfigIfCurrent(configPath, configRevision(currentRaw), activeRaw)
 					if restoreErr != nil {
-						request.respond(fmt.Errorf("new controller runtime failed: %v; restore failed: %w", readyErr, restoreErr))
-						return fmt.Errorf("new controller runtime failed: %v; restore failed: %w", readyErr, restoreErr)
+						request.respond(fmt.Errorf("new controller runtime failed: %w; restore failed: %w", readyErr, restoreErr))
+						return fmt.Errorf("new controller runtime failed: %w; restore failed: %w", readyErr, restoreErr)
 					}
 					log.Printf("controller config reload rejected: %v", readyErr)
 					request.respond(readyErr)
@@ -157,8 +157,8 @@ func rollbackQueuedControllerConfig(configPath string, request reloadRequest, ca
 		return nil
 	}
 	if err := restoreControllerConfigIfCurrent(configPath, configRevision(candidateRaw), activeRaw); err != nil {
-		request.respond(fmt.Errorf("controller config reload rejected: %v; restore failed: %w", cause, err))
-		return fmt.Errorf("controller config reload rejected: %v; restore failed: %w", cause, err)
+		request.respond(fmt.Errorf("controller config reload rejected: %w; restore failed: %w", cause, err))
+		return fmt.Errorf("controller config reload rejected: %w; restore failed: %w", cause, err)
 	}
 	request.respond(cause)
 	log.Printf("controller config reload rejected and previous config restored: %v", cause)
@@ -171,7 +171,7 @@ func waitControllerRuntimeReady(ctx context.Context, ready <-chan error, done <-
 		return err, false
 	case err := <-done:
 		if err == nil {
-			return fmt.Errorf("controller runtime stopped before becoming ready"), true
+			return errors.New("controller runtime stopped before becoming ready"), true
 		}
 		return err, true
 	case <-ctx.Done():

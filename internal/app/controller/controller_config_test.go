@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"os"
@@ -143,7 +144,7 @@ func TestRestoreControllerConfigDoesNotOverwriteChangedRevision(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read current config: %v", err)
 	}
-	if string(content) != string(newRaw) {
+	if !bytes.Equal(content, newRaw) {
 		t.Fatalf("changed config was overwritten: %s", content)
 	}
 }
@@ -165,7 +166,7 @@ func TestAtomicConfigWriteMarksPostRenameSyncFailureAsInstalled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read replaced config: %v", err)
 	}
-	if string(actual) != string(content) {
+	if !bytes.Equal(actual, content) {
 		t.Fatalf("replacement was not installed: %s", actual)
 	}
 }

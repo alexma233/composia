@@ -60,12 +60,6 @@ func StreamServiceBundleWithExtras(ctx context.Context, repoDir, revision, servi
 		}
 		if header.Typeflag == tar.TypeReg && IsEncryptedFilePath(header.Name) {
 			if _, replaced := normalizedExtras[RuntimeFilePath(header.Name)]; replaced {
-				if _, err := io.Copy(io.Discard, tarReader); err != nil {
-					_ = tarWriter.Close()
-					_ = gzipWriter.Close()
-					waitAfterError()
-					return fmt.Errorf("skip encrypted bundle file %q: %w", header.Name, err)
-				}
 				continue
 			}
 		}

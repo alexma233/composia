@@ -12,7 +12,6 @@
   const messages = getMessages();
 
   import { startPolling } from "$lib/refresh";
-  import CodeEditor from "$lib/components/app/code-editor.svelte";
   import ThemeControls from "$lib/components/app/theme-controls.svelte";
   import {
     Alert,
@@ -68,6 +67,9 @@
   let editableConfigBusy = $state(false);
   let editableConfigAvailable = $state(false);
   let editableConfigError = $state("");
+  let CodeEditor = $state<
+    typeof import("$lib/components/app/code-editor.svelte").default | null
+  >(null);
   let rusticBusy = $state<"init" | "forget" | "prune" | "">("");
   let rusticError = $state("");
   let rusticTaskId = $state("");
@@ -447,6 +449,9 @@
   );
 
   onMount(() => {
+    void import("$lib/components/app/code-editor.svelte").then(
+      ({ default: component }) => (CodeEditor = component),
+    );
     void fetch("/settings/controller-config")
       .then((response) => {
         editableConfigAvailable = response.ok;
@@ -670,11 +675,15 @@
                 </DialogDescription>
               </DialogHeader>
               <div class="min-h-0 flex-1">
-                <CodeEditor
-                  value={editableConfigYaml}
-                  path="controller-config.yaml"
-                  onchange={({ value }) => (editableConfigYaml = value)}
-                />
+                {#if CodeEditor}
+                  <CodeEditor
+                    value={editableConfigYaml}
+                    path="controller-config.yaml"
+                    onchange={({ value }) => (editableConfigYaml = value)}
+                  />
+                {:else}
+                  <div class="empty-state">{$messages.common.loadingWithDots}</div>
+                {/if}
               </div>
               {#if editableConfigError}
                 <Alert variant="destructive">

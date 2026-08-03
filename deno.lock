@@ -1,6 +1,8 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@std/assert@1.0.19": "1.0.19",
+    "jsr:@std/internal@^1.0.12": "1.0.14",
     "npm:@axe-core/playwright@4.12.1": "4.12.1_playwright-core@1.62.0",
     "npm:@bufbuild/protobuf@2.13.0": "2.13.0",
     "npm:@bufbuild/protoc-gen-es@2.13.0": "2.13.0_@bufbuild+protobuf@2.13.0",
@@ -48,6 +50,17 @@
     "npm:vite@8.1.5": "8.1.5_@types+node@26.1.1_yaml@2.9.0",
     "npm:vscode-material-icons@0.1.1": "0.1.1",
     "npm:yaml@2.9.0": "2.9.0"
+  },
+  "jsr": {
+    "@std/assert@1.0.19": {
+      "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/internal@1.0.14": {
+      "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
+    }
   },
   "npm": {
     "@axe-core/playwright@4.12.1_playwright-core@1.62.0": {

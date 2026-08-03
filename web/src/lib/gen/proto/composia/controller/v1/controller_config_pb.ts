@@ -114,3 +114,4 @@ export const ControllerConfigService: GenService<{
   },
 }> = /*@__PURE__*/
   serviceDesc(file_proto_composia_controller_v1_controller_config, 0);
+

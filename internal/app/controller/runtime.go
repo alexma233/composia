@@ -151,7 +151,7 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, con
 
 	log.Printf("composia controller parsed %d declared services", len(services))
 	log.Printf("composia controller listening on %s", cfg.ListenAddr)
-	listener, err := net.Listen("tcp", cfg.ListenAddr)
+	listener, err := (&net.ListenConfig{}).Listen(runtimeCtx, "tcp", cfg.ListenAddr)
 	if err != nil {
 		ready <- fmt.Errorf("listen on %s: %w", cfg.ListenAddr, err)
 		cancelRuntime()

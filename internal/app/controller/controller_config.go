@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -174,7 +175,7 @@ func (editor *controllerConfigEditor) UpdateEditableConfig(ctx context.Context, 
 	if err := validateControllerReload(editor.cfg, candidateCfg); err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
-	if string(candidate) == string(raw) {
+	if bytes.Equal(candidate, raw) {
 		return connect.NewResponse(&controllerv1.UpdateEditableConfigResponse{Revision: currentRevision}), nil
 	}
 	latestRaw, err := os.ReadFile(editor.configPath) //nolint:gosec // The path is the configured controller config.
@@ -203,7 +204,7 @@ func (editor *controllerConfigEditor) UpdateEditableConfig(ctx context.Context, 
 	locked = false
 	if queueErr != nil {
 		if restoreErr := restoreControllerConfigIfCurrent(editor.configPath, configRevision(candidate), raw); restoreErr != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("queue controller config reload: %w; restore failed: %v", queueErr, restoreErr))
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("queue controller config reload: %w; restore failed: %w", queueErr, restoreErr))
 		}
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("queue controller config reload: %w", queueErr))
 	}
@@ -309,7 +310,7 @@ func decodeEditableControllerConfig(content string) (*editableControllerConfig, 
 		return nil, fmt.Errorf("decode editable controller config: %w", err)
 	}
 	var extra yaml.Node
-	if err := decoder.Decode(&extra); err != io.EOF {
+	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
 		if err == nil {
 			return nil, errors.New("editable controller config must contain one YAML document")
 		}
@@ -400,7 +401,7 @@ func decodeYAMLDocument(content string) (*yaml.Node, error) {
 		return nil, err
 	}
 	var extra yaml.Node
-	if err := decoder.Decode(&extra); err != io.EOF {
+	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
 		if err == nil {
 			return nil, errors.New("configuration must contain one YAML document")
 		}
@@ -607,11 +608,9 @@ func cloneBool(value *bool) *bool {
 	if value == nil {
 		return nil
 	}
-	copy := *value
-	return &copy
+	result := *value
+	return &result
 }
-
-func editableBoolPtr(value bool) *bool { return &value }
 
 func stringPtr(value string) *string { return &value }
 
@@ -621,7 +620,7 @@ func configRevision(raw []byte) string {
 }
 
 func controllerConfigMode(path string) (os.FileMode, error) {
-	info, err := os.Lstat(path)
+	info, err := os.Lstat(path) //nolint:gosec // The path is loaded from the trusted controller configuration.
 	if err != nil {
 		return 0, fmt.Errorf("stat controller config: %w", err)
 	}
@@ -645,7 +644,7 @@ func validateControllerConfigBytes(path string, content []byte, mode os.FileMode
 		return nil, fmt.Errorf("create config validation file: %w", err)
 	}
 	tempPath := temp.Name()
-	defer func() { _ = os.Remove(tempPath) }()
+	defer func() { _ = os.Remove(tempPath) }() //nolint:gosec // The temporary path was created in the configured directory.
 	if err := temp.Chmod(mode); err != nil {
 		_ = temp.Close()
 		return nil, fmt.Errorf("set config validation file mode: %w", err)
@@ -696,7 +695,7 @@ func atomicWriteControllerConfigWithDirectorySync(path string, content []byte, m
 	tempPath := temp.Name()
 	cleanup := func() {
 		_ = temp.Close()
-		_ = os.Remove(tempPath)
+		_ = os.Remove(tempPath) //nolint:gosec // The temporary path was created in the configured directory.
 	}
 	if err := temp.Chmod(mode); err != nil {
 		cleanup()
@@ -711,21 +710,21 @@ func atomicWriteControllerConfigWithDirectorySync(path string, content []byte, m
 		return fmt.Errorf("sync atomic config file: %w", err)
 	}
 	if err := temp.Close(); err != nil {
-		_ = os.Remove(tempPath)
+		_ = os.Remove(tempPath) //nolint:gosec // The temporary path was created in the configured directory.
 		return fmt.Errorf("close atomic config file: %w", err)
 	}
-	if err := os.Rename(tempPath, path); err != nil {
-		_ = os.Remove(tempPath)
+	if err := os.Rename(tempPath, path); err != nil { //nolint:gosec // Both paths are controlled by the configured controller file.
+		_ = os.Remove(tempPath) //nolint:gosec // The temporary path was created in the configured directory.
 		return fmt.Errorf("replace controller config: %w", err)
 	}
-	directory, err := os.Open(filepath.Dir(path))
+	directory, err := os.Open(filepath.Dir(path)) //nolint:gosec // The path is the configured controller file's directory.
 	if err != nil {
 		return &controllerConfigWriteError{
 			installed: true,
 			err:       fmt.Errorf("open config directory after replacement: %w", err),
 		}
 	}
-	defer directory.Close()
+	defer func() { _ = directory.Close() }()
 	if err := syncDirectory(directory); err != nil {
 		return &controllerConfigWriteError{
 			installed: true,
