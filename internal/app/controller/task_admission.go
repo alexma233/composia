@@ -203,6 +203,56 @@ func createServiceCloudflareTunnelSyncTask(ctx context.Context, db *store.DB, cf
 	return createdTask, nil
 }
 
+func createServiceDNSUpdateTask(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, service repo.Service, nodeID, repoRevision string, source task.Source, dedupeKey string) (task.Record, error) {
+	if _, err := resolveTargetNodeIDs(service, []string{nodeID}); err != nil {
+		return task.Record{}, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	if err := validateTaskTargetNode(ctx, db, cfg, nodeID, task.TypeDNSUpdate); err != nil {
+		return task.Record{}, err
+	}
+	serviceDir, err := filepath.Rel(cfg.RepoDir, service.Directory)
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
+	}
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir})
+	if err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("encode task params: %w", err))
+	}
+	if dedupeKey != "" {
+		if existing, lookupErr := db.GetTaskByDedupeKey(ctx, dedupeKey); lookupErr == nil {
+			return existing, nil
+		} else if !errors.Is(lookupErr, store.ErrTaskNotFound) {
+			return task.Record{}, connect.NewError(connect.CodeInternal, lookupErr)
+		}
+	}
+	triggeredBy, _ := rpcutil.BearerSubject(ctx)
+	taskID := uuid.NewString()
+	createdTask, err := db.CreateTaskIfNoActiveServiceTask(ctx, task.Record{
+		TaskID:       taskID,
+		Type:         task.TypeDNSUpdate,
+		Source:       source,
+		TriggeredBy:  triggeredBy,
+		ServiceName:  service.Name,
+		NodeID:       nodeID,
+		ParamsJSON:   string(paramsJSON),
+		RepoRevision: repoRevision,
+		LogPath:      filepath.Join(cfg.LogDir, "tasks", taskID+".log"),
+		DedupeKey:    dedupeKey,
+	})
+	if err != nil {
+		if dedupeKey != "" {
+			if existing, lookupErr := db.GetTaskByDedupeKey(ctx, dedupeKey); lookupErr == nil {
+				return existing, nil
+			}
+		}
+		return task.Record{}, connectTaskAdmissionError(err)
+	}
+	if err := os.WriteFile(createdTask.LogPath, []byte(""), 0o600); err != nil {
+		return task.Record{}, connect.NewError(connect.CodeInternal, fmt.Errorf("create task log file: %w", err))
+	}
+	return createdTask, nil
+}
+
 func chooseRusticMainNode(ctx context.Context, db *store.DB, cfg *config.ControllerConfig, availableNodeIDs map[string]struct{}, taskType task.Type) (string, error) {
 	rusticService, err := repo.FindRusticInfraService(cfg.RepoDir, availableNodeIDs)
 	if err != nil {

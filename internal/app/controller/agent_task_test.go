@@ -31,7 +31,7 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	ctx := context.Background()
 	repoDir := t.TempDir()
 	createGitRepoWithContent(t, repoDir, map[string]string{
-		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\nnetwork:\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
+		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\nnetwork:\n  dns:\n    provider: cloudflare\n    hostname: demo.example.com\n  caddy:\n    enabled: true\n    source: ./demo.caddy\n",
 		"edge/composia-meta.yaml": "name: edge\nnodes:\n  - main\ninfra:\n  caddy:\n    compose_service: caddy\n    config_dir: /etc/caddy\n",
 	})
 	logDir := filepath.Join(t.TempDir(), "logs")
@@ -183,6 +183,20 @@ func TestAgentPullAndReportTaskFlow(t *testing.T) {
 	}
 	if totalCount != 1 || len(reloadTasks) != 1 {
 		t.Fatalf("expected one queued caddy reload task, got total=%d tasks=%+v", totalCount, reloadTasks)
+	}
+	dnsTasks, dnsCount, err := db.ListTasks(ctx, []string{string(task.StatusPending)}, []string{"demo"}, []string{"main"}, []string{string(task.TypeDNSUpdate)}, nil, nil, nil, nil, 1, 10)
+	if err != nil {
+		t.Fatalf("list dns update tasks: %v", err)
+	}
+	if dnsCount != 1 || len(dnsTasks) != 1 {
+		t.Fatalf("expected one queued dns update task, got total=%d tasks=%+v", dnsCount, dnsTasks)
+	}
+	dnsDetail, err := db.GetTask(ctx, dnsTasks[0].TaskID)
+	if err != nil {
+		t.Fatalf("get dns update task: %v", err)
+	}
+	if dnsDetail.Record.RepoRevision != revision || dnsDetail.Record.Source != task.SourceWeb {
+		t.Fatalf("unexpected dns update task: %+v", dnsDetail.Record)
 	}
 	reloadDetail, err := db.GetTask(ctx, reloadTasks[0].TaskID)
 	if err != nil {

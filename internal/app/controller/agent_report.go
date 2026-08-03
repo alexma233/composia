@@ -159,7 +159,18 @@ func (server *agentReportServer) queuePostTaskFollowups(ctx context.Context, rec
 		return nil
 	}
 	switch record.Type {
-	case task.TypeDeploy, task.TypeUpdate, task.TypeStop:
+	case task.TypeDeploy:
+		if err := server.queueDNSUpdateForTask(ctx, record); err != nil {
+			return err
+		}
+		if err := server.queueCaddyReloadForTask(ctx, record); err != nil {
+			return err
+		}
+		if err := server.queueCloudflareTunnelSyncForTask(ctx, record); err != nil {
+			return err
+		}
+		return nil
+	case task.TypeUpdate, task.TypeStop:
 		if err := server.queueCaddyReloadForTask(ctx, record); err != nil {
 			return err
 		}
@@ -172,6 +183,28 @@ func (server *agentReportServer) queuePostTaskFollowups(ctx context.Context, rec
 	default:
 		return nil
 	}
+}
+
+func (server *agentReportServer) queueDNSUpdateForTask(ctx context.Context, record task.Record) error {
+	if server.cfg == nil {
+		return nil
+	}
+	params, err := taskParams(record.ParamsJSON)
+	if err != nil {
+		return err
+	}
+	if params.ServiceDir == "" || record.RepoRevision == "" || record.NodeID == "" {
+		return nil
+	}
+	service, err := repo.FindServiceAtRevision(server.cfg.RepoDir, record.RepoRevision, params.ServiceDir, server.availableNodeIDs)
+	if err != nil {
+		return fmt.Errorf("load service for post-task dns update: %w", err)
+	}
+	if service.Meta.Network == nil || service.Meta.Network.DNS == nil {
+		return nil
+	}
+	_, err = createServiceDNSUpdateTask(ctx, server.db, server.cfg, service, record.NodeID, record.RepoRevision, record.Source, "post:"+service.Name+":"+record.RepoRevision+":dns-update")
+	return err
 }
 
 func (server *agentReportServer) queueCloudflareTunnelSyncForTask(ctx context.Context, record task.Record) error {
