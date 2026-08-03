@@ -16,12 +16,12 @@ Controller repo
   │   └── composia-meta.yaml    (déclare infra.caddy)
   ├── my-app/
   │   ├── docker-compose.yaml
-  │   ├── Caddyfile             (configuration Caddy spécifique au service)
+  │   ├── proxy-config          (configuration Caddy spécifique au service)
   │   └── composia-meta.yaml    (déclare network.caddy)
   └── ...
 ```
 
-Au moment du déploiement, Composia copie le Caddyfile de chaque service dans un répertoire généré, puis déclenche un rechargement Caddy.
+Au moment du déploiement, Composia copie le fichier de configuration Caddy de chaque service dans un répertoire généré, puis déclenche un rechargement Caddy.
 
 ## Configuration de l'infrastructure
 
@@ -52,7 +52,7 @@ Un seul service dans le dépôt peut être déclaré comme infrastructure Caddy.
 
 ## Configuration du service
 
-Pour chaque service qui nécessite une entrée de reverse proxy, activez Caddy dans `composia-meta.yaml` et fournissez un Caddyfile :
+Pour chaque service qui nécessite une entrée de reverse proxy, activez Caddy dans `composia-meta.yaml` et fournissez un fichier de configuration Caddy :
 
 ```yaml {filename="my-app/composia-meta.yaml"}
 name: my-app
@@ -61,12 +61,12 @@ nodes:
 network:
   caddy:
     enabled: true
-    source: Caddyfile
+    source: proxy-config
 ```
 
-Le chemin `source` est relatif au répertoire du service et doit rester à l'intérieur. Le fichier peut avoir n'importe quel nom, mais `Caddyfile` est la convention.
+Le chemin `source` est relatif au répertoire du service et doit rester à l'intérieur. Le fichier source peut avoir n'importe quel nom et extension ; `Caddyfile` n'est qu'une convention courante. Ici, `Caddyfile` désigne le format de configuration Caddy, pas un nom de fichier obligatoire.
 
-```caddy {filename="my-app/Caddyfile"}
+```caddy {filename="my-app/proxy-config"}
 app.example.com {
     reverse_proxy app:8080
 }
@@ -80,7 +80,7 @@ Pendant une tâche de déploiement ou de mise à jour, l'agent exécute une éta
 2. Copier le fichier source vers `<agent_state_dir>/caddy/generated/<service_dir>.caddy`.
 3. Exécuter `docker compose exec <caddy_service> caddy reload --config <Caddyfile> --adapter caddyfile`.
 
-Le nom du fichier généré est dérivé du nom du répertoire du service. Pour `my-app`, le fichier est `my-app.caddy`.
+Le nom du fichier généré est dérivé du nom du répertoire du service. Pour `my-app`, le fichier est `my-app.caddy`. L'extension `.caddy` est une convention de Composia pour les fichiers générés, et non une exigence de Caddy ; le Caddyfile principal doit importer le motif `*.caddy` correspondant.
 
 Pendant une tâche d'arrêt, le fichier Caddy généré est supprimé.
 

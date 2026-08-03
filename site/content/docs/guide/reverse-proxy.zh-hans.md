@@ -16,12 +16,12 @@ Controller repo
   │   └── composia-meta.yaml    （声明 infra.caddy）
   ├── my-app/
   │   ├── docker-compose.yaml
-  │   ├── Caddyfile             （服务专属的 Caddy 配置）
+  │   ├── proxy-config          （服务专属的 Caddy 配置）
   │   └── composia-meta.yaml    （声明 network.caddy）
   └── ...
 ```
 
-在部署时，Composia 将每个服务的 Caddyfile 复制到生成的目录中，然后触发 Caddy 重载。
+在部署时，Composia 将每个服务的 Caddy 配置文件复制到生成的目录中，然后触发 Caddy 重载。
 
 ## 基础设施设置
 
@@ -52,7 +52,7 @@ import /etc/caddy/generated/*.caddy
 
 ## 服务配置
 
-对于需要反向代理条目的每个服务，在 `composia-meta.yaml` 中启用 Caddy 并提供 Caddyfile：
+对于需要反向代理条目的每个服务，在 `composia-meta.yaml` 中启用 Caddy 并提供 Caddy 配置文件：
 
 ```yaml {filename="my-app/composia-meta.yaml"}
 name: my-app
@@ -61,12 +61,12 @@ nodes:
 network:
   caddy:
     enabled: true
-    source: Caddyfile
+    source: proxy-config
 ```
 
-`source` 路径相对于服务目录，且必须保持在目录内。文件可以任意命名，但惯例是 `Caddyfile`。
+`source` 路径相对于服务目录，且必须保持在目录内。源文件可以使用任意文件名和扩展名；`Caddyfile` 只是常见的命名约定。这里的 `Caddyfile` 指 Caddy 配置格式，不是强制要求的文件名。
 
-```caddy {filename="my-app/Caddyfile"}
+```caddy {filename="my-app/proxy-config"}
 app.example.com {
     reverse_proxy app:8080
 }
@@ -80,7 +80,7 @@ app.example.com {
 2. 将源文件复制到 `<agent_state_dir>/caddy/generated/<service_dir>.caddy`。
 3. 运行 `docker compose exec <caddy_service> caddy reload --config <Caddyfile> --adapter caddyfile`。
 
-生成的文件名从服务目录名派生。对于 `my-app`，文件名为 `my-app.caddy`。
+生成的文件名从服务目录名派生。对于 `my-app`，文件名为 `my-app.caddy`。`.caddy` 后缀是 Composia 对生成文件的约定，并非 Caddy 的要求；主 Caddyfile 必须导入匹配的 `*.caddy` 文件。
 
 在停止任务期间，生成的 Caddy 文件会被删除。
 

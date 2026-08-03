@@ -16,12 +16,12 @@ Controller repo
   │   └── composia-meta.yaml    (declares infra.caddy)
   ├── my-app/
   │   ├── docker-compose.yaml
-  │   ├── Caddyfile             (service-specific Caddy config)
+  │   ├── proxy-config          (service-specific Caddy config)
   │   └── composia-meta.yaml    (declares network.caddy)
   └── ...
 ```
 
-At deploy time, Composia copies each service's Caddyfile into a generated directory and then triggers a Caddy reload.
+At deploy time, Composia copies each service's Caddy configuration file into a generated directory and then triggers a Caddy reload.
 
 ## Infrastructure setup
 
@@ -52,7 +52,7 @@ Only one service in the repository can be declared as Caddy infrastructure.
 
 ## Service configuration
 
-For each service that needs a reverse proxy entry, enable Caddy in `composia-meta.yaml` and provide a Caddyfile:
+For each service that needs a reverse proxy entry, enable Caddy in `composia-meta.yaml` and provide a Caddy configuration file:
 
 ```yaml {filename="my-app/composia-meta.yaml"}
 name: my-app
@@ -61,12 +61,12 @@ nodes:
 network:
   caddy:
     enabled: true
-    source: Caddyfile
+    source: proxy-config
 ```
 
-The `source` path is relative to the service directory and must stay inside it. The file can be named anything, but `Caddyfile` is the convention.
+The `source` path is relative to the service directory and must stay inside it. The source file can have any name and extension; `Caddyfile` is only a common naming convention. `Caddyfile` refers to the Caddy configuration format, not a required filename.
 
-```caddy {filename="my-app/Caddyfile"}
+```caddy {filename="my-app/proxy-config"}
 app.example.com {
     reverse_proxy app:8080
 }
@@ -80,7 +80,7 @@ During a deploy or update task, the agent runs a Caddy sync step after `compose 
 2. Copy the source file to `<agent_state_dir>/caddy/generated/<service_dir>.caddy`.
 3. Run `docker compose exec <caddy_service> caddy reload --config <Caddyfile> --adapter caddyfile`.
 
-The generated file name is derived from the service directory name. For `my-app`, the file is `my-app.caddy`.
+The generated file name is derived from the service directory name. For `my-app`, the file is `my-app.caddy`. The `.caddy` suffix is a Composia convention for generated files, not a Caddy requirement; the main Caddyfile must import the matching `*.caddy` glob.
 
 During a stop task, the generated Caddy file is removed.
 

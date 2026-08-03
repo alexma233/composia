@@ -16,12 +16,12 @@ Controller repo
   │   └── composia-meta.yaml    (infra.caddy を宣言)
   ├── my-app/
   │   ├── docker-compose.yaml
-  │   ├── Caddyfile             (サービス固有の Caddy 設定)
+  │   ├── proxy-config          (サービス固有の Caddy 設定)
   │   └── composia-meta.yaml    (network.caddy を宣言)
   └── ...
 ```
 
-デプロイ時に、Composia は各サービスの Caddyfile を生成ディレクトリにコピーし、Caddy のリロードをトリガーします。
+デプロイ時に、Composia は各サービスの Caddy 設定ファイルを生成ディレクトリにコピーし、Caddy のリロードをトリガーします。
 
 ## インフラストラクチャのセットアップ
 
@@ -52,7 +52,7 @@ import /etc/caddy/generated/*.caddy
 
 ## サービス設定
 
-リバースプロキシエントリが必要な各サービスについて、`composia-meta.yaml` で Caddy を有効にし、Caddyfile を提供します:
+リバースプロキシエントリが必要な各サービスについて、`composia-meta.yaml` で Caddy を有効にし、Caddy 設定ファイルを提供します:
 
 ```yaml {filename="my-app/composia-meta.yaml"}
 name: my-app
@@ -61,12 +61,12 @@ nodes:
 network:
   caddy:
     enabled: true
-    source: Caddyfile
+    source: proxy-config
 ```
 
-`source` パスはサービスディレクトリからの相対パスで、その中に留まる必要があります。ファイル名は任意ですが、`Caddyfile` が慣例です。
+`source` パスはサービスディレクトリからの相対パスで、その中に留まる必要があります。ソースファイルの名前と拡張子は任意で、`Caddyfile` は一般的な命名規則にすぎません。ここでいう `Caddyfile` は Caddy の設定形式を指し、必須のファイル名ではありません。
 
-```caddy {filename="my-app/Caddyfile"}
+```caddy {filename="my-app/proxy-config"}
 app.example.com {
     reverse_proxy app:8080
 }
@@ -80,7 +80,7 @@ app.example.com {
 2. ソースファイルを `<agent_state_dir>/caddy/generated/<service_dir>.caddy` にコピーします。
 3. `docker compose exec <caddy_service> caddy reload --config <Caddyfile> --adapter caddyfile` を実行します。
 
-生成されるファイル名はサービスディレクトリ名から派生します。`my-app` の場合、ファイルは `my-app.caddy` になります。
+生成されるファイル名はサービスディレクトリ名から派生します。`my-app` の場合、ファイルは `my-app.caddy` になります。`.caddy` 拡張子は生成ファイルに対する Composia の慣例であり、Caddy の要件ではありません。メインの Caddyfile では対応する `*.caddy` パターンをインポートする必要があります。
 
 停止タスク中は、生成された Caddy ファイルが削除されます。
 

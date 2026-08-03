@@ -16,12 +16,12 @@ Controller-Repo
   │   └── composia-meta.yaml    (deklariert infra.caddy)
   ├── my-app/
   │   ├── docker-compose.yaml
-  │   ├── Caddyfile             (dienstspezifische Caddy-Konfiguration)
+  │   ├── proxy-config          (dienstspezifische Caddy-Konfiguration)
   │   └── composia-meta.yaml    (deklariert network.caddy)
   └── ...
 ```
 
-Beim Deploy kopiert Composia die Caddyfile jedes Dienstes in ein generiertes Verzeichnis und löst dann ein Caddy-Reload aus.
+Beim Deploy kopiert Composia die Caddy-Konfigurationsdatei jedes Dienstes in ein generiertes Verzeichnis und löst dann ein Caddy-Reload aus.
 
 ## Infrastruktur-Einrichtung
 
@@ -52,7 +52,7 @@ Nur ein Dienst im Repository kann als Caddy-Infrastruktur deklariert werden.
 
 ## Dienstkonfiguration
 
-Aktiviere Caddy in `composia-meta.yaml` für jeden Dienst, der einen Reverse-Proxy-Eintrag benötigt, und stelle eine Caddyfile bereit:
+Aktiviere Caddy in `composia-meta.yaml` für jeden Dienst, der einen Reverse-Proxy-Eintrag benötigt, und stelle eine Caddy-Konfigurationsdatei bereit:
 
 ```yaml {filename="my-app/composia-meta.yaml"}
 name: my-app
@@ -61,12 +61,12 @@ nodes:
 network:
   caddy:
     enabled: true
-    source: Caddyfile
+    source: proxy-config
 ```
 
-Der `source`-Pfad ist relativ zum Dienstverzeichnis und muss darin bleiben. Die Datei kann beliebig benannt werden, aber `Caddyfile` ist die Konvention.
+Der `source`-Pfad ist relativ zum Dienstverzeichnis und muss darin bleiben. Die Quelldatei kann beliebig benannt werden und jede Erweiterung haben; `Caddyfile` ist nur eine gängige Konvention. `Caddyfile` bezeichnet hier das Caddy-Konfigurationsformat, nicht einen vorgeschriebenen Dateinamen.
 
-```caddy {filename="my-app/Caddyfile"}
+```caddy {filename="my-app/proxy-config"}
 app.example.com {
     reverse_proxy app:8080
 }
@@ -80,7 +80,7 @@ Während einer Deploy- oder Update-Aufgabe führt der Agent einen Caddy-Sync-Sch
 2. Kopiert die Quelldatei nach `<agent_state_dir>/caddy/generated/<service_dir>.caddy`.
 3. Führt `docker compose exec <caddy_service> caddy reload --config <Caddyfile> --adapter caddyfile` aus.
 
-Der generierte Dateiname wird vom Dienstverzeichnisnamen abgeleitet. Für `my-app` lautet die Datei `my-app.caddy`.
+Der generierte Dateiname wird vom Dienstverzeichnisnamen abgeleitet. Für `my-app` lautet die Datei `my-app.caddy`. Die Endung `.caddy` ist eine Composia-Konvention für generierte Dateien und keine Caddy-Anforderung; die Haupt-Caddyfile muss das passende `*.caddy`-Muster importieren.
 
 Während einer Stopp-Aufgabe wird die generierte Caddy-Datei entfernt.
 
