@@ -47,24 +47,30 @@ Deklariere DNS-Einstellungen in der `composia-meta.yaml` des Dienstes:
 ```yaml
 network:
   dns:
-    provider: cloudflare
-    hostname: app.example.com
-    record_type: A
-    value: 203.0.113.10
-    proxied: true
-    ttl: 120
-    comment: "Verwaltet von Composia"
+    - provider: cloudflare
+      hostname: app.example.com
+      record_type: A
+      value: 203.0.113.10
+      proxied: true
+      ttl: 120
+      comment: "Verwaltet von Composia"
+    - provider: cloudflare
+      hostname: app.example.com
+      record_type: AAAA
+      value: 2001:db8::10
 ```
 
 | Schlüssel | Typ | Erforderlich | Beschreibung |
 |-----|------|----------|-------------|
-| `provider` | `string` | Ja | `cloudflare`, `alidns`, `dnspod`, `route53` oder `huaweicloud`. |
+| `provider` | `string` | Nein | `cloudflare`, `alidns`, `dnspod`, `route53` oder `huaweicloud`. Bei eindeutiger Zone kann der Provider automatisch ermittelt werden. |
 | `hostname` | `string` | Ja | DNS-Hostname. Die Zone wird aus der konfigurierten Zonenliste abgeglichen. |
 | `record_type` | `string` | Nein | `A`, `AAAA` oder `CNAME`. Wenn leer, wird der Record-Typ aus dem Wert oder den Node-Adressen abgeleitet. |
 | `value` | `string` | Nein | Expliziter DNS-Record-Wert. Wenn leer, leitet Composia den Wert vom Ziel-Node ab. |
 | `proxied` | `bool` | Nein | Aktiviert den Cloudflare-Proxy. Wird nur von Cloudflare unterstützt. |
 | `ttl` | `uint32` | Nein | DNS-TTL in Sekunden. |
 | `comment` | `string` | Nein | DNS-Record-Kommentar. Wird nur von Cloudflare unterstützt. |
+
+Ein Dienst kann beliebig viele DNS-Einträge definieren. Derselbe Hostname darf unterschiedliche Typen wie `A` und `AAAA` verwenden; doppelte Kombinationen aus Hostname und Record-Typ sowie `CNAME` zusammen mit anderen Typen werden abgelehnt.
 
 ## Record-Auflösung
 
@@ -75,9 +81,9 @@ Wenn `value` gesetzt ist, verwendet Composia ihn direkt. Wenn es eine IP-Adresse
 ```yaml
 network:
   dns:
-    provider: cloudflare
-    hostname: app.example.com
-    value: 203.0.113.10
+    - provider: cloudflare
+      hostname: app.example.com
+      value: 203.0.113.10
 ```
 
 ### Von Node-Adressen
@@ -115,6 +121,8 @@ Nicht-Cloudflare-Provider unterstützen diese Optionen nicht. Das Setzen von `pr
 ## Zonenabgleich
 
 Composia gleicht den Dienst-Hostnamen mit den konfigurierten Zonen ab. Zonen werden von der längsten zur kürzesten Übereinstimmung durchprobiert. Zum Beispiel, mit `zones: ["example.com.", "sub.example.com."]`, passt der Hostname `app.sub.example.com` zuerst zu `sub.example.com.`.
+
+Wenn dieselbe Zone für mehrere Provider konfiguriert ist, verweigert der Controller den Start. `provider` kann nur entfallen, wenn die präziseste Zone des Hostnamens genau einem Provider zugeordnet ist.
 
 Wenn keine Zone zum Hostnamen passt, schlägt das DNS-Update fehl.
 

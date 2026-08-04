@@ -315,6 +315,9 @@ func validateController(file *File) error {
 	}); err != nil {
 		return err
 	}
+	if err := validateControllerDNS(controller.DNS); err != nil {
+		return err
+	}
 
 	seenNodeIDs := make(map[string]struct{}, len(controller.Nodes))
 	seenNodeTokens := make(map[string]string, len(controller.Nodes))

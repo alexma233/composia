@@ -111,24 +111,25 @@ network:
 ```yaml
 network:
   dns:
-    provider: cloudflare
-    hostname: app.example.com
-    record_type: A
-    value: 203.0.113.10
-    proxied: true
-    ttl: 120
-    comment: Managed by Composia
+    - hostname: app.example.com
+      record_type: A
+      value: 203.0.113.10
+    - hostname: app.example.com
+      record_type: AAAA
+      value: 2001:db8::10
 ```
 
 | キー | 型 | 必須 | 説明 |
 |-----|------|----------|-------------|
-| `provider` | `string` | はい | `cloudflare`、`alidns`、`dnspod`、`route53`、`huaweicloud` のいずれか。 |
+| `provider` | `string` | いいえ | `cloudflare`、`alidns`、`dnspod`、`route53`、`huaweicloud` のいずれか。ゾーンが一意の場合は自動推論できます。 |
 | `hostname` | `string` | はい | DNS ホスト名。 |
 | `record_type` | `string` | いいえ | 空、`A`、`AAAA`、`CNAME`。 |
 | `value` | `string` | いいえ | DNS レコード値。マルチノードサービスは明示的に設定することを推奨します。 |
 | `proxied` | `bool` | いいえ | プロバイダー固有のプロキシトグル。現在は Cloudflare に関連します。 |
 | `ttl` | `uint32` | いいえ | DNS TTL。 |
 | `comment` | `string` | いいえ | DNS レコードコメント。 |
+
+1 つのサービスには任意の数の DNS レコードを定義できます。同じホスト名に `A` と `AAAA` など異なるレコードタイプを指定できますが、同じホスト名とタイプの重複、および `CNAME` と他のタイプの併用は拒否されます。
 
 ## イメージ更新
 

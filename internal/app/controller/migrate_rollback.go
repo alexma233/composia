@@ -152,18 +152,10 @@ func (executor *controllerTaskExecutor) executeMigrateRollbackTask(ctx context.C
 
 	if params.RollbackDNS {
 		if err := executor.runMigrateStep(ctx, record, task.StepDNSUpdate, func() error {
-			if service.Meta.Network == nil || service.Meta.Network.DNS == nil {
+			if service.Meta.Network == nil || service.Meta.Network.DNS == nil || len(service.Meta.Network.DNS.Entries()) == 0 {
 				return errors.New("service does not declare network.dns")
 			}
-			client, err := executor.dnsProviders.ForService(executor.cfg, service.Meta.Network.DNS.Provider)
-			if err != nil {
-				return err
-			}
-			desired, err := buildDesiredServiceDNS(ctx, service, executor.cfg, client)
-			if err != nil {
-				return err
-			}
-			return syncServiceDNS(ctx, client, desired, record.LogPath)
+			return executor.syncServiceDNSForService(ctx, service, record.LogPath)
 		}); err != nil {
 			return executor.failControllerTask(ctx, record, task.StepDNSUpdate, err)
 		}

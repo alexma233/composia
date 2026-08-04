@@ -111,24 +111,25 @@ network:
 ```yaml
 network:
   dns:
-    provider: cloudflare
-    hostname: app.example.com
-    record_type: A
-    value: 203.0.113.10
-    proxied: true
-    ttl: 120
-    comment: Managed by Composia
+    - hostname: app.example.com
+      record_type: A
+      value: 203.0.113.10
+    - hostname: app.example.com
+      record_type: AAAA
+      value: 2001:db8::10
 ```
 
 | 鍵 | 型別 | 必要 | 說明 |
 |-----|------|----------|-------------|
-| `provider` | `string` | 是 | `cloudflare`、`alidns`、`dnspod`、`route53` 或 `huaweicloud`。 |
+| `provider` | `string` | 否 | `cloudflare`、`alidns`、`dnspod`、`route53` 或 `huaweicloud`。zone 唯一時可自動推斷。 |
 | `hostname` | `string` | 是 | DNS 主機名稱。 |
 | `record_type` | `string` | 否 | 空白、`A`、`AAAA` 或 `CNAME`。 |
 | `value` | `string` | 否 | DNS 記錄值。多節點服務應明確設定此項。 |
 | `proxied` | `bool` | 否 | 提供者特定的代理開關，目前與 Cloudflare 相關。 |
 | `ttl` | `uint32` | 否 | DNS TTL。 |
 | `comment` | `string` | 否 | DNS 記錄備註。 |
+
+每個服務可以定義任意數量的 DNS 記錄。同一個主機名稱可以使用不同記錄型別，例如 `A` 和 `AAAA`；重複的主機名稱 + 記錄型別，以及 `CNAME` 與其他型別的組合會被拒絕。
 
 ## 映像檔更新
 

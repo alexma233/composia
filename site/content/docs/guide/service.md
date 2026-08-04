@@ -111,24 +111,25 @@ network:
 ```yaml
 network:
   dns:
-    provider: cloudflare
-    hostname: app.example.com
-    record_type: A
-    value: 203.0.113.10
-    proxied: true
-    ttl: 120
-    comment: Managed by Composia
+    - hostname: app.example.com
+      record_type: A
+      value: 203.0.113.10
+    - hostname: app.example.com
+      record_type: AAAA
+      value: 2001:db8::10
 ```
 
 | Key | Type | Required | Description |
 |-----|------|----------|-------------|
-| `provider` | `string` | Yes | `cloudflare`, `alidns`, `dnspod`, `route53`, or `huaweicloud`. |
+| `provider` | `string` | No | `cloudflare`, `alidns`, `dnspod`, `route53`, or `huaweicloud`. It can be inferred from the configured zone. |
 | `hostname` | `string` | Yes | DNS hostname. |
 | `record_type` | `string` | No | Empty, `A`, `AAAA`, or `CNAME`. |
 | `value` | `string` | No | DNS record value. Multi-node services should set this explicitly. |
 | `proxied` | `bool` | No | Provider-specific proxy toggle, currently relevant for Cloudflare. |
 | `ttl` | `uint32` | No | DNS TTL. |
 | `comment` | `string` | No | DNS record comment. |
+
+A service can define any number of DNS records. The same hostname may use different record types such as `A` and `AAAA`; duplicate hostname + record type entries and combining `CNAME` with other types are rejected.
 
 ## Image updates
 

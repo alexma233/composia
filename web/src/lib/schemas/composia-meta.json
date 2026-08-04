@@ -95,30 +95,14 @@
           ]
         },
         "dns": {
-          "type": "object",
-          "required": ["provider", "hostname"],
-          "additionalProperties": false,
-          "properties": {
-            "provider": {
-              "type": "string",
-              "enum": [
-                "cloudflare",
-                "alidns",
-                "dnspod",
-                "route53",
-                "huaweicloud"
-              ]
-            },
-            "hostname": { "type": "string", "minLength": 1 },
-            "record_type": {
-              "type": "string",
-              "enum": ["", "A", "AAAA", "CNAME"]
-            },
-            "value": { "type": "string" },
-            "proxied": { "type": "boolean" },
-            "ttl": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
-            "comment": { "type": "string" }
-          }
+          "oneOf": [
+            { "$ref": "#/definitions/dns_entry" },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/definitions/dns_entry" }
+            }
+          ]
         },
         "cloudflare_tunnel": {
           "type": "object",
@@ -150,6 +134,26 @@
             }
           }
         }
+      }
+    },
+    "dns_entry": {
+      "type": "object",
+      "required": ["hostname"],
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["cloudflare", "alidns", "dnspod", "route53", "huaweicloud"]
+        },
+        "hostname": { "type": "string", "minLength": 1 },
+        "record_type": {
+          "type": "string",
+          "enum": ["", "A", "AAAA", "CNAME"]
+        },
+        "value": { "type": "string" },
+        "proxied": { "type": "boolean" },
+        "ttl": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
+        "comment": { "type": "string" }
       }
     },
     "update": {

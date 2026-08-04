@@ -218,19 +218,11 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 		}
 	}
 
-	if service.Meta.Network != nil && service.Meta.Network.DNS != nil && !stepSucceeded(task.StepDNSUpdate) {
+	if service.Meta.Network != nil && service.Meta.Network.DNS != nil && len(service.Meta.Network.DNS.Entries()) > 0 && !stepSucceeded(task.StepDNSUpdate) {
 		if err := executor.runMigrateStep(ctx, record, task.StepDNSUpdate, func() error {
-			client, err := executor.dnsProviders.ForService(executor.cfg, service.Meta.Network.DNS.Provider)
-			if err != nil {
-				return err
-			}
 			migratedService := service
 			migratedService.TargetNodes = migrateTargetNodes(service.TargetNodes, params.SourceNodeID, params.TargetNodeID)
-			desired, err := buildDesiredServiceDNS(ctx, migratedService, executor.cfg, client)
-			if err != nil {
-				return err
-			}
-			return syncServiceDNS(ctx, client, desired, record.LogPath)
+			return executor.syncServiceDNSForService(ctx, migratedService, record.LogPath)
 		}); err != nil {
 			return executor.failControllerTask(ctx, record, task.StepDNSUpdate, err)
 		}

@@ -111,24 +111,25 @@ network:
 ```yaml
 network:
   dns:
-    provider: cloudflare
-    hostname: app.example.com
-    record_type: A
-    value: 203.0.113.10
-    proxied: true
-    ttl: 120
-    comment: Verwaltet von Composia
+    - hostname: app.example.com
+      record_type: A
+      value: 203.0.113.10
+    - hostname: app.example.com
+      record_type: AAAA
+      value: 2001:db8::10
 ```
 
 | Schlüssel | Typ | Erforderlich | Beschreibung |
 |-----|------|----------|-------------|
-| `provider` | `string` | Ja | `cloudflare`, `alidns`, `dnspod`, `route53` oder `huaweicloud`. |
+| `provider` | `string` | Nein | `cloudflare`, `alidns`, `dnspod`, `route53` oder `huaweicloud`. Bei eindeutiger Zone kann der Provider automatisch ermittelt werden. |
 | `hostname` | `string` | Ja | DNS-Hostname. |
 | `record_type` | `string` | Nein | Leer, `A`, `AAAA` oder `CNAME`. |
 | `value` | `string` | Nein | DNS-Record-Wert. Multi-Node-Dienste sollten diesen explizit setzen. |
 | `proxied` | `bool` | Nein | Provider-spezifischer Proxy-Umschalter, derzeit relevant für Cloudflare. |
 | `ttl` | `uint32` | Nein | DNS-TTL. |
 | `comment` | `string` | Nein | DNS-Record-Kommentar. |
+
+Pro Dienst können beliebig viele DNS-Einträge definiert werden. Derselbe Hostname darf unterschiedliche Record-Typen wie `A` und `AAAA` verwenden; doppelte Kombinationen aus Hostname und Record-Typ sowie eine Kombination von `CNAME` mit anderen Typen werden abgelehnt.
 
 ## Image-Updates
 

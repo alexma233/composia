@@ -38,6 +38,35 @@ agent:
 	}
 }
 
+func TestLoadControllerRejectsDuplicateDNSZonesAcrossProviders(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.yaml")
+	content := strings.TrimSpace(`
+controller:
+  listen_addr: ":8080"
+  repo_dir: "/srv/composia/repo"
+  state_dir: "/srv/composia/state"
+  log_dir: "/srv/composia/logs"
+  nodes:
+    - id: main
+      token: main-token
+  dns:
+    cloudflare:
+      zones: [example.com]
+    route53:
+      zones: [example.com.]
+`) + "\n"
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	_, err := LoadController(configPath)
+	if err == nil || !strings.Contains(err.Error(), "configured for both") {
+		t.Fatalf("expected duplicate DNS zone validation error, got %v", err)
+	}
+}
+
 func TestLoadControllerRejectsPhysicallySharedRepoDir(t *testing.T) {
 	t.Parallel()
 

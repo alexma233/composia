@@ -200,7 +200,7 @@ func (server *agentReportServer) queueDNSUpdateForTask(ctx context.Context, reco
 	if err != nil {
 		return fmt.Errorf("load service for post-task dns update: %w", err)
 	}
-	if service.Meta.Network == nil || service.Meta.Network.DNS == nil {
+	if service.Meta.Network == nil || service.Meta.Network.DNS == nil || len(service.Meta.Network.DNS.Entries()) == 0 {
 		return nil
 	}
 	_, err = createServiceDNSUpdateTask(ctx, server.db, server.cfg, service, record.NodeID, record.RepoRevision, record.Source, "post:"+service.Name+":"+record.RepoRevision+":dns-update")

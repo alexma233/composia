@@ -197,21 +197,7 @@ func (executor *controllerTaskExecutor) executeDNSUpdateTask(ctx context.Context
 	if err != nil {
 		return executor.failControllerTask(ctx, record, task.StepDNSUpdate, err)
 	}
-	if service.Meta.Network == nil || service.Meta.Network.DNS == nil {
-		return executor.failControllerTask(ctx, record, task.StepDNSUpdate, fmt.Errorf("service %q does not declare network.dns", service.Name))
-	}
-	client, err := executor.dnsProviders.ForService(executor.cfg, service.Meta.Network.DNS.Provider)
-	if err != nil {
-		return executor.failControllerTask(ctx, record, task.StepDNSUpdate, err)
-	}
-	desired, err := buildDesiredServiceDNS(ctx, service, executor.cfg, client)
-	if err != nil {
-		return executor.failControllerTask(ctx, record, task.StepDNSUpdate, err)
-	}
-	if err := appendTaskLogRaw(record.LogPath, fmt.Sprintf("resolved dns target hostname=%s zone=%s\n", desired.FQDN, desired.Zone)); err != nil {
-		return executor.failControllerTask(ctx, record, task.StepDNSUpdate, err)
-	}
-	if err := syncServiceDNS(ctx, client, desired, record.LogPath); err != nil {
+	if err := executor.syncServiceDNSForService(ctx, service, record.LogPath); err != nil {
 		return executor.failControllerTask(ctx, record, task.StepDNSUpdate, err)
 	}
 	finishedAt := time.Now().UTC()
@@ -250,11 +236,10 @@ func (executor *controllerTaskExecutor) failControllerTask(ctx context.Context, 
 	return taskErr
 }
 
-func buildDesiredServiceDNS(ctx context.Context, service repo.Service, cfg *config.ControllerConfig, client dnsClient) (desiredServiceDNS, error) {
-	if service.Meta.Network == nil || service.Meta.Network.DNS == nil {
+func buildDesiredServiceDNS(ctx context.Context, service repo.Service, dnsConfig *repo.DNSConfig, cfg *config.ControllerConfig, client dnsClient) (desiredServiceDNS, error) {
+	if dnsConfig == nil {
 		return desiredServiceDNS{}, fmt.Errorf("service %q does not declare network.dns", service.Name)
 	}
-	dnsConfig := service.Meta.Network.DNS
 	hostname := strings.TrimSpace(dnsConfig.Hostname)
 	if hostname == "" {
 		return desiredServiceDNS{}, fmt.Errorf("service %q network.dns.hostname is required", service.Name)
@@ -268,7 +253,7 @@ func buildDesiredServiceDNS(ctx context.Context, service repo.Service, cfg *conf
 	if relativeName == fqdn || relativeName == "" {
 		return desiredServiceDNS{}, fmt.Errorf("hostname %q does not belong to a known Cloudflare zone", hostname)
 	}
-	recordSets, err := desiredDNSRecordSets(service, cfg, relativeName)
+	recordSets, err := desiredDNSRecordSets(service, dnsConfig, cfg, relativeName)
 	if err != nil {
 		return desiredServiceDNS{}, err
 	}
@@ -292,16 +277,16 @@ func matchingZone(ctx context.Context, client dnsClient, fqdn string) (string, e
 		return len(zones[left].Name) > len(zones[right].Name)
 	})
 	for _, zone := range zones {
-		name := ensureTrailingDot(zone.Name)
-		if strings.HasSuffix(strings.ToLower(fqdn), strings.ToLower(name)) {
-			return name, nil
+		name := strings.TrimSuffix(strings.ToLower(zone.Name), ".")
+		host := strings.TrimSuffix(strings.ToLower(fqdn), ".")
+		if host == name || strings.HasSuffix(host, "."+name) {
+			return ensureTrailingDot(zone.Name), nil
 		}
 	}
 	return "", fmt.Errorf("no DNS zone matched hostname %q", fqdn)
 }
 
-func desiredDNSRecordSets(service repo.Service, cfg *config.ControllerConfig, relativeName string) (map[string][]libdns.Record, error) {
-	dnsConfig := service.Meta.Network.DNS
+func desiredDNSRecordSets(service repo.Service, dnsConfig *repo.DNSConfig, cfg *config.ControllerConfig, relativeName string) (map[string][]libdns.Record, error) {
 	value := strings.TrimSpace(dnsConfig.Value)
 	ttl := time.Duration(0)
 	if dnsConfig.TTL != nil {
@@ -405,37 +390,114 @@ func desiredDNSRecordSetsForNode(relativeName string, ttl time.Duration, recordT
 	}
 }
 
-func syncServiceDNS(ctx context.Context, client dnsClient, desired desiredServiceDNS, logPath string) error {
-	staleTypes := make([]string, 0, len(managedDNSRecordTypes))
-	for _, recordType := range managedDNSRecordTypes {
-		if _, ok := desired.RecordSets[recordType]; !ok {
-			staleTypes = append(staleTypes, recordType)
+func (executor *controllerTaskExecutor) syncServiceDNSForService(ctx context.Context, service repo.Service, logPath string) error {
+	if service.Meta.Network == nil || service.Meta.Network.DNS == nil {
+		return fmt.Errorf("service %q does not declare network.dns", service.Name)
+	}
+	entries := service.Meta.Network.DNS.Entries()
+	if len(entries) == 0 {
+		return fmt.Errorf("service %q does not declare network.dns entries", service.Name)
+	}
+	clients := make(map[string]dnsClient)
+	desiredByProvider := make(map[string][]desiredServiceDNS)
+	for _, dnsConfig := range entries {
+		provider := strings.ToLower(strings.TrimSpace(dnsConfig.Provider))
+		if provider == "" {
+			var err error
+			provider, err = executor.cfg.ResolveDNSProvider(dnsConfig.Hostname)
+			if err != nil {
+				return err
+			}
+		}
+		client := clients[provider]
+		if client == nil {
+			var err error
+			client, err = executor.dnsProviders.ForService(executor.cfg, provider)
+			if err != nil {
+				return err
+			}
+			clients[provider] = client
+		}
+		desired, err := buildDesiredServiceDNS(ctx, service, dnsConfig, executor.cfg, client)
+		if err != nil {
+			return err
+		}
+		if err := appendTaskLogRaw(logPath, fmt.Sprintf("resolved dns target hostname=%s zone=%s provider=%s\n", desired.FQDN, desired.Zone, provider)); err != nil {
+			return err
+		}
+		desiredByProvider[provider] = append(desiredByProvider[provider], desired)
+	}
+	providers := make([]string, 0, len(desiredByProvider))
+	for provider := range desiredByProvider {
+		providers = append(providers, provider)
+	}
+	sort.Strings(providers)
+	for _, provider := range providers {
+		if err := syncServiceDNSBatch(ctx, clients[provider], desiredByProvider[provider], logPath); err != nil {
+			return err
 		}
 	}
-	sort.Strings(staleTypes)
-	for _, recordType := range staleTypes {
-		if err := appendTaskLogRaw(logPath, fmt.Sprintf("deleting stale %s records for %s\n", recordType, desired.FQDN)); err != nil {
-			return err
+	return nil
+}
+
+func syncServiceDNSBatch(ctx context.Context, client dnsClient, desiredEntries []desiredServiceDNS, logPath string) error {
+	type aggregateDNS struct {
+		zone       string
+		fqdn       string
+		recordSets map[string][]libdns.Record
+		options    map[string]dnsRecordOptions
+	}
+	aggregates := make(map[string]*aggregateDNS)
+	for _, desired := range desiredEntries {
+		key := desired.Zone + "\x00" + desired.FQDN
+		aggregate := aggregates[key]
+		if aggregate == nil {
+			aggregate = &aggregateDNS{zone: desired.Zone, fqdn: desired.FQDN, recordSets: make(map[string][]libdns.Record), options: make(map[string]dnsRecordOptions)}
+			aggregates[key] = aggregate
 		}
-		if _, err := client.DeleteRecords(ctx, desired.Zone, []libdns.Record{libdns.RR{Name: libdns.RelativeName(desired.FQDN, desired.Zone), Type: recordType}}); err != nil {
-			return err
+		for recordType, records := range desired.RecordSets {
+			aggregate.recordSets[recordType] = append(aggregate.recordSets[recordType], records...)
+			aggregate.options[recordType] = desired.Options
 		}
 	}
-	writableTypes := make([]string, 0, len(desired.RecordSets))
-	for recordType := range desired.RecordSets {
-		writableTypes = append(writableTypes, recordType)
+	keys := make([]string, 0, len(aggregates))
+	for key := range aggregates {
+		keys = append(keys, key)
 	}
-	sort.Strings(writableTypes)
-	for _, recordType := range writableTypes {
-		records := desired.RecordSets[recordType]
-		if err := appendTaskLogRaw(logPath, fmt.Sprintf("setting %s records for %s (%d record(s))\n", recordType, desired.FQDN, len(records))); err != nil {
-			return err
+	sort.Strings(keys)
+	for _, key := range keys {
+		desired := aggregates[key]
+		staleTypes := make([]string, 0, len(managedDNSRecordTypes))
+		for _, recordType := range managedDNSRecordTypes {
+			if _, ok := desired.recordSets[recordType]; !ok {
+				staleTypes = append(staleTypes, recordType)
+			}
 		}
-		if _, err := client.SetRecords(ctx, desired.Zone, records); err != nil {
-			return err
+		sort.Strings(staleTypes)
+		for _, recordType := range staleTypes {
+			if err := appendTaskLogRaw(logPath, fmt.Sprintf("deleting stale %s records for %s\n", recordType, desired.fqdn)); err != nil {
+				return err
+			}
+			if _, err := client.DeleteRecords(ctx, desired.zone, []libdns.Record{libdns.RR{Name: libdns.RelativeName(desired.fqdn, desired.zone), Type: recordType}}); err != nil {
+				return err
+			}
 		}
-		if err := client.ApplyRecordOptions(ctx, desired.Zone, desired.FQDN, recordType, desired.Options); err != nil {
-			return err
+		writableTypes := make([]string, 0, len(desired.recordSets))
+		for recordType := range desired.recordSets {
+			writableTypes = append(writableTypes, recordType)
+		}
+		sort.Strings(writableTypes)
+		for _, recordType := range writableTypes {
+			records := desired.recordSets[recordType]
+			if err := appendTaskLogRaw(logPath, fmt.Sprintf("setting %s records for %s (%d record(s))\n", recordType, desired.fqdn, len(records))); err != nil {
+				return err
+			}
+			if _, err := client.SetRecords(ctx, desired.zone, records); err != nil {
+				return err
+			}
+			if err := client.ApplyRecordOptions(ctx, desired.zone, desired.fqdn, recordType, desired.options[recordType]); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

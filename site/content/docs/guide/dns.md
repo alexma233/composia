@@ -47,24 +47,28 @@ Declare DNS settings in the service's `composia-meta.yaml`:
 ```yaml
 network:
   dns:
-    provider: cloudflare
-    hostname: app.example.com
-    record_type: A
-    value: 203.0.113.10
-    proxied: true
-    ttl: 120
-    comment: "Managed by Composia"
+    - hostname: app.example.com
+      record_type: A
+      value: 203.0.113.10
+      proxied: true
+      ttl: 120
+      comment: "Managed by Composia"
+    - hostname: app.example.com
+      record_type: AAAA
+      value: 2001:db8::10
 ```
 
 | Key | Type | Required | Description |
 |-----|------|----------|-------------|
-| `provider` | `string` | Yes | `cloudflare`, `alidns`, `dnspod`, `route53`, or `huaweicloud`. |
+| `provider` | `string` | No | `cloudflare`, `alidns`, `dnspod`, `route53`, or `huaweicloud`. When omitted, the provider is inferred from the most specific configured zone. |
 | `hostname` | `string` | Yes | DNS hostname. The zone is matched from the configured zone list. |
 | `record_type` | `string` | No | `A`, `AAAA`, or `CNAME`. When empty, the record type is inferred from the value or node addresses. |
 | `value` | `string` | No | Explicit DNS record value. When empty, Composia derives the value from the target node. |
 | `proxied` | `bool` | No | Enable Cloudflare proxy. Only supported by Cloudflare. |
 | `ttl` | `uint32` | No | DNS TTL in seconds. |
 | `comment` | `string` | No | DNS record comment. Only supported by Cloudflare. |
+
+A service can define any number of DNS records. The same hostname may use different record types such as `A` and `AAAA`; duplicate hostname + record type entries and combining `CNAME` with other types are rejected.
 
 ## Record resolution
 
@@ -75,9 +79,9 @@ When `value` is set, Composia uses it directly. If it is an IP address, the reco
 ```yaml
 network:
   dns:
-    provider: cloudflare
-    hostname: app.example.com
-    value: 203.0.113.10
+    - provider: cloudflare
+      hostname: app.example.com
+      value: 203.0.113.10
 ```
 
 ### From node addresses
@@ -115,6 +119,8 @@ Non-Cloudflare providers do not support these options. Setting `proxied` or `com
 ## Zone matching
 
 Composia matches the service hostname against the configured zones. Zones are tried from longest to shortest match. For example, with `zones: ["example.com.", "sub.example.com."]`, hostname `app.sub.example.com` matches `sub.example.com.` first.
+
+If the same zone is configured for multiple providers, the controller rejects the configuration at startup. Omit `provider` only when the hostname matches one provider's most specific zone.
 
 If no zone matches the hostname, the DNS update fails.
 

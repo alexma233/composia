@@ -125,6 +125,71 @@ type DNSConfig struct {
 	Proxied    *bool   `yaml:"proxied"`
 	TTL        *uint32 `yaml:"ttl"`
 	Comment    string  `yaml:"comment"`
+	entries    []DNSConfig
+}
+
+func (dns *DNSConfig) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind == yaml.SequenceNode {
+		var entries []dnsConfigYAML
+		for _, entry := range value.Content {
+			if entry.Kind != yaml.MappingNode {
+				return fmt.Errorf("network.dns entries must be objects")
+			}
+			if err := validateDNSConfigFields(entry); err != nil {
+				return err
+			}
+		}
+		if err := value.Decode(&entries); err != nil {
+			return err
+		}
+		dns.entries = make([]DNSConfig, len(entries))
+		for index, entry := range entries {
+			dns.entries[index] = DNSConfig(entry)
+		}
+		return nil
+	}
+	if value.Kind != yaml.MappingNode {
+		return fmt.Errorf("network.dns must be an object or array")
+	}
+	if err := validateDNSConfigFields(value); err != nil {
+		return err
+	}
+	var entry dnsConfigYAML
+	if err := value.Decode(&entry); err != nil {
+		return err
+	}
+	*dns = DNSConfig(entry)
+	return nil
+}
+
+type dnsConfigYAML DNSConfig
+
+func validateDNSConfigFields(value *yaml.Node) error {
+	allowed := map[string]struct{}{
+		"provider": {}, "hostname": {}, "record_type": {}, "value": {},
+		"proxied": {}, "ttl": {}, "comment": {},
+	}
+	for index := 0; index+1 < len(value.Content); index += 2 {
+		key := value.Content[index].Value
+		if _, ok := allowed[key]; !ok {
+			return fmt.Errorf("network.dns.%s is not a known field", key)
+		}
+	}
+	return nil
+}
+
+func (dns *DNSConfig) Entries() []*DNSConfig {
+	if dns == nil {
+		return nil
+	}
+	if dns.entries != nil {
+		entries := make([]*DNSConfig, len(dns.entries))
+		for index := range dns.entries {
+			entries[index] = &dns.entries[index]
+		}
+		return entries
+	}
+	return []*DNSConfig{dns}
 }
 
 type CloudflareTunnelConfig struct {
@@ -650,18 +715,45 @@ func validateNetwork(path string, network *NetworkConfig) error {
 	}
 
 	if network.DNS != nil {
-		switch network.DNS.Provider {
-		case "cloudflare", "alidns", "dnspod", "route53", "huaweicloud":
-		default:
-			return fmt.Errorf("service meta %q: network.dns.provider must be cloudflare, alidns, dnspod, route53, or huaweicloud", path)
+		entries := network.DNS.Entries()
+		if len(entries) == 0 {
+			return fmt.Errorf("service meta %q: network.dns must contain at least one entry", path)
 		}
-		if network.DNS.Hostname == "" {
-			return fmt.Errorf("service meta %q: network.dns.hostname is required", path)
-		}
-		switch network.DNS.RecordType {
-		case "", "A", "AAAA", "CNAME":
-		default:
-			return fmt.Errorf("service meta %q: network.dns.record_type must be A, AAAA, or CNAME", path)
+		seen := make(map[string]struct{}, len(entries))
+		typesByHostname := make(map[string]map[string]struct{})
+		for _, dns := range entries {
+			switch dns.Provider {
+			case "", "cloudflare", "alidns", "dnspod", "route53", "huaweicloud":
+			default:
+				return fmt.Errorf("service meta %q: network.dns.provider must be cloudflare, alidns, dnspod, route53, or huaweicloud", path)
+			}
+			if strings.TrimSpace(dns.Hostname) == "" {
+				return fmt.Errorf("service meta %q: network.dns.hostname is required", path)
+			}
+			switch strings.ToUpper(strings.TrimSpace(dns.RecordType)) {
+			case "", "A", "AAAA", "CNAME":
+			default:
+				return fmt.Errorf("service meta %q: network.dns.record_type must be A, AAAA, or CNAME", path)
+			}
+			hostname := strings.ToLower(strings.TrimSuffix(strings.TrimSpace(dns.Hostname), "."))
+			recordType := strings.ToUpper(strings.TrimSpace(dns.RecordType))
+			if recordType == "CNAME" && len(typesByHostname[hostname]) > 0 {
+				return fmt.Errorf("service meta %q: network.dns cannot combine CNAME with other record types for hostname %q", path, dns.Hostname)
+			}
+			if recordType != "CNAME" {
+				if _, exists := typesByHostname[hostname]["CNAME"]; exists {
+					return fmt.Errorf("service meta %q: network.dns cannot combine CNAME with other record types for hostname %q", path, dns.Hostname)
+				}
+			}
+			if typesByHostname[hostname] == nil {
+				typesByHostname[hostname] = make(map[string]struct{})
+			}
+			typesByHostname[hostname][recordType] = struct{}{}
+			key := hostname + "\x00" + recordType
+			if _, exists := seen[key]; exists {
+				return fmt.Errorf("service meta %q: network.dns contains duplicate hostname and record_type %q/%q", path, dns.Hostname, dns.RecordType)
+			}
+			seen[key] = struct{}{}
 		}
 	}
 

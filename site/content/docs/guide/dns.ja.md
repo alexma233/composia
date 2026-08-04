@@ -47,24 +47,30 @@ controller:
 ```yaml
 network:
   dns:
-    provider: cloudflare
-    hostname: app.example.com
-    record_type: A
-    value: 203.0.113.10
-    proxied: true
-    ttl: 120
-    comment: "Managed by Composia"
+    - provider: cloudflare
+      hostname: app.example.com
+      record_type: A
+      value: 203.0.113.10
+      proxied: true
+      ttl: 120
+      comment: "Managed by Composia"
+    - provider: cloudflare
+      hostname: app.example.com
+      record_type: AAAA
+      value: 2001:db8::10
 ```
 
 | キー | 型 | 必須 | 説明 |
 |-----|------|----------|-------------|
-| `provider` | `string` | はい | `cloudflare`、`alidns`、`dnspod`、`route53`、`huaweicloud` のいずれか。 |
+| `provider` | `string` | いいえ | `cloudflare`、`alidns`、`dnspod`、`route53`、`huaweicloud` のいずれか。ゾーンが一意の場合は自動推論できます。 |
 | `hostname` | `string` | はい | DNS ホスト名。ゾーンは設定されたゾーンリストからマッチングされます。 |
 | `record_type` | `string` | いいえ | `A`、`AAAA`、`CNAME`。空の場合、レコードタイプは値またはノードアドレスから推論されます。 |
 | `value` | `string` | いいえ | 明示的な DNS レコード値。空の場合、Composia はターゲットノードから値を導出します。 |
 | `proxied` | `bool` | いいえ | Cloudflare プロキシを有効にします。Cloudflare のみ対応。 |
 | `ttl` | `uint32` | いいえ | DNS TTL（秒単位）。 |
 | `comment` | `string` | いいえ | DNS レコードコメント。Cloudflare のみ対応。 |
+
+1 つのサービスには任意の数の DNS レコードを定義できます。同じホスト名に `A` と `AAAA` など異なるレコードタイプを指定できますが、同じホスト名とタイプの重複、および `CNAME` と他のタイプの併用は拒否されます。
 
 ## レコード解決
 
@@ -75,9 +81,9 @@ network:
 ```yaml
 network:
   dns:
-    provider: cloudflare
-    hostname: app.example.com
-    value: 203.0.113.10
+    - provider: cloudflare
+      hostname: app.example.com
+      value: 203.0.113.10
 ```
 
 ### ノードアドレスから解決
@@ -115,6 +121,8 @@ Cloudflare 以外のプロバイダーはこれらのオプションをサポー
 ## ゾーンマッチング
 
 Composia はサービスホスト名を設定されたゾーンと照合します。ゾーンは最も長い一致から最も短い一致の順に試行されます。例えば `zones: ["example.com.", "sub.example.com."]` の場合、ホスト名 `app.sub.example.com` は最初に `sub.example.com.` にマッチします。
+
+同じゾーンが複数のプロバイダーに設定されている場合、コントローラーは起動を拒否します。`provider` は、ホスト名の最も具体的なゾーンが 1 つのプロバイダーにのみ属する場合に省略できます。
 
 ホスト名に一致するゾーンがない場合、DNS 更新は失敗します。
 

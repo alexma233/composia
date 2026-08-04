@@ -85,6 +85,33 @@ migrate:
 	}
 }
 
+func TestDiscoverServicesParsesMultipleDNSEntries(t *testing.T) {
+	t.Parallel()
+
+	repoDir := t.TempDir()
+	writeFile(t, filepath.Join(repoDir, "demo", MetaFileName), strings.TrimSpace(`
+name: demo
+nodes:
+  - main
+network:
+  dns:
+    - hostname: app.example.com
+      record_type: A
+      value: 203.0.113.10
+    - hostname: app.example.com
+      record_type: AAAA
+      value: 2001:db8::10
+`)+"\n")
+
+	services, err := DiscoverServices(repoDir, map[string]struct{}{"main": {}})
+	if err != nil {
+		t.Fatalf("discover services: %v", err)
+	}
+	if len(services) != 1 || len(services[0].Meta.Network.DNS.Entries()) != 2 {
+		t.Fatalf("expected two DNS entries, got %+v", services)
+	}
+}
+
 func TestDiscoverServicesParsesConfigInfraService(t *testing.T) {
 	t.Parallel()
 

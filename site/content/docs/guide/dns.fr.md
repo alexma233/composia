@@ -47,24 +47,30 @@ Déclarez les paramètres DNS dans le fichier `composia-meta.yaml` du service :
 ```yaml
 network:
   dns:
-    provider: cloudflare
-    hostname: app.example.com
-    record_type: A
-    value: 203.0.113.10
-    proxied: true
-    ttl: 120
-    comment: "Managed by Composia"
+    - provider: cloudflare
+      hostname: app.example.com
+      record_type: A
+      value: 203.0.113.10
+      proxied: true
+      ttl: 120
+      comment: "Managed by Composia"
+    - provider: cloudflare
+      hostname: app.example.com
+      record_type: AAAA
+      value: 2001:db8::10
 ```
 
 | Clé | Type | Requis | Description |
 |-----|------|----------|-------------|
-| `provider` | `string` | Oui | `cloudflare`, `alidns`, `dnspod`, `route53` ou `huaweicloud`. |
+| `provider` | `string` | Non | `cloudflare`, `alidns`, `dnspod`, `route53` ou `huaweicloud`. Il peut être déduit si la zone est unique. |
 | `hostname` | `string` | Oui | Nom d'hôte DNS. La zone est mise en correspondance avec la liste des zones configurées. |
 | `record_type` | `string` | Non | `A`, `AAAA` ou `CNAME`. Si vide, le type d'enregistrement est déduit de la valeur ou des adresses du nœud. |
 | `value` | `string` | Non | Valeur explicite de l'enregistrement DNS. Si vide, Composia déduit la valeur du nœud cible. |
 | `proxied` | `bool` | Non | Activer le proxy Cloudflare. Uniquement pris en charge par Cloudflare. |
 | `ttl` | `uint32` | Non | TTL DNS en secondes. |
 | `comment` | `string` | Non | Commentaire de l'enregistrement DNS. Uniquement pris en charge par Cloudflare. |
+
+Un service peut définir autant d'enregistrements DNS que nécessaire. Un même nom d'hôte peut utiliser plusieurs types, comme `A` et `AAAA`. Les doublons nom d'hôte + type et la combinaison de `CNAME` avec d'autres types sont refusés.
 
 ## Résolution des enregistrements
 
@@ -75,9 +81,9 @@ Lorsque `value` est défini, Composia l'utilise directement. S'il s'agit d'une a
 ```yaml
 network:
   dns:
-    provider: cloudflare
-    hostname: app.example.com
-    value: 203.0.113.10
+    - provider: cloudflare
+      hostname: app.example.com
+      value: 203.0.113.10
 ```
 
 ### À partir des adresses du nœud
@@ -115,6 +121,8 @@ Les fournisseurs autres que Cloudflare ne prennent pas en charge ces options. D�
 ## Mise en correspondance des zones
 
 Composia met en correspondance le nom d'hôte du service avec les zones configurées. Les zones sont essayées de la correspondance la plus longue à la plus courte. Par exemple, avec `zones: ["example.com.", "sub.example.com."]`, le nom d'hôte `app.sub.example.com` correspond d'abord à `sub.example.com.`.
+
+Si la même zone est configurée pour plusieurs fournisseurs, le contrôleur refuse de démarrer. `provider` peut être omis uniquement lorsque la zone la plus spécifique de l'hôte appartient à un seul fournisseur.
 
 Si aucune zone ne correspond au nom d'hôte, la mise à jour DNS échoue.
 

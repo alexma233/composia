@@ -47,24 +47,30 @@ controller:
 ```yaml
 network:
   dns:
-    provider: cloudflare
-    hostname: app.example.com
-    record_type: A
-    value: 203.0.113.10
-    proxied: true
-    ttl: 120
-    comment: "Managed by Composia"
+    - provider: cloudflare
+      hostname: app.example.com
+      record_type: A
+      value: 203.0.113.10
+      proxied: true
+      ttl: 120
+      comment: "由 Composia 管理"
+    - provider: cloudflare
+      hostname: app.example.com
+      record_type: AAAA
+      value: 2001:db8::10
 ```
 
 | 鍵 | 型別 | 必要 | 說明 |
 |-----|------|----------|-------------|
-| `provider` | `string` | 是 | `cloudflare`、`alidns`、`dnspod`、`route53` 或 `huaweicloud`。 |
+| `provider` | `string` | 否 | `cloudflare`、`alidns`、`dnspod`、`route53` 或 `huaweicloud`。zone 唯一時可自動推斷。 |
 | `hostname` | `string` | 是 | DNS 主機名稱。區域從已設定的區域清單中進行比對。 |
 | `record_type` | `string` | 否 | `A`、`AAAA` 或 `CNAME`。為空白時，記錄型別從值或節點位址推斷。 |
 | `value` | `string` | 否 | 明確的 DNS 記錄值。為空白時，Composia 從目標節點衍生該值。 |
 | `proxied` | `bool` | 否 | 啟用 Cloudflare 代理。僅 Cloudflare 支援。 |
 | `ttl` | `uint32` | 否 | DNS TTL，以秒為單位。 |
 | `comment` | `string` | 否 | DNS 記錄備註。僅 Cloudflare 支援。 |
+
+每個服務可以定義任意數量的 DNS 記錄。同一個主機名稱可以使用不同記錄型別，例如 `A` 和 `AAAA`；重複的主機名稱 + 記錄型別，以及 `CNAME` 與其他型別的組合會被拒絕。
 
 ## 記錄解析
 
@@ -75,9 +81,9 @@ network:
 ```yaml
 network:
   dns:
-    provider: cloudflare
-    hostname: app.example.com
-    value: 203.0.113.10
+    - provider: cloudflare
+      hostname: app.example.com
+      value: 203.0.113.10
 ```
 
 ### 從節點位址
@@ -115,6 +121,8 @@ composia service dns-update my-app
 ## 區域比對
 
 Composia 將服務主機名稱與已設定的區域進行比對。區域從最長到最短的匹配順序嘗試。例如，使用 `zones: ["example.com.", "sub.example.com."]` 時，主機名稱 `app.sub.example.com` 會先匹配 `sub.example.com.`。
+
+如果同一個 zone 被多個 provider 設定，Controller 會在啟動時拒絕配置。只有當主機名稱最精準的 zone 只屬於一個 provider 時，才能省略 `provider`。
 
 若沒有任何區域匹配主機名稱，則 DNS 更新失敗。
 

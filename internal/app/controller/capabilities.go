@@ -124,10 +124,21 @@ func backupIntegrationCapability(cfg *config.ControllerConfig, availableNodeIDs 
 }
 
 func dnsIntegrationCapability(cfg *config.ControllerConfig) *controllerv1.Capability {
-	if cfg == nil || cfg.DNS == nil || cfg.DNS.Cloudflare == nil || strings.TrimSpace(cfg.DNS.Cloudflare.APIToken) == "" {
+	if !hasConfiguredDNSProvider(cfg) {
 		return disabledCapability(reasonMissingDNSIntegration)
 	}
 	return enabledCapability()
+}
+
+func hasConfiguredDNSProvider(cfg *config.ControllerConfig) bool {
+	if cfg == nil || cfg.DNS == nil {
+		return false
+	}
+	return (cfg.DNS.Cloudflare != nil && strings.TrimSpace(cfg.DNS.Cloudflare.APIToken) != "") ||
+		(cfg.DNS.AliDNS != nil && strings.TrimSpace(cfg.DNS.AliDNS.AccessKeyID) != "" && strings.TrimSpace(cfg.DNS.AliDNS.AccessKeySecret) != "") ||
+		(cfg.DNS.DNSPod != nil && strings.TrimSpace(cfg.DNS.DNSPod.SecretID) != "" && strings.TrimSpace(cfg.DNS.DNSPod.SecretKey) != "") ||
+		cfg.DNS.Route53 != nil ||
+		(cfg.DNS.HuaweiCloud != nil && strings.TrimSpace(cfg.DNS.HuaweiCloud.AccessKeyID) != "" && strings.TrimSpace(cfg.DNS.HuaweiCloud.SecretAccessKey) != "")
 }
 
 func cloudflareTunnelIntegrationCapability(cfg *config.ControllerConfig) *controllerv1.Capability {
@@ -211,7 +222,7 @@ func serviceMigrateCapability(cfg *config.ControllerConfig, availableNodeIDs map
 }
 
 func serviceDNSUpdateCapability(cfg *config.ControllerConfig, service repo.Service) *controllerv1.Capability {
-	if service.Meta.Network == nil || service.Meta.Network.DNS == nil {
+	if service.Meta.Network == nil || service.Meta.Network.DNS == nil || len(service.Meta.Network.DNS.Entries()) == 0 {
 		return disabledCapability(reasonServiceDNSNotDeclared)
 	}
 	if capability := dnsIntegrationCapability(cfg); !capability.GetEnabled() {
