@@ -51,7 +51,7 @@ func runComposeUpWithOptions(ctx context.Context, serviceDir string, compose com
 	}
 	command := exec.CommandContext(ctx, "docker", args...) //nolint:gosec
 	command.Dir = serviceDir
-	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
+	if err := runCommandWithPTYLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose up failed: %w", err)
 	}
 	return nil
@@ -60,7 +60,7 @@ func runComposeUpWithOptions(ctx context.Context, serviceDir string, compose com
 func runComposeDown(ctx context.Context, serviceDir string, compose composeCommandConfig, uploadLog func(string) error) error {
 	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "down")...) //nolint:gosec
 	command.Dir = serviceDir
-	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
+	if err := runCommandWithPTYLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose down failed: %w", err)
 	}
 	return nil
@@ -69,7 +69,7 @@ func runComposeDown(ctx context.Context, serviceDir string, compose composeComma
 func runComposePull(ctx context.Context, serviceDir string, compose composeCommandConfig, uploadLog func(string) error) error {
 	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "pull")...) //nolint:gosec
 	command.Dir = serviceDir
-	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {
+	if err := runCommandWithPTYLiveLogs(command, uploadLog); err != nil {
 		return fmt.Errorf("docker compose pull failed: %w", err)
 	}
 	return nil

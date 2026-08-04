@@ -12,6 +12,7 @@
     active?: boolean;
     content?: string;
     emptyText?: string;
+    fixedCols?: number;
     heightClass?: string;
     interactive?: boolean;
     onData?: DataHandler;
@@ -22,6 +23,7 @@
     active = false,
     content = "",
     emptyText = "",
+    fixedCols = 0,
     heightClass = "h-[360px]",
     interactive = false,
     onData,
@@ -116,6 +118,7 @@
       }
 
       terminal = new WTerm(host, {
+        cols: fixedCols || undefined,
         autoResize: true,
         cursorBlink: interactive,
         onData: interactive ? (data) => onData?.(data) : () => {},
@@ -159,10 +162,14 @@
   });
 </script>
 
-<div class={`terminal-surface ${heightClass}`}>
+<div
+  class={`terminal-surface ${heightClass}`}
+  data-fixed-cols={fixedCols || undefined}
+  style={fixedCols ? `--terminal-cols: ${fixedCols}` : undefined}
+>
   <div
     bind:this={host}
-    class="h-full w-full"
+    class="terminal-host h-full"
     aria-label={$messages.common.terminal}
   ></div>
 </div>

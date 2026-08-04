@@ -8,6 +8,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/cenkalti/backoff/v6 v6.0.1
 	github.com/cenkalti/backoff/v7 v7.0.0
+	github.com/creack/pty/v2 v2.0.1
 	github.com/cyphar/filepath-securejoin v0.7.0
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/google/uuid v1.6.0

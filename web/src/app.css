@@ -338,6 +338,23 @@
     @apply min-w-0 max-w-full overflow-hidden rounded-lg border bg-background;
   }
 
+  .terminal-surface[data-fixed-cols] {
+    overflow-x: auto;
+  }
+
+  .terminal-surface[data-fixed-cols] .terminal-host {
+    width: calc(var(--terminal-cols) * 1ch + 24px);
+    min-width: calc(var(--terminal-cols) * 1ch + 24px);
+  }
+
+  .terminal-surface[data-fixed-cols] .wterm {
+    max-width: none;
+  }
+
+  .terminal-surface[data-fixed-cols] .term-grid {
+    width: calc(var(--terminal-cols) * 1ch);
+  }
+
   .task-log-accessible {
     position: absolute;
     width: 1px;

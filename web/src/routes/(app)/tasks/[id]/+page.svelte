@@ -512,6 +512,7 @@
           active
           content={logContent}
           emptyText={$messages.tasks.waitingForOutput}
+          fixedCols={120}
           heightClass="h-[360px] sm:h-[560px]"
         />
       </CardContent>
