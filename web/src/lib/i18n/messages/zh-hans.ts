@@ -298,6 +298,11 @@ export const zhHans = {
       openFileFailed: "打开文件失败。",
       saveFileFailed: "保存文件失败。",
       saved: "已保存 {path}",
+      unsavedChangesTitle: "有未保存的修改",
+      unsavedChangesDescription: "当前有未保存的修改，确定要不保存就离开吗？",
+      unsavedChangesTabDescription:
+        "文件 {path} 有未保存的修改，确定要不保存就关闭标签页吗？",
+      discardChanges: "放弃修改",
       createFileFailed: "创建文件失败。",
       createFolderFailed: "创建文件夹失败。",
       renameFailed: "重命名路径失败。",

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invalidate } from "$app/navigation";
+  import { beforeNavigate, goto, invalidate } from "$app/navigation";
   import { RefreshCw } from "@lucide/svelte";
   import { onMount } from "svelte";
   import { toast } from "svelte-sonner";
@@ -63,10 +63,14 @@
   let reloadAccepted = $state<boolean | null>(null);
   let editableConfigOpen = $state(false);
   let editableConfigYaml = $state("");
+  let editableConfigSavedYaml = $state("");
   let editableConfigRevision = $state("");
   let editableConfigBusy = $state(false);
   let editableConfigAvailable = $state(false);
   let editableConfigError = $state("");
+  let unsavedConfigDialogOpen = $state(false);
+  let pendingConfigExit = $state<PendingConfigExit | null>(null);
+  let allowingConfigNavigation = false;
   let CodeEditor = $state<
     typeof import("$lib/components/app/code-editor.svelte").default | null
   >(null);
@@ -75,6 +79,9 @@
   let rusticTaskId = $state("");
 
   type EditableConfigErrorPayload = { errorCode?: string };
+  type PendingConfigExit =
+    | { kind: "dialog" }
+    | { kind: "navigation"; url: URL; replaceState: boolean };
 
   function editableConfigErrorMessage(
     payload: EditableConfigErrorPayload,
@@ -92,6 +99,43 @@
         return fallback;
     }
   }
+
+  let editableConfigDirty = $derived(
+    editableConfigYaml !== editableConfigSavedYaml,
+  );
+
+  beforeNavigate(({ cancel, to, type, willUnload }) => {
+    if (!editableConfigOpen || !editableConfigDirty || allowingConfigNavigation) {
+      return;
+    }
+
+    if (willUnload) {
+      cancel();
+      return;
+    }
+
+    if (!to?.url) {
+      return;
+    }
+
+    cancel();
+    if (pendingConfigExit) {
+      return;
+    }
+
+    pendingConfigExit = {
+      kind: "navigation",
+      url: to.url,
+      replaceState: type === "popstate",
+    };
+    unsavedConfigDialogOpen = true;
+  });
+
+  $effect(() => {
+    if (!unsavedConfigDialogOpen) {
+      pendingConfigExit = null;
+    }
+  });
   let rusticConfirmOpen = $state(false);
   let rusticConfirmAction = $state<"forget" | "prune" | null>(null);
   let syncResult = $state<{
@@ -312,6 +356,7 @@
         return;
       }
       editableConfigYaml = payload.yaml ?? "";
+      editableConfigSavedYaml = editableConfigYaml;
       editableConfigRevision = payload.revision ?? "";
       editableConfigOpen = true;
     } catch {
@@ -345,6 +390,7 @@
         return;
       }
       editableConfigRevision = payload.revision ?? editableConfigRevision;
+      editableConfigSavedYaml = editableConfigYaml;
       editableConfigOpen = false;
       toast.success($messages.settings.controller.configEditorSaved);
       await Promise.all([
@@ -355,6 +401,53 @@
       editableConfigError = $messages.settings.controller.configEditorSaveFailed;
     } finally {
       editableConfigBusy = false;
+    }
+  }
+
+  function closeEditableControllerConfig() {
+    if (editableConfigDirty) {
+      pendingConfigExit = { kind: "dialog" };
+      unsavedConfigDialogOpen = true;
+      return;
+    }
+
+    editableConfigOpen = false;
+  }
+
+  function handleEditableConfigOpenChange(open: boolean) {
+    if (open || !editableConfigDirty) {
+      return;
+    }
+
+    editableConfigOpen = true;
+    closeEditableControllerConfig();
+  }
+
+  function cancelConfigExit() {
+    pendingConfigExit = null;
+    unsavedConfigDialogOpen = false;
+  }
+
+  async function discardConfigExit() {
+    const exit = pendingConfigExit;
+    pendingConfigExit = null;
+    unsavedConfigDialogOpen = false;
+
+    if (!exit) {
+      return;
+    }
+
+    if (exit.kind === "dialog") {
+      editableConfigYaml = editableConfigSavedYaml;
+      editableConfigOpen = false;
+      return;
+    }
+
+    allowingConfigNavigation = true;
+    try {
+      await goto(exit.url, { replaceState: exit.replaceState });
+    } finally {
+      allowingConfigNavigation = false;
     }
   }
 
@@ -665,7 +758,33 @@
             </DialogContent>
           </Dialog>
 
-          <Dialog bind:open={editableConfigOpen}>
+          <Dialog bind:open={unsavedConfigDialogOpen}>
+            <DialogOverlay />
+            <DialogContent class="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>{$messages.services.files.unsavedChangesTitle}</DialogTitle>
+                <DialogDescription>
+                  {$messages.services.files.unsavedChangesDescription}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button type="button" variant="outline" onclick={cancelConfigExit}
+                  >{$messages.common.cancel}</Button
+                >
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onclick={() => void discardConfigExit()}
+                  >{$messages.services.files.discardChanges}</Button
+                >
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog
+            bind:open={editableConfigOpen}
+            onOpenChange={handleEditableConfigOpenChange}
+          >
             <DialogOverlay />
             <DialogContent class="flex h-[80vh] max-w-5xl flex-col">
               <DialogHeader>
@@ -695,7 +814,7 @@
                 <Button
                   type="button"
                   variant="outline"
-                  onclick={() => (editableConfigOpen = false)}
+                  onclick={closeEditableControllerConfig}
                   disabled={editableConfigBusy}
                 >
                   {$messages.common.cancel}

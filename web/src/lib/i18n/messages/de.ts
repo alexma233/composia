@@ -323,6 +323,12 @@ export const de = {
       encryptedUnavailableDeclared:
         "Dienst deklarieren, bevor verschlüsselte Dateien im Editor geöffnet werden.",
       saved: "Gespeichert {path}",
+      unsavedChangesTitle: "Ungespeicherte Änderungen",
+      unsavedChangesDescription:
+        "Es gibt ungespeicherte Änderungen. Ohne Speichern verlassen?",
+      unsavedChangesTabDescription:
+        "{path} enthält ungespeicherte Änderungen. Tab ohne Speichern schließen?",
+      discardChanges: "Änderungen verwerfen",
       deleteFileConfirm: "{type} {path} löschen?",
       deleteServiceFolderConfirm: "Dienst-Ordner {name} löschen?",
     },

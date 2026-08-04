@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
+  import { beforeNavigate, goto } from "$app/navigation";
   import { onMount } from "svelte";
   import {
     Check,
@@ -137,6 +137,9 @@
   let renamePath = $state("");
   let showDeleteDialog = $state(false);
   let showServiceDeleteDialog = $state(false);
+  let unsavedChangesDialogOpen = $state(false);
+  let pendingExit = $state<PendingExit | null>(null);
+  let allowingNavigation = false;
   let showServiceRename = $state(false);
   let renameServiceFolder = $state("");
   let advancedOperationsOpen = $state(false);
@@ -173,6 +176,10 @@
     serviceDetail?: PageData["serviceDetail"];
     imageUpdateChecks?: ImageUpdateCheckSummary[];
   };
+
+  type PendingExit =
+    | { kind: "tab"; path: string }
+    | { kind: "navigation"; url: URL; replaceState: boolean };
 
   $effect(() => {
     fileTree = data.fileTree;
@@ -246,6 +253,15 @@
   let canSave = $derived(
     Boolean(focusedTab && focusedTab.dirty && !focusedTab.readOnly && !saving),
   );
+  let hasDirtyTabs = $derived(openTabs.some((tab) => tab.dirty));
+  let unsavedChangesDescription = $derived(
+    pendingExit?.kind === "tab"
+      ? $messages.services.files.unsavedChangesTabDescription.replace(
+          "{path}",
+          pendingExit.path,
+        )
+      : $messages.services.files.unsavedChangesDescription,
+  );
   let selectedNode = $derived(
     selectedNodePath ? findNode(fileTree, selectedNodePath) : null,
   );
@@ -298,6 +314,39 @@
       ? ""
       : capabilityReasonMessage(migrateCapability.reasonCode, $messages),
   );
+
+  beforeNavigate(({ cancel, to, type, willUnload }) => {
+    if (!hasDirtyTabs || allowingNavigation) {
+      return;
+    }
+
+    if (willUnload) {
+      cancel();
+      return;
+    }
+
+    if (!to?.url) {
+      return;
+    }
+
+    cancel();
+    if (pendingExit) {
+      return;
+    }
+
+    pendingExit = {
+      kind: "navigation",
+      url: to.url,
+      replaceState: type === "popstate",
+    };
+    unsavedChangesDialogOpen = true;
+  });
+
+  $effect(() => {
+    if (!unsavedChangesDialogOpen) {
+      pendingExit = null;
+    }
+  });
 
   function fileUnavailableReason(file: WorkspaceFile | null) {
     if (!file?.unavailableReasonCode) {
@@ -518,7 +567,7 @@
     }
   }
 
-  function closeTab(path: string) {
+  function removeTab(path: string) {
     const nextTabs = openTabs.filter((tab) => tab.path !== path);
     openTabs = nextTabs;
     if (activePath === path) {
@@ -531,6 +580,43 @@
     if (activePath && secondaryPath === activePath) {
       secondaryPath =
         nextTabs.find((tab) => tab.path !== activePath)?.path ?? "";
+    }
+  }
+
+  function closeTab(path: string) {
+    if (openTabs.find((tab) => tab.path === path)?.dirty) {
+      pendingExit = { kind: "tab", path };
+      unsavedChangesDialogOpen = true;
+      return;
+    }
+
+    removeTab(path);
+  }
+
+  function cancelPendingExit() {
+    pendingExit = null;
+    unsavedChangesDialogOpen = false;
+  }
+
+  async function discardPendingExit() {
+    const exit = pendingExit;
+    pendingExit = null;
+    unsavedChangesDialogOpen = false;
+
+    if (!exit) {
+      return;
+    }
+
+    if (exit.kind === "tab") {
+      removeTab(exit.path);
+      return;
+    }
+
+    allowingNavigation = true;
+    try {
+      await goto(exit.url, { replaceState: exit.replaceState });
+    } finally {
+      allowingNavigation = false;
     }
   }
 
@@ -2464,6 +2550,27 @@
         </Card>
       </section>
     </div>
+
+    <Dialog bind:open={unsavedChangesDialogOpen}>
+      <DialogOverlay />
+      <DialogContent class="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{$messages.services.files.unsavedChangesTitle}</DialogTitle>
+          <DialogDescription>{unsavedChangesDescription}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="outline" onclick={cancelPendingExit}
+            >{$messages.common.cancel}</Button
+          >
+          <Button
+            type="button"
+            variant="destructive"
+            onclick={() => void discardPendingExit()}
+            >{$messages.services.files.discardChanges}</Button
+          >
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <Dialog bind:open={showServiceDeleteDialog}>
       <DialogOverlay />

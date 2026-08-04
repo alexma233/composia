@@ -322,6 +322,12 @@ export const ja = {
       encryptedUnavailableDeclared:
         "エディターで暗号化ファイルを開く前に、このサービスを宣言してください。",
       saved: "{path} を保存しました",
+      unsavedChangesTitle: "未保存の変更",
+      unsavedChangesDescription:
+        "未保存の変更があります。保存せずに移動しますか？",
+      unsavedChangesTabDescription:
+        "{path} に未保存の変更があります。保存せずにタブを閉じますか？",
+      discardChanges: "変更を破棄",
       deleteFileConfirm: "{type} {path} を削除しますか？",
       deleteServiceFolderConfirm: "サービスフォルダー {name} を削除しますか？",
     },

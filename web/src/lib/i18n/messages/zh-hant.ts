@@ -298,6 +298,11 @@ export const zhHant = {
       openFileFailed: "開啟檔案失敗。",
       saveFileFailed: "儲存檔案失敗。",
       saved: "已儲存 {path}",
+      unsavedChangesTitle: "有未儲存的變更",
+      unsavedChangesDescription: "目前有未儲存的變更，確定要不儲存就離開嗎？",
+      unsavedChangesTabDescription:
+        "檔案 {path} 有未儲存的變更，確定要不儲存就關閉分頁嗎？",
+      discardChanges: "放棄變更",
       createFileFailed: "建立檔案失敗。",
       createFolderFailed: "建立資料夾失敗。",
       renameFailed: "重新命名路徑失敗。",

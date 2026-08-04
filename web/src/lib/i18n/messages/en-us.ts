@@ -323,6 +323,12 @@ export const enUS = {
       encryptedUnavailableDeclared:
         "Declare this service before opening encrypted files in the editor.",
       saved: "Saved {path}",
+      unsavedChangesTitle: "Unsaved changes",
+      unsavedChangesDescription:
+        "You have unsaved changes. Leave without saving?",
+      unsavedChangesTabDescription:
+        "You have unsaved changes in {path}. Close this tab without saving?",
+      discardChanges: "Discard changes",
       deleteFileConfirm: "Delete {type} {path}?",
       deleteServiceFolderConfirm: "Delete service folder {name}?",
     },

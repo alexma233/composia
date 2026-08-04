@@ -324,6 +324,12 @@ export const fr = {
       encryptedUnavailableDeclared:
         "Déclarez ce service avant d'ouvrir des fichiers chiffrés dans l'éditeur.",
       saved: "{path} enregistré",
+      unsavedChangesTitle: "Modifications non enregistrées",
+      unsavedChangesDescription:
+        "Des modifications ne sont pas enregistrées. Quitter sans enregistrer ?",
+      unsavedChangesTabDescription:
+        "{path} contient des modifications non enregistrées. Fermer l’onglet sans enregistrer ?",
+      discardChanges: "Abandonner les modifications",
       deleteFileConfirm: "Supprimer le {type} {path} ?",
       deleteServiceFolderConfirm: "Supprimer le dossier de service {name} ?",
     },
