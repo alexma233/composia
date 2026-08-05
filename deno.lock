@@ -37,7 +37,7 @@
     "npm:mode-watcher@1.1.0": "1.1.0_svelte@5.56.8",
     "npm:prettier-plugin-svelte@4.1.1": "4.1.1_prettier@3.9.6_svelte@5.56.8",
     "npm:prettier@3.9.6": "3.9.6",
-    "npm:shadcn-svelte@1.4.2": "1.4.2_svelte@5.56.8",
+    "npm:shadcn-svelte@1.5.0": "1.5.0_svelte@5.56.8",
     "npm:svelte-check@4.7.4": "4.7.4_svelte@5.56.8_typescript@6.0.3",
     "npm:svelte-sonner@1.1.1": "1.1.1_svelte@5.56.8",
     "npm:svelte@5.56.8": "5.56.8",
@@ -1321,8 +1321,8 @@
     "set-cookie-parser@3.1.2": {
       "integrity": "sha512-5/r/lTwbJ3zQ+qwdUFZYeRNqda7P5HD8zQKqlSjdGt1/S0cjLAphHusj4Y58ahDtWn/g32xrIS58/ikOvwl0Lw=="
     },
-    "shadcn-svelte@1.4.2_svelte@5.56.8": {
-      "integrity": "sha512-j7oDhXRmFuZ8bAhvF7Y65moMi9qM0iA68j5wEDNBiH0be9NWOEg1qo7myDeIf+h2oUSLBYHpVmeJIKYBmNT4Kg==",
+    "shadcn-svelte@1.5.0_svelte@5.56.8": {
+      "integrity": "sha512-fcxTeUwEIvELkL/h0Vg2i/9Sf6exAmLG5u3GXc0aN8CA+3fNffKQnfrTdMgkjUEmx9XP619I+wcJOvlr5aDWYQ==",
       "dependencies": [
         "commander",
         "node-fetch-native",
@@ -1558,7 +1558,7 @@
             "npm:mode-watcher@1.1.0",
             "npm:prettier-plugin-svelte@4.1.1",
             "npm:prettier@3.9.6",
-            "npm:shadcn-svelte@1.4.2",
+            "npm:shadcn-svelte@1.5.0",
             "npm:svelte-check@4.7.4",
             "npm:svelte-sonner@1.1.1",
             "npm:svelte@5.56.8",
