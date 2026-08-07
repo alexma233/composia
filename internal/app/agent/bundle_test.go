@@ -568,7 +568,7 @@ func TestRunComposeUpStreamsLogsBeforeCommandExit(t *testing.T) {
 	}
 
 	dockerPath := filepath.Join(binDir, "docker")
-	script := "#!/bin/sh\n[ -t 1 ] || exit 42\n[ \"$(stty size)\" = \"40 120\" ] || exit 43\nprintf 'starting compose up\\r'\nsleep 0.3\nprintf 'compose up finished\\n' >&2\n"
+	script := "#!/bin/sh\n[ -t 1 ] || exit 42\n[ \"$(stty size)\" = \"40 160\" ] || exit 43\nprintf 'starting compose up\\r'\nsleep 0.3\nprintf 'compose up finished\\n' >&2\n"
 	if err := os.WriteFile(dockerPath, []byte(script), 0o755); err != nil { //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}

@@ -26,6 +26,7 @@
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import * as Select from "$lib/components/ui/select";
+  import TerminalColumnControl from "$lib/components/app/terminal-column-control.svelte";
   import TerminalSurface from "$lib/components/app/terminal-surface.svelte";
   import { getMessages } from "$lib/i18n";
 
@@ -38,6 +39,7 @@
     formatTimestamp,
   } from "$lib/presenters";
   import { startPolling } from "$lib/refresh";
+  import { terminalColumns } from "$lib/preferences";
   interface Props {
     data: PageData;
   }
@@ -78,7 +80,7 @@
   let terminalSessionId = $state("");
   let terminalSocket = $state<WebSocket | null>(null);
   let terminalRows = $state(32);
-  let terminalCols = $state(120);
+  let terminalEffectiveCols = $state<number>($terminalColumns);
   let stopActionRefreshHandle = $state<null | (() => void)>(null);
   const terminalInputEncoder = new TextEncoder();
 
@@ -329,7 +331,7 @@
           body: JSON.stringify({
             command,
             rows: terminalRows,
-            cols: terminalCols,
+            cols: terminalEffectiveCols,
           }),
         },
       );
@@ -397,7 +399,7 @@
 
   function resizeTerminal(rows: number, cols: number) {
     terminalRows = rows;
-    terminalCols = cols;
+    terminalEffectiveCols = cols;
 
     if (!terminalSocket || terminalSocket.readyState !== WebSocket.OPEN) {
       return;
@@ -806,6 +808,7 @@
                       class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center"
                     >
                       <Input bind:value={logTail} class="w-full sm:w-24" aria-label={$messages.docker.containers.containerLogs} />
+                      <TerminalColumnControl />
                       <Button
                         variant="outline"
                         size="sm"
@@ -830,6 +833,7 @@
                         ? $messages.common.loadingWithDots
                         : logs}
                       emptyText={$messages.docker.containers.logs.noLogs}
+                      fixedCols={$terminalColumns}
                       heightClass="h-[360px] sm:h-[560px]"
                     />
                   {/if}
@@ -850,6 +854,7 @@
                 </CardHeader>
                 <CardContent class="space-y-4">
                   <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <TerminalColumnControl />
                     <Select.Root type="single" bind:value={terminalShell}>
                       <Select.Trigger
                         class="w-full sm:w-40"
@@ -914,6 +919,7 @@
                           ? ""
                           : $messages.docker.containers.terminal.description}
                       heightClass="h-[300px] sm:h-[380px]"
+                      fixedCols={$terminalColumns}
                       interactive={true}
                       onData={sendTerminalData}
                       onResize={resizeTerminal}

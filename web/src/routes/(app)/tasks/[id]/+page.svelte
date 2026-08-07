@@ -12,6 +12,7 @@
   import { actionErrorMessage } from '$lib/capabilities';
 
   import TerminalSurface from '$lib/components/app/terminal-surface.svelte';
+  import TerminalColumnControl from '$lib/components/app/terminal-column-control.svelte';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
@@ -19,6 +20,7 @@
   import * as Dialog from '$lib/components/ui/dialog';
   import { Label } from '$lib/components/ui/label';
   import { startPolling } from '$lib/refresh';
+  import { terminalColumns } from '$lib/preferences';
   import { formatTimestamp, taskStatusLabel, taskStatusTone, taskStepNameLabel, taskTypeLabel } from '$lib/presenters';
   interface Props {
     data: PageData;
@@ -484,7 +486,10 @@
 		<Card>
       <CardHeader class="section-header">
         <CardTitle class="section-title" level="2">{$messages.tasks.taskLogs}</CardTitle>
-        <div class="metric-label">{logStateLabel(logState)}</div>
+        <div class="flex items-center gap-2">
+          <TerminalColumnControl />
+          <div class="metric-label">{logStateLabel(logState)}</div>
+        </div>
       </CardHeader>
       <CardContent class="space-y-4">
         {#if logError}
@@ -512,7 +517,7 @@
           active
           content={logContent}
           emptyText={$messages.tasks.waitingForOutput}
-          fixedCols={120}
+          fixedCols={$terminalColumns}
           heightClass="h-[360px] sm:h-[560px]"
         />
       </CardContent>

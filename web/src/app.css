@@ -343,16 +343,20 @@
   }
 
   .terminal-surface[data-fixed-cols] .terminal-host {
-    width: calc(var(--terminal-cols) * 1ch + 24px);
-    min-width: calc(var(--terminal-cols) * 1ch + 24px);
+    width: 100%;
+    min-width: 0;
   }
 
   .terminal-surface[data-fixed-cols] .wterm {
+    width: 100%;
     max-width: none;
+    height: 100% !important;
+    overflow-x: auto;
   }
 
   .terminal-surface[data-fixed-cols] .term-grid {
-    width: calc(var(--terminal-cols) * 1ch);
+    width: max(100%, calc(var(--terminal-cols) * 1ch));
+    min-width: calc(var(--terminal-cols) * 1ch);
   }
 
   .task-log-accessible {

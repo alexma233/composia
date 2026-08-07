@@ -119,6 +119,7 @@ export const zhHant = {
     searchInputLabel: "搜尋",
     codeEditor: "程式碼編輯器",
     terminal: "終端",
+    terminalColumns: "欄",
   },
   capabilities: {
     unavailableTitle: "目前無法使用的操作",

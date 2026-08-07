@@ -31,6 +31,8 @@
   }: Props = $props();
 
   let host = $state<HTMLDivElement | null>(null);
+  let effectiveCols = $state(0);
+  let fixedResizeObserver: ResizeObserver | null = null;
 
   const TERMINAL_RESET = "\x1bc\x1b[3J\x1b[H\x1b[2J";
 
@@ -100,6 +102,60 @@
     }
   }
 
+  function terminalRowsForHost(): number {
+    if (!terminal) {
+      return 24;
+    }
+
+    const style = getComputedStyle(terminal.element);
+    const rowHeight = Number.parseFloat(style.getPropertyValue("--term-row-height")) || 17;
+    const verticalPadding =
+      Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom);
+    return Math.max(1, Math.floor((terminal.element.clientHeight - verticalPadding) / rowHeight));
+  }
+
+  function terminalColumnsForHost(): number {
+    if (!terminal || !fixedCols) {
+      return 0;
+    }
+
+    const style = getComputedStyle(terminal.element);
+    const horizontalPadding =
+      Number.parseFloat(style.paddingLeft) + Number.parseFloat(style.paddingRight);
+    const probe = document.createElement("span");
+    probe.textContent = "0";
+    probe.style.cssText = "position:absolute;visibility:hidden;width:1ch";
+    terminal.element.append(probe);
+    const charWidth = probe.getBoundingClientRect().width;
+    probe.remove();
+    if (!charWidth) {
+      return fixedCols;
+    }
+
+    return Math.max(
+      fixedCols,
+      Math.floor((terminal.element.clientWidth - horizontalPadding) / charWidth),
+    );
+  }
+
+  function resizeFixedTerminal() {
+    if (!terminal || !fixedCols) {
+      return;
+    }
+
+    const cols = terminalColumnsForHost();
+    const rows = terminalRowsForHost();
+    const colsChanged = terminal.cols !== cols;
+    if (colsChanged || terminal.rows !== rows) {
+      terminal.resize(cols, rows);
+    }
+    effectiveCols = cols;
+    if (colsChanged && !interactive) {
+      renderedText = "";
+      syncTerminal(true);
+    }
+  }
+
   onMount(() => {
     let disposed = false;
     const stopReadOnlyFocus = (event: MouseEvent) => {
@@ -117,9 +173,11 @@
         return;
       }
 
+      effectiveCols = fixedCols;
+
       terminal = new WTerm(host, {
         cols: fixedCols || undefined,
-        autoResize: true,
+        autoResize: !fixedCols,
         cursorBlink: interactive,
         onData: interactive ? (data) => onData?.(data) : () => {},
         onResize: (cols, rows) => onResize?.(rows, cols),
@@ -133,6 +191,14 @@
         return;
       }
 
+      if (fixedCols) {
+        resizeFixedTerminal();
+        fixedResizeObserver = new ResizeObserver(() => {
+          resizeFixedTerminal();
+        });
+        fixedResizeObserver.observe(terminal.element);
+      }
+
       disableReadOnlyInput();
       syncTerminal(true);
     }
@@ -144,6 +210,8 @@
       host?.removeEventListener("click", stopReadOnlyFocus, { capture: true });
       terminal?.destroy();
       terminal = null;
+      fixedResizeObserver?.disconnect();
+      fixedResizeObserver = null;
       scrollScheduled = false;
       renderedText = "";
     };
@@ -156,6 +224,13 @@
   });
 
   $effect(() => {
+    if (fixedCols) {
+      effectiveCols = fixedCols;
+      resizeFixedTerminal();
+    }
+  });
+
+  $effect(() => {
     if (active && interactive) {
       terminal?.focus();
     }
@@ -165,7 +240,7 @@
 <div
   class={`terminal-surface ${heightClass}`}
   data-fixed-cols={fixedCols || undefined}
-  style={fixedCols ? `--terminal-cols: ${fixedCols}` : undefined}
+  style={fixedCols ? `--terminal-cols: ${effectiveCols}` : undefined}
 >
   <div
     bind:this={host}

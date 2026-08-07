@@ -14,14 +14,17 @@ export const availableAccentColors = [
   "rose",
   "amber",
 ] as const;
+export const terminalColumnOptions = [80, 120, 160, 200, 240, 300] as const;
 
 export type ThemeMode = (typeof availableThemeModes)[number];
 export type AccentColor = (typeof availableAccentColors)[number];
+export type TerminalColumns = (typeof terminalColumnOptions)[number];
 
 const storageKeys = {
   locale: "composia.locale",
   themeMode: "composia.theme-mode",
   accentColor: "composia.accent-color",
+  terminalColumns: "composia.terminal-columns",
 } as const;
 
 export const accentMetadata: Record<AccentColor, { preview: string }> = {
@@ -61,6 +64,15 @@ function normalizeLocale(value: string | null | undefined): Locale {
   return match ?? defaultLocale;
 }
 
+function normalizeTerminalColumns(
+  value: string | null | undefined,
+): TerminalColumns {
+  const columns = Number(value);
+  return terminalColumnOptions.includes(columns as TerminalColumns)
+    ? (columns as TerminalColumns)
+    : 160;
+}
+
 const initialThemeMode = normalizeThemeMode(
   typeof document === "undefined"
     ? "system"
@@ -80,6 +92,7 @@ const initialLocale = normalizeLocale(
 export const themeMode = writable<ThemeMode>(initialThemeMode);
 export const accentColor = writable<AccentColor>(initialAccentColor);
 export const preferredLocale = writable<Locale>(initialLocale);
+export const terminalColumns = writable<TerminalColumns>(160);
 
 function resolveThemeMode(mode: ThemeMode) {
   if (mode === "system" && typeof window !== "undefined") {
@@ -132,6 +145,10 @@ export function setPreferredLocale(nextLocale: Locale) {
   preferredLocale.set(nextLocale);
 }
 
+export function setTerminalColumns(nextColumns: TerminalColumns) {
+  terminalColumns.set(nextColumns);
+}
+
 export function initializePreferences(setLocale: (locale: Locale) => void) {
   const storedThemeMode = normalizeThemeMode(
     readStoredValue(storageKeys.themeMode),
@@ -142,15 +159,22 @@ export function initializePreferences(setLocale: (locale: Locale) => void) {
   const storedLocale = normalizeLocale(
     readStoredValue(storageKeys.locale) ?? document.documentElement.lang,
   );
+  const storedTerminalColumns = normalizeTerminalColumns(
+    readStoredValue(storageKeys.terminalColumns),
+  );
 
   themeMode.set(storedThemeMode);
   accentColor.set(storedAccentColor);
   preferredLocale.set(storedLocale);
+  terminalColumns.set(storedTerminalColumns);
 
   const unsubscribers: Unsubscriber[] = [
     themeMode.subscribe((mode) => applyThemeMode(mode)),
     accentColor.subscribe((accent) => applyAccentColor(accent)),
     preferredLocale.subscribe((locale) => applyLocale(locale, setLocale)),
+    terminalColumns.subscribe((columns) => {
+      window.localStorage.setItem(storageKeys.terminalColumns, String(columns));
+    }),
   ];
 
   const media =

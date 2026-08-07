@@ -120,6 +120,7 @@ export const de = {
     searchInputLabel: "Suchen",
     codeEditor: "Code-Editor",
     terminal: "Terminal",
+    terminalColumns: "Spalten",
   },
   capabilities: {
     unavailableTitle: "Nicht verfügbare Aktionen",

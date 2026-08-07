@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	composeTerminalCols = 120
+	composeTerminalCols = 160
 	composeTerminalRows = 40
 )
 
@@ -20,7 +20,7 @@ const (
 // carriage returns into independent log lines.
 func runCommandWithPTYLiveLogs(command *exec.Cmd, uploadLog func(string) error) error {
 	prepareCommandForTerminalLog(command)
-	command.Env = setCommandEnv(command.Env, "COLUMNS", "120")
+	command.Env = setCommandEnv(command.Env, "COLUMNS", "160")
 	command.Env = setCommandEnv(command.Env, "LINES", "40")
 
 	terminal, err := pty.StartWithSize(command, &pty.Winsize{

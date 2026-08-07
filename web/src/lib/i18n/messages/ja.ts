@@ -121,6 +121,7 @@ export const ja = {
     searchInputLabel: "検索",
     codeEditor: "コードエディター",
     terminal: "ターミナル",
+    terminalColumns: "列",
   },
   capabilities: {
     unavailableTitle: "利用不可の操作",

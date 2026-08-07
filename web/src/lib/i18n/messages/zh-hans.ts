@@ -119,6 +119,7 @@ export const zhHans = {
     searchInputLabel: "搜索",
     codeEditor: "代码编辑器",
     terminal: "终端",
+    terminalColumns: "列",
   },
   capabilities: {
     unavailableTitle: "当前不可用的操作",

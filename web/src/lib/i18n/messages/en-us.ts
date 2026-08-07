@@ -126,6 +126,7 @@ export const enUS = {
     searchInputLabel: "Search",
     codeEditor: "Code editor",
     terminal: "Terminal",
+    terminalColumns: "columns",
   },
   capabilities: {
     unavailableTitle: "Unavailable actions",
