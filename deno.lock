@@ -11,12 +11,12 @@
     "npm:@codemirror/language@6.12.4": "6.12.4",
     "npm:@codemirror/lint@6.9.7": "6.9.7",
     "npm:@codemirror/state@6.7.1": "6.7.1",
-    "npm:@codemirror/view@6.43.6": "6.43.6",
+    "npm:@codemirror/view@6.43.8": "6.43.8",
     "npm:@connectrpc/connect-node@2.1.2": "2.1.2_@bufbuild+protobuf@2.13.0_@connectrpc+connect@2.1.2__@bufbuild+protobuf@2.13.0",
     "npm:@connectrpc/connect@2.1.2": "2.1.2_@bufbuild+protobuf@2.13.0",
     "npm:@deno/svelte-adapter@0.2.1": "0.2.1_@sveltejs+kit@2.70.2__@sveltejs+vite-plugin-svelte@7.2.0___svelte@5.56.8___vite@8.1.5____@types+node@26.1.1____yaml@2.9.0___@types+node@26.1.1___yaml@2.9.0__svelte@5.56.8__typescript@6.0.3__vite@8.1.5___@types+node@26.1.1___yaml@2.9.0_@sveltejs+vite-plugin-svelte@7.2.0__svelte@5.56.8__vite@8.1.5___@types+node@26.1.1___yaml@2.9.0__@types+node@26.1.1__yaml@2.9.0_svelte@5.56.8_typescript@6.0.3_vite@8.1.5__@types+node@26.1.1__yaml@2.9.0",
-    "npm:@fsegurai/codemirror-theme-github-dark@6.2.5": "6.2.5_@codemirror+language@6.12.4_@codemirror+state@6.7.1_@codemirror+view@6.43.6_@lezer+highlight@1.2.3",
-    "npm:@fsegurai/codemirror-theme-github-light@6.2.5": "6.2.5_@codemirror+language@6.12.4_@codemirror+state@6.7.1_@codemirror+view@6.43.6_@lezer+highlight@1.2.3",
+    "npm:@fsegurai/codemirror-theme-github-dark@6.2.5": "6.2.5_@codemirror+language@6.12.4_@codemirror+state@6.7.1_@codemirror+view@6.43.8_@lezer+highlight@1.2.3",
+    "npm:@fsegurai/codemirror-theme-github-light@6.2.5": "6.2.5_@codemirror+language@6.12.4_@codemirror+state@6.7.1_@codemirror+view@6.43.8_@lezer+highlight@1.2.3",
     "npm:@hyperjump/json-pointer@1.1.2": "1.1.2",
     "npm:@lezer/common@1.5.2": "1.5.2",
     "npm:@lezer/highlight@1.2.3": "1.2.3",
@@ -394,8 +394,8 @@
         "@marijn/find-cluster-break"
       ]
     },
-    "@codemirror/view@6.43.6": {
-      "integrity": "sha512-EVunGSYN1wz1p75WY1s3Xg7t3i8Yol0kGZGizNdX9BUFgMFILYVe8/u6EVpo7Ff5PwbZuILb4QAq7IZoKzIEQA==",
+    "@codemirror/view@6.43.8": {
+      "integrity": "sha512-qtItTDssZ/5GFfi94hrILu9j/VUeFPDPkhovEfmWFj2ipTxnzPB8DdHgfbb8HYTzLTYhrndKmyQxXUz/PDLenw==",
       "dependencies": [
         "@codemirror/state",
         "crelt",
@@ -464,7 +464,7 @@
     "@floating-ui/utils@0.2.12": {
       "integrity": "sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww=="
     },
-    "@fsegurai/codemirror-theme-github-dark@6.2.5_@codemirror+language@6.12.4_@codemirror+state@6.7.1_@codemirror+view@6.43.6_@lezer+highlight@1.2.3": {
+    "@fsegurai/codemirror-theme-github-dark@6.2.5_@codemirror+language@6.12.4_@codemirror+state@6.7.1_@codemirror+view@6.43.8_@lezer+highlight@1.2.3": {
       "integrity": "sha512-l7TjaAefatsyohaMgmTrXMUrCZfulIsNk+MhdgV2niBcXiGuEk24go6jsxEQ11i/B+VJNklV0mD+AQ1SqOW0nQ==",
       "dependencies": [
         "@codemirror/language",
@@ -473,7 +473,7 @@
         "@lezer/highlight"
       ]
     },
-    "@fsegurai/codemirror-theme-github-light@6.2.5_@codemirror+language@6.12.4_@codemirror+state@6.7.1_@codemirror+view@6.43.6_@lezer+highlight@1.2.3": {
+    "@fsegurai/codemirror-theme-github-light@6.2.5_@codemirror+language@6.12.4_@codemirror+state@6.7.1_@codemirror+view@6.43.8_@lezer+highlight@1.2.3": {
       "integrity": "sha512-F5G5Bs2txIrfbA2kBZl18Hdh4rYRVLyIeWz4txVIaYrOknUoaUFWCFred79nGYgM/WmySzbbm/tDIHNknHEGwg==",
       "dependencies": [
         "@codemirror/language",
@@ -1518,7 +1518,7 @@
   "workspace": {
     "packageJson": {
       "overrides": {
-        "@codemirror/view": "6.43.6"
+        "@codemirror/view": "6.43.8"
       }
     },
     "members": {
@@ -1533,7 +1533,7 @@
             "npm:@codemirror/language@6.12.4",
             "npm:@codemirror/lint@6.9.7",
             "npm:@codemirror/state@6.7.1",
-            "npm:@codemirror/view@6.43.6",
+            "npm:@codemirror/view@6.43.8",
             "npm:@connectrpc/connect-node@2.1.2",
             "npm:@connectrpc/connect@2.1.2",
             "npm:@deno/svelte-adapter@0.2.1",
