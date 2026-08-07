@@ -8,7 +8,12 @@
   import { githubDark } from "@fsegurai/codemirror-theme-github-dark";
   import { githubLight } from "@fsegurai/codemirror-theme-github-light";
   import { EditorState, Compartment, type Extension } from "@codemirror/state";
-  import { EditorView, keymap, lineNumbers } from "@codemirror/view";
+  import {
+    EditorView,
+    highlightWhitespace,
+    keymap,
+    lineNumbers,
+  } from "@codemirror/view";
   import { basicSetup } from "codemirror";
 
   import {
@@ -85,6 +90,12 @@
     ".cm-cursor, .cm-dropCursor": {
       borderLeftColor: "var(--code-cursor)",
     },
+    "@media (max-width: 639px)": {
+      ".cm-lineNumbers .cm-gutterElement": {
+        minWidth: "16px",
+        padding: "0 2px",
+      },
+    },
   });
 
   // CodeMirror may resolve duplicate @codemirror/view versions in the lockfile,
@@ -110,6 +121,8 @@
         extensions: [
           basicSetup,
           lineNumbers(),
+          EditorView.lineWrapping,
+          highlightWhitespace(),
           themeCompartment.of(resolveTheme(root)),
           editorChromeTheme,
           keymap.of(editorKeymap),
