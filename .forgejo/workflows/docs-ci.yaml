@@ -23,7 +23,7 @@ jobs:
   check-api-docs:
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-go-node-docs:1.26@sha256:7489d388ed8aaac04f3efe8a8a98e47e2e7d5de5e637f6bd209eb742847af2ae
+      image: forgejo.alexma.top/alexma233/ci-images-go-node-docs:1.26@sha256:c6b337cd12c68ee4f7cd0d9aa53763f3ddeea50ace02368e18f4ef9f6e63a16e
 
     steps:
       - name: Checkout
@@ -45,7 +45,7 @@ jobs:
     needs: check-api-docs
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-hugo-wrangler:0.164.0@sha256:9cfc8a7a9d30c4cc7958f7edec6c23ae1d2b06c71ad49c91a69e5d16ce81dce5
+      image: forgejo.alexma.top/alexma233/ci-images-hugo-wrangler:0.164.0@sha256:8ec91d00a01c7b65475b787a3478471ab434c14dd1efc82e60c06d3f8c575f3a
 
     steps:
       - name: Checkout
