@@ -19,7 +19,7 @@
   "packageRules": [
     {
       "matchManagers": [
-        "npm"
+        "deno"
       ],
       "matchUpdateTypes": [
         "digest",
