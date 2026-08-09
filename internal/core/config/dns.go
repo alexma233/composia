@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -12,7 +13,7 @@ type dnsZoneConfig struct {
 
 func (controller *ControllerConfig) ResolveDNSProvider(hostname string) (string, error) {
 	if controller == nil || controller.DNS == nil {
-		return "", fmt.Errorf("controller dns is not configured")
+		return "", errors.New("controller dns is not configured")
 	}
 	fqdn := normalizeDNSName(hostname)
 	bestZone := ""

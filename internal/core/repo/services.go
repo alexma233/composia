@@ -133,7 +133,7 @@ func (dns *DNSConfig) UnmarshalYAML(value *yaml.Node) error {
 		var entries []dnsConfigYAML
 		for _, entry := range value.Content {
 			if entry.Kind != yaml.MappingNode {
-				return fmt.Errorf("network.dns entries must be objects")
+				return errors.New("network.dns entries must be objects")
 			}
 			if err := validateDNSConfigFields(entry); err != nil {
 				return err
@@ -149,7 +149,7 @@ func (dns *DNSConfig) UnmarshalYAML(value *yaml.Node) error {
 		return nil
 	}
 	if value.Kind != yaml.MappingNode {
-		return fmt.Errorf("network.dns must be an object or array")
+		return errors.New("network.dns must be an object or array")
 	}
 	if err := validateDNSConfigFields(value); err != nil {
 		return err
