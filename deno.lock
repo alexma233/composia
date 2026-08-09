@@ -21,7 +21,7 @@
     "npm:@lezer/common@1.5.2": "1.5.2",
     "npm:@lezer/highlight@1.2.3": "1.2.3",
     "npm:@lezer/lr@1.4.10": "1.4.10",
-    "npm:@lucide/svelte@1.28.0": "1.28.0_svelte@5.56.8",
+    "npm:@lucide/svelte@1.29.0": "1.29.0_svelte@5.56.8",
     "npm:@playwright/test@1.62.0": "1.62.0",
     "npm:@sveltejs/kit@2.70.2": "2.70.2_@sveltejs+vite-plugin-svelte@7.2.0__svelte@5.56.8__vite@8.2.1___@types+node@26.1.1___yaml@2.9.0__@types+node@26.1.1__yaml@2.9.0_svelte@5.56.8_typescript@6.0.3_vite@8.2.1__@types+node@26.1.1__yaml@2.9.0_@types+node@26.1.1_yaml@2.9.0",
     "npm:@sveltejs/vite-plugin-svelte@7.2.0": "7.2.0_svelte@5.56.8_vite@8.2.1__@types+node@26.1.1__yaml@2.9.0_@types+node@26.1.1_yaml@2.9.0",
@@ -644,8 +644,8 @@
         "@lezer/lr"
       ]
     },
-    "@lucide/svelte@1.28.0_svelte@5.56.8": {
-      "integrity": "sha512-C1Ge84KW2z4q44/WDIEo/2KC2jby5u6mSlta7q+p6g7u0ld8sC/w1fMBiSswF+4bxAl9jlzzaVTpp79qqkiy5g==",
+    "@lucide/svelte@1.29.0_svelte@5.56.8": {
+      "integrity": "sha512-qzpfzxG8WZiAnyjh1qaQCtG4MA5R6HOyvb3c+LezexgFf69ptBdK3PjvGYGCWHKgTIVZMsOU9fqfczjsZAJl0A==",
       "dependencies": [
         "svelte"
       ]
@@ -1616,7 +1616,7 @@
             "npm:@lezer/common@1.5.2",
             "npm:@lezer/highlight@1.2.3",
             "npm:@lezer/lr@1.4.10",
-            "npm:@lucide/svelte@1.28.0",
+            "npm:@lucide/svelte@1.29.0",
             "npm:@playwright/test@1.62.0",
             "npm:@sveltejs/kit@2.70.2",
             "npm:@sveltejs/vite-plugin-svelte@7.2.0",
