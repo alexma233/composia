@@ -155,6 +155,18 @@
     {
       "customType": "regex",
       "managerFilePatterns": [
+        "/^scripts\\/dev\\/e2e\\.sh$/"
+      ],
+      "matchStrings": [
+        "npm:playwright@(?<currentValue>\\d+\\.\\d+\\.\\d+) install chromium"
+      ],
+      "depNameTemplate": "playwright",
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
         "/(^|/)\\.forgejo\\/workflows\\/.+\\.ya?ml$/"
       ],
       "matchStrings": [
