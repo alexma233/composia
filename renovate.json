@@ -16,6 +16,20 @@
   "postUpdateOptions": [
     "gomodTidy"
   ],
+  "postUpgradeTasks": {
+    "commands": [
+      "nix run nixpkgs#nix-update -- --flake --version=skip composia"
+    ],
+    "executionMode": "branch",
+    "installTools": {
+      "nix": {}
+    },
+    "fileFilters": [
+      "flake.nix",
+      "go.mod",
+      "go.sum"
+    ]
+  },
   "packageRules": [
     {
       "matchManagers": [
