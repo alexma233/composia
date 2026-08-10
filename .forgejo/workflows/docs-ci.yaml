@@ -45,7 +45,7 @@ jobs:
     needs: check-api-docs
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-hugo-wrangler:0.164.0@sha256:8ec91d00a01c7b65475b787a3478471ab434c14dd1efc82e60c06d3f8c575f3a
+      image: forgejo.alexma.top/alexma233/ci-images-hugo-wrangler:0.164.0@sha256:9ec77d6527807edcf2d2eaeb7affa7f93786817612ef3752ae4eb4dd5cfd6dc3
 
     steps:
       - name: Checkout
