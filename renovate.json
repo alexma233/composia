@@ -16,10 +16,10 @@
   "postUpdateOptions": [
     "gomodTidy"
   ],
-  "postUpgradeTasks": {
-    "commands": [
-      "nix --extra-experimental-features 'nix-command flakes' run nixpkgs#nix-update -- --flake --version=skip composia"
-    ],
+    "postUpgradeTasks": {
+      "commands": [
+      "bash scripts/build/update-nix-vendor-hash.sh"
+      ],
     "executionMode": "branch",
     "installTools": {
       "nix": {}
