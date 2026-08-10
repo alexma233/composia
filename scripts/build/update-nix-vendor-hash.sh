@@ -15,7 +15,14 @@ tar \
   GOTOOLCHAIN=local go mod vendor
 )
 
-hash="$(nix-hash --type sha256 --sri "$tmp/vendor")"
+hash="$(
+  nix --extra-experimental-features nix-command \
+    hash path \
+    --mode nar \
+    --algo sha256 \
+    --format sri \
+    "$tmp/vendor"
+)"
 
 echo "vendorHash = $hash"
 
