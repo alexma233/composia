@@ -18,7 +18,7 @@
   ],
   "postUpgradeTasks": {
     "commands": [
-      "nix run nixpkgs#nix-update -- --flake --version=skip composia"
+      "nix --extra-experimental-features 'nix-command flakes' run nixpkgs#nix-update -- --flake --version=skip composia"
     ],
     "executionMode": "branch",
     "installTools": {
