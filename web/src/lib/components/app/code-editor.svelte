@@ -9,7 +9,6 @@
   import { EditorState, Compartment, type Extension } from "@codemirror/state";
   import {
     EditorView,
-    highlightWhitespace,
     keymap,
     lineNumbers,
   } from "@codemirror/view";
@@ -121,7 +120,6 @@
           basicSetup,
           lineNumbers(),
           EditorView.lineWrapping,
-          highlightWhitespace(),
           themeCompartment.of(resolveTheme(root)),
           editorChromeTheme,
           keymap.of(editorKeymap),
