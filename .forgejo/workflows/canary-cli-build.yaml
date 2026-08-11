@@ -37,6 +37,9 @@ jobs:
       - name: Set up Docker Buildx
         # renovate: datasource=git-refs depName=actions/docker-setup-buildx-action packageName=https://forgejo.alexma.top/actions/docker-setup-buildx-action currentValue=v4.2.0
         uses: https://forgejo.alexma.top/actions/docker-setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
+        with:
+          name: composia-publish
+          cleanup: false
 
       - name: Login to Forgejo Registry
         # renovate: datasource=git-refs depName=actions/docker-login-action packageName=https://forgejo.alexma.top/actions/docker-login-action currentValue=v4.4.0
