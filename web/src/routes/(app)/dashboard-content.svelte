@@ -87,13 +87,10 @@
           </CardHeader>
           <CardContent>
             <div class="text-3xl font-bold tabular-nums">
-              {runningServiceCount}
-            </div>
-            <p class="text-xs text-muted-foreground mt-1">
               {$messages.dashboard.serviceStatRunning
                 .replace("{running}", String(runningServiceCount))
                 .replace("{total}", String(totalServiceCount))}
-            </p>
+            </div>
           </CardContent>
         </Card>
       </a>
@@ -106,12 +103,11 @@
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="text-3xl font-bold tabular-nums">{onlineNodeCount}</div>
-            <p class="text-xs text-muted-foreground mt-1">
+            <div class="text-3xl font-bold tabular-nums">
               {$messages.dashboard.nodeStatOnline
                 .replace("{online}", String(onlineNodeCount))
                 .replace("{total}", String(configuredNodeCount))}
-            </p>
+            </div>
           </CardContent>
         </Card>
       </a>
