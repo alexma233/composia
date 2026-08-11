@@ -73,6 +73,7 @@
     DropdownMenuTrigger,
   } from "$lib/components/ui/dropdown-menu";
   import * as Popover from "$lib/components/ui/popover";
+  import { Skeleton } from "$lib/components/ui/skeleton";
   import {
     Select,
     SelectContent,
@@ -103,7 +104,7 @@
     isEncryptedFilePath,
     normalizeServiceRelativePath,
   } from "$lib/service-workspace";
-  import { startPolling } from "$lib/refresh";
+  import { hasActiveOperations, startPolling } from "$lib/refresh";
   import { cn } from "$lib/utils";
   let { data }: { data: PageData } = $props();
 
@@ -168,6 +169,8 @@
   let CodeEditor = $state<
     typeof import("$lib/components/app/code-editor.svelte").default | null
   >(null);
+  let codeEditorLoading = $state(false);
+  let codeEditorLoadAttemptedFor = $state("");
 
   type ServiceSummaryStatePayload = {
     workspace?: PageData["workspace"];
@@ -241,6 +244,28 @@
   let secondaryTab = $derived(
     openTabs.find((tab) => tab.path === secondaryPath) ?? null,
   );
+  let codeEditorLoadTarget = $derived(
+    [
+      activeTab?.path ?? "",
+      splitEnabled ? (secondaryTab?.path ?? "") : "",
+    ].join("\u0000"),
+  );
+  $effect(() => {
+    if (
+      !CodeEditor &&
+      !codeEditorLoading &&
+      codeEditorLoadTarget &&
+      codeEditorLoadAttemptedFor !== codeEditorLoadTarget &&
+      ((activeTab && !activeTab.unavailableReasonCode) ||
+        (splitEnabled && secondaryTab && !secondaryTab.unavailableReasonCode))
+    ) {
+      codeEditorLoadAttemptedFor = codeEditorLoadTarget;
+      codeEditorLoading = true;
+      void import("$lib/components/app/code-editor.svelte")
+        .then(({ default: component }) => (CodeEditor = component))
+        .catch(() => (codeEditorLoading = false));
+    }
+  });
   let focusedPath = $derived(
     focusedPane === "secondary" && splitEnabled ? secondaryPath : activePath,
   );
@@ -367,9 +392,8 @@
   let migrateSourceNodes = $derived(serviceDetail?.nodes ?? []);
   let hasMultipleInstanceNodes = $derived(nodeContainers.length > 1);
   let pendingDeployInstance = $derived(
-    nodeContainers.find(
-      (instance) => instance.pendingDeployRevision !== "",
-    ) ?? null,
+    nodeContainers.find((instance) => instance.pendingDeployRevision !== "") ??
+      null,
   );
   let selectedInstanceEntry = $derived(
     nodeContainers.find(
@@ -1065,7 +1089,9 @@
       async () => {
         const payload = await refreshServiceSummary();
         for (const taskId of pendingTaskIds) {
-          const task = (payload.tasks ?? []).find((entry) => entry.taskId === taskId);
+          const task = (payload.tasks ?? []).find(
+            (entry) => entry.taskId === taskId,
+          );
           if (!task || !isTerminalTaskStatus(task.status)) {
             return true;
           }
@@ -1091,9 +1117,6 @@
   }
 
   onMount(() => {
-    void import("$lib/components/app/code-editor.svelte").then(
-      ({ default: component }) => (CodeEditor = component),
-    );
     const root = document.documentElement;
     syncFileTreeIconTheme(root);
 
@@ -1110,7 +1133,8 @@
         await refreshServiceSummary();
       },
       {
-        intervalMs: 5000,
+        intervalMs: () =>
+          hasActiveOperations(tasks.map((task) => task.status)) ? 5000 : 30000,
       },
     );
 
@@ -1227,19 +1251,24 @@
           actionErrorMessage(
             payload,
             $messages,
-            $messages.services.actions.runFailed.replace("{action}", actionLabel),
+            $messages.services.actions.runFailed.replace(
+              "{action}",
+              actionLabel,
+            ),
           ),
         );
       }
 
-      const createdTasks: TaskSummary[] = (payload.tasks ?? []).map((entry) => ({
-        taskId: entry.taskId,
-        type: action,
-        status: entry.status,
-        serviceName: workspace?.serviceName ?? "",
-        nodeId: "",
-        createdAt: new Date().toISOString(),
-      }));
+      const createdTasks: TaskSummary[] = (payload.tasks ?? []).map(
+        (entry) => ({
+          taskId: entry.taskId,
+          type: action,
+          status: entry.status,
+          serviceName: workspace?.serviceName ?? "",
+          nodeId: "",
+          createdAt: new Date().toISOString(),
+        }),
+      );
       tasks = [...createdTasks, ...tasks].slice(0, 12);
       if (createdTasks.length === 1) {
         toast.success(
@@ -1259,7 +1288,10 @@
       errorMessage =
         actionError instanceof Error
           ? actionError.message
-          : $messages.services.actions.runFailed.replace("{action}", actionLabel);
+          : $messages.services.actions.runFailed.replace(
+              "{action}",
+              actionLabel,
+            );
     } finally {
       actionBusy = "";
     }
@@ -1639,7 +1671,9 @@
             {/if}
           </div>
           {#if pendingDeployInstance}
-            <div class="mt-2 rounded-md border border-warning-foreground/30 bg-warning px-3 py-2">
+            <div
+              class="mt-2 rounded-md border border-warning-foreground/30 bg-warning px-3 py-2"
+            >
               <p class="text-sm font-medium text-warning-foreground">
                 {$messages.services.instances.pendingDeploy}
               </p>
@@ -2006,7 +2040,18 @@
                           onsave={() => saveTab(activeTab.path)}
                         />
                       {:else}
-                        <div class="empty-state">{$messages.common.loadingWithDots}</div>
+                        <div class="h-full space-y-3 p-4" role="status">
+                          <span class="sr-only"
+                            >{$messages.common.loadingWithDots}</span
+                          >
+                          {#each Array(12) as _, index}
+                            <Skeleton
+                              class={index % 3 === 0
+                                ? "h-4 w-4/5"
+                                : "h-4 w-3/5"}
+                            />
+                          {/each}
+                        </div>
                       {/if}
                     {/if}
                   {/key}
@@ -2069,7 +2114,18 @@
                             onsave={() => saveTab(secondaryTab.path)}
                           />
                         {:else}
-                          <div class="empty-state">{$messages.common.loadingWithDots}</div>
+                          <div class="h-full space-y-3 p-4" role="status">
+                            <span class="sr-only"
+                              >{$messages.common.loadingWithDots}</span
+                            >
+                            {#each Array(12) as _, index}
+                              <Skeleton
+                                class={index % 3 === 0
+                                  ? "h-4 w-4/5"
+                                  : "h-4 w-3/5"}
+                              />
+                            {/each}
+                          </div>
                         {/if}
                       {/if}
                     {/key}
@@ -2263,9 +2319,7 @@
                             {#if check.currentDigest !== check.candidateDigest}
                               &#8594; new digest
                             {/if}
-                            <span
-                              class="ml-1 text-success-foreground"
-                            >
+                            <span class="ml-1 text-success-foreground">
                               ({$messages.services.imageUpdates
                                 .updateAvailable})
                             </span>
@@ -2555,7 +2609,9 @@
       <DialogOverlay />
       <DialogContent class="max-w-sm">
         <DialogHeader>
-          <DialogTitle>{$messages.services.files.unsavedChangesTitle}</DialogTitle>
+          <DialogTitle
+            >{$messages.services.files.unsavedChangesTitle}</DialogTitle
+          >
           <DialogDescription>{unsavedChangesDescription}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -2576,7 +2632,9 @@
       <DialogOverlay />
       <DialogContent class="max-w-sm">
         <DialogHeader>
-          <DialogTitle>{$messages.services.operations.deleteService}</DialogTitle>
+          <DialogTitle
+            >{$messages.services.operations.deleteService}</DialogTitle
+          >
           <DialogDescription>
             {$messages.services.files.deleteServiceFolderConfirm.replace(
               "{name}",
@@ -2598,7 +2656,8 @@
               showServiceDeleteDialog = false;
               void deleteServiceRoot();
             }}
-            disabled={saving || !workspace?.folder}>{$messages.common.delete}</Button
+            disabled={saving || !workspace?.folder}
+            >{$messages.common.delete}</Button
           >
         </DialogFooter>
       </DialogContent>

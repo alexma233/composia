@@ -3,7 +3,6 @@
 
   import { defaultKeymap, indentWithTab } from "@codemirror/commands";
   import { LanguageDescription } from "@codemirror/language";
-  import { languages } from "@codemirror/language-data";
   import { lintGutter, linter } from "@codemirror/lint";
   import { githubDark } from "@fsegurai/codemirror-theme-github-dark";
   import { githubLight } from "@fsegurai/codemirror-theme-github-light";
@@ -223,22 +222,9 @@
       return;
     }
 
-    const description = languageDescriptionForPath(filePath);
-
-    if (!description) {
-      applyLanguageExtension(requestId, []);
-      return;
-    }
-
-    if (description.support) {
-      applyLanguageExtension(requestId, description.support.extension);
-      return;
-    }
-
-    void description
-      .load()
+    void loadLanguageExtension(filePath)
       .then((support) => {
-        applyLanguageExtension(requestId, support.extension);
+        applyLanguageExtension(requestId, support);
       })
       .catch((error) => {
         if (import.meta.env.DEV) {
@@ -261,18 +247,27 @@
     });
   }
 
-  function languageDescriptionForPath(filePath: string) {
+  async function loadLanguageExtension(filePath: string): Promise<Extension> {
     const fileName = filePath.split("/").pop() ?? filePath;
     if (!fileName) {
-      return null;
+      return [];
     }
 
-    // CodeMirror packages can be duplicated by the lockfile, so normalize the
-    // language-data type to the public LanguageDescription API used here.
+    if (/\.ya?ml$/i.test(fileName)) {
+      return (await import("@codemirror/lang-yaml")).yaml().extension;
+    }
+    if (/\.jsonc?$/i.test(fileName)) {
+      return (await import("@codemirror/lang-json")).json().extension;
+    }
+
+    const { languages } = await import("@codemirror/language-data");
     const languageDescriptions =
       languages as unknown as readonly LanguageDescription[];
-
-    return LanguageDescription.matchFilename(languageDescriptions, fileName);
+    const description = LanguageDescription.matchFilename(
+      languageDescriptions,
+      fileName,
+    );
+    return description ? (await description.load()).extension : [];
   }
 
   function lintExtension(filePath: string) {

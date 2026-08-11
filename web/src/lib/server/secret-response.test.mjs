@@ -7,7 +7,7 @@ import {
 
 Deno.test("marks decrypted secret responses private and non-cacheable", () => {
   assertEquals(decryptedSecretResponseInit(true), {
-    headers: { "Cache-Control": "private, no-store" },
+    headers: { "Cache-Control": "private, no-store, no-transform" },
   });
   assertEquals(decryptedSecretResponseInit(false), undefined);
 });
@@ -25,6 +25,8 @@ Deno.test(
       true,
     );
 
-    assertEquals(headers, [{ "Cache-Control": "private, no-store" }]);
+    assertEquals(headers, [
+      { "Cache-Control": "private, no-store, no-transform" },
+    ]);
   },
 );

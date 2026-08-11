@@ -1,6 +1,15 @@
 import { assertEquals } from "jsr:@std/assert@1.0.19/equals";
 
-import { startPolling } from "./refresh.ts";
+import { hasActiveOperations, startPolling } from "./refresh.ts";
+
+Deno.test("active operations only include non-terminal statuses", () => {
+  assertEquals(
+    hasActiveOperations(["succeeded", "failed", "cancelled"]),
+    false,
+  );
+  assertEquals(hasActiveOperations(["succeeded", "running"]), true);
+  assertEquals(hasActiveOperations(["awaiting_confirmation"]), true);
+});
 
 Deno.test("polling skips work while the document is hidden", async () => {
   const documentDescriptor = Object.getOwnPropertyDescriptor(

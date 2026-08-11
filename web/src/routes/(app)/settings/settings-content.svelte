@@ -1,0 +1,1235 @@
+<script lang="ts">
+  import { beforeNavigate, goto, invalidate } from "$app/navigation";
+  import { RefreshCw } from "@lucide/svelte";
+  import { onMount } from "svelte";
+  import { toast } from "svelte-sonner";
+
+  import type { PageData } from "./$types";
+  import type { RepoCommitSummary } from "$lib/server/controller";
+  import { actionErrorMessage, globalCapability } from "$lib/capabilities";
+  import { getMessages } from "$lib/i18n";
+  import { startPolling } from "$lib/refresh";
+
+  const messages = getMessages();
+
+  import ThemeControls from "$lib/components/app/theme-controls.svelte";
+  import {
+    Alert,
+    AlertDescription,
+    AlertTitle,
+  } from "$lib/components/ui/alert";
+  import { Button } from "$lib/components/ui/button";
+  import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogOverlay,
+    DialogTitle,
+  } from "$lib/components/ui/dialog";
+  import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+  } from "$lib/components/ui/card";
+  import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationPrevButton,
+    PaginationNextButton,
+  } from "$lib/components/ui/pagination";
+  import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+  } from "$lib/components/ui/select";
+  import { Skeleton } from "$lib/components/ui/skeleton";
+  type SettingsData = Awaited<PageData["content"]>;
+
+  interface Props {
+    data: SettingsData;
+  }
+
+  let { data }: Props = $props();
+
+  let syncing = $state(false);
+  let syncError = $state("");
+  let reloadingController = $state(false);
+  let reloadControllerError = $state("");
+  let reloadAccepted = $state<boolean | null>(null);
+  let editableConfigOpen = $state(false);
+  let editableConfigYaml = $state("");
+  let editableConfigSavedYaml = $state("");
+  let editableConfigRevision = $state("");
+  let editableConfigBusy = $state(false);
+  let editableConfigAvailable = $derived(data.ready && !data.error);
+  let editableConfigError = $state("");
+  let unsavedConfigDialogOpen = $state(false);
+  let pendingConfigExit = $state<PendingConfigExit | null>(null);
+  let allowingConfigNavigation = false;
+  let CodeEditor = $state<
+    typeof import("$lib/components/app/code-editor.svelte").default | null
+  >(null);
+  let rusticBusy = $state<"init" | "forget" | "prune" | "">("");
+  let rusticError = $state("");
+  let rusticTaskId = $state("");
+
+  onMount(() => startPolling(() => invalidate("app:settings"), { intervalMs: 5000 }));
+
+  type EditableConfigErrorPayload = { errorCode?: string };
+  type PendingConfigExit =
+    | { kind: "dialog" }
+    | { kind: "navigation"; url: URL; replaceState: boolean };
+
+  function editableConfigErrorMessage(
+    payload: EditableConfigErrorPayload,
+    fallback: string,
+  ): string {
+    switch (payload.errorCode) {
+      case "CONTROLLER_CONFIG_LOAD_FAILED":
+        return $messages.settings.controller.configEditorLoadFailed;
+      case "CONTROLLER_CONFIG_SAVE_FAILED":
+        return $messages.settings.controller.configEditorSaveFailed;
+      case "CONTROLLER_CONFIG_INVALID_REQUEST":
+      case "CONTROLLER_CONFIG_INVALID_ORIGIN":
+        return $messages.settings.controller.configEditorFailed;
+      default:
+        return fallback;
+    }
+  }
+
+  let editableConfigDirty = $derived(
+    editableConfigYaml !== editableConfigSavedYaml,
+  );
+
+  beforeNavigate(({ cancel, to, type, willUnload }) => {
+    if (
+      !editableConfigOpen ||
+      !editableConfigDirty ||
+      allowingConfigNavigation
+    ) {
+      return;
+    }
+
+    if (willUnload) {
+      cancel();
+      return;
+    }
+
+    if (!to?.url) {
+      return;
+    }
+
+    cancel();
+    if (pendingConfigExit) {
+      return;
+    }
+
+    pendingConfigExit = {
+      kind: "navigation",
+      url: to.url,
+      replaceState: type === "popstate",
+    };
+    unsavedConfigDialogOpen = true;
+  });
+
+  $effect(() => {
+    if (!unsavedConfigDialogOpen) {
+      pendingConfigExit = null;
+    }
+  });
+  let rusticConfirmOpen = $state(false);
+  let rusticConfirmAction = $state<"forget" | "prune" | null>(null);
+  let syncResult = $state<{
+    headRevision?: string;
+    syncStatus?: string;
+    lastSyncError?: string;
+    lastSuccessfulPullAt?: string;
+  } | null>(null);
+
+  type CommitPage = {
+    commits: RepoCommitSummary[];
+    nextCursor: string;
+  };
+
+  const pageSizeOptions = [10, 20, 50, 100] as const;
+  const getInitialCommits = () => data.initialCommits;
+  let perPage = $state(10);
+  let pages = $state<CommitPage[]>([commitPageFrom(getInitialCommits())]);
+  let currentPage = $state(1);
+  let loadingPage = $state(false);
+  let pageError = $state("");
+  let commitPageSignature = $state(commitPageKey(getInitialCommits()));
+
+  let hasMore = $derived(!!pages[pages.length - 1]?.nextCursor);
+  let count = $derived(
+    Math.max(perPage, (pages.length + (hasMore ? 1 : 0)) * perPage),
+  );
+  let currentCommits = $derived(pages[currentPage - 1]?.commits ?? []);
+  let hasCommits = $derived(
+    currentCommits.length > 0 ||
+      (pages[0]?.commits.length ?? 0) > 0 ||
+      loadingPage ||
+      !!pageError,
+  );
+
+  $effect(() => {
+    const nextSignature = commitPageKey(data.initialCommits);
+    if (nextSignature === commitPageSignature) return;
+    commitPageSignature = nextSignature;
+    pages = [commitPageFrom(data.initialCommits)];
+    currentPage = 1;
+    pageError = "";
+  });
+
+  $effect(() => {
+    const targetIndex = currentPage - 1;
+    if (targetIndex < pages.length || targetIndex !== pages.length) return;
+    fetchNextPage();
+  });
+
+  function commitPageFrom(page: SettingsData["initialCommits"]): CommitPage {
+    return {
+      commits: page?.commits ?? [],
+      nextCursor: page?.nextCursor ?? "",
+    };
+  }
+
+  function commitPageKey(page: SettingsData["initialCommits"]) {
+    return `${page?.nextCursor ?? ""}:${(page?.commits ?? [])
+      .map((commit) => commit.commitId)
+      .join(",")}`;
+  }
+
+  async function fetchNextPage() {
+    const lastPage = pages[pages.length - 1];
+    if (!lastPage?.nextCursor || loadingPage) return;
+
+    loadingPage = true;
+    pageError = "";
+
+    try {
+      const params = new URLSearchParams({
+        pageSize: String(perPage),
+        cursor: lastPage.nextCursor,
+      });
+      const response = await fetch(`/settings/commits?${params}`);
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.settings.repoSync.commitFailed,
+          ),
+        );
+      }
+
+      pages = [
+        ...pages,
+        {
+          commits: payload.commits ?? [],
+          nextCursor: payload.nextCursor ?? "",
+        },
+      ];
+    } catch (error) {
+      pageError =
+        error instanceof Error
+          ? error.message
+          : $messages.settings.repoSync.commitFailed;
+      currentPage = pages.length;
+    } finally {
+      loadingPage = false;
+    }
+  }
+
+  async function fetchFirstPage(pageSize: number) {
+    loadingPage = true;
+    pageError = "";
+    currentPage = 1;
+    pages = [{ commits: [], nextCursor: "" }];
+
+    try {
+      const params = new URLSearchParams({ pageSize: String(pageSize) });
+      const response = await fetch(`/settings/commits?${params}`);
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.settings.repoSync.commitFailed,
+          ),
+        );
+      }
+
+      pages = [
+        {
+          commits: payload.commits ?? [],
+          nextCursor: payload.nextCursor ?? "",
+        },
+      ];
+    } catch (error) {
+      pageError =
+        error instanceof Error
+          ? error.message
+          : $messages.settings.repoSync.commitFailed;
+    } finally {
+      loadingPage = false;
+    }
+  }
+
+  function changePageSize(value: string) {
+    const nextPageSize = Number(value);
+    if (
+      !pageSizeOptions.includes(
+        nextPageSize as (typeof pageSizeOptions)[number],
+      )
+    )
+      return;
+    if (nextPageSize === perPage) return;
+
+    perPage = nextPageSize;
+    void fetchFirstPage(nextPageSize);
+  }
+
+  async function syncRepo() {
+    syncing = true;
+    syncError = "";
+    syncResult = null;
+
+    try {
+      const response = await fetch("/settings/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          actionErrorMessage(payload, $messages, $messages.error.syncFailed),
+        );
+      }
+
+      syncResult = {
+        headRevision: payload.headRevision,
+        syncStatus: payload.syncStatus,
+        lastSyncError: payload.lastSyncError,
+        lastSuccessfulPullAt: payload.lastSuccessfulPullAt,
+      };
+      await invalidate("app:settings");
+      toast.success($messages.settings.repoSync.syncedSuccessfully);
+    } catch (error) {
+      syncError =
+        error instanceof Error ? error.message : $messages.error.syncFailed;
+    } finally {
+      syncing = false;
+    }
+  }
+
+  async function reloadControllerConfig() {
+    reloadingController = true;
+    reloadControllerError = "";
+    reloadAccepted = null;
+
+    try {
+      const response = await fetch("/settings/reload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const payload = (await response.json()) as {
+        accepted?: boolean;
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.settings.controller.reloadFailed,
+          ),
+        );
+      }
+
+      reloadAccepted = payload.accepted ?? false;
+      toast.success($messages.settings.controller.reloadAccepted);
+      await Promise.all([
+        invalidate("app:settings"),
+        invalidate("app:capabilities"),
+      ]);
+    } catch (error) {
+      reloadControllerError =
+        error instanceof Error
+          ? error.message
+          : $messages.settings.controller.reloadFailed;
+    } finally {
+      reloadingController = false;
+    }
+  }
+
+  async function openEditableControllerConfig() {
+    editableConfigBusy = true;
+    editableConfigError = "";
+    try {
+      const [response, { default: component }] = await Promise.all([
+        fetch("/settings/controller-config"),
+        import("$lib/components/app/code-editor.svelte"),
+      ]);
+      const payload = (await response.json()) as {
+        yaml?: string;
+        revision?: string;
+        errorCode?: string;
+      };
+      if (!response.ok) {
+        editableConfigError = editableConfigErrorMessage(
+          payload,
+          $messages.settings.controller.configEditorLoadFailed,
+        );
+        return;
+      }
+      editableConfigYaml = payload.yaml ?? "";
+      editableConfigSavedYaml = editableConfigYaml;
+      editableConfigRevision = payload.revision ?? "";
+      CodeEditor = component;
+      editableConfigOpen = true;
+    } catch {
+      editableConfigError =
+        $messages.settings.controller.configEditorLoadFailed;
+    } finally {
+      editableConfigBusy = false;
+    }
+  }
+
+  async function saveEditableControllerConfig() {
+    editableConfigBusy = true;
+    editableConfigError = "";
+    try {
+      const response = await fetch("/settings/controller-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          yaml: editableConfigYaml,
+          revision: editableConfigRevision,
+        }),
+      });
+      const payload = (await response.json()) as {
+        revision?: string;
+        errorCode?: string;
+      };
+      if (!response.ok) {
+        editableConfigError = editableConfigErrorMessage(
+          payload,
+          $messages.settings.controller.configEditorSaveFailed,
+        );
+        return;
+      }
+      editableConfigRevision = payload.revision ?? editableConfigRevision;
+      editableConfigSavedYaml = editableConfigYaml;
+      editableConfigOpen = false;
+      toast.success($messages.settings.controller.configEditorSaved);
+      await Promise.all([
+        invalidate("app:settings"),
+        invalidate("app:capabilities"),
+      ]);
+    } catch {
+      editableConfigError =
+        $messages.settings.controller.configEditorSaveFailed;
+    } finally {
+      editableConfigBusy = false;
+    }
+  }
+
+  function closeEditableControllerConfig() {
+    if (editableConfigDirty) {
+      pendingConfigExit = { kind: "dialog" };
+      unsavedConfigDialogOpen = true;
+      return;
+    }
+
+    editableConfigOpen = false;
+  }
+
+  function handleEditableConfigOpenChange(open: boolean) {
+    if (open || !editableConfigDirty) {
+      return;
+    }
+
+    editableConfigOpen = true;
+    closeEditableControllerConfig();
+  }
+
+  function cancelConfigExit() {
+    pendingConfigExit = null;
+    unsavedConfigDialogOpen = false;
+  }
+
+  async function discardConfigExit() {
+    const exit = pendingConfigExit;
+    pendingConfigExit = null;
+    unsavedConfigDialogOpen = false;
+
+    if (!exit) {
+      return;
+    }
+
+    if (exit.kind === "dialog") {
+      editableConfigYaml = editableConfigSavedYaml;
+      editableConfigOpen = false;
+      return;
+    }
+
+    allowingConfigNavigation = true;
+    try {
+      await goto(exit.url, { replaceState: exit.replaceState });
+    } finally {
+      allowingConfigNavigation = false;
+    }
+  }
+
+  function confirmRusticAction(action: "forget" | "prune") {
+    if (rusticBusy) return;
+    rusticConfirmAction = action;
+    rusticConfirmOpen = true;
+  }
+
+  function closeRusticConfirm() {
+    rusticConfirmOpen = false;
+    rusticConfirmAction = null;
+  }
+
+  async function runConfirmedRusticAction() {
+    const action = rusticConfirmAction;
+    if (!action) return;
+    closeRusticConfirm();
+    await runRusticAction(action);
+  }
+
+  function rusticActionLabel(action: "init" | "forget" | "prune") {
+    switch (action) {
+      case "init":
+        return $messages.settings.rustic.init;
+      case "forget":
+        return $messages.settings.rustic.forget;
+      case "prune":
+        return $messages.settings.rustic.prune;
+    }
+  }
+
+  async function runRusticAction(action: "init" | "forget" | "prune") {
+    rusticBusy = action;
+    rusticError = "";
+    rusticTaskId = "";
+    const actionLabel = rusticActionLabel(action);
+
+    try {
+      const response = await fetch(`/settings/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const payload = (await response.json()) as {
+        taskId?: string;
+        error?: string;
+        reasonCode?: string;
+      };
+      if (!response.ok) {
+        throw new Error(
+          actionErrorMessage(
+            payload,
+            $messages,
+            $messages.settings.rustic.failedToStart.replace(
+              "{action}",
+              actionLabel,
+            ),
+          ),
+        );
+      }
+
+      rusticTaskId = payload.taskId ?? "";
+      toast.success(
+        $messages.settings.rustic.started.replace("{action}", actionLabel),
+      );
+    } catch (error) {
+      rusticError =
+        error instanceof Error
+          ? error.message
+          : $messages.settings.rustic.failedToStart.replace(
+              "{action}",
+              actionLabel,
+            );
+    } finally {
+      rusticBusy = "";
+    }
+  }
+
+  let displayHeadRevision = $derived(
+    syncResult?.headRevision ?? data.repoHead?.headRevision ?? "",
+  );
+  let displaySyncStatus = $derived(
+    syncResult?.syncStatus ??
+      data.repoHead?.syncStatus ??
+      $messages.common.unknown,
+  );
+  let displayLastSyncError = $derived(
+    syncResult?.lastSyncError ?? data.repoHead?.lastSyncError ?? "",
+  );
+  let displayLastPull = $derived(
+    syncResult?.lastSuccessfulPullAt ??
+      data.repoHead?.lastSuccessfulPullAt ??
+      $messages.common.never,
+  );
+  let rusticMaintenanceCapability = $derived(
+    globalCapability(data.capabilities?.global, "rusticMaintenance"),
+  );
+</script>
+
+<div
+  class="page-shell"
+  aria-busy={syncing ||
+    reloadingController ||
+    Boolean(rusticBusy) ||
+    loadingPage}
+>
+  <Card class="mb-6">
+    <CardHeader>
+      <div class="page-header">
+        <div class="page-heading">
+          <CardTitle class="page-title" level="1"
+            >{$messages.settings.title}</CardTitle
+          >
+        </div>
+      </div>
+
+      {#if data.error}
+        <Alert variant="destructive">
+          <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
+          <AlertDescription>{data.error}</AlertDescription>
+        </Alert>
+      {/if}
+    </CardHeader>
+  </Card>
+
+  <div class="page-stack">
+    <section class="grid gap-6 lg:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle class="section-title" level="2"
+            >{$messages.settings.appearance.title}</CardTitle
+          >
+        </CardHeader>
+        <CardContent>
+          <ThemeControls />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle class="section-title" level="2"
+            >{$messages.settings.actions.title}</CardTitle
+          >
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <div class="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onclick={reloadControllerConfig}
+              disabled={reloadingController}
+            >
+              <RefreshCw class="mr-2 size-4" />
+              {reloadingController
+                ? $messages.settings.controller.reloading
+                : $messages.settings.controller.reloadConfig}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onclick={syncRepo}
+              disabled={syncing}
+            >
+              <RefreshCw class="mr-2 size-4" />
+              {syncing
+                ? $messages.settings.repoSync.syncing
+                : $messages.settings.repoSync.syncRepo}
+            </Button>
+            {#if editableConfigAvailable}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onclick={openEditableControllerConfig}
+                disabled={editableConfigBusy}
+              >
+                {editableConfigBusy
+                  ? $messages.settings.controller.editingConfig
+                  : $messages.settings.controller.editConfig}
+              </Button>
+            {/if}
+          </div>
+
+          {#if editableConfigError}
+            <Alert variant="destructive">
+              <AlertTitle
+                >{$messages.settings.controller.configEditorFailed}</AlertTitle
+              >
+              <AlertDescription>{editableConfigError}</AlertDescription>
+            </Alert>
+          {/if}
+
+          {#if rusticMaintenanceCapability.enabled}
+            <div class="space-y-2">
+              <CardTitle class="section-label" level="3"
+                >{$messages.settings.rustic.title}</CardTitle
+              >
+              <div class="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onclick={() => runRusticAction("init")}
+                  disabled={rusticBusy !== ""}
+                >
+                  {rusticBusy === "init"
+                    ? $messages.settings.rustic.starting
+                    : $messages.settings.rustic.init}
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onclick={() => confirmRusticAction("forget")}
+                  disabled={rusticBusy !== ""}
+                >
+                  {rusticBusy === "forget"
+                    ? $messages.settings.rustic.starting
+                    : $messages.settings.rustic.forget}
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onclick={() => confirmRusticAction("prune")}
+                  disabled={rusticBusy !== ""}
+                >
+                  {rusticBusy === "prune"
+                    ? $messages.settings.rustic.starting
+                    : $messages.settings.rustic.prune}
+                </Button>
+              </div>
+            </div>
+          {/if}
+
+          {#if reloadControllerError}
+            <Alert variant="destructive">
+              <AlertTitle
+                >{$messages.settings.controller.reloadFailed}</AlertTitle
+              >
+              <AlertDescription>{reloadControllerError}</AlertDescription>
+            </Alert>
+          {/if}
+
+          {#if reloadAccepted === true}
+            <Alert>
+              <AlertTitle>{$messages.common.success}</AlertTitle>
+              <AlertDescription
+                >{$messages.settings.controller
+                  .reloadAccepted}</AlertDescription
+              >
+            </Alert>
+          {/if}
+
+          {#if syncError}
+            <Alert variant="destructive">
+              <AlertTitle>{$messages.error.syncFailed}</AlertTitle>
+              <AlertDescription>{syncError}</AlertDescription>
+            </Alert>
+          {/if}
+
+          {#if rusticError}
+            <Alert variant="destructive">
+              <AlertTitle>{$messages.error.taskError}</AlertTitle>
+              <AlertDescription>{rusticError}</AlertDescription>
+            </Alert>
+          {/if}
+
+          {#if rusticTaskId}
+            <div class="inset-card">
+              <div class="metric-label">
+                {$messages.settings.rustic.lastTask}
+              </div>
+              <a
+                class="mt-2 block break-all text-sm text-foreground hover:text-primary"
+                href={`/tasks/${rusticTaskId}`}
+              >
+                {rusticTaskId}
+              </a>
+            </div>
+          {/if}
+
+          <Dialog bind:open={rusticConfirmOpen}>
+            <DialogOverlay />
+            <DialogContent class="max-w-md">
+              <DialogHeader>
+                <DialogTitle
+                  >{$messages.settings.rustic.confirmTitle}</DialogTitle
+                >
+                <DialogDescription>
+                  {rusticConfirmAction === "forget"
+                    ? $messages.settings.rustic.forgetWarning
+                    : $messages.settings.rustic.pruneWarning}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onclick={closeRusticConfirm}
+                >
+                  {$messages.common.cancel}
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onclick={runConfirmedRusticAction}
+                  disabled={rusticBusy !== ""}
+                >
+                  {$messages.settings.rustic.confirmAction}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog bind:open={unsavedConfigDialogOpen}>
+            <DialogOverlay />
+            <DialogContent class="max-w-sm">
+              <DialogHeader>
+                <DialogTitle
+                  >{$messages.services.files.unsavedChangesTitle}</DialogTitle
+                >
+                <DialogDescription>
+                  {$messages.services.files.unsavedChangesDescription}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onclick={cancelConfigExit}>{$messages.common.cancel}</Button
+                >
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onclick={() => void discardConfigExit()}
+                  >{$messages.services.files.discardChanges}</Button
+                >
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog
+            bind:open={editableConfigOpen}
+            onOpenChange={handleEditableConfigOpenChange}
+          >
+            <DialogOverlay />
+            <DialogContent class="flex h-[80vh] max-w-5xl flex-col">
+              <DialogHeader>
+                <DialogTitle
+                  >{$messages.settings.controller
+                    .configEditorTitle}</DialogTitle
+                >
+                <DialogDescription>
+                  {$messages.settings.controller.configEditorDescription}
+                </DialogDescription>
+              </DialogHeader>
+              <div class="min-h-0 flex-1">
+                {#if CodeEditor}
+                  <CodeEditor
+                    value={editableConfigYaml}
+                    path="controller-config.yaml"
+                    onchange={({ value }) => (editableConfigYaml = value)}
+                  />
+                {:else}
+                  <div class="empty-state">
+                    {$messages.common.loadingWithDots}
+                  </div>
+                {/if}
+              </div>
+              {#if editableConfigError}
+                <Alert variant="destructive">
+                  <AlertTitle
+                    >{$messages.settings.controller
+                      .configEditorFailed}</AlertTitle
+                  >
+                  <AlertDescription>{editableConfigError}</AlertDescription>
+                </Alert>
+              {/if}
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onclick={closeEditableControllerConfig}
+                  disabled={editableConfigBusy}
+                >
+                  {$messages.common.cancel}
+                </Button>
+                <Button
+                  type="button"
+                  onclick={saveEditableControllerConfig}
+                  disabled={editableConfigBusy}
+                >
+                  {editableConfigBusy
+                    ? $messages.settings.controller.savingConfig
+                    : $messages.settings.controller.saveConfig}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </CardContent>
+      </Card>
+
+      <Card class="lg:col-span-2">
+        <CardHeader>
+          <CardTitle class="section-title" level="2"
+            >{$messages.settings.status.title}</CardTitle
+          >
+        </CardHeader>
+        <CardContent class="space-y-6">
+          <section>
+            <CardTitle class="section-label" level="3"
+              >{$messages.settings.controller.title}</CardTitle
+            >
+            {#if data.system}
+              <dl class="mt-3 grid gap-4 sm:grid-cols-2">
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.controller.version}
+                  </dt>
+                  <dd class="mt-2 text-sm font-medium text-foreground">
+                    {data.system.version}
+                  </dd>
+                </div>
+              </dl>
+            {:else}
+              <div class="empty-state mt-3">
+                {$messages.settings.controller.noData}
+              </div>
+            {/if}
+          </section>
+
+          <section class="border-t border-border pt-6">
+            <CardTitle class="section-label" level="3"
+              >{$messages.settings.repoSync.title}</CardTitle
+            >
+            {#if data.repoHead || syncResult}
+              <dl class="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.repoSync.branch}
+                  </dt>
+                  <dd class="mt-2 text-sm font-medium text-foreground">
+                    {data.repoHead?.branch || $messages.settings.repoSync.head}
+                  </dd>
+                </div>
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.repoSync.syncStatus}
+                  </dt>
+                  <dd class="mt-2 text-sm font-medium text-foreground">
+                    {displaySyncStatus}
+                  </dd>
+                </div>
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.repoSync.worktree}
+                  </dt>
+                  <dd class="mt-2 text-sm font-medium text-foreground">
+                    {data.repoHead?.cleanWorktree
+                      ? $messages.status.clean
+                      : $messages.status.dirty}
+                  </dd>
+                </div>
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.repoSync.lastPull}
+                  </dt>
+                  <dd class="mt-2 text-sm font-medium text-foreground">
+                    {displayLastPull}
+                  </dd>
+                </div>
+              </dl>
+
+              <div class="mt-4 inset-card">
+                <div class="metric-label">
+                  {$messages.settings.repoSync.revision}
+                </div>
+                <div class="mt-2 break-all text-sm text-foreground">
+                  {displayHeadRevision}
+                </div>
+              </div>
+
+              {#if displayLastSyncError}
+                <Alert variant="destructive">
+                  <AlertTitle>{$messages.error.lastSyncError}</AlertTitle>
+                  <AlertDescription>{displayLastSyncError}</AlertDescription>
+                </Alert>
+              {/if}
+            {:else}
+              <div class="empty-state mt-3">
+                {$messages.settings.repoSync.noRepoState}
+              </div>
+            {/if}
+          </section>
+
+          {#if data.currentConfig?.git}
+            <section class="border-t border-border pt-6">
+              <CardTitle class="section-label" level="3"
+                >{$messages.settings.gitConfig.title}</CardTitle
+              >
+              <dl class="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.gitConfig.remoteUrl}
+                  </dt>
+                  <dd
+                    class="mt-2 break-all text-sm font-medium text-foreground"
+                  >
+                    {data.currentConfig.git.remoteUrl}
+                  </dd>
+                </div>
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.gitConfig.branch}
+                  </dt>
+                  <dd class="mt-2 text-sm font-medium text-foreground">
+                    {data.currentConfig.git.branch}
+                  </dd>
+                </div>
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.gitConfig.pullInterval}
+                  </dt>
+                  <dd class="mt-2 text-sm font-medium text-foreground">
+                    {data.currentConfig.git.pullInterval}
+                  </dd>
+                </div>
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.gitConfig.hasAuth}
+                  </dt>
+                  <dd class="mt-2 text-sm font-medium text-foreground">
+                    {data.currentConfig.git.hasAuth
+                      ? $messages.settings.gitConfig.yes
+                      : $messages.settings.gitConfig.no}
+                  </dd>
+                </div>
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.gitConfig.authorName}
+                  </dt>
+                  <dd class="mt-2 text-sm font-medium text-foreground">
+                    {data.currentConfig.git.authorName || "—"}
+                  </dd>
+                </div>
+                <div class="metric-card">
+                  <dt class="metric-label">
+                    {$messages.settings.gitConfig.authorEmail}
+                  </dt>
+                  <dd
+                    class="mt-2 break-all text-sm font-medium text-foreground"
+                  >
+                    {data.currentConfig.git.authorEmail || "—"}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+          {/if}
+        </CardContent>
+      </Card>
+
+      {#if hasCommits}
+        <Card>
+          <CardHeader class="section-header">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="section-heading">
+                <CardTitle class="section-title" level="2"
+                  >{$messages.settings.repoSync.commitHistory}</CardTitle
+                >
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-muted-foreground">
+                  {$messages.settings.repoSync.pageSize}
+                </span>
+                <Select
+                  type="single"
+                  value={String(perPage)}
+                  onValueChange={changePageSize}
+                  disabled={loadingPage}
+                >
+                  <SelectTrigger
+                    class="w-[4.5rem]"
+                    aria-label={$messages.settings.repoSync.pageSize}
+                  >
+                    {perPage}
+                  </SelectTrigger>
+                  <SelectContent>
+                    {#each pageSizeOptions as option}
+                      <SelectItem value={String(option)}>{option}</SelectItem>
+                    {/each}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            {#if pageError}
+              <Alert variant="destructive">
+                <AlertTitle>{$messages.error.loadFailed}</AlertTitle>
+                <AlertDescription>{pageError}</AlertDescription>
+              </Alert>
+            {/if}
+
+            {#if loadingPage}
+              <div
+                class="space-y-3"
+                aria-busy="true"
+                aria-label={$messages.settings.repoSync.loadingCommits}
+              >
+                {#each Array(perPage) as _}
+                  <div
+                    class="space-y-2 border-b border-border pb-3 last:border-b-0 last:pb-0"
+                  >
+                    <div class="flex items-start justify-between gap-2">
+                      <Skeleton class="h-4 w-2/3" />
+                      <Skeleton class="h-4 w-24" />
+                    </div>
+                    <Skeleton class="h-4 w-4/5" />
+                  </div>
+                {/each}
+              </div>
+            {:else if currentCommits.length > 0}
+              <div class="space-y-3">
+                {#each currentCommits as commit}
+                  <div
+                    class="border-b border-border pb-3 last:border-b-0 last:pb-0"
+                  >
+                    <div class="flex items-start justify-between gap-2">
+                      <code class="text-sm font-medium break-all"
+                        >{commit.commitId}</code
+                      >
+                      <span class="shrink-0 text-xs text-muted-foreground"
+                        >{commit.committedAt}</span
+                      >
+                    </div>
+                    <div class="mt-1 text-sm text-foreground">
+                      {commit.subject}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {:else}
+              <div class="empty-state">
+                {$messages.settings.repoSync.noCommits}
+              </div>
+            {/if}
+
+            {#if pages.length > 1 || hasMore}
+              <Pagination {count} {perPage} bind:page={currentPage}>
+                {#snippet children({ pages: paginationPages, currentPage })}
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevButton disabled={loadingPage} />
+                    </PaginationItem>
+
+                    {#each paginationPages as page (page.key)}
+                      {#if page.type === "ellipsis"}
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      {:else}
+                        <PaginationItem>
+                          <PaginationLink
+                            {page}
+                            isActive={currentPage === page.value}
+                          />
+                        </PaginationItem>
+                      {/if}
+                    {/each}
+
+                    <PaginationItem>
+                      <PaginationNextButton
+                        disabled={!hasMore || loadingPage}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                {/snippet}
+              </Pagination>
+            {/if}
+          </CardContent>
+        </Card>
+      {/if}
+
+      {#if data.currentConfig?.accessTokens && data.currentConfig.accessTokens.length > 0}
+        <Card>
+          <CardHeader class="section-header">
+            <div class="section-heading">
+              <CardTitle class="section-title" level="2"
+                >{$messages.settings.accessTokens.title}</CardTitle
+              >
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-border">
+                    <th
+                      class="px-3 py-2 text-left font-medium text-muted-foreground"
+                    >
+                      {$messages.settings.accessTokens.name}
+                    </th>
+                    <th
+                      class="px-3 py-2 text-left font-medium text-muted-foreground"
+                    >
+                      {$messages.settings.accessTokens.enabled}
+                    </th>
+                    <th
+                      class="px-3 py-2 text-left font-medium text-muted-foreground"
+                    >
+                      {$messages.settings.accessTokens.comment}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each data.currentConfig.accessTokens as token}
+                    <tr class="border-b border-border last:border-b-0">
+                      <td class="px-3 py-2 font-medium text-foreground"
+                        >{token.name}</td
+                      >
+                      <td class="px-3 py-2 text-foreground">
+                        {token.enabled
+                          ? $messages.settings.gitConfig.yes
+                          : $messages.settings.gitConfig.no}
+                      </td>
+                      <td class="px-3 py-2 text-foreground"
+                        >{token.comment || "—"}</td
+                      >
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      {/if}
+    </section>
+  </div>
+</div>

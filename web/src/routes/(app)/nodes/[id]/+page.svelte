@@ -38,7 +38,7 @@
     DropdownMenuTrigger,
   } from "$lib/components/ui/dropdown-menu";
   import { ChevronDown } from "@lucide/svelte";
-  import { startPolling } from "$lib/refresh";
+  import { hasActiveOperations, startPolling } from "$lib/refresh";
   import {
     formatBytes,
     formatTimestamp,
@@ -48,7 +48,14 @@
 
   const messages = getMessages();
   import TaskRow from "$lib/components/app/task-row.svelte";
-  import { Table, TableBody, TableCaption, TableHead, TableHeader, TableRow } from "$lib/components/ui/table";
+  import {
+    Table,
+    TableBody,
+    TableCaption,
+    TableHead,
+    TableHeader,
+    TableRow,
+  } from "$lib/components/ui/table";
   interface Props {
     data: PageData;
     form: ActionData;
@@ -96,7 +103,12 @@
   );
 
   onMount(() =>
-    startPolling(() => invalidate("app:node-detail"), { intervalMs: 5000 }),
+    startPolling(() => invalidate("app:node-detail"), {
+      intervalMs: () =>
+        hasActiveOperations(data.tasks.map((task) => task.status))
+          ? 5000
+          : 30000,
+    }),
   );
 
   function pruneLabel(target: PruneTarget) {
@@ -192,7 +204,10 @@
 </script>
 
 <svelte:head>
-  <title>{data.node?.displayName ?? $messages.nodes.title} - {$messages.app.name}</title>
+  <title
+    >{data.node?.displayName ?? $messages.nodes.title} - {$messages.app
+      .name}</title
+  >
 </svelte:head>
 
 <div class="page-shell">
@@ -202,7 +217,9 @@
         {#if data.node}
           <div class="page-header">
             <div class="page-heading">
-              <CardTitle class="page-title" level="1">{data.node.displayName}</CardTitle>
+              <CardTitle class="page-title" level="1"
+                >{data.node.displayName}</CardTitle
+              >
               {#if data.node.displayName !== data.node.nodeId}
                 <p class="page-meta">
                   {data.node.nodeId} · {$messages.dashboard.lastHeartbeat}
@@ -523,7 +540,9 @@
       <CardContent>
         {#if data.tasks.length}
           <Table>
-            <TableCaption class="sr-only">{$messages.tasks.tableCaption}</TableCaption>
+            <TableCaption class="sr-only"
+              >{$messages.tasks.tableCaption}</TableCaption
+            >
             <TableHeader>
               <TableRow>
                 <TableHead>{$messages.common.type}</TableHead>

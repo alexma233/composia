@@ -11,6 +11,7 @@ import {
 } from "$lib/server/login";
 import { withRequestSignal } from "$lib/server/request-context";
 import { normalizeLocale } from "$lib/i18n/locales";
+import { isDocumentRequest } from "$lib/server/request";
 
 const publicRoutes = new Set(["/login"]);
 
@@ -27,7 +28,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   const pathname = event.url.pathname;
   const isPublicRoute = isPublicPath(pathname);
   if (!user && !isPublicRoute) {
-    if (isDocumentRequest(event)) {
+    if (isDocumentRequest(event.request)) {
       throw redirect(
         303,
         `/login?next=${encodeURIComponent(pathname + event.url.search)}`,
@@ -56,9 +57,4 @@ function isPublicPath(pathname: string) {
     return true;
   }
   return pathname.startsWith("/favicon") || pathname.startsWith("/manifest");
-}
-
-function isDocumentRequest(event: Parameters<Handle>[0]["event"]) {
-  const accept = event.request.headers.get("accept") ?? "";
-  return event.request.method === "GET" && accept.includes("text/html");
 }

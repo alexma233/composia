@@ -11,6 +11,7 @@ import {
   parsePageParam,
   parseTextFilterValues,
 } from "$lib/filter-query";
+import { isDocumentRequest } from "$lib/server/request";
 
 const taskStatuses = [
   "pending",
@@ -21,26 +22,28 @@ const taskStatuses = [
   "cancelled",
 ] as const;
 
-export const load: PageServerLoad = async ({ depends, url }) => {
+export const load: PageServerLoad = async ({ depends, request, url }) => {
   depends("app:tasks");
   const config = controllerConfig();
   if (!config.ready) {
     return {
-      ready: false,
-      error: config.reason,
-      services: [],
-      nodes: [],
-      tasks: [],
-      totalCount: 0,
-      page: 1,
-      status: [],
-      serviceName: [],
-      nodeId: [],
-      type: [],
-      excludeStatus: [],
-      excludeServiceName: [],
-      excludeNodeId: [],
-      excludeType: [],
+      content: {
+        ready: false,
+        error: config.reason,
+        services: [],
+        nodes: [],
+        tasks: [],
+        totalCount: 0,
+        page: 1,
+        status: [],
+        serviceName: [],
+        nodeId: [],
+        type: [],
+        excludeStatus: [],
+        excludeServiceName: [],
+        excludeNodeId: [],
+        excludeType: [],
+      },
     };
   }
 
@@ -69,25 +72,23 @@ export const load: PageServerLoad = async ({ depends, url }) => {
   );
   const excludeType = rawExcludeType;
 
-  try {
-    const [servicesResult, nodes, result] = await Promise.all([
-      loadServices(1, 200),
-      loadNodes(),
-      loadTasks(page, 20, {
-        status: status.length ? status : undefined,
-        serviceName: serviceName.length ? serviceName : undefined,
-        nodeId: nodeId.length ? nodeId : undefined,
-        type: type.length ? type : undefined,
-        excludeStatus: excludeStatus.length ? excludeStatus : undefined,
-        excludeServiceName: excludeServiceName.length
-          ? excludeServiceName
-          : undefined,
-        excludeNodeId: excludeNodeId.length ? excludeNodeId : undefined,
-        excludeType: excludeType.length ? excludeType : undefined,
-      }),
-    ]);
-
-    return {
+  const content = Promise.all([
+    loadServices(1, 200),
+    loadNodes(),
+    loadTasks(page, 20, {
+      status: status.length ? status : undefined,
+      serviceName: serviceName.length ? serviceName : undefined,
+      nodeId: nodeId.length ? nodeId : undefined,
+      type: type.length ? type : undefined,
+      excludeStatus: excludeStatus.length ? excludeStatus : undefined,
+      excludeServiceName: excludeServiceName.length
+        ? excludeServiceName
+        : undefined,
+      excludeNodeId: excludeNodeId.length ? excludeNodeId : undefined,
+      excludeType: excludeType.length ? excludeType : undefined,
+    }),
+  ])
+    .then(([servicesResult, nodes, result]) => ({
       ready: true,
       error: null,
       services: servicesResult.items,
@@ -103,9 +104,8 @@ export const load: PageServerLoad = async ({ depends, url }) => {
       excludeServiceName,
       excludeNodeId,
       excludeType,
-    };
-  } catch (error) {
-    return {
+    }))
+    .catch((error: unknown) => ({
       ready: true,
       error: error instanceof Error ? error.message : "Failed to load tasks.",
       services: [],
@@ -121,6 +121,7 @@ export const load: PageServerLoad = async ({ depends, url }) => {
       excludeServiceName,
       excludeNodeId,
       excludeType,
-    };
-  }
+    }));
+
+  return { content: isDocumentRequest(request) ? content : await content };
 };

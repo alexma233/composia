@@ -348,6 +348,8 @@ export type DashboardData = {
   nodes: NodeSummary[];
   tasks: TaskSummary[];
   backups: BackupSummary[];
+  totalTaskCount: number;
+  totalBackupCount: number;
 };
 
 export function controllerConfig() {
@@ -653,6 +655,8 @@ export async function loadDashboard(): Promise<DashboardData> {
     nodes: [],
     tasks: tasksResult.items,
     backups: backupsResult.items,
+    totalTaskCount: tasksResult.totalCount,
+    totalBackupCount: backupsResult.totalCount,
   };
 }
 

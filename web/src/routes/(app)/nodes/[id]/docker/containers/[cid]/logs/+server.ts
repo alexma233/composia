@@ -121,7 +121,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
   return new Response(stream, {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "no-store",
+      "Cache-Control": "no-store, no-transform",
     },
   });
 };

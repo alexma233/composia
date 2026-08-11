@@ -1,5 +1,6 @@
 <script lang="ts">
   import { afterNavigate } from "$app/navigation";
+  import { navigating } from "$app/state";
   import { page } from "$app/stores";
   import type { Snippet } from "svelte";
 
@@ -27,15 +28,42 @@
 
   let { data, children }: Props = $props();
   const messages = getMessages();
+  let capabilities = $state<Awaited<LayoutData["capabilities"]>>(null);
+  let capabilitiesResolved = $state(false);
   let pathname = $derived(String($page.url.pathname));
   let currentUser = $derived(
     ((data as LayoutData & { user?: LayoutUser | null }).user ??
       null) as LayoutUser | null,
   );
   let backupNavEnabled = $derived(
-    data.capabilities?.global.backup.enabled !== false,
+    capabilitiesResolved && capabilities?.global.backup.enabled !== false,
   );
   let mobileNavOpen = $state(false);
+  let showNavigationProgress = $state(false);
+
+  $effect(() => {
+    let current = true;
+    capabilitiesResolved = false;
+    void Promise.resolve(data.capabilities).then((value) => {
+      if (current) {
+        capabilities = value;
+        capabilitiesResolved = true;
+      }
+    });
+    return () => {
+      current = false;
+    };
+  });
+
+  $effect(() => {
+    if (!navigating.to) {
+      showNavigationProgress = false;
+      return;
+    }
+
+    const timer = setTimeout(() => (showNavigationProgress = true), 150);
+    return () => clearTimeout(timer);
+  });
 
   const links: Array<{ href: string; labelKey: NavKey }> = [
     { href: "/", labelKey: "overview" },
@@ -62,123 +90,128 @@
 </script>
 
 <div class="min-h-screen bg-transparent text-foreground">
+  {#if showNavigationProgress}
+    <div class="navigation-progress" aria-hidden="true"></div>
+  {/if}
   <Toaster />
   <TooltipProvider />
   <a
-      href="#main-content"
-      class="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:no-underline"
-    >
-      {$messages.common.skipToContent}
-    </a>
-    <header
-      class="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
-    >
-      <div class="mx-auto max-w-[1600px] px-4 py-3 sm:px-6 lg:px-8">
-        <div class="flex items-center gap-3">
-          <a
-            href="/"
-            class="flex min-w-0 items-center gap-2 text-xl font-semibold tracking-tight text-primary sm:text-2xl"
-          >
-            <img
-              src="/favicon.svg"
-              alt=""
-              width="28"
-              height="28"
-              class="shrink-0"
-            />
-            <span class="truncate">{$messages.app.name}</span>
-          </a>
+    href="#main-content"
+    class="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:no-underline"
+  >
+    {$messages.common.skipToContent}
+  </a>
+  <header
+    class="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+  >
+    <div class="mx-auto max-w-[1600px] px-4 py-3 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-3">
+        <a
+          href="/"
+          class="flex min-w-0 items-center gap-2 text-xl font-semibold tracking-tight text-primary sm:text-2xl"
+        >
+          <img
+            src="/favicon.svg"
+            alt=""
+            width="28"
+            height="28"
+            class="shrink-0"
+          />
+          <span class="truncate">{$messages.app.name}</span>
+        </a>
 
-          <nav
-            class="ml-2 hidden shrink-0 gap-2 text-sm whitespace-nowrap md:flex"
-            aria-label={$messages.nav.navLabel}
-          >
-            {#each visibleLinks as link}
-              <a
-                href={link.href}
-                class={cn(
-                  "nav-pill",
-                  isActive(link.href, $page.url.pathname)
-                    ? "nav-pill-active"
-                    : "nav-pill-inactive",
-                )}
+        <nav
+          class="ml-2 hidden shrink-0 gap-2 text-sm whitespace-nowrap md:flex"
+          aria-label={$messages.nav.navLabel}
+        >
+          {#each visibleLinks as link}
+            <a
+              href={link.href}
+              class={cn(
+                "nav-pill",
+                isActive(link.href, $page.url.pathname)
+                  ? "nav-pill-active"
+                  : "nav-pill-inactive",
+              )}
+            >
+              {$messages.nav[link.labelKey]}
+            </a>
+          {/each}
+        </nav>
+
+        <div class="ml-auto hidden min-w-0 shrink-0 items-center gap-3 md:flex">
+          {#if currentUser}
+            <span class="text-sm text-muted-foreground">{currentUser.name}</span
+            >
+            <form method="POST" action="/logout">
+              <button type="submit" class="nav-pill nav-pill-inactive"
+                >{$messages.nav.logout}</button
               >
-                {$messages.nav[link.labelKey]}
-              </a>
-            {/each}
-          </nav>
+            </form>
+          {/if}
+        </div>
 
-          <div class="ml-auto hidden min-w-0 shrink-0 items-center gap-3 md:flex">
-            {#if currentUser}
-              <span class="text-sm text-muted-foreground">{currentUser.name}</span>
-              <form method="POST" action="/logout">
-                <button type="submit" class="nav-pill nav-pill-inactive"
-                  >{$messages.nav.logout}</button
-                >
-              </form>
-            {/if}
-          </div>
-
-          <Sheet.Root bind:open={mobileNavOpen}>
-            <Sheet.Trigger>
-              {#snippet child({ props })}
-                <Button
-                  {...props}
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  class="ml-auto md:hidden"
-                  aria-label={$messages.nav.navLabel}
-                >
-                  <Menu class="size-4" aria-hidden="true" />
-                </Button>
-              {/snippet}
-            </Sheet.Trigger>
-            <Sheet.Content side="right" class="w-[min(22rem,85vw)]">
-              <Sheet.Header class="border-b px-5 py-4">
-                <Sheet.Title>{$messages.app.name}</Sheet.Title>
-              </Sheet.Header>
-              <nav
-                class="flex flex-1 flex-col gap-2 overflow-y-auto px-4"
+        <Sheet.Root bind:open={mobileNavOpen}>
+          <Sheet.Trigger>
+            {#snippet child({ props })}
+              <Button
+                {...props}
+                type="button"
+                variant="outline"
+                size="icon"
+                class="ml-auto md:hidden"
                 aria-label={$messages.nav.navLabel}
               >
-                {#each visibleLinks as link}
-                  <a
-                    href={link.href}
-                    aria-current={isActive(link.href, pathname)
-                      ? "page"
-                      : undefined}
-                    class={cn(
-                      "nav-pill h-10 w-full justify-start px-4 text-sm",
-                      isActive(link.href, pathname)
-                        ? "nav-pill-active"
-                        : "nav-pill-inactive",
-                    )}
+                <Menu class="size-4" aria-hidden="true" />
+              </Button>
+            {/snippet}
+          </Sheet.Trigger>
+          <Sheet.Content side="right" class="w-[min(22rem,85vw)]">
+            <Sheet.Header class="border-b px-5 py-4">
+              <Sheet.Title>{$messages.app.name}</Sheet.Title>
+            </Sheet.Header>
+            <nav
+              class="flex flex-1 flex-col gap-2 overflow-y-auto px-4"
+              aria-label={$messages.nav.navLabel}
+            >
+              {#each visibleLinks as link}
+                <a
+                  href={link.href}
+                  aria-current={isActive(link.href, pathname)
+                    ? "page"
+                    : undefined}
+                  class={cn(
+                    "nav-pill h-10 w-full justify-start px-4 text-sm",
+                    isActive(link.href, pathname)
+                      ? "nav-pill-active"
+                      : "nav-pill-inactive",
+                  )}
+                >
+                  {$messages.nav[link.labelKey]}
+                </a>
+              {/each}
+            </nav>
+            {#if currentUser}
+              <Sheet.Footer class="border-t px-4 py-4">
+                <span class="truncate text-sm text-muted-foreground"
+                  >{currentUser.name}</span
+                >
+                <form method="POST" action="/logout">
+                  <button
+                    type="submit"
+                    class="nav-pill nav-pill-inactive h-10 w-full justify-start px-4 text-sm"
+                    >{$messages.nav.logout}</button
                   >
-                    {$messages.nav[link.labelKey]}
-                  </a>
-                {/each}
-              </nav>
-              {#if currentUser}
-                <Sheet.Footer class="border-t px-4 py-4">
-                  <span class="truncate text-sm text-muted-foreground"
-                    >{currentUser.name}</span
-                  >
-                  <form method="POST" action="/logout">
-                    <button
-                      type="submit"
-                      class="nav-pill nav-pill-inactive h-10 w-full justify-start px-4 text-sm"
-                    >{$messages.nav.logout}</button>
-                  </form>
-                </Sheet.Footer>
-              {/if}
-            </Sheet.Content>
-          </Sheet.Root>
-        </div>
+                </form>
+              </Sheet.Footer>
+            {/if}
+          </Sheet.Content>
+        </Sheet.Root>
       </div>
-    </header>
+    </div>
+  </header>
 
-  <main id="main-content">
+  <main id="main-content" aria-busy={Boolean(navigating.to)}>
     {@render children?.()}
   </main>
 </div>

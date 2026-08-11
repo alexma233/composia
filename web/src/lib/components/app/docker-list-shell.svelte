@@ -12,6 +12,7 @@
     CardTitle,
   } from "$lib/components/ui/card";
   import { Input } from "$lib/components/ui/input";
+  import { Skeleton } from "$lib/components/ui/skeleton";
   import {
     Pagination,
     PaginationContent,
@@ -21,7 +22,6 @@
     PaginationNextButton,
     PaginationPrevButton,
   } from "$lib/components/ui/pagination";
-  import Spinner from "$lib/components/ui/spinner/spinner.svelte";
   import { getMessages } from "$lib/i18n";
 
   const messages = getMessages();
@@ -137,15 +137,18 @@
         <AlertDescription>{error}</AlertDescription>
       </Alert>
     {:else if loading}
-      <div
-        class="flex min-h-80 items-center justify-center"
-        role="status"
-        aria-live="polite"
-      >
-        <div class="flex items-center gap-3 text-sm text-muted-foreground">
-          <Spinner />
-          <span>{loadingText}</span>
-        </div>
+      <div class="min-h-80 space-y-3 py-2" role="status" aria-live="polite">
+        <span class="sr-only">{loadingText}</span>
+        {#each Array(7) as _}
+          <div
+            class="grid min-h-12 grid-cols-4 items-center gap-4 border-b py-3"
+          >
+            <Skeleton class="h-4 w-4/5" />
+            <Skeleton class="h-4 w-3/5" />
+            <Skeleton class="h-4 w-2/3" />
+            <Skeleton class="h-8 w-20 justify-self-end" />
+          </div>
+        {/each}
       </div>
     {:else if itemCount > 0}
       {@render children?.()}

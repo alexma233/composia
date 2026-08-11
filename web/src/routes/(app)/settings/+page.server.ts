@@ -5,45 +5,47 @@ import {
   listRepoCommits,
   loadCurrentConfig,
   loadRepoHead,
-  loadSystemCapabilities,
   loadSystemStatus,
 } from "$lib/server/controller";
+import { isDocumentRequest } from "$lib/server/request";
 
-export const load: PageServerLoad = async ({ depends }) => {
+export const load: PageServerLoad = async ({ depends, parent, request }) => {
   depends("app:settings");
   const config = controllerConfig();
   if (!config.ready) {
     return {
-      ready: false,
-      error: config.reason,
-      system: null,
-      repoHead: null,
-      capabilities: null,
-      currentConfig: null,
-      initialCommits: { commits: [], nextCursor: "" },
+      content: {
+        ready: false,
+        error: config.reason,
+        system: null,
+        repoHead: null,
+        capabilities: null,
+        currentConfig: null,
+        initialCommits: { commits: [], nextCursor: "" },
+      },
     };
   }
 
-  try {
-    const [system, repoHead, capabilities, currentConfig, initialCommits] =
-      await Promise.all([
-        loadSystemStatus(),
-        loadRepoHead(),
-        loadSystemCapabilities(),
-        loadCurrentConfig(),
-        listRepoCommits(10),
-      ]);
-    return {
-      ready: true,
-      error: null,
-      system,
-      repoHead,
-      capabilities,
-      currentConfig,
-      initialCommits,
-    };
-  } catch (error) {
-    return {
+  const parentData = await parent();
+  const content = Promise.all([
+    loadSystemStatus(),
+    loadRepoHead(),
+    Promise.resolve(parentData.capabilities),
+    loadCurrentConfig(),
+    listRepoCommits(10),
+  ])
+    .then(
+      ([system, repoHead, capabilities, currentConfig, initialCommits]) => ({
+        ready: true,
+        error: null,
+        system,
+        repoHead,
+        capabilities,
+        currentConfig,
+        initialCommits,
+      }),
+    )
+    .catch((error: unknown) => ({
       ready: true,
       error:
         error instanceof Error ? error.message : "Failed to load settings.",
@@ -52,6 +54,7 @@ export const load: PageServerLoad = async ({ depends }) => {
       capabilities: null,
       currentConfig: null,
       initialCommits: { commits: [], nextCursor: "" },
-    };
-  }
+    }));
+
+  return { content: isDocumentRequest(request) ? content : await content };
 };

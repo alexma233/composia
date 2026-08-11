@@ -38,6 +38,7 @@ COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=prod-deps /app/web/package.json ./web/package.json
 COPY --from=prod-deps /app/web/node_modules ./web/node_modules
 COPY --from=builder /src/web/.deno-deploy ./web/.deno-deploy
+COPY --from=builder /src/web/compression.mjs ./web/compression.mjs
 COPY --from=builder /src/web/server.mjs ./web/server.mjs
 
 WORKDIR /app/web

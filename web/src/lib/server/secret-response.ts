@@ -1,5 +1,5 @@
 export const decryptedSecretResponseHeaders = {
-  "Cache-Control": "private, no-store",
+  "Cache-Control": "private, no-store, no-transform",
 };
 
 type SetHeaders = (headers: Record<string, string>) => void;

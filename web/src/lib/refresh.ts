@@ -1,9 +1,15 @@
 type PollingOptions = {
-  intervalMs: number;
+  intervalMs: number | (() => number);
   errorIntervalMs?: number;
   initialDelayMs?: number;
   runImmediately?: boolean;
 };
+
+const activeStatuses = new Set(["pending", "running", "awaiting_confirmation"]);
+
+export function hasActiveOperations(statuses: Iterable<string>) {
+  return Array.from(statuses).some((status) => activeStatuses.has(status));
+}
 
 export function startPolling(
   tick: () => void | boolean | Promise<void | boolean>,
@@ -24,6 +30,11 @@ export function startPolling(
     clear();
   };
 
+  const interval = () =>
+    typeof options.intervalMs === "function"
+      ? options.intervalMs()
+      : options.intervalMs;
+
   const schedule = (delay: number) => {
     if (cancelled) {
       return;
@@ -39,7 +50,7 @@ export function startPolling(
     }
 
     if (typeof document !== "undefined" && document.hidden) {
-      schedule(options.intervalMs);
+      schedule(interval());
       return;
     }
 
@@ -50,16 +61,16 @@ export function startPolling(
         return;
       }
 
-      schedule(options.intervalMs);
+      schedule(interval());
     } catch {
-      schedule(options.errorIntervalMs ?? options.intervalMs);
+      schedule(options.errorIntervalMs ?? interval());
     }
   };
 
   if (options.runImmediately) {
     void run();
   } else {
-    schedule(options.initialDelayMs ?? options.intervalMs);
+    schedule(options.initialDelayMs ?? interval());
   }
 
   return stop;

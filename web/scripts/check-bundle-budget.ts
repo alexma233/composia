@@ -5,6 +5,7 @@ import { basename, join } from "node:path";
 type ManifestEntry = {
   file: string;
   imports?: string[];
+  dynamicImports?: string[];
 };
 
 const outputDirectory = ".svelte-kit/output/client";
@@ -88,6 +89,59 @@ for (const pattern of [
     console.error(`${pattern} must remain lazy-loaded`);
     failed = true;
   }
+}
+
+const editorEntry = "src/lib/components/app/code-editor.svelte";
+const editorDynamicImports = manifest[editorEntry].dynamicImports ?? [];
+const languageDataEntry = editorDynamicImports.find((entry) =>
+  entry.includes("@codemirror+language-data"),
+)!;
+const serviceEditorScenarios = [
+  ...editorDynamicImports.map((entry) => [entry]),
+  ...(manifest[languageDataEntry].dynamicImports ?? []).map((entry) => [
+    languageDataEntry,
+    entry,
+  ]),
+];
+const editorBudgets = [
+  {
+    route: "(app)/services/[folder]/+page.svelte",
+    scenarios: serviceEditorScenarios,
+    limit: 305,
+  },
+  {
+    route: "(app)/settings/+page.svelte",
+    scenarios: [
+      [
+        editorDynamicImports.find((entry) =>
+          entry.includes("@codemirror+lang-yaml"),
+        )!,
+      ],
+    ],
+    limit: 225,
+  },
+];
+for (const { route, scenarios, limit } of editorBudgets) {
+  const initial = dependencies([
+    rootLayout,
+    appLayout,
+    manifestNode(nodes[route]),
+  ]);
+  const size = Math.max(
+    ...scenarios.map((scenario) =>
+      gzipKiB(
+        new Set(
+          [...dependencies([editorEntry, ...scenario])].filter(
+            (entry) => !initial.has(entry),
+          ),
+        ),
+      ),
+    ),
+  );
+  console.log(
+    `${route} editor interaction: ${size.toFixed(1)} KiB / ${limit} KiB gzip`,
+  );
+  if (size > limit) failed = true;
 }
 
 if (failed) {

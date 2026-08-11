@@ -5,13 +5,13 @@ import {
   loadSystemCapabilities,
 } from "$lib/server/controller";
 
-export const load: LayoutServerLoad = async ({ depends }) => {
+export const load: LayoutServerLoad = ({ depends }) => {
   depends("app:capabilities");
   if (!controllerConfig().ready) {
     return { capabilities: null };
   }
 
   return {
-    capabilities: await loadSystemCapabilities().catch(() => null),
+    capabilities: loadSystemCapabilities().catch(() => null),
   };
 };

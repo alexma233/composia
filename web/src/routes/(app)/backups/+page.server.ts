@@ -11,6 +11,7 @@ import {
   parsePageParam,
   parseTextFilterValues,
 } from "$lib/filter-query";
+import { isDocumentRequest } from "$lib/server/request";
 
 const backupStatuses = [
   "pending",
@@ -21,26 +22,28 @@ const backupStatuses = [
   "cancelled",
 ] as const;
 
-export const load: PageServerLoad = async ({ depends, url }) => {
+export const load: PageServerLoad = async ({ depends, request, url }) => {
   depends("app:backups");
   const config = controllerConfig();
   if (!config.ready) {
     return {
-      ready: false,
-      error: config.reason,
-      services: [],
-      nodes: [],
-      backups: [],
-      totalCount: 0,
-      page: 1,
-      status: [],
-      serviceName: [],
-      nodeId: [],
-      dataName: [],
-      excludeStatus: [],
-      excludeServiceName: [],
-      excludeNodeId: [],
-      excludeDataName: [],
+      content: {
+        ready: false,
+        error: config.reason,
+        services: [],
+        nodes: [],
+        backups: [],
+        totalCount: 0,
+        page: 1,
+        status: [],
+        serviceName: [],
+        nodeId: [],
+        dataName: [],
+        excludeStatus: [],
+        excludeServiceName: [],
+        excludeNodeId: [],
+        excludeDataName: [],
+      },
     };
   }
 
@@ -68,24 +71,23 @@ export const load: PageServerLoad = async ({ depends, url }) => {
     url.searchParams.getAll("excludeDataName"),
   );
 
-  try {
-    const [servicesResult, nodes, result] = await Promise.all([
-      loadServices(1, 200),
-      loadNodes(),
-      loadBackups(page, 20, {
-        status: status.length ? status : undefined,
-        serviceName: serviceName.length ? serviceName : undefined,
-        nodeId: nodeId.length ? nodeId : undefined,
-        dataName: dataName.length ? dataName : undefined,
-        excludeStatus: excludeStatus.length ? excludeStatus : undefined,
-        excludeServiceName: excludeServiceName.length
-          ? excludeServiceName
-          : undefined,
-        excludeNodeId: excludeNodeId.length ? excludeNodeId : undefined,
-        excludeDataName: excludeDataName.length ? excludeDataName : undefined,
-      }),
-    ]);
-    return {
+  const content = Promise.all([
+    loadServices(1, 200),
+    loadNodes(),
+    loadBackups(page, 20, {
+      status: status.length ? status : undefined,
+      serviceName: serviceName.length ? serviceName : undefined,
+      nodeId: nodeId.length ? nodeId : undefined,
+      dataName: dataName.length ? dataName : undefined,
+      excludeStatus: excludeStatus.length ? excludeStatus : undefined,
+      excludeServiceName: excludeServiceName.length
+        ? excludeServiceName
+        : undefined,
+      excludeNodeId: excludeNodeId.length ? excludeNodeId : undefined,
+      excludeDataName: excludeDataName.length ? excludeDataName : undefined,
+    }),
+  ])
+    .then(([servicesResult, nodes, result]) => ({
       ready: true,
       error: null,
       services: servicesResult.items,
@@ -101,9 +103,8 @@ export const load: PageServerLoad = async ({ depends, url }) => {
       excludeServiceName,
       excludeNodeId,
       excludeDataName,
-    };
-  } catch (error) {
-    return {
+    }))
+    .catch((error: unknown) => ({
       ready: true,
       error: error instanceof Error ? error.message : "Failed to load backups.",
       services: [],
@@ -119,6 +120,7 @@ export const load: PageServerLoad = async ({ depends, url }) => {
       excludeServiceName,
       excludeNodeId,
       excludeDataName,
-    };
-  }
+    }));
+
+  return { content: isDocumentRequest(request) ? content : await content };
 };
