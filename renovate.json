@@ -114,6 +114,7 @@
         "forgejo.alexma.top/alexma233/ci-images-go-node",
         "forgejo.alexma.top/alexma233/ci-images-go-releaser"
       ],
+      "minimumReleaseAge": "0 days",
       "groupName": "tooling updates"
     },
     {
@@ -151,18 +152,6 @@
       ],
       "depNameTemplate": "github.com/pseudomuto/protoc-gen-doc",
       "datasourceTemplate": "go"
-    },
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/^scripts\\/dev\\/e2e\\.sh$/"
-      ],
-      "matchStrings": [
-        "npm:playwright@(?<currentValue>\\d+\\.\\d+\\.\\d+) install chromium"
-      ],
-      "depNameTemplate": "playwright",
-      "datasourceTemplate": "npm",
-      "versioningTemplate": "npm"
     },
     {
       "customType": "regex",

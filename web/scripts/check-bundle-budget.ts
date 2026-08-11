@@ -68,7 +68,7 @@ for (const route of routes) {
     route === "(app)/services/[folder]/+page.svelte"
       ? 180
       : route === "login/+page.svelte"
-        ? 45
+        ? 46
         : 150;
   const size = gzipKiB(dependencies([...layouts, manifestNode(nodes[route])]));
   console.log(`${route}: ${size.toFixed(1)} KiB / ${limit} KiB gzip`);

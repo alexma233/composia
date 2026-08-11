@@ -30,7 +30,7 @@ trap cleanup EXIT
 
 if [ "$SUITE" = "all" ] || [ "$SUITE" = "web" ]; then
   deno install --frozen
-  deno run -A npm:playwright@1.62.1 install chromium
+  deno task --cwd web e2e:install
 fi
 
 docker compose -f "$COMPOSE_FILE" up -d --build controller-dev agent-dev

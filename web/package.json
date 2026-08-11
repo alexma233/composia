@@ -8,6 +8,7 @@
     "check:bundle": "deno task build && deno run --allow-read scripts/check-bundle-budget.ts",
     "preview": "vite preview",
     "test": "deno test --no-check compression.test.mjs src/lib/*.test.mjs src/lib/server/*.test.mjs",
+    "e2e:install": "playwright install chromium",
     "e2e": "svelte-kit sync && playwright test",
     "check": "svelte-kit sync && svelte-check --fail-on-warnings --tsconfig ./tsconfig.json",
     "check:a11y": "svelte-kit sync && svelte-check --fail-on-warnings --tsconfig ./tsconfig.json",
