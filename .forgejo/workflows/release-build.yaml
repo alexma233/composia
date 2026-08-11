@@ -49,12 +49,28 @@ jobs:
           username: ${{ secrets.OCI_IMAGES_DOCKERHUB_USERNAME }}
           password: ${{ secrets.OCI_IMAGES_DOCKERHUB_TOKEN }}
 
+      - name: Remove incomplete release
+        env:
+          GITEA_TOKEN: ${{ forgejo.token }}
+        run: |
+          status="$(curl --silent --show-error --output /tmp/delete-release-response --write-out '%{http_code}' \
+            --request DELETE \
+            --header "Authorization: token ${GITEA_TOKEN}" \
+            "https://forgejo.alexma.top/api/v1/repos/alexma233/composia/releases/tags/${{ github.ref_name }}")"
+          case "${status}" in
+            204|404) ;;
+            *)
+              cat /tmp/delete-release-response
+              exit 1
+              ;;
+          esac
+
       - name: Build and publish release artifacts
         env:
           GITEA_TOKEN: ${{ forgejo.token }}
           GORELEASER_FORCE_TOKEN: gitea
           AUR_KEY: ${{ secrets.AUR_KEY }}
-        run: goreleaser release --clean --timeout=90m
+        run: goreleaser release --clean --parallelism=2 --timeout=90m
 
       - name: Publish Debian packages to Forgejo APT registry
         env:
