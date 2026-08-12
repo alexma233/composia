@@ -16,6 +16,18 @@ Composia 偵測新的映像檔標籤並可自動套用更新。映像檔檢查�
 4. 對於在 `update.images` 中設定的映像檔，使用已設定的發現來源檢查新的候選標籤。
 5. 將結果回報給控制器。控制器記錄可用的更新並可自動套用。
 
+## 檢查排程與頻率
+
+映像檔檢查排程依下列順序選擇，設定越具體，優先順序越高：
+
+```text
+update.images.<name>.check_schedule
+→ update.check_schedule
+→ controller.updates.default_check_schedule
+```
+
+如果這三個位置都未設定，或選定的設定為 `none`，則不會自動執行映像檔檢查。範例中的 `0 */6 * * *` 並非內建預設值。
+
 ## 控制器預設值
 
 全域預設值在控制器設定中設定：
@@ -35,10 +47,48 @@ controller:
       github:
         url: "https://github.com"
         token: "REPLACE"
-        api_url: "https://api.github.com"
 ```
 
 服務層級的 `update` 區段會覆蓋這些預設值。
+
+### Forge API 驗證
+
+`forge_auth` 僅供控制器查詢 GitHub、GitLab 和 Forgejo Release API，不用於登入 Docker Registry。公開 Release 不需要權杖；私有 Release 或需要提高 API 速率限制時才需設定驗證。權杖只保留在控制器端，不會傳送給代理。
+
+| 鍵 | 說明 |
+|-----|------|
+| `url` | Forge 網站的基礎 URL。GitHub 預設為 `https://github.com`，GitLab 預設為 `https://gitlab.com`，Forgejo 沒有預設值。設定多個同類 Forge 時，也用於識別執行個體。 |
+| `token` | 直接設定 API 權杖。 |
+| `token_file` | 從檔案讀取 API 權杖。不能與 `token` 同時使用。 |
+| `api_url` | API 的基礎 URL，不包含儲存庫與 Release 路徑。僅在標準 API URL 不適用時設定。 |
+
+未設定 `api_url` 時，控制器會根據 `url` 使用對應平台的標準 API URL：
+
+- GitHub.com：`https://api.github.com`。
+- GitHub Enterprise Server：`{url}/api/v3`。
+- GitLab：`{url}/api/v4`。
+- Forgejo：`{url}/api/v1`。
+
+只有反向代理、獨立 API 網域或非標準路徑等特殊部署才需要設定 `api_url`。每種 Forge 都可設定單一物件或執行個體陣列。例如，自架 Forgejo 的最小設定為：
+
+```yaml
+controller:
+  updates:
+    forge_auth:
+      forgejo:
+        url: "https://forgejo.example.com"
+        token_file: "/run/secrets/forgejo-token"
+```
+
+特殊部署可以覆蓋 API URL：
+
+```yaml
+forge_auth:
+  forgejo:
+    url: "https://forgejo.example.com"
+    api_url: "https://api.forgejo.example.com/v1"
+    token_file: "/run/secrets/forgejo-token"
+```
 
 ## 服務設定
 

@@ -231,7 +231,11 @@ func forgeReleaseRequest(source repo.ImageUpdateDiscoverySource, cfg *config.Con
 		auth := forgeAuth(updates, imageUpdateDiscoveryGitHub, source.RepoURL)
 		apiURL := strings.TrimRight(auth.APIURL, "/")
 		if apiURL == "" {
-			apiURL = "https://api.github.com"
+			if auth.URL != "" && normalizedURLHost(auth.URL) != "github.com" {
+				apiURL = strings.TrimRight(auth.URL, "/") + "/api/v3"
+			} else {
+				apiURL = "https://api.github.com"
+			}
 		}
 		if auth.Token != "" {
 			headers["Authorization"] = "Bearer " + auth.Token
@@ -245,7 +249,11 @@ func forgeReleaseRequest(source repo.ImageUpdateDiscoverySource, cfg *config.Con
 		auth := forgeAuth(updates, imageUpdateDiscoveryGitLab, source.RepoURL)
 		apiURL := strings.TrimRight(auth.APIURL, "/")
 		if apiURL == "" {
-			apiURL = "https://gitlab.com/api/v4"
+			if auth.URL != "" {
+				apiURL = strings.TrimRight(auth.URL, "/") + "/api/v4"
+			} else {
+				apiURL = "https://gitlab.com/api/v4"
+			}
 		}
 		if auth.Token != "" {
 			headers["PRIVATE-TOKEN"] = auth.Token
@@ -261,8 +269,11 @@ func forgeReleaseRequest(source repo.ImageUpdateDiscoverySource, cfg *config.Con
 		if apiURL == "" {
 			apiURL = strings.TrimRight(auth.APIURL, "/")
 		}
+		if apiURL == "" && auth.URL != "" {
+			apiURL = strings.TrimRight(auth.URL, "/") + "/api/v1"
+		}
 		if apiURL == "" {
-			return "", nil, errors.New("controller.updates.forge_auth.forgejo.api_url is required")
+			return "", nil, errors.New("controller.updates.forge_auth.forgejo.url or api_url is required")
 		}
 		if auth.Token != "" {
 			headers["Authorization"] = "token " + auth.Token
@@ -288,6 +299,9 @@ func forgeAuth(updates *config.ControllerUpdatesConfig, sourceType, repoURL stri
 	}
 	if len(auths) == 0 {
 		return config.ForgeAuthConfig{}
+	}
+	if repoURL == "" && len(auths) == 1 {
+		return auths[0]
 	}
 	if repoURL != "" {
 		if repoHost := normalizedURLHost(repoURL); repoHost != "" {

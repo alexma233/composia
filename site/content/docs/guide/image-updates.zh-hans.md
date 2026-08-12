@@ -16,6 +16,18 @@ Composia 检测新的镜像标签并可以自动应用更新。镜像检查任�
 4. 对于在 `update.images` 中配置的镜像，使用配置的发现源检查新的候选标签。
 5. 将结果上报给控制器。控制器记录可用的更新并可自动应用它们。
 
+## 检查调度与频率
+
+镜像检查计划按以下顺序选择，越具体的设置优先级越高：
+
+```text
+update.images.<name>.check_schedule
+→ update.check_schedule
+→ controller.updates.default_check_schedule
+```
+
+如果这三个位置都未配置，或者设置为 `none`，则不会自动执行镜像检查。配置示例中的 `0 */6 * * *` 只是示例，并不是内置默认值。
+
 ## 控制器默认值
 
 全局默认值在控制器配置中设置：
@@ -35,10 +47,48 @@ controller:
       github:
         url: "https://github.com"
         token: "REPLACE"
-        api_url: "https://api.github.com"
 ```
 
 服务级别的 `update` 部分会覆盖这些默认值。
+
+### Forge API 认证
+
+`forge_auth` 只用于控制器查询 GitHub、GitLab 和 Forgejo 的 Release API，不用于登录 Docker Registry。公开 Release 可以不配置令牌；私有 Release 或需要提高 API 限额时再配置认证。令牌只在控制器侧使用，不会下发给 agent。
+
+| 键 | 说明 |
+|-----|------|
+| `url` | Forge 网站的基础地址。GitHub 默认为 `https://github.com`，GitLab 默认为 `https://gitlab.com`，Forgejo 没有默认值。配置多个同类 Forge 时，用于标识对应实例。 |
+| `token` | 直接配置 API 令牌。 |
+| `token_file` | 从文件读取 API 令牌。不能与 `token` 同时设置。 |
+| `api_url` | API 的基础地址，不包含仓库和 Release 路径。仅在默认 API 地址不适用时配置。 |
+
+未配置 `api_url` 时，控制器根据 `url` 使用对应平台的标准 API 地址：
+
+- GitHub.com：`https://api.github.com`。
+- GitHub Enterprise Server：`{url}/api/v3`。
+- GitLab：`{url}/api/v4`。
+- Forgejo：`{url}/api/v1`。
+
+只有反向代理、独立 API 域名或非标准路径等特殊部署才需要设置 `api_url`。每种 Forge 可以配置单个对象，也可以用数组配置多个实例。例如，自建 Forgejo 的最小配置为：
+
+```yaml
+controller:
+  updates:
+    forge_auth:
+      forgejo:
+        url: "https://forgejo.example.com"
+        token_file: "/run/secrets/forgejo-token"
+```
+
+特殊部署可以覆盖 API 地址：
+
+```yaml
+forge_auth:
+  forgejo:
+    url: "https://forgejo.example.com"
+    api_url: "https://api.forgejo.example.com/v1"
+    token_file: "/run/secrets/forgejo-token"
+```
 
 ## 服务配置
 
@@ -168,6 +218,8 @@ discovery:
 `combine` 接受 `merge`（所有源结果的并集）或 `first_success`（第一个返回结果的源胜出）。
 
 `include_prerelease` 在 GitHub、GitLab 和 Forgejo 发布查询中包含预发布版本。
+
+当 `auto` 配置了 `repo_url` 时，Composia 还会根据 GitHub、GitLab 或 Codeberg 的仓库地址查询对应的 Release；未配置 `repo_url`，或地址不是这些平台时，`auto` 只使用 `probe` 和 `registry`。
 
 ### 过滤器
 

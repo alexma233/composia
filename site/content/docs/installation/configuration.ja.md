@@ -334,10 +334,10 @@ secrets:
 
 | キー | 型 | 説明 |
 |-----|------|-------------|
-| `url` | `string` | Forge のベース URL。 |
+| `url` | `string` | Forge Web サイトのベース URL。GitHub は `https://github.com`、GitLab は `https://gitlab.com` がデフォルトで、Forgejo にはデフォルト値がありません。同じ種類の Forge を複数設定する場合はインスタンスの識別に使用されます。 |
 | `token` | `string` | API トークン。 |
-| `token_file` | `string` | ファイルから API トークンを読み取ります。 |
-| `api_url` | `string` | API URL の上書き。 |
+| `token_file` | `string` | ファイルから API トークンを読み取ります。`token` と同時には使用できません。 |
+| `api_url` | `string` | API ベース URL の上書き。GitHub.com は `https://api.github.com` がデフォルトです。GHES、GitLab、Forgejo は `url` を基準にそれぞれ `/api/v3`、`/api/v4`、`/api/v1` を使用します。 |
 
 ### `auto_deploy`
 

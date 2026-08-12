@@ -334,10 +334,10 @@ secrets:
 
 | 键 | 类型 | 描述 |
 |-----|------|-------------|
-| `url` | `string` | Forge 基础 URL。 |
+| `url` | `string` | Forge 网站的基础 URL；GitHub 默认为 `https://github.com`，GitLab 默认为 `https://gitlab.com`，Forgejo 没有默认值。配置多个同类 Forge 时用于标识实例。 |
 | `token` | `string` | API 令牌。 |
-| `token_file` | `string` | 从文件读取 API 令牌。 |
-| `api_url` | `string` | API URL 覆盖。 |
+| `token_file` | `string` | 从文件读取 API 令牌；不能与 `token` 同时设置。 |
+| `api_url` | `string` | API 基础 URL 覆盖。GitHub.com 默认为 `https://api.github.com`；GHES、GitLab 和 Forgejo 分别根据 `url` 使用 `/api/v3`、`/api/v4` 和 `/api/v1`。 |
 
 ### `auto_deploy`
 

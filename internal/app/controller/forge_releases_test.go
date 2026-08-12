@@ -136,3 +136,31 @@ func TestForgeSourceFromRepoURLDetectsCodebergAsForgejo(t *testing.T) {
 		t.Fatalf("unexpected source %+v ok=%v", source, ok)
 	}
 }
+
+func TestForgeReleaseRequestInfersAPIURL(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		source  repo.ImageUpdateDiscoverySource
+		auth    config.ControllerUpdatesForgeAuth
+		wantURL string
+	}{
+		{"GitHub.com", repo.ImageUpdateDiscoverySource{Type: "github", Repo: "owner/repo"}, config.ControllerUpdatesForgeAuth{GitHub: config.ForgeAuthConfigs{{URL: "https://github.com/"}}}, "https://api.github.com/repos/owner/repo/releases?per_page=100"},
+		{"GitHub Enterprise", repo.ImageUpdateDiscoverySource{Type: "github", Repo: "owner/repo"}, config.ControllerUpdatesForgeAuth{GitHub: config.ForgeAuthConfigs{{URL: "https://github.example.com/"}}}, "https://github.example.com/api/v3/repos/owner/repo/releases?per_page=100"},
+		{"self-hosted GitLab", repo.ImageUpdateDiscoverySource{Type: "gitlab", Project: "group/project"}, config.ControllerUpdatesForgeAuth{GitLab: config.ForgeAuthConfigs{{URL: "https://gitlab.example.com/"}}}, "https://gitlab.example.com/api/v4/projects/group%2Fproject/releases?per_page=100"},
+		{"self-hosted Forgejo", repo.ImageUpdateDiscoverySource{Type: "forgejo", Repo: "owner/repo"}, config.ControllerUpdatesForgeAuth{Forgejo: config.ForgeAuthConfigs{{URL: "https://forgejo.example.com/"}}}, "https://forgejo.example.com/api/v1/repos/owner/repo/releases?limit=100"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cfg := &config.ControllerConfig{Updates: &config.ControllerUpdatesConfig{ForgeAuth: &test.auth}}
+			endpoint, _, err := forgeReleaseRequest(test.source, cfg)
+			if err != nil {
+				t.Fatalf("forgeReleaseRequest() error = %v", err)
+			}
+			if endpoint != test.wantURL {
+				t.Fatalf("unexpected endpoint %q", endpoint)
+			}
+		})
+	}
+}

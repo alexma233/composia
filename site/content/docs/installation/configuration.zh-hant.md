@@ -334,10 +334,10 @@ secrets:
 
 | 鍵 | 型別 | 說明 |
 |-----|------|-------------|
-| `url` | `string` | Forge 基礎 URL。 |
+| `url` | `string` | Forge 網站的基礎 URL。GitHub 預設為 `https://github.com`，GitLab 預設為 `https://gitlab.com`，Forgejo 沒有預設值。設定多個同類 Forge 時用於識別執行個體。 |
 | `token` | `string` | API 權杖。 |
-| `token_file` | `string` | 從檔案讀取 API 權杖。 |
-| `api_url` | `string` | API URL 覆蓋。 |
+| `token_file` | `string` | 從檔案讀取 API 權杖；不能與 `token` 同時使用。 |
+| `api_url` | `string` | API 基礎 URL 覆蓋。GitHub.com 預設為 `https://api.github.com`；GHES、GitLab 和 Forgejo 分別根據 `url` 使用 `/api/v3`、`/api/v4` 和 `/api/v1`。 |
 
 ### `auto_deploy`
 

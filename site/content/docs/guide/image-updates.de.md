@@ -16,6 +16,18 @@ Der Controller plant regelmäßige `image_check`-Aufgaben gemäß der Update-Kon
 4. Für Images, die in `update.images` konfiguriert sind, prüft es auf neue Kandidaten-Tags unter Verwendung der konfigurierten Erkennungsquellen.
 5. Meldet die Ergebnisse an den Controller. Der Controller zeichnet verfügbare Updates auf und kann sie automatisch anwenden.
 
+## Prüfzeitplan und Häufigkeit
+
+Der Zeitplan für Image-Prüfungen wird in der folgenden Reihenfolge ausgewählt, wobei spezifischere Einstellungen Vorrang haben:
+
+```text
+update.images.<name>.check_schedule
+→ update.check_schedule
+→ controller.updates.default_check_schedule
+```
+
+Wenn keine dieser drei Einstellungen konfiguriert ist oder die ausgewählte Einstellung `none` lautet, werden Image-Prüfungen nicht automatisch ausgeführt. Der Beispielwert `0 */6 * * *` ist kein integrierter Standardwert.
+
 ## Controller-Standardwerte
 
 Globale Standardwerte werden in der Controller-Konfiguration gesetzt:
@@ -35,10 +47,48 @@ controller:
       github:
         url: "https://github.com"
         token: "REPLACE"
-        api_url: "https://api.github.com"
 ```
 
 Der dienstspezifische `update`-Abschnitt überschreibt diese Standardwerte.
+
+### Forge-API-Authentifizierung
+
+`forge_auth` wird ausschließlich vom Controller verwendet, um die Release-APIs von GitHub, GitLab und Forgejo abzufragen. Es dient nicht zur Anmeldung bei Docker-Registries. Öffentliche Releases benötigen kein Token; für private Releases oder höhere API-Ratenlimits muss eine Authentifizierung konfiguriert werden. Tokens verbleiben auf dem Controller und werden nicht an Agenten gesendet.
+
+| Schlüssel | Beschreibung |
+|-----|-------------|
+| `url` | Basis-URL der Forge-Website. Für GitHub gilt standardmäßig `https://github.com`, für GitLab `https://gitlab.com`; Forgejo hat keinen Standardwert. Sie identifiziert außerdem die Instanz, wenn mehrere Forges desselben Typs konfiguriert sind. |
+| `token` | Direkt konfiguriertes API-Token. |
+| `token_file` | Liest das API-Token aus einer Datei. Kann nicht zusammen mit `token` verwendet werden. |
+| `api_url` | Basis-URL der API ohne Repository- oder Release-Pfade. Nur konfigurieren, wenn die Standard-API-URL nicht passt. |
+
+Ohne `api_url` verwendet der Controller anhand von `url` die Standard-API-URL der jeweiligen Plattform:
+
+- GitHub.com: `https://api.github.com`.
+- GitHub Enterprise Server: `{url}/api/v3`.
+- GitLab: `{url}/api/v4`.
+- Forgejo: `{url}/api/v1`.
+
+`api_url` ist nur für besondere Bereitstellungen erforderlich, etwa bei Reverse Proxys, separaten API-Domains oder nicht standardmäßigen Pfaden. Jeder Forge-Typ akzeptiert ein einzelnes Objekt oder ein Array mit mehreren Instanzen. Die minimale Konfiguration für eine selbst gehostete Forgejo-Instanz lautet beispielsweise:
+
+```yaml
+controller:
+  updates:
+    forge_auth:
+      forgejo:
+        url: "https://forgejo.example.com"
+        token_file: "/run/secrets/forgejo-token"
+```
+
+Bei einer besonderen Bereitstellung kann die API-URL überschrieben werden:
+
+```yaml
+forge_auth:
+  forgejo:
+    url: "https://forgejo.example.com"
+    api_url: "https://api.forgejo.example.com/v1"
+    token_file: "/run/secrets/forgejo-token"
+```
 
 ## Dienstkonfiguration
 

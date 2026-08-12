@@ -334,10 +334,10 @@ Chaque entrée d'authentification forge prend en charge :
 
 | Clé | Type | Description |
 |-----|------|-------------|
-| `url` | `string` | URL de base de la forge. |
+| `url` | `string` | URL de base du site Forge. La valeur par défaut est `https://github.com` pour GitHub et `https://gitlab.com` pour GitLab ; Forgejo n'a pas de valeur par défaut. Elle identifie l'instance lorsque plusieurs forges du même type sont configurées. |
 | `token` | `string` | Jeton API. |
-| `token_file` | `string` | Lire le jeton API depuis un fichier. |
-| `api_url` | `string` | Remplacement de l'URL de l'API. |
+| `token_file` | `string` | Lire le jeton API depuis un fichier ; ne peut pas être utilisé avec `token`. |
+| `api_url` | `string` | Remplacement de l'URL de base de l'API. GitHub.com utilise par défaut `https://api.github.com` ; GHES, GitLab et Forgejo utilisent respectivement `/api/v3`, `/api/v4` et `/api/v1` sous `url`. |
 
 ### `auto_deploy`
 

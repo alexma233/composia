@@ -16,6 +16,18 @@ Composia は新しいイメージタグを検出し、更新を自動的に適�
 4. `update.images` で設定されたイメージについて、設定された検出ソースを使用して新しい候補タグをチェックします。
 5. 結果をコントローラーに報告します。コントローラーは利用可能な更新を記録し、自動適用できます。
 
+## チェックスケジュールと頻度
+
+イメージチェックのスケジュールは、より具体的な設定を優先して次の順序で選択されます：
+
+```text
+update.images.<name>.check_schedule
+→ update.check_schedule
+→ controller.updates.default_check_schedule
+```
+
+これら 3 か所がすべて未設定、または選択された設定が `none` の場合、イメージチェックは自動実行されません。例の `0 */6 * * *` は組み込みのデフォルト値ではありません。
+
 ## コントローラーデフォルト
 
 グローバルデフォルトはコントローラー設定で設定します:
@@ -35,10 +47,48 @@ controller:
       github:
         url: "https://github.com"
         token: "REPLACE"
-        api_url: "https://api.github.com"
 ```
 
 サービスレベルの `update` セクションがこれらのデフォルトを上書きします。
+
+### Forge API 認証
+
+`forge_auth` は、コントローラーが GitHub、GitLab、Forgejo の Release API を照会するためだけに使用され、Docker Registry の認証には使用されません。公開 Release にはトークンは不要です。非公開 Release または API レート制限の緩和が必要な場合に認証を設定します。トークンはコントローラー内にのみ保持され、エージェントには送信されません。
+
+| キー | 説明 |
+|-----|------|
+| `url` | Forge Web サイトのベース URL。GitHub は `https://github.com`、GitLab は `https://gitlab.com` がデフォルトで、Forgejo にはデフォルト値がありません。同じ種類の Forge を複数設定する場合は、インスタンスの識別にも使用されます。 |
+| `token` | API トークンを直接設定します。 |
+| `token_file` | ファイルから API トークンを読み取ります。`token` と同時には使用できません。 |
+| `api_url` | リポジトリや Release のパスを含まない API のベース URL。標準 API URL が適用できない場合にのみ設定します。 |
+
+`api_url` が未設定の場合、コントローラーは `url` に基づいて各プラットフォームの標準 API URL を使用します：
+
+- GitHub.com：`https://api.github.com`。
+- GitHub Enterprise Server：`{url}/api/v3`。
+- GitLab：`{url}/api/v4`。
+- Forgejo：`{url}/api/v1`。
+
+リバースプロキシ、独立した API ドメイン、標準外のパスなどの特殊な構成でのみ `api_url` を設定します。各 Forge タイプには、単一のオブジェクトまたは複数インスタンスの配列を設定できます。たとえば、セルフホスト Forgejo の最小設定は次のとおりです：
+
+```yaml
+controller:
+  updates:
+    forge_auth:
+      forgejo:
+        url: "https://forgejo.example.com"
+        token_file: "/run/secrets/forgejo-token"
+```
+
+特殊な構成では API URL を上書きできます：
+
+```yaml
+forge_auth:
+  forgejo:
+    url: "https://forgejo.example.com"
+    api_url: "https://api.forgejo.example.com/v1"
+    token_file: "/run/secrets/forgejo-token"
+```
 
 ## サービス設定
 

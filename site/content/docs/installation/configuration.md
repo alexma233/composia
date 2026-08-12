@@ -343,10 +343,10 @@ Each forge auth entry supports:
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `url` | `string` | Forge base URL. |
+| `url` | `string` | Forge website base URL. Defaults to `https://github.com` for GitHub and `https://gitlab.com` for GitLab; Forgejo has no default. It identifies an instance when multiple forges of the same type are configured. |
 | `token` | `string` | API token. |
-| `token_file` | `string` | Read API token from a file. |
-| `api_url` | `string` | API URL override. |
+| `token_file` | `string` | Read the API token from a file; cannot be used together with `token`. |
+| `api_url` | `string` | API base URL override. GitHub.com defaults to `https://api.github.com`; GHES, GitLab, and Forgejo use `/api/v3`, `/api/v4`, and `/api/v1` under `url`, respectively. |
 
 ### `auto_deploy`
 

@@ -16,6 +16,18 @@ The controller schedules periodic `image_check` tasks according to the service's
 4. For images configured in `update.images`, checks for new candidate tags using the configured discovery sources.
 5. Reports results to the controller. The controller records available updates and can auto-apply them.
 
+## Check scheduling and frequency
+
+The image check schedule is selected in the following order, with more specific settings taking precedence:
+
+```text
+update.images.<name>.check_schedule
+→ update.check_schedule
+→ controller.updates.default_check_schedule
+```
+
+If none of these three settings is configured, or if the selected setting is `none`, automatic image checks do not run. The example value `0 */6 * * *` is not a built-in default.
+
 ## Controller defaults
 
 Global defaults are set in the controller config:
@@ -35,10 +47,48 @@ controller:
       github:
         url: "https://github.com"
         token: "REPLACE"
-        api_url: "https://api.github.com"
 ```
 
 The service-level `update` section overrides these defaults.
+
+### Forge API authentication
+
+`forge_auth` is used only by the controller to query GitHub, GitLab, and Forgejo Release APIs. It does not authenticate with Docker registries. Public releases do not require a token; configure authentication for private releases or higher API rate limits. Tokens remain on the controller and are not sent to agents.
+
+| Key | Description |
+|-----|-------------|
+| `url` | Forge website base URL. Defaults to `https://github.com` for GitHub and `https://gitlab.com` for GitLab. Forgejo has no default. It also identifies an instance when multiple forges of the same type are configured. |
+| `token` | API token configured inline. |
+| `token_file` | Read the API token from a file. Cannot be used together with `token`. |
+| `api_url` | API base URL without repository or release paths. Configure it only when the standard API URL does not apply. |
+
+Without `api_url`, the controller uses the platform's standard API URL based on `url`:
+
+- GitHub.com: `https://api.github.com`.
+- GitHub Enterprise Server: `{url}/api/v3`.
+- GitLab: `{url}/api/v4`.
+- Forgejo: `{url}/api/v1`.
+
+Set `api_url` only for special deployments such as reverse proxies, separate API domains, or nonstandard paths. Each forge type accepts one object or an array of instances. For example, the minimum configuration for a self-hosted Forgejo instance is:
+
+```yaml
+controller:
+  updates:
+    forge_auth:
+      forgejo:
+        url: "https://forgejo.example.com"
+        token_file: "/run/secrets/forgejo-token"
+```
+
+A special deployment can override the API URL:
+
+```yaml
+forge_auth:
+  forgejo:
+    url: "https://forgejo.example.com"
+    api_url: "https://api.forgejo.example.com/v1"
+    token_file: "/run/secrets/forgejo-token"
+```
 
 ## Service configuration
 
