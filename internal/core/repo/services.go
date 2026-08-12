@@ -81,10 +81,9 @@ func (meta ServiceMeta) AutoDeployEnabled() bool {
 }
 
 type InfraConfig struct {
-	Caddy            *InfraCaddyConfig            `yaml:"caddy"`
-	Rustic           *InfraRusticConfig           `yaml:"rustic"`
-	Config           *InfraConfigConfig           `yaml:"config"`
-	CloudflareTunnel *InfraCloudflareTunnelConfig `yaml:"cloudflare_tunnel"`
+	Caddy  *InfraCaddyConfig  `yaml:"caddy"`
+	Rustic *InfraRusticConfig `yaml:"rustic"`
+	Config *InfraConfigConfig `yaml:"config"`
 }
 
 type InfraConfigConfig struct{}
@@ -92,11 +91,6 @@ type InfraConfigConfig struct{}
 type InfraCaddyConfig struct {
 	ComposeService string `yaml:"compose_service"`
 	ConfigDir      string `yaml:"config_dir"`
-}
-
-type InfraCloudflareTunnelConfig struct {
-	Tunnel         string `yaml:"tunnel"`
-	ComposeService string `yaml:"compose_service"`
 }
 
 type InfraRusticConfig struct {
@@ -672,9 +666,6 @@ func validateConfigInfra(path string, meta *ServiceMeta) error {
 	if meta.Infra != nil && meta.Infra.Rustic != nil {
 		return fmt.Errorf("service meta %q: infra.config cannot be combined with infra.rustic because rustic requires docker compose", path)
 	}
-	if meta.Infra != nil && meta.Infra.CloudflareTunnel != nil {
-		return fmt.Errorf("service meta %q: infra.config cannot be combined with infra.cloudflare_tunnel because cloudflared requires docker compose", path)
-	}
 	if meta.DataProtect == nil {
 		return nil
 	}
@@ -787,14 +778,6 @@ func validateInfra(path string, infra *InfraConfig) error {
 			if strings.TrimSpace(arg) == "" {
 				return fmt.Errorf("service meta %q: infra.rustic.init_args[%d] must not be empty", path, index)
 			}
-		}
-	}
-	if infra.CloudflareTunnel != nil {
-		if strings.TrimSpace(infra.CloudflareTunnel.Tunnel) == "" {
-			return fmt.Errorf("service meta %q: infra.cloudflare_tunnel.tunnel is required", path)
-		}
-		if strings.TrimSpace(infra.CloudflareTunnel.ComposeService) == "" && infra.CloudflareTunnel.ComposeService != "" {
-			return fmt.Errorf("service meta %q: infra.cloudflare_tunnel.compose_service must not be empty when set", path)
 		}
 	}
 	return nil
