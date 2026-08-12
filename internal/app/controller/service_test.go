@@ -363,6 +363,53 @@ func TestServiceCommandServiceDeployCreatesPendingTask(t *testing.T) {
 	}
 }
 
+func TestServiceCommandServiceImageCheckCreatesPendingTask(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	repoDir := filepath.Join(rootDir, "repo")
+	logDir := filepath.Join(rootDir, "logs")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"demo/composia-meta.yaml": "name: demo\nnodes:\n  - main\nupdate:\n  check_schedule: none\n  images:\n    api:\n      image: ghcr.io/example/api\n      current:\n        tag: 1.0.0\n      discovery:\n        sources:\n          - type: auto\n      filter:\n        type: semver\n",
+	})
+	if err := os.MkdirAll(filepath.Join(logDir, "tasks"), 0o750); err != nil {
+		t.Fatalf("create task log dir: %v", err)
+	}
+
+	db := openControllerTestDB(t)
+	defer func() { _ = db.Close() }()
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatalf("sync configured nodes: %v", err)
+	}
+	if err := syncDeclaredServicesForTests(ctx, db, "demo"); err != nil {
+		t.Fatalf("sync declared services: %v", err)
+	}
+	if err := db.RecordHeartbeat(ctx, store.NodeHeartbeat{NodeID: "main", HeartbeatAt: time.Now().UTC()}); err != nil {
+		t.Fatalf("record heartbeat: %v", err)
+	}
+
+	cfg := &config.ControllerConfig{
+		RepoDir: repoDir,
+		LogDir:  logDir,
+		Nodes:   []config.NodeConfig{{ID: "main"}},
+		Updates: &config.ControllerUpdatesConfig{Semver: &config.ControllerUpdatesSemverConfig{DefaultAllow: []string{"patch", "minor"}}},
+	}
+	server := &serviceCommandServer{db: db, cfg: cfg, availableNodeIDs: configuredNodeIDs(cfg)}
+	response, err := server.RunServiceAction(ctx, connect.NewRequest(&controllerv1.RunServiceActionRequest{ServiceName: "demo", Action: controllerv1.ServiceAction_SERVICE_ACTION_IMAGE_CHECK}))
+	if err != nil {
+		t.Fatalf("check service images: %v", err)
+	}
+	detail, err := db.GetTask(ctx, singleQueuedServiceActionTask(t, response.Msg).GetTaskId())
+	if err != nil {
+		t.Fatalf("get image check task: %v", err)
+	}
+	params := mustTaskParams(t, detail.Record.ParamsJSON)
+	if detail.Record.Type != task.TypeImageCheck || detail.Record.Source != task.SourceCLI || len(params.ImageNames) != 0 || strings.Join(params.SemverAllow, ",") != "patch,minor" {
+		t.Fatalf("unexpected image check task: record=%+v params=%+v", detail.Record, params)
+	}
+}
+
 func TestServiceCommandServiceDeployIgnoresUnrelatedInvalidDraft(t *testing.T) {
 	t.Parallel()
 

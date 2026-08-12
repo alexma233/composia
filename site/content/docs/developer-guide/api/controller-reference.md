@@ -3053,6 +3053,7 @@ ServiceAction identifies an async action that targets a service.
 | SERVICE_ACTION_DNS_UPDATE | 6 | SERVICE_ACTION_DNS_UPDATE refreshes DNS records for the service. |
 | SERVICE_ACTION_CADDY_SYNC | 7 | SERVICE_ACTION_CADDY_SYNC syncs related Caddy configuration. |
 | SERVICE_ACTION_CLOUDFLARE_TUNNEL_SYNC | 8 | SERVICE_ACTION_CLOUDFLARE_TUNNEL_SYNC syncs related Cloudflare Tunnel configuration. |
+| SERVICE_ACTION_IMAGE_CHECK | 9 | SERVICE_ACTION_IMAGE_CHECK checks configured images for available updates. |
 
 
  

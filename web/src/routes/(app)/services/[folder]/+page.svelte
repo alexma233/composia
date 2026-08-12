@@ -1158,6 +1158,7 @@
       | "stop"
       | "restart"
       | "backup"
+      | "image_check"
       | "dns_update"
       | "caddy_sync"
       | "cloudflare_tunnel_sync",
@@ -2271,8 +2272,21 @@
               <div
                 class="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-3"
               >
-                <div class="text-xs font-medium">
-                  {$messages.services.imageUpdates.title}
+                <div class="flex items-center justify-between gap-2">
+                  <div class="text-xs font-medium">
+                    {$messages.services.imageUpdates.title}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    class="h-7 px-2 text-xs"
+                    onclick={() => triggerAction("image_check")}
+                    disabled={!!actionBusy || !workspace?.isDeclared}
+                  >
+                    <RefreshCcw class="mr-1.5 size-3.5" />{$messages.services
+                      .imageUpdates.checkNow}
+                  </Button>
                 </div>
                 {#if imageUpdateChecks.length === 0}
                   <div class="text-xs text-muted-foreground">

@@ -103,6 +103,7 @@ function isServiceAction(action: string): action is ServiceAction {
     action === "stop" ||
     action === "restart" ||
     action === "backup" ||
+    action === "image_check" ||
     action === "dns_update" ||
     action === "caddy_sync" ||
     action === "cloudflare_tunnel_sync"

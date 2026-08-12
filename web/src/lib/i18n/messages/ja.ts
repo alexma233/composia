@@ -409,6 +409,7 @@ export const ja = {
       updateAvailable: "更新あり",
       noChecks: "イメージ更新の確認はまだありません。",
       loadFailed: "イメージ更新確認の読み込みに失敗しました。",
+      checkNow: "今すぐ確認",
       applyAllDetected: "すべての検出された更新を適用",
       applyDetected: "検出された更新を適用",
       imageTagPlaceholder: "name=tag",

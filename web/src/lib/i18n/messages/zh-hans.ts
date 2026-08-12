@@ -390,6 +390,7 @@ export const zhHans = {
       updateAvailable: "有可用更新",
       noChecks: "暂无镜像更新检查结果。",
       loadFailed: "加载镜像更新检查失败。",
+      checkNow: "立即检查",
       applyAllDetected: "应用所有检测到的更新",
       applyDetected: "应用检测到的候选",
       imageTagPlaceholder: "名称=标签",

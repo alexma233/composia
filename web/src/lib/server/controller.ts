@@ -261,6 +261,7 @@ export type ServiceAction =
   | "stop"
   | "restart"
   | "backup"
+  | "image_check"
   | "dns_update"
   | "caddy_sync"
   | "cloudflare_tunnel_sync";
@@ -2528,6 +2529,8 @@ function toServiceActionEnum(action: ServiceAction): number {
       return 4;
     case "backup":
       return 5;
+    case "image_check":
+      return 9;
     case "dns_update":
       return 6;
     case "caddy_sync":

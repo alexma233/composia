@@ -96,6 +96,12 @@ func (server *serviceCommandServer) RunServiceAction(ctx context.Context, req *c
 		}
 		notifyTaskQueue(server.taskQueue)
 		return connect.NewResponse(runServiceActionResponse([]task.Record{createdTask}, nil)), nil
+	case controllerv1.ServiceAction_SERVICE_ACTION_IMAGE_CHECK:
+		if service.Meta.Update == nil || (service.Meta.Update.Enabled != nil && !*service.Meta.Update.Enabled) || len(service.Meta.Update.Images) == 0 {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not enable image update checks", service.Name))
+		}
+		taskType = task.TypeImageCheck
+		nodeIDs = req.Msg.GetNodeIds()
 	default:
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("action is required"))
 	}
@@ -121,7 +127,11 @@ func (server *serviceCommandServer) RunServiceAction(ctx context.Context, req *c
 		}
 	}
 
-	createdTasks, err := server.createServiceTasksWithOptions(ctx, req.Msg.GetServiceName(), nodeIDs, taskType, dataNames, serviceTaskCreateOptions{Source: requestTaskSource(req.Header()), ComposeRecreateMode: composeRecreateModeParam(taskType, req.Msg.GetComposeRecreateMode())})
+	options := serviceTaskCreateOptions{Source: requestTaskSource(req.Header()), ComposeRecreateMode: composeRecreateModeParam(taskType, req.Msg.GetComposeRecreateMode())}
+	if taskType == task.TypeImageCheck {
+		options.SemverAllow = effectiveControllerSemverAllow(server.cfg)
+	}
+	createdTasks, err := server.createServiceTasksWithOptions(ctx, req.Msg.GetServiceName(), nodeIDs, taskType, dataNames, options)
 	if err != nil {
 		return nil, err
 	}

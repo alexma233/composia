@@ -408,6 +408,7 @@ export const enUS = {
       updateAvailable: "Update Available",
       noChecks: "No image update checks yet.",
       loadFailed: "Failed to load image update checks.",
+      checkNow: "Check now",
       applyAllDetected: "Apply all detected",
       applyDetected: "Apply detected",
       imageTagPlaceholder: "name=tag",

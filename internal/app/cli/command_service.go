@@ -34,7 +34,7 @@ func (application *app) runService(args []string) error {
 		return application.runServiceEdit(serviceName, rest[1:])
 	case "updates":
 		return application.runServiceUpdateCandidates(serviceName, rest[1:])
-	case "up", "down", actionUpdate, actionRestart, "backup", "dns-update", "caddy-sync", "cloudflare-tunnel-sync", "tunnel-sync":
+	case "up", "down", actionUpdate, actionRestart, "backup", "image-check", "dns-update", "caddy-sync", "cloudflare-tunnel-sync", "tunnel-sync":
 		return application.runServiceAction(rest[0], serviceName, rest[1:])
 	case "migrate":
 		return application.runServiceMigrate(serviceName, rest[1:])
@@ -507,6 +507,8 @@ func serviceActionFromName(name string) (controllerv1.ServiceAction, error) {
 		return controllerv1.ServiceAction_SERVICE_ACTION_RESTART, nil
 	case "backup":
 		return controllerv1.ServiceAction_SERVICE_ACTION_BACKUP, nil
+	case "image-check":
+		return controllerv1.ServiceAction_SERVICE_ACTION_IMAGE_CHECK, nil
 	case "dns-update":
 		return controllerv1.ServiceAction_SERVICE_ACTION_DNS_UPDATE, nil
 	case "caddy-sync":

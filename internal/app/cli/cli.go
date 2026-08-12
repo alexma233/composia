@@ -178,6 +178,7 @@ var commandUsages = map[string]string{ //nolint:gosec
 	"service update":        "usage: composia service <service> update [--detach] [--wait] [--follow] [--timeout duration] [--node node] [--image name] [--use-detected] [--all-detected] [--set-image name=tag] [--recreate auto|never|always]\n",
 	"service restart":       "usage: composia service <service> restart [--detach] [--wait] [--follow] [--timeout duration] [--node node]\n",
 	"service backup":        "usage: composia service <service> backup [--detach] [--wait] [--follow] [--timeout duration] [--node node] [--data name]\n",
+	"service image-check":   "usage: composia service <service> image-check [--detach] [--wait] [--follow] [--timeout duration] [--node node]\n",
 	"service dns-update":    "usage: composia service <service> dns-update [--detach] [--wait] [--follow] [--timeout duration] [--node node]\n",
 	"service caddy-sync":    "usage: composia service <service> caddy-sync [--detach] [--wait] [--follow] [--timeout duration] [--node node]\n",
 	"service tunnel-sync":   "usage: composia service <service> tunnel-sync [--detach] [--wait] [--follow] [--timeout duration]\n",
@@ -310,6 +311,10 @@ var commandHelp = map[string]commandHelpInfo{
 	"service backup": {
 		description: "Create a backup for a service or one data entry defined in composia-meta.yaml.",
 		examples:    []string{"composia service vaultwarden backup", "composia service vaultwarden backup --data app-data"},
+	},
+	"service image-check": {
+		description: "Check configured service images for available updates.",
+		examples:    []string{"composia service vaultwarden image-check", "composia service vaultwarden image-check --node miniserver"},
 	},
 	"service dns-update": {
 		description: "Run the DNS update task for a service.",
@@ -451,7 +456,7 @@ Per-service actions:
 `); err != nil {
 		return err
 	}
-	for _, action := range []string{"edit", "up", "down", actionUpdate, actionRestart, "backup", "dns-update", "caddy-sync", "tunnel-sync", "migrate", "updates", "logs", "ps", "exec"} {
+	for _, action := range []string{"edit", "up", "down", actionUpdate, actionRestart, "backup", "image-check", "dns-update", "caddy-sync", "tunnel-sync", "migrate", "updates", "logs", "ps", "exec"} {
 		key := "service " + action
 		if _, err := fmt.Fprintf(w, "  %-14s %s\n", action, commandHelp[key].description); err != nil {
 			return err

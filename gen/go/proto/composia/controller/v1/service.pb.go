@@ -43,6 +43,8 @@ const (
 	ServiceAction_SERVICE_ACTION_CADDY_SYNC ServiceAction = 7
 	// SERVICE_ACTION_CLOUDFLARE_TUNNEL_SYNC syncs related Cloudflare Tunnel configuration.
 	ServiceAction_SERVICE_ACTION_CLOUDFLARE_TUNNEL_SYNC ServiceAction = 8
+	// SERVICE_ACTION_IMAGE_CHECK checks configured images for available updates.
+	ServiceAction_SERVICE_ACTION_IMAGE_CHECK ServiceAction = 9
 )
 
 // Enum value maps for ServiceAction.
@@ -57,6 +59,7 @@ var (
 		6: "SERVICE_ACTION_DNS_UPDATE",
 		7: "SERVICE_ACTION_CADDY_SYNC",
 		8: "SERVICE_ACTION_CLOUDFLARE_TUNNEL_SYNC",
+		9: "SERVICE_ACTION_IMAGE_CHECK",
 	}
 	ServiceAction_value = map[string]int32{
 		"SERVICE_ACTION_UNSPECIFIED":            0,
@@ -68,6 +71,7 @@ var (
 		"SERVICE_ACTION_DNS_UPDATE":             6,
 		"SERVICE_ACTION_CADDY_SYNC":             7,
 		"SERVICE_ACTION_CLOUDFLARE_TUNNEL_SYNC": 8,
+		"SERVICE_ACTION_IMAGE_CHECK":            9,
 	}
 )
 
@@ -2141,7 +2145,7 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"\x14ListServicesResponse\x12B\n" +
 	"\bservices\x18\x01 \x03(\v2&.composia.controller.v1.ServiceSummaryR\bservices\x12\x1f\n" +
 	"\vtotal_count\x18\x02 \x01(\rR\n" +
-	"totalCount*\x9e\x02\n" +
+	"totalCount*\xbe\x02\n" +
 	"\rServiceAction\x12\x1e\n" +
 	"\x1aSERVICE_ACTION_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15SERVICE_ACTION_DEPLOY\x10\x01\x12\x19\n" +
@@ -2151,7 +2155,8 @@ const file_proto_composia_controller_v1_service_proto_rawDesc = "" +
 	"\x15SERVICE_ACTION_BACKUP\x10\x05\x12\x1d\n" +
 	"\x19SERVICE_ACTION_DNS_UPDATE\x10\x06\x12\x1d\n" +
 	"\x19SERVICE_ACTION_CADDY_SYNC\x10\a\x12)\n" +
-	"%SERVICE_ACTION_CLOUDFLARE_TUNNEL_SYNC\x10\b*\xad\x01\n" +
+	"%SERVICE_ACTION_CLOUDFLARE_TUNNEL_SYNC\x10\b\x12\x1e\n" +
+	"\x1aSERVICE_ACTION_IMAGE_CHECK\x10\t*\xad\x01\n" +
 	"\x13ComposeRecreateMode\x12%\n" +
 	"!COMPOSE_RECREATE_MODE_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aCOMPOSE_RECREATE_MODE_AUTO\x10\x01\x12%\n" +

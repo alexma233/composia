@@ -408,6 +408,7 @@ export const de = {
       updateAvailable: "Update verfügbar",
       noChecks: "Noch keine Image-Update-Prüfungen.",
       loadFailed: "Laden der Image-Update-Prüfungen fehlgeschlagen.",
+      checkNow: "Jetzt prüfen",
       applyAllDetected: "Alle erkannten anwenden",
       applyDetected: "Erkannte anwenden",
       imageTagPlaceholder: "name=tag",

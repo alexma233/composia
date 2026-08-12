@@ -390,6 +390,7 @@ export const zhHant = {
       updateAvailable: "有可用更新",
       noChecks: "暫無映像檔更新檢查結果。",
       loadFailed: "載入映像檔更新檢查失敗。",
+      checkNow: "立即檢查",
       applyAllDetected: "套用所有偵測到的更新",
       applyDetected: "套用偵測到的候選",
       imageTagPlaceholder: "名稱=標籤",

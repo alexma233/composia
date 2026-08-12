@@ -411,6 +411,7 @@ export const fr = {
       noChecks: "Aucune vérification de mise à jour d'image pour l'instant.",
       loadFailed:
         "Échec du chargement des vérifications de mise à jour d'image.",
+      checkNow: "Vérifier maintenant",
       applyAllDetected: "Appliquer toutes les détectées",
       applyDetected: "Appliquer les détectées",
       imageTagPlaceholder: "nom=tag",

@@ -587,7 +587,7 @@ func completeConfigKeys(cmd *cobra.Command, args []string, toComplete string) ([
 }
 
 func serviceActionCompletions() []string {
-	return []string{"backup", "caddy-sync", "dns-update", "down", "edit", "exec", "logs", "migrate", "ps", actionRestart, "tunnel-sync", actionUpdate, "updates", "up"}
+	return []string{"backup", "caddy-sync", "dns-update", "down", "edit", "exec", "image-check", "logs", "migrate", "ps", actionRestart, "tunnel-sync", actionUpdate, "updates", "up"}
 }
 
 func filterCompletions(values []string, prefix string) []string {

@@ -127,11 +127,11 @@ func TestChooseEditor(t *testing.T) {
 }
 
 func TestServiceActionFromName(t *testing.T) {
-	action, err := serviceActionFromName("dns-update")
+	action, err := serviceActionFromName("image-check")
 	if err != nil {
 		t.Fatalf("serviceActionFromName returned error: %v", err)
 	}
-	if action != controllerv1.ServiceAction_SERVICE_ACTION_DNS_UPDATE {
+	if action != controllerv1.ServiceAction_SERVICE_ACTION_IMAGE_CHECK {
 		t.Fatalf("action = %v", action)
 	}
 	if _, err := serviceActionFromName("bad"); err == nil {
