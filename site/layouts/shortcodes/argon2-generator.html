@@ -1,0 +1,219 @@
+{{- $translations := dict
+  "en" (dict
+    "privacy" "Generated locally in your browser. Your password is never sent or stored."
+    "password" "Password"
+    "confirm" "Confirm password"
+    "generate" "Generate .env entry"
+    "generating" "Generating…"
+    "result" ".env entry"
+    "copy" "Copy"
+    "copied" "Copied."
+    "mismatch" "Passwords do not match."
+    "failed" "Could not generate the hash in this browser."
+  )
+  "de" (dict
+    "privacy" "Die Berechnung erfolgt lokal im Browser. Das Passwort wird weder übertragen noch gespeichert."
+    "password" "Passwort"
+    "confirm" "Passwort bestätigen"
+    "generate" ".env-Eintrag erzeugen"
+    "generating" "Wird erzeugt…"
+    "result" ".env-Eintrag"
+    "copy" "Kopieren"
+    "copied" "Kopiert."
+    "mismatch" "Die Passwörter stimmen nicht überein."
+    "failed" "Der Hash konnte in diesem Browser nicht erzeugt werden."
+  )
+  "fr" (dict
+    "privacy" "Le calcul est effectué localement dans votre navigateur. Le mot de passe n’est ni envoyé ni stocké."
+    "password" "Mot de passe"
+    "confirm" "Confirmer le mot de passe"
+    "generate" "Générer l’entrée .env"
+    "generating" "Génération…"
+    "result" "Entrée .env"
+    "copy" "Copier"
+    "copied" "Copié."
+    "mismatch" "Les mots de passe ne correspondent pas."
+    "failed" "Impossible de générer le hash dans ce navigateur."
+  )
+  "ja" (dict
+    "privacy" "ブラウザー内でローカルに計算します。パスワードは送信も保存もされません。"
+    "password" "パスワード"
+    "confirm" "パスワードの確認"
+    "generate" ".env エントリーを生成"
+    "generating" "生成中…"
+    "result" ".env エントリー"
+    "copy" "コピー"
+    "copied" "コピーしました。"
+    "mismatch" "パスワードが一致しません。"
+    "failed" "このブラウザーではハッシュを生成できませんでした。"
+  )
+  "zh-hans" (dict
+    "privacy" "仅在浏览器本地计算，密码不会被发送或存储。"
+    "password" "密码"
+    "confirm" "确认密码"
+    "generate" "生成 .env 配置"
+    "generating" "正在生成…"
+    "result" ".env 配置"
+    "copy" "复制"
+    "copied" "已复制。"
+    "mismatch" "两次输入的密码不一致。"
+    "failed" "无法在此浏览器中生成哈希。"
+  )
+  "zh-hant" (dict
+    "privacy" "僅在瀏覽器本機計算，密碼不會被傳送或儲存。"
+    "password" "密碼"
+    "confirm" "確認密碼"
+    "generate" "產生 .env 設定"
+    "generating" "正在產生…"
+    "result" ".env 設定"
+    "copy" "複製"
+    "copied" "已複製。"
+    "mismatch" "兩次輸入的密碼不一致。"
+    "failed" "無法在此瀏覽器中產生雜湊。"
+  )
+-}}
+{{- $text := index $translations .Page.Language.Lang | default (index $translations "en") -}}
+
+<div
+  class="argon2-generator not-prose"
+  data-argon2-generator
+  data-generating="{{ index $text "generating" }}"
+  data-mismatch="{{ index $text "mismatch" }}"
+  data-failed="{{ index $text "failed" }}"
+  data-copied="{{ index $text "copied" }}"
+>
+  <p>{{ index $text "privacy" }}</p>
+  <form>
+    <label>
+      <span>{{ index $text "password" }}</span>
+      <input name="password" type="password" autocomplete="new-password" required>
+    </label>
+    <label>
+      <span>{{ index $text "confirm" }}</span>
+      <input name="confirmation" type="password" autocomplete="new-password" required>
+    </label>
+    <button type="submit">{{ index $text "generate" }}</button>
+  </form>
+  <div data-result hidden>
+    <label>
+      <span>{{ index $text "result" }}</span>
+      <textarea rows="3" readonly spellcheck="false"></textarea>
+    </label>
+    <button type="button" data-copy>{{ index $text "copy" }}</button>
+  </div>
+  <p data-status role="status" aria-live="polite"></p>
+</div>
+
+<style>
+  .argon2-generator {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+  }
+  .argon2-generator form,
+  .argon2-generator [data-result] {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .argon2-generator label span {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+  }
+  .argon2-generator input,
+  .argon2-generator textarea {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0.625rem;
+    color: inherit;
+    background: transparent;
+    border: 1px solid #9ca3af;
+    border-radius: 0.375rem;
+  }
+  .argon2-generator button {
+    width: fit-content;
+    padding: 0.625rem 0.875rem;
+    color: white;
+    font-weight: 600;
+    background: #2563eb;
+    border: 0;
+    border-radius: 0.375rem;
+    cursor: pointer;
+  }
+  .argon2-generator button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+  .argon2-generator [data-result] {
+    margin-top: 1rem;
+  }
+  .argon2-generator [data-status] {
+    min-height: 1.5rem;
+    margin: 0.5rem 0 0;
+  }
+  html.dark .argon2-generator {
+    border-color: #404040;
+  }
+</style>
+
+<script src="/vendor/hash-wasm/4.12.0/argon2.umd.min.js"></script>
+<script>
+  (() => {
+    for (const root of document.querySelectorAll("[data-argon2-generator]:not([data-ready])")) {
+      root.dataset.ready = "true";
+      const form = root.querySelector("form");
+      const password = form.elements.password;
+      const confirmation = form.elements.confirmation;
+      const submit = form.querySelector("button");
+      const result = root.querySelector("[data-result]");
+      const output = result.querySelector("textarea");
+      const status = root.querySelector("[data-status]");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (password.value !== confirmation.value) {
+          status.textContent = root.dataset.mismatch;
+          confirmation.focus();
+          return;
+        }
+
+        submit.disabled = true;
+        status.textContent = root.dataset.generating;
+        result.hidden = true;
+        await new Promise(requestAnimationFrame);
+
+        try {
+          const hash = await hashwasm.argon2id({
+            password: password.value,
+            salt: crypto.getRandomValues(new Uint8Array(16)),
+            parallelism: 1,
+            iterations: 3,
+            memorySize: 65536,
+            hashLength: 32,
+            outputType: "encoded",
+          });
+          output.value = `WEB_LOGIN_PASSWORD_HASH='${hash}'`;
+          password.value = "";
+          confirmation.value = "";
+          result.hidden = false;
+          status.textContent = "";
+        } catch {
+          status.textContent = root.dataset.failed;
+        } finally {
+          submit.disabled = false;
+        }
+      });
+
+      root.querySelector("[data-copy]").addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(output.value);
+          status.textContent = root.dataset.copied;
+        } catch {
+          output.focus();
+          output.select();
+        }
+      });
+    }
+  })();
+</script>
