@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://forgejo.alexma.top/alexma233/composia#community-and-support
+    about: Do not open a public issue. Follow the private reporting instructions in the README.
+  - name: Community support
+    url: https://t.me/composia
+    about: Ask usage and troubleshooting questions in the Telegram group.

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Primary issue tracker
+    url: https://forgejo.alexma.top/alexma233/composia/issues
+    about: Prefer Forgejo when you can; it is the primary Composia issue tracker.
+  - name: Security vulnerability
+    url: https://github.com/alexma233/composia#community-and-support
+    about: Do not open a public issue. Follow the private reporting instructions in the README.
+  - name: Community support
+    url: https://t.me/composia
+    about: Ask usage and troubleshooting questions in the Telegram group.

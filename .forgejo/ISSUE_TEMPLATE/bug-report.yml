@@ -1,0 +1,92 @@
+name: Bug report
+about: Report a reproducible problem with Composia
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Composia. For security vulnerabilities, do not open a public issue; email support@composia.xyz instead.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and found no duplicate.
+          required: true
+        - label: I removed passwords, tokens, private keys, and other sensitive data.
+          required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Composia version
+      description: Use an exact release, commit, or image tag.
+      placeholder: v1.2.3
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      options:
+        - Controller
+        - Agent
+        - CLI
+        - Web UI
+        - Installation or packaging
+        - Documentation
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Include the OS, architecture, deployment method, and browser when relevant.
+      placeholder: Debian 13, amd64, Docker Compose, Firefox 128
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the problem and its impact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest sequence that reliably reproduces the problem.
+      placeholder: |
+        1. Configure ...
+        2. Run ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: Explain what you expected to happen instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Paste only the relevant output after removing sensitive data.
+      render: shell
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add screenshots, configuration excerpts, or related links if useful.

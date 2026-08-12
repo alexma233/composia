@@ -1,0 +1,61 @@
+name: Feature request
+description: Suggest an improvement to Composia
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to suggest an improvement.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and found no duplicate request.
+          required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Related component
+      options:
+        - Controller
+        - Agent
+        - CLI
+        - Web UI
+        - Installation or packaging
+        - Documentation
+        - Cross-component
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What limitation or workflow problem should this solve? Include a concrete use case.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the smallest outcome that would solve the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe current workarounds or other approaches you considered.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add examples, mockups, or related links if useful.
