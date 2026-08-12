@@ -573,17 +573,17 @@ func (s *dockerServer) ListVolumes(ctx context.Context, req *connect.Request[age
 		return nil, err
 	}
 
-	diskUsage, err := s.client.DiskUsage(ctx)
-	if err != nil {
-		// Continue even if disk usage fails
-		log.Printf("failed to get Docker disk usage: %v", err)
-	}
-
 	volumeMap := make(map[string]int64)
-	if diskUsage.Volumes.Items != nil {
-		for _, v := range diskUsage.Volumes.Items {
-			if v.UsageData != nil {
-				volumeMap[v.Name] = v.UsageData.Size
+	if req.Msg.GetIncludeSizes() {
+		diskUsage, err := s.client.DiskUsage(ctx)
+		if err != nil {
+			log.Printf("failed to get Docker disk usage: %v", err)
+		}
+		if diskUsage.Volumes.Items != nil {
+			for _, v := range diskUsage.Volumes.Items {
+				if v.UsageData != nil {
+					volumeMap[v.Name] = v.UsageData.Size
+				}
 			}
 		}
 	}

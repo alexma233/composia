@@ -58,6 +58,7 @@
   let sortField = $state<DockerVolumeSortField>(defaultSortField);
   let sortDirection = $state<DockerListSortDirection>('asc');
   let currentPage = $state(1);
+  let showSizes = $state(false);
   let refreshing = $state(false);
   let removeBusyId = $state('');
   let removeDialogOpen = $state(false);
@@ -78,6 +79,7 @@
     debouncedSearchQuery = data.search;
     sortField = data.sortBy as DockerVolumeSortField;
     sortDirection = data.sortDirection as DockerListSortDirection;
+    showSizes = data.showSizes;
   });
 
   $effect(() => {
@@ -89,13 +91,14 @@
       currentPage === data.page &&
       debouncedSearchQuery === data.search &&
       sortField === data.sortBy &&
-      sortDirection === data.sortDirection
+      sortDirection === data.sortDirection &&
+      showSizes === data.showSizes
     ) {
       return;
     }
 
     refreshing = true;
-    void goto(pageUrl(currentPage, debouncedSearchQuery, sortField, sortDirection), {
+    void goto(pageUrl(currentPage, debouncedSearchQuery, sortField, sortDirection, showSizes), {
       keepFocus: true,
       noScroll: true,
       replaceState:
@@ -110,8 +113,9 @@
     search: string,
     nextSortField: DockerVolumeSortField,
     nextSortDirection: DockerListSortDirection,
+    nextShowSizes = showSizes,
   ) {
-    return buildDockerListPageUrl(
+    const url = buildDockerListPageUrl(
       currentPath,
       {
         page: pageNumber,
@@ -121,6 +125,8 @@
       },
       defaultSortField,
     );
+    if (!nextShowSizes) return url;
+    return `${url}${url.includes('?') ? '&' : '?'}showSizes=true`;
   }
 
   async function refreshVolumes() {
@@ -209,7 +215,24 @@
     currentPage = 1;
     flushSearchDebounce();
   }
+
+  function toggleSizes() {
+    showSizes = !showSizes;
+    currentPage = 1;
+  }
 </script>
+
+{#snippet toolbarActions()}
+  <Button
+    variant={showSizes ? 'secondary' : 'outline'}
+    size="sm"
+    aria-pressed={showSizes}
+    onclick={toggleSizes}
+    disabled={loading || !data.ready}
+  >
+    {$messages.docker.volumes.showSizes}
+  </Button>
+{/snippet}
 
 <svelte:head>
   <title>{$messages.docker.volumes.title} - {$messages.app.name}</title>
@@ -231,7 +254,9 @@
       error={loadError}
       searchId="volume-search"
       searchPlaceholder={$messages.docker.volumes.searchPlaceholder}
-      loadingText={`${$messages.common.loading} ${$messages.docker.volumes.title}...`}
+      loadingText={showSizes
+        ? $messages.docker.volumes.loadingWithUsage
+        : `${$messages.common.loading} ${$messages.docker.volumes.title}...`}
       emptyText={$messages.docker.volumes.noVolumes}
       noResultsText={$messages.common.noData}
       countSummary={data.totalCount > volumes.length
@@ -244,6 +269,7 @@
       onSearchInput={handleSearchInput}
       onClearSearch={clearSearch}
       onRefresh={refreshVolumes}
+      {toolbarActions}
     >
           <Table>
             <TableCaption class="sr-only">{$messages.docker.volumes.tableCaption}</TableCaption>
@@ -251,7 +277,7 @@
               <TableRow>
                 <SortableTableHead field="name" label={$messages.common.name} {sortField} {sortDirection} onSort={handleSort} />
                 <SortableTableHead field="driver" label={$messages.docker.volumes.driver} {sortField} {sortDirection} onSort={handleSort} />
-                <TableHead>{$messages.docker.volumes.size}</TableHead>
+                {#if showSizes}<TableHead>{$messages.docker.volumes.size}</TableHead>{/if}
                 <TableHead>{$messages.docker.volumes.usage}</TableHead>
                 <TableHead>{$messages.docker.volumes.mountpoint}</TableHead>
                 <TableHead>{$messages.docker.volumes.scope}</TableHead>
@@ -288,9 +314,11 @@
                   <TableCell>
                     <Badge variant="outline">{volume.driver}</Badge>
                   </TableCell>
-                  <TableCell>
-                    <span class="text-sm">{formatBytes(volume.sizeBytes)}</span>
-                  </TableCell>
+                  {#if showSizes}
+                    <TableCell>
+                      <span class="text-sm">{formatBytes(volume.sizeBytes)}</span>
+                    </TableCell>
+                  {/if}
                   <TableCell>
                     {#if volume.inUse}
                       <Badge variant="default">{volume.containersCount} {$messages.docker.containers.title}</Badge>

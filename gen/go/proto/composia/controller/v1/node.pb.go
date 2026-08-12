@@ -1944,7 +1944,9 @@ type ListNodeVolumesRequest struct {
 	// sort_by identifies the field used to sort results.
 	SortBy string `protobuf:"bytes,5,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
 	// sort_desc reverses the sort order when true.
-	SortDesc      bool `protobuf:"varint,6,opt,name=sort_desc,json=sortDesc,proto3" json:"sort_desc,omitempty"`
+	SortDesc bool `protobuf:"varint,6,opt,name=sort_desc,json=sortDesc,proto3" json:"sort_desc,omitempty"`
+	// include_sizes requests Docker's potentially expensive volume size calculation.
+	IncludeSizes  bool `protobuf:"varint,7,opt,name=include_sizes,json=includeSizes,proto3" json:"include_sizes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2017,6 +2019,13 @@ func (x *ListNodeVolumesRequest) GetSortBy() string {
 func (x *ListNodeVolumesRequest) GetSortDesc() bool {
 	if x != nil {
 		return x.SortDesc
+	}
+	return false
+}
+
+func (x *ListNodeVolumesRequest) GetIncludeSizes() bool {
+	if x != nil {
+		return x.IncludeSizes
 	}
 	return false
 }
@@ -2810,14 +2819,15 @@ const file_proto_composia_controller_v1_node_proto_rawDesc = "" +
 	"\n" +
 	"network_id\x18\x02 \x01(\tR\tnetworkId\"7\n" +
 	"\x1aInspectNodeNetworkResponse\x12\x19\n" +
-	"\braw_json\x18\x01 \x01(\tR\arawJson\"\xb0\x01\n" +
+	"\braw_json\x18\x01 \x01(\tR\arawJson\"\xd5\x01\n" +
 	"\x16ListNodeVolumesRequest\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\rR\bpageSize\x12\x12\n" +
 	"\x04page\x18\x03 \x01(\rR\x04page\x12\x16\n" +
 	"\x06search\x18\x04 \x01(\tR\x06search\x12\x17\n" +
 	"\asort_by\x18\x05 \x01(\tR\x06sortBy\x12\x1b\n" +
-	"\tsort_desc\x18\x06 \x01(\bR\bsortDesc\"\xec\x02\n" +
+	"\tsort_desc\x18\x06 \x01(\bR\bsortDesc\x12#\n" +
+	"\rinclude_sizes\x18\a \x01(\bR\fincludeSizes\"\xec\x02\n" +
 	"\n" +
 	"VolumeInfo\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +

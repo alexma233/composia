@@ -25,12 +25,13 @@ export function controllerRpcHeaders(
   token: string,
   controllerHeaders: Record<string, string>,
   extraHeaders: Record<string, string> = {},
+  timeoutMs = controllerRpcTimeoutMs,
 ) {
   return {
     ...controllerHeaders,
     Authorization: `Bearer ${token}`,
     "Connect-Protocol-Version": "1",
-    "Connect-Timeout-Ms": String(controllerRpcTimeoutMs),
+    "Connect-Timeout-Ms": String(timeoutMs),
     "Content-Type": "application/json",
     "X-Composia-Source": "web",
     ...extraHeaders,
@@ -90,6 +91,7 @@ export async function controllerRpcCall<T>(options: {
         options.token,
         options.controllerHeaders,
         options.extraHeaders,
+        options.timeoutMs,
       ),
       body: JSON.stringify(options.body),
       signal: deadline.signal,

@@ -342,6 +342,8 @@ message ListNodeVolumesRequest {
   string sort_by = 5;
   // sort_desc reverses the sort order when true.
   bool sort_desc = 6;
+  // include_sizes requests Docker's potentially expensive volume size calculation.
+  bool include_sizes = 7;
 }
 
 // VolumeInfo describes one Docker volume for node-scoped list views.

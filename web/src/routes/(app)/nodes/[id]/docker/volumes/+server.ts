@@ -17,7 +17,10 @@ export const GET: RequestHandler = async ({ params, url }) => {
   }
 
   try {
-    const result = await listNodeVolumes(params.id, parseDockerListQuery(url));
+    const result = await listNodeVolumes(params.id, {
+      ...parseDockerListQuery(url),
+      includeSizes: url.searchParams.get("showSizes") === "true",
+    });
     return json({ volumes: result.items, totalCount: result.totalCount });
   } catch (error) {
     return jsonControllerError(error, "Failed to load volumes", {

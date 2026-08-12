@@ -6,6 +6,29 @@ import (
 	"time"
 )
 
+func TestDockerVolumeSizeQueryCarriesOptInAndExtendedTimeout(t *testing.T) {
+	t.Parallel()
+
+	query := dockerAgentQuery{
+		QueryID:      "query",
+		NodeID:       "main",
+		Action:       dockerActionList,
+		Resource:     dockerResourceVolumes,
+		IncludeSizes: true,
+		Timeout:      dockerVolumeSizeQueryTimeout,
+	}
+	message, err := dockerProtoQueryTask(query)
+	if err != nil {
+		t.Fatalf("build Docker query: %v", err)
+	}
+	if !message.GetListVolumes().GetIncludeSizes() {
+		t.Fatal("expected volume size opt-in to reach the agent")
+	}
+	if got := dockerQueryTTL(query); got != 6*time.Minute {
+		t.Fatalf("volume size query TTL = %s", got)
+	}
+}
+
 func TestDockerQueryBrokerExpiresPendingAssignedAndResults(t *testing.T) {
 	t.Parallel()
 

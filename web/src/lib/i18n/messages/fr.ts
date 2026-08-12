@@ -911,6 +911,7 @@ export const fr = {
         "Chargement des volumes et des données d'utilisation...",
       countSummary: "Affichage de {shown} sur {total} volumes",
       size: "Taille",
+      showSizes: "Afficher les tailles",
       usage: "Utilisation",
       unused: "Inutilisé",
       backToVolumes: "Retour aux volumes",

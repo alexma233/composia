@@ -17,6 +17,7 @@ export const load: PageServerLoad = async ({ depends, params, url }) => {
     volumeSortFields,
     defaultVolumeSortField,
   );
+  const showSizes = url.searchParams.get("showSizes") === "true";
 
   if (!config.ready) {
     return {
@@ -30,6 +31,7 @@ export const load: PageServerLoad = async ({ depends, params, url }) => {
       search: query.search,
       sortBy: query.sortBy,
       sortDirection: query.sortDirection,
+      showSizes,
     };
   }
 
@@ -40,6 +42,7 @@ export const load: PageServerLoad = async ({ depends, params, url }) => {
       search: query.search,
       sortBy: query.sortBy,
       sortDesc: query.sortDesc,
+      includeSizes: showSizes,
     });
 
     return {
@@ -53,6 +56,7 @@ export const load: PageServerLoad = async ({ depends, params, url }) => {
       search: query.search,
       sortBy: query.sortBy,
       sortDirection: query.sortDirection,
+      showSizes,
     };
   } catch (error) {
     return {
@@ -66,6 +70,7 @@ export const load: PageServerLoad = async ({ depends, params, url }) => {
       search: query.search,
       sortBy: query.sortBy,
       sortDirection: query.sortDirection,
+      showSizes,
     };
   }
 };

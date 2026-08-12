@@ -25,15 +25,16 @@ import (
 )
 
 const (
-	heartbeatInterval      = 15 * time.Second
-	heartbeatTimeout       = 10 * time.Second
-	pullNextTaskTimeout    = 30 * time.Second
-	taskReportTimeout      = 10 * time.Second
-	taskExecutionTimeout   = 6 * time.Hour
-	taskRetryAfterPollFail = 1 * time.Second
-	composeRecreateAuto    = "auto"
-	composeRecreateNo      = "no_recreate"
-	composeRecreateForce   = "force_recreate"
+	heartbeatInterval            = 15 * time.Second
+	heartbeatTimeout             = 10 * time.Second
+	pullNextTaskTimeout          = 30 * time.Second
+	taskReportTimeout            = 10 * time.Second
+	taskExecutionTimeout         = 6 * time.Hour
+	taskRetryAfterPollFail       = 1 * time.Second
+	dockerVolumeSizeQueryTimeout = 300 * time.Second
+	composeRecreateAuto          = "auto"
+	composeRecreateNo            = "no_recreate"
+	composeRecreateForce         = "force_recreate"
 )
 
 func Run(ctx context.Context, configPath string) error {
@@ -434,7 +435,7 @@ func pollAndRunDockerQuery(ctx context.Context, taskClient agentv1connect.AgentT
 	}
 
 	query := response.Msg.GetQuery()
-	queryCtx, queryCancel := context.WithTimeout(ctx, pullNextTaskTimeout)
+	queryCtx, queryCancel := context.WithTimeout(ctx, dockerQueryTimeout(query))
 	defer queryCancel()
 
 	result, queryErr := executeDockerQuery(queryCtx, query)
@@ -455,6 +456,13 @@ func pollAndRunDockerQuery(ctx context.Context, taskClient agentv1connect.AgentT
 		return fmt.Errorf("report docker query result: %w", err)
 	}
 	return nil
+}
+
+func dockerQueryTimeout(query *agentv1.DockerQueryTask) time.Duration {
+	if query.GetListVolumes().GetIncludeSizes() {
+		return dockerVolumeSizeQueryTimeout
+	}
+	return pullNextTaskTimeout
 }
 
 func sleepWithContext(ctx context.Context, duration time.Duration) bool {

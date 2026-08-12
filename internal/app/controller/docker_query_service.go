@@ -22,7 +22,7 @@ func (server *dockerQueryServer) ListNodeContainers(ctx context.Context, req *co
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
 
-	result, err := server.executeDockerListQuery(ctx, req.Header(), req.Msg.GetNodeId(), dockerResourceContainers, req.Msg.GetPage(), req.Msg.GetPageSize(), req.Msg.GetSearch(), req.Msg.GetSortBy(), req.Msg.GetSortDesc())
+	result, err := server.executeDockerListQuery(ctx, req.Header(), req.Msg.GetNodeId(), dockerResourceContainers, req.Msg.GetPage(), req.Msg.GetPageSize(), req.Msg.GetSearch(), req.Msg.GetSortBy(), req.Msg.GetSortDesc(), false)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (server *dockerQueryServer) ListNodeNetworks(ctx context.Context, req *conn
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
 
-	result, err := server.executeDockerListQuery(ctx, req.Header(), req.Msg.GetNodeId(), dockerResourceNetworks, req.Msg.GetPage(), req.Msg.GetPageSize(), req.Msg.GetSearch(), req.Msg.GetSortBy(), req.Msg.GetSortDesc())
+	result, err := server.executeDockerListQuery(ctx, req.Header(), req.Msg.GetNodeId(), dockerResourceNetworks, req.Msg.GetPage(), req.Msg.GetPageSize(), req.Msg.GetSearch(), req.Msg.GetSortBy(), req.Msg.GetSortDesc(), false)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (server *dockerQueryServer) ListNodeVolumes(ctx context.Context, req *conne
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
 
-	result, err := server.executeDockerListQuery(ctx, req.Header(), req.Msg.GetNodeId(), dockerResourceVolumes, req.Msg.GetPage(), req.Msg.GetPageSize(), req.Msg.GetSearch(), req.Msg.GetSortBy(), req.Msg.GetSortDesc())
+	result, err := server.executeDockerListQuery(ctx, req.Header(), req.Msg.GetNodeId(), dockerResourceVolumes, req.Msg.GetPage(), req.Msg.GetPageSize(), req.Msg.GetSearch(), req.Msg.GetSortBy(), req.Msg.GetSortDesc(), req.Msg.GetIncludeSizes())
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func (server *dockerQueryServer) ListNodeImages(ctx context.Context, req *connec
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("node_id is required"))
 	}
 
-	result, err := server.executeDockerListQuery(ctx, req.Header(), req.Msg.GetNodeId(), dockerResourceImages, req.Msg.GetPage(), req.Msg.GetPageSize(), req.Msg.GetSearch(), req.Msg.GetSortBy(), req.Msg.GetSortDesc())
+	result, err := server.executeDockerListQuery(ctx, req.Header(), req.Msg.GetNodeId(), dockerResourceImages, req.Msg.GetPage(), req.Msg.GetPageSize(), req.Msg.GetSearch(), req.Msg.GetSortBy(), req.Msg.GetSortDesc(), false)
 	if err != nil {
 		return nil, err
 	}

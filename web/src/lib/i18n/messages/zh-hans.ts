@@ -872,6 +872,7 @@ export const zhHans = {
       loadingWithUsage: "正在加载卷和使用情况数据...",
       countSummary: "显示 {shown} / {total} 个卷",
       size: "大小",
+      showSizes: "显示大小",
       usage: "使用情况",
       unused: "未使用",
       backToVolumes: "返回卷列表",

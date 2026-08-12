@@ -897,6 +897,7 @@ export const enUS = {
       loadingWithUsage: "Loading volumes and usage data...",
       countSummary: "Showing {shown} of {total} volumes",
       size: "Size",
+      showSizes: "Show sizes",
       usage: "Usage",
       unused: "Unused",
       backToVolumes: "Back to volumes",

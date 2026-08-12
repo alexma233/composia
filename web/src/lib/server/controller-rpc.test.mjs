@@ -22,6 +22,13 @@ Deno.test("builds unary controller headers with a shared deadline", () => {
   );
 });
 
+Deno.test("builds unary controller headers with a custom deadline", () => {
+  assertEquals(
+    controllerRpcHeaders("token", {}, {}, 310_000)["Connect-Timeout-Ms"],
+    "310000",
+  );
+});
+
 Deno.test(
   "aborts unary controller RPCs when the request is cancelled",
   async () => {

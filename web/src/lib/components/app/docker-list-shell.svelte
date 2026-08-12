@@ -49,6 +49,7 @@
     onSearchInput: () => void;
     onClearSearch: () => void;
     onRefresh: () => void | Promise<void>;
+    toolbarActions?: Snippet;
     children?: Snippet;
   }
 
@@ -75,6 +76,7 @@
     onSearchInput,
     onClearSearch,
     onRefresh,
+    toolbarActions,
     children,
   }: Props = $props();
 </script>
@@ -120,6 +122,7 @@
           {$messages.common.cancel}
         </Button>
       {/if}
+      {@render toolbarActions?.()}
       <Button
         variant="outline"
         size="sm"

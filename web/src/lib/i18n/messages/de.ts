@@ -905,6 +905,7 @@ export const de = {
       loadingWithUsage: "Lade Volumes und Nutzungsdaten...",
       countSummary: "{shown} von {total} Volumes angezeigt",
       size: "Größe",
+      showSizes: "Größen anzeigen",
       usage: "Nutzung",
       unused: "Ungenutzt",
       backToVolumes: "Zurück zu Volumes",

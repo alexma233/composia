@@ -872,6 +872,7 @@ export const zhHant = {
       loadingWithUsage: "正在載入卷和使用情況資料...",
       countSummary: "顯示 {shown} / {total} 個卷",
       size: "大小",
+      showSizes: "顯示大小",
       usage: "使用情況",
       unused: "未使用",
       backToVolumes: "返回卷列表",

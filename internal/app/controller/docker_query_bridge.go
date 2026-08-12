@@ -22,28 +22,30 @@ import (
 )
 
 const (
-	dockerQueryMaxWait      = 30 * time.Second
-	dockerQueryCleanupGrace = time.Minute
+	dockerQueryMaxWait           = 30 * time.Second
+	dockerVolumeSizeQueryTimeout = 300 * time.Second
+	dockerQueryCleanupGrace      = time.Minute
 )
 
 type dockerAgentQuery struct {
-	QueryID    string
-	NodeID     string
-	Action     string
-	Resource   string
-	ID         string
-	Tail       string
-	Timestamps bool
-	PageSize   uint32
-	Page       uint32
-	Search     string
-	SortBy     string
-	SortDesc   bool
-	Command    []string
-	Stdin      []byte
-	Timeout    time.Duration
-	MaxOutput  uint64
-	expiresAt  time.Time
+	QueryID      string
+	NodeID       string
+	Action       string
+	Resource     string
+	ID           string
+	Tail         string
+	Timestamps   bool
+	PageSize     uint32
+	Page         uint32
+	Search       string
+	SortBy       string
+	SortDesc     bool
+	IncludeSizes bool
+	Command      []string
+	Stdin        []byte
+	Timeout      time.Duration
+	MaxOutput    uint64
+	expiresAt    time.Time
 }
 
 type dockerAgentQueryResult struct {
@@ -437,16 +439,22 @@ func executeDockerAgentQuery(ctx context.Context, db *store.DB, cfg *config.Cont
 	return result, nil
 }
 
-func (server *dockerQueryServer) executeDockerListQuery(ctx context.Context, header http.Header, nodeID, resource string, page, pageSize uint32, search, sortBy string, sortDesc bool) (*dockerListResult, error) {
+func (server *dockerQueryServer) executeDockerListQuery(ctx context.Context, header http.Header, nodeID, resource string, page, pageSize uint32, search, sortBy string, sortDesc, includeSizes bool) (*dockerListResult, error) {
 	_ = header
+	timeout := time.Duration(0)
+	if resource == dockerResourceVolumes && includeSizes {
+		timeout = dockerVolumeSizeQueryTimeout
+	}
 	result, err := executeDockerAgentQuery(ctx, server.db, server.cfg, server.dockerQueries, nodeID, dockerAgentQuery{
-		Action:   dockerActionList,
-		Resource: resource,
-		Page:     page,
-		PageSize: pageSize,
-		Search:   search,
-		SortBy:   sortBy,
-		SortDesc: sortDesc,
+		Action:       dockerActionList,
+		Resource:     resource,
+		Page:         page,
+		PageSize:     pageSize,
+		Search:       search,
+		SortBy:       sortBy,
+		SortDesc:     sortDesc,
+		IncludeSizes: includeSizes,
+		Timeout:      timeout,
 	})
 	if err != nil {
 		return nil, err
@@ -508,7 +516,7 @@ func dockerProtoQueryTask(query dockerAgentQuery) (*agentv1.DockerQueryTask, err
 		case dockerResourceNetworks:
 			message.Query = &agentv1.DockerQueryTask_ListNetworks{ListNetworks: &agentv1.ListNetworksRequest{PageSize: query.PageSize, Page: query.Page, Search: query.Search, SortBy: query.SortBy, SortDesc: query.SortDesc}}
 		case dockerResourceVolumes:
-			message.Query = &agentv1.DockerQueryTask_ListVolumes{ListVolumes: &agentv1.ListVolumesRequest{PageSize: query.PageSize, Page: query.Page, Search: query.Search, SortBy: query.SortBy, SortDesc: query.SortDesc}}
+			message.Query = &agentv1.DockerQueryTask_ListVolumes{ListVolumes: &agentv1.ListVolumesRequest{PageSize: query.PageSize, Page: query.Page, Search: query.Search, SortBy: query.SortBy, SortDesc: query.SortDesc, IncludeSizes: query.IncludeSizes}}
 		case dockerResourceImages:
 			message.Query = &agentv1.DockerQueryTask_ListImages{ListImages: &agentv1.ListImagesRequest{PageSize: query.PageSize, Page: query.Page, Search: query.Search, SortBy: query.SortBy, SortDesc: query.SortDesc}}
 		default:

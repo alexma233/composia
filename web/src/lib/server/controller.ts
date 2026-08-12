@@ -1901,6 +1901,12 @@ export type DockerListQuery = {
   sortDesc?: boolean;
 };
 
+export type DockerVolumeListQuery = DockerListQuery & {
+  includeSizes?: boolean;
+};
+
+const dockerVolumeSizeRpcTimeoutMs = 310_000;
+
 export function controllerErrorStatus(error: unknown, fallback = 500): number {
   if (error instanceof ControllerRpcError) {
     return error.status;
@@ -2147,7 +2153,7 @@ export async function removeNodeNetwork(
 
 export async function listNodeVolumes(
   nodeId: string,
-  query: DockerListQuery = {},
+  query: DockerVolumeListQuery = {},
 ): Promise<PaginatedResult<DockerVolumeSummary>> {
   const config = requireControllerConfig();
   const response = await rpcCall<{
@@ -2180,7 +2186,10 @@ export async function listNodeVolumes(
       search: query.search ?? "",
       sortBy: query.sortBy ?? "",
       sortDesc: query.sortDesc ?? false,
+      includeSizes: query.includeSizes ?? false,
     },
+    {},
+    query.includeSizes ? dockerVolumeSizeRpcTimeoutMs : undefined,
   );
   return {
     items: (response.volumes ?? []).map((v) => ({
@@ -2569,6 +2578,7 @@ async function rpcCall<T>(
   procedure: string,
   body: RpcRequest,
   extraHeaders: Record<string, string> = {},
+  timeoutMs?: number,
 ): Promise<T> {
   return controllerRpcCall<T>({
     baseUrl,
@@ -2578,5 +2588,6 @@ async function rpcCall<T>(
     controllerHeaders: parseControllerHeaders(),
     extraHeaders,
     requestSignal: currentRequestSignal(),
+    timeoutMs,
   });
 }

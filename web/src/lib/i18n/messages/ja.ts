@@ -904,6 +904,7 @@ export const ja = {
       loadingWithUsage: "ボリュームと使用状況データを読み込み中...",
       countSummary: "{total} 件中 {shown} 件のボリュームを表示",
       size: "サイズ",
+      showSizes: "サイズを表示",
       usage: "使用状況",
       unused: "未使用",
       backToVolumes: "ボリューム一覧に戻る",

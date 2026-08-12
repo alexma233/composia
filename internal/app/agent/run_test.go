@@ -6,11 +6,25 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
 )
+
+func TestDockerQueryTimeoutOnlyExtendsVolumeSizeQueries(t *testing.T) {
+	t.Parallel()
+
+	regular := &agentv1.DockerQueryTask{Query: &agentv1.DockerQueryTask_ListVolumes{ListVolumes: &agentv1.ListVolumesRequest{}}}
+	withSizes := &agentv1.DockerQueryTask{Query: &agentv1.DockerQueryTask_ListVolumes{ListVolumes: &agentv1.ListVolumesRequest{IncludeSizes: true}}}
+	if got := dockerQueryTimeout(regular); got != 30*time.Second {
+		t.Fatalf("regular query timeout = %s", got)
+	}
+	if got := dockerQueryTimeout(withSizes); got != 300*time.Second {
+		t.Fatalf("volume size query timeout = %s", got)
+	}
+}
 
 func TestParseSize(t *testing.T) {
 	t.Parallel()

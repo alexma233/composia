@@ -1857,6 +1857,7 @@ ListNodeVolumesRequest identifies the node whose volumes should be listed.
 | search | [string](#string) |  | search is a case-insensitive substring match across key fields. |
 | sort_by | [string](#string) |  | sort_by identifies the field used to sort results. |
 | sort_desc | [bool](#bool) |  | sort_desc reverses the sort order when true. |
+| include_sizes | [bool](#bool) |  | include_sizes requests Docker&#39;s potentially expensive volume size calculation. |
 
 
 
