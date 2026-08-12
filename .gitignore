@@ -227,3 +227,4 @@ sessions/
 
 # PI sub-agents
 .pi-subagents/
+.pi/
