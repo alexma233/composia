@@ -572,7 +572,7 @@
               <div class="grid gap-4 md:grid-cols-2">
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base" level="3"
+                    <CardTitle class="text-base" level="2"
                       >{$messages.docker.containers.general}</CardTitle
                     >
                   </CardHeader>
@@ -645,7 +645,7 @@
 
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base" level="3"
+                    <CardTitle class="text-base" level="2"
                       >{$messages.docker.containers.runtime}</CardTitle
                     >
                   </CardHeader>
@@ -748,7 +748,7 @@
 
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base" level="3"
+                  <CardTitle class="text-base" level="2"
                     >{$messages.docker.containers.process}</CardTitle
                   >
                 </CardHeader>
@@ -796,7 +796,7 @@
                     class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
-                      <CardTitle class="text-base" level="3"
+                      <CardTitle class="text-base" level="2"
                         >{$messages.docker.containers.containerLogs}</CardTitle
                       >
                       <CardDescription
@@ -844,7 +844,7 @@
             <TabsContent value="terminal" class="space-y-4">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base" level="3"
+                  <CardTitle class="text-base" level="2"
                     >{$messages.docker.containers.terminal.title}</CardTitle
                   >
                   <CardDescription
@@ -940,7 +940,7 @@
               <div class="grid gap-4 md:grid-cols-2">
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base" level="3"
+                    <CardTitle class="text-base" level="2"
                       >{$messages.docker.containers.configuration}</CardTitle
                     >
                   </CardHeader>
@@ -1053,7 +1053,7 @@
 
                 <Card>
                   <CardHeader class="pb-3">
-                    <CardTitle class="text-base" level="3"
+                    <CardTitle class="text-base" level="2"
                       >{$messages.docker.containers.hostConfig}</CardTitle
                     >
                   </CardHeader>
@@ -1153,7 +1153,7 @@
             <TabsContent value="env" class="space-y-4">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base" level="3"
+                  <CardTitle class="text-base" level="2"
                     >{$messages.docker.containers.environment}</CardTitle
                   >
                 </CardHeader>
@@ -1187,7 +1187,7 @@
             <TabsContent value="network" class="space-y-4">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base" level="3"
+                  <CardTitle class="text-base" level="2"
                     >{$messages.docker.containers.portBindings}</CardTitle
                   >
                 </CardHeader>
@@ -1226,7 +1226,7 @@
 
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base" level="3"
+                  <CardTitle class="text-base" level="2"
                     >{$messages.docker.containers.exposedPorts}</CardTitle
                   >
                 </CardHeader>
@@ -1247,7 +1247,7 @@
 
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base" level="3"
+                  <CardTitle class="text-base" level="2"
                     >{$messages.docker.containers.networkSettings}</CardTitle
                   >
                 </CardHeader>
@@ -1289,7 +1289,7 @@
             <TabsContent value="volumes" class="space-y-4">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base" level="3"
+                  <CardTitle class="text-base" level="2"
                     >{$messages.docker.containers.mounts}</CardTitle
                   >
                 </CardHeader>
@@ -1345,7 +1345,7 @@
             <TabsContent value="labels" class="space-y-4">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base" level="3"
+                  <CardTitle class="text-base" level="2"
                     >{$messages.docker.containers.containerLabels}</CardTitle
                   >
                 </CardHeader>
@@ -1378,7 +1378,7 @@
             <TabsContent value="raw">
               <Card>
                 <CardHeader class="pb-3">
-                  <CardTitle class="text-base" level="3"
+                  <CardTitle class="text-base" level="2"
                     >{$messages.docker.containers.rawJson}</CardTitle
                   >
                   <CardDescription>

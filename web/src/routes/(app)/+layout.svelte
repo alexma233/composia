@@ -127,6 +127,9 @@
           {#each visibleLinks as link}
             <a
               href={link.href}
+              aria-current={isActive(link.href, pathname)
+                ? "page"
+                : undefined}
               class={cn(
                 "nav-pill",
                 isActive(link.href, $page.url.pathname)
@@ -211,7 +214,11 @@
     </div>
   </header>
 
-  <main id="main-content" aria-busy={Boolean(navigating.to)}>
+  <main
+    id="main-content"
+    tabindex="-1"
+    aria-busy={Boolean(navigating.to)}
+  >
     {@render children?.()}
   </main>
 </div>

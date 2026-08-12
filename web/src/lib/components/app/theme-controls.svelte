@@ -34,8 +34,8 @@
 </script>
 
 <div class="space-y-4">
-  <div class="space-y-2">
-    <div class="text-sm font-medium text-foreground">{$messages.preferences.theme}</div>
+  <fieldset class="space-y-2">
+    <legend class="text-sm font-medium text-foreground">{$messages.preferences.theme}</legend>
     <div class="toolbar-surface flex flex-wrap items-center gap-2">
       {#each themeOptions as option}
         <Button
@@ -43,6 +43,7 @@
           size="sm"
           class="min-w-24 justify-start"
           aria-label={$messages.preferences[option.labelKey]}
+          aria-pressed={$themeMode === option.value}
           onclick={() => setThemeMode(option.value)}
         >
           <svelte:component this={option.icon} />
@@ -50,10 +51,10 @@
         </Button>
       {/each}
     </div>
-  </div>
+  </fieldset>
 
-  <div class="space-y-2">
-    <div class="text-sm font-medium text-foreground">{$messages.preferences.accent}</div>
+  <fieldset class="space-y-2">
+    <legend class="text-sm font-medium text-foreground">{$messages.preferences.accent}</legend>
     <div class="toolbar-surface flex flex-wrap items-center gap-2">
       {#each availableAccentColors as accent}
         <Button
@@ -72,10 +73,10 @@
         </Button>
       {/each}
     </div>
-  </div>
+  </fieldset>
 
-  <div class="space-y-2">
-    <div class="text-sm font-medium text-foreground">{$messages.preferences.locale}</div>
+  <fieldset class="space-y-2">
+    <legend class="text-sm font-medium text-foreground">{$messages.preferences.locale}</legend>
     <div class="toolbar-surface flex flex-wrap items-center gap-2">
       {#each availableLocales as locale}
         <Button
@@ -83,11 +84,12 @@
           size="sm"
           class="min-w-24 justify-start"
           aria-label={localeLabels[locale]}
+          aria-pressed={$preferredLocale === locale}
           onclick={() => setPreferredLocale(locale)}
         >
           {localeLabels[locale]}
         </Button>
       {/each}
     </div>
-  </div>
+  </fieldset>
 </div>

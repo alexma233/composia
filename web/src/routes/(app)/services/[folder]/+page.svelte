@@ -1950,7 +1950,11 @@
             </div>
           </div>
 
-          <div class="flex flex-wrap gap-2">
+          <div
+            class="flex flex-wrap gap-2"
+            role="group"
+            aria-label={$messages.services.files.editor}
+          >
             {#each openTabs as tab}
               <div
                 class="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-sm"
@@ -1959,7 +1963,9 @@
               >
                 <button
                   type="button"
-                  class="max-w-48 truncate"
+                  class="min-h-6 max-w-48 truncate"
+                  aria-pressed={tab.path === activePath ||
+                    (splitEnabled && tab.path === secondaryPath)}
                   onclick={() => {
                     activePath = tab.path;
                     focusPane("primary");
@@ -1971,8 +1977,9 @@
                 {#if splitEnabled && tab.path !== activePath}
                   <button
                     type="button"
-                    class="text-xs text-muted-foreground hover:text-foreground"
+                    class="inline-flex size-6 items-center justify-center text-xs text-muted-foreground hover:text-foreground"
                     onclick={() => openInSecondary(tab.path)}
+                    aria-label={$messages.services.files.openInSplit}
                     title={$messages.services.files.openInSplit}
                   >
                     <Columns2 class="size-3.5" />
@@ -1980,7 +1987,7 @@
                 {/if}
                 <button
                   type="button"
-                  class="text-xs text-muted-foreground hover:text-foreground"
+                  class="inline-flex size-6 items-center justify-center text-xs text-muted-foreground hover:text-foreground"
                   aria-label={$messages.common.close}
                   title={$messages.common.close}
                   onclick={() => closeTab(tab.path)}
@@ -2354,6 +2361,8 @@
                     <input
                       type="text"
                       bind:value={setImageInput}
+                      aria-label={$messages.services.imageUpdates
+                        .imageTagPlaceholder}
                       placeholder={$messages.services.imageUpdates
                         .imageTagPlaceholder}
                       class="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm placeholder:text-muted-foreground"
