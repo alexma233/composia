@@ -8,7 +8,14 @@ services:
     entrypoint:
       - sh
       - -ec
-      - if [ ! -d .git ]; then git init; fi
+      - |
+        git config --global --add safe.directory /data/repo-controller
+        if [ ! -d .git ]; then git init; fi
+        if ! git rev-parse --verify HEAD >/dev/null 2>&1; then
+          git config user.name "Composia"
+          git config user.email "composia@example.com"
+          git commit --allow-empty -m "Initialize Composia repository"
+        fi
     volumes:
       - ${COMPOSIA_CONTROLLER_REPO_DIR}:/data/repo-controller
 
