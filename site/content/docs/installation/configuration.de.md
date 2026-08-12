@@ -28,6 +28,10 @@ Wenn dieselbe Konfigurationsdatei beide Abschnitte enthält, wird der lokale Age
 - `controller.nodes` muss einen Eintrag mit `id: main` enthalten.
 - `controller.repo_dir` und `agent.repo_dir` dürfen nicht derselbe Pfad sein.
 
+Setze `controller.remote_config.enabled` nur dann auf `true`, wenn die authentifizierte CLI und Web-UI die eingeschränkte Controller-Konfigurationsansicht bearbeiten dürfen. Das Controller-Konfigurationsverzeichnis muss für den Controller-Prozess beschreibbar sein; die standardmäßige Docker-Compose-Bereitstellung bindet es für diese optionale Funktion beschreibbar ein.
+
+Der Editor stellt ein künstliches YAML-Dokument bereit, nicht die vollständige Konfiguration. Ausgelassene bearbeitbare Felder behalten ihre aktuellen Werte. Unbekannte Felder, YAML-Aliase, Merge-Schlüssel, das Hinzufügen oder Entfernen von Nodes sowie alle Secret- und Zugangsdatenfelder werden abgelehnt. Aktualisierungen verwenden eine Dateirevision und atomaren Austausch. Eine erfolgreiche Antwort bedeutet, dass die neue Konfiguration validiert und das Neuladen des Controller-Laufzeitprozesses eingeplant wurde. Falls der neue Laufzeitprozess nicht bereit wird, stellt der Controller die vorherige Konfiguration wieder her.
+
 ## Vollständige Konfigurationsvorlage
 
 Diese Vorlage zeigt jeden unterstützten installationsbezogenen Schlüssel. Sie ist eine Formreferenz, kein kopierbarer Standard. Entferne Abschnitte, die du nicht verwendest, entferne leere Listeneinträge und verwende entweder Inline-Werte oder `_file`-Werte für jedes secret-artige Feld.
@@ -38,6 +42,10 @@ controller:
   repo_dir: "/data/repo-controller"
   state_dir: "/data/state-controller"
   log_dir: "/data/logs"
+
+  # Der CLI- und Web-UI-Editor ist standardmäßig deaktiviert.
+  remote_config:
+    enabled: false
 
   access_tokens:
     - name: "web"
@@ -256,10 +264,12 @@ secrets:
 | `git` | `object` | Remote-Synchronisation des Sollzustand-Repositories. |
 | `notifications` | `object` | Alertmanager-, SMTP- und Telegram-Benachrichtigungen. |
 | `dns` | `object` | DNS-Provider-Anmeldeinformationen. |
+| `cloudflare_tunnel` | `object` | Cloudflare-Tunnel-Integration. Siehe [Cloudflare-Tunnel-Leitfaden](/docs/guide/cloudflare-tunnel/). |
 | `rustic` | `object` | Rustic-Wartungseinstellungen. |
 | `secrets` | `object` | Age-Verschlüsselungseinstellungen. |
 | `updates` | `object` | Image-Update-Standardwerte und Forge-API-Auth. |
 | `auto_deploy` | `object` | Globale Auto-Deploy-Umschalter. |
+| `remote_config` | `object` | Optionaler Zugriff zum Bearbeiten der eingeschränkten Controller-Konfigurationsansicht. |
 
 ### `nodes[]`
 

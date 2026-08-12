@@ -28,6 +28,10 @@ agent:
 - `controller.nodes` には `id: main` のエントリが含まれている必要があります。
 - `controller.repo_dir` と `agent.repo_dir` は同じパスであってはいけません。
 
+認証済みの CLI と Web UI に制限付きのコントローラー設定ビューを編集させる場合にのみ、`controller.remote_config.enabled` を `true` に設定してください。コントローラーのプロセスが設定ディレクトリへ書き込める必要があります。標準の Docker Compose デプロイでは、この任意機能のために書き込み可能でマウントされます。
+
+エディターが公開するのは完全な設定ではなく、擬似的な YAML ドキュメントです。省略した編集可能フィールドは現在の値を維持します。不明なフィールド、YAML エイリアス、マージキー、ノードの追加や削除、シークレットおよび認証情報の全フィールドは拒否されます。更新にはファイルリビジョンとアトミックな置換が使われます。成功応答は、新しい設定の検証が完了し、コントローラーのランタイム再読み込みが予約されたことを意味します。新しいランタイムが準備完了にならない場合、コントローラーは以前の設定を復元します。
+
 ## 完全な設定テンプレート
 
 このテンプレートはサポートされているすべてのインストールレベルのキーを示しています。形のリファレンスであり、コピー＆ペースト用のデフォルトではありません。使用しないセクションは削除し、空のリスト項目は削除し、各シークレット系フィールドにはインライン値または `_file` 値のいずれかを使用してください。
@@ -38,6 +42,10 @@ controller:
   repo_dir: "/data/repo-controller"
   state_dir: "/data/state-controller"
   log_dir: "/data/logs"
+
+  # CLI と Web UI の設定エディターは明示的に有効化しない限り無効です。
+  remote_config:
+    enabled: false
 
   access_tokens:
     - name: "web"
@@ -256,10 +264,12 @@ secrets:
 | `git` | `object` | 期待状態リポジトリのリモート同期。 |
 | `notifications` | `object` | Alertmanager、SMTP、Telegram 通知。 |
 | `dns` | `object` | DNS プロバイダー認証情報。 |
+| `cloudflare_tunnel` | `object` | Cloudflare Tunnel 連携。[Cloudflare Tunnel ガイド](/docs/guide/cloudflare-tunnel/)を参照してください。 |
 | `rustic` | `object` | Rustic メンテナンス設定。 |
 | `secrets` | `object` | Age 暗号化設定。 |
 | `updates` | `object` | イメージ更新デフォルトと forge API 認証。 |
 | `auto_deploy` | `object` | グローバル自動デプロイトグル。 |
+| `remote_config` | `object` | 制限付きコントローラー設定ビューの編集を許可する任意機能。 |
 
 ### `nodes[]`
 

@@ -28,6 +28,10 @@ agent:
 - `controller.nodes` 必須包含一個帶有 `id: main` 的項目。
 - `controller.repo_dir` 和 `agent.repo_dir` 不得為相同路徑。
 
+只有在需要讓已驗證的 CLI 與 Web UI 編輯受限的控制器設定檢視時，才將 `controller.remote_config.enabled` 設為 `true`。控制器程序必須能寫入設定目錄；預設 Docker Compose 部署會為這項選用功能提供可寫入的掛載。
+
+編輯器提供的是模擬 YAML 文件，而非完整設定。省略的可編輯欄位會保留目前值；未知欄位、YAML 別名、合併鍵、節點增刪以及所有密鑰或憑證欄位都會被拒絕。更新使用檔案修訂版本與不可分割的替換。成功回應表示新設定已通過驗證，並已排程控制器執行階段重新載入。如果替換後的執行階段無法就緒，控制器會還原先前的設定。
+
 ## 完整設定範本
 
 此範本顯示每個支援的安裝層級鍵。它是結構參考，而非可直接複製貼上的預設值。移除您不使用的區段、移除空清單項目，並對每個類似密鑰的欄位使用內聯值或 `_file` 值。
@@ -38,6 +42,10 @@ controller:
   repo_dir: "/data/repo-controller"
   state_dir: "/data/state-controller"
   log_dir: "/data/logs"
+
+  # CLI 與 Web UI 設定編輯器預設為停用。
+  remote_config:
+    enabled: false
 
   access_tokens:
     - name: "web"
@@ -256,10 +264,12 @@ secrets:
 | `git` | `object` | 期望狀態存放庫遠端同步。 |
 | `notifications` | `object` | Alertmanager、SMTP 和 Telegram 通知。 |
 | `dns` | `object` | DNS 提供者憑證。 |
+| `cloudflare_tunnel` | `object` | Cloudflare Tunnel 整合。請參見 [Cloudflare Tunnel 指南](/docs/guide/cloudflare-tunnel/)。 |
 | `rustic` | `object` | Rustic 維護設定。 |
 | `secrets` | `object` | Age 加密設定。 |
 | `updates` | `object` | 映像檔更新預設值和 forge API 驗證。 |
 | `auto_deploy` | `object` | 全域自動部署開關。 |
+| `remote_config` | `object` | 選用啟用受限控制器設定檢視的遠端編輯。 |
 
 ### `nodes[]`
 

@@ -264,6 +264,7 @@ secrets:
 | `git` | `object` | Desired-state repository remote sync. |
 | `notifications` | `object` | Alertmanager, SMTP, and Telegram notifications. |
 | `dns` | `object` | DNS provider credentials. |
+| `cloudflare_tunnel` | `object` | Cloudflare Tunnel integration. See the [Cloudflare Tunnel guide](/docs/guide/cloudflare-tunnel/). |
 | `rustic` | `object` | Rustic maintenance settings. |
 | `secrets` | `object` | Age encryption settings. |
 | `updates` | `object` | Image update defaults and forge API auth. |

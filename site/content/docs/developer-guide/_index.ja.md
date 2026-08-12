@@ -6,6 +6,7 @@ weight: 40
 
 Composia への貢献や統合の構築のためのリソース:
 
+- [ローカル開発](local-development/) - ローカルアプリスタック、チェック、コード生成、E2E テストを実行します。
 - [ソースビルド](source-build/) - ソースからバイナリとローカルコンテナイメージをビルドします。
 - [Controller リファレンス](api/controller-reference/) - コントローラの公開 API。
 - [Agent 内部リファレンス](api/agent-internal-reference/) - エージェント-サーバー RPC プロトコル。

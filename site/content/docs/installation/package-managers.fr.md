@@ -180,7 +180,7 @@ Les unités empaquetées utilisent les chemins de configuration par défaut :
 | `composia-controller.service` | `/etc/composia/controller/config.yaml` |
 | `composia-agent.service` | `/etc/composia/agent/config.yaml` |
 
-The packaged units use the default config paths, run as root as shipped, and do not create config files, data directories, or Git repositories for you. Bootstrap them before enabling services:
+Les unités fournies utilisent les chemins de configuration par défaut, s'exécutent en tant que root et ne créent pas les fichiers de configuration, répertoires de données ou dépôts Git. Préparez-les avant d'activer les services :
 
 ```bash
 sudo install -d -m 0755 /etc/composia/controller /etc/composia/agent
@@ -195,7 +195,7 @@ sudo git -C /var/lib/composia/controller/repo init
 sudo git -C /var/lib/composia/agent/repo init
 ```
 
-Use matching paths in the two config files:
+Utilisez des chemins correspondants dans les deux fichiers de configuration :
 
 ```yaml {filename="/etc/composia/controller/config.yaml"}
 controller:
@@ -210,7 +210,7 @@ agent:
   state_dir: "/var/lib/composia/agent/state"
 ```
 
-Verify ownership, write access, and Git initialization:
+Vérifiez la propriété, l'accès en écriture et l'initialisation Git :
 
 ```bash
 stat -c '%U:%G %a %n' \
@@ -225,7 +225,7 @@ sudo git -C /var/lib/composia/controller/repo rev-parse --is-inside-work-tree
 sudo git -C /var/lib/composia/agent/repo rev-parse --is-inside-work-tree
 ```
 
-If you add a systemd drop-in with `User=`, chown these paths to that service user instead.
+Si vous ajoutez un complément systemd avec `User=`, attribuez plutôt ces chemins à cet utilisateur de service.
 
 Après avoir créé les fichiers de configuration, activez les services explicitement :
 

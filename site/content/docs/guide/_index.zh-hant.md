@@ -8,6 +8,7 @@ weight: 30
 
 - [服務設定](service/) - `composia-meta.yaml`、服務目標、網路設定、更新、備份與遷移。
 - [DNS](dns/) - DNS 提供者設定與自動記錄管理。
+- [Cloudflare Tunnel](cloudflare-tunnel/) - Cloudflare Tunnel 入口規則與 DNS CNAME 管理。
 - [反向代理](reverse-proxy/) - Caddy 整合、同步與重新載入。
 - [備份](backups/) - Rustic 驅動的備份、還原與維護。
 - [遷移](migrate/) - 在節點間移動服務並維持資料完整性。

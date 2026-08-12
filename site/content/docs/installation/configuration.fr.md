@@ -28,6 +28,10 @@ Lorsque le même fichier de configuration contient les deux sections, l'agent lo
 - `controller.nodes` doit inclure une entrée avec `id: main`.
 - `controller.repo_dir` et `agent.repo_dir` ne doivent pas être le même chemin.
 
+Définissez `controller.remote_config.enabled` sur `true` uniquement pour autoriser la CLI et l'interface web authentifiées à modifier la projection restreinte de la configuration du contrôleur. Le répertoire de configuration du contrôleur doit être accessible en écriture par le processus du contrôleur ; le déploiement Docker Compose par défaut le monte en écriture pour cette fonctionnalité optionnelle.
+
+L'éditeur expose un faux document YAML, et non la configuration complète. Les champs modifiables omis conservent leurs valeurs actuelles. Les champs inconnus, les alias YAML, les clés de fusion, l'ajout ou la suppression de nœuds et tous les champs de secrets ou d'identifiants sont rejetés. Les mises à jour utilisent une révision de fichier et un remplacement atomique. Une réponse réussie signifie que la nouvelle configuration a été validée et que le rechargement du contrôleur a été planifié. Si le nouveau runtime ne devient pas prêt, le contrôleur restaure la configuration précédente.
+
 ## Modèle de configuration complet
 
 Ce modèle montre chaque clé prise en charge au niveau de l'installation. C'est une référence de structure, pas un défaut à copier-coller. Supprimez les sections que vous n'utilisez pas, supprimez les éléments de liste vides et utilisez soit des valeurs en ligne, soit des valeurs `_file` pour chaque champ de type secret.
@@ -38,6 +42,10 @@ controller:
   repo_dir: "/data/repo-controller"
   state_dir: "/data/state-controller"
   log_dir: "/data/logs"
+
+  # L'éditeur CLI et Web UI est désactivé sauf activation explicite.
+  remote_config:
+    enabled: false
 
   access_tokens:
     - name: "web"
@@ -256,10 +264,12 @@ secrets:
 | `git` | `object` | Synchronisation distante du dépôt d'état désiré. |
 | `notifications` | `object` | Notifications Alertmanager, SMTP et Telegram. |
 | `dns` | `object` | Identifiants des fournisseurs DNS. |
+| `cloudflare_tunnel` | `object` | Intégration Cloudflare Tunnel. Voir le [guide Cloudflare Tunnel](/docs/guide/cloudflare-tunnel/). |
 | `rustic` | `object` | Paramètres de maintenance Rustic. |
 | `secrets` | `object` | Paramètres de chiffrement age. |
 | `updates` | `object` | Valeurs par défaut de mise à jour d'images et authentification des API forges. |
 | `auto_deploy` | `object` | Bascule globales de déploiement automatique. |
+| `remote_config` | `object` | Accès optionnel à la modification de la projection restreinte de la configuration du contrôleur. |
 
 ### `nodes[]`
 

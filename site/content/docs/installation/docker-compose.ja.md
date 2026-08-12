@@ -41,7 +41,7 @@ stat -c '%g' /var/run/docker.sock
 COMPOSIA_AGENT_REPO_DIR=/data/repo-agent
 ```
 
-Set `agent.repo_dir` in `config.yaml` to the same absolute path.
+`config.yaml` の `agent.repo_dir` に同じ絶対パスを設定します。
 
 ## 基本的な `config.yaml`
 

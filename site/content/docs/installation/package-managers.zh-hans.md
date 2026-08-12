@@ -180,7 +180,7 @@ Linux 软件包会安装未启用的 controller 和 agent systemd 单元。安�
 | `composia-controller.service` | `/etc/composia/controller/config.yaml` |
 | `composia-agent.service` | `/etc/composia/agent/config.yaml` |
 
-The packaged units use the default config paths, run as root as shipped, and do not create config files, data directories, or Git repositories for you. Bootstrap them before enabling services:
+软件包中的单元使用默认配置路径，并以 root 身份运行；它们不会创建配置文件、数据目录或 Git 仓库。请在启用服务前完成初始化：
 
 ```bash
 sudo install -d -m 0755 /etc/composia/controller /etc/composia/agent
@@ -195,7 +195,7 @@ sudo git -C /var/lib/composia/controller/repo init
 sudo git -C /var/lib/composia/agent/repo init
 ```
 
-Use matching paths in the two config files:
+在两个配置文件中使用对应的路径：
 
 ```yaml {filename="/etc/composia/controller/config.yaml"}
 controller:
@@ -210,7 +210,7 @@ agent:
   state_dir: "/var/lib/composia/agent/state"
 ```
 
-Verify ownership, write access, and Git initialization:
+验证所有权、写入权限和 Git 初始化：
 
 ```bash
 stat -c '%U:%G %a %n' \
@@ -225,7 +225,7 @@ sudo git -C /var/lib/composia/controller/repo rev-parse --is-inside-work-tree
 sudo git -C /var/lib/composia/agent/repo rev-parse --is-inside-work-tree
 ```
 
-If you add a systemd drop-in with `User=`, chown these paths to that service user instead.
+如果添加了带 `User=` 的 systemd drop-in，请将这些路径的所有者改为对应的服务用户。
 
 创建配置文件后，显式启用服务：
 

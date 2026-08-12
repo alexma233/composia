@@ -180,7 +180,7 @@ Linux パッケージは、コントローラーとエージェント用の無�
 | `composia-controller.service` | `/etc/composia/controller/config.yaml` |
 | `composia-agent.service` | `/etc/composia/agent/config.yaml` |
 
-The packaged units use the default config paths, run as root as shipped, and do not create config files, data directories, or Git repositories for you. Bootstrap them before enabling services:
+パッケージのユニットはデフォルトの設定パスを使用し、出荷状態では root として実行されます。設定ファイル、データディレクトリ、Git リポジトリは作成されないため、サービスを有効化する前に準備してください：
 
 ```bash
 sudo install -d -m 0755 /etc/composia/controller /etc/composia/agent
@@ -195,7 +195,7 @@ sudo git -C /var/lib/composia/controller/repo init
 sudo git -C /var/lib/composia/agent/repo init
 ```
 
-Use matching paths in the two config files:
+2 つの設定ファイルで対応するパスを使用します：
 
 ```yaml {filename="/etc/composia/controller/config.yaml"}
 controller:
@@ -210,7 +210,7 @@ agent:
   state_dir: "/var/lib/composia/agent/state"
 ```
 
-Verify ownership, write access, and Git initialization:
+所有権、書き込み権限、Git の初期化を確認します：
 
 ```bash
 stat -c '%U:%G %a %n' \
@@ -225,7 +225,7 @@ sudo git -C /var/lib/composia/controller/repo rev-parse --is-inside-work-tree
 sudo git -C /var/lib/composia/agent/repo rev-parse --is-inside-work-tree
 ```
 
-If you add a systemd drop-in with `User=`, chown these paths to that service user instead.
+`User=` を指定した systemd ドロップインを追加する場合は、これらのパスの所有者をそのサービスユーザーに変更してください。
 
 設定ファイルを作成した後、明示的にサービスを有効化します:
 

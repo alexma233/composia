@@ -68,17 +68,17 @@ composia service my-app migrate --source main --target edge-1 --wait --follow --
 - L'instance source est arrêtée avant le transfert de données pour garantir la cohérence.
 - Pour les bases de données, utilisez les stratégies d'export (`database.pgdumpall` / `database.pgimport`).
 
-## Rollback
+## Restauration
 
-State rollback is currently available in the Web UI only. Open the migration task details, choose the recovery actions that match the failed step, and start rollback there.
+La restauration d'état est actuellement disponible uniquement dans l'interface web. Ouvrez les détails de la tâche de migration, choisissez les actions de récupération correspondant à l'étape ayant échoué, puis démarrez la restauration.
 
 | Action | Description |
 |--------|-------------|
-| `deploy_source` | Redeploy the service on the original source node. |
-| `stop_target` | Stop and clean up the service on the target node. |
-| `rollback_dns` | Sync DNS records back to the source node. |
+| `deploy_source` | Redéployer le service sur le nœud source d'origine. |
+| `stop_target` | Arrêter et nettoyer le service sur le nœud cible. |
+| `rollback_dns` | Resynchroniser les enregistrements DNS vers le nœud source. |
 
-The CLI does not have a `task rollback` command yet. You can still inspect and follow the migration task with:
+La CLI ne dispose pas encore de commande `task rollback`. Vous pouvez néanmoins inspecter et suivre la tâche de migration avec :
 
 ```bash
 composia task wait --follow --timeout 30m <task-id>

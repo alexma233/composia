@@ -8,6 +8,7 @@ Guides par fonctionnalité couvrant l'utilisation de chaque capacité de Composi
 
 - [Configuration des services](service/) — `composia-meta.yaml`, cibles de service, paramètres réseau, mises à jour, sauvegardes et migration.
 - [DNS](dns/) — configuration du fournisseur DNS et gestion automatique des enregistrements.
+- [Cloudflare Tunnel](cloudflare-tunnel/) — règles d'entrée Cloudflare Tunnel et gestion des CNAME DNS.
 - [Reverse proxy](reverse-proxy/) — intégration Caddy, synchronisation et rechargement.
 - [Sauvegardes](backups/) — sauvegarde, restauration et maintenance basées sur Rustic.
 - [Migration](migrate/) — déplacer des services entre nœuds avec intégrité des données.

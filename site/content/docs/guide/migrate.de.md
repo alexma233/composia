@@ -70,15 +70,15 @@ composia service my-app migrate --source main --target edge-1 --wait --follow --
 
 ## Rollback
 
-State rollback is currently available in the Web UI only. Open the migration task details, choose the recovery actions that match the failed step, and start rollback there.
+Ein Zustands-Rollback ist derzeit nur in der Web-UI verfügbar. Öffne die Details der Migrationsaufgabe, wähle die zum fehlgeschlagenen Schritt passenden Wiederherstellungsaktionen und starte dort den Rollback.
 
-| Action | Description |
+| Aktion | Beschreibung |
 |--------|-------------|
-| `deploy_source` | Redeploy the service on the original source node. |
-| `stop_target` | Stop and clean up the service on the target node. |
-| `rollback_dns` | Sync DNS records back to the source node. |
+| `deploy_source` | Dienst erneut auf dem ursprünglichen Quell-Node bereitstellen. |
+| `stop_target` | Dienst auf dem Ziel-Node stoppen und bereinigen. |
+| `rollback_dns` | DNS-Einträge wieder mit dem Quell-Node synchronisieren. |
 
-The CLI does not have a `task rollback` command yet. You can still inspect and follow the migration task with:
+Die CLI hat noch keinen Befehl `task rollback`. Die Migrationsaufgabe kann weiterhin so geprüft und verfolgt werden:
 
 ```bash
 composia task wait --follow --timeout 30m <task-id>

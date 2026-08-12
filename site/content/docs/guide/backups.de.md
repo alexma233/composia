@@ -139,7 +139,7 @@ Löse ein Restore über die Web-UI auf der Backups-Seite oder per CLI aus:
 composia backup restore --wait --follow --timeout 30m main <backup-id>
 ```
 
-The first argument is the target node. Use `--wait --follow` to block until the restore finishes and stream task logs.
+Das erste Argument ist der Ziel-Node. Mit `--wait --follow` wartet die CLI bis zum Abschluss der Wiederherstellung und streamt die Aufgabenprotokolle.
 
 Der Restore-Prozess:
 
@@ -167,7 +167,7 @@ composia rustic forget --service my-app --data uploads --yes --wait --follow mai
 composia rustic prune --yes --wait --follow main
 ```
 
-Use `--wait --follow` when you want the CLI to wait for the maintenance task and stream logs.
+Verwende `--wait --follow`, wenn die CLI auf die Wartungsaufgabe warten und deren Protokolle streamen soll.
 
 ## Siehe auch
 

@@ -41,7 +41,7 @@ Utilisez le même chemin absolu des deux côtés, par exemple :
 COMPOSIA_AGENT_REPO_DIR=/data/repo-agent
 ```
 
-Set `agent.repo_dir` in `config.yaml` to the same absolute path.
+Définissez `agent.repo_dir` dans `config.yaml` sur le même chemin absolu.
 
 ## `config.yaml` de base
 

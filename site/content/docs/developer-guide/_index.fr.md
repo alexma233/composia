@@ -6,6 +6,7 @@ weight: 40
 
 Ressources pour contribuer à Composia ou créer des intégrations :
 
+- [Développement local](local-development/) — exécuter la pile locale, les vérifications, la génération de code et les tests E2E.
 - [Build depuis les sources](source-build/) — compiler les binaires et les images de conteneur locales depuis les sources.
 - [Référence Controller](api/controller-reference/) — API publique du contrôleur.
 - [Référence interne Agent](api/agent-internal-reference/) — protocole RPC agent-serveur.

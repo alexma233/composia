@@ -139,7 +139,7 @@ Déclenchez une restauration via l'interface web depuis la page des sauvegardes 
 composia backup restore --wait --follow --timeout 30m main <backup-id>
 ```
 
-The first argument is the target node. Use `--wait --follow` to block until the restore finishes and stream task logs.
+Le premier argument est le nœud cible. Utilisez `--wait --follow` pour attendre la fin de la restauration et suivre les journaux de la tâche.
 
 Le processus de restauration :
 
@@ -167,7 +167,7 @@ composia rustic forget --service my-app --data uploads --yes --wait --follow mai
 composia rustic prune --yes --wait --follow main
 ```
 
-Use `--wait --follow` when you want the CLI to wait for the maintenance task and stream logs.
+Utilisez `--wait --follow` pour que la CLI attende la tâche de maintenance et suive ses journaux.
 
 ## Voir aussi
 

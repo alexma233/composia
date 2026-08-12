@@ -139,7 +139,7 @@ Web UI のバックアップページから、または CLI でリストアを�
 composia backup restore --wait --follow --timeout 30m main <backup-id>
 ```
 
-The first argument is the target node. Use `--wait --follow` to block until the restore finishes and stream task logs.
+最初の引数は対象ノードです。`--wait --follow` を指定すると、リストアの完了まで待機してタスクログを表示します。
 
 リストアプロセス:
 
@@ -167,7 +167,7 @@ composia rustic forget --service my-app --data uploads --yes --wait --follow mai
 composia rustic prune --yes --wait --follow main
 ```
 
-Use `--wait --follow` when you want the CLI to wait for the maintenance task and stream logs.
+CLI でメンテナンスタスクの完了を待ちながらログを表示するには、`--wait --follow` を使用します。
 
 ## 関連項目
 
