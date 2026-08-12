@@ -125,6 +125,30 @@ func TestFetchForgeReleaseTagsSkipsPrereleasesAcrossPages(t *testing.T) {
 	}
 }
 
+func TestFetchForgeReleaseTagsStripsConfiguredPrefix(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		_, _ = writer.Write([]byte(`[
+			{"tag_name":"version/2026.5.6"},
+			{"tag_name":"other/2026.8.0"},
+			{"tag_name":"version/2026.8.0-rc1","prerelease":true}
+		]`))
+	}))
+	defer server.Close()
+
+	source := repo.ImageUpdateDiscoverySource{Type: "github", Repo: "goauthentik/authentik", TagPrefix: "version/"}
+	cfg := &config.ControllerConfig{Updates: &config.ControllerUpdatesConfig{ForgeAuth: &config.ControllerUpdatesForgeAuth{GitHub: config.ForgeAuthConfigs{{APIURL: server.URL}}}}}
+
+	tags, err := fetchForgeReleaseTags(context.Background(), cfg, source, false)
+	if err != nil {
+		t.Fatalf("fetchForgeReleaseTags() error = %v", err)
+	}
+	if len(tags) != 1 || tags[0] != "2026.5.6" {
+		t.Fatalf("unexpected tags %+v", tags)
+	}
+}
+
 func TestForgeSourceFromRepoURLDetectsCodebergAsForgejo(t *testing.T) {
 	t.Parallel()
 

@@ -195,6 +195,15 @@ func fetchForgeReleaseTags(ctx context.Context, cfg *config.ControllerConfig, so
 				if !includePrerelease && release.Prerelease {
 					continue
 				}
+				if source.TagPrefix != "" {
+					if !strings.HasPrefix(tag, source.TagPrefix) {
+						continue
+					}
+					tag = strings.TrimSpace(strings.TrimPrefix(tag, source.TagPrefix))
+					if tag == "" {
+						continue
+					}
+				}
 				tags = append(tags, tag)
 			}
 			endpoint = forgeNextPageURL(response.Header.Values("Link"))

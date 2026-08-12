@@ -400,7 +400,9 @@ update:
           key: API_VERSION
       discovery:
         sources:
-          - type: auto
+          - type: github
+            repo: example/api
+            tag_prefix: version/
       filter:
         type: semver
         allow:
@@ -433,6 +435,9 @@ update:
 	if api.Filter == nil || api.Filter.Type != "semver" || len(api.Filter.Allow) != 2 {
 		t.Fatalf("unexpected api filter: %+v", api.Filter)
 	}
+	if len(api.Discovery.Sources) != 1 || api.Discovery.Sources[0].TagPrefix != "version/" {
+		t.Fatalf("unexpected api discovery: %+v", api.Discovery)
+	}
 	if api.AutoApply == nil || *api.AutoApply {
 		t.Fatalf("expected api auto_apply override false")
 	}
@@ -441,6 +446,15 @@ update:
 	}
 	if api.DigestPin == nil || *api.DigestPin {
 		t.Fatalf("expected api digest_pin override false")
+	}
+}
+
+func TestValidateImageUpdateDiscoverySourceRejectsTagPrefixForRegistry(t *testing.T) {
+	t.Parallel()
+
+	err := validateImageUpdateDiscoverySource("source", ImageUpdateDiscoverySource{Type: "registry", TagPrefix: "version/"}, &ImageUpdateFilter{Type: "semver"})
+	if err == nil || !strings.Contains(err.Error(), "tag_prefix") {
+		t.Fatalf("expected tag_prefix validation error, got %v", err)
 	}
 }
 

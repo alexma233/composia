@@ -269,7 +269,8 @@
         "repo": { "type": "string" },
         "repo_url": { "type": "string" },
         "project": { "type": "string" },
-        "api_url": { "type": "string" }
+        "api_url": { "type": "string" },
+        "tag_prefix": { "type": "string", "minLength": 1 }
       }
     },
     "image_update_filter": {

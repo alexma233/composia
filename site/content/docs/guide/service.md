@@ -269,6 +269,8 @@ Discovery source types:
 | `gitlab` | `project` | GitLab project ID or path. |
 | `forgejo` | `repo` | `repo` is `owner/repo`. |
 
+GitHub, GitLab, and Forgejo sources accept an optional `tag_prefix`. Only matching release tags are used, and the prefix is removed before filtering and image lookup.
+
 ### `filter`
 
 | Type | Required keys | Notes |

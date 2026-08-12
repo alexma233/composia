@@ -253,11 +253,12 @@ type ImageUpdateDiscovery struct {
 }
 
 type ImageUpdateDiscoverySource struct {
-	Type    string `yaml:"type"`
-	Repo    string `yaml:"repo"`
-	RepoURL string `yaml:"repo_url"`
-	Project string `yaml:"project"`
-	APIURL  string `yaml:"api_url"`
+	Type      string `yaml:"type"`
+	Repo      string `yaml:"repo"`
+	RepoURL   string `yaml:"repo_url"`
+	Project   string `yaml:"project"`
+	APIURL    string `yaml:"api_url"`
+	TagPrefix string `yaml:"tag_prefix"`
 }
 
 type ImageUpdateFilter struct {
@@ -1052,6 +1053,9 @@ func validateImageUpdateDiscovery(fieldPrefix string, discovery ImageUpdateDisco
 }
 
 func validateImageUpdateDiscoverySource(fieldPrefix string, source ImageUpdateDiscoverySource, filter *ImageUpdateFilter) error {
+	if source.TagPrefix != "" && !isForgeImageUpdateDiscoverySource(source.Type) {
+		return fmt.Errorf("%s.tag_prefix is only supported for github, gitlab, or forgejo sources", fieldPrefix)
+	}
 	switch strings.TrimSpace(source.Type) {
 	case "auto":
 		if strings.TrimSpace(source.RepoURL) != "" {
@@ -1081,6 +1085,15 @@ func validateImageUpdateDiscoverySource(fieldPrefix string, source ImageUpdateDi
 		return fmt.Errorf("%s.type is required", fieldPrefix)
 	default:
 		return fmt.Errorf("%s.type must be auto, probe, registry, digest, github, gitlab, or forgejo", fieldPrefix)
+	}
+}
+
+func isForgeImageUpdateDiscoverySource(sourceType string) bool {
+	switch strings.TrimSpace(sourceType) {
+	case "github", "gitlab", "forgejo":
+		return true
+	default:
+		return false
 	}
 }
 

@@ -215,6 +215,8 @@ Discovery source types:
 | `gitlab` | `project` | Queries GitLab releases. Processed on the controller side. |
 | `forgejo` | `repo` (`owner/repo`) | Queries Forgejo releases. Processed on the controller side. |
 
+Forge sources accept an optional `tag_prefix`. When set, only matching release tags are used, and the prefix is removed before filtering and image lookup. For example, `tag_prefix: version/` maps `version/2026.5.6` to the image tag `2026.5.6`.
+
 `combine` accepts `merge` (union of all source results) or `first_success` (first source that returns results wins).
 
 `include_prerelease` includes pre-release versions in GitHub, GitLab, and Forgejo release queries.
