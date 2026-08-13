@@ -64,6 +64,33 @@ func (factory fakeDNSProviderFactory) ForService(_ *config.ControllerConfig, _ s
 	return factory.client, nil
 }
 
+func TestCloudflareDNSClientUsesConfiguredZones(t *testing.T) {
+	t.Parallel()
+
+	client, err := newCloudflareDNSClient(&config.CloudflareDNSConfig{
+		APIToken: "token",
+		Zones:    []string{"example.com", "sub.example.com."},
+	})
+	if err != nil {
+		t.Fatalf("create Cloudflare DNS client: %v", err)
+	}
+	zones, err := client.ListZones(context.Background())
+	if err != nil {
+		t.Fatalf("list configured Cloudflare zones: %v", err)
+	}
+	if len(zones) != 2 || zones[0].Name != "example.com." || zones[1].Name != "sub.example.com." {
+		t.Fatalf("unexpected Cloudflare zones: %+v", zones)
+	}
+
+	emptyClient, err := newCloudflareDNSClient(&config.CloudflareDNSConfig{APIToken: "token"})
+	if err != nil {
+		t.Fatalf("create Cloudflare DNS client without zones: %v", err)
+	}
+	if _, err := emptyClient.ListZones(context.Background()); err == nil {
+		t.Fatal("expected Cloudflare zones to be required")
+	}
+}
+
 func TestExecuteDNSUpdateTaskSyncsDualStackRecords(t *testing.T) {
 	t.Parallel()
 

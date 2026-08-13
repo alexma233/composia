@@ -149,6 +149,20 @@ controller:
       region_id: ""
       zones: []
 
+  cloudflare_tunnel:
+    account_id: ""
+    api_token: ""
+    api_token_file: ""
+    zones:
+      - "example.com"
+    tunnels:
+      edge:
+        tunnel_id: ""
+        fallback_service: "http_status:404"
+    nodes:
+      main:
+        tunnel: edge
+
   rustic:
     main_nodes:
       - "main"

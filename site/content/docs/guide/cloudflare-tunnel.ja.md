@@ -26,6 +26,8 @@ controller:
   cloudflare_tunnel:
     account_id: "REPLACE"
     api_token_file: /run/secrets/cloudflare-api-token
+    zones:
+      - example.com
     tunnels:
       edge:
         tunnel_id: "c1744f8b-faa1-48a4-9e5c-02ac921467fa"
@@ -39,6 +41,7 @@ controller:
 |-----|------|----------|-------------|
 | `account_id` | `string` | はい | Cloudflare アカウント ID。 |
 | `api_token` / `api_token_file` | `string` | はい | Cloudflare Tunnel 設定および DNS 書き込み権限を持つ API トークン。 |
+| `zones` | `[]string` | はい | この統合が管理できる Cloudflare ゾーン。ゾーン外のホスト名は拒否されます。 |
 | `tunnels` | `map` | はい | Cloudflare トンネル ID にマッピングされたトンネルエイリアス。 |
 | `nodes` | `map` | いいえ | サービスが `tunnel` を指定しない場合に使用されるデフォルトのノードからトンネルへのマッピング。 |
 

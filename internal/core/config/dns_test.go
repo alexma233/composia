@@ -2,6 +2,23 @@ package config
 
 import "testing"
 
+func TestCloudflareZonesAreRequired(t *testing.T) {
+	t.Parallel()
+
+	if err := validateControllerDNS(&ControllerDNSConfig{Cloudflare: &CloudflareDNSConfig{}}); err == nil {
+		t.Fatal("expected controller DNS Cloudflare zones to be required")
+	}
+	if err := validateControllerCloudflareTunnel(&ControllerCloudflareTunnelConfig{
+		AccountID: "account",
+		APIToken:  "token",
+		Tunnels: map[string]ControllerCloudflareTunnel{
+			"edge": {TunnelID: "tunnel"},
+		},
+	}, nil); err == nil {
+		t.Fatal("expected Cloudflare Tunnel zones to be required")
+	}
+}
+
 func TestResolveDNSProviderUsesMostSpecificZone(t *testing.T) {
 	controller := &ControllerConfig{DNS: &ControllerDNSConfig{
 		Cloudflare: &CloudflareDNSConfig{Zones: []string{"example.com"}},

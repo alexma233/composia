@@ -26,6 +26,8 @@ controller:
   cloudflare_tunnel:
     account_id: "REPLACE"
     api_token_file: /run/secrets/cloudflare-api-token
+    zones:
+      - example.com
     tunnels:
       edge:
         tunnel_id: "c1744f8b-faa1-48a4-9e5c-02ac921467fa"
@@ -39,6 +41,7 @@ controller:
 |-----|------|----------|-------------|
 | `account_id` | `string` | Oui | Identifiant du compte Cloudflare. |
 | `api_token` / `api_token_file` | `string` | Oui | Jeton API avec les autorisations de configuration de tunnel Cloudflare et d'écriture DNS. |
+| `zones` | `[]string` | Oui | Zones Cloudflare que cette intégration peut gérer. Les noms d’hôte hors de ces zones sont refusés. |
 | `tunnels` | `map` | Oui | Alias de tunnel mappés aux identifiants de tunnel Cloudflare. |
 | `nodes` | `map` | Non | Mappage nœud-tunnel par défaut utilisé lorsqu'un service ne spécifie pas `tunnel`. |
 

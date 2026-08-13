@@ -26,6 +26,8 @@ controller:
   cloudflare_tunnel:
     account_id: "REPLACE"
     api_token_file: /run/secrets/cloudflare-api-token
+    zones:
+      - example.com
     tunnels:
       edge:
         tunnel_id: "c1744f8b-faa1-48a4-9e5c-02ac921467fa"
@@ -39,6 +41,7 @@ controller:
 |-----|------|----------|-------------|
 | `account_id` | `string` | 是 | Cloudflare 账户 ID。 |
 | `api_token` / `api_token_file` | `string` | 是 | 具有 Cloudflare Tunnel 配置和 DNS 写入权限的 API 令牌。 |
+| `zones` | `[]string` | 是 | 此集成可管理的 Cloudflare 区域。区域之外的主机名会被拒绝。 |
 | `tunnels` | `map` | 是 | 映射到 Cloudflare 隧道 ID 的隧道别名。 |
 | `nodes` | `map` | 否 | 当服务未指定 `tunnel` 时使用的默认节点到隧道映射。 |
 

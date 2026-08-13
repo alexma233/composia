@@ -679,6 +679,7 @@ controller:
   dns:
     cloudflare:
       api_token_file: "`+dnsTokenPath+`"
+      zones: [example.com]
     alidns:
       access_key_id_file: "`+alidnsKeyIDPath+`"
       access_key_secret_file: "`+alidnsKeySecretPath+`"

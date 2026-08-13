@@ -26,6 +26,8 @@ controller:
   cloudflare_tunnel:
     account_id: "REPLACE"
     api_token_file: /run/secrets/cloudflare-api-token
+    zones:
+      - example.com
     tunnels:
       edge:
         tunnel_id: "c1744f8b-faa1-48a4-9e5c-02ac921467fa"
@@ -39,6 +41,7 @@ controller:
 |-----|------|----------|-------------|
 | `account_id` | `string` | Ja | Cloudflare-Konto-ID. |
 | `api_token` / `api_token_file` | `string` | Ja | API-Token mit Cloudflare-Tunnel-Konfigurations- und DNS-Schreibberechtigungen. |
+| `zones` | `[]string` | Ja | Cloudflare-Zonen, die diese Integration verwalten darf. Hostnamen außerhalb dieser Zonen werden abgelehnt. |
 | `tunnels` | `map` | Ja | Tunnel-Aliase, die Cloudflare-Tunnel-IDs zugeordnet sind. |
 | `nodes` | `map` | Nein | Standard-Zuordnung von Knoten zu Tunneln, die verwendet wird, wenn ein Dienst keinen `tunnel` angibt. |
 

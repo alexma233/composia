@@ -452,6 +452,9 @@ func validateControllerCloudflareTunnel(cfg *ControllerCloudflareTunnelConfig, c
 	if strings.TrimSpace(cfg.APIToken) == "" {
 		return errors.New("controller.cloudflare_tunnel.api_token or controller.cloudflare_tunnel.api_token_file is required")
 	}
+	if err := validateDNSZones("controller.cloudflare_tunnel.zones", cfg.Zones); err != nil {
+		return err
+	}
 	if len(cfg.Tunnels) == 0 {
 		return errors.New("controller.cloudflare_tunnel.tunnels must contain at least one tunnel")
 	}

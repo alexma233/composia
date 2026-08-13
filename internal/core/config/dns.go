@@ -71,6 +71,11 @@ func validateControllerDNS(controller *ControllerDNSConfig) error {
 	if controller == nil {
 		return nil
 	}
+	if controller.Cloudflare != nil {
+		if err := validateDNSZones("controller.dns.cloudflare.zones", controller.Cloudflare.Zones); err != nil {
+			return err
+		}
+	}
 	seen := make(map[string]string)
 	for _, candidate := range dnsZones(controller) {
 		if previous, ok := seen[candidate.zone]; ok && previous != candidate.provider {
@@ -86,6 +91,15 @@ func (controller *ControllerConfig) dnsZones() []dnsZoneConfig {
 		return nil
 	}
 	return dnsZones(controller.DNS)
+}
+
+func validateDNSZones(path string, zones []string) error {
+	for _, zone := range zones {
+		if normalizeDNSName(zone) != "" {
+			return nil
+		}
+	}
+	return fmt.Errorf("%s must contain at least one zone", path)
 }
 
 func normalizeDNSName(value string) string {

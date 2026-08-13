@@ -77,6 +77,7 @@ type dnsRecordOptions struct {
 
 type defaultCloudflareDNSClient struct {
 	provider   *cloudflarelibdns.Provider
+	zones      []string
 	apiToken   string
 	apiBaseURL string
 	httpClient *http.Client
@@ -535,6 +536,7 @@ func newCloudflareDNSClient(cfg *config.CloudflareDNSConfig) (dnsClient, error) 
 	provider := &cloudflarelibdns.Provider{APIToken: token}
 	return &defaultCloudflareDNSClient{
 		provider:   provider,
+		zones:      normalizedDNSZones(cfg.Zones),
 		apiToken:   token,
 		apiBaseURL: cloudflareAPIBaseURL,
 		httpClient: &http.Client{Timeout: 15 * time.Second},
@@ -640,8 +642,15 @@ func (client *defaultDNSClient) ApplyRecordOptions(_ context.Context, _, _, _ st
 	return nil
 }
 
-func (client *defaultCloudflareDNSClient) ListZones(ctx context.Context) ([]libdns.Zone, error) {
-	return client.provider.ListZones(ctx)
+func (client *defaultCloudflareDNSClient) ListZones(_ context.Context) ([]libdns.Zone, error) {
+	if len(client.zones) == 0 {
+		return nil, errors.New("cloudflare zones are required")
+	}
+	zones := make([]libdns.Zone, 0, len(client.zones))
+	for _, zone := range client.zones {
+		zones = append(zones, libdns.Zone{Name: zone})
+	}
+	return zones, nil
 }
 
 func (client *defaultCloudflareDNSClient) SetRecords(ctx context.Context, zone string, records []libdns.Record) ([]libdns.Record, error) {
