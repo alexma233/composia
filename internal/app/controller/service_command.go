@@ -527,6 +527,9 @@ func resolveUpdateBackupDataNames(service repo.Service) ([]string, error) {
 }
 
 func (server *serviceCommandServer) runBackupsBeforeUpdate(ctx context.Context, service repo.Service, targetNodeIDs []string, source task.Source, dedupeKey string) error {
+	if len(repo.EnabledBackupDataNames(service)) == 0 {
+		return nil
+	}
 	dataNames, err := resolveUpdateBackupDataNames(service)
 	if err != nil {
 		return connect.NewError(connect.CodeFailedPrecondition, err)

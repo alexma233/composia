@@ -10,6 +10,7 @@ import (
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
+	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 )
 
 func TestEffectiveImageAutoApplyPrecedence(t *testing.T) {
@@ -61,6 +62,20 @@ func TestServiceImageUpdatesNeedBackupUsesSelectionsAndPlans(t *testing.T) {
 	}
 	if serviceImageUpdatesNeedBackup(nil, nil, images, []plannedImageUpdate{{ImageName: "api"}}, nil, nil) {
 		t.Fatalf("api plan should not require backup")
+	}
+}
+
+func TestRunBackupsBeforeUpdateSkipsServiceWithoutBackupConfig(t *testing.T) {
+	t.Parallel()
+
+	server := &serviceCommandServer{}
+	for _, service := range []repo.Service{
+		{Name: "app"},
+		{Name: "app", Meta: repo.ServiceMeta{Backup: &repo.BackupConfig{Data: []repo.BackupItem{{Name: "config", Enabled: boolPtr(false)}}}}},
+	} {
+		if err := server.runBackupsBeforeUpdate(context.Background(), service, []string{"main"}, task.SourceCLI, ""); err != nil {
+			t.Fatalf("run backups before update: %v", err)
+		}
 	}
 }
 
