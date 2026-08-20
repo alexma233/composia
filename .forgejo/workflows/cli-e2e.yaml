@@ -34,7 +34,7 @@ jobs:
   e2e:
     runs-on: docker-amd64-dind
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-go-node-docker:1.26@sha256:b114e39a3685240d4272a489fc352de4634d7f9143d0b3ed22dc75c73a5785a1
+      image: forgejo.alexma.top/alexma233/ci-images-go-node-docker:1.27@sha256:56b2490d5caa0694d4fc07f081c46fbdee3208112bd3455b8868dc775ad61cfd
 
     steps:
       - name: Checkout
