@@ -5,6 +5,6 @@
     "web"
   ],
   "overrides": {
-    "@codemirror/view": "6.43.8"
+    "@codemirror/view": "6.43.9"
   }
 }
