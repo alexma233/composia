@@ -1,8 +1,6 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@std/assert@1.0.19": "1.0.19",
-    "jsr:@std/internal@^1.0.12": "1.0.14",
     "npm:@axe-core/playwright@4.13.0": "4.13.0_playwright-core@1.62.1",
     "npm:@bufbuild/protobuf@2.14.0": "2.14.0",
     "npm:@bufbuild/protoc-gen-es@2.14.0": "2.14.0_@bufbuild+protobuf@2.14.0",
@@ -37,7 +35,6 @@
     "npm:envfile@7.1.0": "7.1.0",
     "npm:mode-watcher@1.1.0": "1.1.0_svelte@5.56.9",
     "npm:prettier-plugin-svelte@4.1.1": "4.1.1_prettier@3.9.6_svelte@5.56.9",
-    "npm:prettier@*": "3.9.6",
     "npm:prettier@3.9.6": "3.9.6",
     "npm:shadcn-svelte@1.5.0": "1.5.0_svelte@5.56.9",
     "npm:svelte-check@4.7.6": "4.7.6_svelte@5.56.9_typescript@6.0.3",
@@ -52,17 +49,6 @@
     "npm:vite@8.2.2": "8.2.2_@types+node@26.2.0_yaml@2.9.0",
     "npm:vscode-material-icons@0.1.1": "0.1.1",
     "npm:yaml@2.9.0": "2.9.0"
-  },
-  "jsr": {
-    "@std/assert@1.0.19": {
-      "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
-      "dependencies": [
-        "jsr:@std/internal"
-      ]
-    },
-    "@std/internal@1.0.14": {
-      "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
-    }
   },
   "npm": {
     "@axe-core/playwright@4.13.0_playwright-core@1.62.1": {
@@ -633,8 +619,8 @@
         "svelte"
       ]
     },
-    "@marijn/find-cluster-break@1.0.3": {
-      "integrity": "sha512-FY+MKLBoTsLNJF/eLWaOsXGdz6uh3Iu1axjPf6TUq92IYumcTcXWHoS747JARLkcdlJ/Waiaxc5wQfFO8jC6NA=="
+    "@marijn/find-cluster-break@1.0.4": {
+      "integrity": "sha512-Wy0V7+SGUjnF9/TkiM1hKVDPj7jKXduPNboMVtHTA8dySMURWqfg/JZ9E2Sq8JgSJmkl7k7Qe9FLeMSrSraWmQ=="
     },
     "@oxc-project/types@0.146.0": {
       "integrity": "sha512-XC0QsnnhVe7sLIWmYmdPw7x5P0h4W8vUU3Nv1ySgWXtvCz8NizoAEpGXA0sOYoJQV2Rl13LgURAHQ5cI5ILCSA=="
@@ -730,8 +716,8 @@
     "@standard-schema/spec@1.1.0": {
       "integrity": "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="
     },
-    "@sveltejs/acorn-typescript@1.0.12_acorn@8.18.0": {
-      "integrity": "sha512-J1jNYG23QWd67UfrQSFHtjhV37r9mVi0gdc12A3MWPldOjRK35Xk+um+qACPVjgw3AleiqoyEAhok8Wm3q46NA==",
+    "@sveltejs/acorn-typescript@1.0.13_acorn@8.18.0": {
+      "integrity": "sha512-wgKggnhZVL9Bfx1OaKKTrYY9BFRk6C8UAkQNUcIv1+llzYrIqy+RZm5HPKzn0NpEBvTVhTqB4kQyllZywsRBRQ==",
       "dependencies": [
         "acorn"
       ]
@@ -768,7 +754,7 @@
       "integrity": "sha512-QbRoJyD92e9R0ufeQIWRHrCC0ObcqSv/aBDdrQMoU+sypav3cDx5wytdQ6GLdXjEMO6xjrXGzfkUygng8JMv0A==",
       "dependencies": [
         "deepmerge",
-        "magic-string@1.1.0",
+        "magic-string@1.2.2",
         "obug",
         "svelte",
         "vite",
@@ -989,8 +975,8 @@
     "detect-libc@2.1.2": {
       "integrity": "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ=="
     },
-    "devalue@5.9.0": {
-      "integrity": "sha512-RWrqdArjvPbsATEhOPUo6Wndc/iWnkWKlhIrdlF3zMMYo/c3CVtoaVAyLtWxz5h8nSlkHzxnzV2uLydPXmtF+A=="
+    "devalue@5.9.1": {
+      "integrity": "sha512-+17vil3EVQRzvtDJSFuTWEb8XJRvXqAiV3qZyQWD398QeXUa6CxsUyMdD1fxzEhUrd4FojitFz7lhIHBTlV4fw=="
     },
     "enhanced-resolve@5.24.5": {
       "integrity": "sha512-L1l8TNvomm6UVW5B253AGxQagSQr+vGwhMlrrfRS2qmhx46AMpMVJKQYLvWYbysTMY8VoicOvzHzoHMbyzB+4A==",
@@ -1006,8 +992,8 @@
     "esm-env@1.2.2": {
       "integrity": "sha512-Epxrv+Nr/CaL4ZcFGPJIYLWFom+YeV1DqMLHJoEd9SYRxNbaFruBwfEX/kkHUJf55j2+TUbmDcmuilbP1TmXHA=="
     },
-    "esrap@2.3.2": {
-      "integrity": "sha512-40GyiEJevYKXzYTHtZkFqAgTjLOuFcaXMao8TPyOlnWTlkHDlvZ6mPMJaJyOqVwrVCgomEG1WhJd81w0X+IcCw==",
+    "esrap@2.3.5": {
+      "integrity": "sha512-KciPkeZZX8srrh6xELzLR2cBaWOzgBQ4CwggO6Dh/KMlrfOcIcfyXCVy/Vvc3/OlS5gvFOd5tcxUYuaGM8o45A==",
       "dependencies": [
         "@jridgewell/sourcemap-codec"
       ]
@@ -1220,8 +1206,8 @@
         "@jridgewell/sourcemap-codec"
       ]
     },
-    "magic-string@1.1.0": {
-      "integrity": "sha512-kS3VHe0nEPST2saQV4Rbkchcd3UBRkVTQHo1D3h/ZTwFDhai/mfKkmtPAtD129EOI7K3HlHIsFOt0WrI2/oU9g==",
+    "magic-string@1.2.2": {
+      "integrity": "sha512-veT/+7iXrXzT39XnEN4lOxtNl72dMgJ8Lp+5Bd6YcMSWpb0n0MjBM8Uuooi6jgJr8dhUW2swQgBmoZVMni5SVg==",
       "dependencies": [
         "@jridgewell/sourcemap-codec"
       ]
