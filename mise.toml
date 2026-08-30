@@ -1,7 +1,7 @@
 [tools]
 go = "1.27.0"
 buf = "1.72.0"
-deno = "2.9.5"
+deno = "2.9.6"
 
 [tasks."setup"]
 description = "Prepare local development files"
