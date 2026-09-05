@@ -87,7 +87,7 @@ jobs:
   nix-build:
     runs-on: docker-amd64
     container:
-      image: ghcr.io/joschi/forgejo-nix:latest@sha256:bc049a99be3cc8ea903c6d3e4597099b9544a8ef238c1f6624ddd6dd041ef20a
+      image: ghcr.io/joschi/forgejo-nix:latest@sha256:c1d68d144892f32a61623ab474747c89b00505d936f43431dec76b861af28e89
 
     steps:
       - name: Checkout
