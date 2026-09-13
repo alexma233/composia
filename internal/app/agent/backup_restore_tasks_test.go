@@ -130,16 +130,16 @@ func TestApplyRestoreItemRunsPGImport(t *testing.T) {
 	serviceRoot := filepath.Join(rootDir, "postgres")
 	stagingDir := filepath.Join(rootDir, "stage")
 	stdinFile := filepath.Join(rootDir, "stdin.sql")
-	logFile := installFakeDockerScript(t, "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\ncat > \"$TEST_STDIN_FILE\"\n")
+	logFile := installFakeDockerScript(t, "#!/bin/sh\ncase \"$*\" in *' config --format json') printf '{\"services\":{\"postgres\":{\"environment\":{\"POSTGRES_USER\":\"app\"}}}}' ;; *) printf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"; cat > \"$TEST_STDIN_FILE\" ;; esac\n")
 	t.Setenv("TEST_STDIN_FILE", stdinFile)
 	writeAgentTestFile(t, filepath.Join(serviceRoot, "composia-meta.yaml"), "name: postgres\nproject_name: infra-postgres\ncompose_files:\n  - compose.yaml\nnodes:\n  - main\n")
 	writeAgentTestFile(t, filepath.Join(stagingDir, "db.sql"), "select 1;\n")
 
-	err := applyRestoreItem(context.Background(), serviceRoot, stagingDir, backupcfg.RestoreItem{Name: "db", Strategy: "database.pgimport", Service: "postgres"}, nil)
+	err := applyRestoreItem(context.Background(), serviceRoot, stagingDir, backupcfg.RestoreItem{Name: "db", Strategy: "database.pgimport", Service: "postgres", User: "restore_user"}, nil)
 	if err != nil {
 		t.Fatalf("applyRestoreItem returned error: %v", err)
 	}
-	if got := strings.TrimSpace(readAgentTestFile(t, logFile)); got != "compose --project-name infra-postgres -f compose.yaml exec -T postgres psql" {
+	if got := strings.TrimSpace(readAgentTestFile(t, logFile)); got != "compose --project-name infra-postgres -f compose.yaml exec -T postgres psql -U restore_user" {
 		t.Fatalf("docker args = %q", got)
 	}
 	if got := readAgentTestFile(t, stdinFile); got != "select 1;\n" {
@@ -151,14 +151,14 @@ func TestStageBackupItemRunsPGDumpAll(t *testing.T) {
 	rootDir := t.TempDir()
 	serviceRoot := filepath.Join(rootDir, "postgres")
 	stagingDir := filepath.Join(rootDir, "stage")
-	logFile := installFakeDockerScript(t, "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\nprintf 'dump sql\n'\n")
+	logFile := installFakeDockerScript(t, "#!/bin/sh\ncase \"$*\" in *' config --format json') printf '{\"services\":{\"postgres\":{\"environment\":{\"POSTGRES_USER\":\"app\"}}}}' ;; *) printf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"; printf 'dump sql\n' ;; esac\n")
 	writeAgentTestFile(t, filepath.Join(serviceRoot, "composia-meta.yaml"), "name: postgres\nproject_name: infra-postgres\ncompose_files:\n  - compose.yaml\nnodes:\n  - main\n")
 
 	err := stageBackupItem(context.Background(), serviceRoot, stagingDir, backupcfg.RuntimeItem{Name: "db", Strategy: "database.pgdumpall", Service: "postgres"}, nil)
 	if err != nil {
 		t.Fatalf("stageBackupItem returned error: %v", err)
 	}
-	if got := strings.TrimSpace(readAgentTestFile(t, logFile)); got != "compose --project-name infra-postgres -f compose.yaml exec -T postgres pg_dumpall" {
+	if got := strings.TrimSpace(readAgentTestFile(t, logFile)); got != "compose --project-name infra-postgres -f compose.yaml exec -T postgres pg_dumpall -U app" {
 		t.Fatalf("docker args = %q", got)
 	}
 	if got := readAgentTestFile(t, filepath.Join(stagingDir, "db.sql")); got != "dump sql\n" {

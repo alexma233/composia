@@ -348,7 +348,11 @@ func applyRestoreItem(ctx context.Context, serviceRoot, stagingDir string, item 
 			return err
 		}
 		dumpPath := filepath.Join(stagingDir, item.Name+".sql")
-		return runComposePGImport(ctx, serviceRoot, compose, item.Service, dumpPath, func(output string) error { return uploadTaskLog(ctx, logUploader, output) })
+		user, err := resolvePostgresUser(ctx, serviceRoot, compose, item.Service, item.User)
+		if err != nil {
+			return err
+		}
+		return runComposePGImport(ctx, serviceRoot, compose, item.Service, user, dumpPath, func(output string) error { return uploadTaskLog(ctx, logUploader, output) })
 	default:
 		return fmt.Errorf("restore strategy %q is not implemented yet", item.Strategy)
 	}
@@ -362,7 +366,11 @@ func stageBackupItem(ctx context.Context, serviceRoot, stagingDir string, item b
 			return err
 		}
 		targetPath := filepath.Join(stagingDir, item.Name+".sql")
-		if err := runComposePGDumpAll(ctx, serviceRoot, compose, item.Service, targetPath, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); err != nil {
+		user, err := resolvePostgresUser(ctx, serviceRoot, compose, item.Service, item.User)
+		if err != nil {
+			return err
+		}
+		if err := runComposePGDumpAll(ctx, serviceRoot, compose, item.Service, user, targetPath, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); err != nil {
 			return err
 		}
 		return nil

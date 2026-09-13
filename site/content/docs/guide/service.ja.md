@@ -246,9 +246,11 @@ data_protect:
       backup:
         strategy: database.pgdumpall
         service: postgres
+        user: app
       restore:
         strategy: database.pgimport
         service: postgres
+        user: app
     - name: uploads
       backup:
         strategy: files.copy_after_stop
@@ -274,6 +276,7 @@ data_protect:
 |-----|------|----------|-------------|
 | `strategy` | `string` | はい | `files.copy`、`files.copy_after_stop`、`database.pgdumpall`、`database.pgimport`。 |
 | `service` | `string` | 条件付き | `database.*` 戦略で必須。Compose サービス名。 |
+| `user` | `string` | いいえ | `pg_dumpall` または `psql` に渡す PostgreSQL ロール。省略した場合、解決済みサービスの環境変数を `PGUSER`、`POSTGRES_USER`、`POSTGRESQL_USERNAME`、`POSTGRESQL_USER` の順に確認します。 |
 | `include` | `[]string` | 条件付き | `files.*` 戦略で必須。`./...` または `/` を含むパスはサービスパス、裸の名前は Docker ボリューム名です。 |
 
 ## バックアップ

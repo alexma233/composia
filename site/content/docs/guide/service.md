@@ -246,9 +246,11 @@ data_protect:
       backup:
         strategy: database.pgdumpall
         service: postgres
+        user: app
       restore:
         strategy: database.pgimport
         service: postgres
+        user: app
     - name: uploads
       backup:
         strategy: files.copy_after_stop
@@ -274,6 +276,7 @@ data_protect:
 |-----|------|----------|-------------|
 | `strategy` | `string` | Yes | `files.copy`, `files.copy_after_stop`, `database.pgdumpall`, or `database.pgimport`. |
 | `service` | `string` | Cond. | Required for `database.*` strategies. Compose service name. |
+| `user` | `string` | No | PostgreSQL role passed to `pg_dumpall` or `psql`. If omitted, Composia checks the resolved service environment for `PGUSER`, `POSTGRES_USER`, `POSTGRESQL_USERNAME`, then `POSTGRESQL_USER`, in that order. |
 | `include` | `[]string` | Cond. | Required for `files.*` strategies. Use `./...` or paths containing `/` for service paths; bare names are Docker volume names. |
 
 ## Backups

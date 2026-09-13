@@ -342,6 +342,7 @@
           ]
         },
         "service": { "type": "string" },
+        "user": { "type": "string" },
         "include": {
           "type": "array",
           "minItems": 1,

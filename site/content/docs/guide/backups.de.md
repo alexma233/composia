@@ -55,9 +55,11 @@ data_protect:
       backup:
         strategy: database.pgdumpall
         service: postgres
+        user: app
       restore:
         strategy: database.pgimport
         service: postgres
+        user: app
     - name: uploads
       backup:
         strategy: files.copy_after_stop
@@ -84,6 +86,7 @@ data_protect:
 |-----|------|-------------|-------------|
 | `strategy` | `string` | Alle | Backup- oder Restore-Strategie. |
 | `service` | `string` | `database.*` | Name des Compose-Dienstes. |
+| `user` | `string` | `database.*` | PostgreSQL-Rolle, die an `pg_dumpall` oder `psql` übergeben wird. Wenn nicht gesetzt, prüft Composia die aufgelöste Dienstumgebung in dieser Reihenfolge: `PGUSER`, `POSTGRES_USER`, `POSTGRESQL_USERNAME`, `POSTGRESQL_USER`. |
 | `include` | `[]string` | `files.*` | Einzubeziehende Pfade. Dienstpfade (relativ zum Dienststamm, beginnend mit `./` oder mit `/`) oder Docker-Volume-Namen (reiner Name ohne Pfadtrenner). |
 
 ### Include-Pfadtypen

@@ -246,9 +246,11 @@ data_protect:
       backup:
         strategy: database.pgdumpall
         service: postgres
+        user: app
       restore:
         strategy: database.pgimport
         service: postgres
+        user: app
     - name: uploads
       backup:
         strategy: files.copy_after_stop
@@ -274,6 +276,7 @@ data_protect:
 |-----|------|----------|-------------|
 | `strategy` | `string` | 是 | `files.copy`、`files.copy_after_stop`、`database.pgdumpall` 或 `database.pgimport`。 |
 | `service` | `string` | 條件必要 | `database.*` 策略的必要項。Compose 服務名稱。 |
+| `user` | `string` | 否 | 傳遞給 `pg_dumpall` 或 `psql` 的 PostgreSQL 角色。未設定時，Composia 依序檢查展開後服務環境中的 `PGUSER`、`POSTGRES_USER`、`POSTGRESQL_USERNAME`、`POSTGRESQL_USER`。 |
 | `include` | `[]string` | 條件必要 | `files.*` 策略的必要項。使用 `./...` 或包含 `/` 的路徑表示服務路徑；裸名表示 Docker 磁碟區名稱。 |
 
 ## 備份

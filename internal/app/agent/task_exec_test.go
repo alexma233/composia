@@ -810,7 +810,7 @@ func TestExecuteBackupTaskRunsPGDumpAll(t *testing.T) {
 	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
-	dockerScript := "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\ncase \"$*\" in *\"postgres pg_dumpall\"*) printf 'dump-sql\\n' ;; *\" rustic backup \"*) printf 'snapshot abc888 saved\\n' ;; esac\n"
+	dockerScript := "#!/bin/sh\ncase \"$*\" in *' config --format json') printf '{\"services\":{\"postgres\":{\"environment\":{\"POSTGRES_USER\":\"app\"}}}}' ;; *) printf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"; case \"$*\" in *\"postgres pg_dumpall\"*) printf 'dump-sql\\n' ;; *\" rustic backup \"*) printf 'snapshot abc888 saved\\n' ;; esac ;; esac\n"
 	if err := os.WriteFile(dockerPath, []byte(dockerScript), 0o750); err != nil { //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}
@@ -875,6 +875,9 @@ func TestExecuteBackupTaskRunsPGDumpAll(t *testing.T) {
 	}
 	if !strings.Contains(string(dockerLog), "compose --project-name demo exec -T postgres pg_dumpall") {
 		t.Fatalf("expected pg_dumpall compose exec, got %q", string(dockerLog))
+	}
+	if !strings.Contains(string(dockerLog), "pg_dumpall -U app") {
+		t.Fatalf("expected inferred postgres user, got %q", string(dockerLog))
 	}
 	if !strings.Contains(string(dockerLog), "/data-protect/") {
 		t.Fatalf("expected mapped data-protect path in rustic backup command, got %q", string(dockerLog))

@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -59,7 +60,37 @@ func rusticDataProtectPath(localPath string, cfg *config.AgentConfig, rustic *ba
 	return filepath.Join(rustic.DataProtectDir, relativePath), nil
 }
 
-func runComposePGDumpAll(ctx context.Context, serviceDir string, compose composeCommandConfig, serviceName, targetPath string, uploadLog func(string) error) error {
+var postgresUserEnvironmentNames = []string{"PGUSER", "POSTGRES_USER", "POSTGRESQL_USERNAME", "POSTGRESQL_USER"}
+
+func resolvePostgresUser(ctx context.Context, serviceDir string, compose composeCommandConfig, serviceName, explicitUser string) (string, error) {
+	if user := strings.TrimSpace(explicitUser); user != "" {
+		return user, nil
+	}
+
+	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "config", "--format", "json")...) //nolint:gosec
+	command.Dir = serviceDir
+	output, err := command.Output()
+	if err != nil {
+		return "", fmt.Errorf("inspect docker compose config for postgres user: %w", err)
+	}
+
+	var config composeConfigOutput
+	if err := json.Unmarshal(output, &config); err != nil {
+		return "", fmt.Errorf("decode docker compose config for postgres user: %w", err)
+	}
+	service, ok := config.Services[serviceName]
+	if !ok {
+		return "", fmt.Errorf("postgres service %q is not defined in docker compose config", serviceName)
+	}
+	for _, name := range postgresUserEnvironmentNames {
+		if user := strings.TrimSpace(service.Environment[name]); user != "" {
+			return user, nil
+		}
+	}
+	return "", nil
+}
+
+func runComposePGDumpAll(ctx context.Context, serviceDir string, compose composeCommandConfig, serviceName, databaseUser, targetPath string, uploadLog func(string) error) error {
 	if serviceName == "" {
 		return errors.New("pgdumpall backup is missing service name")
 	}
@@ -70,7 +101,11 @@ func runComposePGDumpAll(ctx context.Context, serviceDir string, compose compose
 	if err != nil {
 		return fmt.Errorf("create pgdump target file: %w", err)
 	}
-	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "exec", "-T", serviceName, "pg_dumpall")...) //nolint:gosec
+	args := []string{"exec", "-T", serviceName, "pg_dumpall"}
+	if databaseUser != "" {
+		args = append(args, "-U", databaseUser)
+	}
+	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, args...)...) //nolint:gosec
 	command.Dir = serviceDir
 	command.Stdout = targetFile
 	command.Stderr = newCommandLogWriter(uploadLog, false)
@@ -85,7 +120,7 @@ func runComposePGDumpAll(ctx context.Context, serviceDir string, compose compose
 	return nil
 }
 
-func runComposePGImport(ctx context.Context, serviceDir string, compose composeCommandConfig, serviceName, sourcePath string, uploadLog func(string) error) error {
+func runComposePGImport(ctx context.Context, serviceDir string, compose composeCommandConfig, serviceName, databaseUser, sourcePath string, uploadLog func(string) error) error {
 	if serviceName == "" {
 		return errors.New("pgimport restore is missing service name")
 	}
@@ -93,7 +128,11 @@ func runComposePGImport(ctx context.Context, serviceDir string, compose composeC
 	if err != nil {
 		return fmt.Errorf("open pgimport source file: %w", err)
 	}
-	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "exec", "-T", serviceName, "psql")...) //nolint:gosec
+	args := []string{"exec", "-T", serviceName, "psql"}
+	if databaseUser != "" {
+		args = append(args, "-U", databaseUser)
+	}
+	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, args...)...) //nolint:gosec
 	command.Dir = serviceDir
 	command.Stdin = sourceFile
 	if err := runCommandWithLiveLogs(command, uploadLog); err != nil {

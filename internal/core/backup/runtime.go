@@ -23,6 +23,7 @@ type RuntimeItem struct {
 	Name     string   `json:"name"`
 	Strategy string   `json:"strategy"`
 	Service  string   `json:"service,omitempty"`
+	User     string   `json:"user,omitempty"`
 	Include  []string `json:"include,omitempty"`
 	Provider string   `json:"provider"`
 	Tags     []string `json:"tags,omitempty"`
@@ -32,6 +33,7 @@ type RestoreItem struct {
 	Name        string   `json:"name"`
 	Strategy    string   `json:"strategy"`
 	Service     string   `json:"service,omitempty"`
+	User        string   `json:"user,omitempty"`
 	Include     []string `json:"include,omitempty"`
 	Provider    string   `json:"provider"`
 	ArtifactRef string   `json:"artifact_ref"`

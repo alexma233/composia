@@ -176,7 +176,7 @@ func buildBackupRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeID
 		if provider != backupProviderRustic {
 			return "", fmt.Errorf("backup provider %q is not implemented", provider)
 		}
-		items = append(items, backupcfg.RuntimeItem{Name: data.Name, Strategy: data.Backup.Strategy, Service: data.Backup.Service, Include: append([]string(nil), data.Backup.Include...), Provider: provider, Tags: []string{"composia-service:" + serviceName, "composia-data:" + data.Name}})
+		items = append(items, backupcfg.RuntimeItem{Name: data.Name, Strategy: data.Backup.Strategy, Service: data.Backup.Service, User: data.Backup.User, Include: append([]string(nil), data.Backup.Include...), Provider: provider, Tags: []string{"composia-service:" + serviceName, "composia-data:" + data.Name}})
 	}
 	payload, err := json.Marshal(backupcfg.RuntimeConfig{Rustic: &backupcfg.RusticConfig{ServiceName: rusticService.Name, ServiceDir: rusticServiceDir, ComposeService: rusticService.Meta.RusticComposeService(), Profile: rusticService.Meta.RusticProfile(), DataProtectDir: rusticService.Meta.RusticDataProtectDir(), NodeID: nodeID}, Items: items})
 	if err != nil {
@@ -221,6 +221,7 @@ func buildRestoreRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeI
 			Name:        data.Name,
 			Strategy:    data.Restore.Strategy,
 			Service:     data.Restore.Service,
+			User:        data.Restore.User,
 			Include:     append([]string(nil), data.Restore.Include...),
 			Provider:    backupProviderRustic,
 			ArtifactRef: artifactRef,

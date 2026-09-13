@@ -295,6 +295,7 @@ type DataProtectItem struct {
 type DataActionConfig struct {
 	Strategy string   `yaml:"strategy"`
 	Service  string   `yaml:"service"`
+	User     string   `yaml:"user"`
 	Include  []string `yaml:"include"`
 }
 

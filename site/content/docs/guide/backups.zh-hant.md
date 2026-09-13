@@ -55,9 +55,11 @@ data_protect:
       backup:
         strategy: database.pgdumpall
         service: postgres
+        user: app
       restore:
         strategy: database.pgimport
         service: postgres
+        user: app
     - name: uploads
       backup:
         strategy: files.copy_after_stop
@@ -84,6 +86,7 @@ data_protect:
 |-----|------|-------------|-------------|
 | `strategy` | `string` | 全部 | 備份或還原策略。 |
 | `service` | `string` | `database.*` | Compose 服務名稱。 |
+| `user` | `string` | `database.*` | 傳遞給 `pg_dumpall` 或 `psql` 的 PostgreSQL 角色。未設定時，Composia 依序檢查展開後服務環境中的 `PGUSER`、`POSTGRES_USER`、`POSTGRESQL_USERNAME`、`POSTGRESQL_USER`。 |
 | `include` | `[]string` | `files.*` | 要包含的路徑。服務路徑（相對於服務根目錄，以 `./` 開頭或包含 `/`）或 Docker 磁碟區名稱（不含路徑分隔符的純名稱）。 |
 
 ### 包含路徑型別
