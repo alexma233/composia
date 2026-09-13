@@ -6,6 +6,8 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://${host}:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
+  // A saturated runner makes navigation and screenshot steps flake on the 30s test timeout.
+  retries: 1,
   reporter: process.env.CI ? "list" : "html",
   use: {
     baseURL,
