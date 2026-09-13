@@ -16,18 +16,24 @@
   "postUpdateOptions": [
     "gomodTidy"
   ],
-    "postUpgradeTasks": {
-      "commands": [
-      "bash scripts/build/update-nix-vendor-hash.sh"
-      ],
+  "postUpgradeTasks": {
+    "commands": [
+      "bash scripts/build/update-nix-vendor-hash.sh",
+      "GENERATED_WRITE=1 sh scripts/dev/check-generated.sh"
+    ],
     "executionMode": "branch",
     "installTools": {
-      "nix": {}
+      "nix": {},
+      "golang": {},
+      "deno": {},
+      "node": {}
     },
     "fileFilters": [
       "flake.nix",
       "go.mod",
-      "go.sum"
+      "go.sum",
+      "gen/go/**",
+      "web/src/lib/gen/**"
     ]
   },
   "packageRules": [
