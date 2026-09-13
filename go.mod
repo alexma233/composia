@@ -9,6 +9,7 @@ require (
 	github.com/cenkalti/backoff/v6 v6.0.1
 	github.com/creack/pty/v2 v2.0.1
 	github.com/cyphar/filepath-securejoin v0.7.0
+	github.com/distribution/reference v0.6.0
 	github.com/go-playground/validator/v10 v10.30.4
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
@@ -55,7 +56,6 @@ require (
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
-	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/go-connections v0.7.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect

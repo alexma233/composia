@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/distribution/reference"
 
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
@@ -22,6 +23,8 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+var errImageCheckBatchIncomplete = errors.New("image check batch is incomplete")
 
 type agentReportServer struct {
 	db               *store.DB
@@ -245,15 +248,53 @@ func (server *agentReportServer) queueAutoApplyUpdateForImageCheck(ctx context.C
 	if err != nil {
 		return fmt.Errorf("load service for image update auto apply: %w", err)
 	}
-	if len(service.TargetNodes) == 0 || service.TargetNodes[0] != record.NodeID {
+	if len(service.TargetNodes) == 0 || params.ImageCheckBatchID == "" {
 		return nil
 	}
 	if service.Meta.Update == nil || len(service.Meta.Update.Images) == 0 {
 		return nil
 	}
-	checks, err := server.db.LatestServiceImageUpdateChecks(ctx, service.Name, record.NodeID)
+	batch, err := server.db.ImageCheckBatch(ctx, service.Name, params.ImageCheckBatchID, service.TargetNodes)
 	if err != nil {
 		return err
+	}
+	if batch.Failed {
+		return nil
+	}
+	if !batch.Complete {
+		return errImageCheckBatchIncomplete
+	}
+	if batch.RepoRevision != record.RepoRevision {
+		return nil
+	}
+	currentRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
+	if err != nil {
+		return err
+	}
+	if currentRevision != record.RepoRevision {
+		return nil
+	}
+	checksBeforeReconcile, err := server.db.LatestServiceImageUpdateChecks(ctx, service.Name, service.TargetNodes[0])
+	if err != nil {
+		return err
+	}
+	checkedImageNames := params.ImageNames
+	if len(checkedImageNames) == 0 {
+		checkedImageNames = make([]string, 0, len(service.Meta.Update.Images))
+		for imageName := range service.Meta.Update.Images {
+			checkedImageNames = append(checkedImageNames, imageName)
+		}
+	}
+	ready, err := server.reconcileServiceDigestChecks(ctx, service, checkedImageNames, batch.StartedAt, batch.FinishedAt)
+	if err != nil || !ready {
+		return err
+	}
+	checks, err := server.db.LatestServiceImageUpdateChecks(ctx, service.Name, service.TargetNodes[0])
+	if err != nil {
+		return err
+	}
+	for _, check := range detectNewImageUpdateChecks(checksBeforeReconcile, checks) {
+		dispatchImageUpdateAvailableNotification(server.notifier, record.Source, record.TaskID, check)
 	}
 	checksByImage := make(map[string]store.ServiceImageUpdateCheck, len(checks))
 	for _, check := range checks {
@@ -285,14 +326,15 @@ func (server *agentReportServer) queueAutoApplyUpdateForImageCheck(ctx context.C
 	if err != nil {
 		return fmt.Errorf("read repo revision for image update auto apply: %w", err)
 	}
-	createdTasks, _, err := serviceServer.runServiceUpdateWithImageSelections(ctx, service, nil, selections, false, nil, baseRevision, "update images for "+service.Name, task.SourceSchedule, composeRecreateModeParam(task.TypeUpdate, controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_AUTO), "post:"+record.TaskID+":image-auto-apply")
+	dedupeKey := imageAutoApplyDedupeKey(record, params)
+	createdTasks, _, err := serviceServer.runServiceUpdateWithImageSelections(ctx, service, nil, selections, false, nil, baseRevision, "update images for "+service.Name, record.Source, composeRecreateModeParam(task.TypeUpdate, controllerv1.ComposeRecreateMode_COMPOSE_RECREATE_MODE_AUTO), dedupeKey)
 	if err != nil {
 		return err
 	}
 	if len(createdTasks) == 0 {
 		return nil
 	}
-	return server.db.EnqueueTaskOutboxEvent(ctx, record.TaskID, "image_update_applied", time.Now().UTC())
+	return server.db.EnqueueTaskOutboxEvent(ctx, batch.CoordinatorTaskID, "image_update_applied", time.Now().UTC())
 }
 
 func (server *agentReportServer) persistedImageUpdateApplied(ctx context.Context, record task.Record) (task.Record, []string, error) {
@@ -304,8 +346,9 @@ func (server *agentReportServer) persistedImageUpdateApplied(ctx context.Context
 	if err != nil {
 		return task.Record{}, nil, err
 	}
+	dedupeKey := imageAutoApplyDedupeKey(record, params)
 	for _, nodeID := range service.TargetNodes {
-		updateRecord, lookupErr := server.db.GetTaskByDedupeKey(ctx, "post:"+record.TaskID+":image-auto-apply:"+nodeID)
+		updateRecord, lookupErr := server.db.GetTaskByDedupeKey(ctx, dedupeKey+":"+nodeID)
 		if lookupErr != nil {
 			continue
 		}
@@ -316,6 +359,13 @@ func (server *agentReportServer) persistedImageUpdateApplied(ctx context.Context
 		return updateRecord, updateParams.ImageNames, nil
 	}
 	return task.Record{}, nil, fmt.Errorf("find persisted image auto-apply task for %q", record.TaskID)
+}
+
+func imageAutoApplyDedupeKey(record task.Record, params serviceTaskParams) string {
+	if params.ImageCheckBatchID == "" {
+		return "post:" + record.TaskID + ":image-auto-apply"
+	}
+	return "image-check:" + params.ImageCheckBatchID + ":auto-apply"
 }
 
 func (server *agentReportServer) queueCaddyReloadForTask(ctx context.Context, record task.Record) error {
@@ -584,22 +634,41 @@ func (server *agentReportServer) ReportServiceImageUpdateChecks(ctx context.Cont
 	if req.Msg.GetTaskId() == "" || req.Msg.GetExecutionId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id and execution_id are required"))
 	}
-	{
-		if err := server.ensureCurrentTaskExecution(ctx, req.Msg.GetTaskId(), req.Msg.GetExecutionId()); err != nil {
-			return nil, err
-		}
-		detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
-		}
-		if detail.Record.ServiceName != req.Msg.GetServiceName() {
-			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name does not match task"))
-		}
+	if err := server.ensureCurrentTaskExecution(ctx, req.Msg.GetTaskId(), req.Msg.GetExecutionId()); err != nil {
+		return nil, err
+	}
+	detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if detail.Record.ServiceName != req.Msg.GetServiceName() {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name does not match task"))
+	}
+	if detail.Record.Type != task.TypeImageCheck {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("task is not an image check"))
+	}
+	params, err := taskParams(detail.Record.ParamsJSON)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	service, err := repo.FindServiceAtRevision(server.cfg.RepoDir, detail.Record.RepoRevision, params.ServiceDir, server.availableNodeIDs)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	if service.Name != req.Msg.GetServiceName() {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name does not match task revision"))
+	}
+	if len(service.TargetNodes) == 0 || service.TargetNodes[0] != req.Msg.GetNodeId() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("image update discovery must run on the first target node"))
 	}
 	reportedAt := time.Now().UTC()
 	previousChecks, err := server.db.LatestServiceImageUpdateChecks(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	previousByImage := make(map[string]store.ServiceImageUpdateCheck, len(previousChecks))
+	for _, check := range previousChecks {
+		previousByImage[check.ImageName] = check
 	}
 	checks := make([]store.ServiceImageUpdateCheck, 0, len(req.Msg.GetChecks()))
 	for _, check := range req.Msg.GetChecks() {
@@ -624,7 +693,7 @@ func (server *agentReportServer) ReportServiceImageUpdateChecks(ctx context.Cont
 			}
 			candidateTagsJSON = string(encoded)
 		}
-		checks = append(checks, store.ServiceImageUpdateCheck{
+		storedCheck := store.ServiceImageUpdateCheck{
 			ServiceName:       req.Msg.GetServiceName(),
 			NodeID:            req.Msg.GetNodeId(),
 			ImageName:         check.GetImageName(),
@@ -641,7 +710,14 @@ func (server *agentReportServer) ReportServiceImageUpdateChecks(ctx context.Cont
 			ErrorSummary:      check.GetErrorSummary(),
 			CheckedAt:         reportedAt,
 			UpdatedAt:         reportedAt,
-		})
+		}
+		if storedCheck.PolicyType == imageUpdatePolicyDigest && storedCheck.CheckStatus == store.ImageCheckStatusOK {
+			storedCheck.CurrentDigest = ""
+			previous := previousByImage[storedCheck.ImageName]
+			storedCheck.UpdateAvailable = previous.UpdateAvailable && previous.CandidateTag == storedCheck.CandidateTag && previous.CandidateDigest == storedCheck.CandidateDigest
+			storedCheck.CheckStatus = store.ImageCheckStatusUnknown
+		}
+		checks = append(checks, storedCheck)
 	}
 	if err := server.db.UpsertServiceImageUpdateChecks(ctx, checks); err != nil {
 		if errors.Is(err, store.ErrServiceNotFound) {
@@ -649,12 +725,103 @@ func (server *agentReportServer) ReportServiceImageUpdateChecks(ctx context.Cont
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	sourceRecord, err := latestTaskRecordForServiceNodeType(ctx, server.db, req.Msg.GetServiceName(), req.Msg.GetNodeId(), task.TypeImageCheck)
-	if err != nil {
-		sourceRecord = task.Record{}
+	imageNames := make([]string, 0, len(service.Meta.Update.Images))
+	for imageName := range service.Meta.Update.Images {
+		imageNames = append(imageNames, imageName)
 	}
-	for _, check := range detectNewImageUpdateChecks(previousChecks, checks) {
-		dispatchImageUpdateAvailableNotification(server.notifier, sourceRecord.Source, sourceRecord.TaskID, check)
+	slices.Sort(imageNames)
+	if err := server.db.DeleteOtherServiceImageUpdateChecks(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId(), imageNames); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return connect.NewResponse(&agentv1.ReportServiceImageUpdateChecksResponse{}), nil
+}
+
+func (server *agentReportServer) reconcileServiceDigestChecks(ctx context.Context, service repo.Service, imageNames []string, checkedAfter, checkedBefore time.Time) (bool, error) {
+	checks, err := server.db.LatestServiceImageUpdateChecks(ctx, service.Name, service.TargetNodes[0])
+	if err != nil {
+		return false, err
+	}
+	states, err := server.db.ListServiceImageStates(ctx, service.Name)
+	if err != nil {
+		return false, err
+	}
+	checksByImage := make(map[string]*store.ServiceImageUpdateCheck, len(checks))
+	for index := range checks {
+		checksByImage[checks[index].ImageName] = &checks[index]
+	}
+	changed := false
+	for _, imageName := range imageNames {
+		check := checksByImage[imageName]
+		if check == nil || check.CheckedAt.Before(checkedAfter) || check.CheckedAt.After(checkedBefore) {
+			return false, nil
+		}
+		if check.PolicyType != imageUpdatePolicyDigest || check.CheckStatus == store.ImageCheckStatusError {
+			continue
+		}
+		currentDigest, available, errorSummary := serviceDigestUpdateState(*check, states, service.TargetNodes, checkedAfter, checkedBefore)
+		check.CurrentDigest = currentDigest
+		check.UpdateAvailable = available
+		check.ErrorSummary = errorSummary
+		check.CheckStatus = store.ImageCheckStatusOK
+		if errorSummary != "" {
+			check.CheckStatus = store.ImageCheckStatusError
+		}
+		changed = true
+	}
+	if !changed {
+		return true, nil
+	}
+	return true, server.db.UpsertServiceImageUpdateChecks(ctx, checks)
+}
+
+func serviceDigestUpdateState(check store.ServiceImageUpdateCheck, states []store.ServiceImageState, nodeIDs []string, checkedAfter, checkedBefore time.Time) (string, bool, string) {
+	if check.CandidateDigest == "" {
+		return "", false, "remote digest is unavailable"
+	}
+	localDigests := make(map[string]struct{}, len(nodeIDs))
+	available := false
+	for _, nodeID := range nodeIDs {
+		var matched *store.ServiceImageState
+		for index := range states {
+			state := &states[index]
+			if state.NodeID == nodeID && !state.CheckedAt.Before(checkedAfter) && !state.CheckedAt.After(checkedBefore) && imageReferencesMatch(state.ImageRef, check.ImageRef, check.CurrentTag) {
+				matched = state
+				break
+			}
+		}
+		if matched == nil || matched.CheckStatus != store.ImageCheckStatusOK || matched.LocalDigest == "" {
+			return "", false, fmt.Sprintf("local digest is unavailable on node %q", nodeID)
+		}
+		localDigests[matched.LocalDigest] = struct{}{}
+		available = available || matched.LocalDigest != check.CandidateDigest
+	}
+	currentDigest := ""
+	if len(localDigests) == 1 {
+		for digest := range localDigests {
+			currentDigest = digest
+		}
+	}
+	return currentDigest, available, ""
+}
+
+func imageReferencesMatch(observed, configured, currentTag string) bool {
+	observedName, observedTag, ok := normalizedImageNameTag(observed)
+	if !ok {
+		return false
+	}
+	configuredName, _, ok := normalizedImageNameTag(configured)
+	return ok && observedName == configuredName && observedTag == currentTag
+}
+
+func normalizedImageNameTag(value string) (string, string, bool) {
+	named, err := reference.ParseNormalizedNamed(value)
+	if err != nil {
+		return "", "", false
+	}
+	tagged := reference.TagNameOnly(named)
+	tag, ok := tagged.(reference.NamedTagged)
+	if !ok {
+		return "", "", false
+	}
+	return reference.FamiliarName(reference.TrimNamed(tagged)), tag.Tag(), true
 }

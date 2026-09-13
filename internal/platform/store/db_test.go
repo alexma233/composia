@@ -570,6 +570,85 @@ func TestUpsertServiceImageStates(t *testing.T) {
 	if localDigest != "sha256:old" || remoteDigest != "sha256:newer" || !updateAvailable || checkStatus != ImageCheckStatusOK {
 		t.Fatalf("unexpected updated image state local=%q remote=%q available=%v status=%q", localDigest, remoteDigest, updateAvailable, checkStatus)
 	}
+	states, err := db.ListServiceImageStates(ctx, "app")
+	if err != nil {
+		t.Fatalf("list service image states: %v", err)
+	}
+	if len(states) != 1 || states[0].LocalDigest != "sha256:old" || states[0].RemoteDigest != "sha256:newer" {
+		t.Fatalf("unexpected listed image states: %+v", states)
+	}
+}
+
+func TestImageCheckBatchSucceededRequiresEveryTargetNode(t *testing.T) {
+	t.Parallel()
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main", "edge"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"app": {"main", "edge"}}); err != nil {
+		t.Fatal(err)
+	}
+	params := `{"image_check_batch_id":"batch-1"}`
+	for _, nodeID := range []string{"main", "edge"} {
+		if _, err := db.CreateTask(ctx, task.Record{TaskID: "check-" + nodeID, Type: task.TypeImageCheck, Source: task.SourceSchedule, ServiceName: "app", NodeID: nodeID, ParamsJSON: params}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := db.CompleteTask(ctx, "check-main", task.StatusSucceeded, time.Now().UTC(), ""); err != nil {
+		t.Fatal(err)
+	}
+	batch, err := db.ImageCheckBatch(ctx, "app", "batch-1", []string{"main", "edge"})
+	if err != nil || batch.Complete {
+		t.Fatalf("batch completed before every node succeeded: complete=%v err=%v", batch.Complete, err)
+	}
+	if err := db.CompleteTask(ctx, "check-edge", task.StatusSucceeded, time.Now().UTC(), ""); err != nil {
+		t.Fatal(err)
+	}
+	batch, err = db.ImageCheckBatch(ctx, "app", "batch-1", []string{"main", "edge"})
+	if err != nil || !batch.Complete || batch.Failed || batch.RepoRevision != "" || batch.CoordinatorTaskID != "check-main" || batch.StartedAt.IsZero() || batch.FinishedAt.IsZero() {
+		t.Fatalf("unexpected completed batch: batch=%+v err=%v", batch, err)
+	}
+}
+
+func TestImageCheckBatchUsesLatestTaskPerNode(t *testing.T) {
+	t.Parallel()
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"app": {"main"}}); err != nil {
+		t.Fatal(err)
+	}
+	params := `{"image_check_batch_id":"batch-1"}`
+	if _, err := db.CreateTask(ctx, task.Record{
+		TaskID: "check-old", Type: task.TypeImageCheck, Source: task.SourceSchedule,
+		ServiceName: "app", NodeID: "main", ParamsJSON: params,
+		CreatedAt: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.CompleteTask(ctx, "check-old", task.StatusSucceeded, time.Date(2026, 1, 1, 0, 1, 0, 0, time.UTC), ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.CreateTask(ctx, task.Record{
+		TaskID: "check-new", Type: task.TypeImageCheck, Source: task.SourceSchedule,
+		ServiceName: "app", NodeID: "main", ParamsJSON: params,
+		CreatedAt: time.Date(2026, 1, 1, 0, 2, 0, 0, time.UTC),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	batch, err := db.ImageCheckBatch(ctx, "app", "batch-1", []string{"main"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if batch.Complete || batch.Failed || batch.CoordinatorTaskID != "" {
+		t.Fatalf("expected latest pending task to keep batch incomplete: %+v", batch)
+	}
 }
 
 func TestMigrateSetsSQLiteUserVersion(t *testing.T) {

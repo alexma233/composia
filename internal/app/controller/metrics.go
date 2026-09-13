@@ -173,9 +173,9 @@ func (collector *controllerMetricsCollector) collectImageUpdates(ctx context.Con
 	rows, err := collector.db.SQL().QueryContext(ctx, `
 		SELECT service_name, node_id, COUNT(*)
 		FROM service_image_update_checks
-		WHERE update_available = 1 AND check_status != ?
+		WHERE update_available = 1 AND check_status = ?
 		GROUP BY service_name, node_id
-	`, store.ImageCheckStatusError)
+	`, store.ImageCheckStatusOK)
 	if err != nil {
 		log.Printf("metrics: query image update counts failed: %v", err)
 		return

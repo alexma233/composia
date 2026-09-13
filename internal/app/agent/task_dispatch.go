@@ -111,6 +111,7 @@ func decodeTaskParams(paramsJSON string) (controllerTaskParams, error) {
 type controllerTaskParams struct {
 	ServiceDirs           []string                       `json:"service_dirs,omitempty"`
 	ImageNames            []string                       `json:"image_names,omitempty"`
+	ImageCheckBatchID     string                         `json:"image_check_batch_id,omitempty"`
 	SemverAllow           []string                       `json:"semver_allow,omitempty"`
 	ForgeCandidates       map[string][]string            `json:"forge_candidates,omitempty"`
 	ForgeCandidateSources map[string]map[string][]string `json:"forge_candidate_sources,omitempty"`

@@ -231,7 +231,18 @@ func (server *serviceQueryServer) GetServiceImageUpdateChecks(ctx context.Contex
 	if req.Msg == nil || req.Msg.GetServiceName() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("service_name is required"))
 	}
-	checks, err := server.db.LatestServiceImageUpdateChecks(ctx, req.Msg.GetServiceName(), req.Msg.GetNodeId())
+	nodeID := req.Msg.GetNodeId()
+	if nodeID == "" {
+		service, err := repo.FindService(server.cfg.RepoDir, server.availableNodeIDs, req.Msg.GetServiceName())
+		if err != nil {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+		if len(service.TargetNodes) == 0 {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not have any target nodes", service.Name))
+		}
+		nodeID = service.TargetNodes[0]
+	}
+	checks, err := server.db.LatestServiceImageUpdateChecks(ctx, req.Msg.GetServiceName(), nodeID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}

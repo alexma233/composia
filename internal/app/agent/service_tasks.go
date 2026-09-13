@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"connectrpc.com/connect"
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
@@ -169,8 +170,11 @@ func executeImageCheckTask(ctx context.Context, bundleClient agentv1connect.Bund
 		if serviceMeta.IsConfigInfra() {
 			return uploadTaskLog(ctx, logUploader, "service declares infra.config; skipping image check\n")
 		}
-		if err := reportServiceImageStates(ctx, client, pulledTask, bundle.RootPath, true, logUploader); err != nil {
+		if err := reportServiceImageStates(ctx, client, pulledTask, bundle.RootPath, false, logUploader); err != nil {
 			return err
+		}
+		if !isImageDiscoveryNode(serviceMeta, pulledTask.GetNodeId()) {
+			return uploadTaskLog(ctx, logUploader, "local image states reported; remote discovery runs on the first target node\n")
 		}
 		return reportServiceImageUpdateChecks(ctx, client, pulledTask, bundle.RootPath, serviceMeta, logUploader)
 	}); err != nil {
@@ -180,6 +184,10 @@ func executeImageCheckTask(ctx context.Context, bundleClient agentv1connect.Bund
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
+}
+
+func isImageDiscoveryNode(meta repo.ServiceMeta, nodeID string) bool {
+	return len(meta.Nodes) > 0 && strings.TrimSpace(meta.Nodes[0]) == nodeID
 }
 
 func executeStopTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {

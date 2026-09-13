@@ -88,23 +88,28 @@ func scheduleServiceImageChecks(ctx context.Context, db *store.DB, serviceServer
 	if err != nil {
 		return err
 	}
-	paramsJSONBytes, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir, ImageNames: dueImageNames, SemverAllow: semverAllow, ForgeCandidates: forgeCandidates, ForgeCandidateSources: forgeCandidateSources})
+	batchID := service.Name + "@" + now.UTC().Format("20060102T1504")
+	paramsJSONBytes, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir, ImageNames: dueImageNames, ImageCheckBatchID: batchID, SemverAllow: semverAllow, ForgeCandidates: forgeCandidates, ForgeCandidateSources: forgeCandidateSources})
 	if err != nil {
 		return err
 	}
 	paramsJSON := string(paramsJSONBytes)
 	createdAt := now
+	missingNodeIDs := make([]string, 0, len(service.TargetNodes))
 	for _, nodeID := range service.TargetNodes {
 		exists, err := db.HasMatchingTaskInWindow(ctx, task.SourceSchedule, task.TypeImageCheck, service.Name, nodeID, paramsJSON, now)
 		if err != nil {
 			return err
 		}
-		if exists {
-			continue
+		if !exists {
+			missingNodeIDs = append(missingNodeIDs, nodeID)
 		}
-		if _, err := serviceServer.createServiceTaskWithOptions(ctx, service.Name, []string{nodeID}, task.TypeImageCheck, nil, serviceTaskCreateOptions{Source: task.SourceSchedule, CreatedAt: &createdAt, ImageNames: dueImageNames, SemverAllow: semverAllow, ForgeCandidates: forgeCandidates, ForgeCandidateSources: forgeCandidateSources}); err != nil {
-			log.Printf("scheduler skipped image check for service=%s node=%s: %v", service.Name, nodeID, err)
-		}
+	}
+	if len(missingNodeIDs) == 0 {
+		return nil
+	}
+	if _, err := serviceServer.createServiceTasksWithOptions(ctx, service.Name, missingNodeIDs, task.TypeImageCheck, nil, serviceTaskCreateOptions{Source: task.SourceSchedule, CreatedAt: &createdAt, ImageNames: dueImageNames, ImageCheckBatchID: batchID, SemverAllow: semverAllow, ForgeCandidates: forgeCandidates, ForgeCandidateSources: forgeCandidateSources}); err != nil {
+		log.Printf("scheduler skipped image check batch for service=%s: %v", service.Name, err)
 	}
 	return nil
 }

@@ -101,7 +101,7 @@ func (server *serviceCommandServer) RunServiceAction(ctx context.Context, req *c
 			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not enable image update checks", service.Name))
 		}
 		taskType = task.TypeImageCheck
-		nodeIDs = req.Msg.GetNodeIds()
+		nodeIDs = nil
 	default:
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("action is required"))
 	}
@@ -145,6 +145,7 @@ type serviceTaskCreateOptions struct {
 	CreatedAt             *time.Time
 	ComposeRecreateMode   string
 	ImageNames            []string
+	ImageCheckBatchID     string
 	SemverAllow           []string
 	ForgeCandidates       map[string][]string
 	ForgeCandidateSources map[string]map[string][]string
@@ -205,6 +206,9 @@ func (server *serviceCommandServer) runServiceUpdateWithImageSelections(ctx cont
 	if len(targetNodeIDs) == 0 {
 		return nil, nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not have any target nodes", service.Name))
 	}
+	if (useAllDetected || imageSelectionsUseDetected(selections)) && !sameNodeSet(targetNodeIDs, service.TargetNodes) {
+		return nil, nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("detected image updates require all service target nodes"))
+	}
 	if dedupeKey != "" {
 		existing := make([]task.Record, 0, len(targetNodeIDs))
 		for _, nodeID := range targetNodeIDs {
@@ -252,6 +256,31 @@ func (server *serviceCommandServer) runServiceUpdateWithImageSelections(ctx cont
 	return createdTasks, repoWrite, nil
 }
 
+func imageSelectionsUseDetected(selections []*controllerv1.ImageUpdateSelection) bool {
+	for _, selection := range selections {
+		if selection.GetUseDetected() {
+			return true
+		}
+	}
+	return false
+}
+
+func sameNodeSet(left, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	seen := make(map[string]struct{}, len(left))
+	for _, nodeID := range left {
+		seen[nodeID] = struct{}{}
+	}
+	for _, nodeID := range right {
+		if _, ok := seen[nodeID]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
 func (server *serviceCommandServer) planRequestedServiceImageUpdates(ctx context.Context, service repo.Service, targetNodeIDs []string, selections []*controllerv1.ImageUpdateSelection, useAllDetected bool) ([]plannedImageUpdate, error) {
 	if service.Meta.Update == nil || len(service.Meta.Update.Images) == 0 {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not declare update.images", service.Name))
@@ -259,7 +288,7 @@ func (server *serviceCommandServer) planRequestedServiceImageUpdates(ctx context
 	if len(targetNodeIDs) == 0 {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("service %q does not have any target nodes", service.Name))
 	}
-	checks, err := server.db.LatestServiceImageUpdateChecks(ctx, service.Name, targetNodeIDs[0])
+	checks, err := server.db.LatestServiceImageUpdateChecks(ctx, service.Name, service.TargetNodes[0])
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -718,7 +747,10 @@ func (server *serviceCommandServer) createServiceTasksWithOptions(ctx context.Co
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("resolve service directory: %w", err))
 	}
-	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir, DataNames: dataNames, ImageNames: options.ImageNames, SemverAllow: options.SemverAllow, ForgeCandidates: options.ForgeCandidates, ForgeCandidateSources: options.ForgeCandidateSources, ComposeRecreateMode: options.ComposeRecreateMode})
+	if taskType == task.TypeImageCheck && options.ImageCheckBatchID == "" {
+		options.ImageCheckBatchID = uuid.NewString()
+	}
+	paramsJSON, err := json.Marshal(serviceTaskParams{ServiceDir: serviceDir, DataNames: dataNames, ImageNames: options.ImageNames, ImageCheckBatchID: options.ImageCheckBatchID, SemverAllow: options.SemverAllow, ForgeCandidates: options.ForgeCandidates, ForgeCandidateSources: options.ForgeCandidateSources, ComposeRecreateMode: options.ComposeRecreateMode})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("encode task params: %w", err))
 	}

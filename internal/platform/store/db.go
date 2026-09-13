@@ -102,6 +102,15 @@ type ServiceImageUpdateCheck struct {
 	UpdatedAt         time.Time
 }
 
+type ImageCheckBatchResult struct {
+	Complete          bool
+	Failed            bool
+	CoordinatorTaskID string
+	RepoRevision      string
+	StartedAt         time.Time
+	FinishedAt        time.Time
+}
+
 type ServiceSummary struct {
 	Name            string
 	IsDeclared      bool
@@ -710,6 +719,127 @@ func (db *DB) UpsertServiceImageStates(ctx context.Context, states []ServiceImag
 	return nil
 }
 
+func (db *DB) ListServiceImageStates(ctx context.Context, serviceName string) ([]ServiceImageState, error) {
+	if serviceName == "" {
+		return nil, errors.New("service name is required")
+	}
+	rows, err := db.sql.QueryContext(ctx, `
+		SELECT service_name, node_id, compose_service, image_ref,
+			local_digest, remote_digest, update_available,
+			check_status, COALESCE(error_summary, ''), checked_at, updated_at
+		FROM service_image_states
+		WHERE service_name = ?
+		ORDER BY node_id, compose_service, image_ref
+	`, serviceName)
+	if err != nil {
+		return nil, fmt.Errorf("query service image states: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var states []ServiceImageState
+	for rows.Next() {
+		var state ServiceImageState
+		var checkedAt, updatedAt string
+		if err := rows.Scan(&state.ServiceName, &state.NodeID, &state.ComposeService, &state.ImageRef, &state.LocalDigest, &state.RemoteDigest, &state.UpdateAvailable, &state.CheckStatus, &state.ErrorSummary, &checkedAt, &updatedAt); err != nil {
+			return nil, fmt.Errorf("scan service image state: %w", err)
+		}
+		state.LocalDigestObserved = state.LocalDigest != ""
+		state.RemoteDigestObserved = state.RemoteDigest != ""
+		state.CheckedAt, err = time.Parse(time.RFC3339, checkedAt)
+		if err != nil {
+			return nil, fmt.Errorf("parse service image state checked_at: %w", err)
+		}
+		state.UpdatedAt, err = time.Parse(time.RFC3339, updatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("parse service image state updated_at: %w", err)
+		}
+		states = append(states, state)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate service image states: %w", err)
+	}
+	return states, nil
+}
+
+func (db *DB) ImageCheckBatch(ctx context.Context, serviceName, batchID string, nodeIDs []string) (ImageCheckBatchResult, error) {
+	if serviceName == "" || batchID == "" || len(nodeIDs) == 0 {
+		return ImageCheckBatchResult{}, nil
+	}
+	rows, err := db.sql.QueryContext(ctx, `
+		SELECT task_id, node_id, status, COALESCE(repo_revision, ''), created_at, finished_at
+		FROM tasks
+		WHERE service_name = ? AND type = 'image_check'
+			AND json_extract(params_json, '$.image_check_batch_id') = ?
+		ORDER BY node_id, created_at DESC, task_id DESC
+	`, serviceName, batchID)
+	if err != nil {
+		return ImageCheckBatchResult{}, fmt.Errorf("query image check batch: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	type batchTask struct {
+		taskID       string
+		status       string
+		repoRevision string
+		createdAt    time.Time
+		finishedAt   time.Time
+	}
+	tasks := make(map[string]batchTask, len(nodeIDs))
+	for rows.Next() {
+		var taskID, nodeID, status, repoRevision, createdAt string
+		var finishedAt sql.NullString
+		if err := rows.Scan(&taskID, &nodeID, &status, &repoRevision, &createdAt, &finishedAt); err != nil {
+			return ImageCheckBatchResult{}, fmt.Errorf("scan image check batch: %w", err)
+		}
+		created, err := time.Parse(time.RFC3339, createdAt)
+		if err != nil {
+			return ImageCheckBatchResult{}, fmt.Errorf("parse image check batch created_at: %w", err)
+		}
+		var finished time.Time
+		if finishedAt.Valid {
+			finished, err = time.Parse(time.RFC3339, finishedAt.String)
+			if err != nil {
+				return ImageCheckBatchResult{}, fmt.Errorf("parse image check batch finished_at: %w", err)
+			}
+		}
+		if _, exists := tasks[nodeID]; !exists {
+			tasks[nodeID] = batchTask{taskID: taskID, status: status, repoRevision: repoRevision, createdAt: created, finishedAt: finished}
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return ImageCheckBatchResult{}, fmt.Errorf("iterate image check batch: %w", err)
+	}
+	result := ImageCheckBatchResult{}
+	for _, nodeID := range nodeIDs {
+		entry, ok := tasks[nodeID]
+		if !ok {
+			return result, nil
+		}
+		if entry.status != "succeeded" {
+			if entry.status == "failed" || entry.status == "cancelled" {
+				result.Failed = true
+			}
+			return result, nil
+		}
+		if entry.finishedAt.IsZero() {
+			return result, nil
+		}
+		if result.RepoRevision == "" {
+			result.RepoRevision = entry.repoRevision
+		} else if result.RepoRevision != entry.repoRevision {
+			result.Failed = true
+			return result, nil
+		}
+		if result.StartedAt.IsZero() || entry.createdAt.Before(result.StartedAt) {
+			result.StartedAt = entry.createdAt
+		}
+		if entry.finishedAt.After(result.FinishedAt) {
+			result.FinishedAt = entry.finishedAt
+		}
+	}
+	result.Complete = true
+	result.CoordinatorTaskID = tasks[nodeIDs[0]].taskID
+	return result, nil
+}
+
 func (db *DB) UpsertServiceImageUpdateChecks(ctx context.Context, checks []ServiceImageUpdateCheck) error {
 	if len(checks) == 0 {
 		return nil
@@ -779,6 +909,26 @@ func (db *DB) UpsertServiceImageUpdateChecks(ctx context.Context, checks []Servi
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit service image update check upsert: %w", err)
+	}
+	return nil
+}
+
+func (db *DB) DeleteOtherServiceImageUpdateChecks(ctx context.Context, serviceName, nodeID string, imageNames []string) error {
+	if serviceName == "" || nodeID == "" {
+		return errors.New("service name and node id are required")
+	}
+	query := `DELETE FROM service_image_update_checks WHERE service_name = ? AND node_id != ?`
+	args := []any{serviceName, nodeID}
+	if len(imageNames) > 0 {
+		placeholders := strings.TrimSuffix(strings.Repeat("?,", len(imageNames)), ",")
+		query += ` OR (service_name = ? AND node_id = ? AND image_name NOT IN (` + placeholders + `))`
+		args = append(args, serviceName, nodeID)
+		for _, imageName := range imageNames {
+			args = append(args, imageName)
+		}
+	}
+	if _, err := db.sql.ExecContext(ctx, query, args...); err != nil {
+		return fmt.Errorf("delete stale service image update checks: %w", err)
 	}
 	return nil
 }

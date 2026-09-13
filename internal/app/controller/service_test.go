@@ -269,6 +269,38 @@ func TestServiceQueryServiceGetServiceReturnsMinimalSummary(t *testing.T) {
 	}
 }
 
+func TestServiceImageUpdateChecksDefaultToFirstTargetNode(t *testing.T) {
+	t.Parallel()
+	repoDir := filepath.Join(t.TempDir(), "repo")
+	createGitRepoWithContent(t, repoDir, map[string]string{
+		"app/composia-meta.yaml": "name: app\nnodes:\n  - main\n  - edge\n",
+	})
+	db := openControllerTestDB(t)
+	defer func() { _ = db.Close() }()
+	ctx := context.Background()
+	if err := db.SyncConfiguredNodes(ctx, []string{"main", "edge"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.SyncDeclaredServices(ctx, map[string][]string{"app": {"main", "edge"}}); err != nil {
+		t.Fatal(err)
+	}
+	checkedAt := time.Date(2026, 9, 13, 6, 0, 0, 0, time.UTC)
+	if err := db.UpsertServiceImageUpdateChecks(ctx, []store.ServiceImageUpdateCheck{
+		{ServiceName: "app", NodeID: "main", ImageName: "api", ImageRef: "example/api", CheckStatus: store.ImageCheckStatusOK, CheckedAt: checkedAt},
+		{ServiceName: "app", NodeID: "edge", ImageName: "api", ImageRef: "example/api", CheckStatus: store.ImageCheckStatusOK, CheckedAt: checkedAt},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	server := &serviceQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, availableNodeIDs: map[string]struct{}{"main": {}, "edge": {}}}
+	response, err := server.GetServiceImageUpdateChecks(ctx, connect.NewRequest(&controllerv1.GetServiceImageUpdateChecksRequest{ServiceName: "app"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(response.Msg.GetChecks()) != 1 || response.Msg.GetChecks()[0].GetNodeId() != "main" {
+		t.Fatalf("unexpected aggregate checks: %+v", response.Msg.GetChecks())
+	}
+}
+
 func TestServiceCommandServiceDeployCreatesPendingTask(t *testing.T) {
 	t.Parallel()
 
@@ -405,7 +437,7 @@ func TestServiceCommandServiceImageCheckCreatesPendingTask(t *testing.T) {
 		t.Fatalf("get image check task: %v", err)
 	}
 	params := mustTaskParams(t, detail.Record.ParamsJSON)
-	if detail.Record.Type != task.TypeImageCheck || detail.Record.Source != task.SourceCLI || len(params.ImageNames) != 0 || strings.Join(params.SemverAllow, ",") != "patch,minor" {
+	if detail.Record.Type != task.TypeImageCheck || detail.Record.Source != task.SourceCLI || params.ImageCheckBatchID == "" || len(params.ImageNames) != 0 || strings.Join(params.SemverAllow, ",") != "patch,minor" {
 		t.Fatalf("unexpected image check task: record=%+v params=%+v", detail.Record, params)
 	}
 }
@@ -1543,6 +1575,26 @@ func TestPlanRequestedServiceImageUpdatesRejectsEmptyAllDetected(t *testing.T) {
 	_, err := server.planRequestedServiceImageUpdates(ctx, service, []string{"main"}, nil, true)
 	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
 		t.Fatalf("expected failed precondition, got %v", err)
+	}
+}
+
+func TestRunServiceUpdateRejectsAllDetectedForTargetSubset(t *testing.T) {
+	t.Parallel()
+	server := &serviceCommandServer{}
+	service := repo.Service{Name: "app", TargetNodes: []string{"main", "edge"}}
+	_, _, err := server.runServiceUpdateWithImageSelections(context.Background(), service, []string{"main"}, nil, true, nil, "", "", task.SourceCLI, "", "")
+	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Fatalf("expected all-detected subset rejection, got %v", err)
+	}
+}
+
+func TestRunServiceUpdateRejectsDetectedSelectionForTargetSubset(t *testing.T) {
+	t.Parallel()
+	server := &serviceCommandServer{}
+	service := repo.Service{Name: "app", TargetNodes: []string{"main", "edge"}}
+	_, _, err := server.runServiceUpdateWithImageSelections(context.Background(), service, []string{"main"}, []*controllerv1.ImageUpdateSelection{{ImageName: "api", UseDetected: true}}, false, nil, "", "", task.SourceCLI, "", "")
+	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Fatalf("expected detected subset rejection, got %v", err)
 	}
 }
 

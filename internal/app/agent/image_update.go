@@ -18,6 +18,7 @@ import (
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/store"
+	"github.com/distribution/reference"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gopkg.in/yaml.v3"
 )
@@ -157,16 +158,8 @@ func collectServiceImageUpdateCheck(ctx context.Context, serviceDir, imageName s
 			check.ErrorSummary = err.Error()
 			return check
 		}
-		if currentDigest == "" {
-			localDigest, err := inspectLocalImageDigest(ctx, image.Image+":"+currentTag)
-			if err == nil {
-				currentDigest = localDigest
-				check.CurrentDigest = localDigest
-			}
-		}
 		check.CandidateTag = currentTag
 		check.CandidateDigest = remoteDigest
-		check.UpdateAvailable = remoteDigest != "" && currentDigest != "" && remoteDigest != currentDigest
 		return check
 	}
 
@@ -362,7 +355,7 @@ func inspectLocalImageDigest(ctx context.Context, imageRef string) (string, erro
 	if err := command.Run(); err != nil {
 		return "", fmt.Errorf("docker image inspect failed: %w %s", err, strings.TrimSpace(stderr.String()))
 	}
-	return firstDigestFromRepoDigests(stdout.String()), nil
+	return digestForImageRefFromRepoDigests(stdout.String(), imageRef), nil
 }
 
 func inspectRemoteImageDigest(ctx context.Context, imageRef string) (string, error) {
@@ -381,13 +374,23 @@ func inspectRemoteImageDigest(ctx context.Context, imageRef string) (string, err
 	return normalizeImageDigest(digest), nil
 }
 
-func firstDigestFromRepoDigests(output string) string {
+func digestForImageRefFromRepoDigests(output, imageRef string) string {
+	configured, err := reference.ParseNormalizedNamed(imageRef)
+	if err != nil {
+		return ""
+	}
+	configuredName := reference.FamiliarName(reference.TrimNamed(configured))
 	for _, line := range strings.Split(output, "\n") {
 		line = strings.TrimSpace(line)
-		if line == "" {
+		separator := strings.LastIndex(line, "@")
+		if separator < 0 {
 			continue
 		}
-		return normalizeImageDigest(line)
+		observed, err := reference.ParseNormalizedNamed(line[:separator])
+		if err != nil || reference.FamiliarName(reference.TrimNamed(observed)) != configuredName {
+			continue
+		}
+		return normalizeImageDigest(line[separator+1:])
 	}
 	return ""
 }

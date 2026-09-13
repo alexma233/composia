@@ -97,8 +97,8 @@ func TestSplitImageTagDigestHelpers(t *testing.T) {
 func TestDigestAndObservationHelpers(t *testing.T) {
 	t.Parallel()
 
-	if got := firstDigestFromRepoDigests("\nrepo/app:latest@sha256:abc\nrepo/app:v1@sha256:def\n"); got != "sha256:abc" {
-		t.Fatalf("firstDigestFromRepoDigests = %q", got)
+	if got := digestForImageRefFromRepoDigests("other/app:latest@sha256:wrong\nregistry:5000/ns/app:latest@sha256:right\n", "registry:5000/ns/app:latest"); got != "sha256:right" {
+		t.Fatalf("digestForImageRefFromRepoDigests = %q", got)
 	}
 	if got := normalizeImageDigest(" repo/app@sha256:def "); got != "sha256:def" {
 		t.Fatalf("normalizeImageDigest = %q", got)
@@ -172,6 +172,16 @@ func TestInspectRemoteImageDigestNormalizesDigest(t *testing.T) {
 	}
 	if digest != "sha256:remote" {
 		t.Fatalf("digest = %q", digest)
+	}
+}
+
+func TestImageDiscoveryRunsOnlyOnFirstTargetNode(t *testing.T) {
+	meta := repo.ServiceMeta{Nodes: []string{" main ", "edge"}}
+	if !isImageDiscoveryNode(meta, "main") {
+		t.Fatal("expected first target node to run remote discovery")
+	}
+	if isImageDiscoveryNode(meta, "edge") {
+		t.Fatal("expected secondary target node to report local state only")
 	}
 }
 

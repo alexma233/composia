@@ -48,4 +48,5 @@ const (
 	imageUpdateDiscoveryGitLab  = "gitlab"
 	imageUpdateDiscoveryForgejo = "forgejo"
 	imageUpdateDiscoveryMerge   = "merge"
+	imageUpdatePolicyDigest     = "digest"
 )
