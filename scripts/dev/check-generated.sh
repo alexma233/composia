@@ -1,10 +1,22 @@
 #!/usr/bin/env sh
 #
 # Regenerates the protobuf output with the tool versions CI pins and fails when
-# the committed output differs. Renovate's postUpgradeTasks sets GENERATED_WRITE=1
-# to regenerate without that check, so generator bumps ship their own output.
+# the committed output differs. Renovate's postUpgradeTasks passes --write to
+# regenerate without that check, so generator bumps ship their own output.
+#
+# Usage: check-generated.sh [--write]
 
 set -eu
+
+write=0
+case "${1:-}" in
+  "") ;;
+  --write) write=1 ;;
+  *)
+    printf 'usage: %s [--write]\n' "$0" >&2
+    exit 2
+    ;;
+esac
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 cd "$ROOT_DIR"
@@ -23,7 +35,7 @@ GOBIN="$GOBIN_DIR" go install "connectrpc.com/connect/cmd/protoc-gen-connect-go@
 deno install --frozen
 PATH="$GOBIN_DIR:$ROOT_DIR/node_modules/.bin:$ROOT_DIR/web/node_modules/.bin:$PATH" buf generate
 
-if [ "${GENERATED_WRITE:-}" = "1" ]; then
+if [ "$write" = "1" ]; then
   exit 0
 fi
 

@@ -19,7 +19,7 @@
   "postUpgradeTasks": {
     "commands": [
       "bash scripts/build/update-nix-vendor-hash.sh",
-      "GENERATED_WRITE=1 sh scripts/dev/check-generated.sh"
+      "sh scripts/dev/check-generated.sh --write"
     ],
     "executionMode": "branch",
     "installTools": {
