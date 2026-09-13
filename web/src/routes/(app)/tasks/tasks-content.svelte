@@ -566,6 +566,8 @@
               class="w-[min(92vw,52rem)] p-4"
               align="end"
               sideOffset={8}
+              role="dialog"
+              aria-label={$messages.common.filter}
             >
               <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <div class="space-y-2">

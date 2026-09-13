@@ -1386,8 +1386,10 @@
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  <!-- svelte-ignore a11y_no_noninteractive_tabindex -- Keyboard users scroll long raw output. -->
                   <pre
-                    class="code-surface max-h-[360px] overflow-auto break-all sm:max-h-[600px]">{JSON.stringify(
+                    class="code-surface max-h-[360px] overflow-auto break-all sm:max-h-[600px]"
+                    tabindex="0">{JSON.stringify(
                       containerData,
                       null,
                       2,

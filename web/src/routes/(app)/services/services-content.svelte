@@ -72,7 +72,13 @@
                   </Button>
                 {/snippet}
               </Popover.Trigger>
-              <Popover.Content class="w-80" align="end" sideOffset={8}>
+              <Popover.Content
+                class="w-80"
+                align="end"
+                sideOffset={8}
+                role="dialog"
+                aria-label={$messages.services.createService}
+              >
                 <form method="POST" action="?/create">
                   <div class="space-y-4">
                     <p class="text-sm font-medium">

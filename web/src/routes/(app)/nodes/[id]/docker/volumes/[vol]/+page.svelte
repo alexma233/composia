@@ -216,7 +216,10 @@
                   <CardDescription>{$messages.docker.volumes.rawJsonDescription}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <pre class="code-surface max-h-[360px] overflow-auto break-all sm:max-h-[600px]">{JSON.stringify(volumeData, null, 2)}</pre>
+                  <!-- svelte-ignore a11y_no_noninteractive_tabindex -- Keyboard users scroll long raw output. -->
+                  <pre
+                    class="code-surface max-h-[360px] overflow-auto break-all sm:max-h-[600px]"
+                    tabindex="0">{JSON.stringify(volumeData, null, 2)}</pre>
                 </CardContent>
               </Card>
             </TabsContent>

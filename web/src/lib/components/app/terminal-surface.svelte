@@ -90,13 +90,25 @@
     });
   }
 
-  function disableReadOnlyInput() {
-    if (interactive || !host) {
+  // wterm ships its input aria-hidden while focusable, so expose it for interactive terminals
+  // and keep read-only terminals out of the tab order.
+  function normalizeTerminalInput() {
+    if (!host) {
       return;
     }
 
     const input = host.querySelector("textarea");
-    input?.setAttribute("tabindex", "-1");
+    if (!input) {
+      return;
+    }
+
+    if (interactive) {
+      input.removeAttribute("aria-hidden");
+      input.setAttribute("aria-label", $messages.common.terminal);
+      return;
+    }
+
+    input.setAttribute("tabindex", "-1");
     if (input instanceof HTMLTextAreaElement) {
       input.blur();
     }
@@ -199,7 +211,7 @@
         fixedResizeObserver.observe(terminal.element);
       }
 
-      disableReadOnlyInput();
+      normalizeTerminalInput();
       syncTerminal(true);
     }
 
@@ -237,9 +249,11 @@
   });
 </script>
 
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -- Keyboard users scroll read-only terminals, whose input is not focusable. -->
 <div
   class={`terminal-surface ${heightClass}`}
   data-fixed-cols={fixedCols || undefined}
+  tabindex={!interactive && fixedCols ? 0 : undefined}
   style={fixedCols ? `--terminal-cols: ${effectiveCols}` : undefined}
 >
   <div

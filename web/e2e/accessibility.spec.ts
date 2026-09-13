@@ -103,7 +103,7 @@ test("navigation, preferences, and overlays expose their state", async ({
   ).toHaveAttribute("aria-current", "page");
 
   await page.keyboard.press("Tab");
-  const skipLink = page.getByRole("link", { name: "Skip to content" });
+  const skipLink = page.getByRole("link", { name: "Skip to main content" });
   await expect(skipLink).toBeFocused();
   await skipLink.press("Enter");
   await expect(page.locator("main#main-content")).toBeFocused();
