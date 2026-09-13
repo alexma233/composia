@@ -2,11 +2,9 @@ package agent
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -20,7 +18,6 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 	"forgejo.alexma.top/alexma233/composia/internal/platform/rpcutil"
 	"forgejo.alexma.top/alexma233/composia/internal/version"
-	"golang.org/x/net/http2"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -479,13 +476,11 @@ func sleepWithContext(ctx context.Context, duration time.Duration) bool {
 
 func controllerHTTPClient(controllerAddr string) *http.Client {
 	if strings.HasPrefix(strings.ToLower(controllerAddr), "http://") {
-		return &http.Client{Transport: &http2.Transport{
-			AllowHTTP: true,
-			DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
-				var dialer net.Dialer
-				return dialer.DialContext(ctx, network, addr)
-			},
-		}}
+		// The controller serves cleartext HTTP/2, so plain addresses need h2c with prior
+		// knowledge. Leaving HTTP/1 out of Protocols is what selects prior knowledge.
+		protocols := new(http.Protocols)
+		protocols.SetUnencryptedHTTP2(true)
+		return &http.Client{Transport: &http.Transport{Protocols: protocols}}
 	}
 	return &http.Client{}
 }

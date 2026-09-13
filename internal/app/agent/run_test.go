@@ -2,6 +2,9 @@ package agent
 
 import (
 	"context"
+	"io"
+	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -234,6 +237,52 @@ func TestNextRegistryPageURLResolvesRelativeLink(t *testing.T) {
 	got := nextRegistryPageURL(requestURL, []string{`</v2/library/nginx/tags/list?n=100&last=1.25.0>; rel="next"`})
 	if got != "https://registry-1.docker.io/v2/library/nginx/tags/list?n=100&last=1.25.0" {
 		t.Fatalf("nextRegistryPageURL() = %q", got)
+	}
+}
+
+func TestControllerHTTPClientSpeaksCleartextHTTP2(t *testing.T) {
+	t.Parallel()
+
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+
+	server := &http.Server{
+		Handler: http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			_, _ = writer.Write([]byte(request.Proto))
+		}),
+		Protocols: protocols,
+	}
+	go func() {
+		_ = server.Serve(listener)
+	}()
+	t.Cleanup(func() {
+		_ = server.Close()
+	})
+
+	addr := "http://" + listener.Addr().String()
+	client := controllerHTTPClient(addr)
+	client.Timeout = 5 * time.Second
+
+	response, err := client.Get(addr)
+	if err != nil {
+		t.Fatalf("controllerHTTPClient() request error = %v", err)
+	}
+	defer func() {
+		_ = response.Body.Close()
+	}()
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatalf("read response body: %v", err)
+	}
+	if got := string(body); got != "HTTP/2.0" {
+		t.Fatalf("controllerHTTPClient() negotiated %s, want HTTP/2.0", got)
 	}
 }
 
