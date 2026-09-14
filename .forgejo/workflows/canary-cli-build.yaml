@@ -57,6 +57,11 @@ jobs:
           username: ${{ secrets.OCI_IMAGES_GHCR_USERNAME }}
           password: ${{ secrets.OCI_IMAGES_GHCR_TOKEN }}
 
+      - name: Create canary tag
+        env:
+          GORELEASER_CURRENT_TAG: v0.0.0-canary-${{ github.sha }}
+        run: git -c tag.gpgSign=false tag "$GORELEASER_CURRENT_TAG" "$GITHUB_SHA"
+
       - name: Build and publish canary artifacts
         env:
           GORELEASER_CURRENT_TAG: v0.0.0-canary-${{ github.sha }}
