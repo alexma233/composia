@@ -165,12 +165,14 @@ func buildBackupRuntimePayload(cfg *config.ControllerConfig, serviceName, nodeID
 			continue
 		}
 		provider := backupProviderRustic
-		for _, backupItem := range service.Meta.Backup.Data {
-			if backupItem.Name == data.Name {
-				if backupItem.Provider != "" {
-					provider = backupItem.Provider
+		if service.Meta.Backup != nil {
+			for _, backupItem := range service.Meta.Backup.Data {
+				if backupItem.Name == data.Name {
+					if backupItem.Provider != "" {
+						provider = backupItem.Provider
+					}
+					break
 				}
-				break
 			}
 		}
 		if provider != backupProviderRustic {

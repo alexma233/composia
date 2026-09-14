@@ -57,6 +57,16 @@ func runComposeUpWithOptions(ctx context.Context, serviceDir string, compose com
 	return nil
 }
 
+func composeProjectRunning(ctx context.Context, serviceDir string, compose composeCommandConfig) (bool, error) {
+	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "ps", "--all", "--status", "running", "--status", "paused", "--status", "restarting", "-q")...) //nolint:gosec
+	command.Dir = serviceDir
+	output, err := command.Output()
+	if err != nil {
+		return false, fmt.Errorf("inspect compose project running state: %w", err)
+	}
+	return len(bytesTrimSpace(output)) > 0, nil
+}
+
 func runComposeDown(ctx context.Context, serviceDir string, compose composeCommandConfig, uploadLog func(string) error) error {
 	command := exec.CommandContext(ctx, "docker", buildComposeArgs(compose, "down")...) //nolint:gosec
 	command.Dir = serviceDir

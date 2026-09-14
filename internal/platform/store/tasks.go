@@ -45,6 +45,10 @@ func (err ActiveServiceInstanceTaskError) Error() string {
 type TaskAdmissionConstraints struct {
 	RequireInactiveService          bool
 	RequireInactiveServiceInstances []ServiceInstanceTarget
+	// EnsureServiceInstances prepares missing service_instances rows as undeclared placeholders
+	// inside the admission transaction, so tasks that own a not yet declared target instance can
+	// be inserted. Existing rows are left untouched.
+	EnsureServiceInstances []ServiceInstanceTarget
 }
 
 type ServiceInstanceTarget struct {
@@ -99,12 +103,24 @@ func (db *DB) CreateTaskWithConstraints(ctx context.Context, record task.Record,
 	if len(instanceTargets) > 0 {
 		instanceTargets = append([]ServiceInstanceTarget(nil), instanceTargets...)
 	}
+	for _, target := range constraints.EnsureServiceInstances {
+		if target.ServiceName == "" {
+			return task.Record{}, errors.New("service_name is required")
+		}
+		if target.NodeID == "" {
+			return task.Record{}, errors.New("node_id is required")
+		}
+	}
 
 	tx, err := db.sql.BeginTx(ctx, nil)
 	if err != nil {
 		return task.Record{}, fmt.Errorf("begin create task transaction: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+
+	if err := ensureServiceInstancesTx(ctx, tx, constraints.EnsureServiceInstances); err != nil {
+		return task.Record{}, err
+	}
 
 	if constraints.RequireInactiveService {
 		active, err := hasActiveServiceTaskTx(ctx, tx, preparedRecord.ServiceName)
@@ -208,6 +224,23 @@ func (db *DB) CreateTasksIfNoActiveServiceInstanceTasks(ctx context.Context, rec
 type serviceInstanceKey struct {
 	ServiceName string
 	NodeID      string
+}
+
+func ensureServiceInstancesTx(ctx context.Context, execer sqlTaskExecer, targets []ServiceInstanceTarget) error {
+	if len(targets) == 0 {
+		return nil
+	}
+	updatedAt := time.Now().UTC().Format(time.RFC3339)
+	for _, target := range targets {
+		if _, err := execer.ExecContext(ctx, `
+			INSERT INTO service_instances (service_name, node_id, is_declared, runtime_status, updated_at)
+			VALUES (?, ?, 0, ?, ?)
+			ON CONFLICT(service_name, node_id) DO NOTHING
+		`, target.ServiceName, target.NodeID, ServiceRuntimeUnknown, updatedAt); err != nil {
+			return fmt.Errorf("ensure service instance %q@%q: %w", target.ServiceName, target.NodeID, err)
+		}
+	}
+	return nil
 }
 
 func prepareTaskRecord(record task.Record) (task.Record, error) {

@@ -80,6 +80,11 @@ func (server *serviceCommandServer) MigrateService(ctx context.Context, req *con
 			{ServiceName: service.Name, NodeID: req.Msg.GetSourceNodeId()},
 			{ServiceName: service.Name, NodeID: req.Msg.GetTargetNodeId()},
 		},
+		// The target node is not declared yet, so its instance row must exist before
+		// restore/deploy child tasks can be inserted for it.
+		EnsureServiceInstances: []store.ServiceInstanceTarget{
+			{ServiceName: service.Name, NodeID: req.Msg.GetTargetNodeId()},
+		},
 	})
 	if err != nil {
 		return nil, connectTaskAdmissionError(err)
@@ -143,7 +148,7 @@ func (executor *controllerTaskExecutor) executeMigrateTask(ctx context.Context, 
 
 	if len(params.DataNames) > 0 && !stepSucceeded(task.StepBackup) {
 		if err := executor.runMigrateStep(ctx, record, task.StepBackup, func() error {
-			backupTask, err := createServiceTaskWithOptions(ctx, executor.db, executor.cfg, executor.availableNodeIDs, record.ServiceName, []string{params.SourceNodeID}, task.TypeBackup, params.DataNames, serviceTaskCreateOptions{Source: record.Source})
+			backupTask, err := executor.createServiceInstanceTask(ctx, record.ServiceName, params.SourceNodeID, task.TypeBackup, serviceTaskParams{ServiceDir: params.ServiceDir, DataNames: params.DataNames}, record.RepoRevision, record.Source)
 			if err != nil {
 				return err
 			}

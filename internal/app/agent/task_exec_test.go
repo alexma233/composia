@@ -725,7 +725,7 @@ func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	if err := os.MkdirAll(binDir, 0o750); err != nil {
 		t.Fatalf("create bin dir: %v", err)
 	}
-	dockerScript := "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\ncase \"$*\" in *\" rustic backup \"*) printf 'snapshot aaa999 saved\\n' ;; esac\n"
+	dockerScript := "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$TEST_DOCKER_LOG_FILE\"\ncase \"$*\" in *\" ps --all --status running --status paused --status restarting -q\") printf 'container-id\\n' ;; *\" rustic backup \"*) printf 'snapshot aaa999 saved\\n' ;; esac\n"
 	if err := os.WriteFile(dockerPath, []byte(dockerScript), 0o750); err != nil { //nolint:gosec
 		t.Fatalf("write fake docker script: %v", err)
 	}

@@ -43,6 +43,118 @@ func TestLoadRestoreRuntimeConfig(t *testing.T) {
 	}
 }
 
+func TestColdRuntimeItemsPreserveProjectState(t *testing.T) {
+	for _, operation := range []string{"backup", "restore"} {
+		for _, tc := range []struct {
+			name    string
+			running bool
+			failure string
+			items   int
+			state   string
+		}{
+			{name: "stopped", items: 1},
+			{name: "stopped_multiple", items: 2},
+			{name: "stopped_failure", failure: "rustic", items: 1},
+			{name: "running", running: true, items: 1},
+			{name: "running_multiple", running: true, items: 2},
+			{name: "running_failure", running: true, failure: "rustic", items: 1},
+			{name: "paused", running: true, state: "paused", items: 1},
+			{name: "restarting", running: true, state: "restarting", items: 1},
+			{name: "inspection_failure", running: true, failure: "inspect", items: 1},
+		} {
+			t.Run(operation+"/"+tc.name, func(t *testing.T) {
+				logFile := installFakeDockerScript(t, `#!/bin/sh
+printf '%s\n' "$*" >> "$TEST_DOCKER_LOG_FILE"
+case "$*" in
+  *' ps --all --status running --status paused --status restarting -q')
+    [ "$TEST_FAILURE" = inspect ] && exit 1
+    case "$(cat "$TEST_STATE_FILE")" in running|paused|restarting) printf 'container-id\n' ;; esac
+    ;;
+  *' down') printf stopped > "$TEST_STATE_FILE" ;;
+  *' up -d') printf running > "$TEST_STATE_FILE" ;;
+  *' rustic backup '*|*' rustic restore '*)
+    [ "$(cat "$TEST_STATE_FILE")" = stopped ] || exit 2
+    [ "$TEST_FAILURE" = rustic ] && exit 1
+    printf 'snapshot aaa999 saved\n'
+    ;;
+  *) exit 3 ;;
+esac
+exit 0
+`)
+				root := t.TempDir()
+				stateFile := filepath.Join(root, "runtime-state")
+				initialState := "stopped"
+				if tc.running {
+					initialState = "running"
+				}
+				finalState := initialState
+				if tc.state != "" {
+					initialState = tc.state
+				}
+				writeAgentTestFile(t, stateFile, initialState)
+				t.Setenv("TEST_STATE_FILE", stateFile)
+				t.Setenv("TEST_FAILURE", tc.failure)
+				serviceRoot, rusticRoot := filepath.Join(root, "app"), filepath.Join(root, "rustic")
+				writeAgentTestFile(t, filepath.Join(serviceRoot, "composia-meta.yaml"), "name: app\nproject_name: app\ncompose_files:\n  - compose.yaml\nnodes:\n  - main\n")
+				writeAgentTestFile(t, filepath.Join(rusticRoot, "composia-meta.yaml"), "name: rustic\nproject_name: rustic\ncompose_files:\n  - compose.yaml\nnodes:\n  - main\n")
+				target := filepath.Join(serviceRoot, "data.txt")
+				writeAgentTestFile(t, target, "original data")
+				cfg := &config.AgentConfig{StateDir: filepath.Join(root, "state")}
+				rustic := &backupcfg.RusticConfig{ServiceName: "rustic", ComposeService: "rustic", NodeID: "main"}
+				var wantCommands []string
+				for i, name := range []string{"first", "second"}[:tc.items] {
+					var err error
+					if operation == "backup" {
+						_, _, _, err = backupRuntimeItem(context.Background(), cfg, serviceRoot, rusticRoot, "task", backupcfg.RuntimeItem{Name: name, Strategy: backupStrategyFilesCopyAfterStop, Include: []string{"./data.txt"}}, rustic, nil)
+					} else {
+						err = restoreRuntimeItem(context.Background(), cfg, serviceRoot, rusticRoot, "task", backupcfg.RestoreItem{Name: name, Strategy: backupStrategyFilesCopyAfterStop, Include: []string{"./data.txt"}, ArtifactRef: "aaa999"}, rustic, nil)
+					}
+					if tc.failure == "" && err != nil || tc.failure != "" && err == nil {
+						t.Fatalf("item %d: unexpected error: %v", i, err)
+					}
+					if tc.failure == "inspect" && !strings.Contains(err.Error(), "inspect compose project running state") {
+						t.Fatalf("unexpected inspection error: %v", err)
+					}
+					wantCommands = append(wantCommands, "inspect")
+					if tc.failure != "inspect" {
+						if tc.running {
+							wantCommands = append(wantCommands, "down")
+						}
+						wantCommands = append(wantCommands, operation)
+						if tc.running {
+							wantCommands = append(wantCommands, "up")
+						}
+					}
+				}
+				var commands []string
+				for _, line := range strings.Split(strings.TrimSpace(readAgentTestFile(t, logFile)), "\n") {
+					switch {
+					case line == "compose --project-name app -f compose.yaml ps --all --status running --status paused --status restarting -q":
+						commands = append(commands, "inspect")
+					case line == "compose --project-name app -f compose.yaml down":
+						commands = append(commands, "down")
+					case line == "compose --project-name app -f compose.yaml up -d":
+						commands = append(commands, "up")
+					case strings.HasPrefix(line, "compose --project-name rustic -f compose.yaml run --rm -v ") && strings.Contains(line, " rustic "+operation+" "):
+						commands = append(commands, operation)
+					default:
+						t.Fatalf("unexpected Docker command: %s", line)
+					}
+				}
+				if strings.Join(commands, ",") != strings.Join(wantCommands, ",") {
+					t.Fatalf("commands = %v, want %v", commands, wantCommands)
+				}
+				if got := readAgentTestFile(t, stateFile); got != finalState {
+					t.Fatalf("final state = %q, want %q", got, finalState)
+				}
+				if tc.failure == "inspect" && readAgentTestFile(t, target) != "original data" {
+					t.Fatal("inspection failure mutated service data")
+				}
+			})
+		}
+	}
+}
+
 func TestLoadRestoreRuntimeConfigRejectsMissingItems(t *testing.T) {
 	t.Parallel()
 

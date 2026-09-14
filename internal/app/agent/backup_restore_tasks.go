@@ -190,21 +190,28 @@ func backupRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot
 		if loadErr != nil {
 			return "", startedAt, time.Time{}, loadErr
 		}
-		if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("stopping compose project %s for cold backup item %s\n", compose.ProjectName, item.Name)); err != nil {
+		running, err := composeProjectRunning(ctx, serviceRoot, compose)
+		if err != nil {
 			return "", startedAt, time.Time{}, err
 		}
-		if err := runComposeDown(ctx, serviceRoot, compose, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); err != nil {
-			return "", startedAt, time.Time{}, err
-		}
-		defer func() {
-			if restartErr := runComposeUp(ctx, serviceRoot, compose, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); restartErr != nil {
-				if retErr == nil {
-					retErr = fmt.Errorf("restart compose project after cold backup: %w", restartErr)
-					return
-				}
-				_ = uploadTaskLog(ctx, logUploader, fmt.Sprintf("restart compose project after cold backup failed: %v\n", restartErr))
+		// ponytail: preserve project-level state; partial projects still use the existing down/up lifecycle.
+		if running {
+			if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("stopping compose project %s for cold backup item %s\n", compose.ProjectName, item.Name)); err != nil {
+				return "", startedAt, time.Time{}, err
 			}
-		}()
+			if err := runComposeDown(ctx, serviceRoot, compose, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); err != nil {
+				return "", startedAt, time.Time{}, err
+			}
+			defer func() {
+				if restartErr := runComposeUp(ctx, serviceRoot, compose, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); restartErr != nil {
+					if retErr == nil {
+						retErr = fmt.Errorf("restart compose project after cold backup: %w", restartErr)
+						return
+					}
+					_ = uploadTaskLog(ctx, logUploader, fmt.Sprintf("restart compose project after cold backup failed: %v\n", restartErr))
+				}
+			}()
+		}
 	}
 
 	var extraVolumes []string
@@ -248,21 +255,27 @@ func restoreRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoo
 			if loadErr != nil {
 				return loadErr
 			}
-			if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("stopping compose project %s for cold restore item %s\n", compose.ProjectName, item.Name)); err != nil {
+			running, err := composeProjectRunning(ctx, serviceRoot, compose)
+			if err != nil {
 				return err
 			}
-			if err := runComposeDown(ctx, serviceRoot, compose, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); err != nil {
-				return err
-			}
-			defer func() {
-				if restartErr := runComposeUp(ctx, serviceRoot, compose, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); restartErr != nil {
-					if retErr == nil {
-						retErr = fmt.Errorf("restart compose project after cold restore: %w", restartErr)
-						return
-					}
-					_ = uploadTaskLog(ctx, logUploader, fmt.Sprintf("restart compose project after cold restore failed: %v\n", restartErr))
+			if running {
+				if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("stopping compose project %s for cold restore item %s\n", compose.ProjectName, item.Name)); err != nil {
+					return err
 				}
-			}()
+				if err := runComposeDown(ctx, serviceRoot, compose, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); err != nil {
+					return err
+				}
+				defer func() {
+					if restartErr := runComposeUp(ctx, serviceRoot, compose, func(output string) error { return uploadTaskLog(ctx, logUploader, output) }); restartErr != nil {
+						if retErr == nil {
+							retErr = fmt.Errorf("restart compose project after cold restore: %w", restartErr)
+							return
+						}
+						_ = uploadTaskLog(ctx, logUploader, fmt.Sprintf("restart compose project after cold restore failed: %v\n", restartErr))
+					}
+				}()
+			}
 		}
 		extraVolumes, err = prepareRestoreVolumeFlags(ctx, serviceRoot, stagingDir, rusticTargetDir, item)
 		if err != nil {
