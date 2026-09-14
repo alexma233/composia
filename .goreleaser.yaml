@@ -237,6 +237,7 @@ dockers_v2:
     disable: '{{ and (ne (index .Env "COMPOSIA_CANARY_TARGET") "") (ne (index .Env "COMPOSIA_CANARY_TARGET") "agent") }}'
 
 changelog:
+  disable: '{{ ne (index .Env "COMPOSIA_CANARY_TARGET") "" }}'
   use: gitea
   sort: asc
   filters:
