@@ -165,6 +165,34 @@ update:
           - minor
 ```
 
+### Image check prerequisites
+
+Image checks are read-only: they never download or install a service bundle, pull images, or recreate containers. Before discovering updates, the agent:
+
+1. Fetches a task-authorized manifest of all controller-managed persistent service files, including decrypted runtime files, and verifies their contents locally using SHA-256. Bundle permission limits and the executable bit are checked; a restrictive extraction umask is allowed. Missing or modified files require deployment before checking again. Unmanaged generated files and runtime data are not hashed, but an unmanaged `.env` is rejected because it changes Compose interpolation.
+2. Compares `docker compose config --hash` with each applicable container's `com.docker.compose.config-hash`. A deployment outside Composia is accepted when the project, service, and configuration match; no successful Composia task record is required. Existing replicas must match the expected configuration hash; a stopped matching container is configuration-consistent. Inactive profile services without containers are skipped.
+3. Inspects each running container's immutable image ID, rather than the image currently cached under its tag. Missing or ambiguous repository digests and inconsistent replicas fail the check instead of guessing an update baseline.
+
+Configuration differences fail only the check task; they do not overwrite the service's runtime status or its update timestamp. A newer controller revision is allowed if the service's rendered files are unchanged. Checks observe a point in time, not a continuous guarantee against external changes.
+
+Compose 5.5.1 or newer is required for the corrected `env_file` hash behavior. Agent images install `docker-cli-compose` from a tagged Alpine edge repository without moving the remaining packages to edge. The Compose hash does not include bind-mounted file contents or every deployment setting; it is not a complete runtime convergence check. Keep generated Caddy files outside replaceable service directories, preferably at the default `<state_dir>/caddy/generated`.
+
+### Most recent consistency check
+
+Consistency is an independent configuration snapshot per service and node, not a value inferred from the image-check task status. Initially, only `image_check` passively runs and reports it, before running-image observation and remote registry discovery. There is no separate consistency action, timer, automatic expiry, or history ledger.
+
+Web instances and `composia service <service>` (including JSON output, without requiring `--containers`) show separate **Files** and **Compose** outcomes:
+
+| Status | Meaning |
+|--------|---------|
+| `unknown` | Not checked, including a stage skipped because an earlier stage failed. |
+| `consistent` | The checked configuration matched. |
+| `drifted` | A definite file, permission, container, or configuration-hash mismatch was found. |
+| `error` | The check could not be completed, for example due to access, transport, or tool failures. |
+| `not_applicable` | Compose does not apply to an `infra.config` service. |
+
+The most recent snapshot includes its server-recorded check time, target repository revision, source task, and stage-specific reasons. It remains historical evidence until the next check replaces it, even if runtime state or repository configuration changes afterward. Running state and image digest availability are separate observations: a stopped container can have consistent configuration while image observation fails. A later registry or image-observation error does not overwrite the recorded configuration outcomes.
+
 ### `update`
 
 | Key | Type | Description |

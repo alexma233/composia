@@ -20,6 +20,8 @@ service AgentReportService {
   rpc ReportBackupResult(ReportBackupResultRequest) returns (ReportBackupResultResponse);
   // ReportServiceInstanceStatus reports the current status of one service instance.
   rpc ReportServiceInstanceStatus(ReportServiceInstanceStatusRequest) returns (ReportServiceInstanceStatusResponse);
+  // ReportServiceConsistencyCheck records the latest independent configuration check.
+  rpc ReportServiceConsistencyCheck(ReportServiceConsistencyCheckRequest) returns (ReportServiceConsistencyCheckResponse);
   // ReportServiceImageStates reports image digest observations for one service instance.
   rpc ReportServiceImageStates(ReportServiceImageStatesRequest) returns (ReportServiceImageStatesResponse);
   // ReportServiceImageUpdateChecks reports candidate image updates for one service instance.
@@ -50,6 +52,8 @@ service AgentTaskService {
 service BundleService {
   // GetServiceBundle streams the task bundle as binary chunks.
   rpc GetServiceBundle(GetServiceBundleRequest) returns (stream GetServiceBundleResponse);
+  // GetServiceManifest describes persistent service files without downloading or installing them.
+  rpc GetServiceManifest(GetServiceManifestRequest) returns (GetServiceManifestResponse);
 }
 
 // DockerService exposes Docker operations that run on the agent node.
@@ -524,6 +528,29 @@ message GetServiceBundleResponse {
   bytes data = 4;
 }
 
+// GetServiceManifestRequest identifies an active service-scoped execution.
+message GetServiceManifestRequest {
+  string task_id = 1;
+  string execution_id = 2;
+}
+
+// ServiceManifestFile describes one controller-managed runtime file.
+message ServiceManifestFile {
+  // path is relative to the service directory, after encrypted file rendering.
+  string path = 1;
+  // sha256 is the lowercase hexadecimal digest of the installed file contents.
+  string sha256 = 2;
+  // mode contains bundle permission bits; extraction may tighten them through umask.
+  uint32 mode = 3;
+}
+
+// GetServiceManifestResponse is bound to the requesting task's immutable repo revision.
+message GetServiceManifestResponse {
+  string repo_revision = 1;
+  string relative_root = 2;
+  repeated ServiceManifestFile files = 3;
+}
+
 // DockerStats describes a node-level Docker usage snapshot.
 message DockerStats {
   uint32 containers_total = 1;
@@ -906,3 +933,29 @@ message RemoveImageRequest {
 
 // RemoveImageResponse acknowledges one local image deletion request.
 message RemoveImageResponse {}
+
+// ServiceConsistencyOutcome is independent of runtime and image availability.
+message ServiceConsistencyOutcome {
+  // status is unknown, consistent, drifted, error, or not_applicable.
+  string status = 1;
+  repeated string reasons = 2;
+}
+
+// ServiceConsistencyCheck is the most recent check, not a live-state guarantee.
+message ServiceConsistencyCheck {
+  ServiceConsistencyOutcome files = 1;
+  ServiceConsistencyOutcome compose = 2;
+  string checked_at = 3;
+  string repo_revision = 4;
+  string task_id = 5;
+}
+
+// ReportServiceConsistencyCheckRequest carries outcomes; provenance is server-derived.
+message ReportServiceConsistencyCheckRequest {
+  string task_id = 1;
+  string execution_id = 2;
+  ServiceConsistencyOutcome files = 3;
+  ServiceConsistencyOutcome compose = 4;
+}
+
+message ReportServiceConsistencyCheckResponse {}

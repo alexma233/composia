@@ -21,6 +21,7 @@ type composeConfigOutput struct {
 }
 
 type composeConfigService struct {
+	Profiles    []string              `json:"profiles"`
 	Image       string                `json:"image"`
 	Environment map[string]string     `json:"environment"`
 	Volumes     []composeConfigVolume `json:"volumes"`

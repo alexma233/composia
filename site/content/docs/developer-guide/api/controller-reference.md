@@ -2951,6 +2951,7 @@ ServiceInstanceDetail extends the instance summary with container details.
 | is_declared | [bool](#bool) |  | is_declared reports whether this instance is part of desired state. |
 | containers | [ServiceContainerSummary](#composia-controller-v1-ServiceContainerSummary) | repeated | containers lists runtime containers currently associated with the instance. |
 | pending_deploy_revision | [string](#string) |  | pending_deploy_revision is set when a repo change affects this service and a deploy is pending. |
+| consistency | [composia.agent.v1.ServiceConsistencyCheck](#composia-agent-v1-ServiceConsistencyCheck) |  | consistency is the most recent configuration check, not a live runtime guarantee. |
 
 
 
@@ -2971,6 +2972,7 @@ ServiceInstanceSummary describes one service instance on one node.
 | updated_at | [string](#string) |  | updated_at is the last known status update timestamp string. |
 | is_declared | [bool](#bool) |  | is_declared reports whether this instance is part of desired state. |
 | pending_deploy_revision | [string](#string) |  | pending_deploy_revision is set when a repo change affects this service and a deploy is pending. |
+| consistency | [composia.agent.v1.ServiceConsistencyCheck](#composia-agent-v1-ServiceConsistencyCheck) |  | consistency is the most recent configuration check, not a live runtime guarantee. |
 
 
 

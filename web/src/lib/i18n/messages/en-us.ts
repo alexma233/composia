@@ -289,6 +289,17 @@ export const enUS = {
     fixMetaUntilAccepted:
       "Fix `composia-meta.yaml` until the controller accepts it.",
     instances: {
+      consistency: {
+        title: "Most recent consistency check",
+        files: "Files",
+        compose: "Compose",
+        checkedAt: "Checked at",
+        unknown: "Not checked",
+        consistent: "Consistent",
+        drifted: "Drifted",
+        error: "Check failed",
+        not_applicable: "Not applicable",
+      },
       title: "Instances",
       loadFailed: "Failed to load service instance.",
       pendingDeploy: "Repo updated, pending deploy",

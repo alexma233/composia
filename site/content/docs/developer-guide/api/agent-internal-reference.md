@@ -22,6 +22,8 @@ weight: 10
     - [GetContainerLogsResponse](#composia-agent-v1-GetContainerLogsResponse)
     - [GetServiceBundleRequest](#composia-agent-v1-GetServiceBundleRequest)
     - [GetServiceBundleResponse](#composia-agent-v1-GetServiceBundleResponse)
+    - [GetServiceManifestRequest](#composia-agent-v1-GetServiceManifestRequest)
+    - [GetServiceManifestResponse](#composia-agent-v1-GetServiceManifestResponse)
     - [HeartbeatRequest](#composia-agent-v1-HeartbeatRequest)
     - [HeartbeatResponse](#composia-agent-v1-HeartbeatResponse)
     - [ImageInfo](#composia-agent-v1-ImageInfo)
@@ -68,6 +70,8 @@ weight: 10
     - [ReportDockerQueryResultResponse](#composia-agent-v1-ReportDockerQueryResultResponse)
     - [ReportDockerStatsRequest](#composia-agent-v1-ReportDockerStatsRequest)
     - [ReportDockerStatsResponse](#composia-agent-v1-ReportDockerStatsResponse)
+    - [ReportServiceConsistencyCheckRequest](#composia-agent-v1-ReportServiceConsistencyCheckRequest)
+    - [ReportServiceConsistencyCheckResponse](#composia-agent-v1-ReportServiceConsistencyCheckResponse)
     - [ReportServiceImageStatesRequest](#composia-agent-v1-ReportServiceImageStatesRequest)
     - [ReportServiceImageStatesResponse](#composia-agent-v1-ReportServiceImageStatesResponse)
     - [ReportServiceImageUpdateChecksRequest](#composia-agent-v1-ReportServiceImageUpdateChecksRequest)
@@ -80,8 +84,11 @@ weight: 10
     - [ReportTaskStepStateResponse](#composia-agent-v1-ReportTaskStepStateResponse)
     - [RunContainerActionRequest](#composia-agent-v1-RunContainerActionRequest)
     - [RunContainerActionResponse](#composia-agent-v1-RunContainerActionResponse)
+    - [ServiceConsistencyCheck](#composia-agent-v1-ServiceConsistencyCheck)
+    - [ServiceConsistencyOutcome](#composia-agent-v1-ServiceConsistencyOutcome)
     - [ServiceImageState](#composia-agent-v1-ServiceImageState)
     - [ServiceImageUpdateCheck](#composia-agent-v1-ServiceImageUpdateCheck)
+    - [ServiceManifestFile](#composia-agent-v1-ServiceManifestFile)
     - [UploadTaskLogsRequest](#composia-agent-v1-UploadTaskLogsRequest)
     - [UploadTaskLogsResponse](#composia-agent-v1-UploadTaskLogsResponse)
     - [VolumeInfo](#composia-agent-v1-VolumeInfo)
@@ -357,6 +364,39 @@ GetServiceBundleResponse carries one binary chunk from a task bundle stream.
 | repo_revision | [string](#string) |  | repo_revision is the repo revision packaged in the bundle. |
 | relative_root | [string](#string) |  | relative_root is the relative root path for the streamed bundle contents. |
 | data | [bytes](#bytes) |  | data contains one chunk of the bundle payload. |
+
+
+
+
+
+
+<a name="composia-agent-v1-GetServiceManifestRequest"></a>
+
+### GetServiceManifestRequest
+GetServiceManifestRequest identifies an active service-scoped execution.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| task_id | [string](#string) |  |  |
+| execution_id | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="composia-agent-v1-GetServiceManifestResponse"></a>
+
+### GetServiceManifestResponse
+GetServiceManifestResponse is bound to the requesting task&#39;s immutable repo revision.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| repo_revision | [string](#string) |  |  |
+| relative_root | [string](#string) |  |  |
+| files | [ServiceManifestFile](#composia-agent-v1-ServiceManifestFile) | repeated |  |
 
 
 
@@ -1118,6 +1158,34 @@ ReportDockerStatsResponse acknowledges a Docker stats update.
 
 
 
+<a name="composia-agent-v1-ReportServiceConsistencyCheckRequest"></a>
+
+### ReportServiceConsistencyCheckRequest
+ReportServiceConsistencyCheckRequest carries outcomes; provenance is server-derived.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| task_id | [string](#string) |  |  |
+| execution_id | [string](#string) |  |  |
+| files | [ServiceConsistencyOutcome](#composia-agent-v1-ServiceConsistencyOutcome) |  |  |
+| compose | [ServiceConsistencyOutcome](#composia-agent-v1-ServiceConsistencyOutcome) |  |  |
+
+
+
+
+
+
+<a name="composia-agent-v1-ReportServiceConsistencyCheckResponse"></a>
+
+### ReportServiceConsistencyCheckResponse
+
+
+
+
+
+
+
 <a name="composia-agent-v1-ReportServiceImageStatesRequest"></a>
 
 ### ReportServiceImageStatesRequest
@@ -1293,6 +1361,41 @@ RunContainerActionResponse acknowledges a local container action request.
 
 
 
+<a name="composia-agent-v1-ServiceConsistencyCheck"></a>
+
+### ServiceConsistencyCheck
+ServiceConsistencyCheck is the most recent check, not a live-state guarantee.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| files | [ServiceConsistencyOutcome](#composia-agent-v1-ServiceConsistencyOutcome) |  |  |
+| compose | [ServiceConsistencyOutcome](#composia-agent-v1-ServiceConsistencyOutcome) |  |  |
+| checked_at | [string](#string) |  |  |
+| repo_revision | [string](#string) |  |  |
+| task_id | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="composia-agent-v1-ServiceConsistencyOutcome"></a>
+
+### ServiceConsistencyOutcome
+ServiceConsistencyOutcome is independent of runtime and image availability.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| status | [string](#string) |  | status is unknown, consistent, drifted, error, or not_applicable. |
+| reasons | [string](#string) | repeated |  |
+
+
+
+
+
+
 <a name="composia-agent-v1-ServiceImageState"></a>
 
 ### ServiceImageState
@@ -1335,6 +1438,23 @@ ServiceImageUpdateCheck describes one configured image update check result.
 | update_available | [bool](#bool) |  |  |
 | check_status | [string](#string) |  |  |
 | error_summary | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="composia-agent-v1-ServiceManifestFile"></a>
+
+### ServiceManifestFile
+ServiceManifestFile describes one controller-managed runtime file.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| path | [string](#string) |  | path is relative to the service directory, after encrypted file rendering. |
+| sha256 | [string](#string) |  | sha256 is the lowercase hexadecimal digest of the installed file contents. |
+| mode | [uint32](#uint32) |  | mode contains bundle permission bits; extraction may tighten them through umask. |
 
 
 
@@ -1549,6 +1669,7 @@ AgentReportService carries agent-to-controller runtime and task reports.
 | UploadTaskLogs | [UploadTaskLogsRequest](#composia-agent-v1-UploadTaskLogsRequest) stream | [UploadTaskLogsResponse](#composia-agent-v1-UploadTaskLogsResponse) stream | UploadTaskLogs streams log chunks from the agent to the controller. |
 | ReportBackupResult | [ReportBackupResultRequest](#composia-agent-v1-ReportBackupResultRequest) | [ReportBackupResultResponse](#composia-agent-v1-ReportBackupResultResponse) | ReportBackupResult reports the result of one backup operation. |
 | ReportServiceInstanceStatus | [ReportServiceInstanceStatusRequest](#composia-agent-v1-ReportServiceInstanceStatusRequest) | [ReportServiceInstanceStatusResponse](#composia-agent-v1-ReportServiceInstanceStatusResponse) | ReportServiceInstanceStatus reports the current status of one service instance. |
+| ReportServiceConsistencyCheck | [ReportServiceConsistencyCheckRequest](#composia-agent-v1-ReportServiceConsistencyCheckRequest) | [ReportServiceConsistencyCheckResponse](#composia-agent-v1-ReportServiceConsistencyCheckResponse) | ReportServiceConsistencyCheck records the latest independent configuration check. |
 | ReportServiceImageStates | [ReportServiceImageStatesRequest](#composia-agent-v1-ReportServiceImageStatesRequest) | [ReportServiceImageStatesResponse](#composia-agent-v1-ReportServiceImageStatesResponse) | ReportServiceImageStates reports image digest observations for one service instance. |
 | ReportServiceImageUpdateChecks | [ReportServiceImageUpdateChecksRequest](#composia-agent-v1-ReportServiceImageUpdateChecksRequest) | [ReportServiceImageUpdateChecksResponse](#composia-agent-v1-ReportServiceImageUpdateChecksResponse) | ReportServiceImageUpdateChecks reports candidate image updates for one service instance. |
 | ReportDockerStats | [ReportDockerStatsRequest](#composia-agent-v1-ReportDockerStatsRequest) | [ReportDockerStatsResponse](#composia-agent-v1-ReportDockerStatsResponse) | ReportDockerStats reports the latest Docker stats snapshot for one node. |
@@ -1578,6 +1699,7 @@ BundleService streams service bundles needed to execute a task.
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
 | GetServiceBundle | [GetServiceBundleRequest](#composia-agent-v1-GetServiceBundleRequest) | [GetServiceBundleResponse](#composia-agent-v1-GetServiceBundleResponse) stream | GetServiceBundle streams the task bundle as binary chunks. |
+| GetServiceManifest | [GetServiceManifestRequest](#composia-agent-v1-GetServiceManifestRequest) | [GetServiceManifestResponse](#composia-agent-v1-GetServiceManifestResponse) | GetServiceManifest describes persistent service files without downloading or installing them. |
 
 
 <a name="composia-agent-v1-DockerService"></a>

@@ -1,3 +1,8 @@
+import {
+  serviceConsistency,
+  type ServiceConsistency,
+  type ServiceConsistencyResponse,
+} from "$lib/service-consistency";
 import { env } from "$env/dynamic/private";
 import { readFileSync } from "node:fs";
 
@@ -131,6 +136,7 @@ export type ServiceInstanceSummary = {
   updatedAt: string;
   isDeclared: boolean;
   pendingDeployRevision: string;
+  consistency: ServiceConsistency;
 };
 
 export type ServiceContainerSummary = {
@@ -1428,6 +1434,7 @@ export async function loadServiceInstances(
       updated_at?: string;
       isDeclared?: boolean;
       is_declared?: boolean;
+      consistency?: ServiceConsistencyResponse;
       pendingDeployRevision?: string;
       pending_deploy_revision?: string;
     }>;
@@ -1448,6 +1455,7 @@ export async function loadServiceInstances(
     isDeclared: instance.isDeclared ?? instance.is_declared ?? false,
     pendingDeployRevision:
       instance.pendingDeployRevision ?? instance.pending_deploy_revision ?? "",
+    consistency: serviceConsistency(instance.consistency),
     containers: [],
   }));
 }
@@ -1470,6 +1478,7 @@ export async function loadServiceInstance(
       updated_at?: string;
       isDeclared?: boolean;
       is_declared?: boolean;
+      consistency?: ServiceConsistencyResponse;
       pendingDeployRevision?: string;
       pending_deploy_revision?: string;
       containers?: Array<{
@@ -1507,6 +1516,7 @@ export async function loadServiceInstance(
     isDeclared: instance.isDeclared ?? instance.is_declared ?? false,
     pendingDeployRevision:
       instance.pendingDeployRevision ?? instance.pending_deploy_revision ?? "",
+    consistency: serviceConsistency(instance.consistency),
     containers: (instance.containers ?? []).map((container) => ({
       containerId: container.containerId ?? container.container_id ?? "",
       name: container.name ?? "",

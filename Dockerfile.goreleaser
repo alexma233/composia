@@ -33,7 +33,8 @@ WORKDIR /app
 ENV HOME=/tmp \
     DOCKER_CONFIG=/tmp/.docker
 
-RUN apk add --no-cache ca-certificates docker-cli docker-cli-buildx docker-cli-compose git tini
+RUN printf '%s\n' '@compose-edge https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories && \
+    apk add --no-cache ca-certificates docker-cli docker-cli-buildx 'docker-cli-compose@compose-edge>=5.5.1' git tini
 COPY ${TARGETPLATFORM}/composia-agent /usr/local/bin/composia-agent
 
 USER 65532:65532

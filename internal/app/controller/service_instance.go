@@ -30,6 +30,7 @@ func serviceInstanceSummaryMessage(record store.ServiceInstanceSnapshot) *contro
 		UpdatedAt:             record.UpdatedAt,
 		IsDeclared:            record.IsDeclared,
 		PendingDeployRevision: record.PendingDeployRevision,
+		Consistency:           serviceConsistencyMessage(record.Consistency),
 	}
 }
 
@@ -59,6 +60,7 @@ func serviceInstanceDetailMessage(record store.ServiceInstanceSnapshot, containe
 		IsDeclared:            record.IsDeclared,
 		Containers:            containers,
 		PendingDeployRevision: record.PendingDeployRevision,
+		Consistency:           serviceConsistencyMessage(record.Consistency),
 	}
 }
 

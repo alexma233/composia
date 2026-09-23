@@ -289,6 +289,17 @@ export const fr = {
     fixMetaUntilAccepted:
       "Corrigez `composia-meta.yaml` jusqu'à ce que le contrôleur l'accepte.",
     instances: {
+      consistency: {
+        title: "Dernière vérification de cohérence",
+        files: "Fichiers",
+        compose: "Compose",
+        checkedAt: "Vérifié le",
+        unknown: "Non vérifié",
+        consistent: "Cohérent",
+        drifted: "Divergence",
+        error: "Échec de la vérification",
+        not_applicable: "Sans objet",
+      },
       title: "Instances",
       loadFailed: "Échec du chargement de l'instance de service.",
       pendingDeploy: "Dépôt mis à jour, déploiement en attente",

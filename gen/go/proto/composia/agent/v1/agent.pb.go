@@ -3035,6 +3035,184 @@ func (x *GetServiceBundleResponse) GetData() []byte {
 	return nil
 }
 
+// GetServiceManifestRequest identifies an active service-scoped execution.
+type GetServiceManifestRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	ExecutionId   string                 `protobuf:"bytes,2,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetServiceManifestRequest) Reset() {
+	*x = GetServiceManifestRequest{}
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetServiceManifestRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetServiceManifestRequest) ProtoMessage() {}
+
+func (x *GetServiceManifestRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetServiceManifestRequest.ProtoReflect.Descriptor instead.
+func (*GetServiceManifestRequest) Descriptor() ([]byte, []int) {
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *GetServiceManifestRequest) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *GetServiceManifestRequest) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+// ServiceManifestFile describes one controller-managed runtime file.
+type ServiceManifestFile struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// path is relative to the service directory, after encrypted file rendering.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// sha256 is the lowercase hexadecimal digest of the installed file contents.
+	Sha256 string `protobuf:"bytes,2,opt,name=sha256,proto3" json:"sha256,omitempty"`
+	// mode contains bundle permission bits; extraction may tighten them through umask.
+	Mode          uint32 `protobuf:"varint,3,opt,name=mode,proto3" json:"mode,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ServiceManifestFile) Reset() {
+	*x = ServiceManifestFile{}
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServiceManifestFile) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServiceManifestFile) ProtoMessage() {}
+
+func (x *ServiceManifestFile) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServiceManifestFile.ProtoReflect.Descriptor instead.
+func (*ServiceManifestFile) Descriptor() ([]byte, []int) {
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *ServiceManifestFile) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *ServiceManifestFile) GetSha256() string {
+	if x != nil {
+		return x.Sha256
+	}
+	return ""
+}
+
+func (x *ServiceManifestFile) GetMode() uint32 {
+	if x != nil {
+		return x.Mode
+	}
+	return 0
+}
+
+// GetServiceManifestResponse is bound to the requesting task's immutable repo revision.
+type GetServiceManifestResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RepoRevision  string                 `protobuf:"bytes,1,opt,name=repo_revision,json=repoRevision,proto3" json:"repo_revision,omitempty"`
+	RelativeRoot  string                 `protobuf:"bytes,2,opt,name=relative_root,json=relativeRoot,proto3" json:"relative_root,omitempty"`
+	Files         []*ServiceManifestFile `protobuf:"bytes,3,rep,name=files,proto3" json:"files,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetServiceManifestResponse) Reset() {
+	*x = GetServiceManifestResponse{}
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetServiceManifestResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetServiceManifestResponse) ProtoMessage() {}
+
+func (x *GetServiceManifestResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetServiceManifestResponse.ProtoReflect.Descriptor instead.
+func (*GetServiceManifestResponse) Descriptor() ([]byte, []int) {
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *GetServiceManifestResponse) GetRepoRevision() string {
+	if x != nil {
+		return x.RepoRevision
+	}
+	return ""
+}
+
+func (x *GetServiceManifestResponse) GetRelativeRoot() string {
+	if x != nil {
+		return x.RelativeRoot
+	}
+	return ""
+}
+
+func (x *GetServiceManifestResponse) GetFiles() []*ServiceManifestFile {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
 // DockerStats describes a node-level Docker usage snapshot.
 type DockerStats struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
@@ -3062,7 +3240,7 @@ type DockerStats struct {
 
 func (x *DockerStats) Reset() {
 	*x = DockerStats{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[35]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3074,7 +3252,7 @@ func (x *DockerStats) String() string {
 func (*DockerStats) ProtoMessage() {}
 
 func (x *DockerStats) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[35]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3087,7 +3265,7 @@ func (x *DockerStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerStats.ProtoReflect.Descriptor instead.
 func (*DockerStats) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{35}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *DockerStats) GetContainersTotal() uint32 {
@@ -3173,7 +3351,7 @@ type ReportDockerStatsRequest struct {
 
 func (x *ReportDockerStatsRequest) Reset() {
 	*x = ReportDockerStatsRequest{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[36]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3185,7 +3363,7 @@ func (x *ReportDockerStatsRequest) String() string {
 func (*ReportDockerStatsRequest) ProtoMessage() {}
 
 func (x *ReportDockerStatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[36]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3198,7 +3376,7 @@ func (x *ReportDockerStatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportDockerStatsRequest.ProtoReflect.Descriptor instead.
 func (*ReportDockerStatsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{36}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *ReportDockerStatsRequest) GetNodeId() string {
@@ -3224,7 +3402,7 @@ type ReportDockerStatsResponse struct {
 
 func (x *ReportDockerStatsResponse) Reset() {
 	*x = ReportDockerStatsResponse{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[37]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3236,7 +3414,7 @@ func (x *ReportDockerStatsResponse) String() string {
 func (*ReportDockerStatsResponse) ProtoMessage() {}
 
 func (x *ReportDockerStatsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[37]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3249,7 +3427,7 @@ func (x *ReportDockerStatsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportDockerStatsResponse.ProtoReflect.Descriptor instead.
 func (*ReportDockerStatsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{37}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{40}
 }
 
 // ReportDockerQueryResultRequest reports the result of one direct Docker query.
@@ -3284,7 +3462,7 @@ type ReportDockerQueryResultRequest struct {
 
 func (x *ReportDockerQueryResultRequest) Reset() {
 	*x = ReportDockerQueryResultRequest{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[38]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3296,7 +3474,7 @@ func (x *ReportDockerQueryResultRequest) String() string {
 func (*ReportDockerQueryResultRequest) ProtoMessage() {}
 
 func (x *ReportDockerQueryResultRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[38]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3309,7 +3487,7 @@ func (x *ReportDockerQueryResultRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportDockerQueryResultRequest.ProtoReflect.Descriptor instead.
 func (*ReportDockerQueryResultRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{38}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *ReportDockerQueryResultRequest) GetQueryId() string {
@@ -3510,7 +3688,7 @@ type ReportDockerQueryResultResponse struct {
 
 func (x *ReportDockerQueryResultResponse) Reset() {
 	*x = ReportDockerQueryResultResponse{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[39]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3522,7 +3700,7 @@ func (x *ReportDockerQueryResultResponse) String() string {
 func (*ReportDockerQueryResultResponse) ProtoMessage() {}
 
 func (x *ReportDockerQueryResultResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[39]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3535,7 +3713,7 @@ func (x *ReportDockerQueryResultResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportDockerQueryResultResponse.ProtoReflect.Descriptor instead.
 func (*ReportDockerQueryResultResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{39}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{42}
 }
 
 // ListContainersRequest requests all local Docker containers.
@@ -3557,7 +3735,7 @@ type ListContainersRequest struct {
 
 func (x *ListContainersRequest) Reset() {
 	*x = ListContainersRequest{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[40]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3569,7 +3747,7 @@ func (x *ListContainersRequest) String() string {
 func (*ListContainersRequest) ProtoMessage() {}
 
 func (x *ListContainersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[40]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3582,7 +3760,7 @@ func (x *ListContainersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListContainersRequest.ProtoReflect.Descriptor instead.
 func (*ListContainersRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{40}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *ListContainersRequest) GetPageSize() uint32 {
@@ -3647,7 +3825,7 @@ type ContainerInfo struct {
 
 func (x *ContainerInfo) Reset() {
 	*x = ContainerInfo{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[41]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3659,7 +3837,7 @@ func (x *ContainerInfo) String() string {
 func (*ContainerInfo) ProtoMessage() {}
 
 func (x *ContainerInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[41]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3672,7 +3850,7 @@ func (x *ContainerInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContainerInfo.ProtoReflect.Descriptor instead.
 func (*ContainerInfo) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{41}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *ContainerInfo) GetId() string {
@@ -3756,7 +3934,7 @@ type ListContainersResponse struct {
 
 func (x *ListContainersResponse) Reset() {
 	*x = ListContainersResponse{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[42]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3768,7 +3946,7 @@ func (x *ListContainersResponse) String() string {
 func (*ListContainersResponse) ProtoMessage() {}
 
 func (x *ListContainersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[42]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3781,7 +3959,7 @@ func (x *ListContainersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListContainersResponse.ProtoReflect.Descriptor instead.
 func (*ListContainersResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{42}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *ListContainersResponse) GetContainers() []*ContainerInfo {
@@ -3809,7 +3987,7 @@ type InspectContainerRequest struct {
 
 func (x *InspectContainerRequest) Reset() {
 	*x = InspectContainerRequest{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[43]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3821,7 +3999,7 @@ func (x *InspectContainerRequest) String() string {
 func (*InspectContainerRequest) ProtoMessage() {}
 
 func (x *InspectContainerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[43]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3834,7 +4012,7 @@ func (x *InspectContainerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InspectContainerRequest.ProtoReflect.Descriptor instead.
 func (*InspectContainerRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{43}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *InspectContainerRequest) GetContainerId() string {
@@ -3854,7 +4032,7 @@ type InspectContainerResponse struct {
 
 func (x *InspectContainerResponse) Reset() {
 	*x = InspectContainerResponse{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[44]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3866,7 +4044,7 @@ func (x *InspectContainerResponse) String() string {
 func (*InspectContainerResponse) ProtoMessage() {}
 
 func (x *InspectContainerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[44]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3879,7 +4057,7 @@ func (x *InspectContainerResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InspectContainerResponse.ProtoReflect.Descriptor instead.
 func (*InspectContainerResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{44}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *InspectContainerResponse) GetRawJson() string {
@@ -3900,7 +4078,7 @@ type RunContainerActionRequest struct {
 
 func (x *RunContainerActionRequest) Reset() {
 	*x = RunContainerActionRequest{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[45]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3912,7 +4090,7 @@ func (x *RunContainerActionRequest) String() string {
 func (*RunContainerActionRequest) ProtoMessage() {}
 
 func (x *RunContainerActionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[45]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3925,7 +4103,7 @@ func (x *RunContainerActionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunContainerActionRequest.ProtoReflect.Descriptor instead.
 func (*RunContainerActionRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{45}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *RunContainerActionRequest) GetContainerId() string {
@@ -3951,7 +4129,7 @@ type RunContainerActionResponse struct {
 
 func (x *RunContainerActionResponse) Reset() {
 	*x = RunContainerActionResponse{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[46]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3963,7 +4141,7 @@ func (x *RunContainerActionResponse) String() string {
 func (*RunContainerActionResponse) ProtoMessage() {}
 
 func (x *RunContainerActionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[46]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3976,7 +4154,7 @@ func (x *RunContainerActionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunContainerActionResponse.ProtoReflect.Descriptor instead.
 func (*RunContainerActionResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{46}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{49}
 }
 
 // RemoveContainerRequest identifies one local container deletion.
@@ -3994,7 +4172,7 @@ type RemoveContainerRequest struct {
 
 func (x *RemoveContainerRequest) Reset() {
 	*x = RemoveContainerRequest{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[47]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4006,7 +4184,7 @@ func (x *RemoveContainerRequest) String() string {
 func (*RemoveContainerRequest) ProtoMessage() {}
 
 func (x *RemoveContainerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[47]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4019,7 +4197,7 @@ func (x *RemoveContainerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveContainerRequest.ProtoReflect.Descriptor instead.
 func (*RemoveContainerRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{47}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *RemoveContainerRequest) GetContainerId() string {
@@ -4052,7 +4230,7 @@ type RemoveContainerResponse struct {
 
 func (x *RemoveContainerResponse) Reset() {
 	*x = RemoveContainerResponse{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[48]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4064,7 +4242,7 @@ func (x *RemoveContainerResponse) String() string {
 func (*RemoveContainerResponse) ProtoMessage() {}
 
 func (x *RemoveContainerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[48]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4077,7 +4255,7 @@ func (x *RemoveContainerResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveContainerResponse.ProtoReflect.Descriptor instead.
 func (*RemoveContainerResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{48}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{51}
 }
 
 // GetContainerLogsRequest fetches logs for one local container.
@@ -4095,7 +4273,7 @@ type GetContainerLogsRequest struct {
 
 func (x *GetContainerLogsRequest) Reset() {
 	*x = GetContainerLogsRequest{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[49]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4107,7 +4285,7 @@ func (x *GetContainerLogsRequest) String() string {
 func (*GetContainerLogsRequest) ProtoMessage() {}
 
 func (x *GetContainerLogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[49]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4120,7 +4298,7 @@ func (x *GetContainerLogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetContainerLogsRequest.ProtoReflect.Descriptor instead.
 func (*GetContainerLogsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{49}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *GetContainerLogsRequest) GetContainerId() string {
@@ -4154,7 +4332,7 @@ type GetContainerLogsResponse struct {
 
 func (x *GetContainerLogsResponse) Reset() {
 	*x = GetContainerLogsResponse{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[50]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4166,7 +4344,7 @@ func (x *GetContainerLogsResponse) String() string {
 func (*GetContainerLogsResponse) ProtoMessage() {}
 
 func (x *GetContainerLogsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[50]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4179,7 +4357,7 @@ func (x *GetContainerLogsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetContainerLogsResponse.ProtoReflect.Descriptor instead.
 func (*GetContainerLogsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{50}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *GetContainerLogsResponse) GetContent() string {
@@ -4203,7 +4381,7 @@ type DockerQueryRunContainerExecRequest struct {
 
 func (x *DockerQueryRunContainerExecRequest) Reset() {
 	*x = DockerQueryRunContainerExecRequest{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[51]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4215,7 +4393,7 @@ func (x *DockerQueryRunContainerExecRequest) String() string {
 func (*DockerQueryRunContainerExecRequest) ProtoMessage() {}
 
 func (x *DockerQueryRunContainerExecRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[51]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4228,7 +4406,7 @@ func (x *DockerQueryRunContainerExecRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use DockerQueryRunContainerExecRequest.ProtoReflect.Descriptor instead.
 func (*DockerQueryRunContainerExecRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{51}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *DockerQueryRunContainerExecRequest) GetContainerId() string {
@@ -4284,7 +4462,7 @@ type DockerQueryRunContainerExecResponse struct {
 
 func (x *DockerQueryRunContainerExecResponse) Reset() {
 	*x = DockerQueryRunContainerExecResponse{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[52]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4296,7 +4474,7 @@ func (x *DockerQueryRunContainerExecResponse) String() string {
 func (*DockerQueryRunContainerExecResponse) ProtoMessage() {}
 
 func (x *DockerQueryRunContainerExecResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[52]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4309,7 +4487,7 @@ func (x *DockerQueryRunContainerExecResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use DockerQueryRunContainerExecResponse.ProtoReflect.Descriptor instead.
 func (*DockerQueryRunContainerExecResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{52}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *DockerQueryRunContainerExecResponse) GetExitCode() int32 {
@@ -4394,7 +4572,7 @@ type ListNetworksRequest struct {
 
 func (x *ListNetworksRequest) Reset() {
 	*x = ListNetworksRequest{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[53]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4406,7 +4584,7 @@ func (x *ListNetworksRequest) String() string {
 func (*ListNetworksRequest) ProtoMessage() {}
 
 func (x *ListNetworksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[53]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4419,7 +4597,7 @@ func (x *ListNetworksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNetworksRequest.ProtoReflect.Descriptor instead.
 func (*ListNetworksRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{53}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *ListNetworksRequest) GetPageSize() uint32 {
@@ -4489,7 +4667,7 @@ type NetworkInfo struct {
 
 func (x *NetworkInfo) Reset() {
 	*x = NetworkInfo{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[54]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4501,7 +4679,7 @@ func (x *NetworkInfo) String() string {
 func (*NetworkInfo) ProtoMessage() {}
 
 func (x *NetworkInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[54]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4514,7 +4692,7 @@ func (x *NetworkInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NetworkInfo.ProtoReflect.Descriptor instead.
 func (*NetworkInfo) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{54}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *NetworkInfo) GetId() string {
@@ -4612,7 +4790,7 @@ type ListNetworksResponse struct {
 
 func (x *ListNetworksResponse) Reset() {
 	*x = ListNetworksResponse{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[55]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4624,7 +4802,7 @@ func (x *ListNetworksResponse) String() string {
 func (*ListNetworksResponse) ProtoMessage() {}
 
 func (x *ListNetworksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[55]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4637,7 +4815,7 @@ func (x *ListNetworksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNetworksResponse.ProtoReflect.Descriptor instead.
 func (*ListNetworksResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{55}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *ListNetworksResponse) GetNetworks() []*NetworkInfo {
@@ -4665,7 +4843,7 @@ type InspectNetworkRequest struct {
 
 func (x *InspectNetworkRequest) Reset() {
 	*x = InspectNetworkRequest{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[56]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4677,7 +4855,7 @@ func (x *InspectNetworkRequest) String() string {
 func (*InspectNetworkRequest) ProtoMessage() {}
 
 func (x *InspectNetworkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[56]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4690,7 +4868,7 @@ func (x *InspectNetworkRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InspectNetworkRequest.ProtoReflect.Descriptor instead.
 func (*InspectNetworkRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{56}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *InspectNetworkRequest) GetNetworkId() string {
@@ -4710,7 +4888,7 @@ type InspectNetworkResponse struct {
 
 func (x *InspectNetworkResponse) Reset() {
 	*x = InspectNetworkResponse{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[57]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4722,7 +4900,7 @@ func (x *InspectNetworkResponse) String() string {
 func (*InspectNetworkResponse) ProtoMessage() {}
 
 func (x *InspectNetworkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[57]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4735,7 +4913,7 @@ func (x *InspectNetworkResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InspectNetworkResponse.ProtoReflect.Descriptor instead.
 func (*InspectNetworkResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{57}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *InspectNetworkResponse) GetRawJson() string {
@@ -4756,7 +4934,7 @@ type RemoveNetworkRequest struct {
 
 func (x *RemoveNetworkRequest) Reset() {
 	*x = RemoveNetworkRequest{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[58]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4768,7 +4946,7 @@ func (x *RemoveNetworkRequest) String() string {
 func (*RemoveNetworkRequest) ProtoMessage() {}
 
 func (x *RemoveNetworkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[58]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4781,7 +4959,7 @@ func (x *RemoveNetworkRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveNetworkRequest.ProtoReflect.Descriptor instead.
 func (*RemoveNetworkRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{58}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *RemoveNetworkRequest) GetNetworkId() string {
@@ -4800,7 +4978,7 @@ type RemoveNetworkResponse struct {
 
 func (x *RemoveNetworkResponse) Reset() {
 	*x = RemoveNetworkResponse{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[59]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4812,7 +4990,7 @@ func (x *RemoveNetworkResponse) String() string {
 func (*RemoveNetworkResponse) ProtoMessage() {}
 
 func (x *RemoveNetworkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[59]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4825,7 +5003,7 @@ func (x *RemoveNetworkResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveNetworkResponse.ProtoReflect.Descriptor instead.
 func (*RemoveNetworkResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{59}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{62}
 }
 
 // ListVolumesRequest requests all local Docker volumes.
@@ -4849,7 +5027,7 @@ type ListVolumesRequest struct {
 
 func (x *ListVolumesRequest) Reset() {
 	*x = ListVolumesRequest{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[60]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4861,7 +5039,7 @@ func (x *ListVolumesRequest) String() string {
 func (*ListVolumesRequest) ProtoMessage() {}
 
 func (x *ListVolumesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[60]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4874,7 +5052,7 @@ func (x *ListVolumesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListVolumesRequest.ProtoReflect.Descriptor instead.
 func (*ListVolumesRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{60}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *ListVolumesRequest) GetPageSize() uint32 {
@@ -4946,7 +5124,7 @@ type VolumeInfo struct {
 
 func (x *VolumeInfo) Reset() {
 	*x = VolumeInfo{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[61]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4958,7 +5136,7 @@ func (x *VolumeInfo) String() string {
 func (*VolumeInfo) ProtoMessage() {}
 
 func (x *VolumeInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[61]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4971,7 +5149,7 @@ func (x *VolumeInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VolumeInfo.ProtoReflect.Descriptor instead.
 func (*VolumeInfo) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{61}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *VolumeInfo) GetName() string {
@@ -5048,7 +5226,7 @@ type ListVolumesResponse struct {
 
 func (x *ListVolumesResponse) Reset() {
 	*x = ListVolumesResponse{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[62]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5060,7 +5238,7 @@ func (x *ListVolumesResponse) String() string {
 func (*ListVolumesResponse) ProtoMessage() {}
 
 func (x *ListVolumesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[62]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5073,7 +5251,7 @@ func (x *ListVolumesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListVolumesResponse.ProtoReflect.Descriptor instead.
 func (*ListVolumesResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{62}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *ListVolumesResponse) GetVolumes() []*VolumeInfo {
@@ -5101,7 +5279,7 @@ type InspectVolumeRequest struct {
 
 func (x *InspectVolumeRequest) Reset() {
 	*x = InspectVolumeRequest{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[63]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5113,7 +5291,7 @@ func (x *InspectVolumeRequest) String() string {
 func (*InspectVolumeRequest) ProtoMessage() {}
 
 func (x *InspectVolumeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[63]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5126,7 +5304,7 @@ func (x *InspectVolumeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InspectVolumeRequest.ProtoReflect.Descriptor instead.
 func (*InspectVolumeRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{63}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *InspectVolumeRequest) GetVolumeName() string {
@@ -5146,7 +5324,7 @@ type InspectVolumeResponse struct {
 
 func (x *InspectVolumeResponse) Reset() {
 	*x = InspectVolumeResponse{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[64]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5158,7 +5336,7 @@ func (x *InspectVolumeResponse) String() string {
 func (*InspectVolumeResponse) ProtoMessage() {}
 
 func (x *InspectVolumeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[64]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5171,7 +5349,7 @@ func (x *InspectVolumeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InspectVolumeResponse.ProtoReflect.Descriptor instead.
 func (*InspectVolumeResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{64}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *InspectVolumeResponse) GetRawJson() string {
@@ -5192,7 +5370,7 @@ type RemoveVolumeRequest struct {
 
 func (x *RemoveVolumeRequest) Reset() {
 	*x = RemoveVolumeRequest{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[65]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5204,7 +5382,7 @@ func (x *RemoveVolumeRequest) String() string {
 func (*RemoveVolumeRequest) ProtoMessage() {}
 
 func (x *RemoveVolumeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[65]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5217,7 +5395,7 @@ func (x *RemoveVolumeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveVolumeRequest.ProtoReflect.Descriptor instead.
 func (*RemoveVolumeRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{65}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *RemoveVolumeRequest) GetVolumeName() string {
@@ -5236,7 +5414,7 @@ type RemoveVolumeResponse struct {
 
 func (x *RemoveVolumeResponse) Reset() {
 	*x = RemoveVolumeResponse{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[66]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5248,7 +5426,7 @@ func (x *RemoveVolumeResponse) String() string {
 func (*RemoveVolumeResponse) ProtoMessage() {}
 
 func (x *RemoveVolumeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[66]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5261,7 +5439,7 @@ func (x *RemoveVolumeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveVolumeResponse.ProtoReflect.Descriptor instead.
 func (*RemoveVolumeResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{66}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{69}
 }
 
 // ListImagesRequest requests all local Docker images.
@@ -5283,7 +5461,7 @@ type ListImagesRequest struct {
 
 func (x *ListImagesRequest) Reset() {
 	*x = ListImagesRequest{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[67]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5295,7 +5473,7 @@ func (x *ListImagesRequest) String() string {
 func (*ListImagesRequest) ProtoMessage() {}
 
 func (x *ListImagesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[67]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5308,7 +5486,7 @@ func (x *ListImagesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListImagesRequest.ProtoReflect.Descriptor instead.
 func (*ListImagesRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{67}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *ListImagesRequest) GetPageSize() uint32 {
@@ -5376,7 +5554,7 @@ type ImageInfo struct {
 
 func (x *ImageInfo) Reset() {
 	*x = ImageInfo{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[68]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5388,7 +5566,7 @@ func (x *ImageInfo) String() string {
 func (*ImageInfo) ProtoMessage() {}
 
 func (x *ImageInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[68]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5401,7 +5579,7 @@ func (x *ImageInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImageInfo.ProtoReflect.Descriptor instead.
 func (*ImageInfo) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{68}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *ImageInfo) GetId() string {
@@ -5492,7 +5670,7 @@ type ListImagesResponse struct {
 
 func (x *ListImagesResponse) Reset() {
 	*x = ListImagesResponse{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[69]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5504,7 +5682,7 @@ func (x *ListImagesResponse) String() string {
 func (*ListImagesResponse) ProtoMessage() {}
 
 func (x *ListImagesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[69]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5517,7 +5695,7 @@ func (x *ListImagesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListImagesResponse.ProtoReflect.Descriptor instead.
 func (*ListImagesResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{69}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *ListImagesResponse) GetImages() []*ImageInfo {
@@ -5545,7 +5723,7 @@ type InspectImageRequest struct {
 
 func (x *InspectImageRequest) Reset() {
 	*x = InspectImageRequest{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[70]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5557,7 +5735,7 @@ func (x *InspectImageRequest) String() string {
 func (*InspectImageRequest) ProtoMessage() {}
 
 func (x *InspectImageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[70]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5570,7 +5748,7 @@ func (x *InspectImageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InspectImageRequest.ProtoReflect.Descriptor instead.
 func (*InspectImageRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{70}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *InspectImageRequest) GetImageId() string {
@@ -5590,7 +5768,7 @@ type InspectImageResponse struct {
 
 func (x *InspectImageResponse) Reset() {
 	*x = InspectImageResponse{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[71]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5602,7 +5780,7 @@ func (x *InspectImageResponse) String() string {
 func (*InspectImageResponse) ProtoMessage() {}
 
 func (x *InspectImageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[71]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5615,7 +5793,7 @@ func (x *InspectImageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InspectImageResponse.ProtoReflect.Descriptor instead.
 func (*InspectImageResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{71}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *InspectImageResponse) GetRawJson() string {
@@ -5638,7 +5816,7 @@ type RemoveImageRequest struct {
 
 func (x *RemoveImageRequest) Reset() {
 	*x = RemoveImageRequest{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[72]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5650,7 +5828,7 @@ func (x *RemoveImageRequest) String() string {
 func (*RemoveImageRequest) ProtoMessage() {}
 
 func (x *RemoveImageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[72]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5663,7 +5841,7 @@ func (x *RemoveImageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveImageRequest.ProtoReflect.Descriptor instead.
 func (*RemoveImageRequest) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{72}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *RemoveImageRequest) GetImageId() string {
@@ -5689,7 +5867,7 @@ type RemoveImageResponse struct {
 
 func (x *RemoveImageResponse) Reset() {
 	*x = RemoveImageResponse{}
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[73]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5701,7 +5879,7 @@ func (x *RemoveImageResponse) String() string {
 func (*RemoveImageResponse) ProtoMessage() {}
 
 func (x *RemoveImageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[73]
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5714,7 +5892,243 @@ func (x *RemoveImageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveImageResponse.ProtoReflect.Descriptor instead.
 func (*RemoveImageResponse) Descriptor() ([]byte, []int) {
-	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{73}
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{76}
+}
+
+// ServiceConsistencyOutcome is independent of runtime and image availability.
+type ServiceConsistencyOutcome struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// status is unknown, consistent, drifted, error, or not_applicable.
+	Status        string   `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Reasons       []string `protobuf:"bytes,2,rep,name=reasons,proto3" json:"reasons,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ServiceConsistencyOutcome) Reset() {
+	*x = ServiceConsistencyOutcome{}
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[77]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServiceConsistencyOutcome) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServiceConsistencyOutcome) ProtoMessage() {}
+
+func (x *ServiceConsistencyOutcome) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[77]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServiceConsistencyOutcome.ProtoReflect.Descriptor instead.
+func (*ServiceConsistencyOutcome) Descriptor() ([]byte, []int) {
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{77}
+}
+
+func (x *ServiceConsistencyOutcome) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *ServiceConsistencyOutcome) GetReasons() []string {
+	if x != nil {
+		return x.Reasons
+	}
+	return nil
+}
+
+// ServiceConsistencyCheck is the most recent check, not a live-state guarantee.
+type ServiceConsistencyCheck struct {
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	Files         *ServiceConsistencyOutcome `protobuf:"bytes,1,opt,name=files,proto3" json:"files,omitempty"`
+	Compose       *ServiceConsistencyOutcome `protobuf:"bytes,2,opt,name=compose,proto3" json:"compose,omitempty"`
+	CheckedAt     string                     `protobuf:"bytes,3,opt,name=checked_at,json=checkedAt,proto3" json:"checked_at,omitempty"`
+	RepoRevision  string                     `protobuf:"bytes,4,opt,name=repo_revision,json=repoRevision,proto3" json:"repo_revision,omitempty"`
+	TaskId        string                     `protobuf:"bytes,5,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ServiceConsistencyCheck) Reset() {
+	*x = ServiceConsistencyCheck{}
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[78]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServiceConsistencyCheck) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServiceConsistencyCheck) ProtoMessage() {}
+
+func (x *ServiceConsistencyCheck) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[78]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServiceConsistencyCheck.ProtoReflect.Descriptor instead.
+func (*ServiceConsistencyCheck) Descriptor() ([]byte, []int) {
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{78}
+}
+
+func (x *ServiceConsistencyCheck) GetFiles() *ServiceConsistencyOutcome {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
+func (x *ServiceConsistencyCheck) GetCompose() *ServiceConsistencyOutcome {
+	if x != nil {
+		return x.Compose
+	}
+	return nil
+}
+
+func (x *ServiceConsistencyCheck) GetCheckedAt() string {
+	if x != nil {
+		return x.CheckedAt
+	}
+	return ""
+}
+
+func (x *ServiceConsistencyCheck) GetRepoRevision() string {
+	if x != nil {
+		return x.RepoRevision
+	}
+	return ""
+}
+
+func (x *ServiceConsistencyCheck) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+// ReportServiceConsistencyCheckRequest carries outcomes; provenance is server-derived.
+type ReportServiceConsistencyCheckRequest struct {
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	TaskId        string                     `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	ExecutionId   string                     `protobuf:"bytes,2,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	Files         *ServiceConsistencyOutcome `protobuf:"bytes,3,opt,name=files,proto3" json:"files,omitempty"`
+	Compose       *ServiceConsistencyOutcome `protobuf:"bytes,4,opt,name=compose,proto3" json:"compose,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReportServiceConsistencyCheckRequest) Reset() {
+	*x = ReportServiceConsistencyCheckRequest{}
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[79]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportServiceConsistencyCheckRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportServiceConsistencyCheckRequest) ProtoMessage() {}
+
+func (x *ReportServiceConsistencyCheckRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[79]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportServiceConsistencyCheckRequest.ProtoReflect.Descriptor instead.
+func (*ReportServiceConsistencyCheckRequest) Descriptor() ([]byte, []int) {
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{79}
+}
+
+func (x *ReportServiceConsistencyCheckRequest) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *ReportServiceConsistencyCheckRequest) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *ReportServiceConsistencyCheckRequest) GetFiles() *ServiceConsistencyOutcome {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
+func (x *ReportServiceConsistencyCheckRequest) GetCompose() *ServiceConsistencyOutcome {
+	if x != nil {
+		return x.Compose
+	}
+	return nil
+}
+
+type ReportServiceConsistencyCheckResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReportServiceConsistencyCheckResponse) Reset() {
+	*x = ReportServiceConsistencyCheckResponse{}
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[80]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportServiceConsistencyCheckResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportServiceConsistencyCheckResponse) ProtoMessage() {}
+
+func (x *ReportServiceConsistencyCheckResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_composia_agent_v1_agent_proto_msgTypes[80]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportServiceConsistencyCheckResponse.ProtoReflect.Descriptor instead.
+func (*ReportServiceConsistencyCheckResponse) Descriptor() ([]byte, []int) {
+	return file_proto_composia_agent_v1_agent_proto_rawDescGZIP(), []int{80}
 }
 
 var File_proto_composia_agent_v1_agent_proto protoreflect.FileDescriptor
@@ -5927,7 +6341,18 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12#\n" +
 	"\rrepo_revision\x18\x02 \x01(\tR\frepoRevision\x12#\n" +
 	"\rrelative_root\x18\x03 \x01(\tR\frelativeRoot\x12\x12\n" +
-	"\x04data\x18\x04 \x01(\fR\x04data\"\x9f\x03\n" +
+	"\x04data\x18\x04 \x01(\fR\x04data\"W\n" +
+	"\x19GetServiceManifestRequest\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12!\n" +
+	"\fexecution_id\x18\x02 \x01(\tR\vexecutionId\"U\n" +
+	"\x13ServiceManifestFile\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
+	"\x06sha256\x18\x02 \x01(\tR\x06sha256\x12\x12\n" +
+	"\x04mode\x18\x03 \x01(\rR\x04mode\"\xa4\x01\n" +
+	"\x1aGetServiceManifestResponse\x12#\n" +
+	"\rrepo_revision\x18\x01 \x01(\tR\frepoRevision\x12#\n" +
+	"\rrelative_root\x18\x02 \x01(\tR\frelativeRoot\x12<\n" +
+	"\x05files\x18\x03 \x03(\v2&.composia.agent.v1.ServiceManifestFileR\x05files\"\x9f\x03\n" +
 	"\vDockerStats\x12)\n" +
 	"\x10containers_total\x18\x01 \x01(\rR\x0fcontainersTotal\x12-\n" +
 	"\x12containers_running\x18\x02 \x01(\rR\x11containersRunning\x12-\n" +
@@ -6136,7 +6561,23 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\x12RemoveImageRequest\x12\x19\n" +
 	"\bimage_id\x18\x01 \x01(\tR\aimageId\x12\x14\n" +
 	"\x05force\x18\x02 \x01(\bR\x05force\"\x15\n" +
-	"\x13RemoveImageResponse*\xdc\x06\n" +
+	"\x13RemoveImageResponse\"M\n" +
+	"\x19ServiceConsistencyOutcome\x12\x16\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status\x12\x18\n" +
+	"\areasons\x18\x02 \x03(\tR\areasons\"\x82\x02\n" +
+	"\x17ServiceConsistencyCheck\x12B\n" +
+	"\x05files\x18\x01 \x01(\v2,.composia.agent.v1.ServiceConsistencyOutcomeR\x05files\x12F\n" +
+	"\acompose\x18\x02 \x01(\v2,.composia.agent.v1.ServiceConsistencyOutcomeR\acompose\x12\x1d\n" +
+	"\n" +
+	"checked_at\x18\x03 \x01(\tR\tcheckedAt\x12#\n" +
+	"\rrepo_revision\x18\x04 \x01(\tR\frepoRevision\x12\x17\n" +
+	"\atask_id\x18\x05 \x01(\tR\x06taskId\"\xee\x01\n" +
+	"$ReportServiceConsistencyCheckRequest\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12!\n" +
+	"\fexecution_id\x18\x02 \x01(\tR\vexecutionId\x12B\n" +
+	"\x05files\x18\x03 \x01(\v2,.composia.agent.v1.ServiceConsistencyOutcomeR\x05files\x12F\n" +
+	"\acompose\x18\x04 \x01(\v2,.composia.agent.v1.ServiceConsistencyOutcomeR\acompose\"'\n" +
+	"%ReportServiceConsistencyCheckResponse*\xdc\x06\n" +
 	"\rAgentTaskType\x12\x1f\n" +
 	"\x1bAGENT_TASK_TYPE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16AGENT_TASK_TYPE_DEPLOY\x10\x01\x12\x18\n" +
@@ -6208,14 +6649,15 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\x1cCONTAINER_ACTION_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16CONTAINER_ACTION_START\x10\x01\x12\x19\n" +
 	"\x15CONTAINER_ACTION_STOP\x10\x02\x12\x1c\n" +
-	"\x18CONTAINER_ACTION_RESTART\x10\x032\xb9\v\n" +
+	"\x18CONTAINER_ACTION_RESTART\x10\x032\xce\f\n" +
 	"\x12AgentReportService\x12V\n" +
 	"\tHeartbeat\x12#.composia.agent.v1.HeartbeatRequest\x1a$.composia.agent.v1.HeartbeatResponse\x12h\n" +
 	"\x0fReportTaskState\x12).composia.agent.v1.ReportTaskStateRequest\x1a*.composia.agent.v1.ReportTaskStateResponse\x12t\n" +
 	"\x13ReportTaskStepState\x12-.composia.agent.v1.ReportTaskStepStateRequest\x1a..composia.agent.v1.ReportTaskStepStateResponse\x12i\n" +
 	"\x0eUploadTaskLogs\x12(.composia.agent.v1.UploadTaskLogsRequest\x1a).composia.agent.v1.UploadTaskLogsResponse(\x010\x01\x12q\n" +
 	"\x12ReportBackupResult\x12,.composia.agent.v1.ReportBackupResultRequest\x1a-.composia.agent.v1.ReportBackupResultResponse\x12\x8c\x01\n" +
-	"\x1bReportServiceInstanceStatus\x125.composia.agent.v1.ReportServiceInstanceStatusRequest\x1a6.composia.agent.v1.ReportServiceInstanceStatusResponse\x12\x83\x01\n" +
+	"\x1bReportServiceInstanceStatus\x125.composia.agent.v1.ReportServiceInstanceStatusRequest\x1a6.composia.agent.v1.ReportServiceInstanceStatusResponse\x12\x92\x01\n" +
+	"\x1dReportServiceConsistencyCheck\x127.composia.agent.v1.ReportServiceConsistencyCheckRequest\x1a8.composia.agent.v1.ReportServiceConsistencyCheckResponse\x12\x83\x01\n" +
 	"\x18ReportServiceImageStates\x122.composia.agent.v1.ReportServiceImageStatesRequest\x1a3.composia.agent.v1.ReportServiceImageStatesResponse\x12\x95\x01\n" +
 	"\x1eReportServiceImageUpdateChecks\x128.composia.agent.v1.ReportServiceImageUpdateChecksRequest\x1a9.composia.agent.v1.ReportServiceImageUpdateChecksResponse\x12n\n" +
 	"\x11ReportDockerStats\x12+.composia.agent.v1.ReportDockerStatsRequest\x1a,.composia.agent.v1.ReportDockerStatsResponse\x12\x80\x01\n" +
@@ -6226,9 +6668,10 @@ const file_proto_composia_agent_v1_agent_proto_rawDesc = "" +
 	"\fPullNextTask\x12&.composia.agent.v1.PullNextTaskRequest\x1a'.composia.agent.v1.PullNextTaskResponse\x12h\n" +
 	"\x0fAcknowledgeTask\x12).composia.agent.v1.AcknowledgeTaskRequest\x1a*.composia.agent.v1.AcknowledgeTaskResponse\x12e\n" +
 	"\x0eRenewTaskLease\x12(.composia.agent.v1.RenewTaskLeaseRequest\x1a).composia.agent.v1.RenewTaskLeaseResponse\x12t\n" +
-	"\x13PullNextDockerQuery\x12-.composia.agent.v1.PullNextDockerQueryRequest\x1a..composia.agent.v1.PullNextDockerQueryResponse2~\n" +
+	"\x13PullNextDockerQuery\x12-.composia.agent.v1.PullNextDockerQueryRequest\x1a..composia.agent.v1.PullNextDockerQueryResponse2\xf1\x01\n" +
 	"\rBundleService\x12m\n" +
-	"\x10GetServiceBundle\x12*.composia.agent.v1.GetServiceBundleRequest\x1a+.composia.agent.v1.GetServiceBundleResponse0\x012\x98\v\n" +
+	"\x10GetServiceBundle\x12*.composia.agent.v1.GetServiceBundleRequest\x1a+.composia.agent.v1.GetServiceBundleResponse0\x01\x12q\n" +
+	"\x12GetServiceManifest\x12,.composia.agent.v1.GetServiceManifestRequest\x1a-.composia.agent.v1.GetServiceManifestResponse2\x98\v\n" +
 	"\rDockerService\x12e\n" +
 	"\x0eListContainers\x12(.composia.agent.v1.ListContainersRequest\x1a).composia.agent.v1.ListContainersResponse\x12k\n" +
 	"\x10InspectContainer\x12*.composia.agent.v1.InspectContainerRequest\x1a+.composia.agent.v1.InspectContainerResponse\x12q\n" +
@@ -6259,7 +6702,7 @@ func file_proto_composia_agent_v1_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_composia_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_proto_composia_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 77)
+var file_proto_composia_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 84)
 var file_proto_composia_agent_v1_agent_proto_goTypes = []any{
 	(AgentTaskType)(0),                             // 0: composia.agent.v1.AgentTaskType
 	(AgentTaskStatus)(0),                           // 1: composia.agent.v1.AgentTaskStatus
@@ -6301,173 +6744,189 @@ var file_proto_composia_agent_v1_agent_proto_goTypes = []any{
 	(*ReportServiceImageUpdateChecksResponse)(nil), // 37: composia.agent.v1.ReportServiceImageUpdateChecksResponse
 	(*GetServiceBundleRequest)(nil),                // 38: composia.agent.v1.GetServiceBundleRequest
 	(*GetServiceBundleResponse)(nil),               // 39: composia.agent.v1.GetServiceBundleResponse
-	(*DockerStats)(nil),                            // 40: composia.agent.v1.DockerStats
-	(*ReportDockerStatsRequest)(nil),               // 41: composia.agent.v1.ReportDockerStatsRequest
-	(*ReportDockerStatsResponse)(nil),              // 42: composia.agent.v1.ReportDockerStatsResponse
-	(*ReportDockerQueryResultRequest)(nil),         // 43: composia.agent.v1.ReportDockerQueryResultRequest
-	(*ReportDockerQueryResultResponse)(nil),        // 44: composia.agent.v1.ReportDockerQueryResultResponse
-	(*ListContainersRequest)(nil),                  // 45: composia.agent.v1.ListContainersRequest
-	(*ContainerInfo)(nil),                          // 46: composia.agent.v1.ContainerInfo
-	(*ListContainersResponse)(nil),                 // 47: composia.agent.v1.ListContainersResponse
-	(*InspectContainerRequest)(nil),                // 48: composia.agent.v1.InspectContainerRequest
-	(*InspectContainerResponse)(nil),               // 49: composia.agent.v1.InspectContainerResponse
-	(*RunContainerActionRequest)(nil),              // 50: composia.agent.v1.RunContainerActionRequest
-	(*RunContainerActionResponse)(nil),             // 51: composia.agent.v1.RunContainerActionResponse
-	(*RemoveContainerRequest)(nil),                 // 52: composia.agent.v1.RemoveContainerRequest
-	(*RemoveContainerResponse)(nil),                // 53: composia.agent.v1.RemoveContainerResponse
-	(*GetContainerLogsRequest)(nil),                // 54: composia.agent.v1.GetContainerLogsRequest
-	(*GetContainerLogsResponse)(nil),               // 55: composia.agent.v1.GetContainerLogsResponse
-	(*DockerQueryRunContainerExecRequest)(nil),     // 56: composia.agent.v1.DockerQueryRunContainerExecRequest
-	(*DockerQueryRunContainerExecResponse)(nil),    // 57: composia.agent.v1.DockerQueryRunContainerExecResponse
-	(*ListNetworksRequest)(nil),                    // 58: composia.agent.v1.ListNetworksRequest
-	(*NetworkInfo)(nil),                            // 59: composia.agent.v1.NetworkInfo
-	(*ListNetworksResponse)(nil),                   // 60: composia.agent.v1.ListNetworksResponse
-	(*InspectNetworkRequest)(nil),                  // 61: composia.agent.v1.InspectNetworkRequest
-	(*InspectNetworkResponse)(nil),                 // 62: composia.agent.v1.InspectNetworkResponse
-	(*RemoveNetworkRequest)(nil),                   // 63: composia.agent.v1.RemoveNetworkRequest
-	(*RemoveNetworkResponse)(nil),                  // 64: composia.agent.v1.RemoveNetworkResponse
-	(*ListVolumesRequest)(nil),                     // 65: composia.agent.v1.ListVolumesRequest
-	(*VolumeInfo)(nil),                             // 66: composia.agent.v1.VolumeInfo
-	(*ListVolumesResponse)(nil),                    // 67: composia.agent.v1.ListVolumesResponse
-	(*InspectVolumeRequest)(nil),                   // 68: composia.agent.v1.InspectVolumeRequest
-	(*InspectVolumeResponse)(nil),                  // 69: composia.agent.v1.InspectVolumeResponse
-	(*RemoveVolumeRequest)(nil),                    // 70: composia.agent.v1.RemoveVolumeRequest
-	(*RemoveVolumeResponse)(nil),                   // 71: composia.agent.v1.RemoveVolumeResponse
-	(*ListImagesRequest)(nil),                      // 72: composia.agent.v1.ListImagesRequest
-	(*ImageInfo)(nil),                              // 73: composia.agent.v1.ImageInfo
-	(*ListImagesResponse)(nil),                     // 74: composia.agent.v1.ListImagesResponse
-	(*InspectImageRequest)(nil),                    // 75: composia.agent.v1.InspectImageRequest
-	(*InspectImageResponse)(nil),                   // 76: composia.agent.v1.InspectImageResponse
-	(*RemoveImageRequest)(nil),                     // 77: composia.agent.v1.RemoveImageRequest
-	(*RemoveImageResponse)(nil),                    // 78: composia.agent.v1.RemoveImageResponse
-	nil,                                            // 79: composia.agent.v1.ContainerInfo.LabelsEntry
-	nil,                                            // 80: composia.agent.v1.NetworkInfo.LabelsEntry
-	nil,                                            // 81: composia.agent.v1.VolumeInfo.LabelsEntry
-	(*timestamppb.Timestamp)(nil),                  // 82: google.protobuf.Timestamp
+	(*GetServiceManifestRequest)(nil),              // 40: composia.agent.v1.GetServiceManifestRequest
+	(*ServiceManifestFile)(nil),                    // 41: composia.agent.v1.ServiceManifestFile
+	(*GetServiceManifestResponse)(nil),             // 42: composia.agent.v1.GetServiceManifestResponse
+	(*DockerStats)(nil),                            // 43: composia.agent.v1.DockerStats
+	(*ReportDockerStatsRequest)(nil),               // 44: composia.agent.v1.ReportDockerStatsRequest
+	(*ReportDockerStatsResponse)(nil),              // 45: composia.agent.v1.ReportDockerStatsResponse
+	(*ReportDockerQueryResultRequest)(nil),         // 46: composia.agent.v1.ReportDockerQueryResultRequest
+	(*ReportDockerQueryResultResponse)(nil),        // 47: composia.agent.v1.ReportDockerQueryResultResponse
+	(*ListContainersRequest)(nil),                  // 48: composia.agent.v1.ListContainersRequest
+	(*ContainerInfo)(nil),                          // 49: composia.agent.v1.ContainerInfo
+	(*ListContainersResponse)(nil),                 // 50: composia.agent.v1.ListContainersResponse
+	(*InspectContainerRequest)(nil),                // 51: composia.agent.v1.InspectContainerRequest
+	(*InspectContainerResponse)(nil),               // 52: composia.agent.v1.InspectContainerResponse
+	(*RunContainerActionRequest)(nil),              // 53: composia.agent.v1.RunContainerActionRequest
+	(*RunContainerActionResponse)(nil),             // 54: composia.agent.v1.RunContainerActionResponse
+	(*RemoveContainerRequest)(nil),                 // 55: composia.agent.v1.RemoveContainerRequest
+	(*RemoveContainerResponse)(nil),                // 56: composia.agent.v1.RemoveContainerResponse
+	(*GetContainerLogsRequest)(nil),                // 57: composia.agent.v1.GetContainerLogsRequest
+	(*GetContainerLogsResponse)(nil),               // 58: composia.agent.v1.GetContainerLogsResponse
+	(*DockerQueryRunContainerExecRequest)(nil),     // 59: composia.agent.v1.DockerQueryRunContainerExecRequest
+	(*DockerQueryRunContainerExecResponse)(nil),    // 60: composia.agent.v1.DockerQueryRunContainerExecResponse
+	(*ListNetworksRequest)(nil),                    // 61: composia.agent.v1.ListNetworksRequest
+	(*NetworkInfo)(nil),                            // 62: composia.agent.v1.NetworkInfo
+	(*ListNetworksResponse)(nil),                   // 63: composia.agent.v1.ListNetworksResponse
+	(*InspectNetworkRequest)(nil),                  // 64: composia.agent.v1.InspectNetworkRequest
+	(*InspectNetworkResponse)(nil),                 // 65: composia.agent.v1.InspectNetworkResponse
+	(*RemoveNetworkRequest)(nil),                   // 66: composia.agent.v1.RemoveNetworkRequest
+	(*RemoveNetworkResponse)(nil),                  // 67: composia.agent.v1.RemoveNetworkResponse
+	(*ListVolumesRequest)(nil),                     // 68: composia.agent.v1.ListVolumesRequest
+	(*VolumeInfo)(nil),                             // 69: composia.agent.v1.VolumeInfo
+	(*ListVolumesResponse)(nil),                    // 70: composia.agent.v1.ListVolumesResponse
+	(*InspectVolumeRequest)(nil),                   // 71: composia.agent.v1.InspectVolumeRequest
+	(*InspectVolumeResponse)(nil),                  // 72: composia.agent.v1.InspectVolumeResponse
+	(*RemoveVolumeRequest)(nil),                    // 73: composia.agent.v1.RemoveVolumeRequest
+	(*RemoveVolumeResponse)(nil),                   // 74: composia.agent.v1.RemoveVolumeResponse
+	(*ListImagesRequest)(nil),                      // 75: composia.agent.v1.ListImagesRequest
+	(*ImageInfo)(nil),                              // 76: composia.agent.v1.ImageInfo
+	(*ListImagesResponse)(nil),                     // 77: composia.agent.v1.ListImagesResponse
+	(*InspectImageRequest)(nil),                    // 78: composia.agent.v1.InspectImageRequest
+	(*InspectImageResponse)(nil),                   // 79: composia.agent.v1.InspectImageResponse
+	(*RemoveImageRequest)(nil),                     // 80: composia.agent.v1.RemoveImageRequest
+	(*RemoveImageResponse)(nil),                    // 81: composia.agent.v1.RemoveImageResponse
+	(*ServiceConsistencyOutcome)(nil),              // 82: composia.agent.v1.ServiceConsistencyOutcome
+	(*ServiceConsistencyCheck)(nil),                // 83: composia.agent.v1.ServiceConsistencyCheck
+	(*ReportServiceConsistencyCheckRequest)(nil),   // 84: composia.agent.v1.ReportServiceConsistencyCheckRequest
+	(*ReportServiceConsistencyCheckResponse)(nil),  // 85: composia.agent.v1.ReportServiceConsistencyCheckResponse
+	nil,                           // 86: composia.agent.v1.ContainerInfo.LabelsEntry
+	nil,                           // 87: composia.agent.v1.NetworkInfo.LabelsEntry
+	nil,                           // 88: composia.agent.v1.VolumeInfo.LabelsEntry
+	(*timestamppb.Timestamp)(nil), // 89: google.protobuf.Timestamp
 }
 var file_proto_composia_agent_v1_agent_proto_depIdxs = []int32{
-	82, // 0: composia.agent.v1.HeartbeatRequest.sent_at:type_name -> google.protobuf.Timestamp
+	89, // 0: composia.agent.v1.HeartbeatRequest.sent_at:type_name -> google.protobuf.Timestamp
 	6,  // 1: composia.agent.v1.HeartbeatRequest.runtime:type_name -> composia.agent.v1.NodeRuntimeSummary
-	82, // 2: composia.agent.v1.HeartbeatResponse.received_at:type_name -> google.protobuf.Timestamp
+	89, // 2: composia.agent.v1.HeartbeatResponse.received_at:type_name -> google.protobuf.Timestamp
 	0,  // 3: composia.agent.v1.AgentTask.type:type_name -> composia.agent.v1.AgentTaskType
-	82, // 4: composia.agent.v1.AgentTask.lease_expires_at:type_name -> google.protobuf.Timestamp
-	82, // 5: composia.agent.v1.AcknowledgeTaskResponse.lease_expires_at:type_name -> google.protobuf.Timestamp
-	82, // 6: composia.agent.v1.RenewTaskLeaseResponse.lease_expires_at:type_name -> google.protobuf.Timestamp
+	89, // 4: composia.agent.v1.AgentTask.lease_expires_at:type_name -> google.protobuf.Timestamp
+	89, // 5: composia.agent.v1.AcknowledgeTaskResponse.lease_expires_at:type_name -> google.protobuf.Timestamp
+	89, // 6: composia.agent.v1.RenewTaskLeaseResponse.lease_expires_at:type_name -> google.protobuf.Timestamp
 	9,  // 7: composia.agent.v1.PullNextTaskResponse.task:type_name -> composia.agent.v1.AgentTask
-	45, // 8: composia.agent.v1.DockerQueryTask.list_containers:type_name -> composia.agent.v1.ListContainersRequest
-	48, // 9: composia.agent.v1.DockerQueryTask.inspect_container:type_name -> composia.agent.v1.InspectContainerRequest
-	58, // 10: composia.agent.v1.DockerQueryTask.list_networks:type_name -> composia.agent.v1.ListNetworksRequest
-	61, // 11: composia.agent.v1.DockerQueryTask.inspect_network:type_name -> composia.agent.v1.InspectNetworkRequest
-	65, // 12: composia.agent.v1.DockerQueryTask.list_volumes:type_name -> composia.agent.v1.ListVolumesRequest
-	68, // 13: composia.agent.v1.DockerQueryTask.inspect_volume:type_name -> composia.agent.v1.InspectVolumeRequest
-	72, // 14: composia.agent.v1.DockerQueryTask.list_images:type_name -> composia.agent.v1.ListImagesRequest
-	75, // 15: composia.agent.v1.DockerQueryTask.inspect_image:type_name -> composia.agent.v1.InspectImageRequest
-	54, // 16: composia.agent.v1.DockerQueryTask.container_logs:type_name -> composia.agent.v1.GetContainerLogsRequest
-	56, // 17: composia.agent.v1.DockerQueryTask.run_container_exec:type_name -> composia.agent.v1.DockerQueryRunContainerExecRequest
+	48, // 8: composia.agent.v1.DockerQueryTask.list_containers:type_name -> composia.agent.v1.ListContainersRequest
+	51, // 9: composia.agent.v1.DockerQueryTask.inspect_container:type_name -> composia.agent.v1.InspectContainerRequest
+	61, // 10: composia.agent.v1.DockerQueryTask.list_networks:type_name -> composia.agent.v1.ListNetworksRequest
+	64, // 11: composia.agent.v1.DockerQueryTask.inspect_network:type_name -> composia.agent.v1.InspectNetworkRequest
+	68, // 12: composia.agent.v1.DockerQueryTask.list_volumes:type_name -> composia.agent.v1.ListVolumesRequest
+	71, // 13: composia.agent.v1.DockerQueryTask.inspect_volume:type_name -> composia.agent.v1.InspectVolumeRequest
+	75, // 14: composia.agent.v1.DockerQueryTask.list_images:type_name -> composia.agent.v1.ListImagesRequest
+	78, // 15: composia.agent.v1.DockerQueryTask.inspect_image:type_name -> composia.agent.v1.InspectImageRequest
+	57, // 16: composia.agent.v1.DockerQueryTask.container_logs:type_name -> composia.agent.v1.GetContainerLogsRequest
+	59, // 17: composia.agent.v1.DockerQueryTask.run_container_exec:type_name -> composia.agent.v1.DockerQueryRunContainerExecRequest
 	15, // 18: composia.agent.v1.PullNextDockerQueryResponse.query:type_name -> composia.agent.v1.DockerQueryTask
 	1,  // 19: composia.agent.v1.ReportTaskStateRequest.status:type_name -> composia.agent.v1.AgentTaskStatus
-	82, // 20: composia.agent.v1.ReportTaskStateRequest.finished_at:type_name -> google.protobuf.Timestamp
+	89, // 20: composia.agent.v1.ReportTaskStateRequest.finished_at:type_name -> google.protobuf.Timestamp
 	2,  // 21: composia.agent.v1.ReportTaskStepStateRequest.step_name:type_name -> composia.agent.v1.AgentTaskStepName
 	1,  // 22: composia.agent.v1.ReportTaskStepStateRequest.status:type_name -> composia.agent.v1.AgentTaskStatus
-	82, // 23: composia.agent.v1.ReportTaskStepStateRequest.started_at:type_name -> google.protobuf.Timestamp
-	82, // 24: composia.agent.v1.ReportTaskStepStateRequest.finished_at:type_name -> google.protobuf.Timestamp
-	82, // 25: composia.agent.v1.UploadTaskLogsRequest.sent_at:type_name -> google.protobuf.Timestamp
-	82, // 26: composia.agent.v1.ReportBackupResultRequest.started_at:type_name -> google.protobuf.Timestamp
-	82, // 27: composia.agent.v1.ReportBackupResultRequest.finished_at:type_name -> google.protobuf.Timestamp
-	82, // 28: composia.agent.v1.ReportServiceInstanceStatusRequest.reported_at:type_name -> google.protobuf.Timestamp
+	89, // 23: composia.agent.v1.ReportTaskStepStateRequest.started_at:type_name -> google.protobuf.Timestamp
+	89, // 24: composia.agent.v1.ReportTaskStepStateRequest.finished_at:type_name -> google.protobuf.Timestamp
+	89, // 25: composia.agent.v1.UploadTaskLogsRequest.sent_at:type_name -> google.protobuf.Timestamp
+	89, // 26: composia.agent.v1.ReportBackupResultRequest.started_at:type_name -> google.protobuf.Timestamp
+	89, // 27: composia.agent.v1.ReportBackupResultRequest.finished_at:type_name -> google.protobuf.Timestamp
+	89, // 28: composia.agent.v1.ReportServiceInstanceStatusRequest.reported_at:type_name -> google.protobuf.Timestamp
 	32, // 29: composia.agent.v1.ReportServiceImageStatesRequest.images:type_name -> composia.agent.v1.ServiceImageState
-	82, // 30: composia.agent.v1.ReportServiceImageStatesRequest.reported_at:type_name -> google.protobuf.Timestamp
+	89, // 30: composia.agent.v1.ReportServiceImageStatesRequest.reported_at:type_name -> google.protobuf.Timestamp
 	35, // 31: composia.agent.v1.ReportServiceImageUpdateChecksRequest.checks:type_name -> composia.agent.v1.ServiceImageUpdateCheck
-	82, // 32: composia.agent.v1.ReportServiceImageUpdateChecksRequest.reported_at:type_name -> google.protobuf.Timestamp
-	40, // 33: composia.agent.v1.ReportDockerStatsRequest.stats:type_name -> composia.agent.v1.DockerStats
-	47, // 34: composia.agent.v1.ReportDockerQueryResultRequest.list_containers:type_name -> composia.agent.v1.ListContainersResponse
-	49, // 35: composia.agent.v1.ReportDockerQueryResultRequest.inspect_container:type_name -> composia.agent.v1.InspectContainerResponse
-	60, // 36: composia.agent.v1.ReportDockerQueryResultRequest.list_networks:type_name -> composia.agent.v1.ListNetworksResponse
-	62, // 37: composia.agent.v1.ReportDockerQueryResultRequest.inspect_network:type_name -> composia.agent.v1.InspectNetworkResponse
-	67, // 38: composia.agent.v1.ReportDockerQueryResultRequest.list_volumes:type_name -> composia.agent.v1.ListVolumesResponse
-	69, // 39: composia.agent.v1.ReportDockerQueryResultRequest.inspect_volume:type_name -> composia.agent.v1.InspectVolumeResponse
-	74, // 40: composia.agent.v1.ReportDockerQueryResultRequest.list_images:type_name -> composia.agent.v1.ListImagesResponse
-	76, // 41: composia.agent.v1.ReportDockerQueryResultRequest.inspect_image:type_name -> composia.agent.v1.InspectImageResponse
-	55, // 42: composia.agent.v1.ReportDockerQueryResultRequest.container_logs:type_name -> composia.agent.v1.GetContainerLogsResponse
-	57, // 43: composia.agent.v1.ReportDockerQueryResultRequest.run_container_exec:type_name -> composia.agent.v1.DockerQueryRunContainerExecResponse
-	3,  // 44: composia.agent.v1.ReportDockerQueryResultRequest.error_code:type_name -> composia.agent.v1.DockerQueryErrorCode
-	79, // 45: composia.agent.v1.ContainerInfo.labels:type_name -> composia.agent.v1.ContainerInfo.LabelsEntry
-	46, // 46: composia.agent.v1.ListContainersResponse.containers:type_name -> composia.agent.v1.ContainerInfo
-	4,  // 47: composia.agent.v1.RunContainerActionRequest.action:type_name -> composia.agent.v1.ContainerAction
-	82, // 48: composia.agent.v1.DockerQueryRunContainerExecResponse.started_at:type_name -> google.protobuf.Timestamp
-	82, // 49: composia.agent.v1.DockerQueryRunContainerExecResponse.finished_at:type_name -> google.protobuf.Timestamp
-	80, // 50: composia.agent.v1.NetworkInfo.labels:type_name -> composia.agent.v1.NetworkInfo.LabelsEntry
-	59, // 51: composia.agent.v1.ListNetworksResponse.networks:type_name -> composia.agent.v1.NetworkInfo
-	81, // 52: composia.agent.v1.VolumeInfo.labels:type_name -> composia.agent.v1.VolumeInfo.LabelsEntry
-	66, // 53: composia.agent.v1.ListVolumesResponse.volumes:type_name -> composia.agent.v1.VolumeInfo
-	73, // 54: composia.agent.v1.ListImagesResponse.images:type_name -> composia.agent.v1.ImageInfo
-	5,  // 55: composia.agent.v1.AgentReportService.Heartbeat:input_type -> composia.agent.v1.HeartbeatRequest
-	18, // 56: composia.agent.v1.AgentReportService.ReportTaskState:input_type -> composia.agent.v1.ReportTaskStateRequest
-	20, // 57: composia.agent.v1.AgentReportService.ReportTaskStepState:input_type -> composia.agent.v1.ReportTaskStepStateRequest
-	22, // 58: composia.agent.v1.AgentReportService.UploadTaskLogs:input_type -> composia.agent.v1.UploadTaskLogsRequest
-	28, // 59: composia.agent.v1.AgentReportService.ReportBackupResult:input_type -> composia.agent.v1.ReportBackupResultRequest
-	30, // 60: composia.agent.v1.AgentReportService.ReportServiceInstanceStatus:input_type -> composia.agent.v1.ReportServiceInstanceStatusRequest
-	33, // 61: composia.agent.v1.AgentReportService.ReportServiceImageStates:input_type -> composia.agent.v1.ReportServiceImageStatesRequest
-	36, // 62: composia.agent.v1.AgentReportService.ReportServiceImageUpdateChecks:input_type -> composia.agent.v1.ReportServiceImageUpdateChecksRequest
-	41, // 63: composia.agent.v1.AgentReportService.ReportDockerStats:input_type -> composia.agent.v1.ReportDockerStatsRequest
-	43, // 64: composia.agent.v1.AgentReportService.ReportDockerQueryResult:input_type -> composia.agent.v1.ReportDockerQueryResultRequest
-	24, // 65: composia.agent.v1.AgentReportService.OpenExecTunnel:input_type -> composia.agent.v1.OpenExecTunnelRequest
-	26, // 66: composia.agent.v1.AgentReportService.OpenContainerLogTunnel:input_type -> composia.agent.v1.OpenContainerLogTunnelRequest
-	8,  // 67: composia.agent.v1.AgentTaskService.PullNextTask:input_type -> composia.agent.v1.PullNextTaskRequest
-	10, // 68: composia.agent.v1.AgentTaskService.AcknowledgeTask:input_type -> composia.agent.v1.AcknowledgeTaskRequest
-	12, // 69: composia.agent.v1.AgentTaskService.RenewTaskLease:input_type -> composia.agent.v1.RenewTaskLeaseRequest
-	16, // 70: composia.agent.v1.AgentTaskService.PullNextDockerQuery:input_type -> composia.agent.v1.PullNextDockerQueryRequest
-	38, // 71: composia.agent.v1.BundleService.GetServiceBundle:input_type -> composia.agent.v1.GetServiceBundleRequest
-	45, // 72: composia.agent.v1.DockerService.ListContainers:input_type -> composia.agent.v1.ListContainersRequest
-	48, // 73: composia.agent.v1.DockerService.InspectContainer:input_type -> composia.agent.v1.InspectContainerRequest
-	50, // 74: composia.agent.v1.DockerService.RunContainerAction:input_type -> composia.agent.v1.RunContainerActionRequest
-	52, // 75: composia.agent.v1.DockerService.RemoveContainer:input_type -> composia.agent.v1.RemoveContainerRequest
-	54, // 76: composia.agent.v1.DockerService.GetContainerLogs:input_type -> composia.agent.v1.GetContainerLogsRequest
-	58, // 77: composia.agent.v1.DockerService.ListNetworks:input_type -> composia.agent.v1.ListNetworksRequest
-	61, // 78: composia.agent.v1.DockerService.InspectNetwork:input_type -> composia.agent.v1.InspectNetworkRequest
-	63, // 79: composia.agent.v1.DockerService.RemoveNetwork:input_type -> composia.agent.v1.RemoveNetworkRequest
-	65, // 80: composia.agent.v1.DockerService.ListVolumes:input_type -> composia.agent.v1.ListVolumesRequest
-	68, // 81: composia.agent.v1.DockerService.InspectVolume:input_type -> composia.agent.v1.InspectVolumeRequest
-	70, // 82: composia.agent.v1.DockerService.RemoveVolume:input_type -> composia.agent.v1.RemoveVolumeRequest
-	72, // 83: composia.agent.v1.DockerService.ListImages:input_type -> composia.agent.v1.ListImagesRequest
-	75, // 84: composia.agent.v1.DockerService.InspectImage:input_type -> composia.agent.v1.InspectImageRequest
-	77, // 85: composia.agent.v1.DockerService.RemoveImage:input_type -> composia.agent.v1.RemoveImageRequest
-	7,  // 86: composia.agent.v1.AgentReportService.Heartbeat:output_type -> composia.agent.v1.HeartbeatResponse
-	19, // 87: composia.agent.v1.AgentReportService.ReportTaskState:output_type -> composia.agent.v1.ReportTaskStateResponse
-	21, // 88: composia.agent.v1.AgentReportService.ReportTaskStepState:output_type -> composia.agent.v1.ReportTaskStepStateResponse
-	23, // 89: composia.agent.v1.AgentReportService.UploadTaskLogs:output_type -> composia.agent.v1.UploadTaskLogsResponse
-	29, // 90: composia.agent.v1.AgentReportService.ReportBackupResult:output_type -> composia.agent.v1.ReportBackupResultResponse
-	31, // 91: composia.agent.v1.AgentReportService.ReportServiceInstanceStatus:output_type -> composia.agent.v1.ReportServiceInstanceStatusResponse
-	34, // 92: composia.agent.v1.AgentReportService.ReportServiceImageStates:output_type -> composia.agent.v1.ReportServiceImageStatesResponse
-	37, // 93: composia.agent.v1.AgentReportService.ReportServiceImageUpdateChecks:output_type -> composia.agent.v1.ReportServiceImageUpdateChecksResponse
-	42, // 94: composia.agent.v1.AgentReportService.ReportDockerStats:output_type -> composia.agent.v1.ReportDockerStatsResponse
-	44, // 95: composia.agent.v1.AgentReportService.ReportDockerQueryResult:output_type -> composia.agent.v1.ReportDockerQueryResultResponse
-	25, // 96: composia.agent.v1.AgentReportService.OpenExecTunnel:output_type -> composia.agent.v1.OpenExecTunnelResponse
-	27, // 97: composia.agent.v1.AgentReportService.OpenContainerLogTunnel:output_type -> composia.agent.v1.OpenContainerLogTunnelResponse
-	14, // 98: composia.agent.v1.AgentTaskService.PullNextTask:output_type -> composia.agent.v1.PullNextTaskResponse
-	11, // 99: composia.agent.v1.AgentTaskService.AcknowledgeTask:output_type -> composia.agent.v1.AcknowledgeTaskResponse
-	13, // 100: composia.agent.v1.AgentTaskService.RenewTaskLease:output_type -> composia.agent.v1.RenewTaskLeaseResponse
-	17, // 101: composia.agent.v1.AgentTaskService.PullNextDockerQuery:output_type -> composia.agent.v1.PullNextDockerQueryResponse
-	39, // 102: composia.agent.v1.BundleService.GetServiceBundle:output_type -> composia.agent.v1.GetServiceBundleResponse
-	47, // 103: composia.agent.v1.DockerService.ListContainers:output_type -> composia.agent.v1.ListContainersResponse
-	49, // 104: composia.agent.v1.DockerService.InspectContainer:output_type -> composia.agent.v1.InspectContainerResponse
-	51, // 105: composia.agent.v1.DockerService.RunContainerAction:output_type -> composia.agent.v1.RunContainerActionResponse
-	53, // 106: composia.agent.v1.DockerService.RemoveContainer:output_type -> composia.agent.v1.RemoveContainerResponse
-	55, // 107: composia.agent.v1.DockerService.GetContainerLogs:output_type -> composia.agent.v1.GetContainerLogsResponse
-	60, // 108: composia.agent.v1.DockerService.ListNetworks:output_type -> composia.agent.v1.ListNetworksResponse
-	62, // 109: composia.agent.v1.DockerService.InspectNetwork:output_type -> composia.agent.v1.InspectNetworkResponse
-	64, // 110: composia.agent.v1.DockerService.RemoveNetwork:output_type -> composia.agent.v1.RemoveNetworkResponse
-	67, // 111: composia.agent.v1.DockerService.ListVolumes:output_type -> composia.agent.v1.ListVolumesResponse
-	69, // 112: composia.agent.v1.DockerService.InspectVolume:output_type -> composia.agent.v1.InspectVolumeResponse
-	71, // 113: composia.agent.v1.DockerService.RemoveVolume:output_type -> composia.agent.v1.RemoveVolumeResponse
-	74, // 114: composia.agent.v1.DockerService.ListImages:output_type -> composia.agent.v1.ListImagesResponse
-	76, // 115: composia.agent.v1.DockerService.InspectImage:output_type -> composia.agent.v1.InspectImageResponse
-	78, // 116: composia.agent.v1.DockerService.RemoveImage:output_type -> composia.agent.v1.RemoveImageResponse
-	86, // [86:117] is the sub-list for method output_type
-	55, // [55:86] is the sub-list for method input_type
-	55, // [55:55] is the sub-list for extension type_name
-	55, // [55:55] is the sub-list for extension extendee
-	0,  // [0:55] is the sub-list for field type_name
+	89, // 32: composia.agent.v1.ReportServiceImageUpdateChecksRequest.reported_at:type_name -> google.protobuf.Timestamp
+	41, // 33: composia.agent.v1.GetServiceManifestResponse.files:type_name -> composia.agent.v1.ServiceManifestFile
+	43, // 34: composia.agent.v1.ReportDockerStatsRequest.stats:type_name -> composia.agent.v1.DockerStats
+	50, // 35: composia.agent.v1.ReportDockerQueryResultRequest.list_containers:type_name -> composia.agent.v1.ListContainersResponse
+	52, // 36: composia.agent.v1.ReportDockerQueryResultRequest.inspect_container:type_name -> composia.agent.v1.InspectContainerResponse
+	63, // 37: composia.agent.v1.ReportDockerQueryResultRequest.list_networks:type_name -> composia.agent.v1.ListNetworksResponse
+	65, // 38: composia.agent.v1.ReportDockerQueryResultRequest.inspect_network:type_name -> composia.agent.v1.InspectNetworkResponse
+	70, // 39: composia.agent.v1.ReportDockerQueryResultRequest.list_volumes:type_name -> composia.agent.v1.ListVolumesResponse
+	72, // 40: composia.agent.v1.ReportDockerQueryResultRequest.inspect_volume:type_name -> composia.agent.v1.InspectVolumeResponse
+	77, // 41: composia.agent.v1.ReportDockerQueryResultRequest.list_images:type_name -> composia.agent.v1.ListImagesResponse
+	79, // 42: composia.agent.v1.ReportDockerQueryResultRequest.inspect_image:type_name -> composia.agent.v1.InspectImageResponse
+	58, // 43: composia.agent.v1.ReportDockerQueryResultRequest.container_logs:type_name -> composia.agent.v1.GetContainerLogsResponse
+	60, // 44: composia.agent.v1.ReportDockerQueryResultRequest.run_container_exec:type_name -> composia.agent.v1.DockerQueryRunContainerExecResponse
+	3,  // 45: composia.agent.v1.ReportDockerQueryResultRequest.error_code:type_name -> composia.agent.v1.DockerQueryErrorCode
+	86, // 46: composia.agent.v1.ContainerInfo.labels:type_name -> composia.agent.v1.ContainerInfo.LabelsEntry
+	49, // 47: composia.agent.v1.ListContainersResponse.containers:type_name -> composia.agent.v1.ContainerInfo
+	4,  // 48: composia.agent.v1.RunContainerActionRequest.action:type_name -> composia.agent.v1.ContainerAction
+	89, // 49: composia.agent.v1.DockerQueryRunContainerExecResponse.started_at:type_name -> google.protobuf.Timestamp
+	89, // 50: composia.agent.v1.DockerQueryRunContainerExecResponse.finished_at:type_name -> google.protobuf.Timestamp
+	87, // 51: composia.agent.v1.NetworkInfo.labels:type_name -> composia.agent.v1.NetworkInfo.LabelsEntry
+	62, // 52: composia.agent.v1.ListNetworksResponse.networks:type_name -> composia.agent.v1.NetworkInfo
+	88, // 53: composia.agent.v1.VolumeInfo.labels:type_name -> composia.agent.v1.VolumeInfo.LabelsEntry
+	69, // 54: composia.agent.v1.ListVolumesResponse.volumes:type_name -> composia.agent.v1.VolumeInfo
+	76, // 55: composia.agent.v1.ListImagesResponse.images:type_name -> composia.agent.v1.ImageInfo
+	82, // 56: composia.agent.v1.ServiceConsistencyCheck.files:type_name -> composia.agent.v1.ServiceConsistencyOutcome
+	82, // 57: composia.agent.v1.ServiceConsistencyCheck.compose:type_name -> composia.agent.v1.ServiceConsistencyOutcome
+	82, // 58: composia.agent.v1.ReportServiceConsistencyCheckRequest.files:type_name -> composia.agent.v1.ServiceConsistencyOutcome
+	82, // 59: composia.agent.v1.ReportServiceConsistencyCheckRequest.compose:type_name -> composia.agent.v1.ServiceConsistencyOutcome
+	5,  // 60: composia.agent.v1.AgentReportService.Heartbeat:input_type -> composia.agent.v1.HeartbeatRequest
+	18, // 61: composia.agent.v1.AgentReportService.ReportTaskState:input_type -> composia.agent.v1.ReportTaskStateRequest
+	20, // 62: composia.agent.v1.AgentReportService.ReportTaskStepState:input_type -> composia.agent.v1.ReportTaskStepStateRequest
+	22, // 63: composia.agent.v1.AgentReportService.UploadTaskLogs:input_type -> composia.agent.v1.UploadTaskLogsRequest
+	28, // 64: composia.agent.v1.AgentReportService.ReportBackupResult:input_type -> composia.agent.v1.ReportBackupResultRequest
+	30, // 65: composia.agent.v1.AgentReportService.ReportServiceInstanceStatus:input_type -> composia.agent.v1.ReportServiceInstanceStatusRequest
+	84, // 66: composia.agent.v1.AgentReportService.ReportServiceConsistencyCheck:input_type -> composia.agent.v1.ReportServiceConsistencyCheckRequest
+	33, // 67: composia.agent.v1.AgentReportService.ReportServiceImageStates:input_type -> composia.agent.v1.ReportServiceImageStatesRequest
+	36, // 68: composia.agent.v1.AgentReportService.ReportServiceImageUpdateChecks:input_type -> composia.agent.v1.ReportServiceImageUpdateChecksRequest
+	44, // 69: composia.agent.v1.AgentReportService.ReportDockerStats:input_type -> composia.agent.v1.ReportDockerStatsRequest
+	46, // 70: composia.agent.v1.AgentReportService.ReportDockerQueryResult:input_type -> composia.agent.v1.ReportDockerQueryResultRequest
+	24, // 71: composia.agent.v1.AgentReportService.OpenExecTunnel:input_type -> composia.agent.v1.OpenExecTunnelRequest
+	26, // 72: composia.agent.v1.AgentReportService.OpenContainerLogTunnel:input_type -> composia.agent.v1.OpenContainerLogTunnelRequest
+	8,  // 73: composia.agent.v1.AgentTaskService.PullNextTask:input_type -> composia.agent.v1.PullNextTaskRequest
+	10, // 74: composia.agent.v1.AgentTaskService.AcknowledgeTask:input_type -> composia.agent.v1.AcknowledgeTaskRequest
+	12, // 75: composia.agent.v1.AgentTaskService.RenewTaskLease:input_type -> composia.agent.v1.RenewTaskLeaseRequest
+	16, // 76: composia.agent.v1.AgentTaskService.PullNextDockerQuery:input_type -> composia.agent.v1.PullNextDockerQueryRequest
+	38, // 77: composia.agent.v1.BundleService.GetServiceBundle:input_type -> composia.agent.v1.GetServiceBundleRequest
+	40, // 78: composia.agent.v1.BundleService.GetServiceManifest:input_type -> composia.agent.v1.GetServiceManifestRequest
+	48, // 79: composia.agent.v1.DockerService.ListContainers:input_type -> composia.agent.v1.ListContainersRequest
+	51, // 80: composia.agent.v1.DockerService.InspectContainer:input_type -> composia.agent.v1.InspectContainerRequest
+	53, // 81: composia.agent.v1.DockerService.RunContainerAction:input_type -> composia.agent.v1.RunContainerActionRequest
+	55, // 82: composia.agent.v1.DockerService.RemoveContainer:input_type -> composia.agent.v1.RemoveContainerRequest
+	57, // 83: composia.agent.v1.DockerService.GetContainerLogs:input_type -> composia.agent.v1.GetContainerLogsRequest
+	61, // 84: composia.agent.v1.DockerService.ListNetworks:input_type -> composia.agent.v1.ListNetworksRequest
+	64, // 85: composia.agent.v1.DockerService.InspectNetwork:input_type -> composia.agent.v1.InspectNetworkRequest
+	66, // 86: composia.agent.v1.DockerService.RemoveNetwork:input_type -> composia.agent.v1.RemoveNetworkRequest
+	68, // 87: composia.agent.v1.DockerService.ListVolumes:input_type -> composia.agent.v1.ListVolumesRequest
+	71, // 88: composia.agent.v1.DockerService.InspectVolume:input_type -> composia.agent.v1.InspectVolumeRequest
+	73, // 89: composia.agent.v1.DockerService.RemoveVolume:input_type -> composia.agent.v1.RemoveVolumeRequest
+	75, // 90: composia.agent.v1.DockerService.ListImages:input_type -> composia.agent.v1.ListImagesRequest
+	78, // 91: composia.agent.v1.DockerService.InspectImage:input_type -> composia.agent.v1.InspectImageRequest
+	80, // 92: composia.agent.v1.DockerService.RemoveImage:input_type -> composia.agent.v1.RemoveImageRequest
+	7,  // 93: composia.agent.v1.AgentReportService.Heartbeat:output_type -> composia.agent.v1.HeartbeatResponse
+	19, // 94: composia.agent.v1.AgentReportService.ReportTaskState:output_type -> composia.agent.v1.ReportTaskStateResponse
+	21, // 95: composia.agent.v1.AgentReportService.ReportTaskStepState:output_type -> composia.agent.v1.ReportTaskStepStateResponse
+	23, // 96: composia.agent.v1.AgentReportService.UploadTaskLogs:output_type -> composia.agent.v1.UploadTaskLogsResponse
+	29, // 97: composia.agent.v1.AgentReportService.ReportBackupResult:output_type -> composia.agent.v1.ReportBackupResultResponse
+	31, // 98: composia.agent.v1.AgentReportService.ReportServiceInstanceStatus:output_type -> composia.agent.v1.ReportServiceInstanceStatusResponse
+	85, // 99: composia.agent.v1.AgentReportService.ReportServiceConsistencyCheck:output_type -> composia.agent.v1.ReportServiceConsistencyCheckResponse
+	34, // 100: composia.agent.v1.AgentReportService.ReportServiceImageStates:output_type -> composia.agent.v1.ReportServiceImageStatesResponse
+	37, // 101: composia.agent.v1.AgentReportService.ReportServiceImageUpdateChecks:output_type -> composia.agent.v1.ReportServiceImageUpdateChecksResponse
+	45, // 102: composia.agent.v1.AgentReportService.ReportDockerStats:output_type -> composia.agent.v1.ReportDockerStatsResponse
+	47, // 103: composia.agent.v1.AgentReportService.ReportDockerQueryResult:output_type -> composia.agent.v1.ReportDockerQueryResultResponse
+	25, // 104: composia.agent.v1.AgentReportService.OpenExecTunnel:output_type -> composia.agent.v1.OpenExecTunnelResponse
+	27, // 105: composia.agent.v1.AgentReportService.OpenContainerLogTunnel:output_type -> composia.agent.v1.OpenContainerLogTunnelResponse
+	14, // 106: composia.agent.v1.AgentTaskService.PullNextTask:output_type -> composia.agent.v1.PullNextTaskResponse
+	11, // 107: composia.agent.v1.AgentTaskService.AcknowledgeTask:output_type -> composia.agent.v1.AcknowledgeTaskResponse
+	13, // 108: composia.agent.v1.AgentTaskService.RenewTaskLease:output_type -> composia.agent.v1.RenewTaskLeaseResponse
+	17, // 109: composia.agent.v1.AgentTaskService.PullNextDockerQuery:output_type -> composia.agent.v1.PullNextDockerQueryResponse
+	39, // 110: composia.agent.v1.BundleService.GetServiceBundle:output_type -> composia.agent.v1.GetServiceBundleResponse
+	42, // 111: composia.agent.v1.BundleService.GetServiceManifest:output_type -> composia.agent.v1.GetServiceManifestResponse
+	50, // 112: composia.agent.v1.DockerService.ListContainers:output_type -> composia.agent.v1.ListContainersResponse
+	52, // 113: composia.agent.v1.DockerService.InspectContainer:output_type -> composia.agent.v1.InspectContainerResponse
+	54, // 114: composia.agent.v1.DockerService.RunContainerAction:output_type -> composia.agent.v1.RunContainerActionResponse
+	56, // 115: composia.agent.v1.DockerService.RemoveContainer:output_type -> composia.agent.v1.RemoveContainerResponse
+	58, // 116: composia.agent.v1.DockerService.GetContainerLogs:output_type -> composia.agent.v1.GetContainerLogsResponse
+	63, // 117: composia.agent.v1.DockerService.ListNetworks:output_type -> composia.agent.v1.ListNetworksResponse
+	65, // 118: composia.agent.v1.DockerService.InspectNetwork:output_type -> composia.agent.v1.InspectNetworkResponse
+	67, // 119: composia.agent.v1.DockerService.RemoveNetwork:output_type -> composia.agent.v1.RemoveNetworkResponse
+	70, // 120: composia.agent.v1.DockerService.ListVolumes:output_type -> composia.agent.v1.ListVolumesResponse
+	72, // 121: composia.agent.v1.DockerService.InspectVolume:output_type -> composia.agent.v1.InspectVolumeResponse
+	74, // 122: composia.agent.v1.DockerService.RemoveVolume:output_type -> composia.agent.v1.RemoveVolumeResponse
+	77, // 123: composia.agent.v1.DockerService.ListImages:output_type -> composia.agent.v1.ListImagesResponse
+	79, // 124: composia.agent.v1.DockerService.InspectImage:output_type -> composia.agent.v1.InspectImageResponse
+	81, // 125: composia.agent.v1.DockerService.RemoveImage:output_type -> composia.agent.v1.RemoveImageResponse
+	93, // [93:126] is the sub-list for method output_type
+	60, // [60:93] is the sub-list for method input_type
+	60, // [60:60] is the sub-list for extension type_name
+	60, // [60:60] is the sub-list for extension extendee
+	0,  // [0:60] is the sub-list for field type_name
 }
 
 func init() { file_proto_composia_agent_v1_agent_proto_init() }
@@ -6487,7 +6946,7 @@ func file_proto_composia_agent_v1_agent_proto_init() {
 		(*DockerQueryTask_ContainerLogs)(nil),
 		(*DockerQueryTask_RunContainerExec)(nil),
 	}
-	file_proto_composia_agent_v1_agent_proto_msgTypes[38].OneofWrappers = []any{
+	file_proto_composia_agent_v1_agent_proto_msgTypes[41].OneofWrappers = []any{
 		(*ReportDockerQueryResultRequest_ListContainers)(nil),
 		(*ReportDockerQueryResultRequest_InspectContainer)(nil),
 		(*ReportDockerQueryResultRequest_ListNetworks)(nil),
@@ -6505,7 +6964,7 @@ func file_proto_composia_agent_v1_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_composia_agent_v1_agent_proto_rawDesc), len(file_proto_composia_agent_v1_agent_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   77,
+			NumMessages:   84,
 			NumExtensions: 0,
 			NumServices:   4,
 		},

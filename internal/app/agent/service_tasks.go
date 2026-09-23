@@ -151,34 +151,37 @@ func executeImageCheckTask(ctx context.Context, bundleClient agentv1connect.Bund
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting image check task for service=%s node=%s repo_revision=%s\n", pulledTask.GetServiceName(), pulledTask.GetNodeId(), pulledTask.GetRepoRevision())); err != nil {
 		return err
 	}
-	var bundle *bundleResult
+	var serviceRoot string
+	var serviceMeta repo.ServiceMeta
+	var checked *checkedServiceContainers
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
 		var err error
-		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
+		serviceRoot, _, err = resolveRepoRelativePath(cfg.RepoDir, pulledTask.GetServiceDir(), "service_dir")
 		if err != nil {
 			return err
 		}
-		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
+		serviceMeta, checked, err = checkServiceConsistency(ctx, bundleClient, client, pulledTask, serviceRoot)
+		return err
 	}); err != nil {
-		return failServiceTask(ctx, client, cfg, pulledTask, err)
-	}
-	serviceMeta, err := loadServiceTaskMeta(bundle.RootPath)
-	if err != nil {
-		return failServiceTask(ctx, client, cfg, pulledTask, err)
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepImageCheck, func() error {
 		if serviceMeta.IsConfigInfra() {
 			return uploadTaskLog(ctx, logUploader, "service declares infra.config; skipping image check\n")
 		}
-		if err := reportServiceImageStates(ctx, client, pulledTask, bundle.RootPath, false, logUploader); err != nil {
+		observations, err := observeServiceImages(ctx, serviceRoot, checked)
+		if err != nil {
+			return err
+		}
+		if err := reportServiceImageObservations(ctx, client, pulledTask, observations, logUploader); err != nil {
 			return err
 		}
 		if !isImageDiscoveryNode(serviceMeta, pulledTask.GetNodeId()) {
-			return uploadTaskLog(ctx, logUploader, "local image states reported; remote discovery runs on the first target node\n")
+			return uploadTaskLog(ctx, logUploader, "running image states reported; remote discovery runs on the first target node\n")
 		}
-		return reportServiceImageUpdateChecks(ctx, client, pulledTask, bundle.RootPath, serviceMeta, logUploader)
+		return reportServiceImageUpdateChecks(ctx, client, pulledTask, serviceRoot, serviceMeta, logUploader)
 	}); err != nil {
-		return failServiceTask(ctx, client, cfg, pulledTask, err)
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := uploadTaskLog(ctx, logUploader, "image check task finished successfully\n"); err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)

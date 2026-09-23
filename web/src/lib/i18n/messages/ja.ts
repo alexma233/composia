@@ -288,6 +288,17 @@ export const ja = {
     fixMetaUntilAccepted:
       "コントローラーが受け入れるまで `composia-meta.yaml` を修正してください。",
     instances: {
+      consistency: {
+        title: "直近の整合性チェック",
+        files: "ファイル",
+        compose: "Compose",
+        checkedAt: "チェック日時",
+        unknown: "未チェック",
+        consistent: "一致",
+        drifted: "差異あり",
+        error: "チェック失敗",
+        not_applicable: "対象外",
+      },
       title: "インスタンス",
       loadFailed: "サービスインスタンスの読み込みに失敗しました。",
       pendingDeploy: "リポジトリが更新されました、デプロイ待ち",

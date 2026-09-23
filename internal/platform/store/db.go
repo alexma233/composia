@@ -15,7 +15,7 @@ import (
 
 const DatabaseFileName = "composia.db"
 
-const sqliteSchemaVersion = 12
+const sqliteSchemaVersion = 13
 
 const sqliteForeignKeysOn = `PRAGMA foreign_keys = ON;`
 
@@ -139,6 +139,7 @@ type ServiceInstanceSnapshot struct {
 	UpdatedAt             string
 	LastTaskID            string
 	PendingDeployRevision string
+	Consistency           *ServiceConsistencyCheck
 }
 
 type NodeSnapshot struct {
@@ -455,7 +456,7 @@ func (db *DB) GetServiceSnapshot(ctx context.Context, serviceName string) (Servi
 
 func (db *DB) ListServiceInstances(ctx context.Context, serviceName string) ([]ServiceInstanceSnapshot, error) {
 	rows, err := db.sql.QueryContext(ctx, `
-		SELECT service_name, node_id, is_declared, runtime_status, COALESCE(updated_at, ''), COALESCE(last_task_id, ''), COALESCE(pending_deploy_revision, '')
+		SELECT service_name, node_id, is_declared, runtime_status, COALESCE(updated_at, ''), COALESCE(last_task_id, ''), COALESCE(pending_deploy_revision, ''), consistency_json
 		FROM service_instances
 		WHERE service_name = ?
 		ORDER BY node_id ASC
@@ -468,8 +469,12 @@ func (db *DB) ListServiceInstances(ctx context.Context, serviceName string) ([]S
 	instances := make([]ServiceInstanceSnapshot, 0)
 	for rows.Next() {
 		var snapshot ServiceInstanceSnapshot
-		if err := rows.Scan(&snapshot.ServiceName, &snapshot.NodeID, &snapshot.IsDeclared, &snapshot.RuntimeStatus, &snapshot.UpdatedAt, &snapshot.LastTaskID, &snapshot.PendingDeployRevision); err != nil {
+		var consistencyJSON sql.NullString
+		if err := rows.Scan(&snapshot.ServiceName, &snapshot.NodeID, &snapshot.IsDeclared, &snapshot.RuntimeStatus, &snapshot.UpdatedAt, &snapshot.LastTaskID, &snapshot.PendingDeployRevision, &consistencyJSON); err != nil {
 			return nil, fmt.Errorf("scan service instance for %q: %w", serviceName, err)
+		}
+		if err := decodeServiceConsistency(consistencyJSON, &snapshot); err != nil {
+			return nil, err
 		}
 		instances = append(instances, snapshot)
 	}
@@ -481,16 +486,20 @@ func (db *DB) ListServiceInstances(ctx context.Context, serviceName string) ([]S
 
 func (db *DB) GetServiceInstanceSnapshot(ctx context.Context, serviceName, nodeID string) (ServiceInstanceSnapshot, error) {
 	var snapshot ServiceInstanceSnapshot
+	var consistencyJSON sql.NullString
 	err := db.sql.QueryRowContext(ctx, `
-		SELECT service_name, node_id, is_declared, runtime_status, COALESCE(updated_at, ''), COALESCE(last_task_id, ''), COALESCE(pending_deploy_revision, '')
+		SELECT service_name, node_id, is_declared, runtime_status, COALESCE(updated_at, ''), COALESCE(last_task_id, ''), COALESCE(pending_deploy_revision, ''), consistency_json
 		FROM service_instances
 		WHERE service_name = ? AND node_id = ?
-	`, serviceName, nodeID).Scan(&snapshot.ServiceName, &snapshot.NodeID, &snapshot.IsDeclared, &snapshot.RuntimeStatus, &snapshot.UpdatedAt, &snapshot.LastTaskID, &snapshot.PendingDeployRevision)
+	`, serviceName, nodeID).Scan(&snapshot.ServiceName, &snapshot.NodeID, &snapshot.IsDeclared, &snapshot.RuntimeStatus, &snapshot.UpdatedAt, &snapshot.LastTaskID, &snapshot.PendingDeployRevision, &consistencyJSON)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ServiceInstanceSnapshot{}, ErrServiceNotFound
 		}
 		return ServiceInstanceSnapshot{}, fmt.Errorf("get service instance snapshot %q@%q: %w", serviceName, nodeID, err)
+	}
+	if err := decodeServiceConsistency(consistencyJSON, &snapshot); err != nil {
+		return ServiceInstanceSnapshot{}, err
 	}
 	return snapshot, nil
 }
@@ -1501,6 +1510,9 @@ func (db *DB) migrate(ctx context.Context) error {
 		statements: []string{
 			`DELETE FROM backups WHERE NOT EXISTS (SELECT 1 FROM tasks WHERE tasks.task_id = backups.task_id);`,
 		},
+	}, {
+		version:    13,
+		statements: []string{`ALTER TABLE service_instances ADD COLUMN consistency_json TEXT CHECK (consistency_json IS NULL OR json_valid(consistency_json));`},
 	}}
 
 	tx, err := db.sql.BeginTx(ctx, nil)
@@ -1595,7 +1607,7 @@ func sqliteUserVersion(ctx context.Context, tx *sql.Tx) (int, error) {
 
 func applySQLiteMigrationStatement(ctx context.Context, tx *sql.Tx, statement string) error {
 	if _, err := tx.ExecContext(ctx, statement); err != nil {
-		if (statement == `ALTER TABLE backups ADD COLUMN node_id TEXT;` || statement == `ALTER TABLE service_instances ADD COLUMN pending_deploy_revision TEXT;` || strings.HasPrefix(statement, `ALTER TABLE tasks ADD COLUMN `) || strings.HasPrefix(statement, `ALTER TABLE task_outbox ADD COLUMN `)) && isDuplicateColumnError(err) {
+		if (statement == `ALTER TABLE backups ADD COLUMN node_id TEXT;` || strings.HasPrefix(statement, `ALTER TABLE service_instances ADD COLUMN `) || strings.HasPrefix(statement, `ALTER TABLE tasks ADD COLUMN `) || strings.HasPrefix(statement, `ALTER TABLE task_outbox ADD COLUMN `)) && isDuplicateColumnError(err) {
 			return nil
 		}
 		return fmt.Errorf("apply sqlite schema statement: %w", err)

@@ -483,6 +483,14 @@ func (application *app) printServiceDetail(service *controllerv1.GetServiceRespo
 	}
 	rows := make([][]string, 0, len(instances))
 	for _, instance := range instances {
+		consistency := instance.GetConsistency()
+		files, compose := consistency.GetFiles().GetStatus(), consistency.GetCompose().GetStatus()
+		if files == "" {
+			files = "unknown"
+		}
+		if compose == "" {
+			compose = "unknown"
+		}
 		rows = append(rows, []string{
 			instance.GetServiceName(),
 			instance.GetNodeId(),
@@ -490,9 +498,11 @@ func (application *app) printServiceDetail(service *controllerv1.GetServiceRespo
 			boolText(instance.GetIsDeclared()),
 			strconv.Itoa(len(instance.GetContainers())),
 			instance.GetUpdatedAt(),
+			files, compose, consistency.GetCheckedAt(), consistency.GetRepoRevision(), consistency.GetTaskId(),
+			strings.Join(consistency.GetFiles().GetReasons(), "; "), strings.Join(consistency.GetCompose().GetReasons(), "; "),
 		})
 	}
-	return application.writeTable([]string{"SERVICE", "NODE", "STATUS", "DECLARED", "CONTAINERS", "UPDATED"}, rows)
+	return application.writeTable([]string{"SERVICE", "NODE", "STATUS", "DECLARED", "CONTAINERS", "UPDATED", "RECENT FILES", "RECENT COMPOSE", "CHECKED AT", "REVISION", "CHECK TASK", "FILE REASONS", "COMPOSE REASONS"}, rows)
 }
 
 func serviceActionFromName(name string) (controllerv1.ServiceAction, error) {

@@ -50,6 +50,10 @@ func reportServiceImageStates(ctx context.Context, client agentv1connect.AgentRe
 	if err != nil {
 		return err
 	}
+	return reportServiceImageObservations(ctx, client, pulledTask, observations, logUploader)
+}
+
+func reportServiceImageObservations(ctx context.Context, client agentv1connect.AgentReportServiceClient, pulledTask *agentv1.AgentTask, observations []serviceImageObservation, logUploader *taskLogUploader) error {
 	if len(observations) == 0 {
 		return uploadTaskLog(ctx, logUploader, "no compose service images found to report\n")
 	}
@@ -70,7 +74,7 @@ func reportServiceImageStates(ctx context.Context, client agentv1connect.AgentRe
 			ErrorSummary:         observation.ErrorSummary,
 		})
 	}
-	_, err = client.ReportServiceImageStates(ctx, connect.NewRequest(&agentv1.ReportServiceImageStatesRequest{
+	_, err := client.ReportServiceImageStates(ctx, connect.NewRequest(&agentv1.ReportServiceImageStatesRequest{
 		ServiceName: pulledTask.GetServiceName(),
 		NodeId:      pulledTask.GetNodeId(),
 		Images:      images,

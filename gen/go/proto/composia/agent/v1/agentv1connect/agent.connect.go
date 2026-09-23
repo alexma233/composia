@@ -57,6 +57,9 @@ const (
 	// AgentReportServiceReportServiceInstanceStatusProcedure is the fully-qualified name of the
 	// AgentReportService's ReportServiceInstanceStatus RPC.
 	AgentReportServiceReportServiceInstanceStatusProcedure = "/composia.agent.v1.AgentReportService/ReportServiceInstanceStatus"
+	// AgentReportServiceReportServiceConsistencyCheckProcedure is the fully-qualified name of the
+	// AgentReportService's ReportServiceConsistencyCheck RPC.
+	AgentReportServiceReportServiceConsistencyCheckProcedure = "/composia.agent.v1.AgentReportService/ReportServiceConsistencyCheck"
 	// AgentReportServiceReportServiceImageStatesProcedure is the fully-qualified name of the
 	// AgentReportService's ReportServiceImageStates RPC.
 	AgentReportServiceReportServiceImageStatesProcedure = "/composia.agent.v1.AgentReportService/ReportServiceImageStates"
@@ -90,6 +93,9 @@ const (
 	// BundleServiceGetServiceBundleProcedure is the fully-qualified name of the BundleService's
 	// GetServiceBundle RPC.
 	BundleServiceGetServiceBundleProcedure = "/composia.agent.v1.BundleService/GetServiceBundle"
+	// BundleServiceGetServiceManifestProcedure is the fully-qualified name of the BundleService's
+	// GetServiceManifest RPC.
+	BundleServiceGetServiceManifestProcedure = "/composia.agent.v1.BundleService/GetServiceManifest"
 	// DockerServiceListContainersProcedure is the fully-qualified name of the DockerService's
 	// ListContainers RPC.
 	DockerServiceListContainersProcedure = "/composia.agent.v1.DockerService/ListContainers"
@@ -148,6 +154,8 @@ type AgentReportServiceClient interface {
 	ReportBackupResult(context.Context, *connect.Request[v1.ReportBackupResultRequest]) (*connect.Response[v1.ReportBackupResultResponse], error)
 	// ReportServiceInstanceStatus reports the current status of one service instance.
 	ReportServiceInstanceStatus(context.Context, *connect.Request[v1.ReportServiceInstanceStatusRequest]) (*connect.Response[v1.ReportServiceInstanceStatusResponse], error)
+	// ReportServiceConsistencyCheck records the latest independent configuration check.
+	ReportServiceConsistencyCheck(context.Context, *connect.Request[v1.ReportServiceConsistencyCheckRequest]) (*connect.Response[v1.ReportServiceConsistencyCheckResponse], error)
 	// ReportServiceImageStates reports image digest observations for one service instance.
 	ReportServiceImageStates(context.Context, *connect.Request[v1.ReportServiceImageStatesRequest]) (*connect.Response[v1.ReportServiceImageStatesResponse], error)
 	// ReportServiceImageUpdateChecks reports candidate image updates for one service instance.
@@ -209,6 +217,12 @@ func NewAgentReportServiceClient(httpClient connect.HTTPClient, baseURL string, 
 			connect.WithSchema(agentReportServiceMethods.ByName("ReportServiceInstanceStatus")),
 			connect.WithClientOptions(opts...),
 		),
+		reportServiceConsistencyCheck: connect.NewClient[v1.ReportServiceConsistencyCheckRequest, v1.ReportServiceConsistencyCheckResponse](
+			httpClient,
+			baseURL+AgentReportServiceReportServiceConsistencyCheckProcedure,
+			connect.WithSchema(agentReportServiceMethods.ByName("ReportServiceConsistencyCheck")),
+			connect.WithClientOptions(opts...),
+		),
 		reportServiceImageStates: connect.NewClient[v1.ReportServiceImageStatesRequest, v1.ReportServiceImageStatesResponse](
 			httpClient,
 			baseURL+AgentReportServiceReportServiceImageStatesProcedure,
@@ -256,6 +270,7 @@ type agentReportServiceClient struct {
 	uploadTaskLogs                 *connect.Client[v1.UploadTaskLogsRequest, v1.UploadTaskLogsResponse]
 	reportBackupResult             *connect.Client[v1.ReportBackupResultRequest, v1.ReportBackupResultResponse]
 	reportServiceInstanceStatus    *connect.Client[v1.ReportServiceInstanceStatusRequest, v1.ReportServiceInstanceStatusResponse]
+	reportServiceConsistencyCheck  *connect.Client[v1.ReportServiceConsistencyCheckRequest, v1.ReportServiceConsistencyCheckResponse]
 	reportServiceImageStates       *connect.Client[v1.ReportServiceImageStatesRequest, v1.ReportServiceImageStatesResponse]
 	reportServiceImageUpdateChecks *connect.Client[v1.ReportServiceImageUpdateChecksRequest, v1.ReportServiceImageUpdateChecksResponse]
 	reportDockerStats              *connect.Client[v1.ReportDockerStatsRequest, v1.ReportDockerStatsResponse]
@@ -293,6 +308,12 @@ func (c *agentReportServiceClient) ReportBackupResult(ctx context.Context, req *
 // composia.agent.v1.AgentReportService.ReportServiceInstanceStatus.
 func (c *agentReportServiceClient) ReportServiceInstanceStatus(ctx context.Context, req *connect.Request[v1.ReportServiceInstanceStatusRequest]) (*connect.Response[v1.ReportServiceInstanceStatusResponse], error) {
 	return c.reportServiceInstanceStatus.CallUnary(ctx, req)
+}
+
+// ReportServiceConsistencyCheck calls
+// composia.agent.v1.AgentReportService.ReportServiceConsistencyCheck.
+func (c *agentReportServiceClient) ReportServiceConsistencyCheck(ctx context.Context, req *connect.Request[v1.ReportServiceConsistencyCheckRequest]) (*connect.Response[v1.ReportServiceConsistencyCheckResponse], error) {
+	return c.reportServiceConsistencyCheck.CallUnary(ctx, req)
 }
 
 // ReportServiceImageStates calls composia.agent.v1.AgentReportService.ReportServiceImageStates.
@@ -341,6 +362,8 @@ type AgentReportServiceHandler interface {
 	ReportBackupResult(context.Context, *connect.Request[v1.ReportBackupResultRequest]) (*connect.Response[v1.ReportBackupResultResponse], error)
 	// ReportServiceInstanceStatus reports the current status of one service instance.
 	ReportServiceInstanceStatus(context.Context, *connect.Request[v1.ReportServiceInstanceStatusRequest]) (*connect.Response[v1.ReportServiceInstanceStatusResponse], error)
+	// ReportServiceConsistencyCheck records the latest independent configuration check.
+	ReportServiceConsistencyCheck(context.Context, *connect.Request[v1.ReportServiceConsistencyCheckRequest]) (*connect.Response[v1.ReportServiceConsistencyCheckResponse], error)
 	// ReportServiceImageStates reports image digest observations for one service instance.
 	ReportServiceImageStates(context.Context, *connect.Request[v1.ReportServiceImageStatesRequest]) (*connect.Response[v1.ReportServiceImageStatesResponse], error)
 	// ReportServiceImageUpdateChecks reports candidate image updates for one service instance.
@@ -398,6 +421,12 @@ func NewAgentReportServiceHandler(svc AgentReportServiceHandler, opts ...connect
 		connect.WithSchema(agentReportServiceMethods.ByName("ReportServiceInstanceStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentReportServiceReportServiceConsistencyCheckHandler := connect.NewUnaryHandler(
+		AgentReportServiceReportServiceConsistencyCheckProcedure,
+		svc.ReportServiceConsistencyCheck,
+		connect.WithSchema(agentReportServiceMethods.ByName("ReportServiceConsistencyCheck")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agentReportServiceReportServiceImageStatesHandler := connect.NewUnaryHandler(
 		AgentReportServiceReportServiceImageStatesProcedure,
 		svc.ReportServiceImageStates,
@@ -448,6 +477,8 @@ func NewAgentReportServiceHandler(svc AgentReportServiceHandler, opts ...connect
 			agentReportServiceReportBackupResultHandler.ServeHTTP(w, r)
 		case AgentReportServiceReportServiceInstanceStatusProcedure:
 			agentReportServiceReportServiceInstanceStatusHandler.ServeHTTP(w, r)
+		case AgentReportServiceReportServiceConsistencyCheckProcedure:
+			agentReportServiceReportServiceConsistencyCheckHandler.ServeHTTP(w, r)
 		case AgentReportServiceReportServiceImageStatesProcedure:
 			agentReportServiceReportServiceImageStatesHandler.ServeHTTP(w, r)
 		case AgentReportServiceReportServiceImageUpdateChecksProcedure:
@@ -491,6 +522,10 @@ func (UnimplementedAgentReportServiceHandler) ReportBackupResult(context.Context
 
 func (UnimplementedAgentReportServiceHandler) ReportServiceInstanceStatus(context.Context, *connect.Request[v1.ReportServiceInstanceStatusRequest]) (*connect.Response[v1.ReportServiceInstanceStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentReportService.ReportServiceInstanceStatus is not implemented"))
+}
+
+func (UnimplementedAgentReportServiceHandler) ReportServiceConsistencyCheck(context.Context, *connect.Request[v1.ReportServiceConsistencyCheckRequest]) (*connect.Response[v1.ReportServiceConsistencyCheckResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.AgentReportService.ReportServiceConsistencyCheck is not implemented"))
 }
 
 func (UnimplementedAgentReportServiceHandler) ReportServiceImageStates(context.Context, *connect.Request[v1.ReportServiceImageStatesRequest]) (*connect.Response[v1.ReportServiceImageStatesResponse], error) {
@@ -677,6 +712,8 @@ func (UnimplementedAgentTaskServiceHandler) PullNextDockerQuery(context.Context,
 type BundleServiceClient interface {
 	// GetServiceBundle streams the task bundle as binary chunks.
 	GetServiceBundle(context.Context, *connect.Request[v1.GetServiceBundleRequest]) (*connect.ServerStreamForClient[v1.GetServiceBundleResponse], error)
+	// GetServiceManifest describes persistent service files without downloading or installing them.
+	GetServiceManifest(context.Context, *connect.Request[v1.GetServiceManifestRequest]) (*connect.Response[v1.GetServiceManifestResponse], error)
 }
 
 // NewBundleServiceClient constructs a client for the composia.agent.v1.BundleService service. By
@@ -696,12 +733,19 @@ func NewBundleServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(bundleServiceMethods.ByName("GetServiceBundle")),
 			connect.WithClientOptions(opts...),
 		),
+		getServiceManifest: connect.NewClient[v1.GetServiceManifestRequest, v1.GetServiceManifestResponse](
+			httpClient,
+			baseURL+BundleServiceGetServiceManifestProcedure,
+			connect.WithSchema(bundleServiceMethods.ByName("GetServiceManifest")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // bundleServiceClient implements BundleServiceClient.
 type bundleServiceClient struct {
-	getServiceBundle *connect.Client[v1.GetServiceBundleRequest, v1.GetServiceBundleResponse]
+	getServiceBundle   *connect.Client[v1.GetServiceBundleRequest, v1.GetServiceBundleResponse]
+	getServiceManifest *connect.Client[v1.GetServiceManifestRequest, v1.GetServiceManifestResponse]
 }
 
 // GetServiceBundle calls composia.agent.v1.BundleService.GetServiceBundle.
@@ -709,10 +753,17 @@ func (c *bundleServiceClient) GetServiceBundle(ctx context.Context, req *connect
 	return c.getServiceBundle.CallServerStream(ctx, req)
 }
 
+// GetServiceManifest calls composia.agent.v1.BundleService.GetServiceManifest.
+func (c *bundleServiceClient) GetServiceManifest(ctx context.Context, req *connect.Request[v1.GetServiceManifestRequest]) (*connect.Response[v1.GetServiceManifestResponse], error) {
+	return c.getServiceManifest.CallUnary(ctx, req)
+}
+
 // BundleServiceHandler is an implementation of the composia.agent.v1.BundleService service.
 type BundleServiceHandler interface {
 	// GetServiceBundle streams the task bundle as binary chunks.
 	GetServiceBundle(context.Context, *connect.Request[v1.GetServiceBundleRequest], *connect.ServerStream[v1.GetServiceBundleResponse]) error
+	// GetServiceManifest describes persistent service files without downloading or installing them.
+	GetServiceManifest(context.Context, *connect.Request[v1.GetServiceManifestRequest]) (*connect.Response[v1.GetServiceManifestResponse], error)
 }
 
 // NewBundleServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -728,10 +779,18 @@ func NewBundleServiceHandler(svc BundleServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(bundleServiceMethods.ByName("GetServiceBundle")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bundleServiceGetServiceManifestHandler := connect.NewUnaryHandler(
+		BundleServiceGetServiceManifestProcedure,
+		svc.GetServiceManifest,
+		connect.WithSchema(bundleServiceMethods.ByName("GetServiceManifest")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.agent.v1.BundleService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BundleServiceGetServiceBundleProcedure:
 			bundleServiceGetServiceBundleHandler.ServeHTTP(w, r)
+		case BundleServiceGetServiceManifestProcedure:
+			bundleServiceGetServiceManifestHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -743,6 +802,10 @@ type UnimplementedBundleServiceHandler struct{}
 
 func (UnimplementedBundleServiceHandler) GetServiceBundle(context.Context, *connect.Request[v1.GetServiceBundleRequest], *connect.ServerStream[v1.GetServiceBundleResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.BundleService.GetServiceBundle is not implemented"))
+}
+
+func (UnimplementedBundleServiceHandler) GetServiceManifest(context.Context, *connect.Request[v1.GetServiceManifestRequest]) (*connect.Response[v1.GetServiceManifestResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.BundleService.GetServiceManifest is not implemented"))
 }
 
 // DockerServiceClient is a client for the composia.agent.v1.DockerService service.

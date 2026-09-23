@@ -23,19 +23,9 @@ func bundleExtraFiles(cfg *config.ControllerConfig, record task.Record, params s
 	if err != nil {
 		return nil, err
 	}
-	if len(encFiles) > 0 && cfg.Secrets == nil {
-		return nil, errSecretsNotConfigured
-	}
-	if cfg.Secrets != nil {
-		for _, encFile := range encFiles {
-			fullPath := filepath.ToSlash(filepath.Join(params.ServiceDir, encFile))
-			decrypted, err := decryptFileAtRevision(cfg, record.RepoRevision, fullPath)
-			if err != nil {
-				return nil, err
-			}
-			decryptedPath := repo.RuntimeFilePath(encFile)
-			extraFiles[filepath.ToSlash(filepath.Join(params.ServiceDir, decryptedPath))] = decrypted
-		}
+	extraFiles, err = renderServiceSecrets(cfg, record.RepoRevision, params.ServiceDir, encFiles)
+	if err != nil {
+		return nil, err
 	}
 	if includeTaskRuntime && record.Type == task.TypeBackup {
 		payload, err := buildBackupRuntimePayload(cfg, record.ServiceName, record.NodeID, record.RepoRevision, params)
@@ -57,6 +47,34 @@ func bundleExtraFiles(cfg *config.ControllerConfig, record task.Record, params s
 	}
 	if len(extraFiles) == 0 {
 		return map[string]string{}, nil
+	}
+	return extraFiles, nil
+}
+
+// persistentServiceExtraFiles renders deployment secrets without task-specific filtering or temporary payloads.
+func persistentServiceExtraFiles(cfg *config.ControllerConfig, revision, serviceDir string) (map[string]string, error) {
+	encFiles, err := listEncryptedFiles(cfg.RepoDir, revision, serviceDir)
+	if err != nil {
+		return nil, err
+	}
+	return renderServiceSecrets(cfg, revision, serviceDir, encFiles)
+}
+
+func renderServiceSecrets(cfg *config.ControllerConfig, revision, serviceDir string, encFiles []string) (map[string]string, error) {
+	extraFiles := map[string]string{}
+	if len(encFiles) > 0 && cfg.Secrets == nil {
+		return nil, errSecretsNotConfigured
+	}
+	if cfg.Secrets != nil {
+		for _, encFile := range encFiles {
+			fullPath := filepath.ToSlash(filepath.Join(serviceDir, encFile))
+			decrypted, err := decryptFileAtRevision(cfg, revision, fullPath)
+			if err != nil {
+				return nil, err
+			}
+			decryptedPath := repo.RuntimeFilePath(encFile)
+			extraFiles[filepath.ToSlash(filepath.Join(serviceDir, decryptedPath))] = decrypted
+		}
 	}
 	return extraFiles, nil
 }

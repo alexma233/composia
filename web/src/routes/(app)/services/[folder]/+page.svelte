@@ -28,6 +28,7 @@
   } from "$lib/capabilities";
   import DisabledReasonButton from "$lib/components/app/disabled-reason-button.svelte";
   import { getMessages } from "$lib/i18n";
+  import { latestServiceConsistency } from "$lib/service-consistency";
 
   const messages = getMessages();
 
@@ -442,6 +443,13 @@
 
       nodeContainers = payload.serviceDetail.instances.map((instance) => {
         const existing = existingByNode.get(instance.nodeId);
+        instance = {
+          ...instance,
+          consistency: latestServiceConsistency(
+            existing?.consistency,
+            instance.consistency,
+          ),
+        };
         const hasFreshContainers = instance.containers.length > 0;
         const changed =
           existing &&
@@ -514,7 +522,15 @@
       }
 
       nodeContainers = nodeContainers.map((instance) =>
-        instance.nodeId === nodeId ? payload.instance! : instance,
+        instance.nodeId === nodeId
+          ? {
+              ...payload.instance!,
+              consistency: latestServiceConsistency(
+                instance.consistency,
+                payload.instance!.consistency,
+              ),
+            }
+          : instance,
       ) as NonNullable<PageData["nodeContainers"]>;
       instanceLoadState = { ...instanceLoadState, [nodeId]: "loaded" };
       instanceLoadError = { ...instanceLoadError, [nodeId]: "" };
@@ -1712,6 +1728,84 @@
                   <div class="h-px flex-1 bg-border/70"></div>
                 </div>
               {/if}
+
+              <div
+                class="space-y-2 rounded-md border border-border/60 px-3 py-2 text-sm"
+              >
+                <p class="font-medium">
+                  {$messages.services.instances.consistency.title}
+                </p>
+                <div class="flex flex-wrap gap-3">
+                  {#each ["files", "compose"] as stage}
+                    {@const outcome =
+                      stage === "files"
+                        ? instance.consistency.files
+                        : instance.consistency.compose}
+                    <div>
+                      <span
+                        >{stage === "files"
+                          ? $messages.services.instances.consistency.files
+                          : $messages.services.instances.consistency
+                              .compose}:</span
+                      >
+                      <Badge
+                        variant={outcome.status === "drifted" ||
+                        outcome.status === "error"
+                          ? "warning"
+                          : "secondary"}
+                      >
+                        {$messages.services.instances.consistency[
+                          outcome.status
+                        ]}
+                      </Badge>
+                      {#each outcome.reasons as reason}
+                        <p
+                          class="mt-1 break-words text-xs text-muted-foreground"
+                        >
+                          {reason}
+                        </p>
+                      {/each}
+                    </div>
+                  {/each}
+                </div>
+                {#if instance.consistency.checkedAt}
+                  <dl
+                    class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"
+                  >
+                    <div>
+                      <dt class="inline">
+                        {$messages.services.instances.consistency.checkedAt}:
+                      </dt>
+                      <dd class="inline">
+                        <time datetime={instance.consistency.checkedAt}
+                          >{instance.consistency.checkedAt}</time
+                        >
+                      </dd>
+                    </div>
+                    <div>
+                      <dt class="inline">
+                        {$messages.tasks.taskDetails.repoRevision}:
+                      </dt>
+                      <dd class="inline break-all">
+                        {instance.consistency.repoRevision}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt class="inline">
+                        {$messages.tasks.taskDetails.title}:
+                      </dt>
+                      <dd class="inline">
+                        <a
+                          class="underline"
+                          href="/tasks/{encodeURIComponent(
+                            instance.consistency.taskId,
+                          )}">{instance.consistency.taskId}</a
+                        >
+                      </dd>
+                    </div>
+                  </dl>
+                {/if}
+              </div>
 
               {#if instanceLoadState[instance.nodeId] === "loading"}
                 <div

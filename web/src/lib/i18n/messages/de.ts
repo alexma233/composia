@@ -287,6 +287,17 @@ export const de = {
     fixMetaUntilAccepted:
       "`composia-meta.yaml` korrigieren, bis der Controller sie akzeptiert.",
     instances: {
+      consistency: {
+        title: "Letzte Konsistenzprüfung",
+        files: "Dateien",
+        compose: "Compose",
+        checkedAt: "Geprüft am",
+        unknown: "Nicht geprüft",
+        consistent: "Konsistent",
+        drifted: "Abweichend",
+        error: "Prüfung fehlgeschlagen",
+        not_applicable: "Nicht anwendbar",
+      },
       title: "Instanzen",
       loadFailed: "Laden der Dienst-Instanz fehlgeschlagen.",
       pendingDeploy: "Repo aktualisiert, Deploy ausstehend",

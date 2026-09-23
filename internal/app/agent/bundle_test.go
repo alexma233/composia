@@ -309,6 +309,7 @@ func buildTarArchiveWithHeaders(t *testing.T, headers []*tar.Header) []byte {
 }
 
 type bundleTestServer struct {
+	agentv1connect.UnimplementedBundleServiceHandler
 	bundle               []byte
 	bundlesByServiceDir  map[string]bundleTestResponse
 	expectedTaskID       string

@@ -275,6 +275,17 @@ export const zhHans = {
     addMetaToDeclare: "添加 `composia-meta.yaml` 文件来声明此服务。",
     fixMetaUntilAccepted: "修改 `composia-meta.yaml` 直到控制器接受。",
     instances: {
+      consistency: {
+        title: "最近一次一致性检查",
+        files: "文件",
+        compose: "Compose",
+        checkedAt: "检查时间",
+        unknown: "未检查",
+        consistent: "一致",
+        drifted: "存在偏差",
+        error: "检查失败",
+        not_applicable: "不适用",
+      },
       title: "实例",
       loadFailed: "加载服务实例失败。",
       pendingDeploy: "仓库已更新，等待部署",

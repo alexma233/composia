@@ -51,7 +51,8 @@ WORKDIR /workspace
 
 ENV PATH="/go/bin:${PATH}"
 
-RUN apk add --no-cache ca-certificates docker-cli docker-cli-buildx docker-cli-compose git && \
+RUN printf '%s\n' '@compose-edge https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories && \
+    apk add --no-cache ca-certificates docker-cli docker-cli-buildx 'docker-cli-compose@compose-edge>=5.5.1' git && \
     go install github.com/air-verse/air@v1.67.4
 
 CMD ["air", "-v"]
@@ -84,7 +85,8 @@ WORKDIR /app
 ENV HOME=/tmp \
     DOCKER_CONFIG=/tmp/.docker
 
-RUN apk add --no-cache ca-certificates docker-cli docker-cli-buildx docker-cli-compose git tini
+RUN printf '%s\n' '@compose-edge https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories && \
+    apk add --no-cache ca-certificates docker-cli docker-cli-buildx 'docker-cli-compose@compose-edge>=5.5.1' git tini
 COPY --from=agent-builder /out/composia-agent /usr/local/bin/composia-agent
 
 USER 65532:65532

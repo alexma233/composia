@@ -5,7 +5,9 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -118,6 +120,21 @@ func TestStreamServiceBundleWithExtrasReplacesEncryptedFile(t *testing.T) {
 	}
 	if _, exists := files["app/.env.enc"]; exists {
 		t.Fatal("encrypted file remained in runtime bundle")
+	}
+	manifest, err := ServiceManifest(t.Context(), repoDir, revision, "app", map[string]string{"app/.env": "plaintext"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(manifest) != 1 || manifest[0].Path != ".env" || manifest[0].Mode != 0o600 || manifest[0].SHA256 != fmt.Sprintf("%x", sha256.Sum256([]byte("plaintext"))) {
+		t.Fatalf("manifest does not describe the deployed plaintext: %+v", manifest)
+	}
+	if _, err := ServiceManifest(t.Context(), repoDir, "missing-revision", "app", nil); err == nil {
+		t.Fatal("expected invalid revision to fail")
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if _, err := ServiceManifest(ctx, repoDir, revision, "app", nil); err == nil {
+		t.Fatal("expected cancelled manifest to fail")
 	}
 }
 

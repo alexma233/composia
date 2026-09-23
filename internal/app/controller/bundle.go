@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -25,39 +26,97 @@ type bundleServer struct {
 	cfg *config.ControllerConfig
 }
 
-func (server *bundleServer) GetServiceBundle(ctx context.Context, req *connect.Request[agentv1.GetServiceBundleRequest], stream *connect.ServerStream[agentv1.GetServiceBundleResponse]) error {
-	if req.Msg.GetTaskId() == "" {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
+func (server *bundleServer) serviceTask(ctx context.Context, taskID, executionID string) (task.Record, serviceTaskParams, error) {
+	var params serviceTaskParams
+	if taskID == "" {
+		return task.Record{}, params, connect.NewError(connect.CodeInvalidArgument, errors.New("task_id is required"))
 	}
-	if err := ensureTaskNodeMatch(ctx, server.db, req.Msg.GetTaskId()); err != nil {
-		return err
+	if err := ensureTaskNodeMatch(ctx, server.db, taskID); err != nil {
+		return task.Record{}, params, err
 	}
 	nodeID, _ := rpcutil.BearerSubject(ctx)
-	if _, err := server.db.ValidateTaskExecution(ctx, req.Msg.GetTaskId(), req.Msg.GetExecutionId(), nodeID); err != nil {
-		return connect.NewError(connect.CodeFailedPrecondition, err)
+	if _, err := server.db.ValidateTaskExecution(ctx, taskID, executionID, nodeID); err != nil {
+		return task.Record{}, params, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
-	detail, err := server.db.GetTask(ctx, req.Msg.GetTaskId())
+	detail, err := server.db.GetTask(ctx, taskID)
 	if err != nil {
 		if errors.Is(err, store.ErrTaskNotFound) {
-			return connect.NewError(connect.CodeNotFound, err)
+			return task.Record{}, params, connect.NewError(connect.CodeNotFound, err)
 		}
-		return connect.NewError(connect.CodeInternal, err)
+		return task.Record{}, params, connect.NewError(connect.CodeInternal, err)
 	}
 	if detail.Record.Status != task.StatusRunning {
-		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("task %q is not running", detail.Record.TaskID))
+		return task.Record{}, params, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("task %q is not running", detail.Record.TaskID))
 	}
-
-	var params serviceTaskParams
 	if err := json.Unmarshal([]byte(detail.Record.ParamsJSON), &params); err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("decode deploy task params: %w", err))
+		return task.Record{}, params, connect.NewError(connect.CodeInternal, fmt.Errorf("decode service task params: %w", err))
 	}
-	requestedServiceDir := params.ServiceDir
-	params.ServiceDir, err = authorizedBundleServiceDir(server.cfg, detail.Record, params, req.Msg.GetServiceDir())
+	return detail.Record, params, nil
+}
+
+func (server *bundleServer) GetServiceManifest(ctx context.Context, req *connect.Request[agentv1.GetServiceManifestRequest]) (*connect.Response[agentv1.GetServiceManifestResponse], error) {
+	record, params, err := server.serviceTask(ctx, req.Msg.GetTaskId(), req.Msg.GetExecutionId())
+	if err != nil {
+		return nil, err
+	}
+	if record.ServiceName == "" || record.RepoRevision == "" {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("service manifests require a service-scoped task with a repo revision"))
+	}
+	params.ServiceDir, err = authorizedBundleServiceDir(server.cfg, record, params, "")
+	if err != nil {
+		return nil, err
+	}
+	service, err := repo.FindServiceAtRevision(server.cfg.RepoDir, record.RepoRevision, params.ServiceDir, configuredNodeIDs(server.cfg))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	if service.Name != record.ServiceName {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("service directory does not match task service"))
+	}
+	extras, err := persistentServiceExtraFiles(server.cfg, record.RepoRevision, params.ServiceDir)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	files, err := repo.ServiceManifest(ctx, server.cfg.RepoDir, record.RepoRevision, params.ServiceDir, extras)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	currentRevision, err := repo.CurrentRevision(server.cfg.RepoDir)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if currentRevision != record.RepoRevision {
+		currentExtras, err := persistentServiceExtraFiles(server.cfg, currentRevision, params.ServiceDir)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		currentFiles, err := repo.ServiceManifest(ctx, server.cfg.RepoDir, currentRevision, params.ServiceDir, currentExtras)
+		if err != nil || !slices.Equal(files, currentFiles) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("controller service files changed since this check was queued; deploy or update and check again"))
+		}
+	}
+	response := &agentv1.GetServiceManifestResponse{RepoRevision: record.RepoRevision, RelativeRoot: params.ServiceDir}
+	for _, file := range files {
+		response.Files = append(response.Files, &agentv1.ServiceManifestFile{Path: file.Path, Sha256: file.SHA256, Mode: file.Mode})
+	}
+	return connect.NewResponse(response), nil
+}
+
+func (server *bundleServer) GetServiceBundle(ctx context.Context, req *connect.Request[agentv1.GetServiceBundleRequest], stream *connect.ServerStream[agentv1.GetServiceBundleResponse]) error {
+	record, params, err := server.serviceTask(ctx, req.Msg.GetTaskId(), req.Msg.GetExecutionId())
 	if err != nil {
 		return err
 	}
-	extraFiles, err := bundleExtraFiles(server.cfg, detail.Record, params, params.ServiceDir == requestedServiceDir)
+	if record.Type == task.TypeImageCheck {
+		return connect.NewError(connect.CodeFailedPrecondition, errors.New("image checks cannot install service bundles; upgrade the agent to use service manifests"))
+	}
+	requestedServiceDir := params.ServiceDir
+	params.ServiceDir, err = authorizedBundleServiceDir(server.cfg, record, params, req.Msg.GetServiceDir())
+	if err != nil {
+		return err
+	}
+	extraFiles, err := bundleExtraFiles(server.cfg, record, params, params.ServiceDir == requestedServiceDir)
 	if err != nil {
 		if errors.Is(err, errSecretsNotConfigured) {
 			return connect.NewError(connect.CodeFailedPrecondition, err)
@@ -67,7 +126,7 @@ func (server *bundleServer) GetServiceBundle(ctx context.Context, req *connect.R
 
 	pipeReader, pipeWriter := io.Pipe()
 	go func() {
-		pipeWriter.CloseWithError(repo.StreamServiceBundleWithExtras(ctx, server.cfg.RepoDir, detail.Record.RepoRevision, params.ServiceDir, extraFiles, pipeWriter))
+		pipeWriter.CloseWithError(repo.StreamServiceBundleWithExtras(ctx, server.cfg.RepoDir, record.RepoRevision, params.ServiceDir, extraFiles, pipeWriter))
 	}()
 	defer func() { _ = pipeReader.Close() }()
 
@@ -78,8 +137,8 @@ func (server *bundleServer) GetServiceBundle(ctx context.Context, req *connect.R
 		if count > 0 {
 			response := &agentv1.GetServiceBundleResponse{Data: bytes.Clone(buffer[:count])}
 			if firstChunk {
-				response.ServiceName = detail.Record.ServiceName
-				response.RepoRevision = detail.Record.RepoRevision
+				response.ServiceName = record.ServiceName
+				response.RepoRevision = record.RepoRevision
 				response.RelativeRoot = params.ServiceDir
 				firstChunk = false
 			}

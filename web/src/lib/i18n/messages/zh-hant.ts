@@ -275,6 +275,17 @@ export const zhHant = {
     addMetaToDeclare: "新增 `composia-meta.yaml` 檔案來宣告此服務。",
     fixMetaUntilAccepted: "修改 `composia-meta.yaml` 直到控制器接受。",
     instances: {
+      consistency: {
+        title: "最近一次一致性檢查",
+        files: "檔案",
+        compose: "Compose",
+        checkedAt: "檢查時間",
+        unknown: "未檢查",
+        consistent: "一致",
+        drifted: "存在偏差",
+        error: "檢查失敗",
+        not_applicable: "不適用",
+      },
       title: "執行個體",
       loadFailed: "載入服務執行個體失敗。",
       pendingDeploy: "儲存庫已更新，等待部署",
