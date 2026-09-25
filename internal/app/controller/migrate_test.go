@@ -72,7 +72,11 @@ migrate:
 				t.Fatal(err)
 			}
 			db := openControllerTestDB(t)
-			defer db.Close()
+			t.Cleanup(func() {
+				if err := db.Close(); err != nil {
+					t.Errorf("close database: %v", err)
+				}
+			})
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 			if err := db.SyncConfiguredNodes(ctx, []string{"main", "edge"}); err != nil {
@@ -355,7 +359,11 @@ func newMigrateAdmissionFixture(t *testing.T) (*store.DB, *config.ControllerConf
 		t.Fatal(err)
 	}
 	db := openControllerTestDB(t)
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("close database: %v", err)
+		}
+	})
 	ctx := context.Background()
 	if err := db.SyncConfiguredNodes(ctx, []string{"main", "edge"}); err != nil {
 		t.Fatal(err)

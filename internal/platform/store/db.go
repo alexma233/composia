@@ -930,7 +930,12 @@ func (db *DB) DeleteOtherServiceImageUpdateChecks(ctx context.Context, serviceNa
 	args := []any{serviceName, nodeID}
 	if len(imageNames) > 0 {
 		placeholders := strings.TrimSuffix(strings.Repeat("?,", len(imageNames)), ",")
-		query += ` OR (service_name = ? AND node_id = ? AND image_name NOT IN (` + placeholders + `))`
+		var statement strings.Builder
+		statement.WriteString(query)
+		statement.WriteString(` OR (service_name = ? AND node_id = ? AND image_name NOT IN (`)
+		statement.WriteString(placeholders)
+		statement.WriteString(`))`)
+		query = statement.String()
 		args = append(args, serviceName, nodeID)
 		for _, imageName := range imageNames {
 			args = append(args, imageName)

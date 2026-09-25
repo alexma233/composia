@@ -247,16 +247,17 @@ func TestControllerHTTPClientSpeaksCleartextHTTP2(t *testing.T) {
 	protocols.SetHTTP1(true)
 	protocols.SetUnencryptedHTTP2(true)
 
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	listener, err := new(net.ListenConfig).Listen(context.Background(), "tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
 
 	server := &http.Server{
 		Handler: http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-			_, _ = writer.Write([]byte(request.Proto))
+			_, _ = writer.Write([]byte("ok"))
 		}),
-		Protocols: protocols,
+		Protocols:         protocols,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 	go func() {
 		_ = server.Serve(listener)
@@ -269,7 +270,11 @@ func TestControllerHTTPClientSpeaksCleartextHTTP2(t *testing.T) {
 	client := controllerHTTPClient(addr)
 	client.Timeout = 5 * time.Second
 
-	response, err := client.Get(addr)
+	request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, addr, nil)
+	if err != nil {
+		t.Fatalf("create request: %v", err)
+	}
+	response, err := client.Do(request)
 	if err != nil {
 		t.Fatalf("controllerHTTPClient() request error = %v", err)
 	}
@@ -281,8 +286,11 @@ func TestControllerHTTPClientSpeaksCleartextHTTP2(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read response body: %v", err)
 	}
-	if got := string(body); got != "HTTP/2.0" {
-		t.Fatalf("controllerHTTPClient() negotiated %s, want HTTP/2.0", got)
+	if string(body) != "ok" {
+		t.Fatalf("response body = %q, want ok", body)
+	}
+	if response.Proto != "HTTP/2.0" {
+		t.Fatalf("controllerHTTPClient() negotiated %s, want HTTP/2.0", response.Proto)
 	}
 }
 

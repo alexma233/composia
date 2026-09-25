@@ -112,7 +112,7 @@
 
 :root[data-accent="blue"],
 .dark[data-accent="blue"] {
-  --primary: hsl(221 83% 53%);
+  --primary: hsl(221 83% 48%);
   --primary-hover: hsl(221 83% 45%);
   --primary-foreground: oklch(0.985 0 0);
 }

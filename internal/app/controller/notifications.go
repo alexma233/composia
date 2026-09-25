@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	appnotify "forgejo.alexma.top/alexma233/composia/internal/app/notify"
@@ -114,21 +113,6 @@ func dispatchNodeNotification(notifier *appnotify.Notifier, eventType corenotify
 			LastHeartbeat: snapshot.LastHeartbeat,
 		},
 	})
-}
-
-func latestTaskRecordForServiceNodeType(ctx context.Context, db *store.DB, serviceName, nodeID string, taskType task.Type) (task.Record, error) {
-	tasks, _, err := db.ListTasks(ctx, nil, []string{serviceName}, []string{nodeID}, []string{string(taskType)}, nil, nil, nil, nil, 1, 1)
-	if err != nil {
-		return task.Record{}, err
-	}
-	if len(tasks) == 0 {
-		return task.Record{}, fmt.Errorf("no %s task found for %s@%s", taskType, serviceName, nodeID)
-	}
-	detail, err := db.GetTask(ctx, tasks[0].TaskID)
-	if err != nil {
-		return task.Record{}, err
-	}
-	return detail.Record, nil
 }
 
 func detectNewImageUpdateChecks(previous []store.ServiceImageUpdateCheck, current []store.ServiceImageUpdateCheck) []store.ServiceImageUpdateCheck {
