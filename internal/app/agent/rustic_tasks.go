@@ -15,18 +15,7 @@ import (
 )
 
 func executeRusticPruneTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
-	var bundle *bundleResult
-	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
-		var err error
-		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
-		if err != nil {
-			return err
-		}
-		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
-	}); err != nil {
-		return failTask(ctx, client, pulledTask.GetTaskId(), err)
-	}
-	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, bundle)
+	serviceRoot, err := prepareLocalServiceTask(ctx, client, cfg, pulledTask, logUploader)
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
@@ -51,18 +40,7 @@ func executeRusticPruneTask(ctx context.Context, bundleClient agentv1connect.Bun
 }
 
 func executeRusticInitTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
-	var bundle *bundleResult
-	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
-		var err error
-		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
-		if err != nil {
-			return err
-		}
-		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
-	}); err != nil {
-		return failTask(ctx, client, pulledTask.GetTaskId(), err)
-	}
-	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, bundle)
+	serviceRoot, err := prepareLocalServiceTask(ctx, client, cfg, pulledTask, logUploader)
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
@@ -91,18 +69,7 @@ func executeRusticForgetTask(ctx context.Context, bundleClient agentv1connect.Bu
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
-	var bundle *bundleResult
-	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
-		var err error
-		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
-		if err != nil {
-			return err
-		}
-		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
-	}); err != nil {
-		return failTask(ctx, client, pulledTask.GetTaskId(), err)
-	}
-	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, bundle)
+	serviceRoot, err := prepareLocalServiceTask(ctx, client, cfg, pulledTask, logUploader)
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}

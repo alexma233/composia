@@ -194,22 +194,11 @@ func isImageDiscoveryNode(meta repo.ServiceMeta, nodeID string) bool {
 }
 
 func executeStopTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
-	var bundle *bundleResult
-	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
-		var err error
-		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
-		if err != nil {
-			return err
-		}
-		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
-	}); err != nil {
-		return failServiceTask(ctx, client, cfg, pulledTask, err)
-	}
-	serviceMeta, err := loadServiceTaskMeta(bundle.RootPath)
+	serviceRoot, err := prepareLocalServiceTask(ctx, client, cfg, pulledTask, logUploader)
 	if err != nil {
-		return failServiceTask(ctx, client, cfg, pulledTask, err)
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
-	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, bundle)
+	serviceMeta, err := loadServiceTaskMeta(serviceRoot)
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
@@ -247,18 +236,7 @@ func executeStopTask(ctx context.Context, bundleClient agentv1connect.BundleServ
 }
 
 func executeRestartTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
-	var bundle *bundleResult
-	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
-		var err error
-		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
-		if err != nil {
-			return err
-		}
-		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
-	}); err != nil {
-		return failServiceTask(ctx, client, cfg, pulledTask, err)
-	}
-	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, bundle)
+	serviceRoot, err := prepareLocalServiceTask(ctx, client, cfg, pulledTask, logUploader)
 	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
@@ -298,6 +276,16 @@ func executeRestartTask(ctx context.Context, bundleClient agentv1connect.BundleS
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
+}
+
+func prepareLocalServiceTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) (string, error) {
+	var root string
+	err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
+		var err error
+		root, err = localServiceRoot(cfg.RepoDir, pulledTask, nil)
+		return err
+	})
+	return root, err
 }
 
 func loadServiceTaskMeta(serviceDir string) (repo.ServiceMeta, error) {

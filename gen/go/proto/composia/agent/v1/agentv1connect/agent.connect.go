@@ -96,6 +96,9 @@ const (
 	// BundleServiceGetServiceManifestProcedure is the fully-qualified name of the BundleService's
 	// GetServiceManifest RPC.
 	BundleServiceGetServiceManifestProcedure = "/composia.agent.v1.BundleService/GetServiceManifest"
+	// BundleServiceGetServiceTaskRuntimeProcedure is the fully-qualified name of the BundleService's
+	// GetServiceTaskRuntime RPC.
+	BundleServiceGetServiceTaskRuntimeProcedure = "/composia.agent.v1.BundleService/GetServiceTaskRuntime"
 	// DockerServiceListContainersProcedure is the fully-qualified name of the DockerService's
 	// ListContainers RPC.
 	DockerServiceListContainersProcedure = "/composia.agent.v1.DockerService/ListContainers"
@@ -710,10 +713,12 @@ func (UnimplementedAgentTaskServiceHandler) PullNextDockerQuery(context.Context,
 
 // BundleServiceClient is a client for the composia.agent.v1.BundleService service.
 type BundleServiceClient interface {
-	// GetServiceBundle streams the task bundle as binary chunks.
+	// GetServiceBundle streams binary bundle chunks for Deploy and Update only.
 	GetServiceBundle(context.Context, *connect.Request[v1.GetServiceBundleRequest]) (*connect.ServerStreamForClient[v1.GetServiceBundleResponse], error)
 	// GetServiceManifest describes persistent service files without downloading or installing them.
 	GetServiceManifest(context.Context, *connect.Request[v1.GetServiceManifestRequest]) (*connect.Response[v1.GetServiceManifestResponse], error)
+	// GetServiceTaskRuntime returns ephemeral backup or restore parameters without installing files.
+	GetServiceTaskRuntime(context.Context, *connect.Request[v1.GetServiceTaskRuntimeRequest]) (*connect.Response[v1.GetServiceTaskRuntimeResponse], error)
 }
 
 // NewBundleServiceClient constructs a client for the composia.agent.v1.BundleService service. By
@@ -739,13 +744,20 @@ func NewBundleServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(bundleServiceMethods.ByName("GetServiceManifest")),
 			connect.WithClientOptions(opts...),
 		),
+		getServiceTaskRuntime: connect.NewClient[v1.GetServiceTaskRuntimeRequest, v1.GetServiceTaskRuntimeResponse](
+			httpClient,
+			baseURL+BundleServiceGetServiceTaskRuntimeProcedure,
+			connect.WithSchema(bundleServiceMethods.ByName("GetServiceTaskRuntime")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // bundleServiceClient implements BundleServiceClient.
 type bundleServiceClient struct {
-	getServiceBundle   *connect.Client[v1.GetServiceBundleRequest, v1.GetServiceBundleResponse]
-	getServiceManifest *connect.Client[v1.GetServiceManifestRequest, v1.GetServiceManifestResponse]
+	getServiceBundle      *connect.Client[v1.GetServiceBundleRequest, v1.GetServiceBundleResponse]
+	getServiceManifest    *connect.Client[v1.GetServiceManifestRequest, v1.GetServiceManifestResponse]
+	getServiceTaskRuntime *connect.Client[v1.GetServiceTaskRuntimeRequest, v1.GetServiceTaskRuntimeResponse]
 }
 
 // GetServiceBundle calls composia.agent.v1.BundleService.GetServiceBundle.
@@ -758,12 +770,19 @@ func (c *bundleServiceClient) GetServiceManifest(ctx context.Context, req *conne
 	return c.getServiceManifest.CallUnary(ctx, req)
 }
 
+// GetServiceTaskRuntime calls composia.agent.v1.BundleService.GetServiceTaskRuntime.
+func (c *bundleServiceClient) GetServiceTaskRuntime(ctx context.Context, req *connect.Request[v1.GetServiceTaskRuntimeRequest]) (*connect.Response[v1.GetServiceTaskRuntimeResponse], error) {
+	return c.getServiceTaskRuntime.CallUnary(ctx, req)
+}
+
 // BundleServiceHandler is an implementation of the composia.agent.v1.BundleService service.
 type BundleServiceHandler interface {
-	// GetServiceBundle streams the task bundle as binary chunks.
+	// GetServiceBundle streams binary bundle chunks for Deploy and Update only.
 	GetServiceBundle(context.Context, *connect.Request[v1.GetServiceBundleRequest], *connect.ServerStream[v1.GetServiceBundleResponse]) error
 	// GetServiceManifest describes persistent service files without downloading or installing them.
 	GetServiceManifest(context.Context, *connect.Request[v1.GetServiceManifestRequest]) (*connect.Response[v1.GetServiceManifestResponse], error)
+	// GetServiceTaskRuntime returns ephemeral backup or restore parameters without installing files.
+	GetServiceTaskRuntime(context.Context, *connect.Request[v1.GetServiceTaskRuntimeRequest]) (*connect.Response[v1.GetServiceTaskRuntimeResponse], error)
 }
 
 // NewBundleServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -785,12 +804,20 @@ func NewBundleServiceHandler(svc BundleServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(bundleServiceMethods.ByName("GetServiceManifest")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bundleServiceGetServiceTaskRuntimeHandler := connect.NewUnaryHandler(
+		BundleServiceGetServiceTaskRuntimeProcedure,
+		svc.GetServiceTaskRuntime,
+		connect.WithSchema(bundleServiceMethods.ByName("GetServiceTaskRuntime")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/composia.agent.v1.BundleService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BundleServiceGetServiceBundleProcedure:
 			bundleServiceGetServiceBundleHandler.ServeHTTP(w, r)
 		case BundleServiceGetServiceManifestProcedure:
 			bundleServiceGetServiceManifestHandler.ServeHTTP(w, r)
+		case BundleServiceGetServiceTaskRuntimeProcedure:
+			bundleServiceGetServiceTaskRuntimeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -806,6 +833,10 @@ func (UnimplementedBundleServiceHandler) GetServiceBundle(context.Context, *conn
 
 func (UnimplementedBundleServiceHandler) GetServiceManifest(context.Context, *connect.Request[v1.GetServiceManifestRequest]) (*connect.Response[v1.GetServiceManifestResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.BundleService.GetServiceManifest is not implemented"))
+}
+
+func (UnimplementedBundleServiceHandler) GetServiceTaskRuntime(context.Context, *connect.Request[v1.GetServiceTaskRuntimeRequest]) (*connect.Response[v1.GetServiceTaskRuntimeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("composia.agent.v1.BundleService.GetServiceTaskRuntime is not implemented"))
 }
 
 // DockerServiceClient is a client for the composia.agent.v1.DockerService service.

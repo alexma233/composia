@@ -34,7 +34,7 @@ func TestLoadRestoreRuntimeConfig(t *testing.T) {
   "items": [{"name": "config", "strategy": "files.copy", "artifact_ref": "snap:config"}]
 }`)
 
-	cfg, err := loadRestoreRuntimeConfig(serviceRoot)
+	cfg, err := parseRestoreRuntimeConfig(readAgentTestFile(t, filepath.Join(serviceRoot, ".composia-restore.json")))
 	if err != nil {
 		t.Fatalf("loadRestoreRuntimeConfig returned error: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestLoadRestoreRuntimeConfigRejectsMissingItems(t *testing.T) {
 	serviceRoot := t.TempDir()
 	writeAgentTestFile(t, filepath.Join(serviceRoot, ".composia-restore.json"), `{"rustic":{"service_dir":"infra/rustic"},"items":[]}`)
 
-	_, err := loadRestoreRuntimeConfig(serviceRoot)
+	_, err := parseRestoreRuntimeConfig(readAgentTestFile(t, filepath.Join(serviceRoot, ".composia-restore.json")))
 	if err == nil || !strings.Contains(err.Error(), "did not include any items") {
 		t.Fatalf("expected missing items error, got %v", err)
 	}
@@ -351,6 +351,8 @@ func TestExecuteRestoreTaskRestoresFilesCopyItem(t *testing.T) {
 	defer func() { _ = logUploader.Close() }()
 	pulledTask := &agentv1.AgentTask{TaskId: "task-restore", Type: protoAgentTaskType(task.TypeRestore), ServiceName: "app", NodeId: agentTestMainNodeID, RepoRevision: "deadbeef", ServiceDir: "app"}
 
+	seedLocalBundle(t, cfg.RepoDir, serviceBundle)
+	seedLocalBundle(t, cfg.RepoDir, rusticBundle)
 	if err := executeRestoreTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("executeRestoreTask returned error: %v", err)
 	}

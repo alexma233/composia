@@ -52,8 +52,8 @@ composia service my-app migrate --source main --target edge-1 --wait --follow --
 
 ## Migration steps
 
-1. **Export data** — run a backup task on the source node for each configured data item.
-2. **Stop source instance** — run `docker compose down`, remove Caddy configuration.
+1. **Stop source instance** — run `docker compose down`, remove Caddy configuration.
+2. **Export data** — run a backup task on the source node for each configured data item.
 3. **Reload Caddy on source** — remove the proxy entry from the source Caddy instance.
 4. **Restore data on target** — run a restore task on the target node for each data item.
 5. **Deploy on target** — run `docker compose up -d`, sync Caddy configuration.
@@ -64,6 +64,8 @@ composia service my-app migrate --source main --target edge-1 --wait --follow --
 ## Considerations
 
 - The service must be deployed on the source node and the target node must be online.
+- Before starting migration, provision matching business-service and Rustic configuration on the target agent, and ensure the source files also match the controller. Backup and Restore verify local files without installing bundles. A missing or divergent target configuration will fail the Restore step after the source has already stopped; do not rely on migration to bootstrap those files.
+- Configuration checks do not require target containers. Prepare file-based restore targets before migration; they must already exist. Keep persistent data outside directories replaced by Deploy/Update, which retain their existing bundle-installation behavior.
 - Migration causes brief downtime. Perform during off-peak hours.
 - Source instance is stopped before data transfer to ensure consistency.
 - For databases, use export strategies (`database.pgdumpall` / `database.pgimport`).

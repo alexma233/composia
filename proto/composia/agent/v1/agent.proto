@@ -48,12 +48,14 @@ service AgentTaskService {
   rpc PullNextDockerQuery(PullNextDockerQueryRequest) returns (PullNextDockerQueryResponse);
 }
 
-// BundleService streams service bundles needed to execute a task.
+// BundleService provides deployment bundles and task-authorized configuration reads.
 service BundleService {
-  // GetServiceBundle streams the task bundle as binary chunks.
+  // GetServiceBundle streams binary bundle chunks for Deploy and Update only.
   rpc GetServiceBundle(GetServiceBundleRequest) returns (stream GetServiceBundleResponse);
   // GetServiceManifest describes persistent service files without downloading or installing them.
   rpc GetServiceManifest(GetServiceManifestRequest) returns (GetServiceManifestResponse);
+  // GetServiceTaskRuntime returns ephemeral backup or restore parameters without installing files.
+  rpc GetServiceTaskRuntime(GetServiceTaskRuntimeRequest) returns (GetServiceTaskRuntimeResponse);
 }
 
 // DockerService exposes Docker operations that run on the agent node.
@@ -532,6 +534,8 @@ message GetServiceBundleResponse {
 message GetServiceManifestRequest {
   string task_id = 1;
   string execution_id = 2;
+  // service_dir selects a related service authorized by the task; empty selects its primary service.
+  string service_dir = 3;
 }
 
 // ServiceManifestFile describes one controller-managed runtime file.
@@ -549,6 +553,18 @@ message GetServiceManifestResponse {
   string repo_revision = 1;
   string relative_root = 2;
   repeated ServiceManifestFile files = 3;
+}
+
+message GetServiceTaskRuntimeRequest {
+  string task_id = 1;
+  string execution_id = 2;
+}
+
+message GetServiceTaskRuntimeResponse {
+  string repo_revision = 1;
+  string service_dir = 2;
+  // config_json contains the existing backup or restore runtime contract, for in-memory use only.
+  string config_json = 3;
 }
 
 // DockerStats describes a node-level Docker usage snapshot.
@@ -956,6 +972,8 @@ message ReportServiceConsistencyCheckRequest {
   string execution_id = 2;
   ServiceConsistencyOutcome files = 3;
   ServiceConsistencyOutcome compose = 4;
+  // service_dir selects a task-authorized related service; empty selects its primary service.
+  string service_dir = 5;
 }
 
 message ReportServiceConsistencyCheckResponse {}

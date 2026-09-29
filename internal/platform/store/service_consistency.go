@@ -50,8 +50,9 @@ func decodeServiceConsistency(raw sql.NullString, snapshot *ServiceInstanceSnaps
 }
 
 // RecordServiceConsistencyCheck derives provenance and fences the write against execution changes.
+// Related-service authority is resolved by the controller before entering the store.
 // Runtime status and its timestamp deliberately remain untouched.
-func (db *DB) RecordServiceConsistencyCheck(ctx context.Context, taskID, executionID, nodeID string, files, compose ServiceConsistencyOutcome) error {
+func (db *DB) RecordServiceConsistencyCheck(ctx context.Context, taskID, executionID, nodeID, serviceName string, files, compose ServiceConsistencyOutcome) error {
 	if !IsValidConsistencyStatus(files.Status) || !IsValidConsistencyStatus(compose.Status) {
 		return errors.New("invalid consistency status")
 	}
@@ -62,7 +63,10 @@ func (db *DB) RecordServiceConsistencyCheck(ctx context.Context, taskID, executi
 	if err != nil {
 		return err
 	}
-	if record.ServiceName == "" || record.RepoRevision == "" {
+	if serviceName == "" {
+		serviceName = record.ServiceName
+	}
+	if serviceName == "" || record.RepoRevision == "" {
 		return errors.New("consistency requires a service-scoped task with a repo revision")
 	}
 	snapshot := ServiceConsistencyCheck{Files: files, Compose: compose, CheckedAt: time.Now().UTC().Format(time.RFC3339Nano), RepoRevision: record.RepoRevision, TaskID: record.TaskID}
@@ -72,8 +76,8 @@ func (db *DB) RecordServiceConsistencyCheck(ctx context.Context, taskID, executi
 	}
 	result, err := db.sql.ExecContext(ctx, `UPDATE service_instances SET consistency_json = ?
  WHERE service_name = ? AND node_id = ? AND EXISTS (
- SELECT 1 FROM tasks WHERE task_id = ? AND execution_id = ? AND node_id = ? AND service_name = ? AND repo_revision = ?
- AND status = 'running' AND execution_state IN ('accepted', 'lease_lost'))`, string(encoded), record.ServiceName, nodeID, taskID, executionID, nodeID, record.ServiceName, record.RepoRevision)
+ SELECT 1 FROM tasks WHERE task_id = ? AND execution_id = ? AND node_id = ? AND COALESCE(service_name, '') = ? AND repo_revision = ?
+ AND status = 'running' AND execution_state IN ('accepted', 'lease_lost'))`, string(encoded), serviceName, nodeID, taskID, executionID, nodeID, record.ServiceName, record.RepoRevision)
 	if err != nil {
 		return fmt.Errorf("record service consistency: %w", err)
 	}

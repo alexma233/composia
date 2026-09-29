@@ -179,7 +179,7 @@ Compose 5.5.1 or newer is required for the corrected `env_file` hash behavior. A
 
 ### Most recent consistency check
 
-Consistency is an independent configuration snapshot per service and node, not a value inferred from the image-check task status. Initially, only `image_check` passively runs and reports it, before running-image observation and remote registry discovery. There is no separate consistency action, timer, automatic expiry, or history ledger.
+Consistency is an independent configuration snapshot per service and node, not a value inferred from task status. Image checks report both file and Compose outcomes before running-image observation and remote registry discovery. Backup, Restore, and Caddy sync also passively report file-only checks; their Compose outcome is `unknown` because no container configuration check is performed. There is no separate consistency action, timer, automatic expiry, or history ledger.
 
 Web instances and `composia service <service>` (including JSON output, without requiring `--containers`) show separate **Files** and **Compose** outcomes:
 
@@ -192,6 +192,19 @@ Web instances and `composia service <service>` (including JSON output, without r
 | `not_applicable` | Compose does not apply to an `infra.config` service. |
 
 The most recent snapshot includes its server-recorded check time, target repository revision, source task, and stage-specific reasons. It remains historical evidence until the next check replaces it, even if runtime state or repository configuration changes afterward. Running state and image digest availability are separate observations: a stopped container can have consistent configuration while image observation fails. A later registry or image-observation error does not overwrite the recorded configuration outcomes.
+
+### Local configuration for non-deployment tasks
+
+Only Deploy and Update install service bundles. All other tasks leave the installed service directory in place:
+
+- **Backup and Restore** require all controller-managed persistent files in both the business service and its Rustic provider to match the task revision. They use those local directories and fetch task-specific runtime parameters through an authenticated RPC, keeping those parameters in memory rather than writing `.composia-backup.json` or `.composia-restore.json`. Restore still writes the explicitly selected restore data targets.
+- **Caddy sync** verifies all managed files for every selected service before changing generated Caddy files. A failed preflight leaves the previous generated configuration intact, including during a full rebuild. Keep the generated directory outside service directories.
+- **Stop and Restart** use the installed local configuration without requiring it to match the controller. Restart retains its existing Compose down/up lifecycle; it does not install newer repository configuration.
+- **Rustic init, forget, and prune** use the installed local Rustic configuration without installing or updating it.
+
+Missing or divergent files cause Backup, Restore, and Caddy sync to fail before their data or generated-file operations; they do not repair or replace files implicitly. Containers need not exist for these file-only checks, so backup after Compose down remains supported. A restore target must have matching service and Rustic configuration provisioned beforehand, even when it has never run containers. This also applies to migration targets: migration no longer bootstraps missing configuration through its Restore step. Review the difference and explicitly prepare the configuration before retrying; do not deploy an empty application over data that still needs recovery.
+
+Controller and agents must be upgraded together. Older agents cannot use bundle installation for non-deployment tasks against the new controller. No additional database migration beyond consistency schema 13 is required for this change.
 
 ### `update`
 

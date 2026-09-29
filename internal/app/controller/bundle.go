@@ -35,24 +35,14 @@ func (server *bundleServer) serviceTask(ctx context.Context, taskID, executionID
 		return task.Record{}, params, err
 	}
 	nodeID, _ := rpcutil.BearerSubject(ctx)
-	if _, err := server.db.ValidateTaskExecution(ctx, taskID, executionID, nodeID); err != nil {
+	record, err := server.db.ValidateTaskExecution(ctx, taskID, executionID, nodeID)
+	if err != nil {
 		return task.Record{}, params, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
-
-	detail, err := server.db.GetTask(ctx, taskID)
-	if err != nil {
-		if errors.Is(err, store.ErrTaskNotFound) {
-			return task.Record{}, params, connect.NewError(connect.CodeNotFound, err)
-		}
-		return task.Record{}, params, connect.NewError(connect.CodeInternal, err)
-	}
-	if detail.Record.Status != task.StatusRunning {
-		return task.Record{}, params, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("task %q is not running", detail.Record.TaskID))
-	}
-	if err := json.Unmarshal([]byte(detail.Record.ParamsJSON), &params); err != nil {
+	if err := json.Unmarshal([]byte(record.ParamsJSON), &params); err != nil {
 		return task.Record{}, params, connect.NewError(connect.CodeInternal, fmt.Errorf("decode service task params: %w", err))
 	}
-	return detail.Record, params, nil
+	return record, params, nil
 }
 
 func (server *bundleServer) GetServiceManifest(ctx context.Context, req *connect.Request[agentv1.GetServiceManifestRequest]) (*connect.Response[agentv1.GetServiceManifestResponse], error) {
@@ -60,10 +50,11 @@ func (server *bundleServer) GetServiceManifest(ctx context.Context, req *connect
 	if err != nil {
 		return nil, err
 	}
-	if record.ServiceName == "" || record.RepoRevision == "" {
+	if record.RepoRevision == "" {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("service manifests require a service-scoped task with a repo revision"))
 	}
-	params.ServiceDir, err = authorizedBundleServiceDir(server.cfg, record, params, "")
+	primaryDir, _ := cleanBundleServiceDir(params.ServiceDir)
+	params.ServiceDir, err = authorizedBundleServiceDir(server.cfg, record, params, req.Msg.GetServiceDir())
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +62,7 @@ func (server *bundleServer) GetServiceManifest(ctx context.Context, req *connect
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
-	if service.Name != record.ServiceName {
+	if params.ServiceDir == primaryDir && service.Name != record.ServiceName {
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("service directory does not match task service"))
 	}
 	extras, err := persistentServiceExtraFiles(server.cfg, record.RepoRevision, params.ServiceDir)
@@ -108,15 +99,14 @@ func (server *bundleServer) GetServiceBundle(ctx context.Context, req *connect.R
 	if err != nil {
 		return err
 	}
-	if record.Type == task.TypeImageCheck {
-		return connect.NewError(connect.CodeFailedPrecondition, errors.New("image checks cannot install service bundles; upgrade the agent to use service manifests"))
+	if record.Type != task.TypeDeploy && record.Type != task.TypeUpdate {
+		return connect.NewError(connect.CodeFailedPrecondition, errors.New("only deploy and update tasks can install service bundles; upgrade the agent to use local service files"))
 	}
-	requestedServiceDir := params.ServiceDir
 	params.ServiceDir, err = authorizedBundleServiceDir(server.cfg, record, params, req.Msg.GetServiceDir())
 	if err != nil {
 		return err
 	}
-	extraFiles, err := bundleExtraFiles(server.cfg, record, params, params.ServiceDir == requestedServiceDir)
+	extraFiles, err := persistentServiceExtraFiles(server.cfg, record.RepoRevision, params.ServiceDir)
 	if err != nil {
 		if errors.Is(err, errSecretsNotConfigured) {
 			return connect.NewError(connect.CodeFailedPrecondition, err)
@@ -183,6 +173,9 @@ func authorizedBundleServiceDir(cfg *config.ControllerConfig, record task.Record
 		rustic, findErr := repo.FindRusticInfraServiceAtRevision(cfg.RepoDir, record.RepoRevision, configuredNodeIDs(cfg))
 		if findErr != nil {
 			return "", connect.NewError(connect.CodeInternal, findErr)
+		}
+		if err := validateRusticServiceTargetNode(rustic, record.NodeID); err != nil {
+			return "", connect.NewError(connect.CodePermissionDenied, err)
 		}
 		rusticDir, relErr := filepath.Rel(cfg.RepoDir, rustic.Directory)
 		if relErr != nil {

@@ -39,7 +39,7 @@ func TestServiceConsistencyPersistsWithoutChangingRuntime(t *testing.T) {
 	}
 	outcome := ServiceConsistencyOutcome{Status: ConsistencyConsistent}
 	report := func(execution, node string) error {
-		return db.RecordServiceConsistencyCheck(ctx, "check", execution, node, outcome, outcome)
+		return db.RecordServiceConsistencyCheck(ctx, "check", execution, node, "", outcome, outcome)
 	}
 	if err := report(offered.ExecutionID, "main"); !errors.Is(err, ErrTaskExecutionMismatch) {
 		t.Fatalf("unacknowledged report accepted: %v", err)

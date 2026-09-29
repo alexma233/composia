@@ -14,7 +14,6 @@ import (
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
 	"forgejo.alexma.top/alexma233/composia/internal/core/task"
-	"google.golang.org/protobuf/proto"
 )
 
 func executeCaddyReloadTask(ctx context.Context, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
@@ -45,7 +44,7 @@ func executeCaddyReloadTask(ctx context.Context, client agentv1connect.AgentRepo
 func executeCaddySyncTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
 	params, err := decodeTaskParams(pulledTask.GetParamsJson())
 	if err != nil {
-		return failServiceTask(ctx, client, cfg, pulledTask, err)
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting caddy sync task for service=%s node=%s repo_revision=%s full_rebuild=%t\n", pulledTask.GetServiceName(), pulledTask.GetNodeId(), pulledTask.GetRepoRevision(), params.FullRebuild)); err != nil {
 		return err
@@ -53,12 +52,12 @@ func executeCaddySyncTask(ctx context.Context, bundleClient agentv1connect.Bundl
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
 		return uploadTaskLog(ctx, logUploader, "render step completed for caddy sync task\n")
 	}); err != nil {
-		return failServiceTask(ctx, client, cfg, pulledTask, err)
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepCaddySync, func() error {
 		return syncCaddyFilesForTask(ctx, bundleClient, client, cfg, pulledTask, params, logUploader)
 	}); err != nil {
-		return failServiceTask(ctx, client, cfg, pulledTask, err)
+		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := uploadTaskLog(ctx, logUploader, "caddy sync task finished successfully\n"); err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
@@ -119,6 +118,15 @@ func syncCaddyFilesForTask(ctx context.Context, bundleClient agentv1connect.Bund
 	if len(serviceDirs) == 0 && pulledTask.GetServiceDir() != "" {
 		serviceDirs = []string{pulledTask.GetServiceDir()}
 	}
+	// Validate every source before a full rebuild removes any generated configuration.
+	roots := make([]string, 0, len(serviceDirs))
+	for _, dir := range serviceDirs {
+		root, err := checkTaskServiceFiles(ctx, bundleClient, client, cfg.RepoDir, pulledTask, dir)
+		if err != nil {
+			return err
+		}
+		roots = append(roots, root)
+	}
 	if params.FullRebuild {
 		entries, err := os.ReadDir(cfg.CaddyGeneratedDir())
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -136,22 +144,8 @@ func syncCaddyFilesForTask(ctx context.Context, bundleClient agentv1connect.Bund
 			}
 		}
 	}
-	for _, serviceDir := range serviceDirs {
-		bundleTask, ok := proto.Clone(pulledTask).(*agentv1.AgentTask)
-		if !ok {
-			return errors.New("clone caddy sync task")
-		}
-		bundleTask.ServiceDir = serviceDir
-		bundleTask.ServiceName = filepath.Base(serviceDir)
-		bundle, err := downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), serviceDir)
-		if err != nil {
-			return err
-		}
-		serviceRoot, err := localServiceRoot(cfg.RepoDir, bundleTask, bundle)
-		if err != nil {
-			return err
-		}
-		if err := syncServiceCaddyFile(ctx, cfg, bundleTask.GetServiceDir(), serviceRoot, func(output string) error {
+	for index, serviceDir := range serviceDirs {
+		if err := syncServiceCaddyFile(ctx, cfg, serviceDir, roots[index], func(output string) error {
 			return uploadTaskLog(ctx, logUploader, output)
 		}); err != nil {
 			return err

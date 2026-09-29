@@ -10,46 +10,8 @@ import (
 	backupcfg "forgejo.alexma.top/alexma233/composia/internal/core/backup"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
 	"forgejo.alexma.top/alexma233/composia/internal/core/repo"
-	"forgejo.alexma.top/alexma233/composia/internal/core/task"
 	secretutil "forgejo.alexma.top/alexma233/composia/internal/platform/secret"
 )
-
-func bundleExtraFiles(cfg *config.ControllerConfig, record task.Record, params serviceTaskParams, includeTaskRuntime bool) (map[string]string, error) {
-	extraFiles := map[string]string{}
-	if params.ServiceDir == "" {
-		return extraFiles, nil
-	}
-	encFiles, err := bundleEncryptedFiles(cfg, record, params.ServiceDir)
-	if err != nil {
-		return nil, err
-	}
-	extraFiles, err = renderServiceSecrets(cfg, record.RepoRevision, params.ServiceDir, encFiles)
-	if err != nil {
-		return nil, err
-	}
-	if includeTaskRuntime && record.Type == task.TypeBackup {
-		payload, err := buildBackupRuntimePayload(cfg, record.ServiceName, record.NodeID, record.RepoRevision, params)
-		if err != nil {
-			return nil, err
-		}
-		if payload != "" {
-			extraFiles[filepath.ToSlash(filepath.Join(params.ServiceDir, ".composia-backup.json"))] = payload
-		}
-	}
-	if includeTaskRuntime && record.Type == task.TypeRestore {
-		payload, err := buildRestoreRuntimePayload(cfg, record.ServiceName, record.NodeID, record.RepoRevision, params)
-		if err != nil {
-			return nil, err
-		}
-		if payload != "" {
-			extraFiles[filepath.ToSlash(filepath.Join(params.ServiceDir, ".composia-restore.json"))] = payload
-		}
-	}
-	if len(extraFiles) == 0 {
-		return map[string]string{}, nil
-	}
-	return extraFiles, nil
-}
 
 // persistentServiceExtraFiles renders deployment secrets without task-specific filtering or temporary payloads.
 func persistentServiceExtraFiles(cfg *config.ControllerConfig, revision, serviceDir string) (map[string]string, error) {
@@ -77,41 +39,6 @@ func renderServiceSecrets(cfg *config.ControllerConfig, revision, serviceDir str
 		}
 	}
 	return extraFiles, nil
-}
-
-func bundleEncryptedFiles(cfg *config.ControllerConfig, record task.Record, serviceDir string) ([]string, error) {
-	if record.Type != task.TypeCaddySync {
-		return listEncryptedFiles(cfg.RepoDir, record.RepoRevision, serviceDir)
-	}
-	encFiles, err := listEncryptedFiles(cfg.RepoDir, record.RepoRevision, serviceDir)
-	if err != nil {
-		return nil, err
-	}
-	service, err := repo.FindServiceAtRevision(cfg.RepoDir, record.RepoRevision, serviceDir, configuredNodeIDs(cfg))
-	if err != nil {
-		return nil, err
-	}
-	caddySource := strings.TrimSpace(repo.CaddySource(service))
-	normalizedSource, err := repo.NormalizePath(caddySource)
-	if err != nil {
-		if repo.IsEncryptedFilePath(caddySource) {
-			return nil, errInvalidEncryptedPath
-		}
-		return nil, nil
-	}
-	if !repo.IsEncryptedFilePath(normalizedSource) {
-		return nil, nil
-	}
-	if normalizedSource == "" || repo.HasEncryptedParent(normalizedSource) || !repo.IsValidEncryptedFilePath(normalizedSource) {
-		return nil, errInvalidEncryptedPath
-	}
-	caddySource = filepath.ToSlash(normalizedSource)
-	for _, encFile := range encFiles {
-		if encFile == caddySource {
-			return []string{encFile}, nil
-		}
-	}
-	return nil, nil
 }
 
 func listEncryptedFiles(repoDir, revision, serviceDir string) ([]string, error) {

@@ -204,14 +204,14 @@ migrate:
 						t.Fatalf("child revision %s != pinned %s", child.RepoRevision, detail.Record.RepoRevision)
 					}
 					params := mustTaskParams(t, child.ParamsJSON)
-					extra, err := bundleExtraFiles(cfg, child, params, true)
-					if err != nil {
-						t.Fatal(err)
-					}
 					switch child.Type {
 					case task.TypeBackup:
+						content, err := buildBackupRuntimePayload(cfg, child.ServiceName, child.NodeID, child.RepoRevision, params)
+						if err != nil {
+							t.Fatal(err)
+						}
 						var payload backupcfg.RuntimeConfig
-						if err := json.Unmarshal([]byte(extra["app/.composia-backup.json"]), &payload); err != nil {
+						if err := json.Unmarshal([]byte(content), &payload); err != nil {
 							t.Fatal(err)
 						}
 						if !slices.Equal(params.DataNames, []string{"physical"}) || len(payload.Items) != 1 || payload.Items[0].Name != "physical" || payload.Items[0].Strategy != "files.copy_after_stop" || payload.Items[0].Provider != backupProviderRustic || !slices.Equal(payload.Items[0].Include, []string{"./pgdata"}) {
@@ -221,8 +221,12 @@ migrate:
 							t.Fatal(err)
 						}
 					case task.TypeRestore:
+						content, err := buildRestoreRuntimePayload(cfg, child.ServiceName, child.NodeID, child.RepoRevision, params)
+						if err != nil {
+							t.Fatal(err)
+						}
 						var payload backupcfg.RestoreConfig
-						if err := json.Unmarshal([]byte(extra["app/.composia-restore.json"]), &payload); err != nil {
+						if err := json.Unmarshal([]byte(content), &payload); err != nil {
 							t.Fatal(err)
 						}
 						if len(payload.Items) != 1 || payload.Items[0].Name != "physical" || payload.Items[0].Strategy != "files.copy" || payload.Items[0].ArtifactRef != "snapshot-physical" {

@@ -24,6 +24,8 @@ weight: 10
     - [GetServiceBundleResponse](#composia-agent-v1-GetServiceBundleResponse)
     - [GetServiceManifestRequest](#composia-agent-v1-GetServiceManifestRequest)
     - [GetServiceManifestResponse](#composia-agent-v1-GetServiceManifestResponse)
+    - [GetServiceTaskRuntimeRequest](#composia-agent-v1-GetServiceTaskRuntimeRequest)
+    - [GetServiceTaskRuntimeResponse](#composia-agent-v1-GetServiceTaskRuntimeResponse)
     - [HeartbeatRequest](#composia-agent-v1-HeartbeatRequest)
     - [HeartbeatResponse](#composia-agent-v1-HeartbeatResponse)
     - [ImageInfo](#composia-agent-v1-ImageInfo)
@@ -380,6 +382,7 @@ GetServiceManifestRequest identifies an active service-scoped execution.
 | ----- | ---- | ----- | ----------- |
 | task_id | [string](#string) |  |  |
 | execution_id | [string](#string) |  |  |
+| service_dir | [string](#string) |  | service_dir selects a related service authorized by the task; empty selects its primary service. |
 
 
 
@@ -397,6 +400,39 @@ GetServiceManifestResponse is bound to the requesting task&#39;s immutable repo 
 | repo_revision | [string](#string) |  |  |
 | relative_root | [string](#string) |  |  |
 | files | [ServiceManifestFile](#composia-agent-v1-ServiceManifestFile) | repeated |  |
+
+
+
+
+
+
+<a name="composia-agent-v1-GetServiceTaskRuntimeRequest"></a>
+
+### GetServiceTaskRuntimeRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| task_id | [string](#string) |  |  |
+| execution_id | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="composia-agent-v1-GetServiceTaskRuntimeResponse"></a>
+
+### GetServiceTaskRuntimeResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| repo_revision | [string](#string) |  |  |
+| service_dir | [string](#string) |  |  |
+| config_json | [string](#string) |  | config_json contains the existing backup or restore runtime contract, for in-memory use only. |
 
 
 
@@ -1170,6 +1206,7 @@ ReportServiceConsistencyCheckRequest carries outcomes; provenance is server-deri
 | execution_id | [string](#string) |  |  |
 | files | [ServiceConsistencyOutcome](#composia-agent-v1-ServiceConsistencyOutcome) |  |  |
 | compose | [ServiceConsistencyOutcome](#composia-agent-v1-ServiceConsistencyOutcome) |  |  |
+| service_dir | [string](#string) |  | service_dir selects a task-authorized related service; empty selects its primary service. |
 
 
 
@@ -1694,12 +1731,13 @@ AgentTaskService lets an agent pull work assigned to its node.
 <a name="composia-agent-v1-BundleService"></a>
 
 ### BundleService
-BundleService streams service bundles needed to execute a task.
+BundleService provides deployment bundles and task-authorized configuration reads.
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| GetServiceBundle | [GetServiceBundleRequest](#composia-agent-v1-GetServiceBundleRequest) | [GetServiceBundleResponse](#composia-agent-v1-GetServiceBundleResponse) stream | GetServiceBundle streams the task bundle as binary chunks. |
+| GetServiceBundle | [GetServiceBundleRequest](#composia-agent-v1-GetServiceBundleRequest) | [GetServiceBundleResponse](#composia-agent-v1-GetServiceBundleResponse) stream | GetServiceBundle streams binary bundle chunks for Deploy and Update only. |
 | GetServiceManifest | [GetServiceManifestRequest](#composia-agent-v1-GetServiceManifestRequest) | [GetServiceManifestResponse](#composia-agent-v1-GetServiceManifestResponse) | GetServiceManifest describes persistent service files without downloading or installing them. |
+| GetServiceTaskRuntime | [GetServiceTaskRuntimeRequest](#composia-agent-v1-GetServiceTaskRuntimeRequest) | [GetServiceTaskRuntimeResponse](#composia-agent-v1-GetServiceTaskRuntimeResponse) | GetServiceTaskRuntime returns ephemeral backup or restore parameters without installing files. |
 
 
 <a name="composia-agent-v1-DockerService"></a>

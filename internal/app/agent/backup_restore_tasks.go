@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"connectrpc.com/connect"
 	agentv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1"
 	"forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/agent/v1/agentv1connect"
 	backupcfg "forgejo.alexma.top/alexma233/composia/internal/core/backup"
@@ -23,28 +24,19 @@ func executeBackupTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 		err := errors.New("backup task is missing data_names")
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
-	var bundle *bundleResult
-	var rusticBundle *bundleResult
+	var serviceRoot, rusticRoot string
 	var runtimeConfig *backupcfg.RuntimeConfig
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
-		var err error
-		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
+		payload, err := getServiceTaskRuntime(ctx, bundleClient, pulledTask)
 		if err != nil {
 			return err
 		}
-		runtimeConfig, err = loadBackupRuntimeConfig(bundle.RootPath)
+		runtimeConfig, err = parseBackupRuntimeConfig(payload)
 		if err != nil {
 			return err
 		}
-		if runtimeConfig.Rustic.ServiceDir == bundle.RelativeRoot {
-			rusticBundle = bundle
-		} else {
-			rusticBundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), runtimeConfig.Rustic.ServiceDir)
-			if err != nil {
-				return err
-			}
-		}
-		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
+		serviceRoot, rusticRoot, err = checkBackupServiceFiles(ctx, bundleClient, client, cfg, pulledTask, runtimeConfig.Rustic.ServiceDir)
+		return err
 	}); err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
@@ -53,7 +45,7 @@ func executeBackupTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepBackup, func() error {
 		for _, item := range runtimeConfig.Items {
-			artifactRef, startedAt, finishedAt, err := backupRuntimeItem(ctx, cfg, bundle.RootPath, rusticBundle.RootPath, pulledTask.GetTaskId(), item, runtimeConfig.Rustic, logUploader)
+			artifactRef, startedAt, finishedAt, err := backupRuntimeItem(ctx, cfg, serviceRoot, rusticRoot, pulledTask.GetTaskId(), item, runtimeConfig.Rustic, logUploader)
 			if err != nil {
 				_ = reportBackupResult(ctx, client, pulledTask.GetTaskId(), pulledTask.GetServiceName(), item.Name, "", task.StatusFailed, startedAt, time.Now().UTC(), err.Error())
 				return err
@@ -76,33 +68,20 @@ func executeBackupTask(ctx context.Context, bundleClient agentv1connect.BundleSe
 }
 
 func executeRestoreTask(ctx context.Context, bundleClient agentv1connect.BundleServiceClient, client agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, logUploader *taskLogUploader) error {
-	var bundle *bundleResult
-	var rusticBundle *bundleResult
+	var serviceRoot, rusticRoot string
 	var runtimeConfig *backupcfg.RestoreConfig
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRender, func() error {
-		var err error
-		bundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), "")
+		payload, err := getServiceTaskRuntime(ctx, bundleClient, pulledTask)
 		if err != nil {
 			return err
 		}
-		runtimeConfig, err = loadRestoreRuntimeConfig(bundle.RootPath)
+		runtimeConfig, err = parseRestoreRuntimeConfig(payload)
 		if err != nil {
 			return err
 		}
-		if runtimeConfig.Rustic.ServiceDir == bundle.RelativeRoot {
-			rusticBundle = bundle
-		} else {
-			rusticBundle, err = downloadServiceBundle(ctx, bundleClient, cfg, pulledTask.GetTaskId(), runtimeConfig.Rustic.ServiceDir)
-			if err != nil {
-				return err
-			}
-		}
-		return uploadTaskLog(ctx, logUploader, "render step completed after bundle download\n")
+		serviceRoot, rusticRoot, err = checkBackupServiceFiles(ctx, bundleClient, client, cfg, pulledTask, runtimeConfig.Rustic.ServiceDir)
+		return err
 	}); err != nil {
-		return failTask(ctx, client, pulledTask.GetTaskId(), err)
-	}
-	serviceRoot, err := localServiceRoot(cfg.RepoDir, pulledTask, bundle)
-	if err != nil {
 		return failTask(ctx, client, pulledTask.GetTaskId(), err)
 	}
 	if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("starting remote restore task for service=%s node=%s\n", pulledTask.GetServiceName(), pulledTask.GetNodeId())); err != nil {
@@ -110,7 +89,7 @@ func executeRestoreTask(ctx context.Context, bundleClient agentv1connect.BundleS
 	}
 	if err := executeTaskStep(ctx, client, logUploader, pulledTask.GetTaskId(), task.StepRestore, func() error {
 		for _, item := range runtimeConfig.Items {
-			if err := restoreRuntimeItem(ctx, cfg, serviceRoot, rusticBundle.RootPath, pulledTask.GetTaskId(), item, runtimeConfig.Rustic, logUploader); err != nil {
+			if err := restoreRuntimeItem(ctx, cfg, serviceRoot, rusticRoot, pulledTask.GetTaskId(), item, runtimeConfig.Rustic, logUploader); err != nil {
 				return err
 			}
 			if err := uploadTaskLog(ctx, logUploader, fmt.Sprintf("restore completed for %s\n", item.Name)); err != nil {
@@ -127,13 +106,9 @@ func executeRestoreTask(ctx context.Context, bundleClient agentv1connect.BundleS
 	return reportTaskCompletion(ctx, client, pulledTask.GetTaskId(), task.StatusSucceeded, "")
 }
 
-func loadBackupRuntimeConfig(serviceRoot string) (*backupcfg.RuntimeConfig, error) {
-	content, err := os.ReadFile(filepath.Join(serviceRoot, ".composia-backup.json")) //nolint:gosec
-	if err != nil {
-		return nil, fmt.Errorf("read backup runtime config: %w", err)
-	}
+func parseBackupRuntimeConfig(content string) (*backupcfg.RuntimeConfig, error) {
 	var cfg backupcfg.RuntimeConfig
-	if err := json.Unmarshal(content, &cfg); err != nil {
+	if err := json.Unmarshal([]byte(content), &cfg); err != nil {
 		return nil, fmt.Errorf("decode backup runtime config: %w", err)
 	}
 	if cfg.Rustic == nil {
@@ -151,13 +126,9 @@ func loadBackupRuntimeConfig(serviceRoot string) (*backupcfg.RuntimeConfig, erro
 	return &cfg, nil
 }
 
-func loadRestoreRuntimeConfig(serviceRoot string) (*backupcfg.RestoreConfig, error) {
-	content, err := os.ReadFile(filepath.Join(serviceRoot, ".composia-restore.json")) //nolint:gosec
-	if err != nil {
-		return nil, fmt.Errorf("read restore runtime config: %w", err)
-	}
+func parseRestoreRuntimeConfig(content string) (*backupcfg.RestoreConfig, error) {
 	var cfg backupcfg.RestoreConfig
-	if err := json.Unmarshal(content, &cfg); err != nil {
+	if err := json.Unmarshal([]byte(content), &cfg); err != nil {
 		return nil, fmt.Errorf("decode restore runtime config: %w", err)
 	}
 	if cfg.Rustic == nil {
@@ -170,6 +141,29 @@ func loadRestoreRuntimeConfig(serviceRoot string) (*backupcfg.RestoreConfig, err
 		return nil, errors.New("restore runtime config did not include any items")
 	}
 	return &cfg, nil
+}
+
+func getServiceTaskRuntime(ctx context.Context, client agentv1connect.BundleServiceClient, pulledTask *agentv1.AgentTask) (string, error) {
+	response, err := client.GetServiceTaskRuntime(ctx, connect.NewRequest(&agentv1.GetServiceTaskRuntimeRequest{TaskId: pulledTask.GetTaskId(), ExecutionId: taskExecutionID(ctx)}))
+	if err != nil {
+		return "", err
+	}
+	if response.Msg.GetRepoRevision() != pulledTask.GetRepoRevision() || response.Msg.GetServiceDir() != pulledTask.GetServiceDir() {
+		return "", errors.New("runtime parameters do not match the task revision and directory")
+	}
+	return response.Msg.GetConfigJson(), nil
+}
+
+func checkBackupServiceFiles(ctx context.Context, bundles agentv1connect.BundleServiceClient, reports agentv1connect.AgentReportServiceClient, cfg *config.AgentConfig, pulledTask *agentv1.AgentTask, rusticDir string) (string, string, error) {
+	root, err := checkTaskServiceFiles(ctx, bundles, reports, cfg.RepoDir, pulledTask, pulledTask.GetServiceDir())
+	if err != nil {
+		return "", "", err
+	}
+	if rusticDir == pulledTask.GetServiceDir() {
+		return root, root, nil
+	}
+	rusticRoot, err := checkTaskServiceFiles(ctx, bundles, reports, cfg.RepoDir, pulledTask, rusticDir)
+	return root, rusticRoot, err
 }
 
 func backupRuntimeItem(ctx context.Context, cfg *config.AgentConfig, serviceRoot, rusticRoot, taskID string, item backupcfg.RuntimeItem, rustic *backupcfg.RusticConfig, logUploader *taskLogUploader) (artifactRef string, startedAt time.Time, finishedAt time.Time, retErr error) {

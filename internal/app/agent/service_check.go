@@ -75,7 +75,7 @@ func checkServiceConsistency(ctx context.Context, bundles agentv1connect.BundleS
 }
 
 func checkServiceFiles(ctx context.Context, client agentv1connect.BundleServiceClient, pulledTask *agentv1.AgentTask, serviceRoot string) error {
-	response, err := client.GetServiceManifest(ctx, connect.NewRequest(&agentv1.GetServiceManifestRequest{TaskId: pulledTask.GetTaskId(), ExecutionId: taskExecutionID(ctx)}))
+	response, err := client.GetServiceManifest(ctx, connect.NewRequest(&agentv1.GetServiceManifestRequest{TaskId: pulledTask.GetTaskId(), ExecutionId: taskExecutionID(ctx), ServiceDir: pulledTask.GetServiceDir()}))
 	if err != nil {
 		return fmt.Errorf("get service manifest: %w", err)
 	}
@@ -84,6 +84,21 @@ func checkServiceFiles(ctx context.Context, client agentv1connect.BundleServiceC
 		return errors.New("service manifest does not match the task revision and directory")
 	}
 	return verifyServiceFiles(serviceRoot, manifest.GetFiles())
+}
+
+// File-only tasks must not require live containers, including restore before deployment.
+func checkTaskServiceFiles(ctx context.Context, bundles agentv1connect.BundleServiceClient, reports agentv1connect.AgentReportServiceClient, repoDir string, pulledTask *agentv1.AgentTask, serviceDir string) (string, error) {
+	root, relative, err := resolveRepoRelativePath(repoDir, serviceDir, "service_dir")
+	if err != nil {
+		return "", err
+	}
+	checkTask := &agentv1.AgentTask{TaskId: pulledTask.GetTaskId(), RepoRevision: pulledTask.GetRepoRevision(), ServiceDir: relative}
+	err = checkServiceFiles(ctx, bundles, checkTask, root)
+	_, reportErr := reports.ReportServiceConsistencyCheck(ctx, connect.NewRequest(&agentv1.ReportServiceConsistencyCheckRequest{
+		TaskId: pulledTask.GetTaskId(), ExecutionId: taskExecutionID(ctx), ServiceDir: relative,
+		Files: consistencyOutcome(err), Compose: &agentv1.ServiceConsistencyOutcome{Status: store.ConsistencyUnknown},
+	}))
+	return root, errors.Join(err, reportErr)
 }
 
 func verifyServiceFiles(serviceRoot string, files []*agentv1.ServiceManifestFile) error {

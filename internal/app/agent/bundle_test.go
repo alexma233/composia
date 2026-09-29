@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -322,6 +324,86 @@ type bundleTestResponse struct {
 	bundle       []byte
 	serviceName  string
 	relativeRoot string
+}
+
+func (server bundleTestServer) testArchive(serviceDir string) []byte {
+	if len(server.bundlesByServiceDir) == 0 {
+		return server.bundle
+	}
+	if result, ok := server.bundlesByServiceDir[serviceDir]; ok {
+		return result.bundle
+	}
+	return server.bundlesByServiceDir[""].bundle
+}
+
+func bundleTestEntries(data []byte) (map[string]string, error) {
+	reader, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = reader.Close() }()
+	entries := map[string]string{}
+	archive := tar.NewReader(reader)
+	for {
+		header, err := archive.Next()
+		if errors.Is(err, io.EOF) {
+			return entries, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		if header.Typeflag != tar.TypeReg {
+			continue
+		}
+		content, err := io.ReadAll(archive)
+		if err != nil {
+			return nil, err
+		}
+		entries[header.Name] = string(content)
+	}
+}
+
+func seedLocalBundle(t *testing.T, repoDir string, data []byte) {
+	t.Helper()
+	entries, err := bundleTestEntries(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path, content := range entries {
+		if strings.HasSuffix(path, "/.composia-backup.json") || strings.HasSuffix(path, "/.composia-restore.json") {
+			continue
+		}
+		writeAgentTestFile(t, filepath.Join(repoDir, path), content)
+	}
+}
+
+func (server bundleTestServer) GetServiceManifest(_ context.Context, req *connect.Request[agentv1.GetServiceManifestRequest]) (*connect.Response[agentv1.GetServiceManifestResponse], error) {
+	entries, err := bundleTestEntries(server.testArchive(req.Msg.GetServiceDir()))
+	if err != nil {
+		return nil, err
+	}
+	response := &agentv1.GetServiceManifestResponse{RepoRevision: "deadbeef", RelativeRoot: req.Msg.GetServiceDir()}
+	for path, content := range entries {
+		name := strings.TrimPrefix(path, req.Msg.GetServiceDir()+"/")
+		if name == ".composia-backup.json" || name == ".composia-restore.json" {
+			continue
+		}
+		response.Files = append(response.Files, testManifestFile(name, content, 0o600))
+	}
+	return connect.NewResponse(response), nil
+}
+
+func (server bundleTestServer) GetServiceTaskRuntime(context.Context, *connect.Request[agentv1.GetServiceTaskRuntimeRequest]) (*connect.Response[agentv1.GetServiceTaskRuntimeResponse], error) {
+	entries, err := bundleTestEntries(server.testArchive(""))
+	if err != nil {
+		return nil, err
+	}
+	for path, content := range entries {
+		if strings.HasSuffix(path, "/.composia-backup.json") || strings.HasSuffix(path, "/.composia-restore.json") {
+			return connect.NewResponse(&agentv1.GetServiceTaskRuntimeResponse{RepoRevision: "deadbeef", ServiceDir: filepath.Dir(path), ConfigJson: content}), nil
+		}
+	}
+	return nil, errString("missing runtime fixture")
 }
 
 func (server bundleTestServer) GetServiceBundle(_ context.Context, req *connect.Request[agentv1.GetServiceBundleRequest], stream *connect.ServerStream[agentv1.GetServiceBundleResponse]) error {

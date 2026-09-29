@@ -125,7 +125,7 @@ func TestBundleServiceStreamsTaskBundle(t *testing.T) {
 	}
 }
 
-func TestBundleServiceStreamsCaddySyncBundleWithSingleServiceDir(t *testing.T) {
+func TestServiceManifestForCaddySyncWithSingleServiceDir(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -170,35 +170,16 @@ func TestBundleServiceStreamsCaddySyncBundleWithSingleServiceDir(t *testing.T) {
 	defer httpServer.Close()
 
 	client := agentv1connect.NewBundleServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
-	stream, err := client.GetServiceBundle(ctx, connect.NewRequest(&agentv1.GetServiceBundleRequest{TaskId: "task-caddy-bundle"}))
+	response, err := client.GetServiceManifest(ctx, connect.NewRequest(&agentv1.GetServiceManifestRequest{TaskId: "task-caddy-bundle"}))
 	if err != nil {
-		t.Fatalf("get caddy sync bundle: %v", err)
+		t.Fatal(err)
 	}
-	defer func() { _ = stream.Close() }()
-
-	archive := bytes.Buffer{}
-	var relativeRoot string
-	for stream.Receive() {
-		message := stream.Msg()
-		if relativeRoot == "" {
-			relativeRoot = message.GetRelativeRoot()
-		}
-		archive.Write(message.GetData())
-	}
-	if err := stream.Err(); err != nil {
-		t.Fatalf("receive caddy sync bundle: %v", err)
-	}
-	if relativeRoot != "demo" {
-		t.Fatalf("expected relative root demo, got %q", relativeRoot)
-	}
-
-	entries := untarGzContents(t, archive.Bytes())
-	if entries["demo/demo.caddy"] == "" {
-		t.Fatalf("expected caddy source file in bundle, got %+v", entries)
+	if response.Msg.GetRelativeRoot() != "demo" || len(response.Msg.GetFiles()) == 0 {
+		t.Fatalf("unexpected manifest: %v", response.Msg)
 	}
 }
 
-func TestBundleExtraFilesForCaddySyncOnlyDecryptsCaddySource(t *testing.T) {
+func TestPersistentServiceFilesDecryptAllManagedSecrets(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -222,11 +203,9 @@ func TestBundleExtraFilesForCaddySyncOnlyDecryptsCaddySource(t *testing.T) {
 		t.Fatalf("read current revision: %v", err)
 	}
 
-	extraFiles, err := bundleExtraFiles(
+	extraFiles, err := persistentServiceExtraFiles(
 		&config.ControllerConfig{RepoDir: repoDir, Secrets: secretsCfg, Nodes: []config.NodeConfig{{ID: "main"}}},
-		task.Record{Type: task.TypeCaddySync, RepoRevision: revision},
-		serviceTaskParams{ServiceDir: "demo"},
-		false,
+		revision, "demo",
 	)
 	if err != nil {
 		t.Fatalf("build caddy sync extra files: %v", err)
@@ -234,12 +213,12 @@ func TestBundleExtraFilesForCaddySyncOnlyDecryptsCaddySource(t *testing.T) {
 	if extraFiles["demo/demo.caddy"] != "demo.example.com { reverse_proxy 127.0.0.1:8080 }\n" {
 		t.Fatalf("expected decrypted caddy source, got %+v", extraFiles)
 	}
-	if _, ok := extraFiles["demo/.secret.env"]; ok {
-		t.Fatalf("caddy sync must not decrypt unrelated secrets: %+v", extraFiles)
+	if extraFiles["demo/.secret.env"] != "TOKEN=secret\n" {
+		t.Fatal("persistent file verification must include every managed secret")
 	}
 }
 
-func TestBundleExtraFilesForCaddySyncIgnoresUnreferencedEncryptedFilesWithoutSecrets(t *testing.T) {
+func TestPersistentServiceFilesRequireSecretsConfiguration(t *testing.T) {
 	t.Parallel()
 
 	repoDir := filepath.Join(t.TempDir(), "repo")
@@ -253,21 +232,16 @@ func TestBundleExtraFilesForCaddySyncIgnoresUnreferencedEncryptedFilesWithoutSec
 		t.Fatalf("read current revision: %v", err)
 	}
 
-	extraFiles, err := bundleExtraFiles(
+	_, err = persistentServiceExtraFiles(
 		&config.ControllerConfig{RepoDir: repoDir, Nodes: []config.NodeConfig{{ID: "main"}}},
-		task.Record{Type: task.TypeCaddySync, RepoRevision: revision},
-		serviceTaskParams{ServiceDir: "demo"},
-		false,
+		revision, "demo",
 	)
-	if err != nil {
-		t.Fatalf("build caddy sync extra files without secrets config: %v", err)
-	}
-	if len(extraFiles) != 0 {
-		t.Fatalf("expected no caddy sync extra files, got %+v", extraFiles)
+	if !errors.Is(err, errSecretsNotConfigured) {
+		t.Fatalf("expected missing secret configuration error: %v", err)
 	}
 }
 
-func TestBundleServiceStreamsRequestedServiceDirOverride(t *testing.T) {
+func TestServiceManifestForFullCaddySync(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -314,31 +288,15 @@ func TestBundleServiceStreamsRequestedServiceDirOverride(t *testing.T) {
 	defer httpServer.Close()
 
 	client := agentv1connect.NewBundleServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
-	stream, err := client.GetServiceBundle(ctx, connect.NewRequest(&agentv1.GetServiceBundleRequest{TaskId: "task-caddy-full-bundle", ServiceDir: "bravo"}))
+	response, err := client.GetServiceManifest(ctx, connect.NewRequest(&agentv1.GetServiceManifestRequest{TaskId: "task-caddy-full-bundle", ServiceDir: "bravo"}))
 	if err != nil {
-		t.Fatalf("get overridden caddy sync bundle: %v", err)
+		t.Fatal(err)
 	}
-	defer func() { _ = stream.Close() }()
-
-	archive := bytes.Buffer{}
-	var relativeRoot string
-	for stream.Receive() {
-		message := stream.Msg()
-		if relativeRoot == "" {
-			relativeRoot = message.GetRelativeRoot()
-		}
-		archive.Write(message.GetData())
+	if response.Msg.GetRelativeRoot() != "bravo" || len(response.Msg.GetFiles()) != 2 {
+		t.Fatalf("unexpected related manifest: %v", response.Msg)
 	}
-	if err := stream.Err(); err != nil {
-		t.Fatalf("receive overridden caddy sync bundle: %v", err)
-	}
-	if relativeRoot != "bravo" {
-		t.Fatalf("expected relative root bravo, got %q", relativeRoot)
-	}
-
-	entries := untarGzContents(t, archive.Bytes())
-	if entries["bravo/bravo.caddy"] == "" || entries["alpha/alpha.caddy"] != "" {
-		t.Fatalf("unexpected overridden bundle entries: %+v", entries)
+	if _, err := client.GetServiceManifest(ctx, connect.NewRequest(&agentv1.GetServiceManifestRequest{TaskId: "task-caddy-full-bundle", ServiceDir: "unrelated"})); connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Fatalf("unauthorized service manifest: %v", err)
 	}
 }
 
@@ -415,7 +373,7 @@ func TestBundleServiceInjectsDecryptedSecretEnv(t *testing.T) {
 	}
 }
 
-func TestBundleServiceInjectsBackupRuntimeConfig(t *testing.T) {
+func TestServiceTaskRuntimeForBackup(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -459,21 +417,11 @@ func TestBundleServiceInjectsBackupRuntimeConfig(t *testing.T) {
 	defer httpServer.Close()
 
 	client := agentv1connect.NewBundleServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
-	stream, err := client.GetServiceBundle(ctx, connect.NewRequest(&agentv1.GetServiceBundleRequest{TaskId: "task-backup-bundle"}))
+	response, err := client.GetServiceTaskRuntime(ctx, connect.NewRequest(&agentv1.GetServiceTaskRuntimeRequest{TaskId: "task-backup-bundle"}))
 	if err != nil {
-		t.Fatalf("get backup bundle: %v", err)
+		t.Fatal(err)
 	}
-	defer func() { _ = stream.Close() }()
-
-	archive := bytes.Buffer{}
-	for stream.Receive() {
-		archive.Write(stream.Msg().GetData())
-	}
-	if err := stream.Err(); err != nil {
-		t.Fatalf("receive backup bundle: %v", err)
-	}
-	entries := untarGzContents(t, archive.Bytes())
-	payload := entries["demo/.composia-backup.json"]
+	payload := response.Msg.GetConfigJson()
 	if payload == "" {
 		t.Fatalf("expected backup runtime config in bundle")
 	}
@@ -502,7 +450,7 @@ func TestBuildBackupRuntimePayloadRejectsNodeWithoutRusticInfra(t *testing.T) {
 	}
 }
 
-func TestBundleServiceServiceOverrideSkipsBackupRuntimePayload(t *testing.T) {
+func TestServiceManifestIncludesRelatedRusticSecrets(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -560,29 +508,25 @@ func TestBundleServiceServiceOverrideSkipsBackupRuntimePayload(t *testing.T) {
 	defer httpServer.Close()
 
 	client := agentv1connect.NewBundleServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
-	stream, err := client.GetServiceBundle(ctx, connect.NewRequest(&agentv1.GetServiceBundleRequest{TaskId: "task-backup-override", ServiceDir: "backup"}))
+	response, err := client.GetServiceManifest(ctx, connect.NewRequest(&agentv1.GetServiceManifestRequest{TaskId: "task-backup-override", ServiceDir: "backup"}))
 	if err != nil {
-		t.Fatalf("get overridden backup bundle: %v", err)
+		t.Fatal(err)
 	}
-	defer func() { _ = stream.Close() }()
-
-	archive := bytes.Buffer{}
-	for stream.Receive() {
-		archive.Write(stream.Msg().GetData())
+	found := false
+	for _, file := range response.Msg.GetFiles() {
+		if file.GetPath() == ".secret.env" {
+			found = true
+		}
+		if file.GetPath() == ".composia-backup.json" {
+			t.Fatal("manifest contains ephemeral parameters")
+		}
 	}
-	if err := stream.Err(); err != nil {
-		t.Fatalf("receive overridden backup bundle: %v", err)
-	}
-	entries := untarGzContents(t, archive.Bytes())
-	if entries["backup/.secret.env"] != "RUSTIC_PASSWORD=secret\n" {
-		t.Fatalf("expected decrypted rustic secret in bundle, got %q", entries["backup/.secret.env"])
-	}
-	if _, ok := entries["backup/.composia-backup.json"]; ok {
-		t.Fatalf("did not expect backup runtime payload in override bundle: %+v", entries)
+	if !found {
+		t.Fatal("missing related secret hash")
 	}
 }
 
-func TestBundleServiceInjectsBackupRuntimeConfigFromTaskRevision(t *testing.T) {
+func TestServiceTaskRuntimeUsesTaskRevision(t *testing.T) {
 	t.Parallel()
 
 	rootDir := t.TempDir()
@@ -635,21 +579,11 @@ func TestBundleServiceInjectsBackupRuntimeConfigFromTaskRevision(t *testing.T) {
 	defer httpServer.Close()
 
 	client := agentv1connect.NewBundleServiceClient(httpServer.Client(), httpServer.URL, connect.WithInterceptors(rpcutil.NewStaticBearerAuthInterceptor("main-token")))
-	stream, err := client.GetServiceBundle(ctx, connect.NewRequest(&agentv1.GetServiceBundleRequest{TaskId: "task-backup-revision-bundle"}))
+	response, err := client.GetServiceTaskRuntime(ctx, connect.NewRequest(&agentv1.GetServiceTaskRuntimeRequest{TaskId: "task-backup-revision-bundle"}))
 	if err != nil {
-		t.Fatalf("get backup bundle: %v", err)
+		t.Fatal(err)
 	}
-	defer func() { _ = stream.Close() }()
-
-	archive := bytes.Buffer{}
-	for stream.Receive() {
-		archive.Write(stream.Msg().GetData())
-	}
-	if err := stream.Err(); err != nil {
-		t.Fatalf("receive backup bundle: %v", err)
-	}
-	entries := untarGzContents(t, archive.Bytes())
-	payload := entries["demo/.composia-backup.json"]
+	payload := response.Msg.GetConfigJson()
 	if payload == "" {
 		t.Fatalf("expected backup runtime config in bundle")
 	}

@@ -268,6 +268,7 @@ func TestExecuteStopTaskDownloadsBundleAndRunsComposeDown(t *testing.T) {
 		RepoRevision: "deadbeef",
 		ServiceDir:   "demo",
 	}
+	seedLocalBundle(t, cfg.RepoDir, bundle)
 	if err := executeStopTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute stop task: %v", err)
 	}
@@ -370,6 +371,8 @@ func TestExecuteBackupTaskRunsRusticAndReportsSnapshot(t *testing.T) {
 	defer func() { _ = logUploader.Close() }()
 
 	pulledTask := &agentv1.AgentTask{TaskId: "task-backup", Type: protoAgentTaskType(task.TypeBackup), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo", DataNames: []string{"config"}}
+	seedLocalBundle(t, cfg.RepoDir, serviceBundle)
+	seedLocalBundle(t, cfg.RepoDir, rusticBundle)
 	if err := executeBackupTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute backup task: %v", err)
 	}
@@ -459,6 +462,7 @@ func TestExecuteCaddySyncTaskCopiesServiceCaddyFile(t *testing.T) {
 	defer func() { _ = logUploader.Close() }()
 
 	pulledTask := &agentv1.AgentTask{TaskId: "task-caddy-sync", Type: protoAgentTaskType(task.TypeCaddySync), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo"}
+	seedLocalBundle(t, cfg.RepoDir, bundle)
 	if err := executeCaddySyncTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute caddy sync task: %v", err)
 	}
@@ -782,6 +786,8 @@ func TestExecuteBackupTaskStopsComposeForTarAfterStop(t *testing.T) {
 	defer func() { _ = logUploader.Close() }()
 
 	pulledTask := &agentv1.AgentTask{TaskId: "task-tar", Type: protoAgentTaskType(task.TypeBackup), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo", DataNames: []string{"config"}}
+	seedLocalBundle(t, cfg.RepoDir, serviceBundle)
+	seedLocalBundle(t, cfg.RepoDir, rusticBundle)
 	if err := executeBackupTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute tar_after_stop backup task: %v", err)
 	}
@@ -866,6 +872,8 @@ func TestExecuteBackupTaskRunsPGDumpAll(t *testing.T) {
 	defer func() { _ = logUploader.Close() }()
 
 	pulledTask := &agentv1.AgentTask{TaskId: "task-pg", Type: protoAgentTaskType(task.TypeBackup), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo", DataNames: []string{"db"}}
+	seedLocalBundle(t, cfg.RepoDir, serviceBundle)
+	seedLocalBundle(t, cfg.RepoDir, rusticBundle)
 	if err := executeBackupTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute pgdumpall backup task: %v", err)
 	}
@@ -946,6 +954,8 @@ func TestExecuteBackupTaskReportsFailedBackupItem(t *testing.T) {
 	defer func() { _ = logUploader.Close() }()
 
 	pulledTask := &agentv1.AgentTask{TaskId: "task-backup-fail", Type: protoAgentTaskType(task.TypeBackup), ServiceName: "demo", NodeId: "main", RepoRevision: "deadbeef", ServiceDir: "demo", DataNames: []string{"config"}}
+	seedLocalBundle(t, cfg.RepoDir, serviceBundle)
+	seedLocalBundle(t, cfg.RepoDir, rusticBundle)
 	if err := executeBackupTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err == nil {
 		t.Fatalf("expected backup task to fail")
 	}
@@ -1126,7 +1136,8 @@ func TestExecuteRusticForgetTaskRunsComposeRun(t *testing.T) {
 	logUploader := newTaskLogUploader(reportClient, "task-rustic-forget")
 	defer func() { _ = logUploader.Close() }()
 
-	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-forget", Type: protoAgentTaskType(task.TypeRusticForget), ServiceName: "backup", NodeId: "main", ParamsJson: `{"service_name":"demo","data_name":"db","service_dir":"backup"}`}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-forget", Type: protoAgentTaskType(task.TypeRusticForget), ServiceName: "backup", ServiceDir: "backup", NodeId: "main", ParamsJson: `{"service_name":"demo","data_name":"db","service_dir":"backup"}`}
+	seedLocalBundle(t, cfg.RepoDir, bundle)
 	if err := executeRusticForgetTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute rustic forget task: %v", err)
 	}
@@ -1215,7 +1226,8 @@ func TestExecuteRusticPruneTaskRunsComposeRun(t *testing.T) {
 	logUploader := newTaskLogUploader(reportClient, "task-rustic-prune")
 	defer func() { _ = logUploader.Close() }()
 
-	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-prune", Type: protoAgentTaskType(task.TypeRusticPrune), ServiceName: "backup", NodeId: "main", ParamsJson: `{"service_dir":"backup"}`}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-prune", Type: protoAgentTaskType(task.TypeRusticPrune), ServiceName: "backup", ServiceDir: "backup", NodeId: "main", ParamsJson: `{"service_dir":"backup"}`}
+	seedLocalBundle(t, cfg.RepoDir, bundle)
 	if err := executeRusticPruneTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute rustic prune task: %v", err)
 	}
@@ -1301,7 +1313,8 @@ func TestExecuteRusticInitTaskRunsComposeRun(t *testing.T) {
 	logUploader := newTaskLogUploader(reportClient, "task-rustic-init")
 	defer func() { _ = logUploader.Close() }()
 
-	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-init", Type: protoAgentTaskType(task.TypeRusticInit), ServiceName: "backup", NodeId: "main", ParamsJson: `{"service_dir":"backup"}`}
+	pulledTask := &agentv1.AgentTask{TaskId: "task-rustic-init", Type: protoAgentTaskType(task.TypeRusticInit), ServiceName: "backup", ServiceDir: "backup", NodeId: "main", ParamsJson: `{"service_dir":"backup"}`}
+	seedLocalBundle(t, cfg.RepoDir, bundle)
 	if err := executeRusticInitTask(context.Background(), bundleClient, reportClient, cfg, pulledTask, logUploader); err != nil {
 		t.Fatalf("execute rustic init task: %v", err)
 	}
@@ -1471,6 +1484,10 @@ type agentExecutionTestReportServer struct {
 	blockTaskState     bool
 	blockTaskStepState bool
 	wrongLogAckTaskID  bool
+}
+
+func (server *agentExecutionTestReportServer) ReportServiceConsistencyCheck(context.Context, *connect.Request[agentv1.ReportServiceConsistencyCheckRequest]) (*connect.Response[agentv1.ReportServiceConsistencyCheckResponse], error) {
+	return connect.NewResponse(&agentv1.ReportServiceConsistencyCheckResponse{}), nil
 }
 
 func (server *agentExecutionTestReportServer) Heartbeat(context.Context, *connect.Request[agentv1.HeartbeatRequest]) (*connect.Response[agentv1.HeartbeatResponse], error) {
