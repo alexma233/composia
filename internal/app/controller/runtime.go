@@ -70,6 +70,7 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, con
 		return err
 	}
 	repoMu := &sync.Mutex{}
+	repoCommands := &repoCommandServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: repoMu}
 	taskQueue := newTaskQueueNotifier()
 	taskResults := newTaskResultNotifier()
 	dockerQueries := newDockerQueryBroker()
@@ -119,7 +120,7 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, con
 		return name, nil
 	})
 	registerAgentHandlers(mux, cfg, db, agentInterceptor, taskQueue, taskResults, dockerQueries, execManager, logManager, repoMu, notifier)
-	registerAccessHandlers(mux, cfg, configPath, db, accessInterceptor, availableNodeIDs, taskQueue, taskResults, dockerQueries, execManager, logManager, repoMu, reload, reloadRevision, notifier)
+	registerAccessHandlers(mux, cfg, configPath, db, accessInterceptor, availableNodeIDs, taskQueue, taskResults, dockerQueries, execManager, logManager, repoCommands, reload, reloadRevision, notifier)
 	registerMetricsHandler(mux, db, accessTokens, controllerStartedAt)
 	registerAlertmanagerHandler(mux, cfg.Notifications, notifier)
 	mux.HandleFunc(rpcutil.ControllerExecWSPath, execManager.handleWebsocket)
@@ -137,7 +138,7 @@ func runControllerRuntime(ctx context.Context, cfg *config.ControllerConfig, con
 
 	startBackground(func() { sweepOfflineNodes(runtimeCtx, db, notifier) })
 	startBackground(func() { sweepTaskExecutionLeases(runtimeCtx, db, taskQueue) })
-	startBackground(func() { autoPullRepo(runtimeCtx, cfg, db, availableNodeIDs, repoMu, taskQueue) })
+	startBackground(func() { autoPullRepo(runtimeCtx, repoCommands, taskQueue) })
 	startBackground(func() { runScheduledTasks(runtimeCtx, db, cfg, availableNodeIDs, taskQueue, repoMu) })
 	startBackground(func() {
 		<-runtimeCtx.Done()
@@ -223,7 +224,8 @@ func sweepOfflineNodes(ctx context.Context, db *store.DB, notifier *appnotify.No
 	}
 }
 
-func autoPullRepo(ctx context.Context, cfg *config.ControllerConfig, db *store.DB, availableNodeIDs map[string]struct{}, repoMu *sync.Mutex, taskQueue *taskQueueNotifier) {
+func autoPullRepo(ctx context.Context, server *repoCommandServer, taskQueue *taskQueueNotifier) {
+	cfg, db, availableNodeIDs := server.cfg, server.db, server.availableNodeIDs
 	if cfg.Git == nil || strings.TrimSpace(cfg.Git.RemoteURL) == "" || strings.TrimSpace(cfg.Git.PullInterval) == "" {
 		return
 	}
@@ -240,17 +242,20 @@ func autoPullRepo(ctx context.Context, cfg *config.ControllerConfig, db *store.D
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			repoMu.Lock()
-			previousRevision, _ := repo.CurrentRevision(cfg.RepoDir)
-			_, pullErr := autoPullFetchAndFastForward(ctx, cfg, db)
-			repoMu.Unlock()
-
-			if pullErr != nil {
-				log.Printf("auto-pull failed: %v", pullErr)
-				continue
+			var previousRevision, newRevision string
+			if cfg.Git.LocalFirstEnabled() {
+				previousRevision, newRevision, err = server.syncLocalFirstRepo(ctx)
+			} else {
+				server.repoLock().Lock()
+				previousRevision, _ = repo.CurrentRevision(cfg.RepoDir)
+				_, err = autoPullFetchAndFastForward(ctx, cfg, db)
+				newRevision, _ = repo.CurrentRevision(cfg.RepoDir)
+				server.repoLock().Unlock()
 			}
-			newRevision, _ := repo.CurrentRevision(cfg.RepoDir)
-			if newRevision != previousRevision {
+			if err != nil {
+				log.Printf("repo sync failed: %v", err)
+			}
+			if newRevision != "" && previousRevision != "" && newRevision != previousRevision {
 				log.Printf("auto-pull: repo updated from %s to %s", shortRevision(previousRevision), shortRevision(newRevision))
 				if err := refreshDeclaredServices(ctx, db, cfg, availableNodeIDs); err != nil {
 					log.Printf("auto-pull: refresh declared services failed: %v", err)

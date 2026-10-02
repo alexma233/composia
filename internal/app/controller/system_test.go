@@ -69,7 +69,7 @@ func TestRegisterAccessHandlersKeepsSystemAndServiceBackupCapabilitiesConsistent
 		nil,
 		nil,
 		nil,
-		&sync.Mutex{},
+		&repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir}, availableNodeIDs: availableNodeIDs, repoMu: &sync.Mutex{}},
 		nil,
 		nil,
 		nil,

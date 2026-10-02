@@ -7,6 +7,30 @@ import (
 	"testing"
 )
 
+func TestControllerGitLocalFirstDefaultsAndOptOut(t *testing.T) {
+	t.Parallel()
+	for _, value := range []string{"", "true", "false"} {
+		t.Run("local_first="+value, func(t *testing.T) {
+			gitConfig := ""
+			if value != "" {
+				gitConfig = "    local_first: " + value + "\n"
+			}
+			path := filepath.Join(t.TempDir(), "config.yaml")
+			content := "controller:\n  listen_addr: ':7001'\n  repo_dir: /srv/repo\n  state_dir: /srv/state\n  log_dir: /srv/logs\n  nodes: []\n  git:\n" + gitConfig
+			if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			cfg, err := LoadController(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := cfg.Git.LocalFirstEnabled(); got != (value != "false") {
+				t.Fatalf("local_first=%q: enabled=%v", value, got)
+			}
+		})
+	}
+}
+
 func TestLoadControllerRejectsSharedRepoDir(t *testing.T) {
 	t.Parallel()
 

@@ -102,9 +102,14 @@ type ControllerGitConfig struct {
 	RemoteURL    string                   `yaml:"remote_url"`
 	Branch       string                   `yaml:"branch"`
 	PullInterval string                   `yaml:"pull_interval"`
+	LocalFirst   *bool                    `yaml:"local_first"`
 	Auth         *ControllerGitAuthConfig `yaml:"auth"`
 	AuthorName   string                   `yaml:"author_name"`
 	AuthorEmail  string                   `yaml:"author_email"`
+}
+
+func (cfg *ControllerGitConfig) LocalFirstEnabled() bool {
+	return cfg == nil || cfg.LocalFirst == nil || *cfg.LocalFirst
 }
 
 type ControllerGitAuthConfig struct {

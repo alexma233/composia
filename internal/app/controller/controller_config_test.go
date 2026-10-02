@@ -90,6 +90,28 @@ func TestDecodeEditableControllerConfigRejectsUnknownFields(t *testing.T) {
 	}
 }
 
+func TestEditableGitLocalFirstPreservesRemoteAndAuth(t *testing.T) {
+	raw := []byte("controller:\n  git:\n    remote_url: https://example.com/repo.git\n    pull_interval: 1m\n    auth:\n      token: git-secret\n")
+	edited, err := decodeEditableControllerConfig("controller:\n  git:\n    local_first: false\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	candidate, err := applyEditableControllerConfig(raw, edited)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := decodeControllerConfigBytes(candidate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Git.LocalFirstEnabled() || cfg.Git.RemoteURL != "https://example.com/repo.git" || cfg.Git.Auth.Token != "git-secret" || cfg.Git.PullInterval != "1m" {
+		t.Fatalf("unexpected Git config: %+v", cfg.Git)
+	}
+	if _, err := decodeEditableControllerConfig("controller:\n  git:\n    remote_url: https://example.com/other.git\n"); err == nil {
+		t.Fatal("remote URL must remain outside the editable whitelist")
+	}
+}
+
 func TestEditableControllerConfigSparseUpdatePreservesUntouchedFields(t *testing.T) {
 	raw := []byte("# keep this comment\ncontroller:\n  listen_addr: ':7001'\n  repo_dir: /srv/repo\n  state_dir: /srv/state\n  log_dir: /srv/logs\n  updates:\n    default_check_schedule: '0 1 * * *'\n    auto_apply: false\n  nodes:\n    - id: main\n      token: node-secret\n      display_name: Main\n      enabled: true\n")
 	edited, err := decodeEditableControllerConfig("controller:\n  updates:\n    auto_apply: true\n  nodes:\n    - id: main\n      display_name: Renamed\n")

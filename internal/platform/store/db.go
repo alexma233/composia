@@ -36,11 +36,12 @@ type RepoSyncState struct {
 }
 
 const (
-	RepoSyncStatusUnknown    = "unknown"
-	RepoSyncStatusLocalOnly  = "local_only"
-	RepoSyncStatusSynced     = "synced"
-	RepoSyncStatusPullFailed = "pull_failed"
-	RepoSyncStatusPushFailed = "push_failed"
+	RepoSyncStatusUnknown     = "unknown"
+	RepoSyncStatusLocalOnly   = "local_only"
+	RepoSyncStatusPendingSync = "pending_sync"
+	RepoSyncStatusSynced      = "synced"
+	RepoSyncStatusPullFailed  = "pull_failed"
+	RepoSyncStatusPushFailed  = "push_failed"
 )
 
 type NodeHeartbeat struct {

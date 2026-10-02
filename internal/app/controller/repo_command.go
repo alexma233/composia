@@ -30,6 +30,7 @@ type repoCommandServer struct {
 	cfg               *config.ControllerConfig
 	availableNodeIDs  map[string]struct{}
 	repoMu            *sync.Mutex
+	syncMu            sync.Mutex
 	pushCurrentBranch func(repoDir, remoteURL, branch, authUsername, authToken string) error
 }
 
@@ -37,11 +38,18 @@ func (server *repoCommandServer) SyncRepo(ctx context.Context, _ *connect.Reques
 	if !server.hasConfiguredRemote() {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("repo remote sync is not configured"))
 	}
-	server.repoLock().Lock()
-	defer server.repoLock().Unlock()
-
-	if _, err := server.syncRepoLocked(ctx); err != nil {
-		return nil, err
+	if server.cfg.Git.LocalFirstEnabled() {
+		if _, _, err := server.syncLocalFirstRepo(ctx); err != nil {
+			return nil, err
+		}
+		server.repoLock().Lock()
+		defer server.repoLock().Unlock()
+	} else {
+		server.repoLock().Lock()
+		defer server.repoLock().Unlock()
+		if _, err := server.syncRepoLocked(ctx); err != nil {
+			return nil, err
+		}
 	}
 	if err := server.refreshDeclaredServices(ctx); err != nil {
 		return nil, err
@@ -175,6 +183,9 @@ func (server *repoCommandServer) repoLock() *sync.Mutex {
 func (server *repoCommandServer) runRepoWrite(ctx context.Context, baseRevision string, relativePaths []string, run func(baseSyncState store.RepoSyncState) (repoWriteResult, error)) (repoWriteResult, error) {
 	server.repoLock().Lock()
 	defer server.repoLock().Unlock()
+	if err := ctx.Err(); err != nil {
+		return repoWriteResult{}, connect.NewError(connect.CodeCanceled, err)
+	}
 
 	baseSyncState, err := server.prepareRepoWritePaths(ctx, baseRevision, relativePaths)
 	if err != nil {
@@ -306,7 +317,7 @@ func (server *repoCommandServer) prepareRepoWritePaths(ctx context.Context, base
 }
 
 func (server *repoCommandServer) syncRepoBeforeWrite(ctx context.Context) error {
-	if !server.hasConfiguredRemote() {
+	if !server.hasConfiguredRemote() || server.cfg.Git.LocalFirstEnabled() {
 		return nil
 	}
 	_, err := server.syncRepoLocked(ctx)
@@ -575,6 +586,14 @@ func (server *repoCommandServer) finalizeRepoGitState(ctx context.Context, commi
 	result := repoWriteResult{CommitID: commitID, SyncStatus: baseSyncState.SyncStatus, LastSuccessfulPullAt: baseSyncState.LastSuccessfulPullAt}
 	if !server.hasConfiguredRemote() {
 		result.SyncStatus = store.RepoSyncStatusLocalOnly
+		return result, nil
+	}
+	if server.cfg.Git.LocalFirstEnabled() {
+		baseSyncState.SyncStatus = store.RepoSyncStatusPendingSync
+		if err := server.persistRepoSyncState(ctx, baseSyncState); err != nil {
+			return repoWriteResult{}, connect.NewError(connect.CodeInternal, err)
+		}
+		result.SyncStatus = baseSyncState.SyncStatus
 		return result, nil
 	}
 	branch, err := server.configuredRemoteBranch()

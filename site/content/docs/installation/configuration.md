@@ -67,6 +67,7 @@ controller:
     remote_url: ""
     branch: "main"
     pull_interval: ""
+    local_first: true
     author_name: "Composia"
     author_email: "composia@example.com"
     auth:
@@ -304,11 +305,14 @@ Access tokens must not duplicate node tokens or other access tokens.
 | `remote_url` | `string` | No | Git remote URL. |
 | `branch` | `string` | No | Branch to sync. |
 | `pull_interval` | `string` | Cond. | Required when `remote_url` is set. |
+| `local_first` | `bool` | No | Defaults to `true`: save and commit locally without waiting for the remote. Set to `false` to sync before writes and push before returning. |
 | `author_name` | `string` | No | Commit author name for controller writes. |
 | `author_email` | `string` | No | Commit author email. |
 | `auth.username` | `string` | No | Git username. |
 | `auth.token` | `string` | No | Git token. |
 | `auth.token_file` | `string` | No | Read Git token from a file. |
+
+In local-first mode, `pull_interval` controls background pull and push retries. Manual repository sync also pushes local commits. Remote outages do not block local editing or deployment; committed changes survive controller restarts. Network operations do not hold the working-tree lock. Writes report `pending_sync` until their commit is pushed. Diverged histories stop synchronization and require manual reconciliation; Composia never rebases, force-pushes, or discards local commits automatically.
 
 ### `secrets`
 

@@ -238,37 +238,53 @@ func DiffChangedFiles(repoDir, oldRevision, newRevision string) ([]string, error
 }
 
 func FetchAndFastForward(repoDir, remoteURL, branch, authUsername, authToken string) error {
+	revision, err := FetchRevision(context.Background(), repoDir, remoteURL, branch, authUsername, authToken)
+	if err != nil {
+		return err
+	}
+	return FastForwardRevision(repoDir, revision)
+}
+
+func FetchRevision(ctx context.Context, repoDir, remoteURL, branch, authUsername, authToken string) (string, error) {
 	if remoteURL == "" {
-		return errors.New("remote URL is required")
+		return "", errors.New("remote URL is required")
 	}
 	if branch == "" {
-		return errors.New("remote branch is required")
+		return "", errors.New("remote branch is required")
 	}
-	if _, err := gitOutputWithOptions(repoDir, nil, gitRemoteConfig(remoteURL, authUsername, authToken), "fetch", remoteURL, branch); err != nil {
-		return fmt.Errorf("fetch remote branch %q: %w", branch, err)
+	if _, err := gitOutputWithContext(ctx, repoDir, nil, gitRemoteConfig(remoteURL, authUsername, authToken), "fetch", remoteURL, branch); err != nil {
+		return "", fmt.Errorf("fetch remote branch %q: %w", branch, err)
 	}
 	fetchedRevision, err := gitOutput(repoDir, "rev-parse", "FETCH_HEAD")
 	if err != nil {
-		return fmt.Errorf("resolve fetched revision: %w", err)
+		return "", fmt.Errorf("resolve fetched revision: %w", err)
 	}
-	if err := ValidateEncryptedFileCollisionsAtRevision(repoDir, strings.TrimSpace(fetchedRevision)); err != nil {
+	return strings.TrimSpace(fetchedRevision), nil
+}
+
+func FastForwardRevision(repoDir, revision string) error {
+	if err := ValidateEncryptedFileCollisionsAtRevision(repoDir, revision); err != nil {
 		return fmt.Errorf("reject fetched repository: %w", err)
 	}
-	if err := gitCommand(repoDir, nil, "merge", "--ff-only", "FETCH_HEAD"); err != nil {
+	if err := gitCommand(repoDir, nil, "merge", "--ff-only", revision); err != nil {
 		return fmt.Errorf("fast-forward to fetched HEAD: %w", err)
 	}
 	return nil
 }
 
 func PushCurrentBranch(repoDir, remoteURL, branch, authUsername, authToken string) error {
+	return PushRevision(context.Background(), repoDir, remoteURL, branch, "HEAD", authUsername, authToken)
+}
+
+func PushRevision(ctx context.Context, repoDir, remoteURL, branch, revision, authUsername, authToken string) error {
 	if remoteURL == "" {
 		return errors.New("remote URL is required")
 	}
 	if branch == "" {
 		return errors.New("remote branch is required")
 	}
-	if err := gitCommandWithOptions(repoDir, nil, gitRemoteConfig(remoteURL, authUsername, authToken), "push", remoteURL, "HEAD:refs/heads/"+branch); err != nil {
-		return fmt.Errorf("push HEAD to remote branch %q: %w", branch, err)
+	if _, err := gitOutputWithContext(ctx, repoDir, nil, gitRemoteConfig(remoteURL, authUsername, authToken), "push", remoteURL, revision+":refs/heads/"+branch); err != nil {
+		return fmt.Errorf("push revision to remote branch %q: %w", branch, err)
 	}
 	return nil
 }
@@ -293,28 +309,8 @@ func gitCommand(repoDir string, extraEnv []string, args ...string) error {
 }
 
 func gitCommandWithOptions(repoDir string, extraEnv, gitConfig []string, args ...string) error {
-	commandArgs := make([]string, 0, len(args)+2)
-	commandArgs = append(commandArgs, "-C", repoDir)
-	for _, configValue := range gitConfig {
-		commandArgs = append(commandArgs, "-c", configValue)
-	}
-	commandArgs = append(commandArgs, args...)
-
-	ctx, cancel := context.WithTimeout(context.Background(), gitCommandTimeout)
-	defer cancel()
-	cmd := exec.CommandContext(ctx, "git", commandArgs...) //nolint:gosec
-	if len(extraEnv) > 0 {
-		cmd.Env = append(os.Environ(), extraEnv...)
-	}
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			return fmt.Errorf("git %s timed out: %w", strings.Join(args, " "), ctx.Err())
-		}
-		return fmt.Errorf("git %s: %w %s", strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
-	}
-	return nil
+	_, err := gitOutputWithOptions(repoDir, extraEnv, gitConfig, args...)
+	return err
 }
 
 func gitOutput(repoDir string, args ...string) (string, error) {
@@ -322,6 +318,10 @@ func gitOutput(repoDir string, args ...string) (string, error) {
 }
 
 func gitOutputWithOptions(repoDir string, extraEnv, gitConfig []string, args ...string) (string, error) {
+	return gitOutputWithContext(context.Background(), repoDir, extraEnv, gitConfig, args...)
+}
+
+func gitOutputWithContext(ctx context.Context, repoDir string, extraEnv, gitConfig []string, args ...string) (string, error) {
 	commandArgs := make([]string, 0, len(args)+2)
 	commandArgs = append(commandArgs, "-C", repoDir)
 	for _, configValue := range gitConfig {
@@ -329,16 +329,19 @@ func gitOutputWithOptions(repoDir string, extraEnv, gitConfig []string, args ...
 	}
 	commandArgs = append(commandArgs, args...)
 
-	ctx, cancel := context.WithTimeout(context.Background(), gitCommandTimeout)
+	ctx, cancel := context.WithTimeout(ctx, gitCommandTimeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "git", commandArgs...) //nolint:gosec
+	// Git transports and hooks may leave children holding output pipes after cancellation.
+	cmd.WaitDelay = time.Second
+	configureGitCancellation(cmd)
 	if len(extraEnv) > 0 {
 		cmd.Env = append(os.Environ(), extraEnv...)
 	}
 	output, err := cmd.Output()
 	if err != nil {
-		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			return "", fmt.Errorf("git %s timed out: %w", strings.Join(args, " "), ctx.Err())
+		if ctx.Err() != nil {
+			return "", fmt.Errorf("git %s interrupted: %w", strings.Join(args, " "), ctx.Err())
 		}
 		var stderr bytes.Buffer
 		exitErr := &exec.ExitError{}

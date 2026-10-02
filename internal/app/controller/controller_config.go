@@ -24,12 +24,17 @@ type editableControllerConfigFile struct {
 }
 
 type editableControllerConfig struct {
+	Git           *editableGit           `yaml:"git,omitempty"`
 	AutoDeploy    *editableAutoDeploy    `yaml:"auto_deploy,omitempty"`
 	Backup        *editableBackup        `yaml:"backup,omitempty"`
 	Updates       *editableUpdates       `yaml:"updates,omitempty"`
 	Rustic        *editableRustic        `yaml:"rustic,omitempty"`
 	Nodes         *[]editableNode        `yaml:"nodes,omitempty"`
 	Notifications *editableNotifications `yaml:"notifications,omitempty"`
+}
+
+type editableGit struct {
+	LocalFirst *bool `yaml:"local_first,omitempty"`
 }
 
 type editableAutoDeploy struct {
@@ -248,6 +253,8 @@ func marshalEditableControllerConfig(cfg *config.ControllerConfig) (string, erro
 	edited := editableControllerConfigFile{Controller: &editableControllerConfig{
 		Nodes: func() *[]editableNode { nodes := make([]editableNode, 0, len(cfg.Nodes)); return &nodes }(),
 	}}
+	localFirst := cfg.Git.LocalFirstEnabled()
+	edited.Controller.Git = &editableGit{LocalFirst: &localFirst}
 	if cfg.AutoDeploy != nil {
 		edited.Controller.AutoDeploy = &editableAutoDeploy{}
 		edited.Controller.AutoDeploy.Infra = &cfg.AutoDeploy.Infra
@@ -330,6 +337,9 @@ func applyEditableControllerConfig(raw []byte, edited *editableControllerConfig)
 	controller, err := mappingValue(root, "controller")
 	if err != nil {
 		return nil, err
+	}
+	if edited.Git != nil && edited.Git.LocalFirst != nil {
+		setMappingValue(ensureMappingValue(controller, "git"), "local_first", *edited.Git.LocalFirst)
 	}
 	if edited.AutoDeploy != nil {
 		section := ensureMappingValue(controller, "auto_deploy")

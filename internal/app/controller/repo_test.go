@@ -484,7 +484,7 @@ func TestRepoCommandServiceUpdateRepoFileReturnsPushFailureWithoutRollback(t *te
 	defer func() { _ = db.Close() }()
 
 	queryClient := newRepoQueryServiceClient(t, &repoQueryServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Git: &config.ControllerGitConfig{RemoteURL: originDir, Branch: branch}}, repoMu: &sync.Mutex{}})
-	client := newRepoCommandServiceClient(t, &repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Git: &config.ControllerGitConfig{RemoteURL: originDir, Branch: branch}}, repoMu: &sync.Mutex{}, pushCurrentBranch: func(repoDir, remoteURL, branch, authUsername, authToken string) error {
+	client := newRepoCommandServiceClient(t, &repoCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, Git: &config.ControllerGitConfig{RemoteURL: originDir, Branch: branch, LocalFirst: boolPtr(false)}}, repoMu: &sync.Mutex{}, pushCurrentBranch: func(repoDir, remoteURL, branch, authUsername, authToken string) error {
 		return pushErr
 	}})
 	head, err := queryClient.GetRepoHead(context.Background(), connect.NewRequest(&controllerv1.GetRepoHeadRequest{}))

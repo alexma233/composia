@@ -199,7 +199,8 @@ func registerAgentHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, db 
 	mountRPCHandler(mux, rpcutil.AgentAPIBasePath, bundlePath, bundleHandler)
 }
 
-func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, configPath string, db *store.DB, interceptor connect.Interceptor, availableNodeIDs map[string]struct{}, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, dockerQueries *dockerQueryBroker, execManager *execTunnelManager, logManager *containerLogTunnelManager, repoMu *sync.Mutex, reload func(context.Context) error, reloadRevision func(context.Context, string) error, notifier *appnotify.Notifier) {
+func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, configPath string, db *store.DB, interceptor connect.Interceptor, availableNodeIDs map[string]struct{}, taskQueue *taskQueueNotifier, taskResults *taskResultNotifier, dockerQueries *dockerQueryBroker, execManager *execTunnelManager, logManager *containerLogTunnelManager, repoCommands *repoCommandServer, reload func(context.Context) error, reloadRevision func(context.Context, string) error, notifier *appnotify.Notifier) {
+	repoMu := repoCommands.repoLock()
 	systemPath, systemHandler := controllerv1connect.NewSystemServiceHandler(
 		&systemServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, reload: reload},
 		connect.WithInterceptors(interceptor),
@@ -219,7 +220,7 @@ func registerAccessHandlers(mux *http.ServeMux, cfg *config.ControllerConfig, co
 	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, repoQueryPath, repoQueryHandler)
 
 	repoCommandPath, repoCommandHandler := controllerv1connect.NewRepoCommandServiceHandler(
-		&repoCommandServer{db: db, cfg: cfg, availableNodeIDs: availableNodeIDs, repoMu: repoMu},
+		repoCommands,
 		connect.WithInterceptors(interceptor),
 	)
 	mountRPCHandler(mux, rpcutil.ControllerAPIBasePath, repoCommandPath, repoCommandHandler)
