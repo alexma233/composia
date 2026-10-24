@@ -62,7 +62,7 @@ services:
       - composia-dev
 
   web-dev:
-    image: denoland/deno:2.9.6@sha256:2014dc167ece617ef7e7ba40631ac2234c59e75ce693e7cc2dc2602b3c87859d
+    image: denoland/deno:2.9.8@sha256:a0d88a7fcbd44f062cba2748e19df67d30290ad12aa203c7c1e0b12462c483f0
     user: "${UID}:${GID}"
     entrypoint:
       - sh
