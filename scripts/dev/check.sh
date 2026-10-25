@@ -5,6 +5,8 @@ set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 cd "$ROOT_DIR"
 
+sh scripts/test-install.sh
+
 unformatted=$(git ls-files '*.go' | while IFS= read -r file; do gofmt -l "$file"; done)
 if [ -n "$unformatted" ]; then
   printf 'Unformatted Go files:\n%s\n' "$unformatted" >&2

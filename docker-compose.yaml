@@ -63,9 +63,7 @@ services:
 
   web:
     image: forgejo.alexma.top/alexma233/composia-web:latest
-    depends_on:
-      controller:
-        condition: service_started
+    # A standalone Web UI can target a remote controller.
     env_file:
       - ./.env
     ports:
@@ -102,21 +100,22 @@ services:
 
   init-perms-agent:
     image: alpine:3.24
+    environment:
+      COMPOSIA_AGENT_REPO_DIR: ${COMPOSIA_AGENT_REPO_DIR}
     entrypoint:
       - sh
       - -ec
       - |
         mkdir -p /data/state-agent
-        chown -R 65532:65532 ${COMPOSIA_AGENT_REPO_DIR} /data/state-agent
+        chown -R 65532:65532 "$${COMPOSIA_AGENT_REPO_DIR}" /data/state-agent
     volumes:
       - ${COMPOSIA_AGENT_REPO_DIR}:${COMPOSIA_AGENT_REPO_DIR}
       - ${COMPOSIA_AGENT_STATE_DIR}:/data/state-agent
 
   agent:
     image: forgejo.alexma.top/alexma233/composia-agent:latest
+    # The agent retries remote controller connections, including during all-in-one startup.
     depends_on:
-      controller:
-        condition: service_started
       init-perms-agent:
         condition: service_completed_successfully
       init-config-perms:

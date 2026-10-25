@@ -4,9 +4,33 @@ date: '2026-05-26T00:00:00+08:00'
 weight: 20
 ---
 
-The Docker Compose stack runs the controller, one local agent, and the web UI from the canonical [`docker-compose.yaml`](https://forgejo.alexma.top/alexma233/composia/src/branch/main/docker-compose.yaml).
+The interactive installer can deploy the Web UI, Controller, or Agent independently, or deploy all three together. It uses the canonical [`docker-compose.yaml`](https://forgejo.alexma.top/alexma233/composia/src/branch/main/docker-compose.yaml).
 
-## Download the files
+## Interactive installer
+
+Download the installer as a file so you can inspect it before execution. Do not pipe it directly into a shell:
+
+```bash
+curl -fLO https://forgejo.alexma.top/alexma233/composia/raw/branch/main/install.sh
+less install.sh
+sh install.sh
+```
+
+The installer:
+
+1. asks which role to install and collects the required configuration;
+2. prints every directory, download, generated file, container command, and Compose command before making changes;
+3. redacts secrets from the plan and terminal output;
+4. waits for one explicit confirmation;
+5. executes and labels every step.
+
+It does not install Docker, alter the firewall, or create system services. Generated secrets remain in mode-`600` configuration files. Web passwords are converted locally to Argon2id hashes by the published Web image in a container with networking disabled, and are never written in plaintext.
+
+The manual instructions below remain available if you prefer to create every file yourself.
+
+## Manual installation
+
+### Download the files
 
 You do not need to clone the whole repository for a Docker Compose install. Download the compose file and environment template:
 
@@ -25,7 +49,7 @@ stat -c '%g' /var/run/docker.sock
 
 Set `DOCKER_SOCK_GID` to that value.
 
-## Agent repository path
+### Agent repository path
 
 `COMPOSIA_AGENT_REPO_DIR` is mounted as:
 
@@ -43,7 +67,7 @@ COMPOSIA_AGENT_REPO_DIR=/data/repo-agent
 
 Set `agent.repo_dir` in `config.yaml` to the same absolute path.
 
-## Basic `config.yaml`
+### Basic `config.yaml`
 
 Create `config.yaml` inside `COMPOSIA_CONFIG_DIR`. The Docker Compose file mounts this directory at `/app/configs`.
 
@@ -72,7 +96,7 @@ agent:
 
 Set `WEB_CONTROLLER_ACCESS_TOKEN` in `.env` to the same value as `controller.access_tokens[0].token`.
 
-## Web password
+### Web password
 
 `WEB_LOGIN_PASSWORD_HASH` must be an Argon2id PHC hash. Generate a ready-to-paste `.env` entry below:
 
@@ -84,7 +108,7 @@ Generate `WEB_SESSION_SECRET` with any cryptographically secure random generator
 openssl rand -hex 32
 ```
 
-## Start
+### Start
 
 ```bash
 docker compose up -d
@@ -93,7 +117,7 @@ docker compose ps
 
 Open the web UI at `http://localhost:3000`.
 
-## Role split
+### Role split
 
 The compose file is sectioned by role:
 
@@ -102,7 +126,17 @@ The compose file is sectioned by role:
 - **Shared init**: `init-config-perms`.
 - **Agent stack**: `init-perms-agent`, `agent`.
 
-For anything beyond the all-in-one deployment, split those sections explicitly for your topology. Controller and web can run together or separately. Each agent node keeps the agent stack and its own Docker socket access.
+Start a single role by naming its main service. Compose starts that role's initialization dependencies automatically:
+
+```bash
+docker compose up -d web
+docker compose up -d controller
+docker compose up -d agent
+```
+
+Run `docker compose up -d` for the all-in-one topology. A standalone Web UI or Agent must use a Controller URL reachable from its container. Each Agent node needs its own Docker socket access.
+
+For a split deployment, install the Controller first. Copy its generated Web access token and Agent node token from `config/config.yaml` into the corresponding prompts on the other nodes. The Controller initialization container may change that file's owner to UID `65532`, so reading it later can require `sudo`.
 
 ## Images
 
