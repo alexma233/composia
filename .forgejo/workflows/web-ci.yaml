@@ -26,7 +26,7 @@ jobs:
   format:
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-deno:2.9.6@sha256:4209914304a31b1932bda897ed1a9cc43f2c3a8714a0280ad8335396851fcbbc
+      image: forgejo.alexma.top/alexma233/ci-images-deno:2.9.8@sha256:8542f9a4a315b8f3942b3c0474734e8c50c90c536cff0c65ab3017aa61f3cb5d
 
     steps:
       - name: Checkout
@@ -42,7 +42,7 @@ jobs:
   build:
     runs-on: docker-amd64
     container:
-      image: forgejo.alexma.top/alexma233/ci-images-deno:2.9.6@sha256:4209914304a31b1932bda897ed1a9cc43f2c3a8714a0280ad8335396851fcbbc
+      image: forgejo.alexma.top/alexma233/ci-images-deno:2.9.8@sha256:8542f9a4a315b8f3942b3c0474734e8c50c90c536cff0c65ab3017aa61f3cb5d
 
     steps:
       - name: Checkout
