@@ -38,12 +38,16 @@ export const POST: RequestHandler = async ({ params, request }) => {
       imageUpdates?: ImageUpdateSelection[];
       useAllDetectedImageUpdates?: boolean;
       backupBeforeUpdate?: boolean;
+      baseRevision?: string;
+      commitMessage?: string;
     };
     return json(
       await runServiceAction(workspace.serviceName, params.action, {
         composeRecreateMode: parseComposeRecreateMode(payload.recreateMode),
         imageUpdates: payload.imageUpdates,
         useAllDetectedImageUpdates: payload.useAllDetectedImageUpdates,
+        baseRevision: payload.baseRevision,
+        commitMessage: payload.commitMessage,
         backupBeforeUpdate:
           typeof payload.backupBeforeUpdate === "boolean"
             ? payload.backupBeforeUpdate

@@ -227,13 +227,7 @@ func (server *serviceCommandServer) runServiceUpdateWithImageSelections(ctx cont
 	if err != nil {
 		return nil, nil, err
 	}
-	if serviceImageUpdatesNeedBackup(server.cfg, service.Meta.Update, service.Meta.Update.Images, planned, selections, backupBeforeUpdateOverride) {
-		if err := server.runBackupsBeforeUpdate(ctx, service, targetNodeIDs, source, dedupeKey); err != nil {
-			return nil, nil, err
-		}
-	}
 	repoBackedPlanned := repoBackedPlannedImageUpdates(planned)
-	var repoWrite *repoWriteResult
 	if len(repoBackedPlanned) > 0 {
 		if strings.TrimSpace(baseRevision) == "" {
 			return nil, nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base_revision is required for repo-backed image updates"))
@@ -241,6 +235,14 @@ func (server *serviceCommandServer) runServiceUpdateWithImageSelections(ctx cont
 		if strings.TrimSpace(commitMessage) == "" {
 			return nil, nil, connect.NewError(connect.CodeInvalidArgument, errors.New("commit_message is required for repo-backed image updates"))
 		}
+	}
+	if serviceImageUpdatesNeedBackup(server.cfg, service.Meta.Update, service.Meta.Update.Images, planned, selections, backupBeforeUpdateOverride) {
+		if err := server.runBackupsBeforeUpdate(ctx, service, targetNodeIDs, source, dedupeKey); err != nil {
+			return nil, nil, err
+		}
+	}
+	var repoWrite *repoWriteResult
+	if len(repoBackedPlanned) > 0 {
 		result, err := server.applyPlannedServiceImageUpdates(ctx, service, repoBackedPlanned, baseRevision, commitMessage, dedupeKey != "")
 		if err != nil {
 			return nil, nil, err

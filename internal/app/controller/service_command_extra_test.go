@@ -6,6 +6,9 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
+
+	"connectrpc.com/connect"
 
 	controllerv1 "forgejo.alexma.top/alexma233/composia/gen/go/proto/composia/controller/v1"
 	"forgejo.alexma.top/alexma233/composia/internal/core/config"
@@ -76,6 +79,48 @@ func TestRunBackupsBeforeUpdateSkipsServiceWithoutBackupConfig(t *testing.T) {
 		if err := server.runBackupsBeforeUpdate(context.Background(), service, []string{"main"}, task.SourceCLI, ""); err != nil {
 			t.Fatalf("run backups before update: %v", err)
 		}
+	}
+}
+
+func TestRunServiceUpdateValidatesRepoWriteBeforeBackup(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name, baseRevision, commitMessage, missingField string
+	}{
+		{name: "revision", commitMessage: "update images", missingField: "base_revision"},
+		{name: "message", baseRevision: "revision", missingField: "commit_message"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			db := openControllerTestDB(t)
+			defer func() { _ = db.Close() }()
+			repoDir := filepath.Join(t.TempDir(), "repo")
+			createGitRepoWithContent(t, repoDir, map[string]string{
+				"app/composia-meta.yaml": "name: app\nnodes:\n  - main\ndata_protect:\n  data:\n    - name: db\n      backup:\n        strategy: files.copy\n        include:\n          - ./db\nbackup:\n  data:\n    - name: db\nupdate:\n  backup_before_update: true\n  images:\n    api:\n      image: ghcr.io/example/api\n      current:\n        env:\n          file: .env\n          key: API_VERSION\n      discovery:\n        sources:\n          - type: auto\n      filter:\n        type: semver\n",
+				"app/.env":               "API_VERSION=1.2.3\n",
+			})
+			nodes := map[string]struct{}{"main": {}}
+			service, err := repo.FindService(repoDir, nodes, "app")
+			if err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			if err := db.SyncConfiguredNodes(ctx, []string{"main"}); err != nil {
+				t.Fatal(err)
+			}
+			if err := syncDeclaredServicesForTests(ctx, db, "app"); err != nil {
+				t.Fatal(err)
+			}
+			server := &serviceCommandServer{db: db, cfg: &config.ControllerConfig{RepoDir: repoDir, LogDir: t.TempDir()}, availableNodeIDs: nodes}
+			_, _, err = server.runServiceUpdateWithImageSelections(ctx, service, nil, []*controllerv1.ImageUpdateSelection{{ImageName: "api", TargetTag: "1.3.0"}}, false, nil, test.baseRevision, test.commitMessage, task.SourceWeb, "", "")
+			if connect.CodeOf(err) != connect.CodeInvalidArgument || !strings.Contains(err.Error(), test.missingField) {
+				t.Fatalf("expected missing %s error before backup, got %v", test.missingField, err)
+			}
+			_, count, err := db.ListTasks(context.Background(), nil, nil, nil, nil, nil, nil, nil, nil, 1, 10)
+			if err != nil || count != 0 {
+				t.Fatalf("invalid update must not create tasks: count=%d err=%v", count, err)
+			}
+		})
 	}
 }
 
