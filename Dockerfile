@@ -57,7 +57,7 @@ RUN printf '%s\n' '@compose-edge https://dl-cdn.alpinelinux.org/alpine/edge/comm
 
 CMD ["air", "-v"]
 
-FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS cli
+FROM alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf AS cli
 
 WORKDIR /app
 
@@ -68,7 +68,7 @@ USER 65532:65532
 ENTRYPOINT ["/usr/local/bin/composia"]
 CMD ["--help"]
 
-FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS controller
+FROM alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf AS controller
 
 WORKDIR /app
 
@@ -79,7 +79,7 @@ USER 65532:65532
 ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/composia-controller"]
 CMD ["-config", "/app/config.yaml"]
 
-FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS agent
+FROM alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf AS agent
 
 WORKDIR /app
 ENV HOME=/tmp \
